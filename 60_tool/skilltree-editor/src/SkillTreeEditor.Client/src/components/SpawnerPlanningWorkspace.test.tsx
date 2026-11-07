@@ -7,9 +7,10 @@ import type { PlacementCatalog } from './WorldPlacementEditor'
 import type { WorldPlacement } from '../api/worldPlacementApi'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 
-vi.mock('../api/spawnerPlanningApi', () => ({ spawnerPlanningApi: { snapshot: vi.fn(), plan: vi.fn() } }))
+vi.mock('../api/spawnerPlanningApi', () => ({ spawnerPlanningApi: { snapshot: vi.fn(), plan: vi.fn(), worlds: vi.fn() } }))
 vi.mock('./SpawnerPlanningMap', () => ({ SpawnerPlanningMap: ({ onCell, layer, focus }: { onCell: (index: number) => void; layer: string; focus: unknown }) => <><output data-testid="map-layer">{layer}</output><output data-testid="map-focus">{JSON.stringify(focus)}</output><button onClick={() => onCell(1)}>解析失敗区画を選択</button></> }))
-vi.mock('./WorldPlacementEditor', () => ({ WorldPlacementEditor: ({ map, onSelected, onPlacements }: { map: ReactNode; onSelected: (id: string, location: { x: number; z: number }) => void; onPlacements: (items: WorldPlacement[], catalog: PlacementCatalog, ready: boolean) => void }) => <>{map}<button onClick={() => onSelected('hidden', { x: 120, z: 240 })}>条件外の配置を選択</button><button onClick={() => onPlacements([], { spawners: [], npcs: [], worlds: [] }, true)}>表示中配置を更新</button></> }))
+vi.mock('./WorldPlacementEditor', () => ({ WorldPlacementEditor: ({ map, onSelected, onPlacements, onDirtyChange, onBusyChange }: { map: ReactNode; onSelected: (id: string, location: { x: number; z: number }) => void; onPlacements: (items: WorldPlacement[], catalog: PlacementCatalog, ready: boolean) => void; onDirtyChange: (dirty: boolean) => void; onBusyChange: (busy: boolean) => void }) => <>{map}<button onClick={() => onSelected('hidden', { x: 120, z: 240 })}>条件外の配置を選択</button><button onClick={() => onPlacements([], { spawners: [], npcs: [], worlds: [] }, true)}>表示中配置を更新</button><button onClick={() => onDirtyChange(true)}>編集する</button><button onClick={() => onDirtyChange(false)}>編集を破棄する</button><button onClick={() => onBusyChange(true)}>保存を開始する</button><button onClick={() => onBusyChange(false)}>保存を完了する</button></> }))
+vi.mock('./ChallengeLocationEditor', () => ({ ChallengeLocationEditor: ({ onDirtyChange }: { onDirtyChange: (dirty: boolean) => void }) => <button onClick={() => onDirtyChange(true)}>チャレンジを編集する</button> }))
 const identity = { schemaVersion: 2, worldId: 'test', terrainFingerprint: 'terrain', exportRevision: 'revision-a' }
 const snapshot: PlanningSnapshot = {
   manifest: { ...identity, worldName: 'テスト大陸', previewOnly: true, bounds: { minX: 0, minZ: 0, width: 48, height: 16, cellSize: 16 }, spawn: { x: 0, y: 70, z: 0 }, capturedAt: '2026-10-25T00:00:00Z', radiusOptions: [32, 48, 64], reasons: { covered: '新しい配置案でカバー', failed: '地形の読込・計測に失敗', absent: '未保存の区画' }, limitations: ['実配置は行いません'], progressionPolicy: {} },
@@ -17,9 +18,52 @@ const snapshot: PlanningSnapshot = {
   regions: [{ id: 'east-dry', name: '東部乾燥地', habitat: 'dry', levelMin: 38, levelMax: 38, cellCount: 3, eligibleCells: 1, coveredCellsByRadius: { '32': 1, '48': 1, '64': 1 }, spawnerIds: ['draft-sand'], reason: '乾燥地の野外モブを選定' }],
 }
 const plan: PlanningPlan = { ...identity, previewOnly: true, radiusMeters: 64, proposals: [{ proposalId: 'proposal', spawnerId: 'draft-sand', x: 8, y: 70, z: 8, radiusMeters: 64, originalRadiusMeters: null, masterUpdateRequired: true, definitionStatus: 'draft', regionId: 'east-dry', regionName: '東部乾燥地', habitat: 'dry', level: 38, spawnMobs: [{ mobId: 'sand-gecko', name: '砂ヤモリ', level: 38, weight: 100 }], reason: '乾燥地の実在Lv38を選定', newCoveredCells: 1, coveredCellIndices: [0] }], reasonCodes: ['covered', 'failed', 'absent'], counts: { covered: 1, failed: 1, absent: 1 }, targetCells: 1, coveredCells: 1, uncoveredCells: 0, coveragePercent: 100 }
-beforeEach(() => { vi.resetAllMocks(); vi.mocked(spawnerPlanningApi.snapshot).mockResolvedValue(snapshot); vi.mocked(spawnerPlanningApi.plan).mockResolvedValue(plan) })
+const terrainOnly: PlanningSnapshot = { ...snapshot, manifest: { ...snapshot.manifest, worldId: 'other', worldName: '第二ワールド', radiusOptions: [] }, regions: [] }
+beforeEach(() => { vi.resetAllMocks(); vi.mocked(spawnerPlanningApi.snapshot).mockResolvedValue(snapshot); vi.mocked(spawnerPlanningApi.plan).mockResolvedValue(plan); vi.mocked(spawnerPlanningApi.worlds).mockResolvedValue([]) })
 
 describe('マスタエディタ内の配置計画', () => {
+  it('編集中・保存中の切り替えを防ぎ、別ワールドでは地図の位置と配置案をリセットする', async () => {
+    vi.mocked(spawnerPlanningApi.worlds).mockResolvedValue([{ id: 'test', name: 'テスト大陸' }, { id: 'other', name: '第二ワールド' }])
+    vi.mocked(spawnerPlanningApi.snapshot).mockImplementation(async (_signal, id) => id === 'other' ? terrainOnly : snapshot)
+    render(<SpawnerPlanningWorkspace active />)
+    const selector = await screen.findByRole('combobox', { name: '表示ワールド' })
+    await waitFor(() => expect(selector).toHaveValue('test'))
+    fireEvent.click(screen.getByRole('button', { name: '条件外の配置を選択' }))
+    expect(screen.getByTestId('map-focus')).toHaveTextContent('120')
+    fireEvent.click(screen.getByRole('button', { name: '編集する' }))
+    expect(selector).toBeDisabled()
+    fireEvent.change(selector, { target: { value: 'other' } })
+    expect(spawnerPlanningApi.snapshot).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: '編集を破棄する' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存を開始する' }))
+    expect(selector).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: '保存を完了する' }))
+    fireEvent.change(selector, { target: { value: 'other' } })
+    await waitFor(() => expect(screen.getByTestId('map-focus')).toHaveTextContent('null'))
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('第二ワールド')
+    expect(screen.queryByRole('button', { name: 'AI 配置案' })).not.toBeInTheDocument()
+    expect(spawnerPlanningApi.plan).not.toHaveBeenCalled()
+    expect(spawnerPlanningApi.snapshot).toHaveBeenLastCalledWith(expect.any(AbortSignal), 'other')
+    fireEvent.click(screen.getByRole('button', { name: '解析結果を再読込' }))
+    await waitFor(() => expect(spawnerPlanningApi.snapshot).toHaveBeenCalledTimes(3))
+    expect(spawnerPlanningApi.snapshot).toHaveBeenLastCalledWith(expect.any(AbortSignal), 'other')
+  })
+
+  it('地図一覧にエリヴァがあれば最初に表示し、チャレンジ編集中はワールドを固定する', async () => {
+    const eriva = { ...snapshot, manifest: { ...snapshot.manifest, worldId: 'eriva_supercontinent' } }
+    vi.mocked(spawnerPlanningApi.worlds).mockResolvedValue([{ id: 'other', name: '第二ワールド' }, { id: 'eriva_supercontinent', name: 'エリヴァ超大陸' }])
+    vi.mocked(spawnerPlanningApi.snapshot).mockResolvedValue(eriva)
+    render(<SpawnerPlanningWorkspace active />)
+    fireEvent.click(await screen.findByRole('button', { name: 'チャレンジ配置' }))
+    const selector = screen.getByRole('combobox', { name: '表示ワールド' })
+    expect(selector).toHaveValue('eriva_supercontinent')
+    expect(spawnerPlanningApi.snapshot).toHaveBeenLastCalledWith(expect.any(AbortSignal), 'eriva_supercontinent')
+    fireEvent.click(screen.getByRole('button', { name: 'チャレンジを編集する' }))
+    fireEvent.click(screen.getByRole('button', { name: '配置編集' }))
+    expect(selector).toBeDisabled()
+    expect(window.dispatchEvent(new Event('beforeunload', { cancelable: true }))).toBe(false)
+  })
+
   it('同snapshotの3半径を保持し、モード・半径を往復しても再取得せず明示再読込で破棄する', async () => {
     render(<StrictMode><SpawnerPlanningWorkspace active /></StrictMode>)
     fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))

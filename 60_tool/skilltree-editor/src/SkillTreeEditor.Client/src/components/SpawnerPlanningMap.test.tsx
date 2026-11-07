@@ -75,7 +75,7 @@ it('uses matching 1m terrain once the map is close enough and can zoom to block 
   expect(screen.getByText(/16\.0 px\/m/)).toBeInTheDocument()
 })
 
-it('詳細地形は表示中の地形レイヤーを拡大したときだけ取得し、往復しても画像を再取得しない', async () => {
+it.each([undefined, 'verdia'])('詳細地形は拡大時だけ対象ワールドから取得し、往復しても再取得しない (%s)', async (worldId) => {
   const request = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ schemaVersion: 1,
     terrainFingerprint: 'fingerprint', ...bounds, blocksPerPixel: 1 }) })
   const sources: string[] = []
@@ -85,26 +85,29 @@ it('詳細地形は表示中の地形レイヤーを拡大したときだけ取�
     onload: (() => void) | null = null
     set src(value: string) { sources.push(value); if (value) queueMicrotask(() => this.onload?.()) }
   })
-  const { rerender } = render(<SpawnerPlanningMap {...props} active={false} />)
+  const mapProps = { ...props, planningWorldId: worldId }
+  const { rerender } = render(<SpawnerPlanningMap {...mapProps} active={false} />)
   expect(request).not.toHaveBeenCalled()
-  rerender(<SpawnerPlanningMap {...props} />)
+  rerender(<SpawnerPlanningMap {...mapProps} />)
   expect(request).not.toHaveBeenCalled()
-  rerender(<SpawnerPlanningMap {...props} layer="levels" />)
+  rerender(<SpawnerPlanningMap {...mapProps} layer="levels" />)
   for (let index = 0; index < 5; index++) fireEvent.click(screen.getByRole('button', { name: '地図を拡大' }))
   expect(request).not.toHaveBeenCalled()
-  rerender(<SpawnerPlanningMap {...props} layer="reasons" />)
+  rerender(<SpawnerPlanningMap {...mapProps} layer="reasons" />)
   expect(request).not.toHaveBeenCalled()
-  rerender(<SpawnerPlanningMap {...props} active={false} />)
+  rerender(<SpawnerPlanningMap {...mapProps} active={false} />)
   expect(request).not.toHaveBeenCalled()
-  rerender(<SpawnerPlanningMap {...props} />)
+  rerender(<SpawnerPlanningMap {...mapProps} />)
   await waitFor(() => expect(screen.getByText(/1m地形/)).toBeInTheDocument())
-  rerender(<SpawnerPlanningMap {...props} active={false} />)
-  rerender(<SpawnerPlanningMap {...props} layer="levels" />)
-  rerender(<SpawnerPlanningMap {...props} />)
+  rerender(<SpawnerPlanningMap {...mapProps} active={false} />)
+  rerender(<SpawnerPlanningMap {...mapProps} layer="levels" />)
+  rerender(<SpawnerPlanningMap {...mapProps} />)
   for (let index = 0; index < 5; index++) fireEvent.click(screen.getByRole('button', { name: '地図を縮小' }))
   for (let index = 0; index < 5; index++) fireEvent.click(screen.getByRole('button', { name: '地図を拡大' }))
   expect(request).toHaveBeenCalledTimes(1)
-  expect(sources).toEqual(['/api/spawner-planning/terrain-detail/image?revision=revision'])
+  const query = worldId ? `revision=revision&worldId=${worldId}` : 'revision=revision'
+  expect(request).toHaveBeenCalledWith(`/api/spawner-planning/terrain-detail?${query}`, { signal: expect.any(AbortSignal) })
+  expect(sources).toEqual([`/api/spawner-planning/terrain-detail/image?${query}`])
 })
 
 it('詳細地形の取得中は非表示で中断し、古い応答を採用せず再表示で再試行できる', async () => {
@@ -161,19 +164,19 @@ it('詳細画像はrevision・地形fingerprint変更で無効化し、読み込
   expect(request).toHaveBeenCalledTimes(3)
 })
 
-it('地図のクリックは区画代表地点の X/Y/Z を配置へ渡す', () => {
+it.each(['ok', 'failed'] as const)('チャレンジ受付地点には計測できた Y だけを渡す (%s)', (status) => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
   const onPlacePoint = vi.fn()
   const local = structuredClone(snapshot)
   local.manifest.bounds = { minX: 0, minZ: 0, width: 16, height: 16, cellSize: 16 }
-  local.cells = [{ x: 0, z: 0, y: 70, status: 'ok', surface: 'grass', ground: 'dirt', biome: 'plains', safeCount: 256, waterCount: 0, treeCount: 0,
+  local.cells = [{ x: 0, z: 0, y: 70, status, surface: 'grass', ground: 'dirt', biome: 'plains', safeCount: 256, waterCount: 0, treeCount: 0,
     candidateX: 12, candidateY: 72, candidateZ: 13, minY: 70, maxY: 72, habitat: 'grass', regionId: 'field', targetLevel: 10, reasonCode: 'eligible', reason: '' }]
-  const { container } = render(<SpawnerPlanningMap {...props} snapshot={local} placing onPlacePoint={onPlacePoint} />)
+  const { container } = render(<SpawnerPlanningMap {...props} snapshot={local} pickingChallenge placing onPlacePoint={onPlacePoint} />)
   const canvas = container.querySelector('canvas')!
   canvas.setPointerCapture = vi.fn()
   fireEvent.pointerDown(canvas, { clientX: 203, clientY: 250, pointerId: 1 })
   fireEvent.pointerUp(canvas, { clientX: 203, clientY: 250, pointerId: 1 })
-  expect(onPlacePoint).toHaveBeenCalledWith(12, 72, 13)
+  expect(onPlacePoint).toHaveBeenCalledWith(...(status === 'ok' ? [12, 72, 13] : [8, null, 8]))
 })
 
 it('全大陸表示でも保存済み配置の点を選択できる', () => {

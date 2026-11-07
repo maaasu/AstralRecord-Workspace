@@ -1,12 +1,13 @@
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { ResizeHandle, usePanelSize } from './ResizeHandle'
-import { spawnerPlanningApi } from '../api/spawnerPlanningApi'
+import { spawnerPlanningApi, type PlanningWorld } from '../api/spawnerPlanningApi'
 import { habitatNames, levelColor, reasonColor, planningRoad, planningLevelStepMeters } from '../data/spawnerPlanning'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 import { MinecraftText } from './MinecraftText'
 import { SpawnerPlanningMap } from './SpawnerPlanningMap'
 import type { PlanningLayer } from './SpawnerPlanningMap'
 import { WorldPlacementEditor, type PlacementCatalog, type PlacementPoint } from './WorldPlacementEditor'
+import { ChallengeLocationEditor } from './ChallengeLocationEditor'
 import type { WorldPlacement } from '../api/worldPlacementApi'
 import './spawnerPlanning.css'
 import { placementSearchText, placementSearchWords } from '../data/placementSearch'
@@ -14,6 +15,7 @@ import { stripMinecraftFormatting } from '../utils/minecraft'
 
 const number = (value: number) => value.toLocaleString('ja-JP')
 const proposalPageSize = 40
+type WorkspaceMode = 'placements' | 'proposals' | 'challenge'
 export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: boolean; onDirtyChange?: (dirty: boolean) => void }) {
   const [sidebarWidth, setSidebarWidth] = usePanelSize('planning-sidebar', 330, 260, 700)
   const searchHelpId = useId()
@@ -22,6 +24,8 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   const listFocus = useRef<{ id: string | null; plan: PlanningPlan | null; region: string } | null>(null)
   const [listFocusKey, setListFocusKey] = useState(0)
   const [snapshot, setSnapshot] = useState<PlanningSnapshot | null>(null)
+  const [worlds, setWorlds] = useState<PlanningWorld[]>([])
+  const [worldId, setWorldId] = useState<string | null>(null)
   const [plan, setPlan] = useState<PlanningPlan | null>(null)
   const [reload, setReload] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -46,28 +50,65 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   const [placing, setPlacing] = useState(false)
   const [moving, setMoving] = useState(false)
   const [placementBusy, setPlacementBusy] = useState(false)
+  const [placementDirty, setPlacementDirty] = useState(false)
   const [placementPoint, setPlacementPoint] = useState<PlacementPoint | null>(null)
-  const [editing, setEditing] = useState(true)
-  // A new snapshot (including an explicit reload) owns a fresh, bounded cache.
-  const plansByRadius = useMemo(() => new Map<number, PlanningPlan>(), [snapshot, reload])
+  const [mode, setMode] = useState<WorkspaceMode>('placements')
+  const [challengePoint, setChallengePoint] = useState<PlacementPoint | null>(null)
+  const [challengePosition, setChallengePosition] = useState<{ x: number; y: number; z: number } | null>(null)
+  const [challengePicking, setChallengePicking] = useState(false)
+  const [challengeDirty, setChallengeDirty] = useState(false)
+  const [challengeBusy, setChallengeBusy] = useState(false)
+  const editing = mode === 'placements'
+  const showingPlans = mode === 'proposals'
+  const editingChallenge = mode === 'challenge'
+  const listedWorld = worlds.find(world => world.id === worldId)
+  const hasPlans = !!snapshot?.manifest.radiusOptions.length
+  const capturedAt = snapshot?.manifest.capturedAt ? Date.parse(snapshot.manifest.capturedAt) : NaN
+  const capturedLabel = Number.isFinite(capturedAt) ? new Date(capturedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : ''
+  const dirty = placementDirty || challengeDirty
+  const editorBusy = placementBusy || challengeBusy
+  const switchLocked = loading || (showingPlans && planning) || editorBusy || dirty
+  useEffect(() => { onDirtyChange?.(dirty) }, [onDirtyChange, dirty])
+  useEffect(() => {
+    if (!challengeDirty) return
+    const listener = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
+    window.addEventListener('beforeunload', listener)
+    return () => window.removeEventListener('beforeunload', listener)
+  }, [challengeDirty])
   useEffect(() => {
     const controller = new AbortController()
-    setLoading(true); setError(''); setPlan(null)
-    spawnerPlanningApi.snapshot(controller.signal).then(value => {
+    const request = spawnerPlanningApi.worlds?.(controller.signal) ?? Promise.resolve([])
+    request.then(value => {
       if (controller.signal.aborted) return
-      setSnapshot(value); setRegion(''); setReason(''); setSelectedCell(null); setSelectedProposal(null)
-      setRadius(current => value.manifest.radiusOptions.includes(current) ? current : value.manifest.radiusOptions[0])
-    }).catch(failure => { if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : '解析結果を読み込めませんでした。') })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
+      setWorlds(value)
+      setWorldId(current => current ?? value.find(world => world.id === 'eriva_supercontinent')?.id ?? value[0]?.id ?? '')
+    }).catch(() => { if (!controller.signal.aborted) setWorldId(current => current ?? '') })
     return () => controller.abort()
   }, [reload])
   useEffect(() => {
-    if (!snapshot || editing || loading) return
+    if (worldId === null) return
+    const controller = new AbortController()
+    setLoading(true); setError(''); setPlan(null)
+    const request = worldId ? spawnerPlanningApi.snapshot(controller.signal, worldId) : spawnerPlanningApi.snapshot(controller.signal)
+    request.then(value => {
+      if (controller.signal.aborted) return
+      setSnapshot(value); setRegion(''); setReason(''); setSelectedCell(null); setSelectedProposal(null)
+      if (value.manifest.radiusOptions.length === 0) setMode(current => current === 'proposals' ? 'placements' : current)
+      else setRadius(current => value.manifest.radiusOptions.includes(current) ? current : value.manifest.radiusOptions[0])
+    }).catch(failure => { if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : '解析結果を読み込めませんでした。') })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    return () => controller.abort()
+  }, [reload, worldId])
+  // A new snapshot (including an explicit reload) owns a fresh, bounded cache.
+  const plansByRadius = useMemo(() => new Map<number, PlanningPlan>(), [snapshot, reload])
+  useEffect(() => {
+    if (!snapshot || !hasPlans || !showingPlans || loading) return
     const controller = new AbortController()
     setPlanning(true); setPlan(null); setPlanningError(''); setSelectedCell(null); setSelectedProposal(null); setProposalPage(0)
     const cached = plansByRadius.get(radius)
     if (cached) { setPlan(cached); setPlanning(false); return () => controller.abort() }
-    spawnerPlanningApi.plan(snapshot, radius, controller.signal).then(value => {
+    const request = worldId ? spawnerPlanningApi.plan(snapshot, radius, controller.signal, worldId) : spawnerPlanningApi.plan(snapshot, radius, controller.signal)
+    request.then(value => {
       if (controller.signal.aborted) return
       const oldest = plansByRadius.keys().next().value
       if (plansByRadius.size >= 3 && oldest !== undefined) plansByRadius.delete(oldest)
@@ -77,7 +118,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
       .catch(failure => { if (!controller.signal.aborted) setPlanningError(failure instanceof Error ? failure.message : '配置案を読み込めませんでした。') })
       .finally(() => { if (!controller.signal.aborted) setPlanning(false) })
     return () => controller.abort()
-  }, [snapshot, radius, editing, loading, plansByRadius])
+  }, [snapshot, radius, showingPlans, loading, plansByRadius, worldId, hasPlans])
   const regionById = useMemo(() => new Map(snapshot?.regions.map(value => [value.id, value]) ?? []), [snapshot])
   const selectedRegion = regionById.get(region)
   const road = snapshot ? planningRoad(snapshot.manifest) : null
@@ -99,12 +140,12 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   useEffect(() => {
     const request = listFocus.current
     listFocus.current = null
-    if (!request || editing || loading || planning || request.plan !== plan || request.region !== region) return
+    if (!request || !showingPlans || loading || planning || request.plan !== plan || request.region !== region) return
     const buttons = Array.from(proposalList.current?.querySelectorAll<HTMLButtonElement>('button[data-proposal-id]') ?? [])
     const target = request.id === null ? buttons[0] : buttons.find(button => button.dataset.proposalId === request.id)
     target?.focus({ preventScroll: true })
     target?.scrollIntoView?.({ block: 'nearest' })
-  }, [currentProposalPage, listFocusKey, editing, loading, planning, plan, region])
+  }, [currentProposalPage, listFocusKey, showingPlans, loading, planning, plan, region])
   function navigateProposals(page: number, id: string | null = null) {
     if (!plan || planning || loading) return
     listFocus.current = { id, plan, region }
@@ -142,6 +183,27 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
     const item = location ?? placements.find(value => value.placementId === id)
     if (item) setFocus(current => ({ key: (current?.key ?? 0) + 1, x: item.x, z: item.z }))
   }
+  function selectWorld(next: string) {
+    if (switchLocked || next === worldId || !worlds.some(world => world.id === next)) return
+    setLoading(true); setSnapshot(null); setWorldId(next)
+    setPlan(null); setPlanning(false); setPlanningError(''); setMode('placements')
+    setSelectedPlacement(null); setPlacementPoint(null); setPlacing(false); setMoving(false)
+    setChallengePoint(null); setChallengePosition(null); setChallengePicking(false)
+    setPlacements([]); setPlacementsReady(false); setFocus(null); setLayer('terrain')
+    setQuery(''); setProposalPage(0); listFocus.current = null
+  }
+  function selectMode(next: WorkspaceMode) {
+    setMode(next)
+    if (next === 'placements') setSelectedProposal(null)
+    else { setPlacing(false); setMoving(false) }
+  }
+  function selectMapPoint(x: number, y: number | null, z: number) {
+    if (editingChallenge && challengePicking && !challengeBusy) {
+      setChallengePoint(current => ({ key: (current?.key ?? 0) + 1, x, y, z }))
+    } else if (editing && !placementBusy) {
+      setPlacementPoint(current => ({ key: (current?.key ?? 0) + 1, x, y, z }))
+    }
+  }
   function download() {
     if (!snapshot || !plan) return
     const file = new Blob([JSON.stringify({ ...plan, worldName: snapshot.manifest.worldName, progressionPolicy: snapshot.manifest.progressionPolicy, limitations: snapshot.manifest.limitations }, null, 2)], { type: 'application/json' })
@@ -150,15 +212,31 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
   return <section className={`sp-workspace ${editing ? 'sp-editing-workspace' : ''}`} aria-label="ワールド配置・編集">
-    <header className="sp-heading"><div><span className="sp-eyebrow">WORLD PLACEMENTS</span><h1>{snapshot?.manifest.worldName ?? 'エリヴァ超大陸'} <small>ワールド配置・編集</small></h1></div><div className="sp-mode-switch" aria-label="表示モード"><button className="button" aria-pressed={editing} onClick={() => { setEditing(true); setSelectedProposal(null) }}>配置編集</button><button className="button" aria-pressed={!editing} onClick={() => { setEditing(false); setPlacing(false); setMoving(false) }}>AI 配置案</button></div><div className="sp-header-actions"><button className="button" onClick={() => { setLoading(true); setReload(value => value + 1) }} disabled={loading}>解析結果を再読込</button></div></header>
+    <header className="sp-heading">
+      <div><span className="sp-eyebrow">WORLD PLACEMENTS</span><h1>{snapshot?.manifest.worldName ?? listedWorld?.name ?? 'ワールド地図'} <small>ワールド配置・編集</small></h1></div>
+      <div className="sp-mode-switch" aria-label="表示モード">
+        <button className="button" aria-pressed={editing} onClick={() => selectMode('placements')}>配置編集</button>
+        {(!snapshot || hasPlans) && <button className="button" aria-pressed={showingPlans} onClick={() => selectMode('proposals')}>AI 配置案</button>}
+        {snapshot && <button className="button" aria-pressed={editingChallenge} onClick={() => selectMode('challenge')}>チャレンジ配置</button>}
+      </div>
+      <div className="sp-header-actions">
+        {worlds.length > 0 && <label className="sp-world-select">表示ワールド<select value={worldId ?? ''} disabled={switchLocked} onChange={event => selectWorld(event.target.value)}>
+          {!listedWorld && <option value={worldId ?? ''}>{snapshot?.manifest.worldName ?? '選択してください'}</option>}
+          {worlds.map(world => <option key={world.id} value={world.id}>{world.name}</option>)}
+        </select></label>}
+        <button className="button" onClick={() => { setLoading(true); setReload(value => value + 1) }} disabled={loading || (!worldId && (dirty || editorBusy))}>解析結果を再読込</button>
+      </div>
+    </header>
+    <p className="sp-muted">{snapshot && <>解析日時 {capturedLabel ? `${capturedLabel} JST` : '記録なし'}。 </>}再読込は生成済みの Dev 地図を読み込みます。</p>
+    {worlds.length > 0 && dirty && <p className="sp-muted" role="status">ワールドを切り替えるには、先に編集内容を保存するか取り消してください。</p>}
 
-    {!editing && <p className="sp-intro">{road ? `${levelStep ? `開始地点からの${road.terrainExtension ? '地形経路距離' : '道路距離'}${number(levelStep)}mごとにレベルを一段階上げます。` : '開始地点につながる道の距離でレベルを決めます。'}配置の上限はLv.45で、未到達の距離帯は配置しません。北東のLv.100超予定地を含む後続地域は未配置です。金色の線は16m区画で検出した道路網です。${road.terrainExtension ? '水色の点線は水域・斜面・足場を調べて延長した推定経路です。周辺のレベルも地表をたどる距離で決めています。実際の歩行可能性は未検証です。' : ''}` : '既存の配置を使わず、ブロック・バイオームとマスタの実レベルから作る全大陸の再配置案です。地域名と進行レベルは計画用の提案です。'}</p>}
-    {error && <div className="sp-error" role="alert"><strong>解析結果を表示できません</strong><p>{error}</p><p>全大陸の解析と配置計算の出力一式を用意してから、再読込してください。</p></div>}
-    {!editing && planningError && <div className="sp-error" role="alert"><strong>配置案を表示できません</strong><p>{planningError}</p></div>}
-    {loading && <div className="sp-loading" role="status">全大陸の解析結果を読み込んでいます…</div>}
+    {showingPlans && <p className="sp-intro">{road ? `${levelStep ? `開始地点からの${road.terrainExtension ? '地形経路距離' : '道路距離'}${number(levelStep)}mごとにレベルを一段階上げます。` : '開始地点につながる道の距離でレベルを決めます。'}配置の上限はLv.45で、未到達の距離帯は配置しません。北東のLv.100超予定地を含む後続地域は未配置です。金色の線は16m区画で検出した道路網です。${road.terrainExtension ? '水色の点線は水域・斜面・足場を調べて延長した推定経路です。周辺のレベルも地表をたどる距離で決めています。実際の歩行可能性は未検証です。' : ''}` : '既存の配置を使わず、ブロック・バイオームとマスタの実レベルから作る全大陸の再配置案です。地域名と進行レベルは計画用の提案です。'}</p>}
+    {error && <div className="sp-error" role="alert"><strong>解析結果を表示できません</strong><p>{error}</p><p>ワールドの地形解析結果を用意してから、再読込してください。</p></div>}
+    {showingPlans && planningError && <div className="sp-error" role="alert"><strong>配置案を表示できません</strong><p>{planningError}</p></div>}
+    {loading && <div className="sp-loading" role="status">ワールドの解析結果を読み込んでいます…</div>}
     {snapshot && <>
       {editing && <div className="sp-controls"><label className="sp-check"><input type="checkbox" checked={radii} onChange={event => setRadii(event.target.checked)} />すべての出現範囲を表示</label><span className="sp-muted">地図に表示中の Dev スポナー全件が対象です。OFFでも選択・ホバーした範囲を表示します。</span></div>}
-      {!editing && <div className="sp-controls">
+      {showingPlans && <div className="sp-controls">
         <label>表示レイヤー<select value={layer} onChange={event => setLayer(event.target.value as PlanningLayer)}><option value="terrain">地形と配置案</option><option value="levels">地域・推奨レベル</option><option value="reasons">配置・未配置の理由</option></select></label>
         <label>地域<select value={region} onChange={event => selectRegion(event.target.value)}><option value="">全大陸</option>{snapshot.regions.map(value => <option key={value.id} value={value.id}>{value.name} · {value.levelMin == null ? 'レベル未選定' : `Lv.${value.levelMin}〜${value.levelMax}`}</option>)}</select></label>
         <label>出現半径<select value={radius} onChange={event => setRadius(Number(event.target.value))}>{snapshot.manifest.radiusOptions.map(value => <option key={value} value={value}>{value}m</option>)}</select></label>
@@ -166,8 +244,8 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
         <button className="button" onClick={() => { const spawn = snapshot.manifest.spawn; setFocus(value => ({ key: (value?.key ?? 0) + 1, x: spawn.x, z: spawn.z })) }}>開始地点</button>
         <label className="sp-check"><input type="checkbox" checked={radii} onChange={event => setRadii(event.target.checked)} />出現範囲を重ねる</label>
       </div>}
-      {!editing && <p className="sp-scope">出現範囲の一括表示は、地図に表示中の Dev スポナーと地域で絞り込んだ AI 配置案すべてが対象です。配置案一覧の検索では地図を絞り込みません。表示設定は配置編集と共通です。</p>}
-      {!editing && <div className="sp-metrics" aria-live="polite">
+      {showingPlans && <p className="sp-scope">出現範囲の一括表示は、地図に表示中の Dev スポナーと地域で絞り込んだ AI 配置案すべてが対象です。配置案一覧の検索では地図を絞り込みません。表示設定は配置編集と共通です。</p>}
+      {showingPlans && <div className="sp-metrics" aria-live="polite">
         <div><strong>{plan ? number(regionProposals.length) : '—'}</strong><span>{selectedRegion ? '選択地域' : '全大陸'}の配置案</span></div>
         <div><strong>{plan ? `${(region ? stats.target ? stats.covered / stats.target * 100 : 0 : plan.coveragePercent).toFixed(1)}%` : '—'}</strong><span>配置対象のカバー率</span></div>
         <div><strong>{plan ? number(region ? stats.uncovered : plan.uncoveredCells) : '—'}</strong><span>対象内の未カバー区画</span></div>
@@ -176,16 +254,28 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
       </div>}
       <div className={`sp-main ${editing ? 'sp-main-editing' : ''}`} style={{ '--planning-sidebar-width': `${sidebarWidth}px` } as CSSProperties}>
         <div className="sp-map-column">
-          <WorldPlacementEditor editing={editing} snapshot={snapshot} point={placementPoint} selectedId={selectedPlacement} selectionKey={placementSelectionKey} onSelected={selectPlacement} onPlacements={(next, catalog, ready) => { setPlacements(next); setPlacementCatalog(catalog); setPlacementsReady(ready) }} placing={placing} onPlacing={setPlacing} moving={moving} onMoving={setMoving} onBusyChange={setPlacementBusy} onDirtyChange={onDirtyChange ?? (() => {})} map={<>
-            <SpawnerPlanningMap compactControls={editing} snapshot={snapshot} plan={plan} layer={editing ? 'terrain' : layer} region={editing ? '' : region} reason={editing ? '' : reason} radii={radii} active={active} selectedCell={selectedCell} selectedProposal={editing ? null : selectedProposal} showProposals={!editing} focus={focus} onCell={index => { setSelectedCell(index); setSelectedProposal(null) }} onProposal={selectProposal} placements={placements} placementsReady={placementsReady} placementCatalog={placementCatalog} selectedPlacement={selectedPlacement} onPlacement={id => { if (!editing) setEditing(true); selectPlacement(id) }} placing={(placing || moving) && !placementBusy} onPlacePoint={(x, y, z) => { if (!placementBusy) setPlacementPoint(current => ({ key: (current?.key ?? 0) + 1, x, y, z })) }} />
-            <div className="sp-map-caption"><span><span className="sp-spawn-dot">●</span> 開始地点　金色実線: 道路 / 水色点線: 推定経路</span><span>{number(snapshot.manifest.bounds.width)} × {number(snapshot.manifest.bounds.height)}m · {snapshot.manifest.bounds.cellSize}m区画 · {number(snapshot.cells.length)}区画</span></div>
+          <WorldPlacementEditor key={snapshot.manifest.worldId} editing={editing} snapshot={snapshot} point={placementPoint} selectedId={selectedPlacement} selectionKey={placementSelectionKey} onSelected={selectPlacement} onPlacements={(next, catalog, ready) => { setPlacements(next); setPlacementCatalog(catalog); setPlacementsReady(ready) }} placing={placing} onPlacing={setPlacing} moving={moving} onMoving={setMoving} onBusyChange={setPlacementBusy} onDirtyChange={setPlacementDirty} map={<>
+            <SpawnerPlanningMap planningWorldId={worldId || undefined} compactControls={editing} snapshot={snapshot} plan={showingPlans ? plan : null}
+              layer={showingPlans ? layer : 'terrain'} region={showingPlans ? region : ''} reason={showingPlans ? reason : ''}
+              radii={radii} active={active} selectedCell={editingChallenge ? null : selectedCell} selectedProposal={showingPlans ? selectedProposal : null}
+              showProposals={showingPlans} focus={focus} onCell={index => { setSelectedCell(index); setSelectedProposal(null) }} onProposal={selectProposal}
+              placements={placements} placementsReady={placementsReady} placementCatalog={placementCatalog} selectedPlacement={editingChallenge ? null : selectedPlacement}
+              onPlacement={editingChallenge ? undefined : id => { if (!editing) selectMode('placements'); selectPlacement(id) }}
+              challengePosition={editingChallenge ? challengePosition : null} pickingChallenge={editingChallenge && challengePicking}
+              placing={!loading && ((editing && (placing || moving) && !placementBusy) || (editingChallenge && challengePicking && !challengeBusy))}
+              onPlacePoint={selectMapPoint} />
+            <div className="sp-map-caption"><span><span className="sp-spawn-dot">●</span> 開始地点{road && '　金色実線: 道路 / 水色点線: 推定経路'}</span><span>{number(snapshot.manifest.bounds.width)} × {number(snapshot.manifest.bounds.height)}m · {snapshot.manifest.bounds.cellSize}m区画 · {number(snapshot.cells.length)}区画</span></div>
           </>} />
-          {!editing && layer === 'levels' && <div className="sp-level-key">推奨レベル {[15, 20, 25, 30, 35, 40, 45].map(value => <span key={value}><i style={{ background: levelColor(value) }} />{value}</span>)}</div>}
-          {!editing && <p className="sp-scope">カバー率の分母は、地形・足場・モブ条件を満たす配置対象です。全大陸すべてが配置可能という意味ではありません。区画の全256列を測定していますが、実際の移動経路や戦闘負荷は未検証です。</p>}
-          {!editing && <section className="sp-region-section"><h2>地域ごとの計画</h2><p>地域を選ぶと地図と配置案の一覧を絞り込みます。</p><div className="sp-region-list">{snapshot.regions.map(value => <button key={value.id} className={`sp-region-row ${region === value.id ? 'selected' : ''}`} onClick={() => selectRegion(value.id)}><i style={{ background: levelColor(value.levelMin) }} /><span><strong>{value.name}</strong><small>{habitatNames[value.habitat] ?? value.habitat} · {number(value.cellCount)}区画</small></span><b>{value.levelMin == null ? '未選定' : `Lv.${value.levelMin}–${value.levelMax}`}</b><span>{number(value.coveredCellsByRadius?.[String(radius)] ?? 0)} / {number(value.eligibleCells)}<small>カバー / 対象</small></span></button>)}</div></section>}
+          {showingPlans && layer === 'levels' && <div className="sp-level-key">推奨レベル {[15, 20, 25, 30, 35, 40, 45].map(value => <span key={value}><i style={{ background: levelColor(value) }} />{value}</span>)}</div>}
+          {showingPlans && <p className="sp-scope">カバー率の分母は、地形・足場・モブ条件を満たす配置対象です。全大陸すべてが配置可能という意味ではありません。区画の全256列を測定していますが、実際の移動経路や戦闘負荷は未検証です。</p>}
+          {showingPlans && <section className="sp-region-section"><h2>地域ごとの計画</h2><p>地域を選ぶと地図と配置案の一覧を絞り込みます。</p><div className="sp-region-list">{snapshot.regions.map(value => <button key={value.id} className={`sp-region-row ${region === value.id ? 'selected' : ''}`} onClick={() => selectRegion(value.id)}><i style={{ background: levelColor(value.levelMin) }} /><span><strong>{value.name}</strong><small>{habitatNames[value.habitat] ?? value.habitat} · {number(value.cellCount)}区画</small></span><b>{value.levelMin == null ? '未選定' : `Lv.${value.levelMin}–${value.levelMax}`}</b><span>{number(value.coveredCellsByRadius?.[String(radius)] ?? 0)} / {number(value.eligibleCells)}<small>カバー / 対象</small></span></button>)}</div></section>}
         </div>
-        {!editing && <ResizeHandle label="地図と配置案の幅を変更" size={sidebarWidth} min={260} max={700} defaultSize={330} minRemaining={360} direction={-1} onResize={setSidebarWidth} className="sp-planning-resizer" />}
-        {!editing && <aside className="sp-sidebar">
+        {!editing && <ResizeHandle label={editingChallenge ? '地図とチャレンジ編集の幅を変更' : '地図と配置案の幅を変更'} size={sidebarWidth} min={260} max={700} defaultSize={330} minRemaining={360} direction={-1} onResize={setSidebarWidth} className="sp-planning-resizer" />}
+        <aside key={snapshot.manifest.worldId} className="sp-sidebar" hidden={!editingChallenge}>
+          <ChallengeLocationEditor worldId={snapshot.manifest.worldId} point={challengePoint} active={active && editingChallenge} canPick={!loading}
+            onPickingChange={setChallengePicking} onDirtyChange={setChallengeDirty} onBusyChange={setChallengeBusy} onPositionChange={setChallengePosition} />
+        </aside>
+        {showingPlans && <aside className="sp-sidebar">
           {planning && <p role="status" className="sp-loading">半径{radius}mの配置案を読み込んでいます…</p>}
           <section><div className="sp-section-heading"><h2>地点・スポナーの詳細</h2><button className="button" disabled={!plan || planning} onClick={download}>案をJSON保存</button></div>
             {!cell && !proposal && <p className="sp-muted">地図の地点か、下の配置案を選択してください。全域表示では地点、拡大後はスポナーの点も選択できます。</p>}
@@ -206,7 +296,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
             {selectedOutsideSearch && <p className="sp-muted" role="status">選択中の案は検索条件外です。表示する操作で一覧の検索だけを解除します。</p>}
             <div id={proposalListId} ref={proposalList} className="sp-proposal-list" aria-label="配置案の一覧">{proposals.slice(currentProposalPage * proposalPageSize, (currentProposalPage + 1) * proposalPageSize).map(value => <button type="button" key={value.proposalId} data-proposal-id={value.proposalId} onClick={() => selectProposal(value.proposalId)} aria-pressed={selectedProposal === value.proposalId}><strong>Lv.{value.level} · {value.regionName}</strong><span>{value.spawnMobs.map(mob => stripMinecraftFormatting(mob.name)).join(' / ')}</span><small>X {value.x} / Y {value.y} / Z {value.z}{value.definitionStatus === 'draft' ? ' · 未登録案' : ''}</small></button>)}{proposals.length === 0 && plan && <p className="sp-muted">この条件の配置案はありません。未配置理由を確認してください。</p>}</div>
           </section>
-          <section className="sp-notes"><h2>解析と適用範囲</h2><p>取得: {snapshot.manifest.capturedAt ? new Date(snapshot.manifest.capturedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : '記録なし'} JST</p><ul>{snapshot.manifest.limitations.map((note, index) => <li key={index}>{note}</li>)}</ul><p>配置案は解析用です。保存済み配置の編集は Dev のみです。共有チャンネルへの公開は別工程です。</p></section>
+          <section className="sp-notes"><h2>解析と適用範囲</h2><ul>{snapshot.manifest.limitations.map((note, index) => <li key={index}>{note}</li>)}</ul><p>配置案は解析用です。保存済み配置の編集は Dev のみです。共有チャンネルへの公開は別工程です。</p></section>
         </aside>}
       </div>
     </>}

@@ -26,6 +26,9 @@ body:has(.master-app-content:not([hidden]) .sp-workspace){min-width:0}
 .sp-editing-workspace .sp-heading h1 small { font-size: 12px; }
 .sp-editing-workspace .sp-mode-switch, .sp-heading .sp-mode-switch { margin: 0; }
 .sp-heading .sp-mode-switch { margin-left: auto; }
+.sp-world-select { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.sp-world-select select { max-width: min(240px, 55vw); }
+.sp-challenge-marker { fill: #23132bd9; stroke: #f4a3ef; }
 .sp-map-options { margin-bottom: 7px; }
 .sp-map-options > summary { cursor: pointer; padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px; color: var(--text-muted); font-size: 11px; background: var(--surface-raised); }
 .sp-map-options[open] > summary { margin-bottom: 7px; }

@@ -64,8 +64,8 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const setWorking = (next: WorldPlacement[]) => setHistory(current => current.working === next || current.working.length === next.length && current.working.every((item, index) => samePlacement(item, next[index])) ? current : ({ past: [...current.past.slice(-99), current.working], working: next, future: [] }))
   const resetWorking = (next: WorldPlacement[]) => { setHistory({ past: [], working: next, future: [] }); setDrafts({}); setSelectedOnly(false); setBulkSelection({ worldId: snapshot.manifest.worldId, ids: new Set() }) }
   const [catalog, setCatalog] = useState<PlacementCatalog>(emptyCatalog)
-  const [busy, setBusy] = useState(false)
-  const busyRef = useRef(false)
+  const [busy, setBusy] = useState(true)
+  const busyRef = useRef(true)
   const [confirmation, setConfirmation] = useState<BulkIntent | null>(null)
   const confirmationRef = useRef<BulkIntent | null>(null)
   const confirmationOrigin = useRef<HTMLElement | null>(null)
@@ -286,6 +286,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
       if (cancelled) return
       setBase(value); resetWorking(value.placements); setCatalog(definitions)
     }).catch(reason => { if (!cancelled) setError(reason instanceof Error ? reason.message : String(reason)) })
+      .finally(() => { if (!cancelled) { busyRef.current = false; setBusy(false) } })
     return () => { cancelled = true }
   }, []) // Initial load only; reload while dirty requires an explicit choice.
   useEffect(() => { if (dirty) {

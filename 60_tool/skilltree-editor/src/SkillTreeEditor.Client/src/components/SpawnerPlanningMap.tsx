@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSta
 import { cellAtWorld, levelColor, reasonColor, terrainColor, planningRoad } from '../data/spawnerPlanning'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 import type { WorldPlacement } from '../api/worldPlacementApi'
+import { spawnerPlanningUrl } from '../api/spawnerPlanningApi'
 import type { PlacementCatalog } from './WorldPlacementEditor'
 import { spawnerLevelBands, spawnerLevels, spawnerMasterColor, spawnerMasterNumbers } from '../data/spawnerMapStyle'
 import { stripMinecraftFormatting as plainName } from '../utils/minecraft'
@@ -27,6 +28,9 @@ interface Props {
   showProposals?: boolean
   placementsReady?: boolean
   compactControls?: boolean
+  planningWorldId?: string
+  challengePosition?: { x: number; y: number; z: number } | null
+  pickingChallenge?: boolean
 }
 export function SpawnerPlanningMap(props: Props) {
   const { snapshot, plan, layer, region, reason, radii, active, selectedCell, selectedProposal, focus, onCell, onProposal } = props
@@ -92,9 +96,9 @@ export function SpawnerPlanningMap(props: Props) {
     setPointer(null)
     return discardPointerFrame
   }, [active, snapshot, props.placing, props.showProposals, discardPointerFrame])
-  const detailIdentity = useMemo(() => ({ revision: snapshot.manifest.exportRevision,
+  const detailIdentity = useMemo(() => ({ revision: snapshot.manifest.exportRevision, worldId: props.planningWorldId,
     fingerprint: snapshot.manifest.terrainFingerprint, minX: bounds.minX, minZ: bounds.minZ, width: bounds.width, height: bounds.height }),
-  [snapshot.manifest.exportRevision, snapshot.manifest.terrainFingerprint, bounds.minX, bounds.minZ, bounds.width, bounds.height])
+   [snapshot.manifest.exportRevision, props.planningWorldId, snapshot.manifest.terrainFingerprint, bounds.minX, bounds.minZ, bounds.width, bounds.height])
   const detail = detailResource?.identity === detailIdentity ? detailResource.image : null
   const detailNeeded = active && layer === 'terrain' && view.scale >= .4
   const grid = useMemo(() => new Map(snapshot.cells.map((cell, index) => [`${cell.x},${cell.z}`, index])), [snapshot.cells])
@@ -264,9 +268,8 @@ export function SpawnerPlanningMap(props: Props) {
     let image: HTMLImageElement | null = null
     let loaded = false
     if (typeof fetch !== 'function') return
-    const revision = encodeURIComponent(detailIdentity.revision)
     const controller = new AbortController()
-    fetch(`/api/spawner-planning/terrain-detail?revision=${revision}`, { signal: controller.signal })
+    fetch(spawnerPlanningUrl('terrain-detail', detailIdentity.revision, detailIdentity.worldId), { signal: controller.signal })
       .then(response => response.ok ? response.json() : null)
       .then(metadata => {
         if (cancelled || !metadata || metadata.schemaVersion !== 1 || metadata.blocksPerPixel !== 1 ||
@@ -280,7 +283,7 @@ export function SpawnerPlanningMap(props: Props) {
             setDetailResource({ identity: detailIdentity, image: candidate })
           }
         }
-        image.src = `/api/spawner-planning/terrain-detail/image?revision=${revision}`
+        image.src = spawnerPlanningUrl('terrain-detail/image', detailIdentity.revision, detailIdentity.worldId)
       }).catch(() => { /* The 16m raster remains available. */ })
     return () => {
       cancelled = true; controller.abort()
@@ -551,7 +554,7 @@ export function SpawnerPlanningMap(props: Props) {
     </form>
     </details>
     <div className="sp-map-wrap">
-    <canvas ref={canvas} aria-label={props.showProposals === false ? '保存済み Dev 配置の地図。ドラッグで移動、ホイールで拡大、点をクリックして配置を選択' : 'エリヴァ全大陸の地図。ドラッグで移動、ホイールで拡大、クリックで地域と未配置理由を確認'} tabIndex={0}
+    <canvas ref={canvas} aria-label={props.pickingChallenge ? 'チャレンジの受付地点を選ぶ地図。区画をクリックして座標を取得' : props.showProposals === false ? '保存済み Dev 配置の地図。ドラッグで移動、ホイールで拡大、点をクリックして配置を選択' : `${props.planningWorldId ? snapshot.manifest.worldName : 'エリヴァ全大陸'}の地図。ドラッグで移動、ホイールで拡大、クリックで地域と未配置理由を確認`} tabIndex={0}
       onPointerDown={event => {
         if (!active || drag.current) return
         discardPointerFrame(); setPointer(null)
@@ -596,7 +599,8 @@ export function SpawnerPlanningMap(props: Props) {
           const index = cellAtWorld(bounds, grid, x, z)
           if (index !== undefined) {
             const cell = snapshot.cells[index]
-            props.onPlacePoint(cell.candidateX ?? Math.floor(x), cell.candidateX == null || cell.candidateY == null || cell.candidateZ == null ? null : cell.candidateY, cell.candidateZ ?? Math.floor(z))
+            if (props.pickingChallenge && cell.status !== 'ok') props.onPlacePoint(Math.floor(x), null, Math.floor(z))
+            else props.onPlacePoint(cell.candidateX ?? Math.floor(x), cell.candidateX == null || cell.candidateY == null || cell.candidateZ == null ? null : cell.candidateY, cell.candidateZ ?? Math.floor(z))
           }
           return
         }
@@ -629,6 +633,11 @@ export function SpawnerPlanningMap(props: Props) {
         }
       }} />
     {coordinateTarget && <svg className="sp-coordinate-marker" viewBox="-12 -12 24 24" role="img" aria-label={`座標の移動先 X ${coordinateTarget.x} / Z ${coordinateTarget.z}`} style={{ left: `${((coordinateTarget.x - bounds.minX) * view.scale + view.x) / size.width * 100}%`, top: `${((coordinateTarget.z - bounds.minZ) * view.scale + view.z) / size.height * 100}%` }}><circle r="5" /><path d="M-12 0H-7 M7 0H12 M0-12V-7 M0 7V12" /></svg>}
+    {props.challengePosition && <svg className="sp-coordinate-marker sp-challenge-marker" viewBox="-12 -12 24 24" role="img"
+      aria-label={`チャレンジ受付地点 X ${props.challengePosition.x} / Y ${props.challengePosition.y} / Z ${props.challengePosition.z}`}
+      style={{ left: `${((props.challengePosition.x - bounds.minX) * view.scale + view.x) / size.width * 100}%`, top: `${((props.challengePosition.z - bounds.minZ) * view.scale + view.z) / size.height * 100}%` }}>
+      <path d="M0-9 9 0 0 9-9 0Z" /><circle r="2" />
+    </svg>}
     {hovered && pointer && <div ref={tooltip} role="tooltip" className="sp-map-tooltip" style={{
       width: Math.min(360, size.width - 16),
       left: Math.max(8, Math.min(size.width - tooltipSize.width - 8, pointer.x + 14 + tooltipSize.width <= size.width - 8 ? pointer.x + 14 : pointer.x - tooltipSize.width - 14)),
