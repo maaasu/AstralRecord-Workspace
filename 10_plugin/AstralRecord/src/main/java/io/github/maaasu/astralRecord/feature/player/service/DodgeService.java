@@ -1,6 +1,10 @@
 package io.github.maaasu.astralRecord.feature.player.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyRequest;
+import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
+import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
@@ -56,6 +60,7 @@ public class DodgeService {
 
     private final AstralRecord plugin;
     private final StatusService statusService;
+    private final ConditionService conditionService;
     private final InventoryService inventoryService;
     private final PlayerHudService playerHudService;
     private final ParticleDisplayService particleDisplayService;
@@ -70,19 +75,22 @@ public class DodgeService {
      * @param inventoryService 選択中ホットバー項目を解決するサービス
      * @param playerHudService ドッジ受付表示を扱うサービス
      * @param particleDisplayService ドッジ演出を扱うサービス
+     * @param conditionService 凍結による操作制限を判定するサービス
      */
     public DodgeService(
         @NotNull AstralRecord plugin,
         @NotNull StatusService statusService,
         @NotNull InventoryService inventoryService,
         @NotNull PlayerHudService playerHudService,
-        @NotNull ParticleDisplayService particleDisplayService
+        @NotNull ParticleDisplayService particleDisplayService,
+        @NotNull ConditionService conditionService
     ) {
         this.plugin = plugin;
         this.statusService = statusService;
         this.inventoryService = inventoryService;
         this.playerHudService = playerHudService;
         this.particleDisplayService = particleDisplayService;
+        this.conditionService = conditionService;
     }
 
     /**
@@ -108,7 +116,7 @@ public class DodgeService {
 
     /**
      * 地上スニーク入力からドッジ受付ウィンドウを開始します。
-     * 現在選択中のメインホットバー項目が武器でない場合は開始しません。
+     * 現在選択中のメインホットバー項目が武器でない場合や凍結中は開始しません。
      *
      * @param astPlayer 対象プレイヤー
      * @return ドッジ受付を開始した場合は {@code true}
@@ -119,7 +127,7 @@ public class DodgeService {
         if (!astPlayer.getAccount().getMode().shouldProcessGameplay()) {
             return false;
         }
-        if (astPlayer.isSkillCasting()) {
+        if (astPlayer.isSkillCasting() || !conditionService.canInteract(AstEntity.player(astPlayer))) {
             return false;
         }
 
@@ -142,7 +150,7 @@ public class DodgeService {
     /**
      * しゃがみ解除時にドッジ発動を試みます。
      * しゃがみ開始からの経過時間が {@link #QUICK_SNEAK_WINDOW_MS} 未満の場合のみ判定し、
-     * 現在選択中のメインホットバー項目が武器でない場合またはエネルギー不足の場合は発動しません。
+     * 現在選択中のメインホットバー項目が武器でない場合、凍結中、またはエネルギー不足の場合は発動しません。
      *
      * @param astPlayer 対象プレイヤー
      */
@@ -150,7 +158,7 @@ public class DodgeService {
         if (!astPlayer.getAccount().getMode().shouldProcessGameplay()) {
             return;
         }
-        if (astPlayer.isSkillCasting()) {
+        if (astPlayer.isSkillCasting() || !conditionService.canInteract(AstEntity.player(astPlayer))) {
             clearSneakWindowState(astPlayer);
             playerHudService.restoreStatusActionBar(astPlayer);
             return;
@@ -195,7 +203,7 @@ public class DodgeService {
      * キャストディスクが記録した開始座標からドッジを実行します。
      *
      * <p>ディスク固有のクールダウン・耐久消費は呼び出し元が管理します。
-     * このメソッドは通常ドッジと同じ生存、地上、詠唱、ENG の条件および演出を適用します。</p>
+     * このメソッドは通常ドッジと同じ生存、地上、詠唱、凍結、ENG の条件および演出を適用します。</p>
      *
      * @param astPlayer 対象プレイヤー
      * @param startedAtLocation ディスクを使用した瞬間の座標
@@ -205,7 +213,8 @@ public class DodgeService {
         @NotNull AstPlayer astPlayer,
         @NotNull Location startedAtLocation
     ) {
-        if (!astPlayer.getAccount().getMode().shouldProcessGameplay() || astPlayer.isSkillCasting()) {
+        if (!astPlayer.getAccount().getMode().shouldProcessGameplay() || astPlayer.isSkillCasting()
+            || !conditionService.canInteract(AstEntity.player(astPlayer))) {
             return false;
         }
         Player player = astPlayer.getBukkit();
@@ -226,14 +235,29 @@ public class DodgeService {
      * キャストディスクのドッジ受付を開始できる状態か確認します。
      *
      * @param astPlayer 対象プレイヤー
-     * @return プレイヤーモードで、生存中かつ地上にいる場合は {@code true}
+     * @return プレイヤーモードで、生存中かつ地上にいて、詠唱・凍結中でない場合は {@code true}
      */
     public boolean canBeginCastDiskDodge(@NotNull AstPlayer astPlayer) {
-        if (!astPlayer.getAccount().getMode().shouldProcessGameplay() || astPlayer.isSkillCasting()) {
+        if (!astPlayer.getAccount().getMode().shouldProcessGameplay() || astPlayer.isSkillCasting()
+            || !conditionService.canInteract(AstEntity.player(astPlayer))) {
             return false;
         }
         Player player = astPlayer.getBukkit();
         return player.isOnline() && !player.isDead() && isGrounded(player);
+    }
+
+    /**
+     * 凍結の付与・更新に成功したプレイヤーの受付状態と HUD を即座に破棄します。
+     * 解除後も古いしゃがみ入力から発動できないようにします。
+     *
+     * @param request 同期的な付与成功通知。プレイヤーの凍結以外は変更しません
+     */
+    public void onConditionApplied(@NotNull ConditionApplyRequest request) {
+        if (request.type() != ConditionType.FROZEN || !request.target().isPlayer()) return;
+        AstPlayer player = request.target().player();
+        if (player == null) return;
+        clearSneakWindowState(player);
+        playerHudService.restoreStatusActionBar(player);
     }
 
     /**

@@ -1907,8 +1907,10 @@ public final class AstralRecord extends JavaPlugin {
             statusService,
             inventoryService,
             playerHudService,
-            particleDisplayService
+            particleDisplayService,
+            conditionService
         );
+        conditionService.addAppliedListener(dodgeService::onConditionApplied);
         airActionService = new AirActionService(this, playerHudService, particleDisplayService);
 
         guideService = new GuideService(
@@ -2633,6 +2635,7 @@ public final class AstralRecord extends JavaPlugin {
             dodgeService,
             new CastDiskGui(skillBindPresetService, skillOwnershipService, skillService)
         );
+        conditionService.addAppliedListener(castDiskUseService::onConditionApplied);
 
         // item, loot, skill, class 等のマスターデータを非同期ロード
         getServer().getScheduler().runTaskAsynchronously(this, () -> {

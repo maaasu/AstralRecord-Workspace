@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.item.castdisk;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyRequest;
+import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
@@ -178,11 +180,34 @@ public final class CastDiskUseService {
         GuiOpenSupport.open(player, gui.create(player, holder.equipmentInstanceId(), updated));
     }
 
+    /**
+     * プレイヤーの予約とクールダウンを破棄します。
+     * @param playerId 破棄対象の Bukkit UUID
+     */
     public void clear(@NotNull UUID playerId) {
+        cancelPendingDodge(playerId);
+        dodgeCooldown.clear(playerId);
+    }
+
+    /**
+     * 凍結の付与・更新に成功したプレイヤーのドッジ予約を取り消します。
+     * 既存のクールダウンは保持し、解除後も古い callback を無効にします。
+     *
+     * @param request 同期的な付与成功通知。プレイヤーの凍結以外は変更しません
+     */
+    public void onConditionApplied(@NotNull ConditionApplyRequest request) {
+        if (request.type() != ConditionType.FROZEN || !request.target().isPlayer()) return;
+        cancelPendingDodge(request.target().id());
+    }
+
+    /**
+     * 予約世代と遅延タスクだけを破棄します。
+     * @param playerId 取消対象の Bukkit UUID
+     */
+    private void cancelPendingDodge(@NotNull UUID playerId) {
         dodgeReservation.clear(playerId);
         CastDiskTaskScheduler.CastDiskTask pending = pendingDodgeTasks.remove(playerId);
         if (pending != null) pending.cancel();
-        dodgeCooldown.clear(playerId);
     }
 
     private void openConfiguration(@NotNull AstPlayer player, @NotNull CurrentDisk disk) {
