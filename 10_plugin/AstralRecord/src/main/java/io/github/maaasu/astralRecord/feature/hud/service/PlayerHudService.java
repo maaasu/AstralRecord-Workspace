@@ -517,7 +517,7 @@ public class PlayerHudService {
         }
         long remaining = Math.max(0L, astPlayer.getSneakDodgeWindowExpiresAtMs() - System.currentTimeMillis());
         double progress = (double) remaining / (double) io.github.maaasu.astralRecord.feature.player.service.DodgeService.QUICK_SNEAK_WINDOW_MS;
-        playerHudView.renderDodgeWindowActionBar(player, progress, statusService.getStatus(astPlayer),
+        playerHudView.renderDodgeWindowActionBar(player, progress,
                 conditionService.getActiveConditions(AstEntity.player(astPlayer)));
     }
 

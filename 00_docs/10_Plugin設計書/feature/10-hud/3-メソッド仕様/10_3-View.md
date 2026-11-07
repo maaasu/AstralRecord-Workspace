@@ -22,7 +22,7 @@ DPSは `COMBAT_DPS_DISPLAY` がtrueの場合だけ末尾へ追加する。従来
 クラス名: `PlayerHudView`
 物理名: `renderDodgeWindowActionBar`, `renderWallClingActionBar`
 
-残り割合を 0..1 へ clamp し、HP、10文字の `DODGE` または `WALL` progress bar、通常と同じ優先順位・最大3件の状態異常要約を表示する。受付期間・更新周期は変えない。ステータス引数を持たない互換呼び出しでは従来の28文字バーだけを表示する。
+残り割合を 0..1 へ clamp し、10文字の `DODGE` または `WALL` progress bar と、通常と同じ優先順位・最大3件の状態異常要約を表示する。HPの数値は `WALL` のときだけ併記する。受付期間・更新周期は変えない。プレイヤーと残り割合だけを渡す互換呼び出しでは従来の28文字バーだけを表示する。
 
 ## 3. vanilla bar 描画
 

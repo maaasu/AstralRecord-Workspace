@@ -410,7 +410,8 @@ public class PlayerHudView {
      * @param progressRemaining 残り受付割合（0.0-1.0）
      */
     public void renderDodgeWindowActionBar(Player player, double progressRemaining) {
-        renderTransientActionBar(player, "DODGE", progressRemaining, NamedTextColor.GOLD, NamedTextColor.GREEN);
+        renderTransientActionBar(player, "DODGE", progressRemaining, NamedTextColor.GOLD,
+                NamedTextColor.GREEN, TRANSIENT_BAR_LENGTH, Component.empty(), List.of());
     }
 
     /**
@@ -420,20 +421,20 @@ public class PlayerHudView {
      * @param progressRemaining 残り時間割合（0.0-1.0）
      */
     public void renderWallClingActionBar(Player player, double progressRemaining) {
-        renderTransientActionBar(player, "WALL", progressRemaining, NamedTextColor.AQUA, NamedTextColor.WHITE);
+        renderTransientActionBar(player, "WALL", progressRemaining, NamedTextColor.AQUA,
+                NamedTextColor.WHITE, TRANSIENT_BAR_LENGTH, Component.empty(), List.of());
     }
 
     /**
-     * 短い回避受付バーとHP・状態異常を同時に表示します。
+     * 短い回避受付バーと状態異常を表示します。
      * @param player 表示対象（メインスレッドから呼び出します）
      * @param progressRemaining 受付時間の残り割合
-     * @param snapshot 現在ステータス
      * @param activeConditions 有効な状態異常
      */
     public void renderDodgeWindowActionBar(Player player, double progressRemaining,
-            StatusSnapshot snapshot, Collection<ActiveCondition> activeConditions) {
+            Collection<ActiveCondition> activeConditions) {
         renderTransientActionBar(player, "DODGE", progressRemaining, NamedTextColor.GOLD,
-                NamedTextColor.GREEN, snapshot, activeConditions);
+                NamedTextColor.GREEN, COMPACT_TRANSIENT_BAR_LENGTH, Component.empty(), activeConditions);
     }
 
     /**
@@ -445,8 +446,10 @@ public class PlayerHudView {
      */
     public void renderWallClingActionBar(Player player, double progressRemaining,
             StatusSnapshot snapshot, Collection<ActiveCondition> activeConditions) {
+        Component health = statText("HP", snapshot.getCurrentHp(), snapshot.getMaxValue(StatusType.MAX_HEALTH),
+                NamedTextColor.RED).append(Component.text(" ", NamedTextColor.DARK_GRAY));
         renderTransientActionBar(player, "WALL", progressRemaining, NamedTextColor.AQUA,
-                NamedTextColor.WHITE, snapshot, activeConditions);
+                NamedTextColor.WHITE, COMPACT_TRANSIENT_BAR_LENGTH, health, activeConditions);
     }
 
     /**
@@ -1248,24 +1251,20 @@ public class PlayerHudView {
         };
     }
 
-    private void renderTransientActionBar(Player player, String label, double progressRemaining, NamedTextColor labelColor, NamedTextColor fillColor) {
-        renderTransientActionBar(player, label, progressRemaining, labelColor, fillColor, null, List.of());
-    }
-
     /**
-     * 一時受付バーを描画し、ステータスが渡された場合はHPと優先順位付き状態異常を残します。
+     * 一時受付バーに先頭の表示と状態異常を合成します。
      * @param player 表示対象
      * @param label 一時状態の表示名
      * @param progressRemaining 残り割合
      * @param labelColor 状態名の色
      * @param fillColor バーの色
-     * @param snapshot 現在ステータス。nullは従来の受付バーのみの表示
+     * @param barLength 受付バーの文字数
+     * @param prefix 受付バーの前に表示する内容
      * @param activeConditions 有効な状態異常
      */
     private void renderTransientActionBar(Player player, String label, double progressRemaining,
-            NamedTextColor labelColor, NamedTextColor fillColor, @Nullable StatusSnapshot snapshot,
+            NamedTextColor labelColor, NamedTextColor fillColor, int barLength, Component prefix,
             Collection<ActiveCondition> activeConditions) {
-        int barLength = snapshot == null ? TRANSIENT_BAR_LENGTH : COMPACT_TRANSIENT_BAR_LENGTH;
         int filledLength = (int) Math.round(Math.clamp(progressRemaining, 0.0D, 1.0D) * barLength);
         Component bar = Component.text("[", NamedTextColor.DARK_GRAY);
         for (int i = 0; i < barLength; i++) {
@@ -1273,11 +1272,8 @@ public class PlayerHudView {
         }
         bar = bar.append(Component.text("]", NamedTextColor.DARK_GRAY));
 
-        Component resources = snapshot == null ? Component.empty()
-                : statText("HP", snapshot.getCurrentHp(), snapshot.getMaxValue(StatusType.MAX_HEALTH), NamedTextColor.RED)
-                        .append(Component.text(" ", NamedTextColor.DARK_GRAY));
         boolean expandedHud = resourcePackService.hasJavaHudV4(player.getUniqueId());
-        Component combat = resources.append(Component.text(label, labelColor, TextDecoration.BOLD))
+        Component combat = prefix.append(Component.text(label, labelColor, TextDecoration.BOLD))
                 .append(Component.text(" ", NamedTextColor.DARK_GRAY))
                 .append(bar);
         if (!expandedHud) {
