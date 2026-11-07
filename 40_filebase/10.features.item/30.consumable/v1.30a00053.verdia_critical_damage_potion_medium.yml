@@ -6,6 +6,7 @@ id: 30a00053
 category: consumable
 name: '&aヴェルディア会心ダメージポーション【中】'
 icon: POTION
+customModelData: 231053
 rarity: RARE
 maxStack: 64
 saleValue: 1

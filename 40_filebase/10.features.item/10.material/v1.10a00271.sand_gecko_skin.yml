@@ -6,6 +6,7 @@ id: 10a00271
 category: material
 name: 砂ヤモリの皮
 icon: RABBIT_HIDE
+customModelData: 230271
 rarity: COMMON
 saleValue: 420
 maxStack: 64

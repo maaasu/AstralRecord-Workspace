@@ -6,6 +6,7 @@ id: 10a00044
 category: material
 name: "&cスキルジェムの原石(帝級)"
 icon: FIRE_CORAL_BLOCK
+customModelData: 230044
 rarity: MYTHIC
 maxStack: 64
 saleValue: 0

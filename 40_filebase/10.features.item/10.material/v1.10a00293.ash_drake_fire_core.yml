@@ -6,6 +6,7 @@ id: 10a00293
 category: material
 name: 'ハイドレイクの火の芯'
 icon: MAGMA_CREAM
+customModelData: 230293
 rarity: RARE
 maxStack: 64
 saleValue: 3600

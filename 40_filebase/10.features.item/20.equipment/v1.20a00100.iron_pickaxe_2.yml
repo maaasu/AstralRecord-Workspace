@@ -4,8 +4,9 @@
 schemaVersion: 1
 id: 20a00100
 category: equipment
-name: "&b深翠の鉄ツルハシ"
+name: "&bヴェルディアのツルハシ グレード2"
 icon: IRON_PICKAXE
+customModelData: 232100
 rarity: RARE
 saleValue: 2
 lore:

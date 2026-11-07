@@ -6,6 +6,7 @@ id: 10a00055
 category: material
 name: "&5影の晶核"
 icon: AMETHYST_SHARD
+customModelData: 230055
 rarity: RARE
 maxStack: 64
 saleValue: 220

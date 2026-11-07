@@ -6,6 +6,7 @@ id: 10a00033
 category: material
 name: "&a緑野の紋章片"
 icon: EMERALD
+customModelData: 230033
 rarity: RARE
 maxStack: 64
 saleValue: 48

@@ -6,6 +6,7 @@ id: 10a00031
 category: material
 name: "&b古代遺跡の銀章"
 icon: IRON_INGOT
+customModelData: 230031
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 90

@@ -6,6 +6,7 @@ id: 10a00320
 category: material
 name: "&f丈夫な牛皮"
 icon: LEATHER
+customModelData: 230320
 rarity: COMMON
 maxStack: 64
 saleValue: 0

@@ -6,6 +6,7 @@ id: 10a00303
 category: material
 name: "&fキノコの石づき"
 icon: BROWN_MUSHROOM
+customModelData: 230303
 rarity: COMMON
 maxStack: 64
 saleValue: 0

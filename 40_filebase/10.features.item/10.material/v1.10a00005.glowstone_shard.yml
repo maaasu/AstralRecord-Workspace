@@ -4,6 +4,7 @@ id: 10a00005
 category: material
 name: "&b青灯石の欠片"
 icon: GLOWSTONE_DUST
+customModelData: 230005
 rarity: COMMON
 maxStack: 64
 saleValue: 8

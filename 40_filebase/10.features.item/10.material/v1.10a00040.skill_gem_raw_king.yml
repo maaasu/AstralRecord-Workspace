@@ -6,6 +6,7 @@ id: 10a00040
 category: material
 name: "&6スキルジェムの原石(王級)"
 icon: TUBE_CORAL_BLOCK
+customModelData: 230040
 rarity: MYTHIC
 maxStack: 64
 saleValue: 0

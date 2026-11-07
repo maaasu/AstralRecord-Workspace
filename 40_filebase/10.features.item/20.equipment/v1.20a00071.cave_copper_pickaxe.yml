@@ -6,6 +6,7 @@ id: 20a00071
 category: equipment
 name: "&6洞窟銅のツルハシ"
 icon: COPPER_PICKAXE
+customModelData: 232071
 rarity: COMMON
 saleValue: 2
 lore:

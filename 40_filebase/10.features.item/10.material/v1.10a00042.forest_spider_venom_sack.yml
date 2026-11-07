@@ -6,6 +6,7 @@ id: 10a00042
 category: material
 name: "&fヴェノムサック"
 icon: BEETROOT
+customModelData: 230042
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 10

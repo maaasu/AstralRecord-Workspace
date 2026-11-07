@@ -6,6 +6,7 @@ id: 10a00400
 category: material
 name: 木の葉羽
 icon: FEATHER
+customModelData: 230400
 rarity: COMMON
 maxStack: 64
 saleValue: 360

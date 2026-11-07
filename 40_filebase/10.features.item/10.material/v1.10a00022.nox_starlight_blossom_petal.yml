@@ -6,6 +6,7 @@ id: 10a00022
 category: material
 name: "&b星灯花の花弁"
 icon: cactus_flower
+customModelData: 230022
 rarity: RARE
 maxStack: 64
 saleValue: 36

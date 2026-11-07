@@ -6,6 +6,7 @@ id: 10a00318
 category: material
 name: "&f紫木の樹液"
 icon: HONEY_BOTTLE
+customModelData: 230318
 rarity: COMMON
 maxStack: 64
 saleValue: 0

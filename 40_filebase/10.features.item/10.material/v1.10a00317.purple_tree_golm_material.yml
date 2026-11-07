@@ -6,6 +6,7 @@ id: 10a00317
 category: material
 name: "&f紫木の硬皮"
 icon: CRIMSON_HYPHAE
+customModelData: 230317
 rarity: COMMON
 maxStack: 64
 saleValue: 0

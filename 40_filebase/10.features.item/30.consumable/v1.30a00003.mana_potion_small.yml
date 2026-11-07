@@ -7,6 +7,7 @@ id: 30a00003
 category: consumable
 name: "&9マナポーション【小】"
 icon: POTION
+customModelData: 231003
 rarity: COMMON
 maxStack: 64
 saleValue: 20

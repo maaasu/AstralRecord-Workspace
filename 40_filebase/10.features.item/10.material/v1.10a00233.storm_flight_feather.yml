@@ -6,6 +6,7 @@ id: 10a00233
 category: material
 name: "風切り羽"
 icon: FEATHER
+customModelData: 230233
 rarity: COMMON
 maxStack: 64
 saleValue: 260

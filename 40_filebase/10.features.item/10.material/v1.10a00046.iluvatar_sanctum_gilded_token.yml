@@ -6,6 +6,7 @@ id: 10a00046
 category: material
 name: "&6万象聖域の金印"
 icon: GILDED_BLACKSTONE
+customModelData: 230046
 rarity: COMMON
 maxStack: 64
 saleValue: 80

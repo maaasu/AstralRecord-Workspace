@@ -6,6 +6,7 @@ id: 10a00020
 category: material
 name: "&2苔甲羅の欠片"
 icon: MOSS_BLOCK
+customModelData: 230020
 rarity: COMMON
 maxStack: 64
 saleValue: 4

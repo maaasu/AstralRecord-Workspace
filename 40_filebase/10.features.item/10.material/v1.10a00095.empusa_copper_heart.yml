@@ -6,6 +6,7 @@ id: 10a00095
 category: material
 name: "&d紅銅の呪核"
 icon: WAXED_COPPER_BLOCK
+customModelData: 230095
 rarity: EPIC
 maxStack: 64
 saleValue: 600

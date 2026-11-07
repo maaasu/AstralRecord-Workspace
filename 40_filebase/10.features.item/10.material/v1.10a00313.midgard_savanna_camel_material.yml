@@ -6,6 +6,7 @@ id: 10a00313
 category: material
 name: "&f砂色のラクダ毛"
 icon: BROWN_WOOL
+customModelData: 230313
 rarity: COMMON
 maxStack: 64
 saleValue: 0

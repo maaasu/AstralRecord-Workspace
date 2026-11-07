@@ -6,6 +6,7 @@ id: 10a00053
 category: material
 name: "&eスキルジェムの原石(神級)"
 icon: BUBBLE_CORAL_BLOCK
+customModelData: 230053
 rarity: MYTHIC
 maxStack: 64
 saleValue: 0

@@ -6,6 +6,7 @@ id: 10a00280
 category: material
 name: メサハゲワシの羽
 icon: FEATHER
+customModelData: 230280
 rarity: COMMON
 saleValue: 600
 maxStack: 64

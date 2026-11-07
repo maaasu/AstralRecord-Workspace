@@ -6,6 +6,7 @@ id: 10a00032
 category: material
 name: "&b凍てつく核片"
 icon: PRISMARINE_SHARD
+customModelData: 230032
 rarity: RARE
 maxStack: 64
 saleValue: 48

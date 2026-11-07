@@ -6,6 +6,7 @@ id: 10a00410
 category: material
 name: "木陰の硬針"
 icon: POINTED_DRIPSTONE
+customModelData: 230410
 rarity: COMMON
 maxStack: 64
 saleValue: 540

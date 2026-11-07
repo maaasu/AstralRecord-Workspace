@@ -6,6 +6,7 @@ id: 10a00251
 category: material
 name: "雪色の毛皮"
 icon: WHITE_WOOL
+customModelData: 230251
 rarity: COMMON
 maxStack: 64
 saleValue: 400

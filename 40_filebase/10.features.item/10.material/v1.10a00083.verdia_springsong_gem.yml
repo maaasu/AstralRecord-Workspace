@@ -6,6 +6,7 @@ id: 10a00083
 category: material
 name: "&d泉うたの玉"
 icon: PRISMARINE_CRYSTALS
+customModelData: 230083
 rarity: EPIC
 maxStack: 64
 lore:

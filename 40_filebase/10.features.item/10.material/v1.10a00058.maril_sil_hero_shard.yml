@@ -6,6 +6,7 @@ id: 10a00058
 category: material
 name: "&cマリルシルの英雄片"
 icon: WITHER_SKELETON_SKULL
+customModelData: 230058
 rarity: RARE
 maxStack: 64
 saleValue: 260

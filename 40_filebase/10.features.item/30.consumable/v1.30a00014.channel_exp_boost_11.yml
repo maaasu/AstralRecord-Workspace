@@ -6,6 +6,7 @@ id: 30a00014
 category: consumable
 name: "&bEXPブーストチケット【1.1倍・1時間】"
 icon: EXPERIENCE_BOTTLE
+customModelData: 231014
 rarity: RARE
 maxStack: 64
 saleValue: 0

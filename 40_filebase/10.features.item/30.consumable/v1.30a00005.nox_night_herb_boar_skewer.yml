@@ -6,6 +6,7 @@ id: 30a00005
 category: consumable
 name: "&e夜香草のグラスボア串"
 icon: COOKED_PORKCHOP
+customModelData: 231005
 rarity: COMMON
 maxStack: 16
 saleValue: 10

@@ -4,8 +4,9 @@
 schemaVersion: 1
 id: 20a00102
 category: equipment
-name: "&d蒼泉の鉄ツルハシ"
+name: "&dヴェルディアのツルハシ グレード3"
 icon: IRON_PICKAXE
+customModelData: 232102
 rarity: EPIC
 saleValue: 2
 lore:

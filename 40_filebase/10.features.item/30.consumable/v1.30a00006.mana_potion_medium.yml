@@ -6,6 +6,7 @@ id: 30a00006
 category: consumable
 name: "&9マナポーション【中】"
 icon: POTION
+customModelData: 231006
 rarity: RARE
 maxStack: 64
 saleValue: 60

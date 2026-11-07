@@ -6,6 +6,7 @@ id: 10a00096
 category: material
 name: "&6煤けた鐘片"
 icon: BELL
+customModelData: 230096
 rarity: EPIC
 maxStack: 64
 saleValue: 1000

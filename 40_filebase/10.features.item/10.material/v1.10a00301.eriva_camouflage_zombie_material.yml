@@ -6,6 +6,7 @@ id: 10a00301
 category: material
 name: "&f草まみれの布"
 icon: GREEN_WOOL
+customModelData: 230301
 rarity: COMMON
 maxStack: 64
 saleValue: 0

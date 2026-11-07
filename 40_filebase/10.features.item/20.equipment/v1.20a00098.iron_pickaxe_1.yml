@@ -4,8 +4,9 @@
 schemaVersion: 1
 id: 20a00098
 category: equipment
-name: "&a翠風の鉄ツルハシ"
+name: "&aヴェルディアのツルハシ グレード1"
 icon: IRON_PICKAXE
+customModelData: 232098
 rarity: UNCOMMON
 saleValue: 2
 lore:

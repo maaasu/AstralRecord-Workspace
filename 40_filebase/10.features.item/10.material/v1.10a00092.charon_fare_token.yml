@@ -6,6 +6,7 @@ id: 10a00092
 category: material
 name: "&5冥河の渡し賃"
 icon: NAUTILUS_SHELL
+customModelData: 230092
 rarity: RARE
 maxStack: 64
 saleValue: 400

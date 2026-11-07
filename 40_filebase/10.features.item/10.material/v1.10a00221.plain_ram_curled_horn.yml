@@ -6,6 +6,7 @@ id: 10a00221
 category: material
 name: '&a硬い巻き角'
 icon: GOAT_HORN
+customModelData: 230221
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 280

@@ -6,6 +6,7 @@ id: 30a00041
 category: consumable
 name: '&aヴェルディア防御力ポーション【中】'
 icon: POTION
+customModelData: 231041
 rarity: RARE
 maxStack: 64
 saleValue: 1

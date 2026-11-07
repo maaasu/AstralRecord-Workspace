@@ -6,6 +6,7 @@ id: 10a00015
 category: material
 name: "&f夜香草"
 icon: FERN
+customModelData: 230015
 rarity: COMMON
 maxStack: 64
 saleValue: 2

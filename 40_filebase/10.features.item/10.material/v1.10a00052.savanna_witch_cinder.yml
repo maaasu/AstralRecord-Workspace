@@ -6,6 +6,7 @@ id: 10a00052
 category: material
 name: "&c灼氷の残り火"
 icon: BROWN_DYE
+customModelData: 230052
 rarity: RARE
 maxStack: 64
 saleValue: 72

@@ -39,7 +39,7 @@ function Get-ItemModelRegistry {
     $ids = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     $models = [System.Collections.Generic.SortedDictionary[int, object]]::new()
     foreach ($item in $registry.items) {
-        $properties = @('id', 'base_item', 'custom_model_data', 'java_virtual_trident', 'grip', 'render_mode')
+        $properties = @('id', 'base_item', 'custom_model_data', 'java_virtual_trident', 'grip', 'render_mode', 'max_stack_size')
         $unknown = @($item.PSObject.Properties.Name | Where-Object { $_ -cnotin $properties })
         if ($unknown.Count -gt 0) {
             throw "Unrecognized item model fields: $($unknown -join ', ')"
@@ -68,7 +68,13 @@ function Get-ItemModelRegistry {
             !(Test-ItemGripVector $item.grip)) {
             throw "grip for $($item.id) must contain three model coordinates."
         }
-        $null = Test-GeneratedItemModel $item
+        $generated = Test-GeneratedItemModel $item
+        if ($item.PSObject.Properties.Name -ccontains 'max_stack_size') {
+            $stack = $item.max_stack_size
+            if (!$generated -or ($stack -isnot [int] -and $stack -isnot [long]) -or $stack -lt 1 -or $stack -gt 64) {
+                throw "max_stack_size for $($item.id) requires a generated item and an integer from 1 through 64."
+            }
+        }
         $models.Add($modelData, $item)
     }
     return ,$models
@@ -253,11 +259,17 @@ function Add-JavaItemDispatch {
     param($Entries, [string] $Base, $Mappings, [string] $Overlay = '')
 
     $prefix = if ($Overlay) { "$Overlay/" } else { '' }
+    $path = "${prefix}assets/minecraft/items/$Base.json"
     $template = "java-item-fallbacks/$prefix$Base.json"
-    $definition = Get-PackJson (Join-Path $root $template)
+    $definition = if ($Entries.ContainsKey($path)) {
+        # The fishing hook already has a selector for the string component.
+        ConvertFrom-Json -InputObject ($utf8.GetString($Entries[$path]))
+    } else {
+        Get-PackJson (Join-Path $root $template)
+    }
     $fallback = $definition.model
     if (!$fallback.type) {
-        throw "Missing vanilla item model in $template."
+        throw "Missing fallback model for $path."
     }
     $dispatch = [System.Collections.Generic.SortedDictionary[double, object]]::new()
     foreach ($mapping in $Mappings.GetEnumerator()) {
@@ -280,7 +292,8 @@ function Add-JavaItemDispatch {
         fallback = $fallback
         entries = @($dispatch.Values)
     }
-    Add-PackJson $Entries "${prefix}assets/minecraft/items/$Base.json" $definition
+    [void] $Entries.Remove($path)
+    Add-PackJson $Entries $path $definition
 }
 
 function Add-ItemModelEntries {

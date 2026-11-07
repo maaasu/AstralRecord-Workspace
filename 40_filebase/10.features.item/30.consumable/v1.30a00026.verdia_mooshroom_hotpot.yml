@@ -6,6 +6,7 @@ id: 30a00026
 category: consumable
 name: '&a茸牛と森灯り茸の鍋'
 icon: RABBIT_STEW
+customModelData: 231026
 rarity: UNCOMMON
 maxStack: 16
 saleValue: 1

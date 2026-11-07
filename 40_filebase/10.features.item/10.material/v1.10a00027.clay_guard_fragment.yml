@@ -6,6 +6,7 @@ id: 10a00027
 category: material
 name: "&6クレイガードの土塊"
 icon: CLAY_BALL
+customModelData: 230027
 rarity: COMMON
 maxStack: 64
 saleValue: 6

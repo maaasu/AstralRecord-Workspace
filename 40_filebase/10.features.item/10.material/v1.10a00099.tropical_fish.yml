@@ -6,6 +6,7 @@ id: 10a00099
 category: material
 name: "&f彩りの熱帯魚"
 icon: TROPICAL_FISH
+customModelData: 230099
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 12

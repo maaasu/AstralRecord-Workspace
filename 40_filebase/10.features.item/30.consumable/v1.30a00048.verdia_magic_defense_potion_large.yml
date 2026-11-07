@@ -6,6 +6,7 @@ id: 30a00048
 category: consumable
 name: '&aヴェルディア魔法防御力ポーション【大】'
 icon: POTION
+customModelData: 231048
 rarity: EPIC
 maxStack: 64
 saleValue: 1

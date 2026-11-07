@@ -6,6 +6,7 @@ id: 10a00261
 category: material
 name: コオリガの粉
 icon: GLOWSTONE_DUST
+customModelData: 230261
 rarity: UNCOMMON
 saleValue: 500
 maxStack: 64

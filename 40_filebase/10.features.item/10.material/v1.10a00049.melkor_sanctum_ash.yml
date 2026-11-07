@@ -6,6 +6,7 @@ id: 10a00049
 category: material
 name: "&8聖域の黒灰"
 icon: GUNPOWDER
+customModelData: 230049
 rarity: COMMON
 maxStack: 64
 saleValue: 60

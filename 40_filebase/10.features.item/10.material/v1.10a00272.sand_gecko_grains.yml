@@ -6,6 +6,7 @@ id: 10a00272
 category: material
 name: 砂ヤモリの砂粒
 icon: SAND
+customModelData: 230272
 rarity: UNCOMMON
 saleValue: 620
 maxStack: 64

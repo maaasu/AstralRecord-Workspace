@@ -6,6 +6,7 @@ id: 10a00316
 category: material
 name: "&f古い矢羽"
 icon: FEATHER
+customModelData: 230316
 rarity: COMMON
 maxStack: 64
 saleValue: 0

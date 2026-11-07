@@ -6,6 +6,7 @@ id: 10a00070
 category: material
 name: "&f陽だまりの花びら"
 icon: DANDELION
+customModelData: 230070
 rarity: COMMON
 maxStack: 64
 lore:

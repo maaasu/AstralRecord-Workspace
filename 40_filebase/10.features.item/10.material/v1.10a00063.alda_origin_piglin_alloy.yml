@@ -6,6 +6,7 @@ id: 10a00063
 category: material
 name: "&6始源の鍛造合金"
 icon: IRON_NUGGET
+customModelData: 230063
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 360

@@ -6,6 +6,7 @@ id: 10a00026
 category: material
 name: "&e風切り羽根"
 icon: FEATHER
+customModelData: 230026
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 10

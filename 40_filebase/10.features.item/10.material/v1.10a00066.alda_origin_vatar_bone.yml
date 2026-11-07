@@ -6,6 +6,7 @@ id: 10a00066
 category: material
 name: "&dヴァタールの骨核"
 icon: BONE_BLOCK
+customModelData: 230066
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 420

@@ -6,6 +6,7 @@ id: 10a00090
 category: material
 name: "&b星の心石のかけら"
 icon: DIAMOND
+customModelData: 230090
 rarity: RARE
 maxStack: 64
 saleValue: 0

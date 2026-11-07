@@ -6,6 +6,7 @@ id: 20a00081
 category: equipment
 name: "木の釣り竿"
 icon: FISHING_ROD
+customModelData: 232081
 rarity: COMMON
 maxStack: 1
 saleValue: 2

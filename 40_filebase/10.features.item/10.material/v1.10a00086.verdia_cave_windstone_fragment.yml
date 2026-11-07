@@ -6,6 +6,7 @@ id: 10a00086
 category: material
 name: "&f風鳴り石のかけら"
 icon: ANDESITE
+customModelData: 230086
 rarity: COMMON
 maxStack: 64
 saleValue: 0

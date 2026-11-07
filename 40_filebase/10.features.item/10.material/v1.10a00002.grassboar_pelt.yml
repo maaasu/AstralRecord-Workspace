@@ -6,6 +6,7 @@ id: 10a00002
 category: material
 name: "&aグラスボアの毛皮"
 icon: LEATHER
+customModelData: 230002
 rarity: COMMON
 maxStack: 64
 saleValue: 4

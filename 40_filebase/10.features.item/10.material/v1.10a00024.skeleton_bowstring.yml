@@ -6,6 +6,7 @@ id: 10a00024
 category: material
 name: "&fスケルトンの弓弦"
 icon: STRING
+customModelData: 230024
 rarity: COMMON
 maxStack: 64
 saleValue: 5

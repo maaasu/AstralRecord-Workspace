@@ -1469,6 +1469,1651 @@
         5.7,
         11.5
       ]
+    },
+    {
+      "id": "grassboar_meat",
+      "base_item": "minecraft:porkchop",
+      "custom_model_data": 230001,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "grassboar_pelt",
+      "base_item": "minecraft:leather",
+      "custom_model_data": 230002,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "windleaf_sprig",
+      "base_item": "minecraft:fern",
+      "custom_model_data": 230003,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "glimmercap_spore",
+      "base_item": "minecraft:brown_mushroom",
+      "custom_model_data": 230004,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "glowstone_shard",
+      "base_item": "minecraft:glowstone_dust",
+      "custom_model_data": 230005,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "box_cave_coal",
+      "base_item": "minecraft:coal",
+      "custom_model_data": 230006,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "box_cave_compressed_stone",
+      "base_item": "minecraft:stone_bricks",
+      "custom_model_data": 230007,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "box_cave_copper",
+      "base_item": "minecraft:raw_copper",
+      "custom_model_data": 230008,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "box_cave_copper_ingot",
+      "base_item": "minecraft:copper_ingot",
+      "custom_model_data": 230009,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "box_cave_stone",
+      "base_item": "minecraft:cobblestone",
+      "custom_model_data": 230010,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "nox_dewgrass_leaf",
+      "base_item": "minecraft:fern",
+      "custom_model_data": 230011,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "nox_duskbell_petal",
+      "base_item": "minecraft:blue_dye",
+      "custom_model_data": 230012,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "nox_moonpetal_petal",
+      "base_item": "minecraft:white_dye",
+      "custom_model_data": 230013,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "nox_moonshadow_stone",
+      "base_item": "minecraft:mossy_stone_bricks",
+      "custom_model_data": 230014,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "nox_night_herb",
+      "base_item": "minecraft:fern",
+      "custom_model_data": 230015,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "nox_shadowgrass_fiber",
+      "base_item": "minecraft:dead_horn_coral",
+      "custom_model_data": 230016,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "nox_starrygrass_seed",
+      "base_item": "minecraft:torchflower_seeds",
+      "custom_model_data": 230017,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "nox_starshine_stone",
+      "base_item": "minecraft:mossy_cobblestone",
+      "custom_model_data": 230018,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "skill_gem_raw",
+      "base_item": "minecraft:gravel",
+      "custom_model_data": 230019,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "moss_shell_fragment",
+      "base_item": "minecraft:moss_block",
+      "custom_model_data": 230020,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "nox_moonshadowgrass_leaf",
+      "base_item": "minecraft:sculk_vein",
+      "custom_model_data": 230021,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "nox_starlight_blossom_petal",
+      "base_item": "minecraft:cactus_flower",
+      "custom_model_data": 230022,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "skeleton_bone_fragment",
+      "base_item": "minecraft:bone",
+      "custom_model_data": 230023,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "skeleton_bowstring",
+      "base_item": "minecraft:string",
+      "custom_model_data": 230024,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "skill_gem_raw_beginner",
+      "base_item": "minecraft:dead_tube_coral_block",
+      "custom_model_data": 230025,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "windcutter_feather",
+      "base_item": "minecraft:feather",
+      "custom_model_data": 230026,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "clay_guard_fragment",
+      "base_item": "minecraft:clay_ball",
+      "custom_model_data": 230027,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "skill_gem_raw_intermediate",
+      "base_item": "minecraft:dead_brain_coral_block",
+      "custom_model_data": 230028,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "ancient_clay_rune",
+      "base_item": "minecraft:bolt_armor_trim_smithing_template",
+      "custom_model_data": 230029,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "skill_gem_raw_advanced",
+      "base_item": "minecraft:dead_bubble_coral_block",
+      "custom_model_data": 230030,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "middle_earth_ruins_ancient_medallion",
+      "base_item": "minecraft:iron_ingot",
+      "custom_model_data": 230031,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "middle_earth_ruins_frozen_core",
+      "base_item": "minecraft:prismarine_shard",
+      "custom_model_data": 230032,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "middle_earth_ruins_greenfield_crest",
+      "base_item": "minecraft:emerald",
+      "custom_model_data": 230033,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "middle_earth_ruins_royal_jewel",
+      "base_item": "minecraft:diamond",
+      "custom_model_data": 230034,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "middle_earth_ruins_stone_seal",
+      "base_item": "minecraft:echo_shard",
+      "custom_model_data": 230035,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "middle_earth_ruins_weathered_coin",
+      "base_item": "minecraft:gold_nugget",
+      "custom_model_data": 230036,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "skill_gem_raw_saint",
+      "base_item": "minecraft:horn_coral_block",
+      "custom_model_data": 230037,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "forest_wolf_claw",
+      "base_item": "minecraft:flint",
+      "custom_model_data": 230038,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "forest_wolf_fang",
+      "base_item": "minecraft:rabbit_hide",
+      "custom_model_data": 230039,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "skill_gem_raw_king",
+      "base_item": "minecraft:tube_coral_block",
+      "custom_model_data": 230040,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "forest_spider_poisoned_eye",
+      "base_item": "minecraft:fermented_spider_eye",
+      "custom_model_data": 230041,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "forest_spider_venom_sack",
+      "base_item": "minecraft:beetroot",
+      "custom_model_data": 230042,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "savanna_hide_scrap",
+      "base_item": "minecraft:honeycomb",
+      "custom_model_data": 230043,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "skill_gem_raw_emperor",
+      "base_item": "minecraft:fire_coral_block",
+      "custom_model_data": 230044,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "iluvatar_sanctum_flame_signet",
+      "base_item": "minecraft:nether_brick",
+      "custom_model_data": 230045,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "iluvatar_sanctum_gilded_token",
+      "base_item": "minecraft:gilded_blackstone",
+      "custom_model_data": 230046,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "iluvatar_sanctum_primal_crystal",
+      "base_item": "minecraft:glowstone",
+      "custom_model_data": 230047,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "melkor_sanctum_alloy",
+      "base_item": "minecraft:netherite_scrap",
+      "custom_model_data": 230048,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "melkor_sanctum_ash",
+      "base_item": "minecraft:gunpowder",
+      "custom_model_data": 230049,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "savanna_camel_guard_scute",
+      "base_item": "minecraft:armadillo_scute",
+      "custom_model_data": 230050,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "savanna_hyena_fang",
+      "base_item": "minecraft:rabbit_foot",
+      "custom_model_data": 230051,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "savanna_witch_cinder",
+      "base_item": "minecraft:brown_dye",
+      "custom_model_data": 230052,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "skill_gem_raw_god",
+      "base_item": "minecraft:bubble_coral_block",
+      "custom_model_data": 230053,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "melkor_sanctum_black_crown",
+      "base_item": "minecraft:echo_shard",
+      "custom_model_data": 230054,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "melkor_sanctum_shadow_crystal",
+      "base_item": "minecraft:amethyst_shard",
+      "custom_model_data": 230055,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "silmaril_bone_fragment",
+      "base_item": "minecraft:bone",
+      "custom_model_data": 230056,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "hook",
+      "base_item": "minecraft:tripwire_hook",
+      "custom_model_data": 230057,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "maril_sil_hero_shard",
+      "base_item": "minecraft:wither_skeleton_skull",
+      "custom_model_data": 230058,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "sunbird_crown_feather",
+      "base_item": "minecraft:feather",
+      "custom_model_data": 230059,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "sunbird_solar_core",
+      "base_item": "minecraft:sunflower",
+      "custom_model_data": 230060,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "alda_origin_ainua_hide",
+      "base_item": "minecraft:white_wool",
+      "custom_model_data": 230061,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "alda_origin_bowstring",
+      "base_item": "minecraft:string",
+      "custom_model_data": 230062,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "alda_origin_piglin_alloy",
+      "base_item": "minecraft:iron_nugget",
+      "custom_model_data": 230063,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "alda_origin_ruins_fragment",
+      "base_item": "minecraft:deepslate",
+      "custom_model_data": 230064,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "alda_origin_skeleton_fragment",
+      "base_item": "minecraft:bone",
+      "custom_model_data": 230065,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "alda_origin_vatar_bone",
+      "base_item": "minecraft:bone_block",
+      "custom_model_data": 230066,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "grassboar_meat_high_quality",
+      "base_item": "minecraft:porkchop",
+      "custom_model_data": 230067,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "grassboar_pelt_high_quality",
+      "base_item": "minecraft:leather",
+      "custom_model_data": 230068,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_windsong_leaf",
+      "base_item": "minecraft:fern",
+      "custom_model_data": 230069,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_sunwarm_petal",
+      "base_item": "minecraft:dandelion",
+      "custom_model_data": 230070,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_shade_leaf",
+      "base_item": "minecraft:oak_leaves",
+      "custom_model_data": 230071,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_dew_moss",
+      "base_item": "minecraft:moss_block",
+      "custom_model_data": 230072,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_watermirror_leaf",
+      "base_item": "minecraft:lily_pad",
+      "custom_model_data": 230073,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_goldwind_petal",
+      "base_item": "minecraft:sunflower",
+      "custom_model_data": 230074,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_flowercloud_seed",
+      "base_item": "minecraft:torchflower_seeds",
+      "custom_model_data": 230075,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_forestlight_mushroom",
+      "base_item": "minecraft:shroomlight",
+      "custom_model_data": 230076,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_blue_dew_petal",
+      "base_item": "minecraft:blue_orchid",
+      "custom_model_data": 230077,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_starhaze_petal",
+      "base_item": "minecraft:allium",
+      "custom_model_data": 230078,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_starhaze_dew",
+      "base_item": "minecraft:amethyst_shard",
+      "custom_model_data": 230079,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_flowerguard_leaf",
+      "base_item": "minecraft:flowering_azalea_leaves",
+      "custom_model_data": 230080,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_flowerguard_seed",
+      "base_item": "minecraft:pitcher_pod",
+      "custom_model_data": 230081,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_springsong_petal",
+      "base_item": "minecraft:pink_petals",
+      "custom_model_data": 230082,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_springsong_gem",
+      "base_item": "minecraft:prismarine_crystals",
+      "custom_model_data": 230083,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_earthheart_petal",
+      "base_item": "minecraft:spore_blossom",
+      "custom_model_data": 230084,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_earthlife_gem",
+      "base_item": "minecraft:heart_of_the_sea",
+      "custom_model_data": 230085,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_cave_windstone_fragment",
+      "base_item": "minecraft:andesite",
+      "custom_model_data": 230086,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_cave_mossroot_fragment",
+      "base_item": "minecraft:mossy_cobblestone",
+      "custom_model_data": 230087,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_cave_darklight_coal",
+      "base_item": "minecraft:coal",
+      "custom_model_data": 230088,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_cave_bluewell_fragment",
+      "base_item": "minecraft:lapis_lazuli",
+      "custom_model_data": 230089,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_cave_starheart_fragment",
+      "base_item": "minecraft:diamond",
+      "custom_model_data": 230090,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_cave_stardrop",
+      "base_item": "minecraft:player_head",
+      "custom_model_data": 230091,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "charon_fare_token",
+      "base_item": "minecraft:nautilus_shell",
+      "custom_model_data": 230092,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_beef",
+      "base_item": "minecraft:beef",
+      "custom_model_data": 230093,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_mooshroom_meat",
+      "base_item": "minecraft:beef",
+      "custom_model_data": 230094,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "empusa_copper_heart",
+      "base_item": "minecraft:waxed_copper_block",
+      "custom_model_data": 230095,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "knocker_bell_fragment",
+      "base_item": "minecraft:bell",
+      "custom_model_data": 230096,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "river_cod",
+      "base_item": "minecraft:cod",
+      "custom_model_data": 230097,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "river_salmon",
+      "base_item": "minecraft:salmon",
+      "custom_model_data": 230098,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "tropical_fish",
+      "base_item": "minecraft:tropical_fish",
+      "custom_model_data": 230099,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "eriva_forest_resin",
+      "base_item": "minecraft:resin_clump",
+      "custom_model_data": 230100,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "selenea_eclipse_ink",
+      "base_item": "minecraft:glow_ink_sac",
+      "custom_model_data": 230101,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "reed_hound_pelt",
+      "base_item": "minecraft:green_wool",
+      "custom_model_data": 230200,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "brush_crab_shell",
+      "base_item": "minecraft:turtle_scute",
+      "custom_model_data": 230201,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "brush_crab_glossy_shell",
+      "base_item": "minecraft:turtle_scute",
+      "custom_model_data": 230202,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "soft_ear_fur",
+      "base_item": "minecraft:rabbit_hide",
+      "custom_model_data": 230210,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "wind_scale",
+      "base_item": "minecraft:turtle_scute",
+      "custom_model_data": 230211,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "plain_ram_wool",
+      "base_item": "minecraft:white_wool",
+      "custom_model_data": 230220,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "plain_ram_curled_horn",
+      "base_item": "minecraft:goat_horn",
+      "custom_model_data": 230221,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "blade_mantis_blade",
+      "base_item": "minecraft:shears",
+      "custom_model_data": 230222,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "thick_bison_hide",
+      "base_item": "minecraft:leather",
+      "custom_model_data": 230230,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "stoneback_horn",
+      "base_item": "minecraft:goat_horn",
+      "custom_model_data": 230231,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "earth_core",
+      "base_item": "minecraft:heart_of_the_sea",
+      "custom_model_data": 230232,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "storm_flight_feather",
+      "base_item": "minecraft:feather",
+      "custom_model_data": 230233,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "bark_beetle_shell",
+      "base_item": "minecraft:armadillo_scute",
+      "custom_model_data": 230240,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "moss_fox_fur",
+      "base_item": "minecraft:leather",
+      "custom_model_data": 230241,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "moss_fox_scent_pouch",
+      "base_item": "minecraft:bundle",
+      "custom_model_data": 230242,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "rooted_turtle_shell",
+      "base_item": "minecraft:turtle_scute",
+      "custom_model_data": 230250,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "snow_wolf_pelt",
+      "base_item": "minecraft:white_wool",
+      "custom_model_data": 230251,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "ice_moth_scale",
+      "base_item": "minecraft:feather",
+      "custom_model_data": 230260,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "ice_moth_powder",
+      "base_item": "minecraft:glowstone_dust",
+      "custom_model_data": 230261,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "frost_boar_tusk",
+      "base_item": "minecraft:pointed_dripstone",
+      "custom_model_data": 230262,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "red_scorpion_stinger",
+      "base_item": "minecraft:pointed_dripstone",
+      "custom_model_data": 230270,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "sand_gecko_skin",
+      "base_item": "minecraft:rabbit_hide",
+      "custom_model_data": 230271,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "sand_gecko_grains",
+      "base_item": "minecraft:sand",
+      "custom_model_data": 230272,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "mesa_vulture_feather",
+      "base_item": "minecraft:feather",
+      "custom_model_data": 230280,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "ember_slug_mucus",
+      "base_item": "minecraft:slime_ball",
+      "custom_model_data": 230281,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "lava_crab_shell",
+      "base_item": "minecraft:turtle_scute",
+      "custom_model_data": 230290,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "ash_drake_soot",
+      "base_item": "minecraft:charcoal",
+      "custom_model_data": 230291,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "ash_drake_throat_stone",
+      "base_item": "minecraft:fire_charge",
+      "custom_model_data": 230292,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "ash_drake_fire_core",
+      "base_item": "minecraft:magma_cream",
+      "custom_model_data": 230293,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "eriva_bark_sentinel_material",
+      "base_item": "minecraft:oak_planks",
+      "custom_model_data": 230300,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "eriva_camouflage_zombie_material",
+      "base_item": "minecraft:green_wool",
+      "custom_model_data": 230301,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "eriva_grassboar_material",
+      "base_item": "minecraft:bone",
+      "custom_model_data": 230302,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "eriva_sporecap_beast_material",
+      "base_item": "minecraft:brown_mushroom",
+      "custom_model_data": 230303,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "eriva_starhorn_guardian_material",
+      "base_item": "minecraft:goat_horn",
+      "custom_model_data": 230304,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "eriva_thornfang_wolf_material",
+      "base_item": "minecraft:pointed_dripstone",
+      "custom_model_data": 230305,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "eriva_underbrush_spider_material",
+      "base_item": "minecraft:string",
+      "custom_model_data": 230306,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "maril_sil_dead_hero_material",
+      "base_item": "minecraft:iron_chain",
+      "custom_model_data": 230307,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "midgard_clay_guard_material",
+      "base_item": "minecraft:clay_ball",
+      "custom_model_data": 230308,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "midgard_forest_spider_material",
+      "base_item": "minecraft:dried_kelp",
+      "custom_model_data": 230309,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "midgard_forest_wolf_material",
+      "base_item": "minecraft:flint",
+      "custom_model_data": 230310,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "midgard_grassboar_material",
+      "base_item": "minecraft:bone",
+      "custom_model_data": 230311,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "midgard_moss_shell_material",
+      "base_item": "minecraft:turtle_scute",
+      "custom_model_data": 230312,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "midgard_savanna_camel_material",
+      "base_item": "minecraft:brown_wool",
+      "custom_model_data": 230313,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "midgard_savanna_hyena_material",
+      "base_item": "minecraft:ghast_tear",
+      "custom_model_data": 230314,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "midgard_savanna_witch_material",
+      "base_item": "minecraft:dried_kelp",
+      "custom_model_data": 230315,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "midgard_skeleton_archer_material",
+      "base_item": "minecraft:feather",
+      "custom_model_data": 230316,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "purple_tree_golm_material",
+      "base_item": "minecraft:crimson_hyphae",
+      "custom_model_data": 230317,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "purple_tree_melza_material",
+      "base_item": "minecraft:honey_bottle",
+      "custom_model_data": 230318,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "silmaril_skeleton_material",
+      "base_item": "minecraft:bone",
+      "custom_model_data": 230319,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_cow_material",
+      "base_item": "minecraft:leather",
+      "custom_model_data": 230320,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_mooshroom_material",
+      "base_item": "minecraft:red_mushroom",
+      "custom_model_data": 230321,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "witch_forest_bramble_scarecrow_material",
+      "base_item": "minecraft:hay_block",
+      "custom_model_data": 230322,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "witch_forest_curseweaver_spider_material",
+      "base_item": "minecraft:string",
+      "custom_model_data": 230323,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "witch_forest_hex_witch_material",
+      "base_item": "minecraft:glass_bottle",
+      "custom_model_data": 230324,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "canopy_owl_leaf_feather",
+      "base_item": "minecraft:feather",
+      "custom_model_data": 230400,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "canopy_owl_moon_feather",
+      "base_item": "minecraft:phantom_membrane",
+      "custom_model_data": 230401,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "thorn_deer_barbed_antler",
+      "base_item": "minecraft:goat_horn",
+      "custom_model_data": 230402,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "shade_hedgehog_needle",
+      "base_item": "minecraft:pointed_dripstone",
+      "custom_model_data": 230410,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "horologium_clock_hand",
+      "base_item": "minecraft:lightning_rod",
+      "custom_model_data": 230411,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "energy_baked",
+      "base_item": "minecraft:bread",
+      "custom_model_data": 231001,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 16
+    },
+    {
+      "id": "healing_potion_small",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231002,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "mana_potion_small",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231003,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "healing_potion_medium",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231004,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "nox_night_herb_boar_skewer",
+      "base_item": "minecraft:cooked_porkchop",
+      "custom_model_data": 231005,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 16
+    },
+    {
+      "id": "mana_potion_medium",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231006,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "instance_priority_5",
+      "base_item": "minecraft:ender_eye",
+      "custom_model_data": 231007,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "instance_priority_11",
+      "base_item": "minecraft:ender_eye",
+      "custom_model_data": 231008,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "instance_priority_35",
+      "base_item": "minecraft:ender_eye",
+      "custom_model_data": 231009,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "instance_priority_60",
+      "base_item": "minecraft:ender_eye",
+      "custom_model_data": 231010,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "instance_priority_150",
+      "base_item": "minecraft:ender_eye",
+      "custom_model_data": 231011,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "vip_doner",
+      "base_item": "minecraft:gold_ingot",
+      "custom_model_data": 231012,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "vip_astralder",
+      "base_item": "minecraft:diamond",
+      "custom_model_data": 231013,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "channel_exp_boost_11",
+      "base_item": "minecraft:experience_bottle",
+      "custom_model_data": 231014,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "channel_exp_boost_12",
+      "base_item": "minecraft:experience_bottle",
+      "custom_model_data": 231015,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "channel_exp_boost_13",
+      "base_item": "minecraft:experience_bottle",
+      "custom_model_data": 231016,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "channel_exp_boost_14",
+      "base_item": "minecraft:experience_bottle",
+      "custom_model_data": 231017,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "channel_exp_boost_15",
+      "base_item": "minecraft:experience_bottle",
+      "custom_model_data": 231018,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "channel_drop_boost_11",
+      "base_item": "minecraft:chest",
+      "custom_model_data": 231019,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "channel_drop_boost_12",
+      "base_item": "minecraft:chest",
+      "custom_model_data": 231020,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "channel_drop_boost_13",
+      "base_item": "minecraft:chest",
+      "custom_model_data": 231021,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "channel_drop_boost_14",
+      "base_item": "minecraft:chest",
+      "custom_model_data": 231022,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "channel_drop_boost_15",
+      "base_item": "minecraft:chest",
+      "custom_model_data": 231023,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "channel_special_boost_20",
+      "base_item": "minecraft:nether_star",
+      "custom_model_data": 231024,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "verdia_herb_steak",
+      "base_item": "minecraft:cooked_beef",
+      "custom_model_data": 231025,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 16
+    },
+    {
+      "id": "verdia_mooshroom_hotpot",
+      "base_item": "minecraft:rabbit_stew",
+      "custom_model_data": 231026,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 16
+    },
+    {
+      "id": "eriva_goldwind_skewer",
+      "base_item": "minecraft:cooked_porkchop",
+      "custom_model_data": 231027,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 16
+    },
+    {
+      "id": "verdia_mushroom_soup",
+      "base_item": "minecraft:mushroom_stew",
+      "custom_model_data": 231028,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 16
+    },
+    {
+      "id": "verdia_flower_seed_bread",
+      "base_item": "minecraft:bread",
+      "custom_model_data": 231029,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 16
+    },
+    {
+      "id": "verdia_three_meat_feast",
+      "base_item": "minecraft:suspicious_stew",
+      "custom_model_data": 231030,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 16
+    },
+    {
+      "id": "verdia_healing_potion_small",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231031,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_healing_potion_medium",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231032,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_healing_potion_large",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231033,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_mana_potion_small",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231034,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_mana_potion_medium",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231035,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_mana_potion_large",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231036,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_attack_potion_small",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231037,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_attack_potion_medium",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231038,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_attack_potion_large",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231039,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_defense_potion_small",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231040,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_defense_potion_medium",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231041,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_defense_potion_large",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231042,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_magic_attack_potion_small",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231043,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_magic_attack_potion_medium",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231044,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_magic_attack_potion_large",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231045,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_magic_defense_potion_small",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231046,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_magic_defense_potion_medium",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231047,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_magic_defense_potion_large",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231048,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_critical_rate_potion_small",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231049,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_critical_rate_potion_medium",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231050,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_critical_rate_potion_large",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231051,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_critical_damage_potion_small",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231052,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_critical_damage_potion_medium",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231053,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_critical_damage_potion_large",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231054,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_attack_speed_potion_small",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231055,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_attack_speed_potion_medium",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231056,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_attack_speed_potion_large",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231057,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_movement_speed_potion_small",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231058,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_movement_speed_potion_medium",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231059,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "verdia_movement_speed_potion_large",
+      "base_item": "minecraft:potion",
+      "custom_model_data": 231060,
+      "java_virtual_trident": false,
+      "render_mode": "generated",
+      "max_stack_size": 64
+    },
+    {
+      "id": "nox_pickaxe",
+      "base_item": "minecraft:wooden_pickaxe",
+      "custom_model_data": 232006,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "cave_copper_pickaxe",
+      "base_item": "minecraft:copper_pickaxe",
+      "custom_model_data": 232071,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "wooden_fishing_rod",
+      "base_item": "minecraft:fishing_rod",
+      "custom_model_data": 232081,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "reinforced_fishing_rod",
+      "base_item": "minecraft:fishing_rod",
+      "custom_model_data": 232082,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "iron_pickaxe_1",
+      "base_item": "minecraft:iron_pickaxe",
+      "custom_model_data": 232098,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "iron_pickaxe_2",
+      "base_item": "minecraft:iron_pickaxe",
+      "custom_model_data": 232100,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "iron_pickaxe_3",
+      "base_item": "minecraft:iron_pickaxe",
+      "custom_model_data": 232102,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "iron_pickaxe_4",
+      "base_item": "minecraft:iron_pickaxe",
+      "custom_model_data": 232104,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
     }
   ]
 }

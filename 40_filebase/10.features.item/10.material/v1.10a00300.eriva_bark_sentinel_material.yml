@@ -6,6 +6,7 @@ id: 10a00300
 category: material
 name: "&f樹皮の板"
 icon: OAK_PLANKS
+customModelData: 230300
 rarity: COMMON
 maxStack: 64
 saleValue: 0

@@ -6,6 +6,7 @@ id: 10a00315
 category: material
 name: "&f灰の薬草"
 icon: DRIED_KELP
+customModelData: 230315
 rarity: COMMON
 maxStack: 64
 saleValue: 0

@@ -6,6 +6,7 @@ id: 10a00034
 category: material
 name: "&d遺跡主の王石"
 icon: DIAMOND
+customModelData: 230034
 rarity: RARE
 maxStack: 64
 saleValue: 300

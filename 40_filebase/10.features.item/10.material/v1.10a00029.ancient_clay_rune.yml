@@ -6,6 +6,7 @@ id: 10a00029
 category: material
 name: "&d古代粘土のルーン"
 icon: bolt_armor_trim_smithing_template
+customModelData: 230029
 rarity: RARE
 maxStack: 64
 saleValue: 28

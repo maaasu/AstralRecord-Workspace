@@ -6,6 +6,7 @@ id: 10a00035
 category: material
 name: "&d遺跡の石封"
 icon: ECHO_SHARD
+customModelData: 230035
 rarity: RARE
 maxStack: 64
 saleValue: 48

@@ -6,6 +6,7 @@ id: 10a00019
 category: material
 name: "&fスキルジェムの原石(無印)"
 icon: GRAVEL
+customModelData: 230019
 rarity: COMMON
 maxStack: 64
 saleValue: 0

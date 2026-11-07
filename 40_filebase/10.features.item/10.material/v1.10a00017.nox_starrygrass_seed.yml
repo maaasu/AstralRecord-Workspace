@@ -6,6 +6,7 @@ id: 10a00017
 category: material
 name: "&f星映え草の種"
 icon: torchflower_seeds
+customModelData: 230017
 rarity: COMMON
 maxStack: 64
 saleValue: 4

@@ -6,6 +6,7 @@ id: 10a00071
 category: material
 name: "&f木かげ草の葉"
 icon: OAK_LEAVES
+customModelData: 230071
 rarity: COMMON
 maxStack: 64
 lore:

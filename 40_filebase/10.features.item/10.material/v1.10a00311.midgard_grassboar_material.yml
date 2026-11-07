@@ -6,6 +6,7 @@ id: 10a00311
 category: material
 name: "&f小さなイノシシの牙"
 icon: BONE
+customModelData: 230311
 rarity: COMMON
 maxStack: 64
 saleValue: 0

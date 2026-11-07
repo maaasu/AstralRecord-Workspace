@@ -6,6 +6,7 @@ id: 10a00089
 category: material
 name: "&a青泉石のかけら"
 icon: LAPIS_LAZULI
+customModelData: 230089
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 0

@@ -1,6 +1,6 @@
 # AstralRecord リソースパック
 
-Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメージ数値、アクションリング、アイテムモデル、武器通常攻撃と釣りの演出、GUI共通アイコンを配布します。配布する装備モデルは `item-models.json`、GUI専用の46種・84割り当ては `gui-icons.json` で管理します。
+Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメージ数値、アクションリング、アイテムモデル、武器通常攻撃と釣りの演出、GUI共通アイコンを配布します。配布するアイテムの外観は `item-models.json`、GUI専用の46種・84割り当ては `gui-icons.json` で管理します。
 
 ## GUI
 
@@ -138,7 +138,7 @@ Java版は効果音対応の管理パックを適用した接続で専用音を�
 
 ## アイテムモデル
 
-Filebase の `icon` が基本素材、`customModelData` がモデル番号です。Paper はクライアントへの送信アイテムに番号を適用します。ビルドは `item-models.json` をもとに、JE 用の振り分けと、Geyser が BE 用パックから読み込む登録情報を生成します。パックとマスターの番号が一致すると、JE は該当の立体モデル、BE は対応する手持ちモデルとインベントリアイコンを使います。未登録の番号は各版の基本素材で表示します。
+Filebase の `icon` が基本素材、`customModelData` がモデル番号です。Paper はクライアントへの送信アイテムに番号を適用します。ビルドは `item-models.json` をもとに、JE 用の振り分けと、Geyser が BE 用パックから読み込む登録情報を生成します。パックとマスターの番号が一致すると、両版で該当アイテムの立体モデルまたは2Dアイコンを使います。未登録の番号は各版の基本素材で表示します。
 
 1. 台帳の `id` に小文字のアセット名、`base_item` にマスター `icon` の Minecraft ID、`custom_model_data` に同じモデル番号を設定します。モデル番号は 1～16777215 の整数で、アイテム間で重複させません。`java_virtual_trident` は両版の長押し表示に参加する武器なら `true`、通常表示のみなら `false` を明記します。
 2. Java Block/Item の書き出し先は `assets/astralrecord/models/item/custom/<id>.json`、テクスチャは `assets/astralrecord/textures/item/custom/<id>.png` です。新しい基本素材を使う場合は `java-item-fallbacks/<base_itemのパス>.json` に対象クライアントのバニラ定義を置きます。弓は `<id>_pull_0.json` ～ `<id>_pull_2.json` も用意します。
@@ -173,15 +173,21 @@ BE では仮想トライデントで長押し入力を受け取りながら、�
 
 新しい BE 登録はパックを API に配置した後の Proxy 再起動で有効になります。
 
-### 2Dアクセサリー
+### 2Dアイテム
 
-アクセサリーのピクセルアイコンを配布するときは、台帳に `render_mode: "generated"` を指定します。省略または `"3d"` は従来の立体モデルです。`generated` は `java_virtual_trident: true` や `grip` と併用できません。
+素材、消耗品、採集道具、アクセサリーのピクセルアイコンを配布するときは、台帳に `render_mode: "generated"` を指定します。省略または `"3d"` は従来の立体モデルです。`generated` は `java_virtual_trident: true` や `grip` と併用できません。
 
-入力は `assets/astralrecord/textures/item/custom/<id>.png` と `bedrock/textures/items/<id>.png` の2枚です。ビルドはJEの `minecraft:item/generated` を親にしたモデルを生成し、BEではアイコンとアトラスを登録します。Blockbench編集元や手持ちattachable、geometry、animationは要求しません。カタログの `render_mode` を読む対応Geyser拡張が必要です。アクセサリースロットの装備は性能に反映され、体にモデルを取り付ける処理は追加しません。
+入力は `assets/astralrecord/textures/item/custom/<id>.png` と `bedrock/textures/items/<id>.png` の2枚です。ビルドはJava版で `minecraft:item/generated` を親にしたモデルを生成し、ツルハシと釣り竿では手持ち姿勢をそれぞれ `minecraft:item/handheld` と `minecraft:item/handheld_rod` から継承します。統合版はアイコンをアトラスに登録し、両道具に手持ち表示を指定します。立体モデルのBlockbench原稿、attachable、geometry、animationは不要です。
+
+本番素材160点、消耗品60点、ツルハシ6点、釣り竿2点に32×32 pxの専用テクスチャを使います。薬は記号と液色で用途を、瓶の形で容量を表します。ヴェルディアのツルハシはグレードごとに刃と金具を描き分けます。RPGの釣りではキャスト中も同じ竿を使い、糸とウキは[釣りの専用演出](#釣り)で描画します。
+
+統合版は Geyser 拡張1.23.0以降を使用します。ポーションは地面表示のポーションと、所持枠や手持ちに送信する紙の両方に同じアイコンを登録します。鍛冶型のアイコンは、紙に付けた `item_model` とモデル番号で照合します。既定値と異なる統合版のスタック上限は、台帳の `max_stack_size` へ1～64で指定します。
 
 原画は [blockbench/pixel-art](blockbench/pixel-art/README.md) のパレット付きJSONで編集できます。`python scripts/generate-pixel-item-assets.py --check` で、全編集元と両版PNGのバイト一致を検証できます。
 
-未登録の同素材を維持するため、基本素材ごとのバニラ定義を `java-item-fallbacks/` に用意します。プレイヤーヘッドは形式83以降の座標変換が異なるため、`transformed_item_models/player_head.json` も使います。時計の時刻表示、プレイヤーヘッドのスキン、壁などのブロック形状を含め、fallback全体を保持します。
+配布PNGから最近傍で16・32・64 pxの明暗背景プレビューを作り、全228点の輪郭と透過を確認しました。両アーカイブでマスターからモデル・PNGまでの参照を確認し、隔離したGeyserでプロトコル2168・2193・2225のアイテム変換を検証しました。実クライアントでの手持ちやキャスト中の描画は未確認です。
+
+未登録の同素材を維持するため、基本素材ごとのバニラ定義を `java-item-fallbacks/` に用意します。ヘッドは形式83以降の座標変換が異なるため、`transformed_item_models/` の該当定義も使います。時計の時刻表示、プレイヤーヘッドのスキン、壁などのブロック形状を含め、fallback全体を保持します。
 
 ## ウェイストーンと施設NPC
 
@@ -234,7 +240,7 @@ Minecraftの角形と粗い画素の材質分けを基準に、ノクスは簡�
 - `blockbench/items/`: native Blockbench 5.2.2で書き出した両版の編集元。防具は `<id>_worn.bedrock.bbmodel`、弓は3段階のJava draw原稿も保持します。
 - `blockbench/equipment-drafts/`: 新規3D124点の個別cuboid・素材swatch設計原稿。
 - `blockbench/armor-pixels/`: 着用原画のpalette・pixel-grid記録。原画PNGはJE/BE着用テクスチャと着用Blockbench原稿にも保存しています。
-- `blockbench/pixel-art/`: 2Dアクセサリ12点の再生成可能な原画。
+- `blockbench/pixel-art/`: 2Dアクセサリ12点とその他の2Dアイテムの再生成可能な原画。
 - `blockbench/equipment-source-manifest.json`: 全139点のマスター対応と編集元・配布元アセットのSHA-256。
 
 編集元台帳のSHAは、`.json` と `.bbmodel` のCRLFをLFへ正規化して計算します。その他の内容は変換せず、PNG等のバイナリは元のバイト列を使います。Gitのcheckout改行設定が異なっても、同じ編集内容を同じハッシュで追跡できます。

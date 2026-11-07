@@ -6,6 +6,7 @@ id: 30a00013
 category: consumable
 name: "&6&lASTRALDER利用券【20日】"
 icon: DIAMOND
+customModelData: 231013
 rarity: RARE
 maxStack: 64
 saleValue: 0

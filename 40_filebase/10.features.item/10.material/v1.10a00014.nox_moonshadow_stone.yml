@@ -6,6 +6,7 @@ id: 10a00014
 category: material
 name: "&f月影石"
 icon: mossy_stone_bricks
+customModelData: 230014
 rarity: COMMON
 maxStack: 64
 saleValue: 11

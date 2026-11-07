@@ -6,6 +6,7 @@ id: 10a00064
 category: material
 name: "&f始源遺跡の石片"
 icon: DEEPSLATE
+customModelData: 230064
 rarity: COMMON
 maxStack: 64
 saleValue: 180

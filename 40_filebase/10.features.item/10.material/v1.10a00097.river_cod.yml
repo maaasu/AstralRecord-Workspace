@@ -6,6 +6,7 @@ id: 10a00097
 category: material
 name: "&f川ダラ"
 icon: COD
+customModelData: 230097
 rarity: COMMON
 maxStack: 64
 saleValue: 5

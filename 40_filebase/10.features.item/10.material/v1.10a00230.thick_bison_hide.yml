@@ -6,6 +6,7 @@ id: 10a00230
 category: material
 name: "厚い牛皮"
 icon: LEATHER
+customModelData: 230230
 rarity: COMMON
 maxStack: 64
 saleValue: 400

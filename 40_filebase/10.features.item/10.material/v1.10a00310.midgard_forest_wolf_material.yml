@@ -6,6 +6,7 @@ id: 10a00310
 category: material
 name: "&f森狼の爪"
 icon: FLINT
+customModelData: 230310
 rarity: COMMON
 maxStack: 64
 saleValue: 0

@@ -6,6 +6,7 @@ id: 10a00241
 category: material
 name: "&fコケ色の毛"
 icon: LEATHER
+customModelData: 230241
 rarity: COMMON
 maxStack: 64
 saleValue: 180

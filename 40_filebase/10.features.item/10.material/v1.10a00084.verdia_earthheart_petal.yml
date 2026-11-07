@@ -6,6 +6,7 @@ id: 10a00084
 category: material
 name: "&d大地の心花びら"
 icon: SPORE_BLOSSOM
+customModelData: 230084
 rarity: EPIC
 maxStack: 64
 lore:

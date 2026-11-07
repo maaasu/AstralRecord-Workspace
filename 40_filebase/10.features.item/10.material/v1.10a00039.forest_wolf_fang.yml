@@ -6,6 +6,7 @@ id: 10a00039
 category: material
 name: "&fウルフファング"
 icon: RABBIT_HIDE
+customModelData: 230039
 rarity: COMMON
 maxStack: 64
 saleValue: 8

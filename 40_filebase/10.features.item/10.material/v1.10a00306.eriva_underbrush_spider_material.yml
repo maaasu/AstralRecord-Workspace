@@ -6,6 +6,7 @@ id: 10a00306
 category: material
 name: "&f森グモの糸"
 icon: STRING
+customModelData: 230306
 rarity: COMMON
 maxStack: 64
 saleValue: 0

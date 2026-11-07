@@ -6,6 +6,7 @@ id: 10a00093
 category: material
 name: '&fヴェルディア牛の肉'
 icon: BEEF
+customModelData: 230093
 rarity: COMMON
 maxStack: 64
 saleValue: 80

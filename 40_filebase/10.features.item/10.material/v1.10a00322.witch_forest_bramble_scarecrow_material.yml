@@ -6,6 +6,7 @@ id: 10a00322
 category: material
 name: "&fイバラのわら束"
 icon: HAY_BLOCK
+customModelData: 230322
 rarity: COMMON
 maxStack: 64
 saleValue: 0

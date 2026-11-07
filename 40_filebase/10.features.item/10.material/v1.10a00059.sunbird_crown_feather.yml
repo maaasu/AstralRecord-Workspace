@@ -6,6 +6,7 @@ id: 10a00059
 category: material
 name: "&6陽冠の羽根"
 icon: FEATHER
+customModelData: 230059
 rarity: RARE
 maxStack: 64
 saleValue: 140

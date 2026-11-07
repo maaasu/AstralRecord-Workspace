@@ -6,6 +6,7 @@ id: 10a00262
 category: material
 name: シモイノシシの牙
 icon: POINTED_DRIPSTONE
+customModelData: 230262
 rarity: COMMON
 saleValue: 440
 maxStack: 64

@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.lang.reflect.Proxy;
@@ -178,6 +179,25 @@ class ItemModelTest {
         // Distribution uses containsAll to keep packs incompatible with a changed render mode unpublished.
         assertFalse(ItemModel.parse(catalog).models().containsAll(ItemModel.parse(CATALOG).models()));
         assertFalse(ItemModel.parse(CATALOG).models().containsAll(ItemModel.parse(catalog).models()));
+    }
+
+    @Test
+    void generatedStackLimitsAreValidatedAndPotionAliasesCannotCollide() throws IOException {
+        String potion = CATALOG.replace("minecraft:wooden_sword", "minecraft:potion")
+            .replace("\"custom_model_data\":21001",
+                "\"custom_model_data\":21001,\"render_mode\":\"generated\",\"max_stack_size\":64");
+        assertEquals(Set.of(new ItemModel("nox_sword", "minecraft:potion", 21001, true, false, 64)),
+            ItemModel.parse(potion).models());
+        for (String invalid : List.of("0", "65", "16.5", "\"64\"")) {
+            assertThrows(IOException.class, () -> ItemModel.parse(potion.replace("max_stack_size\":64",
+                "max_stack_size\":" + invalid)));
+        }
+        assertThrows(IOException.class, () -> ItemModel.parse(potion.replace("\"generated\"", "\"3d\"")));
+        var catalog = com.google.gson.JsonParser.parseString(potion).getAsJsonObject();
+        catalog.getAsJsonArray("items").add(com.google.gson.JsonParser.parseString("""
+            {"id":"paper_potion_nox_sword","base_item":"minecraft:paper","custom_model_data":24001}
+            """));
+        assertThrows(IOException.class, () -> ItemModel.parse(catalog.toString()));
     }
 
     @Test

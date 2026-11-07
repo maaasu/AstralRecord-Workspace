@@ -6,6 +6,7 @@ id: 10a00304
 category: material
 name: "&f星角のかけら"
 icon: GOAT_HORN
+customModelData: 230304
 rarity: COMMON
 maxStack: 64
 saleValue: 0

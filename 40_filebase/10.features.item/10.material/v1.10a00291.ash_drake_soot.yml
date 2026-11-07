@@ -6,6 +6,7 @@ id: 10a00291
 category: material
 name: 'ハイドレイクのすす'
 icon: CHARCOAL
+customModelData: 230291
 rarity: COMMON
 maxStack: 64
 saleValue: 850

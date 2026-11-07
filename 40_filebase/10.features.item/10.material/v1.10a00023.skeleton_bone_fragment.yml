@@ -6,6 +6,7 @@ id: 10a00023
 category: material
 name: "&fスケルトンの骨片"
 icon: BONE
+customModelData: 230023
 rarity: COMMON
 maxStack: 64
 saleValue: 3

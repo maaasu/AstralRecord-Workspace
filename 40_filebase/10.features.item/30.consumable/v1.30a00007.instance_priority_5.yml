@@ -6,6 +6,7 @@ id: 30a00007
 category: consumable
 name: "&bインスタンス優先接続券【5回】"
 icon: ENDER_EYE
+customModelData: 231007
 rarity: RARE
 maxStack: 64
 saleValue: 0

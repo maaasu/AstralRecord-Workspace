@@ -6,6 +6,7 @@ id: 30a00051
 category: consumable
 name: '&aヴェルディア会心率ポーション【大】'
 icon: POTION
+customModelData: 231051
 rarity: EPIC
 maxStack: 64
 saleValue: 1

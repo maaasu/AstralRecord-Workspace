@@ -6,6 +6,7 @@ id: 10a00037
 category: material
 name: "&fスキルジェムの原石(聖級)"
 icon: HORN_CORAL_BLOCK
+customModelData: 230037
 rarity: LEGENDARY
 maxStack: 64
 saleValue: 0

@@ -6,6 +6,7 @@ id: 10a00088
 category: material
 name: "&a黒ひかり石炭"
 icon: COAL
+customModelData: 230088
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 15

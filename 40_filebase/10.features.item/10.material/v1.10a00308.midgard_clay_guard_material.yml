@@ -6,6 +6,7 @@ id: 10a00308
 category: material
 name: "&f粘土のかけら"
 icon: CLAY_BALL
+customModelData: 230308
 rarity: COMMON
 maxStack: 64
 saleValue: 0

@@ -6,6 +6,7 @@ id: 10a00051
 category: material
 name: "&eハイエナの湾曲牙"
 icon: RABBIT_FOOT
+customModelData: 230051
 rarity: RARE
 maxStack: 64
 saleValue: 68

@@ -6,6 +6,7 @@ id: 10a00232
 category: material
 name: "大地の芯"
 icon: HEART_OF_THE_SEA
+customModelData: 230232
 rarity: RARE
 maxStack: 64
 saleValue: 2800

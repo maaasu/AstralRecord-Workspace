@@ -6,6 +6,7 @@ id: 10a00319
 category: material
 name: "&f光る骨片"
 icon: BONE
+customModelData: 230319
 iconGlint: true
 rarity: COMMON
 maxStack: 64

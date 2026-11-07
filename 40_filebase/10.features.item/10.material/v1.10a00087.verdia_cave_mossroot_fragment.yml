@@ -6,6 +6,7 @@ id: 10a00087
 category: material
 name: "&fこけ根岩のかけら"
 icon: MOSSY_COBBLESTONE
+customModelData: 230087
 rarity: COMMON
 maxStack: 64
 saleValue: 0

@@ -4,8 +4,9 @@
 schemaVersion: 1
 id: 20a00104
 category: equipment
-name: "&6&l星心の鉄ツルハシ"
+name: "&6&lヴェルディアのツルハシ グレード4"
 icon: IRON_PICKAXE
+customModelData: 232104
 rarity: LEGENDARY
 saleValue: 2
 lore:

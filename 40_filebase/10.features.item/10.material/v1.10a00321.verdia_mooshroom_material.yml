@@ -6,6 +6,7 @@ id: 10a00321
 category: material
 name: "&f赤キノコのかけら"
 icon: RED_MUSHROOM
+customModelData: 230321
 rarity: COMMON
 maxStack: 64
 saleValue: 0

@@ -6,6 +6,7 @@ id: 10a00054
 category: material
 name: "&4黒王の冠片"
 icon: ECHO_SHARD
+customModelData: 230054
 rarity: EPIC
 maxStack: 64
 saleValue: 500

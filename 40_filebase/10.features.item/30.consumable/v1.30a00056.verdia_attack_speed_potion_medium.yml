@@ -6,6 +6,7 @@ id: 30a00056
 category: consumable
 name: '&aヴェルディア攻撃速度ポーション【中】'
 icon: POTION
+customModelData: 231056
 rarity: RARE
 maxStack: 64
 saleValue: 1

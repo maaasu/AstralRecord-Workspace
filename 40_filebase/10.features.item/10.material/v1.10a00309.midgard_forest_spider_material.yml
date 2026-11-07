@@ -6,6 +6,7 @@ id: 10a00309
 category: material
 name: "&f森グモの脚"
 icon: DRIED_KELP
+customModelData: 230309
 rarity: COMMON
 maxStack: 64
 saleValue: 0

@@ -6,6 +6,7 @@ id: 30a00024
 category: consumable
 name: "&6スペシャルブーストチケット【2倍・1時間】"
 icon: NETHER_STAR
+customModelData: 231024
 rarity: EPIC
 maxStack: 64
 saleValue: 0

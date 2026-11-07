@@ -6,6 +6,7 @@ id: 10a00047
 category: material
 name: "&d万象の炎晶"
 icon: GLOWSTONE
+customModelData: 230047
 rarity: RARE
 maxStack: 64
 saleValue: 500

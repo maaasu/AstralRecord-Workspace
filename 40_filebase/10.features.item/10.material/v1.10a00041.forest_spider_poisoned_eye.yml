@@ -6,6 +6,7 @@ id: 10a00041
 category: material
 name: "&d毒した瞳"
 icon: FERMENTED_SPIDER_EYE
+customModelData: 230041
 rarity: RARE
 maxStack: 64
 saleValue: 28

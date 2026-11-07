@@ -6,6 +6,7 @@ id: 10a00242
 category: material
 name: "&a森の香り袋"
 icon: BUNDLE
+customModelData: 230242
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 500

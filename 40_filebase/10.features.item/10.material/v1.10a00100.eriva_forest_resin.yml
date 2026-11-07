@@ -6,6 +6,7 @@ id: 10a00100
 category: material
 name: '&a森の樹脂'
 icon: RESIN_CLUMP
+customModelData: 230100
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 0

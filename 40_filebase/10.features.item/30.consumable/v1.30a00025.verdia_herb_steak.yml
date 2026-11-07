@@ -6,6 +6,7 @@ id: 30a00025
 category: consumable
 name: '&f草原牛の香草ステーキ'
 icon: COOKED_BEEF
+customModelData: 231025
 rarity: COMMON
 maxStack: 16
 saleValue: 1

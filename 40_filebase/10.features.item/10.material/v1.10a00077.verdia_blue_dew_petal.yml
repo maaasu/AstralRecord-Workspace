@@ -6,6 +6,7 @@ id: 10a00077
 category: material
 name: "&a青しずくの花びら"
 icon: BLUE_ORCHID
+customModelData: 230077
 rarity: UNCOMMON
 maxStack: 64
 lore:

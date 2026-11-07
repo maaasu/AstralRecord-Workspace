@@ -25,12 +25,15 @@ import org.geysermc.geyser.api.predicate.context.item.ItemPredicateContext;
 import org.geysermc.geyser.api.util.Identifier;
 
 /** Bedrockパックと一緒に公開された、JavaアイテムとBedrockモデルの対応。 */
-record ItemModel(String id, String baseItem, int customModelData, boolean generated, boolean armor) {
+record ItemModel(String id, String baseItem, int customModelData, boolean generated, boolean armor, int maxStackSize) {
     private static final String CATALOG = "astralrecord_item_models.json";
     private static final String ATLAS = "textures/item_texture.json";
     private static final String HELD_ATTACHABLE = "attachables/trident.entity.json";
     private static final String HELD_CONTROLLERS = "render_controllers/held_weapon.render_controllers.json";
     private static final int MAX_JSON_BYTES = 64 * 1024;
+    private static final int MAX_CATALOG_BYTES = 128 * 1024;
+    private static final String PAPER = "minecraft:paper";
+    private static final String POTION = "minecraft:potion";
     private static final int MAX_HELD_ASSET_BYTES = 4 * 1024 * 1024;
 
     record Catalog(Set<ItemModel> models, Set<Integer> heldWeaponModels) {}
@@ -43,6 +46,10 @@ record ItemModel(String id, String baseItem, int customModelData, boolean genera
         this(id, baseItem, customModelData, generated, false);
     }
 
+    ItemModel(String id, String baseItem, int customModelData, boolean generated, boolean armor) {
+        this(id, baseItem, customModelData, generated, armor, 0);
+    }
+
     static Catalog read(ZipFile zip) throws IOException {
         if (zip.getEntry(CATALOG) == null) return new Catalog(Set.of(), Set.of());
 
@@ -51,7 +58,7 @@ record ItemModel(String id, String baseItem, int customModelData, boolean genera
             String path = entries.nextElement().getName();
             if (!paths.add(path)) throw new IOException("Duplicate Bedrock pack entry");
         }
-        Catalog catalog = parse(readJson(zip, CATALOG));
+        Catalog catalog = parse(readJson(zip, CATALOG, MAX_CATALOG_BYTES));
         if (!catalog.models().isEmpty()) validateAssets(zip, catalog.models());
         return catalog;
     }
@@ -179,7 +186,14 @@ record ItemModel(String id, String baseItem, int customModelData, boolean genera
                     generated = mode.getAsString().equals("generated");
                 }
                 if (generated && armor) throw new IOException("Generated items cannot be wearable armor");
-                models.add(new ItemModel(id, base, data, generated, armor));
+                int stack = 0;
+                if (item.has("max_stack_size")) {
+                    stack = integer(item, "max_stack_size");
+                    if (!generated || stack < 1 || stack > 64) {
+                        throw new IOException("Invalid max_stack_size for " + id);
+                    }
+                }
+                models.add(new ItemModel(id, base, data, generated, armor, stack));
                 if (item.has("held_weapon")) {
                     var heldWeapon = item.getAsJsonPrimitive("held_weapon");
                     if (!heldWeapon.isBoolean() || ((generated || armor) && heldWeapon.getAsBoolean())) {
@@ -191,6 +205,9 @@ record ItemModel(String id, String baseItem, int customModelData, boolean genera
             for (ItemModel model : models) {
                 if (model.armor() && ids.contains(model.hiddenArmorId())) {
                     throw new IOException("Bedrock armor hidden identifier collides with an item");
+                }
+                if (model.generated() && model.baseItem().equals(POTION) && ids.contains(model.paperPotionId())) {
+                    throw new IOException("Bedrock paper potion identifier collides with an item");
                 }
             }
         } catch (RuntimeException exception) {
@@ -252,11 +269,32 @@ record ItemModel(String id, String baseItem, int customModelData, boolean genera
 
     /** 台帳で明示した身体防具だけに、表示設定OFF用の手持ち専用定義も登録します。 */
     void register(GeyserDefineCustomItemsEvent event) {
-        var javaItem = Identifier.of(baseItem);
-        var bedrockItem = Identifier.of("astralrecord", id);
-        event.register(javaItem, CustomItemDefinition.builder(bedrockItem, javaItem)
-            .predicate(context -> matches(context, true))
-            .build());
+        var javaModel = Identifier.of(baseItem);
+        // 鍛冶型のアイコンは Paper スタックの ITEM_MODEL だけを書き換えて送信します。
+        var javaItem = generated && baseItem.endsWith("_smithing_template") ? Identifier.of(PAPER) : javaModel;
+        var definition = CustomItemDefinition.builder(Identifier.of("astralrecord", id), javaModel)
+            .predicate(context -> matches(context, true));
+        if (generated && (baseItem.endsWith("_pickaxe") || baseItem.equals("minecraft:fishing_rod"))) {
+            definition.bedrockOptions(CustomItemBedrockOptions.builder().displayHandheld(true));
+        }
+        if (maxStackSize > 0) {
+            definition.component(JavaItemDataComponents.MAX_STACK_SIZE, maxStackSize);
+            if (maxStackSize > 1 && baseItem.equals("minecraft:shears")) {
+                definition.removeComponent(JavaItemDataComponents.MAX_DAMAGE);
+            }
+        }
+        event.register(javaItem, definition.build());
+        if (generated && baseItem.equals(POTION)) {
+            // 地面の表示実体はポーション、統合版へのインベントリ・手持ち送信は紙です。
+            var paper = Identifier.of(PAPER);
+            var paperDefinition = CustomItemDefinition.builder(Identifier.of("astralrecord", paperPotionId()), paper)
+                .bedrockOptions(CustomItemBedrockOptions.builder().icon("astralrecord." + id))
+                .predicate(context -> matches(context, true));
+            if (maxStackSize > 0) {
+                paperDefinition.component(JavaItemDataComponents.MAX_STACK_SIZE, maxStackSize);
+            }
+            event.register(paper, paperDefinition.build());
+        }
         if (armor) {
             event.register(javaItem, CustomItemDefinition.builder(Identifier.of("astralrecord", hiddenArmorId()), javaItem)
                 .bedrockOptions(CustomItemBedrockOptions.builder().icon("astralrecord." + id))
@@ -270,6 +308,10 @@ record ItemModel(String id, String baseItem, int customModelData, boolean genera
     boolean matches(ItemPredicateContext context, boolean armorVisible) {
         return context.customModelDataFloat(0) == customModelData
             && (!armor || context.customModelDataFlag(0) != armorVisible);
+    }
+
+    private String paperPotionId() {
+        return "paper_potion_" + id;
     }
 
     /** 防具非表示時に同じアイコン・手持ちモデルを使用する派生attachableの識別子です。 */

@@ -6,6 +6,7 @@ id: 10a00068
 category: material
 name: "&a上質なグラスボアの毛皮"
 icon: LEATHER
+customModelData: 230068
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 220

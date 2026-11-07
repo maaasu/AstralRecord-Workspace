@@ -6,6 +6,7 @@ id: 30a00030
 category: consumable
 name: '&b豊穣の三種肉煮込み'
 icon: SUSPICIOUS_STEW
+customModelData: 231030
 rarity: RARE
 maxStack: 16
 saleValue: 1

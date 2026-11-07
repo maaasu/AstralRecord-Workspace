@@ -6,6 +6,7 @@ id: 10a00065
 category: material
 name: "&f始源の骨片"
 icon: BONE
+customModelData: 230065
 rarity: COMMON
 maxStack: 64
 saleValue: 220

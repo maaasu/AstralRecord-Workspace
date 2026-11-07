@@ -6,6 +6,7 @@ id: 10a00043
 category: material
 name: "&6サバナの獣皮片"
 icon: HONEYCOMB
+customModelData: 230043
 rarity: COMMON
 maxStack: 64
 saleValue: 14

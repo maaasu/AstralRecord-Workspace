@@ -6,6 +6,7 @@ id: 10a00101
 category: material
 name: "&5月蝕の綴り墨"
 icon: GLOW_INK_SAC
+customModelData: 230101
 rarity: EPIC
 maxStack: 64
 saleValue: 1500

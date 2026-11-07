@@ -6,6 +6,7 @@ id: 10a00062
 category: material
 name: "&f始源遺跡の弦糸"
 icon: STRING
+customModelData: 230062
 rarity: COMMON
 maxStack: 64
 saleValue: 240

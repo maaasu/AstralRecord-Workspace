@@ -6,6 +6,7 @@ id: 30a00020
 category: consumable
 name: "&bドロップブーストチケット【1.2倍・1時間】"
 icon: CHEST
+customModelData: 231020
 rarity: RARE
 maxStack: 64
 saleValue: 0

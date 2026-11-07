@@ -6,6 +6,7 @@ id: 10a00411
 category: material
 name: "&6廻刻の時針"
 icon: LIGHTNING_ROD
+customModelData: 230411
 rarity: EPIC
 maxStack: 64
 saleValue: 0

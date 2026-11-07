@@ -6,6 +6,7 @@ id: 10a00036
 category: material
 name: "&f風化した遺跡貨"
 icon: GOLD_NUGGET
+customModelData: 230036
 rarity: COMMON
 maxStack: 64
 saleValue: 45

@@ -6,6 +6,7 @@ id: 10a00008
 category: material
 name: "&6洞窟の粗銅"
 icon: RAW_COPPER
+customModelData: 230008
 rarity: COMMON
 maxStack: 64
 saleValue: 5

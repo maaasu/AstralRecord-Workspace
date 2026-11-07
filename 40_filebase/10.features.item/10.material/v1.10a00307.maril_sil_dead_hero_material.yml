@@ -6,6 +6,7 @@ id: 10a00307
 category: material
 name: "&f古びた腕輪"
 icon: IRON_CHAIN
+customModelData: 230307
 rarity: COMMON
 maxStack: 64
 saleValue: 0

@@ -6,6 +6,7 @@ id: 30a00059
 category: consumable
 name: '&aヴェルディア移動速度ポーション【中】'
 icon: POTION
+customModelData: 231059
 rarity: RARE
 maxStack: 64
 saleValue: 1

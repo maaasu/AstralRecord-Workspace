@@ -6,6 +6,7 @@ id: 10a00210
 category: material
 name: "&fやわらかな耳毛"
 icon: RABBIT_HIDE
+customModelData: 230210
 rarity: COMMON
 maxStack: 64
 saleValue: 120

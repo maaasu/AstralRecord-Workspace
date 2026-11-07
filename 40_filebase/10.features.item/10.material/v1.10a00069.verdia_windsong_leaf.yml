@@ -6,6 +6,7 @@ id: 10a00069
 category: material
 name: "&f風歌草の葉"
 icon: FERN
+customModelData: 230069
 rarity: COMMON
 maxStack: 64
 lore:

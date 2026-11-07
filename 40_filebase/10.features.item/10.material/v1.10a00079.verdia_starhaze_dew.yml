@@ -6,6 +6,7 @@ id: 10a00079
 category: material
 name: "&d星かすみのしずく"
 icon: AMETHYST_SHARD
+customModelData: 230079
 rarity: EPIC
 maxStack: 64
 lore:

@@ -4,6 +4,7 @@ id: 10a00003
 category: material
 name: "&f風待ち若葉"
 icon: FERN
+customModelData: 230003
 rarity: COMMON
 maxStack: 64
 saleValue: 4

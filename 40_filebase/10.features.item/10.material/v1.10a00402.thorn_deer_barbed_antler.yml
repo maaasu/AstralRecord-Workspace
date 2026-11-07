@@ -6,6 +6,7 @@ id: 10a00402
 category: material
 name: トゲ付きの角
 icon: GOAT_HORN
+customModelData: 230402
 rarity: COMMON
 maxStack: 64
 saleValue: 390

@@ -6,6 +6,7 @@ id: 30a00027
 category: consumable
 name: '&a上質グラスボアの金風串'
 icon: COOKED_PORKCHOP
+customModelData: 231027
 rarity: UNCOMMON
 maxStack: 16
 saleValue: 1

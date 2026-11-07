@@ -6,6 +6,7 @@ id: 10a00231
 category: material
 name: "石背の角"
 icon: GOAT_HORN
+customModelData: 230231
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 950

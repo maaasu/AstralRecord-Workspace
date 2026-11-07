@@ -6,6 +6,7 @@ id: 30a00028
 category: consumable
 name: '&f森灯り茸の香草スープ'
 icon: MUSHROOM_STEW
+customModelData: 231028
 rarity: COMMON
 maxStack: 16
 saleValue: 1

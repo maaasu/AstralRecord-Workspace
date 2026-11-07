@@ -6,6 +6,7 @@ id: 10a00038
 category: material
 name: "&fフォレストウルフの爪"
 icon: FLINT
+customModelData: 230038
 rarity: COMMON
 maxStack: 64
 saleValue: 6

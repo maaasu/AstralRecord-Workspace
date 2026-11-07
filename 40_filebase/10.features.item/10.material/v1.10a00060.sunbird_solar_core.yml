@@ -6,6 +6,7 @@ id: 10a00060
 category: material
 name: "&e陽炎の心核"
 icon: SUNFLOWER
+customModelData: 230060
 rarity: EPIC
 maxStack: 64
 saleValue: 680

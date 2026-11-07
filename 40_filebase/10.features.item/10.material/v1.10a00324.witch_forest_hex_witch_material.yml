@@ -6,6 +6,7 @@ id: 10a00324
 category: material
 name: "&f魔女の薬瓶"
 icon: GLASS_BOTTLE
+customModelData: 230324
 rarity: COMMON
 maxStack: 64
 saleValue: 0

@@ -6,6 +6,7 @@ id: 30a00029
 category: consumable
 name: '&a花くも種の花びらパン'
 icon: BREAD
+customModelData: 231029
 rarity: UNCOMMON
 maxStack: 16
 saleValue: 1

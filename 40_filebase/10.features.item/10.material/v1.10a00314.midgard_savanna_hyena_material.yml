@@ -6,6 +6,7 @@ id: 10a00314
 category: material
 name: "&fハイエナの歯"
 icon: GHAST_TEAR
+customModelData: 230314
 rarity: COMMON
 maxStack: 64
 saleValue: 0

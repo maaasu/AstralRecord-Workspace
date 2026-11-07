@@ -6,6 +6,7 @@ id: 10a00048
 category: material
 name: "&7メルコール黒鋼片"
 icon: NETHERITE_SCRAP
+customModelData: 230048
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 110

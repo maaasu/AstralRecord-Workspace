@@ -6,6 +6,7 @@ id: 10a00009
 category: material
 name: "&6洞窟の銅インゴット"
 icon: COPPER_INGOT
+customModelData: 230009
 rarity: COMMON
 maxStack: 64
 saleValue: 10

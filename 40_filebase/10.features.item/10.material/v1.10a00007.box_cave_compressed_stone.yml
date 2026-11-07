@@ -6,6 +6,7 @@ id: 10a00007
 category: material
 name: "&7洞窟の圧縮石"
 icon: STONE_BRICKS
+customModelData: 230007
 rarity: COMMON
 maxStack: 64
 saleValue: 4

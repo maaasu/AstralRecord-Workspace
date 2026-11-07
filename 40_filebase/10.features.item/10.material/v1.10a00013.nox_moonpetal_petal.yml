@@ -6,6 +6,7 @@ id: 10a00013
 category: material
 name: "&f月片花の花弁"
 icon: WHITE_DYE
+customModelData: 230013
 rarity: COMMON
 maxStack: 64
 saleValue: 6

@@ -6,6 +6,7 @@ id: 10a00080
 category: material
 name: "&b花守りの葉"
 icon: FLOWERING_AZALEA_LEAVES
+customModelData: 230080
 rarity: RARE
 maxStack: 64
 lore:

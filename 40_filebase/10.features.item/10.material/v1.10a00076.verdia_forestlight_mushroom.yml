@@ -6,6 +6,7 @@ id: 10a00076
 category: material
 name: "&a森灯り茸"
 icon: SHROOMLIGHT
+customModelData: 230076
 rarity: UNCOMMON
 maxStack: 64
 lore:

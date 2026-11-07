@@ -6,6 +6,7 @@ id: 30a00034
 category: consumable
 name: '&bヴェルディアMP回復ポーション【小】'
 icon: POTION
+customModelData: 231034
 rarity: COMMON
 maxStack: 64
 saleValue: 1

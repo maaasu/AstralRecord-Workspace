@@ -4,6 +4,7 @@ id: 10a00004
 category: material
 name: "&f灯茸の胞子"
 icon: BROWN_MUSHROOM
+customModelData: 230004
 rarity: COMMON
 maxStack: 64
 saleValue: 5

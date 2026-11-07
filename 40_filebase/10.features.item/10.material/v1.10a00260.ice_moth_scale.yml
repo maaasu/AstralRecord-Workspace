@@ -6,6 +6,7 @@ id: 10a00260
 category: material
 name: コオリガの羽片
 icon: FEATHER
+customModelData: 230260
 rarity: COMMON
 saleValue: 280
 maxStack: 64

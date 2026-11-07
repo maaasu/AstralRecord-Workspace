@@ -6,6 +6,7 @@ id: 10a00082
 category: material
 name: "&b泉うた花の花びら"
 icon: PINK_PETALS
+customModelData: 230082
 rarity: RARE
 maxStack: 64
 lore:

@@ -6,6 +6,7 @@ id: 10a00222
 category: material
 name: '&fカマキリの刃'
 icon: SHEARS
+customModelData: 230222
 rarity: COMMON
 maxStack: 64
 saleValue: 160

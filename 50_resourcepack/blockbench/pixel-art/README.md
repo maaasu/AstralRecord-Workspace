@@ -1,4 +1,4 @@
-# アクセサリーの編集元
+# 2Dアイテムの編集元
 
 このフォルダの `<id>.pixel.json` は、32×32の透過ピクセルアイコンの編集元です。Blockbenchの立体プロジェクトとは形式が異なります。`palette` は1文字からRGBA色への対応、`pixels` は上から下への各行です。追加の `intent`、`inspiration`、`native_pixels` などは制作者の意図と元のグリッドを残す情報です。
 
@@ -13,4 +13,4 @@ python scripts/generate-pixel-item-assets.py --check
 
 生成先は `assets/astralrecord/textures/item/custom/<id>.png` と `bedrock/textures/items/<id>.png` です。同じバイト列を両版へ保存し、編集元の `png_sha256` を更新します。`native_pixels` を含む編集元で元グリッドを変更した場合は、その補助情報も編集内容に揃えてください。
 
-配布台帳は `render_mode: "generated"` を使います。JEのgenerated親モデルとBEのアイコン登録はビルド時に生成し、ここへ3D geometryやattachableは置きません。実クライアントの装備表示確認は、ソースとPNGの一致検証とは分けて記録します。
+配布台帳は `render_mode: "generated"` を使います。Java版のアイテムモデルと統合版のアイコン登録はビルド時に生成します。ツルハシと釣り竿は、配布時に手持ち姿勢を継承する2Dモデルへ変換されます。実クライアントの装備表示確認は、ソースとPNGの一致検証とは分けて記録します。

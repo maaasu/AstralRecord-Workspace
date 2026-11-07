@@ -6,6 +6,7 @@ id: 10a00006
 category: material
 name: "&8洞窟の石炭"
 icon: COAL
+customModelData: 230006
 rarity: COMMON
 maxStack: 64
 saleValue: 3

@@ -6,6 +6,7 @@ id: 30a00031
 category: consumable
 name: '&bヴェルディアHP回復ポーション【小】'
 icon: POTION
+customModelData: 231031
 rarity: COMMON
 maxStack: 64
 saleValue: 1

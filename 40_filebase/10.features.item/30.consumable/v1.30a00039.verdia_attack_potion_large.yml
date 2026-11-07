@@ -6,6 +6,7 @@ id: 30a00039
 category: consumable
 name: '&aヴェルディア攻撃力ポーション【大】'
 icon: POTION
+customModelData: 231039
 rarity: EPIC
 maxStack: 64
 saleValue: 1

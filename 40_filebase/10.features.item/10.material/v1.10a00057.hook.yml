@@ -6,6 +6,7 @@ id: 10a00057
 category: material
 name: "&fフック"
 icon: TRIPWIRE_HOOK
+customModelData: 230057
 rarity: COMMON
 maxStack: 64
 saleValue: 2

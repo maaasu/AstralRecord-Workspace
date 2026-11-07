@@ -6,6 +6,7 @@ id: 10a00302
 category: material
 name: "&f大草原の牙"
 icon: BONE
+customModelData: 230302
 rarity: COMMON
 maxStack: 64
 saleValue: 0

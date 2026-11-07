@@ -6,6 +6,7 @@ id: 10a00067
 category: material
 name: "&e上質なグラスボア肉"
 icon: PORKCHOP
+customModelData: 230067
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 180

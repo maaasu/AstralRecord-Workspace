@@ -6,6 +6,7 @@ id: 30a00054
 category: consumable
 name: '&aヴェルディア会心ダメージポーション【大】'
 icon: POTION
+customModelData: 231054
 rarity: EPIC
 maxStack: 64
 saleValue: 1

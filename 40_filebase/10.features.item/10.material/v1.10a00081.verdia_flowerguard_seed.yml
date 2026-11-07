@@ -6,6 +6,7 @@ id: 10a00081
 category: material
 name: "&d花守りの種"
 icon: PITCHER_POD
+customModelData: 230081
 rarity: EPIC
 maxStack: 64
 lore:

@@ -6,6 +6,7 @@ id: 10a00323
 category: material
 name: "&f黒い糸玉"
 icon: STRING
+customModelData: 230323
 rarity: COMMON
 maxStack: 64
 saleValue: 0

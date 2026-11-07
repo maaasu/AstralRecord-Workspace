@@ -6,6 +6,7 @@ id: 10a00201
 category: material
 name: "&fヤブガニの甲羅"
 icon: TURTLE_SCUTE
+customModelData: 230201
 rarity: COMMON
 maxStack: 64
 saleValue: 200

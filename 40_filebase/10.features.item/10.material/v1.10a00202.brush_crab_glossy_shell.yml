@@ -6,6 +6,7 @@ id: 10a00202
 category: material
 name: "&aつや甲羅"
 icon: TURTLE_SCUTE
+customModelData: 230202
 rarity: UNCOMMON
 iconGlint: true
 maxStack: 64

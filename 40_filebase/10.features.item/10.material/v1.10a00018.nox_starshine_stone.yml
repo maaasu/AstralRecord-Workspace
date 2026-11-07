@@ -6,6 +6,7 @@ id: 10a00018
 category: material
 name: "&f星映石"
 icon: mossy_cobblestone
+customModelData: 230018
 rarity: COMMON
 maxStack: 64
 saleValue: 11

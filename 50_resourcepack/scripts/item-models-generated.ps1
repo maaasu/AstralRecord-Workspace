@@ -27,19 +27,28 @@ function Add-GeneratedItemAssets {
             throw "Generated item $id must provide PNG textures for both editions."
         }
     }
+    $parent = switch -CaseSensitive -Wildcard ($base) {
+        'fishing_rod' { 'minecraft:item/handheld_rod' }
+        '*_pickaxe' { 'minecraft:item/handheld' }
+        default { 'minecraft:item/generated' }
+    }
     Add-PackJson $JavaEntries "assets/astralrecord/models/item/custom/$id.json" ([ordered] @{
-        parent = 'minecraft:item/generated'
+        parent = $parent
         textures = [ordered] @{ layer0 = $texture }
     })
     $IconTextures.Add("astralrecord.$id", [ordered] @{ textures = "textures/items/$id" })
     if (!$ByBase.ContainsKey($base)) { $ByBase[$base] = [ordered] @{} }
     $ByBase[$base].Add([string] $Item.custom_model_data, (New-JavaModelReference "astralrecord:item/custom/$id"))
-    return [ordered] @{
+    $mapping = [ordered] @{
         id = $id
         base_item = $Item.base_item
         custom_model_data = $Item.custom_model_data
         render_mode = 'generated'
     }
+    if ($Item.PSObject.Properties.Name -ccontains 'max_stack_size') {
+        $mapping.Add('max_stack_size', $Item.max_stack_size)
+    }
+    return $mapping
 }
 
 function Add-GeneratedItemOverlayDispatch {

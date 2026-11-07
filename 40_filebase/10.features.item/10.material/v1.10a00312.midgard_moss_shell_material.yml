@@ -6,6 +6,7 @@ id: 10a00312
 category: material
 name: "&f苔甲のかけら"
 icon: TURTLE_SCUTE
+customModelData: 230312
 rarity: COMMON
 maxStack: 64
 saleValue: 0

@@ -6,6 +6,7 @@ id: 10a00056
 category: material
 name: "&fシルマリルの骨片"
 icon: BONE
+customModelData: 230056
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 95

@@ -6,6 +6,7 @@ id: 10a00290
 category: material
 name: '焼けた甲殻'
 icon: TURTLE_SCUTE
+customModelData: 230290
 rarity: COMMON
 maxStack: 64
 saleValue: 750

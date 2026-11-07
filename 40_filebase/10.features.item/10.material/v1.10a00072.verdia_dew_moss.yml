@@ -6,6 +6,7 @@ id: 10a00072
 category: material
 name: "&f森しずくごけ"
 icon: MOSS_BLOCK
+customModelData: 230072
 rarity: COMMON
 maxStack: 64
 lore:

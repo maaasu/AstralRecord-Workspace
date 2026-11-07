@@ -6,6 +6,7 @@ id: 10a00270
 category: material
 name: アカサソリの毒針
 icon: POINTED_DRIPSTONE
+customModelData: 230270
 rarity: COMMON
 saleValue: 550
 maxStack: 64

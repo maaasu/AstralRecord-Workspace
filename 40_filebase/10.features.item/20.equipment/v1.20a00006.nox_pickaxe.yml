@@ -6,6 +6,7 @@ id: 20a00006
 category: equipment
 name: "ノクスツルハシ"
 icon: WOODEN_PICKAXE
+customModelData: 232006
 rarity: COMMON
 saleValue: 2
 lore:

@@ -6,6 +6,7 @@ id: 10a00074
 category: material
 name: "&a金風花の花びら"
 icon: SUNFLOWER
+customModelData: 230074
 rarity: UNCOMMON
 maxStack: 64
 lore:

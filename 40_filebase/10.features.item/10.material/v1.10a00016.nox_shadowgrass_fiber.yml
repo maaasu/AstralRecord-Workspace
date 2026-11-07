@@ -6,6 +6,7 @@ id: 10a00016
 category: material
 name: "&f影草の繊維"
 icon: dead_horn_coral
+customModelData: 230016
 rarity: COMMON
 maxStack: 64
 saleValue: 3

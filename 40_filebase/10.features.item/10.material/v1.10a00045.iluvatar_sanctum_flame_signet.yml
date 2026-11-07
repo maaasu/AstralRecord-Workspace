@@ -6,6 +6,7 @@ id: 10a00045
 category: material
 name: "&c炎紋の聖印"
 icon: NETHER_BRICK
+customModelData: 230045
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 160

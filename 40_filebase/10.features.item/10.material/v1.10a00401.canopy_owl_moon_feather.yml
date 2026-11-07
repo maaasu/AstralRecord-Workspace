@@ -6,6 +6,7 @@ id: 10a00401
 category: material
 name: 月色の羽
 icon: PHANTOM_MEMBRANE
+customModelData: 230401
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 760

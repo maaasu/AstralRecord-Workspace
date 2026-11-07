@@ -6,6 +6,7 @@ id: 10a00010
 category: material
 name: "&7洞窟の石ころ"
 icon: COBBLESTONE
+customModelData: 230010
 rarity: COMMON
 maxStack: 64
 saleValue: 1

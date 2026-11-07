@@ -6,6 +6,7 @@ id: 10a00098
 category: material
 name: "&f川サケ"
 icon: SALMON
+customModelData: 230098
 rarity: COMMON
 maxStack: 64
 saleValue: 8

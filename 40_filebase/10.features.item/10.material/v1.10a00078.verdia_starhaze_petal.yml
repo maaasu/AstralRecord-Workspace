@@ -6,6 +6,7 @@ id: 10a00078
 category: material
 name: "&b星かすみの花びら"
 icon: ALLIUM
+customModelData: 230078
 rarity: RARE
 maxStack: 64
 lore:

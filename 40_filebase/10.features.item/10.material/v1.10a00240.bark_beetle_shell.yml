@@ -6,6 +6,7 @@ id: 10a00240
 category: material
 name: "&f木色の殻"
 icon: ARMADILLO_SCUTE
+customModelData: 230240
 rarity: COMMON
 maxStack: 64
 saleValue: 180

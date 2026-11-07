@@ -6,6 +6,7 @@ id: 30a00012
 category: consumable
 name: "&bDONER利用券【15日】"
 icon: GOLD_INGOT
+customModelData: 231012
 rarity: RARE
 maxStack: 64
 saleValue: 0

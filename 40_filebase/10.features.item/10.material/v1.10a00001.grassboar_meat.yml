@@ -6,6 +6,7 @@ id: 10a00001
 category: material
 name: "&fグラスボア肉"
 icon: PORKCHOP
+customModelData: 230001
 rarity: COMMON
 maxStack: 64
 saleValue: 4

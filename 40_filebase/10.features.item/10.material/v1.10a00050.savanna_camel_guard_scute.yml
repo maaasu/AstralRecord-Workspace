@@ -6,6 +6,7 @@ id: 10a00050
 category: material
 name: "&bラクダ守りの甲片"
 icon: ARMADILLO_SCUTE
+customModelData: 230050
 rarity: RARE
 maxStack: 64
 saleValue: 76

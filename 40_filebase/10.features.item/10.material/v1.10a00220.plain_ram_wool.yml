@@ -6,6 +6,7 @@ id: 10a00220
 category: material
 name: '&f野原の羊毛'
 icon: WHITE_WOOL
+customModelData: 230220
 rarity: COMMON
 maxStack: 64
 saleValue: 90
