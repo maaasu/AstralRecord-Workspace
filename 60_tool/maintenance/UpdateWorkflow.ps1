@@ -81,16 +81,100 @@ function Assert-UpdateWorkflowInputs {
     return [pscustomobject]@{ RunRoot=$runRoot; Migration=$normalizedMigration; ApiKey=$credentials.ApiKey; MigrationKey=$credentials.MigrationKey }
 }
 
+function Test-UpdateWorkflowTransientTransportFailure([Exception] $Exception) {
+    $retryable = $false
+    while ($null -ne $Exception) {
+        if ($Exception -is [System.Security.Authentication.AuthenticationException]) { return $false }
+        if ($Exception -is [System.Net.Http.HttpRequestException] -or $Exception.GetType().FullName -eq 'System.Net.Http.HttpIOException') {
+            if ($null -ne (Get-UpdateWorkflowValue $Exception 'StatusCode')) { return $false }
+            $requestError = [string](Get-UpdateWorkflowValue $Exception 'HttpRequestError')
+            if ($requestError -in @('ConnectionError', 'ResponseEnded')) { $retryable=$true }
+            elseif ($requestError -and $requestError -notin @('Unknown', 'NameResolutionError')) { return $false }
+        }
+        if ($Exception -is [TimeoutException] -or ($Exception -is [System.Net.Sockets.SocketException] -and
+            [string]$Exception.SocketErrorCode -in @('TimedOut', 'ConnectionReset', 'ConnectionAborted', 'ConnectionRefused', 'NetworkDown', 'NetworkUnreachable', 'HostDown', 'HostUnreachable', 'TryAgain'))) {
+            $retryable=$true
+        }
+        $Exception = $Exception.InnerException
+    }
+    return $retryable
+}
+
+function Invoke-UpdateWorkflowStartupRead([string] $Uri, [hashtable] $Headers, [hashtable] $TlsOptions, [datetime] $DeadlineUtc) {
+    # WebCmdlet connection and idle timeouts do not bound a response body that keeps sending bytes.
+    $handler = [System.Net.Http.HttpClientHandler]::new()
+    $client = $request = $timeout = $response = $null
+    try {
+        $handler.AllowAutoRedirect = $false
+        $handler.AutomaticDecompression = [System.Net.DecompressionMethods]'GZip, Deflate, Brotli'
+        if ($TlsOptions['NoProxy']) { $handler.UseProxy = $false }
+        if ($TlsOptions['SkipCertificateCheck']) {
+            $handler.ServerCertificateCustomValidationCallback = [System.Net.Http.HttpClientHandler]::DangerousAcceptAnyServerCertificateValidator
+        }
+        $client = [System.Net.Http.HttpClient]::new($handler, $false)
+        $client.Timeout = [Threading.Timeout]::InfiniteTimeSpan
+        $request = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Get, $Uri)
+        foreach ($name in $Headers.Keys) { $request.Headers.Add($name, [string]$Headers[$name]) }
+
+        $remaining = $DeadlineUtc - [DateTime]::UtcNow
+        if ($remaining -le [TimeSpan]::Zero) { throw [TimeoutException]::new('The startup readiness deadline elapsed.') }
+        $timeout = [Threading.CancellationTokenSource]::new([TimeSpan]::FromMilliseconds([Math]::Min(120000, $remaining.TotalMilliseconds)))
+        $response = $client.SendAsync($request, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead, $timeout.Token).GetAwaiter().GetResult()
+        $content = $null
+        if ([int]$response.StatusCode -eq 200) {
+            # A non-success status is authoritative once its headers arrive. Only buffer a successful runtime body.
+            $buffer = [byte[]]::new(256KB + 1)
+            $length = 0
+            $stream = $response.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
+            while ($length -lt $buffer.Length) {
+                $read = $stream.ReadAsync($buffer, $length, $buffer.Length - $length, $timeout.Token).GetAwaiter().GetResult()
+                if ($read -eq 0) { break }
+                $length += $read
+            }
+            if ($length -gt 256KB) { throw 'The startup readiness response exceeded its size limit.' }
+            $buffered = [System.Net.Http.ByteArrayContent]::new($buffer, 0, $length)
+            try {
+                $buffered.Headers.ContentType = $response.Content.Headers.ContentType
+                $content = $buffered.ReadAsStringAsync().GetAwaiter().GetResult()
+            } finally { $buffered.Dispose() }
+        }
+        return [pscustomobject]@{StatusCode=[int]$response.StatusCode;Content=$content}
+    } catch {
+        if ($timeout -and $timeout.IsCancellationRequested) {
+            $failure = $_.Exception
+            while ($failure -and $failure -isnot [OperationCanceledException]) { $failure = $failure.InnerException }
+            if ($failure) { throw [TimeoutException]::new('The startup readiness request timed out.') }
+        }
+        throw
+    } finally {
+        if ($response) { $response.Dispose() }
+        if ($timeout) { $timeout.Dispose() }
+        if ($request) { $request.Dispose() }
+        if ($client) { $client.Dispose() }
+        $handler.Dispose()
+    }
+}
+
 function Invoke-UpdateWorkflowHttp {
     param([Parameter(Mandatory)][string] $Method, [Parameter(Mandatory)][string] $Uri, [Parameter(Mandatory)][hashtable] $Headers, $Body,
-        [string] $ApiBaseUrl, [switch] $AllowPrivateApiInsecureTls)
+        [string] $ApiBaseUrl, [switch] $AllowPrivateApiInsecureTls, [datetime] $StartupPollDeadlineUtc = [DateTime]::MinValue)
 
     try {
         $parameters = @{ Method=$Method; Uri=$Uri; Headers=$Headers; SkipHttpErrorCheck=$true; MaximumRedirection=0; TimeoutSec=120; ErrorAction='Stop' }
         $tlsOptions=Get-SkillTreeTlsRequestOptions -Uri $Uri -ApiBaseUrl $ApiBaseUrl -AllowPrivateApiInsecureTls:$AllowPrivateApiInsecureTls
         foreach ($key in $tlsOptions.Keys) { $parameters[$key]=$tlsOptions[$key] }
         if ($null -ne $Body) { $parameters.ContentType='application/json'; $parameters.Body=($Body | ConvertTo-Json -Depth 40 -Compress) }
-        $response = Invoke-WebRequest @parameters
+        $startupPoll = $Method -eq 'GET' -and $StartupPollDeadlineUtc -ne [DateTime]::MinValue
+        try {
+            $response = if ($startupPoll) { Invoke-UpdateWorkflowStartupRead $Uri $Headers $tlsOptions $StartupPollDeadlineUtc }
+                else { Invoke-WebRequest @parameters }
+        }
+        catch {
+            if ($startupPoll -and (Test-UpdateWorkflowTransientTransportFailure $_.Exception)) {
+                return [pscustomobject]@{ TransientTransportFailure=$true }
+            }
+            throw
+        }
         $content = $response.Content
         $parsed = $null
         if ($response.StatusCode -eq 200 -and ![string]::IsNullOrWhiteSpace($content)) {
@@ -104,11 +188,21 @@ function Invoke-UpdateWorkflowHttp {
 }
 
 function Invoke-UpdateWorkflowRequest {
-    param([Parameter(Mandatory)][scriptblock] $Invoker, [Parameter(Mandatory)][string] $Method, [Parameter(Mandatory)][string] $Uri, [Parameter(Mandatory)][hashtable] $Headers, $Body)
+    param([Parameter(Mandatory)][scriptblock] $Invoker, [Parameter(Mandatory)][string] $Method, [Parameter(Mandatory)][string] $Uri,
+        [Parameter(Mandatory)][hashtable] $Headers, $Body, [datetime] $StartupPollDeadlineUtc = [DateTime]::MinValue)
 
-    try { $result = & $Invoker -Method $Method -Uri $Uri -Headers $Headers -Body $Body }
-    catch { throw 'The update workflow API request failed.' }
+    $arguments = @{ Method=$Method; Uri=$Uri; Headers=$Headers; Body=$Body }
+    $startupPoll = $Method -eq 'GET' -and $StartupPollDeadlineUtc -ne [DateTime]::MinValue
+    if ($startupPoll) { $arguments.StartupPollDeadlineUtc=$StartupPollDeadlineUtc }
+    try { $result = & $Invoker @arguments }
+    catch {
+        if ($startupPoll -and (Test-UpdateWorkflowTransientTransportFailure $_.Exception)) {
+            return [pscustomobject]@{ TransientTransportFailure=$true }
+        }
+        throw 'The update workflow API request failed.'
+    }
     if ($null -eq $result) { throw 'The update workflow API request returned no result.' }
+    if ($startupPoll -and (Get-UpdateWorkflowValue $result 'TransientTransportFailure') -eq $true) { return $result }
     $status = Get-UpdateWorkflowValue $result 'StatusCode'
     if ($null -eq $status) { return [pscustomobject]@{ StatusCode=200; Body=$result } } # test/mock contract
     try { $numericStatus = [int]$status } catch { throw 'The update workflow API response status was invalid.' }
@@ -125,10 +219,19 @@ function ConvertTo-UpdateWorkflowInstant {
 }
 
 function Get-UpdateWorkflowRuntime {
-    param([Parameter(Mandatory)] $Migration, [Parameter(Mandatory)][string] $ServerId, [Parameter(Mandatory)][scriptblock] $Invoker, [Parameter(Mandatory)][hashtable] $Headers)
+    param([Parameter(Mandatory)] $Migration, [Parameter(Mandatory)][string] $ServerId, [Parameter(Mandatory)][scriptblock] $Invoker,
+        [Parameter(Mandatory)][hashtable] $Headers, [datetime] $StartupPollDeadlineUtc = [DateTime]::MinValue)
 
     $uri = "$($Migration.BaseUrl)/api/skilltree/runtime/servers/$([Uri]::EscapeDataString($ServerId))"
-    $response = Invoke-UpdateWorkflowRequest $Invoker 'GET' $uri $Headers $null
+    $response = Invoke-UpdateWorkflowRequest $Invoker 'GET' $uri $Headers $null -StartupPollDeadlineUtc $StartupPollDeadlineUtc
+    if ($StartupPollDeadlineUtc -ne [DateTime]::MinValue) {
+        $reason = if ((Get-UpdateWorkflowValue $response 'TransientTransportFailure') -eq $true) { 'Transport' }
+            elseif ($response.StatusCode -in @(502, 503, 504)) { "HTTP$($response.StatusCode)" }
+        if ($reason) {
+            Write-MaintenanceDiagnostic 'startup.poll.transient' @{server=$ServerId; reason=$reason}
+            return $null
+        }
+    }
     if ($response.StatusCode -eq 404) { return $null }
     if ($response.StatusCode -ne 200) { throw 'The runtime API did not accept the update workflow request.' }
     $runtime = $response.Body
@@ -143,7 +246,9 @@ function Get-UpdateWorkflowRuntime {
         }
         $publicationRevision = $parsedRevision
     }
-    if ((Get-UpdateWorkflowValue $runtime 'ready') -ne $true) {
+    $ready = Get-UpdateWorkflowValue $runtime 'ready'
+    if ($StartupPollDeadlineUtc -ne [DateTime]::MinValue -and $ready -isnot [bool]) { throw "Runtime response for '$ServerId' has an invalid ready flag." }
+    if ($ready -ne $true) {
         return [pscustomobject]@{ ServerId=$ServerId; Ready=$false; ServerSessionId=$session; DefinitionGenerationId=$null; PublicationRevision=$publicationRevision }
     }
     $generation = Get-UpdateWorkflowValue $runtime 'definitionGenerationId'
@@ -185,16 +290,19 @@ function Wait-UpdateWorkflowRuntimes {
         [Parameter(Mandatory)][int] $TimeoutSeconds,
         [Parameter(Mandatory)][int] $PollIntervalSeconds,
         $MinimumServerStartedAtUtc=$null,
-        [scriptblock] $SleepAction
+        [scriptblock] $SleepAction,
+        [switch] $RetryTransientReads
     )
 
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+    $pollDeadline = if ($RetryTransientReads) { $deadline } else { [DateTime]::MinValue }
     $previousSignature = $null
     $consecutive = 0
     do {
         $runtimes = @(); $usable = $true
         foreach ($serverId in $Migration.ServerIds) {
-            $runtime = Get-UpdateWorkflowRuntime $Migration $serverId $Invoker $Headers
+            if ($RetryTransientReads -and [DateTime]::UtcNow -ge $deadline) { $usable=$false; break }
+            $runtime = Get-UpdateWorkflowRuntime $Migration $serverId $Invoker $Headers -StartupPollDeadlineUtc $pollDeadline
             Write-MaintenanceDiagnostic 'startup.poll' @{server=$serverId; ready=($null -ne $runtime -and $runtime.Ready)}
             if ($null -eq $runtime -or !$runtime.Ready) { $usable=$false; break }
             if ($MinimumServerStartedAtUtc -and (!$runtime.ServerStartedAtUtc -or
@@ -209,13 +317,19 @@ function Wait-UpdateWorkflowRuntimes {
             }
             $runtimes += $runtime
         }
+        if ($RetryTransientReads -and [DateTime]::UtcNow -ge $deadline) { break }
         if ($usable -and @($runtimes.DefinitionGenerationId | Select-Object -Unique).Count -eq 1) {
             $signature = @($runtimes | Sort-Object ServerId | ForEach-Object { "$($_.ServerId)|$($_.ServerSessionId)|$($_.DefinitionGenerationId)|$($_.PublicationRevision)" }) -join "`n"
             if ($signature -ceq $previousSignature) { $consecutive++ } else { $previousSignature=$signature; $consecutive=1 }
             if ($consecutive -ge 2) { return $runtimes }
         } else { $previousSignature=$null; $consecutive=0 }
         if ([DateTime]::UtcNow -ge $deadline) { break }
-        if ($SleepAction) { & $SleepAction -Seconds $PollIntervalSeconds } else { Start-Sleep -Seconds $PollIntervalSeconds }
+        if ($SleepAction) { & $SleepAction -Seconds $PollIntervalSeconds }
+        elseif ($RetryTransientReads) {
+            $sleepMilliseconds = [Math]::Min(1000 * $PollIntervalSeconds, ($deadline - [DateTime]::UtcNow).TotalMilliseconds)
+            if ($sleepMilliseconds -gt 0) { Start-Sleep -Milliseconds ([int][Math]::Floor($sleepMilliseconds)) }
+        }
+        else { Start-Sleep -Seconds $PollIntervalSeconds }
     } while ([DateTime]::UtcNow -lt $deadline)
     if ($AllowSameSessionPublication) {
         throw 'Timed out waiting for Dev to start or publish the master reload. Check masterData.autoReload.enabled and the deployed API/Plugin versions, or restart Dev while admission remains closed.'
@@ -287,8 +401,8 @@ function Invoke-UpdateWorkflow {
     if (!$HttpInvoker) {
         $workflowTransportBaseUrl=$validated.Migration.BaseUrl
         $workflowTransportPrivateTls=$validated.Migration.AllowPrivateApiInsecureTls
-        $HttpInvoker={param($Method,$Uri,$Headers,$Body)
-            Invoke-UpdateWorkflowHttp -Method $Method -Uri $Uri -Headers $Headers -Body $Body -ApiBaseUrl $workflowTransportBaseUrl -AllowPrivateApiInsecureTls:$workflowTransportPrivateTls
+        $HttpInvoker={param($Method,$Uri,$Headers,$Body,$StartupPollDeadlineUtc=[DateTime]::MinValue)
+            Invoke-UpdateWorkflowHttp -Method $Method -Uri $Uri -Headers $Headers -Body $Body -ApiBaseUrl $workflowTransportBaseUrl -AllowPrivateApiInsecureTls:$workflowTransportPrivateTls -StartupPollDeadlineUtc $StartupPollDeadlineUtc
         }
     }
     $headers = @{ 'X-Api-Key'=$validated.ApiKey; 'X-SkillTree-Migration-Key'=$validated.MigrationKey }
@@ -525,6 +639,7 @@ function Invoke-UpdateWorkflow {
             $runtimes = Wait-UpdateWorkflowRuntimes -Migration $validated.Migration -BaselineRuntimes $baselineRuntimes `
                 -AllowSameSessionPublication:$AllowSameSessionPublication -Invoker $HttpInvoker -Headers $headers `
                 -TimeoutSeconds $WorkflowConfig.startupTimeoutSeconds -PollIntervalSeconds $WorkflowConfig.pollIntervalSeconds `
+                -RetryTransientReads:($Label -eq 'Channels') `
                 -MinimumServerStartedAtUtc $(if ($automaticDev) { $state.devStartRequestedAtUtc } else { '' }) `
                 -SleepAction $SleepAction
             $state.deployedRuntimes=@($runtimes); $state.status='PublishingPatch'; Save-UpdateWorkflowJson $state $statePath

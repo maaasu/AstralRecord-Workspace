@@ -127,13 +127,89 @@ try {
     # A maintenance journal marked Deployed is the one trusted recovery proof for an interrupted workflow.
     $f=New-WorkflowFixture; $run=New-UpdateWorkflowRunDirectory $f.Run; Save-UpdateWorkflowJson @{schemaVersion=1;relativeRunDirectory=$run.Relative;configurationFingerprint=('a'*64);status='Deploying'} (Join-Path $f.Run 'active-run.json'); Save-UpdateWorkflowJson @{schemaVersion=1;configurationFingerprint=('a'*64);label='Channels';status='Deploying';baselineSessions=@{alpha=$null};deployedRuntimes=@();seedStatus='PENDING'} (Join-Path $run.Path 'workflow-state.json'); Save-UpdateWorkflowJson @{version=1;status='Deployed';operations=@()} (Join-Path $run.Path 'deployment.json')
     $script:maintenancePoll=0; $script:maintenanceSession=[Guid]::NewGuid().ToString('D'); $script:publicationCalls=0
-    $maintenanceResumeMock={ param($Method,$Uri,$Headers,$Body)
-        if ($Method -eq 'GET' -and $Uri -match '/runtime/servers/alpha$') { return [pscustomobject]@{serverId='alpha';serverSessionId=$script:maintenanceSession;definitionGenerationId=$script:generation;ready=$true} }
+    $maintenanceResumeMock={ param($Method,$Uri,$Headers,$Body,$StartupPollDeadlineUtc)
+        if ($Method -eq 'GET' -and $Uri -match '/runtime/servers/alpha$') {
+            if ($StartupPollDeadlineUtc) {
+                Assert-Workflow (($StartupPollDeadlineUtc-[DateTime]::UtcNow).TotalSeconds -le 5) 'A readiness request exceeded the configured startup wait.'
+                $script:maintenancePoll++
+                if ($script:maintenancePoll -eq 2) { throw [TimeoutException]::new('transient fixture') }
+                if ($script:maintenancePoll -eq 4) { return @{StatusCode=503;Body=$null} }
+            }
+            return [pscustomobject]@{serverId='alpha';serverSessionId=$script:maintenanceSession;definitionGenerationId=$script:generation;ready=$true}
+        }
         if ($Method -eq 'POST' -and $Uri -match '/patches/publish\?server_session_id=') { return New-TestPublication $Headers $Body }
         throw 'Unexpected request.'
     }
     $maintenanceResume=Invoke-UpdateWorkflow -WorkflowConfig @{runRoot=$f.Run;startupTimeoutSeconds=5;pollIntervalSeconds=1;seedMasterData=$false} -MigrationConfig (New-WorkflowMigration @('alpha')) -ConfigurationFingerprint ('a'*64) -ServerRoots @($f.Server,$f.Source) -DeployAction { throw 'verified deployment must not run again' } -ServersStopped -AdmissionClosed -Label Channels -HttpInvoker $maintenanceResumeMock -SleepAction { param($Seconds) }
-    Assert-Workflow ($maintenanceResume.Status -eq 'COMPLETED') 'A verified maintenance deployment must resume without redeploying.'
+    Assert-Workflow ($maintenanceResume.Status -eq 'COMPLETED' -and $maintenanceResume.RunDirectory -eq $run.Path) 'A verified maintenance deployment must resume the same run without redeploying.'
+    Assert-Workflow ($script:maintenancePoll -eq 6 -and $script:publicationCalls -eq 1) 'Each transient readiness read must reset the ready streak before one publication.'
+
+    $pollArguments=@{Migration=@{BaseUrl='http://127.0.0.1:1';ServerIds=@('alpha')};BaselineRuntimes=@{alpha=$null};Headers=@{};TimeoutSeconds=5;PollIntervalSeconds=1;RetryTransientReads=$true;SleepAction={throw 'A nontransient poll must not wait.'}}
+    $invalidReady=@{StatusCode=200;Body=@{serverId='alpha';serverSessionId=$script:maintenanceSession;ready='true'}}
+    foreach ($failure in @(@{StatusCode=401;Body=$null}, @{StatusCode=403;Body=$null}, @{StatusCode=200;Body=@{serverId='other'}}, $invalidReady, [System.Security.Authentication.AuthenticationException]::new('fixture TLS failure'))) {
+        $script:attempts=0
+        $failed=$false
+        try { Wait-UpdateWorkflowRuntimes @pollArguments -Invoker { $script:attempts++; if ($failure -is [Exception]) { throw $failure }; return $failure } | Out-Null }
+        catch { $failed=$_.Exception.Message -match 'did not accept|did not match|invalid ready flag|request failed' }
+        Assert-Workflow ($failed -and $script:attempts -eq 1) 'Authorization, invalid runtime, and TLS errors must fail before retry.'
+    }
+    $script:attempts=0
+    $failed=$false
+    try { Invoke-UpdateWorkflowRequest { $script:attempts++; throw [TimeoutException]::new('fixture POST') } 'POST' 'http://127.0.0.1:1/' @{} $null -StartupPollDeadlineUtc ([DateTime]::UtcNow.AddSeconds(1)) | Out-Null }
+    catch { $failed=$_.Exception.Message -eq 'The update workflow API request failed.' }
+    Assert-Workflow ($failed -and $script:attempts -eq 1) 'A mutating request must fail without retry even on a typed transient exception.'
+
+    $pollArguments.TimeoutSeconds=1; $pollArguments.PollIntervalSeconds=60; $pollArguments.Remove('SleepAction')
+    $script:attempts=0; $failed=$false; $watch=[Diagnostics.Stopwatch]::StartNew()
+    try { Wait-UpdateWorkflowRuntimes @pollArguments -Invoker { $script:attempts++; return @{StatusCode=504;Body=$null} } | Out-Null }
+    catch { $failed=$_.Exception.Message -match 'Timed out' }
+    Assert-Workflow ($failed -and $script:attempts -eq 1 -and $watch.Elapsed.TotalSeconds -lt 5) 'Persistent transient reads must stop at the existing startup deadline.'
+
+    # An idle timeout alone would keep this request alive because the peer keeps sending bytes.
+    $listener=[System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback,0)
+    $redirect=[System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback,0)
+    $firstByte=[Threading.ManualResetEventSlim]::new()
+    $stopPeer=[Threading.ManualResetEventSlim]::new()
+    $peer=[PowerShell]::Create()
+    $listener.Start()
+    $redirect.Start()
+    $peerTask=$peer.AddScript({
+        param($Listener,$RedirectPort,$FirstByte,$StopPeer)
+        $connections=[Collections.Generic.List[Net.Sockets.TcpClient]]::new()
+        try {
+            foreach ($response in @("401 Unauthorized`r`nContent-Length: 32", "302 Found`r`nLocation: http://127.0.0.1:$RedirectPort/redirect`r`nContent-Length: 0", "200 OK`r`nContent-Length: 32")) {
+                $connection=$Listener.AcceptTcpClient()
+                $connections.Add($connection)
+                $connection.ReceiveTimeout=5000
+                $stream=$connection.GetStream()
+                $reader=[IO.StreamReader]::new($stream)
+                while ($reader.ReadLine()) {}
+                $header=[Text.Encoding]::ASCII.GetBytes("HTTP/1.1 $response`r`nConnection: close`r`n`r`n")
+                $stream.Write($header,0,$header.Length)
+            }
+            for ($i=0; $i -lt 32; $i++) {
+                $stream.WriteByte(32)
+                $stream.Flush()
+                $FirstByte.Set()
+                if ($StopPeer.Wait(200)) { break }
+            }
+        } catch [IO.IOException] {} finally { foreach ($connection in $connections) { $connection.Dispose() } }
+    }.ToString()).AddArgument($listener).AddArgument($redirect.LocalEndpoint.Port).AddArgument($firstByte).AddArgument($stopPeer).BeginInvoke()
+    try {
+        $url='http://127.0.0.1:'+$listener.LocalEndpoint.Port+'/api/skilltree/runtime/servers/alpha'
+        $unauthorized=Invoke-UpdateWorkflowHttp -Method GET -Uri $url -Headers @{} -StartupPollDeadlineUtc ([DateTime]::UtcNow.AddSeconds(3))
+        Assert-Workflow ($unauthorized.StatusCode -eq 401) 'A readiness authorization response must be handled from headers without waiting for its body.'
+        $redirected=Invoke-UpdateWorkflowHttp -Method GET -Uri $url -Headers @{'X-Api-Key'='fixture'} -StartupPollDeadlineUtc ([DateTime]::UtcNow.AddSeconds(3))
+        Assert-Workflow ($redirected.StatusCode -eq 302 -and !$redirect.Pending()) 'A readiness request must not follow redirects or forward its credentials.'
+        $watch.Restart()
+        $slowResult=Invoke-UpdateWorkflowHttp -Method GET -Uri $url -Headers @{} -StartupPollDeadlineUtc ([DateTime]::UtcNow.AddSeconds(3))
+        Assert-Workflow ($firstByte.IsSet -and $slowResult.TransientTransportFailure -eq $true -and $watch.Elapsed.TotalSeconds -lt 5) 'A slow response body must be cancelled at the startup deadline.'
+    } finally {
+        $stopPeer.Set()
+        $listener.Stop()
+        $redirect.Stop()
+        try { $peer.EndInvoke($peerTask) | Out-Null } finally { $peer.Dispose(); $stopPeer.Dispose(); $firstByte.Dispose() }
+    }
 
     # A publication failure keeps the same active run and deployment; retrying must not redeploy.
     $f=New-WorkflowFixture; $script:poll=0; $script:new=$new; $script:generation=$generation; $script:publicationCalls=0; $script:failPublicationOnce=$true; $script:resumeDeployCount=0
