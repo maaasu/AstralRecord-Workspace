@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class MobSkillRegistryTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-Mob/12_6-Mobスキル追加ガイド.md
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_6-Mobスキル追加ガイド.md
      * 章・見出し: # 12_6-Mobスキル追加ガイド > ## 2. 追加手順
      * 検証契約: Mob スキル ID は専用 registry 内で一意であり、player スキルの登録と混在しない。
      */
@@ -25,7 +25,7 @@ class MobSkillRegistryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-Mob/12_6-Mobスキル追加ガイド.md
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_6-Mobスキル追加ガイド.md
      * 章・見出し: # 12_6-Mobスキル追加ガイド > ## 3. 実行時の契約
      * 検証契約: Mob master の timing 指定は executor の既定値を項目単位で上書きする。
      */
