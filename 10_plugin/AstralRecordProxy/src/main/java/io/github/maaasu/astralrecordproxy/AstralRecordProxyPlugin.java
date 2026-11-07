@@ -79,6 +79,7 @@ public final class AstralRecordProxyPlugin {
     private final ProxyServer proxy;
     private final Logger logger;
     private final Path dataDirectory;
+    private static final long QUEST_HUD_CLEAR_PENDING = Long.MIN_VALUE;
     private static final long QUEST_HUD_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(5);
     private final Map<UUID, Long> questHudUpdates = new ConcurrentHashMap<>();
     private final Map<UUID, PlayerMetadata> metadata = new ConcurrentHashMap<>();
@@ -1131,7 +1132,7 @@ public final class AstralRecordProxyPlugin {
                 return lastUpdate;
             }
             boolean sent = GeyserPackCapabilities.sendQuestHud(playerId, message);
-            return !sent || " ".equals(message) ? null : System.nanoTime();
+            return questHudAfterSend(lastUpdate, " ".equals(message), sent, System.nanoTime());
         });
     }
 
@@ -1141,8 +1142,7 @@ public final class AstralRecordProxyPlugin {
      */
     private void clearQuestHud(UUID playerId) {
         questHudUpdates.computeIfPresent(playerId, (id, lastUpdate) -> {
-            GeyserPackCapabilities.sendQuestHud(id, " ");
-            return null;
+            return questHudAfterSend(lastUpdate, true, GeyserPackCapabilities.sendQuestHud(id, " "), 0L);
         });
     }
 
@@ -1158,16 +1158,26 @@ public final class AstralRecordProxyPlugin {
     private void expireQuestHud() {
         long now = System.nanoTime();
         questHudUpdates.forEach((playerId, lastUpdate) -> {
-            if (now - lastUpdate >= QUEST_HUD_TIMEOUT_NANOS) {
+            if (questHudClearDue(lastUpdate, now)) {
                 questHudUpdates.computeIfPresent(playerId, (id, current) -> {
-                    if (now - current < QUEST_HUD_TIMEOUT_NANOS) {
+                    if (!questHudClearDue(current, now)) {
                         return current;
                     }
-                    GeyserPackCapabilities.sendQuestHud(id, " ");
-                    return null;
+                    return questHudAfterSend(current, true, GeyserPackCapabilities.sendQuestHud(id, " "), now);
                 });
             }
         });
+    }
+
+    /** 送信失敗で表示済み状態を捨てず、明示消去は正常送信まで再試行対象へ残す。 */
+    static Long questHudAfterSend(Long previous, boolean clear, boolean sent, long now) {
+        if (sent) return clear ? null : Long.valueOf(now);
+        return clear && previous != null ? Long.valueOf(QUEST_HUD_CLEAR_PENDING) : previous;
+    }
+
+    /** 明示消去待ち、または最終正常表示から更新が途絶えた状態を判定する。 */
+    static boolean questHudClearDue(long lastUpdate, long now) {
+        return lastUpdate == QUEST_HUD_CLEAR_PENDING || now - lastUpdate >= QUEST_HUD_TIMEOUT_NANOS;
     }
 
     private void pollDiscordChat() {

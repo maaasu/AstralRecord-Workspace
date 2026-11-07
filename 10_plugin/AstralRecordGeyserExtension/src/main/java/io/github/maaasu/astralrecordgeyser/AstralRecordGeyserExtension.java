@@ -45,6 +45,7 @@ public final class AstralRecordGeyserExtension implements Extension {
             }
         }
     };
+    private final LatchedTipDelivery questHudDelivery = new LatchedTipDelivery();
     private final DamagePackDistribution damagePacks = new DamagePackDistribution(this);
     private CustomEntityDefinition damageNumberDefinition;
     private DamageNumberEntity damageNumberProperties;
@@ -135,6 +136,7 @@ public final class AstralRecordGeyserExtension implements Extension {
 
     @Subscribe
     public void onShutdown(GeyserShutdownEvent event) {
+        questHudDelivery.clear();
         if (heldWeaponModels != null) heldWeaponModels.shutdown();
     }
 
@@ -150,6 +152,7 @@ public final class AstralRecordGeyserExtension implements Extension {
 
     @Subscribe
     public void onDisconnect(SessionDisconnectEvent event) {
+        questHudDelivery.forget(event.connection());
         damagePacks.disconnect(event.connection());
         if (heldWeaponModels != null) heldWeaponModels.disconnect(event.connection());
     }
@@ -240,20 +243,23 @@ public final class AstralRecordGeyserExtension implements Extension {
     public boolean sendQuestHud(UUID playerId, String text) {
         if (text == null || text.isEmpty() || text.length() > 512) return false;
         var connection = geyserApi().connectionByUuid(playerId);
-        if (connection == null || !damagePacks.questHudReady(connection) || !forcesResourcePacks()) {
+        if (connection == null) {
             return false;
         }
         var sender = JSON_UI_SENDERS.get(connection.getClass());
         if (sender.isEmpty()) {
             return false;
         }
-        try {
-            sender.get().invoke(connection, QUEST_HUD_KEY, text);
-            return true;
-        } catch (ReflectiveOperationException | LinkageError ignored) {
-            // Geyser内部の送信口に互換性がない場合は、ゲームプレイへの影響を避けます。
-            return false;
-        }
+        boolean verified = damagePacks.questHudReady(connection) && forcesResourcePacks();
+        return questHudDelivery.send(connection, " ".equals(text), verified, () -> {
+            try {
+                sender.get().invoke(connection, QUEST_HUD_KEY, text);
+                return true;
+            } catch (ReflectiveOperationException | LinkageError ignored) {
+                // 失敗時はラッチ済み状態を保持し、同じ接続への消去を再試行できるようにする。
+                return false;
+            }
+        });
     }
 
     /** パック受諾を公開APIで確認できないため、強制配布設定を読めた場合だけ専用TIPを許可する。 */
