@@ -26,29 +26,30 @@ public sealed class ReservationService(ControlDbContext db, InventoryStore store
             if (devId == Guid.Empty || request.Mode != HoldMode.Maintenance || request.AdapterId is not ("01" or "02" or "03") ||
                 request.ServerConditions.Length == 0 || request.ServerConditions.Any(x => x.RequiredState != ProcessRequirement.Stopped) ||
                 request.ServerConditions.Count(x => x.ServerId == devId) != 1 ||
-                request.ServerConditions.Select(x => x.ServerId).Distinct().Count() != request.ServerConditions.Length ||
-                (await db.Servers.AsNoTracking().SingleOrDefaultAsync(x => x.ServerId == devId))?.RuntimeServerId != "Dev")
+                request.ServerConditions.Select(x => x.ServerId).Distinct().Count() != request.ServerConditions.Length)
                 throw new InventoryFault(400, "InvalidInput");
         }
-        resources = await ExpandServerResourcesAsync(resources);
-        if (request.DevLifecycleServerId is not null &&
-            !resources.Where(x => x.StartsWith("server:", StringComparison.Ordinal)).Order(StringComparer.Ordinal)
-                .SequenceEqual(request.ServerConditions.Select(x => ServerKey(x.ServerId)).Order(StringComparer.Ordinal), StringComparer.Ordinal))
-            throw new InventoryFault(400, "InvalidInput");
-        var hostKeys = await ResolveHostsAsync(resources);
-        if (hostKeys.Count == 0) throw new InventoryFault(400, "InvalidInput");
-        if (request.ServerConditions.Any(x => !resources.Contains(ServerKey(x.ServerId), StringComparer.Ordinal))) throw new InventoryFault(400, "InvalidInput");
-        var lease = await store.WriteAsync(async () =>
+        var (lease, hostKeys) = await store.WriteAsync(async () =>
         {
+            // Expand the current scope under the same writer lock that protects server settings and reservations.
+            var expanded = await ExpandServerResourcesAsync(resources);
+            if (request.DevLifecycleServerId is Guid lifecycleServerId &&
+                ((await db.Servers.AsNoTracking().SingleOrDefaultAsync(x => x.ServerId == lifecycleServerId))?.RuntimeServerId != "Dev" ||
+                 !expanded.Where(x => x.StartsWith("server:", StringComparison.Ordinal)).Order(StringComparer.Ordinal)
+                     .SequenceEqual(request.ServerConditions.Select(x => ServerKey(x.ServerId)).Order(StringComparer.Ordinal), StringComparer.Ordinal)))
+                throw new InventoryFault(400, "InvalidInput");
+            var resolvedHosts = await ResolveHostsAsync(expanded);
+            if (resolvedHosts.Count == 0 || request.ServerConditions.Any(x => !expanded.Contains(ServerKey(x.ServerId), StringComparer.Ordinal)))
+                throw new InventoryFault(400, "InvalidInput");
             var existingWorkflow = await db.Workflows.FindAsync(request.WorkflowId);
             if (existingWorkflow != null)
             {
                 if (existingWorkflow.RequestJson != ControlJson.Serialize(request) || existingWorkflow.Status is WorkflowStatus.Succeeded or WorkflowStatus.Failed or WorkflowStatus.Cancelled or WorkflowStatus.RecoveryRequired) throw new InventoryFault(409, "ReservationConflict");
                 var existingLease = await GetAsync(request.WorkflowId);
-                if (existingLease.Status is ReservationStatus.Released or ReservationStatus.RecoveryRequired || !existingLease.ResourceKeys.SequenceEqual(resources, StringComparer.Ordinal)) throw new InventoryFault(409, "ReservationConflict");
-                return existingLease;
+                if (existingLease.Status is ReservationStatus.Released or ReservationStatus.RecoveryRequired || !existingLease.ResourceKeys.SequenceEqual(expanded, StringComparer.Ordinal)) throw new InventoryFault(409, "ReservationConflict");
+                return (existingLease, resolvedHosts);
             }
-            foreach (var hostId in hostKeys.Keys)
+            foreach (var hostId in resolvedHosts.Keys)
             {
                 var host = await db.Hosts.AsNoTracking().SingleAsync(x => x.HostId == hostId);
                 var capabilities = ControlJson.Deserialize<string[]>(host.CapabilitiesJson);
@@ -56,20 +57,20 @@ public sealed class ReservationService(ControlDbContext db, InventoryStore store
                 if (!capabilities.Contains("P1.Operations") || !capabilities.Contains("P1.LegacyGate")) throw new InventoryFault(409, "UnsupportedCapability");
             }
             var rows = await db.Reservations.ToArrayAsync();
-            foreach (var key in resources)
+            foreach (var key in expanded)
                 if (rows.Any(row => row.State != ReservationStatus.Released && Conflicts(key, row.ResourceKey))) throw new InventoryFault(409, "ReservationConflict");
             var reservationId = Guid.NewGuid();
-            db.Workflows.Add(new ControlWorkflow { WorkflowId = request.WorkflowId, Kind = request.AdapterId == null ? "SingleOperation" : "Maintenance", Status = WorkflowStatus.Reserving, RequestJson = ControlJson.Serialize(request), ResourceKeysJson = ControlJson.Serialize(resources), CreatedAtUtc = Now, UpdatedAtUtc = Now });
-            db.ReservationLeases.Add(new ControlReservationLease { ReservationId = reservationId, WorkflowId = request.WorkflowId, ResourceKeysJson = ControlJson.Serialize(resources), AdapterId = request.AdapterId, RunReference = request.RunReference, CreatedAtUtc = Now });
-            foreach (var key in resources)
+            db.Workflows.Add(new ControlWorkflow { WorkflowId = request.WorkflowId, Kind = request.AdapterId == null ? "SingleOperation" : "Maintenance", Status = WorkflowStatus.Reserving, RequestJson = ControlJson.Serialize(request), ResourceKeysJson = ControlJson.Serialize(expanded), CreatedAtUtc = Now, UpdatedAtUtc = Now });
+            db.ReservationLeases.Add(new ControlReservationLease { ReservationId = reservationId, WorkflowId = request.WorkflowId, ResourceKeysJson = ControlJson.Serialize(expanded), AdapterId = request.AdapterId, RunReference = request.RunReference, CreatedAtUtc = Now });
+            foreach (var key in expanded)
             {
                 var row = rows.SingleOrDefault(x => x.ResourceKey == key);
                 if (row == null) { row = new ControlReservation { ResourceKey = key }; db.Reservations.Add(row); }
                 row.ReservationId = reservationId; row.OwnerWorkflowId = request.WorkflowId; row.Mode = request.Mode; row.State = ReservationStatus.Preparing;
-                row.HostId = hostKeys.SingleOrDefault(x => x.Value.Contains(key)).Key is var host && host != Guid.Empty ? host : null;
+                row.HostId = resolvedHosts.SingleOrDefault(x => x.Value.Contains(key)).Key is var host && host != Guid.Empty ? host : null;
                 row.Fence = checked(row.Fence + 1); row.CreatedAtUtc = Now; row.ReleasedAtUtc = null;
             }
-            return new GateLease { WorkflowId = request.WorkflowId, ReservationId = reservationId, ResourceKeys = resources, Status = ReservationStatus.Preparing, AdapterId = request.AdapterId, RunReference = request.RunReference };
+            return (new GateLease { WorkflowId = request.WorkflowId, ReservationId = reservationId, ResourceKeys = expanded, Status = ReservationStatus.Preparing, AdapterId = request.AdapterId, RunReference = request.RunReference }, resolvedHosts);
         });
         if (lease.Status == ReservationStatus.Prepared) return lease;
         var fences = new List<HostReservationFence>();

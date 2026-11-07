@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AstralRecordControl.Contracts;
 using AstralRecordControl.Web.Data;
+using AstralRecordControl.Web.Operations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
@@ -104,6 +105,7 @@ public sealed partial class InventoryStore(ControlDbContext db, InventoryWriteGa
         var next = new InventoryServer { ServerId = id, HostId = row.HostId, EnvironmentId = request.EnvironmentId, RuntimeServerId = request.RuntimeServerId };
         ValidateDisplayName(request.DisplayName);
         await ValidateServerAsync(next, request.Config, host, nextRevision);
+        await RequireEditableServerAsync(row, request, host);
         var all = await db.Servers.Where(s => s.HostId == row.HostId).ToListAsync();
         var configs = all.Select(s => s.ServerId == id ? request.Config : ControlJson.Deserialize<ServerConfig>(s.DesiredConfigJson)).ToArray();
         ValidateSnapshot(host, configs);
@@ -112,6 +114,53 @@ public sealed partial class InventoryStore(ControlDbContext db, InventoryWriteGa
         row.ReadOnlyPilot = !ProcessControlEnabled;
         SaveInventory(host, configs); return row;
     });
+
+    private async Task RequireEditableServerAsync(InventoryServer server, ServerUpdateRequest request, InventoryHost host)
+    {
+        var desired = ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson);
+        var heldKeys = await db.Reservations.AsNoTracking().Where(x => x.State != ReservationStatus.Released)
+            .Select(x => x.ResourceKey).ToArrayAsync();
+        var affected = new HashSet<string>(StringComparer.Ordinal)
+        {
+            ReservationService.ServerKey(server.ServerId),
+            ReservationService.DirectoryKey(server.HostId, desired.ManagedRootId, desired.ServerDirectory),
+            ReservationService.DirectoryKey(server.HostId, request.Config.ManagedRootId, request.Config.ServerDirectory)
+        };
+        if (server.EnvironmentId is Guid oldEnvironment) affected.Add(ReservationService.EnvironmentKey(oldEnvironment));
+        if (request.EnvironmentId is Guid newEnvironment) affected.Add(ReservationService.EnvironmentKey(newEnvironment));
+        if (heldKeys.Any(key => affected.Any(resource => ReservationService.Conflicts(resource, key))))
+            throw new InventoryFault(409, "ReservationConflict");
+
+        if (server.AppliedRevision < 1) return;
+        if (server.DesiredRevision != server.AppliedRevision && heldKeys.Length > 0)
+        {
+            var applied = await AppliedServerConfigAsync(server, host) ?? throw new InventoryFault(409, "StaleRevision");
+            var appliedDirectory = ReservationService.DirectoryKey(server.HostId, applied.ManagedRootId, applied.ServerDirectory);
+            if (heldKeys.Any(key => ReservationService.Conflicts(appliedDirectory, key))) throw new InventoryFault(409, "ReservationConflict");
+        }
+
+        if (ProcessControlEnabled && server.EnvironmentId != request.EnvironmentId)
+        {
+            var applied = await AppliedServerConfigAsync(server, host) ?? throw new InventoryFault(409, "StaleRevision");
+            if (!ServerProcessSupport.IsSupported(applied.Kind)) return;
+            var fresh = host.ConnectionState == HostConnectionState.Online && !host.RecoveryRequired &&
+                host.LastSeenAtUtc is DateTimeOffset lastSeen && Now - lastSeen <= TimeSpan.FromSeconds(30);
+            var runtime = fresh ? ControlJson.Deserialize<ServerRuntimeSnapshot[]>(host.RuntimeSnapshotJson)
+                .SingleOrDefault(x => x.ServerId == server.ServerId) : null;
+            if (runtime is not { ProcessState: ProcessState.Stopped, CurrentSessionId: null } || runtime.ConfigRevision != server.AppliedRevision)
+                throw new InventoryFault(409, "StateConflict");
+        }
+    }
+
+    public async Task<ServerConfig?> AppliedServerConfigAsync(InventoryServer server, InventoryHost host)
+    {
+        if (server.AppliedRevision < 1 || host.HostId != server.HostId) return null;
+        if (server.AppliedRevision == server.DesiredRevision)
+            return ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson);
+        var version = await db.InventoryVersions.AsNoTracking().SingleOrDefaultAsync(x => x.HostId == host.HostId && x.Revision == host.AppliedInventoryRevision);
+        return version is null ? null : ControlJson.Deserialize<InventorySnapshot>(version.SnapshotJson).Servers
+            .SingleOrDefault(x => x.ServerId == server.ServerId && x.Revision == server.AppliedRevision);
+    }
 
     private async Task ValidateServerAsync(InventoryServer server, ServerConfig config, InventoryHost host, long revision)
     {

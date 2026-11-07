@@ -34,8 +34,13 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
             return await RefreshAsync(replay.OperationId, token);
         }
         var server = await db.Servers.AsNoTracking().SingleOrDefaultAsync(x => x.ServerId == serverId) ?? throw new InventoryFault(404, "NotFound");
-        if (server.AppliedRevision != request.ConfigRevision || server.DesiredRevision != request.ConfigRevision || request.ConfigRevision < 1) throw new InventoryFault(409, "StaleRevision");
-        var config = ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson);
+        var inherited = request.WorkflowId.HasValue;
+        var usesAppliedSettings = server.DesiredRevision != server.AppliedRevision;
+        if (request.ConfigRevision < 1 || server.AppliedRevision != request.ConfigRevision ||
+            usesAppliedSettings && !(request.Kind == OperationKind.Stop && !inherited || request.Kind == OperationKind.Start && inherited))
+            throw new InventoryFault(409, "StaleRevision");
+        var host = await db.Hosts.AsNoTracking().SingleAsync(h => h.HostId == server.HostId);
+        var config = await store.AppliedServerConfigAsync(server, host) ?? throw new InventoryFault(409, "StaleRevision");
         Guid? backupDestination = null;
         if (request.Kind is OperationKind.ImportArtifact or OperationKind.ProvisionServer)
         {
@@ -48,13 +53,11 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
         }
         if (!dataOperation)
         {
-            var operationHost = await db.Hosts.AsNoTracking().SingleAsync(h => h.HostId == server.HostId);
-            var processCapabilities = ControlJson.Deserialize<string[]>(operationHost.CapabilitiesJson);
+            var processCapabilities = ControlJson.Deserialize<string[]>(host.CapabilitiesJson);
             if (!ServerProcessSupport.HasKindCapability(config.Kind, processCapabilities) || config.DependencyReadiness != DependencyReadiness.Running || config.DependsOnServerIds.Length != 0) throw new InventoryFault(409, "UnsupportedCapability");
         }
         if (dataOperation)
         {
-            var host = await db.Hosts.AsNoTracking().SingleAsync(h => h.HostId == server.HostId);
             var capabilities = ControlJson.Deserialize<string[]>(host.CapabilitiesJson);
             if (!capabilities.Contains("P2.Files") || (IsBackupKind(request.Kind) && !capabilities.Contains("P2.Backups"))) throw new InventoryFault(409, "UnsupportedCapability");
             if (request.Kind == OperationKind.UpdateGeyser &&
@@ -88,11 +91,19 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
         var before = await agents.SnapshotAsync(server.HostId, token);
         var oldState = before.Servers.SingleOrDefault(x => x.ServerId == serverId) ?? throw new InventoryFault(409, "StateConflict");
         if (oldState.StateRevision != request.ExpectedStateRevision || oldState.CurrentSessionId != request.ExpectedServerSessionId || oldState.ConfigRevision != request.ConfigRevision) throw new InventoryFault(409, "StateConflict");
+        if (usesAppliedSettings && request.Kind == OperationKind.Stop && oldState is not { ProcessState: ProcessState.Running, CurrentSessionId: not null })
+            throw new InventoryFault(409, "StateConflict");
         ValidateState(request.Kind, oldState);
-        var keys = new List<string> { ReservationService.ServerKey(serverId), ReservationService.DirectoryKey(server.HostId, config.ManagedRootId, config.ServerDirectory) };
+        var appliedDirectory = ReservationService.DirectoryKey(server.HostId, config.ManagedRootId, config.ServerDirectory);
+        var keys = new List<string> { ReservationService.ServerKey(serverId), appliedDirectory };
         if (backupDestination.HasValue) keys.Add(ReservationService.DirectoryKey(server.HostId, backupDestination.Value, "control-backups/" + serverId.ToString("N")));
-        if (server.EnvironmentId.HasValue) keys.Add(ReservationService.EnvironmentKey(server.EnvironmentId.Value));
-        var inherited = request.WorkflowId.HasValue;
+        if (usesAppliedSettings && !inherited)
+        {
+            // Older edits could change EnvironmentId while the old session was running. Its original membership was not versioned.
+            var environments = await db.Environments.AsNoTracking().Select(x => x.EnvironmentId).ToArrayAsync(token);
+            keys.AddRange(environments.Select(ReservationService.EnvironmentKey));
+        }
+        else if (server.EnvironmentId.HasValue) keys.Add(ReservationService.EnvironmentKey(server.EnvironmentId.Value));
         var workflowId = request.WorkflowId ?? Guid.NewGuid();
         var lease = inherited
             ? await reservations.GetByReservationAsync(request.ReservationId!.Value)
@@ -105,6 +116,8 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
                 var workflow = await db.Workflows.AsNoTracking().SingleAsync(x => x.WorkflowId == workflowId);
                 var history = await db.ReservationLeases.AsNoTracking().SingleAsync(x => x.ReservationId == lease.ReservationId);
                 var original = ControlJson.Deserialize<ReservationAcquireRequest>(workflow.RequestJson);
+                if (usesAppliedSettings && (original.DevLifecycleServerId.HasValue || !CoversAppliedServer(lease, server, config)))
+                    throw new InventoryFault(409, "StaleRevision");
                 if (original.DevLifecycleServerId is Guid devId)
                 {
                     if (devId != serverId || lease.AdapterId is not ("01" or "02" or "03") ||
@@ -123,7 +136,9 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
             var after = await agents.SnapshotAsync(server.HostId, token);
             var current = after.Servers.SingleOrDefault(x => x.ServerId == serverId) ?? throw new InventoryFault(409, "RecoveryRequired");
             if ((!inherited && current.StateRevision <= oldState.StateRevision) || (inherited && current.StateRevision != oldState.StateRevision) || current.ProcessState != oldState.ProcessState || current.CurrentSessionId != oldState.CurrentSessionId || current.ConfigRevision != oldState.ConfigRevision) throw new InventoryFault(409, "StateConflict");
-            if (!after.Holds.Any(x => x.ReservationId == lease.ReservationId && x.OwnerWorkflowId == workflowId && x.Fence == fence.Fence && x.ResourceKeys.Contains(ReservationService.ServerKey(serverId)))) throw new InventoryFault(409, "RecoveryRequired");
+            if (!after.Holds.Any(x => x.ReservationId == lease.ReservationId && x.OwnerWorkflowId == workflowId && x.Fence == fence.Fence &&
+                x.ResourceKeys.Contains(ReservationService.ServerKey(serverId)) && (!usesAppliedSettings || x.ResourceKeys.Contains(appliedDirectory))))
+                throw new InventoryFault(409, "RecoveryRequired");
             var command = new OperationCommand
             {
                 OperationId = dataOperation ? idempotencyKey : Guid.NewGuid(), HostId = server.HostId, ServerId = serverId, WorkflowId = workflowId,
@@ -131,7 +146,7 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
                 ConfigRevision = request.ConfigRevision, ExpectedStateRevision = current.StateRevision,
                 ExpectedServerSessionId = current.CurrentSessionId,
                 StartBeforeUtc = request.StartBeforeUtc ?? Now.AddSeconds(60),
-                ExecutionTimeoutSeconds = request.ExecutionTimeoutSeconds ?? (dataOperation ? 3600 : request.Kind switch { OperationKind.Start => 900, OperationKind.Stop => 120, OperationKind.Restart => 1020, _ => 30 }),
+                ExecutionTimeoutSeconds = request.ExecutionTimeoutSeconds ?? (dataOperation ? 3600 : request.Kind switch { OperationKind.Start => 900, OperationKind.Stop => config.StopTimeoutSeconds, OperationKind.Restart => 1020, _ => 30 }),
                 Payload = request.Payload
             };
             try { OperationValidation.Validate(command, server.HostId); }
@@ -172,6 +187,12 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
             throw;
         }
     }
+
+    internal static bool CoversAppliedServer(GateLease lease, InventoryServer server, ServerConfig appliedConfig) =>
+        lease.Status == ReservationStatus.Prepared && lease.AdapterId == "16" &&
+        lease.ResourceKeys.Contains(ReservationService.ServerKey(server.ServerId)) &&
+        lease.ResourceKeys.Contains(ReservationService.DirectoryKey(server.HostId, appliedConfig.ManagedRootId, appliedConfig.ServerDirectory)) &&
+        (server.EnvironmentId is not Guid environment || lease.ResourceKeys.Contains(ReservationService.EnvironmentKey(environment)));
 
     public async Task<ControlOperation> ApplyExecutionAsync(Guid operationId, ExecutionSnapshot execution)
     {

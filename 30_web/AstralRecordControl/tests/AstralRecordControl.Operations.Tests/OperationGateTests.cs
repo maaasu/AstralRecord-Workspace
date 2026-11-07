@@ -303,6 +303,122 @@ public sealed class OperationGateTests
     }
 
     [Fact]
+    public async Task StopWithPendingSettingsUsesAppliedRevisionAndReservesBothDirectories()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var server = await fixture.ServerAsync("one");
+        var other = await fixture.ServerAsync("other");
+        var applied = ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson) with { StopTimeoutSeconds = 210 };
+        await fixture.SaveAppliedSettingsAsync(server, applied);
+        var desired = applied with { Revision = 2, ServerDirectory = "servers/renamed", StopTimeoutSeconds = 310 };
+        var state = fixture.Agent.States[server.HostId] with { ProcessState = ProcessState.Running, CurrentSessionId = Guid.NewGuid() };
+        fixture.Agent.States[server.HostId] = state;
+        server.DesiredConfigJson = ControlJson.Serialize(desired);
+        server.DesiredRevision = desired.Revision;
+        await fixture.Db.SaveChangesAsync();
+
+        var stop = new ServerOperationRequest { Kind = OperationKind.Stop, ConfigRevision = applied.Revision, ExpectedStateRevision = state.StateRevision, ExpectedServerSessionId = state.CurrentSessionId };
+        await Fault("StaleRevision", () => fixture.Operations.CreateAsync(server.ServerId, stop with { ConfigRevision = desired.Revision }, Guid.NewGuid()));
+        await Fault("StaleRevision", () => fixture.Operations.CreateAsync(server.ServerId, stop with { Kind = OperationKind.Start }, Guid.NewGuid()));
+        await Fault("StaleRevision", () => fixture.Operations.CreateAsync(server.ServerId, stop with { Kind = OperationKind.Restart }, Guid.NewGuid()));
+        await Fault("StateConflict", () => fixture.Operations.CreateAsync(server.ServerId, stop with { ExpectedServerSessionId = Guid.NewGuid() }, Guid.NewGuid()));
+
+        var operation = await fixture.Operations.CreateAsync(server.ServerId, stop, Guid.NewGuid());
+        var command = ControlJson.Deserialize<OperationCommand>(operation.CommandJson);
+        Assert.Equal(applied.Revision, command.ConfigRevision);
+        Assert.Equal(applied.StopTimeoutSeconds, command.ExecutionTimeoutSeconds);
+        var lease = await fixture.Reservations.GetByReservationAsync(operation.ReservationId);
+        Assert.Contains(ReservationService.DirectoryKey(server.HostId, applied.ManagedRootId, applied.ServerDirectory), lease.ResourceKeys);
+        Assert.Contains(ReservationService.DirectoryKey(server.HostId, desired.ManagedRootId, desired.ServerDirectory), lease.ResourceKeys);
+        Assert.Contains(ReservationService.EnvironmentKey(other.EnvironmentId!.Value), lease.ResourceKeys);
+    }
+
+    [Fact]
+    public async Task Adapter16CanStartAppliedSettingsOnlyWithinPreparedStartupScope()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var server = await fixture.ServerAsync("one");
+        var applied = ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson);
+        await fixture.SaveAppliedSettingsAsync(server, applied);
+        var lease = await fixture.Reservations.AcquireAsync(new ReservationAcquireRequest
+        {
+            WorkflowId = Guid.NewGuid(), AdapterId = "16", Mode = HoldMode.Maintenance, RunReference = "run-16",
+            ResourceKeys = [ReservationService.ServerKey(server.ServerId)], ServerConditions = [new(server.ServerId, ProcessRequirement.Stopped)]
+        });
+        var desired = applied with { Revision = 2, ServerDirectory = "servers/renamed" };
+        server.DesiredConfigJson = ControlJson.Serialize(desired);
+        server.DesiredRevision = desired.Revision;
+        await fixture.Db.SaveChangesAsync();
+        var state = fixture.Agent.States[server.HostId];
+        var request = new ServerOperationRequest { Kind = OperationKind.Start, ConfigRevision = applied.Revision, ExpectedStateRevision = state.StateRevision, WorkflowId = lease.WorkflowId, ReservationId = lease.ReservationId };
+        await Fault("ReservationConflict", () => fixture.Operations.CreateAsync(server.ServerId, request, Guid.NewGuid()));
+        await fixture.Reservations.ValidateAsync(lease.ReservationId, new GateValidateRequest(lease.WorkflowId, lease.Fences, "WaitForStartup", "run-16"));
+        var hold = fixture.Agent.Holds[server.HostId];
+        fixture.Agent.Holds[server.HostId] = hold with { ResourceKeys = [ReservationService.ServerKey(server.ServerId)] };
+        await Fault("RecoveryRequired", () => fixture.Operations.CreateAsync(server.ServerId, request, Guid.NewGuid()));
+        fixture.Agent.Holds[server.HostId] = hold;
+
+        var operation = await fixture.Operations.CreateAsync(server.ServerId, request, Guid.NewGuid());
+        Assert.Equal(OperationStatus.Accepted, operation.Status);
+        Assert.Equal(lease.ReservationId, operation.ReservationId);
+        Assert.Equal(applied.Revision, ControlJson.Deserialize<OperationCommand>(operation.CommandJson).ConfigRevision);
+    }
+
+    [Theory]
+    [InlineData("server")]
+    [InlineData("old directory")]
+    [InlineData("new directory")]
+    [InlineData("old environment")]
+    [InlineData("new environment")]
+    public async Task SettingsEditCannotChangeEitherSideOfAnActiveReservation(string heldResource)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var server = await fixture.ServerAsync("one");
+        var other = await fixture.ServerAsync("other");
+        var applied = ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson);
+        var next = applied with { Revision = 2, ServerDirectory = "renamed/one" };
+        await fixture.SaveAppliedSettingsAsync(server, applied);
+        var key = heldResource switch
+        {
+            "server" => ReservationService.ServerKey(server.ServerId),
+            "old directory" => ReservationService.DirectoryKey(server.HostId, applied.ManagedRootId, "servers"),
+            "new directory" => ReservationService.DirectoryKey(server.HostId, applied.ManagedRootId, "renamed"),
+            "old environment" => ReservationService.EnvironmentKey(server.EnvironmentId!.Value),
+            _ => ReservationService.EnvironmentKey(other.EnvironmentId!.Value)
+        };
+        await fixture.Reservations.AcquireAsync(new ReservationAcquireRequest
+        {
+            WorkflowId = Guid.NewGuid(), Mode = HoldMode.Maintenance,
+            ResourceKeys = [key, ReservationService.ServerKey(other.ServerId)]
+        });
+        var update = new ServerUpdateRequest(server.DisplayName, other.EnvironmentId, server.RuntimeServerId, next);
+
+        await Fault("ReservationConflict", () => fixture.Store.UpdateServerAsync(server.ServerId, update, applied.Revision, ControlJson.Serialize(next)));
+        Assert.Equal(applied.Revision, (await fixture.Store.ServerAsync(server.ServerId)).DesiredRevision);
+    }
+
+    [Fact]
+    public async Task EnvironmentEditRequiresConfirmedStoppedSessionButOrdinaryEditsCanWait()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var server = await fixture.ServerAsync("one");
+        var other = await fixture.ServerAsync("other");
+        var applied = ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson);
+        await fixture.SaveAppliedSettingsAsync(server, applied);
+        var host = await fixture.Store.HostAsync(server.HostId);
+        var running = fixture.Agent.States[server.HostId] with { ProcessState = ProcessState.Running, CurrentSessionId = Guid.NewGuid() };
+        host.RuntimeSnapshotJson = ControlJson.Serialize(new[] { running });
+        await fixture.Db.SaveChangesAsync();
+        var next = applied with { Revision = 2, StopTimeoutSeconds = 210 };
+        var update = new ServerUpdateRequest(server.DisplayName, other.EnvironmentId, server.RuntimeServerId, next);
+
+        await Fault("StateConflict", () => fixture.Store.UpdateServerAsync(server.ServerId, update, applied.Revision, ControlJson.Serialize(next)));
+        var saved = await fixture.Store.UpdateServerAsync(server.ServerId, update with { EnvironmentId = server.EnvironmentId }, applied.Revision, ControlJson.Serialize(next));
+        Assert.Equal(next.Revision, saved.DesiredRevision);
+        Assert.Equal(applied.Revision, saved.AppliedRevision);
+    }
+
+    [Fact]
     public async Task Adapter17CannotInheritProcessOperation()
     {
         await using var fixture = await Fixture.CreateAsync();
@@ -885,6 +1001,19 @@ public sealed class OperationGateTests
             Db.Servers.Add(server); await Db.SaveChangesAsync();
             Agent.States[hostId] = new ServerRuntimeSnapshot { ServerId = id, ConfigRevision = 1, StateRevision = 1, ProcessState = ProcessState.Stopped };
             return server;
+        }
+        public async Task SaveAppliedSettingsAsync(InventoryServer server, ServerConfig config)
+        {
+            var host = await Store.HostAsync(server.HostId);
+            host.AppliedInventoryRevision = host.DesiredInventoryRevision = 1;
+            host.ResourcesJson = ControlJson.Serialize(new HostResources
+            {
+                Roots = [new ManagedRoot { Id = config.ManagedRootId, Path = @"C:\fixture" }],
+                Executables = [new ManagedExecutable { Id = config.ExecutableId, Path = @"C:\fixture\java.exe", Kind = ServerKind.Java }]
+            });
+            var json = ControlJson.Serialize(new InventorySnapshot { HostId = server.HostId, Revision = 1, Servers = [config] });
+            Db.InventoryVersions.Add(new InventoryVersion { HostId = server.HostId, Revision = 1, SnapshotJson = json, Sha256 = ControlProtocol.Hash(json) });
+            await Db.SaveChangesAsync();
         }
         public async ValueTask DisposeAsync() { await Db.DisposeAsync(); await connection.DisposeAsync(); }
     }
