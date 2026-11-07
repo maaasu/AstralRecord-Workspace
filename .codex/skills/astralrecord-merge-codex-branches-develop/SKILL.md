@@ -75,6 +75,10 @@ python E:\AstralRecord-Workspace\.codex\skills\astralrecord-merge-codex-branches
 
 9. 実行または早期停止の後に `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` を再度更新し、残ったブランチ/作業ツリー状態を見えるようにする。
 
+今回の通常作業の枝は [Git 完了処理](../astralrecord-git-worktree-develop/SKILL.md#整理のルール) で追加確認なしに整理する。既存の一括監査だけでは削除しない。GitHub 枝・リベース前の旧枝は [安全な整理](../astralrecord-git-worktree-develop/references/integrated-branch-cleanup.md) で個別に検証する。一括スクリプトの祖先判定を同内容判定へ拡張しない。
+
+一括削除の前に [安全な整理](../astralrecord-git-worktree-develop/references/integrated-branch-cleanup.md#削除前の確認) の全候補確認を行う。PR・依存・保持指定のある候補や未確認候補が混在する場合、一括削除は使わず個別整理または保留とする。
+
 ## 安全確認
 
 次のいずれかに該当する場合は Git 状態を変更する前に停止する。
@@ -89,7 +93,7 @@ python E:\AstralRecord-Workspace\.codex\skills\astralrecord-merge-codex-branches
 
 - 試行だけが依頼された。
 - ブランチが `NON_FAST_FORWARD` である。
-- ユーザーが `--delete-merged` を明示していない。
+- ユーザーが不要枝の実削除を依頼していない（自然文の削除依頼も `--delete-merged` の適用指定として扱う）。
 
 ## 早送りできない場合の扱い
 

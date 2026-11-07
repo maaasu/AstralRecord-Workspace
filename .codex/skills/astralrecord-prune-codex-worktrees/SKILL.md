@@ -7,7 +7,7 @@ description: AstralRecord ワークスペースのローカル `codex/*` ブラ�
 
 ## 基本ルール
 
-まず監査する。後片付けの適用は、ユーザーが明示的に要求した場合だけ実行する。
+既存の複数枝はまず監査する。今回と別の古い枝の削除適用は、ユーザーが不要枝の実削除を依頼した場合だけ実行する。通常作業の今回の枝は Git スキルの完了処理に含み、追加確認を求めない。GitHub の枝やリベース前の同内容判定は [取り込み済み枝の安全な整理](../astralrecord-git-worktree-develop/references/integrated-branch-cleanup.md) を使う。本スクリプトはローカル専用のままとし、遠隔枝を削除しない。
 
 明らかに不要な項目だけを削除する。
 
@@ -92,6 +92,8 @@ python E:\AstralRecord-Workspace\.codex\skills\astralrecord-prune-codex-worktree
    - マージ済みで未コミット変更のない作業ツリーだけを削除する。
    - どこにも接続されていないマージ済み `codex/*` ブランチだけを削除する。
 8. 未コミット変更がある作業ツリー、未マージブランチ、HEAD がブランチから分離した状態の作業ツリー、未登録ディレクトリ、非 Git ディレクトリが残る場合は、強制削除せず手動確認項目として報告する。
+
+一括削除の前に [安全な整理](../astralrecord-git-worktree-develop/references/integrated-branch-cleanup.md#削除前の確認) の全候補確認を行う。PR・依存・保持指定のある候補や未確認候補が混在する場合、一括削除は使わず個別整理または保留とする。
 
 ## 安全確認
 
