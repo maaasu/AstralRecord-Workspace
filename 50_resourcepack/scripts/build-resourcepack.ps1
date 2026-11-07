@@ -68,6 +68,7 @@ function Write-Pack {
 . (Join-Path $PSScriptRoot 'action-ring-panel.ps1')
 . (Join-Path $PSScriptRoot 'action-ring-hud-java.ps1')
 . (Join-Path $PSScriptRoot 'action-ring-hud-bedrock.ps1')
+. (Join-Path $PSScriptRoot 'buff-hud-java.ps1')
 . (Join-Path $PSScriptRoot 'armor-assets.ps1')
 . (Join-Path $PSScriptRoot 'gui-assets.ps1')
 $java = Read-PackEntries $root @(
@@ -412,9 +413,10 @@ $bedrock.Add($fishingVersionMarker, $java[$fishingVersionMarker])
 
 $skillIcons = Get-ActionRingIcons
 Add-ItemModelEntries $java $bedrock $skillIcons
-if ($utf8.GetString($java['player-progress-hud-version.txt']) -cne '4') {
+if ($utf8.GetString($java['player-progress-hud-version.txt']) -cne '5') {
     throw 'Invalid profile HUD version marker in resource pack.'
 }
+Add-BuffHudJavaEntries $java
 
 if ($utf8.GetString($java['wide-combat-meter-version.txt']) -cne '1') {
     throw 'Invalid wide combat meter version marker in Java resource pack.'

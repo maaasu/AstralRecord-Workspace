@@ -1,0 +1,17 @@
+[
+  "astralrecord:buff_hud/general_buff.png",
+  "astralrecord:buff_hud/general_debuff.png",
+  "astralrecord:buff_hud/attack.png",
+  "astralrecord:buff_hud/defense.png",
+  "astralrecord:buff_hud/haste.png",
+  "astralrecord:buff_hud/movement_speed.png",
+  "astralrecord:buff_hud/magic_attack.png",
+  "astralrecord:buff_hud/magic_defense.png",
+  "astralrecord:buff_hud/critical_rate.png",
+  "astralrecord:buff_hud/critical_damage.png",
+  "astralrecord:buff_hud/mana_regen.png",
+  "astralrecord:buff_hud/binding.png",
+  "astralrecord:buff_hud/confusion.png",
+  "astralrecord:buff_hud/healing.png",
+  "astralrecord:buff_hud/inheritance.png"
+]

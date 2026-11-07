@@ -207,6 +207,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-resourcepack.p
 
 スキルアイコンは `scripts/generate-action-ring-icons.py` で生成します。生成元の既存番号を保持し、新しいスキルは未使用の番号に追加します。アイコンを更新したら、同じスプライトを使う固定 HUD 字形も再生成します。パックのビルド時に字形とスプライトの一致を検査します。Java・統合版のスキル表示用アイテムモデルの素材は `PAPER`、モデル番号は `920000 + スプライト番号` です。
 
+Java 版アクションバーのバフアイコンは `assets/astralrecord/textures/buff_hud/` の 10×10 RGBA PNG から `scripts/generate-buff-hud.py` で生成します。右端に不透明または半透明の画素を置くと、字形の送り幅が 11 px に揃います。プラグインの [buff-hud-icons.json](../10_plugin/AstralRecord/src/main/resources/buff-hud-icons.json) の順番が U+EA00 からの字形番号に対応します。既存項目の順番を保持し、新しいアイコンは末尾に追加してください。`uv run --with pillow==13.0.0 python scripts/generate-buff-hud.py --check --preview <PNGパス>` で生成済みアセットとプレビューを確認できます。パックのビルドは原画と生成済みアセットの組み合わせを検査します。
+
 通常攻撃の絵柄を変更するときは `scripts/generate-weapon-attack-assets.py` で両版の32 pxスプライトを再生成します。
 
 ## 全装備アートの編集元と確認範囲

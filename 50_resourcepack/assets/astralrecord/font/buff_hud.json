@@ -1,0 +1,28 @@
+{
+  "providers": [
+    {
+      "type": "space",
+      "advances": {
+        "\ue950": 1,
+        "\ue951": 2,
+        "\ue952": 4,
+        "\ue953": 8,
+        "\ue954": 16,
+        "\ue955": -1,
+        "\ue956": -2,
+        "\ue957": -4,
+        "\ue958": -8,
+        "\ue959": -16
+      }
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:font/buff_hud.png",
+      "height": 79,
+      "ascent": 79,
+      "chars": [
+        "\uea00\uea01\uea02\uea03\uea04\uea05\uea06\uea07\uea08\uea09\uea0a\uea0b\uea0c\uea0d\uea0e"
+      ]
+    }
+  ]
+}
