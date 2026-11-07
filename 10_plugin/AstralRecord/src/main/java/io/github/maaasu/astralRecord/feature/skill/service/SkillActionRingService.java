@@ -532,6 +532,8 @@ public final class SkillActionRingService {
         SelectedBedrockSkill previous = bedrockSkills.put(playerId, selected);
         if (!selected.equals(previous)) {
             GuiSound.RING_SELECT.play(player);
+        }
+        if (previous == null) {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5892, option.name());
         }
     }
