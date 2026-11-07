@@ -1,0 +1,53 @@
+.challenge-location-editor {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  overflow-wrap: anywhere;
+}
+
+.challenge-location-editor fieldset {
+  min-width: 0;
+  margin: .75rem 0 0;
+  padding: .75rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.challenge-location-editor legend {
+  padding: 0 .35rem;
+}
+
+.challenge-location-actions,
+.challenge-location-coordinates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: .6rem;
+}
+
+.challenge-location-editor fieldset .challenge-location-actions,
+.challenge-location-coordinates {
+  margin-top: .75rem;
+}
+
+.challenge-location-editor label {
+  display: grid;
+  min-width: 0;
+  gap: .25rem;
+  color: var(--text-muted);
+}
+
+.challenge-location-editor select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.challenge-location-coordinates input {
+  width: 6rem;
+}
+
+.challenge-location-coordinates input[aria-invalid='true'] {
+  border-color: #e98693;
+}
