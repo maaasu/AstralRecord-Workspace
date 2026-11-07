@@ -1,4 +1,4 @@
 interface:
   display_name: "AstralRecord 実装から develop 反映"
   short_description: "Codex Cloud で実装・検証し、開始環境の develop に反映する"
-  default_prompt: "$astralrecord-code-version-commit-develop を使って、<target-path> の変更を Codex Cloud の専用作業ツリーで実装・検証し、開始環境の develop に反映してください。"
+  default_prompt: "$astralrecord-code-version-commit-develop を使って、<target-path> の変更を、作業場所の明示とローカル依存を考慮し、場所の選択を質問せず既定の新しい Codex Cloud チャットまたは必要なローカル工程で実装・検証し、開始環境の develop に反映してください。"
