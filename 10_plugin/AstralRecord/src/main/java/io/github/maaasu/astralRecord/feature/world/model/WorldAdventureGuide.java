@@ -8,8 +8,8 @@ import java.util.List;
 /**
  * 冒険先ワールド選択 GUI に表示する補助情報です。
  *
- * @param recommendedLevelMin 推奨レベル下限
- * @param recommendedLevelMax 推奨レベル上限
+ * @param recommendedLevelMin 推奨プレイヤーレベル下限
+ * @param recommendedLevelMax 推奨プレイヤーレベル上限
  * @param recommendedPartySizeMin 推奨人数下限
  * @param recommendedPartySizeMax 推奨人数上限
  * @param notes 補足メモ
@@ -34,9 +34,9 @@ public record WorldAdventureGuide(
     }
 
     /**
-     * 推奨レベル表示があるかを返します。
+     * 推奨プレイヤーレベル表示があるかを返します。
      *
-     * @return 推奨レベルを表示できる場合は {@code true}
+     * @return 推奨プレイヤーレベルを表示できる場合は {@code true}
      */
     public boolean hasRecommendedLevel() {
         return recommendedLevelMin != null || recommendedLevelMax != null;

@@ -10,7 +10,8 @@ import java.util.List;
  * 読込済みマスタから構築するインスタンス受付の表示情報です。内部戦闘地点は保持しません。
  * @param key 種別とマスタ ID の組。ID は GUI に表示しない
  * @param displayName マスタの表示名
- * @param level ダンジョンの推奨レベル、またはボス自身のレベル
+ * @param recommendedPlayerLevel 攻略目安。ボスで未設定の場合は null
+ * @param bossLevel ボス自身のレベル。ダンジョンでは null
  * @param overview ボスマスタの説明文
  * @param roomCount ダンジョンの生成部屋数範囲。ボスでは null
  * @param bossDisplayName ダンジョン最深部ボスの表示名。ボスでは null
@@ -26,7 +27,8 @@ import java.util.List;
 public record InstanceTeleportDestination(
         @NotNull Key key,
         @NotNull String displayName,
-        int level,
+        @Nullable Integer recommendedPlayerLevel,
+        @Nullable Integer bossLevel,
         @NotNull List<String> overview,
         @Nullable DungeonDefinition.IntRange roomCount,
         @Nullable String bossDisplayName,
@@ -43,7 +45,8 @@ public record InstanceTeleportDestination(
      * 表示用の説明文を変更不能なコピーとして保持します。
      * @param key 受付の識別情報
      * @param displayName マスタの表示名
-     * @param level 表示レベル
+     * @param recommendedPlayerLevel 攻略目安
+     * @param bossLevel ボス自身のレベル
      * @param overview 説明文
      * @param roomCount 部屋数範囲
      * @param bossDisplayName 最深部ボス表示名

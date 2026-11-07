@@ -13,7 +13,7 @@ import java.util.List;
  * <p>BSP の分割木や座標は実行時に seed から導出し、マスタにはゲームデザイン上の
  * 調整値だけを保持します。</p>
  *
- * @param recommendedLevel プレイヤー向けに表示する推奨レベル
+ * @param recommendedLevel 推奨プレイヤーレベル
  */
 public record DungeonDefinition(
         int schemaVersion,
@@ -34,12 +34,12 @@ public record DungeonDefinition(
     }
 
     /**
-     * 推奨レベルを指定し、死亡制限・クリア報酬は既定値で構築します。
+     * 推奨プレイヤーレベルを指定し、死亡制限・クリア報酬は既定値で構築します。
      *
      * @param schemaVersion スキーマ版
      * @param id ダンジョン ID
      * @param displayName 表示名
-     * @param recommendedLevel プレイヤー向け推奨レベル
+     * @param recommendedLevel 推奨プレイヤーレベル
      * @param entry 受付地点
      * @param partySize 参加人数範囲
      * @param generation 生成設定

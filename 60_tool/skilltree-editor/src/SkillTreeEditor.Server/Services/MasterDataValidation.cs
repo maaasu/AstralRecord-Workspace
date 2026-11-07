@@ -66,6 +66,13 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
                     && (Text(obj["category"]) != "ENEMY" || !path.StartsWith("40.features.mob/enemy/", MasterDataPaths.Comparison)))
                     issues.Add(new("error", "MOB_DEFENSE_CATEGORY", "/defenseEligible",
                         "防衛戦に参加できるのは enemy フォルダ内の ENEMY だけです。"));
+                if (path.StartsWith("40.features.mob/boss/", MasterDataPaths.Comparison)
+                    && obj["challenge"] is JsonObject bossChallenge
+                    && bossChallenge.TryGetPropertyValue("recommendedPlayerLevel", out var recommendation)
+                    && (!int.TryParse(recommendation?.ToJsonString(), NumberStyles.None, CultureInfo.InvariantCulture, out var level)
+                        || level < 1))
+                    issues.Add(new("error", "BOSS_RECOMMENDED_PLAYER_LEVEL", "/challenge/recommendedPlayerLevel",
+                        "推奨プレイヤーレベルは1以上の整数を指定してください。"));
                 if (obj["levels"] is JsonArray mobLevels)
                     for (var levelIndex = 0; levelIndex < mobLevels.Count; levelIndex++)
                         if (mobLevels[levelIndex] is JsonObject mobLevel && mobLevel.ContainsKey("defenseEligible"))

@@ -59,6 +59,7 @@ ai:
     style: MAGIC
     preferredRange: 8
 challenge:
+  recommendedPlayerLevel: 50
   fieldWorldId: astral_observatory
   entryLocation:
     worldId: boss2

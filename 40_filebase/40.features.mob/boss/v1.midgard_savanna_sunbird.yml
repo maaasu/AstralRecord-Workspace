@@ -65,6 +65,7 @@ ai:
     preferredRange: 10
 
 challenge:
+  recommendedPlayerLevel: 10
   fieldWorldId: midgard_boss_savanna_field
   entryLocation:
     worldId: midgard_greenfields

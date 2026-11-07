@@ -209,8 +209,17 @@ public class MobRepositoryPayloadTests
         Assert.True(mob.Ai.Targeting.RetaliateOnly);
     }
 
-    [Fact]
-    public void DeserializeLiteralJson_PopulatesBossChallenge()
+    [Theory]
+    [InlineData("40", 40)]
+    [InlineData(null, null)]
+    [InlineData("null", null)]
+    [InlineData("0", null)]
+    [InlineData("-1", null)]
+    [InlineData("40.5", null)]
+    [InlineData("2147483648", null)]
+    [InlineData("\"40\"", null)]
+    [InlineData("{\"level\":40}", null)]
+    public void DeserializeLiteralJson_PopulatesBossChallenge(string? recommendationJson, int? recommendedPlayerLevel)
     {
         var json = """
             {
@@ -225,6 +234,7 @@ public class MobRepositoryPayloadTests
                 { "status": "MAX_HEALTH", "value": 18000 }
               ],
               "challenge": {
+                __RECOMMENDATION__
                 "fieldWorldId": "twilight_colossus_field",
                 "entryLocation": { "worldId": "boss_hub", "x": 0.5, "y": 64.0, "z": 4.5 },
                 "entryRadius": 3.0,
@@ -243,10 +253,21 @@ public class MobRepositoryPayloadTests
             }
             """;
 
+        json = json.Replace("__RECOMMENDATION__",
+            recommendationJson is null ? "" : $"\"recommendedPlayerLevel\": {recommendationJson},",
+            StringComparison.Ordinal);
         var mob = JsonSerializer.Deserialize<MobResponse>(json, MasterDataJsonOptions());
 
         Assert.NotNull(mob);
         Assert.NotNull(mob!.Challenge);
+        Assert.Equal(45, mob.Level);
+        Assert.Equal(recommendedPlayerLevel, mob.Challenge!.RecommendedPlayerLevel);
+        using var response = JsonDocument.Parse(JsonSerializer.Serialize(mob, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        var challenge = response.RootElement.GetProperty("challenge");
+        if (recommendedPlayerLevel is int level)
+            Assert.Equal(level, challenge.GetProperty("recommendedPlayerLevel").GetInt32());
+        else
+            Assert.False(challenge.TryGetProperty("recommendedPlayerLevel", out _));
         Assert.Equal("twilight_colossus_field", mob.Challenge!.FieldWorldId);
         Assert.Equal("boss_hub", mob.Challenge.EntryLocation.WorldId);
         Assert.Equal(6, mob.Challenge.PartyMax);

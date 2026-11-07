@@ -43,7 +43,7 @@ class DungeonDefinitionValidatorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md
      * 章・見出し: # 32_1-モデル定義 > ## 1. DungeonDefinition
-     * 検証契約: プレイヤー向け推奨レベルは1以上の整数だけを公開可能とする。
+     * 検証契約: 推奨プレイヤーレベルは1以上の整数だけを公開可能とする。
      */
     @Test
     void rejectsNonPositiveRecommendedLevel() {

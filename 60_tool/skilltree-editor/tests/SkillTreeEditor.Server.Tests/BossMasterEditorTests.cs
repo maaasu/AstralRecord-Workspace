@@ -60,6 +60,31 @@ public sealed class BossMasterEditorTests : IDisposable
         Assert.Contains("# design:", saved.Raw);
     }
 
+    [Fact]
+    public async Task BossRecommendedPlayerLevelCanBeSavedSeparatelyFromCombatLevel()
+    {
+        var category = await _catalog.GetAsync("40.features.mob/boss", CancellationToken.None);
+        Assert.Contains(category.Fields, field => field.Path == "/challenge/recommendedPlayerLevel"
+            && field.Label == "推奨プレイヤーレベル" && field.Type == "Integer" && !field.Required);
+
+        var original = await _service.ReadAsync(BossPath, CancellationToken.None);
+        var content = original.Content!.DeepClone();
+        var challenge = (JsonObject)content["challenge"]!;
+        challenge.Remove("recommendedPlayerLevel");
+        Assert.True((await _validation.ValidateAsync(BossPath, content.ToJsonString(), CancellationToken.None)).IsValid);
+
+        challenge["recommendedPlayerLevel"] = 0;
+        var invalid = await _validation.ValidateAsync(BossPath, content.ToJsonString(), CancellationToken.None);
+        Assert.Contains(invalid.Issues, issue => issue.Code == "BOSS_RECOMMENDED_PLAYER_LEVEL"
+            && issue.Path == "/challenge/recommendedPlayerLevel");
+
+        challenge["recommendedPlayerLevel"] = 28;
+        var rendered = _codec.Render(new(BossPath, content, original.Raw));
+        var saved = await _service.SaveAsync(new(BossPath, rendered.Raw, original.Revision), CancellationToken.None);
+        Assert.Equal(28, JsonValueReader.Number(saved.Content!["challenge"]!["recommendedPlayerLevel"]));
+        Assert.True(JsonNode.DeepEquals(original.Content["level"], saved.Content["level"]));
+    }
+
     [Theory]
     [InlineData("entryLocation", "x")]
     [InlineData("entryLocation", "y")]

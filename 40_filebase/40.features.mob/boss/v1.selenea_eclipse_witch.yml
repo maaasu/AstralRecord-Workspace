@@ -55,6 +55,7 @@ ai:
     style: MAGIC
     preferredRange: 8
 challenge:
+  recommendedPlayerLevel: 30
   fieldWorldId: vanaheim_boss_selenea_field
   entryLocation:
     worldId: eriva_supercontinent

@@ -1,9 +1,11 @@
 package io.github.maaasu.astralRecord.feature.boss.model;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Challenge settings attached to a BOSS mob template.
+ * ボスマスタの挑戦設定です。
+ * @param recommendedPlayerLevel 攻略目安のプレイヤーレベル。未設定の場合は null
  */
 public record BossChallengeConfig(
         @NotNull String fieldWorldId,
@@ -16,7 +18,8 @@ public record BossChallengeConfig(
         long timeLimitSeconds,
         int deathLimit,
         long reviveDelaySeconds,
-        @NotNull BossScalingConfig scaling
+        @NotNull BossScalingConfig scaling,
+        @Nullable Integer recommendedPlayerLevel
 ) {
     public BossChallengeConfig {
         entryRadius = Math.max(0.5D, entryRadius);

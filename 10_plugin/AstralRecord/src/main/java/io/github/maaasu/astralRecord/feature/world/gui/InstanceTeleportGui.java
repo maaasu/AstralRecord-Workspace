@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.world.gui;
 
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.world.model.InstanceTeleportDestination;
 import io.github.maaasu.astralRecord.feature.world.model.InstanceTeleportFilter;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
@@ -174,9 +176,13 @@ public final class InstanceTeleportGui {
     private @NotNull ItemStack destinationItem(@NotNull InstanceTeleportDestination destination, boolean available) {
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("種別: " + destination.key().kind().displayName(), NamedTextColor.GRAY));
-        String levelLabel = destination.key().kind() == InstanceTeleportFilter.DUNGEON
-                ? "推奨レベル: Lv." : "ボスレベル: Lv.";
-        lore.add(Component.text(levelLabel + destination.level(), NamedTextColor.GOLD));
+        if (destination.recommendedPlayerLevel() != null) {
+            lore.add(PlayerMsgResource.formatPlainComponent(
+                    PlayerMsgId.P_5795.getId(), "Lv." + destination.recommendedPlayerLevel()));
+        }
+        if (destination.bossLevel() != null) {
+            lore.add(Component.text("ボスレベル: Lv." + destination.bossLevel(), NamedTextColor.GOLD));
+        }
         lore.add(Component.empty());
         for (String line : destination.overview()) {
             for (String paragraph : line.split("\\R")) {

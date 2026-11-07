@@ -15,7 +15,9 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
     {
         ["schemaVersion"] = "スキーマバージョン", ["id"] = "ID", ["name"] = "表示名",
         ["displayName"] = "表示名", ["title"] = "題名",
-        ["recommendedLevel"] = "推奨レベル", ["worldRef"] = "ワールド参照",
+        ["recommendedLevel"] = "推奨プレイヤーレベル", ["recommendedPlayerLevel"] = "推奨プレイヤーレベル",
+        ["recommendedLevelMin"] = "推奨プレイヤーレベル下限", ["recommendedLevelMax"] = "推奨プレイヤーレベル上限",
+        ["worldRef"] = "ワールド参照",
         ["deathLimit"] = "死亡回数の上限", ["reviveDelaySeconds"] = "復活までの待機時間（秒）", ["timeLimitSeconds"] = "制限時間（秒）",
         ["entry"] = "入場地点", ["party"] = "パーティー", ["challenge"] = "挑戦ルール",
         ["clearRewards"] = "クリア報酬", ["generation"] = "生成設定", ["theme"] = "外観テーマ", ["encounter"] = "モブの出現設定",

@@ -39,7 +39,7 @@ public final class BossCommand extends AstCommand {
             return;
         }
         if (args.length == 0) {
-            sendPublicHelp(sender);
+            sendPublicHelp(sender, service);
             return;
         }
 
@@ -48,7 +48,7 @@ public final class BossCommand extends AstCommand {
             if (!(sender instanceof Player player)) {
                 sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5060.getId()));
             } else if (args.length != 1) {
-                sendPublicHelp(sender);
+                sendPublicHelp(sender, service);
             } else {
                 service.acceptHorologiumFromBase(player);
             }
@@ -62,7 +62,7 @@ public final class BossCommand extends AstCommand {
             if (List.of("instances", "list", "stop", "teleport").contains(action)) {
                 sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
             } else {
-                sendPublicHelp(sender);
+                sendPublicHelp(sender, service);
             }
             return;
         }
@@ -74,8 +74,17 @@ public final class BossCommand extends AstCommand {
         }
     }
 
-    private void sendPublicHelp(@NotNull CommandSender sender) {
+    /**
+     * コマンドの使い方とホロロギウムの攻略目安を案内します。
+     * @param sender 案内の受信者
+     * @param service 読込済みのボス挑戦設定を提供するサービス
+     */
+    private void sendPublicHelp(@NotNull CommandSender sender, @NotNull BossChallengeService service) {
         sendInfo(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_8060.getId()));
+        Integer recommendedPlayerLevel = service.getHorologiumRecommendedPlayerLevel();
+        if (recommendedPlayerLevel != null) {
+            sendInfo(sender, PlayerMsgResource.format(PlayerMsgId.P_5795.getId(), "Lv." + recommendedPlayerLevel));
+        }
         if (isAdmin(sender)) sendUsage(sender);
     }
 

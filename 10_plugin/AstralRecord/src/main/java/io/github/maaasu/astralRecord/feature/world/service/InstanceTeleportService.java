@@ -62,7 +62,7 @@ public final class InstanceTeleportService {
     }
 
     /**
-     * 受付を持つ読込済みマスタを、表示レベル・表示名・種別・ID の順に返します。
+     * 受付を持つ読込済みマスタを、推奨プレイヤーレベル（未設定は末尾）・表示名・種別・ID の順に返します。
      * API・filebase をクリック時に再読込せず、reload で公開済みのマスタを使います。
      * @param filter 表示種別。ALL は絞り込みなし
      * @return 変更不能な受付候補一覧
@@ -79,7 +79,7 @@ public final class InstanceTeleportService {
                 BossLocation entry = challenge.entryLocation();
                 destinations.add(new InstanceTeleportDestination(
                         new InstanceTeleportDestination.Key(InstanceTeleportFilter.BOSS, template.id()),
-                        template.displayName(), template.level(), template.lore(), null, null,
+                        template.displayName(), challenge.recommendedPlayerLevel(), template.level(), template.lore(), null, null,
                         challenge.partyMin(), challenge.partyMax(), challenge.timeLimitSeconds(),
                         challenge.deathLimit(), entry.worldId(), entry.x(), entry.y(), entry.z()
                 ));
@@ -91,7 +91,7 @@ public final class InstanceTeleportService {
                 DungeonDefinition.Entry entry = definition.entry();
                 destinations.add(new InstanceTeleportDestination(
                         new InstanceTeleportDestination.Key(InstanceTeleportFilter.DUNGEON, definition.id()),
-                        definition.displayName(), definition.recommendedLevel(), List.of(),
+                        definition.displayName(), definition.recommendedLevel(), null, List.of(),
                         definition.generation().roomCount(), loaded.bossMob().displayName(),
                         definition.partySize().min(), definition.partySize().max(),
                         definition.challenge().timeLimitSeconds(), definition.challenge().deathLimit(),
@@ -100,7 +100,7 @@ public final class InstanceTeleportService {
             }
         }
         return destinations.stream().sorted(Comparator
-                .comparingInt(InstanceTeleportDestination::level)
+                .comparing(InstanceTeleportDestination::recommendedPlayerLevel, Comparator.nullsLast(Comparator.naturalOrder()))
                 .thenComparing(destination -> ColorCodeUtil.toPlainText(destination.displayName(), ""))
                 .thenComparing(destination -> destination.key().kind())
                 .thenComparing(destination -> destination.key().masterId())).toList();

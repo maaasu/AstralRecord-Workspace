@@ -9,7 +9,7 @@
 | `schemaVersion` | Integer | 現在は `1` |
 | `id` | String | ダンジョン ID。ファイル間で一意 |
 | `displayName` | String | プレイヤー表示名 |
-| `recommendedLevel` | Integer | プレイヤー向け推奨レベル。1以上 |
+| `recommendedLevel` | Integer | 推奨プレイヤーレベル。1以上 |
 | `entry.worldRef` | String | 挑戦受付地点を置く既存 `world:` 参照 |
 | `entry.x/y/z` | Double | 挑戦受付地点 |
 | `encounter.normalMobPool[]` | List | 一件以上の ENEMY Mob 参照 |

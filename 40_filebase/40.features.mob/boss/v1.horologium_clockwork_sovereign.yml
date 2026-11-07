@@ -61,6 +61,7 @@ ai:
     style: MAGIC
     preferredRange: 5
 challenge:
+  recommendedPlayerLevel: 50
   fieldWorldId: horologium_clockwork_field
   entryLocation:
     worldId: starlit_nox

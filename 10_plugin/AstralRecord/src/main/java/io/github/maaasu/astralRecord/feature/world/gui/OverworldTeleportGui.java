@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.world.gui;
 
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.world.model.WorldAdventureGuide;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
@@ -151,8 +153,8 @@ public final class OverworldTeleportGui {
         WorldAdventureGuide guide = world.adventureGuide();
         if (guide != null) {
             if (guide.hasRecommendedLevel()) {
-                lore.add(Component.text("推奨レベル: ", NamedTextColor.GRAY)
-                        .append(Component.text(formatRange("Lv.", guide.recommendedLevelMin(), guide.recommendedLevelMax()), NamedTextColor.GOLD))
+                lore.add(PlayerMsgResource.formatPlainComponent(PlayerMsgId.P_5795.getId(),
+                                formatRange("Lv.", guide.recommendedLevelMin(), guide.recommendedLevelMax()))
                         .decoration(TextDecoration.ITALIC, false));
             }
             if (guide.hasRecommendedPartySize()) {

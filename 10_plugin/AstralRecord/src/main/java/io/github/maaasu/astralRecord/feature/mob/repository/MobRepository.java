@@ -573,8 +573,26 @@ public class MobRepository {
                 obj.has("timeLimitSeconds") ? obj.get("timeLimitSeconds").getAsLong() : 600L,
                 obj.has("deathLimit") ? obj.get("deathLimit").getAsInt() : 5,
                 obj.has("reviveDelaySeconds") ? obj.get("reviveDelaySeconds").getAsLong() : 5L,
-                parseBossScaling(getObject(obj, "scaling"))
+                parseBossScaling(getObject(obj, "scaling")),
+                parseRecommendedPlayerLevel(obj.get("recommendedPlayerLevel"))
         );
+    }
+
+    /**
+     * 案内用の値を正の整数として読み取ります。
+     * @param value API またはローカルマスタの案内用の値
+     * @return 正の整数。未設定または不正な値の場合は null
+     */
+    private static @Nullable Integer parseRecommendedPlayerLevel(@Nullable JsonElement value) {
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) {
+            return null;
+        }
+        try {
+            int level = Integer.parseInt(value.getAsString());
+            return level > 0 ? level : null;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     @NotNull

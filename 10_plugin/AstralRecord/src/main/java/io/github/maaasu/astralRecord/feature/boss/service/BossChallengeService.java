@@ -461,6 +461,15 @@ public final class BossChallengeService {
         acceptChallenge(player, HOROLOGIUM_ID, true);
     }
 
+    /**
+     * コマンド専用ボスの案内に使う推奨プレイヤーレベルを返します。
+     * @return 読込済みマスタの設定値。未読込または未設定の場合は null
+     */
+    public @Nullable Integer getHorologiumRecommendedPlayerLevel() {
+        MobTemplate template = mobService.findLoadedTemplate(HOROLOGIUM_ID);
+        return template == null || template.challenge() == null ? null : template.challenge().recommendedPlayerLevel();
+    }
+
     /** @param commandEntry 専用コマンドで登録済BASE/HUBから受け付ける場合だけtrue */
     private void acceptChallenge(@NotNull Player player, @NotNull String bossId, boolean commandEntry) {
         var astPlayer = AstPlayerCache.get(player);
@@ -2676,16 +2685,17 @@ public final class BossChallengeService {
             if (template == null || template.challenge() == null) {
                 continue;
             }
+            BossChallengeConfig config = template.challenge();
 
-            World entryWorld = resolveLocationWorld(template.challenge().entryLocation());
+            World entryWorld = resolveLocationWorld(config.entryLocation());
             if (entryWorld == null) {
                 continue;
             }
-            Location entry = template.challenge().entryLocation().toLocation(entryWorld);
-            if (!renderEntryAnimation(entry, template.challenge().entryRadius(), baseAngle)) {
+            Location entry = config.entryLocation().toLocation(entryWorld);
+            if (!renderEntryAnimation(entry, config.entryRadius(), baseAngle)) {
                 continue;
             }
-            updateEntryPrompt(template, entry);
+            updateEntryPrompt(template, entry, config.recommendedPlayerLevel());
             activePromptIds.add(template.id());
         }
         removeInactiveEntryPrompts(activePromptIds);
@@ -2728,8 +2738,18 @@ public final class BossChallengeService {
         return false;
     }
 
-    private void updateEntryPrompt(@NotNull MobTemplate template, @NotNull Location entry) {
-        String text = "&c&lボス挑戦 &f" + template.displayName() + "\n&eスニーク&fで挑戦";
+    /**
+     * 受付表示を作成し、表示する内容や座標が変わった場合は更新します。
+     * @param template 表示対象のボス
+     * @param entry 受付地点
+     * @param recommendedPlayerLevel 攻略目安。未設定の場合は null
+     */
+    private void updateEntryPrompt(
+            @NotNull MobTemplate template, @NotNull Location entry, @Nullable Integer recommendedPlayerLevel
+    ) {
+        String text = recommendedPlayerLevel == null
+                ? PlayerMsgResource.format(PlayerMsgId.P_6543.getId(), template.displayName())
+                : PlayerMsgResource.format(PlayerMsgId.P_6544.getId(), template.displayName(), recommendedPlayerLevel);
         Location promptLocation = entry.clone().add(0.0D, ENTRY_PROMPT_Y_OFFSET, 0.0D);
         EntryPromptDisplay current = entryPromptDisplays.get(template.id());
         try {

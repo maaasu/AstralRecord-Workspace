@@ -77,6 +77,7 @@ Enemy と同一仕様です。
 
 | キー | 型 | 必須 | 説明 |
 |:--|:--|:--:|:--|
+| `challenge.recommendedPlayerLevel` | Integer | × | 1 以上の推奨プレイヤーレベル。未指定時は案内を省略。ボス自身のレベルや参加条件とは独立 |
 | `challenge.fieldWorldId` | String | ○ | `WorldType.BOSS_FIELD` の WorldMasterData ID |
 | `challenge.entryLocation.worldId` | String | ○ | 挑戦受付地点の WorldMasterData ID または Bukkit world 名 |
 | `challenge.entryLocation.x/y/z` | Double | ○ | 挑戦受付地点 |

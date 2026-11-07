@@ -326,6 +326,11 @@ public class MobChallengeResponse
 
     public double EntryRadius { get; init; } = 3.0D;
 
+    /// <summary>Suggested player level for the challenge, separate from the boss's combat level.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonConverter(typeof(RecommendedPlayerLevelJsonConverter))]
+    public int? RecommendedPlayerLevel { get; init; }
+
     public required MobChallengeLocationResponse PlayerSpawnLocation { get; init; }
 
     public required MobChallengeLocationResponse BossSpawnLocation { get; init; }
@@ -341,6 +346,28 @@ public class MobChallengeResponse
     public long ReviveDelaySeconds { get; init; } = 5;
 
     public MobChallengeScalingResponse? Scaling { get; init; }
+
+    // Invalid display metadata must not prevent existing boss definitions from loading.
+    private sealed class RecommendedPlayerLevelJsonConverter : JsonConverter<int?>
+    {
+        public RecommendedPlayerLevelJsonConverter() { }
+
+        public override int? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var level) && level > 0)
+                return level;
+            reader.Skip();
+            return null;
+        }
+
+        public override void Write(Utf8JsonWriter writer, int? value, JsonSerializerOptions options)
+        {
+            if (value is int level)
+                writer.WriteNumberValue(level);
+            else
+                writer.WriteNullValue();
+        }
+    }
 }
 
 /// <summary>Boss challenge location definition.</summary>

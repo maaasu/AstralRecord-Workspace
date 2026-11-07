@@ -60,8 +60,8 @@ overworldTeleportGui:
 | `requiredItemId` | no | 拠点から GUI でオーバーワールドへ転送する際に必要な Currency の参照。`{ ref: "item:<id>" }` 形式で指定し、参照先は `category: currency` の item でなければならない。未指定なら入場条件なし。 |
 | `consumeRequiredItem` | no | `true` の場合、一般プレイヤー用 GUI からの転送成功時に `requiredItemId` の Currency を1個消費する。省略時・`false` は所持確認のみで消費しない。`requiredItemId` が未指定なら効果なし。転送失敗時は消費しない。管理者用 GUI や `/world tp` には適用しない。 |
 | `guiIconMaterial` | no | オーバーワールド転送 GUI に表示する `Material` 名。未指定または不正な場合は `GRASS_BLOCK` を使う。 |
-| `adventureGuide.recommendedLevelMin` | no | 推奨レベル下限。 |
-| `adventureGuide.recommendedLevelMax` | no | 推奨レベル上限。 |
+| `adventureGuide.recommendedLevelMin` | no | 推奨プレイヤーレベル下限。 |
+| `adventureGuide.recommendedLevelMax` | no | 推奨プレイヤーレベル上限。 |
 | `adventureGuide.recommendedPartySizeMin` | no | 推奨人数下限。 |
 | `adventureGuide.recommendedPartySizeMax` | no | 推奨人数上限。 |
 | `adventureGuide.notes[]` | no | ワールド選択を補助する補足メモ。GUI ではそのまま lore として表示する。 |

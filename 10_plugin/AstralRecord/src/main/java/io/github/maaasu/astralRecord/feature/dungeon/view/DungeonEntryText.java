@@ -12,7 +12,7 @@ public final class DungeonEntryText {
     }
 
     /**
-     * ダンジョン名、推奨レベル、挑戦開始案内の受付表示を構築します。
+     * ダンジョン名、推奨プレイヤーレベル、挑戦開始案内の受付表示を構築します。
      *
      * @param definition 表示対象のダンジョン定義
      * @return プレイヤー向けの受付 TextDisplay 文

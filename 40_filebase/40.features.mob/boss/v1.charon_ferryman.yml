@@ -69,6 +69,7 @@ ai:
       range: 4.2
       intervalTicks: 30
 challenge:
+  recommendedPlayerLevel: 20
   fieldWorldId: vanaheim_boss_charon_field
   entryLocation:
     worldId: eriva_supercontinent
