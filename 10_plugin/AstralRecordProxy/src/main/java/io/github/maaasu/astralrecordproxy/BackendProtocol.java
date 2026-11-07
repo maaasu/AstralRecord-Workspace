@@ -29,6 +29,7 @@ final class BackendProtocol {
     static final String SELENEA_READY = "selenea_ready";
     static final String COMBAT_REWARD_PLAQUE_READY = "combat_reward_plaque_ready";
     static final String COMBAT_REWARD_PLAQUE_TIMING_READY = "combat_reward_plaque_timing_ready";
+    static final String COMBAT_REWARD_PLAQUE_WIDTH_READY = "combat_reward_plaque_width_ready";
     static final String ACTION_RING_HUD_READY = "action_ring_hud_ready";
     static final String BEDROCK_QUEST_HUD = "bedrock_quest_hud";
     static final String BEDROCK_QUEST_HUD_READY = "bedrock_quest_hud_ready";
@@ -181,6 +182,11 @@ final class BackendProtocol {
     /** @return 対象プレイヤーの報酬プレートが可変表示時間に対応していることを伝える通知 */
     static byte[] combatRewardPlaqueTimingReady() {
         return outgoing(COMBAT_REWARD_PLAQUE_TIMING_READY, null);
+    }
+
+    /** @return 対象プレイヤーの報酬プレートが可変幅に対応していることを伝える通知 */
+    static byte[] combatRewardPlaqueWidthReady() {
+        return outgoing(COMBAT_REWARD_PLAQUE_WIDTH_READY, null);
     }
 
     /** @return 対象プレイヤーの Bedrock パックのアクションリング HUD 互換性識別子を伝える通知 */

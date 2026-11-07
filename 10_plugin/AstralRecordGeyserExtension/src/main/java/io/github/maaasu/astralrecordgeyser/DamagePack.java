@@ -237,6 +237,7 @@ record DamagePack(
             return 0;
         }
         String marker = "combat-reward-plaque-version.txt";
+        if (hasVersion(zip, marker, '3')) return 3;
         if (hasVersion(zip, marker, '2')) return 2;
         return hasVersionOne(zip, marker) ? 1 : 0;
     }

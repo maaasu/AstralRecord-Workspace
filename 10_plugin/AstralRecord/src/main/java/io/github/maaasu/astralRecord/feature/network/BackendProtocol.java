@@ -31,6 +31,7 @@ final class BackendProtocol {
     private static final byte[] SELENEA_READY = emptyNotification("selenea_ready");
     private static final byte[] COMBAT_REWARD_PLAQUE_READY = emptyNotification("combat_reward_plaque_ready");
     private static final byte[] COMBAT_REWARD_PLAQUE_TIMING_READY = emptyNotification("combat_reward_plaque_timing_ready");
+    private static final byte[] COMBAT_REWARD_PLAQUE_WIDTH_READY = emptyNotification("combat_reward_plaque_width_ready");
     private static final String ACTION_RING_HUD_READY = "action_ring_hud_ready";
     private static final int ACTION_RING_HUD_NOTIFICATION_SIZE = 2 + ACTION_RING_HUD_READY.length() + 2 + 64;
     private static final String BEDROCK_SKILL_MENU = "bedrock_skill_menu";
@@ -80,6 +81,11 @@ final class BackendProtocol {
     /** @return 表示寿命を指定できる統合版接続の完全な通知ならtrue */
     static boolean isCombatRewardPlaqueTimingReady(byte[] payload) {
         return Arrays.equals(COMBAT_REWARD_PLAQUE_TIMING_READY, payload);
+    }
+
+    /** @return 横幅を指定できる統合版接続の完全な通知ならtrue */
+    static boolean isCombatRewardPlaqueWidthReady(byte[] payload) {
+        return Arrays.equals(COMBAT_REWARD_PLAQUE_WIDTH_READY, payload);
     }
 
     /** アクションリング HUD 通知の互換性識別子を返します。他種別や不正な通知は null を返します。 */

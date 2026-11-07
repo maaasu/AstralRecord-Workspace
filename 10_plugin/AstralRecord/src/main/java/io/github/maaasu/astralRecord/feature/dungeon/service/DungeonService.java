@@ -2315,8 +2315,8 @@ public final class DungeonService {
                     heading, elapsed, countdown.get(), ranking, rewards);
             DisplayTextService.ManagedTextDisplay display = displayTextService.createEncounterRewardPlaque(
                     origin, fallback.get(), participant, CLEAR_RETURN_DELAY_TICKS,
-                    () -> EncounterResultFormatter.formatPlaque(heading, elapsed, countdown, ranking, rewards,
-                            formatClearRewardRows(session.rewardsByPlayer.getOrDefault(viewerId, List.of()))));
+                    widthMode -> EncounterResultFormatter.formatPlaque(heading, elapsed, countdown, ranking, rewards,
+                            formatClearRewardRows(session.rewardsByPlayer.getOrDefault(viewerId, List.of())), widthMode));
             display.setDynamicText(fallback);
             session.resultDisplays.add(display);
         }

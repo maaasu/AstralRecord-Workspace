@@ -13,6 +13,7 @@
       "scripts": {
         "pre_animation": [
           "variable.middle_height = 1.6 + 2.2624 * query.property('astralrecord:reward_lines');",
+          "variable.frame_width_scale = query.property('astralrecord:reward_width') / 192.0;",
           "variable.age = query.life_time;",
           "variable.duration = query.property('astralrecord:reward_duration') / 20.0;",
           "variable.enter = math.clamp(variable.age / 0.5, 0.0, 1.0);",

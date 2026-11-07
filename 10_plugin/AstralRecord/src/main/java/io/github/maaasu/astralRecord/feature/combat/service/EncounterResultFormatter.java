@@ -72,11 +72,13 @@ public final class EncounterResultFormatter {
      * @param ranking 参加者ごとの空行区切りを含む確定戦績
      * @param rewards 閲覧者の討伐報酬。報酬対象外はnull
      * @param clearRewards 閲覧者のクリア報酬表示行。クリア報酬がなければ空
+     * @param widthMode 接続が利用できる枠幅
      * @return ページ分割した統合プレート
      */
     public static CombatRewardPlaque formatPlaque(String heading, String elapsed, Supplier<String> countdown,
                                                    String ranking, @Nullable RewardResult rewards,
-                                                   List<CombatRewardPlaque.Row> clearRewards) {
+                                                   List<CombatRewardPlaque.Row> clearRewards,
+                                                   CombatRewardPlaque.WidthMode widthMode) {
         String[] headerLines = heading.split("\n", 2);
         List<CombatRewardPlaque.Row> rows = new ArrayList<>();
         rows.add(CombatRewardPlaque.Row.text(elapsed));
@@ -89,7 +91,7 @@ public final class EncounterResultFormatter {
             rows.add(CombatRewardPlaque.Row.text(block));
         }
         return CombatRewardPlaque.layout(headerLines[0], headerLines.length > 1 ? headerLines[1] : "", countdown, rows,
-                rewards != null && rewards.rare());
+                rewards != null && rewards.rare(), widthMode);
     }
 
     /**

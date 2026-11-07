@@ -409,6 +409,12 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
             }
             return;
         }
+        if (BackendProtocol.isCombatRewardPlaqueWidthReady(message)) {
+            if (resourcePackService != null) {
+                resourcePackService.markBedrockCombatRewardPlaqueWidthReady(player);
+            }
+            return;
+        }
         if (BackendProtocol.isBedrockQuestHudReady(message)) {
             if (resourcePackService != null) resourcePackService.markBedrockQuestHudReady(player);
             return;

@@ -36,6 +36,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
@@ -325,7 +326,7 @@ public final class DisplayTextService {
      * @param fallbackText 通常の結果本文
      * @param viewer 報酬の受取人
      * @param durationTicks 1ページの表示時間。通常表示では全体の表示寿命
-     * @param plaqueSupplier 対応パックを適用した受取人用のプレート本文
+     * @param plaqueLayout 対応パックの枠幅を指定して本文を作る処理
      * @return 表示の管理ハンドル
      * @throws IllegalArgumentException 寿命が0以下の場合
      * @implNote Bukkitメインスレッドから呼び出します。
@@ -335,9 +336,9 @@ public final class DisplayTextService {
             @NotNull String fallbackText,
             @NotNull Player viewer,
             long durationTicks,
-            @NotNull Supplier<CombatRewardPlaque> plaqueSupplier
+            @NotNull Function<CombatRewardPlaque.WidthMode, CombatRewardPlaque> plaqueLayout
     ) {
-        return createRewardPlaque(origin, fallbackText, viewer, durationTicks, plaqueSupplier, true);
+        return createRewardPlaque(origin, fallbackText, viewer, durationTicks, plaqueLayout, true);
     }
 
     /**
@@ -346,7 +347,7 @@ public final class DisplayTextService {
      * @param fallbackText 非対応接続向けの初期本文
      * @param viewer リザルトを見るプレイヤー
      * @param durationTicks 帰還までの全体の表示寿命
-     * @param plaqueSupplier 対応パック用の本文
+     * @param plaqueLayout 対応パックの枠幅を指定して本文を作る処理
      * @return 表示の管理ハンドル
      * @throws IllegalArgumentException 寿命が0以下の場合
      * @implNote Bukkitメインスレッドから呼び出します。
@@ -356,9 +357,9 @@ public final class DisplayTextService {
             @NotNull String fallbackText,
             @NotNull Player viewer,
             long durationTicks,
-            @NotNull Supplier<CombatRewardPlaque> plaqueSupplier
+            @NotNull Function<CombatRewardPlaque.WidthMode, CombatRewardPlaque> plaqueLayout
     ) {
-        return createRewardPlaque(origin, fallbackText, viewer, durationTicks, plaqueSupplier, false);
+        return createRewardPlaque(origin, fallbackText, viewer, durationTicks, plaqueLayout, false);
     }
 
     /**
@@ -367,19 +368,21 @@ public final class DisplayTextService {
      * @param fallbackText 非対応接続用の本文
      * @param viewer リザルトを見るプレイヤー
      * @param durationTicks 表示時間
-     * @param plaqueSupplier 対応パック用の本文
+     * @param plaqueLayout 対応パックの枠幅を指定して本文を作る処理
      * @param extendPerPage ページ数に応じて表示寿命を延ばすか
      * @return 表示の管理ハンドル
      */
     private @NotNull ManagedTextDisplay createRewardPlaque(
             Location origin, String fallbackText, Player viewer, long durationTicks,
-            Supplier<CombatRewardPlaque> plaqueSupplier, boolean extendPerPage
+            Function<CombatRewardPlaque.WidthMode, CombatRewardPlaque> plaqueLayout, boolean extendPerPage
     ) {
         UUID viewerId = viewer.getUniqueId();
         boolean bedrock = resourcePackService.isBedrock(viewer.getName());
         boolean supported = bedrock ? resourcePackService.hasBedrockCombatRewardPlaque(viewerId)
                 : resourcePackService.hasJavaCombatRewardPlaque(viewerId);
-        CombatRewardPlaque plaque = supported ? plaqueSupplier.get() : null;
+        CombatRewardPlaque.WidthMode widthMode = !bedrock || resourcePackService.hasBedrockCombatRewardPlaqueWidth(viewerId)
+                ? CombatRewardPlaque.WidthMode.EXPAND : CombatRewardPlaque.WidthMode.FIXED;
+        CombatRewardPlaque plaque = supported ? plaqueLayout.apply(widthMode) : null;
         long pageTicks = durationTicks;
         if (plaque != null) {
             if (extendPerPage) {
@@ -416,10 +419,12 @@ public final class DisplayTextService {
                 displays.remove(state.id);
             }
         }
+        // Javaクライアントが可変幅の本文を独自に折り返さないよう、余白行まで収めます。
+        int lineWidth = plaque == null || bedrockPlaque ? 440 : Math.max(440, plaque.frameWidth() + 2);
         ManagedTextDisplay display = create(
                 DisplayAnchor.fixed(origin),
                 new DisplayTextOptions(text, new Vector(), Display.Billboard.CENTER,
-                        440, 64.0F, (byte) 0xFF, false, true, false,
+                        lineWidth, 64.0F, (byte) 0xFF, false, true, false,
                         plaque == null ? Color.fromARGB(176, 13, 21, 34) : TRANSPARENT,
                         (int) RESULT_FRAME_TICKS, 0,
                         false, 15, 15)
@@ -699,8 +704,8 @@ public final class DisplayTextService {
         long durationTicks = animation.durationTicks();
         long exitStart = Math.max(0L, durationTicks - PLAQUE_EXIT_TICKS);
         if (age == 0L || (age > PLAQUE_ENTRANCE_TICKS && age <= exitStart)) return;
-        applyPlaqueMotion(entity, age, durationTicks, 0);
-        applyPlaqueMotion(background, age, durationTicks, plaque.lineCount() - 1);
+        applyPlaqueMotion(entity, age, durationTicks, 0, 1.0F);
+        applyPlaqueMotion(background, age, durationTicks, plaque.lineCount() - 1, plaque.frameWidthScale());
     }
 
     /**
@@ -719,9 +724,10 @@ public final class DisplayTextService {
      * @param age 表示開始からの経過tick
      * @param durationTicks 表示寿命
      * @param frameOffsetLines 枠を最初の行へ上げる行数。本文の場合は0
+     * @param widthScale 枠だけに適用する横方向の倍率。本文の場合は1
      */
     private static void applyPlaqueMotion(
-            TextDisplay entity, long age, long durationTicks, int frameOffsetLines
+            TextDisplay entity, long age, long durationTicks, int frameOffsetLines, float widthScale
     ) {
         double entrance = Math.min(1.0D, age / (double) PLAQUE_ENTRANCE_TICKS);
         double eased = 1.0D - Math.pow(1.0D - entrance, 3.0D);
@@ -735,7 +741,7 @@ public final class DisplayTextService {
         // クライアントは透過度を符号付きbyteのまま補間するため、各tickの値をそのまま表示します。
         entity.setInterpolationDuration(0);
         entity.setTransformation(new Transformation(new Vector3f(0.0F, lift, depth),
-                new Quaternionf(), new Vector3f(scale), new Quaternionf()));
+                new Quaternionf(), new Vector3f(scale * widthScale, scale, scale), new Quaternionf()));
         entity.setTextOpacity(opacity);
     }
 
@@ -850,7 +856,7 @@ public final class DisplayTextService {
                     // 名札の行数を最初から固定し、ページを送っても枠の位置を保ちます。
                     updatePlaqueBody(state, display, animation, plaque);
                     if (!animation.bedrockPlaque()) {
-                        applyPlaqueMotion(display, state.animationAge, animation.durationTicks(), 0);
+                        applyPlaqueMotion(display, state.animationAge, animation.durationTicks(), 0, 1.0F);
                     }
                 }
                 UUID viewerId = state.resultAnimation.viewerId();
@@ -904,7 +910,7 @@ public final class DisplayTextService {
      * @param world 生成先のワールド
      * @param location 本文と共有する表示位置
      * @param state 表示の管理状態。討伐報酬プレートの設定が必要
-     * @param plaque 枠の種類と高さを決める報酬プレート
+     * @param plaque 枠の種類と大きさを決める報酬プレート
      * @return 枠の実体
      */
     private TextDisplay spawnPlaqueBackground(
@@ -919,7 +925,7 @@ public final class DisplayTextService {
             display.setSilent(true);
             display.text(plaque.frame(isPlaqueGlintActive(plaque, state.animationAge)));
             applyPlaqueMotion(display, state.animationAge, state.resultAnimation.durationTicks(),
-                    plaque.lineCount() - 1);
+                    plaque.lineCount() - 1, plaque.frameWidthScale());
         });
     }
 

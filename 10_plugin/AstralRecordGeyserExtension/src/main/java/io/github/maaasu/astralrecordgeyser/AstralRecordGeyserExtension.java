@@ -214,8 +214,7 @@ public final class AstralRecordGeyserExtension implements Extension {
      * @return 報酬プレートに対応するパックでログインを完了していればtrue
      */
     public boolean hasCombatRewardPlaque(UUID playerId) {
-        var connection = geyserApi().connectionByUuid(playerId);
-        return combatRewardPlaque != null && connection != null && damagePacks.combatRewardPlaqueVersion(connection) >= 1;
+        return combatRewardPlaqueVersion(playerId) >= 1;
     }
 
     /**
@@ -223,8 +222,24 @@ public final class AstralRecordGeyserExtension implements Extension {
      * @return 可変表示時間に対応する報酬プレートのパックでログインを完了していればtrue
      */
     public boolean hasCombatRewardPlaqueTiming(UUID playerId) {
+        return combatRewardPlaqueVersion(playerId) >= 2;
+    }
+
+    /**
+     * @param playerId 接続中プレイヤーの Java 側 UUID
+     * @return 枠の可変幅に対応する報酬パックでログインを完了していればtrue
+     */
+    public boolean hasCombatRewardPlaqueWidth(UUID playerId) {
+        return combatRewardPlaqueVersion(playerId) >= 3;
+    }
+
+    /**
+     * @param playerId 接続中プレイヤーの Java 側 UUID
+     * @return 接続に割り当てられた報酬パックの互換版。未対応は0
+     */
+    private int combatRewardPlaqueVersion(UUID playerId) {
         var connection = geyserApi().connectionByUuid(playerId);
-        return combatRewardPlaque != null && connection != null && damagePacks.combatRewardPlaqueVersion(connection) >= 2;
+        return combatRewardPlaque == null || connection == null ? 0 : damagePacks.combatRewardPlaqueVersion(connection);
     }
 
     /**
@@ -351,7 +366,7 @@ public final class AstralRecordGeyserExtension implements Extension {
             int packVersion = damagePacks.combatRewardPlaqueVersion(event.connection());
             if (properties != null && packVersion >= 1) {
                 event.definition(CombatRewardPlaqueEntity.DEFINITION);
-                event.preSpawnConsumer(entity -> properties.initialize(entity, plaqueLayout, packVersion >= 2));
+                event.preSpawnConsumer(entity -> properties.initialize(entity, plaqueLayout, packVersion));
             }
             return;
         }

@@ -53,6 +53,7 @@ public class ResourcePackService {
     private final Set<UUID> requestedJavaCombatRewardPlaque = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockCombatRewardPlaque = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockCombatRewardPlaqueTiming = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> readyBedrockCombatRewardPlaqueWidth = ConcurrentHashMap.newKeySet();
     private final Map<UUID, ResourcePackRepository.ProfileHud> requestedJavaProfileHud = new ConcurrentHashMap<>();
     private final Set<UUID> requestedJavaQuestHud = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockQuestHud = ConcurrentHashMap.newKeySet();
@@ -636,6 +637,25 @@ public class ResourcePackService {
     }
 
     /**
+     * @param playerId 閲覧者のUUID
+     * @return 現在の統合版接続が横幅を指定できる場合はtrue
+     */
+    public boolean hasBedrockCombatRewardPlaqueWidth(UUID playerId) {
+        return readyBedrockCombatRewardPlaqueWidth.contains(playerId);
+    }
+
+    /**
+     * 可変幅のパックに対応した接続として、従来の描画・時間への対応も記録します。
+     * @param player 通知の対象プレイヤー
+     */
+    public void markBedrockCombatRewardPlaqueWidthReady(Player player) {
+        if (player.isOnline()) {
+            markBedrockCombatRewardPlaqueTimingReady(player);
+            readyBedrockCombatRewardPlaqueWidth.add(player.getUniqueId());
+        }
+    }
+
+    /**
      * 退出時に、この接続の取得待ちと適用状態を解除します。
      *
      * @param playerId 退出した接続のUUID
@@ -660,6 +680,7 @@ public class ResourcePackService {
         requestedJavaCombatRewardPlaque.remove(playerId);
         readyBedrockCombatRewardPlaque.remove(playerId);
         readyBedrockCombatRewardPlaqueTiming.remove(playerId);
+        readyBedrockCombatRewardPlaqueWidth.remove(playerId);
         requestedJavaProfileHud.remove(playerId);
         requestedJavaQuestHud.remove(playerId);
         readyBedrockQuestHud.remove(playerId);

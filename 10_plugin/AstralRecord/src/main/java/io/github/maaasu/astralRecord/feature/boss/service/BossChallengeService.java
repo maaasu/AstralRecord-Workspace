@@ -2255,7 +2255,8 @@ public final class BossChallengeService {
                     heading, elapsed, countdown.get(), ranking, rewards);
             DisplayTextService.ManagedTextDisplay display = displayTextService.createEncounterRewardPlaque(
                     displayLocation, fallback.get(), participant, DEFEATED_RESULT_WAIT_TICKS,
-                    () -> EncounterResultFormatter.formatPlaque(heading, elapsed, countdown, ranking, rewards, List.of()));
+                    widthMode -> EncounterResultFormatter.formatPlaque(heading, elapsed, countdown, ranking, rewards,
+                            List.of(), widthMode));
             display.setDynamicText(fallback);
             displays.add(display);
         }

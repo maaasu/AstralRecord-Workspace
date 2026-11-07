@@ -6,7 +6,7 @@
         "identifier": "geometry.astralrecord.combat_reward_plaque",
         "texture_width": 256,
         "texture_height": 256,
-        "visible_bounds_width": 4,
+        "visible_bounds_width": 8,
         "visible_bounds_height": 4,
         "visible_bounds_offset": [ 0, 0, 0 ]
       },

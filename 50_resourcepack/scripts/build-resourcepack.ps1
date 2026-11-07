@@ -457,7 +457,7 @@ $rewardPlaqueVersionMarker = 'combat-reward-plaque-version.txt'
 if ($utf8.GetString($java[$rewardPlaqueVersionMarker]) -cne '1') {
     throw 'Invalid combat reward plaque version marker in resource pack.'
 }
-if ($utf8.GetString($bedrock[$rewardPlaqueVersionMarker]) -cne '2') {
+if ($utf8.GetString($bedrock[$rewardPlaqueVersionMarker]) -cne '3') {
     throw 'Invalid Bedrock combat reward plaque version marker in resource pack.'
 }
 

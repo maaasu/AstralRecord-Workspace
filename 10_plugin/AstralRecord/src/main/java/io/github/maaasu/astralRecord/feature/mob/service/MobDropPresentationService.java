@@ -402,7 +402,7 @@ public final class MobDropPresentationService {
             displayTextService.createResultText(origin, text, viewer, RESULT_DISPLAY_DURATION_TICKS);
         } else {
             displayTextService.createCombatRewardPlaque(origin, text, viewer, RESULT_DISPLAY_DURATION_TICKS,
-                    () -> formatRewardPlaque(plaqueTitle, sourceName, result, items, category));
+                    widthMode -> formatRewardPlaque(plaqueTitle, sourceName, result, items, category, widthMode));
         }
     }
 
@@ -414,11 +414,12 @@ public final class MobDropPresentationService {
      * @param result 経験値とゴールドの抽選結果
      * @param items 解決済み獲得アイテム
      * @param category レア判定に用いるMobカテゴリ。Mob以外はnull
+     * @param widthMode 接続が利用できる枠幅
      * @return 両版のプレートに使う報酬本文
      */
     private static CombatRewardPlaque formatRewardPlaque(
             PlayerMsgId plaqueTitle, String sourceName, MobDropResult result,
-            List<ResolvedDropItem> items, @Nullable MobCategory category
+            List<ResolvedDropItem> items, @Nullable MobCategory category, CombatRewardPlaque.WidthMode widthMode
     ) {
         PlaqueItems details = formatPlaqueItems(items, category);
         String title = PlayerMsgResource.getMessage(plaqueTitle.getId());
@@ -427,7 +428,7 @@ public final class MobDropPresentationService {
         }
         String summary = String.join("   ", formatFixedRewards(result));
         return CombatRewardPlaque.layout(title, PlayerMsgResource.format(PlayerMsgId.P_5741.getId(), sourceName),
-                () -> summary, details.rows(), details.rare());
+                () -> summary, details.rows(), details.rare(), widthMode);
     }
 
     /**

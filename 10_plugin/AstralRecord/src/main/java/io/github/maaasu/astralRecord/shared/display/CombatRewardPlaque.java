@@ -21,11 +21,14 @@ public final class CombatRewardPlaque {
     private static final int DETAIL_START = SPACER_INDEX + 1;
     private static final int DETAIL_LINES = MAX_LINES - DETAIL_START;
     private static final long REVEAL_INTERVAL_TICKS = 2L;
-    private static final int FRAME_WIDTH = 192;
+    private static final int BASE_FRAME_WIDTH = 192;
+    private static final int WIDTH_STEP = 8;
+    private static final int MAX_WIDTH_STEPS = 0x7ff;
+    private static final int BEDROCK_WIDTH_SHIFT = 21;
     private static final int ITEM_INSET = 16;
     // 既存パックのアイコン枠にも収まるよう、Java版の字送りを維持します。
     private static final int ITEM_ICON_GAP = 11;
-    private static final int MAX_TEXT_WIDTH = FRAME_WIDTH - 2 * ITEM_INSET;
+    private static final int BASE_TEXT_WIDTH = BASE_FRAME_WIDTH - 2 * ITEM_INSET;
     private static final Key FONT = Key.key("astralrecord", "combat_reward_plaque");
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
     private static final Pattern ICONS = Pattern.compile("[\uE700-\uE708]");
@@ -34,39 +37,47 @@ public final class CombatRewardPlaque {
 
     private final List<List<String>> pages;
     private final int lineCount;
+    private final int frameWidth;
     private final Supplier<String> summary;
     private final boolean rare;
 
-    private CombatRewardPlaque(List<List<String>> pages, int lineCount, Supplier<String> summary, boolean rare) {
+    private CombatRewardPlaque(
+            List<List<String>> pages, int lineCount, int frameWidth, Supplier<String> summary, boolean rare
+    ) {
         this.pages = pages;
         this.lineCount = lineCount;
+        this.frameWidth = frameWidth;
         this.summary = summary;
         this.rare = rare;
     }
 
     /**
-     * 表示内容を幅に収め、詳細は最大6行のページに分けます。
+     * 全ページに共通の枠幅を決め、詳細は最大6行のページに分けます。
      * @param title 結果の見出し
      * @param subtitle 取得元の表示名
      * @param summary 固定報酬または帰還残秒。動的に更新する場合は1行に収まる短い本文
      * @param details 獲得品と戦績。1ページに収まる項目は分割しません
      * @param rare レアドロップが含まれるか
+     * @param widthMode 内容に合わせて枠を広げられるか
      * @return 両版用の報酬プレート
      */
     public static @NotNull CombatRewardPlaque layout(
             @NotNull String title, @NotNull String subtitle, @NotNull Supplier<String> summary,
-            @NotNull List<Row> details, boolean rare
+            @NotNull List<Row> details, boolean rare, @NotNull WidthMode widthMode
     ) {
-        var titleLines = wrap(title, "", "", false);
-        var subtitleLines = wrap(subtitle, "", "", false);
-        var summaryLines = wrap(summary.get(), "", "", false);
+        int maxTextWidth = widthMode == WidthMode.EXPAND ? BASE_TEXT_WIDTH + WIDTH_STEP * MAX_WIDTH_STEPS : BASE_TEXT_WIDTH;
+        var titleLines = wrap(title, "", "", false, maxTextWidth);
+        var subtitleLines = wrap(subtitle, "", "", false, maxTextWidth);
+        var summaryLines = wrap(summary.get(), "", "", false, maxTextWidth);
         var header = List.of(titleLines.getFirst(), subtitleLines.getFirst(), summaryLines.getFirst(), BLANK);
         var groups = new ArrayList<List<String>>();
         groups.add(titleLines.subList(1, titleLines.size()));
         groups.add(subtitleLines.subList(1, subtitleLines.size()));
         groups.add(summaryLines.subList(1, summaryLines.size()));
         for (Row row : details) {
-            groups.add(wrap(row.text(), row.prefix(), row.suffix(), true));
+            String text = widthMode == WidthMode.EXPAND && !row.suffix().isEmpty()
+                    ? row.text().replaceAll("\\R", " ") : row.text();
+            groups.add(wrap(text, row.prefix(), row.suffix(), true, maxTextWidth));
         }
 
         var pages = new ArrayList<List<String>>();
@@ -86,8 +97,30 @@ public final class CombatRewardPlaque {
         }
         pages.add(List.copyOf(page));
         int lineCount = pages.stream().mapToInt(List::size).max().orElse(MIN_LINES);
-        return new CombatRewardPlaque(List.copyOf(pages), Math.max(MIN_LINES, lineCount),
+        int frameWidth = widthMode == WidthMode.EXPAND ? measureFrameWidth(pages) : BASE_FRAME_WIDTH;
+        return new CombatRewardPlaque(List.copyOf(pages), Math.max(MIN_LINES, lineCount), frameWidth,
                 summaryLines.size() == 1 ? summary : summaryLines::getFirst, rare);
+    }
+
+    /**
+     * @param pages ページ切り替えと開示の間に幅を固定するための全行
+     * @return 最長行と左右の余白を収める枠幅。拡張分は8px単位
+     */
+    private static int measureFrameWidth(List<List<String>> pages) {
+        int longestLine = BASE_TEXT_WIDTH;
+        for (List<String> page : pages) {
+            for (int index = 0; index < page.size(); index++) {
+                longestLine = Math.max(longestLine, textWidth(page.get(index), index >= DETAIL_START));
+            }
+        }
+        int steps = Math.min(MAX_WIDTH_STEPS, Math.ceilDiv(longestLine - BASE_TEXT_WIDTH, WIDTH_STEP));
+        return BASE_FRAME_WIDTH + steps * WIDTH_STEP;
+    }
+
+    /** 接続の描画能力に合わせて枠幅を選びます。 */
+    public enum WidthMode {
+        EXPAND,
+        FIXED
     }
 
     /**
@@ -96,9 +129,10 @@ public final class CombatRewardPlaque {
      * @param prefix アイコンなど先頭だけに置く装飾
      * @param suffix 数量や確率など末尾に置く情報
      * @param itemRow アイコンと文字の間の余白を加えるか
+     * @param maxTextWidth 接続が描画できる本文の最大幅
      * @return 折り返し後の物理行
      */
-    private static List<String> wrap(String text, String prefix, String suffix, boolean itemRow) {
+    private static List<String> wrap(String text, String prefix, String suffix, boolean itemRow, int maxTextWidth) {
         var lines = new ArrayList<String>();
         var line = new StringBuilder();
         var activeStyle = new StringBuilder();
@@ -109,8 +143,9 @@ public final class CombatRewardPlaque {
         boolean bold = false;
         while (tokens.find()) {
             String token = tokens.group();
-            if (tokens.start() == name.length() && width > 0 && fitsItemRow(activeStyle.toString() + tail)
-                    && !fitsItemRow(line.toString() + tail)) {
+            if (tokens.start() == name.length() && width > 0
+                    && textWidth(line.toString() + tail, itemRow) > maxTextWidth
+                    && textWidth(activeStyle.toString() + tail, itemRow) <= maxTextWidth) {
                 lines.add(line.toString());
                 line = new StringBuilder(activeStyle);
                 width = 0;
@@ -135,7 +170,7 @@ public final class CombatRewardPlaque {
             // 明示的な改行と折り返しの先頭に、直前の色と装飾を引き継ぎます。
             int tokenWidth = token.codePoints().map(cp -> glyphWidth(cp, itemRow)).sum();
             if (bold) tokenWidth += token.codePointCount(0, token.length());
-            if (width > 0 && width + tokenWidth > MAX_TEXT_WIDTH) {
+            if (width > 0 && width + tokenWidth > maxTextWidth) {
                 lines.add(line.toString());
                 line = new StringBuilder(activeStyle);
                 width = 0;
@@ -171,7 +206,7 @@ public final class CombatRewardPlaque {
      * @return アイテム行の幅がプレートの内側に収まる場合はtrue
      */
     public static boolean fitsItemRow(@NotNull String line) {
-        return line.indexOf('\n') < 0 && line.indexOf('\r') < 0 && textWidth(line, true) <= MAX_TEXT_WIDTH;
+        return line.indexOf('\n') < 0 && line.indexOf('\r') < 0 && textWidth(line, true) <= BASE_TEXT_WIDTH;
     }
 
     /** @return 表示するページ数 */
@@ -182,6 +217,16 @@ public final class CombatRewardPlaque {
     /** @return 全ページ共通の物理行数 */
     int lineCount() {
         return lineCount;
+    }
+
+    /** @return 全ページ共通の枠幅（px） */
+    int frameWidth() {
+        return frameWidth;
+    }
+
+    /** @return 元画像から横方向だけ拡大する倍率 */
+    float frameWidthScale() {
+        return frameWidth / (float) BASE_FRAME_WIDTH;
     }
 
     /** @return 現在の固定報酬または帰還残秒 */
@@ -227,6 +272,7 @@ public final class CombatRewardPlaque {
             if (index > 0) body.append(Component.newline());
             if (!bedrock && index == SPACER_INDEX) {
                 body.append(Component.text("\uE731").font(FONT));
+                if (frameWidth > BASE_FRAME_WIDTH) body.append(javaPadding(frameWidth - BASE_FRAME_WIDTH));
                 continue;
             }
             if (index >= visibleLines || index >= lines.size()) {
@@ -243,7 +289,7 @@ public final class CombatRewardPlaque {
                             if (itemRow) glyph.append(javaPadding(ITEM_ICON_GAP));
                             return glyph.build();
                         }));
-                int inset = itemRow ? ITEM_INSET : (FRAME_WIDTH - textWidth(text, false)) / 2;
+                int inset = itemRow ? ITEM_INSET : Math.max(0, (frameWidth - textWidth(text, false)) / 2);
                 body.append(javaPadding(inset));
             }
             body.append(line);
@@ -257,12 +303,13 @@ public final class CombatRewardPlaque {
     }
 
     int bedrockLayout() {
-        return lineCount | (rare ? 0x10 : 0);
+        int widthSteps = (frameWidth - BASE_FRAME_WIDTH) / WIDTH_STEP;
+        return lineCount | (rare ? 0x10 : 0) | (widthSteps << BEDROCK_WIDTH_SHIFT);
     }
 
     private static Component javaPadding(int pixels) {
-        var glyphs = new StringBuilder(8);
-        for (int bit = 0; bit < 8; bit++) {
+        var glyphs = new StringBuilder("\uE747".repeat(pixels / 128));
+        for (int bit = 0; bit < 7; bit++) {
             if ((pixels & (1 << bit)) != 0) glyphs.append((char) (0xe740 + bit));
         }
         return Component.text(glyphs.toString()).font(FONT);
