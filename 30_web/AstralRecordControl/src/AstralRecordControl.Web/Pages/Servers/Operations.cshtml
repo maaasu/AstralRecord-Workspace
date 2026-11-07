@@ -37,6 +37,7 @@
         <details class="kill-details">
             <summary>強制終了（保存せず終了）</summary>
             <p>ゲームサーバーのプロセスを強制終了します。プレイヤーのKick/Kill操作ではありません。未保存データが失われる可能性があります。通常は「正常停止」を使ってください。</p>
+            <p>対象 Session <code id="server-kill-session">@(Model.Runtime?.CurrentSessionId.ToString() ?? "なし")</code></p>
             <label>強制終了の理由 <input name="reason" maxlength="1024" /></label>
             <label><input type="checkbox" name="confirmKill" value="true" /> 表示中のサーバーとSessionを確認し、保存せず強制終了することを了承しました</label>
             <button type="submit" name="kind" value="Kill" class="operation-kill" aria-describedby="server-availability" disabled="@(!availability.CanRun)">プロセスを強制終了</button>

@@ -99,6 +99,7 @@ public sealed partial class LiveTransportTests
             using (var operationsPage = await owner.GetAsync($"/Servers/{serverId}/Operations", timeout.Token))
             {
                 Assert.Equal(HttpStatusCode.OK, operationsPage.StatusCode);
+                Assert.True(operationsPage.Headers.CacheControl is { NoStore: true, NoTransform: true });
                 var html = await operationsPage.Content.ReadAsStringAsync(timeout.Token);
                 Assert.Matches("""(?s)<pre id="server-log"[^>]*><!--email_off-->.*?<!--/email_off--></pre>""", html);
             }
@@ -163,7 +164,7 @@ public sealed partial class LiveTransportTests
                 using (var conflict = await PostList(changed))
                 {
                     Assert.Equal(HttpStatusCode.OK, conflict.StatusCode);
-                    Assert.Contains("OperationConflict", await conflict.Content.ReadAsStringAsync(timeout.Token));
+                    Assert.Contains("同じ要求IDで異なる操作", WebUtility.HtmlDecode(await conflict.Content.ReadAsStringAsync(timeout.Token)));
                 }
                 var stale = new Dictionary<string, string>(values) { ["requestKey"] = Guid.NewGuid().ToString() };
                 using (var rejected = await PostList(stale))

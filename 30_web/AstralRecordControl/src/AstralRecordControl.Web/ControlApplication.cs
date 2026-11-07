@@ -44,6 +44,13 @@ public static partial class ControlApplication
         app.Use(async (context, next) =>
         {
             context.Response.Headers.CacheControl = "no-store";
+            // Preserve owner-page HTML through proxies after Razor's response cache filter has run.
+            context.Response.OnStarting(() =>
+            {
+                if (context.User.HasClaim("amr", "pwd") && context.Response.ContentType?.StartsWith("text/html", StringComparison.OrdinalIgnoreCase) == true)
+                    context.Response.Headers.AppendCommaSeparatedValues("Cache-Control", "no-transform");
+                return Task.CompletedTask;
+            });
             context.Response.Headers["X-Content-Type-Options"] = "nosniff";
             // Keep Origin on same-origin form POSTs so the cookie origin check can validate them.
             context.Response.Headers["Referrer-Policy"] = "same-origin";

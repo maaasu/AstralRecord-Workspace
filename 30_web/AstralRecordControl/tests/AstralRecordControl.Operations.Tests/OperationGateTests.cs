@@ -308,6 +308,9 @@ public sealed class OperationGateTests
         await using var fixture = await Fixture.CreateAsync();
         var server = await fixture.ServerAsync("one");
         var other = await fixture.ServerAsync("other");
+        var extraEnvironments = Enumerable.Range(1, 128).Select(index => new InventoryEnvironment
+        { EnvironmentId = Guid.NewGuid(), EnvironmentKey = $"extra-{index}", DisplayName = $"Extra {index}" }).ToArray();
+        fixture.Db.Environments.AddRange(extraEnvironments);
         var applied = ControlJson.Deserialize<ServerConfig>(server.DesiredConfigJson) with { StopTimeoutSeconds = 210 };
         await fixture.SaveAppliedSettingsAsync(server, applied);
         var desired = applied with { Revision = 2, ServerDirectory = "servers/renamed", StopTimeoutSeconds = 310 };
@@ -331,6 +334,7 @@ public sealed class OperationGateTests
         Assert.Contains(ReservationService.DirectoryKey(server.HostId, applied.ManagedRootId, applied.ServerDirectory), lease.ResourceKeys);
         Assert.Contains(ReservationService.DirectoryKey(server.HostId, desired.ManagedRootId, desired.ServerDirectory), lease.ResourceKeys);
         Assert.Contains(ReservationService.EnvironmentKey(other.EnvironmentId!.Value), lease.ResourceKeys);
+        Assert.All(extraEnvironments, environment => Assert.Contains(ReservationService.EnvironmentKey(environment.EnvironmentId), lease.ResourceKeys));
     }
 
     [Fact]

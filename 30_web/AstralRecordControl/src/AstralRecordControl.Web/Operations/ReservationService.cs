@@ -13,7 +13,10 @@ public sealed class ReservationService(ControlDbContext db, InventoryStore store
     public static string EnvironmentKey(Guid id) => $"environment:{id:D}";
     public static string DirectoryKey(Guid host, Guid root, string path) => $"directory:{host:D}:{root:D}:{path.Trim('/').Replace('\\', '/').ToLowerInvariant()}";
 
-    public async Task<GateLease> AcquireAsync(ReservationAcquireRequest request, CancellationToken token = default)
+    public Task<GateLease> AcquireAsync(ReservationAcquireRequest request, CancellationToken token = default) =>
+        AcquireAsync(request, reserveAllEnvironments: false, token);
+
+    internal async Task<GateLease> AcquireAsync(ReservationAcquireRequest request, bool reserveAllEnvironments, CancellationToken token)
     {
         if (!Enabled) throw new InventoryFault(409, "UnsupportedCapability");
         if (request.WorkflowId == Guid.Empty || request.ResourceKeys == null || request.ResourceKeys.Length == 0 || request.ResourceKeys.Length > 128 || !Enum.IsDefined(request.Mode)) throw new InventoryFault(400, "InvalidInput");
@@ -39,6 +42,12 @@ public sealed class ReservationService(ControlDbContext db, InventoryStore store
                      .SequenceEqual(request.ServerConditions.Select(x => ServerKey(x.ServerId)).Order(StringComparer.Ordinal), StringComparer.Ordinal)))
                 throw new InventoryFault(400, "InvalidInput");
             var resolvedHosts = await ResolveHostsAsync(expanded);
+            if (reserveAllEnvironments)
+            {
+                // A legacy pending edit may have replaced the running session's unversioned Environment.
+                var environmentIds = await db.Environments.AsNoTracking().Select(x => x.EnvironmentId).ToArrayAsync(token);
+                expanded = expanded.Union(environmentIds.Select(EnvironmentKey), StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+            }
             if (resolvedHosts.Count == 0 || request.ServerConditions.Any(x => !expanded.Contains(ServerKey(x.ServerId), StringComparer.Ordinal)))
                 throw new InventoryFault(400, "InvalidInput");
             var existingWorkflow = await db.Workflows.FindAsync(request.WorkflowId);

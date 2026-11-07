@@ -5,6 +5,7 @@
     const logStatus = document.getElementById("log-status");
     const process = document.getElementById("server-process-state");
     const session = document.getElementById("server-session");
+    const killSession = document.getElementById("server-kill-session");
     const availability = document.getElementById("server-availability");
     const history = document.getElementById("server-operation-history");
     const latestOperation = document.getElementById("server-latest-operation");
@@ -34,6 +35,8 @@
     });
     const forms = [...root.querySelectorAll("[data-operation-form]"), ...document.querySelectorAll(".console-command-form")];
     const buttons = forms.flatMap(form => [...form.querySelectorAll('button[name="kind"]')]);
+    const killConfirmation = root.querySelector?.('input[name="confirmKill"]');
+    let displayedSession = killSession?.textContent;
     const trimLog = value => {
         const text = value.slice(-262144);
         return /^[\uDC00-\uDFFF]/.test(text) ? text.slice(1) : text;
@@ -125,7 +128,13 @@
         queueMicrotask(setButtons);
     });
 
+    let historySnapshot = null;
     const renderHistory = rows => {
+        const snapshot = JSON.stringify(rows);
+        if (snapshot === historySnapshot) return;
+        historySnapshot = snapshot;
+        const focused = document.activeElement;
+        const focusedHref = history.contains?.(focused) ? focused.getAttribute("href") : null;
         const fragment = document.createDocumentFragment();
         for (const row of rows) {
             const tr = document.createElement("tr");
@@ -148,11 +157,21 @@
             fragment.append(tr);
         }
         history.replaceChildren(fragment);
+        if (focusedHref) {
+            const link = [...history.querySelectorAll("a[href]")].find(item => item.getAttribute("href") === focusedHref);
+            link?.focus({ preventScroll: true });
+        }
         if (latestOperation) {
             const latest = rows[0];
             latestOperation.hidden = !latest;
             latestOperation.textContent = latest ? `直近の操作 ${kindNames[latest.kind] || latest.kind} · ${statusNames[latest.status] || latest.status} · ${formatTime(latest.createdAtUtc)}` : "";
         }
+    };
+    const updateSession = (id, label) => {
+        if (killConfirmation && displayedSession !== id) killConfirmation.checked = false;
+        displayedSession = id;
+        session.textContent = label;
+        if (killSession) killSession.textContent = label;
     };
     const updateState = snapshot => {
         if (!snapshot || typeof snapshot.enabled !== "boolean" || typeof snapshot.operationPending !== "boolean" || !Array.isArray(snapshot.recent)
@@ -161,7 +180,7 @@
         state = snapshot;
         statusFailed = false;
         process.textContent = stateNames[snapshot.processState] || "確認不能";
-        session.textContent = snapshot.currentSessionId || "なし";
+        updateSession(snapshot.currentSessionId, snapshot.currentSessionId || "なし");
         for (const form of pending ? [] : forms) {
             form.querySelector('[name="configRevision"]').value = String(snapshot.configRevision);
             form.querySelector('[name="expectedStateRevision"]').value = snapshot.stateRevision === null ? "" : String(snapshot.stateRevision);
@@ -181,12 +200,18 @@
     };
     const pollLogs = async signal => {
         const sessionId = log.dataset.sessionId;
-        const query = new URLSearchParams({ sessionId, afterSequence: String(cursor), limit: "200" });
+        const query = new URLSearchParams({ afterSequence: String(cursor), limit: "200" });
+        if (sessionId) query.set("sessionId", sessionId);
         const response = await fetch(`/api/control/v1/servers/${encodeURIComponent(root.dataset.serverId)}/logs?${query}`, { cache: "no-store", credentials: "same-origin", redirect: "error", signal });
         if (!response.ok) throw new Error("Log request failed");
         const batch = await response.json();
         if (signal.aborted || stopped || !connected() || sessionId !== log.dataset.sessionId) return;
-        if (batch.sessionId !== sessionId || !Number.isSafeInteger(batch.nextCursor) || batch.nextCursor < cursor || !Array.isArray(batch.rows)) throw new Error("Invalid log batch");
+        if ((sessionId && batch.sessionId !== sessionId) || !Number.isSafeInteger(batch.nextCursor) || batch.nextCursor < cursor || !Array.isArray(batch.rows)) throw new Error("Invalid log batch");
+        if (!batch.sessionId) {
+            logStatus.textContent = "ログはまだありません。";
+            return;
+        }
+        log.dataset.sessionId = batch.sessionId;
         const follow = log.scrollHeight - log.scrollTop - log.clientHeight <= 32;
         const scrollTop = log.scrollTop;
         const appended = batch.rows.map(row => `[${formatTime(row.occurredAtUtc)}] ${row.stream}: ${row.text}${row.truncated ? " [分割]" : ""}\n`).join("");
@@ -207,7 +232,7 @@
         return deadline;
     };
     const refreshLogs = async () => {
-        if (!log.dataset.sessionId || (logRequest && !logRequest.signal.aborted)) return;
+        if (logRequest && !logRequest.signal.aborted) return;
         const request = new AbortController();
         logRequest = request;
         const deadline = requestDeadline(request);
@@ -237,7 +262,7 @@
                 state = null;
                 statusFailed = true;
                 process.textContent = "確認不能";
-                session.textContent = "未確認";
+                updateSession(null, "未確認");
                 setButtons();
             }
         } finally {

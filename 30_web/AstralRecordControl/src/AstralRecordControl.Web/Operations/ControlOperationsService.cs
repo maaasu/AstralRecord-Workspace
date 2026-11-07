@@ -97,17 +97,11 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
         var appliedDirectory = ReservationService.DirectoryKey(server.HostId, config.ManagedRootId, config.ServerDirectory);
         var keys = new List<string> { ReservationService.ServerKey(serverId), appliedDirectory };
         if (backupDestination.HasValue) keys.Add(ReservationService.DirectoryKey(server.HostId, backupDestination.Value, "control-backups/" + serverId.ToString("N")));
-        if (usesAppliedSettings && !inherited)
-        {
-            // Older edits could change EnvironmentId while the old session was running. Its original membership was not versioned.
-            var environments = await db.Environments.AsNoTracking().Select(x => x.EnvironmentId).ToArrayAsync(token);
-            keys.AddRange(environments.Select(ReservationService.EnvironmentKey));
-        }
-        else if (server.EnvironmentId.HasValue) keys.Add(ReservationService.EnvironmentKey(server.EnvironmentId.Value));
+        if (server.EnvironmentId.HasValue) keys.Add(ReservationService.EnvironmentKey(server.EnvironmentId.Value));
         var workflowId = request.WorkflowId ?? Guid.NewGuid();
         var lease = inherited
             ? await reservations.GetByReservationAsync(request.ReservationId!.Value)
-            : await reservations.AcquireAsync(new ReservationAcquireRequest { WorkflowId = workflowId, ResourceKeys = keys.ToArray(), Mode = HoldMode.Exclusive }, token);
+            : await reservations.AcquireAsync(new ReservationAcquireRequest { WorkflowId = workflowId, ResourceKeys = keys.ToArray(), Mode = HoldMode.Exclusive }, reserveAllEnvironments: usesAppliedSettings, token);
         try
         {
             if (lease.WorkflowId != workflowId || lease.Status != ReservationStatus.Prepared || !lease.ResourceKeys.Contains(ReservationService.ServerKey(serverId))) throw new InventoryFault(409, "ReservationConflict");

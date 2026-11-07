@@ -22,7 +22,9 @@ const consoleFixture = (fetch, renderer, loadTime = true, maintenance = false) =
     maintenanceForm.querySelector = selector => selector.startsWith('button') ? maintenanceButton
         : selector.includes('reservationId') ? reservation : maintenanceFields[selector.match(/name="([^"]+)/)[1]];
     maintenanceForm.querySelectorAll = () => [maintenanceButton];
-    const root = { dataset: { serverId: 'server' }, isConnected: true, querySelectorAll: () => maintenance ? [form, maintenanceForm] : [form] };
+    const confirmation = { checked: false };
+    const root = { dataset: { serverId: 'server' }, isConnected: true, querySelector: () => confirmation,
+        querySelectorAll: () => maintenance ? [form, maintenanceForm] : [form] };
     const log = { dataset: { sessionId: 'old', cursor: '0' }, textContent: '', isConnected: true, scrollHeight: 100, scrollTop: 0, clientHeight: 100 };
     const status = { textContent: 'initial', isConnected: true };
     const process = { textContent: '' }, session = { textContent: '' }, availability = { hidden: false };
@@ -46,7 +48,7 @@ const consoleFixture = (fetch, renderer, loadTime = true, maintenance = false) =
     const context = vm.createContext({ document, window, AbortController, URLSearchParams, fetch, queueMicrotask });
     if (loadTime) vm.runInContext(script('control-time.js'), context);
     vm.runInContext(script('server-logs.js'), context);
-    return { root, log, status, process, session, availability, history, buttons, fields, form, window, timers, maintenanceForm, maintenanceButton, reservation, workflowLink, reloadLink };
+    return { root, log, status, process, session, availability, history, buttons, fields, form, window, timers, maintenanceForm, maintenanceButton, reservation, workflowLink, reloadLink, confirmation };
 };
 
 test('old shells without the shared time asset still poll and keep Japanese history labels', async () => {
@@ -97,7 +99,9 @@ test('console follows new session, updates hidden revisions/history, and preserv
     assert.equal(fixture.history.rows[0].children[0].textContent, '2026/10/20 09:00:00 JST');
     assert.match(fixture.log.textContent, /<unsafe>/);
     assert.equal(fixture.log.scrollTop, 10);
-    assert.match(requests[1].url, /sessionId=new&afterSequence=0/);
+    const logQuery = new URL(requests[1].url, 'https://control.test').searchParams;
+    assert.equal(logQuery.get('sessionId'), 'new');
+    assert.equal(logQuery.get('afterSequence'), '0');
     fixture.window.dispatchEvent(new Event('control:before-page-change'));
     assert.equal(fixture.timers.size, 0);
 });
@@ -275,6 +279,38 @@ test('an uncertain operation response links to history and a fresh GET without s
     assert.equal(fixture.workflowLink.href, '/Workflows');
     assert.equal(fixture.reloadLink.hidden, false);
     assert.equal(fixture.buttons.every(button => button.disabled), true);
+    fixture.window.dispatchEvent(new Event('control:before-page-change'));
+});
+
+test('stopped servers can recover their last log after the initial HTML had none', async () => {
+    let logQuery;
+    const fixture = consoleFixture(url => {
+        if (String(url).includes('handler=Status')) return Promise.resolve({ ok: true, json: async () => ({ enabled: true, operationPending: false, configRevision: 1, stateRevision: 1, processState: 'Stopped', currentSessionId: null, recent: [] }) });
+        logQuery = new URL(url, 'https://control.test').searchParams;
+        return Promise.resolve({ ok: true, json: async () => ({ sessionId: 'historical', nextCursor: 1, rows: [{ occurredAtUtc: '2026-11-07T15:00:00Z', stream: 'stdout', text: 'shutdown completed' }] }) });
+    });
+    delete fixture.log.dataset.sessionId;
+    await new Promise(setImmediate);
+    assert.equal(logQuery.has('sessionId'), false);
+    assert.equal(fixture.log.dataset.sessionId, 'historical');
+    assert.match(fixture.log.textContent, /shutdown completed/);
+    fixture.window.dispatchEvent(new Event('control:before-page-change'));
+});
+
+test('confirmation of a forced stop expires when a new process session is reported', async () => {
+    let currentSessionId = 'old';
+    const fixture = consoleFixture(url => String(url).includes('handler=Status')
+        ? Promise.resolve({ ok: true, json: async () => ({ enabled: true, operationPending: false, configRevision: 1, stateRevision: 1, processState: 'Running', currentSessionId, recent: [] }) })
+        : Promise.resolve({ ok: true, json: async () => ({ sessionId: currentSessionId, nextCursor: 0, rows: [] }) }));
+    await new Promise(setImmediate);
+    fixture.confirmation.checked = true;
+    currentSessionId = 'new';
+    const [timerId, callback] = [...fixture.timers].find(([, handler]) => handler.delay === 3000);
+    fixture.timers.delete(timerId);
+    callback();
+    await new Promise(setImmediate);
+    assert.equal(fixture.fields.expectedServerSessionId.value, 'new');
+    assert.equal(fixture.confirmation.checked, false);
     fixture.window.dispatchEvent(new Event('control:before-page-change'));
 });
 
