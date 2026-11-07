@@ -2,12 +2,13 @@
     "use strict";
     const root = document.getElementById("main");
     const status = document.getElementById("inventory-live-status");
+    const recovery = document.getElementById("inventory-operation-recovery");
     if (!root || !status) return;
     const url = new URL(location.href);
     // A POST error page can retain its handler in the address bar. Poll only the read-only page.
     url.search = "";
     url.hash = "";
-    let stopped = false, pending = false, controller = null, timer = null;
+    let stopped = false, pending = false, pendingOperation = null, controller = null, timer = null;
     const buttons = () => root.querySelectorAll('[data-list-operation-form] button[name="kind"]');
     const disable = () => { for (const button of buttons()) button.disabled = true; };
     const stop = () => {
@@ -36,7 +37,8 @@
             if (response.status === 401 || /^\/(?:Login|Mfa)(?:\/|$)/i.test(finalUrl.pathname)) { location.assign("/Login"); return; }
             if (!response.ok || finalUrl.pathname !== url.pathname || !response.headers.get("Content-Type")?.startsWith("text/html")) throw new Error("Invalid snapshot");
             const doc = new DOMParser().parseFromString(await response.text(), "text/html");
-            if (stopped || pending || !root.isConnected || request.signal.aborted) return;
+            if (stopped || pending || !root.isConnected) return;
+            if (request.signal.aborted) throw new Error("Status request timed out");
             if (doc.getElementById("main")?.dataset.controlPage !== "true") throw new Error("Invalid page");
             // Add newly registered PCs without replacing existing cards and their edit forms.
             const collections = new Map([...doc.querySelectorAll("[data-live-collection]")].map(collection => [collection.dataset.liveCollection, collection]));
@@ -92,6 +94,8 @@
                 form.append(kind);
             }
             kind.value = button.value;
+            pendingOperation = button.value === "Start" ? "起動" : "正常停止";
+            status.textContent = `${pendingOperation}を送信しています。`;
         }
         pending = true;
         controller?.abort();
@@ -99,7 +103,15 @@
         queueMicrotask(disable);
     };
     const wake = () => { if (!document.hidden) refresh(); };
-    const resume = () => { pending = false; refresh(); };
+    const resume = () => {
+        if (pendingOperation) {
+            status.textContent = `${pendingOperation}の受付結果を確認できません。履歴を確認してから、最新の状態を開いてください。`;
+            if (recovery) recovery.hidden = false;
+            return;
+        }
+        pending = false;
+        refresh();
+    };
     window.addEventListener("control:before-page-change", stop);
     window.addEventListener("pagehide", stop);
     window.addEventListener("focus", wake);

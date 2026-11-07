@@ -23,7 +23,7 @@ function fixture(fetch, parse) {
     const root = new EventTarget();
     root.isConnected = true;
     root.querySelectorAll = selector => selector === '[data-live-region]' ? [region] : selector === '[data-live-collection]' ? [] : [button];
-    const status = { textContent: '' };
+    const status = { textContent: '' }, recovery = { hidden: true };
     const window = new EventTarget();
     const timers = new Map();
     let timerId = 0;
@@ -32,7 +32,7 @@ function fixture(fetch, parse) {
     const document = new EventTarget();
     Object.assign(document, {
         hidden: false, activeElement: null,
-        getElementById: id => id === 'main' ? root : status,
+        getElementById: id => ({ main: root, 'inventory-live-status': status, 'inventory-operation-recovery': recovery })[id],
         importNode: node => ({ ...node }), createElement: () => ({})
     });
     const location = { href: 'https://control.test/Servers?handler=Operate', assign(url) { this.assigned = url; } };
@@ -46,7 +46,7 @@ function fixture(fetch, parse) {
         }
     }
     vm.runInContext(code, vm.createContext({ document, window, location, URL, AbortController, DOMParser, fetch, queueMicrotask }));
-    return { root, region, status, window, document, timers, button, form, fields, location };
+    return { root, region, status, window, document, timers, button, form, fields, location, recovery };
 }
 const response = (text, url = 'https://control.test/Servers') => ({ ok: true, url, status: 200, headers: { get: () => 'text/html; charset=utf-8' }, text: async () => text });
 const nextPoll = async state => {
@@ -113,6 +113,13 @@ test('list submit preserves kind, blocks duplicates and cannot be overwritten by
     assert.equal(state.fields.kind.value, 'Start');
     assert.equal(state.button.disabled, true);
     assert.equal(submit().defaultPrevented, true);
+    state.window.dispatchEvent(new Event('control:navigation-failed'));
+    state.window.dispatchEvent(new Event('focus'));
+    await flush();
+    assert.match(state.status.textContent, /起動の受付結果を確認できません/);
+    assert.equal(state.recovery.hidden, false);
+    assert.equal(state.button.disabled, true);
+    assert.equal(calls, 2);
     assert.equal(state.timers.size, 0);
     state.window.dispatchEvent(new Event('control:before-page-change'));
 });
