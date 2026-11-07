@@ -122,7 +122,13 @@ def preview(path):
     font = generated_fonts()['quest_hud']
     provider = next(p for p in font['providers'] if p['type'] == 'bitmap')
     atlas = Image.open(PACK / 'assets/astralrecord/textures/font/profile_hud_class_name_compact.png').convert('RGBA')
-    cells = {ch: (col, row) for row, chars in enumerate(provider['chars']) for col, ch in enumerate(chars) if ch != '\0'}
+    rows = provider['chars']
+    source_height = atlas.height // len(rows)
+    height = provider['height']
+    if source_height != height:
+        atlas = atlas.resize((atlas.width * height // source_height, height * len(rows)), Image.Resampling.BOX)
+    cell_width = atlas.width // len(rows[0])
+    cells = {ch: (col, row) for row, chars in enumerate(rows) for col, ch in enumerate(chars) if ch != '\0'}
     advances = {int(k, 16): int(v) for k, v in [line.split() for line in (ROOT / '10_plugin/AstralRecord/src/main/resources/class-name-glyph-advances.txt').read_text().splitlines()]}
     def advance(ch):
         value = advances[ord(ch)]
@@ -136,7 +142,8 @@ def preview(path):
             step = advance(ch)
             if ch in cells:
                 col, rr = cells[ch]
-                tile = atlas.crop((col * 9, rr * 37, col * 9 + step - 1, rr * 37 + 37))
+                left, top = col * cell_width, rr * height
+                tile = atlas.crop((left, top, left + step - 1, top + height))
                 color = Image.new('RGBA', tile.size, (255, 209, 87, 255) if row == 0 else (255, 255, 255, 255))
                 color.putalpha(tile.getchannel('A'))
                 image.alpha_composite(color, (x, 48 + row * 13))

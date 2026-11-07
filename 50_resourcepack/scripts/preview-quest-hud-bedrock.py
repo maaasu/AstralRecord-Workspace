@@ -16,7 +16,12 @@ label=ui['controls'][1]['quest_text'];ox,oy=label['offset'];panel_height=ui['siz
 font=json.loads((ROOT/'assets/astralrecord/font/profile_hud_class_name_compact.json').read_text())
 bmp=next(p for p in font['providers'] if p['type']=='bitmap')
 atlas=Image.open(ROOT/'assets/astralrecord/textures/font/profile_hud_class_name_compact.png').convert('RGBA')
-rows=bmp['chars'];cw=atlas.width//len(rows[0]);ch=atlas.height//len(rows)
+rows = bmp['chars']
+source_height = atlas.height // len(rows)
+ch = bmp['height']
+if source_height != ch:
+    atlas = atlas.resize((atlas.width * ch // source_height, ch * len(rows)), Image.Resampling.BOX)
+cw = atlas.width // len(rows[0])
 glyphs={c:atlas.crop((i*cw,j*ch,(i+1)*cw,(j+1)*ch)).crop((0,0,cw,9)) for j,row in enumerate(rows) for i,c in enumerate(row) if c!='\0'}
 def text(im,xy,s,color):
  x,y=xy
