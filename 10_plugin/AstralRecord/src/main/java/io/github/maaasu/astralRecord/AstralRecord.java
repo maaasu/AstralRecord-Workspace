@@ -2069,6 +2069,7 @@ public final class AstralRecord extends JavaPlugin {
             skillTreeService,
             particleDisplayService
         );
+        playerHudService.setQuestService(questService);
         questGui = new QuestGui(this, questService);
         questGuiEventHandler = new QuestGuiEventHandler(questGui, questService, inventoryService);
         mobCombatService.setQuestService(questService);
@@ -2766,6 +2767,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         networkBridgeService.setInvulnerabilityVisualService(invulnerabilityVisualService);
         networkBridgeService.setResourcePackService(resourcePackService);
+        playerHudService.setBedrockQuestHudSender(networkBridgeService::sendBedrockQuestHud);
         skillActionRingService.setBedrockMenuSender(networkBridgeService::openBedrockSkillMenu);
         networkBridgeService.setBedrockSkillMenuResultHandler(skillActionRingService::acceptBedrockMenuResult);
         accountModeApplicationService.setModeAppliedListener(player -> {

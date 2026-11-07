@@ -15,6 +15,14 @@ Java版では、互換版1の管理パックの適用成功後に、Plugin管理
 - Java Edition 1.21.11〜26.3（リソースパック形式 75.0〜97.1）は `astralrecord:damage_number` フォントを使います。縁付きの数字と記号を収録し、色と動きはサーバープラグインで設定します。
 - Bedrock Edition は `astralrecord:damage_number` クライアントエンティティを使います。数字をカメラに向けて中央に揃え、上昇しながら縮小・フェードさせます。
 
+### クエスト追跡HUD
+
+一覧で1件を追跡すると、対応パックの接続へクエスト名と次の未達成目標・残数を左上に表示します。Javaは既存compact DotGothic16字形を再利用し、専用フォントの大きな負ascent、GUI判定、RGB座標マーカーを同時に満たした頂点だけを再配置します。各字形の字送りは直後の負spaceで相殺し、通常ActionBarの中央寄せ幅を変えません。75.0、84.0、88.0、97.1の描画経路に対応するoverlayを持ちます。コアシェーダー上書きはMojangの非サポート機能なので、新版追加時は公式資産との差分とコンパイルを再検証します。
+
+統合版は `geyseropt:astralrecord_quest_hud:` のTIPキーだけをJSON UIで保持し、chat_stack内の座標・ペーパードール余白の後、チャットの前に2行を表示します。通常TIP、ActionBar、Title、Sidebarを上書きしません。両版とも `quest-tracking-hud-version.txt` の互換版1を使用し、Javaは配布manifestの `java.questTrackingHud` と適用成功、統合版は接続時の資産検証とログイン後のProxy通知を必要とします。追跡解除・バックエンド切替・更新途絶は専用値で消去します。
+
+`python scripts/generate-quest-hud-java.py --check --preview <PNGパス>` と `python scripts/preview-quest-hud-bedrock.py --preview <PNGパス>`（プレビューはPillowが必要）で配布字形・描画定義から静的画像を生成します。統合版の画像はネイティブ書体をJavaパック字形で代用した配置図です。実クライアントでの描画確認とは分けて扱います。
+
 ### 戦闘 HUD と討伐リザルト
 
 - 対応パックを適用したJava版では、戦闘アクションバーの左上に本人のレベル・所持Goldと、正式クラス名・レベル・EXPの2行を専用フォントで重ねます。統合版の個人情報はサイドバーに表示します。

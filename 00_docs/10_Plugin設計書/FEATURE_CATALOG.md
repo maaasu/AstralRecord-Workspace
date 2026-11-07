@@ -155,6 +155,7 @@
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/hud/service/PlayerHudService.java`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/hud/service/AdminMessageBossBarService.java`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/hud/view/PlayerHudView.java`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/hud/view/QuestHudGlyphs.java`
 - `10_plugin/AstralRecord/src/main/resources/player.properties`（管理者メッセージ `P_6910` から `P_6912`）
 
 ### [[11_0-概要|11-player-setting]]

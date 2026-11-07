@@ -140,6 +140,18 @@ public final class QuestGuiEventHandler extends AbstractEventHandler {
         if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
             return;
         }
+        if (event.getClickedInventory() != event.getView().getTopInventory()) {
+            return;
+        }
+        if (event.getClick() == ClickType.LEFT || event.getClick() == ClickType.RIGHT) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            String questId = questGui.getQuestId(event.getCurrentItem());
+            if (astPlayer != null && questId != null && questService.toggleTracking(astPlayer, questId)) {
+                questGui.refreshList(player, astPlayer);
+                GuiSound.SELECT.play(player);
+            }
+            return;
+        }
         if (!isQuestAbandonInput(event.getClick())) {
             return;
         }
