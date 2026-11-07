@@ -62,6 +62,26 @@ describe('マスタエディタ内の配置計画', () => {
     fireEvent.click(screen.getByRole('button', { name: '配置編集' }))
     expect(selector).toBeDisabled()
     expect(window.dispatchEvent(new Event('beforeunload', { cancelable: true }))).toBe(false)
+    vi.mocked(spawnerPlanningApi.worlds).mockResolvedValue([{ id: 'other', name: '第二ワールド' }])
+    vi.mocked(spawnerPlanningApi.snapshot).mockRejectedValueOnce(new Error('選択中の地図が一時的に取得できません'))
+    fireEvent.click(screen.getByRole('button', { name: '解析結果を再読込' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('選択中の地図が一時的に取得できません')
+    expect(selector).toHaveValue('eriva_supercontinent')
+    expect(selector).toBeDisabled()
+    expect(screen.getByTestId('map-layer')).toHaveTextContent('terrain')
+    expect(window.dispatchEvent(new Event('beforeunload', { cancelable: true }))).toBe(false)
+  })
+
+  it('地図がない状態で起動しても再読込で最初に公開された地図を開く', async () => {
+    vi.mocked(spawnerPlanningApi.worlds).mockResolvedValueOnce([]).mockResolvedValue([{ id: 'other', name: '第二ワールド' }])
+    vi.mocked(spawnerPlanningApi.snapshot).mockRejectedValueOnce(new Error('解析結果がありません')).mockResolvedValue(terrainOnly)
+    render(<SpawnerPlanningWorkspace active />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('解析結果がありません')
+    fireEvent.click(screen.getByRole('button', { name: '解析結果を再読込' }))
+    await waitFor(() => expect(screen.getByTestId('map-layer')).toHaveTextContent('terrain'))
+    expect(screen.getByRole('combobox', { name: '表示ワールド' })).toHaveValue('other')
+    expect(spawnerPlanningApi.snapshot).toHaveBeenCalledTimes(2)
+    expect(spawnerPlanningApi.snapshot).toHaveBeenLastCalledWith(expect.any(AbortSignal), 'other')
   })
 
   it('同snapshotの3半径を保持し、モード・半径を往復しても再取得せず明示再読込で破棄する', async () => {

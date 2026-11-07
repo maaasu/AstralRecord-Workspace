@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { ResizeHandle, usePanelSize } from './ResizeHandle'
 import { spawnerPlanningApi, type PlanningWorld } from '../api/spawnerPlanningApi'
 import { habitatNames, levelColor, reasonColor, planningRoad, planningLevelStepMeters } from '../data/spawnerPlanning'
@@ -24,6 +24,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   const listFocus = useRef<{ id: string | null; plan: PlanningPlan | null; region: string } | null>(null)
   const [listFocusKey, setListFocusKey] = useState(0)
   const [snapshot, setSnapshot] = useState<PlanningSnapshot | null>(null)
+  const displayedWorld = useRef<string | null>(null)
   const [worlds, setWorlds] = useState<PlanningWorld[]>([])
   const [worldId, setWorldId] = useState<string | null>(null)
   const [plan, setPlan] = useState<PlanningPlan | null>(null)
@@ -68,6 +69,13 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   const dirty = placementDirty || challengeDirty
   const editorBusy = placementBusy || challengeBusy
   const switchLocked = loading || (showingPlans && planning) || editorBusy || dirty
+  const resetWorldView = useCallback(() => {
+    setPlan(null); setPlanning(false); setPlanningError(''); setMode('placements')
+    setSelectedPlacement(null); setPlacementPoint(null); setPlacing(false); setMoving(false)
+    setChallengePoint(null); setChallengePosition(null); setChallengePicking(false)
+    setPlacements([]); setPlacementsReady(false); setFocus(null); setLayer('terrain')
+    setQuery(''); setProposalPage(0); listFocus.current = null
+  }, [])
   useEffect(() => { onDirtyChange?.(dirty) }, [onDirtyChange, dirty])
   useEffect(() => {
     if (!challengeDirty) return
@@ -92,13 +100,15 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
     const request = worldId ? spawnerPlanningApi.snapshot(controller.signal, worldId) : spawnerPlanningApi.snapshot(controller.signal)
     request.then(value => {
       if (controller.signal.aborted) return
+      if (displayedWorld.current !== null && displayedWorld.current !== value.manifest.worldId) resetWorldView()
+      displayedWorld.current = value.manifest.worldId
       setSnapshot(value); setRegion(''); setReason(''); setSelectedCell(null); setSelectedProposal(null)
       if (value.manifest.radiusOptions.length === 0) setMode(current => current === 'proposals' ? 'placements' : current)
       else setRadius(current => value.manifest.radiusOptions.includes(current) ? current : value.manifest.radiusOptions[0])
     }).catch(failure => { if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : '解析結果を読み込めませんでした。') })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
-  }, [reload, worldId])
+  }, [reload, worldId, resetWorldView])
   // A new snapshot (including an explicit reload) owns a fresh, bounded cache.
   const plansByRadius = useMemo(() => new Map<number, PlanningPlan>(), [snapshot, reload])
   useEffect(() => {
@@ -186,11 +196,14 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   function selectWorld(next: string) {
     if (switchLocked || next === worldId || !worlds.some(world => world.id === next)) return
     setLoading(true); setSnapshot(null); setWorldId(next)
-    setPlan(null); setPlanning(false); setPlanningError(''); setMode('placements')
-    setSelectedPlacement(null); setPlacementPoint(null); setPlacing(false); setMoving(false)
-    setChallengePoint(null); setChallengePosition(null); setChallengePicking(false)
-    setPlacements([]); setPlacementsReady(false); setFocus(null); setLayer('terrain')
-    setQuery(''); setProposalPage(0); listFocus.current = null
+    displayedWorld.current = null
+    resetWorldView()
+  }
+  function reloadAnalysis() {
+    if (loading || (!worldId && (dirty || editorBusy))) return
+    setLoading(true)
+    if (!worldId) setWorldId(null)
+    setReload(value => value + 1)
   }
   function selectMode(next: WorkspaceMode) {
     setMode(next)
@@ -224,7 +237,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
           {!listedWorld && <option value={worldId ?? ''}>{snapshot?.manifest.worldName ?? '選択してください'}</option>}
           {worlds.map(world => <option key={world.id} value={world.id}>{world.name}</option>)}
         </select></label>}
-        <button className="button" onClick={() => { setLoading(true); setReload(value => value + 1) }} disabled={loading || (!worldId && (dirty || editorBusy))}>解析結果を再読込</button>
+        <button className="button" onClick={reloadAnalysis} disabled={loading || (!worldId && (dirty || editorBusy))}>解析結果を再読込</button>
       </div>
     </header>
     <p className="sp-muted">{snapshot && <>解析日時 {capturedLabel ? `${capturedLabel} JST` : '記録なし'}。 </>}再読込は生成済みの Dev 地図を読み込みます。</p>
