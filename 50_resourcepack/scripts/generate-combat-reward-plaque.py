@@ -19,6 +19,8 @@ JAVA_BOTTOM_PAD = 11
 BEDROCK_ATLAS_SIZE = 256
 BEDROCK_FRAME_TOP = 30
 BEDROCK_FRAME_BOTTOM = 140
+LORE_FILL = (21, 26, 40, 255)
+PANEL_FILL_ALPHA = round(255 * 0.28)
 LORE_GOLD = (168, 138, 86, 255)
 LORE_HIGHLIGHT = (221, 188, 119, 255)
 RARE_EDGE = (151, 122, 196, 255)
@@ -98,6 +100,16 @@ def stretch_lore(tile: Image.Image, height: int) -> Image.Image:
     # Last opaque column x=190 gives the Java bitmap exactly 192px of advance.
     image.paste(frame, (1, 0))
     return image
+
+
+def apply_panel_opacity(image: Image.Image) -> None:
+    """Change only the navy fill after the frame and sparkle have been drawn."""
+    pixels = image.load()
+    translucent_fill = (*LORE_FILL[:3], PANEL_FILL_ALPHA)
+    for y in range(image.height):
+        for x in range(image.width):
+            if pixels[x, y] == LORE_FILL:
+                pixels[x, y] = translucent_fill
 
 
 def loot_sprite(rows: tuple[str, ...], colors: tuple[str, ...]) -> Image.Image:
@@ -188,10 +200,12 @@ def outputs() -> dict[Path, bytes]:
             frame = stretch_lore(tile, java_height(lines))
             if style == "rare_glint":
                 frame.alpha_composite(glint.crop((5, 5, 10, 10)), (WIDTH - 9, 1))
+            apply_panel_opacity(frame)
             result[java_font / f"combat_reward_plaque_{style}_{lines}.png"] = png(frame)
         if style != "rare_glint":
             texture = Image.new("RGBA", (BEDROCK_ATLAS_SIZE, BEDROCK_ATLAS_SIZE))
             frame = stretch_lore(tile, BEDROCK_FRAME_BOTTOM - BEDROCK_FRAME_TOP)
+            apply_panel_opacity(frame)
             texture.paste(frame, (0, BEDROCK_FRAME_TOP))
             if style == "rare":
                 texture.paste(glint, (WIDTH, 0))
