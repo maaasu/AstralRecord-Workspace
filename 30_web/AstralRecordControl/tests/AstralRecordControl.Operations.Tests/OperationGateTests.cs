@@ -284,6 +284,37 @@ public sealed class OperationGateTests
         Assert.Equal(ReservationStatus.RecoveryRequired, (await fixture.Reservations.GetAsync(operation.WorkflowId)).Status);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WebTransportConflictCannotObscureAuthoritativeTerminalResult(bool authoritativeResultArrivesFirst)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var server = await fixture.ServerAsync("transport-conflict");
+        var request = new ServerOperationRequest { Kind = OperationKind.Start, ConfigRevision = 1, ExpectedStateRevision = 1 };
+        var operation = await fixture.Operations.CreateAsync(server.ServerId, request, Guid.NewGuid());
+        var succeeded = new ExecutionSnapshot { OperationId = operation.OperationId, CommandSha256 = operation.CommandSha256,
+            Status = OperationStatus.Succeeded, StatusVersion = operation.StatusVersion + 1, UpdatedAtUtc = DateTimeOffset.UtcNow };
+        fixture.Agent.QueryFaultCode = "OperationConflict";
+        if (authoritativeResultArrivesFirst)
+            fixture.Agent.BeforeQueryResponse = () => fixture.Operations.ApplyExecutionAsync(operation.OperationId, succeeded);
+
+        var result = await fixture.Operations.RefreshAsync(operation.OperationId);
+        if (!authoritativeResultArrivesFirst)
+        {
+            Assert.Equal(OperationStatus.NeedsAttention, result.Status);
+            Assert.Equal(succeeded.StatusVersion - 1, result.StatusVersion);
+            result = await fixture.Operations.RefreshAsync(operation.OperationId);
+            Assert.Equal(succeeded.StatusVersion - 1, result.StatusVersion);
+            fixture.Agent.QueryFaultCode = null;
+            fixture.Agent.QueryResult = succeeded;
+            result = await fixture.Operations.RefreshAsync(operation.OperationId);
+        }
+
+        Assert.Equal(OperationStatus.Succeeded, result.Status);
+        Assert.Equal(succeeded.StatusVersion, result.StatusVersion);
+    }
+
     [Fact]
     public async Task MaintenanceStartRequiresPersistedStartupWaitAndNeverAcceptsAdapter17()
     {
@@ -810,6 +841,16 @@ public sealed class OperationGateTests
         Assert.Equal(fixture.Agent.Holds[server.HostId].Fence, command.ReservationFence);
         Assert.Equal(originalSession, command.ExpectedServerSessionId);
         Assert.Equal(2, fixture.Agent.DispatchCount);
+
+        await fixture.Operations.ApplyExecutionAsync(stop.OperationId, attention with { Status = OperationStatus.Succeeded, StatusVersion = 3, ErrorCode = null });
+        await fixture.Operations.ApplyExecutionAsync(rescue.OperationId, new ExecutionSnapshot { OperationId = rescue.OperationId, CommandSha256 = rescue.CommandSha256,
+            Status = OperationStatus.Cancelled, StatusVersion = rescue.StatusVersion + 1, UpdatedAtUtc = DateTimeOffset.UtcNow });
+        await fixture.Operations.ReconcileSingleOperationReleaseAsync(stop.WorkflowId);
+        Assert.Single(fixture.Agent.Holds);
+        fixture.Agent.Inspection = new RecoveryInspection(stopping with { ProcessState = ProcessState.Stopped, CurrentSessionId = null }, null, false, false, false);
+        await fixture.Operations.ReconcileSingleOperationReleaseAsync(stop.WorkflowId);
+        Assert.Empty(fixture.Agent.Holds);
+        Assert.Equal(WorkflowStatus.Succeeded, (await fixture.Db.Workflows.AsNoTracking().SingleAsync()).Status);
     }
 
     [Fact]
@@ -1051,11 +1092,13 @@ public sealed class OperationGateTests
         public bool SnapshotUnavailableAfterFailure { get; set; }
         public bool DispatchUnavailable { get; set; }
         public string? DispatchFaultCode { get; set; }
+        public string? QueryFaultCode { get; set; }
         public ExecutionSnapshot? QueryResult { get; set; }
         public RecoveryInspection? Inspection { get; set; }
         public Func<Task>? BeforeSnapshotResponse { get; set; }
         public Func<Task>? BeforePrepareResponse { get; set; }
         public Func<Task>? BeforeInspectionResponse { get; set; }
+        public Func<Task>? BeforeQueryResponse { get; set; }
         public int PrepareCount { get; private set; }
         public int DispatchCount { get; private set; }
         public async Task<RunnerSnapshot> SnapshotAsync(Guid hostId, CancellationToken token)
@@ -1092,7 +1135,12 @@ public sealed class OperationGateTests
             if (DispatchUnavailable) throw new IOException("Transport unavailable.");
             return Task.FromResult(new ExecutionSnapshot { OperationId = operationId, CommandSha256 = hash, Status = OperationStatus.Accepted, StatusVersion = 1, UpdatedAtUtc = DateTimeOffset.UtcNow });
         }
-        public Task<ExecutionSnapshot> QueryAsync(Guid hostId, Guid operationId, CancellationToken token) => QueryResult is null ? throw new IOException("Query unavailable.") : Task.FromResult(QueryResult);
+        public async Task<ExecutionSnapshot> QueryAsync(Guid hostId, Guid operationId, CancellationToken token)
+        {
+            if (BeforeQueryResponse is not null) await BeforeQueryResponse();
+            if (QueryFaultCode != null) throw new InventoryFault(409, QueryFaultCode);
+            return QueryResult ?? throw new IOException("Query unavailable.");
+        }
         public Task<LogBatch> ReadLogsAsync(Guid hostId, ReadLogsRequest request, CancellationToken token) => Task.FromResult(new LogBatch { ServerId = request.ServerId, SessionId = States[hostId].CurrentSessionId });
         public async Task<RecoveryInspection> InspectRecoveryAsync(Guid hostId, Guid serverId, CancellationToken token)
         {

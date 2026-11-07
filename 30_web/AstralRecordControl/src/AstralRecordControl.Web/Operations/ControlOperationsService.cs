@@ -11,6 +11,7 @@ namespace AstralRecordControl.Web.Operations;
 
 public sealed class ControlOperationsService(ControlDbContext db, InventoryStore store, ReservationService reservations, IAgentOperationTransport agents, TimeProvider clock, IConfiguration? configuration = null, Transfers.TransferRelay? transfers = null)
 {
+    private const string ShutdownRescueChild = "KillAfterInspection";
     private DateTimeOffset Now => clock.GetUtcNow();
 
     public async Task<ControlOperation> CreateAsync(Guid serverId, ServerOperationRequest request, Guid idempotencyKey, CancellationToken token = default)
@@ -293,7 +294,15 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
             return;
         }
 
-        if (children is not [var child] || child.ServerId is not Guid serverId || !lease.ResourceKeys.Contains(ReservationService.ServerKey(serverId)) ||
+        ControlOperation child;
+        if (children is [var single]) child = single;
+        else if (ShutdownWithUnusedRescue(workflowId, children) is { } shutdown)
+        {
+            child = shutdown;
+            outcome = child.Status == OperationStatus.Succeeded ? GateOutcome.Succeeded : GateOutcome.Failed;
+        }
+        else return;
+        if (child.ServerId is not Guid serverId || !lease.ResourceKeys.Contains(ReservationService.ServerKey(serverId)) ||
             !lease.Fences.Any(x => x.HostId == child.HostId)) return;
         var completedShutdown = child.Kind == OperationKind.Stop && child.Status == OperationStatus.Succeeded ||
             child.Kind == OperationKind.Restart && child.Status == OperationStatus.Failed && child.ErrorCode is "Timeout" or "RecoveryRequired";
@@ -306,6 +315,18 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
             inspection.Session is { } session && session.ServerId == serverId && inspection.Runtime.CurrentSessionId == session.ServerSessionId;
         if (stopped || (completedBackup && running))
             await reservations.ReleaseInspectedAsync(lease.ReservationId, workflowId, lease.Fences, outcome, token);
+    }
+
+    private static ControlOperation? ShutdownWithUnusedRescue(Guid workflowId, ControlOperation[] children)
+    {
+        // A rescue can become unnecessary before dispatch or while Runner confirms a natural exit.
+        if (children.Length != 2) return null;
+        var rescueId = ChildId(workflowId, ShutdownRescueChild);
+        var rescue = children.SingleOrDefault(x => x.OperationId == rescueId && x.Kind == OperationKind.Kill);
+        if (rescue == null || rescue.Status is not (OperationStatus.Cancelled or OperationStatus.Rejected or OperationStatus.Expired)) return null;
+        var shutdown = children.Single(x => x.OperationId != rescueId);
+        return shutdown.Kind is (OperationKind.Stop or OperationKind.Restart) && rescue.ServerId == shutdown.ServerId && rescue.HostId == shutdown.HostId
+            ? shutdown : null;
     }
 
     internal async Task<RecoveryInspection> InspectShutdownRecoveryAsync(ControlOperation shutdown, CancellationToken token)
@@ -344,22 +365,22 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
                 return null;
             }
             if (children.Length == 0 || children.Select(x => x.ServerId).Distinct().Count() != 1 || children[0].ServerId is not Guid inspectedServerId) throw new InventoryFault(409, "RecoveryRequired");
-            var outcome = GateOutcome.Succeeded;
-            foreach (var child in children)
+            for (var i = 0; i < children.Length; i++)
             {
-                var current = await RefreshAsync(child.OperationId, token);
-                if (!OperationValidation.IsTerminal(current.Status)) throw new InventoryFault(409, "RecoveryRequired");
-                if (current.Status != OperationStatus.Succeeded) outcome = GateOutcome.Failed;
+                children[i] = await RefreshAsync(children[i].OperationId, token);
+                if (!OperationValidation.IsTerminal(children[i].Status)) throw new InventoryFault(409, "RecoveryRequired");
             }
+            var completed = ShutdownWithUnusedRescue(workflowId, children) is { } shutdown ? shutdown.Status == OperationStatus.Succeeded :
+                children.All(x => x.Status == OperationStatus.Succeeded);
             var inspectedServer = await db.Servers.AsNoTracking().SingleAsync(x => x.ServerId == inspectedServerId);
             var inspected = await agents.InspectRecoveryAsync(inspectedServer.HostId, inspectedServerId, token);
             ReservationService.RequireSafeRecoveryInspection(inspectedServerId, inspected);
-            await reservations.ReleaseInspectedAsync(lease.ReservationId, workflowId, lease.Fences, outcome, token);
+            await reservations.ReleaseInspectedAsync(lease.ReservationId, workflowId, lease.Fences, completed ? GateOutcome.Succeeded : GateOutcome.Failed, token);
             return null;
         }
         var oldStop = await db.Operations.AsNoTracking().SingleOrDefaultAsync(x => x.WorkflowId == workflowId && (x.Kind == OperationKind.Stop || x.Kind == OperationKind.Restart)) ?? throw new InventoryFault(409, "RecoveryRequired");
         if (request.Action != WorkflowRecoveryAction.KillAfterInspection) throw new InventoryFault(409, "UnsupportedCapability");
-        var operationId = ChildId(workflowId, "KillAfterInspection");
+        var operationId = ChildId(workflowId, ShutdownRescueChild);
         var requestHash = ControlProtocol.Hash($"RecoveryKill:{workflowId:D}:{request.Reason}");
         var existing = await db.Operations.AsNoTracking().SingleOrDefaultAsync(x => x.OperationId == operationId);
         if (existing != null)
@@ -404,15 +425,18 @@ public sealed class ControlOperationsService(ControlDbContext db, InventoryStore
 
     private async Task MarkAttentionAsync(Guid operationId)
     {
-        var row = await GetAsync(operationId);
         await store.WriteAsync(async () =>
         {
             var operation = await db.Operations.SingleAsync(x => x.OperationId == operationId);
-            operation.Status = OperationStatus.NeedsAttention; operation.StatusVersion++;
-            var workflow = await db.Workflows.SingleAsync(x => x.WorkflowId == row.WorkflowId);
+            await db.Entry(operation).ReloadAsync();
+            if (OperationValidation.IsTerminal(operation.Status) || operation.Status == OperationStatus.NeedsAttention) return false;
+            // Transport failures are observed by Web. Only an authoritative execution snapshot advances its version.
+            operation.Status = OperationStatus.NeedsAttention;
+            var workflow = await db.Workflows.SingleAsync(x => x.WorkflowId == operation.WorkflowId);
             workflow.Status = WorkflowStatus.RecoveryRequired; workflow.RecoveryRequired = true;
-            foreach (var reservation in await db.Reservations.Where(x => x.ReservationId == row.ReservationId).ToArrayAsync()) reservation.State = ReservationStatus.RecoveryRequired;
-            (await db.ReservationLeases.SingleAsync(x => x.ReservationId == row.ReservationId)).Status = ReservationStatus.RecoveryRequired;
+            workflow.UpdatedAtUtc = Now;
+            foreach (var reservation in await db.Reservations.Where(x => x.ReservationId == operation.ReservationId).ToArrayAsync()) reservation.State = ReservationStatus.RecoveryRequired;
+            (await db.ReservationLeases.SingleAsync(x => x.ReservationId == operation.ReservationId)).Status = ReservationStatus.RecoveryRequired;
             return true;
         });
     }
