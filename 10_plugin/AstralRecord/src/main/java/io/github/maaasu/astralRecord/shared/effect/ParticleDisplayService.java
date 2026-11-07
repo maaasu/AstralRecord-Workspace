@@ -32,6 +32,7 @@ public class ParticleDisplayService {
     private static final int BEDROCK_MAX_BURST_COUNT = 4;
 
     private final PlayerSettingService playerSettingService;
+    private final Predicate<Player> bedrockBeforeRegistration;
 
     /** 設定サービスを持たず、閲覧者へ標準密度を使う互換サービスを生成します。 */
     public ParticleDisplayService() {
@@ -43,7 +44,18 @@ public class ParticleDisplayService {
      * @param playerSettingService 設定サービス。nullは標準密度を使います
      */
     public ParticleDisplayService(@Nullable PlayerSettingService playerSettingService) {
+        this(playerSettingService, viewer -> false);
+    }
+
+    /**
+     * 設定と、アカウント読込前の接続種別を判定する処理を使う粒子サービスを生成します。
+     * @param playerSettingService 設定サービス。nullは標準密度を使う
+     * @param bedrockBeforeRegistration プレイヤー登録前に使う統合版の接続判定
+     */
+    public ParticleDisplayService(@Nullable PlayerSettingService playerSettingService,
+                                   @NotNull Predicate<Player> bedrockBeforeRegistration) {
         this.playerSettingService = playerSettingService;
+        this.bedrockBeforeRegistration = bedrockBeforeRegistration;
     }
 
     /**
@@ -1034,10 +1046,10 @@ public class ParticleDisplayService {
         return hideForBedrock && isBedrock(viewer);
     }
 
-    /** 表示対象の登録済み接続種別を返します。未登録の接続は従来どおりJava版として扱います。 */
+    /** アカウント読込前も同じ接続種別で粒子数と粒子形式を選びます。 */
     private boolean isBedrock(@NotNull Player viewer) {
         AstPlayer astPlayer = AstPlayerCache.get(viewer);
-        return astPlayer != null && astPlayer.isBedrock();
+        return astPlayer == null ? bedrockBeforeRegistration.test(viewer) : astPlayer.isBedrock();
     }
 
     private <T> void spawnForViewerResolvedCount(

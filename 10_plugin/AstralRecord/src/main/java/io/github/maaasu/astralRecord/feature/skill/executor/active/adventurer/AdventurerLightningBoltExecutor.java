@@ -76,11 +76,7 @@ public final class AdventurerLightningBoltExecutor extends PlayerActiveSkillExec
                 SharedParticleDefinitions.SKILL_MAGE_LIGHTNING
         );
 
-        // 発動時の青白い収束を示し、飛翔体の軌跡は共通 projectile service に任せます。
-        context.services().effects().point(
-                context.eyeLocation(),
-                SharedParticleDefinitions.SKILL_MAGE_LIGHTNING
-        );
+        // 発動の収束は共通の発動表示で行い、着弾の絵柄は終端にだけ出します。
         context.services().projectiles().launchWithTermination(
                 context.player(),
                 context.eyeLocation(),

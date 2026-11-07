@@ -1579,12 +1579,13 @@ public final class AstralRecord extends JavaPlugin {
             itemService,
             adventureRecordStateService
         );
-        particleDisplayService = new ParticleDisplayService(playerSettingService);
+        resourcePackService = new ResourcePackService(this, ConfigProperties.getInstance());
+        particleDisplayService = new ParticleDisplayService(playerSettingService,
+            viewer -> resourcePackService.isBedrock(viewer.getName()));
         skillTreeService.setParticleDisplayService(particleDisplayService);
         hookshotUseService = new HookshotUseService(this, inventoryService, itemService, particleDisplayService);
         mobSpawnerService.setParticleDisplayService(particleDisplayService);
         gatheringSpawnerService.setParticleDisplayService(particleDisplayService);
-        resourcePackService = new ResourcePackService(this, ConfigProperties.getInstance());
         GameplaySound.configure(resourcePackService);
         io.github.maaasu.astralRecord.shared.gui.GuiResourcePackTitle.configure(this, resourcePackService);
         displayTextService = new DisplayTextService(playerSettingService, resourcePackService);
