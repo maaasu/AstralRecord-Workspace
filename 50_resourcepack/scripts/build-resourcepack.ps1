@@ -144,6 +144,8 @@ $java = Read-PackEntries $root @(
     'assets/astralrecord/font/gameplay_hud_details.json'
     'assets/astralrecord/font/profile_hud_class_name.json'
     'assets/astralrecord/textures/font/profile_hud_class_name.png'
+    'assets/astralrecord/font/profile_hud_class_name_compact.json'
+    'assets/astralrecord/textures/font/profile_hud_class_name_compact.png'
     'assets/astralrecord/font/condition_hud.json'
     'assets/astralrecord/textures/font/condition_hud.png'
     'licenses/OFL-DotGothic16.txt'
@@ -413,7 +415,7 @@ $bedrock.Add($fishingVersionMarker, $java[$fishingVersionMarker])
 
 $skillIcons = Get-ActionRingIcons
 Add-ItemModelEntries $java $bedrock $skillIcons
-if ($utf8.GetString($java['player-progress-hud-version.txt']) -cne '5') {
+if ($utf8.GetString($java['player-progress-hud-version.txt']) -cne '6') {
     throw 'Invalid profile HUD version marker in resource pack.'
 }
 Add-BuffHudJavaEntries $java
