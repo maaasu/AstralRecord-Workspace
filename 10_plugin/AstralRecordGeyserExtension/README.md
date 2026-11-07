@@ -122,4 +122,4 @@ RPGに固定のプレイヤーヘッドスキンを追加・変更したら、`B
 
 `quest-tracking-hud-version.txt` が互換版 `1` を示し、`ui/astralrecord_quest_hud.json`、`ui/hud_screen.json`、`ui/_ui_defs.json` が揃ったパックを登録しログインした接続だけで有効です。Geyserの `sendJsonUIData` が利用できることも確認し、Velocityから現在のバックエンドへ対応を通知します。RPGの2行を `geyseropt:astralrecord_quest_hud:` 専用TIPに送り、JSON UIはそのprefixだけをラッチします。通常TIP・ActionBar・Title・Sidebarはクエスト用送信に使いません。
 
-クエスト欄は左上の `chat_stack` 内で、バニラのペーパードール余白・座標・経過日数の下、チャットの前に配置します。サーバー切替で解除し、更新が5秒途絶えた場合もProxyで消去します。旧パックと送信APIがない接続には専用TIPを送りません。Geyser公開APIで確認できるのはパック登録とログインまでのため、送信時にも `gameplay.force-resource-packs: true` を確認します。設定を確認できないGeyser版では表示を無効にします。実クライアント描画の確認とは区別してください。
+クエスト欄は左上の `chat_stack` 内で、バニラのペーパードール余白・座標・経過日数の下、チャットの前に配置します。サーバー切替で解除し、更新が5秒途絶えた場合もProxyで消去します。消去の送信が失敗した場合は成功するまで再試行します。表示済みの同じGeyser接続への消去は、強制配布設定の変更後も許可します。旧パックと送信APIがない接続には専用TIPを送りません。Geyser公開APIで確認できるのはパック登録とログインまでのため、送信時にも `gameplay.force-resource-packs: true` を確認します。設定を確認できないGeyser版では表示を無効にします。実クライアント描画の確認とは区別してください。
