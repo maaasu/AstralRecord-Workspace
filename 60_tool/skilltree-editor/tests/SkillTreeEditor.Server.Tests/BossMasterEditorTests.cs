@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using SkillTreeEditor.Server.Models;
 using SkillTreeEditor.Server.Services;
 
 namespace SkillTreeEditor.Server.Tests;
@@ -104,6 +105,26 @@ public sealed class BossMasterEditorTests : IDisposable
         entry[axis] = "0";
         var wrongType = await _validation.ValidateAsync(BossPath, content.ToJsonString(), CancellationToken.None);
         Assert.Contains(wrongType.Issues, issue => issue.Code == "FIELD_TYPE" && issue.Path == $"/challenge/entryLocation/{axis}");
+    }
+
+    [Fact]
+    public async Task MapEditRejectsAnUnavailableBossEntryWorldWithoutOverwritingTheMaster()
+    {
+        var original = await _service.ReadAsync(BossPath, CancellationToken.None);
+        var content = original.Content!.DeepClone();
+        var entry = content["challenge"]!["entryLocation"]!;
+        entry["worldId"] = "selected_world";
+        var edited = _codec.Render(new(BossPath, content, original.Raw));
+        var worldRoot = Path.Combine(_paths.Root, "60.features.world");
+        Directory.CreateDirectory(worldRoot);
+        var error = await Assert.ThrowsAsync<MasterDataValidationException>(() =>
+            _service.SaveAsync(new(BossPath, edited.Raw, original.Revision, RequireBossEntryWorldMaster: true), CancellationToken.None));
+        Assert.Contains(error.Report.Issues, issue => issue.Path == "/challenge/entryLocation/worldId");
+        Assert.Equal(original.Revision, (await _service.ReadAsync(BossPath, CancellationToken.None)).Revision);
+
+        File.WriteAllText(Path.Combine(worldRoot, "v1.selected_world.yml"), "id: selected_world\ndisplayName: 選択したワールド\n");
+        var saved = await _service.SaveAsync(new(BossPath, edited.Raw, original.Revision, RequireBossEntryWorldMaster: true), CancellationToken.None);
+        Assert.Equal("selected_world", saved.Content!["challenge"]!["entryLocation"]!["worldId"]!.GetValue<string>());
     }
 
     [Fact]

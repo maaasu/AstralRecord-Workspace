@@ -85,12 +85,29 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
                     throw new InvalidOperationException($"{key} は既存ファイルの保存では変更できません。新規作成 / 複製してください。");
         }
         await RequireValidAsync(request.Path, request.Raw, token);
+        // The map selects Filebase IDs. Existing boss files can still use Bukkit world names.
+        if (request.RequireBossEntryWorldMaster && request.Path.StartsWith("40.features.mob/boss/", MasterDataPaths.Comparison))
+        {
+            var oldWorldId = BossEntryWorldId(existing.Content);
+            var newWorldId = BossEntryWorldId(parsed.Content);
+            if (newWorldId is not null && newWorldId != oldWorldId &&
+                !(await ListAsync("60.features.world", null, token)).Any(world => world.Id == newWorldId))
+                throw new MasterDataValidationException(new(false,
+                    [new("error", "REFERENCE_MISSING", "/challenge/entryLocation/worldId", "指定した受付地点のワールドマスターがありません。")]));
+        }
         if (existing.Raw != request.Raw)
         {
             await backups.BackupAsync(full, "master-data", token);
             await WriteAtomicAsync(full, request.Raw, create: false, token);
         }
         return await ReadAsync(request.Path, token);
+    }
+
+    private static string? BossEntryWorldId(JsonNode? content)
+    {
+        var challenge = (content as JsonObject)?["challenge"] as JsonObject;
+        var location = challenge?["entryLocation"] as JsonObject;
+        return MasterDataValidation.Text(location?["worldId"]);
     }
 
     public async Task<MasterDataDocument> CreateAsync(MasterDataCreateRequest request, CancellationToken token)

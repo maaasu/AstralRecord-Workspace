@@ -228,7 +228,9 @@ export function ChallengeLocationEditor({
         setError('検証エラーがあるため保存できませんでした。')
         return
       }
-      const saved = await masterDataApi.save(document.path, rendered.raw, document.revision)
+      const saved = opened.challenge && draft.world !== opened.initial.world
+        ? await masterDataApi.save(document.path, rendered.raw, document.revision, true)
+        : await masterDataApi.save(document.path, rendered.raw, document.revision)
       if (request !== operation.current) return
       const next = openLocation(saved, Boolean(opened.challenge))
       setOpened(next)

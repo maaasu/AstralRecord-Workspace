@@ -22,7 +22,7 @@ public sealed record MasterDataParseRequest(string Path, string Raw);
 public sealed record MasterDataParseResult(JsonNode? Content, IReadOnlyList<MasterDataIssue> Issues);
 public sealed record MasterDataRenderRequest(string Path, JsonNode? Content, string? OriginalRaw);
 public sealed record MasterDataRenderResult(string Raw, bool CommentsPreserved, IReadOnlyList<string> Warnings);
-public sealed record MasterDataSaveRequest(string Path, string Raw, string Revision);
+public sealed record MasterDataSaveRequest(string Path, string Raw, string Revision, bool RequireBossEntryWorldMaster = false);
 public sealed record MasterDataCreateRequest(string Path, string Raw, bool AutoItemId = false,
     string? Slug = null, string? Group = null, bool AutoName = false);
 public sealed record MasterDataCopyRequest(string SourcePath, string Revision, string TargetPath,

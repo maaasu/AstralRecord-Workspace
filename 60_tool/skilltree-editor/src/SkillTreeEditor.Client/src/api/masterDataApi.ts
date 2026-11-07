@@ -33,7 +33,8 @@ export const masterDataApi = {
   catalog: () => request<MasterCatalog>('/catalog'),
   files: (category = '', query = '') => request<MasterFileSummary[]>(`/files?${new URLSearchParams({ category, query })}`),
   file: (path: string) => request<MasterDocument>(`/file?${new URLSearchParams({ path })}`),
-  save: (path: string, raw: string, revision: string) => request<MasterDocument>('/file', 'PUT', { path, raw, revision }),
+  save: (path: string, raw: string, revision: string, requireBossEntryWorldMaster?: boolean) =>
+    request<MasterDocument>('/file', 'PUT', { path, raw, revision, requireBossEntryWorldMaster }),
   create: (draft: MasterDraft) => request<MasterDocument>('/file', 'POST', draft),
   copy: (sourcePath: string, revision: string, draft: MasterDraft) => request<MasterDocument>('/copy', 'POST', {
     sourcePath, revision, targetPath: draft.path, autoItemId: draft.autoItemId, slug: draft.slug, group: draft.group, autoName: draft.autoName,
