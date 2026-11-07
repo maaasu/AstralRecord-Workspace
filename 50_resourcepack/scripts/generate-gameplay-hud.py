@@ -9,6 +9,9 @@ combat = import_module("generate-combat-hud-assets")
 ROOT = Path(__file__).resolve().parents[1] / "assets/astralrecord"
 CELL_WIDTH = 24
 CELL_HEIGHT = 65
+SCALE = 2
+# Tile the doubled glyphs so the atlas fits within 2048 pixels on either axis.
+COLUMNS = 32
 
 # The HUD advances five-pixel letters and digits by six pixels, with narrower punctuation.
 # Lowercase letters share the capital baseline and may descend below it.
@@ -100,41 +103,76 @@ PROFILE = (
 )
 # Shade the same silhouettes as the standard heart, droplet and lightning HUD.
 RESOURCES = (combat.HEART, combat.MANA, combat.ENERGY)
+WHITE = {"1": (255, 255, 255, 255)}
 
 
-def draw(pixels, atlas_width, index, rows, palette, y_offset=0):
-    for y, row in enumerate(rows, y_offset):
+def double_pixels(rows):
+    return ["".join(token * SCALE for token in row) for row in rows for _ in range(SCALE)]
+
+
+def detail_type(pattern):
+    """Use half-pixel steps at diagonal joins while keeping horizontal and vertical stems crisp."""
+    rows = pattern.split("/")
+    empty = "0" * len(rows[0])
+    padded = ["0" + row + "0" for row in (empty, *rows, empty)]
+    detailed = []
+    for y, row in enumerate(rows, start=1):
+        top, bottom = [], []
+        for x, center in enumerate(row, start=1):
+            above, below = padded[y - 1][x], padded[y + 1][x]
+            left, right = padded[y][x - 1], padded[y][x + 1]
+            if above != below and left != right:
+                top.extend((left if left == above else center, right if right == above else center))
+                bottom.extend((left if left == below else center, right if right == below else center))
+            else:
+                top.extend((center, center))
+                bottom.extend((center, center))
+        detailed.extend(("".join(top), "".join(bottom)))
+    return detailed
+
+
+def draw(pixels, atlas_width, origin, rows, palette):
+    left, top = origin
+    for y, row in enumerate(rows, start=top):
         for x, token in enumerate(row):
-            if token not in palette:
-                continue
-            start = (y * atlas_width + index * CELL_WIDTH + x) * 4
-            pixels[start : start + 4] = bytes(palette[token])
+            if token in palette:
+                start = (y * atlas_width + left + x) * 4
+                pixels[start : start + 4] = bytes(palette[token])
+
+
+def space_provider():
+    advances = {" ": 3}
+    for bit in range(5):
+        advances[chr(0xE950 + bit)] = 1 << bit
+        advances[chr(0xE955 + bit)] = -(1 << bit)
+    return {"type": "space", "advances": advances}
 
 
 def main():
-    shapes = {glyph: (pattern.split("/"), {"1": (255, 255, 255, 255)}, 1)
-              for glyph, pattern in TYPE.items()}
+    shapes = {glyph: (detail_type(pattern), WHITE, 1) for glyph, pattern in TYPE.items()}
+    profile_colors = {"*": (255, 255, 255, 255), "+": (165, 165, 165, 255)}
     for index, icon in enumerate(PROFILE):
-        shapes[chr(0xE940 + index)] = (icon.split("/"), {"*": (255, 255, 255, 255), "+": (165, 165, 165, 255)}, 1)
+        shapes[chr(0xE940 + index)] = (double_pixels(icon.split("/")), profile_colors, 1)
     for index, icon in enumerate(RESOURCES):
-        shapes[chr(0xE900 + index)] = (icon, combat.PALETTE, 0)
+        shapes[chr(0xE900 + index)] = (double_pixels(icon), combat.PALETTE, 0)
     meter_colors = {"#": (125, 125, 125, 255), "+": (244, 244, 244, 255), "-": (66, 66, 66, 255)}
     for fill in range(11):
         meter = ("############", "#" + "+" * fill + "-" * (10 - fill) + "#", "############")
-        shapes[chr(0xE910 + fill)] = (meter, meter_colors, 12)
+        shapes[chr(0xE910 + fill)] = (double_pixels(meter), meter_colors, 12)
         wide_fill = (22 * fill + 5) // 10
         wide_meter = ("#" * 24, "#" + "+" * wide_fill + "-" * (22 - wide_fill) + "#", "#" * 24)
-        shapes[chr(0xE960 + fill)] = (wide_meter, meter_colors, 12)
-    width = CELL_WIDTH * len(shapes)
-    pixels = bytearray(width * CELL_HEIGHT * 4)
+        shapes[chr(0xE960 + fill)] = (double_pixels(wide_meter), meter_colors, 12)
+    glyphs = "".join(shapes)
+    char_rows = [glyphs[start : start + COLUMNS].ljust(COLUMNS, "\0") for start in range(0, len(glyphs), COLUMNS)]
+    width = CELL_WIDTH * COLUMNS * SCALE
+    height = CELL_HEIGHT * len(char_rows) * SCALE
+    pixels = bytearray(width * height * 4)
     for index, (rows, palette, top) in enumerate(shapes.values()):
-        draw(pixels, width, index, rows, palette, top)
-    (ROOT / "textures/font/gameplay_hud.png").write_bytes(combat.encode_png(pixels, width, CELL_HEIGHT))
+        row, column = divmod(index, COLUMNS)
+        origin = (column * CELL_WIDTH * SCALE, (row * CELL_HEIGHT + top) * SCALE)
+        draw(pixels, width, origin, rows, palette)
+    (ROOT / "textures/font/gameplay_hud.png").write_bytes(combat.encode_png(pixels, width, height))
 
-    advance = {" ": 3}
-    for bit in range(5):
-        advance[chr(0xE950 + bit)] = 1 << bit
-        advance[chr(0xE955 + bit)] = -(1 << bit)
     for name, ascent in (
         ("profile_hud_points", 65),
         ("profile_hud_player", 51),
@@ -143,9 +181,9 @@ def main():
         ("gameplay_hud_details", 8),
     ):
         providers = [
-            {"type": "space", "advances": advance},
+            space_provider(),
             {"type": "bitmap", "file": "astralrecord:font/gameplay_hud.png",
-             "height": CELL_HEIGHT, "ascent": ascent, "chars": ["".join(shapes)]},
+             "height": CELL_HEIGHT, "ascent": ascent, "chars": char_rows},
         ]
         (ROOT / f"font/{name}.json").write_text(
             json.dumps({"providers": providers}, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")

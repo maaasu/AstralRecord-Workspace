@@ -129,35 +129,24 @@ ICONS = {
 }
 
 
-def draw(pixels, width, index, rows, palette, top):
-    for y, row in enumerate(rows, start=top):
-        for x, token in enumerate(row):
-            if token == ".":
-                continue
-            offset = ((y * width) + index * CELL_WIDTH + x) * 4
-            pixels[offset:offset + 4] = palette[token]
-
-
 def main():
     numbers = "0123456789s+"
     glyphs = "".join(chr(0xE970 + index) for index in range(len(ICONS))) + numbers
-    width = CELL_WIDTH * len(glyphs)
-    pixels = bytearray(width * CELL_HEIGHT * 4)
+    cell_width = CELL_WIDTH * gameplay.SCALE
+    width = cell_width * len(glyphs)
+    height = CELL_HEIGHT * gameplay.SCALE
+    pixels = bytearray(width * height * 4)
     for index, (colors, *rows) in enumerate(ICONS.values()):
         palette = {token: color.to_bytes(3, "big") + b"\xff"
                    for token, color in zip("#+*o", colors, strict=True)}
-        draw(pixels, width, index, rows, palette, 0)
+        gameplay.draw(pixels, width, (index * cell_width, 0), gameplay.double_pixels(rows), palette)
     for index, character in enumerate(numbers, start=len(ICONS)):
-        rows = gameplay.TYPE[character].replace("0", ".").split("/")
-        draw(pixels, width, index, rows, {"1": b"\xff\xff\xff\xff"}, 2)
+        rows = gameplay.detail_type(gameplay.TYPE[character])
+        gameplay.draw(pixels, width, (index * cell_width, 2 * gameplay.SCALE), rows, gameplay.WHITE)
 
-    (ROOT / "textures/font/condition_hud.png").write_bytes(combat.encode_png(pixels, width, CELL_HEIGHT))
-    advances = {" ": 3}
-    for bit in range(5):
-        advances[chr(0xE950 + bit)] = 1 << bit
-        advances[chr(0xE955 + bit)] = -(1 << bit)
+    (ROOT / "textures/font/condition_hud.png").write_bytes(combat.encode_png(pixels, width, height))
     providers = [
-        {"type": "space", "advances": advances},
+        gameplay.space_provider(),
         {"type": "bitmap", "file": "astralrecord:font/condition_hud.png",
          "height": CELL_HEIGHT, "ascent": CELL_HEIGHT, "chars": [glyphs]},
     ]
