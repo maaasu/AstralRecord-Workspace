@@ -4,7 +4,8 @@ param(
     [Parameter(Mandatory=$true)][string]$ServerRoot,
     [Parameter(Mandatory=$true)][string]$ScannerJar,
     [string]$WorldName = 'eriva_supercontinent',
-    [int]$Port = 25579
+    [int]$Port = 25579,
+    [switch]$Continent
 )
 $ErrorActionPreference = 'Stop'
 function Assert-NoLinkedAncestor([string]$CandidatePath) {
@@ -16,6 +17,12 @@ function Assert-NoLinkedAncestor([string]$CandidatePath) {
         }
         $parent = [IO.Directory]::GetParent($current)
         $current = if ($parent) { $parent.FullName } else { $null }
+    }
+}
+function Assert-NoLinkedTree([IO.FileSystemInfo]$Item) {
+    if ($Item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Linked path is not allowed: $($Item.FullName)" }
+    if ($Item.PSIsContainer) {
+        foreach ($child in Get-ChildItem -Force -LiteralPath $Item.FullName) { Assert-NoLinkedTree $child }
     }
 }
 Assert-NoLinkedAncestor $SourceServer
@@ -34,29 +41,43 @@ if (Test-Path -LiteralPath $target) {
 }
 if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue) { throw 'Target port is already in use.' }
 $lockPath = Join-Path $world 'session.lock'
+Assert-NoLinkedAncestor $lockPath
 $lock = [IO.File]::Open($lockPath,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
+$captureLock = $null
+$captureLockPath = Join-Path $target '.capture.lock'
 try {
     if (-not (Test-Path -LiteralPath (Join-Path $world 'level.dat'))) { throw 'Missing source level.dat.' }
-    $eula = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $source 'eula.txt')
+    $eulaPath = Join-Path $source 'eula.txt'
+    if ($Continent) { Assert-NoLinkedAncestor $eulaPath }
+    $eula = Get-Content -Raw -Encoding UTF8 -LiteralPath $eulaPath
     if ($eula -notmatch '(?m)^eula=true\s*$') { throw 'Source server has no existing accepted EULA.' }
     $jars = @(Get-ChildItem -LiteralPath $source -File -Filter 'purpur-*.jar')
     if ($jars.Count -ne 1) { throw 'Expected exactly one source Purpur JAR.' }
+    $worldItems = @(Get-ChildItem -LiteralPath $world | Where-Object {
+        $_.Name -notin @('session.lock','playerdata','advancements','stats','DIM-1','DIM1')
+    })
+    if ($Continent) {
+        Assert-NoLinkedTree $jars[0]
+        foreach ($item in $worldItems) { Assert-NoLinkedTree $item }
+    }
     New-Item -ItemType Directory -Path $target -Force | Out-Null
+    $captureLock = [IO.File]::Open($captureLockPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+    $existing = @(Get-ChildItem -Force -LiteralPath $target | Where-Object { $_.Name -notin @('.venv','.capture.lock') })
+    if ($existing.Count -gt 0) { throw 'Target already contains a snapshot or server.' }
     New-Item -ItemType Directory -Path (Join-Path $target 'plugins\RegionTerrainScanner') -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $target 'analysis') -Force | Out-Null
     Copy-Item -LiteralPath $jars[0].FullName -Destination (Join-Path $target 'server.jar')
-    Copy-Item -LiteralPath (Join-Path $source 'eula.txt') -Destination $target
+    Copy-Item -LiteralPath $eulaPath -Destination $target
     foreach ($name in @('libraries','versions','cache')) {
         if (Test-Path -LiteralPath (Join-Path $source $name)) {
+            if ($Continent) { Assert-NoLinkedTree (Get-Item -Force -LiteralPath (Join-Path $source $name)) }
             Copy-Item -LiteralPath (Join-Path $source $name) -Destination (Join-Path $target $name) -Recurse
         }
     }
     $worldTarget = Join-Path $target $WorldName
     New-Item -ItemType Directory -Path $worldTarget | Out-Null
-    foreach ($item in Get-ChildItem -LiteralPath $world) {
-        if ($item.Name -notin @('session.lock','playerdata','advancements','stats','DIM-1','DIM1')) {
-            Copy-Item -LiteralPath $item.FullName -Destination (Join-Path $worldTarget $item.Name) -Recurse
-        }
+    foreach ($item in $worldItems) {
+        Copy-Item -LiteralPath $item.FullName -Destination (Join-Path $worldTarget $item.Name) -Recurse
     }
     Copy-Item -LiteralPath $ScannerJar -Destination (Join-Path $target 'plugins\region-terrain-scanner.jar')
     $utf8 = [Text.UTF8Encoding]::new($false)
@@ -80,10 +101,25 @@ motd=AstralRecord Terrain Analysis
     [IO.File]::WriteAllText((Join-Path $target 'bukkit.yml'), "settings:`n  allow-end: false`n", $utf8)
     $scannerConfig = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $PSScriptRoot 'scanner\src\main\resources\config.yml')
     $scannerConfig = $scannerConfig.Replace('worldName: eriva_supercontinent', "worldName: $WorldName").Replace('shutdownAfterScan: false', 'shutdownAfterScan: true')
+    if ($Continent) {
+        $scannerConfig = $scannerConfig.Replace('scanMode: region', 'scanMode: continent').Replace('cellSize: 4', 'cellSize: 16').Replace('outputFile: analysis/terrain.json', 'outputFile: analysis/continent-terrain.json').Replace('chunksPerTick: 1', 'chunksPerTick: 32')
+    }
     [IO.File]::WriteAllText((Join-Path $target 'plugins\RegionTerrainScanner\config.yml'), $scannerConfig, $utf8)
     $locations = Join-Path $source 'plugins\AstralRecord\mob_spawners.yml'
-    if (Test-Path -LiteralPath $locations) { Copy-Item -LiteralPath $locations -Destination (Join-Path $target 'analysis\mob_spawners.source.yml') }
-    $receipt = @{ sourceWorld=$world; targetWorld=$worldTarget; copiedAt=[DateTime]::UtcNow.ToString('o'); scannerSha256=(Get-FileHash -LiteralPath $ScannerJar).Hash; sourceLevelSha256=(Get-FileHash -LiteralPath (Join-Path $world 'level.dat')).Hash }
+    if (-not $Continent -and (Test-Path -LiteralPath $locations)) { Copy-Item -LiteralPath $locations -Destination (Join-Path $target 'analysis\mob_spawners.source.yml') }
+    $receipt = @{
+        sourceServer=$source; sourceWorld=$world; targetWorld=$worldTarget
+        scanMode=$(if ($Continent) { 'continent' } else { 'region' })
+        copiedAt=[DateTime]::UtcNow.ToString('o')
+        scannerSha256=(Get-FileHash -LiteralPath $ScannerJar).Hash
+        sourceLevelSha256=(Get-FileHash -LiteralPath (Join-Path $world 'level.dat')).Hash
+    }
     [IO.File]::WriteAllText((Join-Path $target 'analysis\snapshot-receipt.json'), ($receipt | ConvertTo-Json), $utf8)
     Write-Output "Prepared isolated analysis server: $target (127.0.0.1:$Port)"
-} finally { $lock.Dispose() }
+} finally {
+    $lock.Dispose()
+    if ($captureLock) {
+        $captureLock.Dispose()
+        Remove-Item -LiteralPath $captureLockPath
+    }
+}

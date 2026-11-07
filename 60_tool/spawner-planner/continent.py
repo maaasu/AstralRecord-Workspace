@@ -52,6 +52,53 @@ def _yaml(path: Path) -> dict:
     return value
 
 
+def load_world_master(filebase: Path, world_id: str) -> tuple[dict, str]:
+    matches = [(path, data) for path in sorted((filebase / "60.features.world").glob("*.yml"))
+               if (data := _yaml(path)).get("id") == world_id]
+    if len(matches) != 1:
+        raise ValueError("World master must resolve exactly once")
+    path, world = matches[0]
+    return world, hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def validate_terrain(t: dict) -> None:
+    if t.get("cellSize") != 16 or any(type(t.get(k)) is not int for k in ("minX", "minZ", "width", "height")):
+        raise ValueError("Expected 16m cell grid and integer terrain bounds")
+    if t["width"] <= 0 or t["height"] <= 0 or t["width"] % 16 or t["height"] % 16:
+        raise ValueError("Invalid terrain bounds")
+    expected = t["width"] // 16 * (t["height"] // 16)
+    if len(t.get("cells", [])) != expected:
+        raise ValueError("Terrain must include every cell, including absent/failed cells")
+    seen = set()
+    for cell in t["cells"]:
+        x, z, status = cell.get("x"), cell.get("z"), cell.get("status")
+        key = (x, z)
+        if (type(x) is not int or type(z) is not int or
+                x < t["minX"] or x >= t["minX"] + t["width"] or
+                z < t["minZ"] or z >= t["minZ"] + t["height"] or
+                (x - t["minX"]) % 16 or (z - t["minZ"]) % 16 or key in seen):
+            raise ValueError("Duplicate, missing or out-of-bounds terrain cell")
+        seen.add(key)
+        if status not in {"ok", "absent", "failed"}:
+            raise ValueError("Unsupported cell status")
+        if status == "ok":
+            count = cell.get("safeCount")
+            if type(count) is not int or not 0 <= count <= 256:
+                raise ValueError("Invalid safeCount")
+            if count:
+                for k in ("candidateX", "candidateY", "candidateZ", "minY", "maxY"):
+                    if not isinstance(cell.get(k), (int, float)) or not math.isfinite(cell[k]):
+                        raise ValueError(f"Missing finite {k} in safe cell")
+                if not x <= cell["candidateX"] < x + 16 or not z <= cell["candidateZ"] < z + 16:
+                    raise ValueError("Candidate outside measured cell")
+                if not cell["minY"] <= cell["candidateY"] <= cell["maxY"]:
+                    raise ValueError("Candidate outside measured elevation bounds")
+    # Index every cell by its location. Input order is not an implicit contract.
+    grid = {(c["x"], c["z"]): c for c in t["cells"]}
+    t["cells"] = [grid[(x, z)] for z in range(t["minZ"], t["minZ"] + t["height"], 16)
+                  for x in range(t["minX"], t["minX"] + t["width"], 16)]
+
+
 def _plain(value: str) -> str:
     return re.sub(r"[&§][0-9a-fk-or]", "", value, flags=re.I)
 
@@ -79,6 +126,15 @@ def _habitat(cell: dict) -> str:
     if any(word in biome for word in ("forest", "jungle", "taiga")) or cell.get("treeCount", 0) >= 48:
         return "forest"
     return "grass"
+
+
+def planning_terrain_cell(source: dict) -> dict:
+    cell = {k: source.get(k) for k in ("x", "z", "status", "y", "candidateX", "candidateY", "candidateZ",
+            "surface", "ground", "biome", "safeCount", "waterCount", "treeCount", "minY", "maxY")}
+    if source.get("reason"):
+        cell["terrainReason"] = source["reason"]
+    cell["habitat"] = _habitat(source)
+    return cell
 
 
 def _atomic_json(path: Path, value: dict) -> None:
@@ -130,13 +186,13 @@ class ContinentPlanner:
             raise ValueError("Terrain capturedAt is required")
         self.terrain_fingerprint = hashlib.sha256(terrain_raw).hexdigest()
         self.filebase = filebase
-        self.world = self._world()
+        self.world, self.world_hash = load_world_master(filebase, self.policy["worldId"])
         if str(self.terrain.get("world", "")).split("/")[-1] != self.world["id"]:
             raise ValueError("Terrain world does not match world master")
         self.spawn = self.world["spawnLocation"]
         self.minimum_level = int(self.world["adventureGuide"]["recommendedLevelMin"])
         self.step = self.terrain["cellSize"]
-        self._validate_terrain()
+        validate_terrain(self.terrain)
         self.columns = self.terrain["width"] // self.step
         self.rows = self.terrain["height"] // self.step
         if self.policy.get("progressionMode") not in (None, "road"):
@@ -313,52 +369,6 @@ class ContinentPlanner:
         roads.update((p, distances[p]) for path in paths for p in path)
         return paths
 
-    def _world(self) -> dict:
-        matches = [(path, data) for path in sorted((self.filebase / "60.features.world").glob("*.yml"))
-                   if (data := _yaml(path)).get("id") == self.policy["worldId"]]
-        if len(matches) != 1:
-            raise ValueError("World master must resolve exactly once")
-        self.world_hash = hashlib.sha256(matches[0][0].read_bytes()).hexdigest()
-        return matches[0][1]
-
-    def _validate_terrain(self) -> None:
-        t = self.terrain
-        if self.step != 16 or any(type(t.get(k)) is not int for k in ("minX", "minZ", "width", "height")):
-            raise ValueError("Expected 16m cell grid and integer terrain bounds")
-        if t["width"] <= 0 or t["height"] <= 0 or t["width"] % 16 or t["height"] % 16:
-            raise ValueError("Invalid terrain bounds")
-        expected = t["width"] // 16 * (t["height"] // 16)
-        if len(t.get("cells", [])) != expected:
-            raise ValueError("Terrain must include every cell, including absent/failed cells")
-        seen = set()
-        for cell in t["cells"]:
-            x, z, status = cell.get("x"), cell.get("z"), cell.get("status")
-            key = (x, z)
-            if (type(x) is not int or type(z) is not int or
-                    x < t["minX"] or x >= t["minX"] + t["width"] or
-                    z < t["minZ"] or z >= t["minZ"] + t["height"] or
-                    (x - t["minX"]) % 16 or (z - t["minZ"]) % 16 or key in seen):
-                raise ValueError("Duplicate, missing or out-of-bounds terrain cell")
-            seen.add(key)
-            if status not in {"ok", "absent", "failed"}:
-                raise ValueError("Unsupported cell status")
-            if status == "ok":
-                count = cell.get("safeCount")
-                if type(count) is not int or not 0 <= count <= 256:
-                    raise ValueError("Invalid safeCount")
-                if count:
-                    for k in ("candidateX", "candidateY", "candidateZ", "minY", "maxY"):
-                        if not isinstance(cell.get(k), (int, float)) or not math.isfinite(cell[k]):
-                            raise ValueError(f"Missing finite {k} in safe cell")
-                    if not x <= cell["candidateX"] < x + 16 or not z <= cell["candidateZ"] < z + 16:
-                        raise ValueError("Candidate outside measured cell")
-                    if not cell["minY"] <= cell["candidateY"] <= cell["maxY"]:
-                        raise ValueError("Candidate outside measured elevation bounds")
-        # Index every cell by its location. Input order is not an implicit contract.
-        grid = { (c["x"], c["z"]): c for c in t["cells"] }
-        t["cells"] = [grid[(x, z)] for z in range(t["minZ"], t["minZ"] + t["height"], 16)
-                      for x in range(t["minX"], t["minX"] + t["width"], 16)]
-
     def _load_catalog(self) -> tuple[dict, dict, str]:
         hash_input = hashlib.sha256()
         mobs = {}
@@ -489,11 +499,7 @@ class ContinentPlanner:
         return region_id, name, level
 
     def _classify(self, source: dict) -> dict:
-        c = {k: source.get(k) for k in ("x", "z", "status", "y", "candidateX", "candidateY", "candidateZ",
-              "surface", "ground", "biome", "safeCount", "waterCount", "treeCount", "minY", "maxY")}
-        if source.get("reason"):
-            c["terrainReason"] = source["reason"]
-        c["habitat"] = _habitat(source)
+        c = planning_terrain_cell(source)
         if self.road_mode:
             nearest = self.road_nearest.get((c["x"], c["z"])) if c["status"] == "ok" else None
             c["distanceToRoadMeters"] = round(nearest[0], 2) if nearest else None

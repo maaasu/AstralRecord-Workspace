@@ -2,6 +2,35 @@
 
 ワールドのコピーから地表を読み取り、既存のスポナーマスタを使った再配置案と未配置理由をローカルWebで比較するツールです。配置・削除・マスタ更新の実行機能はありません。既存配置にそのまま追加する案ではありません。
 
+## Dev ワールドの地図を更新する
+
+エディタの地図はワールドごとに更新できます。Windows、PowerShell 7、Python 3.11 以上、Java 21 と [スキャナーの JAR](scanner/README.md) を用意します。以下はリポジトリルートからの実行例です。
+
+```powershell
+python -m pip install -r 60_tool/spawner-planner/requirements.txt -r 60_tool/spawner-planner/requirements-detail.txt
+
+# Dev を正常停止してから実行
+python 60_tool/spawner-planner/refresh_world_map.py capture `
+  --world-id eriva_supercontinent `
+  --dev-server C:/server/AstralRecord-Dev/10_Dev `
+  --snapshot-root C:/server/MapSnapshots/eriva-20261107 `
+  --scanner-jar 60_tool/spawner-planner/scanner/target/region-terrain-scanner-1.0.0.jar
+
+# コピー完了後は Dev を再起動できます
+python 60_tool/spawner-planner/refresh_world_map.py publish `
+  --world-id eriva_supercontinent `
+  --snapshot-root C:/server/MapSnapshots/eriva-20261107 `
+  --cache-root 60_tool/skilltree-editor/.cache/spawner-planning
+```
+
+`--world-id` は Filebase のワールド ID です。両コマンドは既定でリポジトリ内の `40_filebase` を読み、`--filebase` で参照先を指定できます。`capture` はワールド定義の `baseWorldPath` を Dev ルートから解決します。別の配置を使う場合は Dev 内のフォルダーを `--source-world` で指定してください。コピー先にはワールドごと・取得ごとに新しいディレクトリを指定します。コピー中は元ワールドの `session.lock` を排他的に保持します。Dev の停止・再起動は運用者が行います。
+
+`publish` はコピー先だけで解析サーバーを起動し、完成済みの `analysis/continent-terrain.json` があれば再利用します。Java が PATH にない場合は `--java` に実行ファイルを指定します。解析の既定上限は60分で、必要に応じて `--scan-timeout-seconds` を指定できます。中断後に `analysis/.scan.lock` が残った場合は、コピー先の解析サーバーが停止していることを確認してから、そのファイルを削除して再実行します。
+
+エリヴァ超大陸では既定で西側街道ポリシーを使い、半径64mの配置案も公開します。ポリシーを切り替える場合は `--policy` を指定します。地形が変わって西側街道の条件を満たせない場合など、地形のみを更新するには `--terrain-only` を指定します。ほかのワールドは既定で地形のみを公開します。保存済みチャンクの外接範囲を対象とし、一辺8192ブロックまで解析できます。
+
+`--cache-root` はエディタが参照する地図データのルートです。公開時は完成したファイルを `worlds/<worldId>/<exportRevision>/` に配置してから、`worlds/<worldId>/current.txt` を切り替えます。処理が失敗した場合は前の版を引き続き参照できます。
+
 ## 初回の対象
 
 全大陸の確認は、[マスタデータエディタのワールド配置計画](../skilltree-editor/docs/SPAWNER_PLANNING.md) を使います。[全大陸モード](docs/CONTINENT.md) は16m区画の全列計測と、地域・実レベルに応じた再配置案を出力します。以下は初回に作成した768m四方の詳細解析と従来の単独Webの手順です。全大陸モードとは区画粒度・接続判定・出力契約が異なります。

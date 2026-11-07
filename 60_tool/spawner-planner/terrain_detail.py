@@ -208,7 +208,7 @@ def render_chunk(chunk: dict, rgba: np.ndarray, heights: np.ndarray, x0: int, z0
             heights[z0 + z, x0 + x] = y
 
 
-def render(world: Path, terrain: Path, output: Path) -> dict:
+def render(world: Path, terrain: Path, output: Path, *, require_rendered_chunks: bool = False) -> dict:
     raw = terrain.read_bytes()
     fingerprint = hashlib.sha256(raw).hexdigest()
     source = json.loads(raw)
@@ -239,6 +239,8 @@ def render(world: Path, terrain: Path, output: Path) -> dict:
                 failures.append(f"{cx},{cz}: {error}")
             if rendered % 10000 == 0 and rendered:
                 print(f"rendered {rendered} chunks", flush=True)
+    if require_rendered_chunks and not rendered:
+        raise ValueError("No measured chunk could be rendered from the copied world")
     # Use a north-west light source; normalize slopes while preserving material color.
     valid = rgba[:, :, 3] != 0
     north = np.empty_like(heights)
