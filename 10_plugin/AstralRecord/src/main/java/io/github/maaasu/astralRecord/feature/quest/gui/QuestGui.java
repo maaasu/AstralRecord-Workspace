@@ -300,6 +300,8 @@ public final class QuestGui {
         appendRewards(lore, quest.rewards());
         lore.add(Component.empty());
         if (listMode) {
+            lore.add(Component.text(questService.isTracking(player, quest.id())
+                ? "追跡中: クリックで解除" : "クリックで画面左上に追跡", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
             lore.add(Component.text("操作: ドロップで破棄します（確認なし）", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
         } else {
             lore.add(Component.text("操作: " + boardActionLabel(state, quest), color(state)).decoration(TextDecoration.ITALIC, false));

@@ -53,6 +53,8 @@ public class ResourcePackService {
     private final Set<UUID> requestedJavaCombatRewardPlaque = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockCombatRewardPlaque = ConcurrentHashMap.newKeySet();
     private final Map<UUID, ResourcePackRepository.ProfileHud> requestedJavaProfileHud = new ConcurrentHashMap<>();
+    private final Set<UUID> requestedJavaQuestHud = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> readyBedrockQuestHud = ConcurrentHashMap.newKeySet();
     private final Map<UUID, String> bedrockActionRingHudRevisions = new ConcurrentHashMap<>();
     private final Map<UUID, Player> pendingViewers = new LinkedHashMap<>();
     private boolean manifestLoading;
@@ -137,6 +139,7 @@ public class ResourcePackService {
                     loadedManagedJavaPacks.remove(viewer);
                     requestedJavaItemTooltips.remove(viewer);
                     requestedJavaProfileHud.remove(viewer);
+                    requestedJavaQuestHud.remove(viewer);
                     if (hadItemTooltips) {
                         player.updateInventory();
                     }
@@ -145,6 +148,7 @@ public class ResourcePackService {
                     requestedGameplaySounds.remove(viewer);
                     requestedJavaWeaponAttackProjectiles.remove(viewer);
                     requestedJavaSkillEffects.remove(viewer);
+                    if (pack.questTrackingHud()) requestedJavaQuestHud.add(viewer);
                     if (pack.actionRingPanel() != null) {
                         requestedActionRingPanels.put(viewer, pack.actionRingPanel());
                     }
@@ -395,6 +399,24 @@ public class ResourcePackService {
     public enum SkillEffectsClient { NONE, JAVA, BEDROCK }
 
     /**
+     * @param playerId 現在の閲覧者UUID
+     * @return 対応管理パックの適用成功を受けたJava接続ならtrue
+     */
+    public boolean hasJavaQuestHud(UUID playerId) {
+        return hasManagedJavaPack(playerId) && requestedJavaQuestHud.contains(playerId);
+    }
+
+    /** @param playerId 閲覧者UUID @return 対応パックを登録しログインした統合版接続ならtrue */
+    public boolean hasBedrockQuestHud(UUID playerId) {
+        return readyBedrockQuestHud.contains(playerId);
+    }
+
+    /** @param player Proxyが現在の接続の対応パックを確認したオンライン閲覧者 */
+    public void markBedrockQuestHudReady(Player player) {
+        if (player.isOnline()) readyBedrockQuestHud.add(player.getUniqueId());
+    }
+
+    /**
      * Proxy から対応パックの通知を受けた統合版接続を記録します。
      * @param player 通知の対象プレイヤー
      */
@@ -618,6 +640,8 @@ public class ResourcePackService {
         requestedJavaCombatRewardPlaque.remove(playerId);
         readyBedrockCombatRewardPlaque.remove(playerId);
         requestedJavaProfileHud.remove(playerId);
+        requestedJavaQuestHud.remove(playerId);
+        readyBedrockQuestHud.remove(playerId);
         bedrockActionRingHudRevisions.remove(playerId);
     }
 

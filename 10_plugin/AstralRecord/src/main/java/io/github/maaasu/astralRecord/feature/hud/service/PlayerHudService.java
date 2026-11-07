@@ -2,6 +2,8 @@ package io.github.maaasu.astralRecord.feature.hud.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.hud.view.PlayerHudView;
+import io.github.maaasu.astralRecord.feature.hud.view.QuestHudGlyphs;
+import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
 import io.github.maaasu.astralRecord.feature.hud.view.ProfileHudText;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
@@ -58,6 +60,51 @@ public class PlayerHudService {
     private PaladinGuardRuntimeService paladinGuardRuntimeService;
     private ArchmagePhoenixRuntimeService archmagePhoenixRuntimeService;
     private DungeonService dungeonService;
+    private QuestService questService;
+    private java.util.function.BiPredicate<Player, String> bedrockQuestHudSender = (player, text) -> false;
+    private final Map<UUID, String> bedrockQuestTexts = new HashMap<>();
+    private final Map<UUID, Long> bedrockQuestSentAt = new HashMap<>();
+
+    /** @param service インメモリの受領個体・進捗を参照するサービス */
+    public void setQuestService(@NotNull QuestService service) {
+        questService = service;
+        playerHudView.setQuestHudRenderer(player -> {
+            AstPlayer current = AstPlayerCache.get(player);
+            QuestService.TrackingText text = visibleTrackingText(current);
+            return text == null || !resourcePackService.hasJavaQuestHud(player.getUniqueId())
+                ? Component.empty() : QuestHudGlyphs.render(text.title(), text.objective());
+        });
+    }
+
+    /** @param sender 対応パック確認済み統合版へ独立TIPデータを送る処理 */
+    public void setBedrockQuestHudSender(@NotNull java.util.function.BiPredicate<Player, String> sender) {
+        bedrockQuestHudSender = sender;
+    }
+
+    private @Nullable QuestService.TrackingText visibleTrackingText(@Nullable AstPlayer player) {
+        if (questService == null || player == null || !player.getAccount().getMode().shouldProcessGameplay()
+            || bossChallengeService.isPlayerInActiveChallenge(player.getBukkit().getUniqueId())
+            || (dungeonService != null && dungeonService.isDungeonWorld(player.getBukkit().getWorld()))) return null;
+        return questService.trackingText(player);
+    }
+
+    private void updateBedrockQuestHud(Player player, @Nullable AstPlayer astPlayer) {
+        UUID id = player.getUniqueId();
+        if (!resourcePackService.hasBedrockQuestHud(id)) {
+            bedrockQuestTexts.remove(id);
+            bedrockQuestSentAt.remove(id);
+            return;
+        }
+        QuestService.TrackingText text = visibleTrackingText(astPlayer);
+        String payload = text == null ? " " : "§6" + text.title() + "\n§f" + text.objective();
+        long now = System.currentTimeMillis();
+        boolean heartbeat = text != null && now - bedrockQuestSentAt.getOrDefault(id, 0L) >= 2000L;
+        if ((!payload.equals(bedrockQuestTexts.get(id)) || heartbeat) && bedrockQuestHudSender.test(player, payload)) {
+            bedrockQuestTexts.put(id, payload);
+            bedrockQuestSentAt.put(id, now);
+        }
+    }
+
     private Function<AstPlayer, Component> swordSpiritRenderer = ignored -> Component.empty();
     private final Map<UUID, BukkitTask> actionBarOverrideTasks = new HashMap<>();
     private final Map<UUID, Function<AstPlayer, Component>> primaryActionBarRenderers = new HashMap<>();
@@ -162,6 +209,12 @@ public class PlayerHudService {
             actionBarOverrideTask.cancel();
         }
         actionBarOverrideTasks.clear();
+        playerHudView.setQuestHudRenderer(ignored -> Component.empty());
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (bedrockQuestTexts.containsKey(player.getUniqueId())) bedrockQuestHudSender.test(player, " ");
+        }
+        bedrockQuestTexts.clear();
+        bedrockQuestSentAt.clear();
         sidebarAccounts.clear();
         playerHudView.clearBuffPages();
         for (Player player : Bukkit.getOnlinePlayers()) {
@@ -275,6 +328,7 @@ public class PlayerHudService {
         double mspt = Bukkit.getServer().getAverageTickTime();
         for (Player player : Bukkit.getOnlinePlayers()) {
             AstPlayer astPlayer = AstPlayerCache.get(player);
+            updateBedrockQuestHud(player, astPlayer);
             if (astPlayer == null) {
                 clearProfileHud(player);
                 continue;
@@ -439,7 +493,7 @@ public class PlayerHudService {
     public void clearProfileHud(@NotNull Player player) {
         UUID playerId = player.getUniqueId();
         if (playerHudView.setJavaProfile(playerId, null) && player.isOnline()) {
-            player.sendActionBar(Component.empty());
+            playerHudView.sendComposedActionBar(player, Component.empty());
         }
     }
 
@@ -476,6 +530,8 @@ public class PlayerHudService {
      */
     public void clearSidebarBuffPage(@NotNull UUID playerId) {
         sidebarAccounts.remove(playerId);
+        bedrockQuestTexts.remove(playerId);
+        bedrockQuestSentAt.remove(playerId);
         playerHudView.clearBuffPage(playerId);
     }
 

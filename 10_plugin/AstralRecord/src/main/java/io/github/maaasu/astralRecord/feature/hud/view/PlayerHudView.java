@@ -49,6 +49,22 @@ import java.util.UUID;
 import java.util.HashMap;
 
 public class PlayerHudView {
+    private java.util.function.Function<Player, Component> questHudRenderer = ignored -> Component.empty();
+
+    /** @param renderer 現在のクエスト進捗を幅ゼロ字形へ変換するメインスレッド処理 */
+    public void setQuestHudRenderer(java.util.function.Function<Player, Component> renderer) {
+        questHudRenderer = renderer;
+    }
+
+    /**
+     * 合成済みActionBarの末尾へ幅ゼロのクエスト字形を付けます。
+     * @param player 現在の接続
+     * @param text 戦闘HUDや一時表示の合成済み本文
+     */
+    public void sendComposedActionBar(Player player, Component text) {
+        player.sendActionBar(text.append(questHudRenderer.apply(player)));
+    }
+
     private static final TextColor HEALTH_METER = TextColor.color(0xE35F73);
     private static final TextColor HEALTH_METER_PULSE = TextColor.color(0xFFB092);
     private static final TextColor MANA_METER = TextColor.color(0x68D8F5);
@@ -126,10 +142,10 @@ public class PlayerHudView {
             boolean vanillaTypeface = resourcePackService.hasJavaHudV5(playerId);
             boolean wideLayout = resourcePackService.hasJavaHudV6(playerId);
             BuffHudIcons.Line buffs = vanillaTypeface ? buffIcons(AstPlayerCache.get(player)) : BuffHudIcons.EMPTY;
-            player.sendActionBar(JavaProfileHud.compose(combat, javaProfiles.get(playerId),
+            sendComposedActionBar(player, JavaProfileHud.compose(combat, javaProfiles.get(playerId),
                     conditionHudText(activeConditions), buffs, vanillaTypeface, wideLayout));
         } else {
-            player.sendActionBar(combat);
+            sendComposedActionBar(player, combat);
         }
     }
 
@@ -391,10 +407,10 @@ public class PlayerHudView {
             ProfileHudText profile = expandedHud ? javaProfiles.get(playerId) : null;
             Component conditions = expandedHud ? conditionHudText(activeConditions) : Component.empty();
             BuffHudIcons.Line buffs = vanillaTypeface ? buffIcons(astPlayer) : BuffHudIcons.EMPTY;
-            player.sendActionBar(JavaProfileHud.arrangeCombat(resources, additionalStats, profile, conditions,
+            sendComposedActionBar(player, JavaProfileHud.arrangeCombat(resources, additionalStats, profile, conditions,
                     buffs, vanillaTypeface, wideLayout));
         } else {
-            player.sendActionBar(resources.append(additionalStats));
+            sendComposedActionBar(player, resources.append(additionalStats));
         }
     }
 

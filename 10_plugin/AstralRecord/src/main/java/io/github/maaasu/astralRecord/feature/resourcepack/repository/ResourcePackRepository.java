@@ -20,7 +20,7 @@ public final class ResourcePackRepository {
                            boolean hasGameplaySounds, boolean sunbirdPresentation, boolean seleneaPresentation,
                            boolean itemTooltips,
                            boolean weaponAttackProjectiles, @Nullable ProfileHud profileHud, boolean skillEffects,
-                           boolean combatRewardPlaque) {
+                           boolean combatRewardPlaque, boolean questTrackingHud) {
     }
 
     /** 個人情報HUDの字形とゲージの互換情報です。 */
@@ -91,7 +91,10 @@ public final class ResourcePackRepository {
                     default -> null;
                 };
                 return new JavaPack(sha1.getAsString(), panel, guiTheme, hasGameplaySounds, sunbirdPresentation,
-                    seleneaPresentation, itemTooltips, weaponAttackProjectiles, profileHud, skillEffects, combatRewardPlaque);
+                    seleneaPresentation, itemTooltips, weaponAttackProjectiles, profileHud, skillEffects, combatRewardPlaque,
+                    java.has("questTrackingHud") && java.get("questTrackingHud").isJsonPrimitive()
+                        && java.get("questTrackingHud").getAsJsonPrimitive().isString()
+                        && "1".equals(java.get("questTrackingHud").getAsString()));
             }
         } catch (RuntimeException exception) {
             throw new IOException("Invalid resource pack manifest", exception);
