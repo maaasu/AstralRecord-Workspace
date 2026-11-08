@@ -1,24 +1,46 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { JsonValue } from '../types/editor'
-import { minecraftIconName, minecraftIconUrl } from '../utils/minecraft'
+import { minecraftHeadTextureUrl, minecraftIconName, minecraftIconUrl, minecraftItemTextureUrl } from '../utils/minecraft'
 
 interface MinecraftIconProps {
   icon: JsonValue
+  customModelData?: JsonValue
+  iconTexture?: JsonValue
   revision?: number
   className?: string
 }
 
-export function MinecraftIcon({ icon, revision = 0, className = '' }: MinecraftIconProps) {
-  const [failed, setFailed] = useState(false)
-  const name = minecraftIconName(icon)
-  const source = minecraftIconUrl(icon, revision)
+interface IconSource { url: string; head: boolean }
 
-  useEffect(() => setFailed(false), [name, revision])
+export function MinecraftIcon({ icon, customModelData, iconTexture, revision = 0, className = '' }: MinecraftIconProps) {
+  const name = minecraftIconName(icon)
+  const sources: IconSource[] = []
+  const custom = minecraftItemTextureUrl(icon, customModelData, revision)
+  const head = minecraftHeadTextureUrl(icon, iconTexture)
+  const vanilla = minecraftIconUrl(icon, revision)
+  if (custom) sources.push({ url: custom, head: false })
+  if (head) sources.push({ url: head, head: true })
+  if (vanilla) sources.push({ url: vanilla, head: false })
+  return <IconPreview key={JSON.stringify(sources)} sources={sources} name={name} className={className} />
+}
+
+function IconPreview({ sources, name, className }: { sources: IconSource[]; name: string; className: string }) {
+  const [index, setIndex] = useState(0)
+  const source = sources[index]
+  const onError = () => setIndex(index + 1)
 
   return (
-    <span className={`minecraft-icon ${className} ${failed || !source ? 'missing' : ''}`} title={name || 'アイコン未設定'}>
-      {source && !failed
-        ? <img src={source} alt="" loading="lazy" decoding="async" draggable={false} onError={() => setFailed(true)} />
+    <span className={`minecraft-icon ${className} ${source ? '' : 'missing'}`} title={name || 'アイコン未設定'}>
+      {source
+        ? source.head
+          ? <span className="minecraft-head-face" key={source.url}>
+            <img src={source.url} alt="" loading="lazy" decoding="async" draggable={false} referrerPolicy="no-referrer" onError={onError} onLoad={(event) => {
+              const { naturalWidth: width, naturalHeight: height } = event.currentTarget
+              if (width < 64 || width > 1024 || width % 64 !== 0 || (height !== width && height !== width / 2)) onError()
+            }} />
+            <img src={source.url} alt="" loading="lazy" decoding="async" draggable={false} referrerPolicy="no-referrer" />
+          </span>
+          : <img key={source.url} src={source.url} alt="" loading="lazy" decoding="async" draggable={false} onError={onError} />
         : <span aria-label="アイコンを取得できません">?</span>}
     </span>
   )

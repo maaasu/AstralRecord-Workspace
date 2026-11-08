@@ -4,6 +4,8 @@ import type { JsonObject, JsonValue } from '../types/editor'
 import type { MasterField, MasterReference } from '../types/masterData'
 import { closestContainerPointer, parentPointer, replaceAtPointer, schemaAtPointer, summarizeMasterValue, valueAtPointer } from '../data/masterDataNavigation'
 import { fieldForPath, MasterDataForm, pointerKey } from './MasterDataForm'
+import { MasterVisualReferencesContext } from '../state/masterVisualReferences'
+import type { MasterVisualReferences } from '../state/masterVisualReferences'
 import { MinecraftText } from './MinecraftText'
 import { stripMinecraftFormatting } from '../utils/minecraft'
 import { masterFieldTitle } from '../data/masterDataPresentation'
@@ -160,9 +162,10 @@ interface DetailsProps {
   onInvalid: (path: string, message: string | null, text?: string) => void
   invalidValues?: Record<string, string>
   onChange: (value: JsonValue) => void
+  visualReferences?: MasterVisualReferences
 }
 
-export function MasterDataDetails({ value, path, fields, references, schema, disabled, navigationDisabled, onSelect, onFocus, onInvalid, invalidValues, onChange }: DetailsProps) {
+export function MasterDataDetails({ value, path, fields, references, schema, disabled, navigationDisabled, onSelect, onFocus, onInvalid, invalidValues, onChange, visualReferences }: DetailsProps) {
   const selectAndFocus = (nextPath: string) => {
     if (navigationDisabled) return
     onSelect(nextPath)
@@ -186,8 +189,10 @@ export function MasterDataDetails({ value, path, fields, references, schema, dis
     </nav>}
     <div className="master-node-heading"><h3 tabIndex={-1} data-node-heading>{nodeLabel(value, schema, fields, currentPath)}</h3>{currentPath && <code>{currentPath}</code>}</div>
     <fieldset className="master-form-lock" disabled={disabled}>
-      <MasterDataForm key={currentPath} value={current === undefined ? value : current} path={currentPath} fields={fields} references={references} schema={schemaAtPointer(schema, currentPath, value)} rootSchema={schema}
-        onInvalid={onInvalid} invalidValues={invalidValues} onNavigate={selectAndFocus} navigationDisabled={navigationDisabled} onChange={(next) => onChange(replaceAtPointer(value, currentPath, next))} />
+      <MasterVisualReferencesContext.Provider value={visualReferences ?? null}>
+        <MasterDataForm key={currentPath} value={current === undefined ? value : current} path={currentPath} fields={fields} references={references} schema={schemaAtPointer(schema, currentPath, value)} rootSchema={schema}
+          onInvalid={onInvalid} invalidValues={invalidValues} onNavigate={selectAndFocus} navigationDisabled={navigationDisabled} onChange={(next) => onChange(replaceAtPointer(value, currentPath, next))} />
+      </MasterVisualReferencesContext.Provider>
     </fieldset>
   </section>
 }

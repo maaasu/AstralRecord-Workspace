@@ -28,7 +28,7 @@ import { stripMinecraftFormatting } from '../utils/minecraft'
 type DraftState = MasterDraftState
 const emptyDraft: DraftState = { raw: '', content: null, source: 'raw' }
 const baseName = (path: string) => path.split('/').at(-1) ?? path
-const referenceKindLabel = (kind?: string) => ({ item: 'アイテム', class: 'クラス', skill: 'スキル', mob: 'モブ', gathering: '採集', world: 'ワールド', buff: 'バフ', quest: 'クエスト', loot: 'ドロップ報酬', node: 'ノード', structure: '構造', pet: 'ペット', fishing_fish: '釣り魚', fishing_area: '釣りエリア', fishing_rules: '釣りルール', loot_table: 'ドロップ報酬テーブル', loot_pool: 'ドロップ報酬プール', set_effect: 'セット効果', recipe: 'レシピ', dungeon: 'ダンジョン', guide: 'ガイド', spawner: 'スポナー', status: 'ステータス', tag: 'タグ', mail: 'メール', enchant: 'エンチャント', mob_spawner: 'モブスポナー', gathering_spawner: '採集スポナー', quest_board: 'クエスト掲示板', schema: '定義スキーマ', skilltree: 'スキルツリー' }[kind ?? ''] ?? kind ?? '参照')
+const referenceKindLabel = (kind?: string) => ({ item: 'アイテム', class: 'クラス', skill: 'スキル', mob: 'モブ', gathering: '採集', world: 'ワールド', buff: 'バフ', quest: 'クエスト', loot: 'ドロップ報酬', node: 'ノード', structure: '構造', pet: 'ペット', fishing_fish: '釣り魚', fishing_area: '釣りエリア', fishing_rules: '釣りルール', loot_table: 'ドロップ報酬テーブル', loot_pool: 'ドロップ報酬プール', set_effect: 'セット効果', recipe: 'レシピ', dungeon: 'ダンジョン', guide: 'ガイド', spawner: 'スポナー', status: 'ステータス', tag: 'タグ', mail: 'メール', enchant: 'エンチャント', mob_spawner: 'モブスポナー', gathering_spawner: 'ギャザリング用スポナー', quest_board: 'クエスト掲示板', schema: '定義スキーマ', skilltree: 'スキルツリー' }[kind ?? ''] ?? kind ?? '参照')
 const slugOf = (text: string) => text.normalize('NFKC').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '')
 const asObject = (value: JsonValue | undefined): JsonObject | undefined => value !== null && typeof value === 'object' && !Array.isArray(value) ? value : undefined
 const categoryOptionLabel = (entry: MasterCategory, count: number, categories: MasterCategory[]) => {
@@ -210,7 +210,7 @@ interface MasterDataEditorPaneProps {
 }
 
 function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, referenceTarget, onReferenceHandled, active, onOpenFile, onCloseTab, onTabStatus, onRegisterBrowserActions, browserDialogOpen, onRecoveryHandled, onOpenSkillTree }: MasterDataEditorPaneProps) {
-  const { catalog, files, candidates, refresh, rememberedPaths, categoryId, setCategoryId, sidebarCollapsed, setSidebarCollapsed, referenceVersion, invalidateReferences } = workspace
+  const { catalog, files, filesByPath, candidates, refresh, rememberedPaths, categoryId, setCategoryId, sidebarCollapsed, setSidebarCollapsed, referenceVersion, invalidateReferences } = workspace
   const [document, setDocument] = useState<MasterDocument | null>(null)
   const [documentVersion, setDocumentVersion] = useState(0)
   const [busy, setBusy] = useState(false)
@@ -265,9 +265,16 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
   const selectedFormPath = closestContainerPointer(draft.content, formPath)
   const category = catalog?.categories.find((entry) => entry.id === categoryId) ?? null
   const documentCategory = catalog?.categories.filter((entry) => document?.path.startsWith(`${entry.directory}/`)).sort((a, b) => b.directory.length - a.directory.length)[0] ?? null
-  const savedIcon = asObject(document?.content)?.icon
-  const displayedIcon = draft.source === 'form' ? asObject(draft.content)?.icon : savedIcon
-  const displayedName = masterDisplayName(draft.source === 'form' ? draft.content : document?.content)
+  const displayedValue = draft.source === 'form' ? draft.content : document?.content
+  const displayedContent = asObject(displayedValue)
+  const displayedIcon = displayedContent?.icon ?? (document?.path.startsWith('42.features.gathering/') ? displayedContent?.displayBlock
+    : /^(41\.features\.mob\.spawner|43\.features\.gathering\.spawner)\//.test(document?.path ?? '') ? displayedContent?.itemMaterial : undefined)
+  const { customModelData, iconTexture } = displayedContent ?? {}
+  const referencePrefixes = catalog?.referencePrefixes
+  const visualReferences = useMemo(() => ({
+    documentPath: document?.path ?? '', files: filesByPath, openFile: onOpenFile, referencePrefixes, customModelData, iconTexture,
+  }), [document?.path, filesByPath, onOpenFile, referencePrefixes, customModelData, iconTexture])
+  const displayedName = masterDisplayName(displayedValue)
   const readOnly = files.find((entry) => entry.path === document?.path)?.readOnly === true
   const nodeDocument = Boolean(document?.path.includes('/nodes/'))
   const schema = useMemo(() => {
@@ -541,16 +548,17 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     if (!active || !focusPath || draft.source !== 'form' || busy) return
     const targetValue = valueAtPointer(draft.content, focusPath.path)
     const container = closestContainerPointer(draft.content, targetValue !== null && typeof targetValue === 'object' ? focusPath.path : parentPointer(focusPath.path))
-    if (container !== selectedFormPath) {
+    const controls = Array.from(editorElement.current?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('.master-node-editor input, .master-node-editor textarea, .master-node-editor select') ?? [])
+    const findControl = (label: string) => controls.find((entry) => !entry.matches(':disabled') && entry.getAttribute('aria-label') === label)
+    const inlineTarget = findControl(focusPath.path || '/')
+    if (!inlineTarget && container !== selectedFormPath) {
       if (Object.keys(invalidInputs).length) { setNotice('編集中の数値を修正してから別の項目へ移動してください。'); setFocusPath(null); return }
       setFormPath(container)
       if (document) rememberedPaths.current[document.path] = container
       return
     }
     const parent = parentPointer(focusPath.path)
-    const focusLabels = [focusPath.path || '/']
-    if (Array.isArray(valueAtPointer(draft.content, parent))) focusLabels.push(parent)
-    const target = Array.from(editorElement.current?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('.master-node-editor input, .master-node-editor textarea, .master-node-editor select') ?? []).find((entry) => focusLabels.includes(entry.getAttribute('aria-label') ?? ''))
+    const target = inlineTarget ?? (Array.isArray(valueAtPointer(draft.content, parent)) ? findControl(parent) : undefined)
     if (target) {
       for (let parent = target.parentElement; parent; parent = parent.parentElement) if (parent instanceof HTMLDetailsElement) parent.open = true
       target.focus(); target.scrollIntoView?.({ block: 'center' })
@@ -567,7 +575,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
   return <main ref={editorElement} className="master-editor master-document-only">
     <input hidden ref={importInput} type="file" accept=".yml,.yaml,.json,text/yaml,application/json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void replaceRaw(file); event.target.value = '' }} />
     <section className="master-workspace">
-      <header className="master-document-header">{sidebarCollapsed && <button type="button" className="button compact subtle" aria-expanded={false} onClick={() => setSidebarCollapsed(false)}>ナビを表示</button>}{typeof displayedIcon === 'string' && <span role="img" aria-label={`${draft.source === 'form' ? '編集中' : '保存済み'}のアイコン: ${displayedIcon}`}><MinecraftIcon icon={displayedIcon} className="master-header-icon" /></span>}<div><h2>{displayedName ? <MinecraftText value={displayedName} /> : document ? baseName(document.path) : 'ファイルを選択してください'}</h2><code>{document?.path ?? 'YAML / JSONをフォームまたは原稿で編集できます。'}</code></div>{document && <span className={`save-state ${dirty ? 'dirty' : ''}`}>{readOnly ? '閲覧のみ' : dirty ? '未保存' : '保存済み'}</span>}</header>
+      <header className="master-document-header">{sidebarCollapsed && <button type="button" className="button compact subtle" aria-expanded={false} onClick={() => setSidebarCollapsed(false)}>ナビを表示</button>}{typeof displayedIcon === 'string' && <span role="img" aria-label={`${draft.source === 'form' ? '編集中' : '保存済み'}のアイコン: ${displayedIcon}`}><MinecraftIcon icon={displayedIcon} customModelData={customModelData} iconTexture={iconTexture} className="master-header-icon" /></span>}<div><h2>{displayedName ? <MinecraftText value={displayedName} /> : document ? baseName(document.path) : 'ファイルを選択してください'}</h2><code>{document?.path ?? 'YAML / JSONをフォームまたは原稿で編集できます。'}</code></div>{document && <span className={`save-state ${dirty ? 'dirty' : ''}`}>{readOnly ? '閲覧のみ' : dirty ? '未保存' : '保存済み'}</span>}</header>
       {recovery && document && <section className="master-recovery-panel" aria-label="未保存の下書きの復元"><strong>再読込前の下書きがあります</strong><p>{recovery.document.revision === document.revision && !recovery.requiresDiffReview ? '下書きを復元して編集を続けられます。ファイルへは明示保存するまで反映しません。' : '保存済みファイルは下書き作成後に変更されています。復元後の保存には最新原稿との差分確認が必要です。'}</p><div className="button-row"><button type="button" className="button primary" disabled={readOnly} onClick={() => {
         history.reset(recovery.draft); setInvalidValues(recovery.invalidValues); setInvalidInputs({})
         setFormPath(closestContainerPointer(recovery.draft.content, recovery.formPath))
@@ -623,7 +631,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
           if (event.key !== 'Tab') return
           event.preventDefault(); const target = event.currentTarget; const start = target.selectionStart; const end = target.selectionEnd
           history.record({ raw: `${draft.raw.slice(0, start)}  ${draft.raw.slice(end)}`, content: null, source: 'raw' }); requestAnimationFrame(() => { target.selectionStart = target.selectionEnd = start + 2 })
-        }} /></> : <MasterDataDetails key={documentVersion} value={draft.content} path={selectedFormPath} fields={documentCategory?.fields ?? []} schema={schema} references={candidates} disabled={busy || readOnly} navigationDisabled={busy || Object.keys(invalidInputs).length > 0} onSelect={selectFormPath} onFocus={focusIssue} onInvalid={handleInvalid} invalidValues={invalidValues} onChange={(content) => { history.record({ ...draft, content, source: 'form' }); setReport(null) }} />}
+        }} /></> : <MasterDataDetails key={documentVersion} value={draft.content} path={selectedFormPath} fields={documentCategory?.fields ?? []} schema={schema} references={candidates} visualReferences={visualReferences} disabled={busy || readOnly} navigationDisabled={busy || Object.keys(invalidInputs).length > 0} onSelect={selectFormPath} onFocus={focusIssue} onInvalid={handleInvalid} invalidValues={invalidValues} onChange={(content) => { history.record({ ...draft, content, source: 'form' }); setReport(null) }} />}
       </> : <div className="master-empty"><h2>{initialPath ? busy ? 'ファイルを読み込んでいます…' : 'ファイルを読み込めませんでした' : 'マスターデータを編集'}</h2><p>左の一覧からファイルを選択するか、新規作成・原稿の読込で開始します。</p>{initialPath && <button type="button" className="button" disabled={busy} onClick={() => void loadDocument(initialPath)}>ファイルを再読込</button>}{category && <p>{category.label} · {category.directory}</p>}{!initialPath && <div className="master-empty-steps"><div><b>01 / 探す</b><strong>目的のファイルへ</strong><span>フォルダと名前・IDの検索、詳細フィルターを使って絞り込みます。</span></div><div><b>02 / 編集する</b><strong>自分に合った方法で</strong><span>日本語フォームと原稿を切り替え、複数のタブで作業できます。</span></div><div><b>03 / 確かめる</b><strong>差分・検証から保存へ</strong><span>変更点と入力エラーを確認し、保存ボタンまたは Ctrl+S で反映します。</span></div></div>}</div>}</div>
       {(report || Object.keys(invalidInputs).length > 0) && <MasterValidationResults report={report} invalidInputs={invalidInputs} headingRef={validationHeading} active={active} onSelect={focusIssue} />}
       </fieldset>

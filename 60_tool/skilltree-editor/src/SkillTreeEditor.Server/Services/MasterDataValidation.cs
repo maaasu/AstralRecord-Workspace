@@ -169,20 +169,8 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
     {
         var references = ReferenceValues(content).ToArray();
         if (references.Length == 0) return;
-        var configurationPath = paths.Resolve("config.yml");
-        if (!File.Exists(configurationPath)) return;
-        var config = codec.Parse("config.yml", await File.ReadAllTextAsync(configurationPath, token)).Content as JsonObject;
-        if (config?["referenceResolver"] is not JsonArray resolvers) return;
-        var prefixKinds = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var resolver in resolvers.OfType<JsonObject>())
-        {
-            var kind = Text(resolver["database"])?.Replace('.', '_');
-            if (kind is null) continue;
-            if (Text(resolver["prefix"]) is { } prefix) prefixKinds[prefix.TrimEnd(':')] = kind;
-            if (resolver["aliases"] is JsonArray aliases)
-                foreach (var alias in aliases)
-                    if (Text(alias) is { } value) prefixKinds[value.TrimEnd(':')] = kind;
-        }
+        var prefixKinds = await MasterReferencePrefixes.ReadAsync(paths, codec, token);
+        if (prefixKinds is null) return;
         var wantedKinds = references.Select(reference => reference.Value.Split(':', 2)[0])
             .Where(prefixKinds.ContainsKey).Select(prefix => prefixKinds[prefix]).ToHashSet(StringComparer.Ordinal);
         var identifiers = new HashSet<string>(StringComparer.Ordinal);

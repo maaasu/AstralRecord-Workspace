@@ -10,6 +10,25 @@ export function minecraftIconUrl(icon: JsonValue, revision = 0): string | null {
   return `/api/minecraft-icons/${encodeURIComponent(name)}?revision=${revision}`
 }
 
+export function minecraftItemTextureUrl(icon: JsonValue, modelData: JsonValue | undefined, revision = 0): string | null {
+  const name = minecraftIconName(icon).toLowerCase().replace(/^minecraft:/, '')
+  if (!/^[a-z0-9_]+$/.test(name) || typeof modelData !== 'number' || !Number.isInteger(modelData)
+    || modelData < -2_147_483_648 || modelData > 2_147_483_647) return null
+  return `/api/minecraft-item-textures/${name}/${modelData}?revision=${revision}`
+}
+
+export function minecraftHeadTextureUrl(icon: JsonValue, texture: JsonValue | undefined): string | null {
+  if (minecraftIconName(icon).toLowerCase().replace(/^minecraft:/, '') !== 'player_head'
+    || typeof texture !== 'string' || !texture || texture.length > 16_384) return null
+  try {
+    const url: unknown = JSON.parse(atob(texture)).textures?.SKIN?.url
+    const match = typeof url === 'string' && /^https?:\/\/textures\.minecraft\.net\/texture\/([0-9a-f]{1,64})$/i.exec(url)
+    return match ? `https://textures.minecraft.net/texture/${match[1]}` : null
+  } catch {
+    return null
+  }
+}
+
 export function stripMinecraftFormatting(value: string): string {
   return parseMinecraftText(value).map((segment) => segment.text).join('')
 }

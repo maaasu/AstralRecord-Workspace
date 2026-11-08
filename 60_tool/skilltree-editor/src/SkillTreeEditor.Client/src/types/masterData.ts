@@ -28,6 +28,7 @@ export interface MasterCatalog {
   root: string
   backups: string
   categories: MasterCategory[]
+  referencePrefixes?: Record<string, string> | null
 }
 
 export interface MasterFileSummary {
@@ -42,6 +43,8 @@ export interface MasterFileSummary {
   parseError?: string | null
   readOnly?: boolean
   icon?: string | null
+  customModelData?: number | null
+  iconTexture?: string | null
 }
 
 export interface MasterDocument {

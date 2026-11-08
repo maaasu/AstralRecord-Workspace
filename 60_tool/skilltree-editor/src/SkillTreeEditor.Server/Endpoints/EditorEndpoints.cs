@@ -42,6 +42,18 @@ public static class EditorEndpoints
             });
         }
 
+        if (endpoints.ServiceProvider.GetService<WorkspaceItemTextures>() is not null)
+        {
+            api.MapGet("/minecraft-item-textures/{material}/{modelData:int}",
+                (string material, int modelData, WorkspaceItemTextures textures, HttpContext context) =>
+                {
+                    context.Response.Headers.CacheControl = "no-cache";
+                    var path = textures.FindPath(material, modelData);
+                    return path is null ? Results.NotFound()
+                        : Results.File(path, "image/png", lastModified: File.GetLastWriteTimeUtc(path));
+                });
+        }
+
         api.MapGet("/nodes", async (FilebaseRepository repository, CancellationToken token) =>
         {
             var documents = await repository.ReadNodesAsync(token);

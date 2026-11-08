@@ -29,6 +29,7 @@ builder.Services.AddSingleton<MasterDataCatalog>();
 builder.Services.AddSingleton<MasterDataValidation>();
 builder.Services.AddSingleton<MasterDataService>();
 builder.Services.AddSingleton<MasterDataFilterIndexService>();
+builder.Services.AddSingleton<WorkspaceItemTextures>();
 builder.Services.AddHttpClient<MinecraftIconService>((services, client) =>
 {
     var options = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<EditorOptions>>().Value;

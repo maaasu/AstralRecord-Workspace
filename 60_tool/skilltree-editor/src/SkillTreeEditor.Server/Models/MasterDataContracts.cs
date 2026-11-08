@@ -7,7 +7,8 @@ public sealed record MasterDataReport(bool IsValid, IReadOnlyList<MasterDataIssu
 public sealed record MasterDataDocument(string Path, string Format, string Raw, string Revision,
     JsonNode? Content, IReadOnlyList<MasterDataIssue> Issues, bool ReadOnly = false);
 public sealed record MasterDataFile(string Path, string Category, string Format, string? Id, string? Name,
-    long Size, DateTimeOffset ModifiedUtc, string Revision, string? ParseError, bool ReadOnly, string? Icon = null);
+    long Size, DateTimeOffset ModifiedUtc, string Revision, string? ParseError, bool ReadOnly, string? Icon = null,
+    int? CustomModelData = null, string? IconTexture = null);
 public sealed record MasterDataField(string Path, string Key, string Label, string Type, bool Required,
     string Description, string? Default, string Source, JsonArray? Enum = null, string? Reference = null);
 public sealed record MasterDataSource(string Path, string Title);
@@ -17,7 +18,8 @@ public sealed record MasterDataCategory(string Id, string Label, string Director
     IReadOnlyList<MasterDataSource> Documents, IReadOnlyList<MasterDataField> Fields,
     IReadOnlyList<MasterDataSchema> JsonSchemas, IReadOnlyList<MasterDataTemplate> Templates,
     string? ItemCategoryCode);
-public sealed record MasterDataCatalogResult(string Root, string Backups, IReadOnlyList<MasterDataCategory> Categories);
+public sealed record MasterDataCatalogResult(string Root, string Backups, IReadOnlyList<MasterDataCategory> Categories,
+    IReadOnlyDictionary<string, string>? ReferencePrefixes = null);
 public sealed record MasterDataParseRequest(string Path, string Raw);
 public sealed record MasterDataParseResult(JsonNode? Content, IReadOnlyList<MasterDataIssue> Issues);
 public sealed record MasterDataRenderRequest(string Path, JsonNode? Content, string? OriginalRaw);

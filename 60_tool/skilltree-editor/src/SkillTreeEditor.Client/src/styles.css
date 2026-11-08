@@ -155,6 +155,9 @@ body.resizing-rows, body.resizing-rows * { cursor: row-resize !important; }
 .minecraft-icon { display: inline-grid; place-items: center; flex: 0 0 auto; overflow: hidden; color: #71819a; border: 1px solid #33435a; border-radius: 5px; background: radial-gradient(circle, #253247, #111925 72%); font: 700 16px ui-monospace, monospace; image-rendering: pixelated; }
 .minecraft-icon img { width: 100%; height: 100%; display: block; object-fit: contain; image-rendering: pixelated; }
 .minecraft-icon.missing { border-style: dashed; }
+.minecraft-head-face { position: relative; width: 78%; aspect-ratio: 1; overflow: hidden; }
+.minecraft-icon .minecraft-head-face img { position: absolute; width: 800%; height: auto; max-width: none; top: -100%; left: -100%; }
+.minecraft-icon .minecraft-head-face img + img { left: -500%; }
 .canvas-node-icon { width: min(58px, calc(var(--skill-node-size, 56px) * .52)); height: min(58px, calc(var(--skill-node-size, 56px) * .52)); border: 0; background: transparent; }
 .skill-node.compact .canvas-node-icon { width: calc(var(--skill-node-size, 56px) * .68); height: calc(var(--skill-node-size, 56px) * .68); }
 .sidebar-node-icon { width: 34px; height: 34px; grid-column: 1; grid-row: 1 / -1; align-self: center; }

@@ -93,6 +93,30 @@ public sealed class MasterDataTests : IDisposable
     }
 
     [Fact]
+    public async Task CatalogDistinguishesSpawnerFoldersAndListsResourcePackIconMetadata()
+    {
+        Write("41.features.mob.spawner/v1.forest.yml", "id: forest\n");
+        Write("43.features.gathering.spawner/v1.ore.yml", "id: ore\n");
+        Write("10.features.item/10.material/v1.10a00003.windleaf_sprig.yml",
+            "id: 10a00003\nicon: FERN\ncustomModelData: 230003\n");
+        Write("42.features.gathering/mining/v1.ore.yml", "id: ore\ndisplayBlock: COPPER_ORE\n");
+        Write("config.yml", "referenceResolver:\n  - prefix: 'item:'\n    database: item\n    aliases: [im]\n");
+
+        var catalog = await _catalog.ReadAsync(_root, CancellationToken.None);
+        var categories = catalog.Categories;
+        Assert.Equal("モブスポナー", categories.Single(category => category.Id == "41.features.mob.spawner").Label);
+        Assert.Equal("ギャザリング用スポナー", categories.Single(category => category.Id == "43.features.gathering.spawner").Label);
+        Assert.Equal("item", catalog.ReferencePrefixes!["im"]);
+
+        var item = Assert.Single(await _service.ListAsync("10.features.item", null, CancellationToken.None));
+        Assert.Equal("FERN", item.Icon);
+        Assert.Equal(230003, item.CustomModelData);
+        var gathering = Assert.Single(await _service.ListAsync("42.features.gathering", null, CancellationToken.None));
+        Assert.Equal("COPPER_ORE", gathering.Icon);
+        Assert.Null(gathering.CustomModelData);
+    }
+
+    [Fact]
     public async Task SpawnerListReplacesEmbeddedMobBaseLevelWithActualSpawnLevels()
     {
         Write("40.features.mob/enemy/v1.hunter.yml", "id: hunter\nname: '&2下草の狩人 Lv.15'\n");

@@ -21,7 +21,8 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
             var obj = document.Content as JsonObject;
             var id = MasterDataValidation.Text(obj?["id"] ?? obj?["nodeId"] ?? obj?["structureId"]);
             var name = DisplayName(obj);
-            if (Kind(document.Path) == "mob_spawner" && obj?["spawnMobs"] is JsonArray spawns)
+            var kind = Kind(document.Path);
+            if (kind == "mob_spawner" && obj?["spawnMobs"] is JsonArray spawns)
             {
                 mobNames ??= await ReadMobNamesAsync(token);
                 var labels = spawns.OfType<JsonObject>().Select(spawn =>
@@ -37,14 +38,31 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
                 }).Distinct().ToArray();
                 if (labels.Length > 0) name = string.Join(" / ", labels);
             }
-            var icon = obj?["icon"] is JsonValue iconValue && iconValue.TryGetValue<string>(out var material) ? material : null;
+            var icon = JsonValueReader.String(obj?["icon"]);
+            icon ??= kind switch
+            {
+                "gathering" => JsonValueReader.String(obj?["displayBlock"]),
+                "mob_spawner" or "gathering_spawner" => JsonValueReader.String(obj?["itemMaterial"]),
+                _ => null,
+            };
+            var modelData = ReadModelData(obj?["customModelData"]);
+            var iconTexture = JsonValueReader.String(obj?["iconTexture"]);
             if (!string.IsNullOrWhiteSpace(query) && !(document.Path + "\n" + id + "\n" + name + "\n" + document.Raw).Contains(query, StringComparison.OrdinalIgnoreCase)) continue;
             var info = new FileInfo(file);
             result.Add(new(document.Path, paths.Relative(info.DirectoryName!), document.Format, id, name,
                 info.Length, info.LastWriteTimeUtc, document.Revision, document.Issues.FirstOrDefault()?.Message,
-                MasterDataPaths.IsReadOnly(document.Path), icon));
+                MasterDataPaths.IsReadOnly(document.Path), icon, icon is null ? null : modelData, iconTexture));
         }
         return result;
+    }
+
+    private static int? ReadModelData(JsonNode? node)
+    {
+        if (node is not JsonValue value) return null;
+        if (value.TryGetValue<int>(out var integer)) return integer;
+        // YAML integers are stored as Int64 by MasterDataCodec.
+        return value.TryGetValue<long>(out var yaml) && yaml is >= int.MinValue and <= int.MaxValue
+            ? (int)yaml : null;
     }
 
     public async Task<IReadOnlyList<ChallengeEntryMarker>> ListChallengeEntriesAsync(string worldId, CancellationToken token)

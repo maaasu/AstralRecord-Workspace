@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { masterDataApi } from '../api/masterDataApi'
 import type { MasterCatalog, MasterFileSummary, MasterFilterIndex, MasterReference } from '../types/masterData'
 import { categoryFacetOptions, categoryNumericOptions, inCategory, isDropSourceDirectory, type NumericFilters } from '../data/masterDataFilters'
@@ -7,6 +7,7 @@ import { categoryFacetOptions, categoryNumericOptions, inCategory, isDropSourceD
 export function useMasterDataWorkspace() {
   const [catalog, setCatalog] = useState<MasterCatalog | null>(null)
   const [files, setFiles] = useState<MasterFileSummary[]>([])
+  const filesByPath = useMemo(() => new Map(files.map((file) => [file.path, file])), [files])
   const [filterIndex, setFilterIndex] = useState<MasterFilterIndex | null>(null)
   const [candidates, setCandidates] = useState<MasterReference[]>([])
   const [loading, setLoading] = useState(true)
@@ -104,7 +105,7 @@ export function useMasterDataWorkspace() {
   useEffect(() => { setVisibleCount(50) }, [categoryId, query, searchScope, format, dropSourcePath, skillTag, dropItemId, dropPresence, facetFilters, fileStatus, numericFilters])
 
   return {
-    catalog, files, filterIndex, candidates, loading, refreshing, error, notice, setError, setNotice, refresh, rememberedPaths, referenceVersion, invalidateReferences,
+    catalog, files, filesByPath, filterIndex, candidates, loading, refreshing, error, notice, setError, setNotice, refresh, rememberedPaths, referenceVersion, invalidateReferences,
     categoryId, setCategoryId, query, setQuery, searchScope, setSearchScope, browserView, setBrowserView, expandedCategories, setExpandedCategories, numericFilters, setNumericFilters, format, setFormat, sourceQuery, setSourceQuery,
     dropSourcePath, setDropSourcePath, skillTag, setSkillTag, visibleCount, setVisibleCount,
     dropItemQuery, setDropItemQuery, dropItemId, setDropItemId, dropPresence, setDropPresence,

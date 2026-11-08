@@ -84,7 +84,8 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
             var category = await ReadCategoryAsync(paths.Relative(directory), entries, token);
             categories.Add(category);
         }
-        return new(paths.Root, backups, categories);
+        var referencePrefixes = await MasterReferencePrefixes.ReadAsync(paths, new MasterDataCodec(), token);
+        return new(paths.Root, backups, categories, referencePrefixes);
     }
 
     public async Task<MasterDataCategory> GetAsync(string category, CancellationToken token)
@@ -140,10 +141,11 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         foreach (var path in ownFiles.Where(path => !path.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase)).Take(3))
             templates.Add(new(paths.Relative(path), await File.ReadAllTextAsync(path, Encoding.UTF8, token)));
         var parts = category.Split('/');
-        var label = string.Join(" / ", parts.Select(part =>
+        var label = string.Join(" / ", parts.Select(part => part switch
         {
-            var key = part.Split('.').Last();
-            return CategoryLabels.GetValueOrDefault(key) ?? part;
+            "41.features.mob.spawner" => "モブスポナー",
+            "43.features.gathering.spawner" => "ギャザリング用スポナー",
+            _ => CategoryLabels.GetValueOrDefault(part.Split('.').Last()) ?? part
         }));
         return new(category, category == "." ? "Filebase 設定" : label, category, ownFiles.Length,
             documents, fields.Values.ToArray(), schemas, templates, ItemCode(category));

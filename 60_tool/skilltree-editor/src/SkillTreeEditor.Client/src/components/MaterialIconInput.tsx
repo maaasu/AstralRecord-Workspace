@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { minecraftMaterialSuggestions } from '../data/nodeFieldSuggestions'
 import { MinecraftIcon } from './MinecraftIcon'
 import { SuggestionInput } from './SuggestionInput'
+import type { JsonValue } from '../types/editor'
 import './materialIconInput.css'
 
 const MaterialIconPickerDialog = lazy(() => import('./MaterialIconPickerDialog').then(module => ({ default: module.MaterialIconPickerDialog })))
@@ -15,10 +16,12 @@ interface MaterialIconInputProps {
   suggestions?: readonly string[]
   revision?: number
   placeholder?: string
+  customModelData?: JsonValue
+  iconTexture?: JsonValue
 }
 
 /** Keep free text and the original saved value; selection supplies a canonical Material ID. */
-export function MaterialIconInput({ value, onChange, ariaLabel = 'Minecraft Material', disabled = false, suggestions = minecraftMaterialSuggestions, revision = 0, placeholder }: MaterialIconInputProps) {
+export function MaterialIconInput({ value, onChange, ariaLabel = 'Minecraft Material', disabled = false, suggestions = minecraftMaterialSuggestions, revision = 0, placeholder, customModelData, iconTexture }: MaterialIconInputProps) {
   const [open, setOpen] = useState(false)
   const [retry, setRetry] = useState(0)
   const opener = useRef<HTMLButtonElement>(null)
@@ -31,7 +34,7 @@ export function MaterialIconInput({ value, onChange, ariaLabel = 'Minecraft Mate
   }
   return <div className="material-icon-input">
     <span className="material-icon-input-preview" role="img" aria-label={value ? `素材アイコン: ${value}` : '素材アイコン未設定'}>
-      <MinecraftIcon icon={value} revision={revision + retry} className="material-field-icon" />
+      <MinecraftIcon icon={value} customModelData={customModelData} iconTexture={iconTexture} revision={revision + retry} className="material-field-icon" />
     </span>
     <div className="material-icon-input-controls">
       <SuggestionInput aria-label={ariaLabel} value={value} disabled={disabled} suggestions={suggestions} placeholder={placeholder} onChange={event => onChange(event.target.value)} />
