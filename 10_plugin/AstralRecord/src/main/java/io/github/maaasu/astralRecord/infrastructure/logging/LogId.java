@@ -1054,6 +1054,8 @@ public enum LogId {
     I_6410(6410),
     /** 配置 API の取得または公開に失敗しました: %s */
     E_6411(6411),
+    /** Dev 配置 API でウェイストーンの登録を確認できませんでした: id=%s */
+    E_6412(6412),
     // endregion
 
     // region /feature/boss/ 6500-6529

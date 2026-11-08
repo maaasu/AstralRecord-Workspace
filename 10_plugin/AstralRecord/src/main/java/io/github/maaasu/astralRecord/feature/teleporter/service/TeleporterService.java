@@ -197,24 +197,8 @@ public final class TeleporterService {
         if (definitionRepository.isApiMode()) {
             throw new IllegalStateException("World placements are API-managed and read-only in game");
         }
-        Player player = astPlayer.getBukkit();
-        Location location = player.getLocation();
-        String id = generateId(name);
-        WaystoneDefinition definition = new WaystoneDefinition(
-                id,
-                name.trim(),
-                location.getWorld().getName(),
-                location.getBlockX(),
-                location.getBlockY(),
-                location.getBlockZ(),
-                location.getYaw(),
-                location.getPitch(),
-                lockEnabled,
-                lockEnabled ? Math.max(0L, unlockGold) : 0L,
-                icon,
-                Instant.now(),
-                astPlayer.getUser().getUuid().toString()
-        );
+        WaystoneDefinition definition = captureDefinition(astPlayer, astPlayer.getBukkit().getLocation(),
+            generateId(name), name, lockEnabled, unlockGold, icon);
         definitionsById.put(definition.id(), definition);
         try {
             saveAll();
@@ -226,6 +210,31 @@ public final class TeleporterService {
         syncAllViews();
         Logger.log(LogId.I_5950, definition.id(), definition.name(), definition.worldName());
         return definition;
+    }
+
+    /**
+     * Dev 配置 API 用の新規定義をメインスレッドで組み立てます。永続化や公開は行いません。
+     *
+     * @param astPlayer 作成者
+     * @param location コマンド受付時の現在地
+     * @param name 表示名
+     * @param lockEnabled ロック有効フラグ
+     * @param unlockGold 解除に必要なゴールド
+     * @param icon 表示アイコン。未指定の場合は null
+     * @return 新規 ID を持つ未公開の定義
+     */
+    public @NotNull WaystoneDefinition captureDevWaystone(@NotNull AstPlayer astPlayer, @NotNull Location location,
+            @NotNull String name, boolean lockEnabled, long unlockGold, @Nullable Material icon) {
+        return captureDefinition(astPlayer, location, "ws-" + UUID.randomUUID(), name, lockEnabled, unlockGold, icon);
+    }
+
+    /** 指定 ID と現在地から共通の登録用定義を組み立てます。 */
+    private static WaystoneDefinition captureDefinition(AstPlayer astPlayer, Location location, String id,
+            String name, boolean lockEnabled, long unlockGold, @Nullable Material icon) {
+        return new WaystoneDefinition(id, name.trim(), location.getWorld().getName(),
+            location.getBlockX(), location.getBlockY(), location.getBlockZ(), location.getYaw(), location.getPitch(),
+            lockEnabled, lockEnabled ? Math.max(0L, unlockGold) : 0L, icon, Instant.now(),
+            astPlayer.getUser().getUuid().toString());
     }
 
     /**
@@ -635,7 +644,7 @@ public final class TeleporterService {
         definitionRepository.saveAll(definitionsById.values());
     }
 
-    /** @return API 配置モードでゲーム内管理操作が読み取り専用なら true。 */
+    /** @return 配置の正本が API であり、ローカルの管理操作を使えない場合は true。 */
     public boolean isPlacementReadOnly() {
         return definitionRepository.isApiMode();
     }

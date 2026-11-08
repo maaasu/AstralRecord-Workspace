@@ -793,6 +793,7 @@ public final class AstralRecord extends JavaPlugin {
                 serverRecordDisplayService,
                 serverRecordWorldService,
                 teleporterService,
+                worldPlacementRepository,
                 trainingDummyService,
                 trainingDummyGui,
                 adminMessageBossBarService,
@@ -3802,6 +3803,18 @@ public final class AstralRecord extends JavaPlugin {
             }
         });
         return completion;
+    }
+
+    /**
+     * 配置 API の保存確認後に呼び出し、保存前に始まった取得を待ってから最新状態を再読込します。
+     *
+     * @return 最新の公開済みスナップショットを返す future。停止中や再読込失敗時は例外完了
+     */
+    public @org.jetbrains.annotations.NotNull CompletableFuture<WorldPlacementRepository.Snapshot> reloadWorldPlacementsAfterWrite() {
+        var pending = worldPlacementReloadInFlight.get();
+        var ready = pending == null ? CompletableFuture.completedFuture(null) : pending.handle((snapshot, failure) -> null);
+        return ready.thenCompose(ignored -> isEnabled() ? reloadWorldPlacements()
+            : CompletableFuture.failedFuture(new IllegalStateException("Plugin is disabled")));
     }
 
     /**

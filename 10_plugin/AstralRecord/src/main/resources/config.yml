@@ -82,12 +82,13 @@ api:
     verifyEnabled: true
 
 # スポナー・NPC・ウェイストーン配置の正本。移行済みサーバーだけ api に切り替える。
-# api モードは起動時と /worldplacements reload 時に全種別を一括取得し、
-# ゲーム内の設置・削除を読み取り専用にする。編集は World Placement Editor で行う。
+# api モードは起動時と /worldplacements reload 時に全種別を一括取得する。
+# Dev の /teleporter set は writeKey を設定したサーバーだけ許可する。
 worldPlacements:
   mode: "local" # local | api
   environment: "dev" # dev | channels
   baseUrl: "" # 例: http://127.0.0.1:5001（専用配置 API）
+  writeKey: "" # Dev の /teleporter set を許可する場合だけ API の WorldPlacements:WriteKey を設定
 
 # MasterDataDB Seeder の成功を検知したマスターデータ自動再読込
 masterData:

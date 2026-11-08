@@ -51,7 +51,9 @@ python 60_tool/world-placement/placements.py import-dev --input C:/path/dev-plac
 
 ## 編集とチャンネル更新
 
-マスタデータエディタのワールド配置画面でDevの配置を編集します。エディタのAPI接続とキーはServer側だけに設定します。追加・移動・削除後、Devの配置再読込を実行して実際の動作を確認します。APIモードではゲーム内の配置編集を拒否し、エディタへ案内します。
+マスタデータエディタのワールド配置画面でDevの配置を編集します。エディタのAPI接続とキーはServer側だけに設定します。追加・移動・削除後、Devの配置再読込を実行して実際の動作を確認します。
+
+Dev の管理者にゲーム内からウェイストーンを登録させる場合は、Dev Plugin の非公開 `config.yml` の `worldPlacements.writeKey` に専用配置 API の `WorldPlacements:WriteKey` を設定します。固定ワールド内で `/teleporter set <name> <lockEnabled> <unlockGold> [icon]` を実行すると、Dev に保存して配置を再読込します。他の API 配置編集はエディタで行います。
 
 チャンネルへ反映する際だけ、通常APIに `ConnectionStrings:WorldPlacement` と別の `WorldPlacements:SyncKey` を設定し、専用DBツールを `--environment channels` で実行します。Dev/Channels双方の現在revisionを取得し、`POST /api/world-placements/sync` に `expectedDevRevision` / `expectedChannelRevision` を渡して同期します。同期後、各チャンネルの配置を再読み込みします。同期は両DBを同じSQL Server上で扱う必要があります。
 

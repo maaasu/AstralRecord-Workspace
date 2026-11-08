@@ -88,6 +88,7 @@ import io.github.maaasu.astralRecord.feature.serverrecord.service.ServerRecordDi
 import io.github.maaasu.astralRecord.feature.serverrecord.service.ServerRecordWorldService;
 import io.github.maaasu.astralRecord.feature.teleporter.command.TeleporterCommand;
 import io.github.maaasu.astralRecord.feature.worldplacement.command.WorldPlacementCommand;
+import io.github.maaasu.astralRecord.feature.worldplacement.repository.WorldPlacementRepository;
 import io.github.maaasu.astralRecord.feature.teleporter.command.TeleporterTabCompleter;
 import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterService;
 import io.github.maaasu.astralRecord.feature.trade.command.SendCommand;
@@ -145,6 +146,7 @@ public class CommandRegister {
     private final ServerRecordDisplayService serverRecordDisplayService;
     private final ServerRecordWorldService serverRecordWorldService;
     private final TeleporterService teleporterService;
+    private final WorldPlacementRepository worldPlacementRepository;
     private final TrainingDummyService trainingDummyService;
     private final TrainingDummyGui trainingDummyGui;
     private final AdminMessageBossBarService adminMessageBossBarService;
@@ -168,6 +170,7 @@ public class CommandRegister {
      * @param serverRecordDisplayService ランキング表示管理
      * @param serverRecordWorldService ランキング閲覧ワールドへの入退場
      * @param teleporterService ウェイストーンサービス
+     * @param worldPlacementRepository 配置 API リポジトリ
      * @param trainingDummyService カカシサービス
      * @param trainingDummyGui カカシ調整GUI
      * @param adminMessageBossBarService 管理者告知サービス
@@ -189,6 +192,7 @@ public class CommandRegister {
             ServerRecordDisplayService serverRecordDisplayService,
             ServerRecordWorldService serverRecordWorldService,
             TeleporterService teleporterService,
+            WorldPlacementRepository worldPlacementRepository,
             TrainingDummyService trainingDummyService,
             TrainingDummyGui trainingDummyGui,
             AdminMessageBossBarService adminMessageBossBarService,
@@ -209,6 +213,7 @@ public class CommandRegister {
         this.serverRecordDisplayService = serverRecordDisplayService;
         this.serverRecordWorldService = serverRecordWorldService;
         this.teleporterService = teleporterService;
+        this.worldPlacementRepository = worldPlacementRepository;
         this.trainingDummyService = trainingDummyService;
         this.trainingDummyGui = trainingDummyGui;
         this.adminMessageBossBarService = adminMessageBossBarService;
@@ -338,7 +343,8 @@ public class CommandRegister {
         cm.registerCommand("web", new WebAuthCommand(new WebAuthService(new WebAuthRepository())));
         cm.registerCommand("textdisplay", new TextDisplayCommand(textDisplayPlacementService), new TextDisplayTabCompleter(textDisplayPlacementService));
         cm.registerCommand("serverrecord", new ServerRecordCommand(serverRecordDisplayService, serverRecordWorldService), new ServerRecordTabCompleter(serverRecordDisplayService));
-        cm.registerCommand("teleporter", new TeleporterCommand(teleporterService), new TeleporterTabCompleter(teleporterService));
+        cm.registerCommand("teleporter", new TeleporterCommand(AstralRecord.getInstance(), teleporterService,
+            worldPlacementRepository), new TeleporterTabCompleter(teleporterService));
         cm.registerCommand("test", new TestCommand(mobService));
         cm.registerCommand("testskilltree", new SkillTreeSpawnCheckCommand(), new SkillTreeSpawnCheckTabCompleter());
         cm.registerCommand("masterdata", new MasterDataCommand(AstralRecord.getInstance()));
