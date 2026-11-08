@@ -20,7 +20,7 @@ type MapView = { scale: number; x: number; z: number }
 type PointerSample = { x: number; z: number; hover: boolean }
 interface Props {
   snapshot: PlanningSnapshot; plan: PlanningPlan | null; layer: PlanningLayer; region: string; reason: string
-  radii: boolean; active: boolean; selectedCell: number | null; selectedProposal: string | null
+  radii: boolean; onRadiiChange?: (value: boolean) => void; active: boolean; selectedCell: number | null; selectedProposal: string | null
   focus: { key: number; x: number; z: number } | null
   onCell: (index: number) => void; onProposal: (id: string) => void
   placements?: WorldPlacement[]; placementCatalog?: PlacementCatalog; selectedPlacement?: string | null
@@ -31,6 +31,7 @@ interface Props {
   planningWorldId?: string
   challengePosition?: { x: number; y: number; z: number } | null
   pickingChallenge?: boolean
+  challengeOnly?: boolean
 }
 export function SpawnerPlanningMap(props: Props) {
   const { snapshot, plan, layer, region, reason, radii, active, selectedCell, selectedProposal, focus, onCell, onProposal } = props
@@ -53,13 +54,17 @@ export function SpawnerPlanningMap(props: Props) {
   const [coordinateTarget, setCoordinateTarget] = useState<{ x: number; z: number } | null>(null)
   const [detailResource, setDetailResource] = useState<{ identity: object; image: HTMLImageElement } | null>(null)
   const [markerMode, setMarkerMode] = useState<'masters' | 'levels'>('masters')
-  const [showCoverage, setShowCoverage] = useState(true)
+  const [coverageEnabled, setCoverageEnabled] = useState(!props.compactControls)
+  const showCoverage = coverageEnabled && !props.challengeOnly
   const [pointer, setPointer] = useState<{ x: number; z: number } | null>(null)
   const tooltip = useRef<HTMLDivElement>(null)
   const tooltipContent = useRef<HTMLDivElement>(null)
   const [tooltipSize, setTooltipSize] = useState({ width: 0, height: 0 })
   const [tooltipClipped, setTooltipClipped] = useState(false)
   const bounds = snapshot.manifest.bounds
+  useEffect(() => {
+    if (active && props.pickingChallenge && props.placing) canvas.current?.scrollIntoView?.({ block: 'nearest' })
+  }, [active, props.pickingChallenge, props.placing])
   useLayoutEffect(() => {
     setCoordinateInput({ x: '', z: '', error: '' })
     setCoordinateTarget(null)
@@ -355,7 +360,7 @@ export function SpawnerPlanningMap(props: Props) {
       ctx.drawImage(detailMask, view.x, view.z, bounds.width * view.scale, bounds.height * view.scale)
     if (coverageRaster) ctx.drawImage(coverageRaster, view.x, view.z, bounds.width * view.scale, bounds.height * view.scale)
     const screen = (x: number, z: number) => [(x - bounds.minX) * view.scale + view.x, (z - bounds.minZ) * view.scale + view.z]
-    const road = planningRoad(snapshot.manifest)
+    const road = props.showProposals === false ? null : planningRoad(snapshot.manifest)
     if (road) {
       for (const terrain of [false, true]) {
         ctx.beginPath()
@@ -515,10 +520,19 @@ export function SpawnerPlanningMap(props: Props) {
     canvas.current?.focus()
   }
   const coordinateDescription = `${coordinateHelpId}${coordinateInput.error ? ` ${coordinateHelpId}-error` : ''}`
+  const markerLegend = <div className="sp-marker-key" aria-label="スポナーの凡例">
+    {markerMode === 'levels' && <div className="sp-marker-bands">{spawnerLevelBands.map(band => <span key={band.label}><i style={{ background: band.color }} />{band.label}</span>)}<span><i style={{ background: '#b0bbc8' }} />複数レベル・不明</span></div>}
+    <SpawnerMasterLegend ids={visibleMasters} masters={masters} numbers={masterNumbers} mode={markerMode} />
+    <p>2px/m以上に拡大すると番号と実レベルを表示します。通常は選択した点だけにラベルを表示し、密集時は重なるラベルを省略します。</p>
+    {layer === 'terrain' && <p><span className="sp-spawn-dot">●</span> 開始地点　<i className="sp-unknown-key" />青灰: 未解析・解析失敗　<i className="sp-absent-key" />濃灰: 未保存。地形や水域とは区別しています。{props.showProposals !== false && '詳細は区画の選択、または「配置・未配置の理由」で確認できます。'}</p>}
+  </div>
   return <div className="sp-map-panel">
-    <details className="sp-map-options" open={props.compactControls ? undefined : true}><summary>地図の表示・座標移動</summary>
-    <div className="sp-coverage-controls" aria-label="出現範囲の重複と未カバー">
-      <label><input type="checkbox" checked={showCoverage} onChange={event => setShowCoverage(event.target.checked)} />重複・未カバーを色で確認</label>
+    <details className="sp-map-options" open={props.compactControls ? undefined : true}><summary>{props.challengeOnly ? '地図を座標で移動' : '地図の表示・座標移動'}</summary>
+    {props.onRadiiChange && <label className="sp-map-range-switch"><input type="checkbox" checked={radii}
+      onChange={event => props.onRadiiChange?.(event.target.checked)} />すべての出現範囲を表示</label>}
+    {!props.challengeOnly && <div className="sp-coverage-controls" aria-label="出現範囲の重複と未カバー">
+      <label><input type="checkbox" checked={showCoverage} onChange={event => setCoverageEnabled(event.target.checked)} />重複・未カバーを色で確認</label>
+      {(!props.compactControls || showCoverage) && <>
       <strong>判定: {props.showProposals === false ? '表示中の有効な Dev スポナー' : '選択地域の AI 配置案のみ'}</strong>
       <div className="sp-coverage-key">{[coverageSources.unknown ? '既知範囲0件' : '未カバー（0件）', coverageSources.unknown ? '既知範囲1件' : '1件の範囲内', '重複（2件以上）'].map((label, index) => <span key={index}><i style={{ background: coverageColors[index] }} />{label}{coverage ? ` · ${coverageSummary.totals[index].toLocaleString('ja-JP')}区画` : ''}</span>)}</div>
       {showCoverage && !coverageReady && <p role="status">{props.showProposals === false ? 'Dev 配置とマスターの取得が完了していないため' : 'AI 配置案を取得できていないため'}、重複・未カバーの判定を表示していません。</p>}
@@ -539,22 +553,24 @@ export function SpawnerPlanningMap(props: Props) {
             z: height / 2 - (cell.z + bounds.cellSize / 2 - bounds.minZ) * scale })
           onCell(index)
         }} />}
-    </div>
-    <div className="sp-marker-controls"><label>スポナーの色<select aria-label="スポナーの色分け" value={markerMode} onChange={event => setMarkerMode(event.target.value as 'masters' | 'levels')}><option value="masters">マスター別</option><option value="levels">出現する実レベル別</option></select></label><span>● Dev スポナー　◆ NPC　■ 道標{props.showProposals !== false && '　▲ AI 配置案'}　◉ 選択中　⊘ 無効</span></div>
+      </>}
+    </div>}
+    {!props.challengeOnly && <div className="sp-marker-controls"><label>スポナーの色<select aria-label="スポナーの色分け" value={markerMode} onChange={event => setMarkerMode(event.target.value as 'masters' | 'levels')}><option value="masters">マスター別</option><option value="levels">出現する実レベル別</option></select></label><span>● Dev スポナー　◆ NPC　■ 道標{props.showProposals !== false && '　▲ AI 配置案'}　◉ 選択中　⊘ 無効</span></div>}
     <form className="sp-coordinate-navigation" aria-label="地図の座標移動" onSubmit={event => { event.preventDefault(); jumpToCoordinates() }}>
+      <p id={coordinateHelpId}>地図の表示位置を移動します。Xは{bounds.minX}以上{bounds.minX + bounds.width}未満、Zは{bounds.minZ}以上{bounds.minZ + bounds.height}未満。</p>
       <div className="sp-coordinate-fields">
         <label>移動先X<input inputMode="decimal" value={coordinateInput.x} disabled={!active} aria-describedby={coordinateDescription} aria-invalid={Boolean(coordinateInput.error)} onChange={event => { const x = event.target.value; setCoordinateInput(current => ({ ...current, x, error: '' })) }} /></label>
         <label>移動先Z<input inputMode="decimal" value={coordinateInput.z} disabled={!active} aria-describedby={coordinateDescription} aria-invalid={Boolean(coordinateInput.error)} onChange={event => { const z = event.target.value; setCoordinateInput(current => ({ ...current, z, error: '' })) }} /></label>
         <button type="submit" className="button" disabled={!active}>座標へ移動</button>
         <button type="button" className="button" disabled={!active || !coordinateTarget} onClick={() => { setCoordinateTarget(null); canvas.current?.focus() }}>目印を消す</button>
       </div>
-      <p id={coordinateHelpId}>Xは{bounds.minX}以上{bounds.minX + bounds.width}未満、Zは{bounds.minZ}以上{bounds.minZ + bounds.height}未満。負数・小数に対応します。地図の位置だけを移動します。</p>
       {coordinateInput.error && <p id={`${coordinateHelpId}-error`} role="alert">{coordinateInput.error}</p>}
       {coordinateTarget && <p role="status">移動先 X {coordinateTarget.x} / Z {coordinateTarget.z}（十字の目印）</p>}
     </form>
+    {props.compactControls && !props.challengeOnly && markerLegend}
     </details>
     <div className="sp-map-wrap">
-    <canvas ref={canvas} aria-label={props.pickingChallenge ? 'チャレンジの受付地点を選ぶ地図。区画をクリックして座標を取得' : props.showProposals === false ? '保存済み Dev 配置の地図。ドラッグで移動、ホイールで拡大、点をクリックして配置を選択' : `${props.planningWorldId ? snapshot.manifest.worldName : 'エリヴァ全大陸'}の地図。ドラッグで移動、ホイールで拡大、クリックで地域と未配置理由を確認`} tabIndex={0}
+    <canvas ref={canvas} aria-label={props.pickingChallenge ? 'チャレンジの受付地点を選ぶ地図。区画をクリックして座標を取得' : props.challengeOnly ? 'ボス・ダンジョン受付の地図。ドラッグで移動、ホイールで拡大' : props.showProposals === false ? '保存済み Dev 配置の地図。ドラッグで移動、ホイールで拡大、点をクリックして配置を選択' : `${props.planningWorldId ? snapshot.manifest.worldName : 'エリヴァ全大陸'}の地図。ドラッグで移動、ホイールで拡大、クリックで地域と未配置理由を確認`} tabIndex={0}
       onPointerDown={event => {
         if (!active || drag.current) return
         discardPointerFrame(); setPointer(null)
@@ -647,11 +663,6 @@ export function SpawnerPlanningMap(props: Props) {
     <span className="sp-north">N ↑</span><output className="sp-coordinates">{coordinates} · {view.scale.toFixed(view.scale < 1 ? 2 : 1)} px/m · {layer === 'terrain' && detail && view.scale >= .4 ? '1m地形' : '16m区画'}</output>
     </div>
     {selected && <p className="sp-map-selection" aria-live="polite">選択中: {selected.kind === 'spawner' ? `#${masterNumbers.get(selected.templateId ?? '') ?? '?'} ${plainName(masters.get(selected.templateId ?? '')?.name ?? selected.templateId ?? 'マスター不明')} · ${spawnerLevels(masters.get(selected.templateId ?? '')?.levels ?? []).label}` : selected.kind === 'npc' ? plainName(props.placementCatalog?.npcs.find(item => item.id === selected.templateId)?.name ?? selected.templateId ?? 'NPC') : plainName(selected.waystone?.name ?? '道標')} · {selected.enabled ? '有効' : '無効'} · X {selected.x} / Z {selected.z}</p>}
-    <div className="sp-marker-key" aria-label="スポナーの凡例">
-      {markerMode === 'levels' && <div className="sp-marker-bands">{spawnerLevelBands.map(band => <span key={band.label}><i style={{ background: band.color }} />{band.label}</span>)}<span><i style={{ background: '#b0bbc8' }} />複数レベル・不明</span></div>}
-      <SpawnerMasterLegend ids={visibleMasters} masters={masters} numbers={masterNumbers} mode={markerMode} />
-      <p>2px/m以上に拡大すると番号と実レベルを表示します。通常は選択した点だけにラベルを表示し、密集時は重なるラベルを省略します。</p>
-      {layer === 'terrain' && <p><i className="sp-unknown-key" />青灰: 未解析・解析失敗　<i className="sp-absent-key" />濃灰: 未保存。地形や水域とは区別しています。{props.showProposals !== false && '詳細は区画の選択、または「配置・未配置の理由」で確認できます。'}</p>}
-    </div>
+    {!props.compactControls && !props.challengeOnly && markerLegend}
   </div>
 }

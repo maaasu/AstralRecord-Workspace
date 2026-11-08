@@ -26,6 +26,35 @@ body:has(.master-app-content:not([hidden]) .sp-workspace){min-width:0}
 .sp-editing-workspace .sp-heading h1 small { font-size: 12px; }
 .sp-editing-workspace .sp-mode-switch, .sp-heading .sp-mode-switch { margin: 0; }
 .sp-heading .sp-mode-switch { margin-left: auto; }
+.sp-workspace-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 10px 0;
+}
+.sp-workspace-actions .sp-mode-switch { margin: 0; flex-wrap: wrap; }
+.sp-world-select { white-space: nowrap; }
+.sp-other-tools { display: flex; flex-wrap: wrap; gap: 6px; }
+.sp-import-help { color: var(--text-muted); font-size: 12px; }
+.sp-import-help[open] { flex-basis: 100%; }
+.sp-import-help summary { cursor: pointer; padding: 6px 0; }
+.sp-import-steps {
+  margin-top: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-soft);
+  line-height: 1.65;
+}
+.sp-import-steps p, .sp-import-steps ol { margin: 6px 0; }
+.sp-import-steps ol { padding-left: 1.6em; }
+.sp-import-steps code { overflow-wrap: anywhere; }
+.sp-map-range-switch { display: flex; align-items: center; gap: 7px; margin: 8px 0; font-size: 12px; }
+@container (max-width: 800px) {
+  .sp-main.sp-main-challenge { display: flex; flex-direction: column; }
+  .sp-main-challenge .sp-sidebar { order: -1; margin: 0 0 8px; }
+}
 .sp-world-select { display: flex; align-items: center; gap: 6px; font-size: 12px; }
 .sp-world-select select { max-width: min(240px, 55vw); }
 .sp-challenge-marker { fill: #23132bd9; stroke: #f4a3ef; }

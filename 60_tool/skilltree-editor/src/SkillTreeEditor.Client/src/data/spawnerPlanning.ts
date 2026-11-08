@@ -94,7 +94,7 @@ export function assertPlanningIdentity(manifest: PlanningManifest, value: Planni
   if (manifest.schemaVersion !== 2 || value.schemaVersion !== 2 || !manifest.exportRevision ||
       manifest.exportRevision !== value.exportRevision || manifest.worldId !== value.worldId ||
       manifest.terrainFingerprint !== value.terrainFingerprint) {
-    throw new Error('解析結果の版が一致しません。「解析結果を再読込」で一式を読み直してください。')
+    throw new Error('解析結果の版が一致しません。「地図を再読込」で一式を読み直してください。')
   }
 }
 export function validatePlanningPlan(snapshot: PlanningSnapshot, plan: PlanningPlan) {

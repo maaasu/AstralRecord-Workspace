@@ -5,6 +5,11 @@ import { spawnerPlanningApi } from '../api/spawnerPlanningApi'
 import { worldPlacementApi } from '../api/worldPlacementApi'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 
+async function openProposals() {
+  fireEvent.click(await screen.findByRole('button', { name: 'その他の機能' }))
+  fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
+}
+
 vi.mock('../api/spawnerPlanningApi', () => ({ spawnerPlanningApi: { snapshot: vi.fn(), plan: vi.fn() } }))
 vi.mock('../api/worldPlacementApi', () => ({ worldPlacementApi: { read: vi.fn(), save: vi.fn() } }))
 // Exercise the real list, detail, selection, Dev editor and request lifecycle.
@@ -41,7 +46,7 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
 async function openAi() {
   const view = render(<SpawnerPlanningWorkspace active />)
-  fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
+  await openProposals()
   await waitFor(() => expect(screen.getByRole('button', { name: '案をJSON保存' })).toBeEnabled())
   return view
 }
@@ -160,7 +165,7 @@ describe('AI proposal pages and selected proposal reveal', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('一時失敗')
     expect(reveal()).toBeDisabled()
     vi.mocked(spawnerPlanningApi.plan).mockResolvedValue(createPlan(1))
-    fireEvent.click(screen.getByRole('button', { name: '解析結果を再読込' }))
+    fireEvent.click(screen.getByRole('button', { name: '地図を再読込' }))
     await waitFor(() => expect(rows()).toHaveLength(1))
     expect(screen.getByText('1–1 / 1 件 · 1 / 1 ページ')).toBeInTheDocument()
     expect(reveal()).toBeDisabled()
@@ -171,7 +176,7 @@ describe('AI proposal pages and selected proposal reveal', () => {
     await screen.findByText(/1 件を表示/)
     fireEvent.click(screen.getByRole('button', { name: 'Dev配置を選択' }))
     fireEvent.change(screen.getByLabelText('X'), { target: { value: '-' } })
-    fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
+    await openProposals()
     await waitFor(() => expect(next()).toBeEnabled())
     selectMap('proposal-120'); fireEvent.click(reveal()); fireEvent.click(screen.getByRole('button', { name: '前の案ページ' }))
     fireEvent.click(screen.getByRole('button', { name: '配置編集' }))

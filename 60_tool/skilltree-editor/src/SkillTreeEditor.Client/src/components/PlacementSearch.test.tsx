@@ -6,6 +6,11 @@ import { worldPlacementApi, type WorldPlacement } from '../api/worldPlacementApi
 import { spawnerPlanningApi } from '../api/spawnerPlanningApi'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 
+async function openProposals() {
+  fireEvent.click(await screen.findByRole('button', { name: 'その他の機能' }))
+  fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
+}
+
 vi.mock('../api/worldPlacementApi', () => ({ worldPlacementApi: { read: vi.fn(), save: vi.fn() } }))
 vi.mock('../api/spawnerPlanningApi', () => ({ spawnerPlanningApi: { snapshot: vi.fn(), plan: vi.fn() } }))
 vi.mock('./SpawnerPlanningMap', () => ({ SpawnerPlanningMap: ({ plan, region, placements }: { plan: PlanningPlan | null; region: string; placements: WorldPlacement[] }) => <>
@@ -76,7 +81,7 @@ describe('placement list search', () => {
 
   it('filters AI proposals across fields while keeping the map and metrics at their region scope', async () => {
     const { container } = render(<SpawnerPlanningWorkspace active />)
-    fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
+    await openProposals()
     await screen.findByRole('textbox', { name: '配置案を検索' })
     await screen.findByRole('button', { name: /Lv.15 · 西の草原.*森林狼/ })
     const list = () => within(container.querySelector<HTMLElement>('.sp-proposal-list')!)
@@ -108,7 +113,7 @@ describe('placement list search', () => {
       return originalLower.apply(this, args)
     })
     const { container } = render(<SpawnerPlanningWorkspace active />)
-    fireEvent.click(screen.getByRole('button', { name: 'AI 配置案' }))
+    await openProposals()
     await screen.findByText('1–40 / 2,000 件 · 1 / 50 ページ')
     const initial = normalized
     normalized = 0
