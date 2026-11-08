@@ -13,10 +13,12 @@ JAVA = "assets/astralrecord"
 BEDROCK = "bedrock"
 NAMESPACE = "astralrecord"
 SEGMENTS = 10
+EYE_CENTER_Y = 2.31
 FACES = ("north", "south", "east", "west", "up", "down")
 PALETTE = {
-    "line": "24354a",
-    "thread": "536b7e",
+    "line": "233647",
+    "thread": "66899a",
+    "thread_glint": "a3c5ca",
     "wine": "77233d",
     "red": "bf3045",
     "coral": "ed5257",
@@ -24,6 +26,8 @@ PALETTE = {
     "cream": "fff2ce",
     "ivory": "dfbf9b",
     "brass": "c4925a",
+    "metal": "394956",
+    "steel": "8a9fa3",
     "deep": "246687",
     "aqua": "40a8bf",
     "teal": "76d7df",
@@ -31,20 +35,34 @@ PALETTE = {
 }
 
 
-def cube(center, size, side, top=None, yaw=0):
-    return center, size, side, top or side, yaw
+def cube(center, size, side, top=None, yaw=0, *, bottom=None):
+    return center, size, side, top or side, yaw, bottom or side
 
 
-LINE = cube((0, 0, 0), (16, 16, 16), "line", "thread")
+# Both runtimes center each span on its midpoint. Java supplies the 0.025-block
+# thickness as an ItemDisplay scale, while Bedrock bakes it into the rig.
+LINE = cube((0, 0, 0), (16, 16, 16), "thread", "thread_glint", bottom="line")
 HOOK = [
-    cube((0, -1.15, 0), (1.35, 0.55, 1.35), "wine", "red"),
-    cube((0, -0.46, 0), (2.85, 0.85, 2.85), "wine", "red"),
-    cube((0, 0.23, 0), (3.3, 0.53, 3.3), "ivory", "cream"),
-    cube((0, 0.91, 0), (2.85, 0.83, 2.85), "red", "coral"),
-    cube((0, 1.54, 0), (2.0, 0.43, 2.0), "coral", "rose"),
-    cube((0, 1.97, 0), (0.7, 0.43, 0.7), "brass", "cream"),
-    cube((0, 0.98, 1.44), (0.75, 0.36, 0.06), "rose"),
-    cube((0, 0.98, -1.44), (0.75, 0.36, 0.06), "rose"),
+    # Lacquered body with an ivory waterline, red cap and brass eye.
+    cube((0, -1.25, 0), (1.45, 0.4, 1.45), "wine", "red"),
+    cube((0, -0.81, 0), (2.65, 0.48, 2.65), "wine", "red"),
+    cube((0, -0.43, 0), (3.25, 0.28, 3.25), "red", "coral"),
+    cube((0, 0.02, 0), (3.65, 0.62, 3.15), "ivory", "cream"),
+    cube((0, 0.02, 1.7), (2.6, 0.62, 0.25), "ivory", "cream"),
+    cube((0, 0.02, -1.7), (2.6, 0.62, 0.25), "ivory", "cream"),
+    cube((0, 0.69, 0), (3.15, 0.72, 3.15), "red", "coral"),
+    cube((0, 1.27, 0), (2.5, 0.44, 2.5), "coral", "rose"),
+    cube((0, 1.64, 0), (1.55, 0.3, 1.55), "coral", "rose"),
+    cube((0, 1.95, 0), (1.02, 0.32, 0.74), "brass", "cream"),
+    cube((-0.39, EYE_CENTER_Y, 0), (0.24, 0.4, 0.36), "brass", "cream"),
+    cube((0.39, EYE_CENTER_Y, 0), (0.24, 0.4, 0.36), "brass", "cream"),
+    cube((0, 2.63, 0), (1.02, 0.24, 0.36), "brass", "cream"),
+    # The hanging hook has a gap and a polished point on the inside of the bend.
+    cube((0, -1.64, 0), (0.78, 0.38, 0.78), "brass", "steel"),
+    cube((0, -2.38, 0), (0.38, 1.1, 0.38), "metal", "steel"),
+    cube((0.42, -3.11, 0), (1.22, 0.36, 0.38), "metal", "steel"),
+    cube((1.2, -2.9, 0), (0.34, 0.78, 0.38), "metal", "steel"),
+    cube((1.05, -2.4, 0), (0.42, 0.22, 0.32), "steel"),
 ]
 
 
@@ -56,25 +74,32 @@ def ring_stroke(radius, step, length, height, thickness, y, side, top):
 
 
 SPLASH_RIPPLE = [
-    ring_stroke(5.85, step, 4.55 if step % 2 == 0 else 4.25, 0.21, 0.54, 0.12,
-                "aqua", "foam" if step % 2 == 0 else "teal")
-    for step in range(8)
+    ring_stroke(6.65, step, length, 0.17, 0.52, 0.09, "deep", "teal")
+    for step, length in enumerate((4.5, 3.75, 4.9, 4.25, 3.7, 4.65, 4.1, 4.55))
+] + [
+    ring_stroke(3.95, step, length, 0.23, 0.64, 0.12, "aqua", "foam")
+    for step, length in ((0, 2.7), (1, 2.15), (3, 2.45), (4, 2.85), (5, 1.9), (7, 2.35))
 ]
 SPLASH_CROWN = [
-    cube((1.7, 1.12, 0.45), (0.76, 2.24, 0.66), "aqua", "foam"),
-    cube((1.7, 2.41, 0.45), (0.5, 0.38, 0.48), "teal", "foam"),
-    cube((-1.1, 0.91, 1.5), (0.63, 1.82, 0.75), "teal", "foam"),
-    cube((-0.78, 0.72, -1.75), (0.74, 1.44, 0.66), "aqua", "teal"),
-    cube((-2.52, 1.46, -1.42), (0.45, 0.64, 0.43), "teal", "foam"),
-    cube((1.55, 1.09, -2.5), (0.43, 0.54, 0.46), "teal", "foam"),
-    cube((0, 0.31, 0), (2.8, 0.48, 2.8), "aqua", "teal"),
+    cube((1.45, 0.65, 0.7), (1.05, 1.26, 0.92), "deep", "teal"),
+    cube((1.82, 1.86, 0.92), (0.83, 1.16, 0.76), "aqua", "foam"),
+    cube((2.09, 2.77, 1.09), (0.62, 0.66, 0.54), "teal", "foam"),
+    cube((-1.31, 0.55, 1.47), (0.98, 1.06, 1.06), "aqua", "teal"),
+    cube((-1.68, 1.51, 1.76), (0.71, 0.86, 0.76), "teal", "foam"),
+    cube((-1.0, 0.5, -1.49), (0.95, 0.96, 0.92), "deep", "teal"),
+    cube((-1.26, 1.36, -1.92), (0.68, 0.76, 0.63), "aqua", "foam"),
+    cube((0.98, 0.49, -1.8), (0.72, 0.94, 0.85), "aqua", "teal"),
+    cube((2.7, 3.67, 1.47), (0.42, 0.58, 0.42), "teal", "foam"),
+    cube((-2.95, 2.22, 2.39), (0.49, 0.6, 0.45), "teal", "foam"),
+    cube((-1.62, 2.5, -2.65), (0.48, 0.64, 0.45), "teal", "foam"),
+    cube((1.65, 1.84, -2.87), (0.39, 0.53, 0.39), "aqua", "foam"),
 ]
 WAKE = [
-    ring_stroke(4.0, step, 2.75, 0.14, 0.42, 0.08, "deep", "teal")
-    for step in (0, 1, 2, 4, 5, 6)
+    ring_stroke(3.65, step, 2.5, 0.12, 0.42, 0.07, "deep", "teal")
+    for step in (0, 1, 3, 4, 5, 7)
 ] + [
-    ring_stroke(2.25, step, 1.65, 0.16, 0.4, 0.1, "aqua", "foam")
-    for step in (0, 1, 4, 5)
+    ring_stroke(1.9, step, 1.35, 0.15, 0.43, 0.09, "aqua", "foam")
+    for step in (1, 4, 7)
 ]
 
 
@@ -102,7 +127,7 @@ def vector(values):
 
 def java_model(cubes):
     elements = []
-    for center, size, side, top, yaw in cubes:
+    for center, size, side, top, yaw, bottom in cubes:
         center = [axis + 8 for axis in center]
         # Java elements need their box dimensions swapped for a quarter turn.
         if yaw == -90:
@@ -117,7 +142,7 @@ def java_model(cubes):
             element["rotation"] = {"origin": vector(center), "axis": "y", "angle": yaw}
         faces = {}
         for face in FACES:
-            u, v = swatch(top if face == "up" else side)
+            u, v = swatch({"up": top, "down": bottom}.get(face, side))
             faces[face] = {"uv": [u + 1, v + 1, u + 3, v + 3], "texture": "#palette"}
         element["faces"] = faces
         elements.append(element)
@@ -136,12 +161,12 @@ def java_selector(fallback, styles):
 
 
 def bedrock_cube(cuboid):
-    center, size, side, top, yaw = cuboid
+    center, size, side, top, yaw, bottom = cuboid
     # In the yaw-zero entity pose the geometry's negative Z is world positive Z.
     center = [center[0], center[1], -center[2]]
     faces = {}
     for face in FACES:
-        u, v = swatch(top if face == "up" else side)
+        u, v = swatch({"up": top, "down": bottom}.get(face, side))
         faces[face] = {"uv": [u + 1, v + 1], "uv_size": [2, 2]}
     result = {"origin": vector(axis - width / 2 for axis, width in zip(center, size)),
               "size": list(size), "uv": faces}
@@ -162,7 +187,7 @@ def bone(name, parent=None, cubes=()):
 def rope_geometry_and_motion():
     # The position, rotation, and length each get their own pivot so that
     # length changes stretch along the rope and never scale world offsets.
-    rope = cube((0, 0, 0), (0.4, 0.4, 16), "line", "thread")
+    rope = cube((0, 0, 0), (0.4, 0.4, 16), "thread", "thread_glint", bottom="line")
     bones = [bone("bobber", cubes=HOOK)]
     motion = {"bobber": {"position": ["16 * v.dx", "16 * v.dy", "-16 * v.dz"]}}
     for index in range(SEGMENTS):
@@ -172,10 +197,10 @@ def rope_geometry_and_motion():
         average_sag = (sag0 + sag1) / 2
         segment = f"span_{index}"
         heading, length = f"{segment}_heading", f"{segment}_length"
-        vertical_delta = f"v.dy / {SEGMENTS} + ({sag0 - sag1:.4f}) * v.sag"
+        vertical_delta = f"v.line_dy / {SEGMENTS} + ({sag0 - sag1:.4f}) * v.sag"
         bones.extend([bone(segment), bone(heading, segment), bone(length, heading, [rope])])
         motion[segment] = {"position": [f"{16 * midpoint:.2f} * v.dx",
-                                         f"{16 * midpoint:.2f} * v.dy - {16 * average_sag:.3f} * v.sag",
+                                         f"{16 * midpoint:.2f} * v.line_dy - {16 * average_sag:.3f} * v.sag",
                                          f"-{16 * midpoint:.2f} * v.dz"]}
         motion[heading] = {"rotation": [f"-math.atan2({vertical_delta}, v.horizontal_span)", "v.yaw", 0]}
         motion[length] = {"scale": [1, 1, f"math.sqrt(v.horizontal_span * v.horizontal_span + "
@@ -201,7 +226,7 @@ def bedrock_files():
     }
     animation_id = "animation.astralrecord.fishing_visual"
     splash_size = "math.lerp(0.45, 1, v.splash_age)"
-    crown_size = "math.lerp(0.75, 1, v.splash_age)"
+    crown_size = "math.lerp(0.45, 1, v.splash_age)"
     wake_size = "math.lerp(0.55, 1, v.wake_age)"
     animations = {"format_version": "1.8.0", "animations": {
         animation_id + ".rig": {"loop": True, "bones": rope_motion},
@@ -226,6 +251,8 @@ def bedrock_files():
                 "v.dy = q.property('astralrecord:dy');",
                 "v.dz = q.property('astralrecord:dz');",
                 "v.sag = q.property('astralrecord:sag');",
+                # Match FishingVisuals.updateJava: raise only the line endpoint to the brass eye.
+                f"v.line_dy = v.dy + {EYE_CENTER_Y / 16:g};",
                 f"v.horizontal_span = math.sqrt(v.dx * v.dx + v.dz * v.dz) / {SEGMENTS};",
                 "v.yaw = -math.atan2(v.dx, v.dz);",
                 "v.splash_age = math.clamp(q.life_time / 0.5, 0, 1);",
