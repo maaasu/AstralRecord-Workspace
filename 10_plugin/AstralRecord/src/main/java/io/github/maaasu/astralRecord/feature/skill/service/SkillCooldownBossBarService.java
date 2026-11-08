@@ -24,7 +24,7 @@ public final class SkillCooldownBossBarService {
     private static final long UPDATE_INTERVAL_TICKS = 1L;
 
     private final SkillService skillService;
-    private final Map<UUID, BossBar> bossBars = new ConcurrentHashMap<>();
+    private final Map<UUID, DisplayedBossBar> bossBars = new ConcurrentHashMap<>();
     private BukkitTask task;
 
     public SkillCooldownBossBarService(@NotNull SkillService skillService) {
@@ -62,18 +62,23 @@ public final class SkillCooldownBossBarService {
                 continue;
             }
 
-            var activeCooldowns = skillService.getActiveCooldowns(player.getUniqueId());
-            if (activeCooldowns.isEmpty()) {
+            UUID playerId = player.getUniqueId();
+            var display = skillService.getCooldownDisplay(playerId);
+            if (display == null) {
                 removeBossBar(player);
                 continue;
             }
 
-            var latest = activeCooldowns.get(0);
-            BossBar bossBar = bossBars.computeIfAbsent(player.getUniqueId(), ignored -> createBossBar(player));
+            var latest = display.latest();
+            DisplayedBossBar displayed = bossBars.computeIfAbsent(
+                    playerId, ignored -> new DisplayedBossBar(createBossBar(player)));
+            BossBar bossBar = displayed.bossBar;
             bossBar.addPlayer(player);
-            bossBar.setTitle(buildBossBarTitle(latest, activeCooldowns.size() - 1));
-            bossBar.setColor(BarColor.WHITE);
-            bossBar.setStyle(BarStyle.SEGMENTED_10);
+            String title = buildBossBarTitle(latest, display.hiddenCount());
+            if (!title.equals(displayed.title)) {
+                bossBar.setTitle(title);
+                displayed.title = title;
+            }
             long totalTicks = Math.max(1L, latest.totalTicks());
             long remainingTicks = Math.max(0L, latest.remainingTicks());
             bossBar.setProgress(Math.max(0.0D, Math.min(1.0D, (double) remainingTicks / (double) totalTicks)));
@@ -92,18 +97,18 @@ public final class SkillCooldownBossBarService {
     }
 
     private void removeBossBar(@NotNull Player player) {
-        BossBar bossBar = bossBars.remove(player.getUniqueId());
-        if (bossBar == null) {
+        DisplayedBossBar displayed = bossBars.remove(player.getUniqueId());
+        if (displayed == null) {
             return;
         }
-        bossBar.removeAll();
-        bossBar.setVisible(false);
+        displayed.bossBar.removeAll();
+        displayed.bossBar.setVisible(false);
     }
 
     private void clearAll() {
-        for (BossBar bossBar : bossBars.values()) {
-            bossBar.removeAll();
-            bossBar.setVisible(false);
+        for (DisplayedBossBar displayed : bossBars.values()) {
+            displayed.bossBar.removeAll();
+            displayed.bossBar.setVisible(false);
         }
         bossBars.clear();
     }
@@ -124,5 +129,16 @@ public final class SkillCooldownBossBarService {
                     + ColorCodeUtil.DARK_GRAY + "件";
         }
         return base;
+    }
+
+    /** バー本体と、サーバーへ最後に設定した装飾付きタイトルを同じ寿命で保持します。 */
+    private static final class DisplayedBossBar {
+        private final BossBar bossBar;
+        private String title;
+
+        /** @param bossBar 当サービスが所有するボスバー */
+        private DisplayedBossBar(@NotNull BossBar bossBar) {
+            this.bossBar = bossBar;
+        }
     }
 }

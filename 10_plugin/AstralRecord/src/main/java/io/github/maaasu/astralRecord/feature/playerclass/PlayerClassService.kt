@@ -128,6 +128,7 @@ class PlayerClassService @JvmOverloads constructor(
 
     /**
      * タブのプレイヤーリスト名を、クラス短縮名・CLvとアカウント名・PLvのタグ付きで更新します。
+     * Bukkit が保持するリスト名と同じ場合は再送しません。
      *
      * @param astPlayer 更新対象プレイヤー
      */
@@ -135,7 +136,11 @@ class PlayerClassService @JvmOverloads constructor(
         if (!playerListNameUpdatesEnabled) {
             return
         }
-        astPlayer.bukkit.playerListName(playerListLabel(astPlayer))
+        val player = astPlayer.bukkit
+        val label = playerListLabel(astPlayer)
+        if (label != player.playerListName()) {
+            player.playerListName(label)
+        }
     }
 
     /** TAB用のクラス・CLv・AFKと、アカウント名・PLvを同じ括弧にまとめたタグを返します。 */

@@ -1464,18 +1464,63 @@ public class SkillService {
                 iterator.remove();
                 continue;
             }
-            long remainingTicks = Math.max(1L, (state.expiryMillis() - now + MS_PER_TICK - 1L) / MS_PER_TICK);
-            activeCooldowns.add(new ActiveCooldown(
-                    entry.getKey(),
-                    state.displaySkillId(),
-                    resolveSkillDisplayName(state.displaySkillId()),
-                    remainingTicks,
-                    state.durationTicks(),
-                    state.startedAtMillis()
-            ));
+            activeCooldowns.add(toActiveCooldown(entry.getKey(), state, now));
         }
         activeCooldowns.sort(Comparator.comparingLong(ActiveCooldown::startedAtMillis).reversed());
         return activeCooldowns;
+    }
+
+    /**
+     * ボスバーに表示する最新のクールダウンと、ほかの有効件数を一度の走査で取得します。
+     * 期限切れの項目を除去し、開始時刻が同じ場合は一覧と同じ走査順を優先します。
+     *
+     * @param casterId 発動者 UUID
+     * @return 表示用のクールダウン。有効な項目がなければ null
+     */
+    @Nullable CooldownDisplay getCooldownDisplay(@NotNull UUID casterId) {
+        Map<String, CooldownState> byCaster = cooldownExpiryByCaster.get(casterId);
+        if (byCaster == null || byCaster.isEmpty()) {
+            return null;
+        }
+
+        long now = System.currentTimeMillis();
+        Map.Entry<String, CooldownState> latest = null;
+        int activeCount = 0;
+        for (Map.Entry<String, CooldownState> entry : byCaster.entrySet()) {
+            CooldownState state = entry.getValue();
+            if (state.expiryMillis() <= now) {
+                byCaster.remove(entry.getKey(), state);
+                continue;
+            }
+            activeCount++;
+            if (latest == null || state.startedAtMillis() > latest.getValue().startedAtMillis()) {
+                latest = entry;
+            }
+        }
+        if (latest == null) {
+            return null;
+        }
+        return new CooldownDisplay(toActiveCooldown(latest.getKey(), latest.getValue(), now), activeCount - 1);
+    }
+
+    /**
+     * 同じ判定時刻を使って、有効なクールダウンの残り tick と表示名を解決します。
+     *
+     * @param key クールダウンキー
+     * @param state 有効なクールダウンの状態
+     * @param now 有効性を判定した時刻（ミリ秒）
+     * @return 表示用のクールダウン
+     */
+    private @NotNull ActiveCooldown toActiveCooldown(@NotNull String key, @NotNull CooldownState state, long now) {
+        long remainingTicks = Math.max(1L, (state.expiryMillis() - now + MS_PER_TICK - 1L) / MS_PER_TICK);
+        return new ActiveCooldown(
+                key,
+                state.displaySkillId(),
+                resolveSkillDisplayName(state.displaySkillId()),
+                remainingTicks,
+                state.durationTicks(),
+                state.startedAtMillis()
+        );
     }
 
     /**
@@ -1914,6 +1959,10 @@ public class SkillService {
             long totalTicks,
             long startedAtMillis
     ) {
+    }
+
+    /** ボスバーに表示する最新のクールダウンと非表示の有効件数です。 */
+    record CooldownDisplay(@NotNull ActiveCooldown latest, int hiddenCount) {
     }
 
     private record CooldownState(

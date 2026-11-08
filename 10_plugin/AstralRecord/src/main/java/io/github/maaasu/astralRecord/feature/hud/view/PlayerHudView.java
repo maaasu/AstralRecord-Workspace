@@ -731,6 +731,7 @@ public class PlayerHudView {
 
     /**
      * Proxyがヘッダーを所有しない場合のTABに有効なネットワークブーストと性能情報を表示します。
+     * Bukkit が保持するヘッダーとフッターがともに同じ場合は再送しません。
      *
      * @param player 対象プレイヤー
      * @param mspt 現在のMSPT（平均値）
@@ -762,7 +763,9 @@ public class PlayerHudView {
                 .append(Component.text(ping + "ms", pingTextColor(ping)))
                 .append(Component.text(" ]", NamedTextColor.GRAY));
         }
-        player.sendPlayerListHeaderAndFooter(header, footer);
+        if (!header.equals(player.playerListHeader()) || !footer.equals(player.playerListFooter())) {
+            player.sendPlayerListHeaderAndFooter(header, footer);
+        }
     }
 
     private void appendBossInfo(List<String> lines, BossChallengeSidebarInfo info) {
