@@ -19,6 +19,21 @@ export function initializeViewer(viewer, viewState) {
     let tree;
     try { tree = JSON.parse(viewer.querySelector('[data-tree-json]').textContent); } catch { return; }
     if (!Array.isArray(tree.nodes) || !tree.nodes.length) return;
+    const statusCategories = Object.entries(JSON.parse(viewer.querySelector('[data-tree-status-categories]').textContent))
+        .sort(([a], [b]) => b.length - a.length);
+    const statusName = text => statusCategories.find(([name]) => text.startsWith(name + ' '));
+    const effectItem = text => {
+        const item = document.createElement('li');
+        const status = statusName(text);
+        if (status) {
+            const [name, category] = status;
+            const label = document.createElement('span');
+            label.dataset.statCategory = category;
+            label.textContent = name;
+            item.append(label, text.slice(name.length));
+        } else item.textContent = text;
+        return item;
+    };
     const spacingInput = viewer.querySelector('[data-tree-spacing]');
     let spacingPercent = Math.max(50, Math.min(200, Number(viewState?.spacingPercent) || Number(spacingInput.defaultValue)));
     spacingInput.value = String(spacingPercent);
@@ -50,17 +65,10 @@ export function initializeViewer(viewer, viewState) {
     motionButton.addEventListener('click', () => { motionPaused = !motionPaused; stars.pause(motionPaused); renderMotion(); });
     reducedMotion.addEventListener('change', renderMotion, { signal: lifecycle.signal });
     renderMotion();
-    const toolsToggle = viewer.querySelector('[data-tree-tools-toggle]');
-    const toolsPanel = viewer.querySelector('.ar-tree-tools-panel');
-    const setToolsVisible = visible => {
-        toolsPanel.hidden = !visible;
-        toolsToggle.setAttribute('aria-expanded', String(visible));
-    };
-    setToolsVisible(viewState?.toolsVisible ?? false);
-    toolsToggle.addEventListener('click', () => setToolsVisible(toolsPanel.hidden));
-
     const layout = viewer.querySelector('.ar-tree-layout');
     const detail = viewer.querySelector('.ar-tree-detail');
+    const nodeDetail = detail.querySelector('.ar-tree-node-detail');
+    const effects = nodeDetail.querySelector('[data-node-effects]');
     const detailToggle = viewer.querySelector('[data-tree-detail-toggle]');
     const resizeHandle = viewer.querySelector('[data-tree-detail-resize]');
     let detailWidth = viewState?.detailWidth, resizing = null;
@@ -106,6 +114,7 @@ export function initializeViewer(viewer, viewState) {
         detailToggle.textContent = visible ? '詳細を隠す' : '詳細を表示';
         detailToggle.setAttribute('aria-expanded', String(visible));
         if (visible) updateResizeHandle();
+        else if (detail.contains(document.activeElement)) detailToggle.focus({ preventScroll: true });
     };
     const svg = viewer.querySelector('.ar-tree-canvas');
     const summary = viewer.querySelector('.ar-tree-node-summary');
@@ -135,12 +144,8 @@ export function initializeViewer(viewer, viewState) {
         const effects = node.displayEffects ?? [];
         const lines = effects.slice(0, 3);
         if (!effects.length) lines.push('追加効果なし');
-        if (effects.length > 3) lines.push(`ほか ${effects.length - 3} 件`);
-        summaryEffects.replaceChildren(...lines.map(text => {
-            const item = document.createElement('li');
-            item.textContent = text;
-            return item;
-        }));
+        if (effects.length > 3) lines.push(`ほか ${effects.length - 3} 件 · 選択して表示`);
+        summaryEffects.replaceChildren(...lines.map(effectItem));
     };
     const minimap = viewer.querySelector('[data-tree-minimap]');
     svg.replaceChildren(); minimap.replaceChildren();
@@ -151,7 +156,7 @@ export function initializeViewer(viewer, viewState) {
     let previousWidth = viewState?.width ?? viewport.clientWidth, previousHeight = viewState?.height ?? viewport.clientHeight, disposed = false;
     let viewportWidth = viewport.clientWidth, viewportHeight = viewport.clientHeight;
     const zoomLabel = viewer.querySelector('[data-tree-zoom-label]');
-    let cullBounds = null, interactionUntil = 0, rightPress = null, primaryPress = null;
+    let cullBounds = null, interactionUntil = 0, rightPress = null;
     let paintedVisualScale = 0;
     const visibleNodes = new Map(), visibleEdges = new Map();
     const root = nodes.get(tree.rootNodeId) ?? projected.nodes.find(node => node.isUnlocked) ?? projected.nodes[0];
@@ -267,7 +272,6 @@ export function initializeViewer(viewer, viewState) {
         draw();
     };
     const showDetails = (node, announce = true) => {
-        const selectionChanged = selectedId !== node.nodeId;
         selectedId = node.nodeId;
         updateSummary();
         draw();
@@ -277,22 +281,18 @@ export function initializeViewer(viewer, viewState) {
         });
         links.forEach(edge => edge.line.classList.toggle('is-connected', edge.source === selectedId || edge.target === selectedId));
         miniNodes.forEach((point, id) => point.classList.toggle('is-selected', id === selectedId));
-        if (selectionChanged) detail.scrollTop = 0;
         viewer.querySelector('[data-node-name]').textContent = node.name;
         viewer.querySelector('[data-node-type]').textContent = node.pointType === 'CP' ? 'クラスの成長 · CP' : 'プレイヤーの成長 · PP';
         renderStateChip(detailState, node);
         viewer.querySelector('[data-node-requirement]').textContent = node.requirementText || 'クラス・プレイヤーレベルの指定条件なし';
         viewer.querySelector('[data-node-requirement]').classList.toggle('ar-condition-unmet', node.isConditionMet === false);
         viewer.querySelector('[data-node-cost]').textContent = nodeCost(node);
-        const effects = viewer.querySelector('[data-node-effects]'); effects.replaceChildren();
-        for (const text of node.displayEffects?.length ? node.displayEffects : ['追加効果の指定はありません']) {
-            const li = document.createElement('li'); li.textContent = text; effects.append(li);
-        }
+        effects.replaceChildren(...(node.displayEffects?.length ? node.displayEffects : ['追加効果の指定はありません']).map(effectItem));
         const connections = viewer.querySelector('[data-node-connections]'); connections.replaceChildren();
         for (const other of neighbors.get(node.nodeId)) {
             const button = document.createElement('button'); button.type = 'button';
             button.textContent = other.name;
-            button.addEventListener('click', () => { showDetails(other); focusNode(other); });
+            button.addEventListener('click', () => { selectNode(other); focusNode(other); });
             connections.append(button);
         }
         if (!connections.childElementCount) connections.textContent = '表示中の接続ノードはありません';
@@ -307,6 +307,14 @@ export function initializeViewer(viewer, viewState) {
             [node.name, nodeState(node), nodeCost(node), ...(node.displayEffects ?? [])].join('。');
         viewer.dispatchEvent(new CustomEvent('skilltree:select', { bubbles: true, detail: node }));
     };
+    const selectNode = node => {
+        setDetailVisible(true);
+        showDetails(node);
+        const panel = detail.getBoundingClientRect();
+        const section = nodeDetail.getBoundingClientRect();
+        if (section.top < panel.top || effects.firstElementChild.getBoundingClientRect().bottom > panel.bottom)
+            detail.scrollTop += section.top - panel.top;
+    };
     const renderNodeStatus = (group, node) => {
         const status = nodeStatus(node);
         group.dataset.state = status;
@@ -315,6 +323,22 @@ export function initializeViewer(viewer, viewState) {
         group.querySelector('title').textContent = [node.name, nodeState(node), node.requirementText].filter(Boolean).join('\n');
         miniNodes.get(node.nodeId).dataset.state = status;
     };
+    const renderLabel = (label, node) => {
+        const lines = nodeLabelLines(node, statusName);
+        node.labelExtent = lines.length * 20;
+        label.replaceChildren(make('rect', { x: -128, y: 61, width: 256, height: node.labelExtent + 12, rx: 4 }));
+        lines.forEach((line, index) => {
+            const text = make('text', { y: 81 + index * 20, class: `ar-tree-label-${line.kind}` });
+            if (line.category) text.append(make('tspan', { 'data-stat-category': line.category }, line.name));
+            text.append(line.text);
+            label.append(text);
+        });
+    };
+    const editable = sanctum.dataset.treeMode === 'edit';
+    const openNodeActions = node => {
+        selectNode(node);
+        viewer.dispatchEvent(new CustomEvent('skilltree:context', { bubbles: true }));
+    };
     for (const node of nodes.values()) {
         const isRoot = node.nodeId === tree.rootNodeId;
         const g = make('g', {
@@ -322,8 +346,10 @@ export function initializeViewer(viewer, viewState) {
             transform: `translate(${node.px},${node.py})`, role: 'button', tabindex: 0,
             'aria-pressed': 'false', 'data-point-type': node.pointType, 'data-node-key': node.nodeId,
         });
-        const labelLines = nodeLabelLines(node);
-        node.labelExtent = labelLines.length * 20;
+        if (editable) {
+            g.setAttribute('aria-haspopup', 'dialog');
+            g.setAttribute('aria-keyshortcuts', 'Shift+F10');
+        }
         g.append(make('circle', { r: 53, class: 'ar-tree-node-aura', 'aria-hidden': 'true' }));
         g.append(make('circle', { r: 48, class: 'ar-tree-node-runes', 'aria-hidden': 'true' }));
         g.append(make('path', { d: 'M-24-40 L24-40 40-24 40 24 24 40-24 40-40 24-40-24Z', class: 'ar-tree-node-frame' }));
@@ -339,8 +365,7 @@ export function initializeViewer(viewer, viewState) {
         g.append(make('circle', { cx: 34, cy: 34, r: 15, class: 'ar-tree-node-status', 'aria-hidden': 'true' }));
         g.append(make('text', { x: 34, y: 34, class: 'ar-tree-node-status-mark', 'aria-hidden': 'true' }));
         const label = make('g', { class: 'ar-tree-node-label', 'aria-hidden': 'true' });
-        label.append(make('rect', { x: -128, y: 61, width: 256, height: labelLines.length * 20 + 12, rx: 4 }));
-        labelLines.forEach((line, index) => label.append(make('text', { y: 81 + index * 20, class: `ar-tree-label-${line.kind}` }, line.text)));
+        renderLabel(label, node);
         g.append(label);
         const compact = make('g', { class: 'ar-tree-node-compact-label', 'aria-hidden': 'true' });
         compact.append(make('rect', { x: -compactLabelWidth / 2, y: 61, width: compactLabelWidth, height: 51, rx: 4 }));
@@ -351,20 +376,20 @@ export function initializeViewer(viewer, viewState) {
         g.append(make('title'));
         renderNodeStatus(g, node);
         g.addEventListener('click', event => {
-            if (dragged && event.detail !== 0) return;
-            const mouseClick = primaryPress?.type === 'mouse' && primaryPress.nodeId === node.nodeId;
-            primaryPress = null;
-            if (event.detail > 0 && mouseClick && (!event.pointerType || event.pointerType === 'mouse')
-                && !viewer.dispatchEvent(new CustomEvent('skilltree:action', { bubbles: true, cancelable: true, detail: { nodeId: node.nodeId, action: 'UNLOCK' } }))) return;
-            showDetails(node);
+            if (!dragged || event.detail === 0) selectNode(node);
         });
         g.addEventListener('keydown', event => {
-            if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); showDetails(node); }
+            if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); selectNode(node); }
+            else if (editable && (event.key === 'ContextMenu' || event.shiftKey && event.key === 'F10')) {
+                event.preventDefault();
+                openNodeActions(node);
+            }
         });
         g.addEventListener('contextmenu', event => {
-            if (event.button !== 2 || event.pointerType && event.pointerType !== 'mouse' || !rightPress || rightPress.nodeId !== node.nodeId) return;
-            if (rightPress.moved) return;
-            if (!viewer.dispatchEvent(new CustomEvent('skilltree:action', { bubbles: true, cancelable: true, detail: { nodeId: node.nodeId, action: 'RELOCK' } }))) event.preventDefault();
+            if (!rightPress || rightPress.nodeId !== node.nodeId || rightPress.moved) return;
+            if (event.button !== 2 || event.pointerType && event.pointerType !== 'mouse' || !editable) return;
+            event.preventDefault();
+            openNodeActions(node);
         });
         g.addEventListener('pointerenter', event => {
             if (event.pointerType !== 'mouse' || pointers.size) return;
@@ -422,21 +447,21 @@ export function initializeViewer(viewer, viewState) {
     viewer.querySelector('[data-tree-fit]').addEventListener('click', () => { camera = fitCamera(bounds, viewport.clientWidth, viewport.clientHeight); draw(); });
     viewer.querySelector('[data-tree-home]').addEventListener('click', () => focusNode(nodes.get(selectedId) ?? root));
     viewer.querySelector('[data-tree-reset]')?.addEventListener('click', () => focusNode(root));
-    viewer.querySelector('[data-tree-detail-close]')?.addEventListener('click', () => {
-        setDetailVisible(false); viewport.focus({ preventScroll: true });
-    });
     detailToggle.addEventListener('click', () => setDetailVisible(viewer.classList.contains('is-detail-hidden')));
     const expandButton = viewer.querySelector('[data-tree-expand]');
-    const collapseButton = sanctum.querySelector('[data-tree-collapse]');
+    const renderExpand = () => {
+        const expanded = sanctum.classList.contains('is-expanded');
+        expandButton.textContent = expanded ? '通常表示に戻る' : '最大表示';
+        expandButton.setAttribute('aria-pressed', String(expanded));
+    };
+    renderExpand();
     const setExpanded = expanded => {
         if (expanded === sanctum.classList.contains('is-expanded')) return;
         if (expanded) expandedViews.set(sanctum, { focus: document.activeElement, x: window.scrollX, y: window.scrollY });
         sanctum.classList.toggle('is-expanded', expanded);
-        expandButton.textContent = expanded ? '通常表示' : '最大表示';
-        expandButton.setAttribute('aria-pressed', String(expanded));
+        renderExpand();
         document.body.classList.toggle('ar-tree-expanded', expanded);
-        if (expanded) collapseButton.focus({ preventScroll: true });
-        else {
+        if (!expanded) {
             const previous = expandedViews.get(sanctum);
             (previous?.focus?.isConnected ? previous.focus : expandButton).focus({ preventScroll: true });
             if (previous) window.scrollTo({ left: previous.x, top: previous.y, behavior: 'instant' });
@@ -444,7 +469,6 @@ export function initializeViewer(viewer, viewState) {
         }
     };
     expandButton.addEventListener('click', () => setExpanded(!sanctum.classList.contains('is-expanded')));
-    collapseButton.addEventListener('click', () => setExpanded(false), { signal: lifecycle.signal });
     document.addEventListener('keydown', event => {
         if (!sanctum.classList.contains('is-expanded') || event.defaultPrevented || sanctum.querySelector('dialog[open]')) return;
         if (event.key === 'Escape') { event.preventDefault(); setExpanded(false); }
@@ -462,8 +486,7 @@ export function initializeViewer(viewer, viewState) {
     const pointers = new Map();
     let pinch = null;
     viewport.addEventListener('pointerdown', event => {
-        if (event.button === 0 && pointers.size >= 2) { primaryPress = null; return; }
-        primaryPress = event.button === 0 ? { type: event.pointerType, nodeId: event.target.closest('[data-node-key]')?.dataset.nodeKey } : null;
+        if (event.button === 0 && pointers.size >= 2) return;
         rightPress = event.button === 2 && event.pointerType === 'mouse'
             ? { nodeId: event.target.closest('[data-node-key]')?.dataset.nodeKey, x: event.clientX, y: event.clientY, moved: false } : null;
         if (event.button !== 0) return;
@@ -474,7 +497,7 @@ export function initializeViewer(viewer, viewState) {
         if (pointers.size === 2) {
             const [a, b] = [...pointers.values()], rect = viewport.getBoundingClientRect();
             pinch = { distance: Math.hypot(a.x - b.x, a.y - b.y), camera: { ...camera }, center: { x: (a.x + b.x) / 2 - rect.left, y: (a.y + b.y) / 2 - rect.top } };
-            primaryPress = null; dragged = true;
+            dragged = true;
             for (const id of pointers.keys()) viewport.setPointerCapture(id);
         }
     });
@@ -489,7 +512,7 @@ export function initializeViewer(viewer, viewState) {
         }
         if (!drag || drag.id !== event.pointerId) return;
         const dx = event.clientX - drag.x, dy = event.clientY - drag.y;
-        if (!dragged && Math.abs(dx) + Math.abs(dy) > 6) { primaryPress = null; dragged = true; viewport.setPointerCapture(event.pointerId); viewer.classList.add('is-panning'); }
+        if (!dragged && Math.abs(dx) + Math.abs(dy) > 6) { dragged = true; viewport.setPointerCapture(event.pointerId); viewer.classList.add('is-panning'); }
         if (!dragged) return;
         camera.x = drag.originX + dx; camera.y = drag.originY + dy; draw();
     });
@@ -501,7 +524,7 @@ export function initializeViewer(viewer, viewState) {
         if (!remaining) viewer.classList.remove('is-panning');
     };
     viewport.addEventListener('pointerup', endDrag);
-    viewport.addEventListener('pointercancel', event => { primaryPress = null; rightPress = null; endDrag(event); });
+    viewport.addEventListener('pointercancel', event => { rightPress = null; endDrag(event); });
     viewport.addEventListener('lostpointercapture', event => { if (event.target === viewport) endDrag(event); });
     window.addEventListener('pointerup', endDrag, { signal: lifecycle.signal });
     window.addEventListener('pointercancel', endDrag, { signal: lifecycle.signal });
@@ -590,7 +613,7 @@ export function initializeViewer(viewer, viewState) {
     viewer.querySelector('[data-tree-match-next]').addEventListener('click', () => stepMatch(1));
     viewer.querySelector('[data-tree-search-clear]').addEventListener('click', () => {
         query.value = ''; effectFilter.value = ''; search(false);
-        (toolsPanel.hidden ? toolsToggle : query).focus({ preventScroll: true });
+        query.focus({ preventScroll: true });
     });
     viewer.addEventListener('click', event => { if (!event.target.closest('[data-tree-search]')) results.hidden = true; });
     const geometryKey = value => JSON.stringify([value.rootNodeId, value.edges, value.nodes.map(node => [node.nodeId, node.x, node.y, node.z, node.name, node.icon, node.pointType, node.pointCost, node.displayEffects, node.costText])]);
@@ -605,10 +628,7 @@ export function initializeViewer(viewer, viewState) {
             Object.assign(node, value);
             if (!changed) continue;
             renderNodeStatus(group, node);
-            const label = group.querySelector('.ar-tree-node-label'), lines = nodeLabelLines(node);
-            node.labelExtent = lines.length * 20;
-            label.replaceChildren(make('rect', { x: -128, y: 61, width: 256, height: lines.length * 20 + 12, rx: 4 }));
-            lines.forEach((line, index) => label.append(make('text', { y: 81 + index * 20, class: `ar-tree-label-${line.kind}` }, line.text)));
+            renderLabel(group.querySelector('.ar-tree-node-label'), node);
         }
         links.forEach(edge => edge.line.classList.toggle('is-unlocked', nodes.get(edge.source).isUnlocked && nodes.get(edge.target).isUnlocked));
         const current = nodes.get(selectedId);
@@ -635,17 +655,13 @@ export function initializeViewer(viewer, viewState) {
     });
     observer.observe(viewport);
     viewer.dispose = () => { disposed = true; stars.dispose(); lifecycle.abort(); observer.disconnect(); cancelAnimationFrame(frame); cancelAnimationFrame(searchFrame); };
-    viewer.getViewState = () => ({ camera: { ...camera }, spacingPercent, selectedId, detailVisible: !detail.hidden, detailWidth, toolsVisible: !toolsPanel.hidden, width: previousWidth, height: previousHeight, search: { query: query.value, mode: searchMode.value, effect: effectFilter.value } });
-    viewer.selectNode = (id, openDetails = true) => {
-        const node = nodes.get(id);
-        if (!node) return;
-        if (openDetails) setDetailVisible(true);
-        showDetails(node, openDetails);
-    };
+    viewer.getViewState = () => ({ camera: { ...camera }, spacingPercent, selectedId, detailVisible: !detail.hidden, detailWidth, width: previousWidth, height: previousHeight, search: { query: query.value, mode: searchMode.value, effect: effectFilter.value } });
     viewer.isInteracting = () => pointers.size > 0 || Boolean(resizing) || performance.now() < interactionUntil;
     showDetails(nodes.get(viewState?.selectedId) ?? root, false);
     setDetailVisible(viewState?.detailVisible ?? !window.matchMedia('(max-width: 760px)').matches);
     if (viewState) { camera = { ...viewState.camera }; draw(); }
     else focusNode(root);
+    viewer.querySelector('[data-tree-controls]').hidden = false;
+    viewer.querySelector('[data-tree-empty]')?.setAttribute('hidden', '');
 }
 for (const viewer of document.querySelectorAll('[data-skilltree-viewer]')) initializeViewer(viewer);

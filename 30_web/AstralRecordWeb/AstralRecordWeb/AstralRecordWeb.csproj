@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="../../../20_api/AstralRecordApi/AstralRecordApi/Models/StatusType.generated.cs" Link="Models/StatusType.generated.cs" />
     <EmbeddedResource Include="../../../50_resourcepack/item-models.json" LogicalName="ItemModels.json" />
     <Content Include="../../../50_resourcepack/bedrock/textures/items/*.png"
              Link="item-textures/%(Filename)%(Extension)"

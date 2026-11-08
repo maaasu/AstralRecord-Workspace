@@ -86,16 +86,23 @@ export function nodeCost(node) {
     return node.costText || `${node.pointCost} ${node.pointType}`;
 }
 
-export function nodeLabelLines(node) {
-    const wrap = (text, kind) => {
+export function nodeLabelLines(node, statusName) {
+    const wrap = (text, kind, status) => {
         const chars = Array.from(String(text));
         const lines = [];
-        for (let i = 0; i < chars.length; i += 16) lines.push({ text: chars.slice(i, i + 16).join(''), kind });
+        const nameLength = status ? Array.from(status[0]).length : 0;
+        for (let i = 0; i < chars.length; i += 16) {
+            const line = chars.slice(i, i + 16);
+            const colorLength = Math.min(line.length, nameLength - i);
+            lines.push(colorLength > 0
+                ? { text: line.slice(colorLength).join(''), kind, name: line.slice(0, colorLength).join(''), category: status[1] }
+                : { text: line.join(''), kind });
+        }
         return lines;
     };
     return [
         ...wrap(node.name, 'name'),
-        ...(node.displayEffects || []).flatMap(text => wrap(text, 'effect')),
+        ...(node.displayEffects || []).flatMap(text => wrap(text, 'effect', statusName?.(text))),
         ...wrap(nodeCost(node), 'cost'),
         ...wrap(nodeState(node), 'state'),
     ];

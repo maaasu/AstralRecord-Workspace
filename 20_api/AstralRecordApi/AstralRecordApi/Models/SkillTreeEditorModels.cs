@@ -265,6 +265,7 @@ public sealed class SkillTreeEditorResponse
 {
     public Guid AccountId { get; init; }
     public required string AccountName { get; init; }
+    public string? CurrentClassId { get; init; }
     public required SkillTreeEditorConnectionResponse Connection { get; init; }
     public string? GenerationId { get; init; }
     public int StateRevision { get; init; }

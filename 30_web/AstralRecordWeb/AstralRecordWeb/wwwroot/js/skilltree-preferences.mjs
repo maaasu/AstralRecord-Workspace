@@ -3,7 +3,6 @@ export function normalizePreferences(value) {
     return {
         sound: typeof value?.sound === 'boolean' ? value.sound : true,
         volume: Number.isFinite(value?.volume) ? Math.round(Math.max(0, Math.min(100, value.volume))) : 35,
-        directClick: value?.directClick === true,
     };
 }
 export function loadPreferences() {

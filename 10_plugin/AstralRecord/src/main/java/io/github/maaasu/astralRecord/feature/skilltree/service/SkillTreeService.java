@@ -959,7 +959,7 @@ public class SkillTreeService {
         return view;
     }
 
-    /** 保存境界でも利用できるデータ評価。Bukkitの位置はメインスレッドで取得済みの値だけを使用する。 */
+    /** 就職中クラスと残高を含む保存境界でも利用可能な評価。Bukkitの位置は取得済みの値だけを使用する。 */
     private synchronized JsonObject createRuntimePlayerDataView(AstPlayer astPlayer, JsonObject location, boolean online, boolean eligible) {
         SkillTreePlayerState state = state(astPlayer);
         NodePresentationSnapshot snapshot = createNodePresentationSnapshot(astPlayer);
@@ -968,6 +968,7 @@ public class SkillTreeService {
         long relockGold = availableRelockGold(astPlayer);
         JsonObject view = new JsonObject();
         view.addProperty("accountId", state.accountId().toString());
+        view.addProperty("currentClassId", astPlayer.getClassId());
         view.addProperty("definitionGenerationId", definitionGenerationId);
         view.addProperty("playerStateVersion", state.persistedVersion());
         view.addProperty("playerStateRevision", playerStateRevisions.getOrDefault(state.accountId(), 0L));

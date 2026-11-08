@@ -17,6 +17,13 @@
     --tree-status-unmet: #ffc47e;
     --tree-status-draft-unlock: #c6afff;
     --tree-status-draft-relock: #f7a4bf;
+    --tree-stat-resource: #ffaa00;
+    --tree-stat-primary: #55ff55;
+    --tree-stat-offense: #ff5555;
+    --tree-stat-defense: #8899ff;
+    --tree-stat-element: #ff55ff;
+    --tree-stat-condition: #d187ea;
+    --tree-stat-utility: #ffff55;
     --tree-minimap-width: clamp(5rem, 11vw, 8rem);
     --tree-map-height: clamp(30rem, 72dvh, 43rem);
     position: relative;
@@ -50,7 +57,7 @@
     justify-content: space-between;
     gap: .5rem 1rem;
 }
-.ar-tree-heading { margin: 0 0 1rem; }
+.ar-tree-heading { flex-wrap: wrap; margin: 0 0 .6rem; }
 .ar-tree-heading-identity { min-width: 0; }
 .ar-tree-title-row { justify-content: flex-start; flex-wrap: wrap; }
 .ar-tree-eyebrow { margin: 0 0 .3rem; color: var(--tree-gold); font-size: .75rem; letter-spacing: .12em; }
@@ -73,22 +80,16 @@
 }
 [data-tree-mode="edit"] .ar-tree-mode-badge { color: var(--tree-light); border-color: #b9985f88; background: #342b1f; }
 .ar-tree-mode-description { margin: .55rem 0 0; color: var(--tree-muted); font-size: .8rem; }
-.ar-tree-progress { display: grid; gap: .15rem; flex: 0 0 auto; text-align: right; color: var(--tree-muted); font-size: .7rem; }
-.ar-tree-progress strong { color: var(--tree-light); font-size: 1.2rem; font-variant-numeric: tabular-nums; }
-.ar-tree-progress strong span { color: var(--tree-muted); font-size: .85rem; }
-
-.ar-tree-tools { display: grid; gap: .4rem; margin-bottom: .5rem; font-size: .8rem; }
-.ar-tree-tools-panel { display: grid; gap: .45rem; padding: .55rem; border: 1px solid var(--tree-line); border-radius: 4px; }
+.ar-tree-sidebar-tools { display: grid; gap: .55rem; padding-block: .7rem; font-size: .8rem; }
 .ar-tree-map-tools { display: grid; gap: .35rem; min-width: 0; }
-.ar-tree-toolbar, .ar-tree-controls, .ar-tree-search-feedback, .ar-tree-options-content, .ar-tree-draft-actions {
+.ar-tree-controls, .ar-tree-search-feedback, .ar-tree-options-content, .ar-tree-draft-actions {
     display: flex;
     align-items: center;
-    gap: .4rem;
+    gap: .35rem;
     flex-wrap: wrap;
 }
-.ar-tree-toolbar { justify-content: space-between; }
-.ar-tree-sanctum [data-tree-tools-toggle][aria-expanded="true"] { color: var(--tree-light); border-color: var(--tree-gold); }
-.ar-tree-search { display: flex; flex: 1 1 15rem; flex-wrap: wrap; max-width: 30rem; min-width: 0; margin: 0; }
+.ar-tree-controls { justify-content: flex-end; margin-inline-start: auto; font-size: .8rem; }
+.ar-tree-search { display: flex; flex-wrap: wrap; min-width: 0; margin: 0; }
 .ar-tree-search input {
     min-width: 0;
     flex: 1;
@@ -129,17 +130,16 @@
 .ar-tree-options-content input { accent-color: var(--tree-gold); }
 .ar-tree-options-content input[type="range"] { width: 6rem; }
 .ar-tree-options-content output { min-width: 4ch; font-variant-numeric: tabular-nums; }
-.ar-tree-preferences p { margin: 0; }
-
-.ar-tree-account-state { display: grid; gap: .45rem; padding: .65rem; border: 1px solid var(--tree-line); border-radius: 4px; background: var(--tree-panel); }
-.ar-tree-balances summary small { margin-left: .4rem; color: var(--tree-muted); overflow-wrap: anywhere; }
-.ar-tree-balances[open] summary { margin-bottom: .35rem; }
-.ar-tree-ledger { display: grid; grid-template-columns: minmax(7.25rem, .85fr) minmax(10rem, 2fr) minmax(7.25rem, .85fr); gap: .45rem; }
-.ar-tree-ledger h3 { font-size: .73rem; font-weight: 500; color: var(--tree-muted); margin: 0 0 .2rem; }
-.ar-tree-ledger h3 span { color: var(--tree-gold); margin-left: .15rem; }
-.ar-tree-point-card, .ar-tree-class-points { min-width: 0; padding: .45rem .6rem; border-radius: 4px; background: var(--tree-bg); }
+.ar-tree-account-state { display: grid; gap: .3rem; }
+.ar-tree-account-state > small { color: var(--tree-muted); }
+.ar-tree-balances[open] summary { margin-bottom: .3rem; }
+.ar-tree-ledger { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem; }
+.ar-tree-point-card { display: grid; min-width: 0; gap: .15rem; padding: .4rem .5rem; border: 1px solid var(--tree-line); border-radius: 4px; background: var(--tree-bg); }
+.ar-tree-point-card > span { color: var(--tree-muted); font-size: .72rem; overflow-wrap: anywhere; }
 .ar-tree-point-card > strong { font-size: 1.2rem; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--tree-light); overflow-wrap: anywhere; }
-.ar-tree-point-card p { color: var(--tree-teal); }
+.ar-tree-point-card small, .ar-tree-gold small { color: var(--tree-teal); }
+.ar-tree-point-card small:empty { display: none; }
+.ar-tree-account-state .ar-tree-gold { margin-top: .3rem; }
 .ar-tree-cp-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: .25rem; max-height: 5.4rem; overflow: auto; scrollbar-width: thin; }
 .ar-tree-cp-list > span { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: .1rem .35rem; padding: .25rem .4rem; border: 1px solid var(--tree-line); border-radius: 3px; overflow-wrap: anywhere; }
 .ar-tree-cp-list strong { color: var(--tree-text); font-variant-numeric: tabular-nums; }
@@ -147,19 +147,19 @@
 .ar-tree-cp-list small:empty, .ar-tree-account-state p:empty, .ar-tree-operation p:empty { display: none; }
 .ar-tree-account-state p { margin: 0; }
 .ar-tree-notices:not(:has(p:not(:empty))), .ar-tree-notices p:empty { display: none; }
-.ar-tree-notices p { margin: 0; }
+.ar-tree-notices p { margin: 0; overflow-wrap: anywhere; }
 .ar-tree-request-status { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem .6rem; color: var(--tree-muted); }
 .ar-tree-request-status [role="status"] { font-weight: 700; color: var(--tree-light); }
 [data-editor-draft-count] { color: var(--tree-muted); }
 [data-editor-reason], [data-editor-operation-reason] { color: #f0c998; }
 [data-editor-feedback] { color: var(--tree-muted); }
-.ar-tree-sanctum :is([data-editor-batch-review], [data-editor-submit], [data-editor-confirm-send]) {
+.ar-tree-sanctum :is([data-editor-batch-review], [data-editor-submit], [data-editor-node-action], [data-editor-confirm-send]) {
     color: var(--tree-light);
     border-color: #b9985f88;
     background: #342b1f;
     font-weight: 650;
 }
-.ar-tree-sanctum :is([data-editor-batch-review], [data-editor-submit], [data-editor-confirm-send]):not(:disabled):hover {
+.ar-tree-sanctum :is([data-editor-batch-review], [data-editor-submit], [data-editor-node-action], [data-editor-confirm-send]):not(:disabled):hover {
     color: #fff3d5;
     border-color: var(--tree-gold);
     background: #4a3a25;
@@ -176,13 +176,14 @@
     box-shadow: 0 18px 60px #000a;
     font-size: .875rem;
 }
+.ar-tree-node-actions { width: min(24rem, calc(100% - 2rem)); }
 .ar-tree-batch-review::backdrop { background: #04070cc9; }
 .ar-tree-batch-review ol { max-height: 34dvh; overflow: auto; padding-left: 1.5rem; }
 .ar-tree-batch-review li { margin-block: .35rem; }
 .ar-tree-confirm-actions { display: flex; justify-content: flex-end; gap: .45rem; flex-wrap: wrap; }
 
 .ar-tree-layout {
-    --tree-detail-width: clamp(min(240px, 55%), var(--tree-detail-size, min(26%, 360px)), 55%);
+    --tree-detail-width: clamp(min(240px, 55%), var(--tree-detail-size, clamp(17rem, 28%, 22rem)), 55%);
     position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr) var(--tree-detail-width);
@@ -270,6 +271,7 @@
     overflow-wrap: anywhere;
     pointer-events: none;
 }
+[data-skilltree-viewer]:not(.is-detail-hidden) .ar-tree-node-summary:not([data-tree-previewing]) { display: none; }
 .ar-tree-node-summary > strong, .ar-tree-node-summary li {
     display: -webkit-box;
     -webkit-box-orient: vertical;
@@ -357,7 +359,7 @@
 .ar-tree-mini-viewport { fill: #f7d49522; stroke: var(--tree-gold); stroke-width: 1; vector-effect: non-scaling-stroke; }
 
 .ar-tree-detail {
-    padding: 0 .85rem .9rem;
+    padding: 0 .75rem .85rem;
     min-width: 0;
     max-height: var(--tree-map-height);
     overflow: auto;
@@ -366,21 +368,13 @@
     border-left: 1px solid var(--tree-line);
     background: var(--tree-panel);
 }
-.ar-tree-detail-header {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: .5rem;
-    padding: .45rem 0;
-    border-bottom: 1px solid var(--tree-line);
+.ar-tree-detail .ar-tree-detail-header {
+    padding-top: .5rem;
+    border-top: 1px solid var(--tree-line);
     color: var(--tree-muted);
-    background: var(--tree-panel);
-    font-size: .78rem;
+    font: 650 .78rem var(--ar-ui, "Noto Sans JP", sans-serif);
 }
-.ar-tree-detail-summary { display: flex; align-items: center; gap: .6rem; margin: .75rem 0; }
+.ar-tree-detail-summary { display: flex; align-items: center; gap: .55rem; margin: .4rem 0; }
 .ar-tree-relic {
     display: grid;
     place-items: center;
@@ -407,6 +401,7 @@
 }
 .ar-tree-cost strong { color: var(--tree-light); text-align: right; overflow-wrap: anywhere; }
 .ar-tree-operation {
+    margin-top: .65rem;
     padding: .55rem;
     border: 1px solid var(--tree-line);
     border-radius: 4px;
@@ -417,10 +412,20 @@
 .ar-tree-operation label, .ar-tree-operation select { display: block; width: 100%; }
 .ar-tree-operation select { margin: .3rem 0 .5rem; }
 [data-editor-preview] { color: var(--tree-teal); }
-.ar-tree-detail-section { margin-top: .9rem; }
+.ar-tree-detail-section { margin-top: .65rem; }
+.ar-tree-node-balance { margin: 0; color: var(--tree-teal); font-size: .8rem; overflow-wrap: anywhere; }
 .ar-tree-detail-section h4 { color: var(--tree-light); font-size: .8rem; margin: 0 0 .4rem; }
 .ar-tree-effect-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .3rem; }
-.ar-tree-effect-list li { border-inline-start: 2px solid var(--tree-line); background: var(--tree-bg); padding: .35rem .5rem; font-size: .78rem; overflow-wrap: anywhere; }
+.ar-tree-effect-list li { border-inline-start: 2px solid var(--tree-line); background: var(--tree-bg); padding: .35rem .5rem; font-size: .875rem; line-height: 1.45; white-space: pre-line; overflow-wrap: anywhere; }
+.ar-tree-sanctum [data-stat-category="resource"] { --tree-stat-color: var(--tree-stat-resource); }
+.ar-tree-sanctum [data-stat-category="primary"] { --tree-stat-color: var(--tree-stat-primary); }
+.ar-tree-sanctum [data-stat-category="offense"] { --tree-stat-color: var(--tree-stat-offense); }
+.ar-tree-sanctum [data-stat-category="defense"] { --tree-stat-color: var(--tree-stat-defense); }
+.ar-tree-sanctum [data-stat-category="element"] { --tree-stat-color: var(--tree-stat-element); }
+.ar-tree-sanctum [data-stat-category="condition"] { --tree-stat-color: var(--tree-stat-condition); }
+.ar-tree-sanctum [data-stat-category="utility"] { --tree-stat-color: var(--tree-stat-utility); }
+.ar-tree-sanctum span[data-stat-category] { color: var(--tree-stat-color); font-weight: 650; }
+.ar-tree-sanctum tspan[data-stat-category] { fill: var(--tree-stat-color); }
 .ar-tree-detail-section p, .ar-tree-connections > div, .ar-tree-readonly-note { color: var(--tree-muted); font-size: .75rem; overflow-wrap: anywhere; }
 .ar-tree-detail-section p { white-space: pre-line; }
 .ar-tree-connections > div { display: flex; flex-wrap: wrap; gap: .3rem; }
@@ -438,7 +443,6 @@
 /* Allow the fixed map to fill the viewport from inside the player portal. */
 .ar-player.ar-tree-expanded .ar-portal:has(.ar-tree-sanctum.is-expanded) { isolation: auto; }
 .ar-tree-expanded > :is(.ar-navbar, .ar-footer, .ar-skip-link) { visibility: hidden; }
-.ar-tree-sanctum .ar-tree-collapse { display: none; }
 .ar-tree-sanctum.is-expanded {
     position: fixed;
     inset: 0;
@@ -454,12 +458,8 @@
 }
 .is-expanded .ar-tree-heading { flex-shrink: 0; margin: 0 0 .45rem; }
 .is-expanded .ar-tree-heading h2 { font-size: 1.15rem; }
-.is-expanded .ar-tree-collapse { display: block; flex: 0 0 auto; font-size: .8rem; }
-.ar-tree-collapse small { color: var(--tree-muted); }
-.is-expanded :is(.ar-tree-heading p, .ar-tree-progress, .ar-tree-accessible) { display: none; }
+.is-expanded :is(.ar-tree-heading p, .ar-tree-accessible) { display: none; }
 .is-expanded [data-skilltree-viewer] { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-.is-expanded .ar-tree-tools { flex: 0 0 auto; padding: .2rem; }
-.is-expanded .ar-tree-tools-panel { max-height: min(30dvh, 18rem); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; }
 .is-expanded .ar-tree-layout { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); }
 .is-expanded .ar-tree-viewport { height: 100%; }
 .is-expanded .ar-tree-detail { max-height: 100%; }
@@ -489,41 +489,30 @@
 }
 @media (max-width: 760px) {
     .ar-tree-heading { gap: .4rem; }
-    .ar-tree-search { max-width: none; }
+    .ar-tree-controls { gap: .25rem; font-size: .72rem; }
+    .ar-tree-controls button { padding-inline: .35rem; }
+    .ar-tree-zoom button { min-width: 1.6rem; }
     .ar-tree-draft-actions :is([data-editor-undo], [data-editor-clear]):disabled { display: none; }
-    .ar-tree-ledger { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .ar-tree-class-points { grid-column: 1 / -1; grid-row: 2; }
     .ar-tree-cp-list { display: flex; overflow: auto; }
     .ar-tree-cp-list > span { flex: 0 0 7rem; }
     .ar-tree-layout { display: flex; flex-direction: column; height: clamp(21rem, 68dvh, 35rem); }
     .ar-tree-detail-resize { display: none; }
     .ar-tree-map-shell { flex: 1; }
     .ar-tree-viewport { height: 100%; }
-    .ar-tree-detail { flex: 0 1 auto; max-height: 46%; border-left: 0; border-top: 1px solid var(--tree-line); }
-    [data-skilltree-viewer]:not(.is-detail-hidden) .ar-tree-node-summary:not([data-tree-previewing]) { display: none; }
+    .ar-tree-detail { flex: 0 1 auto; max-height: 52%; border-left: 0; border-top: 1px solid var(--tree-line); }
     .ar-tree-minimap { inset: auto .4rem .4rem auto; }
     .ar-tree-node-summary { inset: auto auto .4rem .4rem; }
     .ar-tree-minimap > span { display: none; }
     .is-expanded .ar-tree-layout { height: auto; }
-    .is-expanded .ar-tree-detail { max-height: 46%; }
-    .is-expanded .ar-tree-heading h2 small, .ar-tree-collapse small { display: none; }
+    .is-expanded .ar-tree-detail { max-height: 52%; }
+    .is-expanded .ar-tree-heading h2 small { display: none; }
 }
 @media (max-height: 680px) {
     .is-expanded [data-skilltree-viewer] { overflow-y: auto; }
     .is-expanded .ar-tree-layout { min-height: 13rem; }
-    .is-expanded .ar-tree-tools { position: relative; z-index: 4; }
-    .is-expanded .ar-tree-tools-panel {
-        position: absolute;
-        inset: 100% auto auto .2rem;
-        width: min(34rem, calc(100% - .4rem));
-        max-height: min(24dvh, 8.5rem);
-        background: var(--tree-bg);
-        box-shadow: 0 .4rem 1.1rem #0009;
-    }
 }
 @media (max-height: 500px) {
     .is-expanded :is(.ar-tree-heading h2 small, .ar-tree-map-footer) { display: none; }
-    .is-expanded .ar-tree-tools-panel { max-height: min(20dvh, 7rem); }
     .is-expanded .ar-tree-node-summary li { -webkit-line-clamp: 1; }
 }
 @media (max-height: 500px) and (min-width: 540px) {

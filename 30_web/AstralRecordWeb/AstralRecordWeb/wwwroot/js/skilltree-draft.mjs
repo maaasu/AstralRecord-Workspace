@@ -39,7 +39,10 @@ export function createDraft(state, changes = []) {
         if (node.pointType !== 'CP') return 'ポイント種別を確認できません。';
         if (!node.pointCost) return '';
         const sourceId = node.requiresCpSourceSelection ? change.sourceClassId : node.cpSourceClassId;
-        if (!sourceId || !(node.cpSources ?? []).some(c => c.classId === sourceId)) return '消費するクラスのCPを選択してください。';
+        const sources = node.cpSources ?? [];
+        if (node.requiresCpSourceSelection && !sourceId && !sources.some(c => balances.get(c.classId)?.availableCp >= node.pointCost))
+            return '解放に必要なCPを持つクラスがありません。';
+        if (!sourceId || !sources.some(c => c.classId === sourceId)) return '消費するクラスのCPを選択してください。';
         return !balances.has(sourceId) || balances.get(sourceId).availableCp < node.pointCost ? '選択したクラスのCPが不足しています。' : '';
     };
     let error = '', goldCost = 0;

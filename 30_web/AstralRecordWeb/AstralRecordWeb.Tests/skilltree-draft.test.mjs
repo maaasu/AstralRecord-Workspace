@@ -28,9 +28,10 @@ test('direct actions still require CP choice, connected routes and sufficient fu
     const withoutA = directNodeChanges(both, createDraft(before, both).tree.nodes[1], 'RELOCK');
     assert.ok(createDraft(before, withoutA).error);
     before.tree.nodes[1] = node('a', { pointType: 'CP', requiresCpSourceSelection: true, cpSources: [{ classId: 'swordsman' }] });
-    assert.ok(createDraft(before, directNodeChanges([], before.tree.nodes[1], 'UNLOCK')).error);
+    assert.equal(createDraft(before, directNodeChanges([], before.tree.nodes[1], 'UNLOCK')).error, '消費するクラスのCPを選択してください。');
     assert.equal(createDraft(before, directNodeChanges([], before.tree.nodes[1], 'UNLOCK', 'swordsman')).error, '');
     before.points.classes[0].spentCp = 8;
+    assert.equal(createDraft(before, directNodeChanges([], before.tree.nodes[1], 'UNLOCK')).error, '解放に必要なCPを持つクラスがありません。');
     assert.ok(createDraft(before, directNodeChanges([], before.tree.nodes[1], 'UNLOCK', 'swordsman')).error);
 });
 test('ordered multi-node draft uses preceding unlock and keeps confirmed state unchanged', () => {

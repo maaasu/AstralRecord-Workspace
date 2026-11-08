@@ -325,7 +325,9 @@ public sealed partial class SkillTreeOperationRepository(AstralRecordDbContext d
         var pending = await dbContext.SkillTreeOperations.AsNoTracking().Where(x => x.AccountId == account.Uuid && ActiveStatuses.Contains(x.Status)).OrderByDescending(x => x.CreatedAtUtc).ToListAsync();
         return new()
         {
-            AccountId = account.Uuid, AccountName = account.AccountName, GenerationId = usable ? view?.DefinitionGenerationId : null,
+            AccountId = account.Uuid, AccountName = account.AccountName,
+            CurrentClassId = (usable ? BlankToNull(GetStringProperty(view?.ViewJson, "currentClassId")) : null) ?? account.ClassId,
+            GenerationId = usable ? view?.DefinitionGenerationId : null,
             StateRevision = state?.Version ?? 0, CanEdit = usable && (offline || view!.EditEligible),
             SupportsBatch = batchCompatibility == BatchCompatibility && GetDecimalProperty(view?.ViewJson, "editorVersion") == 2,
             HasFreshState = online && usable, BalanceKind = usable ? online ? "LIVE" : "SAVED" : "UNKNOWN",

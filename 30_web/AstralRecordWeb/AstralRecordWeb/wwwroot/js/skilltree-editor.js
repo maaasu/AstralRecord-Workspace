@@ -25,17 +25,15 @@ function startEditor(editor) {
         q('[data-editor-sound]').checked = preferences.sound;
         q('[data-editor-volume]').value = String(preferences.volume);
         text('[data-editor-volume-label]', `${preferences.volume}%`);
-        q('[data-editor-direct-click]').checked = preferences.directClick;
     };
     renderPreferences();
     editor.addEventListener('pointerdown', () => sound.arm(), { capture: true });
     editor.addEventListener('keydown', () => sound.arm(), { capture: true });
     editor.addEventListener('change', event => {
-        if (event.target.matches('[data-editor-sound]')) preferences.sound = event.target.checked;
-        else if (event.target.matches('[data-editor-direct-click]')) preferences.directClick = event.target.checked;
-        else return;
+        if (!event.target.matches('[data-editor-sound]')) return;
+        preferences.sound = event.target.checked;
         savePreferences(preferences); sound.update(); sound.arm();
-        if (event.target.matches('[data-editor-sound]')) sound.play('accepted');
+        sound.play('accepted');
     });
     editor.addEventListener('input', event => {
         if (!event.target.matches('[data-editor-volume]')) return;
@@ -86,6 +84,7 @@ function startEditor(editor) {
         if (!draft.tree?.nodes?.length) return;
         if (viewer.updateTree?.(draft.tree)) return;
         const viewState = viewer.getViewState?.();
+        q('[data-editor-node-actions]').close();
         const replacement = viewer.cloneNode(true);
         replacement.querySelector('[data-tree-stars]')?.replaceChildren();
         replacement.querySelector('[data-tree-json]').textContent = JSON.stringify(draft.tree);
@@ -98,12 +97,50 @@ function startEditor(editor) {
         if (key === draftInputKey) return;
         draftInputKey = key; draft = createDraft(state, changes); syncTree();
     };
+    const hasBalance = () => Date.now() - lastRead <= 15000 && state.balanceKind !== 'UNKNOWN';
+    const renderNodeBalance = node => {
+        const output = q('[data-editor-node-balance]');
+        output.hidden = node.pointType === 'CP' && node.pointCost === 0;
+        if (output.hidden) return;
+        if (!hasBalance()) { output.textContent = '所持ポイントを確認できません'; return; }
+        const savedNode = node.draftAction === 'RELOCK' ? state.tree.nodes.find(item => item.nodeId === node.nodeId) : node;
+        const sourceId = (savedNode?.consumedClassId || node.cpSourceClassId || sourceClassId).toLowerCase();
+        const cp = state.points?.classes?.find(item => item.classId.toLowerCase() === sourceId);
+        const plannedCp = draft.points.classes.find(item => item.classId === cp?.classId);
+        if (node.pointType === 'CP' && !cp) {
+            output.textContent = node.requiresCpSourceSelection && !sourceId ? '消費元クラスを選ぶとCP残高を表示します' : '対象クラスのCPを確認できません';
+            return;
+        }
+        const balance = cp ? cp.availableCp : state.points?.pp;
+        const planned = cp ? plannedCp?.availableCp : draft.points.pp;
+        const unit = cp ? 'CP' : 'PP';
+        const title = cp ? `${cp.className}の所持${unit}` : '所持PP';
+        output.textContent = `${title} ${number(balance)}` + (changes.length && balance !== planned ? ` → 変更後 ${number(planned)}` : '');
+    };
     const renderSelection = () => {
         const node = draft.tree.nodes.find(n => n.nodeId === selectedId);
-        if (!node) return;
-        const staged = changes.some(change => change.nodeId === node.nodeId);
         const source = q('[data-editor-source]');
-        q('[data-editor-source-label]').hidden = !node.requiresCpSourceSelection || node.isUnlocked || staged;
+        const contextAction = q('[data-editor-node-action]');
+        if (!node) {
+            const unavailable = reason() || 'ノードの状態を確認できません。';
+            q('[data-editor-node-balance]').hidden = false;
+            text('[data-editor-node-balance]', '所持ポイントを確認できません');
+            q('[data-editor-source-label]').hidden = true;
+            source.disabled = true;
+            text('[data-editor-consumed]', '');
+            text('[data-editor-preview]', '');
+            text('[data-editor-operation-reason]', unavailable);
+            q('[data-editor-submit]').disabled = true;
+            text('[data-editor-submit]', '変更案へ追加');
+            text('[data-editor-node-actions-title]', q('[data-node-name]').textContent);
+            text('[data-editor-node-actions-reason]', unavailable);
+            text('[data-editor-node-action]', '変更案へ追加');
+            contextAction.disabled = true;
+            return;
+        }
+        const staged = changes.some(change => change.nodeId === node.nodeId);
+        const fresh = hasBalance();
+        q('[data-editor-source-label]').hidden = !fresh || !node.requiresCpSourceSelection || node.isUnlocked || staged;
         const sourceKey = JSON.stringify([node.nodeId, node.isUnlocked, node.pointCost, node.cpSources]);
         if (source.dataset.optionsKey !== sourceKey) {
         source.dataset.optionsKey = sourceKey;
@@ -118,7 +155,8 @@ function startEditor(editor) {
         }
         source.value = sourceClassId;
         }
-        source.disabled = busy();
+        source.disabled = !fresh || busy();
+        renderNodeBalance(node);
         const change = { action: node.isUnlocked ? 'RELOCK' : 'UNLOCK', nodeId: node.nodeId, sourceClassId: node.requiresCpSourceSelection ? sourceClassId || null : null };
         const error = staged ? '' : draft.check(change);
         text('[data-editor-consumed]', node.isUnlocked && node.pointType === 'CP' ? node.pointCost === 0 ? '消費なし（0 CP）' : `消費元：${node.consumedClassName || '確認が必要'}` : '');
@@ -126,17 +164,32 @@ function startEditor(editor) {
             ? `返還：${node.pointType === 'CP' ? (node.consumedClassName || '消費元クラス') + ' CP' : 'PP'} ${number(node.pointCost)} ／ 解除費用 ${number(state.relockGoldCost)} Gold`
             : `解放費用：${node.pointType === 'CP' ? (node.requiresCpSourceSelection ? '選択クラスのCP' : (node.cpSourceClassName || '対象クラス') + ' CP') : 'PP'} ${number(node.pointCost)}`);
         text('[data-editor-operation-reason]', error);
-        text('[data-editor-submit]', staged ? 'この変更を案から外す' : node.isUnlocked ? '解除を変更案へ追加' : '解放を変更案へ追加');
-        q('[data-editor-submit]').disabled = Boolean(reason() || busy() || error || draft.error && !staged);
+        const actionLabel = staged ? 'この変更を案から外す' : node.isUnlocked ? '解除を変更案へ追加' : '解放を変更案へ追加';
+        const blocked = reason() || (busy() ? '適用結果の確認が終わるまでお待ちください。' : '')
+            || (!staged && (draft.error || (needsReview ? '変更案を最新の状態で再確認してください。' : '')));
+        text('[data-editor-submit]', actionLabel);
+        q('[data-editor-submit]').disabled = Boolean(blocked || error);
+        const chooseSource = !blocked && !staged && !node.isUnlocked && node.requiresCpSourceSelection
+            && node.pointCost > 0 && !sourceClassId && node.canUnlock;
+        contextAction.dataset.chooseSource = String(chooseSource);
+        contextAction.disabled = Boolean(blocked || error && !chooseSource);
+        text('[data-editor-node-actions-title]', node.name);
+        text('[data-editor-node-actions-reason]', blocked || error || q('[data-editor-preview]').textContent);
+        text('[data-editor-node-action]', chooseSource ? '消費元クラスを選ぶ' : actionLabel);
     };
     const render = () => {
-        const fresh = Date.now() - lastRead <= 15000 && state.balanceKind !== 'UNKNOWN';
+        const fresh = hasBalance();
         const before = fresh ? state.points ?? {} : {}, after = fresh ? draft.points : {};
         text('[data-editor-heading-account]', state.accountName);
-        text('[data-editor-heading-kind]', !fresh ? '残高未確認' : state.balanceKind === 'SAVED' ? 'オフライン・保存済み残高' : '確定残高');
         text('[data-editor-balance-kind]', !fresh ? '残高未確認' : state.balanceKind === 'SAVED' ? 'オフライン・保存済み残高' : '確定残高');
         text('[data-editor-pp]', number(before.pp));
-        text('[data-editor-pp-after]', changes.length ? `変更後 ${number(after.pp)} PP ${delta(before.pp, after.pp)}` : '変更なし');
+        text('[data-editor-pp-after]', fresh && changes.length ? `変更後 ${number(after.pp)} PP ${delta(before.pp, after.pp)}` : '');
+        const currentClassId = state.currentClassId?.toLowerCase();
+        const current = before.classes?.find(item => item.classId.toLowerCase() === currentClassId);
+        const plannedCurrent = after.classes?.find(item => item.classId === current?.classId);
+        text('[data-editor-current-class]', current ? `就職中 · ${current.className} CP` : '就職中クラスのCP');
+        text('[data-editor-current-cp]', number(current?.availableCp));
+        text('[data-editor-current-cp-after]', current && changes.length ? `変更後 ${number(plannedCurrent?.availableCp)} CP ${delta(current.availableCp, plannedCurrent?.availableCp)}` : '');
         text('[data-editor-gold]', number(before.gold));
         text('[data-editor-gold-after]', draft.goldCost ? `必要 ${number(draft.goldCost)} Gold ／ 変更後 ${number(after.gold)}` : '解除費用なし');
         const cpView = JSON.stringify([before.classes, after.classes, changes.length > 0]);
@@ -230,34 +283,25 @@ function startEditor(editor) {
         sound.play(cue); return true;
     };
     editor.addEventListener('skilltree:select', event => { if (selectedId !== event.detail.nodeId) sourceClassId = ''; selectedId = event.detail.nodeId; renderSelection(); });
-    editor.addEventListener('skilltree:action', event => {
-        if (!preferences.directClick) return;
-        event.preventDefault();
-        const { nodeId, action } = event.detail;
-        viewer.selectNode?.(nodeId, false);
-        if (busy() || reason() || needsReview || draft.error) {
-            text('[data-editor-feedback]', reason() || (busy() ? '適用結果の確認が終わるまでお待ちください。' : '変更案を最新の状態で再確認してください。'));
-            sound.play('error'); return;
-        }
-        const node = draft.tree.nodes.find(n => n.nodeId === nodeId);
-        const next = directNodeChanges(changes, node, action, sourceClassId || null);
-        if (next === changes) return;
-        if (next.length > changes.length && action === 'UNLOCK' && node.requiresCpSourceSelection && node.pointCost > 0 && !sourceClassId) {
-            viewer.selectNode?.(nodeId, true);
-            text('[data-editor-feedback]', '詳細で消費するクラスのCPを選択してから、解放してください。');
-            q('[data-editor-source]').focus(); sound.play('error'); return;
-        }
-        applyChanges(next, next.length < changes.length ? 'undo' : action === 'UNLOCK' ? 'unlock' : 'relock');
+    editor.addEventListener('skilltree:context', () => {
+        const menu = q('[data-editor-node-actions]');
+        if (!menu.open) menu.showModal();
     });
     editor.addEventListener('change', event => { if (event.target.matches('[data-editor-source]')) { sourceClassId = event.target.value; renderSelection(); } });
     editor.addEventListener('click', async event => {
         const button = event.target.closest('button'); if (!button || button.disabled) return;
         if (button.matches('[data-editor-refresh]')) { await refresh(); await pollOperation(); }
-        if (button.matches('[data-editor-submit]') && !busy()) {
-            const node = draft.tree.nodes.find(n => n.nodeId === selectedId); if (!node) return;
-            const index = changes.findIndex(change => change.nodeId === selectedId);
-            const next = index >= 0 ? changes.filter((_, i) => i !== index) : [...changes, { action: node.isUnlocked ? 'RELOCK' : 'UNLOCK', nodeId: node.nodeId, sourceClassId: !node.isUnlocked && node.requiresCpSourceSelection ? sourceClassId || null : null }];
-            applyChanges(next, index >= 0 ? 'undo' : node.isUnlocked ? 'relock' : 'unlock');
+        if (button.matches('[data-editor-node-action]')) {
+            q('[data-editor-node-actions]').close();
+            if (button.dataset.chooseSource === 'true') q('[data-editor-source]').focus();
+            else q('[data-editor-submit]').click();
+        }
+        if (button.matches('[data-editor-submit]')) {
+            const node = draft.tree.nodes.find(n => n.nodeId === selectedId);
+            if (!node) return;
+            const action = node.isUnlocked ? 'RELOCK' : 'UNLOCK';
+            const next = directNodeChanges(changes, node, action, sourceClassId || null);
+            if (next !== changes) applyChanges(next, next.length < changes.length ? 'undo' : action === 'UNLOCK' ? 'unlock' : 'relock');
         }
         if (button.matches('[data-editor-undo], [data-editor-clear]') && !busy()) {
             changes = button.matches('[data-editor-clear]') ? [] : changes.slice(0, -1);

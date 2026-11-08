@@ -11,6 +11,7 @@ namespace AstralRecordApi.Controllers;
 [Route("api/skilltree")]
 public sealed class SkillTreeEditorController(ISkillTreeOperationRepository repository, IConfiguration configuration) : ControllerBase
 {
+    /// <summary>所有アカウントの就職中クラスとスキルツリー編集状態を取得する。</summary>
     [HttpGet("editor/{accountId:guid}")]
     [ProducesResponseType<SkillTreeEditorResponse>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetEditor(Guid accountId, [FromQuery(Name = "actor_user_id")] Guid actorUserId, [FromQuery(Name = "target_server_id")] string? targetServerId = null)

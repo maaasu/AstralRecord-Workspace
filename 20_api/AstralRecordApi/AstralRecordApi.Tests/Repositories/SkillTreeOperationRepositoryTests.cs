@@ -82,6 +82,19 @@ public sealed class SkillTreeOperationRepositoryTests
     }
 
     [Fact]
+    public async Task EditorUsesClassFromTheSameRuntimeViewAsPoints()
+    {
+        await using var f = await Fixture.CreateAsync();
+        var storedClassId = await f.Db.Accounts.AsNoTracking().Select(account => account.ClassId).SingleAsync();
+        Assert.Equal(storedClassId, (await f.Repository.GetEditorAsync(f.Account, f.User))!.CurrentClassId);
+
+        await f.PublishAsync(currentClassId: "swordsman");
+        var editor = await f.Repository.GetEditorAsync(f.Account, f.User);
+        Assert.Equal("LIVE", editor!.BalanceKind);
+        Assert.Equal("swordsman", editor.CurrentClassId);
+    }
+
+    [Fact]
     public async Task IdempotentRequestAndSinglePendingAreEnforced()
     {
         await using var f = await Fixture.CreateAsync();
@@ -283,11 +296,11 @@ public sealed class SkillTreeOperationRepositoryTests
         }
         internal SkillTreeServerRegistrationRequest Registration() => new() { ServerSessionId = Boot, ServerStartedAtUtc = Started, PublicationRevision = 1, DefinitionGenerationId = Generation, CanonicalSnapshotJson = Canonical, PluginVersion = "test", CompatibilityVersion = "skilltree-operation-v1", Ready = true };
         internal SkillTreeAccountSessionRequest SessionRequest() => new() { ServerSessionId = Boot, AccountSessionId = Session, AccountLeaseToken = Token, DefinitionGenerationId = Generation };
-        internal SkillTreePlayerViewRegistrationRequest ViewRequest(long? sequence = null) => new()
+        internal SkillTreePlayerViewRegistrationRequest ViewRequest(long? sequence = null, string? currentClassId = null) => new()
         {
             ServerSessionId = Boot, AccountSessionId = Session, AccountLeaseToken = Token, ViewSequence = sequence ?? this.sequence,
             DefinitionGenerationId = Generation, PlayerStateVersion = 1, EvaluationFingerprint = Fingerprint, EditEligible = true,
-            View = JsonSerializer.SerializeToElement(new { editorVersion = 2, tree = new { structureId = "main", name = "tree", rootNodeId = "root", nodes = Array.Empty<object>(), edges = Array.Empty<object>() }, points = new { pp = 10, gold = 1000, classes = Array.Empty<object>() }, relockGoldCost = 100, channelName = "test", location = new { worldDisplayName = "base", x = 1, y = 2, z = 3 } }),
+            View = JsonSerializer.SerializeToElement(new { editorVersion = 2, currentClassId, tree = new { structureId = "main", name = "tree", rootNodeId = "root", nodes = Array.Empty<object>(), edges = Array.Empty<object>() }, points = new { pp = 10, gold = 1000, classes = Array.Empty<object>() }, relockGoldCost = 100, channelName = "test", location = new { worldDisplayName = "base", x = 1, y = 2, z = 3 } }),
         };
         internal async Task CloseAsync() => Assert.True(await Repository.CloseAccountSessionAsync(Server, Account, ViewRequest()));
         internal async Task NewSessionAsync()
@@ -295,10 +308,10 @@ public sealed class SkillTreeOperationRepositoryTests
             Session = Guid.NewGuid(); Token = Hash(Session.ToString()); sequence = 1;
             Assert.True(await Repository.AcquireAccountSessionAsync(Server, Account, SessionRequest()));
         }
-        internal async Task PublishAsync(string? fingerprint = null)
+        internal async Task PublishAsync(string? fingerprint = null, string? currentClassId = null)
         {
             Fingerprint = fingerprint ?? Fingerprint;
-            Assert.NotNull(await Repository.RegisterPlayerViewAsync(Server, Account, ViewRequest(++sequence)));
+            Assert.NotNull(await Repository.RegisterPlayerViewAsync(Server, Account, ViewRequest(++sequence, currentClassId)));
         }
         internal SkillTreeOperationCreateRequest Request(Guid? id = null, Guid? actor = null, string node = "gain") => new() { OperationId = id ?? Guid.NewGuid(), ActorUserId = actor ?? User, TargetServerId = Server, ExpectedDefinitionGenerationId = Generation, ExpectedPlayerStateVersion = 1, Action = "UNLOCK", NodeId = node };
         internal SkillTreeOperationClaimRequest Claim() => new() { AccountId = Account, ServerSessionId = Boot, AccountSessionId = Session, AccountLeaseToken = Token };
