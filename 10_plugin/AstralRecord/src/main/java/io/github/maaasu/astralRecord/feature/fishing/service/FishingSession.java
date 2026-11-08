@@ -403,7 +403,8 @@ public final class FishingSession {
         for (var target : targets.entrySet()) {
             Swimmer swimmer = target.getKey();
             swimmer.path = pathFromHook(target.getValue(), parents);
-            swimmer.pathIndex = swimmer.path.size() - 1;
+            // 曲がり角を斜めに横切らないよう、まず今いるブロックの経路点へ移動します。
+            swimmer.pathIndex = swimmer.path.size();
             swimmer.direction = -1;
             swimmer.restTicks = 0;
             swimmer.nibbleTicks = 0;
