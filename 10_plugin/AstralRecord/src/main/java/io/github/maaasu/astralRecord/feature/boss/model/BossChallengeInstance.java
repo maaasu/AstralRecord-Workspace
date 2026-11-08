@@ -251,47 +251,45 @@ public final class BossChallengeInstance {
     }
 
     /**
-     * 参加者の死亡回数を加算します。
+     * 参加者を蘇生待ちとして登録します。
      *
      * @param playerId 死亡した参加者 UUID
-     * @return パーティー共有の累計死亡回数
      */
-    public int recordDeath(@NotNull UUID playerId) {
-        deathsByPlayerId.merge(playerId, 1, Integer::sum);
+    public void beginPendingDeath(@NotNull UUID playerId) {
         pendingDeaths.add(playerId);
-        return ++deathCount;
     }
 
     /**
-     * 復帰待ちの死亡を確定または無消費の蘇生として取り消します。
+     * 蘇生待ちを解除し、死亡を確定する場合だけ共有・個人回数を加算します。
      * @param playerId 復帰対象の参加者
-     * @param waived 蘇生により死亡回数を取り消す場合は true
+     * @param waived 死亡回数を消費せずに復活する場合は true
      * @return 対象の復帰待ち死亡を処理した場合は true
      */
     public boolean resolvePendingDeath(@NotNull UUID playerId, boolean waived) {
         if (!pendingDeaths.remove(playerId)) {
             return false;
         }
-        if (waived) {
-            deathCount--;
-            deathsByPlayerId.computeIfPresent(playerId, (ignored, count) -> count <= 1 ? null : count - 1);
+        if (!waived) {
+            deathCount++;
+            deathsByPlayerId.merge(playerId, 1, Integer::sum);
         }
         return true;
     }
 
-    /** @return 蘇生可能な死亡を除いた確定済み共有死亡回数 */
-    public int confirmedDeathCount() {
-        return deathCount - pendingDeaths.size();
-    }
-
+    /** @return パーティー共有の確定済み死亡回数 */
     public int deathCount() {
         return deathCount;
     }
 
+    /**
+     * @param playerId 対象の参加者 UUID
+     * @return 対象参加者の確定済み死亡回数
+     */
     public int playerDeathCount(@NotNull UUID playerId) {
         return deathsByPlayerId.getOrDefault(playerId, 0);
     }
 
+    /** @return 参加者別の確定済み死亡回数のスナップショット */
     public @NotNull Map<UUID, Integer> deathSnapshot() {
         return Map.copyOf(deathsByPlayerId);
     }

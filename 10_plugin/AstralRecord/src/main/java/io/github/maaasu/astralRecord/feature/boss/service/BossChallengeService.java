@@ -747,21 +747,21 @@ public final class BossChallengeService {
         if (!started) {
             return true;
         }
-        int deathCount = challenge.recordDeath(playerId);
+        challenge.beginPendingDeath(playerId);
         messageService.send(
                 astPlayer,
                 PlayerMsgId.P_6524,
                 challenge.config().reviveDelaySeconds(),
-                deathCount,
+                challenge.deathCount(),
                 challenge.config().deathLimit()
         );
         return true;
     }
 
     /**
-     * 魔法陣で復活した参加者の今回の死亡回数を取り消します。
+     * 魔法陣で復活した参加者の蘇生待ちを死亡回数の消費なしで解除します。
      * @param playerId 復活が成立した参加者
-     * @return 進行中の挑戦で復帰待ちの死亡を取り消した場合は true
+     * @return 進行中の挑戦で蘇生待ちを解除した場合は true
      */
     public boolean waivePendingDeathForRevival(@NotNull UUID playerId) {
         BossChallengeInstance challenge = findInProgressChallengeByParticipant(playerId);
@@ -769,22 +769,39 @@ public final class BossChallengeService {
     }
 
     /**
-     * 通常の死亡復帰時に死亡回数を確定し、上限を超えた場合だけ挑戦を終了します。
+     * 通常復帰時に死亡を確定し、挑戦が継続していればフィールドへ戻します。
+     * 切断時に確定済みの場合も、再ログイン後の復帰転送を実行します。
+     * 討伐直後に転送できなかった場合は結果待機中の通常復帰で再試行します。
      * @param challengeId 死亡が発生した挑戦
      * @param playerId 復帰対象の参加者
      */
     private void finishParticipantDeath(@NotNull UUID challengeId, @NotNull UUID playerId) {
         BossChallengeInstance challenge = challengesById.get(challengeId);
-        if (challenge == null || !challenge.resolvePendingDeath(playerId, false)
-                || challenge.state() != BossChallengeState.IN_PROGRESS) {
+        if (challenge == null) {
             return;
         }
-        if (ChallengeDeathPolicy.isExceeded(challenge.confirmedDeathCount(), challenge.config().deathLimit())) {
+        if (challenge.state() == BossChallengeState.IN_PROGRESS) {
+            confirmParticipantDeath(challenge, playerId);
+            reviveParticipant(challengeId, playerId);
+        } else if (challenge.state() == BossChallengeState.RESULT_WAITING && challenge.field() != null) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player != null && player.isOnline()) {
+                transferParticipantAfterVictory(challenge, challenge.field(), player);
+            }
+        }
+    }
+
+    /**
+     * 蘇生待ちの死亡を一度だけ確定し、共有回数が上限を超えたら挑戦を終了します。
+     * @param challenge 進行中の挑戦
+     * @param playerId 通常復帰または切断した参加者
+     */
+    private void confirmParticipantDeath(@NotNull BossChallengeInstance challenge, @NotNull UUID playerId) {
+        if (challenge.resolvePendingDeath(playerId, false)
+                && ChallengeDeathPolicy.isExceeded(challenge.deathCount(), challenge.config().deathLimit())) {
             notifyParticipants(challenge, PlayerMsgId.P_6525, challenge.deathCount(), challenge.config().deathLimit());
             endChallenge(challenge, BossChallengeEndReason.DEATH_LIMIT);
-            return;
         }
-        reviveParticipant(challengeId, playerId);
     }
 
     /**
@@ -823,12 +840,16 @@ public final class BossChallengeService {
     }
 
     /**
-     * Handles player quit. A challenge is ended by the watchdog when no participant remains.
+     * 切断した参加者の蘇生待ちを確定し、待機・進行状態を更新します。
      *
-     * @param playerId quit player
+     * @param playerId 切断したプレイヤー
      */
     public void handleQuit(@NotNull UUID playerId) {
         arrivalGuard.clear(playerId);
+        BossChallengeInstance activeChallenge = findInProgressChallengeByParticipant(playerId);
+        if (activeChallenge != null) {
+            confirmParticipantDeath(activeChallenge, playerId);
+        }
         for (BossChallengeInstance challenge : List.copyOf(challengesById.values())) {
             if (!challenge.expectedParticipantIds().contains(playerId)
                     || !isWaitingForPartyMembers(challenge)) {
@@ -1825,6 +1846,11 @@ public final class BossChallengeService {
         beginChallengeCompletion(challenge, reason);
     }
 
+    /**
+     * 討伐を確定し、蘇生待ちの参加者を無消費で復活させて結果を表示します。
+     * @param challenge 討伐されたボスの挑戦
+     * @param deathLocation ボスの討伐地点
+     */
     private void beginDefeatedResultWait(@NotNull BossChallengeInstance challenge, @NotNull Location deathLocation) {
         if (challenge.state() != BossChallengeState.IN_PROGRESS) {
             return;
@@ -1844,6 +1870,7 @@ public final class BossChallengeService {
         }
         destroyBossBar(challenge);
 
+        recoverParticipantsAfterVictory(challenge);
         notifyParticipants(challenge, PlayerMsgId.P_6511, challenge.bossTemplate().displayName(), defeatElapsedSeconds);
         String ranking = EncounterResultFormatter.format(challenge.combatStatistics(), challenge.participantIds(),
                 challenge.deathSnapshot(), this::playerName);
@@ -1859,6 +1886,59 @@ public final class BossChallengeService {
                 DEFEATED_RESULT_WAIT_TICKS
         );
         challenge.resultWaitTask(task);
+    }
+
+    /**
+     * 倒れている参加者を安全な場所へ移して復活させます。
+     * フィールドへの転送が拒否された場合は帰還先を試します。
+     * @param challenge 結果待機に移行した挑戦
+     */
+    private void recoverParticipantsAfterVictory(@NotNull BossChallengeInstance challenge) {
+        BossFieldInstance field = challenge.field();
+        if (field == null) {
+            return;
+        }
+        for (UUID playerId : challenge.participantIds()) {
+            challenge.resolvePendingDeath(playerId, true);
+            Location deathLocation = playerDeathService.lockLocation(playerId);
+            if (deathLocation == null || deathLocation.getWorld() != field.world()) {
+                continue;
+            }
+            try {
+                Player player = Bukkit.getPlayer(playerId);
+                if (player == null || !player.isOnline() || transferParticipantAfterVictory(challenge, field, player)) {
+                    playerDeathService.recoverNow(playerId);
+                }
+            } catch (RuntimeException failure) {
+                Logger.log(LogId.E_6501, failure, playerId);
+            }
+        }
+    }
+
+    /**
+     * 討伐後の参加者をフィールドの復帰地点か既存の帰還先へ移します。
+     * @param challenge 結果待機中の挑戦
+     * @param field 復帰地点があるフィールド
+     * @param player 転送するオンライン参加者
+     * @return 転送に成功した場合は true
+     */
+    private boolean transferParticipantAfterVictory(
+            @NotNull BossChallengeInstance challenge, @NotNull BossFieldInstance field, @NotNull Player player
+    ) {
+        try {
+            Location spawn = challenge.config().playerSpawnLocation().toLocation(field.world());
+            if (PlayerTeleportService.teleport(player, spawn)) {
+                return true;
+            }
+            Location exit = resolveSynchronousExitLocation(challenge);
+            if (exit != null && PlayerTeleportService.teleport(player, exit)) {
+                return true;
+            }
+            Logger.log(LogId.W_6503, challenge.challengeId(), player.getUniqueId());
+        } catch (RuntimeException failure) {
+            Logger.log(LogId.E_6501, failure, player.getUniqueId());
+        }
+        return false;
     }
 
     /**
