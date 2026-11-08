@@ -114,7 +114,6 @@ export function ChallengeLocationEditor({
   const savingNow = useRef(false)
   const heightHintId = useId()
   const dirty = !!(opened && draft && (draft.world !== opened.initial.world || coordinates.some(key => draft[key] !== opened.initial[key])))
-  const picking = active && canPick && pick !== null && pick.worldId === worldId
   const positionValid = !!(draft && required.every(key => finiteDecimal(draft[key])))
   const orientationValid = orientation.every(key => !draft?.[key].trim() || finiteDecimal(draft[key]))
   const valid = !!(draft?.world && positionValid && orientationValid)
@@ -122,8 +121,11 @@ export function ChallengeLocationEditor({
   const worlds = (catalog?.worlds ?? []).filter(file => file.id)
   const worldOptions = worlds.map(file => ({ value: opened?.challenge ? file.id! : `world:${file.id}`, label: optionLabel(file) }))
   const currentMapValue = opened?.challenge ? worldId : `world:${worldId}`
-  const currentMapKnown = worldOptions.some(option => option.value === currentMapValue)
-  const showPosition = active && !loading && positionValid && draft?.world === currentMapValue
+  const currentMapOption = worldOptions.find(option => option.value === currentMapValue)
+  const matchesMap = draft?.world === currentMapValue
+  const mapPickAvailable = canPick && !!currentMapOption && matchesMap && !conflict
+  const picking = active && mapPickAvailable && pick !== null && pick.worldId === worldId
+  const showPosition = active && !loading && positionValid && matchesMap
   const positionX = showPosition ? Number(draft.x) : null
   const positionY = showPosition ? Number(draft.y) : null
   const positionZ = showPosition ? Number(draft.z) : null
@@ -153,17 +155,17 @@ export function ChallengeLocationEditor({
       if (pick) setPick(null)
       return
     }
-    if (!point || point.key === pick.afterKey || !currentMapKnown) return
+    if (!point || point.key === pick.afterKey) return
     setPick(null)
     setDraft(previous => previous && {
-      ...previous, world: currentMapValue, x: String(point.x), y: point.y === null ? '' : String(point.y), z: String(point.z),
+      ...previous, x: String(point.x), y: point.y === null ? '' : String(point.y), z: String(point.z),
     })
     setMapHeight(point.y === null ? 'unmeasured' : 'candidate')
     setNotice('')
     setReviewedRaw(null)
     setError('')
     setIssues([])
-  }, [picking, pick, point, currentMapKnown, currentMapValue])
+  }, [picking, pick, point])
 
   const load = async (path: string) => {
     if (savingNow.current || (dirty && !window.confirm('未保存の受付地点の変更を破棄しますか？'))) return
@@ -278,10 +280,6 @@ export function ChallengeLocationEditor({
     {loading && <p role="status">受付地点を読み込んでいます…</p>}
     {opened && draft && <fieldset disabled={loading || saving}>
       <legend>受付地点{dirty ? ' · 未保存' : ''}</legend>
-      <div className="challenge-location-actions">
-        <button type="button" className="button" aria-pressed={picking} disabled={!canPick || !currentMapKnown || conflict} onClick={() => setPick(picking ? null : { worldId, afterKey: point?.key })}>{picking ? '地点の選択をキャンセル' : '地図で受付地点を選択'}</button>
-      </div>
-      {picking && <p role="status">受付地点を地図上でクリックしてください。</p>}
       <label>受付地点のワールド
         <select value={draft.world} onChange={event => edit('world', event.target.value)}>
           <option value="">選択してください</option>
@@ -289,6 +287,13 @@ export function ChallengeLocationEditor({
           {worldOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
       </label>
+      <div className="challenge-location-actions">
+        <button type="button" className="button" aria-pressed={picking} disabled={!mapPickAvailable} onClick={() => setPick(picking ? null : { worldId, afterKey: point?.key })}>{picking ? '地点の選択をキャンセル' : '地図で受付地点を選択'}</button>
+      </div>
+      {picking && <p role="status" className="challenge-location-hint">受付地点を地図上でクリックしてください。</p>}
+      {currentMapOption && !matchesMap && <p className="sp-muted challenge-location-hint">
+        表示中の地図は「{currentMapOption.label}」です。受付先の地図に切り替えるか、受付先を移す場合は上の欄でワールドを変更してください。
+      </p>}
       <div className="challenge-location-coordinates">
         {(['x', 'z'] as const).map(key => <label key={key}>{key.toUpperCase()}
           <input type="text" inputMode="decimal" required aria-invalid={!finiteDecimal(draft[key])}

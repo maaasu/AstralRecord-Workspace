@@ -23,10 +23,16 @@
   margin-top: 0;
 }
 
-.challenge-location-actions,
-.challenge-location-coordinates {
+.challenge-location-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: end;
+  gap: .6rem;
+}
+
+.challenge-location-coordinates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: end;
   gap: .6rem;
 }
@@ -36,10 +42,6 @@
 .challenge-location-height,
 .challenge-location-details {
   margin-top: .75rem;
-}
-
-.challenge-location-editor fieldset > .challenge-location-actions:first-of-type {
-  margin: 0 0 .75rem;
 }
 
 .challenge-location-editor label {
@@ -54,7 +56,11 @@
   max-width: 100%;
 }
 
-.challenge-location-coordinates input,
+.challenge-location-editor .challenge-location-coordinates input {
+  width: 100%;
+  min-width: 0;
+}
+
 .challenge-location-height input {
   width: 6rem;
 }
@@ -68,7 +74,8 @@
   font-weight: 600;
 }
 
-.challenge-location-height p {
+.challenge-location-height p,
+.challenge-location-hint {
   margin: .35rem 0 0;
 }
 
