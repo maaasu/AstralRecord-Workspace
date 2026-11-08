@@ -3,6 +3,7 @@ import { cellAtWorld, levelColor, reasonColor, terrainColor, planningRoad } from
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 import type { WorldPlacement } from '../api/worldPlacementApi'
 import type { ChallengeEntry } from '../api/challengeEntryApi'
+import type { GatheringSpawnerMarker } from '../api/gatheringSpawnerApi'
 import { spawnerPlanningUrl } from '../api/spawnerPlanningApi'
 import type { PlacementCatalog } from './WorldPlacementEditor'
 import { spawnerLevelBands, spawnerLevels, spawnerMasterColor, spawnerMasterNumbers } from '../data/spawnerMapStyle'
@@ -17,16 +18,24 @@ import { SpawnerMasterLegend } from './SpawnerMasterLegend'
 export type PlanningLayer = 'terrain' | 'levels' | 'reasons'
 const hasRadius = (radius: number | null | undefined): radius is number => typeof radius === 'number' && Number.isFinite(radius) && radius > 0
 const unknownLevels = spawnerLevels([])
+const gatheringMarkerColor = '#66f0c4'
+const gatheringMarkerSize = (scale: number) => scale > .3 ? 5 : 3
+const gatheringDetails = (marker: GatheringSpawnerMarker) => `${marker.id} · X ${marker.x} / Y ${marker.y} / Z ${marker.z}`
+const gatheringColumnKey = ({ x, z }: { x: number; z: number }) => `${x},${z}`
+type GatheringPoint = { x: number; z: number; markers: GatheringSpawnerMarker[] }
 type MapView = { scale: number; x: number; z: number }
 type PointerSample = { x: number; z: number; hover: boolean }
 type MarkerPosition = { left: number; top: number }
 const challengeMarkerGap = 27
+const challengeMarkerInset = 13
 
-function challengeMarkerPosition(anchor: MarkerPosition, occupied: MarkerPosition[], size: { width: number; height: number }): MarkerPosition {
-  const left = Math.max(13, Math.min(size.width - 13, anchor.left))
-  const top = Math.max(13, Math.min(size.height - 13, anchor.top))
-  const clear = (candidateTop: number) => candidateTop >= 13 && candidateTop <= size.height - 13
+function challengeMarkerPosition(anchor: MarkerPosition, occupied: MarkerPosition[], size: { width: number; height: number },
+  overlapsGathering: (left: number, top: number) => boolean): MarkerPosition {
+  const left = Math.max(challengeMarkerInset, Math.min(size.width - challengeMarkerInset, anchor.left))
+  const top = Math.max(challengeMarkerInset, Math.min(size.height - challengeMarkerInset, anchor.top))
+  const clear = (candidateTop: number) => candidateTop >= challengeMarkerInset && candidateTop <= size.height - challengeMarkerInset
     && occupied.every(marker => Math.abs(left - marker.left) >= challengeMarkerGap || Math.abs(candidateTop - marker.top) >= challengeMarkerGap)
+    && !overlapsGathering(left, candidateTop)
   if (clear(top)) return { left, top }
   // Keep close entries individually selectable, with each offset marker linked to its true position.
   for (let offset = challengeMarkerGap; offset < size.height; offset += challengeMarkerGap) {
@@ -42,6 +51,7 @@ interface Props {
   focus: { key: number; x: number; z: number } | null
   onCell: (index: number) => void; onProposal: (id: string) => void
   placements?: WorldPlacement[]; placementCatalog?: PlacementCatalog; selectedPlacement?: string | null
+  gatheringSpawners?: GatheringSpawnerMarker[]
   onPlacement?: (id: string) => void; onPlacePoint?: (x: number, y: number | null, z: number) => void; placing?: boolean
   showProposals?: boolean
   placementsReady?: boolean
@@ -79,6 +89,7 @@ export function SpawnerPlanningMap(props: Props) {
   const [coverageEnabled, setCoverageEnabled] = useState(!props.compactControls)
   const showCoverage = coverageEnabled && !props.challengeOnly
   const [pointer, setPointer] = useState<{ x: number; z: number } | null>(null)
+  const [gatheringSelection, setGatheringSelection] = useState<GatheringPoint | null>(null)
   const tooltip = useRef<HTMLDivElement>(null)
   const tooltipContent = useRef<HTMLDivElement>(null)
   const [tooltipSize, setTooltipSize] = useState({ width: 0, height: 0 })
@@ -191,6 +202,18 @@ export function SpawnerPlanningMap(props: Props) {
   }, [coverage, terrain, snapshot.cells, bounds, region, reason, coverageReasonCodes])
   const orderedPlacements = useMemo(() => [...placements].sort((a, b) => Number(a.placementId === props.selectedPlacement) - Number(b.placementId === props.selectedPlacement)), [placements, props.selectedPlacement])
   const placementIndex = useMemo(() => createMapPointIndex(orderedPlacements), [orderedPlacements])
+  const gatheringPoints = useMemo(() => {
+    const points = new Map<string, GatheringPoint>()
+    for (const marker of props.gatheringSpawners ?? []) {
+      const key = gatheringColumnKey(marker)
+      const point = points.get(key)
+      if (point) point.markers.push(marker)
+      else points.set(key, { x: marker.x, z: marker.z, markers: [marker] })
+    }
+    return points
+  }, [props.gatheringSpawners])
+  const gatheringIndex = useMemo(() => gatheringPoints.size ? createMapPointIndex([...gatheringPoints.values()]) : null, [gatheringPoints])
+  const selectedGathering = gatheringSelection && gatheringPoints.get(gatheringColumnKey(gatheringSelection)) === gatheringSelection ? gatheringSelection : null
   const proposalIndex = useMemo(() => createMapPointIndex(visibleProposals), [visibleProposals])
   const placementAt = useCallback((px: number, pz: number, current = view) => {
     let distance = 8, nearestOrder = -1
@@ -202,9 +225,26 @@ export function SpawnerPlanningMap(props: Props) {
     })
     return nearest
   }, [placementIndex, bounds.minX, bounds.minZ, view])
+  const gatheringAt = useCallback((px: number, pz: number, current = view): GatheringPoint | null => {
+    if (!gatheringIndex) return null
+    const worldX = (px - current.x) / current.scale + bounds.minX - .5
+    const worldZ = (pz - current.z) / current.scale + bounds.minZ - .5
+    const radius = gatheringMarkerSize(current.scale) + 2
+    let distance = radius, nearestOrder = -1
+    let nearest: GatheringPoint | null = null
+    gatheringIndex.forEachNear(worldX, worldZ, radius / current.scale, (point, order) => {
+      const next = Math.hypot(point.x - worldX, point.z - worldZ) * current.scale
+      if (next < distance || (nearest && next === distance && order > nearestOrder)) {
+        nearest = point; distance = next; nearestOrder = order
+      }
+    })
+    return nearest
+  }, [gatheringIndex, view, bounds.minX, bounds.minZ])
+  const hoverPoint = pointer && active && !props.placing && pointer.x >= 0 && pointer.z >= 0 && pointer.x < size.width && pointer.z < size.height ? pointer : null
+  const hoveredGathering = useMemo(() => hoverPoint ? gatheringAt(hoverPoint.x, hoverPoint.z) : null, [hoverPoint, gatheringAt])
   const hovered = useMemo(() => {
-    if (!pointer || !active || props.placing || pointer.x < 0 || pointer.z < 0 || pointer.x >= size.width || pointer.z >= size.height) return null
-    const placement = placementAt(pointer.x, pointer.z)
+    if (!hoverPoint) return null
+    const placement = placementAt(hoverPoint.x, hoverPoint.z)
     if (placement) {
       if (placement.kind !== 'spawner') return null
       const master = masters.get(placement.templateId ?? '')
@@ -216,10 +256,12 @@ export function SpawnerPlanningMap(props: Props) {
         levels: levels.length ? levels.map(level => `Lv.${level}`).join(' / ') : 'Lv.不明' }
     }
     if (props.showProposals === false) return null
+    const worldX = (hoverPoint.x - view.x) / view.scale + bounds.minX - .5
+    const worldZ = (hoverPoint.z - view.z) / view.scale + bounds.minZ - .5
     let distance = 6, nearestOrder = -1
     let nearest: (typeof visibleProposals)[number] | undefined
-    proposalIndex.forEachNear((pointer.x - view.x) / view.scale + bounds.minX - .5, (pointer.z - view.z) / view.scale + bounds.minZ - .5, 6 / view.scale, (item, order) => {
-      const next = Math.hypot((item.x + .5 - bounds.minX) * view.scale + view.x - pointer.x, (item.z + .5 - bounds.minZ) * view.scale + view.z - pointer.z)
+    proposalIndex.forEachNear(worldX, worldZ, 6 / view.scale, (item, order) => {
+      const next = Math.hypot((item.x + .5 - bounds.minX) * view.scale + view.x - hoverPoint.x, (item.z + .5 - bounds.minZ) * view.scale + view.z - hoverPoint.z)
       if (next < distance || (nearest && next === distance && order > nearestOrder)) { distance = next; nearest = item; nearestOrder = order }
     })
     return nearest ? { title: 'AI 配置案', id: nearest.spawnerId, placementId: null, proposalId: nearest.proposalId,
@@ -229,9 +271,12 @@ export function SpawnerPlanningMap(props: Props) {
       const sameLevel = suffix && Number(suffix[1]) === mob.level
       return `${sameLevel ? name.slice(0, suffix.index).trim() : name} · ${suffix && !sameLevel ? '出現 ' : ''}${Number.isFinite(mob.level) && mob.level > 0 ? `Lv.${mob.level}` : 'Lv.不明'}`
     }) } : null
-  }, [pointer, active, props.placing, props.showProposals, size, placementAt, masters, proposalIndex, bounds.minX, bounds.minZ, view])
+  }, [hoverPoint, props.showProposals, placementAt, masters, proposalIndex, bounds.minX, bounds.minZ, view])
   const hoveredPlacementId = hovered?.placementId ?? null, hoveredProposalId = hovered?.proposalId ?? null
-  const tooltipText = hovered ? [hovered.title, hovered.id, hovered.levels, hovered.radiusMeters, ...hovered.names].join('\n') : ''
+  const tooltipText = [
+    ...(hovered ? [hovered.title, hovered.id, hovered.levels, hovered.radiusMeters, ...hovered.names] : []),
+    ...(hoveredGathering?.markers.map(gatheringDetails) ?? []),
+  ].join('\n')
   useLayoutEffect(() => {
     if (!tooltip.current) return
     const rect = tooltip.current.getBoundingClientRect()
@@ -467,6 +512,20 @@ export function SpawnerPlanningMap(props: Props) {
         }
       }
     }
+    if (gatheringPoints.size) {
+      const r = gatheringMarkerSize(view.scale)
+      ctx.save()
+      ctx.beginPath()
+      for (const point of gatheringPoints.values()) {
+        const [x, z] = screen(point.x + .5, point.z + .5)
+        if (x < -r || z < -r || x > size.width + r || z > size.height + r) continue
+        ctx.moveTo(x - r, z); ctx.lineTo(x + r, z)
+        ctx.moveTo(x, z - r); ctx.lineTo(x, z + r)
+      }
+      ctx.strokeStyle = '#101b29'; ctx.lineWidth = 4; ctx.stroke()
+      ctx.strokeStyle = gatheringMarkerColor; ctx.lineWidth = 2; ctx.stroke()
+      ctx.restore()
+    }
     const spawn = snapshot.manifest.spawn
     const [sx, sz] = screen(spawn.x, spawn.z)
     ctx.beginPath(); ctx.arc(sx, sz, 48 * view.scale, 0, Math.PI * 2)
@@ -482,7 +541,7 @@ export function SpawnerPlanningMap(props: Props) {
     ctx.fillStyle = '#d7e1eb'; ctx.fillRect(size.width - metres * view.scale - 18, size.height - 22, metres * view.scale, 2)
     ctx.fillText(`${metres} m`, size.width - metres * view.scale - 18, size.height - 29)
     return element
-  }, [active, raster, detail, detailMask, coverageRaster, layer, view, size, pixelRatio, bounds, radii, visibleProposals, snapshot, selectedCell, selectedProposal, orderedPlacements, placements, masters, masterStyles, masterNumbers, markerMode, props.placementCatalog, props.selectedPlacement, props.showProposals])
+  }, [active, raster, detail, detailMask, coverageRaster, layer, view, size, pixelRatio, bounds, radii, visibleProposals, snapshot, selectedCell, selectedProposal, orderedPlacements, placements, masters, masterStyles, masterNumbers, markerMode, props.placementCatalog, props.selectedPlacement, props.showProposals, gatheringPoints])
   useEffect(() => {
     const element = canvas.current, ctx = element?.getContext('2d')
     if (!element || !ctx || !active || !scene) return
@@ -561,14 +620,25 @@ export function SpawnerPlanningMap(props: Props) {
   })
   const challengeMarkers = useMemo(() => {
     const occupied: MarkerPosition[] = []
+    const overlapsGathering = (left: number, top: number) => {
+      if (!gatheringIndex) return false
+      const reach = (challengeMarkerInset + gatheringMarkerSize(view.scale) + 2) / view.scale
+      const x = (left - view.x) / view.scale + bounds.minX - .5
+      const z = (top - view.z) / view.scale + bounds.minZ - .5
+      let overlaps = false
+      gatheringIndex.forEachNear(x, z, reach, point => {
+        if (Math.abs(point.x - x) < reach && Math.abs(point.z - z) < reach) overlaps = true
+      })
+      return overlaps
+    }
     return (props.challengeEntries ?? []).flatMap(entry => {
       const anchor = { left: (entry.x - bounds.minX) * view.scale + view.x, top: (entry.z - bounds.minZ) * view.scale + view.z }
       if (anchor.left < 0 || anchor.left > size.width || anchor.top < 0 || anchor.top > size.height) return []
-      const position = challengeMarkerPosition(anchor, occupied, size)
+      const position = challengeMarkerPosition(anchor, occupied, size, overlapsGathering)
       occupied.push(position)
       return [{ entry, anchor, position }]
     })
-  }, [props.challengeEntries, bounds.minX, bounds.minZ, size, view])
+  }, [props.challengeEntries, bounds.minX, bounds.minZ, size, view, gatheringIndex])
   return <div className="sp-map-panel">
     <details className="sp-map-options" open={props.compactControls ? undefined : true}><summary>{props.challengeOnly ? '地図を座標で移動' : '地図の表示・座標移動'}</summary>
     {props.onRadiiChange && <label className="sp-map-range-switch"><input type="checkbox" checked={radii}
@@ -663,6 +733,7 @@ export function SpawnerPlanningMap(props: Props) {
           }
           return
         }
+        setGatheringSelection(gatheringAt(px, pz, current))
         const closest = placementAt(px, pz, current)
         if (closest && props.onPlacement) { props.onPlacement(closest.placementId); return }
         // At overview scale dots are dense; prioritize the terrain cell until zoomed in.
@@ -713,14 +784,36 @@ export function SpawnerPlanningMap(props: Props) {
       style={markerPosition(candidate)}>
       <path d="M0-9 9 0 0 9-9 0Z" /><circle r="2" />
     </svg>}
-    {hovered && pointer && <div ref={tooltip} role="tooltip" className="sp-map-tooltip" style={{
+    {(hovered || hoveredGathering) && hoverPoint && <div ref={tooltip} role="tooltip" className="sp-map-tooltip" style={{
       width: Math.min(360, size.width - 16),
-      left: Math.max(8, Math.min(size.width - tooltipSize.width - 8, pointer.x + 14 + tooltipSize.width <= size.width - 8 ? pointer.x + 14 : pointer.x - tooltipSize.width - 14)),
-      top: Math.max(8, Math.min(size.height - tooltipSize.height - 8, pointer.z + 14 + tooltipSize.height <= size.height - 8 ? pointer.z + 14 : pointer.z - tooltipSize.height - 14)),
-    }}><strong>{hovered.title}</strong><div ref={tooltipContent} className="sp-map-tooltip-content">{hovered.names.map((name, index) => <div key={index}>{name}</div>)}{hovered.levels && <small>出現する実レベル: {hovered.levels}</small>}<small>出現半径: {hovered.radiusMeters == null ? '不明' : `${hovered.radiusMeters} m`}</small><small>{hovered.id}</small></div>{tooltipClipped && <small className="sp-map-tooltip-more">クリック・一覧の詳細で全文を確認</small>}</div>}
+      left: Math.max(8, Math.min(size.width - tooltipSize.width - 8, hoverPoint.x + 14 + tooltipSize.width <= size.width - 8 ? hoverPoint.x + 14 : hoverPoint.x - tooltipSize.width - 14)),
+      top: Math.max(8, Math.min(size.height - tooltipSize.height - 8, hoverPoint.z + 14 + tooltipSize.height <= size.height - 8 ? hoverPoint.z + 14 : hoverPoint.z - tooltipSize.height - 14)),
+    }}>
+      <strong>{hovered?.title ?? '採集スポナー'}</strong>
+      <div ref={tooltipContent} className="sp-map-tooltip-content">
+        {hovered && <>
+          {hovered.names.map((name, index) => <div key={index}>{name}</div>)}
+          {hovered.levels && <small>出現する実レベル: {hovered.levels}</small>}
+          <small>出現半径: {hovered.radiusMeters == null ? '不明' : `${hovered.radiusMeters} m`}</small>
+          <small>{hovered.id}</small>
+        </>}
+        {hoveredGathering && <>
+          {hovered && <small>採集スポナー</small>}
+          {hoveredGathering.markers.map((marker, index) => <div key={index}>{gatheringDetails(marker)}</div>)}
+        </>}
+      </div>
+      {tooltipClipped && <small className="sp-map-tooltip-more">{hoveredGathering ? 'クリックして採集スポナーの詳細を確認' : 'クリック・一覧の詳細で全文を確認'}</small>}
+    </div>}
     <div className="sp-map-tools"><button className="button" onClick={() => zoom(1.5)} aria-label="地図を拡大">＋</button><button className="button" onClick={() => zoom(1 / 1.5)} aria-label="地図を縮小">−</button><button className="button" onClick={fit}>全大陸</button></div>
     <span className="sp-north">N ↑</span><output className="sp-coordinates">{coordinates} · {view.scale.toFixed(view.scale < 1 ? 2 : 1)} px/m · {layer === 'terrain' && detail && view.scale >= .4 ? '1m地形' : '16m区画'}</output>
     </div>
+    {!!props.gatheringSpawners?.length && <p className="sp-map-caption" role="status">
+      <span><b aria-hidden="true" style={{ color: gatheringMarkerColor }}>✚</b> 採集スポナー {props.gatheringSpawners.length.toLocaleString('ja-JP')} 件 · 保存済み</span>
+    </p>}
+    {selectedGathering && <div className="sp-map-selection" aria-live="polite">
+      <strong>選択中の採集スポナー</strong>
+      {selectedGathering.markers.map((marker, index) => <div key={index}>{gatheringDetails(marker)}</div>)}
+    </div>}
     {(!!props.challengeEntries?.length || (candidate && props.challengeDirty)) && <p className="sp-challenge-legend">
       <span><b className="boss" aria-hidden="true">✦</b> ボス受付</span>
       <span><b className="dungeon" aria-hidden="true">▣</b> ダンジョン受付</span>

@@ -272,6 +272,8 @@ Dev 配置 API への接続は、Git 管理外の `appsettings.local.json` に�
 
 環境変数と起動引数がある場合はそれらを優先します。秘密値の実値をGit管理ファイルへ追加しないでください。
 
+採集スポナーを地図に表示するには、同じ設定ファイルの `SkillTreeEditor:GatheringSpawnerLocationsPath` に、Dev の `plugins/AstralRecord/gathering_spawners.yml` またはそのコピーのパスを設定します。エディタから読める絶対パスか、ワークスペースからの相対パスを指定できます。環境変数では `SkillTreeEditor__GatheringSpawnerLocationsPath` です。設定後にエディタを起動し、「ワールド配置・編集」で「採集スポナーを表示」をオンにします。
+
 ## ワークスペースの上書き
 
 通常はカレントディレクトリ、実行ファイル位置から上位へ探索し、`40_filebase`、`10_plugin`、`60_tool` が揃うディレクトリを採用します。別のworktreeを対象にするときは次のいずれかを使います。

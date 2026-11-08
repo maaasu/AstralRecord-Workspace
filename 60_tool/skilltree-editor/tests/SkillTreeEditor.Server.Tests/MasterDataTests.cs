@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using SkillTreeEditor.Server.Models;
+using SkillTreeEditor.Server.Options;
 using SkillTreeEditor.Server.Services;
 
 namespace SkillTreeEditor.Server.Tests;
@@ -11,6 +12,7 @@ public sealed class MasterDataTests : IDisposable
     private readonly MasterDataValidation _validation;
     private readonly MasterDataCatalog _catalog;
     private readonly MasterDataPaths _paths;
+    private readonly WorkspacePaths _workspace;
     private readonly MasterDataCodec _codec = new();
 
     public MasterDataTests()
@@ -18,14 +20,66 @@ public sealed class MasterDataTests : IDisposable
         Directory.CreateDirectory(Path.Combine(_root, "40_filebase"));
         Directory.CreateDirectory(Path.Combine(_root, "10_plugin"));
         Directory.CreateDirectory(Path.Combine(_root, "60_tool"));
-        var workspace = new WorkspacePaths(_root);
-        _paths = new(workspace);
-        var backups = new BackupService(workspace);
-        var skillTreeValidation = new ValidationService(workspace, new SchemaCatalog(workspace), new PluginConfigService(workspace, backups), new MasterTagCatalog(workspace));
+        _workspace = new WorkspacePaths(_root);
+        _paths = new(_workspace);
+        var backups = new BackupService(_workspace);
+        var skillTreeValidation = new ValidationService(_workspace, new SchemaCatalog(_workspace), new PluginConfigService(_workspace, backups), new MasterTagCatalog(_workspace));
         _catalog = new(_paths);
         _validation = new(_paths, _codec, _catalog, skillTreeValidation);
-        _service = new(_paths, workspace, _codec, _validation, new WorkspaceMutationGate(workspace), backups);
+        _service = new(_paths, _workspace, _codec, _validation, new WorkspaceMutationGate(_workspace), backups);
     }
+
+    [Fact]
+    public async Task GatheringSpawnersUseTheSavedBukkitPathAndReadCurrentCoordinates()
+    {
+        const string file = "gathering_spawners.yml";
+        Write("60.features.world/v1.verdia.yml", "id: verdia\nbaseWorldPath: plugins/AstralRecord/worlds/overworld/verdia\n");
+        Write("60.features.world/v1.other.yml", "id: other\nbaseWorldPath: plugins/AstralRecord/worlds/other/verdia\n");
+        await File.WriteAllTextAsync(Path.Combine(_root, file), """
+            spawners:
+            - id: flora
+              world: plugins/AstralRecord/worlds/overworld/verdia
+              x: -418
+              y: 13
+              z: -579
+            - id: mining
+              world: verdia
+              x: 12
+              y: -4
+              z: 0
+            - id: other_flora
+              world: plugins/AstralRecord/worlds/other/verdia
+              x: 0
+              y: 64
+              z: 0
+            """);
+        var spawners = CreateGatheringPlacementService(file);
+        Assert.Equal(new GatheringSpawnerMarker[] { new("flora", -418, 13, -579), new("mining", 12, -4, 0) },
+            await spawners.ListAsync("verdia", CancellationToken.None));
+        Assert.Equal("other_flora", Assert.Single(await spawners.ListAsync("other", CancellationToken.None)).Id);
+        Assert.Empty(await spawners.ListAsync("unknown", CancellationToken.None));
+
+        await File.WriteAllTextAsync(Path.Combine(_root, file), "spawners: []");
+        Assert.Empty(await spawners.ListAsync("verdia", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task GatheringSpawnersDistinguishMissingFilesAndInvalidCoordinatesFromAnEmptyWorld()
+    {
+        const string file = "gathering_spawners.yml";
+        Write("60.features.world/v1.verdia.yml", "id: verdia\n");
+        await Assert.ThrowsAsync<FileNotFoundException>(() => CreateGatheringPlacementService(null).ListAsync("verdia", CancellationToken.None));
+        var spawners = CreateGatheringPlacementService(file);
+        await Assert.ThrowsAsync<FileNotFoundException>(() => spawners.ListAsync("verdia", CancellationToken.None));
+        await File.WriteAllTextAsync(Path.Combine(_root, file), """
+            spawners:
+            - { id: flora, world: verdia, x: 12.5, y: 6, z: 1 }
+            """);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => spawners.ListAsync("verdia", CancellationToken.None));
+    }
+
+    private GatheringSpawnerPlacementService CreateGatheringPlacementService(string? path) =>
+        new(Microsoft.Extensions.Options.Options.Create(new EditorOptions { GatheringSpawnerLocationsPath = path }), _workspace, _codec, _service);
 
     [Fact]
     public async Task SpawnerListUsesEverySummonedMobJapaneseNameAndLevel()

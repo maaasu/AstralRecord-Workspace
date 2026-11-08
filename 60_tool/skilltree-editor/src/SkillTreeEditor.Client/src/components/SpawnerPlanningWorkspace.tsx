@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSPrope
 import { ResizeHandle, usePanelSize } from './ResizeHandle'
 import { spawnerPlanningApi, type PlanningWorld } from '../api/spawnerPlanningApi'
 import { challengeEntryApi, type ChallengeEntry } from '../api/challengeEntryApi'
+import { gatheringSpawnerApi, type GatheringSpawnerMarker } from '../api/gatheringSpawnerApi'
 import { habitatNames, levelColor, reasonColor, planningRoad, planningLevelStepMeters } from '../data/spawnerPlanning'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 import { MinecraftText } from './MinecraftText'
@@ -57,6 +58,8 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   const [placementDirty, setPlacementDirty] = useState(false)
   const [placementPoint, setPlacementPoint] = useState<PlacementPoint | null>(null)
   const [mode, setMode] = useState<WorkspaceMode>('placements')
+  const [showGatheringSpawners, setShowGatheringSpawners] = useState(false)
+  const [gatheringLayer, setGatheringLayer] = useState<{ worldId: string; reload: number; markers: GatheringSpawnerMarker[]; error: string } | null>(null)
   const challengeEditor = useRef<ChallengeLocationEditorHandle>(null)
   const [challengeEntries, setChallengeEntries] = useState<{ worldId: string; entries: ChallengeEntry[]; error: string } | null>(null)
   const [challengeRevision, setChallengeRevision] = useState(0)
@@ -77,8 +80,9 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   const editorBusy = placementBusy || challengeBusy
   const switchLocked = loading || (showingPlans && planning) || editorBusy || dirty
   const reloadLocked = loading || ((!worldId || !snapshot) && (dirty || editorBusy))
-  const challengeMapWorld = snapshot?.manifest.worldId
-  const challengeMap = challengeEntries?.worldId === challengeMapWorld ? challengeEntries : null
+  const mapWorld = snapshot?.manifest.worldId
+  const challengeMap = challengeEntries?.worldId === mapWorld ? challengeEntries : null
+  const gatheringMap = showGatheringSpawners && gatheringLayer?.worldId === mapWorld && gatheringLayer?.reload === reload ? gatheringLayer : null
   const pickingPoint = !loading && ((editing && (placing || moving) && !placementBusy) || (editingChallenge && challengePicking && !challengeBusy))
   const focusActiveProposalMode = useCallback((element: HTMLButtonElement | null) => { element?.focus() }, [])
   const refreshChallengeEntries = useCallback(() => setChallengeRevision(value => value + 1), [])
@@ -128,17 +132,29 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   // A new snapshot (including an explicit reload) owns a fresh, bounded cache.
   const plansByRadius = useMemo(() => new Map<number, PlanningPlan>(), [snapshot, reload])
   useEffect(() => {
-    if (!active || !challengeMapWorld) return
+    if (!active || !mapWorld) return
     const controller = new AbortController()
-    void challengeEntryApi.list(challengeMapWorld, controller.signal).then(entries => {
-      if (!controller.signal.aborted) setChallengeEntries({ worldId: challengeMapWorld, entries, error: '' })
+    void challengeEntryApi.list(mapWorld, controller.signal).then(entries => {
+      if (!controller.signal.aborted) setChallengeEntries({ worldId: mapWorld, entries, error: '' })
     }).catch(failure => {
       if (controller.signal.aborted) return
       const error = failure instanceof Error ? failure.message : '受付地点を取得できませんでした'
-      setChallengeEntries(current => ({ worldId: challengeMapWorld, entries: current?.worldId === challengeMapWorld ? current.entries : [], error }))
+      setChallengeEntries(current => ({ worldId: mapWorld, entries: current?.worldId === mapWorld ? current.entries : [], error }))
     })
     return () => controller.abort()
-  }, [active, challengeMapWorld, challengeRevision, reload])
+  }, [active, mapWorld, challengeRevision, reload])
+  useEffect(() => {
+    if (!active || !mapWorld || !showGatheringSpawners) return
+    const controller = new AbortController()
+    void gatheringSpawnerApi.list(mapWorld, controller.signal).then(markers => {
+      if (!controller.signal.aborted) setGatheringLayer({ worldId: mapWorld, reload, markers, error: '' })
+    }).catch(failure => {
+      if (controller.signal.aborted) return
+      const error = failure instanceof Error ? failure.message : '採集スポナーを取得できませんでした。'
+      setGatheringLayer({ worldId: mapWorld, reload, markers: [], error })
+    })
+    return () => controller.abort()
+  }, [active, mapWorld, reload, showGatheringSpawners])
   useEffect(() => {
     if (!snapshot || !hasPlans || !showingPlans || loading) return
     const controller = new AbortController()
@@ -281,6 +297,8 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
           <button type="button" className="button" onClick={() => selectMode('proposals')}>AI 配置案</button>
         </div>
       </div>}
+      <label className="sp-map-range-switch"><input type="checkbox" checked={showGatheringSpawners} disabled={!snapshot}
+        onChange={event => { setShowGatheringSpawners(event.target.checked); setGatheringLayer(null) }} />採集スポナーを表示</label>
       <details className="sp-import-help">
         <summary>地図の追加・更新</summary>
         <div className="sp-import-steps">
@@ -302,6 +320,10 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
     {error && (worldId || snapshot || !editingChallenge) && <div className="sp-error" role="alert"><strong>地図を読み込めません</strong><p>{error}</p><p>未取り込みのワールドは「地図の追加・更新」から手順を確認できます。</p></div>}
     {showingPlans && planningError && <div className="sp-error" role="alert"><strong>配置案を表示できません</strong><p>{planningError}</p></div>}
     {challengeMap?.error && <p className="sp-muted" role="status">{challengeMap.error} 「地図を再読込」で再取得できます。</p>}
+    {snapshot && showGatheringSpawners && !gatheringMap?.markers.length && <p className="sp-muted" role="status">
+      {!gatheringMap ? '採集スポナーを読み込んでいます…' : gatheringMap.error
+        ? `${gatheringMap.error} 「地図を再読込」で再取得できます。` : 'このワールドに保存済みの採集スポナーはありません。'}
+    </p>}
     {loading && <div className="sp-loading" role="status">ワールドの解析結果を読み込んでいます…</div>}
     {snapshot && <>
       {showingPlans && <div className="sp-controls">
@@ -330,6 +352,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
               selectedCell={editingChallenge ? null : selectedCell} selectedProposal={showingPlans ? selectedProposal : null}
               showProposals={showingPlans} focus={focus} onCell={index => { if (!editingChallenge) { setSelectedCell(index); setSelectedProposal(null) } }} onProposal={selectProposal}
               placements={editingChallenge ? undefined : placements} placementsReady={placementsReady} placementCatalog={placementCatalog} selectedPlacement={editingChallenge ? null : selectedPlacement}
+              gatheringSpawners={gatheringMap?.markers}
               onPlacement={editingChallenge ? undefined : id => { if (!editing) selectMode('placements'); selectPlacement(id) }}
               challengeOnly={editingChallenge} challengePosition={editingChallenge ? challengePosition : null} pickingChallenge={editingChallenge && challengePicking}
               challengeEntries={challengeMap?.entries} selectedChallenge={editingChallenge ? selectedChallenge : null} challengeDirty={editingChallenge && challengeDirty}

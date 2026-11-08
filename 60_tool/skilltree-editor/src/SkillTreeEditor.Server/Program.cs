@@ -10,6 +10,7 @@ builder.Services.Configure<EditorOptions>(builder.Configuration.GetSection(Edito
 builder.Services.AddProblemDetails();
 builder.Services.AddSingleton<MasterAnalyticsService>();
 builder.Services.AddSingleton<SpawnerPlanningService>();
+builder.Services.AddSingleton<GatheringSpawnerPlacementService>();
 builder.Services.AddHttpClient<WorldPlacementProxyService>();
 builder.Services.AddSingleton<BalanceLabCatalog>();
 builder.Services.AddSingleton<BalanceLabJobs>();

@@ -6,6 +6,7 @@ public sealed class EditorOptions
 
     public string? WorkspaceRoot { get; set; }
     public string? SpawnerPlanningDataDirectory { get; set; }
+    public string? GatheringSpawnerLocationsPath { get; set; }
     public string? WorldPlacementApiBaseUrl { get; set; }
     public string? WorldPlacementApiKey { get; set; }
     public string? WorldPlacementWriteKey { get; set; }

@@ -1,8 +1,10 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { StrictMode, useState, type ReactNode } from 'react'
+import { StrictMode, useState, type ComponentProps, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SpawnerPlanningWorkspace } from './SpawnerPlanningWorkspace'
 import { spawnerPlanningApi } from '../api/spawnerPlanningApi'
+import { gatheringSpawnerApi, type GatheringSpawnerMarker } from '../api/gatheringSpawnerApi'
+import type { SpawnerPlanningMap } from './SpawnerPlanningMap'
 import type { PlacementCatalog } from './WorldPlacementEditor'
 import type { WorldPlacement } from '../api/worldPlacementApi'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
@@ -13,7 +15,15 @@ async function openProposals() {
 }
 
 vi.mock('../api/spawnerPlanningApi', () => ({ spawnerPlanningApi: { snapshot: vi.fn(), plan: vi.fn(), worlds: vi.fn() } }))
-vi.mock('./SpawnerPlanningMap', () => ({ SpawnerPlanningMap: ({ onCell, layer, focus, radii, onRadiiChange }: { onCell: (index: number) => void; layer: string; focus: unknown; radii: boolean; onRadiiChange?: (value: boolean) => void }) => <>{onRadiiChange && <label><input type="checkbox" checked={radii} onChange={event => onRadiiChange(event.target.checked)} />すべての出現範囲を表示</label>}<output data-testid="map-layer">{layer}</output><output data-testid="map-focus">{JSON.stringify(focus)}</output><button onClick={() => onCell(1)}>解析失敗区画を選択</button></> }))
+vi.mock('../api/gatheringSpawnerApi', () => ({ gatheringSpawnerApi: { list: vi.fn() } }))
+vi.mock('./SpawnerPlanningMap', () => ({
+  SpawnerPlanningMap: ({ onCell, layer, focus, radii, onRadiiChange, gatheringSpawners }: ComponentProps<typeof SpawnerPlanningMap>) => <>
+    {onRadiiChange && <label><input type="checkbox" checked={radii} onChange={event => onRadiiChange(event.target.checked)} />すべての出現範囲を表示</label>}
+    <output data-testid="map-layer">{layer}</output><output data-testid="map-focus">{JSON.stringify(focus)}</output>
+    {gatheringSpawners?.map(marker => <span key={marker.id}>{marker.id}</span>)}
+    <button onClick={() => onCell(1)}>解析失敗区画を選択</button>
+  </>,
+}))
 vi.mock('./WorldPlacementEditor', () => ({ WorldPlacementEditor: ({ map, onSelected, onPlacements, onDirtyChange, onBusyChange }: { map: ReactNode; onSelected: (id: string, location: { x: number; z: number }) => void; onPlacements: (items: WorldPlacement[], catalog: PlacementCatalog, ready: boolean) => void; onDirtyChange: (dirty: boolean) => void; onBusyChange: (busy: boolean) => void }) => <>{map}<button onClick={() => onSelected('hidden', { x: 120, z: 240 })}>条件外の配置を選択</button><button onClick={() => onPlacements([], { spawners: [], npcs: [], worlds: [] }, true)}>表示中配置を更新</button><button onClick={() => onDirtyChange(true)}>編集する</button><button onClick={() => onDirtyChange(false)}>編集を破棄する</button><button onClick={() => onBusyChange(true)}>保存を開始する</button><button onClick={() => onBusyChange(false)}>保存を完了する</button></> }))
 vi.mock('./ChallengeLocationEditor', () => ({
   ChallengeLocationEditor: ({ onDirtyChange, canPick, active }: { onDirtyChange: (dirty: boolean) => void; canPick: boolean; active: boolean }) => {
@@ -33,6 +43,37 @@ const terrainOnly: PlanningSnapshot = { ...snapshot, manifest: { ...snapshot.man
 beforeEach(() => { vi.resetAllMocks(); vi.mocked(spawnerPlanningApi.snapshot).mockResolvedValue(snapshot); vi.mocked(spawnerPlanningApi.plan).mockResolvedValue(plan); vi.mocked(spawnerPlanningApi.worlds).mockResolvedValue([]) })
 
 describe('マスタエディタ内の配置計画', () => {
+  it('採集スポナーをオンにしたワールドで読み、切替前の応答を破棄して再読込できる', async () => {
+    vi.mocked(spawnerPlanningApi.worlds).mockResolvedValue([{ id: 'test', name: 'テスト大陸' }, { id: 'other', name: '第二ワールド' }])
+    vi.mocked(spawnerPlanningApi.snapshot).mockImplementation(async (_signal, id) => id === 'other' ? terrainOnly : snapshot)
+    let resolvePrevious!: (markers: GatheringSpawnerMarker[]) => void
+    const previous = new Promise<GatheringSpawnerMarker[]>(resolve => { resolvePrevious = resolve })
+    const list = vi.mocked(gatheringSpawnerApi.list)
+    list.mockReturnValueOnce(previous).mockResolvedValueOnce([{ id: 'other_flora', x: 5, y: 10, z: -7 }]).mockResolvedValueOnce([])
+
+    render(<SpawnerPlanningWorkspace active />)
+    const toggle = screen.getByRole('checkbox', { name: '採集スポナーを表示' })
+    await waitFor(() => expect(toggle).toBeEnabled())
+    expect(toggle).not.toBeChecked()
+    expect(list).not.toHaveBeenCalled()
+    fireEvent.click(toggle)
+    expect(list).toHaveBeenCalledWith('test', expect.any(AbortSignal))
+    fireEvent.change(screen.getByRole('combobox', { name: '表示ワールド' }), { target: { value: 'other' } })
+    expect(await screen.findByText('other_flora')).toBeVisible()
+    expect(list.mock.calls[0][1].aborted).toBe(true)
+    await act(async () => { resolvePrevious([{ id: 'previous_flora', x: 0, y: 10, z: 0 }]) })
+    expect(screen.queryByText('previous_flora')).not.toBeInTheDocument()
+    expect(screen.getByText('other_flora')).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: '地図を再読込' }))
+    expect(await screen.findByText('このワールドに保存済みの採集スポナーはありません。')).toBeVisible()
+    expect(list).toHaveBeenLastCalledWith('other', expect.any(AbortSignal))
+    expect(screen.queryByText('other_flora')).not.toBeInTheDocument()
+    fireEvent.click(toggle)
+    expect(screen.queryByText('このワールドに保存済みの採集スポナーはありません。')).not.toBeInTheDocument()
+    expect(list).toHaveBeenCalledTimes(3)
+  })
+
   it('編集中・保存中の切り替えを防ぎ、別ワールドでは地図の位置と配置案をリセットする', async () => {
     vi.mocked(spawnerPlanningApi.worlds).mockResolvedValue([{ id: 'test', name: 'テスト大陸' }, { id: 'other', name: '第二ワールド' }])
     vi.mocked(spawnerPlanningApi.snapshot).mockImplementation(async (_signal, id) => id === 'other' ? terrainOnly : snapshot)

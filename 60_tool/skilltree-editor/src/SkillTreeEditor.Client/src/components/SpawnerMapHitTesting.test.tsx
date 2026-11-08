@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { SpawnerPlanningMap } from './SpawnerPlanningMap'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 import type { WorldPlacement } from '../api/worldPlacementApi'
+import type { ChallengeEntry } from '../api/challengeEntryApi'
 import * as pointIndex from '../data/mapPointIndex'
 
 const snapshot: PlanningSnapshot = {
@@ -66,6 +67,58 @@ it('keeps AI hover-last/click-first ties, region filtering, and Dev priority inc
   click(); expect(props.onPlacement).toHaveBeenLastCalledWith('first')
   rerender(<SpawnerPlanningMap {...mapProps} showProposals={false} />)
   hover(); expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+})
+
+it('shows every gathering height alongside overlapping Dev placements and AI proposals', () => {
+  const gatheringSpawners = [{ id: 'meadow_flora', x: 0, y: -24, z: 0 }, { id: 'meadow_mining', x: 0, y: 12, z: 0 }]
+  const mapProps = { ...props, showProposals: false, gatheringSpawners }
+  const { rerender } = render(<SpawnerPlanningMap {...mapProps} />)
+  hover()
+  expect(screen.getByRole('tooltip')).toHaveTextContent('採集スポナー')
+  expect(screen.getByRole('tooltip')).toHaveTextContent('meadow_flora · X 0 / Y -24 / Z 0')
+  expect(screen.getByRole('tooltip')).toHaveTextContent('meadow_mining · X 0 / Y 12 / Z 0')
+  expect(screen.getByRole('tooltip')).not.toHaveTextContent('出現半径')
+  click()
+  expect(props.onPlacement).not.toHaveBeenCalled()
+  rerender(<SpawnerPlanningMap {...mapProps} placements={[placement]} />)
+  hover()
+  expect(screen.getByRole('tooltip')).toHaveTextContent('先の狼')
+  expect(screen.getByRole('tooltip')).toHaveTextContent('meadow_flora')
+  expect(screen.getByRole('tooltip')).toHaveTextContent('meadow_mining')
+  click()
+  expect(props.onPlacement).toHaveBeenCalledWith('first')
+  expect(screen.getByText('選択中の採集スポナー')).toBeVisible()
+  expect(screen.getByText('meadow_flora · X 0 / Y -24 / Z 0')).toBeVisible()
+  expect(screen.getByText('meadow_mining · X 0 / Y 12 / Z 0')).toBeVisible()
+  rerender(<SpawnerPlanningMap {...mapProps} showProposals plan={plan} />)
+  hover()
+  expect(screen.getByRole('tooltip')).toHaveTextContent('AI 配置案')
+  expect(screen.getByRole('tooltip')).toHaveTextContent('meadow_mining')
+  click()
+  expect(props.onProposal).toHaveBeenCalledWith('first')
+  rerender(<SpawnerPlanningMap {...props} showProposals={false} />)
+  expect(screen.queryByText('選択中の採集スポナー')).not.toBeInTheDocument()
+  rerender(<SpawnerPlanningMap {...mapProps} placing />)
+  hover()
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+})
+
+it('keeps both a challenge entrance and a gathering spawner selectable at the same coordinates', () => {
+  const entry: ChallengeEntry = { path: 'dungeon.yml', kind: 'dungeon', name: '遺跡', worldReference: 'eriva', x: .5, y: 8, z: .5 }
+  const onChallengeEntry = vi.fn()
+  const mapProps = { ...props, showProposals: false, challengeEntries: [entry], onChallengeEntry }
+  const { container, rerender } = render(<SpawnerPlanningMap {...mapProps} />)
+  const button = screen.getByRole('button', { name: 'ダンジョン受付 遺跡' })
+  const anchorTop = button.style.top
+  expect(container.querySelector('.sp-challenge-leaders line')).not.toBeInTheDocument()
+  rerender(<SpawnerPlanningMap {...mapProps} gatheringSpawners={[{ id: 'flora', x: 0, y: 10, z: 0 }]} />)
+  expect(button.style.top).not.toBe(anchorTop)
+  expect(container.querySelector('.sp-challenge-leaders line')).toBeInTheDocument()
+  click()
+  expect(screen.getByText('flora · X 0 / Y 10 / Z 0')).toBeVisible()
+  expect(onChallengeEntry).not.toHaveBeenCalled()
+  fireEvent.click(button)
+  expect(onChallengeEntry).toHaveBeenCalledWith(entry)
 })
 
 it.each(['placement', 'proposal'] as const)('preserves the strict screen-distance boundary for %s hover and click', kind => {

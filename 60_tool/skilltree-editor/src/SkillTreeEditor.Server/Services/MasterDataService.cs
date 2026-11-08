@@ -49,36 +49,14 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
 
     public async Task<IReadOnlyList<ChallengeEntryMarker>> ListChallengeEntriesAsync(string worldId, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(worldId)) return [];
-
-        var worlds = new List<(string Id, string? BasePath)>();
-        await foreach (var document in ReadChallengeCatalogDocumentsAsync("60.features.world", token))
-        {
-            if (document.Content is JsonObject content
-                && JsonValueReader.String(content["id"]) is { } id && !string.IsNullOrWhiteSpace(id))
-                worlds.Add((id, JsonValueReader.String(content["baseWorldPath"]) is { } path ? NormalizeBukkitWorldPath(path) : null));
-        }
-        if (worlds.Count(world => world.Id == worldId) != 1) return [];
-
-        // Legacy boss entries may use the Bukkit path or folder name. A logical ID takes precedence.
-        var logicalIds = worlds.Select(world => world.Id).ToHashSet(StringComparer.Ordinal);
-        var bossWorldAliases = new HashSet<string>(StringComparer.Ordinal);
-        var selectedPath = worlds.Single(world => world.Id == worldId).BasePath;
-        if (!string.IsNullOrEmpty(selectedPath))
-        {
-            var folderName = Path.GetFileName(selectedPath);
-            if (!logicalIds.Contains(selectedPath) && worlds.Count(world => world.BasePath == selectedPath) == 1)
-                bossWorldAliases.Add(selectedPath);
-            if (!string.IsNullOrEmpty(folderName) && !logicalIds.Contains(folderName) &&
-                worlds.Count(world => Path.GetFileName(world.BasePath) == folderName) == 1)
-                bossWorldAliases.Add(folderName);
-        }
+        var bossWorldAliases = await ReadBukkitWorldAliasesAsync(worldId, token);
+        if (bossWorldAliases is null) return [];
 
         var worldPrefixes = await ConfiguredPrefixesAsync("world", token);
         var markers = new List<ChallengeEntryMarker>();
         foreach (var (category, kind) in new[] { ("40.features.mob/boss", "boss"), ("65.features.dungeon", "dungeon") })
         {
-            await foreach (var document in ReadChallengeCatalogDocumentsAsync(category, token))
+            await foreach (var document in ReadPlacementCatalogDocumentsAsync(category, token))
             {
                 if (document.Content is not JsonObject content ||
                     JsonValueReader.String(content["id"]) is not { } id || string.IsNullOrWhiteSpace(id))
@@ -105,13 +83,42 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
         return markers.OrderBy(marker => marker.Path, StringComparer.Ordinal).ToArray();
     }
 
-    private static string NormalizeBukkitWorldPath(string path)
+    internal async Task<HashSet<string>?> ReadBukkitWorldAliasesAsync(string worldId, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(worldId)) return null;
+
+        var worlds = new List<(string Id, string? BasePath)>();
+        await foreach (var document in ReadPlacementCatalogDocumentsAsync("60.features.world", token))
+        {
+            if (document.Content is JsonObject content
+                && JsonValueReader.String(content["id"]) is { } id && !string.IsNullOrWhiteSpace(id))
+                worlds.Add((id, JsonValueReader.String(content["baseWorldPath"]) is { } path ? NormalizeBukkitWorldPath(path) : null));
+        }
+        if (worlds.Count(world => world.Id == worldId) != 1) return null;
+
+        // Stored placements may use the Bukkit path or folder name. A logical ID takes precedence.
+        var logicalIds = worlds.Select(world => world.Id).ToHashSet(StringComparer.Ordinal);
+        var aliases = new HashSet<string>(StringComparer.Ordinal);
+        var selectedPath = worlds.Single(world => world.Id == worldId).BasePath;
+        if (!string.IsNullOrEmpty(selectedPath))
+        {
+            var folderName = Path.GetFileName(selectedPath);
+            if (!logicalIds.Contains(selectedPath) && worlds.Count(world => world.BasePath == selectedPath) == 1)
+                aliases.Add(selectedPath);
+            if (!string.IsNullOrEmpty(folderName) && !logicalIds.Contains(folderName) &&
+                worlds.Count(world => Path.GetFileName(world.BasePath) == folderName) == 1)
+                aliases.Add(folderName);
+        }
+        return aliases;
+    }
+
+    internal static string NormalizeBukkitWorldPath(string path)
     {
         var normalized = Regex.Replace(path.Trim().Replace('\\', '/'), "/{2,}", "/");
         return (normalized.StartsWith("./", StringComparison.Ordinal) ? normalized[2..] : normalized).TrimEnd('/');
     }
 
-    private async IAsyncEnumerable<MasterDataDocument> ReadChallengeCatalogDocumentsAsync(string category,
+    private async IAsyncEnumerable<MasterDataDocument> ReadPlacementCatalogDocumentsAsync(string category,
         [EnumeratorCancellation] CancellationToken token)
     {
         foreach (var file in paths.Enumerate(category).Where(file => MasterDataPaths.IsData(file) && MasterDataPaths.Format(file) == "yaml"))
