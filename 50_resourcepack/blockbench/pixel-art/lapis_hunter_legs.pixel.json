@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "id": "lapis_hunter_legs",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#222839FF",
+    "C": "#917663FF",
+    "D": "#ACB4C9FF",
+    "E": "#8B9BC1FF",
+    "F": "#72523DFF",
+    "G": "#5574ACFF",
+    "H": "#788EB6FF",
+    "I": "#92B9EEFF",
+    "J": "#3A4C6FFF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDECCCCB..",
+    "..BFFFFFFFFFFB..",
+    "..BGGGGGGGGGGB..",
+    "..BGHGGGGGICGB..",
+    "..BGHGGGGGCCGB..",
+    "..BGHGGBBGHGGB..",
+    "..BHGGJBBGHGJB..",
+    "..BHGGJBBHGGJB..",
+    "..BHGGJBBGGGJB..",
+    "..BFFFJBBGFFFB..",
+    "..BGGGJBBGGGJB..",
+    "..BGGGGBBGGGGB..",
+    "...BBBB..BBBB...",
+    "................"
+  ],
+  "png_sha256": "e2431babeca0e349cda5bcdd2f6775f0a4e0b5411440794f08c64b9ddf09830b"
+}

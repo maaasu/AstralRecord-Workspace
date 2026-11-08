@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "id": "astra_hunt_head",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#262F36FF",
+    "C": "#DBE9DFFF",
+    "D": "#6E9F99FF",
+    "E": "#E6E9DDFF",
+    "F": "#8BB0A8FF",
+    "G": "#C6CBC4FF",
+    "H": "#836856FF",
+    "I": "#9E8776FF",
+    "J": "#D4D5CBFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "......BBBB......",
+    "......BCDDB.....",
+    ".....BCECFDB....",
+    "....BDGCGGDD....",
+    "....BGDDDDGGB...",
+    "...BDDDDDDDDD...",
+    ".BBBHHIIJCIHDBB.",
+    ".BHIIIHHCCHIIHB.",
+    ".BHGGGGHHHHHHHB.",
+    ".BBHHHHHHHHHBBB.",
+    "...BBBBBBBBBB...",
+    "................",
+    "................",
+    "................"
+  ],
+  "png_sha256": "9c82f2f419035009a4a3dfb3367c0f420ebc8b4af6c2630e585c13829cf98b99"
+}

@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "id": "alda_origin_circlet",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#292435FF",
+    "C": "#534060FF",
+    "D": "#D1B9DCFF",
+    "E": "#B28BDDFF",
+    "F": "#BFAABAFF",
+    "G": "#624354FF",
+    "H": "#A78CAAFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    ".......BBB......",
+    ".......CDE......",
+    "...BBBBCEEBBB...",
+    "..BBFFCCCCCGGB..",
+    ".BHFFGCEEECEHHB.",
+    ".BGGHHHCECHHGGB.",
+    ".BBBGGGGCGGGBBB.",
+    "...BBBBBBBBBB...",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................"
+  ],
+  "png_sha256": "1f8179221569a7e95452ef66c496bef3a7c0ffc09b4062090299a3a1cc9b6dd0"
+}

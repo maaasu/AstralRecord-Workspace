@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "id": "midgard_kuinya_sabaton",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#302226FF",
+    "C": "#D58660FF",
+    "D": "#B9725DFF",
+    "E": "#A95039FF",
+    "F": "#6A3C34FF",
+    "G": "#DEA687FF",
+    "H": "#433237FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCCBBCCCCB..",
+    "..BDEEEBBDEEEB..",
+    "..BDEEEBBDEEEB..",
+    "..BFFFFBBFFFFB..",
+    "..BDEEEBBDEEEB..",
+    "..BDEEEBBDEEEB..",
+    ".BDEEEEBBEDEEEB.",
+    "BEGGGGEBBECCCCEB",
+    "BEEEEEEBBEEEEEEB",
+    "BEHHHHBBBBHHHHEB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "0282df5d3da99fa7fb6280f5b37af0d7af0f33c89e5fdbf724ab134ccc11e075"
+}

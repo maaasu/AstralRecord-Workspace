@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "id": "lapis_mage_head",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#242A3DFF",
+    "C": "#657FBEFF",
+    "D": "#8497C4FF",
+    "E": "#4C5380FF",
+    "F": "#747796FF",
+    "G": "#BBD2EEFF",
+    "H": "#88BCFFFF"
+  },
+  "pixels": [
+    "................",
+    ".......B........",
+    ".......BCB......",
+    "......BCDB......",
+    "......BDCCCB....",
+    "......CDCCCB....",
+    ".....BDCCCCC....",
+    "...BBCCCCCCCB...",
+    ".BBBEEFFGHFECBB.",
+    ".BEFFFEEHHEFFEB.",
+    ".BEEEEEEEEEEEEB.",
+    ".BBEEEEEEEEEBBB.",
+    "...BBBBBBBBBB...",
+    "................",
+    "................",
+    "................"
+  ],
+  "png_sha256": "ad404c907adfbd93fe9710e2fbb8f0849a0e0fb9dc6d475b4b5f82faf523ef7e"
+}

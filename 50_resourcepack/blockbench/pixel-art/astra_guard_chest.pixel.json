@@ -1,0 +1,39 @@
+{
+  "format_version": 1,
+  "id": "astra_guard_chest",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#282C3BFF",
+    "C": "#C4DAE6FF",
+    "D": "#3F4E6FFF",
+    "E": "#798EB6FF",
+    "F": "#94A2BEFF",
+    "G": "#3D6E78FF",
+    "H": "#82D4C9FF",
+    "I": "#4E5A75FF",
+    "J": "#B8DFD2FF",
+    "K": "#688C90FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    ".BBBCCCDDCCCCBB.",
+    ".BECFFFEDFFFECB.",
+    "BECFFFFFFFFFFEEB",
+    "BEEEEGFHHFGEEEEB",
+    "BBBBIGHJHCGEBBBB",
+    "...BIGCHCEGEB...",
+    "...BIEGFFGEEB...",
+    "...BIEFGGFEIB...",
+    "...BEKKKKKKEB...",
+    "....BEEEEEEB....",
+    "....BBBBBBBB....",
+    "................"
+  ],
+  "png_sha256": "5ed5ff3edb1784bdf116162ead79625f844445d68c523fd25ea5a0a69d6204e2"
+}

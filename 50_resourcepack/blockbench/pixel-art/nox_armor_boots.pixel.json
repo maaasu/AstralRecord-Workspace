@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "nox_armor_boots",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#212834FF",
+    "C": "#9C815DFF",
+    "D": "#72543EFF",
+    "E": "#B39563FF",
+    "F": "#778F9DFF",
+    "G": "#54758BFF",
+    "H": "#917864FF",
+    "I": "#344452FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCCBBCCCCB..",
+    "..BDEDDBBDEDDB..",
+    "..BFGGGBBFGGGB..",
+    "..BFGGGBBFGGGB..",
+    ".BFGGGGBBGFGGGB.",
+    "BGDDDHGBBGHDDDGB",
+    "BGGGGGGBBGGGGGGB",
+    "BGIIIIBBBBIIIIGB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "c5b64500150af19a0fa6dc863e0ffd44ad58f68b77c66123291741f805f671fe"
+}

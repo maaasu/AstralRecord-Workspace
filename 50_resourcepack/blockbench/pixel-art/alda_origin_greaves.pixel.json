@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "alda_origin_greaves",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#2C2D31FF",
+    "C": "#8B7664FF",
+    "D": "#D5CAAEFF",
+    "E": "#C7BB99FF",
+    "F": "#6B523EFF",
+    "G": "#92937BFF",
+    "H": "#A7A690FF",
+    "I": "#5C5D54FF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDECCCCB..",
+    "..BFFFFFFFFFFB..",
+    "..BGGGGGGGGGGB..",
+    "..BGGGGGGGGGGB..",
+    "..BGGGGGGGGGGB..",
+    "..BDDDDBBEEEEB..",
+    "..BHFFHBBGFFGB..",
+    "..BHHFHBBGGFGB..",
+    "..BIIIIBBIIIIB..",
+    "..BGHGGBBGHGGB..",
+    "..BGHGGBBGHGGB..",
+    "..BGGGGBBGGGGB..",
+    "...BBBB..BBBB...",
+    "................"
+  ],
+  "png_sha256": "880a99b20d3eadb69c36b9c0a20a10cec59d0da4b014535db6f2332f7006d2bd"
+}

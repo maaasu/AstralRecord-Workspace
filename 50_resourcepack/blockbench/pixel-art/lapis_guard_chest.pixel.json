@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "lapis_guard_chest",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#20283EFF",
+    "C": "#B6C4D1FF",
+    "D": "#394660FF",
+    "E": "#4E75C8FF",
+    "F": "#728FCCFF",
+    "G": "#C9D0D4FF",
+    "H": "#364C7FFF",
+    "I": "#6F7B8FFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    ".BBBCCCDDCCCCBB.",
+    ".BECFFFEDFFFECB.",
+    "BECFFFGGGFFFFEEB",
+    "BEEEEGFFFFFEEEEB",
+    "BBBBHCEEECCEBBBB",
+    "...BHCCCCEEEB...",
+    "...BHCFFFFEEB...",
+    "...BHECFFFEHB...",
+    "...BEIIIIIIEB...",
+    "....BEEEEEEB....",
+    "....BBBBBBBB....",
+    "................"
+  ],
+  "png_sha256": "bbe39ac922ff00bf50167e0ed9e27b9ae2d4a98f4c5015bb1c35d3ed363f8e6a"
+}

@@ -1,0 +1,39 @@
+{
+  "format_version": 1,
+  "id": "alda_origin_helm",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#2C2D31FF",
+    "C": "#B6B49FFF",
+    "D": "#92937BFF",
+    "E": "#6B523EFF",
+    "F": "#A7A690FF",
+    "G": "#BE945DFF",
+    "H": "#C7BB99FF",
+    "I": "#5C5D54FF",
+    "J": "#48433EFF",
+    "K": "#D5CAAEFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    ".....BBBBBB.....",
+    "....BCCCCCDB....",
+    "...BDEFFFFCCB...",
+    "...BDEEGEEEDB...",
+    "..BDFEEEEEEFDB..",
+    ".BDFHHHHHHHHIDB.",
+    ".BIDJJJJJJJJDIB.",
+    ".BIJJJJJJJJJDIB.",
+    ".BIJKJJJJJJDDIB.",
+    ".BIJJBBBBBBDDIB.",
+    ".BDID......DIBB.",
+    "..BBB......BB...",
+    "................",
+    "................"
+  ],
+  "png_sha256": "04da4642296b1811a7df320e19176f4a62361938ecb6eaa8a84503abf6a87d32"
+}

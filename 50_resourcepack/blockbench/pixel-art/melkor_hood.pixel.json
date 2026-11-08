@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "id": "melkor_hood",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#21252BFF",
+    "C": "#506659FF",
+    "D": "#748376FF",
+    "E": "#7C9587FF",
+    "F": "#333D40FF",
+    "G": "#A2B0A2FF",
+    "H": "#6E7373FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "......BBBBB.....",
+    ".....BCCCCBB....",
+    "....BCDDDCCCB...",
+    "...BCDDDDDCCB...",
+    "...BDDDDDDDCCB..",
+    "..BCDDEEEECCCB..",
+    "..BDDEF...EECB..",
+    "..BDDG.....ECCB.",
+    "..CCEF.....FECB.",
+    ".BCHDF.....FECB.",
+    ".BCCHBBBBBBCCCB.",
+    "..BBBB....BBB...",
+    "................",
+    "................"
+  ],
+  "png_sha256": "c1fb5fed778698c60a8627b4eb12b0c7fca23e386e28d393c4491e7d6fba4f0f"
+}

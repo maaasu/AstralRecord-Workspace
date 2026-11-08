@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "id": "astra_hunt_feet",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#262F36FF",
+    "C": "#D4D5CBFF",
+    "D": "#C6CBC4FF",
+    "E": "#836856FF",
+    "F": "#DBE9DFFF",
+    "G": "#8BB0A8FF",
+    "H": "#6E9F99FF",
+    "I": "#9E8776FF",
+    "J": "#435F68FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCDBBDDDDB..",
+    "..BEFECBBDFFEB..",
+    "..BGHHHBBGHHHB..",
+    "..BGHHHBBGHHHB..",
+    ".BGHHHHBBHGHHHB.",
+    "BHIIIIHBBHIIIIHB",
+    "BHHHHHHBBHHHHHHB",
+    "BHJJJJBBBBJJJJHB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "d0668a1ebe7925fc97707924ccffbde64736f9a35be7fe5ae6900ceea2ac79d5"
+}

@@ -8,23 +8,19 @@
     "l": "8D79B1FF",
     "p": "B5A2CFFF",
     "d": "584975FF",
-    "s": "332C49FF",
-    "e": "DACDECFF",
     "g": "D6C08CFF",
-    "w": "F4E5B8FF",
     "c": "A6D8E0FF",
     "b": "6C598AFF",
-    "o": "29263CFF",
-    "a": "76688AFF",
-    "f": "DDCB9DFF",
-    "h": "463A60FF",
-    "i": "6F6191FF",
-    "j": "A290BDFF",
-    "k": "C1B797FF",
-    "m": "F6E9C3FF",
     "n": "A99A73FF",
-    "q": "554771FF",
-    "r": "201E31FF"
+    "a": "645382FF",
+    "e": "668F9EFF",
+    "f": "7C6A9EFF",
+    "h": "918274FF",
+    "i": "9C88BCFF",
+    "j": "9F8BBEFF",
+    "k": "A08DBFFF",
+    "m": "A491C2FF",
+    "o": "A794C4FF"
   },
   "used_regions": [
     {
@@ -37,17 +33,17 @@
         8
       ],
       "rows": [
-        "ddgwwgdd",
-        "dgkmwkgd",
-        "ge....eg",
-        "e......e",
-        "l......l",
-        "l......l",
-        "l......l",
-        "g......g"
+        "gggccggg",
+        "ddgeegdd",
+        "dl....ld",
+        "d......d",
+        "d......d",
+        "d......d",
+        "d......d",
+        "d......d"
       ],
       "nontransparent": 30,
-      "meaning": "Broad star brow and pale face rim. Entire central eye/mouth opening clear."
+      "meaning": "A compact brow detail frames the existing face opening."
     },
     {
       "part": "head",
@@ -59,17 +55,17 @@
         8
       ],
       "rows": [
-        "ddleeldd",
-        "dlleelld",
-        "llleelll",
-        "lggwwggl",
-        "llleelll",
-        "llleelll",
-        "bbgeegbb",
-        "bbgeegbb"
+        "lmmmmmml",
+        "lmmmmmml",
+        "lmmllmml",
+        "lmmllmml",
+        "lmllllml",
+        "lmllllml",
+        "dddddddd",
+        "dddddddd"
       ],
       "nontransparent": 64,
-      "meaning": "Broad celestial rear seam, coarse orbit crossbar and hanging hood tail."
+      "meaning": "Face and neck openings retain the existing pixel boundaries."
     },
     {
       "part": "head",
@@ -81,17 +77,17 @@
         8
       ],
       "rows": [
-        "gghddhgg",
-        "epijlide",
-        "epilllid",
-        "epilllid",
-        "ellldlld",
-        "ellldlld",
-        "bnggggnb",
-        "bbhddhbb"
+        "llpllpll",
+        "llpllpll",
+        "llpllpll",
+        "llpllpll",
+        "llpllpll",
+        "llpllpll",
+        "dddddddd",
+        "dddddddd"
       ],
       "nontransparent": 64,
-      "meaning": "Purple side panel, pale face edge and low orbit collar; distinct rear seam."
+      "meaning": "Face and neck openings retain the existing pixel boundaries."
     },
     {
       "part": "head",
@@ -103,17 +99,17 @@
         8
       ],
       "rows": [
-        "gghddhgg",
-        "epijlide",
-        "epilllid",
-        "epilllid",
-        "ellldlld",
-        "ellldlld",
-        "bnggggnb",
-        "bbhddhbb"
+        "llpllpll",
+        "llpllpll",
+        "llpllpll",
+        "llpllpll",
+        "llpllpll",
+        "llpllpll",
+        "dddddddd",
+        "dddddddd"
       ],
       "nontransparent": 64,
-      "meaning": "Purple side panel, pale face edge and low orbit collar; distinct rear seam."
+      "meaning": "Face and neck openings retain the existing pixel boundaries."
     },
     {
       "part": "head",
@@ -125,17 +121,17 @@
         8
       ],
       "rows": [
-        "ddddaddd",
-        "dlggggld",
-        "dlgwwgld",
-        "dlwccwld",
-        "dlwccwld",
-        "dlgwwgld",
-        "dlggfgld",
-        "dddddddd"
+        "gggggggg",
+        "llllllll",
+        "llllllll",
+        "llllllll",
+        "llllllll",
+        "llllllll",
+        "llllllll",
+        "llllllll"
       ],
       "nontransparent": 64,
-      "meaning": "Angular celestial crown star in large pixels, no emissive effect."
+      "meaning": "Face and neck openings retain the existing pixel boundaries."
     },
     {
       "part": "head",
@@ -147,17 +143,17 @@
         8
       ],
       "rows": [
-        "gggggggg",
-        "g......g",
-        "g......g",
-        "g......g",
-        "g......g",
-        "g......g",
-        "g......g",
-        "gggggggg"
+        "bbbbbbbb",
+        "b......b",
+        "b......b",
+        "b......b",
+        "b......b",
+        "b......b",
+        "b......b",
+        "bbbbbbbb"
       ],
       "nontransparent": 28,
-      "meaning": "Annular neckline; hollow center."
+      "meaning": "Face and neck openings retain the existing pixel boundaries."
     },
     {
       "part": "body",
@@ -169,21 +165,21 @@
         12
       ],
       "rows": [
-        "gp....pg",
-        "lgp..pgl",
-        "lldwwdll",
-        "llwccwll",
-        "lllddlll",
-        "lglddlgl",
-        "gggwwggg",
-        "bbgwwgbb",
-        "lpb..bpl",
-        "lpb..bpl",
-        "lpb..bpl",
-        "ggg..ggg"
+        "dd....dd",
+        "dgg..ggd",
+        "dlggggld",
+        "dllgglld",
+        "dlpccpld",
+        "dlpeepld",
+        "dlkklpld",
+        "dlkkllld",
+        "dlk..lld",
+        "ddd..ddd",
+        "nnn..nnn",
+        "ddd..ddd"
       ],
       "nontransparent": 82,
-      "meaning": "High open collar, broad chest star, dark orbit belt and long center-split robe."
+      "meaning": "A compact clasp or inlay anchors the broad front material."
     },
     {
       "part": "body",
@@ -195,21 +191,21 @@
         12
       ],
       "rows": [
-        "ppnggnpp",
-        "lldwwdll",
-        "llwccwll",
-        "lldwwdll",
-        "lllgglll",
-        "lllgglll",
-        "qbbbbbbq",
-        "gggppggg",
-        "lllgglll",
-        "lllgglll",
-        "lllgglll",
-        "nggggggn"
+        "dddddddd",
+        "dgllllgd",
+        "djjjlljd",
+        "djjjlljd",
+        "djjjlljd",
+        "djjjlljd",
+        "djjddljd",
+        "dflddlfd",
+        "dflddlfd",
+        "dddddddd",
+        "nnnnnnnn",
+        "dddddddd"
       ],
       "nontransparent": 96,
-      "meaning": "Full purple rear, angular star and continuous descending celestial banner."
+      "meaning": "Wide torso panels carry the dominant material and quiet seams."
     },
     {
       "part": "body",
@@ -221,21 +217,21 @@
         12
       ],
       "rows": [
-        "nggn",
-        "pllp",
-        "plld",
-        "llld",
-        "llld",
-        "lpld",
-        "qbbq",
-        "nggn",
-        "lpbd",
-        "lpbd",
-        "lpbd",
-        "nggn"
+        "dddd",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dddd",
+        "llll",
+        "llll",
+        "bbbb",
+        "bbbb"
       ],
       "nontransparent": 48,
-      "meaning": "Continuous robe side, orbit waist and broad gold-colored dyed hem."
+      "meaning": "Wide torso panels carry the dominant material and quiet seams."
     },
     {
       "part": "body",
@@ -247,21 +243,21 @@
         12
       ],
       "rows": [
-        "nggn",
-        "pllp",
-        "plld",
-        "llld",
-        "llld",
-        "lpld",
-        "qbbq",
-        "nggn",
-        "lpbd",
-        "lpbd",
-        "lpbd",
-        "nggn"
+        "dddd",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dddd",
+        "llll",
+        "llll",
+        "bbbb",
+        "bbbb"
       ],
       "nontransparent": 48,
-      "meaning": "Continuous robe side, orbit waist and broad gold-colored dyed hem."
+      "meaning": "Wide torso panels carry the dominant material and quiet seams."
     },
     {
       "part": "body",
@@ -273,13 +269,13 @@
         4
       ],
       "rows": [
-        "gg....gg",
-        "ep....pe",
-        "ep....pe",
-        "gggggggg"
+        "pp....pp",
+        "pp....pp",
+        "pp....pp",
+        "ppddddpp"
       ],
       "nontransparent": 20,
-      "meaning": "Open neck with complete collar back and side caps."
+      "meaning": "Wide torso panels carry the dominant material and quiet seams."
     },
     {
       "part": "body",
@@ -291,13 +287,13 @@
         4
       ],
       "rows": [
-        "gg....gg",
-        "g......g",
-        "g......g",
-        "gggggggg"
+        "dd....dd",
+        "d......d",
+        "d......d",
+        "dddddddd"
       ],
       "nontransparent": 16,
-      "meaning": "Split long robe hem ring only."
+      "meaning": "Wide torso panels carry the dominant material and quiet seams."
     },
     {
       "part": "arm",
@@ -309,21 +305,21 @@
         12
       ],
       "rows": [
-        "nggn",
-        "pwwp",
-        "gccg",
-        "pwwp",
-        "lggl",
-        "lddl",
-        "lddl",
+        "dddd",
+        "lool",
+        "lool",
+        "lool",
+        "lool",
+        "llil",
+        "llil",
+        "llil",
         "lppl",
-        "qbbq",
-        "nfgn",
-        "gwwg",
-        "nggn"
+        "dddd",
+        "hhhh",
+        "dddd"
       ],
       "nontransparent": 48,
-      "meaning": "Broad celestial mantle, hanging purple sleeve, pale folded cuff; all four sides."
+      "meaning": "The broad sleeve material transitions to a darker joint or cuff."
     },
     {
       "part": "arm",
@@ -335,21 +331,21 @@
         12
       ],
       "rows": [
-        "nggn",
-        "pllp",
-        "pggp",
-        "pllp",
-        "lddl",
-        "lddl",
-        "lddl",
+        "dddd",
+        "lool",
+        "lool",
+        "lool",
+        "lool",
+        "llil",
+        "llil",
+        "llil",
         "lppl",
-        "qbbq",
-        "nfgn",
-        "peep",
-        "nggn"
+        "dddd",
+        "hhhh",
+        "dddd"
       ],
       "nontransparent": 48,
-      "meaning": "Broad celestial mantle, hanging purple sleeve, pale folded cuff; all four sides."
+      "meaning": "The broad sleeve material transitions to a darker joint or cuff."
     },
     {
       "part": "arm",
@@ -361,21 +357,21 @@
         12
       ],
       "rows": [
-        "nggn",
-        "pllp",
-        "pggp",
-        "pllp",
-        "lldl",
-        "lldl",
-        "lldl",
-        "lppl",
-        "qbbq",
-        "nfgn",
-        "peep",
-        "nggn"
+        "dddd",
+        "lool",
+        "lool",
+        "loll",
+        "loll",
+        "llll",
+        "llll",
+        "llll",
+        "llll",
+        "dddd",
+        "hhhh",
+        "dddd"
       ],
       "nontransparent": 48,
-      "meaning": "Broad celestial mantle, hanging purple sleeve, pale folded cuff; all four sides."
+      "meaning": "The broad sleeve material transitions to a darker joint or cuff."
     },
     {
       "part": "arm",
@@ -387,21 +383,21 @@
         12
       ],
       "rows": [
-        "nggn",
-        "pllp",
-        "pggp",
-        "pllp",
-        "lldl",
-        "lldl",
-        "lldl",
-        "lppl",
-        "qbbq",
-        "nfgn",
-        "peep",
-        "nggn"
+        "dddd",
+        "lool",
+        "lool",
+        "loll",
+        "loll",
+        "llll",
+        "llll",
+        "llll",
+        "llll",
+        "dddd",
+        "hhhh",
+        "dddd"
       ],
       "nontransparent": 48,
-      "meaning": "Broad celestial mantle, hanging purple sleeve, pale folded cuff; all four sides."
+      "meaning": "The broad sleeve material transitions to a darker joint or cuff."
     },
     {
       "part": "arm",
@@ -413,13 +409,13 @@
         4
       ],
       "rows": [
-        "ggfg",
-        "gwwg",
-        "gccg",
-        "gggg"
+        "pppp",
+        "pppp",
+        "pppp",
+        "pppp"
       ],
       "nontransparent": 16,
-      "meaning": "Coarse shoulder celestial star cap."
+      "meaning": "The broad sleeve material transitions to a darker joint or cuff."
     },
     {
       "part": "arm",
@@ -431,13 +427,13 @@
         4
       ],
       "rows": [
-        "gggg",
-        "g..g",
-        "g..g",
-        "gggg"
+        "bbbb",
+        "b..b",
+        "b..b",
+        "bbbb"
       ],
       "nontransparent": 12,
-      "meaning": "Annular cuff leaves center of hand open."
+      "meaning": "The broad sleeve material transitions to a darker joint or cuff."
     },
     {
       "part": "leg",
@@ -457,13 +453,13 @@
         "....",
         "....",
         "....",
-        "nggn",
-        "lccl",
-        "l..l",
-        "roor"
+        "llll",
+        "bggb",
+        "b..b",
+        "aaaa"
       ],
       "nontransparent": 14,
-      "meaning": "Low open leather sandal: upper eight rows clear, orbit ankle strap and thin sole."
+      "meaning": "The existing boot opening separates the upper binding and darker sole."
     },
     {
       "part": "leg",
@@ -483,13 +479,13 @@
         "....",
         "....",
         "....",
-        "gbbg",
-        "lbbl",
-        "lggl",
-        "roor"
+        "llll",
+        "nnnn",
+        "nbbn",
+        "aaaa"
       ],
       "nontransparent": 16,
-      "meaning": "Low open leather sandal: upper eight rows clear, orbit ankle strap and thin sole."
+      "meaning": "The existing boot opening separates the upper binding and darker sole."
     },
     {
       "part": "leg",
@@ -509,13 +505,13 @@
         "....",
         "....",
         "....",
-        "nggn",
-        "lddl",
-        "l..l",
-        "roor"
+        "llll",
+        "nnnn",
+        "n..n",
+        "aaaa"
       ],
       "nontransparent": 14,
-      "meaning": "Low open leather sandal: upper eight rows clear, orbit ankle strap and thin sole."
+      "meaning": "The existing boot opening separates the upper binding and darker sole."
     },
     {
       "part": "leg",
@@ -535,13 +531,13 @@
         "....",
         "....",
         "....",
-        "nggn",
-        "lddl",
-        "l..l",
-        "roor"
+        "llll",
+        "nnnn",
+        "n..n",
+        "aaaa"
       ],
       "nontransparent": 14,
-      "meaning": "Low open leather sandal: upper eight rows clear, orbit ankle strap and thin sole."
+      "meaning": "The existing boot opening separates the upper binding and darker sole."
     },
     {
       "part": "leg",
@@ -559,7 +555,7 @@
         "...."
       ],
       "nontransparent": 0,
-      "meaning": "Upper leg cap unused by sandals."
+      "meaning": "The existing boot opening separates the upper binding and darker sole."
     },
     {
       "part": "leg",
@@ -571,48 +567,48 @@
         4
       ],
       "rows": [
-        "oooo",
-        "obbo",
-        "obbo",
-        "oooo"
+        "bbbb",
+        "bbbb",
+        "bbbb",
+        "bbbb"
       ],
       "nontransparent": 16,
-      "meaning": "Whole thin sandal sole underneath."
+      "meaning": "The existing boot opening separates the upper binding and darker sole."
     }
   ],
   "pixels": [
-    "........ddddadddgggggggg........................................",
-    "........dlggggldg......g........................................",
-    "........dlgwwgldg......g........................................",
-    "........dlwccwldg......g........................................",
-    "........dlwccwldg......g........................................",
-    "........dlgwwgldg......g........................................",
-    "........dlggfgldg......g........................................",
-    "........ddddddddgggggggg........................................",
-    "gghddhggddgwwgddgghddhggddleeldd................................",
-    "epijlidedgkmwkgdepijlidedlleelld................................",
-    "epilllidge....egepilllidllleelll................................",
-    "epilllide......eepilllidlggwwggl................................",
-    "ellldlldl......lellldlldllleelll................................",
-    "ellldlldl......lellldlldllleelll................................",
-    "bnggggnbl......lbnggggnbbbgeegbb................................",
-    "bbhddhbbg......gbbhddhbbbbgeegbb................................",
-    "........oooo........gg....gggg....gg........ggfggggg............",
-    "........obbo........ep....peg......g........gwwgg..g............",
-    "........obbo........ep....peg......g........gccgg..g............",
-    "........oooo........gggggggggggggggg........gggggggg............",
-    "................nggngp....pgnggnppnggnppnggnnggnnggnnggn........",
-    "................pllplgp..pglpllplldwwdllpllppwwppllppllp........",
-    "................plldlldwwdllplldllwccwllpggpgccgpggppggp........",
-    "................llldllwccwllllldlldwwdllpllppwwppllppllp........",
-    "................llldlllddlllllldlllggllllldllggllldllddl........",
-    "................lpldlglddlgllpldlllggllllldllddllldllddl........",
-    "................qbbqgggwwgggqbbqqbbbbbbqlldllddllldllddl........",
-    "................nggnbbgwwgbbnggngggppggglppllppllppllppl........",
-    "nggnnggnnggngbbglpbdlpb..bpllpbdlllgglllqbbqqbbqqbbqqbbq........",
-    "lddllccllddllbbllpbdlpb..bpllpbdlllgglllnfgnnfgnnfgnnfgn........",
-    "l..ll..ll..llggllpbdlpb..bpllpbdlllgglllpeepgwwgpeeppeep........",
-    "roorroorroorroornggnggg..gggnggnnggggggnnggnnggnnggnnggn........"
+    "........ggggggggbbbbbbbb........................................",
+    "........llllllllb......b........................................",
+    "........llllllllb......b........................................",
+    "........llllllllb......b........................................",
+    "........llllllllb......b........................................",
+    "........llllllllb......b........................................",
+    "........llllllllb......b........................................",
+    "........llllllllbbbbbbbb........................................",
+    "llpllpllgggccgggllpllplllmmmmmml................................",
+    "llpllpllddgeegddllpllplllmmmmmml................................",
+    "llpllplldl....ldllpllplllmmllmml................................",
+    "llpllplld......dllpllplllmmllmml................................",
+    "llpllplld......dllpllplllmllllml................................",
+    "llpllplld......dllpllplllmllllml................................",
+    "ddddddddd......ddddddddddddddddd................................",
+    "ddddddddd......ddddddddddddddddd................................",
+    "........bbbb........pp....ppdd....dd........ppppbbbb............",
+    "........bbbb........pp....ppd......d........ppppb..b............",
+    "........bbbb........pp....ppd......d........ppppb..b............",
+    "........bbbb........ppddddppdddddddd........ppppbbbb............",
+    "................dddddd....dddddddddddddddddddddddddddddd........",
+    "................dllddgg..ggddllddgllllgdloolloolloollool........",
+    "................dllddlgggglddllddjjjlljdloolloolloollool........",
+    "................dllddllggllddllddjjjlljdlollloollolllool........",
+    "................dllddlpccplddllddjjjlljdlollloollolllool........",
+    "................dllddlpeeplddllddjjjlljdllllllilllllllil........",
+    "................dllddlkklplddllddjjddljdllllllilllllllil........",
+    "................dddddlkklllddddddflddlfdllllllilllllllil........",
+    "lllllllllllllllllllldlk..lldlllldflddlfdlllllppllllllppl........",
+    "nnnnbggbnnnnnnnnllllddd..dddlllldddddddddddddddddddddddd........",
+    "n..nb..bn..nnbbnbbbbnnn..nnnbbbbnnnnnnnnhhhhhhhhhhhhhhhh........",
+    "aaaaaaaaaaaaaaaabbbbddd..dddbbbbdddddddddddddddddddddddd........"
   ],
-  "worn_refinement": "UV face rim, panel depth, and sparse stitch-light accents; original alpha and motifs retained."
+  "worn_refinement": "Large cloth folds, small trim runs, a single focal clasp, and darker leather at the foot."
 }

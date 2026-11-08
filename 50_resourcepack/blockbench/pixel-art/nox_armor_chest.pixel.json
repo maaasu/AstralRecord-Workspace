@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "nox_armor_chest",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#212834FF",
+    "C": "#778F9DFF",
+    "D": "#344452FF",
+    "E": "#9C815DFF",
+    "F": "#54758BFF",
+    "G": "#394C5DFF",
+    "H": "#72543EFF",
+    "I": "#917864FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BBCCCDDEEEEB..",
+    ".BFCCCCFDCCCFEB.",
+    ".FCCCCCCCCCCCFF.",
+    ".FFFFCCCCCCFFFF.",
+    ".BBBGHFFFFHFBBB.",
+    "...BGEFFFFEFB...",
+    "...BGHFFFFHFB...",
+    "...BGHFFFFHGB...",
+    "...BFIIIIIIFB...",
+    "....BFFFFFFB....",
+    "....BBBBBBBB....",
+    "................"
+  ],
+  "png_sha256": "3cac7587d9327140263e2488d6dbd48b0223d6b0525a103a562350d7923b9a1c"
+}

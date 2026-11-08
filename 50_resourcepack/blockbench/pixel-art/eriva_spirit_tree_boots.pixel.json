@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "eriva_spirit_tree_boots",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#1F2332FF",
+    "C": "#9EBCAAFF",
+    "D": "#3F525FFF",
+    "E": "#B8DCC3FF",
+    "F": "#6C7A95FF",
+    "G": "#465B81FF",
+    "H": "#6A767DFF",
+    "I": "#364751FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCCBBCCCCB..",
+    "..BDEDCBBCEDDB..",
+    "..BFGGGBBFGGGB..",
+    "..BFGGGBBFGGGB..",
+    ".BFGGGGBBGFGGGB.",
+    "BGHHHHGBBGHHHHGB",
+    "BGGGGGGBBGGGGGGB",
+    "BGIIIIBBBBIIIIGB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "e5c973ea002a8056ec3db36593ec809925ec2439782cb97d511c5686e1677c48"
+}

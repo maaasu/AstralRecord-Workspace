@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "melkor_greaves",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#20212BFF",
+    "C": "#8A656FFF",
+    "D": "#AAA5AAFF",
+    "E": "#888493FF",
+    "F": "#693B4DFF",
+    "G": "#4B4B56FF",
+    "H": "#706E73FF",
+    "I": "#34353FFF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDECCCCB..",
+    "..BFFFFFFFFFFB..",
+    "..BGGGGGGGGGGB..",
+    "..BGGGGGGGGGGB..",
+    "..BGGGGGGGGGGB..",
+    "..BCCDDBBEECCB..",
+    "..BHHCCBBCCGGB..",
+    "..BHHHHBBGGGGB..",
+    "..BFIIIBBIIIIB..",
+    "..BGFFFBBGHGGB..",
+    "..BGHGGBBGHGGB..",
+    "..BGGGGBBGGGGB..",
+    "...BBBB..BBBB...",
+    "................"
+  ],
+  "png_sha256": "c1574ede627df59f398714fc42ddb26b3b96b4d8113fd6e05941a90f053f436c"
+}

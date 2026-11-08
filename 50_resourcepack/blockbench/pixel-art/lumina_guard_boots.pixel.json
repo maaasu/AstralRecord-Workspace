@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "lumina_guard_boots",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#373433FF",
+    "C": "#E1E8E3FF",
+    "D": "#DBC697FF",
+    "E": "#D5BC84FF",
+    "F": "#A38761FF",
+    "G": "#9ECDBBFF",
+    "H": "#E6E9E0FF",
+    "I": "#5B5243FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCCBBCCCCB..",
+    "..BDEEEBBDEEEB..",
+    "..BDEEEBBDEEEB..",
+    "..BFGFFBBFGFFB..",
+    "..BDEEEBBDEEEB..",
+    "..BDEEEBBDEEEB..",
+    ".BDEEEEBBEDEEEB.",
+    "BEHHHHEBBECCCCEB",
+    "BEHHHHEBBECCCCEB",
+    "BEIIIIBBBBIIIIEB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "00586c614c034e7519f5b03faae5ea43f334558d1b50e08ee0fd40718e4d3f31"
+}

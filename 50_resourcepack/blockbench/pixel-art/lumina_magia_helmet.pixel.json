@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "lumina_magia_helmet",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#302E3EFF",
+    "C": "#AB98C8FF",
+    "D": "#BBAACCFF",
+    "E": "#E2D9E5FF",
+    "F": "#DFDBE2FF",
+    "G": "#D6D4E5FF",
+    "H": "#D3C9EFFF",
+    "I": "#575267FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "......BBBBB.....",
+    ".....BCCCCBB....",
+    "....BCDDDCCCB...",
+    "...BCDDDEDCCB...",
+    "...BDDDFFFDCCB..",
+    "..BCDDGGHGCCCB..",
+    "..BDDGI...GGCB..",
+    "..BDDF.....GCCB.",
+    "..CDGI.....FGCB.",
+    ".BCDDI.....IGCB.",
+    ".BCCCBBBBBBCCCB.",
+    "..BBBB....BBB...",
+    "................",
+    "................"
+  ],
+  "png_sha256": "f69162692ddaa9e355d239dba128f9cce562779c413f17aeb297d79aeb9ffd3b"
+}

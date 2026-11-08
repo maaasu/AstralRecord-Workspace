@@ -1,0 +1,39 @@
+{
+  "format_version": 1,
+  "id": "midgard_clay_guardian_plate",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#302A2BFF",
+    "C": "#C3A070FF",
+    "D": "#39383BFF",
+    "E": "#AA8259FF",
+    "F": "#BA9976FF",
+    "G": "#695341FF",
+    "H": "#68503DFF",
+    "I": "#AC7949FF",
+    "J": "#897563FF",
+    "K": "#D2B892FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    ".BBBCCCDDCCCCBB.",
+    ".BECFFFEDFFFECB.",
+    "BECFFFFGCFFFFEEB",
+    "BEEEEFFGCFFEEEEB",
+    "BBBBGEEGCEEEBBBB",
+    "...BGFFGFFFEB...",
+    "...BGHHHHHHEB...",
+    "...BGEEIEEEGB...",
+    "...BEJJKJJJEB...",
+    "....BEEEEEEB....",
+    "....BBBBBBBB....",
+    "................"
+  ],
+  "png_sha256": "5027e9c27d5e46f2606448a114aa571b96f6c7224b2f7528fcecfe516ad0ff84"
+}

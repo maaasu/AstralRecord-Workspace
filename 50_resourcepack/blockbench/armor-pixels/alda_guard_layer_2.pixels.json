@@ -5,22 +5,11 @@
   ],
   "palette": {
     ".": "00000000",
-    "a": "44453EFF",
     "s": "7B7D6CFF",
-    "h": "A6AF94FF",
-    "e": "C2C1A6FF",
     "d": "5C6652FF",
-    "j": "333B33FF",
-    "b": "80633CFF",
-    "g": "AC8B54FF",
     "l": "5A3B24FF",
     "L": "765135FF",
-    "k": "281D17FF",
-    "c": "6A6B57FF",
-    "t": "333026FF",
-    "f": "785C45FF",
-    "i": "472F1EFF",
-    "m": "5D412BFF"
+    "a": "8E947EFF"
   },
   "pixels": [
     "................................................................",
@@ -39,22 +28,22 @@
     "................................................................",
     "................................................................",
     "................................................................",
-    "....llflllll........llllflll....................................",
-    "....lLLlllll........llllllll....................................",
-    "....lLLlllll........llllflll....................................",
-    "....llllllll........llllllll....................................",
-    "lhhlheehlhhlillimLLmmLLLLLLmmLLmmLLLLLLm........................",
-    "lddlhsshlddllLLliflilllggllliflillbggbll........................",
-    "lddlhsshlddllLLllddlheehheehlddlilllllli........................",
-    "illihsshillibggblddlhsshhsshlddllLLllLLl........................",
-    "bggbbggbbggblLLlillihsshhsshillilLLllLLl........................",
-    "lddlhsshlddllLLlifliilllllliifliilllllli........................",
-    "lddlhjjhlddllLLl................................................",
-    "illihsshillibggb................................................",
-    "bggbbggbbggblLLl................................................",
-    "lddlhsshlddllLLl................................................",
-    "lddlhsshlddlbggb................................................",
-    "illiilliilliilli................................................"
+    "....dddddddd........dddddddd....................................",
+    "....dddddddd........dddddddd....................................",
+    "....dddddddd........dddddddd....................................",
+    "....dddddddd........dddddddd....................................",
+    "dssddaaddssddssddddddddddddddddddddddddd........................",
+    "dssddaaddssddssddddddddddddddddddddddddd........................",
+    "dLLddLLddLLddLLddddddddddddddddddddddddd........................",
+    "lLLllLLllLLllLLldddddddddddddddddddddddd........................",
+    "sLLssLLssLLssLLsdddddddddddddddddddddddd........................",
+    "ssssssssssssssssdddddddddddddddddddddddd........................",
+    "ssssssssssssssss................................................",
+    "sddssssssddssdds................................................",
+    "sddssssssddssdds................................................",
+    "llllllllllllllll................................................",
+    "llllllllllllllll................................................",
+    "llllllllllllllll................................................"
   ],
   "nets": {
     "head": {
@@ -210,5 +199,5 @@
       ]
     }
   },
-  "worn_refinement": "UV face rim, panel depth, and sparse stitch-light accents; original alpha and motifs retained."
+  "worn_refinement": "Broad rigid panels, a quieter collar and seams, articulated joints, and a single front ornament."
 }

@@ -10,16 +10,10 @@
     "d": "332240FF",
     "e": "AFB2AEFF",
     "s": "82818BFF",
-    "r": "B396CAFF",
-    "h": "D5C4DEFF",
     "b": "604B5CFF",
-    "k": "443747FF",
-    "o": "30343EFF",
-    "f": "42324DFF",
-    "a": "BDBFBAFF",
-    "c": "8A8E8FFF",
-    "g": "3A2256FF",
-    "i": "281B34FF"
+    "a": "262A33FF",
+    "c": "523273FF",
+    "f": "5B3A7DFF"
   },
   "face_grids": {
     "body/front": [
@@ -32,9 +26,9 @@
       "........",
       "........",
       "........",
-      "ceeeeeec",
-      "ppbrhbpp",
-      "dddbpddd"
+      "pppppppp",
+      "bbbesbbb",
+      "aaaaaaaa"
     ],
     "body/back": [
       "........",
@@ -46,9 +40,9 @@
       "........",
       "........",
       "........",
-      "ceeeeeec",
-      "pppldppp",
-      "iddddddi"
+      "pppppppp",
+      "bbbbbbbb",
+      "aaaaaaaa"
     ],
     "body/left": [
       "....",
@@ -60,9 +54,9 @@
       "....",
       "....",
       "....",
-      "caec",
-      "gppg",
-      "iddi"
+      "pppp",
+      "bbbb",
+      "aaaa"
     ],
     "body/right": [
       "....",
@@ -74,9 +68,9 @@
       "....",
       "....",
       "....",
-      "caec",
-      "gppg",
-      "iddi"
+      "pppp",
+      "bbbb",
+      "aaaa"
     ],
     "body/top": [
       "........",
@@ -85,78 +79,78 @@
       "........"
     ],
     "body/bottom": [
-      "eeeeeeee",
-      "e......e",
-      "e......e",
-      "eeeeeeee"
+      "dddddddd",
+      "d......d",
+      "d......d",
+      "dddddddd"
     ],
     "leg/front": [
-      "dplp",
-      "dprp",
-      "dphp",
-      "dprp",
-      "dprp",
-      "dphd",
-      "dplp",
-      "dpld",
-      "spps",
-      "dpld",
-      "ceec",
-      "sssd"
+      "dlpp",
+      "dlpp",
+      "dlpp",
+      "dfpp",
+      "dfpp",
+      "dfcp",
+      "dfcp",
+      "dfcp",
+      "dlpp",
+      "dlpp",
+      "bbbb",
+      "bbbb"
     ],
     "leg/back": [
-      "pldp",
-      "eeep",
-      "pldp",
-      "pddp",
-      "pldp",
-      "pldp",
-      "pddp",
-      "pldp",
-      "dpld",
-      "dpld",
-      "ceec",
-      "sssd"
+      "dlpp",
+      "dlpp",
+      "dlpp",
+      "dfpp",
+      "dfpp",
+      "dfcp",
+      "dfcp",
+      "dfcp",
+      "dlpp",
+      "dlpp",
+      "dddd",
+      "dddd"
     ],
     "leg/left": [
-      "dplp",
-      "dplp",
-      "dprp",
-      "dpdp",
-      "dprp",
-      "dplp",
-      "dplp",
-      "dpld",
-      "dpld",
-      "dpld",
-      "ceec",
-      "sssd"
+      "dppp",
+      "dppp",
+      "dppp",
+      "dfpp",
+      "dfpp",
+      "dfcp",
+      "dfcp",
+      "dfcp",
+      "dppp",
+      "dppp",
+      "dddd",
+      "dddd"
     ],
     "leg/right": [
-      "dplp",
-      "dplp",
-      "dprp",
-      "dpdp",
-      "dprp",
-      "dplp",
-      "dplp",
-      "dpld",
-      "dpld",
-      "dpld",
-      "ceec",
-      "sssd"
+      "dppp",
+      "dppp",
+      "dppp",
+      "dfpp",
+      "dfpp",
+      "dfcp",
+      "dfcp",
+      "dfcp",
+      "dppp",
+      "dppp",
+      "dddd",
+      "dddd"
     ],
     "leg/top": [
-      "eeae",
-      "e..e",
-      "e..e",
-      "eeee"
+      "dddd",
+      "d..d",
+      "d..d",
+      "dddd"
     ],
     "leg/bottom": [
-      "eeee",
-      "e..e",
-      "e..e",
-      "eeee"
+      "dddd",
+      "d..d",
+      "d..d",
+      "dddd"
     ]
   },
   "used_regions": [
@@ -310,22 +304,22 @@
     "................................................................",
     "................................................................",
     "................................................................",
-    "....eeaeeeee................eeeeeeee............................",
-    "....e..ee..e................e......e............................",
-    "....e..ee..e................e......e............................",
-    "....eeeeeeee................eeeeeeee............................",
-    "dplpdplpdplppldp................................................",
-    "dplpdprpdplpeeep................................................",
-    "dprpdphpdprppldp................................................",
-    "dpdpdprpdpdppddp................................................",
-    "dprpdprpdprppldp................................................",
-    "dplpdphddplppldp................................................",
-    "dplpdplpdplppddp................................................",
-    "dplddplddpldpldp................................................",
-    "dpldsppsdplddpld................................................",
-    "dplddplddplddpldcaecceeeeeeccaecceeeeeec........................",
-    "ceecceecceecceecgppgppbrhbppgppgpppldppp........................",
-    "sssdsssdsssdsssdiddidddbpdddiddiiddddddi........................"
+    "....dddddddd................dddddddd............................",
+    "....d..dd..d................d......d............................",
+    "....d..dd..d................d......d............................",
+    "....dddddddd................dddddddd............................",
+    "dpppdlppdpppdlpp................................................",
+    "dpppdlppdpppdlpp................................................",
+    "dpppdlppdpppdlpp................................................",
+    "dfppdfppdfppdfpp................................................",
+    "dfppdfppdfppdfpp................................................",
+    "dfcpdfcpdfcpdfcp................................................",
+    "dfcpdfcpdfcpdfcp................................................",
+    "dfcpdfcpdfcpdfcp................................................",
+    "dpppdlppdpppdlpp................................................",
+    "dpppdlppdpppdlpppppppppppppppppppppppppp........................",
+    "ddddbbbbddddddddbbbbbbbesbbbbbbbbbbbbbbb........................",
+    "ddddbbbbddddddddaaaaaaaaaaaaaaaaaaaaaaaa........................"
   ],
-  "worn_refinement": "UV face rim, panel depth, and sparse stitch-light accents; original alpha and motifs retained."
+  "worn_refinement": "Large cloth folds, small trim runs, a single focal clasp, and darker leather at the foot."
 }

@@ -1,0 +1,39 @@
+{
+  "format_version": 1,
+  "id": "astra_guard_head",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#282C3BFF",
+    "C": "#A7B1C4FF",
+    "D": "#798EB6FF",
+    "E": "#94A2BEFF",
+    "F": "#C4DAE6FF",
+    "G": "#C89AEBFF",
+    "H": "#4E5A75FF",
+    "I": "#3F4E6FFF",
+    "J": "#D3DFE2FF",
+    "K": "#3D6E78FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    ".....BBBBBB.....",
+    "....BCCCCCDB....",
+    "...BDEEEEEDDB...",
+    "...BDEEEEEEDB...",
+    "..BDEEEEEEEEDB..",
+    ".BDEFGFDDFGFHDB.",
+    ".BHDIIIJDIIIDHB.",
+    ".BHII..JD..IDHB.",
+    ".BHIKIDJDDIKDHB.",
+    ".BHIKBDDDDBKDHB.",
+    ".BDHD..DD..DHBB.",
+    "..BBB......BB...",
+    "................",
+    "................"
+  ],
+  "png_sha256": "3dd4e26b70d78b6952c1fbaca095bd8646063c83364046b4598f597e205c993f"
+}

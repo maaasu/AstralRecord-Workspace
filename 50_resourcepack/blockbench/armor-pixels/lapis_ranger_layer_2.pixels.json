@@ -5,21 +5,15 @@
   ],
   "palette": {
     ".": "00000000",
-    "d": "263B65FF",
     "b": "4B6AA3FF",
     "B": "6F8FBCFF",
-    "c": "33466AFF",
-    "l": "7E5336FF",
     "L": "AC7A4BFF",
-    "k": "473124FF",
-    "w": "9C7841FF",
-    "W": "C49D62FF",
     "s": "2856A8FF",
     "S": "86B6EAFF",
-    "n": "192339FF",
-    "a": "6B83B1FF",
     "e": "3B5586FF",
-    "f": "64422CFF"
+    "f": "64422CFF",
+    "a": "5575AAFF",
+    "c": "6181B2FF"
   },
   "pixels": [
     "................................................................",
@@ -38,22 +32,22 @@
     "................................................................",
     "................................................................",
     "................................................................",
-    "....bbabllll................bbbbbbbb............................",
-    "....bBBbllll................bbbbbbbb............................",
-    "....bBBbllll................bbbbbbbb............................",
-    "....bbbbllll................bbbbbbbb............................",
-    "llbbebbellbbebbe................................................",
-    "lLbbbBBblLbbbBBb................................................",
-    "lLbbebbelLbbbBBb................................................",
-    "llbbebbellbbebbe................................................",
-    "ebbefllfebbeebbe................................................",
-    "cbbclBBlcbbccbbc................................................",
-    "cbbclBBlcbbccbbc................................................",
-    "ebbefllfebbeebbe................................................",
-    "cbbccbbccbbccbbcfllfkkwWWwkkfllffllllllf........................",
-    "cbbccbbccbbccbbceabeebbbbbbeeabeebbbbbbe........................",
-    "cbbccbbccbbccbbccbbcbbbccbbbcbbcbbbccbbb........................",
-    "fllffllffllffllfcbbcbbbccbbbcbbcbbbccbbb........................"
+    "....eeeeeeee................eeeeeeee............................",
+    "....eeeeeeee................eeeeeeee............................",
+    "....eeeeeeee................eeeeeeee............................",
+    "....eeeeeeee................eeeeeeee............................",
+    "ebbbeBbbebbbeBbb................................................",
+    "ebbbeBbbebbbeBbb................................................",
+    "ebbbeBbbebbbeBbb................................................",
+    "ecbbecbbecbbecbb................................................",
+    "ecbbecbbecbbecbb................................................",
+    "ecabecabecabecab................................................",
+    "ecabecabecabecab................................................",
+    "fcabfcabfcabfcab................................................",
+    "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee........................",
+    "eeeeeeeeeeeeeeeeffffffffffffffffffffffff........................",
+    "eeeeeeeeeeeeeeeeLLLLLLLSsLLLLLLLLLLLLLLL........................",
+    "eeeeeeeeeeeeeeeeffffffffffffffffffffffff........................"
   ],
   "nets": {
     "head": {
@@ -209,5 +203,5 @@
       ]
     }
   },
-  "worn_refinement": "UV face rim, panel depth, and sparse stitch-light accents; original alpha and motifs retained."
+  "worn_refinement": "Broad fabric or leather panels, one directional closure, and continuous quiet edge binding."
 }

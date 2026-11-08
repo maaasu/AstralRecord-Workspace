@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "id": "melkor_circlet",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#232230FF",
+    "C": "#403850FF",
+    "D": "#C5ABC9FF",
+    "E": "#B8A6BCFF",
+    "F": "#9B70B8FF",
+    "G": "#494553FF",
+    "H": "#9C86ADFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    ".......BBB......",
+    ".......BCB......",
+    "...BBBBCDCBBB...",
+    "..BBEECFFFCGGB..",
+    ".BHEGGCFFFCGHHB.",
+    ".BGGHHHCFCHHGGB.",
+    ".BBBGGGGCGGGBBB.",
+    "...BBBBBBBBBB...",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................"
+  ],
+  "png_sha256": "75d9f35686f2a4a3ff7b0962492daf1ee3818961cc3b7ffbc90d6ee3f2a0635d"
+}

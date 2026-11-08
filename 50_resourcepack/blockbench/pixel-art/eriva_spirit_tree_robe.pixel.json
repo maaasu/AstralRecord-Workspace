@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "eriva_spirit_tree_robe",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#1F2332FF",
+    "C": "#465B81FF",
+    "D": "#6C7A95FF",
+    "E": "#9EBCAAFF",
+    "F": "#313E57FF",
+    "G": "#B9CBBAFF",
+    "H": "#3F525FFF",
+    "I": "#B8DCC3FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BBCDEBBECCBB..",
+    ".BCDDDDECECCFCB.",
+    ".BCDDDDGEHCCCFB.",
+    "BCDDDDDGIHCCCCFB",
+    "BEDCDDDGCHCCCCEB",
+    ".BEBDDDGCHCCBEB.",
+    "..BBDDDGCHCCBB..",
+    "...BDDDGCHCCB...",
+    "...BDDCGCHCCB...",
+    "...BFFFFFFFFB...",
+    "...BBBBBBBBBB...",
+    "................"
+  ],
+  "png_sha256": "152fbbf15fdfd584a4eef012ce9858f7c30fe81014b8a68ff2137ef5557b3de0"
+}

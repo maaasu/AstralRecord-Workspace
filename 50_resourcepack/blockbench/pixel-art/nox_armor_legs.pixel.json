@@ -1,0 +1,35 @@
+{
+  "format_version": 1,
+  "id": "nox_armor_legs",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#212834FF",
+    "C": "#72543EFF",
+    "D": "#B8A385FF",
+    "E": "#54758BFF",
+    "F": "#778F9DFF",
+    "G": "#394C5DFF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDCCCCCB..",
+    "..BCCCCCCCCCCB..",
+    "..BEEEEEEEEEEB..",
+    "..BEFEEEEEFEEB..",
+    "..BEFEEEEEFEEB..",
+    "..BEFEEBBEFEEB..",
+    "..BFEEGBBEFEGB..",
+    "..BFFEGBBFEEGB..",
+    "..BFFEGBBEEEGB..",
+    "..BCCCGBBECCCB..",
+    "..BEEEGBBEEEGB..",
+    "..BEEEEBBEEEEB..",
+    "...BBBB..BBBB...",
+    "................"
+  ],
+  "png_sha256": "54f6429ef26432cc0f52b39a6eec0a8f96dd909ccfd791f3bd2d7a1caafdabe9"
+}

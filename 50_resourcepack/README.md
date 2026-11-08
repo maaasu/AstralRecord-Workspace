@@ -167,7 +167,7 @@ JE で素材の振り分けだけを確認する場合は `/give @s minecraft:wo
 
 ノクスソードは 21001、ノクスボウは 21002、ノクススタッフは 21003 を使います。通常攻撃の腕振りと戦闘エフェクトはサーバー処理に同期します。BE の手持ちモデルは腕振りの進捗に合わせて動きます。バニラの弓の使用状態では、JE は3段階の引き絵、BE は弦の変形を使います。
 
-採集用のツルハシ6種、クワ6種、釣り竿2種は両版で立体モデルを使います。 台帳の `java_gui_sprite` が有効な道具は、手持ちモデルと同じ形状・テクスチャを描画した `bedrock/textures/items/<id>.png` を、両版のインベントリとホットバーに表示します。Java 版は `gui` コンテキストだけをアイコンへ切り替えます。ヴェルディアの鉄製道具はグレードごとに刃と金具を描き分けます。RPG の釣りではキャスト中も同じ竿を持ち、糸とウキは[釣りの専用演出](#釣り)で描画します。
+採集用のツルハシ6種、クワ6種、釣り竿2種は両版で立体モデルを使います。台帳の `java_gui_sprite` が有効な道具は、`bedrock/textures/items/<id>.png` を両版のインベントリとホットバーに表示します。ツルハシとクワは手持ちモデルから描画し、釣り竿は16 pxで竿先の曲がり、糸、リールが読めるように描いた専用アイコンを使います。Java 版は `gui` コンテキストだけをアイコンへ切り替えます。ヴェルディアの鉄製道具はグレードごとに刃と金具を描き分けます。RPG の釣りではキャスト中も同じ竿を持ち、糸とウキは[釣りの専用演出](#釣り)で描画します。
 
 ### アイテムのツールチップ
 
@@ -187,7 +187,7 @@ BE の対応するモデルは `grip` ルートを `[0, 0, 0]` に置き、`q.it
 
 副手用の補助装備4点は、一人称の手持ち縮尺を 0.62、三人称を 0.86 にしています。Java 版は左右の握りと装飾面の向きを確認し、盾を使用すると手持ち姿勢だけを変える子モデルに切り替えます。統合版は一人称で主手・副手を分け、盾の一人称防御姿勢も切り替えます。盾の姿勢はバニラの握り位置を専用モデルの原点に換算したものです。統合版の三人称ではプレイヤーの手にバインドします。防御時に腕を上げる動作は Geyser 経由の実クライアントで未確認です。 [Mojang の盾アニメーション](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/animations/shield.animation.json) · [Mojang のプレイヤー制御](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/animation_controllers/player.animation_controllers.json)
 
-アクションリングの長押し設定が有効で候補が2つ以上の場合、本人の選択中の武器を仮想トライデントとして送ります。JE は `java_virtual_trident` を指定した武器の待機モデルを表示できます。パック形式 83 以降もオーバーレイで通常のトライデント表示を維持します。
+アクションリングの長押し設定が有効で候補が2つ以上の場合、本人の選択中の武器を仮想トライデントとして送ります。JE は `java_virtual_trident` を指定した武器の待機モデルを表示できます。`java_gui_sprite` を指定した弓は、通常時と仮想トライデントで選択中のホットバーに同じ弦付きアイコンを表示します。パック形式 83 以降もオーバーレイで通常のトライデント表示を維持します。
 
 BE では仮想トライデントで長押し入力を受け取りながら、主手の表示を `astralrecord:held_weapon_model` のモデル番号で切り替えます。番号が 0、対象武器の登録外、または副手の場合は、バニラのトライデントのモデルと使用アニメーションを使います。ビルドは `java_virtual_trident: true` の武器だけで切り替えを生成し、Geyser 用カタログに各アイテムの `held_weapon` を出力します。各武器の attachable の `first_person`、`third_person`、`attack` とその条件を再利用します。これらが使う変数は `scripts.pre_animation` で、配列の各要素につき1回の変数代入で設定します。弓の引き絵は実際に弓を使用しているときに適用されます。 [Mojang のトライデント定義](https://github.com/Mojang/bedrock-samples/blob/a3b394c507a6b11a3c6f61552e778ff5c4b89fd2/resource_pack/attachables/trident.entity.json)
 
@@ -227,7 +227,7 @@ Java 版は管理パックの互換版 `receptionDisplay: "1"` と適用成功�
 
 ### 着用防具
 
-防具のインベントリ・手持ちは `item-models.json` の3Dアイテムを使い、着用外観は追加台帳 `armor-assets.json` で管理します。各行は同じ `id` / `base_item` / `custom_model_data` と、身体部位 `slot`（`HEAD` / `CHEST` / `LEGS` / `FEET`）、`equipment_asset` を持ちます。マスターの `appearance.equipmentAsset` と同じ `astralrecord:<path>` を指定します。
+防具のインベントリ・装備欄・ホットバーは、`java_gui_sprite` で統合版と共用する専用アイコンを表示します。Java 版は `gui` のときに同じ PNG を選び、手持ちには `item-models.json` の3Dアイテムを使います。着用外観は追加台帳 `armor-assets.json` で管理します。各行は同じ `id` / `base_item` / `custom_model_data` と、身体部位 `slot`（`HEAD` / `CHEST` / `LEGS` / `FEET`）、`equipment_asset` を持ちます。マスターの `appearance.equipmentAsset` と同じ `astralrecord:<path>` を指定します。
 
 - JE: `assets/astralrecord/equipment/<path>.json` の `layers.humanoid`（脚だけは `humanoid_leggings`）から、`textures/entity/equipment/<layer>/<texture>.png` を参照します。標準の立体鎧へ固有の層を貼る方式で、自由形状の全身itemモデルへ置き換える方式ではありません。
 - BE: `models/entity/armor/<id>.geo.json` と `textures/models/armor/<id>.png` を追加します。既存attachableの `geometry.worn` と `textures.armor` がこれらを参照します。着用モデルは標準防具と同じ `waist` → `body` → 頭・腕・脚の骨名と親子関係でプレイヤーの動きに追従します。この骨には明示的な `binding` を付けません。梱包時に部位別の標準オフセットアニメーションを着用側へ追加します。 [Mojang のプレイヤー防具](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/models/entity/player_armor.json) · [部位別オフセット](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/animations/armor.animation.json)
@@ -259,15 +259,15 @@ Java 版アクションバーのバフアイコンは `assets/astralrecord/textu
 
 ## 全装備アートの編集元と確認範囲
 
-通常実装の武器41点、防具82点、アクセサリ12点、オフハンドに実表示する補助装備4点を登録しています。既存のノクス武器3点を保持し、新規124点は3D、装着表示のないアクセサリ12点は2Dです。採集道具、スキル書、デバッグ専用マスターはこの装備アート台帳に含めません。
+装備アート台帳には、武器41点、防具82点、オフハンドに実表示する補助装備4点、採集道具14点の3Dモデルと、スロットで表示するアクセサリ12点の2Dアイコンを登録しています。
 
 Minecraftの角形と粗い画素の材質分けを基準に、ノクスは簡素な初期装備、上位は素材の分離、縁、留め具、各系統の意匠を増やしています。防具のインベントリ・手持ち用の立体と、着用用の標準リグ・64×32原画は別の編集データです。JE着用時の自由形状の角・帽頂などは追加していません。
 
 - `blockbench/items/`: native Blockbench 5.2.2で書き出した両版の編集元。防具は `<id>_worn.bedrock.bbmodel`、弓は3段階のJava draw原稿も保持します。
 - `blockbench/equipment-drafts/`: 新規3D124点の個別cuboid・素材swatch設計原稿。
 - `blockbench/armor-pixels/`: 着用原画のpalette・pixel-grid記録。原画PNGはJE/BE着用テクスチャと着用Blockbench原稿にも保存しています。
-- `blockbench/pixel-art/`: 2Dアクセサリ12点とその他の2Dアイテムの再生成可能な原画。
-- `blockbench/equipment-source-manifest.json`: 全139点のマスター対応と編集元・配布元アセットのSHA-256。
+- `blockbench/pixel-art/`: 防具のスロットアイコン、2Dアクセサリ12点、その他の2Dアイテムの再生成可能な原画。
+- `blockbench/equipment-source-manifest.json`: 全153点のマスター対応と編集元・配布元アセットのSHA-256。
 
 編集元台帳のSHAは、`.json` と `.bbmodel` のCRLFをLFへ正規化して計算します。その他の内容は変換せず、PNG等のバイナリは元のバイト列を使います。Gitのcheckout改行設定が異なっても、同じ編集内容を同じハッシュで追跡できます。
 

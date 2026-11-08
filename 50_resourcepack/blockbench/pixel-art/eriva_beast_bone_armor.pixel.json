@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "id": "eriva_beast_bone_armor",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#353435FF",
+    "C": "#E9DBB2FF",
+    "D": "#4B3932FF",
+    "E": "#C7BA94FF",
+    "F": "#D0C5A4FF",
+    "G": "#ECE0BFFF",
+    "H": "#7A7362FF",
+    "I": "#73424BFF",
+    "J": "#916A6EFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    ".BBBCCCDDCCCCBB.",
+    ".BECFFFEDFFFECB.",
+    "BECFFFFFFFFFFEEB",
+    "BEEEEGFFFFFEEEEB",
+    "BBBBHGGEEEGEBBBB",
+    "...BHGGGGGGEB...",
+    "...BHIIGIIIEB...",
+    "...BHEEEEEEHB...",
+    "...BEJJGJJJEB...",
+    "....BEEEEEEB....",
+    "....BBBBBBBB....",
+    "................"
+  ],
+  "png_sha256": "a54b322e78569dddeeb58b46cf9d73cd72084d9da767506db80668d0fce11560"
+}

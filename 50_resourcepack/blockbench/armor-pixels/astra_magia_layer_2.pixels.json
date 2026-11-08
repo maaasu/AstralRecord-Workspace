@@ -8,17 +8,13 @@
     "l": "8D79B1FF",
     "p": "B5A2CFFF",
     "d": "584975FF",
-    "s": "332C49FF",
-    "e": "DACDECFF",
     "g": "D6C08CFF",
-    "w": "F4E5B8FF",
-    "c": "A6D8E0FF",
     "b": "6C598AFF",
-    "o": "29263CFF",
-    "a": "DDCB9DFF",
     "f": "A99A73FF",
-    "h": "554771FF",
-    "i": "6F6191FF"
+    "a": "668F9EFF",
+    "c": "9985BAFF",
+    "e": "A692C4FF",
+    "h": "A996C6FF"
   },
   "used_regions": [
     {
@@ -40,12 +36,12 @@
         "........",
         "........",
         "........",
-        "fggggggf",
-        "bbgccgbb",
-        "lld..dll"
+        "llllllll",
+        "fffgafff",
+        "bbb..bbb"
       ],
       "nontransparent": 22,
-      "meaning": "Waist orbit only, upper torso transparent for leggings alone."
+      "meaning": "The low waistband continues across the torso faces."
     },
     {
       "part": "body",
@@ -66,12 +62,12 @@
         "........",
         "........",
         "........",
-        "fggggggf",
-        "bbgeegbb",
-        "illlllli"
+        "llllllll",
+        "ffffffff",
+        "bbbbbbbb"
       ],
       "nontransparent": 24,
-      "meaning": "Waist orbit only, upper torso transparent for leggings alone."
+      "meaning": "The low waistband continues across the torso faces."
     },
     {
       "part": "body",
@@ -92,12 +88,12 @@
         "....",
         "....",
         "....",
-        "fagf",
-        "hbbh",
-        "illi"
+        "llll",
+        "ffff",
+        "bbbb"
       ],
       "nontransparent": 12,
-      "meaning": "Waist orbit only, upper torso transparent for leggings alone."
+      "meaning": "The low waistband continues across the torso faces."
     },
     {
       "part": "body",
@@ -118,12 +114,12 @@
         "....",
         "....",
         "....",
-        "fagf",
-        "hbbh",
-        "illi"
+        "llll",
+        "ffff",
+        "bbbb"
       ],
       "nontransparent": 12,
-      "meaning": "Waist orbit only, upper torso transparent for leggings alone."
+      "meaning": "The low waistband continues across the torso faces."
     },
     {
       "part": "body",
@@ -141,7 +137,7 @@
         "........"
       ],
       "nontransparent": 0,
-      "meaning": "Torso top unused by leggings."
+      "meaning": "The low waistband continues across the torso faces."
     },
     {
       "part": "body",
@@ -153,13 +149,13 @@
         4
       ],
       "rows": [
-        "gggggggg",
-        "g......g",
-        "g......g",
-        "gggggggg"
+        "dddddddd",
+        "d......d",
+        "d......d",
+        "dddddddd"
       ],
       "nontransparent": 20,
-      "meaning": "Annular waist lower edge."
+      "meaning": "The low waistband continues across the torso faces."
     },
     {
       "part": "leg",
@@ -171,21 +167,21 @@
         12
       ],
       "rows": [
-        "gllg",
-        "glpg",
-        "glpg",
-        "glpg",
-        "glpg",
-        "glpg",
-        "gppg",
-        "gwwg",
-        "fggf",
-        "pggp",
+        "dpll",
+        "dgll",
+        "dhll",
+        "dhll",
+        "dhll",
+        "decl",
+        "decl",
+        "decl",
+        "dpll",
+        "dpll",
         "....",
         "...."
       ],
       "nontransparent": 40,
-      "meaning": "Long slim purple leg with broad pale seam and orbit edge; calf cuff above low sandals."
+      "meaning": "Broad leg panels carry the base material and the quieter fold or joint."
     },
     {
       "part": "leg",
@@ -197,21 +193,21 @@
         12
       ],
       "rows": [
-        "dlld",
-        "dlld",
-        "dlld",
-        "dlld",
-        "dlld",
-        "dlld",
-        "dbbd",
-        "dbbd",
-        "fggf",
-        "pggp",
+        "dpll",
+        "dpll",
+        "dpll",
+        "dell",
+        "dell",
+        "decl",
+        "decl",
+        "decl",
+        "dpll",
+        "dpll",
         "....",
         "...."
       ],
       "nontransparent": 40,
-      "meaning": "Long slim purple leg with broad pale seam and orbit edge; calf cuff above low sandals."
+      "meaning": "Broad leg panels carry the base material and the quieter fold or joint."
     },
     {
       "part": "leg",
@@ -223,21 +219,21 @@
         12
       ],
       "rows": [
-        "dllg",
-        "dplg",
-        "dllg",
-        "dllg",
-        "dllg",
-        "dllg",
-        "dbbg",
-        "dbbg",
-        "fggf",
-        "pggp",
+        "dlll",
+        "dlll",
+        "dlll",
+        "dell",
+        "dell",
+        "decl",
+        "decl",
+        "decl",
+        "dlll",
+        "dlll",
         "....",
         "...."
       ],
       "nontransparent": 40,
-      "meaning": "Long slim purple leg with broad pale seam and orbit edge; calf cuff above low sandals."
+      "meaning": "Broad leg panels carry the base material and the quieter fold or joint."
     },
     {
       "part": "leg",
@@ -249,21 +245,21 @@
         12
       ],
       "rows": [
-        "dllg",
-        "dplg",
-        "dllg",
-        "dllg",
-        "dllg",
-        "dllg",
-        "dbbg",
-        "dbbg",
-        "fggf",
-        "pggp",
+        "dlll",
+        "dlll",
+        "dlll",
+        "dell",
+        "dell",
+        "decl",
+        "decl",
+        "decl",
+        "dlll",
+        "dlll",
         "....",
         "...."
       ],
       "nontransparent": 40,
-      "meaning": "Long slim purple leg with broad pale seam and orbit edge; calf cuff above low sandals."
+      "meaning": "Broad leg panels carry the base material and the quieter fold or joint."
     },
     {
       "part": "leg",
@@ -275,13 +271,13 @@
         4
       ],
       "rows": [
-        "ggag",
-        "g..g",
-        "g..g",
-        "gggg"
+        "dddd",
+        "d..d",
+        "d..d",
+        "dddd"
       ],
       "nontransparent": 12,
-      "meaning": "Annular top of leggings, hollow center."
+      "meaning": "Broad leg panels carry the base material and the quieter fold or joint."
     },
     {
       "part": "leg",
@@ -299,7 +295,7 @@
         "...."
       ],
       "nontransparent": 0,
-      "meaning": "Bottom cap clear; sandal sole comes from layer1."
+      "meaning": "Broad leg panels carry the base material and the quieter fold or joint."
     }
   ],
   "pixels": [
@@ -319,22 +315,22 @@
     "................................................................",
     "................................................................",
     "................................................................",
-    "....ggag....................gggggggg............................",
-    "....g..g....................g......g............................",
-    "....g..g....................g......g............................",
-    "....gggg....................gggggggg............................",
-    "dllggllgdllgdlld................................................",
-    "dplgglpgdplgdlld................................................",
-    "dllgglpgdllgdlld................................................",
-    "dllgglpgdllgdlld................................................",
-    "dllgglpgdllgdlld................................................",
-    "dllgglpgdllgdlld................................................",
-    "dbbggppgdbbgdbbd................................................",
-    "dbbggwwgdbbgdbbd................................................",
-    "fggffggffggffggf................................................",
-    "pggppggppggppggpfagffggggggffagffggggggf........................",
-    "................hbbhbbgccgbbhbbhbbgeegbb........................",
-    "................illilld..dllilliilllllli........................"
+    "....dddd....................dddddddd............................",
+    "....d..d....................d......d............................",
+    "....d..d....................d......d............................",
+    "....dddd....................dddddddd............................",
+    "dllldplldllldpll................................................",
+    "dllldglldllldpll................................................",
+    "dllldhlldllldpll................................................",
+    "delldhlldelldell................................................",
+    "delldhlldelldell................................................",
+    "decldecldecldecl................................................",
+    "decldecldecldecl................................................",
+    "decldecldecldecl................................................",
+    "dllldplldllldpll................................................",
+    "dllldplldllldpllllllllllllllllllllllllll........................",
+    "................fffffffgafffffffffffffff........................",
+    "................bbbbbbb..bbbbbbbbbbbbbbb........................"
   ],
-  "worn_refinement": "UV face rim, panel depth, and sparse stitch-light accents; original alpha and motifs retained."
+  "worn_refinement": "Large cloth folds, small trim runs, a single focal clasp, and darker leather at the foot."
 }

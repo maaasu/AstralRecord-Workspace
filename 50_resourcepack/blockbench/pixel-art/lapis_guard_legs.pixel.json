@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "id": "lapis_guard_legs",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#20283EFF",
+    "C": "#6F7B8FFF",
+    "D": "#C9D0D4FF",
+    "E": "#B6C4D1FF",
+    "F": "#465877FF",
+    "G": "#4E75C8FF",
+    "H": "#728FCCFF",
+    "I": "#82B7FAFF",
+    "J": "#364C7FFF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDECCCCB..",
+    "..BFFFFFFFFFFB..",
+    "..BGGGGGGGGGGB..",
+    "..BGGGGGGGGGGB..",
+    "..BGGGGGGGGGGB..",
+    "..BDDDDBBEEEEB..",
+    "..BHIHHBBGIGGB..",
+    "..BJJJJBBJJJJB..",
+    "..BJJJJBBJJJJB..",
+    "..BGHGGBBGHGGB..",
+    "..BGHGGBBGHGGB..",
+    "..BGGGGBBGGGGB..",
+    "...BBBB..BBBB...",
+    "................"
+  ],
+  "png_sha256": "8be9844d81ac40870e2f82d9807ea903129cd8a70eae2f847654590b9ea3772d"
+}

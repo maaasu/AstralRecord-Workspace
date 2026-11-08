@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "astra_magia_head",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#2B283AFF",
+    "C": "#8D79B1FF",
+    "D": "#A392BAFF",
+    "E": "#CAB279FF",
+    "F": "#BBE1DDFF",
+    "G": "#D5E5DCFF",
+    "H": "#514466FF",
+    "I": "#D7C498FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "......BBBBB.....",
+    ".....BCCCCBB....",
+    "....BCDDDCCCB...",
+    "...BCEDDFDCCB...",
+    "...BEEDFGFECCB..",
+    "..BCEEEEFEEECB..",
+    "..BEEEH...EECB..",
+    "..BEEI.....EECB.",
+    "..CCEH.....EECB.",
+    ".BCCDH.....HECB.",
+    ".BCCCBBBBBBCCCB.",
+    "..BBBB....BBB...",
+    "................",
+    "................"
+  ],
+  "png_sha256": "2f4fc432adcf89f16017fc374a225ae47ccb853432352f4dc2e0335334e7f2c7"
+}

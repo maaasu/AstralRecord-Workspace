@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "alda_origin_sabaton",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#2C2D31FF",
+    "C": "#C7BB99FF",
+    "D": "#A7A690FF",
+    "E": "#92937BFF",
+    "F": "#6B523EFF",
+    "G": "#BE945DFF",
+    "H": "#D5CAAEFF",
+    "I": "#48433EFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCCBBCCCCB..",
+    "..BDEEEBBDEEEB..",
+    "..BDEEEBBDEEEB..",
+    "..BFGFFBBFGFFB..",
+    "..BDEEEBBDEEEB..",
+    "..BDEEEBBDEEEB..",
+    ".BDHHHEBBECCCEB.",
+    "BEHHHHEBBECCCCEB",
+    "BEFFFFEBBEFFFFEB",
+    "BEIIIIBBBBIIIIEB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "c6d9a5200656c5c0248ba900d1c01466fb97e756a867291aecb73975fba26e9c"
+}

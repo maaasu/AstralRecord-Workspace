@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "id": "lumina_guard_chest",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#373433FF",
+    "C": "#E1E8E3FF",
+    "D": "#5B5243FF",
+    "E": "#D5BC84FF",
+    "F": "#DBC697FF",
+    "G": "#E6E9E0FF",
+    "H": "#9ECDBBFF",
+    "I": "#817459FF",
+    "J": "#B69F7EFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    ".BBBCCCDDCCCCBB.",
+    ".BECFFFEDFFFECB.",
+    "BECFFFGGGGFFFEEB",
+    "BEEEEGFHHFGEEEEB",
+    "BBBBICEHHCCEBBBB",
+    "...BIECCCEEEB...",
+    "...BIECCCCEEB...",
+    "...BIEFFFFEIB...",
+    "...BEJJJJJJEB...",
+    "....BEEEEEEB....",
+    "....BBBBBBBB....",
+    "................"
+  ],
+  "png_sha256": "f5db2d4d8d8741efbf3871ad0dbebc43faf2d6a5f91b5564e999e3826b7e4a3c"
+}

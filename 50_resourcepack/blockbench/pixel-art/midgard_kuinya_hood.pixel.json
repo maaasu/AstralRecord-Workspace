@@ -1,0 +1,35 @@
+{
+  "format_version": 1,
+  "id": "midgard_kuinya_hood",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#232B2AFF",
+    "C": "#5F8653FF",
+    "D": "#7F9C71FF",
+    "E": "#AEBE84FF",
+    "F": "#8EAA5BFF",
+    "G": "#354030FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "......BBBBB.....",
+    ".....BCCCCBB....",
+    "....BCDDDCCCB...",
+    "...BCDDDDEECB...",
+    "...BDDDDDDDECB..",
+    "..BCDDFFFFCCCB..",
+    "..BDDFG...FFCB..",
+    "..BDDE.....FCCB.",
+    "..CCFG.....GFCB.",
+    ".BCCDG.....GFCB.",
+    ".BCCCBBBBBBCCCB.",
+    "..BBBB....BBB...",
+    "................",
+    "................"
+  ],
+  "png_sha256": "b0e35f276edd6acb2866a3220b76f8db8edb3e560e75a11f01ae34b19e13a93b"
+}

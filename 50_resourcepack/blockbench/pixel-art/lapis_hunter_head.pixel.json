@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "id": "lapis_hunter_head",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#222839FF",
+    "C": "#5574ACFF",
+    "D": "#788EB6FF",
+    "E": "#72523DFF",
+    "F": "#917663FF",
+    "G": "#ACB4C9FF",
+    "H": "#92B9EEFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "......BBBB......",
+    "......BCCCB.....",
+    ".....BCDDDCB....",
+    "....BCDCCCCC....",
+    "....BDCCCCCCB...",
+    "...BCCCCCCCCC...",
+    ".BBBEEFFGHFECBB.",
+    ".BEFFFEEHHEFFEB.",
+    ".BEEEEEEEEEEEEB.",
+    ".BBEEEEEEEEEBBB.",
+    "...BBBBBBBBBB...",
+    "................",
+    "................",
+    "................"
+  ],
+  "png_sha256": "edc6de65bcf1f1665325d4bebd95d1a74ad2f0528cf925756696beeae83a15ac"
+}

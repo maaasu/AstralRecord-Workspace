@@ -308,14 +308,14 @@
 			"scale": [1.1, 1.1, 1.1]
 		},
 		"firstperson_righthand": {
-			"rotation": [0, -90, -20],
-			"translation": [1.13, 3.61589, 1.28138],
-			"scale": [1.08, 1.08, 1.08]
+			"rotation": [8, -50, 0],
+			"translation": [1.13, 3.75196, 0.15768],
+			"scale": [1.05211, 1.05211, 1.05211]
 		},
 		"firstperson_lefthand": {
-			"rotation": [0, 90, 20],
-			"translation": [1.13, 3.61589, 1.28138],
-			"scale": [1.08, 1.08, 1.08]
+			"rotation": [-172, 50, 180],
+			"translation": [1.13, 3.75196, 0.15768],
+			"scale": [1.05211, 1.05211, 1.05211]
 		},
 		"ground": {
 			"translation": [0, 2.25, 0],

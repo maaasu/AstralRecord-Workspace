@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "midgard_kuinya_helm",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#302226FF",
+    "C": "#B9725DFF",
+    "D": "#A95039FF",
+    "E": "#D58660FF",
+    "F": "#8B665CFF",
+    "G": "#69372FFF",
+    "H": "#433237FF",
+    "I": "#B0A39BFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    ".....BBBBBB.....",
+    "....BCCCCCDB....",
+    "...BDCCCCCCDB...",
+    "...BDCCCCCCDB...",
+    "..BDCEEEEEECDB..",
+    ".BDEEFEEEEFEEDB.",
+    ".BGDHHHHHHHHDGB.",
+    ".BGHHHHHHHHHDGB.",
+    ".BGFHHHHHHHDEGB.",
+    ".BGIHBBBBBBDDGB.",
+    ".BDGD......DGBB.",
+    "..BBB......BB...",
+    "................",
+    "................"
+  ],
+  "png_sha256": "ba41776f87615d588ed55881ba2f7e6439c7d92857a48efa3dfa4f7a9d49601e"
+}

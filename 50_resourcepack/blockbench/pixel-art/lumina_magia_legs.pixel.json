@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "id": "lumina_magia_legs",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#302E3EFF",
+    "C": "#9E8FA9FF",
+    "D": "#DFDBE2FF",
+    "E": "#D6D4E5FF",
+    "F": "#837299FF",
+    "G": "#AB98C8FF",
+    "H": "#BBAACCFF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDECCCCB..",
+    "..BFFFFFFFFFFB..",
+    "..BGEGGGGGEGGB..",
+    "..BGHGGGGGEGGB..",
+    "..BHHGGGGGEGGB..",
+    ".BHGHGGBBGEGGBB.",
+    ".BHEGGGBBGHEGGB.",
+    ".BHGGGGBBGHGGGB.",
+    ".BHGGGGBBGHGGGB.",
+    ".BDDDDDBBEEEEEB.",
+    ".BFFFFFBBFFFFFB.",
+    ".BGGGGGBBGGGGGB.",
+    "..BBBBB..BBBBB..",
+    "................"
+  ],
+  "png_sha256": "6e30597b24fb0d5f31961c9cac81ca714bf1eed55bdf62bcd4dc28fd50bcb8e8"
+}

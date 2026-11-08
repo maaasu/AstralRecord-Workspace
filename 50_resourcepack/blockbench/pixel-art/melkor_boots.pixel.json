@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "id": "melkor_boots",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#21252BFF",
+    "C": "#7C9587FF",
+    "D": "#444D52FF",
+    "E": "#748376FF",
+    "F": "#506659FF",
+    "G": "#6E7373FF",
+    "H": "#333D40FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCCBBCCCCB..",
+    "..BDCDDBBDCDDB..",
+    "..BECFFBBECFFB..",
+    "..BECFFBBECFFB..",
+    ".BEFCFFBBFCFFFB.",
+    "BFGGGGFBBFGGGGFB",
+    "BFFFFFFBBFFFFFFB",
+    "BFHHHHBBBBHHHHFB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "4a329d167735fdfe7f87396a2452169284577151e86b00116ac09233decbb742"
+}

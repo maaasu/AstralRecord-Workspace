@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "id": "eriva_spirit_tree_leggings",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#1F2332FF",
+    "C": "#6A767DFF",
+    "D": "#B9CBBAFF",
+    "E": "#9EBCAAFF",
+    "F": "#3F525FFF",
+    "G": "#465B81FF",
+    "H": "#6C7A95FF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDECCCCB..",
+    "..BFFFFFFFFFFB..",
+    "..BGEGGGGGEGGB..",
+    "..BGEGDGGGEGGB..",
+    "..BHEGDGGEEGGB..",
+    ".BHGEGDBBEEGGBB.",
+    ".BHEGGGBBGHEGGB.",
+    ".BHGGGGBBGHGGGB.",
+    ".BHGGGGBBGHGGGB.",
+    ".BHGGGGBBGHGGGB.",
+    ".BFFFFFBBFFFFFB.",
+    ".BGGGGGBBGGGGGB.",
+    "..BBBBB..BBBBB..",
+    "................"
+  ],
+  "png_sha256": "25978935d55be85f2d0b6cb568db9015f505c03133de3b1ebe031918d37b8b47"
+}

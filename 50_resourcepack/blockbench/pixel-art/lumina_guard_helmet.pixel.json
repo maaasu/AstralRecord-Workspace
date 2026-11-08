@@ -1,0 +1,39 @@
+{
+  "format_version": 1,
+  "id": "lumina_guard_helmet",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#373433FF",
+    "C": "#E0CDA5FF",
+    "D": "#D5BC84FF",
+    "E": "#DBC697FF",
+    "F": "#E6E9E0FF",
+    "G": "#E1E8E3FF",
+    "H": "#B69F7EFF",
+    "I": "#9ECDBBFF",
+    "J": "#817459FF",
+    "K": "#5B5243FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    ".....BBBBBB.....",
+    "....BCCCCCDB....",
+    "...BDEEEEEDDB...",
+    "...BDEFFFFFDB...",
+    "..BDFFGGGGGFFB..",
+    ".BDGGHHIHHHGGDB.",
+    ".BJDKKKKKKKKDJB.",
+    ".BJKKKKKKKKKDJB.",
+    ".BJHKKKKKKKDGJB.",
+    ".BJKKBBBBBBDDJB.",
+    ".BDJD......DJBB.",
+    "..BBB......BB...",
+    "................",
+    "................"
+  ],
+  "png_sha256": "9ad72cd3bc79b00f8f8a403fde18488be27e25214156cc3aad6e3bc64712ef06"
+}

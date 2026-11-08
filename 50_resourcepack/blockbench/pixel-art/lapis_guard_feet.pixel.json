@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "lapis_guard_feet",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#20283EFF",
+    "C": "#B6C4D1FF",
+    "D": "#728FCCFF",
+    "E": "#4E75C8FF",
+    "F": "#465877FF",
+    "G": "#82B7FAFF",
+    "H": "#C9D0D4FF",
+    "I": "#394660FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCCBBCCCCB..",
+    "..BDEEEBBDEEEB..",
+    "..BDEEEBBDEEEB..",
+    "..BFGFFBBFGFFB..",
+    "..BDEEEBBDEEEB..",
+    "..BGGEEBBDEGGB..",
+    ".BDEEGEBBEGEEEB.",
+    "BEHHHHEBBECCCCEB",
+    "BEEEEEEBBEEEEEEB",
+    "BEIIIIBBBBIIIIEB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "2d75157144399f54375fccf09418b0933ac2aff8712b431232539cb367bad6f3"
+}

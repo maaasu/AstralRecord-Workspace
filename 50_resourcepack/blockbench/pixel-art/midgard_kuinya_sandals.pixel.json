@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "id": "midgard_kuinya_sandals",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#292435FF",
+    "C": "#7E618FFF",
+    "D": "#B59896FF",
+    "E": "#B67FE0FF",
+    "F": "#3F343FFF",
+    "G": "#826A6CFF",
+    "H": "#C9B2ACFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCCB.CCCCB..",
+    "..BBDDDBBDDBBB..",
+    "..BBEDDBBBDEBB..",
+    "..BDDBBBBBDDDD..",
+    ".FGCCCFBBFCCCGF.",
+    "FHCFFFFFFHFFFCFF",
+    "BFBBBBF.BFBBBBFB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "534a0f5e9405b730858d7f909849e7589f4e83ae494c7c55fe0daaa11d6de563"
+}

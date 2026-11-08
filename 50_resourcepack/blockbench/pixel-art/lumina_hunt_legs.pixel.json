@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "id": "lumina_hunt_legs",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#2C353AFF",
+    "C": "#A3836CFF",
+    "D": "#D5DFCFFF",
+    "E": "#C7DAC9FF",
+    "F": "#8A6349FF",
+    "G": "#94C0AFFF",
+    "H": "#A9C9B9FF",
+    "I": "#D9D0AAFF",
+    "J": "#5D7671FF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDECCCCB..",
+    "..BFFFFFFFFFFB..",
+    "..BGGGGGGGGGGB..",
+    "..BGHGGGGGICGB..",
+    "..BGDDGGGGEEGB..",
+    "..BGFFGBBGFFGB..",
+    "..BHFFJBBGFFJB..",
+    "..BHGGJBBHGGJB..",
+    "..BHGGJBBGGGJB..",
+    "..BFFFJBBGFFFB..",
+    "..BGGGJBBGGGJB..",
+    "..BGGGGBBGGGGB..",
+    "...BBBB..BBBB...",
+    "................"
+  ],
+  "png_sha256": "80fdc54182ee36fc1bd941ba5d789ea16dc41fd324f2b4310b5a7ebf8765c9aa"
+}

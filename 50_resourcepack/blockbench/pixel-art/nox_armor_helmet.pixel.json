@@ -1,0 +1,35 @@
+{
+  "format_version": 1,
+  "id": "nox_armor_helmet",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#212834FF",
+    "C": "#778F9DFF",
+    "D": "#54758BFF",
+    "E": "#917864FF",
+    "F": "#394C5DFF",
+    "G": "#344452FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    ".....BBBBBB.....",
+    "....BCCCCDDB....",
+    "...BDDDDDDDDB...",
+    "...BDDDDDDDDB...",
+    "..BDCCCCCCCCDB..",
+    ".BDCEEEEEEEEFDB.",
+    ".BFDGGGGGGGGDFB.",
+    ".BFGGGGGGGGGDFB.",
+    ".BFEGGGGGGGDEFB.",
+    ".BFGGBBBBBBDDFB.",
+    ".BDFD......DFBB.",
+    "..BBB......BB...",
+    "................",
+    "................"
+  ],
+  "png_sha256": "cd1eadd442bfd934235d13054b968b71666d094c485014a62aaf360657bf8964"
+}

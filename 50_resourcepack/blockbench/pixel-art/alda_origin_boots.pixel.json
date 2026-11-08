@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "alda_origin_boots",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#202B32FF",
+    "C": "#AFC9B6FF",
+    "D": "#90B9A4FF",
+    "E": "#655343FF",
+    "F": "#719E94FF",
+    "G": "#4D8880FF",
+    "H": "#877767FF",
+    "I": "#344C4BFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCDBBDDDDB..",
+    "..BEEECBBDEEEB..",
+    "..BFGGGBBFGGGB..",
+    "..BFGGGBBFGGGB..",
+    ".BFGGGGBBGFGGGB.",
+    "BGHHHHGBBGHHHHGB",
+    "BGGGGGGBBGGGGGGB",
+    "BGIIIIBBBBIIIIGB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "69c71be8f5ea5bb8c82684eef36f659838784594712c119ea54be2805ed4cbcc"
+}

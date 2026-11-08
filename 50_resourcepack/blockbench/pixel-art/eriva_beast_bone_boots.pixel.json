@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "eriva_beast_bone_boots",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#353435FF",
+    "C": "#E9DBB2FF",
+    "D": "#D0C5A4FF",
+    "E": "#C7BA94FF",
+    "F": "#73424BFF",
+    "G": "#87AF9BFF",
+    "H": "#ECE0BFFF",
+    "I": "#4B3932FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCCBBCCCCB..",
+    "..BDEEEBBDEEEB..",
+    "..BDEEEBBDEEEB..",
+    "..BFGFFBBFFFFB..",
+    "..BDEEEBBDEEEB..",
+    "..BHHHEBBDCCCB..",
+    ".BDHEEEBBEDEECB.",
+    "BEHHHHEBBECCCCEB",
+    "BEEEEEEBBEEEEEEB",
+    "BEIIIIBBBBIIIIEB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "c08caf7789ae9dc15c867d80f5cc89240d7d74f129c2d7b0a66142b6aa343682"
+}

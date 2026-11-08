@@ -28,6 +28,17 @@ function New-JavaModelReference {
     }
 }
 
+function New-JavaGuiItemSelection {
+    param($GuiModel, $Fallback)
+
+    return [ordered] @{
+        type = 'minecraft:select'
+        property = 'minecraft:display_context'
+        cases = @([ordered] @{ when = 'gui'; model = $GuiModel })
+        fallback = $Fallback
+    }
+}
+
 function Get-ItemModelRegistry {
     $registry = Get-PackJson (Join-Path $root 'item-models.json')
     $version = $registry.format_version
@@ -341,6 +352,7 @@ function Add-ItemModelEntries {
 
         $rest = New-JavaModelReference "astralrecord:item/custom/$id"
         $model = $rest
+        $virtualModel = $rest
         if ($isBow) {
             # Match the vanilla bow's using_item, scale, and draw thresholds.
             $model = [ordered] @{
@@ -374,12 +386,9 @@ function Add-ItemModelEntries {
                 parent = 'minecraft:item/generated'
                 textures = [ordered] @{ layer0 = "astralrecord:item/custom/$gui" }
             })
-            $model = [ordered] @{
-                type = 'minecraft:select'
-                property = 'minecraft:display_context'
-                cases = @([ordered] @{ when = 'gui'; model = (New-JavaModelReference "astralrecord:item/custom/$gui") })
-                fallback = $model
-            }
+            $guiModel = New-JavaModelReference "astralrecord:item/custom/$gui"
+            $model = New-JavaGuiItemSelection $guiModel $model
+            $virtualModel = New-JavaGuiItemSelection $guiModel $rest
         }
         if (!$byBase.ContainsKey($base)) {
             $byBase[$base] = [ordered] @{}
@@ -389,8 +398,8 @@ function Add-ItemModelEntries {
             if (!$byBase.ContainsKey('trident')) {
                 $byBase.trident = [ordered] @{}
             }
-            # The temporary trident is used for action-ring input, not bow draw.
-            $byBase.trident.Add([string] $item.custom_model_data, $rest)
+            # Action-ring input uses the resting weapon and its optional GUI sprite.
+            $byBase.trident.Add([string] $item.custom_model_data, $virtualModel)
         }
     }
 

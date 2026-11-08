@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "lumina_hunt_boots",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#2C353AFF",
+    "C": "#D5DFCFFF",
+    "D": "#C7DAC9FF",
+    "E": "#8A6349FF",
+    "F": "#A9C9B9FF",
+    "G": "#94C0AFFF",
+    "H": "#A3836CFF",
+    "I": "#4D655AFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCDDDBBDDDDB..",
+    "..BECEEBBEDEEB..",
+    "..BFCGGBBFDGGB..",
+    "..BCGGGBBFGDGB..",
+    ".BFGGGGBBGFGGGB.",
+    "BGHHHHGBBGHHHHGB",
+    "BGGGGGGBBGGGGGGB",
+    "BGIIIIBBBBIIIIGB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "a39979e36526c69fe6642f3be623d385bf3c970d97b8feb41172720079cbe837"
+}

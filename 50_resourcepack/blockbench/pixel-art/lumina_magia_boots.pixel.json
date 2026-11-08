@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "id": "lumina_magia_boots",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#302E3EFF",
+    "C": "#AB98C8FF",
+    "D": "#D6D4E5FF",
+    "E": "#D3C9EFFF",
+    "F": "#DFDBE2FF",
+    "G": "#575267FF",
+    "H": "#9E8FA9FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCCB.CCCCB..",
+    "..BBDDDBBDDBBB..",
+    "..BBEDFBBDDEBB..",
+    "..BFFFBBBBDDDD..",
+    ".GFHDGGBBGGGHDG.",
+    "GFDGGGGGGFGGGGGG",
+    "BGBBBBG.BGBBBBGB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "350803b7d9e60da8be3166dbbff7f4a8e67a94ce3cf220ae0c350c6c04c68951"
+}

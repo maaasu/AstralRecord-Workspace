@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "id": "lumina_hunt_helmet",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#2C353AFF",
+    "C": "#94C0AFFF",
+    "D": "#A9C9B9FF",
+    "E": "#D5DFCFFF",
+    "F": "#8A6349FF",
+    "G": "#A3836CFF",
+    "H": "#C7DAC9FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "......BBBB......",
+    "......BCCCB.....",
+    ".....BCDDDCB....",
+    "....BCDCCCCC....",
+    "....BDCCCCCCB...",
+    "...DCCCEDCCCC...",
+    ".BBBDDDDEFFFFBB.",
+    ".BFGGGFFHHFGGFB.",
+    ".BFFFFFFFFFFFFB.",
+    ".BBFFFFFFFFFBBB.",
+    "...BBBBBBBBBB...",
+    "................",
+    "................",
+    "................"
+  ],
+  "png_sha256": "c9bc3fa97054df1f369bb941b779055214d1e7346e7bac6e62dc5f3aa7f929ce"
+}

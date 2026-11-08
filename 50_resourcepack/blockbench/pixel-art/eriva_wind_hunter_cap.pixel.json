@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "id": "eriva_wind_hunter_cap",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#242B2AFF",
+    "C": "#648753FF",
+    "D": "#839D71FF",
+    "E": "#BCA865FF",
+    "F": "#C4C694FF",
+    "G": "#76513AFF",
+    "H": "#947661FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "......BBBB......",
+    "......BCCCB.B...",
+    ".....BCDDDCBBE..",
+    "....BCDCCCBBFBB.",
+    "....BDCCCCBEBB..",
+    "...BCCCCCBBEB...",
+    ".BBBGGHHHHEBBBB.",
+    ".BGHHHGGGGGBHGB.",
+    ".BGGGGGGGGGGGGB.",
+    ".BBGGGGGGGGGBBB.",
+    "...BBBBBBBBBB...",
+    "................",
+    "................",
+    "................"
+  ],
+  "png_sha256": "76d48eaf663e35fc6a7d45c6c4e90c755496038a7c4edc137387d223f8e3ba5e"
+}

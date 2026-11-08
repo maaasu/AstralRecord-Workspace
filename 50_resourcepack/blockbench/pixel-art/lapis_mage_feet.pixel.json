@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "lapis_mage_feet",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#242A3DFF",
+    "C": "#9EADD5FF",
+    "D": "#4C5380FF",
+    "E": "#8497C4FF",
+    "F": "#657FBEFF",
+    "G": "#88BCFFFF",
+    "H": "#747796FF",
+    "I": "#3E4262FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCCBBCCCCB..",
+    "..BDCDDBBDCDDB..",
+    "..BECFFBBECFFB..",
+    "..BGCFFBBECGFB..",
+    ".BECFFFBBFECFFB.",
+    "BFHHHHFBBFHHHHFB",
+    "BFFFFFFBBFFFFFFB",
+    "BFIIIIBBBBIIIIFB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "9f22544936a9a5ec90c622f2768e896e161cff8de4941a0473d25102cab1e177"
+}

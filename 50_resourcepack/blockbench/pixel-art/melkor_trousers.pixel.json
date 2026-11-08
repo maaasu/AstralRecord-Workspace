@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "melkor_trousers",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#232230FF",
+    "C": "#726D74FF",
+    "D": "#B8A6BCFF",
+    "E": "#9C86ADFF",
+    "F": "#494553FF",
+    "G": "#605274FF",
+    "H": "#9B70B8FF",
+    "I": "#80738BFF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDECCCCB..",
+    "..BFFFFFFFFFFB..",
+    "..BGEGHGGGEGGB..",
+    "..BGEGGHGCEGGB..",
+    "..BIEGGHGCEGGB..",
+    ".BIGEGGBBGCGGBB.",
+    ".BIEGGGBBGIEGGB.",
+    ".BIGGGGBBGIGGGB.",
+    ".BIGGGGBBGIGGGB.",
+    ".BIGGEGBBGIGGGB.",
+    ".BFFFEFBBFFFFFB.",
+    ".BGGGGGBBGGGGGB.",
+    "..BBBBB..BBBBB..",
+    "................"
+  ],
+  "png_sha256": "1298456c6d40b9a277ce47c5e4e12753e93300d43b0be0490874ffcb3bfb4919"
+}

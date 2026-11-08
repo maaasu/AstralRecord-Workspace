@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "id": "astra_hunt_legs",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#262F36FF",
+    "C": "#9E8776FF",
+    "D": "#D4D5CBFF",
+    "E": "#C6CBC4FF",
+    "F": "#836856FF",
+    "G": "#6E9F99FF",
+    "H": "#8BB0A8FF",
+    "I": "#DBE9DFFF",
+    "J": "#486465FF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDECCCCB..",
+    "..BFFFFFFFFFFB..",
+    "..BGGGGGGGGGGB..",
+    "..BEHGGGGGIFGB..",
+    "..BGEGGGGGCIFB..",
+    "..BGEGGBBGHGFB..",
+    "..BHEGJBBGHGFB..",
+    "..BHGGJBBHGGJB..",
+    "..BHGGJBBGGGJB..",
+    "..BFFFJBBGFFFB..",
+    "..BGGGJBBGGGJB..",
+    "..BGGGGBBGGGGB..",
+    "...BBBB..BBBB...",
+    "................"
+  ],
+  "png_sha256": "85fff1555c2a4c699a758b19f9824e49dc68854b546e4c7412038fa8001eaadf"
+}

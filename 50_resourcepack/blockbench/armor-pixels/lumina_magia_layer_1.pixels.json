@@ -8,25 +8,18 @@
     "l": "B9AFD8FF",
     "p": "CFC4E5FF",
     "d": "8D82A5FF",
-    "s": "625A7AFF",
     "e": "DFD4EBFF",
-    "w": "F1E8F3FF",
-    "b": "6D607FFF",
-    "t": "A296B9FF",
-    "i": "D2DFD8FF",
     "h": "EDF2E3FF",
-    "q": "738B90FF",
     "o": "474355FF",
-    "r": "655D73FF",
-    "a": "A297B2FF",
-    "c": "C6BDDEFF",
     "f": "B0AAC1FF",
-    "g": "928CB1FF",
-    "j": "807898FF",
-    "k": "E5DBEEFF",
-    "m": "564D68FF",
-    "n": "6F6887FF",
-    "u": "383646FF"
+    "a": "635C75FF",
+    "b": "A69EB9FF",
+    "c": "ABA1C8FF",
+    "g": "C1B7DDFF",
+    "i": "C3B8DEFF",
+    "j": "C4B9DEFF",
+    "k": "C6BBE0FF",
+    "m": "C7BDE0FF"
   },
   "used_regions": [
     {
@@ -39,17 +32,17 @@
         8
       ],
       "rows": [
-        "iqfeefqi",
-        "ed....de",
-        "e......e",
+        "eeehheee",
+        "dd....dd",
         "d......d",
         "d......d",
         "d......d",
         "d......d",
-        "eiqhhqie"
+        "d......d",
+        "dddddddd"
       ],
       "nontransparent": 30,
-      "meaning": "Wide open face: both eye pixels and mouth unobstructed; low square iron throat clasp."
+      "meaning": "A compact brow detail frames the existing face opening."
     },
     {
       "part": "head",
@@ -61,17 +54,17 @@
         8
       ],
       "rows": [
-        "ddgllgdd",
-        "dplllddd",
-        "dgllgddd",
-        "dllldlld",
-        "dllldlld",
-        "dplldlld",
-        "bbjttjbb",
-        "ddmbbmdd"
+        "lkkkkkkl",
+        "lkkkkkkl",
+        "lkkllkkl",
+        "lkkllkkl",
+        "lkllllkl",
+        "lkllllkl",
+        "dddddddd",
+        "dddddddd"
       ],
       "nontransparent": 64,
-      "meaning": "Lilac dyed leather hood back; broad off-center seam and rear low leather tab."
+      "meaning": "Face and neck openings retain the existing pixel boundaries."
     },
     {
       "part": "head",
@@ -83,17 +76,17 @@
         8
       ],
       "rows": [
-        "eddlllde",
-        "edpllldd",
-        "edgllgdd",
-        "edgllgdd",
-        "edgllgdd",
-        "edgclgdd",
-        "edddllld",
-        "feeekeef"
+        "llpllpll",
+        "llpllpll",
+        "llpllpll",
+        "llpllpll",
+        "llpllpll",
+        "llpllpll",
+        "dddddddd",
+        "dddddddd"
       ],
       "nontransparent": 64,
-      "meaning": "Deep leather hood side, folded pale face rim and continuous low collar."
+      "meaning": "Face and neck openings retain the existing pixel boundaries."
     },
     {
       "part": "head",
@@ -105,17 +98,17 @@
         8
       ],
       "rows": [
-        "eddlllde",
-        "edpllldd",
-        "edgllgdd",
-        "edgllgdd",
-        "edgllgdd",
-        "edgclgdd",
-        "edddllld",
-        "feeekeef"
+        "llpllpll",
+        "llpllpll",
+        "llpllpll",
+        "llpllpll",
+        "llpllpll",
+        "llpllpll",
+        "dddddddd",
+        "dddddddd"
       ],
       "nontransparent": 64,
-      "meaning": "Deep leather hood side, folded pale face rim and continuous low collar."
+      "meaning": "Face and neck openings retain the existing pixel boundaries."
     },
     {
       "part": "head",
@@ -127,17 +120,17 @@
         8
       ],
       "rows": [
-        "ddddaddd",
-        "dlllllld",
-        "dpllplld",
-        "dllldlld",
-        "dllldlld",
-        "dlllplld",
-        "dlllclld",
-        "dddddddd"
+        "eeeeeeee",
+        "llllllll",
+        "llllllll",
+        "llllllll",
+        "llllllll",
+        "llllllll",
+        "llllllll",
+        "llllllll"
       ],
       "nontransparent": 64,
-      "meaning": "Complete coarse leather hood crown, large lilac panels and joined center seam."
+      "meaning": "Face and neck openings retain the existing pixel boundaries."
     },
     {
       "part": "head",
@@ -149,17 +142,17 @@
         8
       ],
       "rows": [
-        "eeeeeeee",
-        "e......e",
-        "e......e",
-        "e......e",
-        "e......e",
-        "e......e",
-        "e......e",
-        "eeeeeeee"
+        "oooooooo",
+        "o......o",
+        "o......o",
+        "o......o",
+        "o......o",
+        "o......o",
+        "o......o",
+        "oooooooo"
       ],
       "nontransparent": 28,
-      "meaning": "Annular hood/collar underside leaves neck cavity clear."
+      "meaning": "Face and neck openings retain the existing pixel boundaries."
     },
     {
       "part": "body",
@@ -171,21 +164,21 @@
         12
       ],
       "rows": [
-        "de....ed",
-        "lde..edl",
-        "lldeedll",
-        "lldeedll",
-        "pld..dlp",
-        "lld..dll",
-        "bbqihqbb",
-        "bbqhhqbb",
-        "lpd..dpl",
-        "lpd..dpl",
-        "lpd..dpl",
-        "eed..dee"
+        "dd....dd",
+        "dee..eed",
+        "dleeeeld",
+        "dlppppld",
+        "dlp..pld",
+        "dlp..pld",
+        "dljllpld",
+        "dljjllld",
+        "dlj..lld",
+        "ddd..ddd",
+        "fff..fff",
+        "ddd..ddd"
       ],
       "nontransparent": 78,
-      "meaning": "Open robe collar, pale turned lapels, polished iron clasp, long central split."
+      "meaning": "A compact clasp or inlay anchors the broad front material."
     },
     {
       "part": "body",
@@ -197,21 +190,21 @@
         12
       ],
       "rows": [
-        "ddfeefdd",
-        "ddlppldd",
-        "lldlldll",
-        "lldlldll",
-        "lldlldll",
-        "lldlldll",
-        "mbbbbbbm",
-        "bbjttjbb",
-        "lldlldll",
-        "lldlldll",
-        "lldlldll",
-        "eeetteee"
+        "dddddddd",
+        "delllled",
+        "diiillid",
+        "diiillid",
+        "diiillid",
+        "diiillid",
+        "diiddlid",
+        "dclddlcd",
+        "dclddlcd",
+        "dddddddd",
+        "ffffffff",
+        "dddddddd"
       ],
       "nontransparent": 96,
-      "meaning": "Full back robe with two leather joins, dark waist band and broad turned hem."
+      "meaning": "Wide torso panels carry the dominant material and quiet seams."
     },
     {
       "part": "body",
@@ -223,21 +216,21 @@
         12
       ],
       "rows": [
-        "edde",
-        "llld",
-        "lpld",
-        "llld",
-        "llld",
-        "llld",
-        "mbbm",
-        "mbbm",
-        "llld",
-        "lpld",
-        "llld",
-        "feef"
+        "dddd",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dddd",
+        "llll",
+        "llll",
+        "oooo",
+        "oooo"
       ],
       "nontransparent": 48,
-      "meaning": "Continuous side dyed leather, waist band and turned hem."
+      "meaning": "Wide torso panels carry the dominant material and quiet seams."
     },
     {
       "part": "body",
@@ -249,21 +242,21 @@
         12
       ],
       "rows": [
-        "edde",
-        "llld",
-        "lpld",
-        "llld",
-        "llld",
-        "llld",
-        "mbbm",
-        "mbbm",
-        "llld",
-        "lpld",
-        "llld",
-        "feef"
+        "dddd",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dlld",
+        "dddd",
+        "llll",
+        "llll",
+        "oooo",
+        "oooo"
       ],
       "nontransparent": 48,
-      "meaning": "Continuous side dyed leather, waist band and turned hem."
+      "meaning": "Wide torso panels carry the dominant material and quiet seams."
     },
     {
       "part": "body",
@@ -275,13 +268,13 @@
         4
       ],
       "rows": [
-        "ee....ee",
-        "ld....dl",
-        "ld....dl",
-        "eeeeeeee"
+        "pp....pp",
+        "pp....pp",
+        "pp....pp",
+        "ppddddpp"
       ],
       "nontransparent": 20,
-      "meaning": "Open front neck and rear collar cap."
+      "meaning": "Wide torso panels carry the dominant material and quiet seams."
     },
     {
       "part": "body",
@@ -293,13 +286,13 @@
         4
       ],
       "rows": [
-        "ee....ee",
-        "e......e",
-        "e......e",
-        "eeeeeeee"
+        "dd....dd",
+        "d......d",
+        "d......d",
+        "dddddddd"
       ],
       "nontransparent": 16,
-      "meaning": "Split open robe hem perimeter only."
+      "meaning": "Wide torso panels carry the dominant material and quiet seams."
     },
     {
       "part": "arm",
@@ -311,21 +304,21 @@
         12
       ],
       "rows": [
-        "edle",
-        "llld",
-        "lpld",
-        "llld",
-        "llld",
-        "llld",
-        "llld",
-        "llld",
-        "tddd",
-        "fkef",
-        "dqid",
-        "eqhe"
+        "dddd",
+        "lmml",
+        "lmml",
+        "lmml",
+        "lmml",
+        "llgl",
+        "llgl",
+        "llgl",
+        "lppl",
+        "dddd",
+        "bbbb",
+        "dddd"
       ],
       "nontransparent": 48,
-      "meaning": "Long leather robe sleeve with broad folded cuff and small square iron fastener."
+      "meaning": "The broad sleeve material transitions to a darker joint or cuff."
     },
     {
       "part": "arm",
@@ -337,21 +330,21 @@
         12
       ],
       "rows": [
-        "edle",
-        "llld",
-        "lpld",
-        "ldll",
-        "ldll",
-        "llld",
-        "llld",
-        "llld",
-        "tddd",
-        "fkef",
-        "dbbd",
-        "feef"
+        "dddd",
+        "lmml",
+        "lmml",
+        "lmml",
+        "lmml",
+        "llgl",
+        "llgl",
+        "llgl",
+        "lppl",
+        "dddd",
+        "bbbb",
+        "dddd"
       ],
       "nontransparent": 48,
-      "meaning": "Long leather robe sleeve with broad folded cuff and small square iron fastener."
+      "meaning": "The broad sleeve material transitions to a darker joint or cuff."
     },
     {
       "part": "arm",
@@ -363,21 +356,21 @@
         12
       ],
       "rows": [
-        "edle",
-        "llld",
-        "lpld",
-        "llld",
-        "llld",
-        "llld",
-        "llld",
-        "llld",
-        "tddd",
-        "fkef",
-        "nddn",
-        "feef"
+        "dddd",
+        "lmml",
+        "lmml",
+        "lmll",
+        "lmll",
+        "llll",
+        "llll",
+        "llll",
+        "llll",
+        "dddd",
+        "bbbb",
+        "dddd"
       ],
       "nontransparent": 48,
-      "meaning": "Long leather robe sleeve with broad folded cuff and small square iron fastener."
+      "meaning": "The broad sleeve material transitions to a darker joint or cuff."
     },
     {
       "part": "arm",
@@ -389,21 +382,21 @@
         12
       ],
       "rows": [
-        "edle",
-        "llld",
-        "lpld",
-        "llld",
-        "llld",
-        "llld",
-        "llld",
-        "llld",
-        "tddd",
-        "fkef",
-        "nddn",
-        "feef"
+        "dddd",
+        "lmml",
+        "lmml",
+        "lmll",
+        "lmll",
+        "llll",
+        "llll",
+        "llll",
+        "llll",
+        "dddd",
+        "bbbb",
+        "dddd"
       ],
       "nontransparent": 48,
-      "meaning": "Long leather robe sleeve with broad folded cuff and small square iron fastener."
+      "meaning": "The broad sleeve material transitions to a darker joint or cuff."
     },
     {
       "part": "arm",
@@ -415,13 +408,13 @@
         4
       ],
       "rows": [
-        "ddad",
-        "dllp",
-        "dlll",
-        "eeee"
+        "pppp",
+        "pppp",
+        "pppp",
+        "pppp"
       ],
       "nontransparent": 16,
-      "meaning": "Complete shoulder cap at native armor UV."
+      "meaning": "The broad sleeve material transitions to a darker joint or cuff."
     },
     {
       "part": "arm",
@@ -433,13 +426,13 @@
         4
       ],
       "rows": [
-        "eeee",
-        "e..e",
-        "e..e",
-        "eeee"
+        "oooo",
+        "o..o",
+        "o..o",
+        "oooo"
       ],
       "nontransparent": 12,
-      "meaning": "Annular cuff keeps hand center open."
+      "meaning": "The broad sleeve material transitions to a darker joint or cuff."
     },
     {
       "part": "leg",
@@ -459,13 +452,13 @@
         "....",
         "....",
         "....",
-        "feef",
-        "lqhl",
-        "l..l",
-        "uoou"
+        "llll",
+        "oeeo",
+        "o..o",
+        "aaaa"
       ],
       "nontransparent": 14,
-      "meaning": "Low lilac sandal ankle strap, exposed foot center, thin sole. Upper leg fully clear."
+      "meaning": "The existing boot opening separates the upper binding and darker sole."
     },
     {
       "part": "leg",
@@ -485,13 +478,13 @@
         "....",
         "....",
         "....",
-        "feef",
-        "nadn",
-        "dbbd",
-        "uoou"
+        "llll",
+        "ffff",
+        "foof",
+        "aaaa"
       ],
       "nontransparent": 16,
-      "meaning": "Low lilac sandal ankle strap, exposed foot center, thin sole. Upper leg fully clear."
+      "meaning": "The existing boot opening separates the upper binding and darker sole."
     },
     {
       "part": "leg",
@@ -511,13 +504,13 @@
         "....",
         "....",
         "....",
-        "feef",
-        "lddl",
-        "l..l",
-        "uoou"
+        "llll",
+        "ffff",
+        "f..f",
+        "aaaa"
       ],
       "nontransparent": 14,
-      "meaning": "Low lilac sandal ankle strap, exposed foot center, thin sole. Upper leg fully clear."
+      "meaning": "The existing boot opening separates the upper binding and darker sole."
     },
     {
       "part": "leg",
@@ -537,13 +530,13 @@
         "....",
         "....",
         "....",
-        "feef",
-        "lddl",
-        "l..l",
-        "uoou"
+        "llll",
+        "ffff",
+        "f..f",
+        "aaaa"
       ],
       "nontransparent": 14,
-      "meaning": "Low lilac sandal ankle strap, exposed foot center, thin sole. Upper leg fully clear."
+      "meaning": "The existing boot opening separates the upper binding and darker sole."
     },
     {
       "part": "leg",
@@ -561,7 +554,7 @@
         "...."
       ],
       "nontransparent": 0,
-      "meaning": "Upper leg plane unused by sandals."
+      "meaning": "The existing boot opening separates the upper binding and darker sole."
     },
     {
       "part": "leg",
@@ -574,47 +567,47 @@
       ],
       "rows": [
         "oooo",
-        "orro",
-        "orro",
+        "oooo",
+        "oooo",
         "oooo"
       ],
       "nontransparent": 16,
-      "meaning": "Complete leather sandal sole under feet."
+      "meaning": "The existing boot opening separates the upper binding and darker sole."
     }
   ],
   "pixels": [
-    "........ddddadddeeeeeeee........................................",
-    "........dllllllde......e........................................",
-    "........dpllpllde......e........................................",
-    "........dllldllde......e........................................",
-    "........dllldllde......e........................................",
-    "........dlllpllde......e........................................",
-    "........dlllcllde......e........................................",
-    "........ddddddddeeeeeeee........................................",
-    "eddllldeiqfeefqieddllldeddgllgdd................................",
-    "edpllldded....deedpllldddplllddd................................",
-    "edgllgdde......eedgllgdddgllgddd................................",
-    "edgllgddd......dedgllgdddllldlld................................",
-    "edgllgddd......dedgllgdddllldlld................................",
-    "edgclgddd......dedgclgdddplldlld................................",
-    "edddllldd......dedddllldbbjttjbb................................",
-    "feeekeefeiqhhqiefeeekeefddmbbmdd................................",
-    "........oooo........ee....eeee....ee........ddadeeee............",
-    "........orro........ld....dle......e........dllpe..e............",
-    "........orro........ld....dle......e........dllle..e............",
-    "........oooo........eeeeeeeeeeeeeeee........eeeeeeee............",
-    "................eddede....ededdeddfeefddedleedleedleedle........",
-    "................llldlde..edlllldddlpplddllldllldllldllld........",
-    "................lpldlldeedlllpldlldlldlllpldlpldlpldlpld........",
-    "................llldlldeedllllldlldlldllllldllldllldldll........",
-    "................llldpld..dlpllldlldlldllllldllldllldldll........",
-    "................llldlld..dllllldlldlldllllldllldllldllld........",
-    "................mbbmbbqihqbbmbbmmbbbbbbmllldllldllldllld........",
-    "................mbbmbbqhhqbbmbbmbbjttjbbllldllldllldllld........",
-    "feeffeeffeeffeefllldlpd..dplllldlldlldlltdddtdddtdddtddd........",
-    "lddllqhllddlnadnlpldlpd..dpllpldlldlldllfkeffkeffkeffkef........",
-    "l..ll..ll..ldbbdllldlpd..dplllldlldlldllnddndqidnddndbbd........",
-    "uoouuoouuoouuooufeefeed..deefeefeeetteeefeefeqhefeeffeef........"
+    "........eeeeeeeeoooooooo........................................",
+    "........llllllllo......o........................................",
+    "........llllllllo......o........................................",
+    "........llllllllo......o........................................",
+    "........llllllllo......o........................................",
+    "........llllllllo......o........................................",
+    "........llllllllo......o........................................",
+    "........lllllllloooooooo........................................",
+    "llpllplleeehheeellpllplllkkkkkkl................................",
+    "llpllplldd....ddllpllplllkkkkkkl................................",
+    "llpllplld......dllpllplllkkllkkl................................",
+    "llpllplld......dllpllplllkkllkkl................................",
+    "llpllplld......dllpllplllkllllkl................................",
+    "llpllplld......dllpllplllkllllkl................................",
+    "ddddddddd......ddddddddddddddddd................................",
+    "dddddddddddddddddddddddddddddddd................................",
+    "........oooo........pp....ppdd....dd........ppppoooo............",
+    "........oooo........pp....ppd......d........ppppo..o............",
+    "........oooo........pp....ppd......d........ppppo..o............",
+    "........oooo........ppddddppdddddddd........ppppoooo............",
+    "................dddddd....dddddddddddddddddddddddddddddd........",
+    "................dllddee..eeddllddelllledlmmllmmllmmllmml........",
+    "................dllddleeeelddllddiiillidlmmllmmllmmllmml........",
+    "................dllddlpppplddllddiiillidlmlllmmllmlllmml........",
+    "................dllddlp..plddllddiiillidlmlllmmllmlllmml........",
+    "................dllddlp..plddllddiiillidllllllglllllllgl........",
+    "................dllddljllplddllddiiddlidllllllglllllllgl........",
+    "................dddddljjlllddddddclddlcdllllllglllllllgl........",
+    "lllllllllllllllllllldlj..lldlllldclddlcdlllllppllllllppl........",
+    "ffffoeeoffffffffllllddd..dddlllldddddddddddddddddddddddd........",
+    "f..fo..of..ffoofoooofff..fffooooffffffffbbbbbbbbbbbbbbbb........",
+    "aaaaaaaaaaaaaaaaooooddd..dddoooodddddddddddddddddddddddd........"
   ],
-  "worn_refinement": "UV face rim, panel depth, and sparse stitch-light accents; original alpha and motifs retained."
+  "worn_refinement": "Large cloth folds, small trim runs, a single focal clasp, and darker leather at the foot."
 }

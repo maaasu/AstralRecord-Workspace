@@ -3,29 +3,14 @@
   "height": 32,
   "palette": {
     ".": "00000000",
-    "a": "786746FF",
     "b": "AC9464FF",
-    "c": "D0B980FF",
     "d": "E8D7A0FF",
-    "e": "F6E8BCFF",
-    "i": "33454DFF",
     "j": "4D6670FF",
     "k": "A7BAB9FF",
     "l": "D2DFD8FF",
-    "m": "EDF2E3FF",
-    "n": "FBF7E8FF",
     "r": "285B58FF",
-    "s": "5B9C8BFF",
-    "t": "87BC9DFF",
-    "u": "3B342BFF",
-    "v": "594C38FF",
-    "f": "B7AC83FF",
-    "g": "ECDEAEFF",
-    "h": "ADBEBCFF",
-    "o": "D2BD89FF",
-    "p": "91A4A6FF",
-    "q": "96825AFF",
-    "w": "B5A373FF"
+    "a": "ECDDAAFF",
+    "c": "F1E4B7FF"
   },
   "pixels": [
     "................................................................",
@@ -44,22 +29,22 @@
     "................................................................",
     "................................................................",
     "................................................................",
-    "....bcdbjkkj................jkkkkkkj............................",
-    "....cddckddk................kcddddck............................",
-    "....cddckddk................kcddddck............................",
-    "....bcdbjkkj................jkkkkkkj............................",
-    "bcdbbcdbbcdbbcdb................................................",
-    "kllkhlmkkllkoddc................................................",
-    "oddchddkoddccdec................................................",
-    "cddckddkcddccddc................................................",
-    "rssrbcdbrssrrssr................................................",
-    "kllkklmkkllkrssr................................................",
-    "kddklmmlkddkcddc................................................",
-    "jkkjkddkjkkjcddc................................................",
-    "cddcbckbcddckllk................................................",
-    "bcdbcdkcbcdbkddkkllkklmmmmlkkllkbcfgdfcb........................",
-    "bcdbbckbbcdbbcdbbcdbkkrssrkpbcdbbcdccdcb........................",
-    "jkkjjkpjjkkjjkkjbcdqbcfddfcbbcdqbcfddfwq........................"
+    "....bbbbbbbb................bbbbbbbb............................",
+    "....bbbbbbbb................bbbbbbbb............................",
+    "....bbbbbbbb................bbbbbbbb............................",
+    "....bbbbbbbb................bbbbbbbb............................",
+    "bddbbaabbddbbddb................................................",
+    "bddbbaabbddbbddb................................................",
+    "bddbbaabbddbbddb................................................",
+    "jjjjjjjjjjjjjjjj................................................",
+    "dddddllddddddddd................................................",
+    "dddddccddddddddd................................................",
+    "dbbddccddbbddbbd................................................",
+    "dbbddddddbbddbbd................................................",
+    "dbbdjddjdbbddbbd................................................",
+    "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj........................",
+    "jjjjjjjjjjjjjjjjkkkkkkklrkkkkkkkkkkkkkkk........................",
+    "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj........................"
   ],
   "uv": {
     "head": {
@@ -215,5 +200,5 @@
       ]
     }
   },
-  "worn_refinement": "UV face rim, panel depth, and sparse stitch-light accents; original alpha and motifs retained."
+  "worn_refinement": "Broad rigid panels, a quieter collar and seams, articulated joints, and a single front ornament."
 }

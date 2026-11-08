@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "id": "alda_origin_leggings",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#202B32FF",
+    "C": "#877767FF",
+    "D": "#AFC9B6FF",
+    "E": "#90B9A4FF",
+    "F": "#655343FF",
+    "G": "#4D8880FF",
+    "H": "#719E94FF",
+    "I": "#C7C1A0FF",
+    "J": "#355757FF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDECCCCB..",
+    "..BFFFFFFFFFFB..",
+    "..BGGGGGGGGGGB..",
+    "..BGHGGGGGICGB..",
+    "..BGHGGGGGCCGB..",
+    "..BGHGGBBGHGGB..",
+    "..BHGGJBBGHGJB..",
+    "..BHGGJBBHGGJB..",
+    "..BHGGJBBGGGJB..",
+    "..BFFFJBBGFFFB..",
+    "..BGGGJBBGGGJB..",
+    "..BGGGGBBGGGGB..",
+    "...BBBB..BBBB...",
+    "................"
+  ],
+  "png_sha256": "d5e18d69ded0b250ace6fd810f7294059a2a2b2b8942a775af6f2627e5759975"
+}

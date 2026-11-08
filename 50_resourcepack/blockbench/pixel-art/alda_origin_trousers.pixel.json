@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "alda_origin_trousers",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#292435FF",
+    "C": "#856B74FF",
+    "D": "#BFAABAFF",
+    "E": "#A78CAAFF",
+    "F": "#624354FF",
+    "G": "#835F91FF",
+    "H": "#B28BDDFF",
+    "I": "#9B7EA1FF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDECCCCB..",
+    "..BFFFFFFFFFFB..",
+    "..BGEGHGGGEGGB..",
+    "..BGHGHGGGEGGB..",
+    "..BIHGGGGGEGGB..",
+    ".BIGEHGBBGEEGBB.",
+    ".BIEHGGBBGEEGGB.",
+    ".BIGGGGBBGIGGGB.",
+    ".BIGGGGBBGIGGGB.",
+    ".BIGGGGBBGIGGGB.",
+    ".BFFFFFBBFFFFFB.",
+    ".BGGGGGBBGGGGGB.",
+    "..BBBBB..BBBBB..",
+    "................"
+  ],
+  "png_sha256": "47a20730cff14df06952bf0826d74fe600709d2d1822d14094db90d1a00f3c0e"
+}

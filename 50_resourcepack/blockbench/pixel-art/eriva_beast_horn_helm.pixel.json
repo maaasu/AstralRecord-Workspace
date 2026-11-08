@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "id": "eriva_beast_horn_helm",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#353435FF",
+    "C": "#ECE0BFFF",
+    "D": "#E9DBB2FF",
+    "E": "#D7CCAFFF",
+    "F": "#C7BA94FF",
+    "G": "#D0C5A4FF",
+    "H": "#87AF9BFF",
+    "I": "#7A7362FF",
+    "J": "#4B3932FF"
+  },
+  "pixels": [
+    "................",
+    ".BB..........BB.",
+    ".BC..BBBBBB..DB.",
+    ".BCBBEEEEEFBBDB.",
+    ".BCCBBGGGGBBDDB.",
+    ".BCCCBGGGGBDDDB.",
+    "..BCCBGHGGBDDB..",
+    ".BFBBGGGGGGBBFB.",
+    ".BIFJJJJJJJJFIB.",
+    ".BIJJJJJJJJJFIB.",
+    ".BIJJJJJJJJFFIB.",
+    ".BIJJBBBBBBFFIB.",
+    ".BFIF......FIBB.",
+    "..BBB......BB...",
+    "................",
+    "................"
+  ],
+  "png_sha256": "88c55500b1512a5ffacd61be099a39f3b3fdb3226016bcbe79fd3a0954d9bb6f"
+}

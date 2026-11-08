@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "midgard_kuinya_greaves",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#302226FF",
+    "C": "#8B665CFF",
+    "D": "#DEA687FF",
+    "E": "#D58660FF",
+    "F": "#6A3C34FF",
+    "G": "#A95039FF",
+    "H": "#B9725DFF",
+    "I": "#69372FFF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDECCCCB..",
+    "..BFFFFFFFFFFB..",
+    "..BGGGGGGGGGGB..",
+    "..BGGGGGGGGGGB..",
+    "..BFFFFGGFFFFB..",
+    "..BDDDDBBEEEEB..",
+    "..BHHHHBBGGGGB..",
+    "..BHHHHBBGGGGB..",
+    "..BIIIIBBIIIIB..",
+    "..BGHGGBBGHGGB..",
+    "..BGHGGBBGHGGB..",
+    "..BGGGGBBGGGGB..",
+    "...BBBB..BBBB...",
+    "................"
+  ],
+  "png_sha256": "2dfd16f8dca02d3d2a8972eb6c50f7535680e020b00ded9fc1aa06b8ae06c7a9"
+}

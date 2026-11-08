@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "id": "astra_magia_legs",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#2B283AFF",
+    "C": "#917EA4FF",
+    "D": "#D7C498FF",
+    "E": "#CAB279FF",
+    "F": "#725C93FF",
+    "G": "#8D79B1FF",
+    "H": "#BBE1DDFF",
+    "I": "#A392BAFF",
+    "J": "#D5E5DCFF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDECCCCB..",
+    "..BFFFFFFFFFFB..",
+    "..BGEGHGGGEGGB..",
+    "..BGEGHGGGEGGB..",
+    "..BIEHJHGGEGGB..",
+    ".BIGEGHBBGEEGBB.",
+    ".BIEGGGBBGEEGGB.",
+    ".BIGGGGBBGEGGGB.",
+    ".BIGGGGBBGEGGGB.",
+    ".BIGGGGBBGEGGGB.",
+    ".BFFFFFBBFFFFFB.",
+    ".BGGGGGBBGGGGGB.",
+    "..BBBBB..BBBBB..",
+    "................"
+  ],
+  "png_sha256": "6cdce448df4f57a3d58a86503631df902fea598e0fa17161eeee1c7ac6bc1b89"
+}

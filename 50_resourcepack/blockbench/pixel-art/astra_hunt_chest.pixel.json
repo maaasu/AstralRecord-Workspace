@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "astra_hunt_chest",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#262F36FF",
+    "C": "#D4D5CBFF",
+    "D": "#C6CBC4FF",
+    "E": "#6E9F99FF",
+    "F": "#486465FF",
+    "G": "#DBE9DFFF",
+    "H": "#9E8776FF",
+    "I": "#8BB0A8FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCDBBDEEBB..",
+    ".BEDDDDDEDEEFEB.",
+    ".BDDDDDGDHEEEFB.",
+    "BEDDDDDIHEEEEEFB",
+    "BEIEIIIIHEEEEEFB",
+    ".BEBIIIHEEEEBEB.",
+    "..BBIIHEEEEEBB..",
+    "...BIHIEEEEEB...",
+    "...BIIEEEEEEB...",
+    "...BFFFFFFFFB...",
+    "...BBBBBBBBBB...",
+    "................"
+  ],
+  "png_sha256": "633943321c7dc4aa255a229d4e89fb241fb536d858ca45d9b6b9fb89a0bc721b"
+}

@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "lumina_magia_chest",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#302E3EFF",
+    "C": "#AB98C8FF",
+    "D": "#BBAACCFF",
+    "E": "#D6D4E5FF",
+    "F": "#6A607FFF",
+    "G": "#DFDBE2FF",
+    "H": "#837299FF",
+    "I": "#D3C9EFFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BBCDEBBECCBB..",
+    ".BCDDDDECECCFCB.",
+    ".BCDDDDGEHCCCFB.",
+    "BCDDDDDGIHCCCCFB",
+    "BEDCDDDGCHCCCCEB",
+    ".BEBDDDGCHCCBEB.",
+    "..BBEEEGCEEEBB..",
+    "...BDDDGCHCCB...",
+    "...BDDCGCHCCB...",
+    "...BFFFFFFFFB...",
+    "...BBBBBBBBBB...",
+    "................"
+  ],
+  "png_sha256": "fb5a6d0e76cb1a3dcc878875a5ab630c15314e04d811d95e69495cddb9bafa6a"
+}

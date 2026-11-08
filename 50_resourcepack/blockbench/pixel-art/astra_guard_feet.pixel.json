@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "astra_guard_feet",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#282C3BFF",
+    "C": "#C4DAE6FF",
+    "D": "#94A2BEFF",
+    "E": "#798EB6FF",
+    "F": "#3D6E78FF",
+    "G": "#82D4C9FF",
+    "H": "#D3DFE2FF",
+    "I": "#3F4E6FFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCCBBCCCCB..",
+    "..BDEEEBBDEEEB..",
+    "..BDEEEBBDEEEB..",
+    "..BFGFFBBFGFFB..",
+    "..BDEEEBBDEEEB..",
+    "..BFFFEBBDEFFB..",
+    ".BDHHHFBBECCCEB.",
+    "BEFFFFEBBEFFFFEB",
+    "BEFFFFEBBEFFFFEB",
+    "BEIIIIBBBBIIIIEB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "804c2392e2d887967a979834e2922a1661e9e99f37b6e3ea68b659aa5e48632a"
+}

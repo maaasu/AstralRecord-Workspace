@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "id": "alda_origin_sandals",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#292435FF",
+    "C": "#835F91FF",
+    "D": "#B28BDDFF",
+    "E": "#A78CAAFF",
+    "F": "#856B74FF",
+    "G": "#453848FF",
+    "H": "#BFAABAFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCCB.CCCCB..",
+    "..BDDDEBBEDDDB..",
+    "..BBDDEBBBDDBB..",
+    "..BFFFBBBBFFFE..",
+    ".GFFEGGBBGGGFFG.",
+    "GHEGGGGGGHGGGGGG",
+    "BGBBBBG.BGBBBBGB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "ec072d7b624f6cf5f440774f4c64a6584677d52a70e4b29c1f8370d8d5ebb3f7"
+}

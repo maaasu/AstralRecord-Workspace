@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "id": "melkor_helm",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#20212BFF",
+    "C": "#8A8789FF",
+    "D": "#4B4B56FF",
+    "E": "#888493FF",
+    "F": "#706E73FF",
+    "G": "#693B4DFF",
+    "H": "#34353FFF",
+    "I": "#332E3AFF",
+    "J": "#AAA5AAFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    ".....BBBBBB.....",
+    "....BCCCCCDB....",
+    "...BDEEEFFDDB...",
+    "...BEFFFFFFGB...",
+    "..BDFFFFFFFFGB..",
+    ".BDFEEEDDEEEHDB.",
+    ".BHDIIIJDIIIDHB.",
+    ".BHII..JD..IDHB.",
+    ".BHIGIDJDDIGDHB.",
+    ".BHIGBDDDDBGDHB.",
+    ".BDHD..DD..DHBB.",
+    "..BBB......BB...",
+    "................",
+    "................"
+  ],
+  "png_sha256": "4700b3d3e281aee47dcf1517cb4c6cca1ba8c27f4be73acd1789bdd88b58975d"
+}

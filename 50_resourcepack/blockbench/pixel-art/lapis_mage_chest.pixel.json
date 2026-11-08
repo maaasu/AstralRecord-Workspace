@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "lapis_mage_chest",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#242A3DFF",
+    "C": "#657FBEFF",
+    "D": "#8497C4FF",
+    "E": "#9EADD5FF",
+    "F": "#435279FF",
+    "G": "#B9C1D7FF",
+    "H": "#4C5380FF",
+    "I": "#88BCFFFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BBCDEBBECCBB..",
+    ".BCDDDDECECCFCB.",
+    ".BCDDDDGEHCCCFB.",
+    "BCDDDDDIIHCCCCFB",
+    "BEDCDDDGCHCCCCEB",
+    ".BEBDDDGCHCCBEB.",
+    "..BBDDDGCHCCBB..",
+    "...BDDDGCHCCB...",
+    "...BEEEGCEEEB...",
+    "...BFFFFFFFFB...",
+    "...BBBBBBBBBB...",
+    "................"
+  ],
+  "png_sha256": "cf01cedfcc587556c866b96a64d5d65f7971cb03d94d3c590bbf9a6d77b12774"
+}

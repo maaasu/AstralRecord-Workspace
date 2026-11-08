@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "id": "astra_magia_chest",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#2B283AFF",
+    "C": "#D7C498FF",
+    "D": "#CAB279FF",
+    "E": "#BBE1DDFF",
+    "F": "#8D79B1FF",
+    "G": "#594E72FF",
+    "H": "#917EA4FF",
+    "I": "#A392BAFF",
+    "J": "#725C93FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCDBEDFFBB..",
+    ".BFDDDDEFEFFGFB.",
+    ".BDDDDDEDHFFFGB.",
+    "BFDDDDDIDFFFFFGB",
+    "BFIFIIIIDFJFFFGB",
+    ".BFBIIIHDFJFBFB.",
+    "..BBIIHFDFJFBB..",
+    "...BIHIFDFJFB...",
+    "...BIIFFDFFFB...",
+    "...BGGGGGGGGB...",
+    "...BBBBBBBBBB...",
+    "................"
+  ],
+  "png_sha256": "c0da6d12c3a8bcb283e7b6a4debee48cf2a121d23b4f246c6d84525f87e52a48"
+}

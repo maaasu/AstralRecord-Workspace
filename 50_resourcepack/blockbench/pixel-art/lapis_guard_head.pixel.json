@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "id": "lapis_guard_head",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#20283EFF",
+    "C": "#8CA1CFFF",
+    "D": "#4E75C8FF",
+    "E": "#728FCCFF",
+    "F": "#C9D0D4FF",
+    "G": "#B6C4D1FF",
+    "H": "#364C7FFF",
+    "I": "#394660FF",
+    "J": "#465877FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    ".....BBBBBB.....",
+    "....BCCCCCDB....",
+    "...BDEEEEEDDB...",
+    "...BDEEEEEEDB...",
+    "..BDEEEEEEEEDB..",
+    ".BDEFFFDDGGGHDB.",
+    ".BHDIIIFDIIIDHB.",
+    ".BHII..FD..IDHB.",
+    ".BHIJIDFDDIJDHB.",
+    ".BHIJBDDDDBJDHB.",
+    ".BDHD..DD..DHBB.",
+    "..BBB......BB...",
+    "................",
+    "................"
+  ],
+  "png_sha256": "6d77a7b7c2a468a60ed756b7486794ac74ee33d688032ffd83f987ceb3cf912d"
+}

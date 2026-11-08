@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "alda_origin_hood",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#202B32FF",
+    "C": "#4D8880FF",
+    "D": "#355757FF",
+    "E": "#719E94FF",
+    "F": "#C7C1A0FF",
+    "G": "#90B9A4FF",
+    "H": "#344C4BFF",
+    "I": "#AFC9B6FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "......BBBBB.....",
+    ".....BCCCDDB....",
+    "....BCEEEFFDB...",
+    "...BCEEEEEFFB...",
+    "...BEEEEEEEFCB..",
+    "..BCEEGGGGCCCB..",
+    "..BEEGH...GGCB..",
+    "..BEEI.....GCCB.",
+    "..CCGH.....HGCB.",
+    ".BCCEH.....HGCB.",
+    ".BCCCBBBBBBCCCB.",
+    "..BBBB....BBB...",
+    "................",
+    "................"
+  ],
+  "png_sha256": "d985ef0b7cbe4d2ab08435ae6964985da69880d4c9d05a2e9d228a153986a8b3"
+}

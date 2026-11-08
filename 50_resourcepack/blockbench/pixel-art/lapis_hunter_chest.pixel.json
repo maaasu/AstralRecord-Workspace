@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "lapis_hunter_chest",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#222839FF",
+    "C": "#5574ACFF",
+    "D": "#788EB6FF",
+    "E": "#8B9BC1FF",
+    "F": "#72523DFF",
+    "G": "#3A4C6FFF",
+    "H": "#917663FF",
+    "I": "#92B9EEFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BBCDEBBECCBB..",
+    ".BCDDDDECFCCGCB.",
+    ".BCDDDDEFHCCCGB.",
+    "BCDDDDDDHCCCCCGB",
+    "BCDCDDDHICCCCCGB",
+    ".BCBDDDFCCCCBCB.",
+    "..BBDDFCCCCCBB..",
+    "...BEEFCCCCCB...",
+    "...BDECCCCCCB...",
+    "...BGGGGGGGGB...",
+    "...BBBBBBBBBB...",
+    "................"
+  ],
+  "png_sha256": "252a97504bdb86b236e6d407c1d600fab009b80bf564ae712b380cf4a7b6073a"
+}

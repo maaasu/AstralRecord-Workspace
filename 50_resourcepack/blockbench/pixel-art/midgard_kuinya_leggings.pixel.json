@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "midgard_kuinya_leggings",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#232B2AFF",
+    "C": "#917660FF",
+    "D": "#AEBE84FF",
+    "E": "#8EAA5BFF",
+    "F": "#725139FF",
+    "G": "#5F8653FF",
+    "H": "#7F9C71FF",
+    "I": "#3F563DFF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDECCCCB..",
+    "..BFFFFFFFFFFB..",
+    "..BGGGGGGGGGGB..",
+    "..BGHGGGGGHFFB..",
+    "..BGHGGGGGHGFB..",
+    "..BEHGGBBGHGGB..",
+    "..BEGGIBBGHGIB..",
+    "..BHEGIBBHGGIB..",
+    "..BHGGIBBGGGIB..",
+    "..BFFFIBBGFFFB..",
+    "..BGGGIBBGGGIB..",
+    "..BGGGGBBGGGGB..",
+    "...BBBB..BBBB...",
+    "................"
+  ],
+  "png_sha256": "b4b9a7eb646d0ea9a7d1568062bd1b8da849708a803035ccb6071e62f7fa0905"
+}

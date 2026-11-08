@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "eriva_wind_hunter_coat",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#242B2AFF",
+    "C": "#648753FF",
+    "D": "#839D71FF",
+    "E": "#AEB573FF",
+    "F": "#76513AFF",
+    "G": "#42563DFF",
+    "H": "#947661FF",
+    "I": "#BCA865FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BBCDEBBECCBB..",
+    ".BCDDDDECFCCGCB.",
+    ".BCDDDDEFHCCCGB.",
+    "BCDDDDDDHCCCCCGB",
+    "BCDCDDDHICCCCCGB",
+    ".BCBDDDFCCCCBCB.",
+    "..BBDDFCCCCCBB..",
+    "...BDDFCCCCCB...",
+    "...BDDCCCCCCB...",
+    "...BGGGGGGGGB...",
+    "...BBBBBBBBBB...",
+    "................"
+  ],
+  "png_sha256": "b4ae2079f9b1358d88f8330913f21d302b039067ffdaf1bc3bd022278ebff4a9"
+}

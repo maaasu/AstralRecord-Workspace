@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "melkor_sabaton",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#20212BFF",
+    "C": "#888493FF",
+    "D": "#8A656FFF",
+    "E": "#706E73FF",
+    "F": "#4B4B56FF",
+    "G": "#693B4DFF",
+    "H": "#AAA5AAFF",
+    "I": "#332E3AFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCCBBCCCCB..",
+    "..BDDDDBBDDDDB..",
+    "..BEFFFBBEFFFB..",
+    "..BGGGGBBGGGGB..",
+    "..BEFFFBBEFFFB..",
+    "..BEFFFBBEFFFB..",
+    ".BEGGGFBBFGGGFB.",
+    "BFHHHHFBBFCCCCFB",
+    "BFFFFFFBBFFFFFFB",
+    "BFIIIIBBBBIIIIFB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "14575ef06561b2ef1739aca4cca3b0c3738596701a06609dcc7120f8f0434bde"
+}

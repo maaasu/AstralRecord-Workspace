@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "id": "eriva_spirit_tree_crown",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#1F2332FF",
+    "C": "#B9CBBAFF",
+    "D": "#9EBCAAFF",
+    "E": "#B8DCC3FF",
+    "F": "#313E57FF",
+    "G": "#D4E3CFFF",
+    "H": "#3F525FFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    ".BCB........BDB.",
+    ".BCBE..BBB.EBDB.",
+    ".BCCB..BFB.BDDB.",
+    "..BCBBBFGFBBDB..",
+    "..BBCBFEEEBDBB..",
+    ".BDCHHFEEEFHDDB.",
+    ".BHHDDDFEFDDHHB.",
+    ".BBBHHHHFHHHBBB.",
+    "...BBBBBBBBBB...",
+    "................",
+    "................",
+    "................",
+    "................"
+  ],
+  "png_sha256": "6d354fc4a239cf682df0df1ade1726a44c12022acb56845df715fb98f7149ae3"
+}

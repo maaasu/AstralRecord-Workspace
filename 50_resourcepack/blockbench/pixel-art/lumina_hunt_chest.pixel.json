@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "lumina_hunt_chest",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#2C353AFF",
+    "C": "#94C0AFFF",
+    "D": "#A9C9B9FF",
+    "E": "#C7DAC9FF",
+    "F": "#8A6349FF",
+    "G": "#5D7671FF",
+    "H": "#A3836CFF",
+    "I": "#D9D0AAFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BBCDEBBECCBB..",
+    ".BCDDDDECFCCGCB.",
+    ".BCDDDDEFHCCCGB.",
+    "BCDDDDDDHCCCCCGB",
+    "BCDCFDDHICCCCCGB",
+    ".BCBFDDFCEECBCB.",
+    "..BBFFFCCCECBB..",
+    "...BDDFCCCCCB...",
+    "...BDDCCCCCCB...",
+    "...BGGGGGGGGB...",
+    "...BBBBBBBBBB...",
+    "................"
+  ],
+  "png_sha256": "fa60773b982cdb888d90462d586f55640817099c77d6c18243a364e5f9e2f71f"
+}

@@ -31,10 +31,12 @@ def encode(spec):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('ids', nargs='*', help='Asset names; omission selects every pixel source.')
-    parser.add_argument('--check', action='store_true', help='Verify both PNGs and source SHA without writing.')
+    parser.add_argument('--check', action='store_true', help='Verify output PNGs and source SHA without writing.')
     args = parser.parse_args()
     root = Path(__file__).resolve().parent.parent
     source = root/'blockbench/pixel-art'
+    registry = json.loads((root/'item-models.json').read_text(encoding='utf-8-sig'))
+    shared_gui_ids = {item['id'] for item in registry['items'] if item.get('java_gui_sprite')}
     ids = args.ids or sorted(path.name.removesuffix('.pixel.json') for path in source.glob('*.pixel.json'))
     for id_ in ids:
         if not re.fullmatch(r'[a-z0-9]+(?:_[a-z0-9]+)*', id_):
@@ -45,7 +47,9 @@ def main():
             raise ValueError('Pixel source ID does not match its filename.')
         png = encode(spec)
         digest = hashlib.sha256(png).hexdigest()
-        outputs = [root/f'assets/astralrecord/textures/item/custom/{id_}.png', root/f'bedrock/textures/items/{id_}.png']
+        outputs = [root/f'bedrock/textures/items/{id_}.png']
+        if id_ not in shared_gui_ids:
+            outputs.append(root/f'assets/astralrecord/textures/item/custom/{id_}.png')
         if args.check:
             if spec.get('png_sha256') != digest or any(out.read_bytes() != png for out in outputs):
                 raise ValueError('Pixel source and PNG differ: ' + id_)

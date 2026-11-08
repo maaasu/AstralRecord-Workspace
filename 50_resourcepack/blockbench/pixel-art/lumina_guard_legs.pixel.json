@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "lumina_guard_legs",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#373433FF",
+    "C": "#B69F7EFF",
+    "D": "#E6E9E0FF",
+    "E": "#E1E8E3FF",
+    "F": "#A38761FF",
+    "G": "#D5BC84FF",
+    "H": "#817459FF",
+    "I": "#DBC697FF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDECCCCB..",
+    "..BFFFFFFFFFFB..",
+    "..BGGGGGGGGGGB..",
+    "..BGGGGGGGGGGB..",
+    "..BGGGGGGGGGGB..",
+    "..BDDDDBBEEEEB..",
+    "..BDDDDBBEEEEB..",
+    "..BFFFFBBFFFFB..",
+    "..BHHHHBBHHHHB..",
+    "..BGIGGBBGIGGB..",
+    "..BGIGGBBGIGGB..",
+    "..BGGGGBBGGGGB..",
+    "...BBBB..BBBB...",
+    "................"
+  ],
+  "png_sha256": "dc01b09942a3f431033e656bb340a5dd269706fedb97b57a4247914a342f2696"
+}

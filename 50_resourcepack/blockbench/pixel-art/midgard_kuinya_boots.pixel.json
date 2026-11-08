@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "midgard_kuinya_boots",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#232B2AFF",
+    "C": "#8EAA5BFF",
+    "D": "#725139FF",
+    "E": "#B9A175FF",
+    "F": "#7F9C71FF",
+    "G": "#5F8653FF",
+    "H": "#917660FF",
+    "I": "#354030FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCCBBCCCCB..",
+    "..BDEDDBBDEDDB..",
+    "..BFGGGBBFGGGB..",
+    "..BFGGGBBFGGGB..",
+    ".BFGGGGBBGFGGGB.",
+    "BGHHHHGBBGHHHHGB",
+    "BGGGGGGBBGGGGGGB",
+    "BGIIIIBBBBIIIIGB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "969ece18052bf9e103c7da1b0cf509c133a0f624e4820b19c590b4e17cd107b9"
+}

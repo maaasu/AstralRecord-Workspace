@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "lapis_hunter_feet",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#222839FF",
+    "C": "#8B9BC1FF",
+    "D": "#72523DFF",
+    "E": "#92B9EEFF",
+    "F": "#788EB6FF",
+    "G": "#5574ACFF",
+    "H": "#917663FF",
+    "I": "#3D485DFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCCBBCCCCB..",
+    "..BDEDDBBDEDDB..",
+    "..BFGGGBBFGGGB..",
+    "..BFGGGBBFGGGB..",
+    ".BFGGGGBBGFGGGB.",
+    "BGHHHHGBBGHHHHGB",
+    "BGGGGGGBBGGGGGGB",
+    "BGIIIIBBBBIIIIGB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "5bf1db4a683fd8ef1e266b352cc1a8794c0d050a6b47f4c504a191a220f4d3f9"
+}

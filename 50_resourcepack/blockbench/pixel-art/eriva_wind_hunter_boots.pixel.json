@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "id": "eriva_wind_hunter_boots",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#242B2AFF",
+    "C": "#947661FF",
+    "D": "#AEB573FF",
+    "E": "#76513AFF",
+    "F": "#648753FF",
+    "G": "#839D71FF",
+    "H": "#344638FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCDDDBBDDDEB..",
+    "..BCEEEBBEEEEB..",
+    "..BCFFFBBGFFEB..",
+    "..BGCCFBBGEEFB..",
+    ".BGFFFFBBFGFFFB.",
+    "BFCCCCFBBFCCCCFB",
+    "BFFFFFFBBFFFFFFB",
+    "BFHHHHBBBBHHHHFB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "2868b59a82474ce96732b2a13f109571944f04e15edb7cd0881a552af952b239"
+}

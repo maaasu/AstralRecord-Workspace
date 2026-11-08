@@ -1,0 +1,39 @@
+{
+  "format_version": 1,
+  "id": "melkor_plate",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#261F2AFF",
+    "C": "#D4A04CFF",
+    "D": "#332E3AFF",
+    "E": "#6D4053FF",
+    "F": "#634A48FF",
+    "G": "#DEB87AFF",
+    "H": "#8A6571FF",
+    "I": "#85706BFF",
+    "J": "#E6C799FF",
+    "K": "#472E3DFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    ".BBBCCCDDCCCCBB.",
+    ".BECFGHEFGGHFCB.",
+    "BECHFCGGGCCCFEEB",
+    "BEEEFCCCCCCCEEEB",
+    "BBBBFCICJCIFBBBB",
+    "...BKFCIIICEB...",
+    "...BKFCCCCFEB...",
+    "...BKEEFCFEKB...",
+    "...BEIIGFIIEB...",
+    "....BEEEEEEB....",
+    "....BBBBBBBB....",
+    "................"
+  ],
+  "png_sha256": "6112963e6869b7e7f847d18ed1a75d4d4e26d112648717cb2dacb73a654c5ff9"
+}

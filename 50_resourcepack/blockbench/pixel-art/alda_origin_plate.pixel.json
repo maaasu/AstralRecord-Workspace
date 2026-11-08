@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "alda_origin_plate",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#2C2D31FF",
+    "C": "#C7BB99FF",
+    "D": "#48433EFF",
+    "E": "#92937BFF",
+    "F": "#A7A690FF",
+    "G": "#5C5D54FF",
+    "H": "#6B523EFF",
+    "I": "#8B7664FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    ".BBBCCCDDCCCCBB.",
+    ".BECFFFEDFFFECB.",
+    "BECFFFFFFFFFFEEB",
+    "BEEEEFFFFFFEEEEB",
+    "BBBBGCHHHCCEBBBB",
+    "...BGECCHEEEB...",
+    "...BGEFFHHEEB...",
+    "...BGEFFFFEGB...",
+    "...BEIIIIIIEB...",
+    "....BEEEEEEB....",
+    "....BBBBBBBB....",
+    "................"
+  ],
+  "png_sha256": "571f1ff5bfdb6650a36b710e379fb9ce4b3f5a8653634f3e583974e473f8ab53"
+}

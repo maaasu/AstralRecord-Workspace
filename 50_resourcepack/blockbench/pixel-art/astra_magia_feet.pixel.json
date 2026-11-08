@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "astra_magia_feet",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#2B283AFF",
+    "C": "#8D79B1FF",
+    "D": "#CAB279FF",
+    "E": "#BBE1DDFF",
+    "F": "#D5E5DCFF",
+    "G": "#514466FF",
+    "H": "#917EA4FF",
+    "I": "#D7C498FF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCCB.CCCCB..",
+    "..BBDDDBBDDBBB..",
+    "..BBEFEBBEFEBB..",
+    "..BDEBBBBBDEDD..",
+    ".GHHDGGBBGGGHHG.",
+    "GIDGGGGGGIGGGGGG",
+    "BGBBBBG.BGBBBBGB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "f8d9fe6e017c14aca6b5d34d46c3fcec8a8d1b0f21121bf18e8db511d0c55db8"
+}

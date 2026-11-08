@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "eriva_beast_bone_greaves",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#353435FF",
+    "C": "#916A6EFF",
+    "D": "#ECE0BFFF",
+    "E": "#E9DBB2FF",
+    "F": "#73424BFF",
+    "G": "#C7BA94FF",
+    "H": "#D0C5A4FF",
+    "I": "#7A7362FF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDECCCCB..",
+    "..BFFFFFFFFFFB..",
+    "..BGGGGGGGGGGB..",
+    "..BGGGGGGGGGGB..",
+    "..BGGGGGGGGGGB..",
+    "..BDDDDBBEEEEB..",
+    "..BHEEHBBGEEGB..",
+    "..BHHHHBBGGGGB..",
+    "..BIIIIBBIIIIB..",
+    "..BGHGGBBGHGGB..",
+    "..BGHGGBBGHGGB..",
+    "..BGGGGBBGGGGB..",
+    "...BBBB..BBBB...",
+    "................"
+  ],
+  "png_sha256": "64e04b2f9b88fd481f64f0c7603e43a2cdcaac4c2c3c03a4d06beb37869f84ed"
+}

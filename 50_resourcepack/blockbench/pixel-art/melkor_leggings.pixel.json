@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "melkor_leggings",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#21252BFF",
+    "C": "#6E7373FF",
+    "D": "#A2B0A2FF",
+    "E": "#7C9587FF",
+    "F": "#444D52FF",
+    "G": "#506659FF",
+    "H": "#748376FF",
+    "I": "#374441FF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDECCCCB..",
+    "..BFFFFFFFFFFB..",
+    "..BGGEGGGGGEGB..",
+    "..BGHEGGGGHEGB..",
+    "..BGHEGGGGHEGB..",
+    "..BGEGGBBGEGGB..",
+    "..BHGGIBBGHGIB..",
+    "..BHGGIBBHGGIB..",
+    "..BHGGIBBGGGIB..",
+    "..BFFFIBBGFFFB..",
+    "..BGGGIBBGGGIB..",
+    "..BGGGGBBGGGGB..",
+    "...BBBB..BBBB...",
+    "................"
+  ],
+  "png_sha256": "0cd715cf56d54269e2c108d4a5d66a5afddbcddbe4c49dedc760bedd3cb3a07e"
+}

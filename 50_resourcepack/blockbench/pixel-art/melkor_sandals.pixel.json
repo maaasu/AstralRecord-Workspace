@@ -1,0 +1,35 @@
+{
+  "format_version": 1,
+  "id": "melkor_sandals",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#232230FF",
+    "C": "#605274FF",
+    "D": "#9C86ADFF",
+    "E": "#35303FFF",
+    "F": "#726D74FF",
+    "G": "#B8A6BCFF"
+  },
+  "pixels": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "...BBBB..BBBB...",
+    "..BCCCCB.CCCCB..",
+    "..BBDDDBBDDBBB..",
+    "..BDDDDBBBDDDB..",
+    "..BDDBBBBBDDDD..",
+    ".EFFDEEBBEEEFFE.",
+    "EGDEEEEEEGEEEEEE",
+    "BEBBBBE.BEBBBBEB",
+    ".BBBBBB..BBBBBB.",
+    "................",
+    "................"
+  ],
+  "png_sha256": "0fcadf04a5f80687a4800a88bb5f2f6fab25eb95d31764ad09936e6332c43c90"
+}

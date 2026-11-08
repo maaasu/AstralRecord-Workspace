@@ -1,0 +1,37 @@
+{
+  "format_version": 1,
+  "id": "lapis_mage_legs",
+  "width": 16,
+  "height": 16,
+  "transparent_char": ".",
+  "palette": {
+    ".": "#00000000",
+    "B": "#242A3DFF",
+    "C": "#747796FF",
+    "D": "#B9C1D7FF",
+    "E": "#9EADD5FF",
+    "F": "#4C5380FF",
+    "G": "#88BCFFFF",
+    "H": "#657FBEFF",
+    "I": "#8497C4FF"
+  },
+  "pixels": [
+    "................",
+    "...BBBBBBBBBB...",
+    "..BCCCCDECCCCB..",
+    "..BFFFFGFFFFFB..",
+    "..BHEDHHHEEHHB..",
+    "..BHEDHHHEEHHB..",
+    "..BIEDDHHEEHHB..",
+    ".BIHEHHBBHEHHBB.",
+    ".BIEHHHBBHIEHHB.",
+    ".BIHHHHBBHIHHHB.",
+    ".BIHHHHBBHIHHHB.",
+    ".BIHHHHBBHIHHHB.",
+    ".BFFFFFBBFFFFFB.",
+    ".BHHHHHBBHHHHHB.",
+    "..BBBBB..BBBBB..",
+    "................"
+  ],
+  "png_sha256": "0b569877a594cfe982ed52dc1e9228299abb6b06b9de96b9cfa5b3022ed47779"
+}
