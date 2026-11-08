@@ -70,13 +70,13 @@ describe('チャレンジ受付地点の編集', () => {
   it('新しい地図選択だけを反映し、高さが取得できなければ保存前に Y 入力を求める', async () => {
     const props = callbacks()
     const earlier = { key: 1, x: 90, y: 91, z: 92 }
-    const { rerender } = render(<ChallengeLocationEditor worldId="current_world" point={earlier} {...props} />)
+    const { rerender } = render(<ChallengeLocationEditor worldId="current_world" worldName="表示中の大陸" point={earlier} {...props} />)
     await chooseMaster(dungeonPath)
     expect(await screen.findByRole('textbox', { name: 'X' })).toHaveValue('4')
     expect(props.onPositionChange).toHaveBeenLastCalledWith(null)
     const mapPick = screen.getByRole('button', { name: '地図で受付地点を選択' })
     expect(mapPick).toBeDisabled()
-    expect(screen.getByText(/受付先の地図に切り替えるか/)).toHaveTextContent('current_world')
+    expect(screen.getByText(/受付先の地図に切り替えるか/)).toHaveTextContent('表示中の大陸')
     const world = screen.getByRole('combobox', { name: '受付地点のワールド' })
     expect(world).toHaveValue('world:other_world')
     fireEvent.change(world, { target: { value: 'world:current_world' } })
@@ -85,7 +85,7 @@ describe('チャレンジ受付地点の編集', () => {
     expect(props.onPickingChange).toHaveBeenLastCalledWith(true)
     expect(screen.getByRole('textbox', { name: 'X' })).toHaveValue('4')
 
-    rerender(<ChallengeLocationEditor worldId="current_world" point={{ key: 2, x: 18, y: null, z: -9 }} {...props} />)
+    rerender(<ChallengeLocationEditor worldId="current_world" worldName="表示中の大陸" point={{ key: 2, x: 18, y: null, z: -9 }} {...props} />)
     expect(await screen.findByText(/この地点は地図に高さのデータがありません/)).toBeInTheDocument()
     expect(props.onPickingChange).toHaveBeenLastCalledWith(false)
     expect(world).toHaveValue('world:current_world')

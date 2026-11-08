@@ -18,6 +18,7 @@ type Draft = Record<Coordinate | 'world', string>
 type Point = { key: number; x: number; y: number | null; z: number }
 type Props = {
   worldId: string
+  worldName?: string
   point: Point | null
   onPickingChange: (value: boolean) => void
   onDirtyChange: (value: boolean) => void
@@ -92,7 +93,7 @@ function isValidationReport(value: unknown): value is ValidationReport {
 }
 
 export function ChallengeLocationEditor({
-  worldId, point, onPickingChange, onDirtyChange, onBusyChange, onPositionChange, active = true, canPick = true,
+  worldId, worldName, point, onPickingChange, onDirtyChange, onBusyChange, onPositionChange, active = true, canPick = true,
 }: Props) {
   const [catalog, setCatalog] = useState<{ bosses: MasterFileSummary[]; dungeons: MasterFileSummary[]; worlds: MasterFileSummary[] } | null>(null)
   const [catalogError, setCatalogError] = useState('')
@@ -292,7 +293,7 @@ export function ChallengeLocationEditor({
       </div>
       {picking && <p role="status" className="challenge-location-hint">受付地点を地図上でクリックしてください。</p>}
       {currentMapOption && !matchesMap && <p className="sp-muted challenge-location-hint">
-        表示中の地図は「{currentMapOption.label}」です。受付先の地図に切り替えるか、受付先を移す場合は上の欄でワールドを変更してください。
+        表示中の地図は「{worldName || currentMapOption.label}」です。受付先の地図に切り替えるか、受付先を移す場合は上の欄でワールドを変更してください。
       </p>}
       <div className="challenge-location-coordinates">
         {(['x', 'z'] as const).map(key => <label key={key}>{key.toUpperCase()}
