@@ -26,8 +26,9 @@ function Add-PackEntries {
 
     foreach ($name in $Names) {
         $bytes = [System.IO.File]::ReadAllBytes((Join-Path $BasePath $name))
-        if ($name.EndsWith('.json') -or $name.EndsWith('.mcmeta') -or $name.EndsWith('.txt') -or $name.EndsWith('.material')) {
-            # Keep tracked metadata and notices identical across LF and CRLF checkouts.
+        if ($name.EndsWith('.json') -or $name.EndsWith('.mcmeta') -or $name.EndsWith('.txt') -or
+            $name.EndsWith('.material') -or $name.EndsWith('.vsh')) {
+            # Keep tracked text assets identical across LF and CRLF checkouts.
             $bytes = $utf8.GetBytes($utf8.GetString($bytes).Replace("`r`n", "`n"))
         }
         $entries.Add($name, $bytes)
@@ -71,16 +72,21 @@ function Write-Pack {
 . (Join-Path $PSScriptRoot 'buff-hud-java.ps1')
 . (Join-Path $PSScriptRoot 'armor-assets.ps1')
 . (Join-Path $PSScriptRoot 'gui-assets.ps1')
-$java = Read-PackEntries $root @(
-    'pack.mcmeta'
-    'quest-tracking-hud-version.txt'
-    'assets/astralrecord/font/quest_hud.json'
-    'assets/astralrecord/font/quest_hud_space.json'
-    'assets/astralrecord/textures/font/quest_hud_pixel.png'
+$hudTextShaders = @(
     'assets/minecraft/shaders/core/rendertype_text.vsh'
     'quest_hud_84/assets/minecraft/shaders/core/rendertype_text.vsh'
     'quest_hud_88/assets/minecraft/shaders/core/text.vsh'
     'quest_hud_97/assets/minecraft/shaders/core/text.vsh'
+)
+$java = Read-PackEntries $root @(
+    'pack.mcmeta'
+    'quest-tracking-hud-version.txt'
+    'location-hud-version.txt'
+    'assets/astralrecord/font/location_hud_icons.json'
+    'assets/astralrecord/font/quest_hud.json'
+    'assets/astralrecord/font/quest_hud_space.json'
+    'assets/astralrecord/textures/font/quest_hud_pixel.png'
+    $hudTextShaders
     'assets/minecraft/textures/gui/container/inventory.png'
     'assets/minecraft/textures/gui/sprites/hud/hotbar.png'
     'assets/minecraft/textures/gui/sprites/hud/hotbar_selection.png'
@@ -506,6 +512,26 @@ if ($utf8.GetString($java['player-progress-hud-version.txt']) -cne '6') {
     throw 'Invalid profile HUD version marker in resource pack.'
 }
 Add-BuffHudJavaEntries $java
+
+if ($utf8.GetString($java['location-hud-version.txt']) -cne '1') {
+    throw 'Unsupported Location HUD version.'
+}
+$locationIcons = ($utf8.GetString($java['assets/astralrecord/font/location_hud_icons.json']) | ConvertFrom-Json).providers
+$buffBitmap = ($utf8.GetString($java['assets/astralrecord/font/buff_hud.json']) | ConvertFrom-Json).providers |
+    Where-Object { $_.type -ceq 'bitmap' }
+if ($locationIcons.Count -ne 2 -or $locationIcons[0].type -cne 'bitmap' -or
+    $locationIcons[0].file -cne $buffBitmap.file -or $locationIcons[0].height -ne $buffBitmap.height -or
+    $locationIcons[0].ascent -ne -4096 -or ($locationIcons[0].chars -join [char]10) -cne ($buffBitmap.chars -join [char]10) -or
+    $locationIcons[1].type -cne 'bitmap' -or $locationIcons[1].file -cne 'astralrecord:font/quest_hud_pixel.png' -or
+    $locationIcons[1].height -ne 9 -or $locationIcons[1].ascent -ne -4096 -or
+    ($locationIcons[1].chars -join '') -cne (-join ([char]0xE010, [char]0, [char]0, [char]0))) {
+    throw 'Location HUD icons differ from the buff atlas. Run scripts/generate-quest-hud-java.py to regenerate the font.'
+}
+foreach ($shader in $hudTextShaders) {
+    if (-not $utf8.GetString($java[$shader]).Contains('// BEGIN ASTRALRECORD LOCATION HUD')) {
+        throw "Missing Location HUD relocation in Java pack shader: $shader"
+    }
+}
 
 if ($utf8.GetString($java['wide-combat-meter-version.txt']) -cne '1') {
     throw 'Invalid wide combat meter version marker in Java resource pack.'

@@ -425,6 +425,7 @@ function Publish-ResourcePacks {
     $receptionDisplay = $null
     $profileHud = $null
     $questTrackingHud = $null
+    $locationHud = $null
     $wideCombatMeter = $null
     $archive = [IO.Compression.ZipFile]::OpenRead($java)
     try {
@@ -562,6 +563,23 @@ function Publish-ResourcePacks {
                     ($_.max_format -join ',') -ceq $overlaySpec.max
                 })
                 if ($matches.Count -ne 1) { throw "Missing quest tracking HUD shader overlay: $($overlaySpec.directory)" }
+            }
+        }
+        $locationEntry = $archive.GetEntry('location-hud-version.txt')
+        if ($null -ne $locationEntry) {
+            if ($locationEntry.Length -ne 1) { throw 'Invalid Location HUD version marker.' }
+            $reader = [IO.StreamReader]::new($locationEntry.Open())
+            try { $locationHud = $reader.ReadToEnd() }
+            finally { $reader.Dispose() }
+            if ($locationHud -cne '1' -or $questTrackingHud -cne '2') {
+                throw 'Location HUD requires version 1 and Quest HUD assets version 2.'
+            }
+            foreach ($asset in @(
+                'assets/astralrecord/font/location_hud_icons.json'
+                'assets/astralrecord/textures/font/buff_hud.png'
+            )) {
+                $entry = $archive.GetEntry($asset)
+                if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing Location HUD asset in Java pack: $asset" }
             }
         }
         $profileEntry = $archive.GetEntry('player-progress-hud-version.txt')
@@ -742,6 +760,9 @@ function Publish-ResourcePacks {
     }
     if ($null -ne $questTrackingHud) {
         $javaManifest.questTrackingHud = $questTrackingHud
+    }
+    if ($null -ne $locationHud) {
+        $javaManifest.locationHud = $locationHud
     }
     if ($null -ne $profileHud) {
         $javaManifest.profileHud = $profileHud

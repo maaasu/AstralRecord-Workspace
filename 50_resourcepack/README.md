@@ -27,6 +27,10 @@ Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメー�
 
 `python scripts/generate-quest-hud-java.py --check --preview <PNGパス>` と `python scripts/preview-quest-hud-bedrock.py --preview <PNGパス>`（プレビューはPillowが必要）で配布字形・描画定義から静的画像を生成します。統合版の画像はネイティブ書体をJavaパック字形で代用した配置図です。実クライアントでの描画確認とは分けて扱います。
 
+### 現在地HUD
+
+Java 版は配布マニフェストの `java.locationHud` が `1` の管理パックを適用すると、現在地・挑戦状況・効果を右上に表示します。左上のクエスト追跡 HUD と同じ負の ascent の字形と4世代のテキストシェーダーを使い、専用の RGB マーカーで描画を分けます。枠と効果アイコンは `astralrecord:location_hud_icons` にまとめ、既存のバフアイコンの絵柄を使います。表示が狭い場合は左上と下部の HUD との重なりを避けるため縮小します。`scripts/generate-quest-hud-java.py` でシェーダーとフォントを再生成し、`--check` で検証できます。
+
 ### 戦闘 HUD と討伐リザルト
 
 - 対応パックを適用したJava版では、戦闘アクションバーの左上に本人のレベル・所持Goldと、正式クラス名・レベル・EXPの2行を専用フォントで重ねます。統合版の個人情報はサイドバーに表示します。
