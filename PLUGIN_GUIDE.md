@@ -73,6 +73,7 @@ Plugin 設定の `database.sqlserver`、`database.file`、`database.pool` と SQ
 - 通常の AstralRecord item tooltip では、共通 Lore のカテゴリ表示の右へ ` | <item ID>` を濃い灰色で表示する。それ以外の GUI 名・GUI lore・プレイヤー向けメッセージでは、item ID・master ID・status ID などの内部識別子を表示してはならない。マスタの表示名を使用し、解決不能時は ID を代替表示せず「未登録の素材」などの汎用表示と操作不可の案内を使う。管理者向け機能では必要に応じて内部 ID を表示できる。
 - GUI に共通のプレイヤーインベントリ挙動を追加・変更する場合は、個別 GUI の open/click/close に重複実装せず shared 側の holder / click support / service に寄せる。
 - ホットバーの閉じるアイコンとインベントリ切替を使う GUI は `io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder` を holder に実装し、クリック処理は `HotbarShortcutClickSupport` に委譲する。個別の判定リストや GUI ごとの手作業設定を増やさない。
+- 状態に応じて持ち替えや攻撃を制限するときは、制限する操作と開始・解除条件を設計に記載する。キャンセル済みのイベントからも GUI が共通サービスを呼ぶため、共通入力仲裁に加え、GUI などが直接呼ぶ処理でも、操作の実行や状態の更新の直前に同じ判定を行う。通常入力、腕振りなどの代替入力、GUI からの直接呼び出しのうち、対象操作が通る経路ごとに、制限中は処理前の状態が保たれ、解除直後は操作が復帰することを確認する。入力の優先度と同一 tick の処理は[共通入力の設計](00_docs/10_Plugin設計書/feature/28-player-interaction/28_0-概要.md)に従う。
 
 ## コマンド引数規約
 
