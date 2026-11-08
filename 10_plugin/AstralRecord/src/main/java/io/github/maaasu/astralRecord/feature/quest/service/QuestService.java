@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.rebirth.service.RebirthService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -44,6 +45,7 @@ import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
@@ -55,10 +57,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -66,6 +70,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+import java.util.regex.Pattern;
 
 public final class QuestService {
     private static final int DEFAULT_MAX_ACTIVE_QUESTS = 3;
@@ -99,10 +104,10 @@ public final class QuestService {
     private final Set<UUID> releaseWhenAcknowledged = ConcurrentHashMap.newKeySet();
     private final Map<RewardClaimKey, UUID> pendingRewardClaims = new ConcurrentHashMap<>();
     private final Map<UUID, CompletableFuture<Void>> rewardProcessingTails = new ConcurrentHashMap<>();
+    private static final Pattern HUD_CONTROL_CHARS = Pattern.compile("[\\p{Cntrl}\\p{Cf}]");
     private final Map<DisplayItemKey, CompletableFuture<Boolean>> displayItemLoads = new ConcurrentHashMap<>();
     private BiConsumer<AstPlayer, String> questAcceptedListener = (player, questId) -> { };
     private BiConsumer<AstPlayer, String> questCompletedListener = (player, questId) -> { };
-    private final Map<UUID, TrackingSelection> trackingSelections = new ConcurrentHashMap<>();
     private BukkitTask saveTask;
     private volatile boolean stopping;
 
@@ -238,7 +243,6 @@ public final class QuestService {
      */
     public void stop() {
         stopping = true;
-        trackingSelections.clear();
         if (saveTask != null) {
             saveTask.cancel();
             saveTask = null;
@@ -298,7 +302,6 @@ public final class QuestService {
      * @param accountId 対象アカウント ID
      */
     public void releaseState(@NotNull UUID accountId) {
-        trackingSelections.remove(accountId);
         QuestPlayerState current = states.get(accountId);
         if (current == null) {
             return;
@@ -319,7 +322,6 @@ public final class QuestService {
      * @param accountId 破棄対象 account ID
      */
     public void discardAccountState(@NotNull UUID accountId) {
-        trackingSelections.remove(accountId);
         states.remove(accountId);
         dirtyStates.remove(accountId);
         saveDueAtMillis.remove(accountId);
@@ -402,96 +404,62 @@ public final class QuestService {
     }
 
     /**
-     * 一覧で選んだ受領個体の追跡を切り替えます。選択はこのログインセッションだけ保持します。
-     * @param player 操作するゲームプレイセッション
-     * @param questId 受領中のクエストID
-     * @return 有効な受領個体を切り替えた場合true
+     * ロード済み状態にある受領中クエストを、受領時刻順で HUD 表示用に返します。
+     * 条件は定義順を保ち、進捗値を必要数の範囲へ制限します。
+     *
+     * @param player 表示対象のプレイヤー
+     * @return 受領中クエストと安全化した条件表示。状態未ロード時は空の一覧
      */
-    public boolean toggleTracking(@NotNull AstPlayer player, @NotNull String questId) {
-        QuestProgress progress = progress(player, questId);
-        QuestDefinition quest = findQuest(questId);
-        if (!player.getAccount().getMode().shouldProcessGameplay() || progress == null || quest == null) return false;
-        UUID accountId = player.getAccount().getUuid();
-        if (isTracking(player, quest.id())) {
-            trackingSelections.remove(accountId);
-        } else {
-            trackingSelections.put(accountId, new TrackingSelection(player, quest.id(), progress.acceptedAtEpochMillis()));
-        }
-        return true;
+    public synchronized @NotNull List<HudQuest> hudQuests(@NotNull AstPlayer player) {
+        QuestPlayerState current = states.get(player.getAccount().getUuid());
+        if (current == null || current.activeQuests().isEmpty()) return List.of();
+        return current.activeQuests().entrySet().stream()
+            .sorted(Map.Entry.<String, QuestProgress>comparingByValue(
+                Comparator.comparingLong(QuestProgress::acceptedAtEpochMillis)
+                    .thenComparing(QuestProgress::questId)
+            ))
+            .map(entry -> toHudQuest(entry.getKey(), entry.getValue()))
+            .filter(Objects::nonNull)
+            .toList();
     }
 
-    /**
-     * 現在受領中の同じ個体が追跡対象か調べます。
-     * @param player 表示対象のセッション
-     * @param questId クエストID
-     * @return セッション、ID、受領時刻が全て一致する場合true
-     */
-    public boolean isTracking(@NotNull AstPlayer player, @NotNull String questId) {
-        TrackingSelection selected = trackingSelections.get(player.getAccount().getUuid());
-        QuestProgress progress = progress(player, questId);
-        return selected != null && selected.session() == player && selected.questId().equals(questId)
-            && progress != null && selected.acceptedAt() == progress.acceptedAtEpochMillis();
-    }
-
-    /**
-     * インメモリ進捗から表示用の2行を生成します。報酬保存中の一時除去では選択を捨てません。
-     * @param player 表示対象のセッション
-     * @return 有効な追跡対象。非選択、別セッション、保存中ならnull
-     */
-    public @Nullable TrackingText trackingText(@NotNull AstPlayer player) {
-        UUID accountId = player.getAccount().getUuid();
-        TrackingSelection selected = trackingSelections.get(accountId);
-        if (selected == null) return null;
-        if (selected.session() != player || !player.getAccount().getMode().shouldProcessGameplay()) {
-            trackingSelections.remove(accountId, selected);
-            return null;
-        }
-        QuestPlayerState current = states.get(accountId);
-        QuestProgress progress = current == null ? null : current.activeQuests().get(selected.questId());
-        if (progress == null) return null;
-        QuestDefinition quest = findQuest(selected.questId());
-        if (quest == null || selected.acceptedAt() != progress.acceptedAtEpochMillis()) {
-            trackingSelections.remove(accountId, selected);
-            return null;
-        }
-        String next = quest.isAutoReward() ? "報酬を受け取り中" : "目標達成　依頼主に報告";
+    private @Nullable HudQuest toHudQuest(@NotNull String questId, @NotNull QuestProgress progress) {
+        QuestDefinition quest = quests.get(questId);
+        if (quest == null) return null;
+        String title = hudPlainText(quest.name());
+        if (title.isBlank() || title.equals(quest.id())) title = PlayerMsgResource.format(PlayerMsgId.P_6610.getId());
+        List<HudObjective> objectives = new ArrayList<>(quest.objectives().size());
         for (QuestObjectiveDefinition objective : quest.objectives()) {
-            int remaining = Math.max(0, objective.amount() - progress.progress(objective.id()));
-            if (remaining == 0) continue;
             String label = hudPlainText(objective.label());
             if (label.isBlank() || label.equals(hudPlainText(objective.targetId()))) {
-                label = objective.type() == QuestObjectiveType.GATHERING ? "対象の素材を採集" : "対象の敵を討伐";
+                PlayerMsgId message = objective.type() == QuestObjectiveType.GATHERING ? PlayerMsgId.P_6611 : PlayerMsgId.P_6612;
+                label = PlayerMsgResource.format(message.getId());
             }
-            next = hudClip(label, 18) + "　あと" + remaining + (objective.type() == QuestObjectiveType.GATHERING ? "個" : "体");
-            break;
+            int required = objective.amount();
+            int current = Math.min(required, Math.max(0, progress.progress(objective.id())));
+            objectives.add(new HudObjective(label, current, required));
         }
-        String title = hudPlainText(quest.name());
-        if (title.isBlank() || title.equals(quest.id())) title = "受領中のクエスト";
-        return new TrackingText(hudClip(title, 28), next);
-    }
-
-    private void clearTracking(AstPlayer player, String questId, long acceptedAt) {
-        UUID accountId = player.getAccount().getUuid();
-        TrackingSelection selected = trackingSelections.get(accountId);
-        if (selected != null && selected.session() == player && selected.questId().equals(questId)
-            && selected.acceptedAt() == acceptedAt) trackingSelections.remove(accountId, selected);
-    }
-
-    private static String hudClip(String text, int limit) {
-        return text.codePointCount(0, text.length()) <= limit ? text
-            : text.substring(0, text.offsetByCodePoints(0, limit - 1)) + "…";
+        String status = progress.readyToTurnIn()
+            ? PlayerMsgResource.format((quest.isAutoReward() ? PlayerMsgId.P_6613 : PlayerMsgId.P_6614).getId())
+            : null;
+        return new HudQuest(title, List.copyOf(objectives), status);
     }
 
     private static String hudPlainText(String source) {
-        return net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
-            .serialize(ColorCodeUtil.toComponent(source, "", null))
-            .replaceAll("[\\p{Cntrl}\\p{Cf}]", " ").replace('§', ' ').trim();
+        String uncolored = PlainTextComponentSerializer.plainText()
+            .serialize(ColorCodeUtil.toComponent(source, "", null));
+        return HUD_CONTROL_CHARS.matcher(uncolored).replaceAll(" ").replace('§', ' ').trim();
     }
 
-    private record TrackingSelection(AstPlayer session, String questId, long acceptedAt) { }
+    /** HUDに表示する受領中クエストです。 */
+    public record HudQuest(
+        @NotNull String title,
+        @NotNull List<HudObjective> objectives,
+        @Nullable String status
+    ) { }
 
-    /** 色コードと制御文字を除去したクエスト追跡の表示内容です。 */
-    public record TrackingText(String title, String objective) { }
+    /** HUDに表示するクエスト目標と安全化済み進捗です。 */
+    public record HudObjective(@NotNull String label, int current, int required) { }
 
     public @Nullable QuestProgress progress(@NotNull AstPlayer player, @NotNull String questId) {
         return state(player).activeQuests().get(stripPrefix(questId));
@@ -625,7 +593,6 @@ public final class QuestService {
         if (removed == null) {
             return false;
         }
-        clearTracking(player, removed.questId(), removed.acceptedAtEpochMillis());
         save(state);
         QuestDefinition quest = quests.get(removed.questId());
         send(player, PlayerMsgId.P_6604, quest == null ? removed.questId() : quest.name());
@@ -1030,11 +997,6 @@ public final class QuestService {
         boolean completed = !stopping && states.get(expectedState.accountId()) == expectedState;
         try {
             if (completed) {
-                TrackingSelection selection = trackingSelections.get(expectedState.accountId());
-                if (selection != null && selection.session() == player && selection.questId().equals(quest.id())
-                    && !expectedState.activeQuests().containsKey(quest.id())) {
-                    trackingSelections.remove(expectedState.accountId(), selection);
-                }
                 notifyComplete(player, quest);
             }
         } catch (RuntimeException exception) {

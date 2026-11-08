@@ -76,6 +76,7 @@ $java = Read-PackEntries $root @(
     'quest-tracking-hud-version.txt'
     'assets/astralrecord/font/quest_hud.json'
     'assets/astralrecord/font/quest_hud_space.json'
+    'assets/astralrecord/textures/font/quest_hud_pixel.png'
     'assets/minecraft/shaders/core/rendertype_text.vsh'
     'quest_hud_84/assets/minecraft/shaders/core/rendertype_text.vsh'
     'quest_hud_88/assets/minecraft/shaders/core/text.vsh'
@@ -266,6 +267,8 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'manifest.json'
     'quest-tracking-hud-version.txt'
     'ui/astralrecord_quest_hud.json'
+    'textures/ui/astralrecord/quest_hud_frame.png'
+    'textures/ui/astralrecord/quest_hud_frame.json'
     'font/glyph_E6.png'
     'font/glyph_E7.png'
     'combat-reward-plaque-version.txt'
@@ -425,7 +428,7 @@ $bedrock = Read-PackEntries $bedrockRoot @(
 )
 # Fail closed before packaging either edition's dedicated quest payload assets.
 foreach ($entries in @($java, $bedrock)) {
-    if ($utf8.GetString($entries['quest-tracking-hud-version.txt']) -cne '1') {
+    if ($utf8.GetString($entries['quest-tracking-hud-version.txt']) -cne '2') {
         throw 'Unsupported quest tracking HUD version.'
     }
 }

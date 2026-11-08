@@ -255,7 +255,7 @@ public final class AstralRecordGeyserExtension implements Extension {
      * @param playerId 接続中プレイヤーのJava側UUID
      * @return 対応パックを登録済みで、TIPを送信できる接続の場合はtrue
      */
-    public boolean hasQuestHud(UUID playerId) {
+    public boolean hasQuestHudV2(UUID playerId) {
         var connection = geyserApi().connectionByUuid(playerId);
         return connection != null && damagePacks.questHudReady(connection) && forcesResourcePacks()
             && JSON_UI_SENDERS.get(connection.getClass()).isPresent();
@@ -267,8 +267,9 @@ public final class AstralRecordGeyserExtension implements Extension {
      * @param text 表示文字列。空白一文字で消去
      * @return 対応接続へのTIP送信が成功した場合はtrue
      */
-    public boolean sendQuestHud(UUID playerId, String text) {
-        if (text == null || text.isEmpty() || text.length() > 512) return false;
+    public boolean sendQuestHudV2(UUID playerId, String text) {
+        String payload = QuestHudTipPayload.encode(text);
+        if (payload == null) return false;
         var connection = geyserApi().connectionByUuid(playerId);
         if (connection == null) {
             return false;
@@ -278,9 +279,9 @@ public final class AstralRecordGeyserExtension implements Extension {
             return false;
         }
         boolean verified = damagePacks.questHudReady(connection) && forcesResourcePacks();
-        return questHudDelivery.send(connection, " ".equals(text), verified, () -> {
+        return questHudDelivery.send(connection, " ".equals(payload), verified, () -> {
             try {
-                sender.get().invoke(connection, QUEST_HUD_KEY, text);
+                sender.get().invoke(connection, QUEST_HUD_KEY, payload);
                 return true;
             } catch (ReflectiveOperationException | LinkageError ignored) {
                 // 失敗時はラッチ済み状態を保持し、同じ接続への消去を再試行できるようにする。

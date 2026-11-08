@@ -2,74 +2,95 @@
   "namespace": "astralrecord_quest_hud",
   "panel": {
     "type": "panel",
-    "size": [
-      "100%",
-      28
-    ],
+    "size": [ "100%", "100%cm" ],
     "anchor_from": "top_left",
     "anchor_to": "top_left",
+    "clips_children": false,
     "controls": [
+      { "quest_data@astralrecord_quest_hud.quest_data": {} },
+      { "frame_01@astralrecord_quest_hud.frame": { "$frame_name": "frame_01", "$frame_height": 19, "$row_tip_prefix": "geyseropt:astralrecord_quest_hud:01|" } },
+      { "frame_02@astralrecord_quest_hud.frame": { "$frame_name": "frame_02", "$frame_height": 32, "$row_tip_prefix": "geyseropt:astralrecord_quest_hud:02|" } },
+      { "frame_03@astralrecord_quest_hud.frame": { "$frame_name": "frame_03", "$frame_height": 45, "$row_tip_prefix": "geyseropt:astralrecord_quest_hud:03|" } },
+      { "frame_04@astralrecord_quest_hud.frame": { "$frame_name": "frame_04", "$frame_height": 58, "$row_tip_prefix": "geyseropt:astralrecord_quest_hud:04|" } },
+      { "frame_05@astralrecord_quest_hud.frame": { "$frame_name": "frame_05", "$frame_height": 71, "$row_tip_prefix": "geyseropt:astralrecord_quest_hud:05|" } },
+      { "frame_06@astralrecord_quest_hud.frame": { "$frame_name": "frame_06", "$frame_height": 84, "$row_tip_prefix": "geyseropt:astralrecord_quest_hud:06|" } },
+      { "frame_07@astralrecord_quest_hud.frame": { "$frame_name": "frame_07", "$frame_height": 97, "$row_tip_prefix": "geyseropt:astralrecord_quest_hud:07|" } },
+      { "frame_08@astralrecord_quest_hud.frame": { "$frame_name": "frame_08", "$frame_height": 110, "$row_tip_prefix": "geyseropt:astralrecord_quest_hud:08|" } },
+      { "frame_09@astralrecord_quest_hud.frame": { "$frame_name": "frame_09", "$frame_height": 123, "$row_tip_prefix": "geyseropt:astralrecord_quest_hud:09|" } },
+      { "frame_10@astralrecord_quest_hud.frame": { "$frame_name": "frame_10", "$frame_height": 136, "$row_tip_prefix": "geyseropt:astralrecord_quest_hud:10|" } }
+    ]
+  },
+  "quest_data": {
+    "type": "panel",
+    "size": [ 0, 0 ],
+    "bindings": [
       {
-        "quest_data": {
-          "type": "panel",
-          "size": [
-            0,
-            0
-          ],
-          "bindings": [
-            {
-              "binding_name": "#tip_text",
-              "binding_condition": "always"
-            },
-            {
-              "binding_name": "#tip_text",
-              "binding_name_override": "#preserved_text",
-              "binding_condition": "visibility_changed"
-            },
-            {
-              "binding_type": "view",
-              "source_property_name": "(not (#tip_text = #preserved_text) and (('%.33s' * #tip_text) = 'geyseropt:astralrecord_quest_hud:'))",
-              "target_property_name": "#visible"
-            }
-          ]
-        }
+        "binding_name": "#tip_text",
+        "binding_condition": "always"
       },
+      {
+        "binding_name": "#tip_text",
+        "binding_name_override": "#preserved_text",
+        "binding_condition": "visibility_changed"
+      },
+      {
+        "binding_type": "view",
+        "source_property_name": "(not (#tip_text = #preserved_text) and (('%.33s' * #tip_text) = 'geyseropt:astralrecord_quest_hud:'))",
+        "target_property_name": "#visible"
+      }
+    ]
+  },
+  "frame": {
+    "type": "image",
+    "texture": "textures/ui/astralrecord/quest_hud_frame",
+    "size": [ 172, "$frame_height" ],
+    "anchor_from": "top_left",
+    "anchor_to": "top_left",
+    "offset": [ 4, 0 ],
+    "layer": 30,
+    "visible": false,
+    "clips_children": true,
+    "bindings": [
+      {
+        "binding_type": "view",
+        "source_control_name": "quest_data",
+        "resolve_sibling_scope": true,
+        "source_property_name": "(('%.36s' * #preserved_text) = $row_tip_prefix)",
+        "target_property_name": "#visible"
+      },
+      {
+        "binding_type": "view",
+        "source_control_name": "quest_data",
+        "resolve_sibling_scope": true,
+        "source_property_name": "(#preserved_text - $row_tip_prefix)",
+        "target_property_name": "#quest_text"
+      }
+    ],
+    "controls": [
       {
         "quest_text": {
           "type": "label",
           "anchor_from": "top_left",
           "anchor_to": "top_left",
-          "offset": [
-            8,
-            4
-          ],
-          "size": [
-            280,
-            24
-          ],
+          "offset": [ 4, 3 ],
+          "size": [ "100% - 8px", "100% - 6px" ],
           "layer": 31,
           "text": "#text",
           "text_alignment": "left",
+          "line_padding": 3,
           "shadow": true,
           "localize": false,
-          "visible": false,
           "bindings": [
             {
               "binding_type": "view",
-              "source_control_name": "quest_data",
+              "source_control_name": "$frame_name",
               "resolve_sibling_scope": true,
-              "source_property_name": "(#preserved_text - 'geyseropt:astralrecord_quest_hud:')",
+              "source_property_name": "#quest_text",
               "target_property_name": "#text"
-            },
-            {
-              "binding_type": "view",
-              "source_property_name": "(not (#text = '') and not (#text = ' '))",
-              "target_property_name": "#visible"
             }
           ]
         }
       }
-    ],
-    "clips_children": false
+    ]
   }
 }

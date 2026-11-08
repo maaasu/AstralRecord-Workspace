@@ -1,8 +1,10 @@
 package io.github.maaasu.astralRecord.feature.hud;
 
-/** サイドバーの効果件数とページ案内のメッセージIDです。 */
+/** HUDのプレイヤー向けメッセージIDです。 */
 public enum HudMsgId {
-    P_5660;
+    P_5660,
+    P_5661,
+    P_5662;
 
     /** @return player.propertiesの対応キー */
     public String getId() {

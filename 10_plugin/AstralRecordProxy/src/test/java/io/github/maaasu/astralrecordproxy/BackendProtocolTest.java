@@ -23,7 +23,7 @@ class BackendProtocolTest {
     /** 専用TIP経路へ不正な長さや末尾データを転送しないことを検証する。 */
     @Test
     void validatesQuestHudPacketBoundary() throws Exception {
-        for (String text : List.of(" ", "a\nb", "a".repeat(512))) {
+        for (String text : List.of(" ", "a\nb", "a\n".repeat(9) + "a", "a".repeat(512))) {
             byte[] valid = questHudPayload(text);
             assertEquals(text, assertInstanceOf(BackendProtocol.BedrockQuestHud.class,
                 BackendProtocol.decode(valid)).text());
@@ -34,7 +34,7 @@ class BackendProtocolTest {
         assertThrows(IOException.class, () -> BackendProtocol.decode(questHudPayload("a".repeat(513))));
         try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(
                 BackendProtocol.bedrockQuestHudReady()))) {
-            assertEquals("bedrock_quest_hud_ready", input.readUTF());
+            assertEquals("bedrock_quest_hud_v2_ready", input.readUTF());
             assertEquals(0, input.available());
         }
     }
@@ -42,7 +42,7 @@ class BackendProtocolTest {
     private static byte[] questHudPayload(String text) throws IOException {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (DataOutputStream output = new DataOutputStream(bytes)) {
-            output.writeUTF("bedrock_quest_hud");
+            output.writeUTF("bedrock_quest_hud_v2");
             output.writeUTF(text);
         }
         return bytes.toByteArray();

@@ -31,8 +31,8 @@ final class BackendProtocol {
     static final String COMBAT_REWARD_PLAQUE_TIMING_READY = "combat_reward_plaque_timing_ready";
     static final String COMBAT_REWARD_PLAQUE_WIDTH_READY = "combat_reward_plaque_width_ready";
     static final String ACTION_RING_HUD_READY = "action_ring_hud_ready";
-    static final String BEDROCK_QUEST_HUD = "bedrock_quest_hud";
-    static final String BEDROCK_QUEST_HUD_READY = "bedrock_quest_hud_ready";
+    static final String BEDROCK_QUEST_HUD = "bedrock_quest_hud_v2";
+    static final String BEDROCK_QUEST_HUD_READY = "bedrock_quest_hud_v2_ready";
     static final String BEDROCK_SKILL_MENU = "bedrock_skill_menu";
     static final String BEDROCK_SKILL_MENU_RESULT = "bedrock_skill_menu_result";
     static final int SKILL_MENU_NO_SELECTION = -1;
@@ -88,7 +88,7 @@ final class BackendProtocol {
                 }
                 case BEDROCK_SKILL_MENU -> readBedrockSkillMenu(input);
                 // 旧RPGが更新前に受け取った対応通知で送信を続けている場合は破棄する。
-                case "bedrock_profile_hud", "bedrock_profile_hud_images" -> Retired.INSTANCE;
+                case "bedrock_profile_hud", "bedrock_profile_hud_images", "bedrock_quest_hud" -> Retired.INSTANCE;
                 case PRIVATE_CHAT -> {
                     UUID playerId = UUID.fromString(input.readUTF());
                     String chatType = input.readUTF();

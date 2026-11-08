@@ -203,10 +203,12 @@ record DamagePack(
                     && present(zip.getEntry("textures/ui/purpleBorder.png"))
                     && hasVersionOne(zip, "item-tooltips-version.txt");
                 actionRingHudRevision = readActionRingHudRevision(zip);
-                questHud = hasVersionOne(zip, "quest-tracking-hud-version.txt")
+                questHud = hasVersion(zip, "quest-tracking-hud-version.txt", '2')
                     && present(zip.getEntry("ui/astralrecord_quest_hud.json"))
                     && present(zip.getEntry("ui/hud_screen.json"))
-                    && present(zip.getEntry("ui/_ui_defs.json"));
+                    && present(zip.getEntry("ui/_ui_defs.json"))
+                    && present(zip.getEntry("textures/ui/astralrecord/quest_hud_frame.png"))
+                    && present(zip.getEntry("textures/ui/astralrecord/quest_hud_frame.json"));
                 var catalog = ItemModel.read(zip);
                 itemModels = catalog.models();
                 heldWeaponModels = ItemModel.verifiedHeldWeaponModels(zip, catalog);

@@ -94,7 +94,7 @@ public final class ResourcePackRepository {
                     seleneaPresentation, itemTooltips, weaponAttackProjectiles, profileHud, skillEffects, combatRewardPlaque,
                     java.has("questTrackingHud") && java.get("questTrackingHud").isJsonPrimitive()
                         && java.get("questTrackingHud").getAsJsonPrimitive().isString()
-                        && "1".equals(java.get("questTrackingHud").getAsString()));
+                        && "2".equals(java.get("questTrackingHud").getAsString()));
             }
         } catch (RuntimeException exception) {
             throw new IOException("Invalid resource pack manifest", exception);

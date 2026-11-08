@@ -81,7 +81,7 @@ final class GeyserPackCapabilities {
     }
 
     static boolean hasQuestHud(UUID playerId) {
-        return supports(playerId, "hasQuestHud");
+        return supports(playerId, "hasQuestHudV2");
     }
 
     static boolean sendQuestHud(UUID playerId, String text) {
@@ -92,7 +92,7 @@ final class GeyserPackCapabilities {
         if (extension == null || !extension.isEnabled()) return false;
         try {
             return Boolean.TRUE.equals(extension.getClass()
-                .getMethod("sendQuestHud", UUID.class, String.class).invoke(extension, playerId, text));
+                .getMethod("sendQuestHudV2", UUID.class, String.class).invoke(extension, playerId, text));
         } catch (ReflectiveOperationException | LinkageError ignored) {
             return false;
         }

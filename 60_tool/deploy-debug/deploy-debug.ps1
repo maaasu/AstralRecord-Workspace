@@ -490,8 +490,8 @@ function Publish-ResourcePacks {
             $reader = [IO.StreamReader]::new($questEntry.Open())
             try { $questTrackingHud = $reader.ReadToEnd() }
             finally { $reader.Dispose() }
-            if ($questTrackingHud -cne '1') { throw 'Unsupported quest tracking HUD version.' }
-            foreach ($asset in @(
+            if ($questTrackingHud -cnotin @('1', '2')) { throw 'Unsupported quest tracking HUD version.' }
+            $questAssets = @(
                 'pack.mcmeta'
                 'assets/astralrecord/font/quest_hud.json'
                 'assets/astralrecord/font/quest_hud_space.json'
@@ -500,7 +500,11 @@ function Publish-ResourcePacks {
                 'quest_hud_84/assets/minecraft/shaders/core/rendertype_text.vsh'
                 'quest_hud_88/assets/minecraft/shaders/core/text.vsh'
                 'quest_hud_97/assets/minecraft/shaders/core/text.vsh'
-            )) {
+            )
+            if ($questTrackingHud -ceq '2') {
+                $questAssets += 'assets/astralrecord/textures/font/quest_hud_pixel.png'
+            }
+            foreach ($asset in $questAssets) {
                 $entry = $archive.GetEntry($asset)
                 if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing quest tracking HUD asset in Java pack: $asset" }
             }

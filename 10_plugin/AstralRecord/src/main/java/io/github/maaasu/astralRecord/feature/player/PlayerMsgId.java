@@ -795,6 +795,8 @@ public enum PlayerMsgId {
     P_5656(5656),
     P_5657(5657),
     P_5660(5660),
+    P_5661(5661),
+    P_5662(5662),
     // endregion
 
     // region /feature/mob 5700-5728
@@ -1540,6 +1542,11 @@ public enum PlayerMsgId {
     P_6607(6607),
     P_6608(6608),
     P_6609(6609),
+    P_6610(6610),
+    P_6611(6611),
+    P_6612(6612),
+    P_6613(6613),
+    P_6614(6614),
     // endregion
 
     // region common display labels 6700-6719

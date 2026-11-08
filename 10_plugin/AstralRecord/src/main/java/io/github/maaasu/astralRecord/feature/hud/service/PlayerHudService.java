@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.hud.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.hud.model.QuestHudLayout;
 import io.github.maaasu.astralRecord.feature.hud.view.PlayerHudView;
 import io.github.maaasu.astralRecord.feature.hud.view.QuestHudGlyphs;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
@@ -62,18 +63,33 @@ public class PlayerHudService {
     private DungeonService dungeonService;
     private QuestService questService;
     private java.util.function.BiPredicate<Player, String> bedrockQuestHudSender = (player, text) -> false;
+    private final Map<UUID, JavaQuestHud> javaQuestHuds = new HashMap<>();
     private final Map<UUID, String> bedrockQuestTexts = new HashMap<>();
     private final Map<UUID, Long> bedrockQuestSentAt = new HashMap<>();
 
     /** @param service インメモリの受領個体・進捗を参照するサービス */
     public void setQuestService(@NotNull QuestService service) {
         questService = service;
-        playerHudView.setQuestHudRenderer(player -> {
-            AstPlayer current = AstPlayerCache.get(player);
-            QuestService.TrackingText text = visibleTrackingText(current);
-            return text == null || !resourcePackService.hasJavaQuestHud(player.getUniqueId())
-                ? Component.empty() : QuestHudGlyphs.render(text.title(), text.objective());
-        });
+        playerHudView.setQuestHudRenderer(this::javaQuestHud);
+    }
+
+    private record JavaQuestHud(List<QuestHudLayout.Row> rows, Component component) {
+    }
+
+    private Component javaQuestHud(Player player) {
+        UUID id = player.getUniqueId();
+        List<QuestHudLayout.Row> rows = resourcePackService.hasJavaQuestHud(id)
+                ? visibleQuestRows(AstPlayerCache.get(player)) : List.of();
+        if (rows.isEmpty()) {
+            javaQuestHuds.remove(id);
+            return Component.empty();
+        }
+        JavaQuestHud cached = javaQuestHuds.get(id);
+        if (cached == null || !cached.rows().equals(rows)) {
+            cached = new JavaQuestHud(rows, QuestHudGlyphs.render(rows));
+            javaQuestHuds.put(id, cached);
+        }
+        return cached.component();
     }
 
     /** @param sender 対応パック確認済み統合版へ独立TIPデータを送る処理 */
@@ -81,11 +97,11 @@ public class PlayerHudService {
         bedrockQuestHudSender = sender;
     }
 
-    private @Nullable QuestService.TrackingText visibleTrackingText(@Nullable AstPlayer player) {
+    private List<QuestHudLayout.Row> visibleQuestRows(@Nullable AstPlayer player) {
         if (questService == null || player == null || !player.getAccount().getMode().shouldProcessGameplay()
             || bossChallengeService.isPlayerInActiveChallenge(player.getBukkit().getUniqueId())
-            || (dungeonService != null && dungeonService.isDungeonWorld(player.getBukkit().getWorld()))) return null;
-        return questService.trackingText(player);
+            || (dungeonService != null && dungeonService.isDungeonWorld(player.getBukkit().getWorld()))) return List.of();
+        return QuestHudLayout.rows(questService.hudQuests(player));
     }
 
     private void updateBedrockQuestHud(Player player, @Nullable AstPlayer astPlayer) {
@@ -95,10 +111,10 @@ public class PlayerHudService {
             bedrockQuestSentAt.remove(id);
             return;
         }
-        QuestService.TrackingText text = visibleTrackingText(astPlayer);
-        String payload = text == null ? " " : "§6" + text.title() + "\n§f" + text.objective();
+        List<QuestHudLayout.Row> rows = visibleQuestRows(astPlayer);
+        String payload = QuestHudLayout.bedrockText(rows);
         long now = System.currentTimeMillis();
-        boolean heartbeat = text != null && now - bedrockQuestSentAt.getOrDefault(id, 0L) >= 2000L;
+        boolean heartbeat = !rows.isEmpty() && now - bedrockQuestSentAt.getOrDefault(id, 0L) >= 2000L;
         if ((!payload.equals(bedrockQuestTexts.get(id)) || heartbeat) && bedrockQuestHudSender.test(player, payload)) {
             bedrockQuestTexts.put(id, payload);
             bedrockQuestSentAt.put(id, now);
@@ -213,6 +229,7 @@ public class PlayerHudService {
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (bedrockQuestTexts.containsKey(player.getUniqueId())) bedrockQuestHudSender.test(player, " ");
         }
+        javaQuestHuds.clear();
         bedrockQuestTexts.clear();
         bedrockQuestSentAt.clear();
         sidebarAccounts.clear();
@@ -530,6 +547,7 @@ public class PlayerHudService {
      */
     public void clearSidebarBuffPage(@NotNull UUID playerId) {
         sidebarAccounts.remove(playerId);
+        javaQuestHuds.remove(playerId);
         bedrockQuestTexts.remove(playerId);
         bedrockQuestSentAt.remove(playerId);
         playerHudView.clearBuffPage(playerId);
