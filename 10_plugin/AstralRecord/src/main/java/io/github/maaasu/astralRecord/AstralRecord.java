@@ -3127,7 +3127,8 @@ public final class AstralRecord extends JavaPlugin {
                 passiveSkillService,
                 orbService,
                 menuGuiTransitionService,
-                menuOpenEventHandler
+                menuOpenEventHandler,
+                fishingRodUseService::isHoldingLandedFish
             ),
             getServer().getPluginManager()
         );

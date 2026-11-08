@@ -9,6 +9,8 @@ public enum InputClaimPolicy {
      * 現在は候補なしのdispatch結果を表す既定方針として使用します。
      */
     PASS_THROUGH(false, false),
+    /** 元イベントだけを取り消し、同じ tick の後続入力は再評価します。 */
+    CANCEL_ONLY(false, true),
     /** 元イベントを処理済みとしてclaimしますが、cancelは要求しません。 */
     CLAIM(true, false),
     /** 元イベントを処理済みとしてclaimし、cancelも要求します。 */

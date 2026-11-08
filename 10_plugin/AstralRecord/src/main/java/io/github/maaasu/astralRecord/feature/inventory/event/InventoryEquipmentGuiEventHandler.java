@@ -42,6 +42,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
+import java.util.function.Predicate;
 
 public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
 
@@ -53,6 +54,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     private final OrbService orbService;
     private final MenuGuiTransitionService menuGuiTransitionService;
     private final MenuOpenEventHandler menuOpenEventHandler;
+    private final Predicate<Player> hotbarLocked;
 
     /**
      * 装備 GUI とプレイヤーインベントリ上の装備操作を処理するイベントハンドラーを生成します。
@@ -63,6 +65,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
      * @param statusService ステータス再計算サービス
      * @param passiveSkillService 装備由来パッシブの再同期サービス
      * @param menuOpenEventHandler クラフトスロットのショートカット再描画サービス
+     * @param hotbarLocked ホットバーの変更を一時的に拒否する判定
      */
     public InventoryEquipmentGuiEventHandler(
         @NotNull MenuView menuView,
@@ -72,7 +75,8 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         @NotNull PassiveSkillService passiveSkillService,
         @NotNull OrbService orbService,
         @NotNull MenuGuiTransitionService menuGuiTransitionService,
-        @NotNull MenuOpenEventHandler menuOpenEventHandler
+        @NotNull MenuOpenEventHandler menuOpenEventHandler,
+        @NotNull Predicate<Player> hotbarLocked
     ) {
         this.menuView = menuView;
         this.inventoryService = inventoryService;
@@ -82,6 +86,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         this.orbService = orbService;
         this.menuGuiTransitionService = menuGuiTransitionService;
         this.menuOpenEventHandler = menuOpenEventHandler;
+        this.hotbarLocked = hotbarLocked;
     }
 
     /**
@@ -92,7 +97,8 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         runSafely(() -> {
-            if (event.getWhoClicked() instanceof Player player && orbService.isLocked(player)) {
+            if (event.getWhoClicked() instanceof Player player
+                && (orbService.isLocked(player) || (hotbarLocked.test(player) && isHotbarClick(event)))) {
                 event.setCancelled(true);
                 return;
             }
@@ -113,6 +119,17 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             }
             handlePlayerInventoryClick(event);
         }, LogId.E_5601, event.getWhoClicked().getName(), "equipment_gui_click");
+    }
+
+    /**
+     * 選択スロットの変更や、数字キーを使うホットバーの入れ替えにつながる操作を判定します。
+     * @param event Bukkit のインベントリクリック
+     * @return ホットバーを操作する場合はtrue
+     */
+    private static boolean isHotbarClick(@NotNull InventoryClickEvent event) {
+        int slot = event.getSlot();
+        return event.getHotbarButton() >= 0
+            || (event.getClickedInventory() instanceof PlayerInventory && slot >= 0 && slot <= 8);
     }
 
     /**
@@ -149,11 +166,15 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
 
     /**
      * 装備 GUI 表示中にホットバー選択が変わった場合、メインスロット表示を更新します。
+     * 一時的に持ち替えを拒否する間は、後続の共通入力仲裁に任せて表示を更新しません。
      *
      * @param event Bukkit のホットバー選択変更イベント
      */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onPlayerItemHeld(PlayerItemHeldEvent event) {
+        if (hotbarLocked.test(event.getPlayer())) {
+            return;
+        }
         runSafely(() -> {
             if (orbService.handleHeldChange(event)) {
                 return;

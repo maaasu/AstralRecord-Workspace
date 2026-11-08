@@ -6,6 +6,7 @@ package io.github.maaasu.astralRecord.shared.interaction;
  */
 public final class InteractionCandidateOrder {
     public static final int GLOBAL_INPUT_LOCK = 0;
+    public static final int FISHING_HANGING_LOCK = 1;
     public static final int ADMIN_WORLD_TELEPORT_ITEM = 1;
     public static final int PLAYER_BLOCK_CLICK_GUARD = 2;
     public static final int BOSS_CONTROLLER = 10;

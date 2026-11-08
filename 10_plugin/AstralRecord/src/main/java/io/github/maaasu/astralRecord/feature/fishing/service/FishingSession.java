@@ -209,28 +209,26 @@ public final class FishingSession {
 
     /**
      * 魚を外した状態を確認します。
-     * @return 右クリックで魚を外し、陸上を逃走中の場合はtrue
+     * @return 右クリックまたは時間経過で魚を外し、陸上を逃走中の場合はtrue
      */
     public boolean isReleased() {
         return phase == Phase.RELEASED;
     }
 
     /**
-     * 釣り上げ済みの魚へ通常戦闘を行える状態かを返します。
-     * @return 吊り下げ中または取り外した後ならtrue。武器持ち替えも許可します
+     * 魚が針から外れる前の吊り下げ状態を判定します。
+     * @return 釣り上げが完了し、魚がまだ針に掛かっている場合はtrue
      */
-    public boolean isCombatPhase() {
-        return phase == Phase.HANGING || phase == Phase.RELEASED;
+    public boolean isHanging() {
+        return phase == Phase.HANGING;
     }
 
     /**
-     * リール操作と魚の取り外しに必要な入力だけを予約します。
-     * @param rightClick 右クリックならtrue
-     * @return 専用操作中ならtrue。釣り上げ後の攻撃入力は予約しません
+     * 魚が針に掛かる前後の専用操作に、左右クリックを予約します。
+     * @return 吊り下げ中を含め、魚が外れる前の進行中セッションの場合はtrue
      */
-    public boolean reservesInput(boolean rightClick) {
-        return phase != Phase.FINISHED && phase != Phase.RELEASED
-            && (phase != Phase.HANGING || rightClick);
+    public boolean reservesInput() {
+        return !isFinished() && !isReleased();
     }
 
     /**
@@ -263,17 +261,25 @@ public final class FishingSession {
         }
     }
 
-    /** 手動操作とマスタ時間経過を同じ取り外しに接続します。取り外すだけでは魚を削除しません。 */
+    /** 手動・時間経過で魚を外し、実魚を共通戦闘へ登録します。魚が既に失われていれば終了します。 */
     private void releaseFish() {
-        if (phase != Phase.HANGING || selected == null) return;
+        if (!isHanging()) return;
+        if (selected == null || !selected.entity.isValid() || selected.entity.isDead()) {
+            close();
+            return;
+        }
+        Location position = selected.entity.getLocation();
+        combatBounds = selected.entity.getBoundingBox().clone().shift(position.toVector().multiply(-1.0D));
+        escapeMotion = new FishingEscapeMotion(position, submergedHook, combatBounds,
+            selected.definition.landFleeSpeed(), selected.definition.hopSpeed());
+        combatHandle = mobService.fishingCombat().register(owner, selected.entity, selected.definition.name(),
+            selected.definition.maxHealth(), this::canReceiveCombatDamage, this::onCombatHealthChanged, this::onFishDefeated);
         phase = Phase.RELEASED;
         phaseTicks = 0;
         bar.setColor(BarColor.RED);
         bar.setTitle(bossTitle(FishingFeedback.text(FishingMsgId.HIT, healthLabel())));
         bar.setProgress(hp / combatMaxHealth);
         bar.setVisible(true);
-        escapeMotion = new FishingEscapeMotion(selected.entity.getLocation(), submergedHook, combatBounds,
-            selected.definition.landFleeSpeed(), selected.definition.hopSpeed());
         FishingFeedback.notify(owner, FishingMsgId.RELEASED);
     }
 
@@ -678,10 +684,6 @@ public final class FishingSession {
         if (phaseTicks >= rules.landingTicks()) {
             phase = Phase.HANGING;
             phaseTicks = 0;
-            combatBounds = selected.entity.getBoundingBox().clone()
-                .shift(selected.entity.getLocation().toVector().multiply(-1.0D));
-            combatHandle = mobService.fishingCombat().register(owner, selected.entity, selected.definition.name(), selected.definition.maxHealth(),
-                this::canReceiveCombatDamage, this::onCombatHealthChanged, this::onFishDefeated);
             bar.setTitle(bossTitle(FishingFeedback.text(FishingMsgId.HANGING,
                 String.format(Locale.ROOT, "%.1f", rules.hangingTicks() / 20.0))));
             bar.setColor(BarColor.YELLOW);
@@ -700,7 +702,6 @@ public final class FishingSession {
             selected.entity.teleport(position);
         }
         hook = selected.entity.getLocation();
-        combatHandle.syncLocation();
         int remaining = Math.max(0, rules.hangingTicks() - phaseTicks);
         bar.setProgress(remaining / (double) rules.hangingTicks());
         if (phaseTicks % 5 == 0) {
@@ -734,14 +735,13 @@ public final class FishingSession {
         if (step.bounced()) world.playSound(hook, Sound.ENTITY_COD_FLOP, SoundCategory.NEUTRAL, 0.8F, 1.0F);
     }
 
-    /** @return 吊り下げ中、または取り外し後にまだ接水していない実魚ならtrue。攻撃直前にも確認します */
+    /** @return 取り外し後にまだ接水していない有効な実魚ならtrue。攻撃直前にも確認します */
     private boolean canReceiveCombatDamage() {
-        return isCombatPhase() && selected != null && selected.entity.isValid()
+        return isReleased() && selected != null && selected.entity.isValid()
             && player.isOnline() && !player.isDead()
             && owner.getAccount().getMode() == AccountMode.PLAYER
             && player.getWorld() == world && selected.entity.getWorld() == world
-            && (phase != Phase.RELEASED
-                || !FishingEscapeMotion.touchesWater(selected.entity.getLocation(), combatBounds));
+            && !FishingEscapeMotion.touchesWater(selected.entity.getLocation(), combatBounds);
     }
 
     /**
@@ -749,12 +749,10 @@ public final class FishingSession {
      * @param remaining 共通戦闘が確定した残HP。ダメージは再計算しません
      */
     private void onCombatHealthChanged(double remaining) {
-        if (!isCombatPhase()) return;
+        if (!isReleased()) return;
         hp = Math.max(0.0D, Math.min(combatMaxHealth, remaining));
-        if (isReleased()) {
-            bar.setTitle(bossTitle(FishingFeedback.text(FishingMsgId.HIT, healthLabel())));
-            bar.setProgress(hp / combatMaxHealth);
-        }
+        bar.setTitle(bossTitle(FishingFeedback.text(FishingMsgId.HIT, healthLabel())));
+        bar.setProgress(hp / combatMaxHealth);
         if (hp > 0.0D) {
             world.playSound(selected.entity.getLocation(), Sound.ENTITY_COD_HURT, SoundCategory.NEUTRAL, 0.8F, 1.0F);
         }

@@ -139,16 +139,29 @@ public final class FishingRodUseService {
     /**
      * 釣り専用の入力として扱う状態かを返します。
      * @param player 操作プレイヤー
-     * @param rightClick 右クリックならtrue
-     * @return リール操作または吊り下げ中の取り外し操作を占有する場合true
+     * @return 魚が外れるまで左右クリックを占有する場合true
      */
-    public boolean reservesFishingInput(@NotNull AstPlayer player, boolean rightClick) {
+    public boolean reservesFishingInput(@NotNull AstPlayer player) {
         ActiveCast active = activeCasts.get(player.getBukkit().getUniqueId());
-        return active != null && active.fishing != null && active.fishing.reservesInput(rightClick);
+        return active != null && active.fishing != null && active.fishing.reservesInput();
     }
 
     /**
-     * リール操作中の左クリックを巻き取りへ接続します。通常攻撃には介入しません。
+     * プレイヤーが釣り上げた魚を吊り下げている間かを確認します。メインスレッドから呼びます。
+     * @param player 操作プレイヤー
+     * @return プレイヤーモードで、魚をまだ針から外していない場合true
+     */
+    public boolean isHoldingLandedFish(@NotNull Player player) {
+        ActiveCast active = activeCasts.get(player.getUniqueId());
+        if (active == null || active.fishing == null || !active.fishing.isHanging()) {
+            return false;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return astPlayer != null && astPlayer.getAccount().getMode() == AccountMode.PLAYER;
+    }
+
+    /**
+     * リール操作中の左クリックを巻き取りへ接続します。吊り下げ中は巻き取りを行いません。
      * @param player 所有プレイヤー
      */
     public void fishingLeftClick(@NotNull AstPlayer player) {
@@ -168,7 +181,7 @@ public final class FishingRodUseService {
     public void fishingRightClick(@NotNull AstPlayer player) {
         ActiveCast active = activeCasts.get(player.getBukkit().getUniqueId());
         if (active != null && active.fishing != null
-            && (active.fishing.isCombatPhase() || isCurrentFishingRod(player, active.equipmentInstanceId))) {
+            && (active.fishing.isHanging() || isCurrentFishingRod(player, active.equipmentInstanceId))) {
             if (!active.fishing.isTaut() && !active.fishing.isReleased()) {
                 active.fishing.close();
                 active.fishing = null;
@@ -176,7 +189,12 @@ public final class FishingRodUseService {
                 retract(player);
                 return;
             }
-            active.fishing.rightClick();
+            try {
+                active.fishing.rightClick();
+            } catch (RuntimeException exception) {
+                cancel(player.getBukkit().getUniqueId());
+                throw exception;
+            }
         }
     }
 
@@ -390,7 +408,7 @@ public final class FishingRodUseService {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null
             || astPlayer.getAccount().getMode() != AccountMode.PLAYER
-            || (!(active.fishing != null && active.fishing.isCombatPhase())
+            || (!(active.fishing != null && active.fishing.isReleased())
                 && !isCurrentFishingRod(astPlayer, active.equipmentInstanceId))
             || !player.getWorld().equals(active.currentHook.getWorld())) {
             cancel(playerId);
