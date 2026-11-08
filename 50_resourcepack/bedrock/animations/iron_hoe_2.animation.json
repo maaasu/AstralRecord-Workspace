@@ -42,9 +42,9 @@
       "bones": {
         "grip": {
           "rotation": [
-            82,
-            0,
-            -9
+            90,
+            8,
+            81
           ],
           "position": [
             0,

@@ -196,12 +196,12 @@
 	],
 	"display": {
 		"thirdperson_righthand": {
-			"rotation": [0, -67, 10],
+			"rotation": [0, 113, -10],
 			"translation": [0, -0.8328, 1.4742],
 			"scale": [0.92, 0.92, 0.92]
 		},
 		"thirdperson_lefthand": {
-			"rotation": [0, 67, -10],
+			"rotation": [0, -113, 10],
 			"translation": [0, -0.8328, 1.4742],
 			"scale": [0.92, 0.92, 0.92]
 		},

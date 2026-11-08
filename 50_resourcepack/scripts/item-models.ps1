@@ -39,7 +39,7 @@ function Get-ItemModelRegistry {
     $ids = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     $models = [System.Collections.Generic.SortedDictionary[int, object]]::new()
     foreach ($item in $registry.items) {
-        $properties = @('id', 'base_item', 'custom_model_data', 'java_virtual_trident', 'grip', 'render_mode', 'max_stack_size')
+        $properties = @('id', 'base_item', 'custom_model_data', 'java_virtual_trident', 'grip', 'render_mode', 'max_stack_size', 'java_gui_sprite')
         $unknown = @($item.PSObject.Properties.Name | Where-Object { $_ -cnotin $properties })
         if ($unknown.Count -gt 0) {
             throw "Unrecognized item model fields: $($unknown -join ', ')"
@@ -69,6 +69,10 @@ function Get-ItemModelRegistry {
             throw "grip for $($item.id) must contain three model coordinates."
         }
         $generated = Test-GeneratedItemModel $item
+        if ($item.PSObject.Properties.Name -ccontains 'java_gui_sprite' -and
+            ($item.java_gui_sprite -isnot [bool] -or ($item.java_gui_sprite -and $generated))) {
+            throw "java_gui_sprite for $($item.id) must be a boolean and requires a 3D model when enabled."
+        }
         if ($item.PSObject.Properties.Name -ccontains 'max_stack_size') {
             $stack = $item.max_stack_size
             if (!$generated -or ($stack -isnot [int] -and $stack -isnot [long]) -or $stack -lt 1 -or $stack -gt 64) {
@@ -360,6 +364,21 @@ function Add-ItemModelEntries {
                 property = 'minecraft:using_item'
                 on_false = $rest
                 on_true = New-JavaModelReference "astralrecord:item/custom/${id}_blocking"
+            }
+        }
+        if ($item.java_gui_sprite) {
+            # Both editions use the same inventory sprite. All other contexts retain their model selection.
+            $gui = "${id}_gui"
+            $JavaEntries.Add("assets/astralrecord/textures/item/custom/$gui.png", $BedrockEntries["textures/items/$id.png"])
+            Add-PackJson $JavaEntries "assets/astralrecord/models/item/custom/$gui.json" ([ordered] @{
+                parent = 'minecraft:item/generated'
+                textures = [ordered] @{ layer0 = "astralrecord:item/custom/$gui" }
+            })
+            $model = [ordered] @{
+                type = 'minecraft:select'
+                property = 'minecraft:display_context'
+                cases = @([ordered] @{ when = 'gui'; model = (New-JavaModelReference "astralrecord:item/custom/$gui") })
+                fallback = $model
             }
         }
         if (!$byBase.ContainsKey($base)) {
