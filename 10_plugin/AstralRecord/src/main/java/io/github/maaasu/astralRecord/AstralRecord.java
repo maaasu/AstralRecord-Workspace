@@ -1634,6 +1634,7 @@ public final class AstralRecord extends JavaPlugin {
             statusService,
             resourcePackService
         );
+        inventoryService.setHotbarSlotLock(fishingRodUseService::isHoldingLandedFish);
         buffAcquisitionDisplayService = new BuffAcquisitionDisplayService(displayTextService);
         potionUseService = new PotionUseService(
             movementCancelableWaitService,
@@ -3127,8 +3128,7 @@ public final class AstralRecord extends JavaPlugin {
                 passiveSkillService,
                 orbService,
                 menuGuiTransitionService,
-                menuOpenEventHandler,
-                fishingRodUseService::isHoldingLandedFish
+                menuOpenEventHandler
             ),
             getServer().getPluginManager()
         );

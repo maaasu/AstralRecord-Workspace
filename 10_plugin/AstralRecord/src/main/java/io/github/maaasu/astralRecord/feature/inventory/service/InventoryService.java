@@ -82,6 +82,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -132,6 +133,7 @@ public class InventoryService {
     private final Map<UUID, Map<String, Integer>> equippedSetCountsByAccount = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> equippedMainHandSlotByAccount = new ConcurrentHashMap<>();
     private final InventoryClickGuard clickGuard = new InventoryClickGuard();
+    private Predicate<Player> hotbarSlotLock = player -> false;
     /**
      * 合成などで消費確定までプレイヤー GUI だけから予約する inventory entry 数です。
      *
@@ -6109,7 +6111,24 @@ public class InventoryService {
     }
 
     /**
-     * ホットバースロットのクリックを処理します。
+     * ホットバーの選択や内容変更を一時的に止める判定を起動時に接続します。
+     * @param lock メインスレッドで判定する操作制限
+     */
+    public void setHotbarSlotLock(@NotNull Predicate<Player> lock) {
+        hotbarSlotLock = Objects.requireNonNull(lock, "lock");
+    }
+
+    /**
+     * ホットバーを操作できない状態かをメインスレッドで判定します。
+     * @param player 操作対象のプレイヤー
+     * @return ホットバー操作を一時的に拒否する場合はtrue
+     */
+    public boolean isHotbarSlotLocked(@NotNull Player player) {
+        return hotbarSlotLock.test(player);
+    }
+
+    /**
+     * ホットバースロットのクリックを処理します。制限中は主手スロットを変更しません。
      * <p>
      * オフハンドに HOTBAR entry がない場合でも、実際に管理中の装備があれば
      * 所有インベントリへ返却します。返却に失敗した場合は、実オフハンドを変更しません。
@@ -6120,7 +6139,8 @@ public class InventoryService {
      * @return クリックを状態へ反映できた場合は true
      */
     public boolean handleHotbarSlotClick(@NotNull AstPlayer astPlayer, int hotbarSlotIndex) {
-        if (!HotbarLayout.isManagedSlot(hotbarSlotIndex)) {
+        if (!HotbarLayout.isManagedSlot(hotbarSlotIndex)
+            || HotbarLayout.isMainHotbarSlot(hotbarSlotIndex) && isHotbarSlotLocked(astPlayer.getBukkit())) {
             return false;
         }
         if (!astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {

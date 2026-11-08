@@ -37,8 +37,7 @@ class InventoryEquipmentGuiEventHandlerTest {
             mock(PassiveSkillService.class),
             mock(OrbService.class),
             mock(MenuGuiTransitionService.class),
-            mock(MenuOpenEventHandler.class),
-            player -> false
+            mock(MenuOpenEventHandler.class)
         );
 
         handler.onPlayerSwapHandItems(event);
@@ -64,8 +63,7 @@ class InventoryEquipmentGuiEventHandlerTest {
             mock(PassiveSkillService.class),
             orbService,
             mock(MenuGuiTransitionService.class),
-            mock(MenuOpenEventHandler.class),
-            ignored -> false
+            mock(MenuOpenEventHandler.class)
         );
         Player player = mock(Player.class);
         InventoryView view = mock(InventoryView.class);
