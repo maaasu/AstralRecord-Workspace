@@ -421,6 +421,7 @@ function Publish-ResourcePacks {
     $weaponAttackProjectiles = $null
     $skillEffects = $null
     $combatRewardPlaque = $null
+    $receptionDisplay = $null
     $profileHud = $null
     $questTrackingHud = $null
     $wideCombatMeter = $null
@@ -464,6 +465,25 @@ function Publish-ResourcePacks {
             foreach ($asset in $plaqueAssets) {
                 $entry = $archive.GetEntry($asset)
                 if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing combat reward plaque asset in Java pack: $asset" }
+            }
+        }
+
+        $receptionEntry = $archive.GetEntry('reception-display-version.txt')
+        if ($null -ne $receptionEntry) {
+            if ($receptionEntry.Length -ne 1) { throw 'Invalid reception display version marker.' }
+            $reader = [IO.StreamReader]::new($receptionEntry.Open())
+            try { $receptionDisplay = $reader.ReadToEnd() }
+            finally { $reader.Dispose() }
+            if ($receptionDisplay -cne '1') { throw 'Unsupported reception display version.' }
+            foreach ($name in @('boss_reception_altar', 'dungeon_reception_gate')) {
+                foreach ($asset in @(
+                    "assets/astralrecord/items/$name.json"
+                    "assets/astralrecord/models/world/$name.json"
+                    "assets/astralrecord/textures/item/world/$name.png"
+                )) {
+                    $entry = $archive.GetEntry($asset)
+                    if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing reception display asset in Java pack: $asset" }
+                }
             }
         }
 
@@ -678,6 +698,9 @@ function Publish-ResourcePacks {
     }
     if ($null -ne $combatRewardPlaque) {
         $javaManifest.combatRewardPlaque = $combatRewardPlaque
+    }
+    if ($null -ne $receptionDisplay) {
+        $javaManifest.receptionDisplay = $receptionDisplay
     }
     if ($null -ne $seleneaPresentation) {
         $javaManifest.seleneaPresentation = $seleneaPresentation

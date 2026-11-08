@@ -92,6 +92,12 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 
 対応パックを登録できない接続では、ウェイストーンに名称と状態色の粒子を表示し、施設NPCは従来の表示を Geyser に渡します。従来の施設モデルの描画は GeyserDisplayEntity の設定に従います。対応パックの接続では施設NPCの従来表示を抑止し、専用モデルを使います。NPC の操作判定は RPG の `Interaction` が担当します。
 
+## Bedrockのボス・ダンジョン受付
+
+拡張 `1.25.0` 以降は、互換版 `1` の `reception-display-version.txt` と受付用のエンティティ定義・形状・レンダーコントローラー・アニメーション・両方のテクスチャが揃ったパックを登録してログインした接続で、RPG の演出用 TextDisplay を `astralrecord:reception_display` に変換します。専用プロパティでボス受付の祭壇とダンジョン受付の門を切り替え、RPG が指定した方角に向けます。
+
+受付名と操作案内は通常の TextDisplay で表示し、操作判定は RPG が担当します。対応パックが揃わない接続や強制配布が無効な環境では受付名と操作案内を表示します。導入後は Proxy を再起動し、統合版クライアントを再接続してください。
+
 ## Bedrockのアイテムモデル
 
 拡張 `1.3.0` 以降は、起動時に検証済みBedrockパックのルートにある `astralrecord_item_models.json` を読み、`GeyserDefineCustomItemsEvent` でモデルを登録する。カタログを含むパックでは、同名のアーカイブ項目がないこと、各モデルのアイコンとアトラスの対応、アタッチャブル・ジオメトリ・アニメーション・テクスチャのファイルが揃うことを検証する。Java側の基本素材と `minecraft:custom_model_data` の先頭floatが一致したアイテムを、Bedrock側の `astralrecord:<id>` に変換する。モデル定義を含むパックをAPIで公開してからProxyを起動し、Bedrockクライアントを再接続する。

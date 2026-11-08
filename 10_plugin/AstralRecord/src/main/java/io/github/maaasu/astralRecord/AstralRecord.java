@@ -461,6 +461,7 @@ import io.github.maaasu.astralRecord.shared.challenge.ChallengeParticipationRegi
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingHubArrivalGuard;
 import io.github.maaasu.astralRecord.shared.display.OverheadDisplayService;
 import io.github.maaasu.astralRecord.shared.display.PlayerTeleportDisplayEventHandler;
+import io.github.maaasu.astralRecord.shared.display.ReceptionModelView;
 import io.github.maaasu.astralRecord.shared.effect.InvulnerabilityVisualService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionGatewayEventHandler;
@@ -1782,6 +1783,8 @@ public final class AstralRecord extends JavaPlugin {
                 InstanceCreationQueueConfig.from(getConfig());
         ChallengeParticipationRegistry challengeParticipationRegistry = new ChallengeParticipationRegistry();
         arrivalGuard = new ChallengeWaitingHubArrivalGuard();
+        var receptionModelView = new ReceptionModelView(resourcePackService);
+        getServer().getPluginManager().registerEvents(receptionModelView, this);
         bossChallengeService = new BossChallengeService(
             this,
             mobService,
@@ -1789,7 +1792,7 @@ public final class AstralRecord extends JavaPlugin {
             partyService,
             playerMessageService,
             bossFieldInstanceService,
-            particleDisplayService,
+            receptionModelView,
             displayTextService,
             playerDeathService,
             bossHubWorldId,
@@ -1810,6 +1813,7 @@ public final class AstralRecord extends JavaPlugin {
             playerMessageService,
             particleDisplayService,
             displayTextService,
+            receptionModelView,
             playerDeathService,
             new MobDropService(lootService),
             inventoryService,

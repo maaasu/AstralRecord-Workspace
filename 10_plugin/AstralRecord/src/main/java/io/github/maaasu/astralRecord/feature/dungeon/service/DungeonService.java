@@ -79,6 +79,7 @@ import io.github.maaasu.astralRecord.shared.display.CombatRewardPlaque;
 import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
+import io.github.maaasu.astralRecord.shared.display.ReceptionModelView;
 import io.github.maaasu.astralRecord.shared.effect.InvulnerabilityVisualService;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
@@ -143,7 +144,7 @@ public final class DungeonService {
     private static final long CARTOGRAPH_MAP_UPDATE_PERIOD_TICKS = 4L;
     private static final long ROOM_BOSS_BAR_UPDATE_PERIOD_TICKS = 5L;
     private static final long MOB_RETURN_SEARCH_RETRY_TICKS = 20L;
-    private static final int ENTRY_FRAME_POINTS = 39;
+    private static final double ENTRY_PROMPT_Y_OFFSET = 3.2D;
     private static final double ENTRY_VIEW_DISTANCE_SQUARED = 48.0D * 48.0D;
     private static final long CLEAR_RETURN_DELAY_TICKS = 30L * 20L;
     private static final long END_RETRY_DELAY_TICKS = 5L * 20L;
@@ -167,6 +168,7 @@ public final class DungeonService {
     private final ParticleDisplayService particleDisplayService;
     private final DungeonGateReleaseService gateReleaseService;
     private final DisplayTextService displayTextService;
+    private final ReceptionModelView receptionModelView;
     private final PlayerDeathService playerDeathService;
     private final MobDropService mobDropService;
     private final InventoryService inventoryService;
@@ -205,7 +207,7 @@ public final class DungeonService {
     private final Map<UUID, Long> nextMobReturnSearchTick = new HashMap<>();
     private final Map<UUID, DungeonCancelController> cancelControllers = new HashMap<>();
     private final Map<UUID, UUID> sessionIdByCancelInteraction = new HashMap<>();
-    private final Map<String, DisplayTextService.ManagedTextDisplay> entryPromptDisplays = new HashMap<>();
+    private final Map<String, EntryPromptDisplay> entryPromptDisplays = new HashMap<>();
     private final Map<UUID, List<DungeonArchiveGui.ArchiveDungeon>> archiveByAccount = new HashMap<>();
     private final Set<UUID> loadedArchiveAccounts = new HashSet<>();
     private final Set<UUID> loadingArchiveAccounts = new HashSet<>();
@@ -213,7 +215,6 @@ public final class DungeonService {
     private BukkitTask dungeonMobPositionTask;
     private BukkitTask cartographMapTask;
     private long mobPositionTick;
-    private long entryVisualFrame;
     private boolean stopping;
 
     /**
@@ -227,6 +228,7 @@ public final class DungeonService {
      * @param messageService プレイヤーメッセージサービス
      * @param particleDisplayService パーティクル表示サービス
      * @param displayTextService TextDisplay 管理サービス
+     * @param receptionModelView 受付モデルの描画サービス
      * @param playerDeathService 死亡・復帰サービス
      * @param mobDropService クリア報酬抽選サービス
      * @param inventoryService 報酬付与先インベントリ
@@ -246,6 +248,7 @@ public final class DungeonService {
             @NotNull PlayerMessageService messageService,
             @NotNull ParticleDisplayService particleDisplayService,
             @NotNull DisplayTextService displayTextService,
+            @NotNull ReceptionModelView receptionModelView,
             @NotNull PlayerDeathService playerDeathService,
             @NotNull MobDropService mobDropService,
             @NotNull InventoryService inventoryService,
@@ -265,6 +268,7 @@ public final class DungeonService {
                 messageService,
                 particleDisplayService,
                 displayTextService,
+            receptionModelView,
                 playerDeathService,
                 mobDropService,
                 inventoryService,
@@ -291,6 +295,7 @@ public final class DungeonService {
      * @param messageService プレイヤーメッセージサービス
      * @param particleDisplayService パーティクル表示サービス
      * @param displayTextService TextDisplay サービス
+     * @param receptionModelView 受付モデルの描画サービス
      * @param playerDeathService 死亡・復帰サービス
      * @param mobDropService クリア報酬抽選サービス
      * @param inventoryService 報酬付与先インベントリ
@@ -312,6 +317,7 @@ public final class DungeonService {
             @NotNull PlayerMessageService messageService,
             @NotNull ParticleDisplayService particleDisplayService,
             @NotNull DisplayTextService displayTextService,
+            @NotNull ReceptionModelView receptionModelView,
             @NotNull PlayerDeathService playerDeathService,
             @NotNull MobDropService mobDropService,
             @NotNull InventoryService inventoryService,
@@ -333,6 +339,7 @@ public final class DungeonService {
                 messageService,
                 particleDisplayService,
                 displayTextService,
+            receptionModelView,
                 playerDeathService,
                 mobDropService,
                 inventoryService,
@@ -359,6 +366,7 @@ public final class DungeonService {
      * @param messageService プレイヤーメッセージサービス
      * @param particleDisplayService パーティクル表示サービス
      * @param displayTextService TextDisplay サービス
+     * @param receptionModelView 受付モデルの描画サービス
      * @param playerDeathService 死亡・復帰サービス
      * @param mobDropService クリア報酬抽選サービス
      * @param inventoryService 報酬付与先インベントリ
@@ -381,6 +389,7 @@ public final class DungeonService {
             @NotNull PlayerMessageService messageService,
             @NotNull ParticleDisplayService particleDisplayService,
             @NotNull DisplayTextService displayTextService,
+            @NotNull ReceptionModelView receptionModelView,
             @NotNull PlayerDeathService playerDeathService,
             @NotNull MobDropService mobDropService,
             @NotNull InventoryService inventoryService,
@@ -408,6 +417,7 @@ public final class DungeonService {
         this.particleDisplayService = particleDisplayService;
         this.gateReleaseService = new DungeonGateReleaseService(particleDisplayService);
         this.displayTextService = displayTextService;
+        this.receptionModelView = receptionModelView;
         this.playerDeathService = playerDeathService;
         this.mobDropService = mobDropService;
         this.inventoryService = inventoryService;
@@ -440,6 +450,7 @@ public final class DungeonService {
      * @param messageService プレイヤーメッセージサービス
      * @param particleDisplayService パーティクル表示サービス
      * @param displayTextService TextDisplay 管理サービス
+     * @param receptionModelView 受付モデルの描画サービス
      * @param playerDeathService 死亡・復帰サービス
      * @param mobDropService クリア報酬抽選サービス
      * @param inventoryService 報酬付与先インベントリ
@@ -460,6 +471,7 @@ public final class DungeonService {
             @NotNull PlayerMessageService messageService,
             @NotNull ParticleDisplayService particleDisplayService,
             @NotNull DisplayTextService displayTextService,
+            @NotNull ReceptionModelView receptionModelView,
             @NotNull PlayerDeathService playerDeathService,
             @NotNull MobDropService mobDropService,
             @NotNull InventoryService inventoryService,
@@ -480,6 +492,7 @@ public final class DungeonService {
                 messageService,
                 particleDisplayService,
                 displayTextService,
+            receptionModelView,
                 playerDeathService,
                 mobDropService,
                 inventoryService,
@@ -622,6 +635,7 @@ public final class DungeonService {
             entryVisualTask.cancel();
         }
         clearEntryPromptDisplays();
+        receptionModelView.retain(ReceptionModelView.Kind.DUNGEON, Set.of());
         entryVisualTask = Bukkit.getScheduler().runTaskTimer(
                 plugin,
                 this::tickEntryVisuals,
@@ -4674,6 +4688,7 @@ public final class DungeonService {
         }
         cartographHeldMap.stop();
         clearEntryPromptDisplays();
+        receptionModelView.retain(ReceptionModelView.Kind.DUNGEON, Set.of());
         for (InstanceCreationQueue.Ticket ticket : creationQueue.waitingTickets()) {
             clearQueueTitles(ticket.participantIds());
         }
@@ -5094,7 +5109,6 @@ public final class DungeonService {
     private void tickEntryVisuals() {
         refreshWaitingSessions();
         refreshCreationQueue();
-        double pulse = 0.08D * Math.sin(entryVisualFrame * 0.35D);
         Set<String> activePromptIds = new HashSet<>();
         for (LoadedDefinition loaded : loadedDefinitions.values()) {
             World world = worldService.resolveLoadedWorld(loaded.entryWorldData());
@@ -5103,26 +5117,20 @@ public final class DungeonService {
             }
             DungeonDefinition.Entry entry = loaded.definition().entry();
             Location center = entryLocation(entry, world);
-            if (world.getPlayers().stream().noneMatch(player ->
-                    player.getLocation().distanceSquared(center) <= ENTRY_VIEW_DISTANCE_SQUARED)) {
+            List<Player> nearby = world.getPlayers().stream()
+                    .filter(player -> player.getLocation().distanceSquared(center) <= ENTRY_VIEW_DISTANCE_SQUARED)
+                    .toList();
+            if (nearby.isEmpty()) {
                 continue;
             }
-            List<Location> frame = dungeonGateFrame(center, Math.max(0.9D, entry.radius() * 0.65D), pulse);
-            particleDisplayService.spawnForNearbyViewers(
-                    center,
-                    frame,
-                    SharedParticleDefinitions.DUNGEON_ENTRY_FRAME_DUST
-            );
-            particleDisplayService.spawnForNearbyViewers(
-                    center.clone().add(0.0D, 1.25D, 0.0D),
-                    SharedParticleDefinitions.DUNGEON_ENTRY_PORTAL
-            );
+            receptionModelView.sync(ReceptionModelView.Kind.DUNGEON, loaded.definition().id(), center, nearby);
             updateEntryPrompt(loaded, center);
             activePromptIds.add(loaded.definition().id());
         }
+        receptionModelView.retain(ReceptionModelView.Kind.DUNGEON, activePromptIds);
         for (String id : List.copyOf(entryPromptDisplays.keySet())) {
             if (!activePromptIds.contains(id)) {
-                entryPromptDisplays.remove(id).destroy();
+                entryPromptDisplays.remove(id).display().destroy();
             }
         }
         for (Session session : sessionsById.values()) {
@@ -5133,7 +5141,6 @@ public final class DungeonService {
                     SharedParticleDefinitions.DUNGEON_ENTRY_PORTAL
             );
         }
-        entryVisualFrame++;
     }
 
     /** 待機中DungeonのHub滞在を確認し、順番表示を更新します。 */
@@ -5223,57 +5230,33 @@ public final class DungeonService {
         }
     }
 
+    /**
+     * 受付案内を作成し、定義の座標または本文が更新された場合は表示へ反映します。
+     * @param loaded 受付の読込済み定義
+     * @param center 受付中心
+     */
     private void updateEntryPrompt(@NotNull LoadedDefinition loaded, @NotNull Location center) {
         String id = loaded.definition().id();
         String text = DungeonEntryText.render(loaded.definition());
-        if (entryPromptDisplays.containsKey(id)) return;
-        entryPromptDisplays.put(id, displayTextService.create(
-                DisplayAnchor.fixed(center.clone().add(0.0D, 2.8D, 0.0D)),
+        Location location = center.clone().add(0.0D, ENTRY_PROMPT_Y_OFFSET, 0.0D);
+        EntryPromptDisplay previous = entryPromptDisplays.get(id);
+        if (previous != null) {
+            if (previous.location().equals(location) && previous.text().equals(text)) return;
+            previous.display().destroy();
+        }
+        var display = displayTextService.create(
+                DisplayAnchor.fixed(location),
                 DisplayTextOptions.defaults(text).withLineWidth(300).withViewRange(48.0F).withShadowed(true)
-        ));
+        );
+        entryPromptDisplays.put(id, new EntryPromptDisplay(location, text, display));
     }
 
     private void clearEntryPromptDisplays() {
-        for (DisplayTextService.ManagedTextDisplay display : entryPromptDisplays.values()) display.destroy();
+        for (EntryPromptDisplay prompt : entryPromptDisplays.values()) prompt.display().destroy();
         entryPromptDisplays.clear();
     }
 
-    /**
-     * Boss の円環と区別できる門型パーティクルを最大密度向け候補点で生成します。
-     *
-     * @param center 受付中心と向き
-     * @param halfWidth 門の半幅
-     * @param pulse 現在フレームの上下変位
-     * @return 左右の柱と上辺を構成する座標
-     */
-    private @NotNull List<Location> dungeonGateFrame(
-            @NotNull Location center,
-            double halfWidth,
-            double pulse
-    ) {
-        List<Location> points = new ArrayList<>(ENTRY_FRAME_POINTS);
-        double yaw = Math.toRadians(center.getYaw());
-        double rightX = Math.cos(yaw);
-        double rightZ = Math.sin(yaw);
-        for (int side : List.of(-1, 1)) {
-            for (int i = 0; i <= 12; i++) {
-                points.add(center.clone().add(
-                        rightX * halfWidth * side,
-                        0.2D + (i * 0.19D) + pulse,
-                        rightZ * halfWidth * side
-                ));
-            }
-        }
-        for (int i = 0; i <= 12; i++) {
-            double offset = -halfWidth + ((halfWidth * 2.0D * i) / 12.0D);
-            points.add(center.clone().add(
-                    rightX * offset,
-                    2.48D + pulse,
-                    rightZ * offset
-            ));
-        }
-        return points;
-    }
+    private record EntryPromptDisplay(Location location, String text, DisplayTextService.ManagedTextDisplay display) { }
 
     /**
      * マスタの受付座標を指定 Bukkit World 上の Location へ変換します。

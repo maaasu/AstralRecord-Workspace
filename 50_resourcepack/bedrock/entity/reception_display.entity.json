@@ -1,0 +1,31 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "astralrecord:reception_display",
+      "materials": {
+        "default": "entity_alphatest",
+        "emissive": "entity_emissive_alpha"
+      },
+      "textures": {
+        "style_0": "textures/entity/world/boss_reception_altar",
+        "style_1": "textures/entity/world/dungeon_reception_gate"
+      },
+      "geometry": {
+        "style_0": "geometry.astralrecord.boss_reception_altar",
+        "style_1": "geometry.astralrecord.dungeon_reception_gate"
+      },
+      "animations": {
+        "orient": "animation.astralrecord.reception_display.orient"
+      },
+      "scripts": {
+        "animate": [
+          "orient"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.astralrecord.reception_display"
+      ]
+    }
+  }
+}

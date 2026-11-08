@@ -91,6 +91,13 @@ $java = Read-PackEntries $root @(
     'selenea-presentation-version.txt'
     'combat-reward-plaque-version.txt'
     'fishing-visuals-version.txt'
+    'reception-display-version.txt'
+    'assets/astralrecord/items/boss_reception_altar.json'
+    'assets/astralrecord/items/dungeon_reception_gate.json'
+    'assets/astralrecord/models/world/boss_reception_altar.json'
+    'assets/astralrecord/models/world/dungeon_reception_gate.json'
+    'assets/astralrecord/textures/item/world/boss_reception_altar.png'
+    'assets/astralrecord/textures/item/world/dungeon_reception_gate.png'
     'assets/astralrecord/font/damage_number.json'
     'assets/astralrecord/textures/font/damage_number.png'
     'assets/astralrecord/font/combat_hud.json'
@@ -374,6 +381,12 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'textures/entity/world/waystone_unlocked.png'
     'textures/entity/world/storage.png'
     'textures/entity/world/blast_furnace.png'
+    'entity/reception_display.entity.json'
+    'animations/reception_display.animation.json'
+    'models/entity/reception_display.geo.json'
+    'render_controllers/reception_display.render_controllers.json'
+    'textures/entity/world/boss_reception_altar.png'
+    'textures/entity/world/dungeon_reception_gate.png'
     'textures/entity/combat_result.png'
     'textures/entity/combat_reward_plaque/normal.png'
     'textures/entity/combat_reward_plaque/rare.png'
@@ -464,6 +477,12 @@ if ($utf8.GetString($java[$fishingVersionMarker]) -cne '1') {
     throw 'Invalid fishing visuals version marker in resource pack.'
 }
 $bedrock.Add($fishingVersionMarker, $java[$fishingVersionMarker])
+
+$receptionVersionMarker = 'reception-display-version.txt'
+if ($utf8.GetString($java[$receptionVersionMarker]) -cne '1') {
+    throw 'Invalid reception display version marker in resource pack.'
+}
+$bedrock.Add($receptionVersionMarker, $java[$receptionVersionMarker])
 
 $skillIcons = Get-ActionRingIcons
 Add-ItemModelEntries $java $bedrock $skillIcons

@@ -203,6 +203,12 @@ Java 版は表示用 ItemDisplay の `custom_model_data.strings[0]` で `assets/
 
 統合版は `astralrecord:world_display` の状態値に応じて、対応する形状とテクスチャを選びます。新しいパックの公開後に対応する AstralRecordGeyserExtension を配置して Proxy を再起動し、統合版の接続をやり直します。変換の仕様は [Geyser 拡張の導入手順](../10_plugin/AstralRecordGeyserExtension/README.md) を参照してください。
 
+## ボス・ダンジョン受付
+
+ボス受付では石の祭壇に桃色の浮遊剣、ダンジョン受付では青緑の石門を表示します。表示は受付地点の向きに合わせます。スニーク案内はモデルの上に表示します。
+
+Java 版は管理パックの互換版 `receptionDisplay: "1"` と適用成功を確認し、固定向きの ItemDisplay に専用アイテムモデルを割り当てます。統合版は Geyser の `gameplay.force-resource-packs: true` が有効で、対応パックを登録してログインした接続で Geyser Extension が専用の `astralrecord:reception_display` に変換します。対応パックがない接続では案内テキストを使います。配布時は両版のパックを公開し、対応する RPG Plugin と Geyser Extension を配置して再起動します。
+
 ## ビルド
 
 ### 着用防具

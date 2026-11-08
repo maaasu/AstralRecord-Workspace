@@ -34,7 +34,7 @@ record DamagePack(
     boolean skillEffectsV2, boolean fishingVisuals,
     boolean gameplaySounds, boolean sunbird, boolean sunbirdMotion, boolean selenea, Set<Integer> heldWeaponModels,
     Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips,
-    String actionRingHudRevision, boolean questHud
+    String actionRingHudRevision, boolean questHud, boolean receptionDisplay
 ) {
     private static final String ROOT = "../resource-packs/";
     private static final int MAX_MANIFEST_BYTES = 64 * 1024;
@@ -117,6 +117,12 @@ record DamagePack(
         "textures/entity/world/storage.png", "textures/entity/world/blast_furnace.png"
     );
 
+    private static final List<String> RECEPTION_DISPLAY_ENTRIES = List.of(
+        "entity/reception_display.entity.json", "animations/reception_display.animation.json",
+        "models/entity/reception_display.geo.json", "render_controllers/reception_display.render_controllers.json",
+        "textures/entity/world/boss_reception_altar.png", "textures/entity/world/dungeon_reception_gate.png"
+    );
+
     static DamagePack refresh(HeadApiConfig config, Path directory, DamagePack current)
         throws IOException, InterruptedException {
         try (HttpClient client = HeadApiClient.newClient(config)) {
@@ -163,6 +169,7 @@ record DamagePack(
             boolean itemTooltips;
             String actionRingHudRevision;
             boolean questHud;
+            boolean receptionDisplay;
             Set<Integer> heldWeaponModels;
             Set<ItemModel> itemModels;
             Set<Integer> actionRingSprites;
@@ -209,6 +216,8 @@ record DamagePack(
                     && present(zip.getEntry("ui/_ui_defs.json"))
                     && present(zip.getEntry("textures/ui/astralrecord/quest_hud_frame.png"))
                     && present(zip.getEntry("textures/ui/astralrecord/quest_hud_frame.json"));
+                receptionDisplay = hasVersionOne(zip, "reception-display-version.txt")
+                    && RECEPTION_DISPLAY_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 var catalog = ItemModel.read(zip);
                 itemModels = catalog.models();
                 heldWeaponModels = ItemModel.verifiedHeldWeaponModels(zip, catalog);
@@ -223,7 +232,8 @@ record DamagePack(
             keep = true;
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, combatRewardPlaqueVersion,
                 weaponAttack, weaponAttackProjectiles, skillEffectsV2, fishingVisuals, gameplaySounds, sunbird, sunbirdMotion, selenea,
-                heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips, actionRingHudRevision, questHud);
+                heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips, actionRingHudRevision, questHud,
+                receptionDisplay);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }

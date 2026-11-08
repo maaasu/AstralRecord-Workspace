@@ -425,19 +425,6 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("bundle_use_default", Particle.TOTEM_OF_UNDYING, 24, 0.4D, 0.5D, 0.4D, 0.0D);
     public static final SharedParticleDefinition WORLD_SPAWN_RING_END_ROD =
         new SharedParticleDefinition("world_spawn_ring_end_rod", Particle.END_ROD, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-    public static final SharedParticleDefinition BOSS_ENTRY_RING_DUST =
-        new SharedParticleDefinition(
-            "boss_entry_ring_dust",
-            Particle.DUST,
-            1,
-            0.01D,
-            0.01D,
-            0.01D,
-            0.0D,
-            new Particle.DustOptions(Color.fromRGB(255, 82, 146), 1.05F)
-        );
-    public static final SharedParticleDefinition BOSS_ENTRY_SOUL_FIRE =
-        new SharedParticleDefinition("boss_entry_soul_fire", Particle.SOUL_FIRE_FLAME, 3, 0.16D, 0.12D, 0.16D, 0.01D);
     public static final SharedParticleDefinition BOSS_MECHANIC_CRIT =
         new SharedParticleDefinition("boss_mechanic_crit", Particle.CRIT, 1, 0.02D, 0.02D, 0.02D, 0.0D);
     public static final SharedParticleDefinition BOSS_MECHANIC_SPARK =
@@ -718,17 +705,6 @@ public final class SharedParticleDefinitions {
             0.07D,
             0.0D,
             new Particle.DustOptions(Color.fromRGB(242, 220, 128), 1.4F)
-        );
-    public static final SharedParticleDefinition DUNGEON_ENTRY_FRAME_DUST =
-        new SharedParticleDefinition(
-            "dungeon_entry_frame_dust",
-            Particle.DUST,
-            1,
-            0.01D,
-            0.01D,
-            0.01D,
-            0.0D,
-            new Particle.DustOptions(Color.fromRGB(55, 225, 205), 1.0F)
         );
     public static final SharedParticleDefinition DUNGEON_ENTRY_PORTAL =
         new SharedParticleDefinition("dungeon_entry_portal", Particle.PORTAL, 8, 0.42D, 0.78D, 0.10D, 0.08D);

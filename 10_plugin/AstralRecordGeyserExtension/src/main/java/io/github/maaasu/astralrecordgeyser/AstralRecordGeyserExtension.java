@@ -67,6 +67,8 @@ public final class AstralRecordGeyserExtension implements Extension {
         0x41535453454c4231L, 0x41535453454c4631L, 0x41535453454c4d31L, 10, 4,
         DamagePack::selenea, DamagePack::selenea);
     private WorldDisplayEntity worldDisplays;
+    private CustomEntityDefinition receptionDisplayDefinition;
+    private ReceptionDisplayEntity receptionDisplays;
     private HeldWeaponModelDisplay heldWeaponModels;
 
     @Subscribe
@@ -96,6 +98,9 @@ public final class AstralRecordGeyserExtension implements Extension {
         event.register(CombatRewardPlaqueEntity.DEFINITION);
         sunbird.register(event);
         event.register(WorldDisplayEntity.DEFINITION);
+        var receptionDefinition = ReceptionDisplayEntity.definition();
+        event.register(receptionDefinition);
+        receptionDisplayDefinition = receptionDefinition;
         selenea.register(event);
     }
 
@@ -121,6 +126,9 @@ public final class AstralRecordGeyserExtension implements Extension {
         fishingVisuals = FishingVisualEntity.registerProperties(event);
         combatRewardPlaque = CombatRewardPlaqueEntity.registerProperties(event);
         worldDisplays = WorldDisplayEntity.registerProperties(event);
+        if (receptionDisplayDefinition != null) {
+            receptionDisplays = ReceptionDisplayEntity.registerProperties(event, receptionDisplayDefinition.identifier());
+        }
     }
 
     @Subscribe
@@ -331,6 +339,18 @@ public final class AstralRecordGeyserExtension implements Extension {
             return;
         }
         if (!event.entityType().is(TEXT_DISPLAY)) return;
+        if (ReceptionDisplayEntity.isMarker(event.uuid())) {
+            var properties = receptionDisplays;
+            var frame = ReceptionDisplayEntity.decode(event.uuid(), event.entityId());
+            if (frame == null || properties == null || !damagePacks.receptionDisplayReady(event.connection())
+                || !forcesResourcePacks()) {
+                event.setCancelled(true);
+            } else {
+                event.definition(receptionDisplayDefinition);
+                event.preSpawnConsumer(entity -> properties.initialize(entity, frame));
+            }
+            return;
+        }
         if (FishingVisualEntity.onSpawn(event, damagePacks, fishingVisuals)) return;
         if (SkillEffectEntity.isMarker(event.uuid())) {
             var properties = skillEffectProperties;

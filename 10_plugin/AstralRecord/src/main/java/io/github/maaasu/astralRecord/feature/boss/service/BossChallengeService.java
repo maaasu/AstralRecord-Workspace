@@ -45,8 +45,7 @@ import io.github.maaasu.astralRecord.shared.challenge.InstanceQueueTitleRenderer
 import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
-import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
-import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import io.github.maaasu.astralRecord.shared.display.ReceptionModelView;
 import io.github.maaasu.astralRecord.shared.effect.InvulnerabilityVisualService;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
@@ -96,9 +95,7 @@ public final class BossChallengeService {
     private static final long DEFEATED_RESULT_WAIT_TICKS = 15L * 20L;
     private static final long ENTRY_VISUAL_PERIOD_TICKS = 10L;
     private static final long PLAYER_RESPAWN_INVULNERABILITY_TICKS = 5L * 20L;
-    // NORMAL 密度では従来の10点となる最大密度用の候補点数。
-    private static final int ENTRY_RING_POINTS = 20;
-    private static final double ENTRY_PROMPT_Y_OFFSET = 2.35D;
+    private static final double ENTRY_PROMPT_Y_OFFSET = 2.85D;
     private static final double ENTRY_VIEWER_DISTANCE_SQUARED = 64.0D * 64.0D;
     private static final long END_RETRY_DELAY_TICKS = 5L * 20L;
     private static final Title.Times COUNTDOWN_TITLE_TIMES = Title.Times.times(
@@ -113,7 +110,7 @@ public final class BossChallengeService {
     private final PartyService partyService;
     private final PlayerMessageService messageService;
     private final BossFieldInstanceService fieldInstanceService;
-    private final ParticleDisplayService particleDisplayService;
+    private final ReceptionModelView receptionModelView;
     private final DisplayTextService displayTextService;
     private final PlayerDeathService playerDeathService;
     private final InstanceCreationQueue creationQueue;
@@ -134,7 +131,6 @@ public final class BossChallengeService {
     private final Map<String, EntryPromptDisplay> entryPromptDisplays = new HashMap<>();
     private BukkitTask tickTask;
     private BukkitTask entryVisualTask;
-    private long entryVisualFrame;
     private boolean startupCleanupStarted;
 
     public BossChallengeService(
@@ -144,7 +140,7 @@ public final class BossChallengeService {
             @NotNull PartyService partyService,
             @NotNull PlayerMessageService messageService,
             @NotNull BossFieldInstanceService fieldInstanceService,
-            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull ReceptionModelView receptionModelView,
             @NotNull DisplayTextService displayTextService,
             @NotNull PlayerDeathService playerDeathService,
             @NotNull String hubWorldId
@@ -156,7 +152,7 @@ public final class BossChallengeService {
                 partyService,
                 messageService,
                 fieldInstanceService,
-                particleDisplayService,
+                receptionModelView,
                 displayTextService,
                 playerDeathService,
                 hubWorldId,
@@ -175,7 +171,7 @@ public final class BossChallengeService {
      * @param partyService Party サービス
      * @param messageService プレイヤーメッセージサービス
      * @param fieldInstanceService Boss フィールド生成サービス
-     * @param particleDisplayService パーティクル表示サービス
+     * @param receptionModelView 受付モデルの描画サービス
      * @param displayTextService TextDisplay サービス
      * @param playerDeathService 死亡・復帰サービス
      * @param hubWorldId 待機HubのWorld ID
@@ -189,7 +185,7 @@ public final class BossChallengeService {
             @NotNull PartyService partyService,
             @NotNull PlayerMessageService messageService,
             @NotNull BossFieldInstanceService fieldInstanceService,
-            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull ReceptionModelView receptionModelView,
             @NotNull DisplayTextService displayTextService,
             @NotNull PlayerDeathService playerDeathService,
             @NotNull String hubWorldId,
@@ -203,7 +199,7 @@ public final class BossChallengeService {
                 partyService,
                 messageService,
                 fieldInstanceService,
-                particleDisplayService,
+                receptionModelView,
                 displayTextService,
                 playerDeathService,
                 hubWorldId,
@@ -222,7 +218,7 @@ public final class BossChallengeService {
      * @param partyService Party 管理サービス
      * @param messageService プレイヤーメッセージサービス
      * @param fieldInstanceService Boss フィールド生成サービス
-     * @param particleDisplayService パーティクル表示サービス
+     * @param receptionModelView 受付モデルの描画サービス
      * @param displayTextService TextDisplay サービス
      * @param playerDeathService 死亡・復帰サービス
      * @param hubWorldId 待機HubのWorld ID
@@ -237,7 +233,7 @@ public final class BossChallengeService {
             @NotNull PartyService partyService,
             @NotNull PlayerMessageService messageService,
             @NotNull BossFieldInstanceService fieldInstanceService,
-            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull ReceptionModelView receptionModelView,
             @NotNull DisplayTextService displayTextService,
             @NotNull PlayerDeathService playerDeathService,
             @NotNull String hubWorldId,
@@ -251,7 +247,7 @@ public final class BossChallengeService {
         this.partyService = partyService;
         this.messageService = messageService;
         this.fieldInstanceService = fieldInstanceService;
-        this.particleDisplayService = particleDisplayService;
+        this.receptionModelView = receptionModelView;
         this.displayTextService = displayTextService;
         this.playerDeathService = playerDeathService;
         this.creationQueue = creationQueue;
@@ -297,7 +293,7 @@ public final class BossChallengeService {
      * @param partyService パーティーサービス
      * @param messageService プレイヤーメッセージサービス
      * @param fieldInstanceService Bossフィールド生成サービス
-     * @param particleDisplayService パーティクル表示サービス
+     * @param receptionModelView 受付モデルの描画サービス
      * @param displayTextService TextDisplayサービス
      * @param playerDeathService 死亡・復帰サービス
      * @param hubWorldId 待機HubのWorld ID
@@ -310,7 +306,7 @@ public final class BossChallengeService {
             @NotNull PartyService partyService,
             @NotNull PlayerMessageService messageService,
             @NotNull BossFieldInstanceService fieldInstanceService,
-            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull ReceptionModelView receptionModelView,
             @NotNull DisplayTextService displayTextService,
             @NotNull PlayerDeathService playerDeathService,
             @NotNull String hubWorldId,
@@ -323,7 +319,7 @@ public final class BossChallengeService {
                 partyService,
                 messageService,
                 fieldInstanceService,
-                particleDisplayService,
+                receptionModelView,
                 displayTextService,
                 playerDeathService,
                 hubWorldId,
@@ -340,7 +336,6 @@ public final class BossChallengeService {
             tickTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 20L, 20L);
         }
         if (entryVisualTask == null) {
-            entryVisualFrame = 0L;
             entryVisualTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickEntryVisuals, 0L, ENTRY_VISUAL_PERIOD_TICKS);
         }
         if (!startupCleanupStarted) {
@@ -362,6 +357,7 @@ public final class BossChallengeService {
             entryVisualTask = null;
         }
         clearEntryPromptDisplays();
+        receptionModelView.retain(ReceptionModelView.Kind.BOSS, Set.of());
         for (InstanceCreationQueue.Ticket ticket : creationQueue.waitingTickets()) {
             clearQueueTitles(ticket.participantIds());
         }
@@ -2756,8 +2752,8 @@ public final class BossChallengeService {
                 }));
     }
 
+    /** ロード済みの受付地点でモデルと文字案内を差分更新します。 */
     private void tickEntryVisuals() {
-        double baseAngle = entryVisualFrame * 0.28D;
         Set<String> activePromptIds = new HashSet<>();
         for (String bossId : mobService.getLoadedMobIdsByCategory(List.of(MobCategory.BOSS))) {
             if (HOROLOGIUM_ID.equals(bossId)) continue;
@@ -2772,50 +2768,18 @@ public final class BossChallengeService {
                 continue;
             }
             Location entry = config.entryLocation().toLocation(entryWorld);
-            if (!renderEntryAnimation(entry, config.entryRadius(), baseAngle)) {
+            List<Player> nearby = entryWorld.getPlayers().stream()
+                    .filter(player -> player.getLocation().distanceSquared(entry) <= ENTRY_VIEWER_DISTANCE_SQUARED)
+                    .toList();
+            if (nearby.isEmpty()) {
                 continue;
             }
+            receptionModelView.sync(ReceptionModelView.Kind.BOSS, template.id(), entry, nearby);
             updateEntryPrompt(template, entry, config.recommendedPlayerLevel());
             activePromptIds.add(template.id());
         }
+        receptionModelView.retain(ReceptionModelView.Kind.BOSS, activePromptIds);
         removeInactiveEntryPrompts(activePromptIds);
-        entryVisualFrame++;
-    }
-
-    private boolean renderEntryAnimation(@NotNull Location entry, double radius, double baseAngle) {
-        World world = entry.getWorld();
-        if (world == null || !hasNearbyViewer(entry, world)) {
-            return false;
-        }
-
-        double visualRadius = Math.max(0.75D, radius);
-        List<Location> ringLocations = new ArrayList<>(ENTRY_RING_POINTS);
-        for (int i = 0; i < ENTRY_RING_POINTS; i++) {
-            double angle = baseAngle + ((Math.PI * 2.0D * i) / ENTRY_RING_POINTS);
-            double x = Math.cos(angle) * visualRadius;
-            double z = Math.sin(angle) * visualRadius;
-            double y = 0.18D + (Math.sin((baseAngle * 1.2D) + (i * 0.5D)) * 0.12D);
-            ringLocations.add(entry.clone().add(x, y, z));
-        }
-        particleDisplayService.spawnForNearbyViewers(
-                entry,
-                ringLocations,
-                SharedParticleDefinitions.BOSS_ENTRY_RING_DUST
-        );
-        particleDisplayService.spawnForNearbyViewers(
-                entry.clone().add(0.0D, 0.95D, 0.0D),
-                SharedParticleDefinitions.BOSS_ENTRY_SOUL_FIRE
-        );
-        return true;
-    }
-
-    private boolean hasNearbyViewer(@NotNull Location center, @NotNull World world) {
-        for (Player player : world.getPlayers()) {
-            if (player.getLocation().distanceSquared(center) <= ENTRY_VIEWER_DISTANCE_SQUARED) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**

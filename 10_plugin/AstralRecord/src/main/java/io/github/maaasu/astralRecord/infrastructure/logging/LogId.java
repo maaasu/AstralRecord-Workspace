@@ -1209,6 +1209,8 @@ public enum LogId {
     D_9018(9018),
     /** 採集オブジェクトの生成に失敗しました: spawner=%s, gathering=%s, world=%s, location=(%.1f,%.1f,%.1f) */
     D_9019(9019),
+    /** 受付モデル表示パケット処理失敗 */
+    W_9020(9020),
     // endregion
 
     // region /feature/discord/ 7100-7109

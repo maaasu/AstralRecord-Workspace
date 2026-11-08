@@ -1,0 +1,33 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.astralrecord.reception_display": {
+      "arrays": {
+        "geometries": {
+          "Array.models": [
+            "Geometry.style_0",
+            "Geometry.style_1"
+          ]
+        },
+        "textures": {
+          "Array.styles": [
+            "Texture.style_0",
+            "Texture.style_1"
+          ]
+        }
+      },
+      "geometry": "Array.models[math.clamp(query.property('astralrecord:reception_style'), 0, 1)]",
+      "materials": [
+        {
+          "*": "Material.default"
+        },
+        {
+          "emissive": "Material.emissive"
+        }
+      ],
+      "textures": [
+        "Array.styles[math.clamp(query.property('astralrecord:reception_style'), 0, 1)]"
+      ]
+    }
+  }
+}

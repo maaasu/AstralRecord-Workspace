@@ -51,6 +51,7 @@ public class ResourcePackService {
     private final Set<UUID> requestedJavaSkillEffects = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockSkillEffects = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaCombatRewardPlaque = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> requestedJavaReceptionDisplay = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockCombatRewardPlaque = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockCombatRewardPlaqueTiming = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockCombatRewardPlaqueWidth = ConcurrentHashMap.newKeySet();
@@ -93,6 +94,7 @@ public class ResourcePackService {
         requestedJavaWeaponAttackProjectiles.remove(player.getUniqueId());
         requestedJavaSkillEffects.remove(player.getUniqueId());
         requestedJavaCombatRewardPlaque.remove(player.getUniqueId());
+        requestedJavaReceptionDisplay.remove(player.getUniqueId());
         if (configProperties.isResourcePackManagedEnabled() && !isBedrock(player.getName())) {
             pendingViewers.put(player.getUniqueId(), player);
             if (!manifestLoading) {
@@ -174,6 +176,9 @@ public class ResourcePackService {
                     }
                     if (pack.combatRewardPlaque()) {
                         requestedJavaCombatRewardPlaque.add(viewer);
+                    }
+                    if (pack.receptionDisplay()) {
+                        requestedJavaReceptionDisplay.add(viewer);
                     }
                     if (pack.profileHud() != null) {
                         requestedJavaProfileHud.put(viewer, pack.profileHud());
@@ -289,6 +294,7 @@ public class ResourcePackService {
                     requestedJavaWeaponAttackProjectiles.remove(viewer);
                     requestedJavaSkillEffects.remove(viewer);
                     requestedJavaCombatRewardPlaque.remove(viewer);
+                    requestedJavaReceptionDisplay.remove(viewer);
                 }
                 default -> { }
             }
@@ -597,6 +603,15 @@ public class ResourcePackService {
     }
 
     /**
+     * 受付モデル対応の管理Javaパックが現在の接続で適用済みか確認します。
+     * @param playerId 閲覧者のUUID
+     * @return 受付モデル対応を宣言したパックの適用が成功済みならtrue
+     */
+    public boolean hasJavaReceptionDisplay(UUID playerId) {
+        return hasManagedJavaPack(playerId) && requestedJavaReceptionDisplay.contains(playerId);
+    }
+
+    /**
      * Proxyが確認した統合版パックの戦闘報酬プレート対応状態を調べます。
      *
      * @param playerId 閲覧者のUUID
@@ -678,6 +693,7 @@ public class ResourcePackService {
         requestedJavaSkillEffects.remove(playerId);
         readyBedrockSkillEffects.remove(playerId);
         requestedJavaCombatRewardPlaque.remove(playerId);
+        requestedJavaReceptionDisplay.remove(playerId);
         readyBedrockCombatRewardPlaque.remove(playerId);
         readyBedrockCombatRewardPlaqueTiming.remove(playerId);
         readyBedrockCombatRewardPlaqueWidth.remove(playerId);

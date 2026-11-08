@@ -1,0 +1,17 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.astralrecord.reception_display.orient": {
+      "loop": true,
+      "bones": {
+        "yaw": {
+          "rotation": [
+            0,
+            "query.property('astralrecord:reception_yaw_tenths') / 10.0 - query.body_y_rotation",
+            0
+          ]
+        }
+      }
+    }
+  }
+}
