@@ -165,5 +165,88 @@ public sealed class BossMasterEditorTests : IDisposable
         Assert.DoesNotContain(category.Fields, field => field.Path.Contains("~1", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task ChallengeEntriesReadSavedBossAndDungeonCoordinatesForOneLogicalWorld()
+    {
+        const string worldId = "eriva_supercontinent";
+        await WriteMasterAsync("60.features.world/v1.eriva.yml", $"id: {worldId}\nbaseWorldPath: ' ./worlds//legacy_eriva '\n");
+        await WriteMasterAsync("60.features.world/v1.other.yml", "id: other\nbaseWorldPath: worlds/other\n");
+        await WriteMasterAsync("40.features.mob/boss/v1.legacy.yml", """
+            id: legacy
+            challenge:
+              entryLocation: { worldId: legacy_eriva, x: 1.5, y: -4, z: 0 }
+            """);
+        await WriteMasterAsync("40.features.mob/boss/v1.path.yml", """
+            id: path
+            challenge:
+              entryLocation: { worldId: 'worlds\legacy_eriva', x: -10, y: 2, z: 3 }
+            """);
+        await WriteMasterAsync("40.features.mob/boss/v1.malformed.yml", """
+            id: malformed
+            challenge:
+              entryLocation: { worldId: eriva_supercontinent, x: "1", y: 2, z: 3 }
+            """);
+        await WriteMasterAsync("40.features.mob/boss/v1.unparseable.yml", "challenge: [");
+        await WriteMasterAsync("65.features.dungeon/v1.dungeon.yml", """
+            id: dungeon
+            name: 大樹の遺跡
+            entry: { worldRef: "world:eriva_supercontinent", x: -6.5, y: 5, z: 4 }
+            """);
+        await WriteMasterAsync("65.features.dungeon/v1.short_prefix.yml", """
+            id: short_prefix
+            entry: { worldRef: "wd:eriva_supercontinent", x: -7, y: 8, z: 9 }
+            """);
+        await WriteMasterAsync("65.features.dungeon/v1.wrong_prefix.yml", """
+            id: wrong_prefix
+            entry: { worldRef: "mob:eriva_supercontinent", x: 1, y: 2, z: 3 }
+            """);
+        await WriteMasterAsync("65.features.dungeon/v1.other.yml", """
+            id: other_dungeon
+            entry: { worldRef: "world:other", x: 1, y: 2, z: 3 }
+            """);
+
+        var entries = await _service.ListChallengeEntriesAsync(worldId, CancellationToken.None);
+
+        Assert.Equal(new ChallengeEntryMarker[]
+        {
+            new("40.features.mob/boss/v1.legacy.yml", "boss", "legacy", 1.5, -4, 0),
+            new("40.features.mob/boss/v1.path.yml", "boss", "path", -10, 2, 3),
+            new(BossPath, "boss", "&5&l月蝕の綴り魔女 セレネア", -1047.5, 118, 807.5),
+            new("65.features.dungeon/v1.dungeon.yml", "dungeon", "大樹の遺跡", -6.5, 5, 4),
+            new("65.features.dungeon/v1.short_prefix.yml", "dungeon", "short_prefix", -7, 8, 9)
+        }, entries);
+        Assert.Equal("other_dungeon", Assert.Single(await _service.ListChallengeEntriesAsync("other", CancellationToken.None)).Name);
+        Assert.Empty(await _service.ListChallengeEntriesAsync("legacy_eriva", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task AmbiguousBossWorldAliasesAreIgnoredAndLogicalIdsTakePrecedence()
+    {
+        await WriteMasterAsync("60.features.world/v1.first.yml", "id: first\nbaseWorldPath: worlds/shared\n");
+        await WriteMasterAsync("60.features.world/v1.second.yml", "id: second\nbaseWorldPath: test/shared\n");
+        await WriteMasterAsync("60.features.world/v1.third.yml", "id: third\nbaseWorldPath: worlds/first\n");
+        await WriteMasterAsync("40.features.mob/boss/v1.ambiguous.yml", """
+            id: ambiguous
+            challenge:
+              entryLocation: { worldId: shared, x: 1, y: 2, z: 3 }
+            """);
+        await WriteMasterAsync("40.features.mob/boss/v1.logical.yml", """
+            id: logical
+            challenge:
+              entryLocation: { worldId: first, x: 1, y: 2, z: 3 }
+            """);
+
+        Assert.Equal("logical", Assert.Single(await _service.ListChallengeEntriesAsync("first", CancellationToken.None)).Name);
+        Assert.Empty(await _service.ListChallengeEntriesAsync("second", CancellationToken.None));
+        Assert.Empty(await _service.ListChallengeEntriesAsync("third", CancellationToken.None));
+    }
+
+    private Task WriteMasterAsync(string path, string raw)
+    {
+        var destination = Path.Combine(_paths.Root, path);
+        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+        return File.WriteAllTextAsync(destination, raw);
+    }
+
     public void Dispose() => Directory.Delete(_root, recursive: true);
 }

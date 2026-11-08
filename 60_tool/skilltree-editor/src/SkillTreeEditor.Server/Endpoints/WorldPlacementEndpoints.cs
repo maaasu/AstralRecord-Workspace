@@ -12,6 +12,8 @@ public static class WorldPlacementEndpoints
         var group = endpoints.MapGroup("/api/world-placements");
         group.MapGet("/dev", (HttpContext context, WorldPlacementProxyService proxy, CancellationToken token) => proxy.ForwardAsync(context, false, token));
         group.MapPut("/dev", (HttpContext context, WorldPlacementProxyService proxy, CancellationToken token) => proxy.ForwardAsync(context, true, token));
+        group.MapGet("/challenge-entries", async (string worldId, MasterDataService masters, CancellationToken token) =>
+            Results.Ok(await masters.ListChallengeEntriesAsync(worldId, token)));
         group.MapGet("/catalog", async (MasterDataService masters, CancellationToken token) =>
         {
             var spawners = await masters.ListAsync("41.features.mob.spawner", null, token);

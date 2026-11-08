@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -44,6 +45,86 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
                 MasterDataPaths.IsReadOnly(document.Path), icon));
         }
         return result;
+    }
+
+    public async Task<IReadOnlyList<ChallengeEntryMarker>> ListChallengeEntriesAsync(string worldId, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(worldId)) return [];
+
+        var worlds = new List<(string Id, string? BasePath)>();
+        await foreach (var document in ReadChallengeCatalogDocumentsAsync("60.features.world", token))
+        {
+            if (document.Content is JsonObject content
+                && JsonValueReader.String(content["id"]) is { } id && !string.IsNullOrWhiteSpace(id))
+                worlds.Add((id, JsonValueReader.String(content["baseWorldPath"]) is { } path ? NormalizeBukkitWorldPath(path) : null));
+        }
+        if (worlds.Count(world => world.Id == worldId) != 1) return [];
+
+        // Legacy boss entries may use the Bukkit path or folder name. A logical ID takes precedence.
+        var logicalIds = worlds.Select(world => world.Id).ToHashSet(StringComparer.Ordinal);
+        var bossWorldAliases = new HashSet<string>(StringComparer.Ordinal);
+        var selectedPath = worlds.Single(world => world.Id == worldId).BasePath;
+        if (!string.IsNullOrEmpty(selectedPath))
+        {
+            var folderName = Path.GetFileName(selectedPath);
+            if (!logicalIds.Contains(selectedPath) && worlds.Count(world => world.BasePath == selectedPath) == 1)
+                bossWorldAliases.Add(selectedPath);
+            if (!string.IsNullOrEmpty(folderName) && !logicalIds.Contains(folderName) &&
+                worlds.Count(world => Path.GetFileName(world.BasePath) == folderName) == 1)
+                bossWorldAliases.Add(folderName);
+        }
+
+        var worldPrefixes = await ConfiguredPrefixesAsync("world", token);
+        var markers = new List<ChallengeEntryMarker>();
+        foreach (var (category, kind) in new[] { ("40.features.mob/boss", "boss"), ("65.features.dungeon", "dungeon") })
+        {
+            await foreach (var document in ReadChallengeCatalogDocumentsAsync(category, token))
+            {
+                if (document.Content is not JsonObject content ||
+                    JsonValueReader.String(content["id"]) is not { } id || string.IsNullOrWhiteSpace(id))
+                    continue;
+
+                var isBoss = kind == "boss";
+                var location = isBoss
+                    ? (content["challenge"] as JsonObject)?["entryLocation"] as JsonObject
+                    : content["entry"] as JsonObject;
+                if (location is null) continue;
+                var world = JsonValueReader.String(location[isBoss ? "worldId" : "worldRef"]);
+                var matchesWorld = isBoss
+                    ? world == worldId || world is not null && bossWorldAliases.Contains(NormalizeBukkitWorldPath(world))
+                    : worldPrefixes.Any(prefix => world == $"{prefix}:{worldId}");
+                if (!matchesWorld ||
+                    JsonValueReader.Number(location["x"]) is not { } x || !double.IsFinite(x) ||
+                    JsonValueReader.Number(location["y"]) is not { } y || !double.IsFinite(y) ||
+                    JsonValueReader.Number(location["z"]) is not { } z || !double.IsFinite(z))
+                    continue;
+
+                markers.Add(new(document.Path, kind, DisplayName(content) ?? id, x, y, z));
+            }
+        }
+        return markers.OrderBy(marker => marker.Path, StringComparer.Ordinal).ToArray();
+    }
+
+    private static string NormalizeBukkitWorldPath(string path)
+    {
+        var normalized = Regex.Replace(path.Trim().Replace('\\', '/'), "/{2,}", "/");
+        return (normalized.StartsWith("./", StringComparison.Ordinal) ? normalized[2..] : normalized).TrimEnd('/');
+    }
+
+    private async IAsyncEnumerable<MasterDataDocument> ReadChallengeCatalogDocumentsAsync(string category,
+        [EnumeratorCancellation] CancellationToken token)
+    {
+        foreach (var file in paths.Enumerate(category).Where(file => MasterDataPaths.IsData(file) && MasterDataPaths.Format(file) == "yaml"))
+        {
+            MasterDataDocument document;
+            try { document = await ReadAsync(paths.Relative(file), token); }
+            catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException or DecoderFallbackException)
+            {
+                // One missing or unreadable master should not hide other saved entries.
+                continue;
+            }
+            if (document.Issues.Count == 0) yield return document;
+        }
     }
 
     private async Task<Dictionary<string, string>> ReadMobNamesAsync(CancellationToken token)
