@@ -29,7 +29,7 @@ Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメー�
 
 ### 現在地HUD
 
-Java 版は配布マニフェストの `java.locationHud` が `1` の管理パックを適用すると、現在地・挑戦状況・効果を右上に表示します。左上のクエスト追跡 HUD と同じ負の ascent の字形と4世代のテキストシェーダーを使い、専用の RGB マーカーで描画を分けます。枠と効果アイコンは `astralrecord:location_hud_icons` にまとめ、既存のバフアイコンの絵柄を使います。表示が狭い場合は左上と下部の HUD との重なりを避けるため縮小します。`scripts/generate-quest-hud-java.py` でシェーダーとフォントを再生成し、`--check` で検証できます。
+Java 版は配布マニフェストの `java.locationHud` が `1` の管理パックを適用し、個人情報 HUD を描画できる状態で、現在地・挑戦状況・効果を右上に表示します。左上のクエスト追跡 HUD と同じ負の ascent の字形と4世代のテキストシェーダーを使い、専用の RGB マーカーで描画を分けます。枠と効果アイコンは `astralrecord:location_hud_icons` にまとめ、既存のバフアイコンの絵柄を使います。文字に専用の影を加えて明るい背景とのコントラストを保ちます。表示が狭い場合は左上と下部の HUD との重なりを避けるため縮小します。`scripts/generate-quest-hud-java.py` でシェーダーとフォントを再生成し、`--check` で検証できます。
 
 ### 戦闘 HUD と討伐リザルト
 

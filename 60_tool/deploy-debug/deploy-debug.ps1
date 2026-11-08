@@ -574,6 +574,17 @@ function Publish-ResourcePacks {
             if ($locationHud -cne '1' -or $questTrackingHud -cne '2') {
                 throw 'Location HUD requires version 1 and Quest HUD assets version 2.'
             }
+            $reader = [IO.StreamReader]::new($archive.GetEntry('assets/astralrecord/font/quest_hud_space.json').Open())
+            try { $spaceFont = $reader.ReadToEnd() | ConvertFrom-Json }
+            finally { $reader.Dispose() }
+            $spaceProvider = $spaceFont.providers | Where-Object { $_.type -ceq 'space' } | Select-Object -First 1
+            $advances = if ($null -ne $spaceProvider) { $spaceProvider.PSObject.Properties['advances'] }
+            $iconAdvance = if ($null -ne $advances -and $null -ne $advances.Value) {
+                $advances.Value.PSObject.Properties[[string][char]0xE00B]
+            }
+            if ($null -eq $iconAdvance -or $iconAdvance.Value -isnot [ValueType] -or $iconAdvance.Value -ne -11) {
+                throw 'Location HUD requires U+E00B with advance -11 in the Quest HUD spacing font.'
+            }
             foreach ($asset in @(
                 'assets/astralrecord/font/location_hud_icons.json'
                 'assets/astralrecord/textures/font/buff_hud.png'

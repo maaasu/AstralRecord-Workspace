@@ -50,11 +50,13 @@ LOCATION_FILL = (22, 27, 37)
 LOCATION_BORDERS = ((199, 168, 113), (194, 135, 111), (120, 155, 151))
 LOCATION_DIVIDER = (132, 125, 116)
 LOCATION_BADGE = (125, 97, 56)
+LOCATION_SHADOW = (4, 8, 13)
 LOCATION_FILL_ALPHA = 114
 LOCATION_TOP_ALPHA = 184
 LOCATION_BORDER_ALPHA = 133
 LOCATION_DIVIDER_ALPHA = 120
 LOCATION_BADGE_ALPHA = 96
+LOCATION_SHADOW_ALPHA = 235
 LOCATION_MAX_ROWS = 16
 LOCATION_ROW_HEIGHT = 15
 LOCATION_ROW_INSET = 2
@@ -182,12 +184,13 @@ def location_injection(version):
     return LOCATION_START + f'''{guard}
     // Shares the Quest negative-ascent window. Its RGB marker range is disjoint.
     bool locationText = questType < 128;
+    bool locationShadow = questType >= 146 && questType < 162;
     bool locationPanel = questType >= 128 && questType < 143;
-    int locationRows = locationText ? questType / 8 + 1 : questCode.b;
+    int locationRows = locationText ? questType / 8 + 1 : locationShadow ? questType - 145 : questCode.b;
     int locationStart = questCode.g >> 3;
     int locationSpan = (questCode.g & 7) + 1;
     int locationBadgeRow = questType - 143;
-    bool locationMarker = locationText ? questCode.g < {WIDTH} && questCode.b < locationRows
+    bool locationMarker = (locationText || locationShadow) ? questCode.g < {WIDTH} && questCode.b < locationRows
         : locationPanel ? locationStart + locationSpan <= locationRows
         : questType == 143 ? questCode.g > 0 && questCode.g < locationRows
         : questType <= 145 && locationBadgeRow < locationRows && questCode.g > 0 && questCode.g <= {WIDTH - 14};
@@ -210,7 +213,12 @@ def location_injection(version):
         vec2 size;
         vec3 tint;
         float opacity = 255.0;
-        if (locationText) {{
+        if (locationShadow) {{
+            origin = vec2(float(questCode.g + 1), float({LOCATION_ROW_INSET + 1} + {LOCATION_ROW_HEIGHT} * questCode.b));
+            size = vec2(9.0, 37.0);
+            tint = {shader_color(LOCATION_SHADOW)};
+            opacity = {LOCATION_SHADOW_ALPHA}.0;
+        }} else if (locationText) {{
             const vec3 palette[8] = vec3[8](
                 {palette});
             int style = questType & 7;
@@ -408,7 +416,8 @@ def location_placement(width, height, rows):
 
 def location_geometry(marker, width, height):
     red, green, blue = marker
-    rows = red // 8 + 1 if red < 128 else blue
+    shadow = 146 <= red < 162
+    rows = red // 8 + 1 if red < 128 else red - 145 if shadow else blue
     if not 1 <= rows <= LOCATION_MAX_ROWS:
         return None
     left, top, scale = location_placement(width, height, rows)
@@ -420,6 +429,9 @@ def location_geometry(marker, width, height):
         palette = red % 8
         w, h = (10, 79) if palette == 7 else (9, 37)
         return quad(green, LOCATION_ROW_INSET + blue * LOCATION_ROW_HEIGHT, w, h, LOCATION_TEXT_COLORS[palette])
+    if shadow and green < WIDTH and blue < rows:
+        return quad(green + 1, LOCATION_ROW_INSET + 1 + blue * LOCATION_ROW_HEIGHT, 9, 37,
+                    LOCATION_SHADOW, LOCATION_SHADOW_ALPHA)
     if 128 <= red < 143:
         start, span = green // 8, green % 8 + 1
         if start + span > rows:
@@ -473,7 +485,13 @@ def verify_location_geometry():
                         next_top, _ = location_geometry((129, (end + 1) * 8, rows), width, height)
                         assert math.isclose(next_top[1] - (bottom_edge[1] + bottom_edge[3]), LOCATION_PANEL_GAP * scale)
     assert location_placement(640, 360, 9) == (460, 48, 1)
-    for marker in ((0, 172, 0), (127, 7, 16), (128, 15, 2), (143, 0, 4), (145, 23, 2), (180, 7, 0)):
+    for rows in range(1, LOCATION_MAX_ROWS + 1):
+        left, top, scale = location_placement(640, 360, rows)
+        rect, tint = location_geometry((145 + rows, 7, rows - 1), 640, 360)
+        assert rect == (left + 8 * scale, top + (3 + 15 * (rows - 1)) * scale, 9 * scale, 37 * scale)
+        assert tint == (*LOCATION_SHADOW, LOCATION_SHADOW_ALPHA)
+    for marker in ((0, 172, 0), (127, 7, 16), (128, 15, 2), (143, 0, 4), (145, 23, 2),
+                   (146, 172, 0), (146, 7, 1), (161, 7, 16), (162, 7, 1), (180, 7, 0)):
         assert location_geometry(marker, 640, 360) is None
     print('Location HUD marker bounds, panel spacing and Quest/Profile separation passed.')
 
@@ -709,7 +727,8 @@ def gpu_check(clients):
                            (255, 255, 255), (220, 11, 0), (219, 25, 10),
                            (0, 7, 0), (126, 156, 15), (127, 7, 15), (127, 7, 16),
                            (128, 3, 9), (134, 35, 9), (140, 64, 9), (141, 64, 9), (142, 64, 9),
-                           (139, 64, 9), (143, 3, 9), (144, 26, 9), (145, 30, 9), (146, 7, 9)]
+                           (139, 64, 9), (143, 3, 9), (144, 26, 9), (145, 30, 9),
+                           (146, 7, 0), (154, 84, 8), (161, 156, 15), (162, 7, 1), (146, 7, 9)]
                 for marker in markers:
                     for mode in ('quest', 'normal_y', 'wrong_ascent'):
                         geometry = None
@@ -718,7 +737,7 @@ def gpu_check(clients):
                             geometry = (quest[0], (*quest[1], marker_alpha(marker))) if quest else location_geometry(marker, width, height)
                         if marker[0] < 128 and marker[0] % 8 == 7:
                             quad_width, quad_height = 10, 79
-                        elif marker[0] < 128 or 180 <= marker[0] < 220:
+                        elif marker[0] < 128 or 146 <= marker[0] < 162 or 180 <= marker[0] < 220:
                             quad_width, quad_height = 9, 37
                         else:
                             quad_width, quad_height = 6, 9

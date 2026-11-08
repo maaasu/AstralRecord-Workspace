@@ -138,12 +138,13 @@ void main() {
 #if defined(IS_GUI)
     // Shares the Quest negative-ascent window. Its RGB marker range is disjoint.
     bool locationText = questType < 128;
+    bool locationShadow = questType >= 146 && questType < 162;
     bool locationPanel = questType >= 128 && questType < 143;
-    int locationRows = locationText ? questType / 8 + 1 : questCode.b;
+    int locationRows = locationText ? questType / 8 + 1 : locationShadow ? questType - 145 : questCode.b;
     int locationStart = questCode.g >> 3;
     int locationSpan = (questCode.g & 7) + 1;
     int locationBadgeRow = questType - 143;
-    bool locationMarker = locationText ? questCode.g < 172 && questCode.b < locationRows
+    bool locationMarker = (locationText || locationShadow) ? questCode.g < 172 && questCode.b < locationRows
         : locationPanel ? locationStart + locationSpan <= locationRows
         : questType == 143 ? questCode.g > 0 && questCode.g < locationRows
         : questType <= 145 && locationBadgeRow < locationRows && questCode.g > 0 && questCode.g <= 158;
@@ -166,7 +167,12 @@ void main() {
         vec2 size;
         vec3 tint;
         float opacity = 255.0;
-        if (locationText) {
+        if (locationShadow) {
+            origin = vec2(float(questCode.g + 1), float(3 + 15 * questCode.b));
+            size = vec2(9.0, 37.0);
+            tint = vec3(0.01568627, 0.03137255, 0.05098039);
+            opacity = 235.0;
+        } else if (locationText) {
             const vec3 palette[8] = vec3[8](
                 vec3(0.94901961, 0.95686275, 0.96470588),
                 vec3(0.72549020, 0.75686275, 0.78823529),
