@@ -542,6 +542,22 @@ describe('Dev 配置の編集', () => {
     expect(screen.getByLabelText('道標 ID')).toBeEnabled()
     expect(screen.getByLabelText('道標 ID')).toHaveValue('')
   })
+  it('道標のアイコンをIDまたは画像一覧で編集してDevに保存する', async () => {
+    const stone: WorldPlacement = { ...placement('stone'), kind: 'waystone', templateId: null,
+      waystone: { id: 'home', name: '帰還地点', lockEnabled: false, unlockGold: 0, icon: 'LODESTONE', createdAt: null, createdBy: 'system' } }
+    vi.mocked(worldPlacementApi.read).mockResolvedValue({ schemaVersion: 1, revision: 'rev-1', placements: [stone] })
+    vi.mocked(worldPlacementApi.save).mockImplementation(async (_, placements) => ({ schemaVersion: 1, revision: 'rev-2', placements }))
+    render(<WorldPlacementEditor snapshot={snapshot} point={null} selectedId="stone" onSelected={vi.fn()} onPlacements={vi.fn()} placing={false} onPlacing={vi.fn()} />)
+    const field = await screen.findByRole('combobox', { name: 'アイコン' })
+    fireEvent.change(field, { target: { value: 'BOOK' } })
+    expect(screen.getByRole('img', { name: '素材アイコン: BOOK' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '画像一覧から選択' }))
+    fireEvent.change(await screen.findByRole('searchbox', { name: 'Materialを検索' }), { target: { value: 'emerald' } })
+    fireEvent.click(screen.getByRole('button', { name: 'EMERALD' }))
+    expect(field).toHaveValue('EMERALD')
+    fireEvent.click(screen.getByRole('button', { name: 'Dev に保存' }))
+    expect(worldPlacementApi.save).toHaveBeenCalledWith('rev-1', [{ ...stone, waystone: { ...stone.waystone, icon: 'EMERALD' } }])
+  })
   it('地図の地表Yでスポナーを追加し、版を指定して保存する', async () => {
     vi.mocked(worldPlacementApi.save).mockImplementation(async (_, placements) => ({ schemaVersion: 1, revision: 'rev-2', placements }))
     const change = vi.fn()

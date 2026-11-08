@@ -1,6 +1,7 @@
 import { memo, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ChangeEvent, KeyboardEvent } from 'react'
 import { ResizeHandle, usePanelSize } from './ResizeHandle'
+import { ResizableTable } from './ResizableTable'
 import { STATUS_TYPES } from '../data/statusTypes.generated'
 import { asList, asObject, classBonus, createClassBonusCalculator, downloadCsv, equipmentRows, formatNumber, formatEquipmentRange as formatRange, normalizeStatus, numeric, plainName } from '../data/masterAnalytics'
 import type { AnalyticsCatalog, GrowthSimulation } from '../data/masterAnalytics'
@@ -345,7 +346,18 @@ export function MasterAnalytics() {
       </div>
       <p className="analytics-note">現在の一覧の全ページで下限・上限・期待値を比較します。未定義と0は区別し、2件未満では全項目を表示します。装備の選択・グラフ・CSVの項目は変わりません。</p>
       {differentStatusesOnly && tableRows.length >= 2 && visibleTableStatuses.length === 0 && <p className="analytics-note">差のあるステータスはありません。装備名などの列は引き続き表示しています。</p>}
-      <div className="analytics-table-wrap" role="region" aria-label="装備の比較表" tabIndex={0}><table><caption>{selectedOnly ? '選択した装備を指定の並び順で表示。標準では選択順です。チェックを外すと比較から解除します。' : '条件に一致する候補を表示。チェックして比較に追加できます。未選択の場合は条件に一致する全装備を比較します。'}</caption><thead><tr><th>選択</th><th>装備 / ID</th><th>スロット / タグ</th><th>要求Lv / 進行度</th><th>必要職</th>{visibleTableStatuses.map(id => <th title={id} key={id}>{statusLabel(id)}</th>)}</tr></thead><tbody>{visibleRows.map(row => <tr key={row.path} className={selectedPathSet.has(row.path) ? 'selected' : ''}><td><input type="checkbox" aria-label={`${row.name}を比較に選択`} checked={selectedPathSet.has(row.path)} onChange={event => selectEquipment(event, row.path)} /></td><th scope="row"><span><MinecraftText value={names.get(row.path) || row.name} /></span><small>{row.id} · {row.rarity}</small><details><summary>定義を確認</summary><code>{row.path}</code>{row.rawStats.map((definition, index) => <div key={index}>{definition}</div>)}</details></th><td>{row.slot}<small>{row.tag} · {row.hand}</small></td><td>{row.level}<small>進行度 {row.progression ?? '未定義'}</small></td><td>{row.requiredClasses || '制限なし'}</td>{visibleTableStatuses.map(id => <td key={id}>{formatRange(row.stats[id])}</td>)}</tr>)}</tbody></table>{!tableRows.length && <p className="analytics-empty">{selectedOnly ? '表示できる選択装備がないため比較は0件です。「条件に一致する装備」から比較に追加してください。' : rows.length ? '条件に一致する装備がありません。「装備の条件を解除」で全Lvの候補に戻れます。' : '読み込めた装備がありません。マスターの定義や読込エラーを確認してください。'}</p>}</div>
+      <ResizableTable className="analytics-table-wrap" label="装備の比較表" storageKey="equipment-comparison"
+        caption={selectedOnly ? '選択した装備を指定の並び順で表示。標準では選択順です。チェックを外すと比較から解除します。' : '条件に一致する候補を表示。チェックして比較に追加できます。未選択の場合は条件に一致する全装備を比較します。'}
+        emptyState={!tableRows.length && <p className="analytics-empty">{selectedOnly ? '表示できる選択装備がないため比較は0件です。「条件に一致する装備」から比較に追加してください。' : rows.length ? '条件に一致する装備がありません。「装備の条件を解除」で全Lvの候補に戻れます。' : '読み込めた装備がありません。マスターの定義や読込エラーを確認してください。'}</p>} columns={[
+          { id: 'select', label: '選択', width: 64 },
+          { id: 'equipment', label: '装備 / ID', width: 215 },
+          { id: 'slot', label: 'スロット / タグ', width: 155 },
+          { id: 'level', label: '要求Lv / 進行度', width: 148 },
+          { id: 'classes', label: '必要職', width: 170 },
+          ...visibleTableStatuses.map(id => ({ id: `stat-${id}`, label: statusLabel(id), title: id, width: 138 })),
+        ]}>
+        <tbody>{visibleRows.map(row => <tr key={row.path} className={selectedPathSet.has(row.path) ? 'selected' : ''}><td><input type="checkbox" aria-label={`${row.name}を比較に選択`} checked={selectedPathSet.has(row.path)} onChange={event => selectEquipment(event, row.path)} /></td><th scope="row"><span><MinecraftText value={names.get(row.path) || row.name} /></span><small>{row.id} · {row.rarity}</small><details><summary>定義を確認</summary><code>{row.path}</code>{row.rawStats.map((definition, index) => <div key={index}>{definition}</div>)}</details></th><td>{row.slot}<small>{row.tag} · {row.hand}</small></td><td>{row.level}<small>進行度 {row.progression ?? '未定義'}</small></td><td>{row.requiredClasses || '制限なし'}</td>{visibleTableStatuses.map(id => <td key={id}>{formatRange(row.stats[id])}</td>)}</tr>)}</tbody>
+      </ResizableTable>
       <div className="analytics-actions"><button className="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>前の50件</button><span>{currentPage + 1} / {pageCount}ページ</span><button className="button" disabled={currentPage + 1 >= pageCount} onClick={() => setPage(currentPage + 1)}>次の50件</button></div>
       </section>
     </div> : <div id="analytics-growth-panel" role="tabpanel" aria-labelledby="analytics-growth-tab" className="analytics-workspace" style={settingsStyle}>
@@ -386,7 +398,18 @@ export function MasterAnalytics() {
         <div className="analytics-controls"><label>グラフの種類<select value={growthView} onChange={event => setGrowthView(event.target.value as typeof growthView)}><option value="level">プレイヤーLv → クラスLv</option><option value="experience">プレイヤーLv → クラス累積EXP</option><option value="bonus">プレイヤーLv → クラスのステータス補正</option></select></label>{growthView === 'bonus' && <label>ステータス<select value={growthStat} onChange={event => setGrowthStat(event.target.value)}>{[...new Set([growthStat, ...growthStatuses])].map(id => <option key={id} value={id}>{statusLabel(id)} ({id})</option>)}</select></label>}</div>
         <LineChart series={graph} xLabel="プレイヤーLv" yLabel={growthView === 'level' ? 'クラスLv' : growthView === 'experience' ? 'クラス累積EXP' : `${statusLabel(growthStat)}（クラス補正のみ）`} />
         <label className="inspect-level">確認するプレイヤーLv: {inspect}<input type="range" min={simulation.startPlayerLevel} max={simulation.points.at(-1)?.playerLevel} step="1" value={inspect} onChange={event => setInspect(Number(event.target.value))} /></label>
-        {point && <div className="analytics-table-wrap" role="region" aria-label="指定レベルの成長表" tabIndex={0}><table><caption>プレイヤーLv {point.playerLevel} · 累積EXP {formatNumber(point.playerTotalExperience)}</caption><thead><tr><th>職業</th><th>クラスLv / 上限</th><th>累積クラスEXP</th><th>次Lvまで</th><th>必要経験値係数</th><th>{statusLabel(growthStat)}補正</th><th>1Lvの成長</th></tr></thead><tbody>{simulation.classes.map(definition => { const value = point.classes.find(item => item.id === definition.id)!; const master = catalog.classes.find(item => item.content.id === definition.id); return <tr key={definition.id}><th scope="row"><MinecraftText value={definition.name} /><small>{definition.id}</small></th><td>{value.level} / {definition.maxLevel}</td><td>{formatNumber(value.totalExperience)}</td><td>{value.level === definition.maxLevel ? '上限到達' : formatNumber(value.nextLevelExperience)}</td><td>{definition.expRate}</td><td>{master ? formatNumber(classBonus(master, growthStat, value.level)) : '—'}</td><td>{master ? formatNumber(numeric(asList(master.content.growthPerLevel).map(asObject).find(stat => normalizeStatus(stat.status) === growthStat)?.value)) : '—'}</td></tr> })}</tbody></table></div>}
+        {point && <ResizableTable className="analytics-table-wrap" label="指定レベルの成長表" storageKey="class-growth"
+          caption={<>プレイヤーLv {point.playerLevel} · 累積EXP {formatNumber(point.playerTotalExperience)}</>} columns={[
+            { id: 'class', label: '職業', width: 180 },
+            { id: 'level', label: 'クラスLv / 上限', width: 145 },
+            { id: 'total', label: '累積クラスEXP', width: 135 },
+            { id: 'next', label: '次Lvまで', width: 115 },
+            { id: 'rate', label: '必要経験値係数', width: 145 },
+            { id: 'bonus', label: `${statusLabel(growthStat)}補正`, width: 140 },
+            { id: 'per-level', label: '1Lvの成長', width: 110 },
+          ]}>
+          <tbody>{simulation.classes.map(definition => { const value = point.classes.find(item => item.id === definition.id)!; const master = catalog.classes.find(item => item.content.id === definition.id); return <tr key={definition.id}><th scope="row"><MinecraftText value={definition.name} /><small>{definition.id}</small></th><td>{value.level} / {definition.maxLevel}</td><td>{formatNumber(value.totalExperience)}</td><td>{value.level === definition.maxLevel ? '上限到達' : formatNumber(value.nextLevelExperience)}</td><td>{definition.expRate}</td><td>{master ? formatNumber(classBonus(master, growthStat, value.level)) : '—'}</td><td>{master ? formatNumber(numeric(asList(master.content.growthPerLevel).map(asObject).find(stat => normalizeStatus(stat.status) === growthStat)?.value)) : '—'}</td></tr> })}</tbody>
+        </ResizableTable>}
         <button className="button" onClick={() => downloadCsv('class-growth.csv', [['プレイヤーLv', '累積プレイヤーEXP', ...simulation.classes.map(definition => `${definition.id} クラスLv`)], ...simulation.points.map(item => [item.playerLevel, item.playerTotalExperience, ...simulation.classes.map(definition => item.classes.find(value => value.id === definition.id)?.level)])])}>成長表をCSV出力</button>
         <details className="analytics-sources"><summary>計算の根拠と前提</summary><p>{simulation.assumption}</p><p>プレイヤー必要EXP = 500 + Lv²×120 + floor(Lv/10)×850 + 8段階wave + 5Lvごとの加算 + UUID由来の加算。クラス必要EXP = round((45 + Lv²×8 + 10Lvごとの加算) × max(expRate,10)/100)。クラス補正 = baseStats + growthPerLevel × (クラスLv−1)。</p>{simulation.sources.map(source => <code key={source}>{source}</code>)}<p>アカウントUUID: {simulation.accountUuid}。EXPERIENCE_GAIN_RATEは両方へ加算する前に適用されるため、この累積EXP対レベルの比較には影響しません。</p></details>
       </>}

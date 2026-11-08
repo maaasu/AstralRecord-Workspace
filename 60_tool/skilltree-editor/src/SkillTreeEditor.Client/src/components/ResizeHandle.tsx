@@ -24,30 +24,32 @@ interface ResizeHandleProps {
   defaultSize: number
   direction?: 1 | -1
   orientation?: 'vertical' | 'horizontal'
+  target?: 'pane' | 'column'
   /** Space reserved for the other panes, excluding this seven-pixel divider. */
   minRemaining?: number
   onResize: (size: number) => void
   className?: string
 }
 
-export function ResizeHandle({ label, size, min, max, defaultSize, direction = 1, orientation = 'vertical', minRemaining = 0, onResize, className = '' }: ResizeHandleProps) {
+export function ResizeHandle({ label, size, min, max, defaultSize, direction = 1, orientation = 'vertical', target = 'pane', minRemaining = 0, onResize, className = '' }: ResizeHandleProps) {
   const handle = useRef<HTMLDivElement>(null)
   const cleanup = useRef<() => void>(() => undefined)
   const [available, setAvailable] = useState(Infinity)
   const vertical = orientation === 'vertical'
+  const resizePane = target === 'pane'
   const maximum = Math.max(min, Math.min(max, available - minRemaining - 7))
   const value = clamp(size, min, maximum)
 
   useEffect(() => {
     const parent = handle.current?.parentElement
-    if (!parent || typeof ResizeObserver === 'undefined') return
+    if (!resizePane || !parent || typeof ResizeObserver === 'undefined') return
     const observer = new ResizeObserver(() => {
       const length = vertical ? parent.clientWidth : parent.clientHeight
       if (length > 0) setAvailable(length)
     })
     observer.observe(parent)
     return () => observer.disconnect()
-  }, [vertical])
+  }, [resizePane, vertical])
   useEffect(() => () => cleanup.current(), [])
 
   const start = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -55,9 +57,10 @@ export function ResizeHandle({ label, size, min, max, defaultSize, direction = 1
     event.preventDefault()
     cleanup.current()
     const startPosition = vertical ? event.clientX : event.clientY
-    const pane = direction === 1 ? event.currentTarget.previousElementSibling : event.currentTarget.nextElementSibling
+    const pane = resizePane ? (direction === 1 ? event.currentTarget.previousElementSibling : event.currentTarget.nextElementSibling) : null
     const rect = pane?.getBoundingClientRect()
     const startSize = (vertical ? rect?.width : rect?.height) || value
+    if (!resizePane) event.currentTarget.focus({ preventScroll: true })
     const pointerId = event.pointerId
     document.body.classList.add('resizing-panels')
     if (!vertical) document.body.classList.add('resizing-rows')

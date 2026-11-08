@@ -11,6 +11,7 @@ const MaterialIconPickerDialog = lazy(() => import('./MaterialIconPickerDialog')
 interface MaterialIconInputProps {
   value: string
   onChange: (material: string) => void
+  id?: string
   ariaLabel?: string
   disabled?: boolean
   suggestions?: readonly string[]
@@ -21,7 +22,7 @@ interface MaterialIconInputProps {
 }
 
 /** Keep free text and the original saved value; selection supplies a canonical Material ID. */
-export function MaterialIconInput({ value, onChange, ariaLabel = 'Minecraft Material', disabled = false, suggestions = minecraftMaterialSuggestions, revision = 0, placeholder, customModelData, iconTexture }: MaterialIconInputProps) {
+export function MaterialIconInput({ value, onChange, id, ariaLabel = id ? undefined : 'Minecraft Material', disabled = false, suggestions = minecraftMaterialSuggestions, revision = 0, placeholder, customModelData, iconTexture }: MaterialIconInputProps) {
   const [open, setOpen] = useState(false)
   const [retry, setRetry] = useState(0)
   const opener = useRef<HTMLButtonElement>(null)
@@ -37,9 +38,9 @@ export function MaterialIconInput({ value, onChange, ariaLabel = 'Minecraft Mate
       <MinecraftIcon icon={value} customModelData={customModelData} iconTexture={iconTexture} revision={revision + retry} className="material-field-icon" />
     </span>
     <div className="material-icon-input-controls">
-      <SuggestionInput aria-label={ariaLabel} value={value} disabled={disabled} suggestions={suggestions} placeholder={placeholder} onChange={event => onChange(event.target.value)} />
+      <SuggestionInput id={id} aria-label={ariaLabel} value={value} disabled={disabled} suggestions={suggestions} placeholder={placeholder} onChange={event => onChange(event.target.value)} />
       <div className="material-icon-input-actions">
-        <button ref={opener} className="button subtle" type="button" disabled={disabled} onClick={() => setOpen(true)}>画像一覧から選択</button>
+        <button ref={opener} className="button subtle" type="button" disabled={disabled} aria-haspopup="dialog" onClick={() => setOpen(true)}>画像一覧から選択</button>
         <button className="button subtle compact" type="button" disabled={disabled || !value.trim()} onClick={() => setRetry(current => current + 1)} title="取得に失敗したプレビューを再読込">画像を再読込</button>
       </div>
     </div>

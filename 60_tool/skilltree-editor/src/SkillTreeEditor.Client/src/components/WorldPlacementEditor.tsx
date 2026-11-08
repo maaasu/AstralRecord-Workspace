@@ -12,6 +12,7 @@ import './worldPlacementEditor.css'
 import { PlacementChangeReview } from './PlacementChangeReview'
 import { PlacementBulkConfirmation, type PlacementBulkAction } from './PlacementBulkConfirmation'
 import { PlacementCoordinateCopy } from './PlacementCoordinateCopy'
+import { MaterialIconInput } from './MaterialIconInput'
 
 export interface PlacementCatalog { spawners: { id: string; name: string; radiusMeters: number | null; levels: number[] }[]; npcs: { id: string; name: string }[]; worlds: { id: string; name: string; baseWorldPath: string }[] }
 export interface PlacementPoint { key: number; x: number; y: number | null; z: number }
@@ -82,6 +83,7 @@ export function WorldPlacementEditor({ ref, initialWaystoneId, editing = true, m
   const [listingFocusKey, setListingFocusKey] = useState(0)
   const searchInput = useRef<HTMLInputElement>(null)
   const formId = useId(), filterId = useId(), bulkId = useId(), listingId = useId(), searchHelpId = useId()
+  const waystoneIconId = useId()
   const [formOpen, setFormOpen] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [bulkOpen, setBulkOpen] = useState(false)
@@ -507,7 +509,17 @@ export function WorldPlacementEditor({ ref, initialWaystoneId, editing = true, m
       <PlacementCoordinateCopy placement={selected} worldLabel={clean(snapshot.manifest.worldName)} pendingInput={(['x', 'y', 'z'] as const).some(key => selectedDrafts?.[key] !== undefined)} disabled={busy} />
       <label><input type="checkbox" disabled={busy} checked={selected.enabled} onChange={event => update({ enabled: event.target.checked })} />有効</label>
       {selected.kind === 'spawner' && <p>出現範囲: {catalog.spawners.find(item => item.id === selected.templateId)?.radiusMeters ?? 'マスター未選択'} m</p>}
-      {selected.kind === 'waystone' && selected.waystone && <div className="wp-waystone"><label>道標 ID<input value={selected.waystone.id} disabled={busy || !!base?.placements.some(item => item.placementId === selected.placementId)} onChange={event => update({ waystone: { ...selected.waystone!, id: event.target.value } })} /></label><label>表示名<input value={selected.waystone.name} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, name: event.target.value } })} /></label><label>アイコン<input value={selected.waystone.icon ?? ''} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, icon: event.target.value } })} /></label><label>解放費用<input type="text" inputMode="decimal" value={drafts[selected.placementId]?.unlockGold ?? String(selected.waystone.unlockGold)} aria-invalid={drafts[selected.placementId]?.unlockGold !== undefined && parsePlacementNumber(drafts[selected.placementId].unlockGold!, 'unlockGold') === null} disabled={busy} onChange={event => editNumber(selected.placementId, 'unlockGold', event.target.value)} onBlur={() => commitNumber(selected.placementId, 'unlockGold')} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); commitNumber(selected.placementId, 'unlockGold') } else if (event.key === 'Escape') { event.preventDefault(); discardNumber(selected.placementId, 'unlockGold') } }} /></label><label><input type="checkbox" checked={selected.waystone.lockEnabled} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, lockEnabled: event.target.checked } })} />解放条件を使用</label></div>}
+      {selected.kind === 'waystone' && selected.waystone && <div className="wp-waystone">
+        <label>道標 ID<input value={selected.waystone.id} disabled={busy || !!base?.placements.some(item => item.placementId === selected.placementId)} onChange={event => update({ waystone: { ...selected.waystone!, id: event.target.value } })} /></label>
+        <label>表示名<input value={selected.waystone.name} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, name: event.target.value } })} /></label>
+        <div className="wp-waystone-icon">
+          <label htmlFor={waystoneIconId}>アイコン</label>
+          <MaterialIconInput key={selected.placementId} id={waystoneIconId} value={selected.waystone.icon ?? ''} disabled={busy}
+            onChange={icon => update({ waystone: { ...selected.waystone!, icon } })} />
+        </div>
+        <label>解放費用<input type="text" inputMode="decimal" value={drafts[selected.placementId]?.unlockGold ?? String(selected.waystone.unlockGold)} aria-invalid={drafts[selected.placementId]?.unlockGold !== undefined && parsePlacementNumber(drafts[selected.placementId].unlockGold!, 'unlockGold') === null} disabled={busy} onChange={event => editNumber(selected.placementId, 'unlockGold', event.target.value)} onBlur={() => commitNumber(selected.placementId, 'unlockGold')} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); commitNumber(selected.placementId, 'unlockGold') } else if (event.key === 'Escape') { event.preventDefault(); discardNumber(selected.placementId, 'unlockGold') } }} /></label>
+        <label><input type="checkbox" checked={selected.waystone.lockEnabled} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, lockEnabled: event.target.checked } })} />解放条件を使用</label>
+      </div>}
       <details className="wp-disclosure wp-form-details">
         <summary>向き・複製・削除{(selectedDrafts?.yaw !== undefined || selectedDrafts?.pitch !== undefined) && '（数値入力中）'}</summary>
         <div className="wp-coordinates">

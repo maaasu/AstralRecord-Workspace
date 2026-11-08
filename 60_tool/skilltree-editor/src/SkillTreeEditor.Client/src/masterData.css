@@ -161,14 +161,16 @@
 .master-validation li small { display: block; color: var(--text-muted); }
 .master-validation .error { color: var(--danger); }
 .master-validation .warning { color: var(--gold); }
-.master-references { max-height: 300px; overflow: auto; margin-bottom: 15px; font-size: 11px; }
+.master-references { margin-bottom: 15px; font-size: 11px; }
 .master-reference-location { display: block; margin-top: 5px; text-align: left; overflow-wrap: anywhere; }
 .master-reference-tools { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 16px; }
 .master-reference-tools label { display: grid; gap: 4px; min-width: 0; flex: 1 1 180px; }
 .master-reference-tools input, .master-reference-tools select { min-width: 0; width: 100%; }
 .master-reference-category { display: block; margin-bottom: 4px; }
-.master-references table { width: 100%; border-collapse: collapse; }
-.master-references th, .master-references td { padding: 7px; text-align: left; border: 1px solid var(--line); overflow-wrap: anywhere; }
+.master-reference-table { max-height: 300px; border: 1px solid var(--line); }
+.master-reference-table table { border-collapse: separate; border-spacing: 0; }
+.master-reference-table th, .master-reference-table td { padding: 7px; text-align: left; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.master-reference-table button { max-width: 100%; text-align: left; overflow-wrap: anywhere; }
 .master-doc-links { margin-bottom: 15px; font-size: 11px; }
 .master-doc-links .button { margin: 7px 7px 0 0; }
 .master-create-dialog { grid-template-rows: auto minmax(0, 1fr) auto; }

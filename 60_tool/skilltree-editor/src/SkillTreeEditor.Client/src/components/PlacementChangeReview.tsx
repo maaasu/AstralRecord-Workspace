@@ -3,6 +3,7 @@ import type { WorldPlacement } from '../api/worldPlacementApi'
 import type { PlacementChange, PlacementChangeKind } from '../state/worldPlacementEditing'
 import type { PlacementCatalog } from './WorldPlacementEditor'
 import { MinecraftText } from './MinecraftText'
+import { ResizableTable } from './ResizableTable'
 import { placementSearchText, placementSearchWords } from '../data/placementSearch'
 
 const kinds = { added: '追加', changed: '変更', deleted: '削除' }
@@ -69,7 +70,13 @@ export function PlacementChangeReview({ changes, catalog, locked, hasDrafts, onL
         return <article className="wp-change" key={change.id} aria-label={`${kinds[change.kind]} ${change.id}`}>
           <h3>{kinds[change.kind]} · <MinecraftText value={name(item, masterNames)} /></h3><code>{change.id}</code>
           {change.before && change.after && name(change.before, masterNames) !== name(change.after, masterNames) && <p>保存前: <MinecraftText value={name(change.before, masterNames)} /> → 編集後: <MinecraftText value={name(change.after, masterNames)} /></p>}
-          <table><thead><tr><th scope="col">項目</th><th scope="col">保存前</th><th scope="col">編集後</th></tr></thead><tbody>{fields.map(field => <tr key={field}><th scope="row">{field}</th><td><MinecraftText value={before[field] ?? '—'} /></td><td><MinecraftText value={after[field] ?? '—'} /></td></tr>)}</tbody></table>
+          <ResizableTable label="配置の前後比較" storageKey="placement-change" columns={[
+            { id: 'field', label: '項目', width: 140 },
+            { id: 'before', label: '保存前', width: 220 },
+            { id: 'after', label: '編集後', width: 220 },
+          ]}>
+            <tbody>{fields.map(field => <tr key={field}><th scope="row">{field}</th><td><MinecraftText value={before[field] ?? '—'} /></td><td><MinecraftText value={after[field] ?? '—'} /></td></tr>)}</tbody>
+          </ResizableTable>
           <div className="wp-actions">{change.after && <button className="button" disabled={locked} onClick={() => onLocate(change.after!)}>この配置へ移動</button>}<button className="button" disabled={locked || hasDrafts} onClick={() => onRevert(change)}>この配置の変更を取り消す</button></div>
         </article>
       })}</div>

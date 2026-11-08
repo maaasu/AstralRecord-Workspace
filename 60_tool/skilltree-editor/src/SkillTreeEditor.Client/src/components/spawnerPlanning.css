@@ -35,20 +35,20 @@ body:has(.master-app-content:not([hidden]) .sp-workspace){min-width:0}
 }
 .sp-workspace-actions .sp-mode-switch { margin: 0; flex-wrap: wrap; }
 .sp-workspace .sp-main[hidden] { display: none; }
-.sp-teleporter-list { max-width: 1200px; }
+.sp-teleporter-list { min-width: 0; }
 .sp-teleporter-list > .sp-section-heading { align-items: flex-start; }
 .sp-teleporter-list > .sp-section-heading h2 { font-size: 18px; }
 .sp-teleporter-list > .sp-section-heading .button { flex-shrink: 0; font-size: inherit; }
 .sp-teleporter-list .sp-controls input, .sp-teleporter-list .sp-controls select { width: 100%; }
-.sp-teleporter-table { overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
-.sp-teleporter-table:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.sp-teleporter-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.sp-teleporter-table { max-height: min(60vh, 620px); border: 1px solid var(--line); border-radius: 8px; }
+.sp-teleporter-table table { border-collapse: collapse; font-size: 13px; }
 .sp-teleporter-table th, .sp-teleporter-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; }
 .sp-teleporter-table thead, .sp-teleporter-detail { background: var(--surface-soft); }
 .sp-teleporter-table tbody tr:last-child > * { border-bottom: 0; }
-.sp-teleporter-table th .button { font-weight: inherit; text-align: left; }
-.sp-teleporter-coordinates { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.sp-teleporter-icon { display: inline-flex; align-items: center; gap: 6px; }
+.sp-teleporter-table tbody th .button { max-width: 100%; font-weight: inherit; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.sp-teleporter-coordinates { font-variant-numeric: tabular-nums; }
+.sp-teleporter-icon { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; max-width: 100%; }
+.sp-teleporter-icon code { max-width: 100%; overflow-wrap: anywhere; }
 .sp-teleporter-detail dl { display: flex; flex-wrap: wrap; gap: 10px 28px; margin: 0 0 12px; }
 .sp-teleporter-detail dt { color: var(--text-muted); }
 .sp-teleporter-detail dd { margin: 4px 0 0; overflow-wrap: anywhere; }

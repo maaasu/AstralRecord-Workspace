@@ -37,7 +37,7 @@
 .master-analytics summary { cursor: pointer; overflow-wrap: anywhere; }
 .analytics-explanation summary, .analytics-sources summary { padding: 3px 0; }
 .analytics-table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 8px; margin: 14px 0; max-height: 500px; overscroll-behavior: contain; }
-.analytics-workspace table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 12px; white-space: nowrap; }
+.analytics-workspace table { border-collapse: separate; border-spacing: 0; font-size: 12px; }
 .analytics-workspace th, .analytics-workspace td { border-bottom: 1px solid var(--line); padding: 12px; text-align: left; line-height: 1.5; }
 .analytics-workspace thead th { position: sticky; top: 0; background: var(--surface-soft); z-index: 1; color: var(--text-muted); font-weight: 500; }
 .analytics-workspace tbody th { min-width: 170px; max-width: 280px; font-weight: 500; white-space: normal; overflow-wrap: anywhere; }

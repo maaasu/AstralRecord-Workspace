@@ -1,0 +1,47 @@
+.resizable-table {
+  min-width: 0;
+  max-width: 100%;
+  overflow: auto;
+}
+
+.resizable-table:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+
+.resizable-table > table {
+  table-layout: fixed;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+:where(.resizable-table > table > thead > tr) > th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-soft);
+}
+
+.resizable-table > table > thead > tr > th {
+  padding-right: 19px;
+}
+
+.resizable-table .table-column-resizer {
+  position: absolute;
+  z-index: 1;
+  inset: 0 0 0 auto;
+  width: 16px;
+  background: transparent;
+}
+
+.resizable-table .table-column-resizer::after {
+  inset: 5px 3px 5px auto;
+  width: 2px;
+  background: var(--line-bright);
+}
+
+.resizable-table .table-column-resizer:hover::after,
+.resizable-table .table-column-resizer:focus-visible::after {
+  background: var(--blue);
+  width: 3px;
+}

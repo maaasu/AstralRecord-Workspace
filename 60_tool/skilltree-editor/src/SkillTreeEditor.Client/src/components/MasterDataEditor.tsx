@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState, type CSSProperties } from 'react'
 import { ResizeHandle, usePanelSize } from './ResizeHandle'
+import { ResizableTable } from './ResizableTable'
 import { ApiError } from '../api/editorApi'
 import { masterDataApi } from '../api/masterDataApi'
 import { useHistory } from '../state/history'
@@ -621,7 +622,15 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
                 <p id={`${referencePanelId}-search-help`} className="master-muted">空白区切りですべての語を含む参照元を検索します。例: スポナー 森林狼。カテゴリは参照元ファイルの最も深い分類です。件数は参照箇所数です。</p>
                 <p>{filteredReferences.length}件 / {references.length}件 · 50件ずつ表示</p>
                 {references.length > 0 && filteredReferences.length === 0 && <p className="master-muted">条件に一致する参照元はありません。検索語やカテゴリを変更するか、条件を解除してください。</p>}
-                {references.length > 0 ? <><table><thead><tr><th>参照先の種類</th><th>ID / 名前</th><th>参照元</th></tr></thead><tbody>{filteredReferences.slice(currentReferencePage * 50, (currentReferencePage + 1) * 50).map(({ entry, categoryLabel, canOpen }, index) => <tr key={index}><td>{referenceKindLabel(entry.kind)}</td><td><code>{entry.value}</code> <MinecraftText value={entry.label ?? ''} /></td><td><small className="master-muted master-reference-category">{categoryLabel}</small>{canOpen ? <><button className="text-button" disabled={busy} onClick={() => onOpenFile(entry.path)}>{entry.path}</button><button className="text-button master-reference-location" disabled={busy} aria-label={`${stripMinecraftFormatting(entry.label ?? '') || baseName(entry.path)} の参照位置 ${entry.pointer || '/'} へ移動`} onClick={() => onOpenFile(entry.path, undefined, { pointer: entry.pointer, value: entry.value })}>項目へ移動: {entry.pointer || '/'}</button></> : <><code>{entry.path}</code><small>{entry.pointer}</small><span className="master-muted">ファイル一覧外の参照元です。Filebase外の設定は対応するエディタで確認し、Filebase内なら一覧を再読込してください。</span></>}</td></tr>)}</tbody></table><div className="master-pagination"><button className="button compact" disabled={currentReferencePage === 0} onClick={() => setReferencePage(currentReferencePage - 1)}>前の参照</button><span>{currentReferencePage + 1} / {referencePages}</span><button className="button compact" disabled={currentReferencePage + 1 >= referencePages} onClick={() => setReferencePage(currentReferencePage + 1)}>次の参照</button></div></>
+                {references.length > 0 ? <>
+                  <ResizableTable label="保存済みデータの参照元一覧" storageKey="master-references" className="master-reference-table" columns={[
+                    { id: 'kind', label: '参照先の種類', width: 135 },
+                    { id: 'target', label: 'ID / 名前', width: 200 },
+                    { id: 'source', label: '参照元', width: 430 },
+                  ]}>
+                    <tbody>{filteredReferences.slice(currentReferencePage * 50, (currentReferencePage + 1) * 50).map(({ entry, categoryLabel, canOpen }, index) => <tr key={index}><td>{referenceKindLabel(entry.kind)}</td><td><code>{entry.value}</code> <MinecraftText value={entry.label ?? ''} /></td><td><small className="master-muted master-reference-category">{categoryLabel}</small>{canOpen ? <><button className="text-button" disabled={busy} onClick={() => onOpenFile(entry.path)}>{entry.path}</button><button className="text-button master-reference-location" disabled={busy} aria-label={`${stripMinecraftFormatting(entry.label ?? '') || baseName(entry.path)} の参照位置 ${entry.pointer || '/'} へ移動`} onClick={() => onOpenFile(entry.path, undefined, { pointer: entry.pointer, value: entry.value })}>項目へ移動: {entry.pointer || '/'}</button></> : <><code>{entry.path}</code><small>{entry.pointer}</small><span className="master-muted">ファイル一覧外の参照元です。Filebase外の設定は対応するエディタで確認し、Filebase内なら一覧を再読込してください。</span></>}</td></tr>)}</tbody>
+                  </ResizableTable>
+                  <div className="master-pagination"><button className="button compact" disabled={currentReferencePage === 0} onClick={() => setReferencePage(currentReferencePage - 1)}>前の参照</button><span>{currentReferencePage + 1} / {referencePages}</span><button className="button compact" disabled={currentReferencePage + 1 >= referencePages} onClick={() => setReferencePage(currentReferencePage + 1)}>次の参照</button></div></>
                   : <p className="master-muted">検出された参照元はありません。</p>}
               </>}
         </section>}

@@ -4,6 +4,7 @@
 .wp-editor p { margin: .3rem 0 .8rem; }
 .wp-editor .wp-error { padding: .7rem; border: 1px solid #f28e89; border-radius: 6px; color: #ffd0cb; }
 .wp-actions, .wp-filters, .wp-coordinates, .wp-waystone { display: flex; flex-wrap: wrap; gap: .6rem; align-items: end; margin: .7rem 0; }
+.wp-waystone-icon { display: grid; gap: .25rem; min-width: 0; max-width: 100%; }
 .wp-editor label { display: flex; flex-direction: column; gap: .25rem; font-size: .84rem; }
 .wp-editor label:has(input[type='checkbox']) { flex-direction: row; align-items: center; justify-content: flex-start; gap: .4rem; width: fit-content; white-space: nowrap; }
 .wp-editor input[type='checkbox'] { width: auto; min-width: 0; flex: 0 0 auto; margin: 0; }
@@ -60,7 +61,7 @@
 .wp-change { min-width: 0; padding: .7rem; background: #183642; border: 1px solid #365967; border-radius: 6px; overflow-wrap: anywhere; }
 .wp-change h3 { font-size: 1rem; }
 .wp-change code { display: block; color: #adc8d0; }
-.wp-change table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: .5rem; font-size: .85rem; }
+.wp-change table { border-collapse: separate; border-spacing: 0; margin-top: .5rem; font-size: .85rem; }
 .wp-change th, .wp-change td { padding: .35rem; border-bottom: 1px solid #365967; vertical-align: top; text-align: left; white-space: pre-wrap; }
 .wp-editor .button[aria-pressed='true'] { background: #276377; border-color: #76dded; }
 .wp-map-instruction { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; }

@@ -57,6 +57,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   const [moving, setMoving] = useState(false)
   const [placementBusy, setPlacementBusy] = useState(false)
   const [placementDirty, setPlacementDirty] = useState(false)
+  const [placementLoadVersion, setPlacementLoadVersion] = useState(0)
   const [placementPoint, setPlacementPoint] = useState<PlacementPoint | null>(null)
   const placementEditor = useRef<WorldPlacementEditorHandle>(null)
   const placementModeButton = useRef<HTMLButtonElement>(null)
@@ -64,6 +65,8 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   const [mode, setMode] = useState<WorkspaceMode>('placements')
   const [showingTeleporters, setShowingTeleporters] = useState(false)
   const [teleportersOpened, setTeleportersOpened] = useState(false)
+  const [teleporterDirty, setTeleporterDirty] = useState(false)
+  const [teleporterBusy, setTeleporterBusy] = useState(false)
   const [showGatheringSpawners, setShowGatheringSpawners] = useState(false)
   const [gatheringLayer, setGatheringLayer] = useState<{ worldId: string; reload: number; markers: GatheringSpawnerMarker[]; error: string } | null>(null)
   const challengeEditor = useRef<ChallengeLocationEditorHandle>(null)
@@ -82,8 +85,9 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   const hasPlans = !!snapshot?.manifest.radiusOptions.length
   const capturedAt = snapshot?.manifest.capturedAt ? Date.parse(snapshot.manifest.capturedAt) : NaN
   const capturedLabel = Number.isFinite(capturedAt) ? new Date(capturedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : ''
-  const dirty = placementDirty || challengeDirty
+  const dirty = placementDirty || challengeDirty || teleporterDirty
   const editorBusy = placementBusy || challengeBusy
+  const teleporterSwitchLocked = showingTeleporters && (teleporterDirty || teleporterBusy)
   const switchLocked = loading || (showingPlans && planning) || editorBusy || dirty
   const reloadLocked = loading || ((!worldId || !snapshot) && (dirty || editorBusy))
   const mapWorld = snapshot?.manifest.worldId
@@ -106,11 +110,11 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   }, [])
   useEffect(() => { onDirtyChange?.(dirty) }, [onDirtyChange, dirty])
   useEffect(() => {
-    if (!challengeDirty) return
+    if (!challengeDirty && !teleporterDirty) return
     const listener = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
     window.addEventListener('beforeunload', listener)
     return () => window.removeEventListener('beforeunload', listener)
-  }, [challengeDirty])
+  }, [challengeDirty, teleporterDirty])
   useEffect(() => {
     const controller = new AbortController()
     const request = spawnerPlanningApi.worlds?.(controller.signal) ?? Promise.resolve([])
@@ -258,6 +262,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
     setReload(value => value + 1)
   }
   function selectMode(next: WorkspaceMode) {
+    if (teleporterSwitchLocked) return
     if (showingTeleporters && next === mode) {
       setShowingTeleporters(false)
       return
@@ -269,7 +274,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
     else { setPlacing(false); setMoving(false) }
   }
   function openTeleporterPlacement(placement: WorldPlacement, revision: string) {
-    if (switchLocked || pickingPoint) return
+    if (switchLocked || teleporterSwitchLocked || pickingPoint) return
     if (placement.worldId === mapWorld) {
       placementEditor.current?.openSavedWaystone(placement.placementId, revision)
     } else {
@@ -312,10 +317,10 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
     </header>
     <div className="sp-workspace-actions">
       <div className="sp-mode-switch" aria-label="編集内容">
-        <button ref={placementModeButton} className="button" aria-pressed={editing && !showingTeleporters} onClick={() => selectMode('placements')}>配置編集</button>
-        <button className="button" aria-pressed={editingChallenge && !showingTeleporters} disabled={loading && !snapshot} onClick={() => selectMode('challenge')}>ボス・ダンジョン受付</button>
+        <button ref={placementModeButton} className="button" aria-pressed={editing && !showingTeleporters} disabled={teleporterSwitchLocked} onClick={() => selectMode('placements')}>配置編集</button>
+        <button className="button" aria-pressed={editingChallenge && !showingTeleporters} disabled={teleporterSwitchLocked || (loading && !snapshot)} onClick={() => selectMode('challenge')}>ボス・ダンジョン受付</button>
         <button className="button" aria-pressed={showingTeleporters} onClick={() => { setTeleportersOpened(true); setShowingTeleporters(true); setOtherToolsOpen(false) }}>テレポーター一覧</button>
-        {showingPlans && <button ref={focusActiveProposalMode} className="button" aria-pressed={!showingTeleporters} onClick={() => selectMode('proposals')}>AI 配置案</button>}
+        {showingPlans && <button ref={focusActiveProposalMode} className="button" aria-pressed={!showingTeleporters} disabled={teleporterSwitchLocked} onClick={() => selectMode('proposals')}>AI 配置案</button>}
       </div>
       {!showingTeleporters && hasPlans && !showingPlans && <div className="sp-other-tools">
         <button type="button" className="button" aria-expanded={otherToolsOpen} aria-controls={otherToolsId}
@@ -342,7 +347,13 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
       </details></>}
     </div>
     {teleportersOpened && <div hidden={!showingTeleporters}>
-      <TeleporterList worlds={teleporterWorlds} openDisabled={switchLocked || pickingPoint} onOpen={openTeleporterPlacement} />
+      <TeleporterList worlds={teleporterWorlds} openDisabled={switchLocked || teleporterSwitchLocked || pickingPoint}
+        editDisabled={placementDirty || editorBusy || placing || moving} onOpen={openTeleporterPlacement}
+        onDirtyChange={setTeleporterDirty} onBusyChange={setTeleporterBusy}
+        onSaved={() => {
+          setInitialWaystoneId(null)
+          setPlacementLoadVersion(version => version + 1)
+        }} />
     </div>}
     {!showingTeleporters && <>
     {dirty && (worlds.length > 1 || !worldId || !snapshot) && <p className="sp-muted" role="status">編集内容を保存するか取り消すと、地図を切り替えられます。</p>}
@@ -377,7 +388,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
     </>}
     <div hidden={showingTeleporters} className={`sp-main ${editing || !snapshot ? 'sp-main-editing' : ''} ${editingChallenge ? 'sp-main-challenge' : ''}`} style={{ '--planning-sidebar-width': `${sidebarWidth}px` } as CSSProperties}>
         {snapshot && <div className="sp-map-column">
-          <WorldPlacementEditor key={snapshot.manifest.worldId} ref={placementEditor} initialWaystoneId={initialWaystoneId} editing={editing} snapshot={snapshot} point={placementPoint} selectedId={selectedPlacement} selectionKey={placementSelectionKey} onSelected={selectPlacement} onPlacements={(next, catalog, ready) => { setPlacements(next); setPlacementCatalog(catalog); setPlacementsReady(ready) }} placing={placing} onPlacing={setPlacing} moving={moving} onMoving={setMoving} onBusyChange={setPlacementBusy} onDirtyChange={setPlacementDirty} map={<>
+          <WorldPlacementEditor key={`${snapshot.manifest.worldId}:${placementLoadVersion}`} ref={placementEditor} initialWaystoneId={initialWaystoneId} editing={editing} snapshot={snapshot} point={placementPoint} selectedId={selectedPlacement} selectionKey={placementSelectionKey} onSelected={selectPlacement} onPlacements={(next, catalog, ready) => { setPlacements(next); setPlacementCatalog(catalog); setPlacementsReady(ready) }} placing={placing} onPlacing={setPlacing} moving={moving} onMoving={setMoving} onBusyChange={setPlacementBusy} onDirtyChange={setPlacementDirty} map={<>
             <SpawnerPlanningMap planningWorldId={worldId || undefined} compactControls={!showingPlans} snapshot={snapshot} plan={showingPlans ? plan : null}
               layer={showingPlans ? layer : 'terrain'} region={showingPlans ? region : ''} reason={showingPlans ? reason : ''}
               radii={!editingChallenge && radii} onRadiiChange={editing ? setRadii : undefined} active={active && !showingTeleporters}

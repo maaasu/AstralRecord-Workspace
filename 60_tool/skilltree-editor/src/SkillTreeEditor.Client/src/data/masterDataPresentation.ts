@@ -8,6 +8,7 @@ const fieldLabels: Record<string, string> = {
   generation: '生成設定', theme: '外観テーマ', encounter: 'モブの出現設定',
   $schema: 'スキーマ参照', schemaVersion: '定義バージョン', nodeId: 'ノードID',
   icon: 'アイコン', tags: 'タグ', pointType: '消費ポイントの種類', pointCost: '消費ポイント',
+  iconMaterial: 'アイコン素材', guiIconMaterial: '転送画面のアイコン素材', itemMaterial: '設置アイテムの素材', displayBlock: '表示ブロック',
   customModelData: 'カスタムモデル番号', iconTexture: '頭部のテクスチャ',
   drops: 'ドロップ', items: 'アイテム一覧', lootTable: '追加ドロップの報酬テーブル',
   spawnMobs: '出現するモブ', spawnGatherings: '出現するギャザリング対象',

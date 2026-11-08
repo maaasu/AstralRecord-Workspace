@@ -6,6 +6,7 @@ import type { KeyboardEvent } from 'react'
 import type { JsonObject, JsonValue } from '../types/editor'
 import type { MasterField, MasterReference } from '../types/masterData'
 import { MaterialIconInput } from './MaterialIconInput'
+import minecraftBlockMaterials from '../data/minecraft-block-materials.1.21.11.json'
 import { summarizeMasterValue } from '../data/masterDataNavigation'
 import { MinecraftText } from './MinecraftText'
 import { stripMinecraftFormatting } from '../utils/minecraft'
@@ -30,6 +31,13 @@ const textFieldName = (path: string) => path.split('/').at(-1)?.replaceAll('~1',
 const isDescriptionField = (path: string) => ['description', 'lore'].includes(textFieldName(path) ?? '')
 const isTextLineArray = (path: string, value: JsonValue): value is string[] =>
   Array.isArray(value) && isDescriptionField(path) && value.every((entry) => typeof entry === 'string')
+
+function materialFieldKind(path: string, documentPath: string | undefined): 'item' | 'block' | undefined {
+  if (path === '/displayBlock' || path === '/itemMaterial') return 'block'
+  if (path === '/icon' || path === '/iconMaterial' || path === '/guiIconMaterial') return 'item'
+  if (documentPath?.startsWith('40.features.mob/') && /^\/levels\/\d+\/icon$/.test(path)) return 'item'
+}
+
 export function normalizeMasterType(type: unknown): ValueType | undefined {
   if (typeof type !== 'string') return undefined
   const value = type.trim().toLowerCase()
@@ -182,6 +190,11 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
   </label>
   if (kind === 'number' || kind === 'integer') return <NumberEditor value={typeof value === 'number' ? value : 0} kind={kind} path={path} onChange={onChange} onInvalid={onInvalid} restoredText={invalidValues?.[path]}
     candidates={/^\/levels\/\d+\/nodes\/\d+$/.test(path) ? references.filter((entry) => entry.kind === 'node') : undefined} />
+  const materialKind = materialFieldKind(path, visualReferences?.documentPath)
+  if (materialKind) return <MaterialIconInput value={typeof value === 'string' ? value : ''} onChange={onChange} ariaLabel={path}
+    suggestions={materialKind === 'block' ? minecraftBlockMaterials : undefined}
+    customModelData={path === '/icon' ? visualReferences?.customModelData : undefined}
+    iconTexture={path === '/icon' ? visualReferences?.iconTexture : undefined} />
   if (kind === 'null') return <span className="master-muted">null（値なし）</span>
   const text = typeof value === 'string' ? value : String(value ?? '')
   const progressionSigilReference = /^\/levels\/\d+\/(skills|passives)\/\d+\/sigils\/\d+\/item$/.test(path)
@@ -194,8 +207,6 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
   const colon = text.indexOf(':')
   const existingPrefix = visualReferences && referenceKind && colon > 0 && referenceId(text, referenceKind, visualReferences.referencePrefixes) !== text
     ? text.slice(0, colon + 1) : undefined
-  if (path === '/icon' && typeof value === 'string') return <MaterialIconInput value={value} onChange={onChange} ariaLabel={path}
-    customModelData={visualReferences?.customModelData} iconTexture={visualReferences?.iconTexture} />
   return <StringEditor path={path} label={masterFieldTitle(masterValueFieldKey(path), metadata?.label)} value={text} onChange={onChange} references={references} referenceKind={referenceKind}
     referencePrefix={existingPrefix ?? enchantReferencePrefix ?? wrappedReferencePrefix ?? spawnerReferencePrefix ?? (typeof resolved.pattern === 'string' ? resolved.pattern.match(/^\^(item|skill):/)?.[0].slice(1) : undefined)}
     referenceFilter={progressionSigilReference ? isSigilReference : path.endsWith('/caughtItemId/ref') ? isCaughtItemReference : undefined} />
@@ -282,7 +293,7 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
             : <MasterDataForm {...form} schema={definition} value={child} path={childPath} onChange={(next) => onChange({ ...value, [key]: next })} />}
       </>
       return structured && !onNavigate ? <details open key={key} className="master-field master-field-wide"><summary>{label} <code>{key}</code> <small>{Array.isArray(child) ? child.length + ' 件' : Object.keys(objectOf(child) ?? {}).length + ' 項目'}</small></summary>{content}</details>
-        : <div key={key} className={'master-field ' + (inlineCollection || !visualReferences && structured || !structured && isDescriptionField(childPath) || typeof child === 'string' && child.includes('\n') || childPath === '/icon' ? 'master-field-wide' : 'master-field-scalar')}>{content}</div>
+        : <div key={key} className={'master-field ' + (inlineCollection || !visualReferences && structured || !structured && isDescriptionField(childPath) || typeof child === 'string' && child.includes('\n') || materialFieldKind(childPath, visualReferences?.documentPath) ? 'master-field-wide' : 'master-field-scalar')}>{content}</div>
     })}
     {onNavigate && (createDrops || emptyDrops) &&
       <div className="master-field-wide"><MasterDataForm fields={fields} references={references} path={createDrops ? '/drops/items' : path + '/items'} value={[]} rootSchema={rootSchema}

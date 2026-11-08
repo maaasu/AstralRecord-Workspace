@@ -73,7 +73,7 @@
 .balance-chart-legend { display: flex; gap: 13px; font-size: 12px; margin-top: 7px; }
 .balance-chart-legend i { display: inline-block; width: 15px; height: 3px; margin-right: 5px; vertical-align: middle; }
 .balance-scroll { overflow: auto; max-height: 350px; }
-.balance-lab table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.balance-lab table { border-collapse: separate; border-spacing: 0; font-size: 12px; }
 .balance-lab th, .balance-lab td { padding: 8px; border-bottom: 1px solid #3a4a5c; text-align: left; }
 .balance-lab table caption { text-align: left; padding: 10px 0; }
 .balance-stat-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }

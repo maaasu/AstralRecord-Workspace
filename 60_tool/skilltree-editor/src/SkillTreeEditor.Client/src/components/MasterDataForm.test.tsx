@@ -262,6 +262,30 @@ describe('master form', () => {
     fireEvent.change(screen.getByRole('combobox', { name: '/icon' }), { target: { value: 'BOOK' } })
     expect(JSON.parse(screen.getByTestId('value').textContent!)).toEqual({ icon: 'BOOK', params: { AlienRPC: 'keep' } })
   })
+
+  it('offers the material picker for a mob level override while leaving texture fields as text', async () => {
+    render(<MasterVisualReferencesContext.Provider value={{ documentPath: '40.features.mob/wolf.yml', files: new Map(), openFile: vi.fn() }}>
+      <Editable initial={{ levels: [{ icon: 'WOLF_SPAWN_EGG' }], iconTexture: 'texture-id' }} metadata={[]} />
+    </MasterVisualReferencesContext.Provider>)
+    expect(screen.getByRole('textbox', { name: '/iconTexture' })).toHaveValue('texture-id')
+    expect(screen.getByRole('img', { name: '素材アイコン: WOLF_SPAWN_EGG' }).querySelector('img')).toHaveAttribute('src', '/api/minecraft-icons/WOLF_SPAWN_EGG?revision=0')
+    fireEvent.click(screen.getByRole('button', { name: '画像一覧から選択' }))
+    fireEvent.change(await screen.findByRole('searchbox', { name: 'Materialを検索' }), { target: { value: 'fox spawn egg' } })
+    fireEvent.click(screen.getByRole('button', { name: 'FOX_SPAWN_EGG' }))
+    expect(screen.getByTestId('value')).toHaveTextContent('{"levels":[{"icon":"FOX_SPAWN_EGG"}],"iconTexture":"texture-id"}')
+  })
+
+  it('offers only blocks in the display block picker', async () => {
+    render(<Editable initial={{ displayBlock: 'STONE' }} metadata={[]} />)
+    fireEvent.click(screen.getByRole('button', { name: '画像一覧から選択' }))
+    const search = await screen.findByRole('searchbox', { name: 'Materialを検索' })
+    fireEvent.change(search, { target: { value: 'iron sword' } })
+    expect(screen.getByText(/該当するMaterialがありません/)).toBeInTheDocument()
+    fireEvent.change(search, { target: { value: 'iron block' } })
+    fireEvent.click(screen.getByRole('button', { name: 'IRON_BLOCK' }))
+    expect(screen.getByTestId('value')).toHaveTextContent('{"displayBlock":"IRON_BLOCK"}')
+  })
+
   it('uses pet schema Japanese labels and item reference prefixes without dropping unknown draft fields', () => {
     const onChange = vi.fn()
     const schema = { type: 'object', properties: { eggItemId: { type: 'string', title: '卵のアイテム参照', pattern: '^item:[0-9]{2}[a-z][0-9]{5}$' }, AlienKey: { type: 'object' } } }
