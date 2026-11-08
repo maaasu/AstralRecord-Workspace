@@ -66,6 +66,7 @@ public class GatheringSpawnerService {
     private GatheringSpawnerVisualizer visualizer;
     private BukkitTask task;
     private BukkitTask saveTask;
+    private long spawnIntervalDivisor;
     private long tick;
     private long nextSpawnTick;
     private boolean dirty;
@@ -110,6 +111,10 @@ public class GatheringSpawnerService {
         definitions.clear();
         for (GatheringSpawnerDefinition definition : snapshot.definitions()) {
             definitions.put(definition.id(), definition);
+        }
+        spawnIntervalDivisor = 0L;
+        for (GatheringSpawnerDefinition definition : definitions.values()) {
+            spawnIntervalDivisor = greatestCommonDivisor(spawnIntervalDivisor, definition.spawnIntervalTicks());
         }
         locations.clear();
         spawnedByLocation.clear();
@@ -361,11 +366,15 @@ public class GatheringSpawnerService {
     /** 同期スレッドで判定対象を重複なく待機列へ追加し、1件の探索だけを予算内で進めます。 */
     private void tick() {
         tick++;
-        for (GatheringSpawnerLocation location : locations.values()) {
-            GatheringSpawnerDefinition definition = definitions.get(location.spawnerId());
-            if (definition != null && tick % definition.spawnIntervalTicks() == 0L
-                    && queuedLocations.add(location.locationKey())) {
-                pendingSpawns.addLast(location);
+        // 共通の約数で割り切れない tick では、どの定義も出現判定の周期に達しない。
+        if (spawnIntervalDivisor != 0L && tick % spawnIntervalDivisor == 0L) {
+            for (var placement : locations.entrySet()) {
+                GatheringSpawnerLocation location = placement.getValue();
+                GatheringSpawnerDefinition definition = definitions.get(location.spawnerId());
+                if (definition != null && tick % definition.spawnIntervalTicks() == 0L
+                        && queuedLocations.add(placement.getKey())) {
+                    pendingSpawns.addLast(location);
+                }
             }
         }
         if (activeSpawn == null) {
@@ -405,6 +414,22 @@ public class GatheringSpawnerService {
             }
         }
         finishPendingSpawn();
+    }
+
+    /**
+     * 出現判定間隔の最大公約数を求めます。
+     *
+     * @param left それまでの最大公約数。定義未集計なら 0
+     * @param right 新たに集計する正の出現判定間隔
+     * @return 全集計済み間隔の最大公約数
+     */
+    private static long greatestCommonDivisor(long left, long right) {
+        while (right != 0L) {
+            long remainder = left % right;
+            left = right;
+            right = remainder;
+        }
+        return left;
     }
 
     /**
