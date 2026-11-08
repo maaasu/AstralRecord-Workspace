@@ -1,0 +1,32 @@
+{
+  "namespace": "chest",
+  "small_chest_screen@common.inventory_screen_common": {
+    "$astralrecord_inventory_panel_texture": "textures/ui/astralrecord/inventory_panel"
+  },
+  "large_chest_screen@common.inventory_screen_common": {
+    "$astralrecord_inventory_panel_texture": "textures/ui/astralrecord/inventory_panel"
+  },
+  "ender_chest_screen@common.inventory_screen_common": {
+    "$astralrecord_inventory_panel_texture": "textures/ui/astralrecord/inventory_panel"
+  },
+  "shulker_box_screen@chest.small_chest_screen": {
+    "$astralrecord_inventory_panel_texture": "textures/ui/astralrecord/inventory_panel"
+  },
+  "barrel_screen@chest.small_chest_screen": {
+    "$astralrecord_inventory_panel_texture": "textures/ui/astralrecord/inventory_panel"
+  },
+  "small_chest_panel": {
+    "$title_text_color": [
+      0.96,
+      0.89,
+      0.75
+    ]
+  },
+  "large_chest_panel": {
+    "$title_text_color": [
+      0.96,
+      0.89,
+      0.75
+    ]
+  }
+}

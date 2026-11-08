@@ -1,0 +1,6 @@
+{
+  "namespace": "crafter_pocket",
+  "background_panel": {
+    "texture": "textures/ui/astralrecord/inventory_panel"
+  }
+}

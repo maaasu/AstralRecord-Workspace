@@ -1,0 +1,10 @@
+{
+  "namespace": "stonecutter_pocket",
+  "stonecutter_panel": {
+    "$title_text_color": [
+      0.96,
+      0.89,
+      0.75
+    ]
+  }
+}

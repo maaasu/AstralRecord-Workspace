@@ -1,0 +1,13 @@
+{
+  "namespace": "grindstone",
+  "grindstone_screen@common.inventory_screen_common": {
+    "$astralrecord_inventory_panel_texture": "textures/ui/astralrecord/inventory_panel"
+  },
+  "grindstone_panel": {
+    "$title_text_color": [
+      0.96,
+      0.89,
+      0.75
+    ]
+  }
+}

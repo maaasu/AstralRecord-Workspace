@@ -1,0 +1,10 @@
+{
+  "namespace": "smithing_table_2",
+  "smithing_table_panel": {
+    "$title_text_color": [
+      0.96,
+      0.89,
+      0.75
+    ]
+  }
+}

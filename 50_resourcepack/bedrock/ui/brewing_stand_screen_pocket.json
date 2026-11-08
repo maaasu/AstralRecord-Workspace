@@ -1,0 +1,6 @@
+{
+  "namespace": "brewing_stand_pocket",
+  "background_image": {
+    "texture": "textures/ui/astralrecord/inventory_panel"
+  }
+}

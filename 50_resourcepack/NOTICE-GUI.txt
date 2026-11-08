@@ -14,3 +14,8 @@ No endorsement by Kenney is implied. The Kenney logo is not used.
 Changes: recolored stone/metal relief, original AstralRecord feature and action
 glyphs, nearest-neighbor scaling to 32 pixels. Palette, source pixels and
 regeneration instructions are kept in gui-source/ and generate-gui-assets.py.
+
+The Java container atlases adapt Minecraft: Java Edition GUI textures by Mojang
+Studios from the 1.21.11, 26.1, 26.2 and 26.3 clients. AstralRecord supplies
+the Celestial palette, frame, slot styling and ornaments. Asset sources and
+regeneration instructions are documented in gui-source/README.md.

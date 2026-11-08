@@ -1,0 +1,36 @@
+{
+  "namespace": "furnace_pocket",
+  "background_image": {
+    "texture": "textures/ui/astralrecord/inventory_panel"
+  },
+  "furnace_panel": {
+    "$title_text_color": [
+      0.96,
+      0.89,
+      0.75
+    ]
+  },
+  "furnace_content": {
+    "$pocket_title_text_color": [
+      0.96,
+      0.89,
+      0.75
+    ]
+  },
+  "header": {
+    "modifications": [
+      {
+        "array_name": "controls",
+        "operation": "insert_front",
+        "value": [
+          {
+            "astralrecord_furnace_header": {
+              "type": "image",
+              "texture": "textures/ui/header_bar_2"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

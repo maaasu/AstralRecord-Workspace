@@ -1,0 +1,10 @@
+{
+  "namespace": "cartography_pocket",
+  "cartography_panel": {
+    "$title_text_color": [
+      0.96,
+      0.89,
+      0.75
+    ]
+  }
+}

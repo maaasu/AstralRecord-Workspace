@@ -1,26 +1,31 @@
 #!/usr/bin/env python3
-"""Generate original, vanilla-aligned chest panels and their Java font.
-
-This script uses no downloaded imagery. The restrained stone, gold and teal
-palette is shared with the GUI icons; every slot retains the vanilla 18px grid.
-"""
+"""Generate Celestial GUI panels, the Java font, and Bedrock inventory artwork."""
 
 from __future__ import annotations
 
 import argparse
 import importlib.util
 import json
+import math
 from pathlib import Path
 import struct
 import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTLINE = "#26343d"
-EDGE = "#455762"
-LIGHT = "#c4cec8"
-FACE = "#adbcb8"
-GOLD = "#d8b363"
-TEAL = "#377e80"
+INK = "#101725"
+NAVY = "#17243a"
+BLUE = "#253852"
+RIDGE = "#3d526b"
+GOLD_DARK = "#6f4b37"
+GOLD = "#bb8a50"
+BRIGHT = "#e4bb78"
+CREAM = "#f7dba5"
+LAPIS = "#346389"
+GLINT = "#8ccbd1"
+CELL = "#3a4a54"
+CELL_DARK = "#212d3d"
+CELL_LIP = "#697a7d"
+SLATE = "#404040"
 
 
 class Raster:
@@ -60,55 +65,168 @@ def png(pixels: list[list]) -> bytes:
     return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(data, 9)) + chunk(b"IEND", b"")
 
 
+LETTERS = {
+    "A": (14, 17, 17, 31, 17, 17, 17),
+    "R": (30, 17, 17, 30, 20, 18, 17),
+    "a": (0, 0, 6, 1, 7, 9, 7),
+    "c": (0, 0, 7, 8, 8, 8, 7),
+    "d": (1, 1, 7, 9, 9, 9, 7),
+    "e": (0, 0, 6, 9, 15, 8, 7),
+    "l": (1, 1, 1, 1, 1, 1, 1),
+    "o": (0, 0, 6, 9, 9, 9, 6),
+    "r": (0, 0, 11, 12, 8, 8, 8),
+    "s": (0, 0, 7, 8, 6, 1, 14),
+    "t": (0, 4, 14, 4, 4, 4, 3),
+}
+WORD = "AstralRecord"
+
+
+def cut_rect(draw, box, color, cut=2):
+    left, top, right, bottom = box
+    for y in range(top, bottom + 1):
+        inset = max(cut - (y - top), cut - (bottom - y), 0)
+        draw.line((left + inset, y, right - inset, y), color)
+
+
+def diamond(draw, x, y, radius, color):
+    for offset in range(-radius, radius + 1):
+        width = radius - abs(offset)
+        draw.line((x - width, y + offset, x + width, y + offset), color)
+
+
+def star(draw, x, y, size=2):
+    draw.line((x - size, y, x + size, y), GOLD)
+    draw.line((x, y - size, x, y + size), GOLD)
+    draw.point((x, y), CREAM)
+
+
+def gem(draw, x, y, size=3):
+    diamond(draw, x, y, size, GOLD_DARK)
+    diamond(draw, x, y - 1, size - 1, BRIGHT)
+    diamond(draw, x, y, size - 1, GOLD)
+    diamond(draw, x, y, size - 2, LAPIS)
+    draw.point((x, y - 1), GLINT)
+
+
+def logo() -> Raster:
+    draw = Raster(70, 15)
+    cut_rect(draw, (1, 1, 68, 14), INK, 5)
+    cut_rect(draw, (1, 0, 68, 13), GOLD_DARK, 5)
+    cut_rect(draw, (2, 0, 67, 12), GOLD, 5)
+    cut_rect(draw, (3, 1, 66, 12), BLUE, 4)
+    cut_rect(draw, (4, 2, 65, 11), NAVY, 4)
+    draw.line((9, 0, 60, 0), BRIGHT)
+    gem(draw, 2, 7, 2)
+    gem(draw, 67, 7, 2)
+    widths = [max(LETTERS[c]).bit_length() for c in WORD]
+    x = (70 - sum(widths) - len(WORD) + 1) // 2
+    for letter, width in zip(WORD, widths):
+        for y, row in enumerate(LETTERS[letter]):
+            for offset in range(width):
+                if row & (1 << (width - offset - 1)):
+                    draw.point((x + offset, y + 4), BRIGHT if y >= 5 else CREAM)
+        x += width + 1
+    return draw
+
+
+CORNER = (
+    "..HHHGGGHH.",
+    ".HGDDGGD.G.",
+    "HGDNNGD.G..",
+    "HDNLNGDG...",
+    "HDNNNGG....",
+    "GGDGGD.....",
+    "GGDGD......",
+    "GDDG.......",
+    "HG.........",
+    ".G.........",
+    ".G.........",
+)
+CORNER_COLORS = {"H": BRIGHT, "G": GOLD, "D": GOLD_DARK, "N": NAVY, "L": GLINT}
+
+
+def corners(draw, width, height, size=11):
+    for u, v in ((0, 0), (width - 1, 0), (0, height - 1), (width - 1, height - 1)):
+        x_sign = 1 if u == 0 else -1
+        y_sign = 1 if v == 0 else -1
+        for y, row in enumerate(CORNER[:size]):
+            for x, pixel in enumerate(row[:size]):
+                if pixel in CORNER_COLORS:
+                    draw.point((u + x_sign * x, v + y_sign * y), CORNER_COLORS[pixel])
+
+
+def frame(draw, width, height):
+    cut_rect(draw, (0, 0, width - 1, height - 1), INK, 3)
+    cut_rect(draw, (1, 1, width - 2, height - 2), BLUE, 2)
+    cut_rect(draw, (2, 2, width - 3, height - 3), RIDGE, 2)
+    cut_rect(draw, (3, 3, width - 4, height - 4), INK, 2)
+    cut_rect(draw, (4, 4, width - 5, height - 5), NAVY, 1)
+
+
+def orbit(draw, x, y, width, height, tilt, color):
+    for angle in range(360):
+        t = math.radians(angle)
+        a, b = width * math.cos(t), height * math.sin(t)
+        u = x + a * math.cos(tilt) - b * math.sin(tilt)
+        v = y + a * math.sin(tilt) + b * math.cos(tilt)
+        draw.point((round(u), round(v)), color)
+
+
+def slot(draw, x, y):
+    draw.rectangle((x - 1, y - 1, x + 16, y + 16), CELL_DARK)
+    draw.rectangle((x, y, x + 15, y + 15), CELL)
+    draw.line((x, y + 16, x + 16, y + 16), CELL_LIP)
+    draw.line((x + 16, y, x + 16, y + 15), CELL_LIP)
+    draw.point((x - 1, y - 1), GOLD_DARK)
+    draw.point((x + 16, y + 16), GOLD)
+
+
+def bedrock_panel():
+    draw = Raster(24, 24)
+    frame(draw, 24, 24)
+    corners(draw, 24, 24, 8)
+    return draw
+
+
+def recipe_icon():
+    draw = Raster(19, 13)
+    orbit(draw, 9, 6, 7, 5, 0.0, GOLD_DARK)
+    orbit(draw, 9, 6, 7, 2, -0.39, GOLD)
+    gem(draw, 9, 6, 4)
+    star(draw, 15, 3, 1)
+    return draw
+
+
+LABEL_FACE = "#b6b8b4"
+LABEL_LIGHT = "#d3d3c6"
+
+
 def panel(rows: int) -> Raster:
-    """Return a native-sized panel with pixel-exact container slot positions."""
-    height = 114 + 18 * rows
-    image = Raster(176, height)
-    draw = image
-    draw.rectangle((1, 0, 174, height - 1), fill=OUTLINE)
-    draw.rectangle((0, 1, 175, height - 2), fill=OUTLINE)
-    draw.rectangle((2, 2, 173, height - 3), fill=EDGE)
-    draw.line((3, 2, 172, 2), fill="#8ca4aa")
-    draw.line((2, 3, 2, height - 4), fill="#8ca4aa")
-    draw.rectangle((4, 4, 171, height - 5), fill=FACE)
-    # A dark title strip keeps cream labels readable regardless of the original title color.
-    draw.rectangle((5, 5, 170, 14), fill=OUTLINE)
-    draw.line((5, 15, 170, 15), fill="#607985")
-    draw.line((6, 16, 169, 16), fill=GOLD)
-    # Keep native black/dark-gray inventory labels legible on pale stone.
-    divider_y = 18 * rows + 20
-    draw.line((6, divider_y - 3, 169, divider_y - 3), fill="#607985")
-    draw.line((6, divider_y - 2, 169, divider_y - 2), fill=GOLD)
-    draw.rectangle((5, divider_y - 1, 170, divider_y + 9), fill=LIGHT)
-    for x in (3, 172):
-        for y in (3, height - 4):
-            draw.point((x, y), fill=GOLD)
-    # Small teal seams indicate the content block without intruding into labels.
-    for y in range(22, 18 * rows + 15, 8):
-        draw.line((3, y, 3, y + 2), fill=TEAL)
-        draw.line((172, y, 172, y + 2), fill=TEAL)
+    width, height = 176, 114 + 18 * rows
+    draw = Raster(width, height)
+    frame(draw, width, height)
+    draw.rectangle((5, 5, 170, 14), INK)
+    draw.line((6, 15, 169, 15), GOLD_DARK)
 
-    def slot(item_x: int, item_y: int) -> None:
-        # Draw a 1px border around the client's 16x16 item area.
-        x, y = item_x - 1, item_y - 1
-        draw.rectangle((x, y, x + 17, y + 17), fill="#607985")
-        draw.rectangle((x + 1, y + 1, x + 16, y + 16), fill="#879d9e")
-        draw.line((x, y, x + 16, y), fill=OUTLINE)
-        draw.line((x, y, x, y + 16), fill=OUTLINE)
-        draw.line((x + 1, y + 17, x + 17, y + 17), fill="#d6dfd5")
-        draw.line((x + 17, y + 1, x + 17, y + 17), fill="#d6dfd5")
+    # The lower inventory title is rendered in dark gray by the client.
+    # Keep a broad, bright, opaque field for localised player-inventory labels.
+    divider = 18 * rows + 17
+    cut_rect(draw, (6, divider, 169, divider + 12), BLUE)
+    cut_rect(draw, (6, divider + 1, 96, divider + 11), LABEL_FACE)
+    draw.line((8, divider + 1, 94, divider + 1), LABEL_LIGHT)
+    draw.paste(logo().pixels[:13], 98, divider)
 
-    # ChestMenu slot coordinates and AbstractContainerMenu's hotbar offset.
-    inventory_y = 31 + 18 * rows
-    for row in range(rows):
-        for col in range(9):
-            slot(8 + 18 * col, 18 + 18 * row)
-    for row in range(3):
-        for col in range(9):
-            slot(8 + 18 * col, inventory_y + 18 * row)
-    for col in range(9):
-        slot(8 + 18 * col, inventory_y + 58)
-    return image
+    content_y = (18 + 18 * row for row in range(rows))
+    bag_top = 31 + 18 * rows
+    inventory_y = [bag_top, bag_top + 18, bag_top + 36, bag_top + 58]
+    for y in [*content_y, *inventory_y]:
+        for column in range(9):
+            slot(draw, 8 + 18 * column, y)
+
+    gem(draw, 87, 2, 2)
+    gem(draw, 87, height - 3, 2)
+    corners(draw, width, height)
+    return draw
 
 
 def assets() -> dict[Path, bytes]:
@@ -129,6 +247,13 @@ def assets() -> dict[Path, bytes]:
     result[ROOT / "assets/astralrecord/font/gui.json"] = (
         json.dumps({"providers": providers}, ensure_ascii=True, indent=2) + "\n"
     ).encode("utf-8")
+    bedrock = ROOT / "bedrock/textures/ui/astralrecord"
+    result[bedrock / "inventory_panel.png"] = png(bedrock_panel().pixels)
+    result[bedrock / "inventory_panel.json"] = (
+        json.dumps({"nineslice_size": 8, "base_size": [24, 24]}, indent=2) + "\n"
+    ).encode("utf-8")
+    result[bedrock / "inventory_wordmark.png"] = png(logo().pixels)
+    result[bedrock / "inventory_recipe_icon.png"] = png(recipe_icon().pixels)
     return result
 
 
@@ -191,7 +316,7 @@ def main() -> int:
         raise SystemExit("Out-of-date GUI assets: " + ", ".join(mismatches))
     if args.preview:
         preview(args.preview)
-    print("GUI panels: 6 row layouts and font are byte-consistent")
+    print("GUI panels: six Java layouts, font and Bedrock inventory artwork")
     return 0
 
 

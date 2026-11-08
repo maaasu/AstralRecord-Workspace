@@ -23,3 +23,19 @@ python scripts/generate-gui-assets.py --check --preview <作業用のPNGパス>
 プレビューの各セルには16px、32px、64pxと明背景上の16pxを表示します。順番は隣のJSONに保存します。原寸では矢印の方向、戻ると前ページの違い、確認と増加、取消と減少、施錠と未設定、金色と青緑の隣接色の識別を確認します。減少は横棒、取消は斜線入りの円として色以外でも区別しています。
 
 `frame` と `panel` は内容を持たない透過ダミー用です。商品・装備・報酬・プレイヤースキン等の内容アイコンを共通記号に置換しません。画面全体の背景、Javaのタイトル用フォント、統合版ネイティブフォームは別の描画経路です。原画プレビューの確認は実クライアントでの視認性・操作確認を代替しません。
+
+## コンテナと所持品の背景
+
+紺と金の枠、銘板、天体の装飾は AstralRecord の原画です。`generate-gui-panels.py` は Java のメニュー背景と統合版の所持品アセットを、`generate-java-inventory.py` は Java の所持品背景とレシピボタンを生成します。
+
+Java のコンテナ用画像は、公式クライアントの背景をもとに、枠、ラベル周辺、スロットを描き直しています。スロットの座標や各ウィジェットが読む画像の範囲は、公式クライアントのアトラスに合わせています。対象は 1.21.11、26.1、26.2、26.3 です。各クライアント JAR は [Mojang のバージョンマニフェスト](https://piston-meta.mojang.com/mc/game/version_manifest_v2.json) から該当バージョンの `downloads.client` を参照して取得し、同じディレクトリに `<バージョン>.jar` として置きます。生成スクリプトは SHA-1 と、全4版で生成画像が一致することを確認します。
+
+```text
+python scripts/generate-gui-panels.py --check
+python scripts/generate-java-inventory.py --check
+uv run --with pillow==13.0.0 python scripts/generate-java-containers.py --clients-dir <公式JARのディレクトリ> --check --preview <確認用PNG>
+```
+
+編集した原画を出力するときは `--check` を外します。コンテナの生成結果は `java-gui-native` に置きます。通常の配布パックビルドは、リポジトリにある生成済み画像を使います。
+
+統合版の画面別設定は [Mojang の Bedrock サンプル](https://github.com/Mojang/bedrock-samples/tree/v1.26.60.5/resource_pack/ui) の画面階層に沿って、Classic と Pocket のコンテナに背景を指定します。元のスロット、タブ、閉じる操作は既存の画面定義から読み込みます。

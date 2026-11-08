@@ -1,0 +1,13 @@
+{
+  "namespace": "stonecutter",
+  "stonecutter_screen@common.inventory_screen_common": {
+    "$astralrecord_inventory_panel_texture": "textures/ui/astralrecord/inventory_panel"
+  },
+  "stonecutter_panel": {
+    "$title_text_color": [
+      0.96,
+      0.89,
+      0.75
+    ]
+  }
+}

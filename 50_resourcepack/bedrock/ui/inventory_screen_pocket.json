@@ -1,6 +1,58 @@
 {
   "namespace": "crafting_pocket",
   "inventory_screen_pocket@crafting_pocket.inventory_screen_pocket_base": {
-    "$astralrecord_inventory_panel_texture": "textures/ui/astralrecord/inventory_panel"
+    "$astralrecord_inventory_panel_texture": "textures/ui/astralrecord/inventory_panel",
+    "$title_text_color": [
+      0.96,
+      0.89,
+      0.75
+    ]
+  },
+  "crafting_grid_2x2_with_label": {
+    "modifications": [
+      {
+        "operation": "remove",
+        "control_name": "crafting_label"
+      }
+    ]
+  },
+  "survival_panel_pocket": {
+    "modifications": [
+      {
+        "operation": "remove",
+        "control_name": "crafting_arrow_down"
+      },
+      {
+        "array_name": "controls",
+        "operation": "insert_front",
+        "value": [
+          {
+            "astralrecord_inventory_wordmark": {
+              "type": "image",
+              "texture": "textures/ui/astralrecord/inventory_wordmark",
+              "anchor_from": "top_middle",
+              "anchor_to": "top_middle",
+              "offset": [
+                0,
+                9
+              ],
+              "size": [
+                70,
+                15
+              ],
+              "layer": 2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "crafting_screen_pocket@crafting_pocket.inventory_screen_pocket_base": {
+    "$astralrecord_inventory_panel_texture": "textures/ui/astralrecord/inventory_panel",
+    "$title_text_color": [
+      0.96,
+      0.89,
+      0.75
+    ]
   }
 }

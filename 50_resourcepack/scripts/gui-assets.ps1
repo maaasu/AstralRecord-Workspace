@@ -106,6 +106,69 @@ function Add-GuiThemeEntries {
 
     Add-PackEntries $JavaEntries $root @('assets/astralrecord/font/gui.json', 'NOTICE-GUI.txt')
     Add-PackEntries $BedrockEntries $root @('NOTICE-GUI.txt')
+    # Keep the archived vanilla overrides outside the distribution allowlist.
+    $javaNative = @(
+        'assets/minecraft/textures/gui/container/anvil.png'
+        'assets/minecraft/textures/gui/container/beacon.png'
+        'assets/minecraft/textures/gui/container/blast_furnace.png'
+        'assets/minecraft/textures/gui/container/brewing_stand.png'
+        'assets/minecraft/textures/gui/container/cartography_table.png'
+        'assets/minecraft/textures/gui/container/crafter.png'
+        'assets/minecraft/textures/gui/container/crafting_table.png'
+        'assets/minecraft/textures/gui/container/dispenser.png'
+        'assets/minecraft/textures/gui/container/enchanting_table.png'
+        'assets/minecraft/textures/gui/container/furnace.png'
+        'assets/minecraft/textures/gui/container/generic_54.png'
+        'assets/minecraft/textures/gui/container/grindstone.png'
+        'assets/minecraft/textures/gui/container/hopper.png'
+        'assets/minecraft/textures/gui/container/horse.png'
+        'assets/minecraft/textures/gui/container/loom.png'
+        'assets/minecraft/textures/gui/container/nautilus.png'
+        'assets/minecraft/textures/gui/container/shulker_box.png'
+        'assets/minecraft/textures/gui/container/smithing.png'
+        'assets/minecraft/textures/gui/container/smoker.png'
+        'assets/minecraft/textures/gui/container/stonecutter.png'
+        'assets/minecraft/textures/gui/container/villager.png'
+        'assets/minecraft/textures/gui/sprites/recipe_book/button.png'
+        'assets/minecraft/textures/gui/sprites/recipe_book/button_highlighted.png'
+    )
+    Add-PackEntries $JavaEntries (Join-Path $root 'java-gui-native') $javaNative
+    foreach ($path in $javaNative) { Confirm-GuiPng $JavaEntries[$path] $path }
+
+    Add-PackEntries $BedrockEntries $bedrockRoot @(
+        'textures/ui/astralrecord/inventory_panel.json'
+        'textures/ui/astralrecord/inventory_panel.png'
+        'textures/ui/astralrecord/inventory_recipe_icon.png'
+        'textures/ui/astralrecord/inventory_wordmark.png'
+        'ui/anvil_screen.json'
+        'ui/anvil_screen_pocket.json'
+        'ui/brewing_stand_screen.json'
+        'ui/brewing_stand_screen_pocket.json'
+        'ui/cartography_screen.json'
+        'ui/cartography_screen_pocket.json'
+        'ui/chest_screen.json'
+        'ui/crafter_screen_pocket.json'
+        'ui/enchanting_screen.json'
+        'ui/enchanting_screen_pocket.json'
+        'ui/furnace_screen.json'
+        'ui/furnace_screen_pocket.json'
+        'ui/grindstone_screen.json'
+        'ui/grindstone_screen_pocket.json'
+        'ui/inventory_screen.json'
+        'ui/inventory_screen_pocket.json'
+        'ui/loom_screen.json'
+        'ui/loom_screen_pocket.json'
+        'ui/pocket_containers.json'
+        'ui/redstone_screen.json'
+        'ui/smithing_table_2_screen.json'
+        'ui/smithing_table_2_screen_pocket.json'
+        'ui/smithing_table_screen.json'
+        'ui/smithing_table_screen_pocket.json'
+        'ui/stonecutter_screen.json'
+        'ui/stonecutter_screen_pocket.json'
+        'ui/ui_common.json'
+    )
+
     $font = Get-PackJson (Join-Path $root 'assets/astralrecord/font/gui.json')
     if (!$font.providers -or $font.providers -isnot [array]) { throw 'GUI font requires a providers array.' }
     $panels = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)

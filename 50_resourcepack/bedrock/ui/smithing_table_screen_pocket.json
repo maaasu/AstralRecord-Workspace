@@ -1,0 +1,16 @@
+{
+  "namespace": "smithing_table_pocket",
+  "background_image": {
+    "texture": "textures/ui/astralrecord/inventory_panel"
+  },
+  "upgrade_label": {
+    "color": [
+      0.96,
+      0.89,
+      0.75
+    ]
+  },
+  "header/panel/title_label": {
+    "color": "$pocket_title_text_color"
+  }
+}

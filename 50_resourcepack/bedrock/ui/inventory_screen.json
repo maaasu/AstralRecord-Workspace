@@ -1,6 +1,68 @@
 {
   "namespace": "crafting",
   "inventory_screen@crafting.inventory_screen_base": {
-    "$astralrecord_inventory_panel_texture": "textures/ui/astralrecord/inventory_panel"
+    "$astralrecord_inventory_panel_texture": "textures/ui/astralrecord/inventory_panel",
+    "$astralrecord_inventory_recipe_icon_texture": "textures/ui/astralrecord/inventory_recipe_icon",
+    "$title_text_color": [
+      0.96,
+      0.89,
+      0.75
+    ]
+  },
+  "recipe_book_icon": {
+    "type": "image",
+    "size": [
+      19,
+      13
+    ],
+    "$astralrecord_inventory_recipe_icon_texture|default": "textures/ui/recipe_book_icon",
+    "texture": "$astralrecord_inventory_recipe_icon_texture"
+  },
+  "crafting_grid_2x2_with_label": {
+    "modifications": [
+      {
+        "operation": "remove",
+        "control_name": "crafting_label"
+      }
+    ]
+  },
+  "crafting_panel_2x2": {
+    "modifications": [
+      {
+        "operation": "remove",
+        "control_name": "crafting_arrow"
+      },
+      {
+        "array_name": "controls",
+        "operation": "insert_front",
+        "value": [
+          {
+            "astralrecord_inventory_wordmark": {
+              "type": "image",
+              "texture": "textures/ui/astralrecord/inventory_wordmark",
+              "anchor_from": "top_left",
+              "anchor_to": "top_left",
+              "offset": [
+                12,
+                60
+              ],
+              "size": [
+                70,
+                15
+              ],
+              "layer": 2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "crafting_screen@crafting.inventory_screen_base": {
+    "$astralrecord_inventory_panel_texture": "textures/ui/astralrecord/inventory_panel",
+    "$title_text_color": [
+      0.96,
+      0.89,
+      0.75
+    ]
   }
 }

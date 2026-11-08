@@ -3,5 +3,23 @@
   "dialog_background_opaque@dialog_background_common": {
     "$astralrecord_inventory_panel_texture|default": "textures/ui/dialog_background_opaque",
     "texture": "$astralrecord_inventory_panel_texture"
+  },
+  "recipe_book_icon": {
+    "type": "image",
+    "size": [
+      19,
+      13
+    ],
+    "$astralrecord_inventory_recipe_icon_texture|default": "textures/ui/recipe_book_icon",
+    "texture": "$astralrecord_inventory_recipe_icon_texture"
+  },
+  "common_panel/close_button_holder/close": {
+    "$astralrecord_inventory_panel_texture|default": "textures/ui/dialog_background_opaque",
+    "variables": [
+      {
+        "requires": "($astralrecord_inventory_panel_texture = 'textures/ui/astralrecord/inventory_panel')",
+        "$close_button_default_texture": "textures/ui/close_button_default_light"
+      }
+    ]
   }
 }

@@ -4,11 +4,13 @@ Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメー�
 
 ## GUI
 
-Java版では、互換版1の管理パックの適用成功後に、Plugin管理の1～6行チェストへ専用背景を表示します。暗いタイトル帯とクリーム色の文字を送信時だけ重ね、元のInventory・holder・内容・タイトル・操作を維持します。未適用・旧パック・固定URL・統合版では標準背景を使います。統合版でも、既存Geyserのカスタムアイテム登録を通して共通アイコンを利用できます。
+所持品、チェスト系メニュー、作業台などを、紺と金の枠と天体の装飾で揃えます。Java 版の Plugin 管理の1～6行チェストは、互換版1の管理パックの適用成功後に、暗いタイトル帯とクリーム色の文字を送信時だけ重ねます。通常のチェストや作業画面はクライアントのテクスチャを使います。統合版は Classic・Pocket の各画面に背景を指定し、チェストを使う Plugin メニューにも適用します。
 
-メニューと Java 版プレイヤー設定は機能ごとの絵柄で区別します。ページ移動や決定などの共通操作には金縁を使い、ダミーと仕切りのアイコンは透過させて背景になじませます。通常のサバイバルインベントリには Java 版と統合版（Classic・Pocket）で専用背景を適用します。プレイ中の HUD ホットバーは青灰色で揃え、選択中は金縁を青緑の光が巡ります。実装済みGUI全体の棚卸しと、金床・ネイティブフォーム・HUDなどの対応境界は [GUI対応表](GUI_COVERAGE.md) に記載しています。
+通常の所持品には「AstralRecord」の銘板を表示し、2×2 クラフト欄の矢印と見出しを隠します。Java 版は通常の所持品だけでレシピボタンを背景に溶け込ませ、作業台・かまど類では紺色の本として表示します。ボタンの操作は既存どおりです。統合版 Classic は緑の本を天体のアイコンに差し替え、Pocket はクラフトタブを使います。
 
-原画・CC0素材の出典とライセンスは [gui-source](gui-source/README.md) にあります。両配布パックへ `NOTICE-GUI.txt` を含めます。`python scripts/generate-gui-assets.py --check` と `python scripts/generate-gui-panels.py --check` で再生成結果を検証できます。Java 版の通常インベントリは `python scripts/generate-java-inventory.py --check` で検証できます。HUD ホットバーは `generate-java-hotbar.py` と `generate-bedrock-hotbar.py` の `--check` で検証できます。各スクリプトの `--preview <path>` は原画または配置図を生成します。
+ページ移動、確認、取消などの共通操作は紺の台座と金縁で揃え、機能別のアイコンと透過ダミーは既存の絵柄を使います。プレイ中の HUD ホットバーは青灰色で揃え、選択中は金縁を青緑の光が巡ります。対応画面は [GUI対応表](GUI_COVERAGE.md) に記載しています。
+
+原画の出典と再生成方法は [gui-source](gui-source/README.md) にあります。両配布パックへ `NOTICE-GUI.txt` を含めます。共通アイコン、両版の背景、Java の所持品とコンテナは、各生成スクリプトの `--check` で検証し、`--preview <path>` で素材を使った配置図を出力できます。HUD ホットバーは `generate-java-hotbar.py` と `generate-bedrock-hotbar.py` で検証できます。
 
 ## 対象と構成
 

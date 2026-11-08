@@ -1,0 +1,7 @@
+{
+  "namespace": "pocket_containers",
+  "background_panel": {
+    "$astralrecord_inventory_panel_texture|default": "textures/ui/background_panel",
+    "texture": "$astralrecord_inventory_panel_texture"
+  }
+}
