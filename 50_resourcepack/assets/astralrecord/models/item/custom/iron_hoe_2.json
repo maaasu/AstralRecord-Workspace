@@ -1,0 +1,288 @@
+{
+	"credit": "Made with Blockbench",
+	"textures": {
+		"surface": "astralrecord:item/custom/iron_hoe_2",
+		"particle": "#surface"
+	},
+	"elements": [
+		{
+			"name": "Carved ash haft",
+			"from": [7.275, 3.6, 7.325],
+			"to": [8.725, 19.55, 8.675],
+			"faces": {
+				"north": {"uv": [0.0375, 0.0375, 1.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [2.0375, 0.0375, 3.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [4.0375, 0.0375, 5.9625, 1.9625], "texture": "#surface"},
+				"west": {"uv": [6.0375, 0.0375, 7.9625, 1.9625], "texture": "#surface"},
+				"up": {"uv": [8.0375, 0.0375, 9.9625, 1.9625], "texture": "#surface"},
+				"down": {"uv": [10.0375, 0.0375, 11.9625, 1.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Leather hand wrap",
+			"from": [7.14, 5.4, 7.2],
+			"to": [8.86, 10, 8.8],
+			"faces": {
+				"north": {"uv": [4.0375, 4.0375, 5.9625, 5.9625], "texture": "#surface"},
+				"east": {"uv": [6.0375, 4.0375, 7.9625, 5.9625], "texture": "#surface"},
+				"south": {"uv": [8.0375, 4.0375, 9.9625, 5.9625], "texture": "#surface"},
+				"west": {"uv": [10.0375, 4.0375, 11.9625, 5.9625], "texture": "#surface"},
+				"up": {"uv": [12.0375, 4.0375, 13.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [14.0375, 4.0375, 15.9625, 5.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Grip binding",
+			"from": [7.105, 5.32, 7.17],
+			"to": [8.895, 5.58, 8.83],
+			"faces": {
+				"north": {"uv": [12.0375, 6.0375, 13.9625, 7.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 6.0375, 15.9625, 7.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 8.0375, 1.9625, 9.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 8.0375, 3.9625, 9.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 8.0375, 5.9625, 9.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 8.0375, 7.9625, 9.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Grip binding",
+			"from": [7.105, 9.89, 7.17],
+			"to": [8.895, 10.15, 8.83],
+			"faces": {
+				"north": {"uv": [12.0375, 6.0375, 13.9625, 7.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 6.0375, 15.9625, 7.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 8.0375, 1.9625, 9.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 8.0375, 3.9625, 9.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 8.0375, 5.9625, 9.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 8.0375, 7.9625, 9.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Heel cap",
+			"from": [7.175, 3.38, 7.225],
+			"to": [8.825, 4, 8.775],
+			"faces": {
+				"north": {"uv": [12.0375, 6.0375, 13.9625, 7.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 6.0375, 15.9625, 7.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 8.0375, 1.9625, 9.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 8.0375, 3.9625, 9.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 8.0375, 5.9625, 9.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 8.0375, 7.9625, 9.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Head socket",
+			"from": [6.985, 17.15, 7.04],
+			"to": [9.015, 19.1, 8.96],
+			"faces": {
+				"north": {"uv": [12.0375, 6.0375, 13.9625, 7.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 6.0375, 15.9625, 7.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 8.0375, 1.9625, 9.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 8.0375, 3.9625, 9.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 8.0375, 5.9625, 9.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 8.0375, 7.9625, 9.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Rolled socket rim",
+			"from": [6.93, 17.05, 6.99],
+			"to": [9.07, 17.32, 9.01],
+			"faces": {
+				"north": {"uv": [12.0375, 0.0375, 13.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 0.0375, 15.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 2.0375, 1.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 2.0375, 3.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 2.0375, 5.9625, 3.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 2.0375, 7.9625, 3.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Collar inset",
+			"from": [6.955, 17.85, 7.015],
+			"to": [9.045, 18.28, 8.985],
+			"faces": {
+				"north": {"uv": [0.0375, 6.0375, 1.9625, 7.9625], "texture": "#surface"},
+				"east": {"uv": [2.0375, 6.0375, 3.9625, 7.9625], "texture": "#surface"},
+				"south": {"uv": [4.0375, 6.0375, 5.9625, 7.9625], "texture": "#surface"},
+				"west": {"uv": [6.0375, 6.0375, 7.9625, 7.9625], "texture": "#surface"},
+				"up": {"uv": [8.0375, 6.0375, 9.9625, 7.9625], "texture": "#surface"},
+				"down": {"uv": [10.0375, 6.0375, 11.9625, 7.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Socket rivet",
+			"from": [7.76, 18.45, 6.87],
+			"to": [8.24, 18.9, 7.11],
+			"rotation": {"angle": 45, "axis": "z", "origin": [8, 18.675, 6.99]},
+			"faces": {
+				"north": {"uv": [8.0375, 2.0375, 9.9625, 3.9625], "texture": "#surface"},
+				"east": {"uv": [10.0375, 2.0375, 11.9625, 3.9625], "texture": "#surface"},
+				"south": {"uv": [12.0375, 2.0375, 13.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [14.0375, 2.0375, 15.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [2.0375, 4.0375, 3.9625, 5.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Socket rivet",
+			"from": [7.76, 18.45, 8.89],
+			"to": [8.24, 18.9, 9.13],
+			"rotation": {"angle": 45, "axis": "z", "origin": [8, 18.675, 9.01]},
+			"faces": {
+				"north": {"uv": [8.0375, 2.0375, 9.9625, 3.9625], "texture": "#surface"},
+				"east": {"uv": [10.0375, 2.0375, 11.9625, 3.9625], "texture": "#surface"},
+				"south": {"uv": [12.0375, 2.0375, 13.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [14.0375, 2.0375, 15.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [2.0375, 4.0375, 3.9625, 5.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged eye",
+			"from": [6.78, 19.07, 7.11],
+			"to": [9.22, 20.29, 8.89],
+			"faces": {
+				"north": {"uv": [12.0375, 0.0375, 13.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 0.0375, 15.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 2.0375, 1.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 2.0375, 3.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 2.0375, 5.9625, 3.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 2.0375, 7.9625, 3.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Ash tenon",
+			"from": [7.44, 20.24, 7.42],
+			"to": [8.56, 20.49, 8.58],
+			"faces": {
+				"north": {"uv": [0.0375, 0.0375, 1.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [2.0375, 0.0375, 3.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [4.0375, 0.0375, 5.9625, 1.9625], "texture": "#surface"},
+				"west": {"uv": [6.0375, 0.0375, 7.9625, 1.9625], "texture": "#surface"},
+				"up": {"uv": [8.0375, 0.0375, 9.9625, 1.9625], "texture": "#surface"},
+				"down": {"uv": [10.0375, 0.0375, 11.9625, 1.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Heel of blade",
+			"from": [8.62, 18.96, 7.305],
+			"to": [11.27, 20.44, 8.695],
+			"rotation": {"angle": -22.5, "axis": "z", "origin": [8.62, 19.7, 8]},
+			"faces": {
+				"north": {"uv": [12.0375, 0.0375, 13.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 0.0375, 15.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 2.0375, 1.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 2.0375, 3.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 2.0375, 7.9625, 3.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Wide forged hoe blade",
+			"from": [10.76828, 17.11439, 7.48],
+			"to": [13.66828, 20.24439, 8.52],
+			"rotation": {"angle": -22.5, "axis": "z", "origin": [10.76828, 18.83589, 8]},
+			"faces": {
+				"north": {"uv": [12.0375, 0.0375, 13.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 0.0375, 15.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 2.0375, 1.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 2.0375, 3.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 2.0375, 5.9625, 3.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 2.0375, 7.9625, 3.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Honed lower bevel",
+			"from": [11.11828, 16.86399, 7.6],
+			"to": [13.98828, 17.83429, 8.4],
+			"rotation": {"angle": -22.5, "axis": "z", "origin": [10.76828, 18.83589, 8]},
+			"faces": {
+				"north": {"uv": [8.0375, 2.0375, 9.9625, 3.9625], "texture": "#surface"},
+				"east": {"uv": [10.0375, 2.0375, 11.9625, 3.9625], "texture": "#surface"},
+				"south": {"uv": [12.0375, 2.0375, 13.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [14.0375, 2.0375, 15.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [2.0375, 4.0375, 3.9625, 5.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Honed leading edge",
+			"from": [13.52828, 17.42739, 7.56],
+			"to": [14.00828, 19.83749, 8.44],
+			"rotation": {"angle": -22.5, "axis": "z", "origin": [10.76828, 18.83589, 8]},
+			"faces": {
+				"north": {"uv": [8.0375, 2.0375, 9.9625, 3.9625], "texture": "#surface"},
+				"east": {"uv": [10.0375, 2.0375, 11.9625, 3.9625], "texture": "#surface"},
+				"south": {"uv": [12.0375, 2.0375, 13.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [14.0375, 2.0375, 15.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [2.0375, 4.0375, 3.9625, 5.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Rib across cheek",
+			"from": [10.90828, 18.65589, 7.36],
+			"to": [13.08828, 19.18589, 7.58],
+			"rotation": {"angle": -22.5, "axis": "z", "origin": [10.76828, 18.83589, 8]},
+			"faces": {
+				"north": {"uv": [12.0375, 6.0375, 13.9625, 7.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 6.0375, 15.9625, 7.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 8.0375, 1.9625, 9.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 8.0375, 3.9625, 9.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 8.0375, 5.9625, 9.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 8.0375, 7.9625, 9.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Rib across cheek",
+			"from": [10.90828, 18.65589, 8.42],
+			"to": [13.08828, 19.18589, 8.64],
+			"rotation": {"angle": -22.5, "axis": "z", "origin": [10.76828, 18.83589, 8]},
+			"faces": {
+				"north": {"uv": [12.0375, 6.0375, 13.9625, 7.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 6.0375, 15.9625, 7.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 8.0375, 1.9625, 9.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 8.0375, 3.9625, 9.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 8.0375, 5.9625, 9.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 8.0375, 7.9625, 9.9625], "texture": "#surface"}
+			}
+		}
+	],
+	"display": {
+		"thirdperson_righthand": {
+			"rotation": [0, -67, 10],
+			"translation": [0, -0.8328, 1.4742],
+			"scale": [0.92, 0.92, 0.92]
+		},
+		"thirdperson_lefthand": {
+			"rotation": [0, 67, -10],
+			"translation": [0, -0.8328, 1.4742],
+			"scale": [0.92, 0.92, 0.92]
+		},
+		"firstperson_righthand": {
+			"rotation": [4, -53, -18],
+			"translation": [1.13, -0.5379, -0.1282],
+			"scale": [0.7, 0.7, 0.7]
+		},
+		"firstperson_lefthand": {
+			"rotation": [4, 53, 18],
+			"translation": [1.13, -0.5379, -0.1282],
+			"scale": [0.7, 0.7, 0.7]
+		},
+		"ground": {
+			"rotation": [0, 0, -25],
+			"translation": [0, 2.2, 0],
+			"scale": [0.47, 0.47, 0.47]
+		},
+		"gui": {
+			"rotation": [17, -20, -37],
+			"translation": [0, -2.3, 0],
+			"scale": [0.91, 0.91, 0.91]
+		},
+		"fixed": {
+			"rotation": [0, 0, -35],
+			"translation": [0, -2.5, 0],
+			"scale": [0.84, 0.84, 0.84]
+		}
+	}
+}

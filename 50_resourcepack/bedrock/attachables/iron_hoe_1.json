@@ -1,0 +1,40 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:attachable": {
+    "description": {
+      "identifier": "astralrecord:iron_hoe_1",
+      "materials": {
+        "default": "entity_alphatest",
+        "enchanted": "entity_alphatest_glint"
+      },
+      "textures": {
+        "default": "textures/entity/items/iron_hoe_1",
+        "enchanted": "textures/misc/enchanted_item_glint"
+      },
+      "geometry": {
+        "default": "geometry.astralrecord.iron_hoe_1"
+      },
+      "animations": {
+        "first_person": "animation.astralrecord.iron_hoe_1.first_person",
+        "first_person_off": "animation.astralrecord.iron_hoe_1.first_person_off",
+        "third_person": "animation.astralrecord.iron_hoe_1.third_person"
+      },
+      "scripts": {
+        "animate": [
+          {
+            "first_person": "context.is_first_person && context.item_slot == 'main_hand'"
+          },
+          {
+            "first_person_off": "context.is_first_person && context.item_slot == 'off_hand'"
+          },
+          {
+            "third_person": "!context.is_first_person"
+          }
+        ]
+      },
+      "render_controllers": [
+        "controller.render.item_default"
+      ]
+    }
+  }
+}

@@ -6,6 +6,7 @@ id: 20a00072
 category: equipment
 name: "&6洞窟銅のクワ"
 icon: COPPER_HOE
+customModelData: 232072
 rarity: COMMON
 saleValue: 2
 lore:

@@ -13,4 +13,4 @@ python scripts/generate-pixel-item-assets.py --check
 
 生成先は `assets/astralrecord/textures/item/custom/<id>.png` と `bedrock/textures/items/<id>.png` です。同じバイト列を両版へ保存し、編集元の `png_sha256` を更新します。`native_pixels` を含む編集元で元グリッドを変更した場合は、その補助情報も編集内容に揃えてください。
 
-配布台帳は `render_mode: "generated"` を使います。Java版のアイテムモデルと統合版のアイコン登録はビルド時に生成します。ツルハシと釣り竿は、配布時に手持ち姿勢を継承する2Dモデルへ変換されます。実クライアントの装備表示確認は、ソースとPNGの一致検証とは分けて記録します。
+配布台帳は `render_mode: "generated"` を使います。Java版のアイテムモデルと統合版のアイコン登録はビルド時に生成します。実クライアントの装備表示確認は、ソースとPNGの一致検証とは分けて記録します。

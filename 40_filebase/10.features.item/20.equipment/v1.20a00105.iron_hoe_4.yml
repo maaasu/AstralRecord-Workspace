@@ -6,6 +6,7 @@ id: 20a00105
 category: equipment
 name: "&6&l星心の鉄クワ"
 icon: IRON_HOE
+customModelData: 232105
 rarity: LEGENDARY
 saleValue: 2
 lore:

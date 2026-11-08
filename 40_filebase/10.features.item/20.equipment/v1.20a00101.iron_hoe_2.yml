@@ -6,6 +6,7 @@ id: 20a00101
 category: equipment
 name: "&b深翠の鉄クワ"
 icon: IRON_HOE
+customModelData: 232101
 rarity: RARE
 saleValue: 2
 lore:

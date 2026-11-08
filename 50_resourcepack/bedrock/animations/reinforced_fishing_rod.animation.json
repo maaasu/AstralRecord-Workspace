@@ -1,0 +1,59 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.astralrecord.reinforced_fishing_rod.first_person": {
+      "loop": true,
+      "bones": {
+        "grip": {
+          "rotation": [
+            103,
+            -66,
+            103
+          ],
+          "position": [
+            0,
+            24,
+            0
+          ],
+          "scale": 0.74
+        }
+      }
+    },
+    "animation.astralrecord.reinforced_fishing_rod.first_person_off": {
+      "loop": true,
+      "bones": {
+        "grip": {
+          "rotation": [
+            -12,
+            30,
+            17
+          ],
+          "position": [
+            0,
+            24,
+            0
+          ],
+          "scale": 0.72
+        }
+      }
+    },
+    "animation.astralrecord.reinforced_fishing_rod.third_person": {
+      "loop": true,
+      "bones": {
+        "grip": {
+          "rotation": [
+            25,
+            0,
+            -5.5
+          ],
+          "position": [
+            0,
+            24,
+            -2.5
+          ],
+          "scale": 0.646
+        }
+      }
+    }
+  }
+}

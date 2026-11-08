@@ -6,6 +6,7 @@ id: 20a00005
 category: equipment
 name: "ノクスクワ"
 icon: WOODEN_HOE
+customModelData: 232005
 rarity: COMMON
 saleValue: 2
 lore:

@@ -1,0 +1,275 @@
+{
+	"credit": "Made with Blockbench",
+	"textures": {
+		"surface": "astralrecord:item/custom/cave_copper_pickaxe",
+		"particle": "#surface"
+	},
+	"elements": [
+		{
+			"name": "Carved ash haft",
+			"from": [7.275, 3.6, 7.325],
+			"to": [8.725, 19, 8.675],
+			"faces": {
+				"north": {"uv": [0.0375, 0.0375, 1.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [2.0375, 0.0375, 3.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [4.0375, 0.0375, 5.9625, 1.9625], "texture": "#surface"},
+				"west": {"uv": [6.0375, 0.0375, 7.9625, 1.9625], "texture": "#surface"},
+				"up": {"uv": [8.0375, 0.0375, 9.9625, 1.9625], "texture": "#surface"},
+				"down": {"uv": [10.0375, 0.0375, 11.9625, 1.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Leather hand wrap",
+			"from": [7.14, 5.4, 7.2],
+			"to": [8.86, 10, 8.8],
+			"faces": {
+				"north": {"uv": [4.0375, 4.0375, 5.9625, 5.9625], "texture": "#surface"},
+				"east": {"uv": [6.0375, 4.0375, 7.9625, 5.9625], "texture": "#surface"},
+				"south": {"uv": [8.0375, 4.0375, 9.9625, 5.9625], "texture": "#surface"},
+				"west": {"uv": [10.0375, 4.0375, 11.9625, 5.9625], "texture": "#surface"},
+				"up": {"uv": [12.0375, 4.0375, 13.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [14.0375, 4.0375, 15.9625, 5.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Grip binding",
+			"from": [7.105, 5.32, 7.17],
+			"to": [8.895, 5.58, 8.83],
+			"faces": {
+				"north": {"uv": [12.0375, 6.0375, 13.9625, 7.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 6.0375, 15.9625, 7.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 8.0375, 1.9625, 9.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 8.0375, 3.9625, 9.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 8.0375, 5.9625, 9.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 8.0375, 7.9625, 9.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Grip binding",
+			"from": [7.105, 9.89, 7.17],
+			"to": [8.895, 10.15, 8.83],
+			"faces": {
+				"north": {"uv": [12.0375, 6.0375, 13.9625, 7.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 6.0375, 15.9625, 7.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 8.0375, 1.9625, 9.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 8.0375, 3.9625, 9.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 8.0375, 5.9625, 9.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 8.0375, 7.9625, 9.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Heel cap",
+			"from": [7.175, 3.38, 7.225],
+			"to": [8.825, 4, 8.775],
+			"faces": {
+				"north": {"uv": [12.0375, 6.0375, 13.9625, 7.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 6.0375, 15.9625, 7.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 8.0375, 1.9625, 9.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 8.0375, 3.9625, 9.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 8.0375, 5.9625, 9.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 8.0375, 7.9625, 9.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Head socket",
+			"from": [6.985, 16.6, 7.04],
+			"to": [9.015, 18.55, 8.96],
+			"faces": {
+				"north": {"uv": [12.0375, 6.0375, 13.9625, 7.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 6.0375, 15.9625, 7.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 8.0375, 1.9625, 9.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 8.0375, 3.9625, 9.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 8.0375, 5.9625, 9.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 8.0375, 7.9625, 9.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Rolled socket rim",
+			"from": [6.93, 16.5, 6.99],
+			"to": [9.07, 16.77, 9.01],
+			"faces": {
+				"north": {"uv": [12.0375, 0.0375, 13.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 0.0375, 15.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 2.0375, 1.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 2.0375, 3.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 2.0375, 5.9625, 3.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 2.0375, 7.9625, 3.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Socket rivet",
+			"from": [7.76, 17.9, 6.87],
+			"to": [8.24, 18.35, 7.11],
+			"rotation": {"angle": 45, "axis": "z", "origin": [8, 18.125, 6.99]},
+			"faces": {
+				"north": {"uv": [8.0375, 2.0375, 9.9625, 3.9625], "texture": "#surface"},
+				"east": {"uv": [10.0375, 2.0375, 11.9625, 3.9625], "texture": "#surface"},
+				"south": {"uv": [12.0375, 2.0375, 13.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [14.0375, 2.0375, 15.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [2.0375, 4.0375, 3.9625, 5.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Socket rivet",
+			"from": [7.76, 17.9, 8.89],
+			"to": [8.24, 18.35, 9.13],
+			"rotation": {"angle": 45, "axis": "z", "origin": [8, 18.125, 9.01]},
+			"faces": {
+				"north": {"uv": [8.0375, 2.0375, 9.9625, 3.9625], "texture": "#surface"},
+				"east": {"uv": [10.0375, 2.0375, 11.9625, 3.9625], "texture": "#surface"},
+				"south": {"uv": [12.0375, 2.0375, 13.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [14.0375, 2.0375, 15.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [2.0375, 4.0375, 3.9625, 5.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged head crown",
+			"from": [6.15, 18.43, 7.015],
+			"to": [9.85, 19.94, 8.985],
+			"faces": {
+				"north": {"uv": [12.0375, 0.0375, 13.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 0.0375, 15.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 2.0375, 1.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 2.0375, 3.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 2.0375, 5.9625, 3.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 2.0375, 7.9625, 3.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Wedge through socket",
+			"from": [7.34, 19.72, 7.42],
+			"to": [8.66, 20.16, 8.58],
+			"faces": {
+				"north": {"uv": [0.0375, 0.0375, 1.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [2.0375, 0.0375, 3.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [4.0375, 0.0375, 5.9625, 1.9625], "texture": "#surface"},
+				"west": {"uv": [6.0375, 0.0375, 7.9625, 1.9625], "texture": "#surface"},
+				"up": {"uv": [8.0375, 0.0375, 9.9625, 1.9625], "texture": "#surface"},
+				"down": {"uv": [10.0375, 0.0375, 11.9625, 1.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged cheek",
+			"from": [4.2, 18.425, 7.215],
+			"to": [6.6, 19.875, 8.785],
+			"rotation": {"angle": 22.5, "axis": "z", "origin": [6.6, 19.15, 8]},
+			"faces": {
+				"north": {"uv": [12.0375, 0.0375, 13.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 0.0375, 15.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 2.0375, 1.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 2.0375, 3.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 2.0375, 7.9625, 3.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Drawn pick arm",
+			"from": [2.78269, 17.78156, 7.435],
+			"to": [4.71269, 18.84156, 8.565],
+			"rotation": {"angle": 22.5, "axis": "z", "origin": [4.71269, 18.31156, 8]},
+			"faces": {
+				"north": {"uv": [12.0375, 0.0375, 13.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 0.0375, 15.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 2.0375, 1.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 2.0375, 3.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 2.0375, 7.9625, 3.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Ground pick point",
+			"from": [1.6896, 17.39798, 7.62],
+			"to": [3.2896, 18.06798, 8.38],
+			"rotation": {"angle": 45, "axis": "z", "origin": [3.2896, 17.73298, 8]},
+			"faces": {
+				"north": {"uv": [8.0375, 2.0375, 9.9625, 3.9625], "texture": "#surface"},
+				"east": {"uv": [10.0375, 2.0375, 11.9625, 3.9625], "texture": "#surface"},
+				"south": {"uv": [12.0375, 2.0375, 13.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [14.0375, 2.0375, 15.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [2.0375, 4.0375, 3.9625, 5.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged cheek",
+			"from": [9.4, 18.425, 7.215],
+			"to": [11.8, 19.875, 8.785],
+			"rotation": {"angle": -22.5, "axis": "z", "origin": [9.4, 19.15, 8]},
+			"faces": {
+				"north": {"uv": [12.0375, 0.0375, 13.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 0.0375, 15.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 2.0375, 1.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 2.0375, 3.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 2.0375, 7.9625, 3.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Drawn pick arm",
+			"from": [11.28731, 17.78156, 7.435],
+			"to": [13.21731, 18.84156, 8.565],
+			"rotation": {"angle": -22.5, "axis": "z", "origin": [11.28731, 18.31156, 8]},
+			"faces": {
+				"north": {"uv": [12.0375, 0.0375, 13.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 0.0375, 15.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 2.0375, 1.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 2.0375, 3.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 2.0375, 7.9625, 3.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Ground pick point",
+			"from": [12.7104, 17.39798, 7.62],
+			"to": [14.3104, 18.06798, 8.38],
+			"rotation": {"angle": -45, "axis": "z", "origin": [12.7104, 17.73298, 8]},
+			"faces": {
+				"north": {"uv": [8.0375, 2.0375, 9.9625, 3.9625], "texture": "#surface"},
+				"east": {"uv": [10.0375, 2.0375, 11.9625, 3.9625], "texture": "#surface"},
+				"south": {"uv": [12.0375, 2.0375, 13.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [14.0375, 2.0375, 15.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [2.0375, 4.0375, 3.9625, 5.9625], "texture": "#surface"}
+			}
+		}
+	],
+	"display": {
+		"thirdperson_righthand": {
+			"rotation": [0, -67, 10],
+			"translation": [0, -1.7415, 1.5124],
+			"scale": [0.92, 0.92, 0.92]
+		},
+		"thirdperson_lefthand": {
+			"rotation": [0, 67, -10],
+			"translation": [0, -1.7415, 1.5124],
+			"scale": [0.92, 0.92, 0.92]
+		},
+		"firstperson_righthand": {
+			"rotation": [4, -53, -18],
+			"translation": [1.13, -1.1828, -0.4652],
+			"scale": [0.7, 0.7, 0.7]
+		},
+		"firstperson_lefthand": {
+			"rotation": [4, 53, 18],
+			"translation": [1.13, -1.1828, -0.4652],
+			"scale": [0.7, 0.7, 0.7]
+		},
+		"ground": {
+			"rotation": [0, 0, -25],
+			"translation": [0, 2.2, 0],
+			"scale": [0.47, 0.47, 0.47]
+		},
+		"gui": {
+			"rotation": [17, -20, -37],
+			"translation": [0, -2.3, 0],
+			"scale": [0.91, 0.91, 0.91]
+		},
+		"fixed": {
+			"rotation": [0, 0, -35],
+			"translation": [0, -2.5, 0],
+			"scale": [0.84, 0.84, 0.84]
+		}
+	}
+}

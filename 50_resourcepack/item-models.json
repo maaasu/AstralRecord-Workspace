@@ -3064,56 +3064,98 @@
       "base_item": "minecraft:wooden_pickaxe",
       "custom_model_data": 232006,
       "java_virtual_trident": false,
-      "render_mode": "generated"
+      "grip": [8, 8, 8]
     },
     {
       "id": "cave_copper_pickaxe",
       "base_item": "minecraft:copper_pickaxe",
       "custom_model_data": 232071,
       "java_virtual_trident": false,
-      "render_mode": "generated"
+      "grip": [8, 8, 8]
     },
     {
       "id": "wooden_fishing_rod",
       "base_item": "minecraft:fishing_rod",
       "custom_model_data": 232081,
       "java_virtual_trident": false,
-      "render_mode": "generated"
+      "grip": [8, 8, 8]
     },
     {
       "id": "reinforced_fishing_rod",
       "base_item": "minecraft:fishing_rod",
       "custom_model_data": 232082,
       "java_virtual_trident": false,
-      "render_mode": "generated"
+      "grip": [8, 8, 8]
     },
     {
       "id": "iron_pickaxe_1",
       "base_item": "minecraft:iron_pickaxe",
       "custom_model_data": 232098,
       "java_virtual_trident": false,
-      "render_mode": "generated"
+      "grip": [8, 8, 8]
     },
     {
       "id": "iron_pickaxe_2",
       "base_item": "minecraft:iron_pickaxe",
       "custom_model_data": 232100,
       "java_virtual_trident": false,
-      "render_mode": "generated"
+      "grip": [8, 8, 8]
     },
     {
       "id": "iron_pickaxe_3",
       "base_item": "minecraft:iron_pickaxe",
       "custom_model_data": 232102,
       "java_virtual_trident": false,
-      "render_mode": "generated"
+      "grip": [8, 8, 8]
     },
     {
       "id": "iron_pickaxe_4",
       "base_item": "minecraft:iron_pickaxe",
       "custom_model_data": 232104,
       "java_virtual_trident": false,
-      "render_mode": "generated"
+      "grip": [8, 8, 8]
+    },
+    {
+      "id": "nox_hoe",
+      "base_item": "minecraft:wooden_hoe",
+      "custom_model_data": 232005,
+      "java_virtual_trident": false,
+      "grip": [8, 8, 8]
+    },
+    {
+      "id": "cave_copper_hoe",
+      "base_item": "minecraft:copper_hoe",
+      "custom_model_data": 232072,
+      "java_virtual_trident": false,
+      "grip": [8, 8, 8]
+    },
+    {
+      "id": "iron_hoe_1",
+      "base_item": "minecraft:iron_hoe",
+      "custom_model_data": 232099,
+      "java_virtual_trident": false,
+      "grip": [8, 8, 8]
+    },
+    {
+      "id": "iron_hoe_2",
+      "base_item": "minecraft:iron_hoe",
+      "custom_model_data": 232101,
+      "java_virtual_trident": false,
+      "grip": [8, 8, 8]
+    },
+    {
+      "id": "iron_hoe_3",
+      "base_item": "minecraft:iron_hoe",
+      "custom_model_data": 232103,
+      "java_virtual_trident": false,
+      "grip": [8, 8, 8]
+    },
+    {
+      "id": "iron_hoe_4",
+      "base_item": "minecraft:iron_hoe",
+      "custom_model_data": 232105,
+      "java_virtual_trident": false,
+      "grip": [8, 8, 8]
     }
   ]
 }

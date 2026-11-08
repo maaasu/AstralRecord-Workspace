@@ -4,9 +4,10 @@
     "weapon": 41,
     "accessory": 12,
     "subweapon": 4,
-    "armor": 82
+    "armor": 82,
+    "tool": 14
   },
-  "new_3d_items": 124,
+  "new_3d_items": 138,
   "new_2d_items": 12,
   "preexisting_3d_items": 3,
   "native_editor": "Blockbench 5.2.2",
@@ -3046,6 +3047,272 @@
         "blockbench/items/astra_magia_feet.bedrock.bbmodel": "b1f20859e529795a59a138947ee2c0e428dd3d4d0254fcbc26e451ec81333db6",
         "blockbench/items/astra_magia_feet.java.bbmodel": "7996a37eb743d126dcf72bf3c32ce0751a3548b9e6871237d708b30e86932036",
         "blockbench/items/astra_magia_feet_worn.bedrock.bbmodel": "14f9392e059c459b7c9bb09a0096d226dc1fc0cfdcd39d6817d25d675e1a318b"
+      }
+    },
+    {
+      "id": "nox_pickaxe",
+      "master_id": "20a00006",
+      "category": "tool",
+      "slot": "TOOL",
+      "base_item": "minecraft:wooden_pickaxe",
+      "custom_model_data": 232006,
+      "sha256": {
+        "assets/astralrecord/models/item/custom/nox_pickaxe.json": "fa5017f2a5e81a0320637b93e448422263e392b0ae4bb9d5a0ea148adf0dd99e",
+        "assets/astralrecord/textures/item/custom/nox_pickaxe.png": "98fdfd24c88055c6f226474294bc2f24ab574ad1a0ede13b2e1717d68149fda2",
+        "bedrock/animations/nox_pickaxe.animation.json": "12c363888612b40bfef87a92a3eae2fa100b75cb39413abc564837d816cf1cd0",
+        "bedrock/attachables/nox_pickaxe.json": "c1931bd0126128dc42ab93f9390e9ddf338c6dacdb36b5b8415813c51958b662",
+        "bedrock/models/entity/items/nox_pickaxe.geo.json": "cd750aa5312528e6711716cbf91e8f18b0f4bc1ee64873ed89086e4a334c5edf",
+        "bedrock/textures/entity/items/nox_pickaxe.png": "98fdfd24c88055c6f226474294bc2f24ab574ad1a0ede13b2e1717d68149fda2",
+        "bedrock/textures/items/nox_pickaxe.png": "ec731869c298bcfafa7c400d6be487b4fce041f2c7933d607179b23c2166677a",
+        "blockbench/items/nox_pickaxe.bedrock.bbmodel": "8aaa4e3cb37ed273f025236985addbc6527911ef623b3de48789d949b920100f",
+        "blockbench/items/nox_pickaxe.java.bbmodel": "aa5f5becb86997f06941fa16c946499b4e477ad739e6928a9fb55d43bcc8e037"
+      }
+    },
+    {
+      "id": "cave_copper_pickaxe",
+      "master_id": "20a00071",
+      "category": "tool",
+      "slot": "TOOL",
+      "base_item": "minecraft:copper_pickaxe",
+      "custom_model_data": 232071,
+      "sha256": {
+        "assets/astralrecord/models/item/custom/cave_copper_pickaxe.json": "4928e3df30f54854459b6c2b49e63458d237383ab9b2ceed4a26ddf24f56a645",
+        "assets/astralrecord/textures/item/custom/cave_copper_pickaxe.png": "b6f3b322303a02bd309c590acff0bf20008dfe1591a3b0534e6adadaf2837efd",
+        "bedrock/animations/cave_copper_pickaxe.animation.json": "4bc478bd76d288ee48ce556244e8eb08a0c45ba29c9e4e14ec8a1f46c9d1d436",
+        "bedrock/attachables/cave_copper_pickaxe.json": "58bf42c82a500a8b05256ae419bf1c3d9faec19bc092929cbbf3970ee47a35cb",
+        "bedrock/models/entity/items/cave_copper_pickaxe.geo.json": "e06274fddec5e5e1b1a4ef736b6a9e2959a74f182432baf6a5b73b480772fdea",
+        "bedrock/textures/entity/items/cave_copper_pickaxe.png": "b6f3b322303a02bd309c590acff0bf20008dfe1591a3b0534e6adadaf2837efd",
+        "bedrock/textures/items/cave_copper_pickaxe.png": "c1bf1ef91e80a48f4f1b963970d769b8bffea6b0669edf496263e0c74f5e7008",
+        "blockbench/items/cave_copper_pickaxe.bedrock.bbmodel": "38776b7ed251ca505150fc2c3cd442a84c727713c676832c20f0b8f4204bf75e",
+        "blockbench/items/cave_copper_pickaxe.java.bbmodel": "96b6411f5da9f87b2bdb98575711387c265fe349a82f0cf8e972aad5b2889cfd"
+      }
+    },
+    {
+      "id": "wooden_fishing_rod",
+      "master_id": "20a00081",
+      "category": "tool",
+      "slot": "TOOL",
+      "base_item": "minecraft:fishing_rod",
+      "custom_model_data": 232081,
+      "sha256": {
+        "assets/astralrecord/models/item/custom/wooden_fishing_rod.json": "c0ef2f505db899c71ee605d05194b5cffc0fce721978dc91cab75843c7c5b46d",
+        "assets/astralrecord/textures/item/custom/wooden_fishing_rod.png": "f25fcea46c5991f4402af1b70926a423008d3c8d27f07688e3c182ad8b697b29",
+        "bedrock/animations/wooden_fishing_rod.animation.json": "95d94183218e8012f6fc8c99a7a6fcf2f2ec37aeb41b8d4c6c2f2072cb6babae",
+        "bedrock/attachables/wooden_fishing_rod.json": "0efc48a05a11926503b5cd4621f4cdedabca7ca9654a4bceb03096476ef83bfd",
+        "bedrock/models/entity/items/wooden_fishing_rod.geo.json": "e3ebca5a951b2f8b3f016fbcd9cc395199a69456e7823d551046e159918de7bd",
+        "bedrock/textures/entity/items/wooden_fishing_rod.png": "f25fcea46c5991f4402af1b70926a423008d3c8d27f07688e3c182ad8b697b29",
+        "bedrock/textures/items/wooden_fishing_rod.png": "6809a7b2e387161dc0b5a12d5420bb3b15cb987f9e6bf1d3302f6a40f583458c",
+        "blockbench/items/wooden_fishing_rod.bedrock.bbmodel": "bd17fa3928e957cb93b96a587ed7991c0450dff59344f95e454af4d79adcfba5",
+        "blockbench/items/wooden_fishing_rod.java.bbmodel": "c55a54e97bca7c3cf7d46df5aa41c4bfc18cecfa3a25c59333d32bbb228985ab"
+      }
+    },
+    {
+      "id": "reinforced_fishing_rod",
+      "master_id": "20a00082",
+      "category": "tool",
+      "slot": "TOOL",
+      "base_item": "minecraft:fishing_rod",
+      "custom_model_data": 232082,
+      "sha256": {
+        "assets/astralrecord/models/item/custom/reinforced_fishing_rod.json": "d5d28a82937c52c08abc109c609fb30d43a80bee71eeaaafb647e1710de6f297",
+        "assets/astralrecord/textures/item/custom/reinforced_fishing_rod.png": "2c4b3d67af2ceef32d08c14e52ebdc7a70fe47848911460d04714204064844a2",
+        "bedrock/animations/reinforced_fishing_rod.animation.json": "4d41c4d57d587e6bcb43dc421fbc845c1098d8ecc4b1fd8dab27c3ca89198f2e",
+        "bedrock/attachables/reinforced_fishing_rod.json": "17d9139ec54dccd46d42a41e3db12e2c662e69a8f0d1d544b6495e21e0f44dd6",
+        "bedrock/models/entity/items/reinforced_fishing_rod.geo.json": "303bb0349ee17de28ffc91f570785be0b1a49394a93693a703bb4b7bbccf2dfb",
+        "bedrock/textures/entity/items/reinforced_fishing_rod.png": "2c4b3d67af2ceef32d08c14e52ebdc7a70fe47848911460d04714204064844a2",
+        "bedrock/textures/items/reinforced_fishing_rod.png": "9b46de98e37de8fad3ae35746e37fcd85df3260b2258a5d93f7e6e6b34e77d2d",
+        "blockbench/items/reinforced_fishing_rod.bedrock.bbmodel": "da9ec8cceb4d26a6acde8c1e23dfe4de4a90b488d42f13d34e47282429ccd5f2",
+        "blockbench/items/reinforced_fishing_rod.java.bbmodel": "739fbaac7f7f1914ab4e0fde4e4ca4bddf2beefc994b254b54dbe5ed441220be"
+      }
+    },
+    {
+      "id": "iron_pickaxe_1",
+      "master_id": "20a00098",
+      "category": "tool",
+      "slot": "TOOL",
+      "base_item": "minecraft:iron_pickaxe",
+      "custom_model_data": 232098,
+      "sha256": {
+        "assets/astralrecord/models/item/custom/iron_pickaxe_1.json": "ca11136082d9e27ce43df72956a1475df1418ae11d2b238c18f37d9ba23ea572",
+        "assets/astralrecord/textures/item/custom/iron_pickaxe_1.png": "b2a05c6e243902070cbeb0470d166db5c6151c0b3b10fa3d3aca9b5627acf5e1",
+        "bedrock/animations/iron_pickaxe_1.animation.json": "92e01b1fa1009c8e47eceb656a6a13efd3a12e0ebe637a80a958a9cd2d704cf1",
+        "bedrock/attachables/iron_pickaxe_1.json": "af6cce8bcf2852fede3fd9cda68b2b4aa1d8cb1fb6ea181380173ca9342fbac1",
+        "bedrock/models/entity/items/iron_pickaxe_1.geo.json": "ed1fe18f4e50bc60544dbcb293010389ef80d5c37b1c40c4938b350a1a7b3844",
+        "bedrock/textures/entity/items/iron_pickaxe_1.png": "b2a05c6e243902070cbeb0470d166db5c6151c0b3b10fa3d3aca9b5627acf5e1",
+        "bedrock/textures/items/iron_pickaxe_1.png": "6b4badcefc06825486c6b8d14b0e07dc765313e598bee11fa3f10a49e691450a",
+        "blockbench/items/iron_pickaxe_1.bedrock.bbmodel": "5bf8568c6913a6815baee7e518c71ea5b00807c4b7b3cd7a5fa5495b8618632e",
+        "blockbench/items/iron_pickaxe_1.java.bbmodel": "aec25ac520d9ff35c398ea703b0f74be9fdf6b669281ce92d0fc224cd8f8af9d"
+      }
+    },
+    {
+      "id": "iron_pickaxe_2",
+      "master_id": "20a00100",
+      "category": "tool",
+      "slot": "TOOL",
+      "base_item": "minecraft:iron_pickaxe",
+      "custom_model_data": 232100,
+      "sha256": {
+        "assets/astralrecord/models/item/custom/iron_pickaxe_2.json": "306afadbdc5c0f19dd82bf757cc9e17e77b447c87ddad06dc58d88e9bbafe9e4",
+        "assets/astralrecord/textures/item/custom/iron_pickaxe_2.png": "20367b0d848a3f335dcb5a4e61849f08ff31ba60affe5a0003adf24fba0c8650",
+        "bedrock/animations/iron_pickaxe_2.animation.json": "71b2c596c0f839d18788b641087d93e2a6227e6a47191233e68f18573a8ed6f9",
+        "bedrock/attachables/iron_pickaxe_2.json": "3907cc7c5e72715d40bf241c05a9c3791ca0d27c36c82f5ffdb45c6790495b51",
+        "bedrock/models/entity/items/iron_pickaxe_2.geo.json": "1918b69f4e8116ed31563ca310a089b799117e9ba045de86625dd5c59ad00b37",
+        "bedrock/textures/entity/items/iron_pickaxe_2.png": "20367b0d848a3f335dcb5a4e61849f08ff31ba60affe5a0003adf24fba0c8650",
+        "bedrock/textures/items/iron_pickaxe_2.png": "120865d8fb90d12aaa4f3ca52874a5537a527cbb90f50cb6c0d191ff3a6680d4",
+        "blockbench/items/iron_pickaxe_2.bedrock.bbmodel": "1cdf20e3524bed40c1bc88489cde182a587b041c5fc77d527048600945c0426e",
+        "blockbench/items/iron_pickaxe_2.java.bbmodel": "2bf2bd93251974084daf5d1237463e07abb64d5f656e79cd317652ee7fe684e9"
+      }
+    },
+    {
+      "id": "iron_pickaxe_3",
+      "master_id": "20a00102",
+      "category": "tool",
+      "slot": "TOOL",
+      "base_item": "minecraft:iron_pickaxe",
+      "custom_model_data": 232102,
+      "sha256": {
+        "assets/astralrecord/models/item/custom/iron_pickaxe_3.json": "51fcc7b328e662c9922faa7ba99423d3040ea3ee75baf57742dbc5d936c5c04b",
+        "assets/astralrecord/textures/item/custom/iron_pickaxe_3.png": "20c5576c0623a8969dcc81483482af8f482b8e5ae3708588eb3802eb6862dd99",
+        "bedrock/animations/iron_pickaxe_3.animation.json": "cbb83fe13f5ebde1de1bbd528d7d0f0ab977b69283c8a9ac73481a9296caa032",
+        "bedrock/attachables/iron_pickaxe_3.json": "5da2939d318cb21cd19226c41547dcd480b90d6fcf5459b57b5312631017d53c",
+        "bedrock/models/entity/items/iron_pickaxe_3.geo.json": "a5c3368ea00b6f0dab1816049c8f767f434d1665629838743e62290c79969803",
+        "bedrock/textures/entity/items/iron_pickaxe_3.png": "20c5576c0623a8969dcc81483482af8f482b8e5ae3708588eb3802eb6862dd99",
+        "bedrock/textures/items/iron_pickaxe_3.png": "53ede1ee2a5c8d2889b114a55ebb715089798b6605f7d282f8090283493ba823",
+        "blockbench/items/iron_pickaxe_3.bedrock.bbmodel": "2c71574dbb9f30325f2966a5958eb598fbe3b2fd2c4cd16e6050412df09d8917",
+        "blockbench/items/iron_pickaxe_3.java.bbmodel": "7b5cd4574544754618192a285dcdcec5648a7369aab2f87601ed0137e8c1298e"
+      }
+    },
+    {
+      "id": "iron_pickaxe_4",
+      "master_id": "20a00104",
+      "category": "tool",
+      "slot": "TOOL",
+      "base_item": "minecraft:iron_pickaxe",
+      "custom_model_data": 232104,
+      "sha256": {
+        "assets/astralrecord/models/item/custom/iron_pickaxe_4.json": "ed4ec3aa95ae01219be24f456842c98e9c0f2171e2ee5cceec6b8322fe695e9b",
+        "assets/astralrecord/textures/item/custom/iron_pickaxe_4.png": "4e5ced5450444d70655abff0171f94ae379e87271af292a1955ac343edb9c42e",
+        "bedrock/animations/iron_pickaxe_4.animation.json": "1952e3d0462c5d6e7f25aad2818af1967b484744621454b0f77b8cda065ebce4",
+        "bedrock/attachables/iron_pickaxe_4.json": "8c3419008c03826468b65bd4e816834189308f36bbfef2092122dcfd22b4332b",
+        "bedrock/models/entity/items/iron_pickaxe_4.geo.json": "da27803d6e399ba8ea7f598f9e6ad52d32de778315d152d250630a42ecbe9950",
+        "bedrock/textures/entity/items/iron_pickaxe_4.png": "4e5ced5450444d70655abff0171f94ae379e87271af292a1955ac343edb9c42e",
+        "bedrock/textures/items/iron_pickaxe_4.png": "929f7a3bad3bc7fff15027bbd704c70b194ed378e4e89dbcc74acd6669f78fe8",
+        "blockbench/items/iron_pickaxe_4.bedrock.bbmodel": "af9f0dddf1b5d95adfa0b776c7040807fe353256d370eaad446321490b339420",
+        "blockbench/items/iron_pickaxe_4.java.bbmodel": "141b21c351bcd62a52dac757ede8db0f4ae270c354c2307474fc467f5bd4f329"
+      }
+    },
+    {
+      "id": "nox_hoe",
+      "master_id": "20a00005",
+      "category": "tool",
+      "slot": "TOOL",
+      "base_item": "minecraft:wooden_hoe",
+      "custom_model_data": 232005,
+      "sha256": {
+        "assets/astralrecord/models/item/custom/nox_hoe.json": "89a1ab222baf7b7d28a008f4f79dc6415abff553d9c8cc7a8affd698928990d4",
+        "assets/astralrecord/textures/item/custom/nox_hoe.png": "98fdfd24c88055c6f226474294bc2f24ab574ad1a0ede13b2e1717d68149fda2",
+        "bedrock/animations/nox_hoe.animation.json": "190ba7f6d1eb338bbed3664df17383c4b372119e8cb5b8c5d55fa3417d46805b",
+        "bedrock/attachables/nox_hoe.json": "b34f4d81ace410d59ddf98f4884e73461c737708a63fdb91fc82c747ec94e3f1",
+        "bedrock/models/entity/items/nox_hoe.geo.json": "9ff1d66c387b24c7847bc42999cf64c2a6b67a204135bcb96d90c12cbb6c3a4a",
+        "bedrock/textures/entity/items/nox_hoe.png": "98fdfd24c88055c6f226474294bc2f24ab574ad1a0ede13b2e1717d68149fda2",
+        "bedrock/textures/items/nox_hoe.png": "d3a1d380e4268a4d828c207ba6f3735b940ee0e9726c81cc52679a141c6ac32e",
+        "blockbench/items/nox_hoe.bedrock.bbmodel": "659329ad0f9e98c7e2c5a6ad3b40138cead41dd68b4ce9701e2144aa08b6828a",
+        "blockbench/items/nox_hoe.java.bbmodel": "378711d129244b5931f68c9d7d9eccef751dba2ea8116e2d5de39544f49afe9e"
+      }
+    },
+    {
+      "id": "cave_copper_hoe",
+      "master_id": "20a00072",
+      "category": "tool",
+      "slot": "TOOL",
+      "base_item": "minecraft:copper_hoe",
+      "custom_model_data": 232072,
+      "sha256": {
+        "assets/astralrecord/models/item/custom/cave_copper_hoe.json": "91373d61b093c5ef9b272a72e623b342bc8ee5c7b9ca6b5e01c705e6ae87772e",
+        "assets/astralrecord/textures/item/custom/cave_copper_hoe.png": "b6f3b322303a02bd309c590acff0bf20008dfe1591a3b0534e6adadaf2837efd",
+        "bedrock/animations/cave_copper_hoe.animation.json": "96d2457df4ce4cd7bcbc392a13646cf5468ea22fd8ac61550511f5cc62be590d",
+        "bedrock/attachables/cave_copper_hoe.json": "ae062d616c665edeb515b33872f932c7c02107e3304b5d48c5102a410b50f620",
+        "bedrock/models/entity/items/cave_copper_hoe.geo.json": "2dfabe9d7faae9926d91a932aa01cff73fb56049f54b5f0c127513133768ee5d",
+        "bedrock/textures/entity/items/cave_copper_hoe.png": "b6f3b322303a02bd309c590acff0bf20008dfe1591a3b0534e6adadaf2837efd",
+        "bedrock/textures/items/cave_copper_hoe.png": "9d3168f5647e9aad123309ec3bce7896f1caf6b157700f193ae077ee77b9fcfc",
+        "blockbench/items/cave_copper_hoe.bedrock.bbmodel": "8ce6f5b42685804224927e64d1dfeeae8190126ef42f9ea887db923dea8a8129",
+        "blockbench/items/cave_copper_hoe.java.bbmodel": "10e89a941ad113ba77c06dd41b597d465f0750cb34ca8f365d3ddc2ccee59a25"
+      }
+    },
+    {
+      "id": "iron_hoe_1",
+      "master_id": "20a00099",
+      "category": "tool",
+      "slot": "TOOL",
+      "base_item": "minecraft:iron_hoe",
+      "custom_model_data": 232099,
+      "sha256": {
+        "assets/astralrecord/models/item/custom/iron_hoe_1.json": "5fc67cb00695f9ee054319c0489ed647c69197a7ed13182f084f1bfe90c99964",
+        "assets/astralrecord/textures/item/custom/iron_hoe_1.png": "b2a05c6e243902070cbeb0470d166db5c6151c0b3b10fa3d3aca9b5627acf5e1",
+        "bedrock/animations/iron_hoe_1.animation.json": "8174d9b80898ab69e19d669ed7f1467668a652610be561872d6dd30dc954c745",
+        "bedrock/attachables/iron_hoe_1.json": "445371b1e8b7305317378874198c3e2651cc388e7346b407e4b217d49c530b50",
+        "bedrock/models/entity/items/iron_hoe_1.geo.json": "9b11935fc7359f257e467a27ced7c720c5d6c29f139f4a74853fdbd206d4d0fa",
+        "bedrock/textures/entity/items/iron_hoe_1.png": "b2a05c6e243902070cbeb0470d166db5c6151c0b3b10fa3d3aca9b5627acf5e1",
+        "bedrock/textures/items/iron_hoe_1.png": "26e85edd444f4071c7b767aa4f1f04db06cfcfdc67e7cfb1fb1466f18ca79683",
+        "blockbench/items/iron_hoe_1.bedrock.bbmodel": "188ba92c7b866453c60a5ca4e087b0f9aca5d6d99bd685cf85a4196cf3f521bc",
+        "blockbench/items/iron_hoe_1.java.bbmodel": "24e7f87ea3b33609de7364e1135c0ee1a14ad0955297ed46055f31e58b3bb2b4"
+      }
+    },
+    {
+      "id": "iron_hoe_2",
+      "master_id": "20a00101",
+      "category": "tool",
+      "slot": "TOOL",
+      "base_item": "minecraft:iron_hoe",
+      "custom_model_data": 232101,
+      "sha256": {
+        "assets/astralrecord/models/item/custom/iron_hoe_2.json": "9a657cb2e5baf34401200c493da5817180112ce7f217e37837269a8c69b64d58",
+        "assets/astralrecord/textures/item/custom/iron_hoe_2.png": "20367b0d848a3f335dcb5a4e61849f08ff31ba60affe5a0003adf24fba0c8650",
+        "bedrock/animations/iron_hoe_2.animation.json": "4fdc4c391e3e97d878d7a7a08ebb01e68b711999d97eab95e774e84e9c3687c8",
+        "bedrock/attachables/iron_hoe_2.json": "ad61745853dac43e530f0e4e2f470c4a5b24ac4e69e4ed34098d423c2cb7a47b",
+        "bedrock/models/entity/items/iron_hoe_2.geo.json": "145bd0818d8b9f5d2e870f2b639e66682054c3f6e15776df33f44d27c7153731",
+        "bedrock/textures/entity/items/iron_hoe_2.png": "20367b0d848a3f335dcb5a4e61849f08ff31ba60affe5a0003adf24fba0c8650",
+        "bedrock/textures/items/iron_hoe_2.png": "f493410f5c12a0b2c6970aba98c456490cc77749d0360e8495032ccf62744a6e",
+        "blockbench/items/iron_hoe_2.bedrock.bbmodel": "d85dee4038c7d139d8021e077e96af75b1e6b317873df32ad628f6aae323c13f",
+        "blockbench/items/iron_hoe_2.java.bbmodel": "d4bdd28d8a8331267f38cccafeb21b3d578314e0d3501c04c576c9e9bec5c16c"
+      }
+    },
+    {
+      "id": "iron_hoe_3",
+      "master_id": "20a00103",
+      "category": "tool",
+      "slot": "TOOL",
+      "base_item": "minecraft:iron_hoe",
+      "custom_model_data": 232103,
+      "sha256": {
+        "assets/astralrecord/models/item/custom/iron_hoe_3.json": "59164461face6cadfe6d3c10e946f71f6497867ed0976c10136731aebaee136f",
+        "assets/astralrecord/textures/item/custom/iron_hoe_3.png": "20c5576c0623a8969dcc81483482af8f482b8e5ae3708588eb3802eb6862dd99",
+        "bedrock/animations/iron_hoe_3.animation.json": "1d9e941aa69cc1b3c475e882abdfab000cc632a12243753453aed1bc51a95dd5",
+        "bedrock/attachables/iron_hoe_3.json": "1749d351873074ba6cf7af7e9cefc31e3e7cbf600e3ddeb689ef82bea801715b",
+        "bedrock/models/entity/items/iron_hoe_3.geo.json": "949818438270a3dee821425ff8ead1958e415fd4445bc13e68324faddea5cb79",
+        "bedrock/textures/entity/items/iron_hoe_3.png": "20c5576c0623a8969dcc81483482af8f482b8e5ae3708588eb3802eb6862dd99",
+        "bedrock/textures/items/iron_hoe_3.png": "90d6b87bc6d1ea2747aaa9747e26ddee48522483cf3fc2c66fed0153624f60c2",
+        "blockbench/items/iron_hoe_3.bedrock.bbmodel": "f754ef5ae05f073fdc7716281e3e559ba3b6ed8fc3e2f0e74b7f68fb7d211730",
+        "blockbench/items/iron_hoe_3.java.bbmodel": "70d53b79413302d6789bf8178d231d0d2a49bde9a3ad50d72d47a2dede01f20a"
+      }
+    },
+    {
+      "id": "iron_hoe_4",
+      "master_id": "20a00105",
+      "category": "tool",
+      "slot": "TOOL",
+      "base_item": "minecraft:iron_hoe",
+      "custom_model_data": 232105,
+      "sha256": {
+        "assets/astralrecord/models/item/custom/iron_hoe_4.json": "1fdc0d4f2747963091be9844941b3f90d7a8cdeefa5e766a3cbd44d9a7de7c31",
+        "assets/astralrecord/textures/item/custom/iron_hoe_4.png": "4e5ced5450444d70655abff0171f94ae379e87271af292a1955ac343edb9c42e",
+        "bedrock/animations/iron_hoe_4.animation.json": "0a8dff944f2681cdac6ba01e7573fafe38862ca02c627f047320fb686c9f7cc3",
+        "bedrock/attachables/iron_hoe_4.json": "652d13a9f478aa797293320f21d0652e11a8044dfbc901f2a874041f57dc755e",
+        "bedrock/models/entity/items/iron_hoe_4.geo.json": "7ed605e947c1eb86f5acda84b29f26b2f334c28c563e8e9a9cace24f8e883ef3",
+        "bedrock/textures/entity/items/iron_hoe_4.png": "4e5ced5450444d70655abff0171f94ae379e87271af292a1955ac343edb9c42e",
+        "bedrock/textures/items/iron_hoe_4.png": "b69681b5611d8c5c109a123bd20e7e3c6ee89ba020b9cfd8ff02764d11d062d3",
+        "blockbench/items/iron_hoe_4.bedrock.bbmodel": "71ebdb311a7bd31fceecd150a09b845133274d67d4d0fa271cff2dd995fddfe3",
+        "blockbench/items/iron_hoe_4.java.bbmodel": "fc05abd9ccc2f78c0693c9c2a20a66ffcd3b5b0afd8fa8038923f8321771976f"
       }
     }
   ],

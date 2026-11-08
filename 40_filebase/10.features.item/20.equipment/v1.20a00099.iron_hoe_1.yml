@@ -6,6 +6,7 @@ id: 20a00099
 category: equipment
 name: "&a翠風の鉄クワ"
 icon: IRON_HOE
+customModelData: 232099
 rarity: UNCOMMON
 saleValue: 2
 lore:

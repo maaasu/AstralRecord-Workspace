@@ -6,6 +6,7 @@ id: 20a00103
 category: equipment
 name: "&d蒼泉の鉄クワ"
 icon: IRON_HOE
+customModelData: 232103
 rarity: EPIC
 saleValue: 2
 lore:

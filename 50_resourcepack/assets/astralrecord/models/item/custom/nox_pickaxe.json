@@ -1,0 +1,262 @@
+{
+	"credit": "Made with Blockbench",
+	"textures": {
+		"surface": "astralrecord:item/custom/nox_pickaxe",
+		"particle": "#surface"
+	},
+	"elements": [
+		{
+			"name": "Carved ash haft",
+			"from": [7.275, 3.6, 7.325],
+			"to": [8.725, 18.7, 8.675],
+			"faces": {
+				"north": {"uv": [0.0375, 0.0375, 1.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [2.0375, 0.0375, 3.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [4.0375, 0.0375, 5.9625, 1.9625], "texture": "#surface"},
+				"west": {"uv": [6.0375, 0.0375, 7.9625, 1.9625], "texture": "#surface"},
+				"up": {"uv": [8.0375, 0.0375, 9.9625, 1.9625], "texture": "#surface"},
+				"down": {"uv": [10.0375, 0.0375, 11.9625, 1.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Leather hand wrap",
+			"from": [7.14, 5.4, 7.2],
+			"to": [8.86, 10, 8.8],
+			"faces": {
+				"north": {"uv": [4.0375, 4.0375, 5.9625, 5.9625], "texture": "#surface"},
+				"east": {"uv": [6.0375, 4.0375, 7.9625, 5.9625], "texture": "#surface"},
+				"south": {"uv": [8.0375, 4.0375, 9.9625, 5.9625], "texture": "#surface"},
+				"west": {"uv": [10.0375, 4.0375, 11.9625, 5.9625], "texture": "#surface"},
+				"up": {"uv": [12.0375, 4.0375, 13.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [14.0375, 4.0375, 15.9625, 5.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Grip binding",
+			"from": [7.105, 5.32, 7.17],
+			"to": [8.895, 5.58, 8.83],
+			"faces": {
+				"north": {"uv": [12.0375, 6.0375, 13.9625, 7.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 6.0375, 15.9625, 7.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 8.0375, 1.9625, 9.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 8.0375, 3.9625, 9.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 8.0375, 5.9625, 9.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 8.0375, 7.9625, 9.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Grip binding",
+			"from": [7.105, 9.89, 7.17],
+			"to": [8.895, 10.15, 8.83],
+			"faces": {
+				"north": {"uv": [12.0375, 6.0375, 13.9625, 7.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 6.0375, 15.9625, 7.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 8.0375, 1.9625, 9.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 8.0375, 3.9625, 9.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 8.0375, 5.9625, 9.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 8.0375, 7.9625, 9.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Head socket",
+			"from": [6.985, 16.3, 7.04],
+			"to": [9.015, 18.25, 8.96],
+			"faces": {
+				"north": {"uv": [12.0375, 6.0375, 13.9625, 7.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 6.0375, 15.9625, 7.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 8.0375, 1.9625, 9.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 8.0375, 3.9625, 9.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 8.0375, 5.9625, 9.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 8.0375, 7.9625, 9.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Rolled socket rim",
+			"from": [6.93, 16.2, 6.99],
+			"to": [9.07, 16.47, 9.01],
+			"faces": {
+				"north": {"uv": [12.0375, 0.0375, 13.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 0.0375, 15.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 2.0375, 1.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 2.0375, 3.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 2.0375, 5.9625, 3.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 2.0375, 7.9625, 3.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Socket rivet",
+			"from": [7.76, 17.6, 6.87],
+			"to": [8.24, 18.05, 7.11],
+			"rotation": {"angle": 45, "axis": "z", "origin": [8, 17.825, 6.99]},
+			"faces": {
+				"north": {"uv": [8.0375, 2.0375, 9.9625, 3.9625], "texture": "#surface"},
+				"east": {"uv": [10.0375, 2.0375, 11.9625, 3.9625], "texture": "#surface"},
+				"south": {"uv": [12.0375, 2.0375, 13.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [14.0375, 2.0375, 15.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [2.0375, 4.0375, 3.9625, 5.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Socket rivet",
+			"from": [7.76, 17.6, 8.89],
+			"to": [8.24, 18.05, 9.13],
+			"rotation": {"angle": 45, "axis": "z", "origin": [8, 17.825, 9.01]},
+			"faces": {
+				"north": {"uv": [8.0375, 2.0375, 9.9625, 3.9625], "texture": "#surface"},
+				"east": {"uv": [10.0375, 2.0375, 11.9625, 3.9625], "texture": "#surface"},
+				"south": {"uv": [12.0375, 2.0375, 13.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [14.0375, 2.0375, 15.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [2.0375, 4.0375, 3.9625, 5.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged head crown",
+			"from": [6.15, 18.13, 7.015],
+			"to": [9.85, 19.64, 8.985],
+			"faces": {
+				"north": {"uv": [12.0375, 0.0375, 13.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 0.0375, 15.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 2.0375, 1.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 2.0375, 3.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [4.0375, 2.0375, 5.9625, 3.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 2.0375, 7.9625, 3.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Wedge through socket",
+			"from": [7.34, 19.42, 7.42],
+			"to": [8.66, 19.86, 8.58],
+			"faces": {
+				"north": {"uv": [0.0375, 0.0375, 1.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [2.0375, 0.0375, 3.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [4.0375, 0.0375, 5.9625, 1.9625], "texture": "#surface"},
+				"west": {"uv": [6.0375, 0.0375, 7.9625, 1.9625], "texture": "#surface"},
+				"up": {"uv": [8.0375, 0.0375, 9.9625, 1.9625], "texture": "#surface"},
+				"down": {"uv": [10.0375, 0.0375, 11.9625, 1.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged cheek",
+			"from": [4.9, 18.125, 7.215],
+			"to": [6.6, 19.575, 8.785],
+			"rotation": {"angle": 22.5, "axis": "z", "origin": [6.6, 18.85, 8]},
+			"faces": {
+				"north": {"uv": [12.0375, 0.0375, 13.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 0.0375, 15.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 2.0375, 1.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 2.0375, 3.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 2.0375, 7.9625, 3.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Drawn pick arm",
+			"from": [3.4294, 17.74944, 7.435],
+			"to": [5.3594, 18.80944, 8.565],
+			"rotation": {"angle": 22.5, "axis": "z", "origin": [5.3594, 18.27944, 8]},
+			"faces": {
+				"north": {"uv": [12.0375, 0.0375, 13.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 0.0375, 15.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 2.0375, 1.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 2.0375, 3.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 2.0375, 7.9625, 3.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Ground pick point",
+			"from": [2.33632, 17.36586, 7.62],
+			"to": [3.93632, 18.03586, 8.38],
+			"rotation": {"angle": 45, "axis": "z", "origin": [3.93632, 17.70086, 8]},
+			"faces": {
+				"north": {"uv": [8.0375, 2.0375, 9.9625, 3.9625], "texture": "#surface"},
+				"east": {"uv": [10.0375, 2.0375, 11.9625, 3.9625], "texture": "#surface"},
+				"south": {"uv": [12.0375, 2.0375, 13.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [14.0375, 2.0375, 15.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [2.0375, 4.0375, 3.9625, 5.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Forged cheek",
+			"from": [9.4, 18.125, 7.215],
+			"to": [11.65, 19.575, 8.785],
+			"rotation": {"angle": -22.5, "axis": "z", "origin": [9.4, 18.85, 8]},
+			"faces": {
+				"north": {"uv": [12.0375, 0.0375, 13.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 0.0375, 15.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 2.0375, 1.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 2.0375, 3.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 2.0375, 7.9625, 3.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Drawn pick arm",
+			"from": [11.14873, 17.53896, 7.435],
+			"to": [13.07873, 18.59896, 8.565],
+			"rotation": {"angle": -22.5, "axis": "z", "origin": [11.14873, 18.06896, 8]},
+			"faces": {
+				"north": {"uv": [12.0375, 0.0375, 13.9625, 1.9625], "texture": "#surface"},
+				"east": {"uv": [14.0375, 0.0375, 15.9625, 1.9625], "texture": "#surface"},
+				"south": {"uv": [0.0375, 2.0375, 1.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [2.0375, 2.0375, 3.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [6.0375, 2.0375, 7.9625, 3.9625], "texture": "#surface"}
+			}
+		},
+		{
+			"name": "Ground pick point",
+			"from": [12.57182, 17.15538, 7.62],
+			"to": [14.17182, 17.82538, 8.38],
+			"rotation": {"angle": -45, "axis": "z", "origin": [12.57182, 17.49038, 8]},
+			"faces": {
+				"north": {"uv": [8.0375, 2.0375, 9.9625, 3.9625], "texture": "#surface"},
+				"east": {"uv": [10.0375, 2.0375, 11.9625, 3.9625], "texture": "#surface"},
+				"south": {"uv": [12.0375, 2.0375, 13.9625, 3.9625], "texture": "#surface"},
+				"west": {"uv": [14.0375, 2.0375, 15.9625, 3.9625], "texture": "#surface"},
+				"up": {"uv": [0.0375, 4.0375, 1.9625, 5.9625], "texture": "#surface"},
+				"down": {"uv": [2.0375, 4.0375, 3.9625, 5.9625], "texture": "#surface"}
+			}
+		}
+	],
+	"display": {
+		"thirdperson_righthand": {
+			"rotation": [0, -67, 10],
+			"translation": [0, -1.7415, 1.5124],
+			"scale": [0.92, 0.92, 0.92]
+		},
+		"thirdperson_lefthand": {
+			"rotation": [0, 67, -10],
+			"translation": [0, -1.7415, 1.5124],
+			"scale": [0.92, 0.92, 0.92]
+		},
+		"firstperson_righthand": {
+			"rotation": [4, -53, -18],
+			"translation": [1.13, -1.1828, -0.4652],
+			"scale": [0.7, 0.7, 0.7]
+		},
+		"firstperson_lefthand": {
+			"rotation": [4, 53, 18],
+			"translation": [1.13, -1.1828, -0.4652],
+			"scale": [0.7, 0.7, 0.7]
+		},
+		"ground": {
+			"rotation": [0, 0, -25],
+			"translation": [0, 2.2, 0],
+			"scale": [0.47, 0.47, 0.47]
+		},
+		"gui": {
+			"rotation": [17, -20, -37],
+			"translation": [0, -2.3, 0],
+			"scale": [0.91, 0.91, 0.91]
+		},
+		"fixed": {
+			"rotation": [0, 0, -35],
+			"translation": [0, -2.5, 0],
+			"scale": [0.84, 0.84, 0.84]
+		}
+	}
+}
