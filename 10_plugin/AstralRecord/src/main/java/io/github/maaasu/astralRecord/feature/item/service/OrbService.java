@@ -79,10 +79,7 @@ public final class OrbService {
     private static final int NEXT_PAGE_SLOT = 53;
     private static final int ORB_USE_COUNT_MINUS_SLOT = 48;
     private static final int ORB_USE_COUNT_PLUS_SLOT = 50;
-    private static final int BOOST_DECREASE_SLOT = 46;
-    private static final int BOOST_SELECTOR_SLOT = 47;
-    private static final int BOOST_MAX_SLOT = 51;
-    private static final int BOOST_CLEAR_SLOT = 52;
+    private static final int BOOST_SELECTOR_SLOT = NEXT_PAGE_SLOT - 1;
     private static final String BLACKSTONE_ORB_ITEM_ID = "40a00043";
     private static final int MAX_ENHANCEMENT_BOOST_AMOUNT = 20;
     private static final int INVENTORY_ORB_CONTENT_SLOT_COUNT = 28;
@@ -972,6 +969,7 @@ public final class OrbService {
     ) {
         fillInventory(inventory);
         ItemOrbEffect effect = orbModel.getOrb().getEffect();
+        session.boostSelectorVisible = false;
         session.displayedBoostLimit = effect.getType() == ItemOrbEffectType.ENHANCE
             ? renderEnhancementBoost(session, inventory) : 0;
         int pageCount = Math.max(1, (candidates.size() + CONTENT_SLOT_COUNT - 1) / CONTENT_SLOT_COUNT);
@@ -1055,48 +1053,61 @@ public final class OrbService {
     }
 
     /**
-     * 強化画面に補助オーブのヘッドと数量操作を配置し、次の試行で使える上限を返します。
+     * BAGとHOTBARに補助オーブを所持しているか確認します。予約済みの分も所持数に含めます。
+     *
+     * @param session 操作セッション
+     * @param available 予約分を除いた使用可能数
+     * @return インベントリ内に補助オーブがある場合true
+     */
+    private boolean ownsEnhancementBoost(@NotNull OrbSession session, long available) {
+        return available > 0L || inventoryService.getNormalItemAmount(session.accountId, BLACKSTONE_ORB_ITEM_ID) > 0L;
+    }
+
+    /**
+     * 所持中だけ補助オーブの設定枠を表示し、次の試行で使える上限を返します。
+     * 設定数が0個のときは灰色の染料で未使用を示します。
      *
      * @param session 操作セッション
      * @param inventory 強化画面
-     * @return 選択上限と使用可能数の小さい方。補助マスタ未登録なら0
+     * @return 選択上限と使用可能数の小さい方。補助マスタ未登録または未所持なら0
      */
     private int renderEnhancementBoost(@NotNull OrbSession session, @NotNull Inventory inventory) {
         ItemModel boostModel = resolveEnhancementBoostModel();
         if (boostModel == null) {
-            inventory.setItem(BOOST_SELECTOR_SLOT, GuiItems.create(Material.BARRIER,
-                orbGuiMessage(PlayerMsgId.P_5998, NamedTextColor.RED), List.of()));
             return 0;
         }
 
         long available = availableEnhancementBoost(session);
+        if (!ownsEnhancementBoost(session, available)) {
+            return 0;
+        }
         int boostLimit = (int) Math.min(session.selectedBoostAmount, available);
-        ItemStack selector = itemStackFactory.createDisplay(boostModel, 1);
-        ItemMeta meta = selector.getItemMeta();
-        if (meta != null) {
-            meta.lore(List.of(
-                PlayerMsgResource.formatPlainComponent(PlayerMsgId.P_6000.getId(),
-                    session.selectedBoostAmount, available),
-                PlayerMsgResource.formatPlainComponent(PlayerMsgId.P_6008.getId(),
-                    boostLimit * OrbLocalMutationCalculator.BOOST_PERCENTAGE_POINTS_PER_ORB),
-                orbGuiMessage(PlayerMsgId.P_5999, NamedTextColor.YELLOW),
-                orbGuiMessage(PlayerMsgId.P_6001, NamedTextColor.GRAY),
-                orbGuiMessage(PlayerMsgId.P_6009, NamedTextColor.GRAY)
-            ));
-            selector.setItemMeta(meta);
+        List<Component> lore = List.of(
+            PlayerMsgResource.formatPlainComponent(PlayerMsgId.P_6000.getId(), boostLimit, available),
+            PlayerMsgResource.formatPlainComponent(PlayerMsgId.P_6008.getId(),
+                boostLimit * OrbLocalMutationCalculator.BOOST_PERCENTAGE_POINTS_PER_ORB),
+            orbGuiMessage(PlayerMsgId.P_5999, NamedTextColor.YELLOW),
+            orbGuiMessage(PlayerMsgId.P_6010, NamedTextColor.YELLOW),
+            orbGuiMessage(PlayerMsgId.P_6001, NamedTextColor.GRAY),
+            orbGuiMessage(PlayerMsgId.P_6009, NamedTextColor.GRAY)
+        );
+        ItemStack selector;
+        if (boostLimit == 0) {
+            Component inactiveName = PlayerMsgResource.formatPlainComponent(PlayerMsgId.P_6004.getId(),
+                ColorCodeUtil.toPlainText(boostModel.getName(), ""));
+            selector = GuiItems.create(Material.GRAY_DYE, inactiveName, lore);
+        } else {
+            selector = itemStackFactory.createDisplay(boostModel, 1);
+            selector.editMeta(meta -> meta.lore(lore));
         }
         inventory.setItem(BOOST_SELECTOR_SLOT, selector);
-        inventory.setItem(BOOST_DECREASE_SLOT, GuiItems.create(Material.RED_DYE,
-            orbGuiMessage(PlayerMsgId.P_6002, NamedTextColor.RED), List.of()));
-        inventory.setItem(BOOST_MAX_SLOT, GuiItems.create(Material.LIME_DYE,
-            orbGuiMessage(PlayerMsgId.P_6003, NamedTextColor.GREEN), List.of()));
-        inventory.setItem(BOOST_CLEAR_SLOT, GuiItems.create(Material.GRAY_DYE,
-            orbGuiMessage(PlayerMsgId.P_6004, NamedTextColor.GRAY), List.of()));
+        session.boostSelectorVisible = true;
         return boostLimit;
     }
 
     /**
-     * ヘッドのクリック、または統合版からも選べる専用ボタンで、補助オーブの試行ごとの上限を変更します。
+     * 設定枠のクリックで補助オーブの試行ごとの上限を変更します。
+     * 未表示の枠や所持品がなくなった枠では、設定を変更せずに表示を更新します。
      *
      * @param event 取消済みの強化画面内クリック
      * @param session 操作セッション
@@ -1107,21 +1118,20 @@ public final class OrbService {
         @NotNull OrbSession session,
         @NotNull ItemModel orbModel
     ) {
-        if (resolveEnhancementBoostModel() == null) {
+        long available = availableEnhancementBoost(session);
+        if (!session.boostSelectorVisible || !ownsEnhancementBoost(session, available)
+            || resolveEnhancementBoostModel() == null) {
+            renderList(session, orbModel, session.inventory, collectCandidates(session, orbModel));
             GuiSound.DENY.play(session.player);
             return;
         }
-        int maxAmount = (int) Math.min(MAX_ENHANCEMENT_BOOST_AMOUNT, availableEnhancementBoost(session));
+        int maxAmount = (int) Math.min(MAX_ENHANCEMENT_BOOST_AMOUNT, available);
         int current = Math.min(session.selectedBoostAmount, maxAmount);
-        int next = switch (event.getRawSlot()) {
-            case BOOST_DECREASE_SLOT -> Math.max(0, current - 1);
-            case BOOST_MAX_SLOT -> maxAmount;
-            case BOOST_CLEAR_SLOT -> 0;
-            case BOOST_SELECTOR_SLOT -> switch (event.getClick()) {
-                case SHIFT_LEFT, SHIFT_RIGHT -> maxAmount;
-                case RIGHT -> Math.max(0, current - 1);
-                default -> current < maxAmount ? current + 1 : current;
-            };
+        int next = switch (event.getClick()) {
+            case LEFT -> Math.min(current + 1, maxAmount);
+            case RIGHT -> Math.max(0, current - 1);
+            case SHIFT_LEFT -> maxAmount;
+            case SHIFT_RIGHT -> 0;
             default -> current;
         };
         boolean changed = next != session.selectedBoostAmount;
@@ -1150,7 +1160,7 @@ public final class OrbService {
 
     /**
      * ロックされていないGUIのクリックをページ移動・補助選択・装備操作へ振り分けます。
-     * Shiftクリックは使用数加算ボタンと補助ヘッド、右クリックは補助ヘッドだけで受け付けます。
+     * Shift左クリックは使用数加算ボタンと補助枠、右クリックとShift右クリックは補助枠で受け付けます。
      *
      * @param event 取消済みクリックイベント
      * @param session 現在セッション
@@ -1160,7 +1170,8 @@ public final class OrbService {
             && event.getRawSlot() == ORB_USE_COUNT_PLUS_SLOT;
         boolean boostSelectorClick = session.screen == OrbGuiHolder.Screen.LIST
             && event.getRawSlot() == BOOST_SELECTOR_SLOT
-            && (event.getClick() == ClickType.RIGHT || event.getClick().isShiftClick());
+            && (event.getClick() == ClickType.RIGHT || event.getClick() == ClickType.SHIFT_LEFT
+                || event.getClick() == ClickType.SHIFT_RIGHT);
         if (event.getRawSlot() < 0
             || event.getRawSlot() >= event.getView().getTopInventory().getSize()
             || (event.getClick() != ClickType.LEFT && !shiftMaxClick && !boostSelectorClick)) {
@@ -1194,10 +1205,7 @@ public final class OrbService {
             return;
         }
         if (orbModel.getOrb().getEffect().getType() == ItemOrbEffectType.ENHANCE
-            && switch (event.getRawSlot()) {
-                case BOOST_DECREASE_SLOT, BOOST_SELECTOR_SLOT, BOOST_MAX_SLOT, BOOST_CLEAR_SLOT -> true;
-                default -> false;
-            }) {
+            && event.getRawSlot() == BOOST_SELECTOR_SLOT) {
             handleEnhancementBoostClick(event, session, orbModel);
             return;
         }
@@ -3581,6 +3589,7 @@ public final class OrbService {
         private int runePage;
         private int selectedOrbAmount = 1;
         private int selectedBoostAmount;
+        private boolean boostSelectorVisible;
         private boolean batchActive;
         private String batchTargetId;
         private int batchRequestedAmount = 1;
