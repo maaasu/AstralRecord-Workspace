@@ -60,15 +60,14 @@ public class MailRepository(
             .SingleOrDefaultAsync();
         var masters = await GetMailMastersAsync();
         var deliveries = await GetPlayerDeliveriesAsync(accountId);
-        var states = await dbContext.PlayerMailStates.AsNoTracking()
-            .Where(state => state.AccountId == accountId)
-            .ToDictionaryAsync(state => state.MailId);
+        var excludedMailIds = await dbContext.PlayerMailStates.AsNoTracking()
+            .Where(state => state.AccountId == accountId && (state.IsRead || state.IsDeleted))
+            .Select(state => state.MailId).ToHashSetAsync();
 
         return masters.Concat(deliveries)
-            .Select(mail => Merge(mail, states.GetValueOrDefault(mail.Id)))
             .Count(mail => mail.PublishFrom <= now && (mail.PublishTo is null || mail.PublishTo >= now)
                 && (!mail.FirstLoginOnly || (accountCreatedAt is not null && accountCreatedAt >= mail.PublishFrom))
-                && !mail.IsDeleted && !mail.IsRead);
+                && !excludedMailIds.Contains(mail.Id));
     }
 
     public async Task<MailResponse?> MarkReadAsync(string mailId, MailActionRequest request)
