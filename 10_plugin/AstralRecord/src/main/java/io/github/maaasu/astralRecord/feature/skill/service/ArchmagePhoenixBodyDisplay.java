@@ -48,7 +48,8 @@ final class ArchmagePhoenixBodyDisplay implements Listener {
     private final ResourcePackService packs;
     private final ProtocolManager protocol = ProtocolLibrary.getProtocolManager();
     private final PacketAdapter packets;
-    private final Map<Integer, Body> bodies = new ConcurrentHashMap<>();
+    // ワールド間移動で実体の数値IDは変わるが、召喚時のUUIDは維持される。
+    private final Map<UUID, Body> bodies = new ConcurrentHashMap<>();
     private final Map<Integer, Body> javaModels = new HashMap<>();
     private final List<ItemStack> frames = List.of(frameItem(0), frameItem(1), frameItem(2));
 
@@ -84,7 +85,7 @@ final class ArchmagePhoenixBodyDisplay implements Listener {
      * @param tick 召喚時のtick
      */
     void track(Parrot source, long tick) {
-        bodies.put(source.getEntityId(), new Body(source, tick));
+        bodies.put(source.getUniqueId(), new Body(source, tick));
     }
 
     /**
@@ -93,7 +94,7 @@ final class ArchmagePhoenixBodyDisplay implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onUntrack(PlayerUntrackEntityEvent event) {
         if (event.getEntity() instanceof Parrot source) {
-            Body body = bodies.get(source.getEntityId());
+            Body body = bodies.get(source.getUniqueId());
             if (body != null && body.source == source) {
                 body.bedrock.remove(event.getPlayer().getUniqueId());
             }
@@ -125,11 +126,11 @@ final class ArchmagePhoenixBodyDisplay implements Listener {
             return result;
         }
         if (packet.getType() != PacketType.Play.Server.SPAWN_ENTITY) return packet;
-        Integer id = packet.getIntegers().readSafely(0);
-        Body body = id == null ? null : bodies.get(id);
-        if (body == null || !body.sourceId.equals(packet.getUUIDs().readSafely(0))) return packet;
+        UUID sourceId = packet.getUUIDs().readSafely(0);
+        Body body = sourceId == null ? null : bodies.get(sourceId);
+        if (body == null) return packet;
         PacketContainer result = packet.shallowClone();
-        result.getUUIDs().write(0, new UUID(BEDROCK_MARKER, body.sourceId.getLeastSignificantBits()));
+        result.getUUIDs().write(0, new UUID(BEDROCK_MARKER, sourceId.getLeastSignificantBits()));
         body.bedrock.add(viewerId);
         return result;
     }
@@ -140,13 +141,14 @@ final class ArchmagePhoenixBodyDisplay implements Listener {
      * @param tick 現在tick
      */
     void update(Parrot source, @Nullable Location position, long tick) {
-        Body body = bodies.get(source.getEntityId());
+        Body body = bodies.get(source.getUniqueId());
         if (body == null) return;
         try {
             if (position == null || (body.model != null
                     && (!body.model.isValid() || body.model.getWorld() != position.getWorld()))) {
                 removeJavaModel(body);
                 if (position == null) return;
+                body.nextViewerSync = tick;
             }
             long age = tick - body.started;
             int frame = WING_CYCLE[(int) (age / FRAME_TICKS % WING_CYCLE.length)];
@@ -298,7 +300,7 @@ final class ArchmagePhoenixBodyDisplay implements Listener {
      * @return Javaモデルへ切替済み、または統合版向けマーカーを送信済みの場合はtrue
      */
     boolean hasModel(Player viewer, Parrot source) {
-        Body body = bodies.get(source.getEntityId());
+        Body body = bodies.get(source.getUniqueId());
         return body != null && (body.hidden.contains(viewer) || (body.bedrock.contains(viewer.getUniqueId())
             && packs.hasBedrockArchmagePhoenixPresentation(viewer.getUniqueId())));
     }
@@ -307,7 +309,7 @@ final class ArchmagePhoenixBodyDisplay implements Listener {
      * @param source 終了した召喚実体
      */
     void remove(Parrot source) {
-        Body body = bodies.remove(source.getEntityId());
+        Body body = bodies.remove(source.getUniqueId());
         if (body != null) removeJavaModel(body);
     }
 
@@ -343,7 +345,6 @@ final class ArchmagePhoenixBodyDisplay implements Listener {
     /** 1個体の表示と、パケット送信スレッドからも更新する統合版の追跡状態です。 */
     private static final class Body {
         private final Parrot source;
-        private final UUID sourceId;
         private final long started;
         private final Set<Player> shown = new HashSet<>();
         private final Set<Player> hidden = new HashSet<>();
@@ -354,7 +355,6 @@ final class ArchmagePhoenixBodyDisplay implements Listener {
 
         private Body(Parrot source, long started) {
             this.source = source;
-            this.sourceId = source.getUniqueId();
             this.started = started;
             this.nextViewerSync = started;
         }
