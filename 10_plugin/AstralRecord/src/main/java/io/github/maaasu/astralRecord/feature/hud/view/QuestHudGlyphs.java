@@ -2,20 +2,20 @@ package io.github.maaasu.astralRecord.feature.hud.view;
 
 import io.github.maaasu.astralRecord.feature.hud.model.QuestHudLayout;
 import io.github.maaasu.astralRecord.feature.hud.model.QuestHudLayout.Row;
-import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
-import net.kyori.adventure.text.format.ShadowColor;
-import net.kyori.adventure.text.format.TextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 
-import java.util.ArrayList;
 import java.util.List;
+
+import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.SOLID_PIXEL;
+import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.appendGlyph;
+import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.appendLine;
+import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.appendPixel;
+import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.fit;
+import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.width;
 
 /** 専用パックで画面左上へ移す、送り幅ゼロのクエスト字形を組み立てます。 */
 public final class QuestHudGlyphs {
-    private static final Key FONT = Key.key("astralrecord", "quest_hud");
-    private static final Key SPACE_FONT = Key.key("astralrecord", "quest_hud_space");
     private static final int LEFT = 8;
     private static final int MARKER_X = LEFT + 5;
     private static final int LABEL_X = LEFT + 18;
@@ -31,7 +31,6 @@ public final class QuestHudGlyphs {
     private static final int FILL_MARKER = 223;
     private static final int ICON_MARKER = 224;
     private static final int COMPLETE_FILL_MARKER = 225;
-    private static final int SOLID_PIXEL = 0xE010;
 
     private QuestHudGlyphs() {
     }
@@ -47,10 +46,7 @@ public final class QuestHudGlyphs {
         if (rows.isEmpty()) {
             return Component.empty();
         }
-        TextComponent.Builder result = Component.text().shadowColor(ShadowColor.none());
-        for (TextDecoration decoration : TextDecoration.values()) {
-            result.decoration(decoration, false);
-        }
+        TextComponent.Builder result = HudOverlayGlyphs.builder();
         int rowCount = rows.size();
         for (int edge = 0; edge < 8; edge++) {
             appendPixel(result, FRAME_MARKER, rowCount, edge);
@@ -100,56 +96,5 @@ public final class QuestHudGlyphs {
             appendLine(result, value, valueX, index, textMarker);
         }
         return result.build();
-    }
-
-    private static void appendLine(TextComponent.Builder result, List<Integer> text, int x, int row, int marker) {
-        for (int codePoint : text) {
-            int advance = ClassNameGlyphs.advance(codePoint, true);
-            if (codePoint != ' ' && codePoint != 0x3000) {
-                appendGlyph(result, codePoint, advance, marker, x, row);
-            }
-            x += advance;
-        }
-    }
-
-    private static void appendPixel(TextComponent.Builder result, int marker, int green, int blue) {
-        appendGlyph(result, SOLID_PIXEL, 7, marker, green, blue);
-    }
-
-    private static void appendGlyph(TextComponent.Builder result, int codePoint, int advance, int red, int green, int blue) {
-        result.append(Component.text(new String(Character.toChars(codePoint)))
-            .font(FONT).color(TextColor.color(red, green, blue)).shadowColor(ShadowColor.none()));
-        // 直後に字送りを相殺し、通常の戦闘 HUD の中央寄せを保ちます。
-        result.append(Component.text(String.valueOf((char) (0xE000 + advance)))
-            .font(SPACE_FONT).color(TextColor.color(0xFFFFFF)).shadowColor(ShadowColor.none()));
-    }
-
-    private static List<Integer> fit(String value, int maxWidth) {
-        List<Integer> text = new ArrayList<>();
-        (value == null ? "" : value).codePoints().filter(c -> !Character.isISOControl(c)).forEach(c -> {
-            int advance = ClassNameGlyphs.advance(c, true);
-            text.add(advance > 0 && advance <= 10 ? c : (int) '?');
-        });
-        if (width(text) <= maxWidth) {
-            return text;
-        }
-        int ellipsis = '…';
-        int used = ClassNameGlyphs.advance(ellipsis, true);
-        int end = 0;
-        while (end < text.size()) {
-            int advance = ClassNameGlyphs.advance(text.get(end), true);
-            if (used + advance > maxWidth) {
-                break;
-            }
-            used += advance;
-            end++;
-        }
-        text.subList(end, text.size()).clear();
-        text.add(ellipsis);
-        return text;
-    }
-
-    private static int width(List<Integer> text) {
-        return text.stream().mapToInt(c -> ClassNameGlyphs.advance(c, true)).sum();
     }
 }

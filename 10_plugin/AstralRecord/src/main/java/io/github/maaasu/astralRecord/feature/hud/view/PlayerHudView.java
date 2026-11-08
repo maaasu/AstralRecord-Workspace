@@ -57,12 +57,16 @@ public class PlayerHudView {
     }
 
     /**
-     * 合成済みActionBarの末尾へ幅ゼロのクエスト字形を付けます。
+     * 合成済みActionBarの末尾へ、幅ゼロのクエストと現在地HUDを付けます。
      * @param player 現在の接続
      * @param text 戦闘HUDや一時表示の合成済み本文
      */
     public void sendComposedActionBar(Player player, Component text) {
-        player.sendActionBar(text.append(questHudRenderer.apply(player)));
+        UUID playerId = player.getUniqueId();
+        JavaLocationHud location = javaLocations.get(playerId);
+        Component overlay = location != null && resourcePackService.hasJavaLocationHud(playerId)
+                ? location.component() : Component.empty();
+        player.sendActionBar(text.append(questHudRenderer.apply(player)).append(overlay));
     }
 
     private static final TextColor HEALTH_METER = TextColor.color(0xE35F73);
@@ -75,7 +79,7 @@ public class PlayerHudView {
     private static final int COMPACT_TRANSIENT_BAR_LENGTH = 10;
     private static final int SIDEBAR_BAR_LENGTH = 10;
     private static final int SIDEBAR_LINE_LIMIT = 15;
-    private static final int SIDEBAR_BASE_LINE_COUNT = 4;
+    private static final int SIDEBAR_BASE_LINE_COUNT = 3;
     private static final int SIDEBAR_PROFILE_LINE_COUNT = 5;
     private static final int SKILL_TREE_POINT_LINE_COUNT = 1;
     private static final int PERFORMANCE_LINE_COUNT = 2;
@@ -84,6 +88,7 @@ public class PlayerHudView {
     private static final String SIDEBAR_BAR_CHAR = "▰";
     private final Map<UUID, SidebarBuffPageState> buffPages = new HashMap<>();
     private final Map<UUID, ProfileHudText> javaProfiles = new HashMap<>();
+    private final Map<UUID, JavaLocationHud> javaLocations = new HashMap<>();
     private final ResourcePackService resourcePackService;
     private final BuffHudIcons buffHudIcons = new BuffHudIcons();
 
@@ -128,6 +133,48 @@ public class PlayerHudView {
         }
         javaProfiles.put(playerId, profile);
         return false;
+    }
+
+    /**
+     * 対応パックのJava接続へ、次のActionBarで合成する現在地情報を準備します。
+     * @param player 表示対象
+     * @param worldName 現在のワールド名
+     * @param areaName 現在のエリア名
+     * @param areaLevel 現在のエリアレベル
+     * @param showPerformanceInfo 性能表示設定が有効ならtrue
+     * @param mspt サーバーの平均ティック時間
+     * @param bossInfo 挑戦中のボス情報
+     * @param dungeonInfo 挑戦中のダンジョン情報
+     * @param showBuffInfo 通常バフの詳細を表示するならtrue
+     * @param activeBuffs 現在有効な効果
+     */
+    public void renderJavaLocationHud(Player player, String worldName, String areaName, int areaLevel,
+            boolean showPerformanceInfo, double mspt, @Nullable BossChallengeSidebarInfo bossInfo,
+            @Nullable DungeonSidebarInfo dungeonInfo, boolean showBuffInfo, List<ActiveBuff> activeBuffs) {
+        UUID playerId = player.getUniqueId();
+        int ping = showPerformanceInfo ? player.getPing() : 0;
+        var performance = showPerformanceInfo
+                ? new LocationHudGlyphs.Performance(mspt, ping, msptTextColor(mspt), pingTextColor(ping)) : null;
+        var page = buffPages.computeIfAbsent(playerId, ignored -> new SidebarBuffPageState());
+        var panels = LocationHudGlyphs.layout(worldName, areaName, areaLevel, performance, bossInfo, dungeonInfo,
+                page, activeBuffs, showBuffInfo, buffHudIcons, LocalDateTime.now());
+        JavaLocationHud previous = javaLocations.get(playerId);
+        if (previous == null || !previous.panels().equals(panels)) {
+            javaLocations.put(playerId, new JavaLocationHud(panels, LocationHudGlyphs.render(panels)));
+        }
+        removeSidebar(player);
+    }
+
+    /**
+     * 次回のActionBar送信から現在地HUDを除外します。
+     * @param playerId 表示対象の接続UUID
+     * @return 表示していた場合はtrue
+     */
+    public boolean clearJavaLocationHud(UUID playerId) {
+        return javaLocations.remove(playerId) != null;
+    }
+
+    private record JavaLocationHud(List<LocationHudGlyphs.Panel> panels, Component component) {
     }
 
     /**
@@ -530,6 +577,7 @@ public class PlayerHudView {
      * @param classLevelMax 現在クラスが最大レベルへ到達済みか
      * @param className 現在のクラス表示名
      * @param goldAmount 現在のゴールド所持量
+     * @param showOnlineCount オンライン人数を表示する場合true
      * @param showPlayerDetails 対応パックを使用できない場合に個人情報を表示するか
      * @param skillTreeClassPointLabel スキルツリーワールドで表示する現在クラスの CP 表示名。通常は null
      * @param availableClassPoints スキルツリーワールドで表示する現在クラスの未使用 CP
@@ -553,6 +601,7 @@ public class PlayerHudView {
         boolean classLevelMax,
         String className,
         long goldAmount,
+        boolean showOnlineCount,
         boolean showPlayerDetails,
         @Nullable String skillTreeClassPointLabel,
         int availableClassPoints,
@@ -588,7 +637,7 @@ public class PlayerHudView {
                 ? bossInfo.requiredSidebarLineCount()
                 : dungeonInfo != null ? dungeonInfo.requiredSidebarLineCount() : 0;
         boolean showSkillTreePoints = showPlayerDetails && skillTreeClassPointLabel != null;
-        int baseLineCount = SIDEBAR_BASE_LINE_COUNT
+        int baseLineCount = SIDEBAR_BASE_LINE_COUNT + (showOnlineCount ? 1 : 0)
                 + (showPlayerDetails ? SIDEBAR_PROFILE_LINE_COUNT : 0)
                 + (showSkillTreePoints ? SKILL_TREE_POINT_LINE_COUNT : 0);
         boolean reservePerformanceLines = showPerformanceInfo && !showPlayerDetails;
@@ -611,8 +660,10 @@ public class PlayerHudView {
         );
 
         List<String> lines = new ArrayList<>(SIDEBAR_LINE_LIMIT);
-        lines.add(ColorCodeUtil.AQUA + "オンライン" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
-                + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers());
+        if (showOnlineCount) {
+            lines.add(ColorCodeUtil.AQUA + "オンライン" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
+                    + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers());
+        }
         lines.add(ColorCodeUtil.BLUE + "ワールド" + ColorCodeUtil.GRAY + ": "
                 + ColorCodeUtil.toLegacyText(worldName, "不明"));
         lines.add(ColorCodeUtil.GREEN + "エリア" + ColorCodeUtil.GRAY + ": "
@@ -648,7 +699,7 @@ public class PlayerHudView {
         }
 
         if (reservePerformanceLines) {
-            addPerformanceLines(lines, mspt, ping);
+            addPerformanceLines(lines, showOnlineCount ? 1 : 0, mspt, ping);
         }
         lines.addAll(buffLines);
         if (bossInfo != null) {
@@ -658,22 +709,23 @@ public class PlayerHudView {
         }
 
         if (showPlayerDetails && showPerformanceInfo && SIDEBAR_LINE_LIMIT - lines.size() >= PERFORMANCE_LINE_COUNT) {
-            addPerformanceLines(lines, mspt, ping);
+            addPerformanceLines(lines, showOnlineCount ? 1 : 0, mspt, ping);
         }
 
         updateSidebarLines(objective, lines);
     }
 
     /**
-     * オンライン人数の直下へ性能情報を追加します。
-     * @param lines 表示行。先頭にオンライン人数を含む
+     * サイドバーの先頭、またはオンライン人数の直後へ性能情報を追加します。
+     * @param lines サイドバー表示行
+     * @param start 性能表示の挿入位置
      * @param mspt 現在のMSPT
      * @param ping 現在の通信遅延
      */
-    private void addPerformanceLines(List<String> lines, double mspt, int ping) {
-        lines.add(1, msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": "
+    private void addPerformanceLines(List<String> lines, int start, double mspt, int ping) {
+        lines.add(start, msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": "
                 + ColorCodeUtil.WHITE + String.format(Locale.ROOT, "%.1f", mspt));
-        lines.add(2, pingLegacyColor(ping) + "PING" + ColorCodeUtil.GRAY + ": "
+        lines.add(start + 1, pingLegacyColor(ping) + "PING" + ColorCodeUtil.GRAY + ": "
                 + ColorCodeUtil.WHITE + ping + "ms");
     }
 
@@ -915,7 +967,8 @@ public class PlayerHudView {
                 + formatRemaining(remainingSeconds) + ColorCodeUtil.GRAY + "]";
     }
 
-    private String formatRemaining(long remainingSeconds) {
+    /** @return 効果または帰還までの残り時間 */
+    static String formatRemaining(long remainingSeconds) {
         if (remainingSeconds < 60L) {
             return remainingSeconds + "s";
         }

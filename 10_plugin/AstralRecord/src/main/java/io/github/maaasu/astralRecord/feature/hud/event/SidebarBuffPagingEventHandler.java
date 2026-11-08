@@ -12,7 +12,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.jetbrains.annotations.NotNull;
 
-/** 手の持ち替え入力をサイドバーの効果ページ切替へ変換します。 */
+/** 手の持ち替え入力をHUDの効果ページ切替へ変換します。 */
 public final class SidebarBuffPagingEventHandler extends AbstractEventHandler {
     private final PlayerHudService hudService;
 
@@ -43,20 +43,20 @@ public final class SidebarBuffPagingEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onQuit(@NotNull PlayerQuitEvent event) {
         hudService.clearSidebarBuffPage(event.getPlayer().getUniqueId());
-        hudService.clearProfileHud(event.getPlayer());
+        hudService.clearJavaHud(event.getPlayer());
     }
 
     /** @param event ワールド移動後に先頭ページへ戻すイベント */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onWorldChange(@NotNull PlayerChangedWorldEvent event) {
         hudService.clearSidebarBuffPage(event.getPlayer().getUniqueId());
-        hudService.clearProfileHud(event.getPlayer());
+        hudService.clearJavaHud(event.getPlayer());
     }
 
     /** @param event 復旧時に保存を伴わずページ状態を破棄するイベント */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onRuntimeDiscard(@NotNull PlayerRuntimeDiscardEvent event) {
         hudService.clearSidebarBuffPage(event.getPlayer().getUniqueId());
-        hudService.clearProfileHud(event.getPlayer());
+        hudService.clearJavaHud(event.getPlayer());
     }
 }

@@ -27,7 +27,7 @@ final class BuffHudIcons {
     private static final int FIRST_GLYPH = 0xEA00;
     private static final int MAX_GLYPHS = 256;
     private static final int MAX_VISIBLE = 6;
-    private static final int ICON_ADVANCE = 11;
+    static final int ICON_ADVANCE = 11;
     private static final int OVERFLOW_GAP = 4;
     private static final int OVERFLOW_CHAR_ADVANCE = 6;
     private static final String GENERAL_BUFF = "astralrecord:buff_hud/general_buff.png";
@@ -68,7 +68,14 @@ final class BuffHudIcons {
         return new Line(text, width);
     }
 
-    private int glyph(BuffType buff) {
+    /**
+     * @param buff アイコンを表示する効果の種類
+     * @return 共通アイコンを含む字形番号。台帳が利用できない場合は0
+     */
+    int glyph(BuffType buff) {
+        if (glyphs.isEmpty()) {
+            return 0;
+        }
         String texture = buff.getHudIconTexture();
         String fallback = buff.isDebuff() ? GENERAL_DEBUFF : GENERAL_BUFF;
         return texture == null ? glyphs.get(fallback) : glyphs.getOrDefault(texture, glyphs.get(fallback));

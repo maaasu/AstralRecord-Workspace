@@ -58,6 +58,7 @@ public class ResourcePackService {
     private final Set<UUID> readyBedrockCombatRewardPlaqueTiming = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockCombatRewardPlaqueWidth = ConcurrentHashMap.newKeySet();
     private final Map<UUID, ResourcePackRepository.ProfileHud> requestedJavaProfileHud = new ConcurrentHashMap<>();
+    private final Set<UUID> requestedJavaLocationHud = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaQuestHud = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockQuestHud = ConcurrentHashMap.newKeySet();
     private final Map<UUID, String> bedrockActionRingHudRevisions = new ConcurrentHashMap<>();
@@ -146,6 +147,7 @@ public class ResourcePackService {
                     loadedManagedJavaPacks.remove(viewer);
                     requestedJavaItemTooltips.remove(viewer);
                     requestedJavaProfileHud.remove(viewer);
+                    requestedJavaLocationHud.remove(viewer);
                     requestedJavaQuestHud.remove(viewer);
                     if (hadItemTooltips) {
                         player.updateInventory();
@@ -155,6 +157,7 @@ public class ResourcePackService {
                     requestedGameplaySounds.remove(viewer);
                     requestedJavaWeaponAttackProjectiles.remove(viewer);
                     requestedJavaSkillEffects.remove(viewer);
+                    if (pack.locationHud()) requestedJavaLocationHud.add(viewer);
                     if (pack.questTrackingHud()) requestedJavaQuestHud.add(viewer);
                     if (pack.actionRingPanel() != null) {
                         requestedActionRingPanels.put(viewer, pack.actionRingPanel());
@@ -419,6 +422,14 @@ public class ResourcePackService {
      */
     public boolean hasJavaQuestHud(UUID playerId) {
         return hasManagedJavaPack(playerId) && requestedJavaQuestHud.contains(playerId);
+    }
+
+    /**
+     * @param playerId 表示対象の接続UUID
+     * @return 現在地HUDを含む管理配布パックの適用に成功した場合true
+     */
+    public boolean hasJavaLocationHud(UUID playerId) {
+        return hasManagedJavaPack(playerId) && requestedJavaLocationHud.contains(playerId);
     }
 
     /** @param playerId 閲覧者UUID @return 対応パックを登録しログインした統合版接続ならtrue */
@@ -731,6 +742,7 @@ public class ResourcePackService {
         readyBedrockCombatRewardPlaqueTiming.remove(playerId);
         readyBedrockCombatRewardPlaqueWidth.remove(playerId);
         requestedJavaProfileHud.remove(playerId);
+        requestedJavaLocationHud.remove(playerId);
         requestedJavaQuestHud.remove(playerId);
         readyBedrockQuestHud.remove(playerId);
         bedrockActionRingHudRevisions.remove(playerId);

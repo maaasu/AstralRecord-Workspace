@@ -104,7 +104,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     }
 
     /**
-     * 現在の設定と接続に対応するフォームを作成します。
+     * 現在の設定と接続に対応するフォームを作成します。アクションリング長押し選択は統合版では表示しません。
      * @param player フォームを開くプレイヤー
      * @param astPlayer フォーム送信時に照合するプレイヤー状態
      * @return 現在値を選択済みにした統合版フォーム
@@ -117,7 +117,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
         List<DialogInput> inputs = new ArrayList<>();
         for (int slot = 0; slot < SIZE; slot++) {
             PlayerSettingKey key = getKeyAtSlot(slot);
-            if (key == null) {
+            if (key == null || key == PlayerSettingKey.ACTION_RING_HOLD_SELECT) {
                 continue;
             }
             var entry = snapshot.getEntry(key);

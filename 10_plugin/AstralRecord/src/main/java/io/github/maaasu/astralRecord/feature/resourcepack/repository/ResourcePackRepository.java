@@ -20,7 +20,8 @@ public final class ResourcePackRepository {
                            boolean hasGameplaySounds, boolean sunbirdPresentation, boolean seleneaPresentation,
                            boolean archmagePhoenixPresentation, boolean itemTooltips,
                            boolean weaponAttackProjectiles, @Nullable ProfileHud profileHud, boolean skillEffects,
-                           boolean combatRewardPlaque, boolean questTrackingHud, boolean receptionDisplay) {
+                           boolean combatRewardPlaque, boolean questTrackingHud, boolean receptionDisplay,
+                           boolean locationHud) {
     }
 
     /** 個人情報HUDの字形とゲージの互換情報です。 */
@@ -82,6 +83,9 @@ public final class ResourcePackRepository {
                 JsonElement reception = java.get("receptionDisplay");
                 boolean receptionDisplay = reception != null && reception.isJsonPrimitive()
                     && reception.getAsJsonPrimitive().isString() && "1".equals(reception.getAsString());
+                JsonElement location = java.get("locationHud");
+                boolean locationHud = location != null && location.isJsonPrimitive()
+                    && location.getAsJsonPrimitive().isString() && "1".equals(location.getAsString());
                 JsonElement profile = java.get("profileHud");
                 String profileVersion = profile != null && profile.isJsonPrimitive()
                     && profile.getAsJsonPrimitive().isString() ? profile.getAsString() : "";
@@ -101,7 +105,7 @@ public final class ResourcePackRepository {
                     skillEffects, combatRewardPlaque,
                     java.has("questTrackingHud") && java.get("questTrackingHud").isJsonPrimitive()
                         && java.get("questTrackingHud").getAsJsonPrimitive().isString()
-                        && "2".equals(java.get("questTrackingHud").getAsString()), receptionDisplay);
+                        && "2".equals(java.get("questTrackingHud").getAsString()), receptionDisplay, locationHud);
             }
         } catch (RuntimeException exception) {
             throw new IOException("Invalid resource pack manifest", exception);

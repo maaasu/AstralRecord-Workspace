@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.ToIntFunction;
 
 /** ボス／ダンジョンのサイドバーで参加者名を一定幅ごとにまとめます。 */
 public final class ParticipantNameLineFormatter {
@@ -36,6 +37,24 @@ public final class ParticipantNameLineFormatter {
             @NotNull List<String> participantNames,
             int maxLines
     ) {
+        return wrap(participantNames, maxLines, name -> name.codePointCount(0, name.length()),
+                MAX_NAME_CHARACTERS_PER_LINE, 1);
+    }
+
+    /**
+     * 描画に使う幅を測り、名前単位で折り返します。
+     * @param participantNames 表示順の参加者名
+     * @param maxLines 表示可能な行数（1以上）
+     * @param nameWidth 名前の描画幅を求める関数
+     * @param lineWidth 1行の最大幅
+     * @param separatorWidth 名前間の区切りの幅
+     * @return 行単位の参加者名。上限を超えた場合は最後の行に省略人数を返す
+     * @throws IllegalArgumentException 行数が1未満の場合
+     */
+    public static @NotNull List<List<String>> wrap(
+            @NotNull List<String> participantNames, int maxLines, @NotNull ToIntFunction<String> nameWidth,
+            int lineWidth, int separatorWidth
+    ) {
         if (maxLines < 1) {
             throw new IllegalArgumentException("maxLines must be positive");
         }
@@ -43,10 +62,10 @@ public final class ParticipantNameLineFormatter {
         List<String> currentLine = new ArrayList<>();
         int currentLength = 0;
         for (String participantName : participantNames) {
-            int nameLength = participantName.codePointCount(0, participantName.length());
-            int separatorLength = currentLine.isEmpty() ? 0 : 1;
+            int nameLength = nameWidth.applyAsInt(participantName);
+            int separatorLength = currentLine.isEmpty() ? 0 : separatorWidth;
             if (!currentLine.isEmpty()
-                    && currentLength + separatorLength + nameLength > MAX_NAME_CHARACTERS_PER_LINE) {
+                    && currentLength + separatorLength + nameLength > lineWidth) {
                 lines.add(List.copyOf(currentLine));
                 currentLine = new ArrayList<>();
                 currentLength = 0;

@@ -235,7 +235,7 @@ public class PlayerHudService {
         sidebarAccounts.clear();
         playerHudView.clearBuffPages();
         for (Player player : Bukkit.getOnlinePlayers()) {
-            clearProfileHud(player);
+            clearJavaHud(player);
         }
         proxyOwnsTabHeader = false;
         plugin = null;
@@ -347,7 +347,7 @@ public class PlayerHudService {
             AstPlayer astPlayer = AstPlayerCache.get(player);
             updateBedrockQuestHud(player, astPlayer);
             if (astPlayer == null) {
-                clearProfileHud(player);
+                clearJavaHud(player);
                 continue;
             }
 
@@ -355,7 +355,7 @@ public class PlayerHudService {
             int playerLevel = astPlayer.getAccount().getLevel();
             double experienceProgress = accountService.experienceProgress(astPlayer.getAccount());
             if (astPlayer.getAccount().getMode().shouldProcessGameplay()) {
-                renderSidebar(astPlayer, mspt);
+                renderHudInfo(astPlayer, mspt);
                 if (isWallClingActive(astPlayer)) {
                     renderWallClingWindow(astPlayer);
                 } else if (isDodgeWindowActive(astPlayer)) {
@@ -366,7 +366,7 @@ public class PlayerHudService {
             } else {
                 cancelActionBarOverrideTask(player.getUniqueId());
                 playerHudView.removeSidebar(player);
-                clearProfileHud(player);
+                clearJavaHud(player);
                 clearSidebarBuffPage(player.getUniqueId());
             }
             playerHudView.renderBars(
@@ -388,11 +388,12 @@ public class PlayerHudService {
     }
 
     /**
-     * 個人情報、現在地、設定、挑戦情報、選択中の効果ページをサイドバーへ描画します。
+     * 個人情報、現在地、挑戦情報、効果ページを接続に対応した経路へ描画します。
      * @param astPlayer 表示対象
      * @param mspt 現在のMSPT
+     * @return 現在地をActionBarへ合成する場合はtrue
      */
-    private void renderSidebar(@NotNull AstPlayer astPlayer, double mspt) {
+    private boolean renderHudInfo(@NotNull AstPlayer astPlayer, double mspt) {
         Player player = astPlayer.getBukkit();
         prepareSidebarBuffPage(astPlayer);
         int playerLevel = astPlayer.getAccount().getLevel();
@@ -432,6 +433,16 @@ public class PlayerHudService {
                 astPlayer, playerLevel, originalLevel, goldAmount, className, classLevel, classLevelMax,
                 classExperienceProgress, isSkillTreeWorld, availableClassPoints, availablePassivePoints
         );
+        String worldName = worldService.resolveDisplayName(player.getWorld());
+        int regionLevel = resolveRegionLevel(astPlayer, worldType, bossInfo);
+        var activeBuffs = statusService.getActiveBuffs(astPlayer);
+        if (overlay && resourcePackService.hasJavaLocationHud(player.getUniqueId())) {
+            playerHudView.renderJavaLocationHud(player, worldName, regionName, regionLevel, showPerformanceInfo,
+                    mspt, bossInfo, dungeonInfo, showBuffInfo, activeBuffs);
+            return true;
+        }
+
+        playerHudView.clearJavaLocationHud(player.getUniqueId());
         playerHudView.renderSidebar(
             player,
             mspt,
@@ -441,20 +452,22 @@ public class PlayerHudService {
             classLevelMax,
             className,
             goldAmount,
+            astPlayer.isBedrock(),
             !overlay,
             skillTreeClassPointLabel,
             availableClassPoints,
             availablePassivePoints,
-            worldService.resolveDisplayName(player.getWorld()),
+            worldName,
             regionName,
-            resolveRegionLevel(astPlayer, worldType, bossInfo),
+            regionLevel,
             showPerformanceInfo,
             bossInfo,
             dungeonInfo,
             showBuffInfo,
-            statusService.getActiveBuffs(astPlayer),
+            activeBuffs,
             originalLevel
         );
+        return false;
     }
 
     /**
@@ -488,7 +501,7 @@ public class PlayerHudService {
         Player player = astPlayer.getBukkit();
         UUID playerId = player.getUniqueId();
         if (astPlayer.isBedrock() || !resourcePackService.hasJavaHudV4(playerId)) {
-            clearProfileHud(player);
+            clearJavaHud(player);
             return false;
         }
 
@@ -496,7 +509,7 @@ public class PlayerHudService {
                 classLevel, classLevelMax, classProgress, showPoints, classPoints, passivePoints,
                 resourcePackService.hasJavaHudV6(playerId));
         if (profile == null) {
-            clearProfileHud(player);
+            clearJavaHud(player);
             return false;
         }
         playerHudView.setJavaProfile(playerId, profile);
@@ -504,18 +517,20 @@ public class PlayerHudService {
     }
 
     /**
-     * 退出、復旧、モードやワールドの切替で個人情報を解除します。
+     * 退出、復旧、モードやワールドの切替で個人情報と現在地HUDを解除します。
      * @param player 表示対象
      */
-    public void clearProfileHud(@NotNull Player player) {
+    public void clearJavaHud(@NotNull Player player) {
         UUID playerId = player.getUniqueId();
-        if (playerHudView.setJavaProfile(playerId, null) && player.isOnline()) {
+        boolean hadProfile = playerHudView.setJavaProfile(playerId, null);
+        boolean hadLocation = playerHudView.clearJavaLocationHud(playerId);
+        if ((hadProfile || hadLocation) && player.isOnline()) {
             playerHudView.sendComposedActionBar(player, Component.empty());
         }
     }
 
     /**
-     * 自分のサイドバー効果ページを切り替えて即時描画します。メインスレッド専用です。
+     * 自分の現在地HUDまたはサイドバーの効果ページを切り替えて即時描画します。メインスレッド専用です。
      * @param astPlayer 操作したプレイヤー
      * @param direction 前ページは負、次ページは正
      * @return 通常プレイ中で、ページ操作を受け付けた場合true
@@ -528,7 +543,9 @@ public class PlayerHudService {
         }
         prepareSidebarBuffPage(astPlayer);
         playerHudView.moveBuffPage(player.getUniqueId(), direction);
-        renderSidebar(astPlayer, Bukkit.getServer().getAverageTickTime());
+        if (renderHudInfo(astPlayer, Bukkit.getServer().getAverageTickTime())) {
+            refreshActionBar(astPlayer);
+        }
         return true;
     }
 
