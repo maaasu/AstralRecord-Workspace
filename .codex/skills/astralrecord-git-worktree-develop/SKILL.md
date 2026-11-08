@@ -11,13 +11,11 @@ description: AstralRecord ワークスペースの Git 運用専用スキル。�
 
 作業が `10_plugin/AstralRecord` 配下のプラグイン成果物を変更する場合、並列実装段階では `pom.xml` を更新しない。まず作業ブランチを最新のローカル `develop` にリベースし、その後、最終マージの直前にリベース済み作業ツリー内だけで `$astralrecord-plugin-version` を実行する。
 
-コミットメッセージの形式は `E:\AstralRecord-Workspace\COMMIT_RULES.md` を正本とする。
+コミットメッセージの形式は `COMMIT_RULES.md` を正本とする。
 
-作業ツリー管理ファイルと状態分類は `E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\references\worktree-management.md` を正本として扱う。
+作業ツリー管理ファイルと状態分類は [作業ツリー管理](references/worktree-management.md) を正本として扱う。
 
 ## 対応モード
-
-統合入口から Codex Cloud を使うときは [Cloud の往復手順](../astralrecord-code-version-commit-develop/references/cloud-workflow.md) がベース取得と引き継ぎを担当する。このスキルのローカル準備モードは Cloud 側で使わない。開始側では Cloud 成果から作った統合作業ツリーに完了処理モードを適用し、以下の作業ツリー管理先は開始環境の設定済みパスに読み替える。
 
 このスキルは2つのモードに対応する。
 
@@ -33,9 +31,9 @@ description: AstralRecord ワークスペースの Git 運用専用スキル。�
 
 ## 手順
 
-1. `E:\AstralRecord-Workspace\AGENTS.md` を読む。
-2. `E:\AstralRecord-Workspace\COMMIT_RULES.md` を読む。
-3. `E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\references\worktree-management.md` を読む。
+1. `git rev-parse --show-toplevel` で現在の作業ルートを解決し、ルートの `AGENTS.md` を読む。
+2. `COMMIT_RULES.md` を読む。
+3. [作業ツリー管理](references/worktree-management.md) に従い、メインワークスペース、作業ツリーの配置先、管理ファイルを確定する。
 4. リポジトリ状態を確認する。
    - `git status --short --branch`
    - `git worktree list`
@@ -46,10 +44,10 @@ description: AstralRecord ワークスペースの Git 運用専用スキル。�
 6. 準備モードの場合:
    - メインワークスペースのブランチは `develop` でなければならない。
    - 作業ブランチは現在のローカル `develop` HEAD を基点にする。別の基点ブランチを暗黙にプル、フェッチ、切り替えしない。
-   - 既定の作業ツリールートは `E:\AstralRecord-Worktrees\<task-slug>` とする。
+   - 新規作業ツリーは `<worktrees-root>/<task-slug>` に作る。
    - ブランチまたは作業ツリーがすでに存在する場合は、ユーザーが再利用を明示していない限り停止して報告する。
    - ブランチと作業ツリーを作成する。
-   - `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` を `--write-management` で再生成し、正確なブランチ名と作業ツリーのパスを報告する。
+   - `<management-file>` を `--write-management` で再生成し、正確なブランチ名と作業ツリーのパスを報告する。
 7. 完了処理モードの場合:
    - 現在の作業ツリーが `develop` ではなく専用作業ブランチ上にあることを確認する。
     - 次を実行する。
@@ -84,7 +82,7 @@ description: AstralRecord ワークスペースの Git 運用専用スキル。�
     - リベース済みブランチにプラグイン成果物の変更が残る場合は、そのリベース済み作業ツリーで `$astralrecord-plugin-version` を起動し、`10_plugin/AstralRecord/pom.xml` の版番号コミットを別の範囲限定コミットとして作成する。
     - リベースが成功し、必要な版番号コミットも完了した場合は、分離・競合確認のマージ前チェックを実行し、対象外差分を保持したまま作業ブランチを `develop` に早送りマージする。操作後も対象外の内容とステージ状態を確認する。
     - **整理・管理更新**では、早送りマージに成功した場合、または取り込み済みを確認してマージを省略した場合に、[取り込み済み枝の安全な整理](references/integrated-branch-cleanup.md) に従い、今回のローカル作業ブランチ・作業ツリーと GitHub の成果枝を整理する。GitHub 未同期などで保持する成果枝は確認 SHA と理由を記録する。
-    - 成功、失敗、意図した保持のいずれの場合も、`--write-management` で `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` を再生成する。
+    - 成功、失敗、意図した保持のいずれの場合も、`--write-management` で `<management-file>` を再生成する。
 8. マージまたはリベース競合が発生した場合:
     - 直ちに停止する。
     - ブランチまたは作業ツリーを削除しない。
@@ -113,16 +111,16 @@ description: AstralRecord ワークスペースの Git 運用専用スキル。�
 
 ## 作業ツリーの規約
 
-- メインワークスペース: `E:\AstralRecord-Workspace`
+- メインワークスペース: `<repo-root>`
 - 作業ブランチ接頭辞: `codex/`
-- 既定の作業ツリールート: `E:\AstralRecord-Worktrees\<task-slug>`
-- 作業ツリー管理ファイル: `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md`
+- 専用作業ツリー: `<worktrees-root>/<task-slug>`
+- 作業ツリー管理ファイル: `<management-file>`
 
 別のスキルが作業ツリー内で操作する必要がある場合は、ワークスペースルート接頭辞を置き換えてパスを読み替える。
 
 ```text
-E:\AstralRecord-Workspace\<relative-path>
--> E:\AstralRecord-Worktrees\<task-slug>\<relative-path>
+<repo-root>/<relative-path>
+-> <worktrees-root>/<task-slug>/<relative-path>
 ```
 
 ## コミット範囲のルール
@@ -156,11 +154,7 @@ E:\AstralRecord-Workspace\<relative-path>
 
 ## 作業ツリー管理ファイルの内容
 
-準備と完了処理の流れでは、次を実行して `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` を作成または更新する。
-
-```powershell
-python E:\AstralRecord-Workspace\.codex\skills\astralrecord-prune-codex-worktrees\scripts\prune_codex_worktrees.py --repo E:\AstralRecord-Workspace --worktree-root E:\AstralRecord-Worktrees --write-management
-```
+準備と完了処理では、[管理ファイルの更新手順](references/worktree-management.md#更新タイミング)に従って `<management-file>` を再生成する。
 
 完了処理が途中停止した場合も更新する。管理ファイルの目的は、作業ツリーが残っている理由を説明できるようにすること。生成ファイルの `## 手動メモ` セクションは人間の判断欄として保持する。
 
@@ -169,23 +163,23 @@ python E:\AstralRecord-Workspace\.codex\skills\astralrecord-prune-codex-worktree
 ## 使用例
 
 ```text
-$astralrecord-git-worktree-develop を使って、E:\AstralRecord-Workspace\.codex\skills の変更用作業ブランチ / 作業ツリーを作成し、ブランチ名と作業ツリーパスを報告してください。
+$astralrecord-git-worktree-develop を使って、.codex\skills の変更用作業ブランチ / 作業ツリーを作成し、ブランチ名と作業ツリーパスを報告してください。
 ```
 
 ```text
-$astralrecord-git-worktree-develop を使って、E:\AstralRecord-Workspace\10_plugin\AstralRecord の現在の作業ツリーを完了処理し、develop へマージして、成功時は作業ブランチ / 作業ツリーを後片付けしてください。
+$astralrecord-git-worktree-develop を使って、10_plugin\AstralRecord の現在の作業ツリーを完了処理し、develop へマージして、成功時は作業ブランチ / 作業ツリーを後片付けしてください。
 ```
 
 ```text
-$astralrecord-git-worktree-develop を使って、E:\AstralRecord-Workspace\.codex\skills の現在の作業ツリーを完了処理し、マージ失敗時はブランチ / 作業ツリーを保持して結果を報告してください。
+$astralrecord-git-worktree-develop を使って、.codex\skills の現在の作業ツリーを完了処理し、マージ失敗時はブランチ / 作業ツリーを保持して結果を報告してください。
 ```
 
 ```text
-$astralrecord-git-worktree-develop を使って、並列実装後の E:\AstralRecord-Workspace\10_plugin\AstralRecord の作業ツリーを完了処理し、develop へリベースした後にだけプラグイン版番号を更新して結果を報告してください。
+$astralrecord-git-worktree-develop を使って、並列実装後の 10_plugin\AstralRecord の作業ツリーを完了処理し、develop へリベースした後にだけプラグイン版番号を更新して結果を報告してください。
 ```
 
 ```text
-$astralrecord-git-worktree-develop を使って、E:\AstralRecord-Workspace\.codex\skills の現在の作業ツリーを完了処理し、その後に不要な codex/* ブランチ / 作業ツリーの掃除が必要なら $astralrecord-prune-codex-worktrees に引き継いでください。
+$astralrecord-git-worktree-develop を使って、.codex\skills の現在の作業ツリーを完了処理し、その後に不要な codex/* ブランチ / 作業ツリーの掃除が必要なら $astralrecord-prune-codex-worktrees に引き継いでください。
 ```
 
 ## 報告形式
@@ -221,7 +215,7 @@ $astralrecord-git-worktree-develop を使って、E:\AstralRecord-Workspace\.cod
 - `branch`: 削除 / 保持
 
 ## 作業ツリー管理
-- `management_file`: E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md
+- `management_file`: <management-file>
 - 更新: はい / いいえ
 - 残った確認項目: なし / <カテゴリ + ブランチ/パス>
 

@@ -4,11 +4,9 @@ AstralRecord の作業ツリーを作成、完了処理、マージ、監査、�
 
 ## 管理ファイル
 
-既定のローカル管理ファイル:
-
-```text
-E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md
-```
+- `<repo-root>` は `git worktree list --porcelain` で確認したメインワークスペースの絶対パス。
+- `<worktrees-root>` は実行環境で指定された作業ツリーの配置先。指定がなければ、登録済み作業ツリーと既存の管理ファイルから現在の配置先を確認する。
+- `<management-file>` は実行環境で指定された管理ファイル。既定は `<worktrees-root>/WORKTREE_MANAGEMENT.md`。
 
 このファイルはローカル運用コンテンツであり、通常はコミット対象ではない。残っている作業ツリーを次のどれとして扱うべきか判断できるようにする。
 
@@ -28,10 +26,10 @@ E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md
 - 一括マージの試行または実行で `codex/*` ブランチの状態が変わった。
 - 整理の試行または実行で作業ツリー / ブランチの検出、削除、保持が発生した。
 
-既定の生成コマンド:
+確定した絶対パスを指定して実行する。
 
 ```powershell
-python E:\AstralRecord-Workspace\.codex\skills\astralrecord-prune-codex-worktrees\scripts\prune_codex_worktrees.py --repo E:\AstralRecord-Workspace --worktree-root E:\AstralRecord-Worktrees --write-management
+python "<repo-root>/.codex/skills/astralrecord-prune-codex-worktrees/scripts/prune_codex_worktrees.py" --repo "<repo-root>" --worktree-root "<worktrees-root>" --management-file "<management-file>" --write-management
 ```
 
 実削除する場合は `--execute --write-management` を使う。
@@ -60,7 +58,7 @@ python E:\AstralRecord-Workspace\.codex\skills\astralrecord-prune-codex-worktree
 
 ```markdown
 - `codex/example-task`: 視覚的な QA 完了まで保持。担当: Codex。次回確認: 2026-07-06。
-- `E:\AstralRecord-Worktrees\old-task`: バックアップ後に削除してよいことを確認済み。次回後片付けで削除。
+- `<worktrees-root>/old-task`: バックアップ後に削除してよいことを確認済み。次回後片付けで削除。
 ```
 
 `DIRTY_WORKTREE`、`DETACHED_WORKTREE`、`UNREGISTERED_PATH`、`NON_GIT_DIRECTORY` はブランチ名だけで判断しない。パスを確認し、保持理由を具体的に報告する。
@@ -71,7 +69,7 @@ python E:\AstralRecord-Workspace\.codex\skills\astralrecord-prune-codex-worktree
 
 ```markdown
 ## 作業ツリー管理
-- `management_file`: E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md
+- `management_file`: <management-file>
 - 更新: はい / いいえ
 - 残った確認項目: なし / <カテゴリ + ブランチ/パス>
 ```
