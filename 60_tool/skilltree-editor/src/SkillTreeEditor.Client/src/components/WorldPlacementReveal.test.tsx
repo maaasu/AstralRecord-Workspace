@@ -31,18 +31,19 @@ describe('reveal a filtered-out selected placement', () => {
   it('clears blocking conditions and jumps to the sorted third page while keeping drafts, history and bulk selection', async () => {
     await open()
     fireEvent.click(screen.getByLabelText(/\(point-1\) を一括選択$/))
+    fireEvent.click(screen.getByRole('button', { name: /^詳細条件/ }))
     fireEvent.change(screen.getByLabelText('一覧の並び順'), { target: { value: 'distance' } })
-    fireEvent.change(screen.getByLabelText('Y'), { target: { value: '80' } })
-    fireEvent.keyDown(screen.getByLabelText('Y'), { key: 'Enter' })
+    fireEvent.change(screen.getByLabelText('Y（高さ）'), { target: { value: '80' } })
+    fireEvent.keyDown(screen.getByLabelText('Y（高さ）'), { key: 'Enter' })
     fireEvent.change(screen.getByLabelText('X'), { target: { value: '-' } })
     fireEvent.change(search(), { target: { value: 'point-100' } })
-    fireEvent.click(screen.getByRole('button', { name: /^詳細条件/ }))
+
     for (const [label, value] of [['種類', 'npc'], ['有効状態', 'false'], ['地域', '草原'], ['スポナーマスター', 'wolf'], ['出現レベル下限', '15'], ['出現レベル上限', '45']]) {
       fireEvent.change(screen.getByLabelText(label), { target: { value } })
     }
     fireEvent.click(screen.getByRole('button', { name: /^一括操作/ }))
     fireEvent.click(bulkOnly())
-    expect(screen.getByText(/選択中の配置は現在の一覧に含まれていません/)).toBeInTheDocument()
+    expect(screen.getByText(/選択中の配置は一覧の条件外です/)).toBeInTheDocument()
     fireEvent.click(reveal())
     expect(search()).toHaveValue('')
     for (const label of ['種類', '有効状態', '地域', 'スポナーマスター']) expect(screen.getByLabelText(label)).toHaveValue('')
@@ -54,7 +55,7 @@ describe('reveal a filtered-out selected placement', () => {
     expect(selectedRow()).toHaveAttribute('aria-pressed', 'true')
     expect(within(list()).getAllByRole('button')).toHaveLength(1)
     expect(screen.getByLabelText('X')).toHaveValue('-')
-    expect(screen.getByLabelText('Y')).toHaveValue('80')
+    expect(screen.getByLabelText('Y（高さ）')).toHaveValue('80')
     expect(screen.getByRole('button', { name: /^一括操作/ })).toHaveTextContent('合計 1 件 · 条件内 1 件 · 条件外 0 件')
     expect(onDirtyChange).toHaveBeenLastCalledWith(true)
     expect(onSelected).not.toHaveBeenCalled()
@@ -65,7 +66,7 @@ describe('reveal a filtered-out selected placement', () => {
     expect(worldPlacementApi.save).not.toHaveBeenCalled()
     fireEvent.keyDown(screen.getByLabelText('X'), { key: 'Escape' })
     fireEvent.click(screen.getByRole('button', { name: '元に戻す' }))
-    expect(screen.getByLabelText('Y')).toHaveValue('70')
+    expect(screen.getByLabelText('Y（高さ）')).toHaveValue('70')
     expect(entries[0].y).toBe(70)
   })
 
@@ -96,7 +97,7 @@ describe('reveal a filtered-out selected placement', () => {
     const view = await open()
     for (const selectedId of ['other-world', 'deleted', null]) {
       view.rerender(<WorldPlacementEditor {...props} selectedId={selectedId} />)
-      expect(screen.getByRole('button', { name: '選択中の配置のページへ' })).toBeDisabled()
+      expect(screen.queryByRole('button', { name: '選択中の配置のページへ' })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: '表示条件を解除して選択中の配置を表示' })).not.toBeInTheDocument()
     }
     expect(onSelected).not.toHaveBeenCalled()

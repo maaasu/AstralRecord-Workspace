@@ -414,19 +414,38 @@ describe('Dev 配置の編集', () => {
     await waitFor(() => expect(visible.mock.lastCall?.[2]).toBe(true))
     expect(visible.mock.lastCall?.[0]).toEqual([])
   })
-  it('保存済みの物理ワールド名を新規配置へ引き継ぎ、候補から選択できる', async () => {
+  it('物理ワールド名が複数なら追加前に選択を求め、選択したワールドへ地図から追加する', async () => {
     vi.mocked(worldPlacementApi.read).mockResolvedValue({ schemaVersion: 1, revision: 'rev-1', placements: [
       { placementId: 'old', kind: 'spawner', worldId: 'eriva', worldName: 'worlds/legacy', templateId: 'wolf', x: 1, y: 70, z: 1, yaw: 0, pitch: 0, enabled: true, waystone: null },
       { placementId: 'new', kind: 'spawner', worldId: 'eriva', worldName: 'worlds/renamed', templateId: 'wolf', x: 2, y: 70, z: 2, yaw: 0, pitch: 0, enabled: true, waystone: null },
     ] })
-    const selected = vi.fn(), visible = vi.fn()
-    render(<WorldPlacementEditor snapshot={snapshot} point={null} selectedId={null} onSelected={selected} onPlacements={visible} placing={false} onPlacing={vi.fn()} />)
-    openOptions('追加オプション')
-    await waitFor(() => expect(screen.getByLabelText('追加先のワールド')).toHaveValue('worlds/legacy'))
-    fireEvent.change(screen.getByLabelText('追加先のワールド'), { target: { value: 'worlds/renamed' } })
-    fireEvent.click(getAdditionalButton('座標を入力して追加'))
+    const selected = vi.fn(), visible = vi.fn(), onPlacing = vi.fn()
+    const props = { snapshot, selectedId: null, onSelected: selected, onPlacements: visible, onPlacing }
+    const view = render(<WorldPlacementEditor {...props} point={null} placing={false} />)
+    const toolbar = within(screen.getByRole('group', { name: '配置を追加' }))
+    const world = await toolbar.findByLabelText('追加先のワールド')
+    const mapAdd = toolbar.getByRole('button', { name: '地図で追加' })
+    fireEvent.change(toolbar.getByLabelText('追加するマスター'), { target: { value: 'wolf' } })
+    expect(world).toHaveValue('')
+    expect(mapAdd).toBeDisabled()
+    expect(toolbar.getByText('追加先のワールドを選択してください。')).toBeInTheDocument()
+    expect(getAdditionalButton('座標を入力して追加')).toBeDisabled()
+    fireEvent.change(world, { target: { value: 'worlds/renamed' } })
+    expect(mapAdd).toBeEnabled()
+    expect(getAdditionalButton('座標を入力して追加')).toBeEnabled()
+    fireEvent.click(mapAdd)
+    expect(onPlacing).toHaveBeenLastCalledWith(true)
+    view.rerender(<WorldPlacementEditor {...props} point={{ key: 1, x: 8, y: 70, z: 8 }} placing />)
     await waitFor(() => expect(visible.mock.lastCall?.[0]).toHaveLength(3))
     expect(visible.mock.lastCall?.[0].find((item: { placementId: string }) => item.placementId === selected.mock.lastCall?.[0]).worldName).toBe('worlds/renamed')
+  })
+  it('追加先のワールドがなければ理由を表示して追加を止める', async () => {
+    const noDestination = { ...snapshot, manifest: { ...snapshot.manifest, worldId: 'other' } }
+    render(<WorldPlacementEditor snapshot={noDestination} point={null} selectedId={null} onSelected={vi.fn()} onPlacements={vi.fn()} placing={false} onPlacing={vi.fn()} />)
+    await screen.findByText('この地図には追加先のワールドが設定されていません。')
+    expect(screen.queryByLabelText('追加先のワールド')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '地図で追加' })).toBeDisabled()
+    expect(getAdditionalButton('座標を入力して追加')).toBeDisabled()
   })
   it('レベル条件を一覧と地図の表示対象に同時適用する', async () => {
     vi.mocked(worldPlacementApi.read).mockResolvedValue({ schemaVersion: 1, revision: 'rev-1', placements: [

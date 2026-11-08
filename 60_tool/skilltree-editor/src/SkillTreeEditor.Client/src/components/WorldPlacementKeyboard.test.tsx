@@ -70,6 +70,7 @@ describe('saved placement keyboard navigation', () => {
     fireEvent.click(screen.getByLabelText(/\(point-0\) を一括選択$/))
     search().focus(); key('Enter'); key('End')
     fireEvent.click(screen.getByLabelText(/\(point-100\) を一括選択$/))
+    fireEvent.click(screen.getByRole('button', { name: /^詳細条件/ }))
     fireEvent.change(screen.getByLabelText('一覧の並び順'), { target: { value: 'distance' } })
     search().focus(); key('Enter')
     expect(row('point-100')).toHaveFocus()

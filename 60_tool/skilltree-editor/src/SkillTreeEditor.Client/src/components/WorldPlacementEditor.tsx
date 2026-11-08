@@ -78,7 +78,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const listingReveal = useRef<{ id: string; worldId: string } | null>(null)
   const [listingFocusKey, setListingFocusKey] = useState(0)
   const searchInput = useRef<HTMLInputElement>(null)
-  const formId = useId(), filterId = useId(), bulkId = useId(), listingId = useId()
+  const formId = useId(), filterId = useId(), bulkId = useId(), listingId = useId(), searchHelpId = useId()
   const [formOpen, setFormOpen] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [bulkOpen, setBulkOpen] = useState(false)
@@ -94,7 +94,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
   const [minimumLevel, setMinimumLevel] = useState('')
   const [maximumLevel, setMaximumLevel] = useState('')
   const [listingSort, setListingSort] = useState<PlacementListingSort>('default')
-  const [selectedWorldName, setSelectedWorldName] = useState('')
+  const [worldChoice, setWorldChoice] = useState<{ worldId: string; name: string } | null>(null)
   const [bulkSelection, setBulkSelection] = useState<{ worldId: string; ids: ReadonlySet<string> }>({ worldId: snapshot.manifest.worldId, ids: new Set() })
   const [selectedOnly, setSelectedOnly] = useState(false)
   const [page, setPage] = useState(0)
@@ -154,7 +154,8 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     const fallback = catalog.worlds.find(item => item.id === worldId)?.baseWorldPath
     return fallback ? [fallback] : []
   }, [base, catalog.worlds, worldId])
-  useEffect(() => { setSelectedWorldName(current => worldNames.includes(current) ? current : worldNames[0] ?? '') }, [worldNames])
+  const chosenWorldName = worldChoice?.worldId === worldId ? worldChoice.name : ''
+  const selectedWorldName = worldNames.length === 1 ? worldNames[0] : worldNames.includes(chosenWorldName) ? chosenWorldName : ''
   useEffect(() => { onDirtyChange(dirty) }, [dirty])
   useEffect(() => { onBusyChange(busy || confirmation !== null) }, [busy, confirmation])
   useEffect(() => {
@@ -383,6 +384,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     finally { busyRef.current = false; setBusy(false) }
   }
   const options = selected?.kind === 'spawner' ? catalog.spawners : catalog.npcs
+  const expandedInspector = (selected && formOpen) || filtersOpen || bulkOpen
   const renderCoordinate = (item: WorldPlacement, key: 'x' | 'y' | 'z' | 'yaw' | 'pitch', label: string) => {
     const draft = drafts[item.placementId]?.[key]
     return <label>{label}
@@ -436,14 +438,25 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     <div className="wp-actions wp-toolbar" role="group" aria-label="配置を追加">
       <label>追加する種類<select value={kind} onChange={event => { setKind(event.target.value as PlacementKind); setNewTemplateId(''); onPlacing(false) }} disabled={busy}><option value="spawner">スポナー</option><option value="npc">NPC</option><option value="waystone">道標</option></select></label>
       {kind !== 'waystone' && <label>追加する{kind === 'spawner' ? 'スポナー' : 'NPC'}マスター<select aria-label="追加するマスター" value={newTemplateId} onChange={event => setNewTemplateId(event.target.value)} disabled={busy}><option value="">選択してください</option>{(kind === 'spawner' ? catalog.spawners : catalog.npcs).map(item => <option key={item.id} value={item.id}>{clean(item.name)} ({item.id})</option>)}</select></label>}
+      {worldNames.length > 1 && <label>追加先のワールド
+        <select value={selectedWorldName} onChange={event => {
+          setWorldChoice({ worldId, name: event.target.value })
+          onPlacing(false)
+        }} disabled={busy}>
+          <option value="">選択してください</option>
+          {worldNames.map(name => <option key={name} value={name}>{name}</option>)}
+        </select>
+      </label>}
       <button className="button" aria-pressed={placing} onClick={() => { onPlacing(!placing); onMoving(false); setError('') }} disabled={busy || hasDrafts || !base || !selectedWorldName || (kind !== 'waystone' && !newTemplateId)}>地図で追加</button>
       <details className="wp-disclosure">
         <summary>追加オプション</summary>
         <div className="wp-disclosure-body">
-          <label>追加先のワールド<select value={selectedWorldName} onChange={event => setSelectedWorldName(event.target.value)} disabled={busy || !worldNames.length}><option value="">選択してください</option>{worldNames.map(name => <option key={name} value={name}>{name}</option>)}</select></label>
           <button className="button" onClick={add} disabled={busy || hasDrafts || !base || !selectedWorldName}>座標を入力して追加</button>
         </div>
       </details>
+      {!busy && base && !selectedWorldName && <p className="wp-add-requirement" role="status">{worldNames.length > 1
+        ? '追加先のワールドを選択してください。'
+        : 'この地図には追加先のワールドが設定されていません。'}</p>}
     </div>
     {(placing || moving) && <div className="wp-map-instruction">
       <p className="wp-instruction" role="status">{placing ? '追加する地点を地図上でクリックしてください。' : '移動先を地図上でクリックしてください。'}</p>
@@ -453,7 +466,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     <div className="wp-map-pane">{map}</div>
     {editing && <>
     <ResizeHandle label="地図と配置一覧の幅を変更" size={inspectorWidth} min={280} max={760} defaultSize={360} minRemaining={320} direction={-1} onResize={setInspectorWidth} className="wp-map-resizer" />
-    <div className="wp-inspector" style={{ '--placement-controls-height': `${controlsHeight}px` } as CSSProperties}>
+    <div className={expandedInspector ? 'wp-inspector' : 'wp-inspector wp-inspector-compact'} style={{ '--placement-controls-height': `${controlsHeight}px` } as CSSProperties}>
     <div className="wp-inspector-controls" ref={inspector}>
     {selected && <section className="wp-selected-panel" aria-label="選択中の配置"><h3 aria-label={`${placementKindLabels[selected.kind]}の配置を編集`}><button className="wp-panel-toggle" type="button" aria-expanded={formOpen} aria-controls={formId} onClick={() => setFormOpen(open => !open)}>選択中: {clean(display.get(selected.placementId)?.name ?? selected.placementId)} · {placementKindLabels[selected.kind]}{selectedDraftState && ` · ${selectedDraftState}`}</button></h3>
     <div id={formId} hidden={!formOpen}>{formOpen && <div className="wp-form">{selectedOutsideFilter && <p className="wp-filter-note">選択中の配置は絞り込み条件外です。地図にはこの1件を表示しています。</p>}
@@ -480,11 +493,13 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
         <div className="wp-actions"><button className="button" onClick={duplicate} disabled={busy || hasDrafts}>複製</button><button className="button" onClick={() => bulkAction('delete', new Set([selected.placementId]))} disabled={bulkLocked}>この配置を削除</button></div>
       </details>
     </div>}</div></section>}
-    <div className="wp-search"><label>検索<input ref={searchInput} aria-label="保存済み配置を検索" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => {
+    <div className="wp-search"><label>検索<input ref={searchInput} aria-label="保存済み配置を検索" aria-describedby={searchHelpId} value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => {
       if (isPlainNavigationKey(event) && !locked() && sortedListing.items.length && (event.key === 'ArrowDown' || event.key === 'Enter')) {
         event.preventDefault(); focusListingItem(currentPage * pageSize)
       }
-    }} placeholder="名前・地域・ID・座標" /></label></div>
+    }} placeholder="名前・地域・ID・座標" /></label>
+      <span id={searchHelpId} hidden>空白で区切ると、すべての語を含む配置を検索します。</span>
+    </div>
     <div className="wp-list-controls">
     <section className="wp-filter-panel" aria-label="詳細条件">
       <div className="wp-list-tools">
@@ -515,7 +530,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     </div>
     {selected && selectedListingIndex < 0 && <p className="wp-filter-note">選択中の配置は一覧の条件外です。表示すると「一括選択だけ」を解除し、必要に応じて検索や詳細条件も解除します。</p>}
     </div>
-    <ResizeHandle label="配置の操作欄と一覧の高さを変更" size={controlsHeight} min={140} max={900} defaultSize={240} minRemaining={120} orientation="horizontal" onResize={setControlsHeight} />
+    {expandedInspector && <ResizeHandle label="配置の操作欄と一覧の高さを変更" size={controlsHeight} min={140} max={900} defaultSize={240} minRemaining={120} orientation="horizontal" onResize={setControlsHeight} />}
     <div id={listingId} ref={listing} className="wp-list" aria-label={selectedOnly ? '一括選択した配置の一覧' : '表示条件に合う配置の一覧'}>{sortedListing.items.slice(currentPage * pageSize, (currentPage + 1) * pageSize).map((item, index) => <div key={item.placementId} className="wp-row"><input type="checkbox" disabled={bulkLocked} aria-label={`${display.get(item.placementId)!.name} X ${item.x} / Y ${item.y} / Z ${item.z} (${item.placementId}) を一括選択`} checked={bulkScope.ids.has(item.placementId)} onChange={event => { const ids = new Set(bulkScope.ids); if (event.target.checked) ids.add(item.placementId); else ids.delete(item.placementId); selectBulk(ids) }} /><button type="button" data-placement-id={item.placementId} onKeyDown={event => handleListingKey(event, currentPage * pageSize + index)} aria-pressed={selectedId === item.placementId} onClick={() => { if (inspector.current) inspector.current.scrollTop = 0; selectPlacement(item.placementId) }}><strong>{item.kind === 'spawner' && <span className="wp-map-number">#{masterNumbers.get(item.templateId ?? '') ?? '?'} </span>}<MinecraftText value={display.get(item.placementId)!.name} /></strong><small>{selectedOnly && !filteredIds.has(item.placementId) && '表示条件外 · '}{placementKindLabels[item.kind]} · {display.get(item.placementId)!.region} · X {item.x} / Y {item.y} / Z {item.z} · {item.enabled ? '有効' : '無効'}{listingSort === 'distance' && sortedListing.distances.has(item.placementId) && ` · 開始地点から ${Math.round(sortedListing.distances.get(item.placementId)!)}m`}</small></button></div>)}{!listed.length && <p>{selectedOnly ? '一括選択した配置はありません。' : '条件に合う保存済み配置はありません。'}</p>}</div>
 
     </div>
