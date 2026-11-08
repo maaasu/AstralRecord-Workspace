@@ -3057,15 +3057,15 @@
       "base_item": "minecraft:wooden_pickaxe",
       "custom_model_data": 232006,
       "sha256": {
-        "assets/astralrecord/models/item/custom/nox_pickaxe.json": "fa5017f2a5e81a0320637b93e448422263e392b0ae4bb9d5a0ea148adf0dd99e",
+        "assets/astralrecord/models/item/custom/nox_pickaxe.json": "1d083ab572dbbb352b3ff4b026d484464bfb57356827ae393925a53e9262d1d8",
         "assets/astralrecord/textures/item/custom/nox_pickaxe.png": "98fdfd24c88055c6f226474294bc2f24ab574ad1a0ede13b2e1717d68149fda2",
-        "bedrock/animations/nox_pickaxe.animation.json": "12c363888612b40bfef87a92a3eae2fa100b75cb39413abc564837d816cf1cd0",
+        "bedrock/animations/nox_pickaxe.animation.json": "ef2f2c86c5c8a8f14bf952ed37384998d420b17b0a05c088a64ab29978f22dde",
         "bedrock/attachables/nox_pickaxe.json": "c1931bd0126128dc42ab93f9390e9ddf338c6dacdb36b5b8415813c51958b662",
         "bedrock/models/entity/items/nox_pickaxe.geo.json": "cd750aa5312528e6711716cbf91e8f18b0f4bc1ee64873ed89086e4a334c5edf",
         "bedrock/textures/entity/items/nox_pickaxe.png": "98fdfd24c88055c6f226474294bc2f24ab574ad1a0ede13b2e1717d68149fda2",
         "bedrock/textures/items/nox_pickaxe.png": "7ddd526f07b55101ea502973575d1f522d8d2ccc4df94d9d6697bf4da930255f",
-        "blockbench/items/nox_pickaxe.bedrock.bbmodel": "8aaa4e3cb37ed273f025236985addbc6527911ef623b3de48789d949b920100f",
-        "blockbench/items/nox_pickaxe.java.bbmodel": "aa5f5becb86997f06941fa16c946499b4e477ad739e6928a9fb55d43bcc8e037"
+        "blockbench/items/nox_pickaxe.bedrock.bbmodel": "26d239025ac80ea075a45be9916a0d75d10bde37c62662386916330e1bac1e8f",
+        "blockbench/items/nox_pickaxe.java.bbmodel": "86075a47327f6280dc054ec3d7a0ea8ad3eafb7f6382cb540dcb4f69588929ea"
       }
     },
     {
@@ -3076,15 +3076,15 @@
       "base_item": "minecraft:copper_pickaxe",
       "custom_model_data": 232071,
       "sha256": {
-        "assets/astralrecord/models/item/custom/cave_copper_pickaxe.json": "4928e3df30f54854459b6c2b49e63458d237383ab9b2ceed4a26ddf24f56a645",
+        "assets/astralrecord/models/item/custom/cave_copper_pickaxe.json": "234cbd68ef5169f79c043ce71af5b2ee6facf1639f48f97d9e53a74f7babb97a",
         "assets/astralrecord/textures/item/custom/cave_copper_pickaxe.png": "b6f3b322303a02bd309c590acff0bf20008dfe1591a3b0534e6adadaf2837efd",
-        "bedrock/animations/cave_copper_pickaxe.animation.json": "4bc478bd76d288ee48ce556244e8eb08a0c45ba29c9e4e14ec8a1f46c9d1d436",
+        "bedrock/animations/cave_copper_pickaxe.animation.json": "16998d8ef865bbdd3dc9d7f12039cef574faae1526af78d87801f9573f54739d",
         "bedrock/attachables/cave_copper_pickaxe.json": "58bf42c82a500a8b05256ae419bf1c3d9faec19bc092929cbbf3970ee47a35cb",
         "bedrock/models/entity/items/cave_copper_pickaxe.geo.json": "e06274fddec5e5e1b1a4ef736b6a9e2959a74f182432baf6a5b73b480772fdea",
         "bedrock/textures/entity/items/cave_copper_pickaxe.png": "b6f3b322303a02bd309c590acff0bf20008dfe1591a3b0534e6adadaf2837efd",
         "bedrock/textures/items/cave_copper_pickaxe.png": "fb701919021d4a9d336ed1d088ae0529d59803aa9bda8d957eafc35eb69e1264",
-        "blockbench/items/cave_copper_pickaxe.bedrock.bbmodel": "38776b7ed251ca505150fc2c3cd442a84c727713c676832c20f0b8f4204bf75e",
-        "blockbench/items/cave_copper_pickaxe.java.bbmodel": "96b6411f5da9f87b2bdb98575711387c265fe349a82f0cf8e972aad5b2889cfd"
+        "blockbench/items/cave_copper_pickaxe.bedrock.bbmodel": "d4d8124b05affa8eb2f2aea4f7679fcfe29b947b3445c4b1d753c43a43e99cdd",
+        "blockbench/items/cave_copper_pickaxe.java.bbmodel": "1586b04f5c962726e2eb3fd979eaa2168eeb0c7b5ccbf9f73d061d0ab9729075"
       }
     },
     {
@@ -3133,15 +3133,15 @@
       "base_item": "minecraft:iron_pickaxe",
       "custom_model_data": 232098,
       "sha256": {
-        "assets/astralrecord/models/item/custom/iron_pickaxe_1.json": "ca11136082d9e27ce43df72956a1475df1418ae11d2b238c18f37d9ba23ea572",
+        "assets/astralrecord/models/item/custom/iron_pickaxe_1.json": "f6d538c2fcf1036c09e3a57da66b52c9df696e9b1d1e3b85c9cb4ee5b4d7bc8d",
         "assets/astralrecord/textures/item/custom/iron_pickaxe_1.png": "b2a05c6e243902070cbeb0470d166db5c6151c0b3b10fa3d3aca9b5627acf5e1",
-        "bedrock/animations/iron_pickaxe_1.animation.json": "92e01b1fa1009c8e47eceb656a6a13efd3a12e0ebe637a80a958a9cd2d704cf1",
+        "bedrock/animations/iron_pickaxe_1.animation.json": "cd8298fecfedd565d9e8620b78e75b65b7534898df3fb51823d273a4e16bee79",
         "bedrock/attachables/iron_pickaxe_1.json": "af6cce8bcf2852fede3fd9cda68b2b4aa1d8cb1fb6ea181380173ca9342fbac1",
         "bedrock/models/entity/items/iron_pickaxe_1.geo.json": "ed1fe18f4e50bc60544dbcb293010389ef80d5c37b1c40c4938b350a1a7b3844",
         "bedrock/textures/entity/items/iron_pickaxe_1.png": "b2a05c6e243902070cbeb0470d166db5c6151c0b3b10fa3d3aca9b5627acf5e1",
         "bedrock/textures/items/iron_pickaxe_1.png": "eac30a4ff98aa0b05e80ed2d7bf2ae1e82ebea8f4226416cebf53f69127f94a2",
-        "blockbench/items/iron_pickaxe_1.bedrock.bbmodel": "5bf8568c6913a6815baee7e518c71ea5b00807c4b7b3cd7a5fa5495b8618632e",
-        "blockbench/items/iron_pickaxe_1.java.bbmodel": "aec25ac520d9ff35c398ea703b0f74be9fdf6b669281ce92d0fc224cd8f8af9d"
+        "blockbench/items/iron_pickaxe_1.bedrock.bbmodel": "ef2a4f2795a2e7f35e265d6b9f36242695fb1d4f147aaeebd73a05ae1a293690",
+        "blockbench/items/iron_pickaxe_1.java.bbmodel": "f11d7cbe60ee113424afa32f9b817bb9eac5f6dc706206a68d9ea1efb3e124a7"
       }
     },
     {
@@ -3152,15 +3152,15 @@
       "base_item": "minecraft:iron_pickaxe",
       "custom_model_data": 232100,
       "sha256": {
-        "assets/astralrecord/models/item/custom/iron_pickaxe_2.json": "306afadbdc5c0f19dd82bf757cc9e17e77b447c87ddad06dc58d88e9bbafe9e4",
+        "assets/astralrecord/models/item/custom/iron_pickaxe_2.json": "07ca73ed07d7159e9128483b2834d9b351f129e26354e8f1943ac2e4993417ae",
         "assets/astralrecord/textures/item/custom/iron_pickaxe_2.png": "20367b0d848a3f335dcb5a4e61849f08ff31ba60affe5a0003adf24fba0c8650",
-        "bedrock/animations/iron_pickaxe_2.animation.json": "71b2c596c0f839d18788b641087d93e2a6227e6a47191233e68f18573a8ed6f9",
+        "bedrock/animations/iron_pickaxe_2.animation.json": "e83016b4938df736e7c06e4fe3862c12638452eb2cf12e784038f4f878d13749",
         "bedrock/attachables/iron_pickaxe_2.json": "3907cc7c5e72715d40bf241c05a9c3791ca0d27c36c82f5ffdb45c6790495b51",
         "bedrock/models/entity/items/iron_pickaxe_2.geo.json": "1918b69f4e8116ed31563ca310a089b799117e9ba045de86625dd5c59ad00b37",
         "bedrock/textures/entity/items/iron_pickaxe_2.png": "20367b0d848a3f335dcb5a4e61849f08ff31ba60affe5a0003adf24fba0c8650",
         "bedrock/textures/items/iron_pickaxe_2.png": "3435f6a1ec1f3d69555626292e0fcc0a91a8e6e8845b14ec2fdccecebeb0ee3f",
-        "blockbench/items/iron_pickaxe_2.bedrock.bbmodel": "1cdf20e3524bed40c1bc88489cde182a587b041c5fc77d527048600945c0426e",
-        "blockbench/items/iron_pickaxe_2.java.bbmodel": "2bf2bd93251974084daf5d1237463e07abb64d5f656e79cd317652ee7fe684e9"
+        "blockbench/items/iron_pickaxe_2.bedrock.bbmodel": "0f5caef39e373ffda129d0d669b7137d7ad5094adf42b1baadb7bc8cd490d626",
+        "blockbench/items/iron_pickaxe_2.java.bbmodel": "7ad3f11345abafbc5219015e2c2a3169e05da313b18b58584bf01cb611d2b94a"
       }
     },
     {
@@ -3171,15 +3171,15 @@
       "base_item": "minecraft:iron_pickaxe",
       "custom_model_data": 232102,
       "sha256": {
-        "assets/astralrecord/models/item/custom/iron_pickaxe_3.json": "51fcc7b328e662c9922faa7ba99423d3040ea3ee75baf57742dbc5d936c5c04b",
+        "assets/astralrecord/models/item/custom/iron_pickaxe_3.json": "148292777be20e74bd96e8f70a5eeb350ab4659afddf1cc65f4185595a15bb3a",
         "assets/astralrecord/textures/item/custom/iron_pickaxe_3.png": "20c5576c0623a8969dcc81483482af8f482b8e5ae3708588eb3802eb6862dd99",
-        "bedrock/animations/iron_pickaxe_3.animation.json": "cbb83fe13f5ebde1de1bbd528d7d0f0ab977b69283c8a9ac73481a9296caa032",
+        "bedrock/animations/iron_pickaxe_3.animation.json": "8a1312a666f2b9bdde0f1038b49d7423e618d91792b7ae01a67fd2ac77d093d1",
         "bedrock/attachables/iron_pickaxe_3.json": "5da2939d318cb21cd19226c41547dcd480b90d6fcf5459b57b5312631017d53c",
         "bedrock/models/entity/items/iron_pickaxe_3.geo.json": "a5c3368ea00b6f0dab1816049c8f767f434d1665629838743e62290c79969803",
         "bedrock/textures/entity/items/iron_pickaxe_3.png": "20c5576c0623a8969dcc81483482af8f482b8e5ae3708588eb3802eb6862dd99",
         "bedrock/textures/items/iron_pickaxe_3.png": "db2482cb64bc305353ec95375a67547da838377032b560072f34c2147fe6a338",
-        "blockbench/items/iron_pickaxe_3.bedrock.bbmodel": "2c71574dbb9f30325f2966a5958eb598fbe3b2fd2c4cd16e6050412df09d8917",
-        "blockbench/items/iron_pickaxe_3.java.bbmodel": "7b5cd4574544754618192a285dcdcec5648a7369aab2f87601ed0137e8c1298e"
+        "blockbench/items/iron_pickaxe_3.bedrock.bbmodel": "b06cd3894cc6acaa98f9baa63bb9b555f50d431e2d8d4c27370c3e9ef65f0f47",
+        "blockbench/items/iron_pickaxe_3.java.bbmodel": "ee94d2284fd24beb0d7b3414261b8879422e589854c9cbb05a326b0e1adcca28"
       }
     },
     {
@@ -3190,15 +3190,15 @@
       "base_item": "minecraft:iron_pickaxe",
       "custom_model_data": 232104,
       "sha256": {
-        "assets/astralrecord/models/item/custom/iron_pickaxe_4.json": "ed4ec3aa95ae01219be24f456842c98e9c0f2171e2ee5cceec6b8322fe695e9b",
+        "assets/astralrecord/models/item/custom/iron_pickaxe_4.json": "f8c13c3579872b093c5a0af15d8445c28ff8c8769019f2f67787591abe673a6e",
         "assets/astralrecord/textures/item/custom/iron_pickaxe_4.png": "4e5ced5450444d70655abff0171f94ae379e87271af292a1955ac343edb9c42e",
-        "bedrock/animations/iron_pickaxe_4.animation.json": "1952e3d0462c5d6e7f25aad2818af1967b484744621454b0f77b8cda065ebce4",
+        "bedrock/animations/iron_pickaxe_4.animation.json": "01e5b837d6308d89a0ee4bf1734a2a0555d42ed87afafe16827d88b785246c75",
         "bedrock/attachables/iron_pickaxe_4.json": "8c3419008c03826468b65bd4e816834189308f36bbfef2092122dcfd22b4332b",
         "bedrock/models/entity/items/iron_pickaxe_4.geo.json": "da27803d6e399ba8ea7f598f9e6ad52d32de778315d152d250630a42ecbe9950",
         "bedrock/textures/entity/items/iron_pickaxe_4.png": "4e5ced5450444d70655abff0171f94ae379e87271af292a1955ac343edb9c42e",
         "bedrock/textures/items/iron_pickaxe_4.png": "8808c821589d06039de74ced1034a83db43f54e4613d3e7affb485274c650772",
-        "blockbench/items/iron_pickaxe_4.bedrock.bbmodel": "af9f0dddf1b5d95adfa0b776c7040807fe353256d370eaad446321490b339420",
-        "blockbench/items/iron_pickaxe_4.java.bbmodel": "141b21c351bcd62a52dac757ede8db0f4ae270c354c2307474fc467f5bd4f329"
+        "blockbench/items/iron_pickaxe_4.bedrock.bbmodel": "49894d8446ae90d6c9676b3efdde8bb8c9f80ee9012c21fad6636c368fd11391",
+        "blockbench/items/iron_pickaxe_4.java.bbmodel": "deabedb4aaddc5d2bda09ac479a29937cad0fe3131e95ff2c05c20edc689d42c"
       }
     },
     {
@@ -3209,15 +3209,15 @@
       "base_item": "minecraft:wooden_hoe",
       "custom_model_data": 232005,
       "sha256": {
-        "assets/astralrecord/models/item/custom/nox_hoe.json": "2d284d635a46327e0c33c7eb277fdaad92f2f1d5c88daa68f166b35de6cd0a3e",
+        "assets/astralrecord/models/item/custom/nox_hoe.json": "7fb23cd80d62da554c7cf41ff07aa50ad43e548be4dcb3f6ff9df9638de919d4",
         "assets/astralrecord/textures/item/custom/nox_hoe.png": "98fdfd24c88055c6f226474294bc2f24ab574ad1a0ede13b2e1717d68149fda2",
-        "bedrock/animations/nox_hoe.animation.json": "cc3eb2c052568f59aad94e6b045ec0a35f0f558bbe3dfe9b8877d3b33380c7f8",
+        "bedrock/animations/nox_hoe.animation.json": "a9f944ba4900ee3bc3775ab11027a64203aac5a1ba1bfd717789d160588a9cc0",
         "bedrock/attachables/nox_hoe.json": "b34f4d81ace410d59ddf98f4884e73461c737708a63fdb91fc82c747ec94e3f1",
         "bedrock/models/entity/items/nox_hoe.geo.json": "9ff1d66c387b24c7847bc42999cf64c2a6b67a204135bcb96d90c12cbb6c3a4a",
         "bedrock/textures/entity/items/nox_hoe.png": "98fdfd24c88055c6f226474294bc2f24ab574ad1a0ede13b2e1717d68149fda2",
         "bedrock/textures/items/nox_hoe.png": "c381acfe1cf8464b412afd214ba97233d7b3fbfcf75d020e7a554ff5f006a72e",
-        "blockbench/items/nox_hoe.bedrock.bbmodel": "38762914478ff44001b6de87f57e5adf5f9994e79118e23968b5fb52e445a380",
-        "blockbench/items/nox_hoe.java.bbmodel": "3ff589a193583e23b1214f83c73bc3b14546b27a652ec0a25b1d955e26b6a1ff"
+        "blockbench/items/nox_hoe.bedrock.bbmodel": "6dc66625b47f70f43c0b59c2ed5b642b68ec2af95745e526529c2dd64e9161bf",
+        "blockbench/items/nox_hoe.java.bbmodel": "3378e6a8fa6a426bf26700cb611b316a122c3f44aa0d40033466a9c1f2fb52e8"
       }
     },
     {
@@ -3228,15 +3228,15 @@
       "base_item": "minecraft:copper_hoe",
       "custom_model_data": 232072,
       "sha256": {
-        "assets/astralrecord/models/item/custom/cave_copper_hoe.json": "f2b36b54ce26d843c3935c3a261b4037e8e2a34c221c9fd4bf8ee063a40455b3",
+        "assets/astralrecord/models/item/custom/cave_copper_hoe.json": "6528896f06ec6d1be48e0d596c591e67d2e8eabf7dc56dc91eb55c7a5f287c55",
         "assets/astralrecord/textures/item/custom/cave_copper_hoe.png": "b6f3b322303a02bd309c590acff0bf20008dfe1591a3b0534e6adadaf2837efd",
-        "bedrock/animations/cave_copper_hoe.animation.json": "84b1ddf5d37afaa85b90036faca5a53ecaa64ad4c7faa87afbe569fbc21d76b8",
+        "bedrock/animations/cave_copper_hoe.animation.json": "f2a713b0f485038870f50027762fffa9cd448158c6f3e9f835e6103f01b6ee4d",
         "bedrock/attachables/cave_copper_hoe.json": "ae062d616c665edeb515b33872f932c7c02107e3304b5d48c5102a410b50f620",
         "bedrock/models/entity/items/cave_copper_hoe.geo.json": "2dfabe9d7faae9926d91a932aa01cff73fb56049f54b5f0c127513133768ee5d",
         "bedrock/textures/entity/items/cave_copper_hoe.png": "b6f3b322303a02bd309c590acff0bf20008dfe1591a3b0534e6adadaf2837efd",
         "bedrock/textures/items/cave_copper_hoe.png": "dcb5ee0ad6b53ccff21bd9e6cb68d3b73812f0d573b1712ef6621b1648812516",
-        "blockbench/items/cave_copper_hoe.bedrock.bbmodel": "87aeae4116bf142164f8fcd96b92f11f845954a9cbc7ff756c0ed397d8706fe2",
-        "blockbench/items/cave_copper_hoe.java.bbmodel": "44d49efaa5fa993b755ad79a876fe974dcc2aa29aa1fc664de5a9a405cda1d16"
+        "blockbench/items/cave_copper_hoe.bedrock.bbmodel": "5b7769e84137ed110dbefd625824e590995eb8878d46dfb4b9612072e27552f3",
+        "blockbench/items/cave_copper_hoe.java.bbmodel": "630eb8dbec9b5c0345bca140f68c59860bbc56ec3373ab8418984b9737ace6c4"
       }
     },
     {
@@ -3247,15 +3247,15 @@
       "base_item": "minecraft:iron_hoe",
       "custom_model_data": 232099,
       "sha256": {
-        "assets/astralrecord/models/item/custom/iron_hoe_1.json": "5484583d3a479277e0118df0bd74b9b310474c34b64f407cf0b5893a490a1958",
+        "assets/astralrecord/models/item/custom/iron_hoe_1.json": "f1dff3c77031ce001ff9efe39b650e46d09b673e905a98547f5a4c0a53301f37",
         "assets/astralrecord/textures/item/custom/iron_hoe_1.png": "b2a05c6e243902070cbeb0470d166db5c6151c0b3b10fa3d3aca9b5627acf5e1",
-        "bedrock/animations/iron_hoe_1.animation.json": "26691dc2b9ad644fba55dfbf73f6b959ba19a848ab508657237573c8db960f89",
+        "bedrock/animations/iron_hoe_1.animation.json": "8434e418b7c864ea1a74d789f759acc743640e2e2fc810107b93d3c085c5c97a",
         "bedrock/attachables/iron_hoe_1.json": "445371b1e8b7305317378874198c3e2651cc388e7346b407e4b217d49c530b50",
         "bedrock/models/entity/items/iron_hoe_1.geo.json": "9b11935fc7359f257e467a27ced7c720c5d6c29f139f4a74853fdbd206d4d0fa",
         "bedrock/textures/entity/items/iron_hoe_1.png": "b2a05c6e243902070cbeb0470d166db5c6151c0b3b10fa3d3aca9b5627acf5e1",
         "bedrock/textures/items/iron_hoe_1.png": "032eca137b5107fa7a60d9ecf7b9c4c07ad9d122dcbb37ff9418b0dc38885300",
-        "blockbench/items/iron_hoe_1.bedrock.bbmodel": "8fe291958c8fde9132843f9d67980e9ac65acd550ead521d56144f3ca1b00f30",
-        "blockbench/items/iron_hoe_1.java.bbmodel": "6163ff860f539421088d9c0b3ad39e9f3f4969dab7c7d97634802c3bc8b039ba"
+        "blockbench/items/iron_hoe_1.bedrock.bbmodel": "59100e761e0a5e9e1e3f59f20bb73656137bb016c4060510a763c18efa750e9a",
+        "blockbench/items/iron_hoe_1.java.bbmodel": "a339b45b57ba3615479226e17efc336b34ad681fa09dca0cb720a466d101c3ea"
       }
     },
     {
@@ -3266,15 +3266,15 @@
       "base_item": "minecraft:iron_hoe",
       "custom_model_data": 232101,
       "sha256": {
-        "assets/astralrecord/models/item/custom/iron_hoe_2.json": "1f49e5c93bd9dcc0299ddbe674d213fa9f83ddd705fdf4ed09f0bcb5d78b95aa",
+        "assets/astralrecord/models/item/custom/iron_hoe_2.json": "d6b241f8f9a5b835ab6e64ef14c605de0e6e9b6b084e6a3366bb21057055bf49",
         "assets/astralrecord/textures/item/custom/iron_hoe_2.png": "20367b0d848a3f335dcb5a4e61849f08ff31ba60affe5a0003adf24fba0c8650",
-        "bedrock/animations/iron_hoe_2.animation.json": "d0d4bcb084894674a18effc288d7471c4eace0a34c6848cbf88389415a2940f5",
+        "bedrock/animations/iron_hoe_2.animation.json": "164652e7bba3dbc58798bb47ba4cea0667e3da332d8890d824c65f459412ab26",
         "bedrock/attachables/iron_hoe_2.json": "ad61745853dac43e530f0e4e2f470c4a5b24ac4e69e4ed34098d423c2cb7a47b",
         "bedrock/models/entity/items/iron_hoe_2.geo.json": "145bd0818d8b9f5d2e870f2b639e66682054c3f6e15776df33f44d27c7153731",
         "bedrock/textures/entity/items/iron_hoe_2.png": "20367b0d848a3f335dcb5a4e61849f08ff31ba60affe5a0003adf24fba0c8650",
         "bedrock/textures/items/iron_hoe_2.png": "664bd1badaf68f497ff219d53f220acae66329da144d3a874428e0608c705781",
-        "blockbench/items/iron_hoe_2.bedrock.bbmodel": "a46f20322c0d0f5587d74c4acb33b19f2eaf6c5707e16e1c56aea28971369381",
-        "blockbench/items/iron_hoe_2.java.bbmodel": "7cec17467a6bac3d945cba4ed6030f9f83a000ce290f5f1305cef30018de9b16"
+        "blockbench/items/iron_hoe_2.bedrock.bbmodel": "6f65e3c628cf973e8d035512479ecc23ff9fff1c3d8e7c9e96505bda794e6008",
+        "blockbench/items/iron_hoe_2.java.bbmodel": "2f721c31c79291c015ec128a896eb8deafc5f9e3216361e758c62e00b3209ffa"
       }
     },
     {
@@ -3285,15 +3285,15 @@
       "base_item": "minecraft:iron_hoe",
       "custom_model_data": 232103,
       "sha256": {
-        "assets/astralrecord/models/item/custom/iron_hoe_3.json": "d0dab53e4b564cbef7c41dc140bd2b7a7bb7e3fd4d3f79599d8503deaef12082",
+        "assets/astralrecord/models/item/custom/iron_hoe_3.json": "194ca6c85db96b20dd4f889b2aee3cfbce57feebafc4fa29d048839ebd13410b",
         "assets/astralrecord/textures/item/custom/iron_hoe_3.png": "20c5576c0623a8969dcc81483482af8f482b8e5ae3708588eb3802eb6862dd99",
-        "bedrock/animations/iron_hoe_3.animation.json": "834af93100371c36edbd5a0e5676b19c3dc04d3641c6bbb2acb56d76215914f6",
+        "bedrock/animations/iron_hoe_3.animation.json": "69f8a2daf89a5a35800464166ca5dbb9072c3d901790d57c944284338fde35ac",
         "bedrock/attachables/iron_hoe_3.json": "1749d351873074ba6cf7af7e9cefc31e3e7cbf600e3ddeb689ef82bea801715b",
         "bedrock/models/entity/items/iron_hoe_3.geo.json": "949818438270a3dee821425ff8ead1958e415fd4445bc13e68324faddea5cb79",
         "bedrock/textures/entity/items/iron_hoe_3.png": "20c5576c0623a8969dcc81483482af8f482b8e5ae3708588eb3802eb6862dd99",
         "bedrock/textures/items/iron_hoe_3.png": "33afd85a3397423a43213a5952e8fc9c5682e52fc0df0296812201a4c1a0d38e",
-        "blockbench/items/iron_hoe_3.bedrock.bbmodel": "f88d7632065134281956dc18d9ee75933737d698a4e0d737d77c0740308eb594",
-        "blockbench/items/iron_hoe_3.java.bbmodel": "4987878279c9ceb39b50bee5430d482e3cf0990265481ef5cd73e39d4c1716ea"
+        "blockbench/items/iron_hoe_3.bedrock.bbmodel": "2e943623cc7f9c7604413ff511b359957a09fdd1b19d220d37a5478d7a29c6a3",
+        "blockbench/items/iron_hoe_3.java.bbmodel": "92fb3bbf75e537fbd1d2e65b3ff1ed31b448ac4708ecec776a4c0482c8c4d829"
       }
     },
     {
@@ -3304,15 +3304,15 @@
       "base_item": "minecraft:iron_hoe",
       "custom_model_data": 232105,
       "sha256": {
-        "assets/astralrecord/models/item/custom/iron_hoe_4.json": "e9168222b380ddea8be36649e256eae941eeb28b0a1aa497fcc013efbbd8564b",
+        "assets/astralrecord/models/item/custom/iron_hoe_4.json": "a1d3f20598f3fddf9c6077941e427e995a7620c30dfae5eeeef744d923d7d7d4",
         "assets/astralrecord/textures/item/custom/iron_hoe_4.png": "4e5ced5450444d70655abff0171f94ae379e87271af292a1955ac343edb9c42e",
-        "bedrock/animations/iron_hoe_4.animation.json": "d78bfc1c2a85f19f7d94a8c5ad62a2cd65c667a40a4e955a5822d1f592f841e1",
+        "bedrock/animations/iron_hoe_4.animation.json": "5ce460741cc4e27af685cf34820c17805e3b57714ace1a8b3ed7e660c2112ca6",
         "bedrock/attachables/iron_hoe_4.json": "652d13a9f478aa797293320f21d0652e11a8044dfbc901f2a874041f57dc755e",
         "bedrock/models/entity/items/iron_hoe_4.geo.json": "7ed605e947c1eb86f5acda84b29f26b2f334c28c563e8e9a9cace24f8e883ef3",
         "bedrock/textures/entity/items/iron_hoe_4.png": "4e5ced5450444d70655abff0171f94ae379e87271af292a1955ac343edb9c42e",
         "bedrock/textures/items/iron_hoe_4.png": "65d58df35e78581d80343dda09d768517663b24e467b93dec3a972f77239a865",
-        "blockbench/items/iron_hoe_4.bedrock.bbmodel": "8b01c77cefa1ea3b77fde141a0ae12ef75cdfa8ad3890234ab7bc9b45aa0a75d",
-        "blockbench/items/iron_hoe_4.java.bbmodel": "fd873f3837af321d60b9473a0e0b62284229da8c7aeeaadaf15f49f98f17ebcb"
+        "blockbench/items/iron_hoe_4.bedrock.bbmodel": "338a8151a4737d5c3dd78165332a8c5da5a57173c0aaad2ce8033015c2d9667e",
+        "blockbench/items/iron_hoe_4.java.bbmodel": "5dbf7e1c5e78e75215836cfab1560f5054227a344e9d1cea26e0bc66c7c3f64d"
       }
     }
   ],
