@@ -1,5 +1,6 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useImperativeHandle, useRef, useState, type Ref } from 'react'
 import { ApiError } from '../api/editorApi'
+import type { ChallengeEntry } from '../api/challengeEntryApi'
 import { masterDataApi } from '../api/masterDataApi'
 import type { JsonObject, JsonValue, ValidationIssue, ValidationReport } from '../types/editor'
 import type { MasterDocument, MasterFileSummary } from '../types/masterData'
@@ -16,14 +17,20 @@ const orientation = ['yaw', 'pitch'] as const
 type Coordinate = typeof coordinates[number]
 type Draft = Record<Coordinate | 'world', string>
 type Point = { key: number; x: number; y: number | null; z: number }
+export type ChallengeLocationEditorHandle = {
+  selectEntry: (entry: ChallengeEntry, onAccepted: () => void) => void
+}
 type Props = {
+  ref?: Ref<ChallengeLocationEditorHandle>
   worldId: string
   worldName?: string
   point: Point | null
   onPickingChange: (value: boolean) => void
   onDirtyChange: (value: boolean) => void
   onBusyChange?: (value: boolean) => void
-  onPositionChange?: (value: { x: number; y: number; z: number } | null) => void
+  onPositionChange?: (value: { x: number; y: number | null; z: number } | null) => void
+  onSelectionChange?: (path: string | null) => void
+  onSaved?: () => void
   active?: boolean
   canPick?: boolean
 }
@@ -93,7 +100,8 @@ function isValidationReport(value: unknown): value is ValidationReport {
 }
 
 export function ChallengeLocationEditor({
-  worldId, worldName, point, onPickingChange, onDirtyChange, onBusyChange, onPositionChange, active = true, canPick = true,
+  ref, worldId, worldName, point, onPickingChange, onDirtyChange, onBusyChange, onPositionChange, onSelectionChange, onSaved,
+  active = true, canPick = true,
 }: Props) {
   const [catalog, setCatalog] = useState<{ bosses: MasterFileSummary[]; dungeons: MasterFileSummary[]; worlds: MasterFileSummary[] } | null>(null)
   const [catalogError, setCatalogError] = useState('')
@@ -127,10 +135,11 @@ export function ChallengeLocationEditor({
   const matchesMap = draft?.world === currentMapValue
   const mapPickAvailable = canPick && !!currentMapOption && matchesMap && !conflict
   const picking = active && mapPickAvailable && pick !== null && pick.worldId === worldId
-  const showPosition = active && !loading && positionValid && matchesMap
+  const showPosition = active && !loading && matchesMap && finiteDecimal(draft.x) && finiteDecimal(draft.z)
   const positionX = showPosition ? Number(draft.x) : null
-  const positionY = showPosition ? Number(draft.y) : null
+  const positionY = showPosition && finiteDecimal(draft.y) ? Number(draft.y) : null
   const positionZ = showPosition ? Number(draft.z) : null
+  const selectedPath = active && !loading ? opened?.document.path ?? null : null
 
   useEffect(() => {
     if (!active || catalog || catalogError) return
@@ -149,8 +158,9 @@ export function ChallengeLocationEditor({
   useEffect(() => { onDirtyChange(dirty) }, [dirty, onDirtyChange])
   useEffect(() => { onPickingChange(picking) }, [picking, onPickingChange])
   useEffect(() => { onBusyChange?.(catalogLoading || loading || saving) }, [catalogLoading, loading, saving, onBusyChange])
+  useEffect(() => { onSelectionChange?.(selectedPath) }, [onSelectionChange, selectedPath])
   useEffect(() => {
-    onPositionChange?.(positionX === null || positionY === null || positionZ === null ? null : { x: positionX, y: positionY, z: positionZ })
+    onPositionChange?.(positionX === null || positionZ === null ? null : { x: positionX, y: positionY, z: positionZ })
   }, [onPositionChange, positionX, positionY, positionZ])
   useEffect(() => {
     if (!picking) {
@@ -169,8 +179,9 @@ export function ChallengeLocationEditor({
     setIssues([])
   }, [picking, pick, point])
 
-  const load = async (path: string) => {
+  const load = async (path: string, boss = catalog?.bosses.some(file => file.path === path) ?? false, onAccepted?: () => void) => {
     if (savingNow.current || (dirty && !window.confirm('未保存の受付地点の変更を破棄しますか？'))) return
+    onAccepted?.()
     const request = ++operation.current
     setSelection(path)
     setPick(null)
@@ -190,7 +201,7 @@ export function ChallengeLocationEditor({
     try {
       const document = await masterDataApi.file(path)
       if (request !== operation.current) return
-      const next = openLocation(document, catalog?.bosses.some(file => file.path === path) ?? false)
+      const next = openLocation(document, boss)
       setOpened(next)
       setDraft(next.initial)
       setMapHeight(null)
@@ -205,6 +216,13 @@ export function ChallengeLocationEditor({
       if (request === operation.current) setLoading(false)
     }
   }
+  useImperativeHandle(ref, () => ({
+    selectEntry(entry, onAccepted) {
+      if (savingNow.current) return
+      if (opened?.document.path === entry.path) onAccepted()
+      else void load(entry.path, entry.kind === 'boss', onAccepted)
+    },
+  }))
 
   const edit = (key: keyof Draft, value: string) => {
     setDraft(previous => previous && { ...previous, [key]: value })
@@ -262,6 +280,7 @@ export function ChallengeLocationEditor({
       setMapHeight(null)
       setReviewedRaw(null)
       setNotice('受付地点を Filebase に保存しました。')
+      onSaved?.()
     } catch (reason) {
       if (request !== operation.current) return
       if (reason instanceof ApiError && reason.status === 409) {

@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { ResizeHandle, usePanelSize } from './ResizeHandle'
 import { spawnerPlanningApi, type PlanningWorld } from '../api/spawnerPlanningApi'
+import { challengeEntryApi, type ChallengeEntry } from '../api/challengeEntryApi'
 import { habitatNames, levelColor, reasonColor, planningRoad, planningLevelStepMeters } from '../data/spawnerPlanning'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 import { MinecraftText } from './MinecraftText'
 import { SpawnerPlanningMap } from './SpawnerPlanningMap'
 import type { PlanningLayer } from './SpawnerPlanningMap'
 import { WorldPlacementEditor, type PlacementCatalog, type PlacementPoint } from './WorldPlacementEditor'
-import { ChallengeLocationEditor } from './ChallengeLocationEditor'
+import { ChallengeLocationEditor, type ChallengeLocationEditorHandle } from './ChallengeLocationEditor'
 import type { WorldPlacement } from '../api/worldPlacementApi'
 import './spawnerPlanning.css'
 import { placementSearchText, placementSearchWords } from '../data/placementSearch'
@@ -56,8 +57,12 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   const [placementDirty, setPlacementDirty] = useState(false)
   const [placementPoint, setPlacementPoint] = useState<PlacementPoint | null>(null)
   const [mode, setMode] = useState<WorkspaceMode>('placements')
+  const challengeEditor = useRef<ChallengeLocationEditorHandle>(null)
+  const [challengeEntries, setChallengeEntries] = useState<{ worldId: string; entries: ChallengeEntry[]; error: string } | null>(null)
+  const [challengeRevision, setChallengeRevision] = useState(0)
+  const [selectedChallenge, setSelectedChallenge] = useState<string | null>(null)
   const [challengePoint, setChallengePoint] = useState<PlacementPoint | null>(null)
-  const [challengePosition, setChallengePosition] = useState<{ x: number; y: number; z: number } | null>(null)
+  const [challengePosition, setChallengePosition] = useState<{ x: number; y: number | null; z: number } | null>(null)
   const [challengePicking, setChallengePicking] = useState(false)
   const [challengeDirty, setChallengeDirty] = useState(false)
   const [challengeBusy, setChallengeBusy] = useState(false)
@@ -72,13 +77,18 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   const editorBusy = placementBusy || challengeBusy
   const switchLocked = loading || (showingPlans && planning) || editorBusy || dirty
   const reloadLocked = loading || ((!worldId || !snapshot) && (dirty || editorBusy))
+  const challengeMapWorld = snapshot?.manifest.worldId
+  const challengeMap = challengeEntries?.worldId === challengeMapWorld ? challengeEntries : null
+  const pickingPoint = !loading && ((editing && (placing || moving) && !placementBusy) || (editingChallenge && challengePicking && !challengeBusy))
   const focusActiveProposalMode = useCallback((element: HTMLButtonElement | null) => { element?.focus() }, [])
+  const refreshChallengeEntries = useCallback(() => setChallengeRevision(value => value + 1), [])
   const resetWorldView = useCallback(() => {
     setPlan(null); setPlanning(false); setPlanningError('')
     setMode(current => current === 'proposals' ? 'placements' : current)
     setOtherToolsOpen(false)
     setSelectedPlacement(null); setPlacementPoint(null); setPlacing(false); setMoving(false)
     setChallengePoint(null); setChallengePosition(null); setChallengePicking(false)
+    setSelectedChallenge(null); setChallengeEntries(null)
     setPlacements([]); setPlacementsReady(false); setFocus(null); setLayer('terrain')
     setQuery(''); setProposalPage(0); listFocus.current = null
   }, [])
@@ -117,6 +127,18 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
   }, [reload, worldId, resetWorldView])
   // A new snapshot (including an explicit reload) owns a fresh, bounded cache.
   const plansByRadius = useMemo(() => new Map<number, PlanningPlan>(), [snapshot, reload])
+  useEffect(() => {
+    if (!active || !challengeMapWorld) return
+    const controller = new AbortController()
+    void challengeEntryApi.list(challengeMapWorld, controller.signal).then(entries => {
+      if (!controller.signal.aborted) setChallengeEntries({ worldId: challengeMapWorld, entries, error: '' })
+    }).catch(failure => {
+      if (controller.signal.aborted) return
+      const error = failure instanceof Error ? failure.message : '受付地点を取得できませんでした'
+      setChallengeEntries(current => ({ worldId: challengeMapWorld, entries: current?.worldId === challengeMapWorld ? current.entries : [], error }))
+    })
+    return () => controller.abort()
+  }, [active, challengeMapWorld, challengeRevision, reload])
   useEffect(() => {
     if (!snapshot || !hasPlans || !showingPlans || loading) return
     const controller = new AbortController()
@@ -217,6 +239,10 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
     if (next === 'placements') setSelectedProposal(null)
     else { setPlacing(false); setMoving(false) }
   }
+  function selectChallengeEntry(entry: ChallengeEntry) {
+    if (!active || loading || editorBusy || pickingPoint) return
+    challengeEditor.current?.selectEntry(entry, () => selectMode('challenge'))
+  }
   function selectMapPoint(x: number, y: number | null, z: number) {
     if (editingChallenge && challengePicking && !challengeBusy) {
       setChallengePoint(current => ({ key: (current?.key ?? 0) + 1, x, y, z }))
@@ -275,6 +301,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
     {showingPlans && <p className="sp-intro">{road ? `${levelStep ? `開始地点からの${road.terrainExtension ? '地形経路距離' : '道路距離'}${number(levelStep)}mごとにレベルを一段階上げます。` : '開始地点につながる道の距離でレベルを決めます。'}配置の上限はLv.45で、未到達の距離帯は配置しません。北東のLv.100超予定地を含む後続地域は未配置です。金色の線は16m区画で検出した道路網です。${road.terrainExtension ? '水色の点線は水域・斜面・足場を調べて延長した推定経路です。周辺のレベルも地表をたどる距離で決めています。実際の歩行可能性は未検証です。' : ''}` : '既存の配置を使わず、ブロック・バイオームとマスタの実レベルから作る全大陸の再配置案です。地域名と進行レベルは計画用の提案です。'}</p>}
     {error && (worldId || snapshot || !editingChallenge) && <div className="sp-error" role="alert"><strong>地図を読み込めません</strong><p>{error}</p><p>未取り込みのワールドは「地図の追加・更新」から手順を確認できます。</p></div>}
     {showingPlans && planningError && <div className="sp-error" role="alert"><strong>配置案を表示できません</strong><p>{planningError}</p></div>}
+    {challengeMap?.error && <p className="sp-muted" role="status">{challengeMap.error} 「地図を再読込」で再取得できます。</p>}
     {loading && <div className="sp-loading" role="status">ワールドの解析結果を読み込んでいます…</div>}
     {snapshot && <>
       {showingPlans && <div className="sp-controls">
@@ -305,7 +332,9 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
               placements={editingChallenge ? undefined : placements} placementsReady={placementsReady} placementCatalog={placementCatalog} selectedPlacement={editingChallenge ? null : selectedPlacement}
               onPlacement={editingChallenge ? undefined : id => { if (!editing) selectMode('placements'); selectPlacement(id) }}
               challengeOnly={editingChallenge} challengePosition={editingChallenge ? challengePosition : null} pickingChallenge={editingChallenge && challengePicking}
-              placing={!loading && ((editing && (placing || moving) && !placementBusy) || (editingChallenge && challengePicking && !challengeBusy))}
+              challengeEntries={challengeMap?.entries} selectedChallenge={editingChallenge ? selectedChallenge : null} challengeDirty={editingChallenge && challengeDirty}
+              onChallengeEntry={loading || editorBusy ? undefined : selectChallengeEntry}
+              placing={pickingPoint}
               onPlacePoint={selectMapPoint} />
             {showingPlans && <div className="sp-map-caption"><span><span className="sp-spawn-dot">●</span> 開始地点{road && '　金色実線: 道路 / 水色点線: 推定経路'}</span><span>{number(snapshot.manifest.bounds.width)} × {number(snapshot.manifest.bounds.height)}m · {snapshot.manifest.bounds.cellSize}m区画 · {number(snapshot.cells.length)}区画</span></div>}
           </>} />
@@ -316,9 +345,10 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
         {snapshot && !editing && <ResizeHandle label={editingChallenge ? '地図とチャレンジ編集の幅を変更' : '地図と配置案の幅を変更'} size={sidebarWidth} min={260} max={700} defaultSize={330} minRemaining={360} direction={-1} onResize={setSidebarWidth} className="sp-planning-resizer" />}
         <aside key={snapshot?.manifest.worldId ?? 'no-map'} className="sp-sidebar" hidden={!editingChallenge}>
           {!snapshot && <p className="sp-muted">地図が表示できないときも、ワールドと X・Y・Z を指定して受付地点を保存できます。</p>}
-          <ChallengeLocationEditor worldId={snapshot?.manifest.worldId ?? ''} worldName={snapshot?.manifest.worldName}
+          <ChallengeLocationEditor ref={challengeEditor} worldId={snapshot?.manifest.worldId ?? ''} worldName={snapshot?.manifest.worldName}
             point={challengePoint} active={active && editingChallenge && (!!snapshot || !loading)} canPick={!!snapshot && !loading}
-            onPickingChange={setChallengePicking} onDirtyChange={setChallengeDirty} onBusyChange={setChallengeBusy} onPositionChange={setChallengePosition} />
+            onPickingChange={setChallengePicking} onDirtyChange={setChallengeDirty} onBusyChange={setChallengeBusy}
+            onPositionChange={setChallengePosition} onSelectionChange={setSelectedChallenge} onSaved={refreshChallengeEntries} />
         </aside>
         {snapshot && showingPlans && <aside className="sp-sidebar">
           {planning && <p role="status" className="sp-loading">半径{radius}mの配置案を読み込んでいます…</p>}

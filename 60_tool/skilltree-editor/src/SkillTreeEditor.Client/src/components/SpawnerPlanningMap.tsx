@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSta
 import { cellAtWorld, levelColor, reasonColor, terrainColor, planningRoad } from '../data/spawnerPlanning'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
 import type { WorldPlacement } from '../api/worldPlacementApi'
+import type { ChallengeEntry } from '../api/challengeEntryApi'
 import { spawnerPlanningUrl } from '../api/spawnerPlanningApi'
 import type { PlacementCatalog } from './WorldPlacementEditor'
 import { spawnerLevelBands, spawnerLevels, spawnerMasterColor, spawnerMasterNumbers } from '../data/spawnerMapStyle'
@@ -18,6 +19,23 @@ const hasRadius = (radius: number | null | undefined): radius is number => typeo
 const unknownLevels = spawnerLevels([])
 type MapView = { scale: number; x: number; z: number }
 type PointerSample = { x: number; z: number; hover: boolean }
+type MarkerPosition = { left: number; top: number }
+const challengeMarkerGap = 27
+
+function challengeMarkerPosition(anchor: MarkerPosition, occupied: MarkerPosition[], size: { width: number; height: number }): MarkerPosition {
+  const left = Math.max(13, Math.min(size.width - 13, anchor.left))
+  const top = Math.max(13, Math.min(size.height - 13, anchor.top))
+  const clear = (candidateTop: number) => candidateTop >= 13 && candidateTop <= size.height - 13
+    && occupied.every(marker => Math.abs(left - marker.left) >= challengeMarkerGap || Math.abs(candidateTop - marker.top) >= challengeMarkerGap)
+  if (clear(top)) return { left, top }
+  // Keep close entries individually selectable, with each offset marker linked to its true position.
+  for (let offset = challengeMarkerGap; offset < size.height; offset += challengeMarkerGap) {
+    if (clear(top + offset)) return { left, top: top + offset }
+    if (clear(top - offset)) return { left, top: top - offset }
+  }
+  return { left, top }
+}
+
 interface Props {
   snapshot: PlanningSnapshot; plan: PlanningPlan | null; layer: PlanningLayer; region: string; reason: string
   radii: boolean; onRadiiChange?: (value: boolean) => void; active: boolean; selectedCell: number | null; selectedProposal: string | null
@@ -29,7 +47,11 @@ interface Props {
   placementsReady?: boolean
   compactControls?: boolean
   planningWorldId?: string
-  challengePosition?: { x: number; y: number; z: number } | null
+  challengePosition?: { x: number; y: number | null; z: number } | null
+  challengeEntries?: ChallengeEntry[]
+  selectedChallenge?: string | null
+  challengeDirty?: boolean
+  onChallengeEntry?: (entry: ChallengeEntry) => void
   pickingChallenge?: boolean
   challengeOnly?: boolean
 }
@@ -491,14 +513,16 @@ export function SpawnerPlanningMap(props: Props) {
   }, [size, bounds, flushPointerFrame, updateView])
   useEffect(() => {
     const element = canvas.current
-    if (!element || !active) return
+    const map = element?.parentElement
+    if (!element || !map || !active) return
     const wheel = (event: WheelEvent) => {
+      if (event.target !== element && !(event.target instanceof Element && event.target.closest('.sp-challenge-entry'))) return
       event.preventDefault()
       const rect = element.getBoundingClientRect()
       zoom(event.deltaY < 0 ? 1.18 : 1 / 1.18, event.clientX - rect.left, event.clientY - rect.top)
     }
-    element.addEventListener('wheel', wheel, { passive: false })
-    return () => element.removeEventListener('wheel', wheel)
+    map.addEventListener('wheel', wheel, { passive: false })
+    return () => map.removeEventListener('wheel', wheel)
   }, [active, zoom])
   function jumpToCoordinates() {
     if (!active) return
@@ -526,6 +550,25 @@ export function SpawnerPlanningMap(props: Props) {
     <p>2px/m以上に拡大すると番号と実レベルを表示します。通常は選択した点だけにラベルを表示し、密集時は重なるラベルを省略します。</p>
     {layer === 'terrain' && <p><span className="sp-spawn-dot">●</span> 開始地点　<i className="sp-unknown-key" />青灰: 未解析・解析失敗　<i className="sp-absent-key" />濃灰: 未保存。地形や水域とは区別しています。{props.showProposals !== false && '詳細は区画の選択、または「配置・未配置の理由」で確認できます。'}</p>}
   </div>
+  const selectedEntry = props.challengeEntries?.find(entry => entry.path === props.selectedChallenge)
+  const draft = props.challengePosition
+  const draftMoved = draft && selectedEntry && (draft.x !== selectedEntry.x || draft.z !== selectedEntry.z)
+  const draftHeightChanged = props.challengeDirty && draft && selectedEntry && !draftMoved && draft.y !== selectedEntry.y
+  const candidate = draft && (!selectedEntry || (props.challengeDirty && draftMoved)) ? draft : null
+  const markerPosition = ({ x, z }: { x: number; z: number }) => ({
+    left: (x - bounds.minX) * view.scale + view.x,
+    top: (z - bounds.minZ) * view.scale + view.z,
+  })
+  const challengeMarkers = useMemo(() => {
+    const occupied: MarkerPosition[] = []
+    return (props.challengeEntries ?? []).flatMap(entry => {
+      const anchor = { left: (entry.x - bounds.minX) * view.scale + view.x, top: (entry.z - bounds.minZ) * view.scale + view.z }
+      if (anchor.left < 0 || anchor.left > size.width || anchor.top < 0 || anchor.top > size.height) return []
+      const position = challengeMarkerPosition(anchor, occupied, size)
+      occupied.push(position)
+      return [{ entry, anchor, position }]
+    })
+  }, [props.challengeEntries, bounds.minX, bounds.minZ, size, view])
   return <div className="sp-map-panel">
     <details className="sp-map-options" open={props.compactControls ? undefined : true}><summary>{props.challengeOnly ? '地図を座標で移動' : '地図の表示・座標移動'}</summary>
     {props.onRadiiChange && <label className="sp-map-range-switch"><input type="checkbox" checked={radii}
@@ -649,9 +692,25 @@ export function SpawnerPlanningMap(props: Props) {
         }
       }} />
     {coordinateTarget && <svg className="sp-coordinate-marker" viewBox="-12 -12 24 24" role="img" aria-label={`座標の移動先 X ${coordinateTarget.x} / Z ${coordinateTarget.z}`} style={{ left: `${((coordinateTarget.x - bounds.minX) * view.scale + view.x) / size.width * 100}%`, top: `${((coordinateTarget.z - bounds.minZ) * view.scale + view.z) / size.height * 100}%` }}><circle r="5" /><path d="M-12 0H-7 M7 0H12 M0-12V-7 M0 7V12" /></svg>}
-    {props.challengePosition && <svg className="sp-coordinate-marker sp-challenge-marker" viewBox="-12 -12 24 24" role="img"
-      aria-label={`チャレンジ受付地点 X ${props.challengePosition.x} / Y ${props.challengePosition.y} / Z ${props.challengePosition.z}`}
-      style={{ left: `${((props.challengePosition.x - bounds.minX) * view.scale + view.x) / size.width * 100}%`, top: `${((props.challengePosition.z - bounds.minZ) * view.scale + view.z) / size.height * 100}%` }}>
+    {!!challengeMarkers.length && <svg className="sp-challenge-leaders" aria-hidden="true">
+      {challengeMarkers.map(({ entry, anchor, position }) => (anchor.left !== position.left || anchor.top !== position.top)
+        && <line key={entry.path} x1={anchor.left} y1={anchor.top} x2={position.left} y2={position.top} />)}
+    </svg>}
+    {challengeMarkers.map(({ entry, position }) => {
+      const label = `${entry.kind === 'boss' ? 'ボス' : 'ダンジョン'}受付 ${plainName(entry.name) || entry.path}`
+      const selected = entry.path === props.selectedChallenge
+      return <button key={entry.path} type="button" className={`sp-challenge-entry ${entry.kind}`}
+        title={`${label} · X ${entry.x} / Y ${entry.y} / Z ${entry.z}`}
+        aria-label={label} aria-pressed={selected}
+        data-draft={selected && draftHeightChanged ? true : undefined}
+        style={position} disabled={!active || props.placing || !props.onChallengeEntry}
+        onPointerEnter={() => setPointer(null)} onClick={() => props.onChallengeEntry?.(entry)}>
+        <span aria-hidden="true">{entry.kind === 'boss' ? '✦' : '▣'}</span>
+      </button>
+    })}
+    {candidate && <svg className="sp-coordinate-marker sp-challenge-marker" viewBox="-12 -12 24 24" role="img"
+      aria-label={`${props.challengeDirty ? '未保存の' : ''}チャレンジ受付地点 X ${candidate.x} / Y ${candidate.y ?? '未入力'} / Z ${candidate.z}`}
+      style={markerPosition(candidate)}>
       <path d="M0-9 9 0 0 9-9 0Z" /><circle r="2" />
     </svg>}
     {hovered && pointer && <div ref={tooltip} role="tooltip" className="sp-map-tooltip" style={{
@@ -662,6 +721,12 @@ export function SpawnerPlanningMap(props: Props) {
     <div className="sp-map-tools"><button className="button" onClick={() => zoom(1.5)} aria-label="地図を拡大">＋</button><button className="button" onClick={() => zoom(1 / 1.5)} aria-label="地図を縮小">−</button><button className="button" onClick={fit}>全大陸</button></div>
     <span className="sp-north">N ↑</span><output className="sp-coordinates">{coordinates} · {view.scale.toFixed(view.scale < 1 ? 2 : 1)} px/m · {layer === 'terrain' && detail && view.scale >= .4 ? '1m地形' : '16m区画'}</output>
     </div>
+    {(!!props.challengeEntries?.length || (candidate && props.challengeDirty)) && <p className="sp-challenge-legend">
+      <span><b className="boss" aria-hidden="true">✦</b> ボス受付</span>
+      <span><b className="dungeon" aria-hidden="true">▣</b> ダンジョン受付</span>
+      {candidate && props.challengeDirty && <span>◇ 未保存の受付地点</span>}
+      {draftHeightChanged && <span>破線の枠は高さが未保存</span>}
+    </p>}
     {selected && <p className="sp-map-selection" aria-live="polite">選択中: {selected.kind === 'spawner' ? `#${masterNumbers.get(selected.templateId ?? '') ?? '?'} ${plainName(masters.get(selected.templateId ?? '')?.name ?? selected.templateId ?? 'マスター不明')} · ${spawnerLevels(masters.get(selected.templateId ?? '')?.levels ?? []).label}` : selected.kind === 'npc' ? plainName(props.placementCatalog?.npcs.find(item => item.id === selected.templateId)?.name ?? selected.templateId ?? 'NPC') : plainName(selected.waystone?.name ?? '道標')} · {selected.enabled ? '有効' : '無効'} · X {selected.x} / Z {selected.z}</p>}
     {!props.compactControls && !props.challengeOnly && markerLegend}
   </div>
