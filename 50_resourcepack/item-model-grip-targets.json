@@ -1742,9 +1742,9 @@
     "firstperson_lefthand": {"position": [-1.13, -1.1828, -0.4652], "up": [0.186, 0.9315, 0.3125]}
   },
   "minecraft:fishing_rod": {
-    "thirdperson_righthand": {"position": [0.0, -1.7415, 1.4876], "up": [-0.0, 0.3665, 0.9304]},
-    "thirdperson_lefthand": {"position": [-0.0, -1.7415, 1.4876], "up": [-0.0, 0.3665, 0.9304]},
-    "firstperson_righthand": {"position": [-0.0, -2.7828, 2.3952], "up": [-0.1589, 0.9662, 0.2028]},
-    "firstperson_lefthand": {"position": [0.0, -2.7828, 2.3952], "up": [-0.0157, 0.9988, 0.0473]}
+    "thirdperson_righthand": {"position": [0, -0.75, 1.5], "up": [0.0149, 0.8624, 0.5061]},
+    "thirdperson_lefthand": {"position": [0, -0.75, 1.5], "up": [-0.0451, 0.9556, 0.2912]},
+    "firstperson_righthand": {"position": [0, -2.4, -2.88], "up": [-0.4044, 0.9112, 0.0786]},
+    "firstperson_lefthand": {"position": [0, -2.4, -2.88], "up": [0.202, 0.9792, -0.0201]}
   }
 }

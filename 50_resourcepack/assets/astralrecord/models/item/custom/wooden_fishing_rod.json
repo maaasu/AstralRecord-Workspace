@@ -571,24 +571,24 @@
 	],
 	"display": {
 		"thirdperson_righthand": {
-			"rotation": [0, 90, 68.5],
-			"translation": [0, -1.7415, 1.4876],
-			"scale": [0.738, 0.738, 0.738]
+			"rotation": [36.81, 82.38, -6.46],
+			"translation": [0, -0.75, 1.5],
+			"scale": [0.574, 0.574, 0.574]
 		},
 		"thirdperson_lefthand": {
-			"rotation": [0, -90, -68.5],
-			"translation": [0, -1.7415, 1.4876],
-			"scale": [0.738, 0.738, 0.738]
+			"rotation": [37.11, 82.54, -20.32],
+			"translation": [0, -0.75, 1.5],
+			"scale": [0.574, 0.574, 0.574]
 		},
 		"firstperson_righthand": {
-			"rotation": [3.52, 42, 12.35],
-			"translation": [0, -2.7828, 2.3952],
-			"scale": [0.7446, 0.7446, 0.7446]
+			"rotation": [-6.9, 24.88, 26.47],
+			"translation": [0, -2.4, -2.88],
+			"scale": [0.3324, 0.3324, 0.3324]
 		},
 		"firstperson_lefthand": {
-			"rotation": [3.52, 42, -1.21],
-			"translation": [0, -2.7828, 2.3952],
-			"scale": [0.7446, 0.7446, 0.7446]
+			"rotation": [-6.26, 23.24, 12.7],
+			"translation": [0, -2.4, -2.88],
+			"scale": [0.3324, 0.3324, 0.3324]
 		},
 		"ground": {
 			"rotation": [0, 0, -25],
