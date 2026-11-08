@@ -304,7 +304,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
     anchor.href = url; anchor.download = `${snapshot.manifest.worldId}-preview-${radius}m.json`; anchor.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
-  return <section className={`sp-workspace ${editing && !showingTeleporters ? 'sp-editing-workspace' : ''}`} aria-label="ワールド配置・編集">
+  return <section className={`sp-workspace ${showingTeleporters ? 'sp-teleporter-workspace' : editing ? 'sp-editing-workspace' : ''}`} aria-label="ワールド配置・編集">
     <header className="sp-heading">
       <h1>{showingTeleporters ? 'ワールド配置・編集' : snapshot?.manifest.worldName ?? listedWorld?.name ?? 'ワールド地図'}</h1>
       {!showingTeleporters && <div className="sp-header-actions">
@@ -346,7 +346,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
         </div>
       </details></>}
     </div>
-    {teleportersOpened && <div hidden={!showingTeleporters}>
+    {teleportersOpened && <div className="sp-teleporter-shell" hidden={!showingTeleporters}>
       <TeleporterList worlds={teleporterWorlds} openDisabled={switchLocked || teleporterSwitchLocked || pickingPoint}
         editDisabled={placementDirty || editorBusy || placing || moving} onOpen={openTeleporterPlacement}
         onDirtyChange={setTeleporterDirty} onBusyChange={setTeleporterBusy}

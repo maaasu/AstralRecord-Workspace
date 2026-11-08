@@ -23,12 +23,24 @@ interface ResizableTableProps {
 
 const defaultMinimum = 64
 const maximum = 960
+const defaultLayout = '{}'
 const layoutChanges = new EventTarget()
 const unsavedLayouts = new Map<string, string>()
 
 function readLayout(key: string) {
   if (unsavedLayouts.has(key)) return unsavedLayouts.get(key)!
-  try { return localStorage.getItem(key) ?? '{}' } catch { return '{}' }
+  try { return localStorage.getItem(key) ?? defaultLayout } catch { return defaultLayout }
+}
+
+function writeLayout(key: string, value: string) {
+  try {
+    if (value === defaultLayout) localStorage.removeItem(key)
+    else localStorage.setItem(key, value)
+    unsavedLayouts.delete(key)
+  } catch {
+    unsavedLayouts.set(key, value)
+  }
+  layoutChanges.dispatchEvent(new Event(key))
 }
 
 function parseLayout(saved: string): Record<string, unknown> {
@@ -58,16 +70,24 @@ function useColumnWidths(storageKey: string) {
     if (width === column.width) delete widths[column.id]
     else widths[column.id] = width
     const updated = JSON.stringify(widths)
-    if (updated === current) return
-    try {
-      localStorage.setItem(key, updated)
-      unsavedLayouts.delete(key)
-    } catch {
-      unsavedLayouts.set(key, updated)
-    }
-    layoutChanges.dispatchEvent(new Event(key))
+    if (updated !== current) writeLayout(key, updated)
   }
-  return { widths: parseLayout(saved), setWidth }
+  return {
+    widths: parseLayout(saved),
+    setWidth,
+    hasSavedWidths: saved !== defaultLayout,
+    resetWidths: () => writeLayout(key, defaultLayout),
+  }
+}
+
+export function ResetTableColumns({ storageKey, className = 'button', children = '列幅をリセット' }: {
+  storageKey: string
+  className?: string
+  children?: ReactNode
+}) {
+  const { hasSavedWidths, resetWidths } = useColumnWidths(storageKey)
+  return <button type="button" className={`table-column-reset ${className}`} aria-disabled={!hasSavedWidths}
+    onClick={hasSavedWidths ? resetWidths : undefined}>{children}</button>
 }
 
 function revealFocusedCell({ currentTarget: region, target }: FocusEvent<HTMLDivElement>) {

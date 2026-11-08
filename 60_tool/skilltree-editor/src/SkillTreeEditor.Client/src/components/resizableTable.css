@@ -45,3 +45,9 @@
   background: var(--blue);
   width: 3px;
 }
+
+.table-column-reset[aria-disabled="true"] {
+  opacity: .65;
+  cursor: default;
+  transform: none;
+}

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, expect, it, vi } from 'vitest'
-import { ResizableTable } from './ResizableTable'
+import { ResizableTable, ResetTableColumns } from './ResizableTable'
 
 const nameColumn = { id: 'name', label: '名前', width: 140 }
 const detailsColumn = { id: 'details', label: '詳細', width: 220, minWidth: 100 }
@@ -51,6 +52,34 @@ it('shares and remembers widths by column ID when columns or table instances cha
   expect(width(grip('名前'))).toBe(156)
 })
 
+it('resets every saved width for the selected table and keeps keyboard focus', async () => {
+  const user = userEvent.setup()
+  const tableKey = 'astralrecord.layout.table.test'
+  const otherKey = 'astralrecord.layout.table.other'
+  localStorage.setItem(tableKey, '{"name":960,"details":100,"hidden":320}')
+  localStorage.setItem(otherKey, '{"name":180}')
+  const mounted = render(<><ResetTableColumns storageKey="test" /><Example /><Example storageKey="other" label="別の一覧" /></>)
+  const reset = screen.getByRole('button', { name: '列幅をリセット' })
+  expect(reset).toHaveAttribute('aria-disabled', 'false')
+  expect(width(grip('名前'))).toBe(960)
+  expect(width(grip('詳細'))).toBe(100)
+
+  await user.tab()
+  await user.keyboard('{Enter}')
+  expect(reset).toHaveFocus()
+  expect(reset).toHaveAttribute('aria-disabled', 'true')
+  expect(width(grip('名前'))).toBe(140)
+  expect(width(grip('詳細'))).toBe(220)
+  expect(width(grip('名前', '別の一覧'))).toBe(180)
+  expect(localStorage.getItem(tableKey)).toBeNull()
+  expect(localStorage.getItem(otherKey)).toBe('{"name":180}')
+
+  mounted.unmount()
+  render(<Example />)
+  expect(width(grip('名前'))).toBe(140)
+  expect(width(grip('詳細'))).toBe(220)
+})
+
 it('falls back to defaults for invalid values and allows adjustment when browser storage is blocked', () => {
   localStorage.setItem('astralrecord.layout.table.test', '{"name":"bad value","details":5000}')
   const mounted = render(<Example />)
@@ -60,13 +89,17 @@ it('falls back to defaults for invalid values and allows adjustment when browser
 
   const read = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked') })
   const write = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked') })
+  const remove = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => { throw new Error('blocked') })
   try {
-    render(<Example storageKey="blocked" />)
+    render(<><ResetTableColumns storageKey="blocked" /><Example storageKey="blocked" /></>)
     fireEvent.keyDown(grip('名前'), { key: 'ArrowRight' })
     expect(width(grip('名前'))).toBe(156)
+    fireEvent.click(screen.getByRole('button', { name: '列幅をリセット' }))
+    expect(width(grip('名前'))).toBe(140)
   } finally {
     read.mockRestore()
     write.mockRestore()
+    remove.mockRestore()
   }
 })
 

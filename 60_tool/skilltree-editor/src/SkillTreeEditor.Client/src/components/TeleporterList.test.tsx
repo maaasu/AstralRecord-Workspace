@@ -67,7 +67,10 @@ beforeEach(() => {
   vi.mocked(spawnerPlanningApi.worlds).mockResolvedValue([])
   vi.mocked(spawnerPlanningApi.snapshot).mockRejectedValue(new Error('地図がありません'))
 })
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  localStorage.clear()
+})
 
 it('地図がなくても保存済みの道標だけを表示名順に読み、検索と絞り込みを組み合わせられる', async () => {
   const west = waystone('west_gate', '&a西門', 'eriva', true)
@@ -104,6 +107,51 @@ it('地図がなくても保存済みの道標だけを表示名順に読み、�
   expect(write).not.toHaveBeenCalled()
 })
 
+it('ワールドの長いパスと未使用の解放費用は詳細から確認でき、同じ短縮名のワールドを区別できる', async () => {
+  const main = { ...waystone('gate', '正門', 'main', true), worldName: 'plugins/AstralRecord/worlds/base/shared' }
+  main.waystone!.unlockGold = 25000
+  main.waystone!.icon = null
+  const other = { ...waystone('tower', '塔', 'other', false), worldName: 'plugins\\AstralRecord\\worlds\\event\\shared' }
+  mockPlacementApi([main, other])
+
+  render(<SpawnerPlanningWorkspace active />)
+  openList()
+  const table = await screen.findByRole('table')
+  const row = within(table).getByRole('row', { name: /正門/ })
+  expect(within(row).getByText('shared')).toHaveAttribute('title', main.worldName)
+  expect(within(row).getByText('なし')).toBeVisible()
+  expect(within(row).queryByText(/25,000 ゴールド/)).not.toBeInTheDocument()
+  expect(within(row).getByTitle('BEACON（既定）').querySelector('img')).toBeInTheDocument()
+  expect(screen.getByRole('option', { name: 'shared (main)' })).toHaveValue('main')
+  expect(screen.getByRole('option', { name: 'shared (other)' })).toHaveValue('other')
+
+  fireEvent.click(within(row).getByRole('button', { name: '正門' }))
+  expect(within(table).getByText(main.worldName)).toBeVisible()
+  expect(within(table).getByText(/25,000 ゴールド（未使用）/)).toBeVisible()
+  expect(within(table).getByText('（既定）')).toHaveTextContent('BEACON（既定）')
+})
+
+it('旧レイアウトの列幅を引き継がず、現在の列幅を一覧からリセットできる', async () => {
+  localStorage.setItem('astralrecord.layout.table.teleporter-list', '{"name":110,"icon":960}')
+  mockPlacementApi([waystone('gate', '正門', 'main', true)])
+
+  render(<SpawnerPlanningWorkspace active />)
+  openList()
+  const table = await screen.findByRole('table')
+  const nameGrip = within(table).getByRole('separator', { name: '表示名列の幅を変更' })
+  const iconGrip = within(table).getByRole('separator', { name: 'アイコン列の幅を変更' })
+  const reset = screen.getByRole('button', { name: '列幅をリセット' })
+  expect(nameGrip).toHaveAttribute('aria-valuenow', '284')
+  expect(iconGrip).toHaveAttribute('aria-valuenow', '168')
+  expect(reset).toHaveAttribute('aria-disabled', 'true')
+
+  fireEvent.keyDown(iconGrip, { key: 'ArrowRight' })
+  expect(iconGrip).toHaveAttribute('aria-valuenow', '184')
+  fireEvent.click(reset)
+  expect(iconGrip).toHaveAttribute('aria-valuenow', '168')
+  expect(reset).toHaveAttribute('aria-disabled', 'true')
+})
+
 it('地図なしで選んだ道標の設定だけを編集して Dev に保存し、一覧の結果を更新する', async () => {
   const gate = waystone('gate', '既存の門', 'eriva', true)
   gate.waystone!.createdAt = '2026-01-02T03:04:05Z'
@@ -126,7 +174,7 @@ it('地図なしで選んだ道標の設定だけを編集して Dev に保存�
   fireEvent.change(screen.getByLabelText('Pitch（上下の向き）'), { target: { value: '-5' } })
   fireEvent.click(screen.getByLabelText('配置を有効にする'))
   fireEvent.click(screen.getByLabelText('解放条件を使用'))
-  fireEvent.change(screen.getByLabelText('解放費用'), { target: { value: '5000' } })
+  fireEvent.change(screen.getByRole('textbox', { name: '解放費用' }), { target: { value: '5000' } })
   fireEvent.click(screen.getByRole('button', { name: '画像一覧から選択' }))
   const picker = await screen.findByRole('dialog', { name: '素材アイコンを選択' })
   fireEvent.change(within(picker).getByRole('searchbox'), { target: { value: 'diamond' } })
@@ -219,11 +267,11 @@ it('座標の空欄と安全整数外の保存済み解放費用を拒み、書�
   fireEvent.click(screen.getByRole('button', { name: 'Dev に保存' }))
   expect(screen.getByRole('alert')).toHaveTextContent('解放費用は')
   expect(writeOne).not.toHaveBeenCalled()
-  fireEvent.change(screen.getByLabelText('解放費用'), { target: { value: '1000' } })
+  fireEvent.change(screen.getByRole('textbox', { name: '解放費用' }), { target: { value: '1000' } })
   fireEvent.click(screen.getByRole('button', { name: 'Dev に保存' }))
 
   expect(await screen.findByRole('alert')).toHaveTextContent('接続を確認してください')
-  expect(screen.getByLabelText('解放費用')).toHaveValue('1000')
+  expect(screen.getByRole('textbox', { name: '解放費用' })).toHaveValue('1000')
   expect(screen.getByRole('button', { name: 'Dev に保存' })).toBeEnabled()
   fireEvent.click(screen.getByRole('button', { name: 'Dev に保存' }))
   expect(await screen.findByText(/Dev にテレポーターを保存しました/)).toBeVisible()
@@ -303,12 +351,12 @@ it('ゲーム内で登録した道標を手動で再読込し、同じワール�
 
   fireEvent.click(screen.getByRole('button', { name: '既存の門' }))
   fireEvent.click(screen.getByRole('button', { name: '配置編集で開く' }))
-  await waitFor(() => expect(screen.getByLabelText('解放費用')).toHaveValue('5000'))
+  await waitFor(() => expect(screen.getByRole('textbox', { name: '解放費用' })).toHaveValue('5000'))
 
   openList()
   fireEvent.click(screen.getByRole('button', { name: 'ゲーム内で登録した門' }))
   fireEvent.click(screen.getByRole('button', { name: '配置編集で開く' }))
   expect(await screen.findByLabelText('道標 ID')).toHaveValue(newId)
-  expect(screen.getByLabelText('解放費用')).toHaveValue('15000')
+  expect(screen.getByRole('textbox', { name: '解放費用' })).toHaveValue('15000')
   expect(write).not.toHaveBeenCalled()
 })
