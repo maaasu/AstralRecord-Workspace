@@ -31,9 +31,11 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -41,8 +43,9 @@ import java.util.concurrent.ThreadLocalRandom;
  * Bukkit API と実魚の移動は親キャストタスクからメインスレッドで更新します。
  */
 public final class FishingSession {
-    /** キャスト・釣り待機・リールで共用する、最大糸長の丸め誤差許容（m）。 */
+    /** キャストの引き寄せとリールで共用する、最大糸長の丸め誤差許容（m）。 */
     public static final double LINE_LENGTH_EPSILON = 1.0E-8D;
+    private static final int WAITING_HOOK_SETTLE_TICKS = 5;
     private static final int MAX_SEARCH_BLOCKS = 5_000;
     private static final double MIN_SPAWN_DISTANCE_SQUARED = 5.0D;
     private static final double MIN_FISH_SEPARATION_SQUARED = 3.0D;
@@ -58,7 +61,7 @@ public final class FishingSession {
     private final Player player;
     private final MobService mobService;
     private final World world;
-    private final Location submergedHook;
+    private Location submergedHook;
     private final double maxLineLength;
     private final double rodAttack;
     private final FishingMasterService masterService;
@@ -78,6 +81,7 @@ public final class FishingSession {
     private Location previousRodTip;
     private int ticks;
     private int phaseTicks;
+    private int waitingHookSettleTicks;
     private int lastReelTick = Integer.MIN_VALUE / 2;
     private double combatMaxHealth;
     private double hp;
@@ -135,11 +139,13 @@ public final class FishingSession {
 
     /**
      * 魚と表示を1tick進めます。親キャストタスクからメインスレッドで呼びます。
-     * 糸長判定はキャストと同じ丸め誤差許容を使い、着水境界だけで逃走させません。
+     * 食いつき前は親キャストが針を動かし、止まった水中位置へ魚の経路を更新します。
      *
      * @param rodTip 現在の竿先。針と同じworldであること
+     * @param castHook キャスト側の現在の針。待機中のみ参照します
+     * @param pulling 最大糸長を超えたため、このtickに針を引き寄せる場合true
      */
-    public void tick(@NotNull Location rodTip) {
+    public void tick(@NotNull Location rodTip, @NotNull Location castHook, boolean pulling) {
         if (phase == Phase.FINISHED) return;
         if (!player.isOnline() || player.isDead() || player.getWorld() != world
             || rodTip.getWorld() != world || !allFishValid()) {
@@ -149,12 +155,8 @@ public final class FishingSession {
         ticks++;
         phaseTicks++;
         if (ticks >= MAX_SESSION_TICKS) { escape(); return; }
-        if (phase == Phase.WAITING && rodTip.distance(submergedHook) > maxLineLength + LINE_LENGTH_EPSILON) {
-            escape();
-            return;
-        }
         switch (phase) {
-            case WAITING -> tickWaiting();
+            case WAITING -> tickWaiting(castHook, pulling);
             case BATTLE -> tickBattle(rodTip);
             case LANDING -> tickLanding(rodTip);
             case HANGING -> tickHanging(rodTip);
@@ -187,6 +189,14 @@ public final class FishingSession {
      */
     public boolean isTaut() {
         return phase == Phase.BATTLE || phase == Phase.LANDING || phase == Phase.HANGING;
+    }
+
+    /**
+     * 親キャストが針を動かせる状態か確認します。
+     * @return 魚がまだ食いついていない場合true
+     */
+    public boolean isWaiting() {
+        return phase == Phase.WAITING;
     }
 
     /**
@@ -285,26 +295,9 @@ public final class FishingSession {
     /** @return 接続した水域へ定義された最小匹数を生成できた場合はtrue */
     private boolean spawnFish() {
         if (!isWater(submergedHook.getBlockX(), submergedHook.getBlockY(), submergedHook.getBlockZ())) return false;
-        BlockPos root = new BlockPos(submergedHook.getBlockX(), submergedHook.getBlockY(), submergedHook.getBlockZ());
-        Map<BlockPos, BlockPos> parents = new HashMap<>();
-        ArrayDeque<BlockPos> queue = new ArrayDeque<>();
-        List<BlockPos> candidates = new ArrayList<>();
-        parents.put(root, root);
-        queue.add(root);
-        while (!queue.isEmpty() && parents.size() < MAX_SEARCH_BLOCKS) {
-            BlockPos current = queue.removeFirst();
-            if (current.center(world).distanceSquared(submergedHook) >= MIN_SPAWN_DISTANCE_SQUARED) {
-                candidates.add(current);
-            }
-            for (int side = 0; side < 6 && parents.size() < MAX_SEARCH_BLOCKS; side++) {
-                BlockPos next = new BlockPos(current.x + DELTA_X[side], current.y + DELTA_Y[side],
-                    current.z + DELTA_Z[side]);
-                if (parents.containsKey(next) || next.center(world).distanceSquared(submergedHook) > rules.searchRadius() * rules.searchRadius()
-                    || !isWater(next.x, next.y, next.z)) continue;
-                parents.put(next, current);
-                queue.addLast(next);
-            }
-        }
+        Map<BlockPos, BlockPos> parents = findWaterPaths(Set.of());
+        List<BlockPos> candidates = new ArrayList<>(parents.keySet());
+        candidates.removeIf(position -> position.center(world).distanceSquared(submergedHook) < MIN_SPAWN_DISTANCE_SQUARED);
         Collections.shuffle(candidates);
         int targetCount = ThreadLocalRandom.current().nextInt(rules.fishCountMin(), rules.fishCountMax() + 1);
         List<BlockPos> chosen = new ArrayList<>();
@@ -316,14 +309,7 @@ public final class FishingSession {
         }
         if (chosen.size() < rules.fishCountMin()) return false;
         for (BlockPos position : chosen) {
-            List<Location> path = new ArrayList<>();
-            BlockPos cursor = position;
-            while (!cursor.equals(root)) {
-                path.add(cursor.center(world));
-                cursor = parents.get(cursor);
-            }
-            path.add(submergedHook.clone());
-            Collections.reverse(path);
+            List<Location> path = pathFromHook(position, parents);
             FishDefinition fishDefinition = definition.drawFish(ThreadLocalRandom.current().nextDouble(100.0));
             Class<? extends Fish> species = switch (fishDefinition.entityType()) {
                 case COD -> Cod.class;
@@ -353,22 +339,110 @@ public final class FishingSession {
         return true;
     }
 
-    /** 魚を水路に沿って針へ寄せ、つつきと最初の食いつきを判定します。 */
-    private void tickWaiting() {
+    /**
+     * 沈んだ針から探索半径内の読み込み済み水域を幅優先で調べます。
+     *
+     * @param targets 追跡する魚の現在ブロック。空集合なら出現候補用に探索範囲全体を調べます
+     * @return 針へ向かう各ブロックの一つ手前のブロック。起点は自分自身を指します
+     */
+    private Map<BlockPos, BlockPos> findWaterPaths(Set<BlockPos> targets) {
+        BlockPos root = BlockPos.at(submergedHook);
+        Map<BlockPos, BlockPos> parents = new HashMap<>();
+        ArrayDeque<BlockPos> queue = new ArrayDeque<>();
+        Set<BlockPos> pending = new HashSet<>(targets);
+        parents.put(root, root);
+        queue.add(root);
+        pending.remove(root);
+        double radiusSquared = rules.searchRadius() * rules.searchRadius();
+        while (!queue.isEmpty() && parents.size() < MAX_SEARCH_BLOCKS
+            && (targets.isEmpty() || !pending.isEmpty())) {
+            BlockPos current = queue.removeFirst();
+            for (int side = 0; side < 6 && parents.size() < MAX_SEARCH_BLOCKS; side++) {
+                BlockPos next = new BlockPos(current.x + DELTA_X[side], current.y + DELTA_Y[side],
+                    current.z + DELTA_Z[side]);
+                if (parents.containsKey(next) || next.center(world).distanceSquared(submergedHook) > radiusSquared
+                    || !isWater(next.x, next.y, next.z)) continue;
+                parents.put(next, current);
+                queue.addLast(next);
+                pending.remove(next);
+            }
+        }
+        return parents;
+    }
+
+    /**
+     * @param target 魚の現在ブロック
+     * @param parents 読み込み済み水域で見つけた針への経路
+     * @return 針の実座標から魚のブロックへ続く経路。到達できなければ空のリスト
+     */
+    private List<Location> pathFromHook(BlockPos target, Map<BlockPos, BlockPos> parents) {
+        if (!parents.containsKey(target)) return List.of();
+        List<Location> path = new ArrayList<>();
+        BlockPos root = BlockPos.at(submergedHook);
+        for (BlockPos cursor = target; !cursor.equals(root); cursor = parents.get(cursor)) {
+            path.add(cursor.center(world));
+        }
+        path.add(submergedHook.clone());
+        Collections.reverse(path);
+        return path;
+    }
+
+    /**
+     * 移動後の針を起点に実魚への水路を張り直し、移動前のつつきは破棄します。
+     * 魚の種類と個体は維持し、水路が途切れた魚は次の経路更新まで食いつきません。
+     */
+    private void retargetWaitingFish() {
+        submergedHook = hook.clone();
+        Map<Swimmer, BlockPos> targets = new HashMap<>();
+        for (Swimmer swimmer : fish) {
+            if (swimmer.entity.isValid()) {
+                targets.put(swimmer, BlockPos.at(swimmer.entity.getLocation()));
+            }
+        }
+        Map<BlockPos, BlockPos> parents = findWaterPaths(new HashSet<>(targets.values()));
+        for (var target : targets.entrySet()) {
+            Swimmer swimmer = target.getKey();
+            swimmer.path = pathFromHook(target.getValue(), parents);
+            swimmer.pathIndex = swimmer.path.size() - 1;
+            swimmer.direction = -1;
+            swimmer.restTicks = 0;
+            swimmer.nibbleTicks = 0;
+        }
+    }
+
+    /**
+     * 移動中の針への食いつきを止め、落ち着いたら水路に沿って魚を寄せます。
+     *
+     * @param castHook 読み込み済み水域にある現在の針
+     * @param pulling このtickで糸の距離超過を解消している場合true
+     */
+    private void tickWaiting(Location castHook, boolean pulling) {
         if (phaseTicks >= rules.waitingTicks()
-            || !isWater(submergedHook.getBlockX(), submergedHook.getBlockY(), submergedHook.getBlockZ())
+            || !isWaterAt(castHook)
             || fish.stream().noneMatch(swimmer -> swimmer.entity.isValid())) {
             FishingFeedback.notify(owner, FishingMsgId.ESCAPED);
             close();
             return;
         }
+        if (pulling || hook.distanceSquared(castHook) > LINE_LENGTH_EPSILON * LINE_LENGTH_EPSILON) {
+            hook = castHook.clone();
+            waitingHookSettleTicks = WAITING_HOOK_SETTLE_TICKS;
+            return;
+        }
+        if (waitingHookSettleTicks > 0 && --waitingHookSettleTicks > 0) return;
+        if (submergedHook.distanceSquared(hook) > LINE_LENGTH_EPSILON * LINE_LENGTH_EPSILON) {
+            retargetWaitingFish();
+        }
         for (Swimmer swimmer : fish) {
-            if (!swimmer.entity.isValid()) continue;
+            if (!swimmer.entity.isValid() || swimmer.path.isEmpty()) continue;
             if (swimmer.restTicks > 0) {
                 swimmer.restTicks--;
                 continue;
             }
             if (swimmer.pathIndex == 0 && swimmer.direction < 0) {
+                if (swimmer.nibbleTicks == 0 && !moveToward(swimmer, submergedHook, swimmer.definition.swimSpeed())) {
+                    continue;
+                }
                 swimmer.nibbleTicks++;
                 nibble(swimmer);
                 if (swimmer.nibbleTicks % rules.nibbleCycleTicks() == rules.nibbleCycleTicks() / 2) {
@@ -730,29 +804,40 @@ public final class FishingSession {
         return point.getWorld() == world && isWater(point.getBlockX(), point.getBlockY(), point.getBlockZ());
     }
 
-    /** @return 水路上を移動できた場合はtrue */
-    private boolean movePath(Swimmer swimmer, int step, double speed) {
+    /**
+     * @param swimmer 移動対象の魚
+     * @param step 水路の進行方向
+     * @param speed 1tickの最大移動距離
+     */
+    private void movePath(Swimmer swimmer, int step, double speed) {
+        if (swimmer.path.isEmpty()) return;
         int nextIndex = swimmer.pathIndex + step;
-        if (nextIndex < 0 || nextIndex >= swimmer.path.size()) return false;
-        Location current = swimmer.entity.getLocation();
+        if (nextIndex < 0 || nextIndex >= swimmer.path.size()) return;
         Location target = swimmer.path.get(nextIndex);
-        if (!isWater(target.getBlockX(), target.getBlockY(), target.getBlockZ())) {
+        if (!isWaterAt(target)) {
             swimmer.entity.remove();
-            return false;
-        }
-        Vector delta = target.toVector().subtract(current.toVector());
-        if (delta.lengthSquared() <= speed * speed) {
-            if (!canTravel(swimmer.entity, current, target)) return false;
-            Location destination = target.clone();
-            if (delta.lengthSquared() > 1.0E-8D) destination.setDirection(delta);
-            swimmer.entity.teleport(destination);
+        } else if (moveToward(swimmer, target, speed)) {
             swimmer.pathIndex = nextIndex;
-            return true;
         }
-        Location next = current.add(delta.normalize().multiply(speed)).setDirection(delta);
-        if (!canTravel(swimmer.entity, swimmer.entity.getLocation(), next)) return false;
-        swimmer.entity.teleport(next);
-        return true;
+    }
+
+    /**
+     * 魚を指定した水中位置へ近づけ、衝突形状を横切る移動は止めます。
+     *
+     * @param swimmer 移動対象の魚
+     * @param target 水路上の到達点
+     * @param speed 1tickの最大移動距離
+     * @return このtickで到達点に着いた場合true
+     */
+    private boolean moveToward(Swimmer swimmer, Location target, double speed) {
+        Location current = swimmer.entity.getLocation();
+        Vector delta = target.toVector().subtract(current.toVector());
+        if (delta.lengthSquared() <= 1.0E-8D) return true;
+        boolean reached = delta.lengthSquared() <= speed * speed;
+        Location next = reached ? target.clone() : current.clone().add(delta.clone().normalize().multiply(speed));
+        next.setDirection(delta);
+        if (!canTravel(swimmer.entity, current, next)) return false;
+        return swimmer.entity.teleport(next) && reached;
     }
 
     /**
@@ -779,6 +864,14 @@ public final class FishingSession {
     private enum Phase { WAITING, BATTLE, LANDING, HANGING, RELEASED, FINISHED }
 
     private record BlockPos(int x, int y, int z) {
+        /**
+         * @param location 調べる座標
+         * @return 座標を含むブロック
+         */
+        private static BlockPos at(Location location) {
+            return new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ());
+        }
+
         /** @return ブロック中央の位置 */
         private Location center(World world) {
             return new Location(world, x + 0.5D, y + 0.5D, z + 0.5D);
@@ -788,7 +881,7 @@ public final class FishingSession {
     private static final class Swimmer {
         private final Fish entity;
         private final FishDefinition definition;
-        private final List<Location> path;
+        private List<Location> path;
         private int pathIndex;
         private int restTicks;
         private int nibbleTicks;

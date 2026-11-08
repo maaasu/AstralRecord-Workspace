@@ -31,6 +31,7 @@ import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.MainHand;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
@@ -48,7 +49,8 @@ import java.util.UUID;
  * <p>
  * 仮想の針と糸をリソースパックのモデルで表示します。
  * 糸は竿先と針を結ぶ浅い曲線として描画し、食いつき後は張った直線へ切り替えます。
- * 固体へ接触した針は回収まで固定し、水中に沈んだ針から釣りセッションへ移行します。
+ * 固体へ接触した針は固定し、食いつき前に糸が張ったときは竿先へ引き寄せます。
+ * 水中に沈んだ針から釣りセッションへ移行します。
  */
 public final class FishingRodUseService {
     static final double ROD_TIP_RIGHT_OFFSET = 0.35D;
@@ -70,6 +72,7 @@ public final class FishingRodUseService {
     private static final double COLLISION_ADVANCE_EPSILON = 0.001D;
     private static final int MAX_PASSABLE_BLOCK_SKIPS = 32;
     private static final double MAX_RAY_TRACE_DISTANCE = 2.0D;
+    private static final double MAX_HOOK_PULL_PER_TICK = 0.65D;
     private static final double DEFAULT_ROD_ATTACK = 10.0D;
 
     private final AstralRecord plugin;
@@ -218,7 +221,7 @@ public final class FishingRodUseService {
 
         Player bukkitPlayer = player.getBukkit();
         Location eye = bukkitPlayer.getEyeLocation();
-        Location rodTip = resolveRodTip(eye, eye.getDirection());
+        Location rodTip = resolveRodTip(eye, eye.getDirection(), bukkitPlayer.getMainHand());
         Vector direction = normalizedDirection(eye.getDirection());
         if (rodTip == null || direction == null || rodTip.getWorld() == null) {
             return;
@@ -328,8 +331,17 @@ public final class FishingRodUseService {
         visuals.shutdown();
     }
 
-    /** テストと表示計算で共有する、目線から見た釣り竿先端の位置を返します。 */
-    static @Nullable Location resolveRodTip(@NotNull Location eye, @NotNull Vector viewDirection) {
+    /**
+     * 主手側の釣り竿先端を目線から求めます。真上・真下ではyawで左右方向を保ちます。
+     *
+     * @param eye 目の位置と向き
+     * @param viewDirection 目線方向
+     * @param mainHand プレイヤーの主手側
+     * @return 釣り竿先端の位置。目線方向が無効ならnull
+     */
+    static @Nullable Location resolveRodTip(
+        @NotNull Location eye, @NotNull Vector viewDirection, @NotNull MainHand mainHand
+    ) {
         Vector forward = normalizedDirection(viewDirection);
         if (forward == null) {
             return null;
@@ -337,13 +349,14 @@ public final class FishingRodUseService {
         Vector worldUp = new Vector(0.0D, 1.0D, 0.0D);
         Vector right = forward.clone().crossProduct(worldUp);
         if (right.lengthSquared() <= MIN_VECTOR_LENGTH_SQUARED) {
-            right = new Vector(1.0D, 0.0D, 0.0D);
+            double yaw = Math.toRadians(eye.getYaw());
+            right = new Vector(-Math.cos(yaw), 0.0D, -Math.sin(yaw));
         } else {
             right.normalize();
         }
         Vector up = right.clone().crossProduct(forward).normalize();
         Vector offset = forward.clone().multiply(ROD_TIP_FORWARD_OFFSET)
-            .add(right.multiply(ROD_TIP_RIGHT_OFFSET))
+            .add(right.multiply(mainHand == MainHand.LEFT ? -ROD_TIP_RIGHT_OFFSET : ROD_TIP_RIGHT_OFFSET))
             .add(up.multiply(ROD_TIP_UP_OFFSET));
         return eye.clone().add(offset);
     }
@@ -358,7 +371,12 @@ public final class FishingRodUseService {
         }
     }
 
-    /** 所有者・竿・worldを検証して、キャストまたは釣りセッションをメインスレッドで進めます。 */
+    /**
+     * 所有者・竿・worldを検証して、キャストまたは釣りセッションをメインスレッドで進めます。
+     * 食いつき前は糸長を超えても終了せず、距離の超過分だけ針を引き寄せます。
+     *
+     * @param playerId キャストの所有者
+     */
     private void tick(@NotNull UUID playerId) {
         ActiveCast active = activeCasts.get(playerId);
         Player player = plugin.getServer().getPlayer(playerId);
@@ -377,68 +395,91 @@ public final class FishingRodUseService {
         }
 
         Location eye = player.getEyeLocation();
-        Location rodTip = resolveRodTip(eye, eye.getDirection());
+        Location rodTip = resolveRodTip(eye, eye.getDirection(), player.getMainHand());
         if (rodTip == null || rodTip.getWorld() == null) {
             cancel(playerId);
             return;
         }
         active.rodTip = rodTip.clone();
 
-        if (active.fishing != null) {
-            tickFishing(playerId, player, active, rodTip);
+        if (active.fishing != null && !active.fishing.isWaiting()) {
+            tickFishing(playerId, player, active, false);
             return;
         }
-        if (active.retrieved
-            || active.currentHook.distance(rodTip) > active.maxLineLength + FishingSession.LINE_LENGTH_EPSILON) {
+        if (active.retrieved) {
             cancel(playerId);
             return;
         }
+        boolean pulling = active.phase != CastPhase.RETRACTING && lineExcess(active) > 0.0D;
         active.retrieved = advanceHook(active);
-        if (active.phase != CastPhase.RETRACTING && active.inWater
-            && isWater(active.currentHook.getBlock().getType())) {
+        boolean submerged = active.phase != CastPhase.RETRACTING && active.inWater && isWaterAt(active.currentHook);
+        if (!submerged) {
+            active.attemptedFishingInWater = false;
+        }
+        if (active.fishing != null) {
+            if (submerged) {
+                tickFishing(playerId, player, active, pulling);
+                return;
+            }
+            active.fishing.close();
+            active.fishing = null;
+        }
+        if (submerged && !pulling && !active.attemptedFishingInWater) {
+            active.attemptedFishingInWater = true;
             var definition = plugin.getFishingMasterService().findDefinition(
                 active.currentHook.getWorld(), active.fishingLevel, plugin.getWorldService());
             if (definition == null) {
-                cancel(playerId);
-                emitWaterImpact(player, active);
                 FishingFeedback.notify(astPlayer, FishingMsgId.NO_FISHING_AREA);
-                return;
+            } else {
+                active.fishing = new FishingSession(plugin, visuals, astPlayer,
+                    active.currentHook.clone(), active.maxLineLength, active.rodAttack,
+                    plugin.getFishingMasterService(), definition);
+                if (active.fishing.isFinished()) {
+                    active.fishing = null;
+                } else {
+                    emitWaterImpact(player, active);
+                    tickFishing(playerId, player, active, false);
+                    return;
+                }
             }
-            active.fishing = new FishingSession(plugin, visuals, astPlayer,
-                active.currentHook.clone(), active.maxLineLength, active.rodAttack,
-                plugin.getFishingMasterService(), definition);
-            if (active.fishing.isFinished()) {
-                cancel(playerId);
-                emitWaterImpact(player, active);
-                return;
-            }
-            emitWaterImpact(player, active);
-            tickFishing(playerId, player, active, rodTip);
-            return;
-        }
-        advanceRope(active);
-        render(player, active);
-    }
-
-    /** 魚が所有する針位置と張力を既存の針・糸表示へ反映し、終了時は全表示を回収します。 */
-    private void tickFishing(UUID playerId, Player player, ActiveCast active, Location rodTip) {
-        active.fishing.tick(rodTip);
-        if (active.fishing.isFinished()) {
-            cancel(playerId);
-            return;
-        }
-        active.currentHook = active.fishing.hookLocation();
-        active.taut = active.fishing.isTaut();
-        if (active.fishing.isReleased()) {
-            active.display.close();
-            return;
         }
         advanceRope(active);
         render(player, active);
     }
 
     /**
-     * 針を1tick進めます。固体への接触後は固定し、着水後は最大距離まで真下へ沈めます。
+     * 待機中は現在の針位置を魚へ渡し、食いつき後は選択魚の位置と張力を針・糸の表示へ反映します。
+     * 食いつき前に魚がいなくなっても、針と糸は手動回収まで維持します。
+     *
+     * @param playerId キャストの所有者ID
+     * @param player キャストの所有者
+     * @param active 釣りセッションを保持するキャスト
+     * @param pulling このtickで糸の距離超過を解消している場合true
+     */
+    private void tickFishing(UUID playerId, Player player, ActiveCast active, boolean pulling) {
+        boolean waiting = active.fishing.isWaiting();
+        active.fishing.tick(active.rodTip, active.currentHook, pulling);
+        if (active.fishing.isFinished()) {
+            if (!waiting) {
+                cancel(playerId);
+                return;
+            }
+            active.fishing = null;
+        } else {
+            active.currentHook = active.fishing.hookLocation();
+            active.taut = active.fishing.isTaut();
+            if (active.fishing.isReleased()) {
+                active.display.close();
+                return;
+            }
+        }
+        advanceRope(active);
+        render(player, active);
+    }
+
+    /**
+     * 針を1tick進めます。距離を超えた場合は竿先へ引き寄せ、固体との衝突を調べます。
+     * 糸に余裕がある場合は飛翔または沈下を進め、待機中と固体への接触後は針を留めます。
      *
      * @param active 更新対象のキャスト状態
      * @return 回収で竿先へ到達した場合はtrue
@@ -447,18 +488,50 @@ public final class FishingRodUseService {
         if (active.phase == CastPhase.RETRACTING) {
             return advanceRetrieval(active);
         }
-        if (active.phase == CastPhase.GROUNDED) {
+        double excess = lineExcess(active);
+        if (excess > 0.0D) {
+            Location start = active.currentHook;
+            Vector towardRod = active.rodTip.toVector().subtract(start.toVector());
+            Location candidate = start.clone().add(towardRod.multiply(
+                Math.min(excess, MAX_HOOK_PULL_PER_TICK) / towardRod.length()));
+            moveHookWithCollision(active, candidate, true);
             return false;
         }
+        if (active.fishing != null || active.phase == CastPhase.GROUNDED) {
+            return false;
+        }
+        Location start = active.currentHook;
         if (active.phase == CastPhase.SINKING) {
-            moveHookWithCollision(active, new Vector(0.0D, -WATER_SINK_SPEED_PER_TICK, 0.0D));
+            Location candidate = start.clone().add(0.0D, -WATER_SINK_SPEED_PER_TICK, 0.0D);
+            moveHookWithCollision(active, constrainHookMovement(active, start, candidate), false);
             return false;
         }
-        moveHookWithCollision(active, active.velocity.clone());
+        Location candidate = start.clone().add(active.velocity);
+        Location constrained = constrainAirbornePosition(active, candidate);
+        moveHookWithCollision(active, constrained, false);
         if (active.phase == CastPhase.OUTBOUND) {
+            if (constrained.distanceSquared(candidate) > 1.0E-16D) {
+                Vector radial = active.currentHook.toVector().subtract(active.rodTip.toVector());
+                if (radial.lengthSquared() > MIN_VECTOR_LENGTH_SQUARED) {
+                    radial.normalize();
+                    double outward = active.velocity.dot(radial);
+                    if (outward > 0.0D) {
+                        active.velocity.subtract(radial.multiply(outward));
+                    }
+                }
+            }
             active.velocity.setY(active.velocity.getY() - HOOK_GRAVITY_PER_TICK);
         }
         return false;
+    }
+
+    /**
+     * @param active 同じworldの竿先と針を持つキャスト
+     * @return 丸め誤差許容を超えた場合は最大糸長との差、それ以外は0
+     */
+    private static double lineExcess(ActiveCast active) {
+        double excess = active.currentHook.distance(active.rodTip) - active.maxLineLength;
+        return excess > FishingSession.LINE_LENGTH_EPSILON ? excess : 0.0D;
     }
 
     /** 回収操作では固体への固定を解除し、表示上の針を竿先へ直接戻して終了します。 */
@@ -474,8 +547,8 @@ public final class FishingRodUseService {
     }
 
     /**
-     * 両端だけから浅い放物線を再計算します。糸の慣性・衝突・張力で針を動かしません。
-     * たるみの往復分を残りのキャスト距離内に抑え、描画線の総長も最大距離を超えません。
+     * 両端だけから浅い放物線を再計算します。たるみの往復分は残りのキャスト距離内に抑えます。
+     * 引き寄せ途中や障害物で最大糸長を超える間は、現在の両端を直線で結びます。
      *
      * @param active 同じworldの竿先・針を保持するキャスト状態
      */
@@ -550,49 +623,57 @@ public final class FishingRodUseService {
     }
 
     /**
-     * 最大距離以内の移動を掃引し、最初の固体接触で固定、着水で沈下へ移行します。
-     * 着水演出は描画時に一度だけ消費します。
+     * 針の移動を掃引し、固体接触で固定、着水で沈下へ移行します。
+     * 糸で引くときは接触面に沿う残りの移動も掃引し、岸や床に沿って動けるようにします。
      *
      * @param active 更新するキャスト
-     * @param movement 空中移動または真下への沈下量
+     * @param destination 移動先の候補。投擲・沈下は呼び出し側で距離を制限します
+     * @param pulling 糸で引き寄せる場合true
      */
-    private static void moveHookWithCollision(@NotNull ActiveCast active, @NotNull Vector movement) {
+    private static void moveHookWithCollision(
+        @NotNull ActiveCast active, @NotNull Location destination, boolean pulling
+    ) {
         Location start = active.currentHook;
-        Location candidate = start.clone().add(movement);
-        Location constrained = active.phase == CastPhase.SINKING
-            ? constrainHookMovement(active, start, candidate) : constrainAirbornePosition(active, candidate);
-        Vector actualMovement = constrained.toVector().subtract(start.toVector());
-        BlockImpact impact = rayTraceImpact(start, actualMovement, !active.inWater);
-        active.currentHook = impact == null ? constrained
-            : constrainHookMovement(active, start, impact.location());
-        if (impact != null && impact.solidImpact()) {
-            active.velocity.zero();
-            active.phase = CastPhase.GROUNDED;
-            return;
+        Vector movement = destination.toVector().subtract(start.toVector());
+        BlockImpact impact = rayTraceImpact(start, movement, !active.inWater);
+        active.currentHook = impact == null ? destination : impact.location();
+        if (!pulling && impact != null) {
+            active.currentHook = constrainHookMovement(active, start, active.currentHook);
         }
-        boolean water = impact != null && impact.waterImpact()
-            || isWater(active.currentHook.clone().add(0, -COLLISION_ADVANCE_EPSILON, 0).getBlock().getType());
+        if (pulling && impact != null && impact.normal() != null) {
+            Vector normal = impact.normal();
+            Vector slide = destination.toVector().subtract(active.currentHook.toVector());
+            slide.subtract(normal.clone().multiply(slide.dot(normal)));
+            BlockImpact slideImpact = rayTraceImpact(active.currentHook, slide, !active.inWater);
+            if (slideImpact == null) {
+                active.currentHook = active.currentHook.clone().add(slide);
+            } else {
+                active.currentHook = slideImpact.location();
+                if (slideImpact.waterImpact() || slideImpact.normal() != null) {
+                    impact = slideImpact;
+                }
+            }
+        }
+        boolean water = (impact != null && impact.waterImpact())
+            || isWaterAt(active.currentHook)
+            || isWaterAt(active.currentHook.clone().add(0, -COLLISION_ADVANCE_EPSILON, 0));
         if (water) {
             if (!active.inWater) {
                 active.pendingWaterImpact = active.currentHook.clone();
             }
-            active.inWater = true;
+        }
+        if (impact != null && impact.normal() != null) {
+            active.velocity.zero();
+            active.phase = CastPhase.GROUNDED;
+        } else if (water) {
             active.velocity.zero();
             active.phase = CastPhase.SINKING;
-        } else if (active.inWater) {
-            active.inWater = false;
+        } else if (active.inWater || (active.phase == CastPhase.GROUNDED
+            && start.distanceSquared(active.currentHook) > 0.0D)) {
             active.velocity.zero();
             active.phase = CastPhase.OUTBOUND;
-        } else if (impact == null && constrained.distanceSquared(candidate) > 1.0E-16D) {
-            Vector radial = active.currentHook.toVector().subtract(active.rodTip.toVector());
-            if (radial.lengthSquared() > MIN_VECTOR_LENGTH_SQUARED) {
-                radial.normalize();
-                double outward = active.velocity.dot(radial);
-                if (outward > 0.0D) {
-                    active.velocity.subtract(radial.multiply(outward));
-                }
-            }
         }
+        active.inWater = water;
     }
 
     /**
@@ -663,7 +744,7 @@ public final class FishingRodUseService {
     }
 
     /**
-     * 移動全区間を最長2 blockずつ調べます。探索予算を使い切った場合は未確認区間の手前で停止します。
+     * 移動全区間を最長2 blockずつ調べます。未読込チャンクまたは探索予算の手前で停止します。
      * 固体面からは接触法線方向へ退避し、固定する針が固体へ埋まらないようにします。
      *
      * @param start 移動開始位置
@@ -685,10 +766,14 @@ public final class FishingRodUseService {
         Location cursor = start.clone();
         for (int step = 0; step <= MAX_PASSABLE_BLOCK_SKIPS; step++) {
             double span = Math.min(remaining, MAX_RAY_TRACE_DISTANCE);
+            Location end = cursor.clone().add(direction.clone().multiply(span));
+            if (!areRayChunksLoaded(world, cursor, end)) {
+                return new BlockImpact(cursor, false, null);
+            }
             RayTraceResult hit = world.rayTraceBlocks(cursor, direction, span,
                 includeWater ? FluidCollisionMode.ALWAYS : FluidCollisionMode.NEVER, false);
             if (hit == null || hit.getHitBlock() == null) {
-                cursor.add(direction.clone().multiply(span));
+                cursor = end;
                 remaining -= span;
                 if (remaining <= 1.0E-8D) {
                     return null;
@@ -700,21 +785,52 @@ public final class FishingRodUseService {
             boolean water = isWater(block.getType());
             if ((includeWater && water) || !block.isPassable()) {
                 Vector normal = null;
-                if (!water) {
+                if (water) {
+                    double inset = Math.min(COLLISION_ADVANCE_EPSILON, Math.max(0.0D, remaining - cursor.distance(hitLocation)));
+                    Location inside = hitLocation.clone().add(direction.clone().multiply(inset));
+                    if (areRayChunksLoaded(world, hitLocation, inside)) {
+                        hitLocation = inside;
+                    }
+                } else {
                     normal = hit.getHitBlockFace() == null
                         ? direction.clone().multiply(-1.0D) : hit.getHitBlockFace().getDirection();
-                    hitLocation.add(normal.clone().multiply(COLLISION_ADVANCE_EPSILON));
+                    Location outside = hitLocation.clone().add(normal.clone().multiply(COLLISION_ADVANCE_EPSILON));
+                    if (!areRayChunksLoaded(world, hitLocation, outside)) {
+                        return new BlockImpact(cursor, false, null);
+                    }
+                    hitLocation = outside;
                 }
-                return new BlockImpact(hitLocation, water, !water);
+                return new BlockImpact(hitLocation, water, normal);
             }
             double advance = cursor.distance(hitLocation) + COLLISION_ADVANCE_EPSILON;
             if (advance >= remaining) {
                 return null;
             }
-            cursor.add(direction.clone().multiply(advance));
+            Location passed = cursor.clone().add(direction.clone().multiply(advance));
+            if (!areRayChunksLoaded(world, cursor, passed)) {
+                return new BlockImpact(cursor, false, null);
+            }
+            cursor = passed;
             remaining -= advance;
         }
-        return new BlockImpact(cursor, false, false);
+        return new BlockImpact(cursor, false, null);
+    }
+
+    /**
+     * @param world 掃引するワールド
+     * @param start 短い掃引区間の始点
+     * @param end 掃引区間の終点
+     * @return 線分が通り得るチャンクがすべて読み込み済みの場合true
+     */
+    private static boolean areRayChunksLoaded(World world, Location start, Location end) {
+        for (int x = Math.min(start.getBlockX(), end.getBlockX()) >> 4;
+                x <= (Math.max(start.getBlockX(), end.getBlockX()) >> 4); x++) {
+            for (int z = Math.min(start.getBlockZ(), end.getBlockZ()) >> 4;
+                    z <= (Math.max(start.getBlockZ(), end.getBlockZ()) >> 4); z++) {
+                if (!world.isChunkLoaded(x, z)) return false;
+            }
+        }
+        return true;
     }
 
     private static @NotNull List<Location> createRopeNodes(
@@ -784,6 +900,17 @@ public final class FishingRodUseService {
             || material == Material.KELP || material == Material.KELP_PLANT;
     }
 
+    /**
+     * @param point 調べる位置
+     * @return ワールドの高さ範囲内で、読み込み済みの水域にある場合true
+     */
+    private static boolean isWaterAt(Location point) {
+        World world = point.getWorld();
+        return world != null && point.getBlockY() >= world.getMinHeight() && point.getBlockY() < world.getMaxHeight()
+            && world.isChunkLoaded(point.getBlockX() >> 4, point.getBlockZ() >> 4)
+            && isWater(point.getBlock().getType());
+    }
+
     private record CurrentFishingRod(
         @NotNull ItemReference reference,
         @NotNull ItemModel model,
@@ -791,7 +918,7 @@ public final class FishingRodUseService {
     ) {
     }
 
-    private record BlockImpact(@NotNull Location location, boolean waterImpact, boolean solidImpact) {
+    private record BlockImpact(@NotNull Location location, boolean waterImpact, @Nullable Vector normal) {
     }
 
     enum CastPhase {
@@ -815,6 +942,7 @@ public final class FishingRodUseService {
         CastPhase phase = CastPhase.OUTBOUND;
         private int renderTicks;
         private boolean retrieved;
+        private boolean attemptedFishingInWater;
         private @Nullable BukkitTask task;
         private @Nullable FishingSession fishing;
         private double rodAttack = DEFAULT_ROD_ATTACK;
