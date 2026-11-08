@@ -2,6 +2,7 @@ const storageKey = 'astralrecord:skilltree-preferences:v1';
 export function normalizePreferences(value) {
     return {
         sound: typeof value?.sound === 'boolean' ? value.sound : true,
+        directionalClick: value?.directionalClick === true,
         volume: Number.isFinite(value?.volume) ? Math.round(Math.max(0, Math.min(100, value.volume))) : 35,
     };
 }

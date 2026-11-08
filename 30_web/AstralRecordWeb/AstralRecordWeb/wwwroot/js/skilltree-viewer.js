@@ -45,6 +45,7 @@ export function initializeViewer(viewer, viewState) {
     if (!nodes.size) return;
     let bounds = graphBounds(projected.nodes);
     const viewport = viewer.querySelector('.ar-tree-viewport');
+    const mapAction = viewport.querySelector('[data-editor-map-action]');
     const sanctum = viewer.closest('.ar-tree-sanctum');
     const lifecycle = new AbortController();
     const starsContainer = viewport.querySelector('[data-tree-stars]');
@@ -156,7 +157,8 @@ export function initializeViewer(viewer, viewState) {
     let previousWidth = viewState?.width ?? viewport.clientWidth, previousHeight = viewState?.height ?? viewport.clientHeight, disposed = false;
     let viewportWidth = viewport.clientWidth, viewportHeight = viewport.clientHeight;
     const zoomLabel = viewer.querySelector('[data-tree-zoom-label]');
-    let cullBounds = null, interactionUntil = 0, rightPress = null;
+    let cullBounds = null, interactionUntil = 0, rightPress = null, leftMouseNodeId;
+    let showNodeAction = false, mapActionSize, mapActionPointer;
     let paintedVisualScale = 0;
     const visibleNodes = new Map(), visibleEdges = new Map();
     const root = nodes.get(tree.rootNodeId) ?? projected.nodes.find(node => node.isUnlocked) ?? projected.nodes[0];
@@ -202,6 +204,47 @@ export function initializeViewer(viewer, viewState) {
     }
     const miniViewport = make('rect', { class: 'ar-tree-mini-viewport' });
     minimap.append(miniViewport);
+    const placeMapAction = artScale => {
+        if (!mapAction) return;
+        const node = showNodeAction ? nodes.get(selectedId) : null;
+        let position;
+        if (node && mapActionSize) {
+            const x = camera.x + node.px * camera.zoom;
+            const y = camera.y + node.py * camera.zoom;
+            const { width, height } = mapActionSize;
+            const margin = 4, gap = 7;
+            if (x >= 0 && x <= viewportWidth && y >= 0 && y <= viewportHeight) {
+                const radius = 55 * artScaleFor(node, artScale) * camera.zoom;
+                const centerLeft = Math.max(margin, Math.min(viewportWidth - width - margin, x - width / 2));
+                const placements = [
+                    [centerLeft, y - radius - gap - height],
+                    [centerLeft, y + radius + gap],
+                    [x + radius + gap, y - height / 2],
+                    [x - radius - gap - width, y - height / 2],
+                ];
+                position = placements.find(([left, top]) => {
+                    const right = left + width, bottom = top + height;
+                    if (left < margin || top < margin || right > viewportWidth - margin || bottom > viewportHeight - margin) return false;
+                    for (const [id, visible] of visibleNodes) {
+                        if (!visible || id === selectedId) continue;
+                        const other = nodes.get(id);
+                        const otherX = camera.x + other.px * camera.zoom;
+                        const otherY = camera.y + other.py * camera.zoom;
+                        const dx = Math.max(left - otherX, otherX - right, 0);
+                        const dy = Math.max(top - otherY, otherY - bottom, 0);
+                        const core = 34 * artScaleFor(other, artScale) * camera.zoom;
+                        if (dx * dx + dy * dy < core * core) return false;
+                    }
+                    return true;
+                });
+            }
+        }
+        mapAction.style.visibility = position ? 'visible' : 'hidden';
+        if (position) {
+            mapAction.style.left = `${position[0]}px`;
+            mapAction.style.top = `${position[1]}px`;
+        }
+    };
     const paint = () => {
         if (disposed) return;
         const artScale = nodeVisualScale(camera.zoom);
@@ -236,6 +279,7 @@ export function initializeViewer(viewer, viewState) {
         }
         }
         graph.setAttribute('transform', `translate(${camera.x},${camera.y}) scale(${camera.zoom})`);
+        placeMapAction(artScale);
         const zoomText = `${Math.round(camera.zoom * 100)}%`;
         if (viewer.dataset.nodeDetail !== level) viewer.dataset.nodeDetail = level;
         if (zoomLabel.textContent !== zoomText) zoomLabel.textContent = zoomText;
@@ -273,6 +317,7 @@ export function initializeViewer(viewer, viewState) {
     };
     const showDetails = (node, announce = true) => {
         selectedId = node.nodeId;
+        if (announce) showNodeAction = true;
         updateSummary();
         draw();
         groups.forEach((g, id) => {
@@ -335,9 +380,17 @@ export function initializeViewer(viewer, viewState) {
         });
     };
     const editable = sanctum.dataset.treeMode === 'edit';
-    const openNodeActions = node => {
+    const notifyNodeAction = action => viewer.dispatchEvent(new CustomEvent('skilltree:activate', { bubbles: true, detail: action }));
+    const openNodeActions = (node, action) => {
         selectNode(node);
-        viewer.dispatchEvent(new CustomEvent('skilltree:context', { bubbles: true }));
+        notifyNodeAction(action);
+    };
+    // Context menus can fire before or after release. Wait for both signals.
+    const completeRightClick = () => {
+        if (!rightPress?.released || !rightPress.contextRequested) return;
+        const { nodeId, moved } = rightPress;
+        rightPress = null;
+        if (!moved) openNodeActions(nodes.get(nodeId), 'RELOCK');
     };
     for (const node of nodes.values()) {
         const isRoot = node.nodeId === tree.rootNodeId;
@@ -376,7 +429,12 @@ export function initializeViewer(viewer, viewState) {
         g.append(make('title'));
         renderNodeStatus(g, node);
         g.addEventListener('click', event => {
-            if (!dragged || event.detail === 0) selectNode(node);
+            const mouse = event.detail > 0 && leftMouseNodeId === node.nodeId
+                && (!event.pointerType || event.pointerType === 'mouse');
+            leftMouseNodeId = undefined;
+            if (dragged && event.detail !== 0) return;
+            selectNode(node);
+            if (editable && mouse) notifyNodeAction('UNLOCK');
         });
         g.addEventListener('keydown', event => {
             if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); selectNode(node); }
@@ -386,10 +444,11 @@ export function initializeViewer(viewer, viewState) {
             }
         });
         g.addEventListener('contextmenu', event => {
-            if (!rightPress || rightPress.nodeId !== node.nodeId || rightPress.moved) return;
+            if (!rightPress || rightPress.nodeId !== node.nodeId) return;
             if (event.button !== 2 || event.pointerType && event.pointerType !== 'mouse' || !editable) return;
             event.preventDefault();
-            openNodeActions(node);
+            rightPress.contextRequested = true;
+            completeRightClick();
         });
         g.addEventListener('pointerenter', event => {
             if (event.pointerType !== 'mouse' || pointers.size) return;
@@ -486,9 +545,16 @@ export function initializeViewer(viewer, viewState) {
     const pointers = new Map();
     let pinch = null;
     viewport.addEventListener('pointerdown', event => {
+        if (event.target === mapAction) {
+            if (event.button === 0) mapActionPointer = event.pointerId;
+            return;
+        }
+        leftMouseNodeId = event.button === 0 && event.pointerType === 'mouse'
+            ? event.target.closest('[data-node-key]')?.dataset.nodeKey : undefined;
         if (event.button === 0 && pointers.size >= 2) return;
-        rightPress = event.button === 2 && event.pointerType === 'mouse'
-            ? { nodeId: event.target.closest('[data-node-key]')?.dataset.nodeKey, x: event.clientX, y: event.clientY, moved: false } : null;
+        const nodeId = event.target.closest('[data-node-key]')?.dataset.nodeKey;
+        rightPress = editable && nodeId && event.button === 2 && event.pointerType === 'mouse'
+            ? { pointerId: event.pointerId, nodeId, x: event.clientX, y: event.clientY } : null;
         if (event.button !== 0) return;
         if (event.pointerType === 'mouse' && !viewport.contains(document.activeElement)) viewport.focus({ preventScroll: true });
         pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -502,7 +568,6 @@ export function initializeViewer(viewer, viewState) {
         }
     });
     viewport.addEventListener('pointermove', event => {
-        if (rightPress && (event.buttons & 2) && Math.abs(event.clientX - rightPress.x) + Math.abs(event.clientY - rightPress.y) > 6) rightPress.moved = true;
         if (!pointers.has(event.pointerId)) return;
         pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
         if (pinch && pointers.size === 2) {
@@ -517,17 +582,40 @@ export function initializeViewer(viewer, viewState) {
         camera.x = drag.originX + dx; camera.y = drag.originY + dy; draw();
     });
     const endDrag = event => {
+        if (event.pointerId === mapActionPointer) {
+            mapActionPointer = undefined;
+            interactionUntil = performance.now() + 180;
+        }
         if (!pointers.delete(event.pointerId)) return;
         pinch = null;
         const remaining = [...pointers.entries()][0];
         drag = remaining ? { id: remaining[0], ...remaining[1], originX: camera.x, originY: camera.y } : null;
         if (!remaining) viewer.classList.remove('is-panning');
     };
-    viewport.addEventListener('pointerup', endDrag);
-    viewport.addEventListener('pointercancel', event => { rightPress = null; endDrag(event); });
+    const movedRight = event => Math.abs(event.clientX - rightPress.x) + Math.abs(event.clientY - rightPress.y) > 6;
+    window.addEventListener('pointermove', event => {
+        if (event.pointerId === rightPress?.pointerId && !rightPress.released && movedRight(event)) rightPress.moved = true;
+    }, { capture: true, signal: lifecycle.signal });
+    window.addEventListener('pointerup', event => {
+        if (event.button === 2 && event.pointerId === rightPress?.pointerId) {
+            rightPress.moved ||= movedRight(event) || event.target.closest?.('[data-node-key]')?.dataset.nodeKey !== rightPress.nodeId;
+            rightPress.released = true;
+            interactionUntil = performance.now() + 180;
+            completeRightClick();
+        }
+        endDrag(event);
+    }, { signal: lifecycle.signal });
+    window.addEventListener('pointercancel', event => {
+        if (event.pointerId === rightPress?.pointerId) rightPress = null;
+        leftMouseNodeId = undefined;
+        endDrag(event);
+    }, { signal: lifecycle.signal });
+    window.addEventListener('blur', () => {
+        mapActionPointer = undefined;
+        rightPress = null;
+        leftMouseNodeId = undefined;
+    }, { signal: lifecycle.signal });
     viewport.addEventListener('lostpointercapture', event => { if (event.target === viewport) endDrag(event); });
-    window.addEventListener('pointerup', endDrag, { signal: lifecycle.signal });
-    window.addEventListener('pointercancel', endDrag, { signal: lifecycle.signal });
     viewport.addEventListener('wheel', event => {
         event.preventDefault();
         interactionUntil = performance.now() + 180;
@@ -535,6 +623,7 @@ export function initializeViewer(viewer, viewState) {
         zoomBy(wheelZoomFactor(event, viewportHeight), event.clientX - rect.left, event.clientY - rect.top);
     }, { passive: false });
     viewport.addEventListener('keydown', event => {
+        if (event.target === mapAction) return;
         const shifts = { ArrowLeft: [70, 0], ArrowRight: [-70, 0], ArrowUp: [0, 70], ArrowDown: [0, -70] };
         if (shifts[event.key]) { event.preventDefault(); camera.x += shifts[event.key][0]; camera.y += shifts[event.key][1]; draw(); }
         else if (event.key === '+' || event.key === '=') { event.preventDefault(); zoomBy(1.25); }
@@ -644,7 +733,9 @@ export function initializeViewer(viewer, viewState) {
         return true;
     };
     search(false);
-    const observer = new ResizeObserver(() => {
+    const observer = new ResizeObserver(entries => {
+        if (mapAction && entries.some(entry => entry.target === mapAction))
+            mapActionSize = { width: mapAction.offsetWidth, height: mapAction.offsetHeight };
         const width = viewport.clientWidth, height = viewport.clientHeight;
         if (width <= 0 || height <= 0) return;
         if (!detail.hidden) updateResizeHandle();
@@ -654,10 +745,18 @@ export function initializeViewer(viewer, viewState) {
         draw();
     });
     observer.observe(viewport);
+    if (mapAction) {
+        mapAction.hidden = false;
+        observer.observe(mapAction, { box: 'border-box' });
+    }
     viewer.dispose = () => { disposed = true; stars.dispose(); lifecycle.abort(); observer.disconnect(); cancelAnimationFrame(frame); cancelAnimationFrame(searchFrame); };
-    viewer.getViewState = () => ({ camera: { ...camera }, spacingPercent, selectedId, detailVisible: !detail.hidden, detailWidth, width: previousWidth, height: previousHeight, search: { query: query.value, mode: searchMode.value, effect: effectFilter.value } });
-    viewer.isInteracting = () => pointers.size > 0 || Boolean(resizing) || performance.now() < interactionUntil;
-    showDetails(nodes.get(viewState?.selectedId) ?? root, false);
+    viewer.getViewState = () => ({ camera: { ...camera }, spacingPercent, selectedId, detailVisible: !detail.hidden, detailWidth, showNodeAction, width: previousWidth, height: previousHeight, search: { query: query.value, mode: searchMode.value, effect: effectFilter.value } });
+    viewer.isInteracting = () => pointers.size > 0 || mapActionPointer !== undefined
+        || Boolean(rightPress && !rightPress.released) || Boolean(resizing) || performance.now() < interactionUntil;
+    viewer.openDetails = () => setDetailVisible(true);
+    const initialNode = nodes.get(viewState?.selectedId) ?? root;
+    showNodeAction = Boolean(viewState?.showNodeAction && initialNode.nodeId === viewState.selectedId);
+    showDetails(initialNode, false);
     setDetailVisible(viewState?.detailVisible ?? !window.matchMedia('(max-width: 760px)').matches);
     if (viewState) { camera = { ...viewState.camera }; draw(); }
     else focusNode(root);

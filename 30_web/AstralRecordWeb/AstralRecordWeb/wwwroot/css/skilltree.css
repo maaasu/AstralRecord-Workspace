@@ -153,13 +153,13 @@
 [data-editor-draft-count] { color: var(--tree-muted); }
 [data-editor-reason], [data-editor-operation-reason] { color: #f0c998; }
 [data-editor-feedback] { color: var(--tree-muted); }
-.ar-tree-sanctum :is([data-editor-batch-review], [data-editor-submit], [data-editor-node-action], [data-editor-confirm-send]) {
+.ar-tree-sanctum :is([data-editor-batch-review], [data-editor-submit], [data-editor-node-action], [data-editor-map-action], [data-editor-confirm-send]) {
     color: var(--tree-light);
     border-color: #b9985f88;
     background: #342b1f;
     font-weight: 650;
 }
-.ar-tree-sanctum :is([data-editor-batch-review], [data-editor-submit], [data-editor-node-action], [data-editor-confirm-send]):not(:disabled):hover {
+.ar-tree-sanctum :is([data-editor-batch-review], [data-editor-submit], [data-editor-node-action], [data-editor-map-action], [data-editor-confirm-send]):not(:disabled):hover {
     color: #fff3d5;
     border-color: var(--tree-gold);
     background: #4a3a25;
@@ -252,6 +252,21 @@
 .ar-tree-stars { position: absolute; inset: 0; pointer-events: none; }
 .ar-tree-stars > canvas { opacity: .55; }
 .ar-tree-canvas { position: relative; z-index: 1; display: block; width: 100%; height: 100%; }
+.ar-tree-sanctum .ar-tree-map-action {
+    position: absolute;
+    z-index: 3;
+    top: 0;
+    left: 0;
+    visibility: hidden;
+    width: 7rem;
+    max-width: calc(100% - .5rem);
+    padding-inline: .25rem;
+    box-shadow: 0 2px 8px #0009;
+    font-size: .8rem;
+    cursor: pointer;
+}
+.ar-tree-sanctum .ar-tree-map-action:disabled { opacity: 1; color: var(--tree-muted); background: var(--tree-control); }
+.ar-tree-preferences small { flex-basis: 100%; color: var(--tree-muted); }
 .ar-tree-node-summary {
     position: absolute;
     inset: auto auto .65rem .65rem;

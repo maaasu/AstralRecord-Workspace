@@ -61,6 +61,10 @@
                     <template data-tree-atmosphere><partial name="_AstralAtmosphere" model='"galaxy"' /></template>
                     <div class="ar-tree-stars" data-tree-stars aria-hidden="true"></div>
                     <div class="ar-tree-celestial" aria-hidden="true"></div>
+                    @if (editable)
+                    {
+                        <button type="button" class="ar-tree-map-action" data-editor-map-action hidden disabled>解放</button>
+                    }
                     <svg class="ar-tree-canvas" role="group" aria-label="スキルツリーのノードと接続"></svg>
                 </div>
                 <div class="ar-tree-minimap" aria-label="ツリーの全体位置">
@@ -151,6 +155,8 @@
                                 <details>
                                     <summary>操作設定</summary>
                                     <div class="ar-tree-options-content ar-tree-preferences">
+                                        <label><input type="checkbox" data-editor-directional-click aria-describedby="tree-directional-click-help" /> 左クリックで解放、右クリックで解除</label>
+                                        <small id="tree-directional-click-help">クリックで変更案を編集します。反映には一括送信が必要です。</small>
                                         <label><input type="checkbox" data-editor-sound checked /> サウンド</label>
                                         <label>音量 <input type="range" min="0" max="100" step="5" value="35" data-editor-volume /><output data-editor-volume-label aria-live="off">35%</output></label>
                                     </div>
@@ -192,7 +198,7 @@
         </div>
         <p class="visually-hidden" data-tree-announcement role="status"></p>
         <footer class="ar-tree-map-footer">
-            <p id="tree-map-instructions"><span class="ar-tree-pointer-help">ドラッグで移動。ホイールで拡大・縮小。@(editable ? " 左クリックで選択、右クリックで操作を選択。" : "")</span><span class="ar-tree-touch-help">スワイプで移動。ピンチで拡大・縮小。</span><span class="visually-hidden">矢印キーで移動。プラス・マイナスキーで拡大・縮小。</span></p>
+            <p id="tree-map-instructions"><span class="ar-tree-pointer-help">ドラッグで移動。ホイールで拡大・縮小。@if (editable) { <span data-editor-pointer-actions>左クリックで選択、右クリックで操作を選択。</span> }</span><span class="ar-tree-touch-help">スワイプで移動。ピンチで拡大・縮小。</span><span class="visually-hidden">矢印キーで移動。プラス・マイナスキーで拡大・縮小。</span></p>
             <div class="ar-tree-legend" aria-label="ノード状態の凡例">
                 <span class="ar-tree-state-chip" data-state="unlocked"><b aria-hidden="true">✓</b> 解放済み</span>
                 @if (editable || Model.Nodes.Any(n => n.CanUnlock))

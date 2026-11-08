@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { normalizePreferences, loadPreferences, savePreferences, createTreeSound } from '../AstralRecordWeb/wwwroot/js/skilltree-preferences.mjs';
 
 test('preferences default safely and clamp corrupted volume', () => {
-    assert.deepEqual(normalizePreferences(null), { sound: true, volume: 35 });
-    assert.deepEqual(normalizePreferences({ sound: false, volume: 500, directClick: true }), { sound: false, volume: 100 });
+    assert.deepEqual(normalizePreferences(null), { sound: true, directionalClick: false, volume: 35 });
+    assert.deepEqual(normalizePreferences({ sound: false, volume: 500, directClick: true }), { sound: false, directionalClick: false, volume: 100 });
+    assert.equal(normalizePreferences({ directionalClick: 'true' }).directionalClick, false);
     assert.equal(normalizePreferences({ volume: -5 }).volume, 0);
     assert.equal(normalizePreferences({ volume: 'loud' }).volume, 35);
 });
@@ -14,8 +15,8 @@ test('settings survive reload and blocked storage does not stop editing', () => 
     let saved = '';
     try {
         Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: () => saved, setItem: (_, value) => { saved = value; } } });
-        savePreferences({ sound: false, volume: 70, directClick: true });
-        assert.deepEqual(loadPreferences(), { sound: false, volume: 70 });
+        savePreferences({ sound: false, directionalClick: true, volume: 70 });
+        assert.deepEqual(loadPreferences(), { sound: false, directionalClick: true, volume: 70 });
         saved = 'broken json'; assert.equal(loadPreferences().volume, 35);
         Object.defineProperty(globalThis, 'localStorage', { configurable: true, get: () => { throw new Error('disabled'); } });
         assert.doesNotThrow(() => savePreferences({}));

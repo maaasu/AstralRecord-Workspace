@@ -22,6 +22,8 @@ function startEditor(editor) {
     let audibleOperationId = null, lastCpView = '', draftInputKey = '';
     const soundedResults = new Set();
     const renderPreferences = () => {
+        q('[data-editor-directional-click]').checked = preferences.directionalClick;
+        text('[data-editor-pointer-actions]', preferences.directionalClick ? '左クリックで解放、右クリックで解除。' : '左クリックで選択、右クリックで操作を選択。');
         q('[data-editor-sound]').checked = preferences.sound;
         q('[data-editor-volume]').value = String(preferences.volume);
         text('[data-editor-volume-label]', `${preferences.volume}%`);
@@ -30,6 +32,12 @@ function startEditor(editor) {
     editor.addEventListener('pointerdown', () => sound.arm(), { capture: true });
     editor.addEventListener('keydown', () => sound.arm(), { capture: true });
     editor.addEventListener('change', event => {
+        if (event.target.matches('[data-editor-directional-click]')) {
+            preferences.directionalClick = event.target.checked;
+            savePreferences(preferences);
+            renderPreferences();
+            return;
+        }
         if (!event.target.matches('[data-editor-sound]')) return;
         preferences.sound = event.target.checked;
         savePreferences(preferences); sound.update(); sound.arm();
@@ -121,6 +129,7 @@ function startEditor(editor) {
         const node = draft.tree.nodes.find(n => n.nodeId === selectedId);
         const source = q('[data-editor-source]');
         const contextAction = q('[data-editor-node-action]');
+        const mapAction = q('[data-editor-map-action]');
         if (!node) {
             const unavailable = reason() || 'ノードの状態を確認できません。';
             q('[data-editor-node-balance]').hidden = false;
@@ -136,6 +145,10 @@ function startEditor(editor) {
             text('[data-editor-node-actions-reason]', unavailable);
             text('[data-editor-node-action]', '変更案へ追加');
             contextAction.disabled = true;
+            mapAction.disabled = true;
+            mapAction.title = unavailable;
+            mapAction.removeAttribute('aria-label');
+            text('[data-editor-map-action]', '操作不可');
             return;
         }
         const staged = changes.some(change => change.nodeId === node.nodeId);
@@ -174,8 +187,14 @@ function startEditor(editor) {
         contextAction.dataset.chooseSource = String(chooseSource);
         contextAction.disabled = Boolean(blocked || error && !chooseSource);
         text('[data-editor-node-actions-title]', node.name);
-        text('[data-editor-node-actions-reason]', blocked || error || q('[data-editor-preview]').textContent);
+        const actionReason = blocked || error || q('[data-editor-preview]').textContent;
+        text('[data-editor-node-actions-reason]', actionReason);
         text('[data-editor-node-action]', chooseSource ? '消費元クラスを選ぶ' : actionLabel);
+        const mapLabel = staged ? '変更案から外す' : node.isUnlocked ? '解除' : '解放';
+        mapAction.disabled = contextAction.disabled;
+        mapAction.title = actionReason;
+        mapAction.setAttribute('aria-label', `${node.name}を${mapLabel}`);
+        text('[data-editor-map-action]', mapLabel);
     };
     const render = () => {
         const fresh = hasBalance();
@@ -283,7 +302,32 @@ function startEditor(editor) {
         sound.play(cue); return true;
     };
     editor.addEventListener('skilltree:select', event => { if (selectedId !== event.detail.nodeId) sourceClassId = ''; selectedId = event.detail.nodeId; renderSelection(); });
-    editor.addEventListener('skilltree:context', () => {
+    const runNodeAction = requestedAction => {
+        renderSelection();
+        const node = draft.tree.nodes.find(n => n.nodeId === selectedId);
+        if (!node) return;
+        const action = requestedAction ?? (node.isUnlocked ? 'RELOCK' : 'UNLOCK');
+        if (Boolean(node.isUnlocked) === (action === 'UNLOCK')) return;
+        const button = q('[data-editor-node-action]');
+        if (button.disabled) {
+            text('[data-editor-feedback]', q('[data-editor-node-actions-reason]').textContent);
+            sound.play('error');
+            return;
+        }
+        if (button.dataset.chooseSource === 'true') {
+            viewer.openDetails?.();
+            q('[data-editor-source]').focus();
+            return;
+        }
+        const next = directNodeChanges(changes, node, action, sourceClassId || null);
+        if (next !== changes) applyChanges(next, next.length < changes.length ? 'undo' : action === 'UNLOCK' ? 'unlock' : 'relock');
+    };
+    editor.addEventListener('skilltree:activate', event => {
+        if (event.detail && preferences.directionalClick) {
+            runNodeAction(event.detail);
+            return;
+        }
+        if (event.detail === 'UNLOCK') return;
         const menu = q('[data-editor-node-actions]');
         if (!menu.open) menu.showModal();
     });
@@ -291,18 +335,8 @@ function startEditor(editor) {
     editor.addEventListener('click', async event => {
         const button = event.target.closest('button'); if (!button || button.disabled) return;
         if (button.matches('[data-editor-refresh]')) { await refresh(); await pollOperation(); }
-        if (button.matches('[data-editor-node-action]')) {
-            q('[data-editor-node-actions]').close();
-            if (button.dataset.chooseSource === 'true') q('[data-editor-source]').focus();
-            else q('[data-editor-submit]').click();
-        }
-        if (button.matches('[data-editor-submit]')) {
-            const node = draft.tree.nodes.find(n => n.nodeId === selectedId);
-            if (!node) return;
-            const action = node.isUnlocked ? 'RELOCK' : 'UNLOCK';
-            const next = directNodeChanges(changes, node, action, sourceClassId || null);
-            if (next !== changes) applyChanges(next, next.length < changes.length ? 'undo' : action === 'UNLOCK' ? 'unlock' : 'relock');
-        }
+        if (button.matches('[data-editor-node-action]')) q('[data-editor-node-actions]').close();
+        if (button.matches('[data-editor-node-action], [data-editor-map-action], [data-editor-submit]')) runNodeAction();
         if (button.matches('[data-editor-undo], [data-editor-clear]') && !busy()) {
             changes = button.matches('[data-editor-clear]') ? [] : changes.slice(0, -1);
             if (!changes.length) { needsReview = false; baseline = draftContext(state); }
