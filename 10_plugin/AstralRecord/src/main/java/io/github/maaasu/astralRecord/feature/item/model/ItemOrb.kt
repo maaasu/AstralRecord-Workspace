@@ -45,6 +45,8 @@ enum class ItemOrbRankBasis {
 /** オーブ効果種別。 */
 enum class ItemOrbEffectType {
     ENHANCE,
+    /** 通常の強化オーブと併用する成功率補助です。単独では装備操作を行いません。 */
+    ENHANCE_BOOST,
     REPAIR,
     TRANSCENDENCE,
     ENCHANT,

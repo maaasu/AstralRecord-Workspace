@@ -54,8 +54,6 @@ import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -81,6 +79,12 @@ public final class OrbService {
     private static final int NEXT_PAGE_SLOT = 53;
     private static final int ORB_USE_COUNT_MINUS_SLOT = 48;
     private static final int ORB_USE_COUNT_PLUS_SLOT = 50;
+    private static final int BOOST_DECREASE_SLOT = 46;
+    private static final int BOOST_SELECTOR_SLOT = 47;
+    private static final int BOOST_MAX_SLOT = 51;
+    private static final int BOOST_CLEAR_SLOT = 52;
+    private static final String BLACKSTONE_ORB_ITEM_ID = "40a00043";
+    private static final int MAX_ENHANCEMENT_BOOST_AMOUNT = 20;
     private static final int INVENTORY_ORB_CONTENT_SLOT_COUNT = 28;
     private static final int INVENTORY_ORB_PREVIOUS_PAGE_SLOT = 45;
     private static final int INVENTORY_ORB_INFO_SLOT = 49;
@@ -285,6 +289,10 @@ public final class OrbService {
             return;
         }
         ItemOrbEffectType type = orbModel.getOrb().getEffect().getType();
+        if (type == ItemOrbEffectType.ENHANCE_BOOST) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5997);
+            return;
+        }
         if(type==ItemOrbEffectType.PET_REVIVE){
             InventoryEntryModel source=inventoryService.findOwnedNormalItemEntryForConsumption(astPlayer.getAccount().getUuid(),orbModel.getId());
             var gui=io.github.maaasu.astralRecord.AstralRecord.getInstance().getPetGui();
@@ -759,7 +767,9 @@ public final class OrbService {
             return;
         }
 
-        inventoryOrbListSessions.remove(player.getUniqueId(), session);
+        if (orbModel.getOrb().getEffect().getType() != ItemOrbEffectType.ENHANCE_BOOST) {
+            inventoryOrbListSessions.remove(player.getUniqueId(), session);
+        }
         startOrbOperation(player, session.astPlayer, orbModel, true);
     }
 
@@ -896,7 +906,9 @@ public final class OrbService {
             Component.empty(),
             Component.text("所持数: " + entry.quantity(), NamedTextColor.AQUA),
             storageMode ? orbGuiMessage(PlayerMsgId.P_5991, NamedTextColor.GOLD)
-                : Component.text("クリックで使用", NamedTextColor.GOLD)
+                : entry.model().getOrb().getEffect().getType() == ItemOrbEffectType.ENHANCE_BOOST
+                    ? orbGuiMessage(PlayerMsgId.P_5997, NamedTextColor.GOLD)
+                    : Component.text("クリックで使用", NamedTextColor.GOLD)
         ));
         if (storageMode) {
             appendLore(item, List.of(orbGuiMessage(PlayerMsgId.P_5996, NamedTextColor.GRAY)));
@@ -959,16 +971,19 @@ public final class OrbService {
         @NotNull List<OrbCandidate> candidates
     ) {
         fillInventory(inventory);
+        ItemOrbEffect effect = orbModel.getOrb().getEffect();
+        session.displayedBoostLimit = effect.getType() == ItemOrbEffectType.ENHANCE
+            ? renderEnhancementBoost(session, inventory) : 0;
         int pageCount = Math.max(1, (candidates.size() + CONTENT_SLOT_COUNT - 1) / CONTENT_SLOT_COUNT);
         session.page = Math.max(0, Math.min(session.page, pageCount - 1));
         int fromIndex = session.page * CONTENT_SLOT_COUNT;
         int toIndex = Math.min(candidates.size(), fromIndex + CONTENT_SLOT_COUNT);
-        Map<Integer, String> displayed = new LinkedHashMap<>();
+        Map<Integer, OrbCandidate> displayed = new LinkedHashMap<>();
         for (int index = fromIndex; index < toIndex; index++) {
             int slot = index - fromIndex;
             OrbCandidate candidate = candidates.get(index);
-            inventory.setItem(slot, createCandidateItem(candidate, orbModel.getOrb().getEffect()));
-            displayed.put(slot, candidate.instance.getEquipmentInstanceId());
+            inventory.setItem(slot, createCandidateItem(candidate, effect, session.displayedBoostLimit));
+            displayed.put(slot, candidate);
         }
         session.displayedTargets = Map.copyOf(displayed);
         inventory.setItem(PREVIOUS_PAGE_SLOT, pageButton(false, session.page > 0));
@@ -979,7 +994,7 @@ public final class OrbService {
             orbModel,
             availableOrbAmount
         );
-        boolean batchable = supportsBatchUse(orbModel.getOrb().getEffect().getType());
+        boolean batchable = supportsBatchUse(effect.getType());
         inventory.setItem(
             ORB_USE_COUNT_MINUS_SLOT,
             orbAmountButton(false, batchable && session.selectedOrbAmount > 1)
@@ -1018,6 +1033,103 @@ public final class OrbService {
         inventory.setItem(INFO_SLOT, info);
     }
 
+    /**
+     * 強化補助のマスタを読み込み済みキャッシュから解決します。
+     *
+     * @return ブラックストーンオーブのマスタ。未登録または効果が不一致ならnull
+     */
+    private @Nullable ItemModel resolveEnhancementBoostModel() {
+        ItemModel model = itemService.findLoadedById(BLACKSTONE_ORB_ITEM_ID);
+        return model != null && ItemCategory.fromApiValue(model.getCategory()) == ItemCategory.ORB && model.getOrb() != null
+            && model.getOrb().getEffect().getType() == ItemOrbEffectType.ENHANCE_BOOST ? model : null;
+    }
+
+    /**
+     * BAGとHOTBARのうち、他の処理に予約されていない補助オーブの使用可能数を取得します。
+     *
+     * @param session 操作セッション
+     * @return 現在の使用可能数
+     */
+    private long availableEnhancementBoost(@NotNull OrbSession session) {
+        return inventoryService.getSpendableNormalItemAmount(session.accountId, BLACKSTONE_ORB_ITEM_ID);
+    }
+
+    /**
+     * 強化画面に補助オーブのヘッドと数量操作を配置し、次の試行で使える上限を返します。
+     *
+     * @param session 操作セッション
+     * @param inventory 強化画面
+     * @return 選択上限と使用可能数の小さい方。補助マスタ未登録なら0
+     */
+    private int renderEnhancementBoost(@NotNull OrbSession session, @NotNull Inventory inventory) {
+        ItemModel boostModel = resolveEnhancementBoostModel();
+        if (boostModel == null) {
+            inventory.setItem(BOOST_SELECTOR_SLOT, GuiItems.create(Material.BARRIER,
+                orbGuiMessage(PlayerMsgId.P_5998, NamedTextColor.RED), List.of()));
+            return 0;
+        }
+
+        long available = availableEnhancementBoost(session);
+        int boostLimit = (int) Math.min(session.selectedBoostAmount, available);
+        ItemStack selector = itemStackFactory.createDisplay(boostModel, 1);
+        ItemMeta meta = selector.getItemMeta();
+        if (meta != null) {
+            meta.lore(List.of(
+                PlayerMsgResource.formatPlainComponent(PlayerMsgId.P_6000.getId(),
+                    session.selectedBoostAmount, available),
+                PlayerMsgResource.formatPlainComponent(PlayerMsgId.P_6008.getId(),
+                    boostLimit * OrbLocalMutationCalculator.BOOST_PERCENTAGE_POINTS_PER_ORB),
+                orbGuiMessage(PlayerMsgId.P_5999, NamedTextColor.YELLOW),
+                orbGuiMessage(PlayerMsgId.P_6001, NamedTextColor.GRAY),
+                orbGuiMessage(PlayerMsgId.P_6009, NamedTextColor.GRAY)
+            ));
+            selector.setItemMeta(meta);
+        }
+        inventory.setItem(BOOST_SELECTOR_SLOT, selector);
+        inventory.setItem(BOOST_DECREASE_SLOT, GuiItems.create(Material.RED_DYE,
+            orbGuiMessage(PlayerMsgId.P_6002, NamedTextColor.RED), List.of()));
+        inventory.setItem(BOOST_MAX_SLOT, GuiItems.create(Material.LIME_DYE,
+            orbGuiMessage(PlayerMsgId.P_6003, NamedTextColor.GREEN), List.of()));
+        inventory.setItem(BOOST_CLEAR_SLOT, GuiItems.create(Material.GRAY_DYE,
+            orbGuiMessage(PlayerMsgId.P_6004, NamedTextColor.GRAY), List.of()));
+        return boostLimit;
+    }
+
+    /**
+     * ヘッドのクリック、または統合版からも選べる専用ボタンで、補助オーブの試行ごとの上限を変更します。
+     *
+     * @param event 取消済みの強化画面内クリック
+     * @param session 操作セッション
+     * @param orbModel 通常の強化オーブのマスタ
+     */
+    private void handleEnhancementBoostClick(
+        @NotNull InventoryClickEvent event,
+        @NotNull OrbSession session,
+        @NotNull ItemModel orbModel
+    ) {
+        if (resolveEnhancementBoostModel() == null) {
+            GuiSound.DENY.play(session.player);
+            return;
+        }
+        int maxAmount = (int) Math.min(MAX_ENHANCEMENT_BOOST_AMOUNT, availableEnhancementBoost(session));
+        int current = Math.min(session.selectedBoostAmount, maxAmount);
+        int next = switch (event.getRawSlot()) {
+            case BOOST_DECREASE_SLOT -> Math.max(0, current - 1);
+            case BOOST_MAX_SLOT -> maxAmount;
+            case BOOST_CLEAR_SLOT -> 0;
+            case BOOST_SELECTOR_SLOT -> switch (event.getClick()) {
+                case SHIFT_LEFT, SHIFT_RIGHT -> maxAmount;
+                case RIGHT -> Math.max(0, current - 1);
+                default -> current < maxAmount ? current + 1 : current;
+            };
+            default -> current;
+        };
+        boolean changed = next != session.selectedBoostAmount;
+        session.selectedBoostAmount = next;
+        renderList(session, orbModel, session.inventory, collectCandidates(session, orbModel));
+        (changed ? GuiSound.SELECT : GuiSound.DENY).play(session.player);
+    }
+
     /** オーブ使用数変更ボタンを生成します。 */
     private @NotNull ItemStack orbAmountButton(boolean plus, boolean enabled) {
         Material material = plus ? Material.LIME_DYE : Material.RED_DYE;
@@ -1037,8 +1149,8 @@ public final class OrbService {
     }
 
     /**
-     * ロックされていないGUIの左クリック（使用数加算ボタンはShiftクリックを含む）を
-     * ページ移動または装備操作へ振り分けます。
+     * ロックされていないGUIのクリックをページ移動・補助選択・装備操作へ振り分けます。
+     * Shiftクリックは使用数加算ボタンと補助ヘッド、右クリックは補助ヘッドだけで受け付けます。
      *
      * @param event 取消済みクリックイベント
      * @param session 現在セッション
@@ -1046,9 +1158,12 @@ public final class OrbService {
     private void handleUnlockedGuiClick(@NotNull InventoryClickEvent event, @NotNull OrbSession session) {
         boolean shiftMaxClick = event.getClick() == ClickType.SHIFT_LEFT
             && event.getRawSlot() == ORB_USE_COUNT_PLUS_SLOT;
+        boolean boostSelectorClick = session.screen == OrbGuiHolder.Screen.LIST
+            && event.getRawSlot() == BOOST_SELECTOR_SLOT
+            && (event.getClick() == ClickType.RIGHT || event.getClick().isShiftClick());
         if (event.getRawSlot() < 0
             || event.getRawSlot() >= event.getView().getTopInventory().getSize()
-            || (event.getClick() != ClickType.LEFT && !shiftMaxClick)) {
+            || (event.getClick() != ClickType.LEFT && !shiftMaxClick && !boostSelectorClick)) {
             GuiSound.DENY.play(session.player);
             return;
         }
@@ -1076,6 +1191,14 @@ public final class OrbService {
         if (orbModel == null) {
             PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5289);
             closeAndRemove(session);
+            return;
+        }
+        if (orbModel.getOrb().getEffect().getType() == ItemOrbEffectType.ENHANCE
+            && switch (event.getRawSlot()) {
+                case BOOST_DECREASE_SLOT, BOOST_SELECTOR_SLOT, BOOST_MAX_SLOT, BOOST_CLEAR_SLOT -> true;
+                default -> false;
+            }) {
+            handleEnhancementBoostClick(event, session, orbModel);
             return;
         }
         if (event.getRawSlot() == ORB_USE_COUNT_MINUS_SLOT
@@ -1123,11 +1246,12 @@ public final class OrbService {
             }
             return;
         }
-        String targetId = session.displayedTargets.get(event.getRawSlot());
-        if (targetId == null) {
+        OrbCandidate displayedTarget = session.displayedTargets.get(event.getRawSlot());
+        if (displayedTarget == null) {
             GuiSound.DENY.play(session.player);
             return;
         }
+        String targetId = displayedTarget.instance.getEquipmentInstanceId();
         OrbCandidate target = collectCandidates(session, orbModel).stream()
             .filter(candidate -> candidate.instance.getEquipmentInstanceId().equalsIgnoreCase(targetId))
             .findFirst()
@@ -1154,7 +1278,47 @@ public final class OrbService {
             openRuneScreen(session, target, orbModel.getOrb().getEffect().getType());
             return;
         }
-        executeCandidate(session, orbModel, target);
+        executeCandidate(session, orbModel, target, displayedTarget);
+    }
+
+    /**
+     * 選んだ補助の消費数や成功率が表示後に変わった場合は、支払う前に画面を更新します。
+     * 確認済みの連続使用は、案内どおり各試行の残数と対象段階で補助を再計算します。
+     *
+     * @param session 操作セッション
+     * @param orbModel 通常の強化オーブのマスタ
+     * @param displayedTarget 選択時に画面へ表示されていた装備
+     * @param currentRoll 支払いに使う強化計画
+     * @return 支払いの条件が表示と一致する場合true
+     */
+    private boolean confirmEnhancementBoostPreview(
+        @NotNull OrbSession session,
+        @NotNull ItemModel orbModel,
+        @NotNull OrbCandidate displayedTarget,
+        @NotNull OrbLocalMutationCalculator.EnhancementRoll currentRoll
+    ) {
+        OrbEligibility.EnhancementPlan displayed = OrbEligibility.resolveEnhancement(
+            orbModel.getOrb().getEffect(), displayedTarget.model, displayedTarget.instance);
+        if (displayed != null
+            && OrbLocalMutationCalculator.planEnhancement(displayed, session.displayedBoostLimit).equals(currentRoll)) {
+            return true;
+        }
+        clearBatch(session);
+        renderList(session, orbModel, session.inventory, collectCandidates(session, orbModel));
+        PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_6007);
+        GuiSound.DENY.play(session.player);
+        return false;
+    }
+
+    /**
+     * 現在の補助オーブのマスタとBAG・HOTBARの使用可能数から、1試行の使用上限を得ます。
+     *
+     * @param session 操作セッション
+     * @return 選択上限と使用可能数の小さい方。未選択・マスタ未登録の場合は0
+     */
+    private int currentEnhancementBoostLimit(@NotNull OrbSession session) {
+        return session.selectedBoostAmount == 0 || resolveEnhancementBoostModel() == null
+            ? 0 : (int) Math.min(session.selectedBoostAmount, availableEnhancementBoost(session));
     }
 
     /** 複数回の連続適用に対応するオーブ効果か判定します。 */
@@ -1183,6 +1347,7 @@ public final class OrbService {
         session.batchTargetId = target.instance.getEquipmentInstanceId();
         session.batchConsumedAmount = 0;
         session.batchConsumedGold = 0L;
+        session.batchConsumedBoostAmount = 0;
         session.batchSuccessCount = 0;
         session.batchFailureCount = 0;
         session.batchLastSuccessfulInstance = null;
@@ -1197,6 +1362,7 @@ public final class OrbService {
         session.batchRequestedAmount = 1;
         session.batchConsumedAmount = 0;
         session.batchConsumedGold = 0L;
+        session.batchConsumedBoostAmount = 0;
         session.batchSuccessCount = 0;
         session.batchFailureCount = 0;
         session.batchLastSuccessfulInstance = null;
@@ -1352,7 +1518,7 @@ public final class OrbService {
         }
         if (event.getRawSlot() != RUNE_RESULT_SLOT || session.selectedRuneItemId == null) { GuiSound.DENY.play(session.player); return; }
         session.processingSlot = RUNE_RESULT_SLOT;
-        executeCandidate(session, orb, target);
+        executeCandidate(session, orb, target, null);
     }
 
     /** 選択済みルーンが対象装備へ装着・脱着できるかをGUI表示用に再検証します。 */
@@ -1698,7 +1864,7 @@ public final class OrbService {
             case ENCHANT -> OrbEligibility.canEnchant(effect, model, instance, enchantMaster);
             case RUNE_ATTACH -> instance.getRuneMaxSlots() > instance.getRunes().size();
             case RUNE_DETACH -> !instance.getRunes().isEmpty();
-            case SIGIL_ATTACH, SIGIL_DETACH, PET_REVIVE -> false;
+            case ENHANCE_BOOST, SIGIL_ATTACH, SIGIL_DETACH, PET_REVIVE -> false;
         };
     }
 
@@ -1707,11 +1873,13 @@ public final class OrbService {
      *
      * @param candidate 表示候補
      * @param effect オーブ効果
+     * @param boostLimit 次の強化試行で使える補助オーブの上限
      * @return GUI表示用ItemStack
      */
     private @NotNull ItemStack createCandidateItem(
         @NotNull OrbCandidate candidate,
-        @NotNull ItemOrbEffect effect
+        @NotNull ItemOrbEffect effect,
+        int boostLimit
     ) {
         ItemStack item = itemStackFactory.create(candidate.model, candidate.instance, 1);
         List<Component> lore = new ArrayList<>();
@@ -1724,10 +1892,11 @@ public final class OrbService {
                 OrbEligibility.EnhancementPlan plan = Objects.requireNonNull(
                     OrbEligibility.resolveEnhancement(effect, candidate.model, candidate.instance));
                 lore.add(Component.text("次の強化値: +" + plan.targetLevel(), NamedTextColor.YELLOW));
-                lore.add(Component.text(
-                    "成功率: " + formatPercent(plan.levelDefinition().getSuccessRate()) + "%",
-                    NamedTextColor.AQUA
-                ));
+                OrbLocalMutationCalculator.EnhancementRoll roll =
+                    OrbLocalMutationCalculator.planEnhancement(plan, boostLimit);
+                lore.add(PlayerMsgResource.formatPlainComponent(PlayerMsgId.P_6005.getId(),
+                    formatPercent(plan.levelDefinition().getSuccessRate()),
+                    formatPercent(roll.successRate()), roll.boostAmount()));
                 lore.add(Component.text(
                     "失敗時: " + failureDescription(plan.levelDefinition().getFailAction(),
                         plan.levelDefinition().getFailTargetLevel()),
@@ -1757,8 +1926,8 @@ public final class OrbService {
             }
             case RUNE_ATTACH -> lore.add(Component.text("クリックしてルーンを装着", NamedTextColor.GREEN));
             case RUNE_DETACH -> lore.add(Component.text("クリックしてルーンを取り外し", NamedTextColor.AQUA));
-            case SIGIL_ATTACH, SIGIL_DETACH, PET_REVIVE -> {
-                // シジル用オーブは SkillSigilOrbService の習得済みスキル一覧で描画する。
+            case ENHANCE_BOOST, SIGIL_ATTACH, SIGIL_DETACH, PET_REVIVE -> {
+                // 装備選択画面を開かない操作は候補に表示されない。
             }
             case ENCHANT -> {
                 int maxSlots = OrbEligibility.effectiveEnchantMaxSlots(
@@ -1889,16 +2058,14 @@ public final class OrbService {
     }
 
     /**
-     * 0から1の割合を小数第一位で四捨五入した整数百分率へ変換します。
+     * 強化成功率の端数を保持し、確定成功かどうかを見分けられる百分率へ変換します。
      *
-     * @param rate 割合
-     * @return パーセント記号を含まない整数の数値文字列
+     * @param rate 強化成功率
+     * @return パーセント記号を含まない表示値
      */
     static @NotNull String formatPercent(double rate) {
-        return BigDecimal.valueOf(Math.clamp(rate, 0.0D, 1.0D))
-            .movePointRight(2)
-            .setScale(0, RoundingMode.HALF_UP)
-            .toPlainString();
+        return OrbLocalMutationCalculator.decimalEnhancementRate(Math.clamp(rate, 0.0D, 1.0D))
+            .movePointRight(2).stripTrailingZeros().toPlainString();
     }
 
     /**
@@ -2253,7 +2420,7 @@ public final class OrbService {
             return;
         }
         session.processingSlot = CONFIRM_TARGET_SLOT;
-        executeCandidate(session, orbModel, target);
+        executeCandidate(session, orbModel, target, null);
     }
 
     /** 装備操作の確認画面から、同じオーブの対象装備一覧へ戻します。 */
@@ -2349,13 +2516,19 @@ public final class OrbService {
     }
 
     /**
-     * オーブと対象を再検証し、支払いと装備更新をローカルで一体確定します。
-     * 完成状態の保存は非同期で集約し、操作結果は通信を待たず表示します。
+     * オーブと対象を再検証し、現在の段階と所持数で強化補助の実消費数を求めます。
+     * 支払いと装備更新をローカルで一体確定し、完成状態は非同期で保存します。
+     *
+     * @param session 操作セッション
+     * @param orbModel 選択中のオーブマスタ
+     * @param target 対象装備とそのマスタ
+     * @param displayedTarget クリック時に表示されていた装備。確認画面や連続実行の2回目以降はnull
      */
     private void executeCandidate(
         @NotNull OrbSession session,
         @NotNull ItemModel orbModel,
-        @NotNull OrbCandidate target
+        @NotNull OrbCandidate target,
+        @Nullable OrbCandidate displayedTarget
     ) {
         ItemModel currentOrb = resolveCurrentOrb(session);
         if (currentOrb == null || !currentOrb.getId().equalsIgnoreCase(orbModel.getId())) {
@@ -2384,6 +2557,26 @@ public final class OrbService {
             }
         }
 
+        OrbLocalMutationCalculator.EnhancementRoll enhancementRoll = null;
+        if (effect.getType() == ItemOrbEffectType.ENHANCE) {
+            OrbEligibility.EnhancementPlan plan = OrbEligibility.resolveEnhancement(effect, target.model, target.instance);
+            if (plan == null) {
+                if (session.batchActive) {
+                    finishBatchMutation(session, MutationResult.failed(MutationStatus.TARGET_CHANGED));
+                    return;
+                }
+                PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5290);
+                refreshCurrentScreen(session);
+                GuiSound.DENY.play(session.player);
+                return;
+            }
+            enhancementRoll = OrbLocalMutationCalculator.planEnhancement(plan, currentEnhancementBoostLimit(session));
+            if (session.selectedBoostAmount > 0 && displayedTarget != null
+                && !confirmEnhancementBoostPreview(session, currentOrb, displayedTarget, enhancementRoll)) {
+                return;
+            }
+        }
+        int boostAmount = enhancementRoll == null ? 0 : enhancementRoll.boostAmount();
         long requiredGold = operationGold(currentOrb, transitionPlan);
         if (inventoryService.getGoldAmount(session.accountId) < requiredGold) {
             if (session.batchActive) {
@@ -2394,7 +2587,7 @@ public final class OrbService {
             return;
         }
         UUID operationId = UUID.randomUUID();
-        if (!reserveOperationPayment(session, currentOrb, transitionPlan, operationId)) {
+        if (!reserveOperationPayment(session, currentOrb, transitionPlan, boostAmount, operationId)) {
             if (session.batchActive) {
                 finishBatchMutation(session, MutationResult.failed(MutationStatus.PAYMENT_UNAVAILABLE));
                 return;
@@ -2407,7 +2600,8 @@ public final class OrbService {
         showProcessingIcon(session);
         session.operationId = operationId;
         session.operationGold = requiredGold;
-        completeLocalMutation(session, target, currentOrb, operationId);
+        session.operationBoostAmount = boostAmount;
+        completeLocalMutation(session, target, currentOrb, enhancementRoll, operationId);
     }
 
     /**
@@ -2430,16 +2624,29 @@ public final class OrbService {
             ? 0L : Math.max(0L, transitionPlan.definition().getRequiredCurrency()));
     }
 
-    /** APIが支払う資産をローカル消費から予約し、報酬加算や移動は止めず二重支出だけを防ぎます。 */
+    /**
+     * オーブ、強化補助、必要素材とGoldの支払いを予約します。
+     *
+     * @param session 操作セッション
+     * @param orbModel 操作に使うオーブマスタ
+     * @param transitionPlan 状態変化の支払い計画。状態変化以外はnull
+     * @param boostAmount その試行で使う補助オーブの実数
+     * @param operationId 支払い予約ID
+     * @return 全額を予約できた場合true
+     */
     private boolean reserveOperationPayment(
         @NotNull OrbSession session,
         @NotNull ItemModel orbModel,
         @Nullable OrbEligibility.TranscendencePlan transitionPlan,
+        int boostAmount,
         @NotNull UUID operationId
     ) {
         Map<String, Long> normalItems = new LinkedHashMap<>();
         try {
             normalItems.put(orbModel.getId().trim().toLowerCase(Locale.ROOT), 1L);
+            if (boostAmount > 0) {
+                normalItems.merge(BLACKSTONE_ORB_ITEM_ID, (long) boostAmount, Math::addExact);
+            }
             if (orbModel.getOrb().getEffect().getType() == ItemOrbEffectType.RUNE_ATTACH
                 && session.selectedRuneItemId != null) {
                 normalItems.merge(session.selectedRuneItemId.trim().toLowerCase(Locale.ROOT), 1L, Math::addExact);
@@ -2466,13 +2673,21 @@ public final class OrbService {
     }
 
     /**
-     * 予約済み支払いと全種類のオーブ結果を同一player state lockで確定します。
+     * 予約済み支払いとオーブ結果を同一player state lockで確定します。
+     * 強化補助のマスタと対象の強化段階を抽選前に照合し、照合できない場合は支払いも戻します。
      * ローカル確定直後に結果を通知し、完成スナップショットの保存は非同期で継続します。
+     *
+     * @param session 操作セッション
+     * @param target 対象装備
+     * @param orbModel 操作に使うオーブマスタ
+     * @param enhancementRoll 予約済みの強化計画。強化以外はnull
+     * @param operationId 支払い予約ID
      */
     private void completeLocalMutation(
         @NotNull OrbSession session,
         @NotNull OrbCandidate target,
         @NotNull ItemModel orbModel,
+        @Nullable OrbLocalMutationCalculator.EnhancementRoll enhancementRoll,
         @NotNull UUID operationId
     ) {
         java.util.concurrent.atomic.AtomicReference<MutationResult> resultReference =
@@ -2510,14 +2725,16 @@ public final class OrbService {
                                 rejected.set(true);
                                 throw new LocalMutationRejectedException();
                             }
-                            OrbLocalMutationCalculator.LocalResult local = OrbLocalMutationCalculator.apply(
-                                effect,
-                                currentModel,
-                                current,
-                                enchantMaster,
-                                runeItem,
-                                effect.getType() == ItemOrbEffectType.RUNE_DETACH ? session.selectedRuneSlot : null
-                            );
+                            if (enhancementRoll != null && enhancementRoll.boostAmount() > 0
+                                && resolveEnhancementBoostModel() == null) {
+                                rejected.set(true);
+                                throw new LocalMutationRejectedException();
+                            }
+                            OrbLocalMutationCalculator.LocalResult local = enhancementRoll != null
+                                ? OrbLocalMutationCalculator.enhance(effect, currentModel, current, enhancementRoll)
+                                : OrbLocalMutationCalculator.apply(
+                                    effect, currentModel, current, enchantMaster, runeItem,
+                                    effect.getType() == ItemOrbEffectType.RUNE_DETACH ? session.selectedRuneSlot : null);
                             if (local == null) {
                                 rejected.set(true);
                                 throw new LocalMutationRejectedException();
@@ -2593,7 +2810,7 @@ public final class OrbService {
             case RUNE_ATTACH, RUNE_DETACH -> MutationResult.rune(model, local.instance());
             case TRANSCENDENCE -> MutationResult.transcendence(
                 model, local.instance(), Objects.requireNonNull(local.transitionName()));
-            case SIGIL_ATTACH, SIGIL_DETACH, PET_REVIVE -> throw new LocalMutationRejectedException();
+            case ENHANCE_BOOST, SIGIL_ATTACH, SIGIL_DETACH, PET_REVIVE -> throw new LocalMutationRejectedException();
         };
     }
 
@@ -2654,6 +2871,7 @@ public final class OrbService {
             continueBatchMutation(session, result);
             return;
         }
+        notifyEnhancementBoostConsumed(session.player, session.operationBoostAmount);
         if (result.instance != null && session.player.isOnline()) {
             inventoryService.refreshManagedInventoryUi(session.astPlayer);
             inventoryService.refreshEquipmentInstanceDisplay(session.astPlayer, result.instance);
@@ -2721,17 +2939,30 @@ public final class OrbService {
                 finishBatchMutation(session, MutationResult.failed(MutationStatus.TARGET_CHANGED));
                 return;
             }
-            executeCandidate(session, orbModel, target);
+            executeCandidate(session, orbModel, target, null);
         }, BATCH_CONTINUATION_DELAY_TICKS);
     }
 
-    /** 1回分の確定結果を複数回適用の成功・失敗件数へ加算します。 */
+    /**
+     * 強化補助の実消費があった場合だけ、確定した個数を通知します。
+     *
+     * @param player 通知先プレイヤー
+     * @param consumedAmount 成立した試行で消費した補助オーブの合計
+     */
+    private void notifyEnhancementBoostConsumed(@NotNull Player player, int consumedAmount) {
+        if (consumedAmount > 0 && player.isOnline()) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6006, consumedAmount);
+        }
+    }
+
+    /** 1回分の確定結果を複数回適用の成功・失敗件数と消費合計へ加算します。 */
     private void recordBatchResult(
         @NotNull OrbSession session,
         @NotNull MutationResult result
     ) {
         session.batchConsumedAmount++;
         session.batchConsumedGold += session.lastConsumedGold;
+        session.batchConsumedBoostAmount += session.operationBoostAmount;
         if (result.instance != null) {
             session.batchLastSuccessfulInstance = result.instance;
         }
@@ -2802,6 +3033,7 @@ public final class OrbService {
                     remaining,
                     session.batchConsumedGold
                 );
+                notifyEnhancementBoostConsumed(session.player, session.batchConsumedBoostAmount);
                 if (successes > 0) {
                     GuiSound.SUCCESS.play(session.player);
                 } else {
@@ -3339,7 +3571,8 @@ public final class OrbService {
         private final boolean returnToInventoryOrbListOnFailure;
         private OrbGuiHolder.Screen screen = OrbGuiHolder.Screen.LIST;
         private Inventory inventory;
-        private Map<Integer, String> displayedTargets = Map.of();
+        private Map<Integer, OrbCandidate> displayedTargets = Map.of();
+        private int displayedBoostLimit;
         private int page;
         private int materialPage;
         private String selectedTargetId;
@@ -3347,12 +3580,15 @@ public final class OrbService {
         private int selectedRuneSlot = -1;
         private int runePage;
         private int selectedOrbAmount = 1;
+        private int selectedBoostAmount;
         private boolean batchActive;
         private String batchTargetId;
         private int batchRequestedAmount = 1;
         private int batchConsumedAmount;
         private long batchConsumedGold;
+        private int batchConsumedBoostAmount;
         private long operationGold;
+        private int operationBoostAmount;
         private long lastConsumedGold;
         private int batchSuccessCount;
         private int batchFailureCount;

@@ -1,0 +1,17 @@
+# design:
+#   motif: "鉱物 / 圧縮した鉱石"
+#   progression: 20
+schemaVersion: 1
+id: 10a00412
+category: material
+name: "&aヴェルディア圧縮石"
+icon: STONE_BRICKS
+customModelData: 230412
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7ヴェルディアの鉱石を溶鉱炉で圧し固めた石。"
+  - "&7ブラックストーンオーブの調合に使う。"
+unTradeable: false
+unSellable: false

@@ -1,0 +1,17 @@
+# design:
+#   motif: "錬金術 / 草花を封じた石"
+#   progression: 20
+schemaVersion: 1
+id: 10a00413
+category: material
+name: "&a緑陽圧縮石"
+icon: MOSSY_COBBLESTONE
+customModelData: 230413
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7ヴェルディアの草花の成分を圧縮石に封じた素材。"
+  - "&7ブラックストーンオーブの調合に使う。"
+unTradeable: false
+unSellable: false

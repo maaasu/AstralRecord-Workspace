@@ -38,3 +38,28 @@ items:
           ref: item:10a00010
         category: material
         amount: 4
+  - id: verdia_compressed_stone_from_materials
+    itemId:
+      ref: item:10a00412
+    category: material
+    amount: 3
+    page: 1
+    slot: 7
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00010
+        category: material
+        amount: 10
+      - itemId:
+          ref: item:10a00086
+        category: material
+        amount: 3
+      - itemId:
+          ref: item:10a00087
+        category: material
+        amount: 2
+      - itemId:
+          ref: item:10a00088
+        category: material
+        amount: 1

@@ -2598,6 +2598,20 @@
       "render_mode": "generated"
     },
     {
+      "id": "verdia_compressed_stone",
+      "base_item": "minecraft:stone_bricks",
+      "custom_model_data": 230412,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
+      "id": "green_sun_compressed_stone",
+      "base_item": "minecraft:mossy_cobblestone",
+      "custom_model_data": 230413,
+      "java_virtual_trident": false,
+      "render_mode": "generated"
+    },
+    {
       "id": "energy_baked",
       "base_item": "minecraft:bread",
       "custom_model_data": 231001,

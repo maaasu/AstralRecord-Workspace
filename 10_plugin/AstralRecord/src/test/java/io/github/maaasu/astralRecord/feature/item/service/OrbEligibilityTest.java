@@ -36,18 +36,19 @@ class OrbEligibilityTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 成功率は10進数の小数第一位を四捨五入した整数百分率として表示し、0.5%境界を正しく扱う。
+     * 検証契約: 成功率は端数を残した百分率で表示し、99.5%と確定成功の100%を区別する。
      */
     @Test
-    void successRateIsRoundedAtDecimalBoundaryBeforeIntegerDisplay() {
+    void successRateDisplayPreservesFractionalPercentages() {
         assertAll(
-            () -> assertEquals("1", OrbService.formatPercent(0.005D)),
-            () -> assertEquals("15", OrbService.formatPercent(0.145D)),
-            () -> assertEquals("57", OrbService.formatPercent(0.565D)),
-            () -> assertEquals("100", OrbService.formatPercent(0.995D)),
-            () -> assertEquals("69", OrbService.formatPercent(0.694D)),
-            () -> assertEquals("70", OrbService.formatPercent(0.695D)),
-            () -> assertEquals("70", OrbService.formatPercent(0.6999999988079071D))
+            () -> assertEquals("0.5", OrbService.formatPercent(0.005D)),
+            () -> assertEquals("14.5", OrbService.formatPercent(0.145D)),
+            () -> assertEquals("56.5", OrbService.formatPercent(0.565D)),
+            () -> assertEquals("99.5", OrbService.formatPercent(0.995D)),
+            () -> assertEquals("100", OrbService.formatPercent(1.0D)),
+            () -> assertEquals("69.4", OrbService.formatPercent(0.694D)),
+            () -> assertEquals("69.5", OrbService.formatPercent(0.695D)),
+            () -> assertEquals("70", OrbService.formatPercent(0.70F))
         );
     }
 

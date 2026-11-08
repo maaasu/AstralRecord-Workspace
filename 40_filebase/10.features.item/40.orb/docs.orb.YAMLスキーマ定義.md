@@ -1,12 +1,12 @@
 # Orb アイテム YAML スキーマ定義
 
-オーブはクリック時に対象装備または習得済みスキルの一覧を開き、1種類の加工効果を実行するアイテムです。`category` は `orb` 固定です。
+オーブは装備加工・習得済みスキルの操作に使うアイテムです。`category` は `orb` 固定です。強化補助オーブは通常の強化オーブで開く強化画面から使用します。
 
 ## `orb.effect`
 
 | キー | 型 | 必須 | デフォルト | 説明 |
 |:--|:--|:--:|:--|:--|
-| `type` | String | ○ | - | `ENHANCE` / `REPAIR` / `TRANSCENDENCE` / `ENCHANT` / `RUNE_ATTACH` / `RUNE_DETACH` / `SIGIL_ATTACH` / `SIGIL_DETACH` / `PET_REVIVE` |
+| `type` | String | ○ | - | `ENHANCE` / `ENHANCE_BOOST` / `REPAIR` / `TRANSCENDENCE` / `ENCHANT` / `RUNE_ATTACH` / `RUNE_DETACH` / `SIGIL_ATTACH` / `SIGIL_DETACH` / `PET_REVIVE` |
 | `targetSlots[]` | List<String> | 条件 | emptyList | 強化対象スロット。`ENHANCE` で指定し、武器・防具・アクセサリを絞り込む |
 | `rank` | Integer | 条件 | Null | `ENHANCE` では現在状態ランク、`TRANSCENDENCE` では`rankBasis`で指定したランクの条件 |
 | `rankBasis` | String | × | TARGET | `TRANSCENDENCE`の比較基準。`TARGET`は次に到達するランク、`CURRENT`は使用前の現在ランク。強化・修理は常に現在ランク |
@@ -18,6 +18,8 @@
 | `enchantOperation` | String | 条件 | Null | `ENCHANT` で必須。`OVERWRITE_RANDOM` / `FILL_ONE_EMPTY` / `FILL_ALL_EMPTY` / `REROLL_VALUE_RANDOM` / `REMOVE_RANDOM` / `LOCK_FIRST` |
 
 強化は装備マスタの次レベルにある `successRate` と `failAction` を使用します。`chargeSaleValue: true` の強化・修理・状態変化は売り値と同額のゴールドを消費し、状態変化に必要な素材・通貨へ加算します。強化は成功・失敗を問わず成立した試行でオーブ1個とゴールドを一体消費します。残高不足または実行条件不成立なら装備・オーブ・ゴールドを変更しません。複数回使用は各回で再確認し、不足した時点で終了します。修理済み、条件外ランク、空き枠不足など実行不能な装備は一覧へ表示しません。
+
+`ENHANCE_BOOST` はブラックストーンオーブ（`40a00043`）の補助効果です。1個で成功率に2ポイント加算し、1試行につき最大20個を併用できます。消費数は選択数、インベントリ所持数、成功率100%に必要な個数で制限されます。武器・防具・アクセサリーの強化に共通で使用します。
 
 `FILL_ALL_EMPTY` は全空き枠を1個で埋めます。同一 `effectId` は重複せず、全枠分の未付与候補がない場合は無変更・無消費です。
 

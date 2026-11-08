@@ -50,3 +50,66 @@ items:
           ref: item:10a00010
         category: material
         amount: 2
+  - id: green_sun_compressed_stone_from_shade_and_dew
+    itemId:
+      ref: item:10a00413
+    category: material
+    amount: 2
+    page: 1
+    slot: 7
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00071
+        category: material
+        amount: 3
+      - itemId:
+          ref: item:10a00072
+        category: material
+        amount: 3
+      - itemId:
+          ref: item:10a00007
+        category: material
+        amount: 1
+  - id: green_sun_compressed_stone_from_wind_and_sun
+    itemId:
+      ref: item:10a00413
+    category: material
+    amount: 2
+    page: 1
+    slot: 8
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00069
+        category: material
+        amount: 3
+      - itemId:
+          ref: item:10a00070
+        category: material
+        amount: 3
+      - itemId:
+          ref: item:10a00007
+        category: material
+        amount: 1
+  - id: blackstone_orb_from_compressed_stones
+    itemId:
+      ref: item:40a00043
+    category: orb
+    amount: 1
+    page: 1
+    slot: 9
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:10a00412
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:10a00413
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:10a00009
+        category: material
+        amount: 2

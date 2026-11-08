@@ -18,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -34,6 +35,9 @@ import java.util.concurrent.ThreadLocalRandom;
  * 支払い・inventoryへのルーン返却・dirty保存は呼出側の同一state lockで確定します。
  */
 final class OrbLocalMutationCalculator {
+    static final int BOOST_PERCENTAGE_POINTS_PER_ORB = 2;
+    private static final BigDecimal BOOST_RATE_PER_ORB = BigDecimal.valueOf(BOOST_PERCENTAGE_POINTS_PER_ORB, 2);
+
     private OrbLocalMutationCalculator() {
     }
 
@@ -57,24 +61,77 @@ final class OrbLocalMutationCalculator {
         @Nullable Integer runeSlotIndex
     ) {
         return switch (effect.getType()) {
-            case ENHANCE -> enhance(effect, model, current);
+            case ENHANCE -> enhance(effect, model, current, null);
             case REPAIR -> repair(effect, model, current);
             case TRANSCENDENCE -> transcendence(effect, model, current);
             case ENCHANT -> enchant(effect, model, current, enchantMaster);
             case RUNE_ATTACH -> attachRune(model, current, runeItem);
             case RUNE_DETACH -> detachRune(current, runeSlotIndex);
-            case SIGIL_ATTACH, SIGIL_DETACH, PET_REVIVE -> null;
+            case ENHANCE_BOOST, SIGIL_ATTACH, SIGIL_DETACH, PET_REVIVE -> null;
         };
     }
 
-    private static @Nullable LocalResult enhance(@NotNull ItemOrbEffect effect, @NotNull ItemModel model,
-        @NotNull EquipmentInstance current) {
+    /**
+     * 強化の素の成功率と補助の上限から、100%までに必要な補助の個数と適用後の成功率を計算します。
+     *
+     * @param plan 対象の強化段階と現在のマスタ定義
+     * @param boostLimit 選択数と支払い可能数から決めた補助の使用上限
+     * @return 表示と支払いに使用する1試行分の計画
+     */
+    static @NotNull EnhancementRoll planEnhancement(
+        @NotNull OrbEligibility.EnhancementPlan plan,
+        int boostLimit
+    ) {
+        double baseRate = Math.clamp(plan.levelDefinition().getSuccessRate(), 0.0D, 1.0D);
+        if (boostLimit <= 0 || !(baseRate < 1.0D)) {
+            return new EnhancementRoll(plan, 0, baseRate);
+        }
+        BigDecimal rate = decimalEnhancementRate(baseRate);
+        int toGuarantee = BigDecimal.ONE.subtract(rate)
+            .divide(BOOST_RATE_PER_ORB, 0, RoundingMode.CEILING).intValueExact();
+        int boostAmount = Math.min(boostLimit, toGuarantee);
+        double successRate = rate.add(BOOST_RATE_PER_ORB.multiply(BigDecimal.valueOf(boostAmount)))
+            .min(BigDecimal.ONE).doubleValue();
+        return new EnhancementRoll(plan, boostAmount, successRate);
+    }
+
+    /**
+     * 強化率を十進数に変換し、旧floatを拡張した値の場合も定義の丸め誤差で余分に消費しないようにします。
+     *
+     * @param rate 0から1に正規化した有限の強化率
+     * @return 強化率の十進表現
+     */
+    static @NotNull BigDecimal decimalEnhancementRate(double rate) {
+        float singlePrecision = (float) rate;
+        return rate == (double) singlePrecision
+            ? new BigDecimal(Float.toString(singlePrecision)) : BigDecimal.valueOf(rate);
+    }
+
+    /**
+     * 現在の装備と支払い計画の整合を確認し、補助込みの成功率で強化結果を一度だけ決定します。
+     *
+     * @param effect 強化オーブの効果
+     * @param model 対象装備マスタ
+     * @param current state lock内で再取得した現在装備個体
+     * @param reservedRoll 支払い予約時の強化計画。通常強化の単体計算時はnull
+     * @return 変更後の装備状態。段階や定義が変わった場合は抽選せずnull
+     */
+    static @Nullable LocalResult enhance(
+        @NotNull ItemOrbEffect effect,
+        @NotNull ItemModel model,
+        @NotNull EquipmentInstance current,
+        @Nullable EnhancementRoll reservedRoll
+    ) {
         OrbEligibility.EnhancementPlan plan = OrbEligibility.resolveEnhancement(effect, model, current);
         if (plan == null || model.getEquipment() == null) return null;
+        EnhancementRoll roll = planEnhancement(plan, reservedRoll == null ? 0 : reservedRoll.boostAmount());
+        if (reservedRoll != null && !reservedRoll.equals(roll)) {
+            return null;
+        }
         ItemEquipment equipment = model.getEquipment();
         ItemEquipmentEnhanceLevel definition = plan.levelDefinition();
-        double successRate = Math.max(0.0D, Math.min(1.0D, definition.getSuccessRate()));
-        boolean succeeded = ThreadLocalRandom.current().nextDouble() < successRate;
+        double successRate = roll.successRate();
+        boolean succeeded = successRate >= 1.0D || ThreadLocalRandom.current().nextDouble() < successRate;
         ItemEquipmentEnhanceFailAction failAction = definition.getFailAction();
         int maxLevel = OrbEligibility.effectiveEnhanceMaxLevel(equipment, current.getTranscendenceRank());
         int appliedLevel = succeeded ? plan.targetLevel() : switch (failAction) {
@@ -307,6 +364,10 @@ final class OrbLocalMutationCalculator {
     private static @NotNull String normalize(@NotNull String value) { return value.trim().toLowerCase(Locale.ROOT); }
 
     private record OverwriteChoice(@NotNull EquipmentEnchant target, @NotNull List<EnchantEntry> candidates) { }
+
+    /** 1試行で照合する強化段階・補助オーブの消費数・適用後成功率。 */
+    record EnhancementRoll(@NotNull OrbEligibility.EnhancementPlan plan, int boostAmount, double successRate) {
+    }
 
     /** ローカル確定した完成状態とGUI結果に必要な付帯情報です。 */
     record LocalResult(@NotNull EquipmentInstance instance, boolean enhancementSucceeded,
