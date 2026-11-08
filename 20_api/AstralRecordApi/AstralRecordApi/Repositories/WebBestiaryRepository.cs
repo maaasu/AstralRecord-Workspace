@@ -161,19 +161,22 @@ public sealed class WebBestiaryRepository(AstralRecordDbContext gameDb, MasterDa
         return new WebBestiaryDropItemResponse
         {
             ItemId = itemId, Name = item is null ? "未登録のアイテム" : StripLegacyColors(item.Name),
-            Icon = item?.Icon ?? "BARRIER", IconTexture = item?.IconTexture, Rate = drop.Rate,
-            Amount = drop.Amount, LuckAffected = drop.LuckAffected,
+            Icon = item?.Icon ?? "BARRIER", IconTexture = item?.IconTexture, CustomModelData = item?.CustomModelData,
+            Rate = drop.Rate, Amount = drop.Amount, LuckAffected = drop.LuckAffected,
         };
     }
 
-    // The shared payload reader unwraps {"ref":"item:..."} but keeps its namespace.
+    // The shared payload reader unwraps reference objects but keeps the prefix or alias.
     // Item masters are keyed by the bare ID; legacy bare-ID drops remain supported.
     private static string NormalizeDropItemId(string? value)
     {
         var reference = value?.Trim() ?? string.Empty;
         const string prefix = "item:";
-        return reference.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-            ? reference[prefix.Length..].Trim() : reference;
+        const string alias = "im:";
+        if (reference.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            return reference[prefix.Length..].Trim();
+        return reference.StartsWith(alias, StringComparison.OrdinalIgnoreCase)
+            ? reference[alias.Length..].Trim() : reference;
     }
 
     /// <summary>有効な各レベルプロファイルを共通定義へ上書きし、最小レベル順で返します。</summary>

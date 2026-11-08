@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Repositories;
@@ -13,6 +14,7 @@ public sealed class WebBestiaryRepositoryTests
     [InlineData("\"visible_item\"")]
     [InlineData("\"item:visible_item\"")]
     [InlineData("{\"ref\":\"item:visible_item\"}")]
+    [InlineData("{\"ref\":\"im:visible_item\"}")]
     [InlineData("{\"ref\":\" ITEM:visible_item \"}")]
     public async Task Detail_UsesOwnedAccountAndStandardLevel_WithoutHiddenDrops(string itemReferenceJson)
     {
@@ -24,7 +26,7 @@ public sealed class WebBestiaryRepositoryTests
         await fixture.AddAccountAsync(userId, otherAccountId, "sub", active: false);
         await fixture.AddRecordAsync(accountId, "test_mob", 3);
         await fixture.AddMobAsync(itemReferenceJson);
-        await fixture.AddItemAsync("visible_item", "&a表示アイテム", "EMERALD");
+        await fixture.AddItemAsync("visible_item", "&a表示アイテム", "PLAYER_HEAD", "head-texture", 220069);
 
         var list = await fixture.Repository.GetListAsync(userId, null);
         var detail = await fixture.Repository.GetDetailAsync(userId, null, "test_mob");
@@ -42,9 +44,12 @@ public sealed class WebBestiaryRepositoryTests
         Assert.Equal("ZOMBIE", detail.Mob.EntityType);
         Assert.Equal("最大HP", Assert.Single(detail.Mob.BaseStats).DisplayName);
         Assert.Equal("1200", detail.Mob.BaseStats[0].DisplayValue);
-        Assert.Equal("visible_item", Assert.Single(detail.Mob.Drops.Items).ItemId);
-        Assert.Equal("表示アイテム", detail.Mob.Drops.Items[0].Name);
-        Assert.Equal("EMERALD", detail.Mob.Drops.Items[0].Icon);
+        var visibleDrop = Assert.Single(detail.Mob.Drops.Items);
+        Assert.Equal("visible_item", visibleDrop.ItemId);
+        Assert.Equal("表示アイテム", visibleDrop.Name);
+        Assert.Equal("PLAYER_HEAD", visibleDrop.Icon);
+        Assert.Equal("head-texture", visibleDrop.IconTexture);
+        Assert.Equal(220069, visibleDrop.CustomModelData);
         Assert.Equal(20, detail.Mob.Drops.Exp);
         Assert.NotNull(detail.Mob.Drops.Money);
         Assert.Equal(2, detail.Mob.Drops.Money.Min);
@@ -56,7 +61,7 @@ public sealed class WebBestiaryRepositoryTests
         Assert.Equal(30, levelEight.Drops.Exp);
         Assert.NotNull(levelEight.Drops.Money);
         Assert.Equal(8, levelEight.Drops.Money.Max);
-        Assert.Equal("visible_item", Assert.Single(levelEight.Drops.Items).ItemId);
+        Assert.Equal(220069, Assert.Single(levelEight.Drops.Items).CustomModelData);
         Assert.Null(forged);
         Assert.Null(unrecorded);
     }
@@ -65,6 +70,7 @@ public sealed class WebBestiaryRepositoryTests
     [InlineData("\"missing_item\"", "missing_item")]
     [InlineData("{\"ref\":\"item:missing_item\"}", "missing_item")]
     [InlineData("{\"ref\":\"mob.enemy:visible_item\"}", "mob.enemy:visible_item")]
+    [InlineData("{\"ref\":\"mb:visible_item\"}", "mb:visible_item")]
     public async Task Detail_UnresolvedOrWrongTypeReference_RemainsUnregistered(string reference, string expectedId)
     {
         await using var fixture = await Fixture.CreateAsync();
@@ -81,6 +87,8 @@ public sealed class WebBestiaryRepositoryTests
         Assert.Equal(expectedId, drop.ItemId);
         Assert.Equal("未登録のアイテム", drop.Name);
         Assert.Equal("BARRIER", drop.Icon);
+        Assert.Null(drop.IconTexture);
+        Assert.Null(drop.CustomModelData);
     }
 
     [Fact]
@@ -145,10 +153,11 @@ public sealed class WebBestiaryRepositoryTests
             mob.PayloadJson = mob.PayloadJson.Replace("\"visible_item\"", itemReferenceJson, StringComparison.Ordinal);
             await Master.SaveChangesAsync();
         }
-        public async Task AddItemAsync(string id, string name, string icon)
+        public async Task AddItemAsync(string id, string name, string icon, string? iconTexture = null, int? customModelData = null)
         {
             var now = DateTime.UtcNow;
-            Master.Entries.Add(new MasterDataEntryEntity { EntryId = Guid.NewGuid(), SourceId = Guid.NewGuid(), MasterType = "item", MasterId = id, SchemaVersion = 1, SourceFilePath = id + ".yml", SourceFileHash = new string('0', 64), PayloadVersion = 1, EffectiveFrom = now, CreatedAt = now, UpdatedAt = now, PayloadJson = $"{{\"schemaVersion\":1,\"id\":\"{id}\",\"category\":\"material\",\"name\":\"{name}\",\"icon\":\"{icon}\",\"rarity\":\"COMMON\"}}" });
+            var payload = JsonSerializer.Serialize(new { schemaVersion = 1, id, category = "material", name, icon, rarity = "COMMON", iconTexture, customModelData });
+            Master.Entries.Add(new MasterDataEntryEntity { EntryId = Guid.NewGuid(), SourceId = Guid.NewGuid(), MasterType = "item", MasterId = id, SchemaVersion = 1, SourceFilePath = id + ".yml", SourceFileHash = new string('0', 64), PayloadVersion = 1, EffectiveFrom = now, CreatedAt = now, UpdatedAt = now, PayloadJson = payload });
             await Master.SaveChangesAsync();
         }
         public async ValueTask DisposeAsync() { await Game.DisposeAsync(); await Master.DisposeAsync(); await gameConnection.DisposeAsync(); await masterConnection.DisposeAsync(); }

@@ -20,7 +20,7 @@ public sealed class WebBestiaryController(IWebBestiaryRepository repository) : C
             ? NotFound()
             : await repository.GetListAsync(viewerUserUuid, accountId) is { } result ? Ok(result) : NotFound();
 
-    /// <summary>本人が討伐済みの指定 Mob 詳細を返します。</summary>
+    /// <summary>本人が討伐済みの指定 Mob 詳細と、表示対象ドロップのアイコン情報を返します。</summary>
     [HttpGet("{mobId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

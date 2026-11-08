@@ -67,7 +67,20 @@
                         else
                         {
                             <div class="ar-drop-table-wrap"><table class="ar-drop-table"><thead><tr><th scope="col">アイテム</th><th scope="col">数量</th><th scope="col">基礎確率</th><th scope="col">幸運補正</th></tr></thead><tbody>
-                            @foreach (var item in drops.Items) { <tr><th scope="row">@(string.IsNullOrWhiteSpace(item.Name) ? item.ItemId : item.Name)</th><td>@item.Amount</td><td>@item.Rate.ToString("0.##")%</td><td>@(item.LuckAffected ? "対象" : "対象外")</td></tr> }
+                            @foreach (var item in drops.Items)
+                            {
+                                <tr>
+                                    <th scope="row">
+                                        <span class="ar-drop-item">
+                                            <partial name="_ItemIcon" model="@(new ItemIcon(item.Icon, item.IconTexture, item.CustomModelData))" />
+                                            <span>@(string.IsNullOrWhiteSpace(item.Name) ? item.ItemId : item.Name)</span>
+                                        </span>
+                                    </th>
+                                    <td>@item.Amount</td>
+                                    <td>@item.Rate.ToString("0.##")%</td>
+                                    <td>@(item.LuckAffected ? "対象" : "対象外")</td>
+                                </tr>
+                            }
                             </tbody></table></div>
                         }
                         @if (drops.HasAdditionalDrops) { <p class="ar-bestiary-note">このほかに追加抽選によるドロップがあります。</p> }
@@ -79,4 +92,8 @@
         }
     }
 </div></section>
-@section Scripts { <script type="module" src="~/js/mob-viewer.mjs" asp-append-version="true"></script><script type="module" src="~/js/bestiary-level-selector.mjs" asp-append-version="true"></script> }
+@section Scripts {
+    <script type="module" src="~/js/mob-viewer.mjs" asp-append-version="true"></script>
+    <script type="module" src="~/js/bestiary-level-selector.mjs" asp-append-version="true"></script>
+    <script type="module" src="~/js/item-icons.js" asp-append-version="true"></script>
+}

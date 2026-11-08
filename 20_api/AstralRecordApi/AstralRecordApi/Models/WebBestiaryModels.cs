@@ -99,6 +99,7 @@ public sealed class WebBestiaryDropItemResponse
     public required string Name { get; init; }
     public required string Icon { get; init; }
     public string? IconTexture { get; init; }
+    public int? CustomModelData { get; init; }
     public required double Rate { get; init; }
     public required string Amount { get; init; }
     public required bool LuckAffected { get; init; }

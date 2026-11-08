@@ -95,6 +95,8 @@ public sealed class WebBestiaryDropItemResponse
     public string ItemId { get; init; } = "";
     public string Name { get; init; } = "";
     public string? Icon { get; init; }
+    public string? IconTexture { get; init; }
+    public int? CustomModelData { get; init; }
     public double Rate { get; init; }
     public string Amount { get; init; } = "1";
     public bool LuckAffected { get; init; }

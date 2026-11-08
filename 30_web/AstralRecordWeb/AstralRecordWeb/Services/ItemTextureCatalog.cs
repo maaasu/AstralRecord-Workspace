@@ -1,5 +1,4 @@
 using System.Text.Json;
-using AstralRecordWeb.Models;
 
 namespace AstralRecordWeb.Services;
 
@@ -17,12 +16,12 @@ public sealed class ItemTextureCatalog
             model => model.GetProperty("id").GetString()!);
     }
 
-    public string? FindModelId(ItemMasterResponse? item)
+    public string? FindModelId(string? material, int? customModelData)
     {
-        if (item?.CustomModelData is not int modelData || string.IsNullOrWhiteSpace(item.Icon))
+        if (customModelData is not int modelData || string.IsNullOrWhiteSpace(material))
             return null;
 
-        var baseItem = item.Icon.Trim().ToLowerInvariant();
+        var baseItem = material.Trim().ToLowerInvariant();
         if (!baseItem.Contains(':'))
             baseItem = "minecraft:" + baseItem;
 

@@ -60,6 +60,31 @@ public sealed class PlayerProfileTests
     }
 
     [Fact]
+    public async Task Bestiary_RendersDropIconMetadata_AndServesPackTexture()
+    {
+        var api = new ProfileHandler();
+        await using var factory = new ProfileFactory(api);
+        using var client = Client(factory);
+        await Login(client);
+        const string texturePath = "/images/items/nox_sword.png";
+
+        var detail = await client.GetStringAsync("/bestiary/zombie");
+        var script = Regex.Match(detail, "src=\"(/js/item-icons(?:\\.[a-z0-9]+)?\\.js(?:\\?[^\"]*)?)\"");
+        Assert.True(script.Success);
+        Assert.Contains($"data-material=\"WOODEN_SWORD\" data-pack-texture=\"{texturePath}\"", detail);
+        Assert.Contains($"data-head-texture=\"{ProfileHandler.HeadTexture}\"", detail);
+        Assert.Contains("data-material=\"EMERALD\"", detail);
+        Assert.Single(Regex.Matches(detail, "data-pack-texture=\"/images/items/"));
+        Assert.DoesNotContain(api.Calls, uri => uri.StartsWith("/api/item/", StringComparison.Ordinal));
+
+        using var module = await client.GetAsync(WebUtility.HtmlDecode(script.Groups[1].Value));
+        module.EnsureSuccessStatusCode();
+        using var image = await client.GetAsync(texturePath);
+        image.EnsureSuccessStatusCode();
+        Assert.Equal("image/png", image.Content.Headers.ContentType?.MediaType);
+    }
+
+    [Fact]
     public async Task Bestiary_DeniesUnknownMobAndForeignAccount_AndSeparatesFailureFromEmpty()
     {
         var api = new ProfileHandler();
@@ -339,6 +364,7 @@ public sealed class PlayerProfileTests
 
     private sealed class ProfileHandler : HttpMessageHandler
     {
+        public const string HeadTexture = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHBzOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlL2FiYyJ9fX0=";
         public static readonly Guid UserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
         public static readonly Guid FirstAccountId = Guid.Parse("22222222-2222-2222-2222-222222222222");
         public static readonly Guid SecondAccountId = Guid.Parse("33333333-3333-3333-3333-333333333333");
@@ -375,7 +401,16 @@ public sealed class PlayerProfileTests
                     mobId = "zombie", name = "森のゾンビ", category = "ENEMY", level = 5, entityType = "ZOMBIE", defeatCount = 1234L,
                     firstDefeatedAt = "2026-09-01T00:00:00Z", lastDefeatedAt = "2026-09-15T12:34:56Z", lore = new[] { "森を彷徨う敵。" },
                     baseStats = new[] { new { status = "HP", displayName = "体力", value = 120, displayValue = "120" } },
-                    drops = new { exp = 40, money = new { min = 100, max = 200 }, items = new[] { new { itemId = "fragment", name = "森のかけら", rate = 25.0, amount = "1-2", luckAffected = true } }, hasAdditionalDrops = true },
+                    drops = new
+                    {
+                        exp = 40, money = new { min = 100, max = 200 }, hasAdditionalDrops = true,
+                        items = new object[]
+                        {
+                            new { itemId = "fragment", name = "森のかけら", icon = "EMERALD", rate = 25.0, amount = "1-2", luckAffected = true },
+                            new { itemId = "nox_sword", name = "ノクスソード", icon = "WOODEN_SWORD", customModelData = 21001, rate = 10.0 },
+                            new { itemId = "forest_head", name = "森の頭像", icon = "PLAYER_HEAD", iconTexture = HeadTexture, rate = 1.0 },
+                        },
+                    },
                 };
                 var mobs = EmptyBestiary ? Array.Empty<object>() : ManyBestiaryMobs
                     ? Enumerable.Range(0, 24).Select(i => (object)new { mobId = $"other-{i}", name = "森のゾンビ", category = "ENEMY", level = 5, entityType = "ZOMBIE", defeatCount = 1L, lastDefeatedAt = "2026-09-15T12:34:56Z" }).Append(mob).ToArray()

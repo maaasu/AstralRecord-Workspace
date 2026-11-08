@@ -170,6 +170,9 @@
 .ar-drop-table thead { background: var(--ar-bg-panel-2); }
 .ar-drop-table tbody th { font-weight: 400; }
 .ar-drop-table td { white-space: nowrap; }
+.ar-drop-item { display: flex; align-items: center; gap: .5rem; }
+.ar-drop-item .ar-item-icon { flex: 0 0 32px; width: 32px; height: 32px; }
+.ar-drop-item .ar-item-icon :is(img, canvas) { max-width: 24px; max-height: 24px; }
 
 @media (max-width: 780px) {
     .ar-bestiary-account { flex-basis: 100%; }
