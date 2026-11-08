@@ -48,6 +48,8 @@ public final class FishingVisuals {
     private static final int INTERPOLATION_TICKS = 2;
     private static final float LINE_WIDTH = 0.025F;
     private static final float SEGMENT_OVERLAP = 0.01F;
+    // generate-fishing-visuals.py のウキの環の中心（モデル座標からブロックへ換算）。
+    private static final double BOBBER_EYE_HEIGHT = 2.31D / 16.0D;
 
     private final Plugin plugin;
     private final ResourcePackService resourcePacks;
@@ -432,10 +434,17 @@ public final class FishingVisuals {
             clearBedrock();
         }
 
-        /** 2ノードごとに線分の中心と姿勢を更新し、接合部をわずかに重ねます。 */
+        /**
+         * 2ノードごとに線分を描画します。竿先を固定し、糸の終端だけをウキの環へ向けて持ち上げます。
+         *
+         * @param nodes 竿先から針までの順序付きノード
+         * @param hookLocation 判定に使用している針の位置
+         * @param viewers Java版の表示対象
+         */
         private void updateJava(List<Location> nodes, Location hookLocation, Set<Player> viewers) {
             hookModel = updateModel(hookModel, hookLocation, hook,
                 transform(new Quaternionf(), new Vector3f(1.0F)), viewers);
+            double liftPerNode = BOBBER_EYE_HEIGHT / (nodes.size() - 1);
             for (int i = 0; i + NODE_STEP < nodes.size(); i += NODE_STEP) {
                 int index = i / NODE_STEP;
                 if (segments.size() <= index) {
@@ -443,6 +452,7 @@ public final class FishingVisuals {
                 }
                 Location start = nodes.get(i);
                 Vector delta = nodes.get(i + NODE_STEP).toVector().subtract(start.toVector());
+                delta.setY(delta.getY() + NODE_STEP * liftPerNode);
                 float length = (float) delta.length();
                 ItemDisplay current = segments.get(index);
                 if (length <= 1.0E-5F) {
@@ -452,7 +462,8 @@ public final class FishingVisuals {
                     segments.set(index, null);
                     continue;
                 }
-                Location middle = start.clone().add(delta.clone().multiply(0.5D));
+                Location middle = start.clone().add(0.0D, i * liftPerNode, 0.0D)
+                    .add(delta.clone().multiply(0.5D));
                 Quaternionf rotation = new Quaternionf().rotationTo(0, 0, 1,
                     (float) (delta.getX() / length), (float) (delta.getY() / length), (float) (delta.getZ() / length));
                 Transformation shape = transform(rotation, new Vector3f(LINE_WIDTH, LINE_WIDTH, length + SEGMENT_OVERLAP));
