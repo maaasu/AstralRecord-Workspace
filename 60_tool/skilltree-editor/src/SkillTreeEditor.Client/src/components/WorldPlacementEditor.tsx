@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode, type Ref } from 'react'
 import { ResizeHandle, usePanelSize } from './ResizeHandle'
 import { worldPlacementApi, type PlacementKind, type PlacementSnapshot, type WorldPlacement } from '../api/worldPlacementApi'
 import { cellAtWorld, type PlanningSnapshot } from '../data/spawnerPlanning'
@@ -15,7 +15,10 @@ import { PlacementCoordinateCopy } from './PlacementCoordinateCopy'
 
 export interface PlacementCatalog { spawners: { id: string; name: string; radiusMeters: number | null; levels: number[] }[]; npcs: { id: string; name: string }[]; worlds: { id: string; name: string; baseWorldPath: string }[] }
 export interface PlacementPoint { key: number; x: number; y: number | null; z: number }
+export interface WorldPlacementEditorHandle { openSavedWaystone: (id: string, revision: string) => void }
 interface Props {
+  ref?: Ref<WorldPlacementEditorHandle>
+  initialWaystoneId?: string | null
   editing?: boolean
   map?: ReactNode
   snapshot: PlanningSnapshot
@@ -50,7 +53,7 @@ const fresh = (kind: PlacementKind, worldId: string, worldName: string, template
   waystone: kind === 'waystone' ? { id: '', name: '', lockEnabled: false, unlockGold: 0, icon: 'LODESTONE', createdAt: new Date().toISOString(), createdBy: 'master-data-editor' } : null,
 })
 
-export function WorldPlacementEditor({ editing = true, map, snapshot, point, selectedId, selectionKey = 0, onSelected, onPlacements, placing, onPlacing, moving = false, onMoving = () => {}, onBusyChange = () => {}, onDirtyChange = () => {} }: Props) {
+export function WorldPlacementEditor({ ref, initialWaystoneId, editing = true, map, snapshot, point, selectedId, selectionKey = 0, onSelected, onPlacements, placing, onPlacing, moving = false, onMoving = () => {}, onBusyChange = () => {}, onDirtyChange = () => {} }: Props) {
   const [inspectorWidth, setInspectorWidth] = usePanelSize('placement-inspector', 360, 280, 760)
   const [controlsHeight, setControlsHeight] = usePanelSize('placement-controls', 240, 140, 900)
   const [base, setBase] = useState<PlacementSnapshot | null>(null)
@@ -145,6 +148,16 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     }
   }, [selectedId, editing, selectionKey])
   const worldId = snapshot.manifest.worldId
+  const findWaystone = (items: WorldPlacement[], id: string) => items.find(item =>
+    item.placementId === id && item.worldId === worldId && item.kind === 'waystone' && item.waystone !== null)
+  const selectSavedWaystone = (items: WorldPlacement[], id: string) => {
+    const item = findWaystone(items, id)
+    if (item) selectPlacement(item.placementId, item)
+    else {
+      selectPlacement(null)
+      setError('指定の道標を Dev 配置で確認できませんでした。テレポーター一覧を再読込してください。')
+    }
+  }
   const bulkIds = bulkSelection.worldId === worldId ? bulkSelection.ids : emptySelection
   useEffect(() => { setBulkSelection({ worldId, ids: new Set() }); setSelectedOnly(false) }, [worldId])
   const masterNumbers = useMemo(() => spawnerMasterNumbers(catalog.spawners.map(item => item.id)), [catalog.spawners])
@@ -287,6 +300,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     ]).then(([value, definitions]) => {
       if (cancelled) return
       setBase(value); resetWorking(value.placements); setCatalog(definitions)
+      if (initialWaystoneId) selectSavedWaystone(value.placements, initialWaystoneId)
     }).catch(reason => { if (!cancelled) setError(reason instanceof Error ? reason.message : String(reason)) })
       .finally(() => { if (!cancelled) { busyRef.current = false; setBusy(false) } })
     return () => { cancelled = true }
@@ -356,7 +370,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
     closeConfirmation()
     applyBulkAction(intent.action, intent)
   }
-  const reload = async () => {
+  const reload = async (waystoneId?: string) => {
     if (locked()) return
     if (dirty && !window.confirm('未保存の編集を破棄して Dev 配置を再読込しますか？')) return
     busyRef.current = true; setBusy(true); setError('')
@@ -364,11 +378,22 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
       // A base snapshot is usable only after both placements and definitions load.
       // Retry both after an initial catalog failure; do not publish a partial pair.
       const [value, definitions] = await Promise.all([worldPlacementApi.read(), readCatalog()])
-      setBase(value); resetWorking(value.placements); setCatalog(definitions); selectPlacement(null); setNotice('Dev 配置を再読込しました。')
+      setBase(value); resetWorking(value.placements); setCatalog(definitions)
+      if (waystoneId) selectSavedWaystone(value.placements, waystoneId)
+      else selectPlacement(null)
+      setNotice('Dev 配置を再読込しました。')
     }
     catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)) }
     finally { busyRef.current = false; setBusy(false) }
   }
+  useImperativeHandle(ref, () => ({
+    openSavedWaystone(id, revision) {
+      if (locked() || dirty || placing || moving) return
+      const item = base?.revision === revision ? findWaystone(working, id) : undefined
+      if (item) selectPlacement(item.placementId, item)
+      else void reload(id)
+    },
+  }))
   const save = async () => {
     if (locked() || !base || !dirty) return
     if (invalidDraftId) { setError('入力途中の数値があります。該当する配置で数値を修正してください。'); selectPlacement(invalidDraftId); return }
@@ -482,7 +507,7 @@ export function WorldPlacementEditor({ editing = true, map, snapshot, point, sel
       <PlacementCoordinateCopy placement={selected} worldLabel={clean(snapshot.manifest.worldName)} pendingInput={(['x', 'y', 'z'] as const).some(key => selectedDrafts?.[key] !== undefined)} disabled={busy} />
       <label><input type="checkbox" disabled={busy} checked={selected.enabled} onChange={event => update({ enabled: event.target.checked })} />有効</label>
       {selected.kind === 'spawner' && <p>出現範囲: {catalog.spawners.find(item => item.id === selected.templateId)?.radiusMeters ?? 'マスター未選択'} m</p>}
-      {selected.kind === 'waystone' && selected.waystone && <div className="wp-waystone"><label>道標 ID<input value={selected.waystone.id} disabled={busy || !!base?.placements.some(item => item.placementId === selected.placementId)} onChange={event => update({ waystone: { ...selected.waystone!, id: event.target.value } })} /></label><label>表示名<input value={selected.waystone.name} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, name: event.target.value } })} /></label><label>アイコン<input value={selected.waystone.icon} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, icon: event.target.value } })} /></label><label>解放費用<input type="text" inputMode="decimal" value={drafts[selected.placementId]?.unlockGold ?? String(selected.waystone.unlockGold)} aria-invalid={drafts[selected.placementId]?.unlockGold !== undefined && parsePlacementNumber(drafts[selected.placementId].unlockGold!, 'unlockGold') === null} disabled={busy} onChange={event => editNumber(selected.placementId, 'unlockGold', event.target.value)} onBlur={() => commitNumber(selected.placementId, 'unlockGold')} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); commitNumber(selected.placementId, 'unlockGold') } else if (event.key === 'Escape') { event.preventDefault(); discardNumber(selected.placementId, 'unlockGold') } }} /></label><label><input type="checkbox" checked={selected.waystone.lockEnabled} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, lockEnabled: event.target.checked } })} />解放条件を使用</label></div>}
+      {selected.kind === 'waystone' && selected.waystone && <div className="wp-waystone"><label>道標 ID<input value={selected.waystone.id} disabled={busy || !!base?.placements.some(item => item.placementId === selected.placementId)} onChange={event => update({ waystone: { ...selected.waystone!, id: event.target.value } })} /></label><label>表示名<input value={selected.waystone.name} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, name: event.target.value } })} /></label><label>アイコン<input value={selected.waystone.icon ?? ''} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, icon: event.target.value } })} /></label><label>解放費用<input type="text" inputMode="decimal" value={drafts[selected.placementId]?.unlockGold ?? String(selected.waystone.unlockGold)} aria-invalid={drafts[selected.placementId]?.unlockGold !== undefined && parsePlacementNumber(drafts[selected.placementId].unlockGold!, 'unlockGold') === null} disabled={busy} onChange={event => editNumber(selected.placementId, 'unlockGold', event.target.value)} onBlur={() => commitNumber(selected.placementId, 'unlockGold')} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); commitNumber(selected.placementId, 'unlockGold') } else if (event.key === 'Escape') { event.preventDefault(); discardNumber(selected.placementId, 'unlockGold') } }} /></label><label><input type="checkbox" checked={selected.waystone.lockEnabled} disabled={busy} onChange={event => update({ waystone: { ...selected.waystone!, lockEnabled: event.target.checked } })} />解放条件を使用</label></div>}
       <details className="wp-disclosure wp-form-details">
         <summary>向き・複製・削除{(selectedDrafts?.yaw !== undefined || selectedDrafts?.pitch !== undefined) && '（数値入力中）'}</summary>
         <div className="wp-coordinates">

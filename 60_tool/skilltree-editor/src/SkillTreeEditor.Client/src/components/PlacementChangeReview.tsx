@@ -14,7 +14,7 @@ function name(item: WorldPlacement, names: MasterNames) {
 function values(item: WorldPlacement): Record<string, string> {
   return { '種類': { spawner: 'スポナー', npc: 'NPC', waystone: '道標' }[item.kind], 'ワールドID': item.worldId, 'ワールド名': item.worldName,
     'マスターID': item.templateId ?? 'なし', X: String(item.x), Y: String(item.y), Z: String(item.z), '向き（Yaw）': String(item.yaw), '傾き（Pitch）': String(item.pitch), '有効': item.enabled ? '有効' : '無効',
-    ...(item.waystone ? { '道標ID': item.waystone.id, '表示名': item.waystone.name, '解放条件': item.waystone.lockEnabled ? '使用' : '不使用', '解放費用': String(item.waystone.unlockGold), 'アイコン': item.waystone.icon, '作成日時': item.waystone.createdAt ?? 'なし', '作成者': item.waystone.createdBy } : {}) }
+    ...(item.waystone ? { '道標ID': item.waystone.id, '表示名': item.waystone.name, '解放条件': item.waystone.lockEnabled ? '使用' : '不使用', '解放費用': String(item.waystone.unlockGold), 'アイコン': item.waystone.icon ?? 'なし', '作成日時': item.waystone.createdAt ?? 'なし', '作成者': item.waystone.createdBy } : {}) }
 }
 export function PlacementChangeReview({ changes, catalog, locked, hasDrafts, onLocate, onRevert }: {
   changes: PlacementChange[]; catalog: PlacementCatalog; locked: boolean; hasDrafts: boolean

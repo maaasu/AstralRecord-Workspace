@@ -11,7 +11,7 @@ export interface WorldPlacement {
   yaw: number
   pitch: number
   enabled: boolean
-  waystone: null | { id: string; name: string; lockEnabled: boolean; unlockGold: number; icon: string; createdAt: string | null; createdBy: string }
+  waystone: null | { id: string; name: string; lockEnabled: boolean; unlockGold: number; icon: string | null; createdAt: string | null; createdBy: string }
 }
 export interface PlacementSnapshot { schemaVersion: 1; revision: string; placements: WorldPlacement[] }
 
@@ -19,7 +19,7 @@ async function request(method: 'GET' | 'PUT', body?: unknown): Promise<Placement
   let response: Response
   try {
     response = await fetch('/api/world-placements/dev', method === 'GET'
-      ? { method }
+      ? { method, cache: 'no-store' }
       : { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
   } catch { throw new Error('Dev 配置 API に接続できません。編集内容は画面に残っています。') }
   const payload = await response.json().catch(() => null) as PlacementSnapshot & { title?: string; message?: string } | null
