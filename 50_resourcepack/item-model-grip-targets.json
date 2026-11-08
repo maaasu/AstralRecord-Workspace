@@ -1720,14 +1720,14 @@
   "minecraft:wooden_pickaxe": {
     "thirdperson_righthand": {"position": [0.0, -1.7415, 1.5124], "up": [-0.0678, 0.9848, -0.1598]},
     "thirdperson_lefthand": {"position": [-0.0, -1.7415, 1.5124], "up": [-0.0678, 0.9848, -0.1598]},
-    "firstperson_righthand": {"position": [1.13, -1.1828, -0.4652], "up": [0.186, 0.9315, 0.3125]},
-    "firstperson_lefthand": {"position": [-1.13, -1.1828, -0.4652], "up": [0.186, 0.9315, 0.3125]}
+    "firstperson_righthand": {"position": [1.13, -1.1828, -0.4652], "up": [-0.3501, 0.9047, -0.2428]},
+    "firstperson_lefthand": {"position": [-1.13, -1.1828, -0.4652], "up": [0.3501, 0.9047, -0.2428]}
   },
   "minecraft:copper_pickaxe": {
     "thirdperson_righthand": {"position": [0.0, -1.7415, 1.5124], "up": [-0.0678, 0.9848, -0.1598]},
     "thirdperson_lefthand": {"position": [-0.0, -1.7415, 1.5124], "up": [-0.0678, 0.9848, -0.1598]},
-    "firstperson_righthand": {"position": [1.13, -1.1828, -0.4652], "up": [0.186, 0.9315, 0.3125]},
-    "firstperson_lefthand": {"position": [-1.13, -1.1828, -0.4652], "up": [0.186, 0.9315, 0.3125]}
+    "firstperson_righthand": {"position": [1.13, -1.1828, -0.4652], "up": [-0.3501, 0.9047, -0.2428]},
+    "firstperson_lefthand": {"position": [-1.13, -1.1828, -0.4652], "up": [0.3501, 0.9047, -0.2428]}
   },
   "minecraft:copper_hoe": {
     "thirdperson_righthand": {"position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736]},
@@ -1738,8 +1738,8 @@
   "minecraft:iron_pickaxe": {
     "thirdperson_righthand": {"position": [0.0, -1.7415, 1.5124], "up": [-0.0678, 0.9848, -0.1598]},
     "thirdperson_lefthand": {"position": [-0.0, -1.7415, 1.5124], "up": [-0.0678, 0.9848, -0.1598]},
-    "firstperson_righthand": {"position": [1.13, -1.1828, -0.4652], "up": [0.186, 0.9315, 0.3125]},
-    "firstperson_lefthand": {"position": [-1.13, -1.1828, -0.4652], "up": [0.186, 0.9315, 0.3125]}
+    "firstperson_righthand": {"position": [1.13, -1.1828, -0.4652], "up": [-0.3501, 0.9047, -0.2428]},
+    "firstperson_lefthand": {"position": [-1.13, -1.1828, -0.4652], "up": [0.3501, 0.9047, -0.2428]}
   },
   "minecraft:fishing_rod": {
     "thirdperson_righthand": {"position": [0, -0.75, 1.5], "up": [0.0149, 0.8624, 0.5061]},

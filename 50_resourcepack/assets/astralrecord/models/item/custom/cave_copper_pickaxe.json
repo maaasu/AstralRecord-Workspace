@@ -247,12 +247,12 @@
 			"scale": [0.92, 0.92, 0.92]
 		},
 		"firstperson_righthand": {
-			"rotation": [4, -53, -18],
+			"rotation": [-145, 64, 127],
 			"translation": [1.13, -1.1828, -0.4652],
 			"scale": [0.7, 0.7, 0.7]
 		},
 		"firstperson_lefthand": {
-			"rotation": [4, 53, 18],
+			"rotation": [35, -64, 53],
 			"translation": [1.13, -1.1828, -0.4652],
 			"scale": [0.7, 0.7, 0.7]
 		},
