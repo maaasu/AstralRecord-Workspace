@@ -582,7 +582,7 @@ function Publish-ResourcePacks {
             $iconAdvance = if ($null -ne $advances -and $null -ne $advances.Value) {
                 $advances.Value.PSObject.Properties[[string][char]0xE00B]
             }
-            if ($null -eq $iconAdvance -or $iconAdvance.Value -isnot [ValueType] -or $iconAdvance.Value -ne -11) {
+            if ($null -eq $iconAdvance -or $iconAdvance.Value -isnot [ValueType] -or $iconAdvance.Value -is [bool] -or $iconAdvance.Value -ne -11) {
                 throw 'Location HUD requires U+E00B with advance -11 in the Quest HUD spacing font.'
             }
             foreach ($asset in @(

@@ -519,7 +519,7 @@ if ($utf8.GetString($java['location-hud-version.txt']) -cne '1') {
 $spaceFont = $utf8.GetString($java['assets/astralrecord/font/quest_hud_space.json']) | ConvertFrom-Json
 $spaceProvider = $spaceFont.providers | Where-Object { $_.type -ceq 'space' } | Select-Object -First 1
 $iconAdvance = $spaceProvider.advances.PSObject.Properties[[string][char]0xE00B]
-if ($null -eq $iconAdvance -or $iconAdvance.Value -isnot [ValueType] -or $iconAdvance.Value -ne -11) {
+if ($null -eq $iconAdvance -or $iconAdvance.Value -isnot [ValueType] -or $iconAdvance.Value -is [bool] -or $iconAdvance.Value -ne -11) {
     throw 'Location HUD requires U+E00B with advance -11 in the Quest HUD spacing font.'
 }
 $locationIcons = ($utf8.GetString($java['assets/astralrecord/font/location_hud_icons.json']) | ConvertFrom-Json).providers
