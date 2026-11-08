@@ -15,7 +15,7 @@ spawnGatherings:
   - gatheringId: gathering:verdia_cave_bluewell_vein
     weight: 13
   - gatheringId: gathering:verdia_cave_starheart_vein
-    weight: 2
+    weight: 1
 spawnTimes:
   - startTick: 0
     endTick: 23999
