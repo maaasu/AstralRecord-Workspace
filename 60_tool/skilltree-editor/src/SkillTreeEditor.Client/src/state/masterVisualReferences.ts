@@ -7,6 +7,7 @@ export interface MasterVisualReferences {
   files: ReadonlyMap<string, MasterFileSummary>
   referencePrefixes?: Readonly<Record<string, string>> | null
   openFile: (path: string) => void
+  selectCategorizedItem?: (path: string, reference: string, file: MasterFileSummary) => void
   customModelData?: JsonValue
   iconTexture?: JsonValue
 }

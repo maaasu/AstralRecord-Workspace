@@ -10,9 +10,12 @@ import { summarizeMasterValue } from '../data/masterDataNavigation'
 import { MinecraftText } from './MinecraftText'
 import { stripMinecraftFormatting } from '../utils/minecraft'
 import { createMasterCandidateSearch } from '../data/masterCandidateSearch'
-import { currentReferenceFile, isVisualDropContainer, referenceId, referenceObject, visualReferenceCollection } from '../data/masterReferenceCollection'
+import { canShowReferenceCollection, categorizedItemRow, currentReferenceFile, isVisualDropContainer, referenceId, referencedItemCategory, visualReferenceCollection } from '../data/masterReferenceCollection'
 import { MasterVisualReferencesContext } from '../state/masterVisualReferences'
-import { MasterReferenceCollection, ReferenceIcon } from './MasterReferenceCollection'
+import type { MasterVisualReferences } from '../state/masterVisualReferences'
+import { useMasterArrayOrder } from '../state/useMasterArrayOrder'
+import { fishingChanceTotal, MasterReferenceCollection, ReferenceIcon } from './MasterReferenceCollection'
+import { MasterRowActions } from './MasterRowActions'
 import './masterDataForm.css'
 
 type ValueType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array' | 'null'
@@ -48,6 +51,34 @@ export function fieldForPath(fields: MasterField[], path: string): MasterField |
     const pattern = expected.split('/')
     return pattern.length === actual.length && pattern.every((part, index) => part === '*' || part === actual[index])
   })
+}
+
+const referenceFields: Readonly<Record<string, string>> = {
+  itemId: 'item', caughtItemId: 'item', recipeId: 'recipe', questId: 'quest', boardId: 'quest_board', buffId: 'buff',
+  worldId: 'world', worldRef: 'world', lootTableId: 'loot_table', lootTable: 'loot_table', rulesId: 'fishing_rules',
+  fishId: 'fishing_fish', gatheringId: 'gathering', mobId: 'mob',
+  turnInNpcId: 'mob',
+}
+
+function formReferenceKind(fields: MasterField[], path: string, value: string, visual: MasterVisualReferences | null) {
+  const leaf = textFieldName(path)
+  const parent = path.endsWith('/ref') || /\/\d+$/.test(path) ? path.slice(0, path.lastIndexOf('/')) : ''
+  const field = fieldForPath(fields, path)
+  const parentField = parent ? fieldForPath(fields, parent) : undefined
+  const standard = field?.reference ?? parentField?.reference ?? masterValueReferenceKind(path)
+  if (standard) return standard
+  if (visual && categorizedItemRow(visual.documentPath, path)) return 'item'
+  if (/^\/spawnMobs\/\d+\/mobId$/.test(path)) return 'mob'
+  if (/^\/spawnGatherings\/\d+\/gatheringId$/.test(path)) return 'gathering'
+  const key = leaf === 'ref' ? textFieldName(parent) : leaf
+  if (key && Object.hasOwn(referenceFields, key) && (field || parentField || leaf === 'ref' && ['caughtItemId', 'lootTableId', 'worldId', 'rulesId', 'fishId'].includes(key))) {
+    return referenceFields[key]
+  }
+  if (visual && leaf === 'ref' && value.includes(':')) {
+    const prefix = value.slice(0, value.indexOf(':'))
+    if (visual.referencePrefixes && Object.hasOwn(visual.referencePrefixes, prefix)) return visual.referencePrefixes[prefix]
+  }
+  return undefined
 }
 
 function valueType(value: JsonValue, schema: JsonObject = {}, field?: MasterField): ValueType {
@@ -130,10 +161,10 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
     const values = Array.isArray(value) ? value : []
     if (isTextLineArray(path, values)) return <TextLineArrayEditor path={path} values={values} onChange={onChange} />
     const collection = visualReferences && visualReferenceCollection(visualReferences.documentPath, path)
-    if (visualReferences && onNavigate && collection && values.every(referenceObject)) {
+    if (visualReferences && onNavigate && collection && canShowReferenceCollection(collection, values)) {
       return <MasterReferenceCollection path={path} definition={collection} context={visualReferences} values={values} references={references}
         onChange={onChange} onNavigate={onNavigate} disabled={navigationDisabled}
-        renderNumber={(fieldPath, value, change) => <NumberEditor path={fieldPath} value={Number(value)} kind={collection.kind === 'item' ? 'number' : 'integer'}
+        renderNumber={(fieldPath, value, kind, change) => <NumberEditor path={fieldPath} value={value} kind={kind}
           onChange={change} onInvalid={onInvalid} restoredText={invalidValues?.[fieldPath]} />} />
     }
     const declaredItemType = metadata?.type.match(/^(?:List|Array|Set)\s*<\s*([^>]+)\s*>$/i)?.[1]
@@ -145,22 +176,28 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
     {!enumValues.some((entry) => JSON.stringify(entry) === JSON.stringify(value)) && <option value={JSON.stringify(value)}>未定義: {String(value)}</option>}
     {enumValues.map((entry, index) => <option key={index} value={JSON.stringify(entry)}>{masterValueLabel(path, String(entry))}</option>)}
   </select>
-  if (kind === 'boolean') return <label className="master-checkbox"><input aria-label={path || '/'} type="checkbox" checked={value === true} onChange={(event) => onChange(event.target.checked)} />{value === true ? 'true（有効）' : 'false（無効）'}</label>
+  if (kind === 'boolean') return <label className={visualReferences ? 'master-checkbox master-switch' : 'master-checkbox'}>
+    <input aria-label={path || '/'} type="checkbox" checked={value === true} onChange={(event) => onChange(event.target.checked)} />
+    {value === true ? '有効' : '無効'}
+  </label>
   if (kind === 'number' || kind === 'integer') return <NumberEditor value={typeof value === 'number' ? value : 0} kind={kind} path={path} onChange={onChange} onInvalid={onInvalid} restoredText={invalidValues?.[path]}
     candidates={/^\/levels\/\d+\/nodes\/\d+$/.test(path) ? references.filter((entry) => entry.kind === 'node') : undefined} />
   if (kind === 'null') return <span className="master-muted">null（値なし）</span>
-  const parentReference = (/\/\d+$/.test(path) || path.endsWith('/ref')) ? fieldForPath(fields, path.slice(0, path.lastIndexOf('/')))?.reference : undefined
+  const text = typeof value === 'string' ? value : String(value ?? '')
   const progressionSigilReference = /^\/levels\/\d+\/(skills|passives)\/\d+\/sigils\/\d+\/item$/.test(path)
   const spawnerReference = /^\/spawnMobs\/\d+\/mobId$/.test(path) ? 'mob' : /^\/spawnGatherings\/\d+\/gatheringId$/.test(path) ? 'gathering' : undefined
-  const referenceKind = metadata?.reference ?? parentReference ?? masterValueReferenceKind(path) ?? spawnerReference ?? (path.endsWith('/ref') ? ({ caughtItemId: 'item', lootTableId: 'loot_table', worldId: 'world', rulesId: 'fishing_rules', fishId: 'fishing_fish' } as Record<string, string>)[path.split('/').at(-2) ?? ''] : undefined)
-  const fishingReferencePrefix = path.endsWith('/ref') && referenceKind && ['item', 'loot_table', 'world', 'fishing_rules', 'fishing_fish'].includes(referenceKind)
+  const referenceKind = formReferenceKind(fields, path, text, visualReferences)
+  const wrappedReferencePrefix = path.endsWith('/ref') && referenceKind && ['item', 'loot_table', 'world', 'fishing_rules', 'fishing_fish'].includes(referenceKind)
     ? referenceKind + ':' : undefined
   const enchantReferencePrefix = path === '/orb/effect/enchantMasterId' && referenceKind === 'enchant' ? 'enchant:' : undefined
   const spawnerReferencePrefix = spawnerReference && referenceKind === spawnerReference ? spawnerReference + ':' : undefined
+  const colon = text.indexOf(':')
+  const existingPrefix = visualReferences && referenceKind && colon > 0 && referenceId(text, referenceKind, visualReferences.referencePrefixes) !== text
+    ? text.slice(0, colon + 1) : undefined
   if (path === '/icon' && typeof value === 'string') return <MaterialIconInput value={value} onChange={onChange} ariaLabel={path}
     customModelData={visualReferences?.customModelData} iconTexture={visualReferences?.iconTexture} />
-  return <StringEditor path={path} label={masterFieldTitle(masterValueFieldKey(path), metadata?.label)} value={typeof value === 'string' ? value : String(value ?? '')} onChange={onChange} references={references} referenceKind={referenceKind}
-    referencePrefix={enchantReferencePrefix ?? fishingReferencePrefix ?? spawnerReferencePrefix ?? (typeof resolved.pattern === 'string' ? resolved.pattern.match(/^\^(item|skill):/)?.[0].slice(1) : undefined)}
+  return <StringEditor path={path} label={masterFieldTitle(masterValueFieldKey(path), metadata?.label)} value={text} onChange={onChange} references={references} referenceKind={referenceKind}
+    referencePrefix={existingPrefix ?? enchantReferencePrefix ?? wrappedReferencePrefix ?? spawnerReferencePrefix ?? (typeof resolved.pattern === 'string' ? resolved.pattern.match(/^\^(item|skill):/)?.[0].slice(1) : undefined)}
     referenceFilter={progressionSigilReference ? isSigilReference : path.endsWith('/caughtItemId/ref') ? isCaughtItemReference : undefined} />
 }
 
@@ -195,17 +232,18 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
       const isRequired = required.has(key) || field?.required === true
       const structured = Array.isArray(child) || objectOf(child)
       const textLines = isTextLineArray(childPath, child)
-      const visualCollection = visualReferences && onNavigate && Array.isArray(child) && child.every(referenceObject)
-        && visualReferenceCollection(visualReferences.documentPath, childPath)
-      const label = masterFieldTitle(key, definition.title ?? field?.label)
+      const collection = visualReferences && Array.isArray(child) ? visualReferenceCollection(visualReferences.documentPath, childPath) : undefined
+      const inlineCollection = Boolean(onNavigate && collection && Array.isArray(child) && canShowReferenceCollection(collection, child)
+        && (path !== '' || collection.kind === 'mob' || collection.kind === 'gathering'))
+      const refValue = objectOf(child)?.ref
+      const refPath = childPath + '/ref'
+      const inlineRef = visualReferences && typeof refValue === 'string' && Object.keys(objectOf(child) ?? {}).length === 1
+      const label = collection?.title ?? masterFieldTitle(key, definition.title ?? field?.label)
       const description = String(definition.description ?? field?.description ?? '')
       const declaredType = normalizeMasterType(definition.type ?? field?.type)
       const currentType = valueType(child, definition, field)
       const canChangeType = !declaredType || declaredType !== currentType
-      const content = <>
-        <div className="master-field-heading"><strong>{label}</strong><code>{key}</code><span className="master-type">{typeLabels[valueType(child, definition, field)]}</span>{isRequired && <b className="master-required">必須</b>}
-          <span className="master-spacer" />
-          <div className="master-field-inline-actions" role="group" aria-label={`${label}（${key}）の操作`}>
+      const actions = <div className="master-field-inline-actions" role="group" aria-label={`${label}（${key}）の操作`}>
           {canChangeType && <select disabled={navigationDisabled} className="master-type-select" aria-label={`${childPath} の型`} value={valueType(child)} onChange={(event) => {
             const nextType = event.target.value as ValueType
             if ((structured || typeof child === 'string' && child) && !window.confirm(`「${key}」の型を変更して現在の値を置き換えますか？`)) return
@@ -214,16 +252,37 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
           <button disabled={navigationDisabled} type="button" className="button subtle danger compact" aria-label={`${childPath} を削除`} onClick={() => {
             if (isRequired && !window.confirm(`「${key}」は必須項目です。削除しますか？（保存前の検証で確認されます）`)) return
             onChange(Object.fromEntries(Object.entries(value).filter(([entry]) => entry !== key)))
-          }}>{visualCollection ? '項目を削除' : '削除'}</button></div></div>
-        {description && (description.length > 120 || description.includes('\n')
+          }}>項目を削除</button></div>
+      const metadata = <><code>{key}</code><span className="master-type">{typeLabels[currentType]}</span></>
+      const form = { fields, references, rootSchema, onInvalid, invalidValues, onNavigate, navigationDisabled }
+      const content = <>
+        <div className="master-field-heading"><strong>{label}</strong>{!visualReferences && metadata}
+          {isRequired && <b className="master-required">必須</b>}
+          <span className="master-spacer" />
+          {visualReferences ? <details className="master-field-inspector">
+            <summary aria-label={`${childPath} の項目情報`} title="説明と項目の設定">⋯</summary>
+            <div className="master-field-inspector-body">
+              <div className="master-field-meta">{metadata}</div>
+              {description && <p className="master-field-description">{description}</p>}
+              {actions}
+            </div>
+          </details> : actions}
+        </div>
+        {!visualReferences && description && (description.length > 120 || description.includes('\n')
           ? <details className="master-field-help"><summary>{label}の詳しい説明</summary><p className="master-field-description">{description}</p></details>
           : <p className="master-field-description">{description}</p>)}
-        {declaredType && declaredType !== currentType && <p className="master-field-description">定義上の型: {typeLabels[declaredType]}。現在の値の型で表示しています。型を変更するか原稿で修正できます。</p>}
-        {structured && onNavigate && !textLines && !visualCollection ? <button type="button" className="master-node-link" aria-label={childPath + ' を開く'} disabled={navigationDisabled} onClick={() => onNavigate(childPath)}><span><MinecraftText value={summarizeMasterValue(child)} /></span><b>{label}を編集 →</b></button>
-          : <MasterDataForm fields={fields} references={references} schema={definition} rootSchema={rootSchema} value={child} path={childPath} onInvalid={onInvalid} invalidValues={invalidValues} onNavigate={onNavigate} navigationDisabled={navigationDisabled} onChange={(next) => onChange({ ...value, [key]: next })} />}
+        {declaredType && declaredType !== currentType && !inlineRef && <p className="master-field-description">定義上の型: {typeLabels[declaredType]}。現在の値の型で表示しています。</p>}
+        {inlineRef && typeof refValue === 'string'
+          ? <MasterDataForm {...form} schema={objectOf(objectOf(resolveSchema(definition, rootSchema).properties)?.ref) ?? {}} value={refValue} path={refPath}
+            onChange={next => onChange({ ...value, [key]: { ref: next } })} />
+          : structured && onNavigate && (!textLines || visualReferences) && !inlineCollection
+            ? <button type="button" className="master-node-link" aria-label={childPath + ' を開く'} disabled={navigationDisabled} onClick={() => onNavigate(childPath)}>
+              <span><MinecraftText value={summarizeMasterValue(child)} /></span><b>{visualReferences ? '開く →' : label + 'を編集 →'}</b>
+            </button>
+            : <MasterDataForm {...form} schema={definition} value={child} path={childPath} onChange={(next) => onChange({ ...value, [key]: next })} />}
       </>
       return structured && !onNavigate ? <details open key={key} className="master-field master-field-wide"><summary>{label} <code>{key}</code> <small>{Array.isArray(child) ? child.length + ' 件' : Object.keys(objectOf(child) ?? {}).length + ' 項目'}</small></summary>{content}</details>
-        : <div key={key} className={'master-field ' + (structured || isDescriptionField(childPath) || typeof child === 'string' && child.includes('\n') || childPath === '/icon' ? 'master-field-wide' : 'master-field-scalar')}>{content}</div>
+        : <div key={key} className={'master-field ' + (inlineCollection || !visualReferences && structured || !structured && isDescriptionField(childPath) || typeof child === 'string' && child.includes('\n') || childPath === '/icon' ? 'master-field-wide' : 'master-field-scalar')}>{content}</div>
     })}
     {onNavigate && (createDrops || emptyDrops) &&
       <div className="master-field-wide"><MasterDataForm fields={fields} references={references} path={createDrops ? '/drops/items' : path + '/items'} value={[]} rootSchema={rootSchema}
@@ -258,7 +317,10 @@ function TextLineArrayEditor({ values, path, onChange }: { values: string[]; pat
 }
 
 function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<MasterDataFormProps, 'value' | 'schema'> & { values: JsonValue[]; itemSchema: JsonObject; path: string }) {
-  const [newType, setNewType] = useState<ValueType>(typeof itemSchema.type === 'string' && types.includes(itemSchema.type as ValueType) ? itemSchema.type as ValueType : 'string')
+  const visual = useContext(MasterVisualReferencesContext)
+  const compact = Boolean(visual && inherited.onNavigate)
+  const [newType, setNewType] = useState<ValueType>(() => normalizeMasterType(itemSchema.type)
+    ?? (compact && values.length > 0 && values.every(objectOf) ? 'object' : 'string'))
   const [page, setPage] = useState(0)
   const pageSize = 25
   const paged = Boolean(inherited.onNavigate) && values.every((entry) => entry !== null && typeof entry === 'object')
@@ -267,25 +329,39 @@ function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<
   const offset = paged ? currentPage * pageSize : 0
   const visible = paged ? values.slice(offset, offset + pageSize) : values
   const isFishDistribution = /\/levelRanges\/\d+\/fish$/.test(path)
-  const chanceTotal = isFishDistribution ? values.reduce<number>((total, entry) => {
-    const chance = objectOf(entry)?.chancePercent
-    return total + (typeof chance === 'number' && Number.isFinite(chance) ? chance : 0)
-  }, 0) : 0
-  const move = (index: number, offset: number) => {
-    const next = [...values]
-    ;[next[index], next[index + offset]] = [next[index + offset], next[index]]
-    onChange(next)
-  }
+  const chanceTotal = isFishDistribution ? fishingChanceTotal(values) : 0
+  const order = useMasterArrayOrder(values, Boolean(inherited.navigationDisabled), onChange, index => {
+    if (paged) setPage(Math.floor(index / pageSize))
+  })
   return <div className="master-array">{isFishDistribution && <p className={Math.abs(chanceTotal - 100) <= 0.000001 ? 'master-muted' : 'error-message'} role="status">出現確率の合計: {chanceTotal.toLocaleString('ja-JP', { maximumFractionDigits: 6 })}% / 100%</p>}{visible.map((entry, visibleIndex) => {
     const index = offset + visibleIndex
     const structured = entry !== null && typeof entry === 'object'
+    const rowPath = path + '/' + index
+    const duplicate = () => onChange([...values.slice(0, index + 1), structuredClone(entry), ...values.slice(index + 1)])
+    const remove = () => onChange(values.filter((_, item) => item !== index))
+    const edit = <MasterDataForm {...inherited} path={rowPath} value={entry} schema={itemSchema}
+      onChange={(next) => onChange(values.map((current, item) => item === index ? next : current))} />
+    if (compact) return <div className="master-array-compact" key={index} {...order.destination(index)}>
+      {values.length > 1 && <button type="button" className="master-order-handle" aria-label={rowPath + ' を並べ替え'}
+        title="ドラッグまたは上下キーで移動" {...order.handle(index)}>⠿</button>}
+      <div className="master-array-compact-content">
+        {structured ? <button type="button" className="master-node-link" aria-label={rowPath + ' を開く'} disabled={inherited.navigationDisabled}
+          onClick={() => inherited.onNavigate?.(rowPath)}>
+          <span><MinecraftText value={summarizeMasterValue(entry)} /></span><b>編集 →</b>
+        </button> : edit}
+      </div>
+      <MasterRowActions path={rowPath} row={entry} disabled={inherited.navigationDisabled} onUp={index > 0 ? () => order.move(index, index - 1) : undefined}
+        onDown={index + 1 < values.length ? () => order.move(index, index + 1) : undefined} onDuplicate={duplicate} onDelete={remove} />
+    </div>
     return <div className={'master-array-entry ' + (paged && structured ? 'master-array-summary-row' : '')} key={index}>
-    <div className="master-array-actions"><code>[{index}]</code><button type="button" className="button compact" aria-label={`${path}/${index} 上へ`} disabled={index === 0 || inherited.navigationDisabled} onClick={() => move(index, -1)}>↑</button><button type="button" className="button compact" aria-label={`${path}/${index} 下へ`} disabled={index === values.length - 1 || inherited.navigationDisabled} onClick={() => move(index, 1)}>↓</button><button type="button" className="button compact" disabled={inherited.navigationDisabled} onClick={() => onChange([...values.slice(0, index + 1), structuredClone(entry), ...values.slice(index + 1)])}>複製</button><button type="button" disabled={inherited.navigationDisabled} className="button compact danger subtle" aria-label={`${path}/${index} を削除`} onClick={() => onChange(values.filter((_, item) => item !== index))}>削除</button></div>
-    {structured && inherited.onNavigate ? <div className="master-node-link"><span><MinecraftText value={summarizeMasterValue(entry)} /></span><button type="button" className="button compact" aria-label={path + '/' + index + ' を開く'} disabled={inherited.navigationDisabled} onClick={() => inherited.onNavigate?.(path + '/' + index)}>編集 →</button></div>
-      : <MasterDataForm {...inherited} path={path + '/' + index} value={entry} schema={itemSchema} onChange={(next) => onChange(values.map((current, item) => item === index ? next : current))} />}
+    <div className="master-array-actions"><code>[{index}]</code><button type="button" className="button compact" aria-label={rowPath + ' 上へ'} disabled={index === 0 || inherited.navigationDisabled} onClick={() => order.move(index, index - 1)}>↑</button><button type="button" className="button compact" aria-label={rowPath + ' 下へ'} disabled={index === values.length - 1 || inherited.navigationDisabled} onClick={() => order.move(index, index + 1)}>↓</button><button type="button" className="button compact" disabled={inherited.navigationDisabled} onClick={duplicate}>複製</button><button type="button" disabled={inherited.navigationDisabled} className="button compact danger subtle" aria-label={rowPath + ' を削除'} onClick={remove}>削除</button></div>
+    {structured && inherited.onNavigate ? <div className="master-node-link"><span><MinecraftText value={summarizeMasterValue(entry)} /></span><button type="button" className="button compact" aria-label={rowPath + ' を開く'} disabled={inherited.navigationDisabled} onClick={() => inherited.onNavigate?.(rowPath)}>編集 →</button></div> : edit}
   </div>})}
     {paged && pageCount > 1 && <div className="master-pagination"><button type="button" className="button compact" disabled={currentPage === 0 || inherited.navigationDisabled} onClick={() => setPage(currentPage - 1)}>前の要素</button><span>{offset + 1}–{Math.min(offset + pageSize, values.length)} / {values.length}件</span><button type="button" className="button compact" disabled={currentPage + 1 >= pageCount || inherited.navigationDisabled} onClick={() => setPage(currentPage + 1)}>次の要素</button></div>}
-    <div className="master-add-row">{!itemSchema.type && <select aria-label={path + ' 配列に追加する型'} value={newType} onChange={(event) => setNewType(event.target.value as ValueType)}>{types.map((type) => <option key={type} value={type}>{typeLabels[type]}</option>)}</select>}<button type="button" className="button" onClick={() => onChange([...values, masterDefault(itemSchema, newType, inherited.rootSchema)])}>＋ 要素を追加</button><span className="master-muted">{values.length} 件</span></div></div>
+    <div className="master-add-row">{!itemSchema.type && <select aria-label={path + ' 配列に追加する型'} disabled={inherited.navigationDisabled} value={newType} onChange={(event) => setNewType(event.target.value as ValueType)}>{types.map((type) => <option key={type} value={type}>{typeLabels[type]}</option>)}</select>}<button type="button" className="button" disabled={inherited.navigationDisabled} onClick={() => {
+      onChange([...values, masterDefault(itemSchema, newType, inherited.rootSchema)])
+      if (paged) setPage(Math.floor(values.length / pageSize))
+    }}>＋ 要素を追加</button><span className="master-muted">{values.length} 件</span></div></div>
 }
 
 function numberInputError(text: string, kind: 'number' | 'integer'): string {
@@ -318,6 +394,10 @@ function NumberEditor({ value, kind, path, onChange, onInvalid, restoredText, ca
 
 function StringEditor({ value, path, label, onChange, references, referenceKind, referencePrefix, referenceFilter }: { value: string; path: string; label: string; onChange: (value: JsonValue) => void; references: MasterReference[]; referenceKind?: string; referencePrefix?: string; referenceFilter?: (entry: MasterReference) => boolean }) {
   const visualReferences = useContext(MasterVisualReferencesContext)
+  const files = visualReferences?.files
+  const prefixes = visualReferences?.referencePrefixes
+  const compact = Boolean(visualReferences && (referenceKind || path.endsWith('/ref')))
+  const categorizedItem = Boolean(visualReferences?.selectCategorizedItem && categorizedItemRow(visualReferences.documentPath, path))
   const listId = useId()
   const [candidatesOpen, setCandidatesOpen] = useState(false)
   const [candidateSearch, setCandidateSearch] = useState('')
@@ -330,15 +410,20 @@ function StringEditor({ value, path, label, onChange, references, referenceKind,
     if (!referenceKind) return []
     const catalog = referenceKind === 'status' ? masterStatusSuggestions : referenceKind === 'tag' ? masterTagSuggestions : []
     const catalogReferences: MasterReference[] = catalog.map((entry) => ({ ...entry, kind: referenceKind, path: '', pointer: '' }))
-    return [...new Map([...references, ...catalogReferences].filter((entry) => entry.kind === referenceKind && (!referenceFilter || referenceFilter(entry))).map((entry) => {
-      const candidate = referencePrefix && !entry.value.startsWith(referencePrefix) ? { ...entry, value: referencePrefix + entry.value } : entry
+    return [...new Map([...references, ...catalogReferences].filter((entry) => {
+      if (entry.kind !== referenceKind || referenceFilter && !referenceFilter(entry)) return false
+      if (!files || !entry.path) return !categorizedItem
+      const file = currentReferenceFile(entry, files, prefixes)
+      return file && (!categorizedItem || referencedItemCategory(file))
+    }).map((entry) => {
+      const candidate = referencePrefix ? { ...entry, value: referencePrefix + referenceId(entry.value, referenceKind, prefixes) } : entry
       const knownLabel = masterValueLabel(referenceKind, candidate.value)
       return [candidate.value, knownLabel !== candidate.value ? { ...candidate, label: knownLabel } : candidate] as const
     })).values()]
-  }, [referenceFilter, referenceKind, referencePrefix, references])
+  }, [categorizedItem, files, prefixes, referenceFilter, referenceKind, referencePrefix, references])
   const candidateIndex = useMemo(() => createMasterCandidateSearch(candidates), [candidates])
   const search = stripMinecraftFormatting(value).toLocaleLowerCase()
-  const visibleCandidates = useMemo(() => candidateIndex.find(search, 100), [candidateIndex, search])
+  const visibleCandidates = useMemo(() => compact ? [] : candidateIndex.find(search, 100), [candidateIndex, compact, search])
   const candidateQuery = candidateSearch.trim().toLocaleLowerCase()
   const matchingCandidates = useMemo(() => candidatesOpen ? candidateIndex.find(candidateQuery) : [], [candidateIndex, candidateQuery, candidatesOpen])
   const lastCandidatePage = Math.max(0, Math.ceil(matchingCandidates.length / 50) - 1)
@@ -394,30 +479,45 @@ function StringEditor({ value, path, label, onChange, references, referenceKind,
   const preview = selected?.label ?? masterValueLabel(path, value)
   const formatted = preview !== stripMinecraftFormatting(preview)
   const description = isDescriptionField(path)
-  const hexColor = textFieldName(path)?.toLowerCase() === 'color' && /^#[0-9a-f]{6}$/i.test(value)
-  return <div>{description || value.includes('\n') ? <textarea className="master-multiline-input" aria-label={path || '/'} rows={Math.min(12, Math.max(4, value.split('\n').length + 1))} value={value} onChange={(event) => onChange(event.target.value)} /> : <input aria-label={path || '/'} list={candidates.length ? listId : undefined} value={value} onChange={(event) => onChange(event.target.value)} />}
-    {visualReferences && selectedFile && <div className="master-scalar-reference">
-      {selectedFile.icon && <ReferenceIcon file={selectedFile} />}
-      <button type="button" className="button subtle compact" onClick={() => visualReferences.openFile(selectedFile.path)}>定義を開く ↗</button>
-    </div>}
-    {description && <small className="master-line-guide">この欄は 1 つの文字列として保存します。詳細を行ごとに分ける場合は lore を使います。</small>}
-    {(formatted || description) && <div className="master-text-preview master-scalar-preview" aria-label={`${path || '/'} 表示プレビュー`}><strong>表示プレビュー</strong><span><MinecraftText value={preview || ' '} /></span></div>}
-    {!formatted && !description && preview !== value && <div className="master-value-label" aria-label={`${path || '/'} 選択中の名前`}>{preview}</div>}
-    {hexColor && <output className="master-color-preview" aria-label={`${path || '/'} 色プレビュー`}><span className="master-color-swatch" style={{ backgroundColor: value }} /><code>{value.toUpperCase()}</code></output>}
-    {candidates.length > 0 && <><datalist id={listId}>{visibleCandidates.map((entry, index) => <option key={`${entry.value}-${index}`} value={entry.value}>{candidateIndex.label(entry)}</option>)}</datalist><small className="master-muted">参照候補 {candidates.length} 件。入力欄の補完は最大100件です。自由入力も可能です。</small>
-      <details className="master-colored-candidates" open={candidatesOpen}><summary ref={candidateSummary} aria-label={`${label}（${path}）の候補を選択`} onClick={(event) => { event.preventDefault(); if (event.currentTarget.closest('fieldset:disabled')) return; focusAfterCandidatePage.current = false; setCandidatesOpen((open) => !open) }}>{label}の候補を選択</summary>{candidatesOpen && <div className="master-candidate-browser">
-        <div className="master-candidate-current">選択中: {value ? <><MinecraftText value={selected?.label ?? value} /> <code>{value}</code></> : 'なし'}</div>
-        <label className="master-candidate-search">{label}の候補を検索 <small>{path || '/'}</small><input ref={candidateInput} type="search" aria-label={`${path || '/'} 候補を検索`} value={candidateSearch} placeholder="ID または日本語名" onChange={(event) => { setCandidateSearch(event.target.value); setCandidatePage(0) }} onKeyDown={onCandidateSearchKey} /></label>
-        <small className="master-muted">↓ / Enterで候補へ、↑↓で移動、Enterで選択。Escapeで検索欄へ戻り、もう一度押すと閉じます。</small>
+  const colorField = textFieldName(path)?.toLowerCase() === 'color'
+  const hexColor = colorField && /^#[0-9a-f]{6}$/i.test(value)
+  const input = description || value.includes('\n')
+    ? <textarea className="master-multiline-input" aria-label={path || '/'} rows={Math.min(12, Math.max(4, value.split('\n').length + 1))} value={value} onChange={(event) => onChange(event.target.value)} />
+    : <input aria-label={path || '/'} list={!compact && candidates.length ? listId : undefined} value={value} onChange={(event) => onChange(event.target.value)} />
+  const selection = <><ReferenceIcon file={selectedFile || undefined} kind={referenceKind} /><MinecraftText value={preview || '未設定'} /></>
+  return <div className={compact ? 'master-reference-field' : undefined}>
+    {compact && (selectedFile && visualReferences
+      ? <button type="button" className="master-reference-selection master-reference-link" aria-label={`${path || '/'} の定義を開く`}
+        title={value} onClick={() => visualReferences.openFile(selectedFile.path)}>{selection}<span aria-hidden="true">↗</span></button>
+      : <div className="master-reference-selection" title={value}>{selection}</div>)}
+    {!compact && (colorField && visualReferences
+      ? <div className="master-color-input"><input type="color" value={hexColor ? value : '#000000'} aria-label={`${path || '/'} の色を選ぶ`} onChange={event => onChange(event.target.value)} />{input}</div>
+      : input)}
+    {!compact && description && !visualReferences && <small className="master-line-guide">この欄は 1 つの文字列として保存します。詳細を行ごとに分ける場合は lore を使います。</small>}
+    {!compact && (formatted || description) && <div className="master-text-preview master-scalar-preview" aria-label={`${path || '/'} 表示プレビュー`}><strong>表示プレビュー</strong><span><MinecraftText value={preview || ' '} /></span></div>}
+    {!compact && !formatted && !description && preview !== value && <div className="master-value-label" aria-label={`${path || '/'} 選択中の名前`}>{preview}</div>}
+    {hexColor && !visualReferences && <output className="master-color-preview" aria-label={`${path || '/'} 色プレビュー`}><span className="master-color-swatch" style={{ backgroundColor: value }} /><code>{value.toUpperCase()}</code></output>}
+    {candidates.length > 0 && <>
+      {!compact && <><datalist id={listId}>{visibleCandidates.map((entry, index) => <option key={`${entry.value}-${index}`} value={entry.value}>{candidateIndex.label(entry)}</option>)}</datalist><small className="master-muted">参照候補 {candidates.length} 件。入力欄の補完は最大100件です。自由入力も可能です。</small></>}
+      <details className="master-colored-candidates" open={candidatesOpen}><summary ref={candidateSummary} aria-label={`${label}（${path}）の候補を選択`} onClick={(event) => { event.preventDefault(); if (event.currentTarget.closest('fieldset:disabled')) return; focusAfterCandidatePage.current = false; setCandidatesOpen((open) => !open) }}>{compact ? '候補を選ぶ' : label + 'の候補を選択'}</summary>{candidatesOpen && <div className="master-candidate-browser">
+        {!compact && <div className="master-candidate-current">選択中: {value ? <><MinecraftText value={selected?.label ?? value} /> <code>{value}</code></> : 'なし'}</div>}
+        <label className="master-candidate-search">候補を検索 {!compact && <small>{path || '/'}</small>}<input ref={candidateInput} type="search" aria-label={`${path || '/'} 候補を検索`} value={candidateSearch} placeholder="ID または日本語名" onChange={(event) => { setCandidateSearch(event.target.value); setCandidatePage(0) }} onKeyDown={onCandidateSearchKey} /></label>
+        {!compact && <small className="master-muted">↓ / Enterで候補へ、↑↓で移動、Enterで選択。Escapeで検索欄へ戻り、もう一度押すと閉じます。</small>}
         <p className="master-candidate-count" role="status">{matchingCandidates.length} 件 / 全 {candidates.length} 件{matchingCandidates.length > 0 && ` · ${currentCandidatePage + 1} / ${lastCandidatePage + 1} ページ`}</p>
         <div ref={candidateList} className="master-candidate-list">{candidatePageEntries.map((entry, index) => {
           const file = visualReferences && currentReferenceFile(entry, visualReferences.files, visualReferences.referencePrefixes)
-          return <button type="button" className="master-candidate" key={entry.value} aria-current={entry.value === value ? 'true' : undefined} onKeyDown={(event) => onCandidateKey(event, index, candidatePageEntries.length)} onClick={(event) => { if (!event.currentTarget.matches(':disabled')) onChange(entry.value) }}>
-            <span className="master-candidate-identity">{file?.icon && <ReferenceIcon file={file} />}<MinecraftText value={entry.label ?? entry.value} /></span><code>{entry.value}</code>
+          return <button type="button" className="master-candidate" key={entry.value} aria-current={entry.value === value ? 'true' : undefined} onKeyDown={(event) => onCandidateKey(event, index, candidatePageEntries.length)} onClick={(event) => {
+            if (event.currentTarget.matches(':disabled')) return
+            if (categorizedItem && file) visualReferences?.selectCategorizedItem?.(path, entry.value, file)
+            else onChange(entry.value)
+            if (compact) { setCandidatesOpen(false); candidateSummary.current?.focus() }
+          }}>
+            <span className="master-candidate-identity">{compact && <ReferenceIcon file={file || undefined} kind={referenceKind} />}<MinecraftText value={entry.label ?? entry.value} /></span><code>{entry.value}</code>
           </button>
         })}{!matchingCandidates.length && <p className="master-muted">一致する候補がありません。</p>}</div>
         {lastCandidatePage > 0 && <div className="master-candidate-pages"><button type="button" className="button" disabled={currentCandidatePage === 0} onClick={(event) => { if (!event.currentTarget.matches(':disabled')) changeCandidatePage(currentCandidatePage - 1) }}>前へ</button><span>{currentCandidatePage + 1} / {lastCandidatePage + 1} ページ</span><button type="button" className="button" disabled={currentCandidatePage === lastCandidatePage} onClick={(event) => { if (!event.currentTarget.matches(':disabled')) changeCandidatePage(currentCandidatePage + 1) }}>次へ</button></div>}
       </div>}</details>
     </>}
+    {compact && <details className="master-reference-id"><summary>IDを入力</summary>{input}</details>}
   </div>
 }

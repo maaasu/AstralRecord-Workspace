@@ -11,6 +11,8 @@ const fieldLabels: Record<string, string> = {
   customModelData: 'カスタムモデル番号', iconTexture: '頭部のテクスチャ',
   drops: 'ドロップ', items: 'アイテム一覧', lootTable: '追加ドロップの報酬テーブル',
   spawnMobs: '出現するモブ', spawnGatherings: '出現するギャザリング対象',
+  result: '作成結果', bundle: '開封時の設定', acceptRequirements: '受注条件', rewards: '報酬',
+  requiredItems: '必要アイテム', itemId: 'アイテムID', priceGold: '価格 (Gold)',
   unlockCondition: '解放条件', classId: 'クラスID', playerLevel: 'プレイヤーレベル',
   effects: '効果', type: '種類', skillId: 'スキルID', status: 'ステータス', statusID: 'ステータスID', statusId: 'ステータスID', modifierType: '補正の種類', value: '値',
   stats: 'ステータス補正', baseStats: '初期ステータス補正', growthPerLevel: 'レベルごとの成長量',

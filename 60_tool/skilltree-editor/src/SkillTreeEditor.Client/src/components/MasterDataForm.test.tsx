@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { fieldForPath, masterDefault, MasterDataForm, normalizeMasterType } from './MasterDataForm'
 import type { JsonValue } from '../types/editor'
 import type { MasterField, MasterReference } from '../types/masterData'
+import { MasterVisualReferencesContext } from '../state/masterVisualReferences'
 import petSchema from '../../../../../../40_filebase/55.features.pet/schemas/pet-master.v1.schema.json'
 import nodeSchema from '../../../../../../40_filebase/35.features.skilltree/schemas/node.v1.schema.json'
 
@@ -23,6 +24,33 @@ function openAdd(path: string) {
 }
 
 describe('master form', () => {
+  it('keeps focus in the text field when replacing a color code', () => {
+    render(<MasterVisualReferencesContext.Provider value={{ documentPath: 'item.yml', files: new Map(), openFile: vi.fn() }}>
+      <Editable initial={{ color: '#112233' }} metadata={[]} />
+    </MasterVisualReferencesContext.Provider>)
+    const input = screen.getByRole('textbox', { name: '/color' })
+    input.focus()
+    fireEvent.change(input, { target: { value: '#a' } })
+    expect(input).toHaveFocus()
+    fireEvent.change(input, { target: { value: '#aabbcc' } })
+    expect(screen.getByLabelText('/color の色を選ぶ')).toHaveValue('#aabbcc')
+  })
+
+  it('keeps a wrapped reference editable when its prefix is temporarily removed', () => {
+    render(<MasterVisualReferencesContext.Provider value={{
+      documentPath: '51.features.quest/quest.yml', files: new Map(), openFile: vi.fn(), referencePrefixes: { mob: 'mob' },
+    }}>
+      <Editable initial={{ targetId: { ref: 'mob:wolf' } }} metadata={[]} />
+    </MasterVisualReferencesContext.Provider>)
+    const input = screen.getByLabelText('/targetId/ref')
+    fireEvent.click(input.closest('details')!.querySelector('summary')!)
+    input.focus()
+    fireEvent.change(input, { target: { value: '' } })
+    expect(input).toHaveFocus()
+    fireEvent.change(input, { target: { value: 'mob:boar' } })
+    expect(screen.getByTestId('value')).toHaveTextContent('{"targetId":{"ref":"mob:boar"}}')
+  })
+
   it('offers Japanese status ID candidates without reference metadata and preserves unknown IDs and sibling values', () => {
     render(<Editable initial={{ statusID: 'MAX_HEALTH', AlienRPC: { untouched: true } }} metadata={[]} />)
     const input = screen.getByRole('combobox', { name: '/statusID' })
