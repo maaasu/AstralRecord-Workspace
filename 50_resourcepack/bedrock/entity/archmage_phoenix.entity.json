@@ -1,0 +1,25 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "astralrecord:archmage_phoenix",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/archmage_phoenix"
+      },
+      "geometry": {
+        "default": "geometry.astralrecord.archmage_phoenix"
+      },
+      "animations": {
+        "hover": "animation.astralrecord.archmage_phoenix.hover",
+        "look_at_target": "animation.common.look_at_target"
+      },
+      "scripts": {
+        "animate": ["hover", "look_at_target"]
+      },
+      "render_controllers": ["controller.render.default"]
+    }
+  }
+}

@@ -2134,7 +2134,8 @@ public final class AstralRecord extends JavaPlugin {
         );
         spellStepSkillRuntimeService = new SpellStepSkillRuntimeService(skillPackDisplay);
         arcaneFlowSkillRuntimeService = new ArcaneFlowSkillRuntimeService(particleDisplayService, skillPackDisplay);
-        archmagePhoenixRuntimeService = new ArchmagePhoenixRuntimeService(particleDisplayService, skillPackDisplay);
+        archmagePhoenixRuntimeService = new ArchmagePhoenixRuntimeService(
+                particleDisplayService, skillPackDisplay, this, resourcePackService);
         skillService.registerExecutor(new ArchmagePhoenixResonanceExecutor(archmagePhoenixRuntimeService));
         statusService.setPhoenixPresentPredicate(archmagePhoenixRuntimeService::hasLivingPhoenix);
         playerHudService.setArchmagePhoenixRuntimeService(archmagePhoenixRuntimeService);

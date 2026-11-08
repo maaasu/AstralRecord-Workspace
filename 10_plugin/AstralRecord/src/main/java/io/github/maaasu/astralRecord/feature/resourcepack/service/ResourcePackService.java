@@ -44,6 +44,8 @@ public class ResourcePackService {
     private final Set<UUID> loadedSunbirdPresentation = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedSeleneaPresentation = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockSeleneaPresentation = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> requestedJavaArchmagePhoenixPresentation = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> readyBedrockArchmagePhoenixPresentation = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaItemTooltips = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockItemTooltips = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaWeaponAttackProjectiles = ConcurrentHashMap.newKeySet();
@@ -91,6 +93,7 @@ public class ResourcePackService {
         loadedSunbirdPresentation.remove(player.getUniqueId());
         requestedSunbirdPresentation.remove(player.getUniqueId());
         requestedSeleneaPresentation.remove(player.getUniqueId());
+        requestedJavaArchmagePhoenixPresentation.remove(player.getUniqueId());
         requestedJavaWeaponAttackProjectiles.remove(player.getUniqueId());
         requestedJavaSkillEffects.remove(player.getUniqueId());
         requestedJavaCombatRewardPlaque.remove(player.getUniqueId());
@@ -167,6 +170,9 @@ public class ResourcePackService {
                     }
                     if (pack.seleneaPresentation()) {
                         requestedSeleneaPresentation.add(viewer);
+                    }
+                    if (pack.archmagePhoenixPresentation()) {
+                        requestedJavaArchmagePhoenixPresentation.add(viewer);
                     }
                     if (pack.weaponAttackProjectiles()) {
                         requestedJavaWeaponAttackProjectiles.add(viewer);
@@ -291,6 +297,7 @@ public class ResourcePackService {
                     loadedManagedJavaPacks.remove(viewer);
                     loadedSunbirdPresentation.remove(viewer);
                     requestedSeleneaPresentation.remove(viewer);
+                    requestedJavaArchmagePhoenixPresentation.remove(viewer);
                     requestedJavaWeaponAttackProjectiles.remove(viewer);
                     requestedJavaSkillEffects.remove(viewer);
                     requestedJavaCombatRewardPlaque.remove(viewer);
@@ -593,6 +600,30 @@ public class ResourcePackService {
     }
 
     /**
+     * @param playerId 閲覧者のUUID
+     * @return 不死鳥の本体モデルを含む管理Javaパックの適用に成功した場合はtrue
+     */
+    public boolean hasJavaArchmagePhoenixPresentation(UUID playerId) {
+        return hasManagedJavaPack(playerId) && requestedJavaArchmagePhoenixPresentation.contains(playerId);
+    }
+
+    /**
+     * @param playerId 閲覧者のUUID
+     * @return 現在の統合版接続で不死鳥の本体モデルを描画できる場合はtrue
+     */
+    public boolean hasBedrockArchmagePhoenixPresentation(UUID playerId) {
+        return readyBedrockArchmagePhoenixPresentation.contains(playerId);
+    }
+
+    /**
+     * Proxyの互換版1の通知をオンライン接続に登録します。
+     * @param player 通知対象の閲覧者
+     */
+    public void markBedrockArchmagePhoenixPresentationReady(Player player) {
+        if (player.isOnline()) readyBedrockArchmagePhoenixPresentation.add(player.getUniqueId());
+    }
+
+    /**
      * 戦闘報酬プレートの互換版1を含む管理Javaパックの適用成功を確認します。
      *
      * @param playerId 閲覧者のUUID
@@ -686,6 +717,8 @@ public class ResourcePackService {
         requestedSunbirdPresentation.remove(playerId);
         requestedSeleneaPresentation.remove(playerId);
         readyBedrockSeleneaPresentation.remove(playerId);
+        requestedJavaArchmagePhoenixPresentation.remove(playerId);
+        readyBedrockArchmagePhoenixPresentation.remove(playerId);
         requestedJavaItemTooltips.remove(playerId);
         readyBedrockItemTooltips.remove(playerId);
         requestedJavaWeaponAttackProjectiles.remove(playerId);

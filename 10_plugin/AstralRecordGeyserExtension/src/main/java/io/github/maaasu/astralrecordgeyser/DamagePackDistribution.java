@@ -124,12 +124,12 @@ final class DamagePackDistribution {
         });
     }
 
-    void register(SessionLoadResourcePacksEvent event) {
+    void register(SessionLoadResourcePacksEvent event, boolean forced) {
         synchronized (publicationLock) {
             if (current == null) return;
             try {
                 event.register(current.pack(), PriorityOption.NORMAL);
-                sessions.put(event.connection(), new SessionPack(current, event, false));
+                sessions.put(event.connection(), new SessionPack(current, event, forced, false, false));
             } catch (ResourcePackException exception) {
                 extension.logger().warning("Bedrock damage pack registration failed: " + exception.cause());
             }
@@ -140,10 +140,19 @@ final class DamagePackDistribution {
         // SessionLogin follows Bedrock pack negotiation. There is no per-pack ACK in the public API.
         sessions.computeIfPresent(connection, (key, selection) -> {
             if (selection.event() == null) return selection;
-            boolean registered = selection.event().resourcePacks().stream()
-                .anyMatch(pack -> pack.uuid().equals(selection.pack().pack().uuid()));
-            return new SessionPack(selection.pack(), null, registered);
+            var registeredPacks = selection.event().resourcePacks();
+            var selectedPack = selection.pack().pack();
+            boolean registered = registeredPacks.stream().anyMatch(pack -> pack.uuid().equals(selectedPack.uuid()));
+            // UUID が同じ別パックに差し替えられた場合はフェニックスを有効にしない。
+            boolean phoenixReady = selection.forced() && selection.pack().archmagePhoenix()
+                && registeredPacks.stream().anyMatch(pack -> pack == selectedPack);
+            return new SessionPack(selection.pack(), null, selection.forced(), registered, phoenixReady);
         });
+    }
+
+    boolean archmagePhoenixReady(GeyserConnection connection) {
+        SessionPack selection = sessions.get(connection);
+        return selection != null && selection.archmagePhoenixReady();
     }
 
     boolean readyForDamageNumbers(GeyserConnection connection) {
@@ -247,5 +256,6 @@ final class DamagePackDistribution {
         sessions.remove(connection);
     }
 
-    private record SessionPack(DamagePack pack, SessionLoadResourcePacksEvent event, boolean ready) {}
+    private record SessionPack(DamagePack pack, SessionLoadResourcePacksEvent event, boolean forced,
+                               boolean ready, boolean archmagePhoenixReady) {}
 }

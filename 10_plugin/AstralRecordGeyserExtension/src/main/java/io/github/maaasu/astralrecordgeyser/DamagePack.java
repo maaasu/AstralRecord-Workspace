@@ -32,7 +32,8 @@ record DamagePack(
     String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing,
     boolean combatResult, int combatRewardPlaqueVersion, boolean weaponAttack, boolean weaponAttackProjectiles,
     boolean skillEffectsV2, boolean fishingVisuals,
-    boolean gameplaySounds, boolean sunbird, boolean sunbirdMotion, boolean selenea, Set<Integer> heldWeaponModels,
+    boolean gameplaySounds, boolean sunbird, boolean sunbirdMotion, boolean selenea, boolean archmagePhoenix,
+    Set<Integer> heldWeaponModels,
     Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips,
     String actionRingHudRevision, boolean questHud, boolean receptionDisplay
 ) {
@@ -102,6 +103,10 @@ record DamagePack(
         "models/entity/sunbird_skill.geo.json", "render_controllers/sunbird_skill.render_controllers.json",
         "textures/entity/sunbird_skill.png"
     );
+    private static final List<String> ARCHMAGE_PHOENIX_ENTRIES = List.of(
+        "entity/archmage_phoenix.entity.json", "animations/archmage_phoenix.animation.json",
+        "models/entity/archmage_phoenix.geo.json", "textures/entity/archmage_phoenix.png"
+    );
     private static final List<String> SELENEA_ENTRIES = List.of(
         "entity/selenea.entity.json", "animations/selenea.animation.json",
         "animation_controllers/selenea.animation_controllers.json", "render_controllers/selenea.render_controllers.json",
@@ -165,6 +170,7 @@ record DamagePack(
             boolean sunbird;
             boolean sunbirdMotion;
             boolean selenea;
+            boolean archmagePhoenix;
             boolean worldDisplay;
             boolean itemTooltips;
             String actionRingHudRevision;
@@ -205,6 +211,8 @@ record DamagePack(
                     && present(zip.getEntry("render_controllers/sunbird.render_controllers.json"));
                 selenea = hasVersionOne(zip, "selenea-presentation-version.txt")
                     && SELENEA_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
+                archmagePhoenix = hasVersionOne(zip, "archmage-phoenix-presentation-version.txt")
+                    && ARCHMAGE_PHOENIX_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 worldDisplay = WORLD_DISPLAY_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 itemTooltips = present(zip.getEntry("font/glyph_E6.png"))
                     && present(zip.getEntry("textures/ui/purpleBorder.png"))
@@ -232,8 +240,8 @@ record DamagePack(
             keep = true;
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, combatRewardPlaqueVersion,
                 weaponAttack, weaponAttackProjectiles, skillEffectsV2, fishingVisuals, gameplaySounds, sunbird, sunbirdMotion, selenea,
-                heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips, actionRingHudRevision, questHud,
-                receptionDisplay);
+                archmagePhoenix, heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips, actionRingHudRevision,
+                questHud, receptionDisplay);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }

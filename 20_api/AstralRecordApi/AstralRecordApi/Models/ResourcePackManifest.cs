@@ -15,5 +15,6 @@ public sealed record JavaResourcePack(
     string? SeleneaPresentation = null,
     string? CombatRewardPlaque = null,
     string? QuestTrackingHud = null,
-    string? ReceptionDisplay = null);
+    string? ReceptionDisplay = null,
+    string? ArchmagePhoenixPresentation = null);
 public sealed record BedrockResourcePack(string Sha256, Guid Uuid);

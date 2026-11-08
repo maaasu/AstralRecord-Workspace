@@ -27,6 +27,7 @@ final class BackendProtocol {
     static final String SKILL_EFFECTS_V2_READY = "skill_effects_v2_ready";
     static final String WEAPON_ATTACK_PROJECTILES_READY = "weapon_attack_projectiles_ready";
     static final String SELENEA_READY = "selenea_ready";
+    static final String ARCHMAGE_PHOENIX_READY = "archmage_phoenix_ready";
     static final String COMBAT_REWARD_PLAQUE_READY = "combat_reward_plaque_ready";
     static final String COMBAT_REWARD_PLAQUE_TIMING_READY = "combat_reward_plaque_timing_ready";
     static final String COMBAT_REWARD_PLAQUE_WIDTH_READY = "combat_reward_plaque_width_ready";
@@ -172,6 +173,11 @@ final class BackendProtocol {
     /** @return 対象プレイヤーの統合版パックがセレネアの描画に対応していることを伝える通知 */
     static byte[] seleneaReady() {
         return outgoing(SELENEA_READY, null);
+    }
+
+    /** @return 対象プレイヤーの統合版パックがフェニックスの描画に対応していることを伝える通知 */
+    static byte[] archmagePhoenixReady() {
+        return outgoing(ARCHMAGE_PHOENIX_READY, null);
     }
 
     /** @return 対象プレイヤーの統合版パックが戦闘報酬プレートに対応していることを伝える通知 */

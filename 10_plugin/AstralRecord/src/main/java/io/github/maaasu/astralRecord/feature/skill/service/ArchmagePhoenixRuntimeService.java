@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillMagicCircleRegistry;
@@ -31,6 +32,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
@@ -58,6 +60,7 @@ public final class ArchmagePhoenixRuntimeService {
     private static final double ATTACK_COST = 20.0D;
     private final SkillPackDisplay packDisplay;
     private final ArchmagePhoenixVisuals visuals;
+    private final ArchmagePhoenixBodyDisplay bodies;
     private final Map<UUID, State> states = new HashMap<>();
     private final Set<UUID> summonedEntityIds = new HashSet<>();
     private StatusService statusService;
@@ -70,11 +73,15 @@ public final class ArchmagePhoenixRuntimeService {
      * 不死鳥の実行時状態を構築します。
      * @param particles 共通の近傍閲覧者向けパーティクル表示サービス
      * @param packDisplay パック対応の閲覧者に表示する演出サービス
+     * @param plugin 閲覧者単位の可視性とパケット監視を所有するプラグイン
+     * @param resourcePacks 閲覧者のパック適用状態
      */
     public ArchmagePhoenixRuntimeService(@NotNull ParticleDisplayService particles,
-            @NotNull SkillPackDisplay packDisplay) {
+            @NotNull SkillPackDisplay packDisplay, @NotNull Plugin plugin,
+            @NotNull ResourcePackService resourcePacks) {
         this.packDisplay = packDisplay;
-        this.visuals = new ArchmagePhoenixVisuals(particles);
+        this.bodies = new ArchmagePhoenixBodyDisplay(plugin, resourcePacks);
+        this.visuals = new ArchmagePhoenixVisuals(particles, bodies);
     }
 
     /**
@@ -160,6 +167,7 @@ public final class ArchmagePhoenixRuntimeService {
     /** Plugin 停止時に全召喚体と状態を除去します。 */
     public void clearAll() {
         for (UUID playerId : List.copyOf(states.keySet())) clearPlayer(playerId);
+        bodies.stop();
     }
 
     /**
@@ -280,7 +288,8 @@ public final class ArchmagePhoenixRuntimeService {
         if (state.parrot == null) return;
         if (!state.attacking && now >= state.nextAttackTick) beginAttack(player, state, now);
         Location location = state.attacking ? state.parrot.getLocation() : follow(player, state, now);
-        // 通常移動は毎tickの速度制御、描画は位相を分散した2tick周期に分離する。
+        bodies.update(state.parrot, location, now);
+        // 通常移動は毎tickの速度制御、粒子は位相を分散した2tick周期に分離する。
         if (location != null && (now + state.visualPhase) % 2L == 0L) {
             visuals.render(player, state.parrot, location, now, state.visualPhase);
             if (state.attacking) visuals.renderAttack(location, now);
@@ -482,6 +491,7 @@ public final class ArchmagePhoenixRuntimeService {
                         // イベントが発火するワールド追加より前に、所有する実体だけを登録する。
                         state.parrot = parrot;
                         summonedEntityIds.add(parrot.getUniqueId());
+                        bodies.track(parrot, Bukkit.getCurrentTick());
                         parrot.setVariant(Parrot.Variant.RED);
                         // NoAIは物理移動自体を止めるため、自律行動だけをawareで止める。
                         parrot.setAI(true);
@@ -608,10 +618,15 @@ public final class ArchmagePhoenixRuntimeService {
         else if (lengthSquared > maximum * maximum) vector.multiply(maximum / Math.sqrt(lengthSquared));
     }
 
+    /** 召喚実体と、その個体に紐づく本体モデルを回収します。 */
     private void removeParrot(State state) {
         if (state.parrot != null) {
             summonedEntityIds.remove(state.parrot.getUniqueId());
-            state.parrot.remove();
+            try {
+                state.parrot.remove();
+            } finally {
+                bodies.remove(state.parrot);
+            }
         }
         state.parrot = null;
     }

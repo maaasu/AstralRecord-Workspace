@@ -30,6 +30,8 @@ import java.util.UUID;
 public final class AstralRecordGeyserExtension implements Extension {
     private static final Identifier TEXT_DISPLAY = Identifier.of("minecraft", "text_display");
     private static final Identifier DROPPED_ITEM = Identifier.of("minecraft", "item");
+    private static final Identifier PARROT = Identifier.of("minecraft", "parrot");
+    private static final long ARCHMAGE_PHOENIX_MARKER = 0x415250484F454E58L;
     private static final long COMBAT_RESULT_TAG = 0xa57ac2e570000001L;
     private static final CustomEntityDefinition COMBAT_RESULT =
         CustomEntityDefinition.of(Identifier.of("astralrecord", "combat_result"));
@@ -47,6 +49,7 @@ public final class AstralRecordGeyserExtension implements Extension {
     };
     private final LatchedTipDelivery questHudDelivery = new LatchedTipDelivery();
     private final DamagePackDistribution damagePacks = new DamagePackDistribution(this);
+    private CustomEntityDefinition archmagePhoenixDefinition;
     private CustomEntityDefinition damageNumberDefinition;
     private DamageNumberEntity damageNumberProperties;
     private CustomEntityDefinition actionRingDefinition;
@@ -102,6 +105,9 @@ public final class AstralRecordGeyserExtension implements Extension {
         event.register(receptionDefinition);
         receptionDisplayDefinition = receptionDefinition;
         selenea.register(event);
+        var phoenix = CustomEntityDefinition.of(Identifier.of("astralrecord", "archmage_phoenix"));
+        event.register(phoenix);
+        archmagePhoenixDefinition = phoenix;
     }
 
     @Subscribe
@@ -150,7 +156,7 @@ public final class AstralRecordGeyserExtension implements Extension {
 
     @Subscribe
     public void onLoadResourcePacks(SessionLoadResourcePacksEvent event) {
-        damagePacks.register(event);
+        damagePacks.register(event, forcesResourcePacks());
     }
 
     @Subscribe
@@ -204,6 +210,15 @@ public final class AstralRecordGeyserExtension implements Extension {
     public boolean hasSelenea(UUID playerId) {
         var connection = geyserApi().connectionByUuid(playerId);
         return connection != null && selenea.ready(damagePacks, connection);
+    }
+
+    /**
+     * @param playerId 接続中プレイヤーの Java 側 UUID
+     * @return フェニックスを描画できるパックを強制配布し、ログインを完了した場合は true
+     */
+    public boolean hasArchmagePhoenix(UUID playerId) {
+        var connection = geyserApi().connectionByUuid(playerId);
+        return archmagePhoenixDefinition != null && connection != null && damagePacks.archmagePhoenixReady(connection);
     }
 
     /**
@@ -298,7 +313,7 @@ public final class AstralRecordGeyserExtension implements Extension {
         });
     }
 
-    /** パック受諾を公開APIで確認できないため、強制配布設定を読めた場合だけ専用TIPを許可する。 */
+    /** 公開APIでパック受諾を確認できないため、Geyser本体の強制配布設定を参照する。 */
     private boolean forcesResourcePacks() {
         try {
             Object geyser = geyserApi();
@@ -326,6 +341,11 @@ public final class AstralRecordGeyserExtension implements Extension {
             if (event.isCancelled()) return;
         }
         if (sunbird.onSpawn(event, damagePacks) || selenea.onSpawn(event, damagePacks)) return;
+        if (archmagePhoenixDefinition != null && event.uuid().getMostSignificantBits() == ARCHMAGE_PHOENIX_MARKER
+            && event.entityType().is(PARROT) && damagePacks.archmagePhoenixReady(event.connection())) {
+            event.definition(archmagePhoenixDefinition);
+            return;
+        }
         if (event.entityType().is(DROPPED_ITEM) && ActionRingFrame.isIcon(event.uuid())) {
             GeyserEntity panel = panelFor(event, ActionRingPanelEntity.targetId(event.uuid()));
             if (panel != null && ActionRingPanelEntity.replacesFallback(panel, (int) event.uuid().getLeastSignificantBits())) {

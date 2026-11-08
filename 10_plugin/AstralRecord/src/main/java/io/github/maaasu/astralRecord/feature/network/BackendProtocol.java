@@ -29,6 +29,7 @@ final class BackendProtocol {
     private static final byte[] BEDROCK_QUEST_HUD_READY = emptyNotification("bedrock_quest_hud_v2_ready");
     private static final byte[] SKILL_EFFECTS_READY = emptyNotification("skill_effects_v2_ready");
     private static final byte[] SELENEA_READY = emptyNotification("selenea_ready");
+    private static final byte[] ARCHMAGE_PHOENIX_READY = emptyNotification("archmage_phoenix_ready");
     private static final byte[] COMBAT_REWARD_PLAQUE_READY = emptyNotification("combat_reward_plaque_ready");
     private static final byte[] COMBAT_REWARD_PLAQUE_TIMING_READY = emptyNotification("combat_reward_plaque_timing_ready");
     private static final byte[] COMBAT_REWARD_PLAQUE_WIDTH_READY = emptyNotification("combat_reward_plaque_width_ready");
@@ -71,6 +72,14 @@ final class BackendProtocol {
      */
     static boolean isSeleneaReady(byte[] payload) {
         return Arrays.equals(SELENEA_READY, payload);
+    }
+
+    /**
+     * @param payload Proxyから届いたデータ
+     * @return 不死鳥の対応パックを読み込んだ統合版接続の完全な通知ならtrue
+     */
+    static boolean isArchmagePhoenixReady(byte[] payload) {
+        return Arrays.equals(ARCHMAGE_PHOENIX_READY, payload);
     }
 
     /** 戦闘報酬プレートに対応する統合版接続の完全な通知か判定します。 */

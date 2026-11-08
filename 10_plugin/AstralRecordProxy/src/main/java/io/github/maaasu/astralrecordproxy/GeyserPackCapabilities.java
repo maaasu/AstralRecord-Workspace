@@ -47,6 +47,10 @@ final class GeyserPackCapabilities {
         return supports(playerId, "hasSelenea");
     }
 
+    static boolean hasArchmagePhoenix(UUID playerId) {
+        return supports(playerId, "hasArchmagePhoenix");
+    }
+
     /**
      * @param playerId 接続中プレイヤーの Java 側 UUID
      * @return 拡張が戦闘報酬プレートに対応する接続と確認した場合は true

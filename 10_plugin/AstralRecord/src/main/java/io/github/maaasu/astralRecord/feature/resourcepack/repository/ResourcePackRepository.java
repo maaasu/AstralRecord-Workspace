@@ -18,7 +18,7 @@ public final class ResourcePackRepository {
     /** 配布物のハッシュと演出機能の互換情報を識別します。 */
     public record JavaPack(String sha1, @Nullable String actionRingPanel, @Nullable String guiTheme,
                            boolean hasGameplaySounds, boolean sunbirdPresentation, boolean seleneaPresentation,
-                           boolean itemTooltips,
+                           boolean archmagePhoenixPresentation, boolean itemTooltips,
                            boolean weaponAttackProjectiles, @Nullable ProfileHud profileHud, boolean skillEffects,
                            boolean combatRewardPlaque, boolean questTrackingHud, boolean receptionDisplay) {
     }
@@ -64,6 +64,9 @@ public final class ResourcePackRepository {
                 JsonElement selenea = java.get("seleneaPresentation");
                 boolean seleneaPresentation = selenea != null && selenea.isJsonPrimitive()
                     && selenea.getAsJsonPrimitive().isString() && "1".equals(selenea.getAsString());
+                JsonElement phoenix = java.get("archmagePhoenixPresentation");
+                boolean archmagePhoenixPresentation = phoenix != null && phoenix.isJsonPrimitive()
+                    && phoenix.getAsJsonPrimitive().isString() && "1".equals(phoenix.getAsString());
                 JsonElement tooltips = java.get("itemTooltips");
                 boolean itemTooltips = tooltips != null && tooltips.isJsonPrimitive()
                     && tooltips.getAsJsonPrimitive().isString() && "1".equals(tooltips.getAsString());
@@ -94,7 +97,8 @@ public final class ResourcePackRepository {
                     default -> null;
                 };
                 return new JavaPack(sha1.getAsString(), panel, guiTheme, hasGameplaySounds, sunbirdPresentation,
-                    seleneaPresentation, itemTooltips, weaponAttackProjectiles, profileHud, skillEffects, combatRewardPlaque,
+                    seleneaPresentation, archmagePhoenixPresentation, itemTooltips, weaponAttackProjectiles, profileHud,
+                    skillEffects, combatRewardPlaque,
                     java.has("questTrackingHud") && java.get("questTrackingHud").isJsonPrimitive()
                         && java.get("questTrackingHud").getAsJsonPrimitive().isString()
                         && "2".equals(java.get("questTrackingHud").getAsString()), receptionDisplay);

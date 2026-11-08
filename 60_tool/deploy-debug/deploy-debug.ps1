@@ -417,6 +417,7 @@ function Publish-ResourcePacks {
     $uuid = ([guid]::Parse($bedrockManifest.header.uuid)).ToString()
     $sunbirdPresentation = $null
     $seleneaPresentation = $null
+    $archmagePhoenixPresentation = $null
     $itemTooltips = $null
     $weaponAttackProjectiles = $null
     $skillEffects = $null
@@ -494,6 +495,25 @@ function Publish-ResourcePacks {
             try { $seleneaPresentation = $reader.ReadToEnd() }
             finally { $reader.Dispose() }
             if ($seleneaPresentation -cne '1') { throw 'Unsupported Selenea presentation version.' }
+        }
+
+        $phoenixEntry = $archive.GetEntry('archmage-phoenix-presentation-version.txt')
+        if ($null -ne $phoenixEntry) {
+            if ($phoenixEntry.Length -ne 1) { throw 'Invalid Archmage Phoenix presentation version marker.' }
+            $reader = [IO.StreamReader]::new($phoenixEntry.Open())
+            try { $archmagePhoenixPresentation = $reader.ReadToEnd() }
+            finally { $reader.Dispose() }
+            if ($archmagePhoenixPresentation -cne '1') { throw 'Unsupported Archmage Phoenix presentation version.' }
+            foreach ($asset in @(
+                'assets/astralrecord/items/archmage_phoenix.json'
+                'assets/astralrecord/models/item/archmage_phoenix.json'
+                'assets/astralrecord/models/item/archmage_phoenix_wing_up.json'
+                'assets/astralrecord/models/item/archmage_phoenix_wing_down.json'
+                'assets/astralrecord/textures/item/archmage_phoenix.png'
+            )) {
+                $entry = $archive.GetEntry($asset)
+                if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing Archmage Phoenix asset in Java pack: $asset" }
+            }
         }
 
         $sunbirdEntry = $archive.GetEntry('sunbird-presentation-version.txt')
@@ -704,6 +724,9 @@ function Publish-ResourcePacks {
     }
     if ($null -ne $seleneaPresentation) {
         $javaManifest.seleneaPresentation = $seleneaPresentation
+    }
+    if ($null -ne $archmagePhoenixPresentation) {
+        $javaManifest.archmagePhoenixPresentation = $archmagePhoenixPresentation
     }
     if ($null -ne $sunbirdPresentation) {
         $javaManifest.sunbirdPresentation = $sunbirdPresentation

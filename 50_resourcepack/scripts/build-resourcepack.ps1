@@ -89,6 +89,7 @@ $java = Read-PackEntries $root @(
     'assets/minecraft/textures/gui/sprites/hud/hotbar_offhand_right.png'
     'sunbird-presentation-version.txt'
     'selenea-presentation-version.txt'
+    'archmage-phoenix-presentation-version.txt'
     'combat-reward-plaque-version.txt'
     'fishing-visuals-version.txt'
     'reception-display-version.txt'
@@ -269,6 +270,11 @@ $java = Read-PackEntries $root @(
     'assets/astralrecord/models/item/selenea_recover.json'
     'assets/astralrecord/textures/item/selenea.png'
     'assets/astralrecord/textures/item/selenea_skill.png'
+    'assets/astralrecord/items/archmage_phoenix.json'
+    'assets/astralrecord/models/item/archmage_phoenix.json'
+    'assets/astralrecord/models/item/archmage_phoenix_wing_up.json'
+    'assets/astralrecord/models/item/archmage_phoenix_wing_down.json'
+    'assets/astralrecord/textures/item/archmage_phoenix.png'
 )
 $bedrock = Read-PackEntries $bedrockRoot @(
     'manifest.json'
@@ -433,6 +439,10 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'render_controllers/selenea_skill.render_controllers.json'
     'models/entity/selenea_skill.geo.json'
     'textures/entity/selenea_skill.png'
+    'entity/archmage_phoenix.entity.json'
+    'animations/archmage_phoenix.animation.json'
+    'models/entity/archmage_phoenix.geo.json'
+    'textures/entity/archmage_phoenix.png'
     'entity/fishing_visual.entity.json'
     'animations/fishing_visual.animation.json'
     'models/entity/fishing_visual.geo.json'
@@ -463,6 +473,12 @@ if ($utf8.GetString($java[$seleneaVersionMarker]) -cne '1') {
     throw 'Invalid Selenea presentation version marker in resource pack.'
 }
 $bedrock.Add($seleneaVersionMarker, $java[$seleneaVersionMarker])
+
+$archmagePhoenixVersionMarker = 'archmage-phoenix-presentation-version.txt'
+if ($utf8.GetString($java[$archmagePhoenixVersionMarker]) -cne '1') {
+    throw 'Invalid Archmage Phoenix presentation version marker in resource pack.'
+}
+$bedrock.Add($archmagePhoenixVersionMarker, $java[$archmagePhoenixVersionMarker])
 
 $rewardPlaqueVersionMarker = 'combat-reward-plaque-version.txt'
 if ($utf8.GetString($java[$rewardPlaqueVersionMarker]) -cne '1') {

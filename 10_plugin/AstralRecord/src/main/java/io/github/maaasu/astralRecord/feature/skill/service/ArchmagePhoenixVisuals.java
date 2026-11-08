@@ -26,20 +26,33 @@ final class ArchmagePhoenixVisuals {
     private static final int MAX_VIEWERS = 16;
     private static final int MAX_POINTS = 160;
     private final ParticleDisplayService particles;
+    private final ArchmagePhoenixBodyDisplay bodies;
 
-    /** 共有表示サービスを受け取ります。 */
-    ArchmagePhoenixVisuals(ParticleDisplayService particles) {
+    /**
+     * @param particles 共有パーティクル表示サービス
+     * @param bodies パックによる本体表示への切替状態
+     */
+    ArchmagePhoenixVisuals(ParticleDisplayService particles, ArchmagePhoenixBodyDisplay bodies) {
         this.particles = particles;
+        this.bodies = bodies;
     }
 
-    /** 閲覧者を1回だけ近傍検索し、近距離2tick・遠距離6tickで描画します。 */
+    /**
+     * 本体モデルを表示できない閲覧者にだけ、従来の翼と尾を描きます。
+     * @param owner 召喚者
+     * @param parrot 不死鳥の実体
+     * @param body 粒子の描画原点
+     * @param tick 現在tick
+     * @param phase 個体ごとに分散した描画位相
+     */
     void render(Player owner, Parrot parrot, Location body, long tick, int phase) {
         boolean distantFrame = (tick + phase) % 6L == 0L;
         List<Player> viewers = body.getWorld().getNearbyPlayers(body, VIEW_DISTANCE).stream()
-                .filter(viewer -> viewer.isOnline() && viewer.canSee(parrot))
+                .filter(viewer -> viewer.isOnline() && viewer.canSee(parrot) && !bodies.hasModel(viewer, parrot))
                 .filter(viewer -> viewer.getWorld() == body.getWorld()
                         && viewer.getLocation().distanceSquared(body) <= VIEW_DISTANCE * VIEW_DISTANCE)
-                .filter(viewer -> distantFrame || viewer.getLocation().distanceSquared(body) <= DETAIL_DISTANCE_SQUARED)
+                .filter(viewer -> distantFrame || (!bodies.isBedrock(viewer)
+                        && viewer.getLocation().distanceSquared(body) <= DETAIL_DISTANCE_SQUARED))
                 .sorted(Comparator.comparingDouble(viewer -> viewer.getUniqueId().equals(owner.getUniqueId())
                         ? -1.0D : viewer.getLocation().distanceSquared(body)))
                 .limit(MAX_VIEWERS)
@@ -50,8 +63,9 @@ final class ArchmagePhoenixVisuals {
         if (frame.values().stream().mapToInt(List::size).sum() > MAX_POINTS) return;
         Map<SharedParticleDefinition, List<Location>> distant = distantFrame ? reduce(frame) : Map.of();
         for (Player viewer : viewers) {
-            Map<SharedParticleDefinition, List<Location>> visible = viewer.getLocation().distanceSquared(body)
-                    <= DETAIL_DISTANCE_SQUARED ? frame : distant;
+            boolean detailed = !bodies.isBedrock(viewer)
+                    && viewer.getLocation().distanceSquared(body) <= DETAIL_DISTANCE_SQUARED;
+            Map<SharedParticleDefinition, List<Location>> visible = detailed ? frame : distant;
             visible.forEach((definition, points) -> particles.spawnForViewer(viewer, points, definition));
         }
     }

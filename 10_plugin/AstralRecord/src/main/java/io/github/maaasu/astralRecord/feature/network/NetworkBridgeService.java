@@ -397,6 +397,12 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
             }
             return;
         }
+        if (BackendProtocol.isArchmagePhoenixReady(message)) {
+            if (resourcePackService != null) {
+                resourcePackService.markBedrockArchmagePhoenixPresentationReady(player);
+            }
+            return;
+        }
         if (BackendProtocol.isCombatRewardPlaqueReady(message)) {
             if (resourcePackService != null) {
                 resourcePackService.markBedrockCombatRewardPlaqueReady(player);
