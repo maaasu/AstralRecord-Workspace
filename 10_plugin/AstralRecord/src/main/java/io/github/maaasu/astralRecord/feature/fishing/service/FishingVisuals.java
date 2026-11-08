@@ -17,6 +17,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.MainHand;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Transformation;
@@ -48,6 +49,10 @@ public final class FishingVisuals {
     private static final int INTERPOLATION_TICKS = 2;
     private static final float LINE_WIDTH = 0.025F;
     private static final float SEGMENT_OVERLAP = 0.01F;
+    // 両版の手持ちモデルで竿先のガイドに合わせた、表示専用の目線基準オフセット。
+    private static final double DISPLAY_TIP_SIDE = 0.375D;
+    private static final double DISPLAY_TIP_UP = -0.23D;
+    private static final double DISPLAY_TIP_FORWARD = 0.80D;
     // generate-fishing-visuals.py のウキの環の中心（モデル座標からブロックへ換算）。
     private static final double BOBBER_EYE_HEIGHT = 2.31D / 16.0D;
 
@@ -367,6 +372,37 @@ public final class FishingVisuals {
         }
     }
 
+    /**
+     * 両版の描画に共用する竿先を求めます。キャストの移動・距離判定には使いません。
+     *
+     * @param eye プレイヤーの目の位置と向き
+     * @param hand プレイヤーの主手側
+     * @return 目線を基準とした竿先の表示位置
+     */
+    static Location resolveDisplayRodTip(Location eye, MainHand hand) {
+        double yaw = Math.toRadians(eye.getYaw());
+        Vector forward = eye.getDirection();
+        Vector right = new Vector(-Math.cos(yaw), 0.0D, -Math.sin(yaw));
+        Vector up = right.clone().crossProduct(forward);
+        double side = hand == MainHand.LEFT ? -DISPLAY_TIP_SIDE : DISPLAY_TIP_SIDE;
+        return eye.clone().add(forward.multiply(DISPLAY_TIP_FORWARD))
+            .add(right.multiply(side)).add(up.multiply(DISPLAY_TIP_UP));
+    }
+
+    /**
+     * 判定ノードを描画位置に変換します。竿先側の補正をウキまで線形に減らし、
+     * 針側では表示上の糸がウキの環に届くよう高さを加えます。
+     *
+     * @param node 判定用の糸ノード
+     * @param tipOffset 判定用竿先から表示用竿先への差
+     * @param progress 竿先を0、針を1とする進み具合
+     * @return 描画に使うノードの位置
+     */
+    private static Location displayNode(Location node, Vector tipOffset, double progress) {
+        return node.clone().add(tipOffset.clone().multiply(1.0D - progress))
+            .add(0.0D, progress * BOBBER_EYE_HEIGHT, 0.0D);
+    }
+
     /** 一回のキャストに対応する、更新可能な針と糸の表示です。 */
     public final class CastDisplay {
         private final Player owner;
@@ -387,16 +423,25 @@ public final class FishingVisuals {
         /**
          * 竿先・針・たるみを一つの表示フレームとして反映します。
          *
-         * @param nodes 竿先から針までの奇数個の順序付きノード
+         * @param nodes 判定用の竿先から針までの奇数個の順序付きノード
          * @param sag 糸の中央のたるみ（ブロック）
          */
         public void update(List<Location> nodes, double sag) {
-            Location rodTip = nodes.getFirst();
+            if (closed) {
+                return;
+            }
+            Location castTip = nodes.getFirst();
             Location hookLocation = nodes.getLast();
             try {
-                Audience viewers = audience(owner, rodTip);
-                updateJava(nodes, hookLocation, viewers.java());
-                updateBedrock(rodTip, hookLocation, sag, viewers.bedrock());
+                if (castTip.distanceSquared(hookLocation) <= 1.0E-10D) {
+                    clearRig();
+                    return;
+                }
+                Location displayTip = resolveDisplayRodTip(owner.getEyeLocation(), owner.getMainHand());
+                Vector tipOffset = displayTip.toVector().subtract(castTip.toVector());
+                Audience viewers = audience(owner, displayTip);
+                updateJava(nodes, tipOffset, hookLocation, viewers.java());
+                updateBedrock(displayTip, hookLocation, sag, viewers.bedrock());
             } catch (RuntimeException exception) {
                 clearRig();
                 Logger.log(LogId.E_3002, exception, "fishing_cast_visual");
@@ -435,24 +480,26 @@ public final class FishingVisuals {
         }
 
         /**
-         * 2ノードごとに線分を描画します。竿先を固定し、糸の終端だけをウキの環へ向けて持ち上げます。
+         * 2ノードごとに表示位置を求め、竿先のガイドとウキの環を結びます。
          *
-         * @param nodes 竿先から針までの順序付きノード
+         * @param nodes 判定用の竿先から針までの順序付きノード
+         * @param tipOffset 判定用竿先から表示用竿先への差
          * @param hookLocation 判定に使用している針の位置
          * @param viewers Java版の表示対象
          */
-        private void updateJava(List<Location> nodes, Location hookLocation, Set<Player> viewers) {
+        private void updateJava(List<Location> nodes, Vector tipOffset, Location hookLocation, Set<Player> viewers) {
             hookModel = updateModel(hookModel, hookLocation, hook,
                 transform(new Quaternionf(), new Vector3f(1.0F)), viewers);
-            double liftPerNode = BOBBER_EYE_HEIGHT / (nodes.size() - 1);
+            double lastIndex = nodes.size() - 1;
             for (int i = 0; i + NODE_STEP < nodes.size(); i += NODE_STEP) {
                 int index = i / NODE_STEP;
                 if (segments.size() <= index) {
                     segments.add(null);
                 }
-                Location start = nodes.get(i);
-                Vector delta = nodes.get(i + NODE_STEP).toVector().subtract(start.toVector());
-                delta.setY(delta.getY() + NODE_STEP * liftPerNode);
+                Location start = displayNode(nodes.get(i), tipOffset, i / lastIndex);
+                int nextIndex = i + NODE_STEP;
+                Location end = displayNode(nodes.get(nextIndex), tipOffset, nextIndex / lastIndex);
+                Vector delta = end.toVector().subtract(start.toVector());
                 float length = (float) delta.length();
                 ItemDisplay current = segments.get(index);
                 if (length <= 1.0E-5F) {
@@ -462,8 +509,7 @@ public final class FishingVisuals {
                     segments.set(index, null);
                     continue;
                 }
-                Location middle = start.clone().add(0.0D, i * liftPerNode, 0.0D)
-                    .add(delta.clone().multiply(0.5D));
+                Location middle = start.add(delta.clone().multiply(0.5D));
                 Quaternionf rotation = new Quaternionf().rotationTo(0, 0, 1,
                     (float) (delta.getX() / length), (float) (delta.getY() / length), (float) (delta.getZ() / length));
                 Transformation shape = transform(rotation, new Vector3f(LINE_WIDTH, LINE_WIDTH, length + SEGMENT_OVERLAP));
