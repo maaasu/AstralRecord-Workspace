@@ -240,7 +240,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
     else { setPlacing(false); setMoving(false) }
   }
   function selectChallengeEntry(entry: ChallengeEntry) {
-    if (!active || loading || editorBusy || pickingPoint) return
+    if (!active || loading || challengeBusy || pickingPoint) return
     challengeEditor.current?.selectEntry(entry, () => selectMode('challenge'))
   }
   function selectMapPoint(x: number, y: number | null, z: number) {
@@ -333,7 +333,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
               onPlacement={editingChallenge ? undefined : id => { if (!editing) selectMode('placements'); selectPlacement(id) }}
               challengeOnly={editingChallenge} challengePosition={editingChallenge ? challengePosition : null} pickingChallenge={editingChallenge && challengePicking}
               challengeEntries={challengeMap?.entries} selectedChallenge={editingChallenge ? selectedChallenge : null} challengeDirty={editingChallenge && challengeDirty}
-              onChallengeEntry={loading || editorBusy ? undefined : selectChallengeEntry}
+              onChallengeEntry={loading || challengeBusy ? undefined : selectChallengeEntry}
               placing={pickingPoint}
               onPlacePoint={selectMapPoint} />
             {showingPlans && <div className="sp-map-caption"><span><span className="sp-spawn-dot">●</span> 開始地点{road && '　金色実線: 道路 / 水色点線: 推定経路'}</span><span>{number(snapshot.manifest.bounds.width)} × {number(snapshot.manifest.bounds.height)}m · {snapshot.manifest.bounds.cellSize}m区画 · {number(snapshot.cells.length)}区画</span></div>}
@@ -345,7 +345,7 @@ export function SpawnerPlanningWorkspace({ active, onDirtyChange }: { active: bo
         {snapshot && !editing && <ResizeHandle label={editingChallenge ? '地図とチャレンジ編集の幅を変更' : '地図と配置案の幅を変更'} size={sidebarWidth} min={260} max={700} defaultSize={330} minRemaining={360} direction={-1} onResize={setSidebarWidth} className="sp-planning-resizer" />}
         <aside key={snapshot?.manifest.worldId ?? 'no-map'} className="sp-sidebar" hidden={!editingChallenge}>
           {!snapshot && <p className="sp-muted">地図が表示できないときも、ワールドと X・Y・Z を指定して受付地点を保存できます。</p>}
-          <ChallengeLocationEditor ref={challengeEditor} worldId={snapshot?.manifest.worldId ?? ''} worldName={snapshot?.manifest.worldName}
+          <ChallengeLocationEditor ref={challengeEditor} worldId={snapshot?.manifest.worldId ?? ''} worldName={snapshot?.manifest.worldName} mapEntries={challengeMap?.entries}
             point={challengePoint} active={active && editingChallenge && (!!snapshot || !loading)} canPick={!!snapshot && !loading}
             onPickingChange={setChallengePicking} onDirtyChange={setChallengeDirty} onBusyChange={setChallengeBusy}
             onPositionChange={setChallengePosition} onSelectionChange={setSelectedChallenge} onSaved={refreshChallengeEntries} />

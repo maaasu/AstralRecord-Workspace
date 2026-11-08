@@ -209,11 +209,11 @@ public sealed class BossMasterEditorTests : IDisposable
 
         Assert.Equal(new ChallengeEntryMarker[]
         {
-            new("40.features.mob/boss/v1.legacy.yml", "boss", "legacy", 1.5, -4, 0),
-            new("40.features.mob/boss/v1.path.yml", "boss", "path", -10, 2, 3),
-            new(BossPath, "boss", "&5&l月蝕の綴り魔女 セレネア", -1047.5, 118, 807.5),
-            new("65.features.dungeon/v1.dungeon.yml", "dungeon", "大樹の遺跡", -6.5, 5, 4),
-            new("65.features.dungeon/v1.short_prefix.yml", "dungeon", "short_prefix", -7, 8, 9)
+            new("40.features.mob/boss/v1.legacy.yml", "boss", "legacy", "legacy_eriva", 1.5, -4, 0),
+            new("40.features.mob/boss/v1.path.yml", "boss", "path", @"worlds\legacy_eriva", -10, 2, 3),
+            new(BossPath, "boss", "&5&l月蝕の綴り魔女 セレネア", worldId, -1047.5, 118, 807.5),
+            new("65.features.dungeon/v1.dungeon.yml", "dungeon", "大樹の遺跡", "world:eriva_supercontinent", -6.5, 5, 4),
+            new("65.features.dungeon/v1.short_prefix.yml", "dungeon", "short_prefix", "wd:eriva_supercontinent", -7, 8, 9)
         }, entries);
         Assert.Equal("other_dungeon", Assert.Single(await _service.ListChallengeEntriesAsync("other", CancellationToken.None)).Name);
         Assert.Empty(await _service.ListChallengeEntriesAsync("legacy_eriva", CancellationToken.None));

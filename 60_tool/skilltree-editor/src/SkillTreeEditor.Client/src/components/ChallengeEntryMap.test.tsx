@@ -14,7 +14,16 @@ vi.mock('../api/spawnerPlanningApi', () => ({
 vi.mock('../api/masterDataApi', () => ({
   masterDataApi: { files: vi.fn(), file: vi.fn(), render: vi.fn(), validate: vi.fn(), save: vi.fn() },
 }))
-vi.mock('./WorldPlacementEditor', () => ({ WorldPlacementEditor: ({ map }: { map: ReactNode }) => map }))
+const placement = vi.hoisted(() => ({ busy: false }))
+vi.mock('./WorldPlacementEditor', async () => {
+  const { useEffect } = await import('react')
+  return {
+    WorldPlacementEditor: ({ map, onBusyChange }: { map: ReactNode; onBusyChange: (busy: boolean) => void }) => {
+      useEffect(() => { onBusyChange(placement.busy) }, [onBusyChange])
+      return map
+    },
+  }
+})
 
 const worldId = 'eriva_supercontinent'
 const snapshot: PlanningSnapshot = {
@@ -23,8 +32,8 @@ const snapshot: PlanningSnapshot = {
     spawn: { x: 0, y: 70, z: 0 }, capturedAt: '', radiusOptions: [64], reasons: {}, limitations: [], progressionPolicy: {} },
   cells: [], regions: [],
 }
-const boss = { path: '40.features.mob/boss/v1.boss.yml', kind: 'boss', name: '&c古代竜', x: 8.5, y: 70, z: 9 } satisfies ChallengeEntry
-const dungeon = { path: '65.features.dungeon/v1.dungeon.yml', kind: 'dungeon', name: '遺跡', x: 9.5, y: 69, z: 9 } satisfies ChallengeEntry
+const boss = { path: '40.features.mob/boss/v1.boss.yml', kind: 'boss', name: '&c古代竜', worldReference: worldId, x: 8.5, y: 70, z: 9 } satisfies ChallengeEntry
+const dungeon = { path: '65.features.dungeon/v1.dungeon.yml', kind: 'dungeon', name: '遺跡', worldReference: `wd:${worldId}`, x: 9.5, y: 69, z: 9 } satisfies ChallengeEntry
 const bossMarker = () => screen.getByRole('button', { name: 'ボス受付 古代竜' })
 const dungeonMarker = () => screen.getByRole('button', { name: 'ダンジョン受付 遺跡' })
 const placementMode = () => screen.getByRole('button', { name: '配置編集' })
@@ -38,6 +47,7 @@ const bossDocument = (entry: ChallengeEntry) => ({
 
 beforeEach(() => {
   vi.resetAllMocks()
+  placement.busy = false
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, width: 406, height: 500 } as DOMRect)
   vi.mocked(spawnerPlanningApi.worlds).mockResolvedValue([{ id: worldId, name: 'エリヴァ' }, { id: 'verdia', name: 'ヴェルディア' }])
@@ -47,11 +57,12 @@ beforeEach(() => {
   vi.mocked(masterDataApi.files).mockImplementation(async (category = '') => {
     const entry = category === '40.features.mob/boss' ? boss : category === '65.features.dungeon' ? dungeon
       : { path: '60.features.world/v1.eriva_supercontinent.yml', name: 'エリヴァ' }
-    return [{ ...entry, id: entry === boss ? 'boss' : entry === dungeon ? 'dungeon' : worldId, category, format: 'yaml', size: 0, modifiedUtc: '', revision: 'a' }]
+    const file = { ...entry, id: entry === boss ? 'boss' : entry === dungeon ? 'dungeon' : worldId, category, format: 'yaml' as const, size: 0, modifiedUtc: '', revision: 'a' }
+    return category === '60.features.world' ? [file, { ...file, path: '60.features.world/v1.verdia.yml', name: 'ヴェルディア', id: 'verdia' }] : [file]
   })
   vi.mocked(masterDataApi.file).mockImplementation(async path => path === boss.path ? bossDocument(boss) : ({
     path, format: 'yaml', raw: '# dungeon', revision: 'a',
-    content: { entry: { worldRef: `world:${worldId}`, x: dungeon.x, y: dungeon.y, z: dungeon.z } }, issues: [],
+    content: { entry: { worldRef: dungeon.worldReference, x: dungeon.x, y: dungeon.y, z: dungeon.z } }, issues: [],
   }))
   vi.mocked(masterDataApi.render).mockResolvedValue({ raw: 'saved', commentsPreserved: true, warnings: [] })
   vi.mocked(masterDataApi.validate).mockResolvedValue({ isValid: true, issues: [] })
@@ -98,6 +109,20 @@ it('shows both nearby types in all map modes and preserves a draft when a marker
   await waitFor(() => expect(dungeonMarker()).toHaveAttribute('aria-pressed', 'true'))
   expect(master).toHaveValue(dungeon.path)
   expect(masterDataApi.file).toHaveBeenLastCalledWith(dungeon.path)
+})
+
+it('opens a saved alias while Dev placements are loading and stops picking after changing its world', async () => {
+  placement.busy = true
+  vi.stubGlobal('fetch', vi.fn(async () => response([dungeon])))
+  render(<SpawnerPlanningWorkspace active />)
+  const marker = await screen.findByRole('button', { name: 'ダンジョン受付 遺跡' })
+  expect(screen.getByRole('combobox', { name: '表示ワールド' })).toBeDisabled()
+  expect(marker).toBeEnabled()
+  fireEvent.click(marker)
+  const pick = await screen.findByRole('button', { name: '地図で受付地点を選択' })
+  expect(pick).toBeEnabled()
+  fireEvent.change(screen.getByRole('combobox', { name: '受付地点のワールド' }), { target: { value: 'world:verdia' } })
+  expect(pick).toBeDisabled()
 })
 
 it('refreshes a saved marker and ignores a late response for a previous world', async () => {

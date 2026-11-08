@@ -88,10 +88,10 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
                 var location = isBoss
                     ? (content["challenge"] as JsonObject)?["entryLocation"] as JsonObject
                     : content["entry"] as JsonObject;
-                if (location is null) continue;
-                var world = JsonValueReader.String(location[isBoss ? "worldId" : "worldRef"]);
+                if (location is null || JsonValueReader.String(location[isBoss ? "worldId" : "worldRef"]) is not { } world)
+                    continue;
                 var matchesWorld = isBoss
-                    ? world == worldId || world is not null && bossWorldAliases.Contains(NormalizeBukkitWorldPath(world))
+                    ? world == worldId || bossWorldAliases.Contains(NormalizeBukkitWorldPath(world))
                     : worldPrefixes.Any(prefix => world == $"{prefix}:{worldId}");
                 if (!matchesWorld ||
                     JsonValueReader.Number(location["x"]) is not { } x || !double.IsFinite(x) ||
@@ -99,7 +99,7 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
                     JsonValueReader.Number(location["z"]) is not { } z || !double.IsFinite(z))
                     continue;
 
-                markers.Add(new(document.Path, kind, DisplayName(content) ?? id, x, y, z));
+                markers.Add(new(document.Path, kind, DisplayName(content) ?? id, world, x, y, z));
             }
         }
         return markers.OrderBy(marker => marker.Path, StringComparer.Ordinal).ToArray();

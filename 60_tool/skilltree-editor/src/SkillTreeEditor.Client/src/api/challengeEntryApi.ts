@@ -2,6 +2,7 @@ export type ChallengeEntry = {
   path: string
   kind: 'boss' | 'dungeon'
   name: string
+  worldReference: string
   x: number
   y: number
   z: number
@@ -13,6 +14,7 @@ function isChallengeEntry(value: unknown): value is ChallengeEntry {
   return typeof entry.path === 'string' && !!entry.path
     && (entry.kind === 'boss' || entry.kind === 'dungeon')
     && typeof entry.name === 'string'
+    && typeof entry.worldReference === 'string' && !!entry.worldReference
     && [entry.x, entry.y, entry.z].every(Number.isFinite)
 }
 

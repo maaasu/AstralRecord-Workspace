@@ -24,6 +24,7 @@ type Props = {
   ref?: Ref<ChallengeLocationEditorHandle>
   worldId: string
   worldName?: string
+  mapEntries?: readonly ChallengeEntry[]
   point: Point | null
   onPickingChange: (value: boolean) => void
   onDirtyChange: (value: boolean) => void
@@ -100,7 +101,7 @@ function isValidationReport(value: unknown): value is ValidationReport {
 }
 
 export function ChallengeLocationEditor({
-  ref, worldId, worldName, point, onPickingChange, onDirtyChange, onBusyChange, onPositionChange, onSelectionChange, onSaved,
+  ref, worldId, worldName, mapEntries, point, onPickingChange, onDirtyChange, onBusyChange, onPositionChange, onSelectionChange, onSaved,
   active = true, canPick = true,
 }: Props) {
   const [catalog, setCatalog] = useState<{ bosses: MasterFileSummary[]; dungeons: MasterFileSummary[]; worlds: MasterFileSummary[] } | null>(null)
@@ -132,7 +133,9 @@ export function ChallengeLocationEditor({
   const worldOptions = worlds.map(file => ({ value: opened?.challenge ? file.id! : `world:${file.id}`, label: optionLabel(file) }))
   const currentMapValue = opened?.challenge ? worldId : `world:${worldId}`
   const currentMapOption = worldOptions.find(option => option.value === currentMapValue)
-  const matchesMap = draft?.world === currentMapValue
+  const matchesMap = !!draft && (draft.world === currentMapValue
+    || (opened !== null && draft.world === opened.initial.world
+      && !!mapEntries?.some(entry => entry.path === opened.document.path && entry.worldReference === draft.world)))
   const mapPickAvailable = canPick && !!currentMapOption && matchesMap && !conflict
   const picking = active && mapPickAvailable && pick !== null && pick.worldId === worldId
   const showPosition = active && !loading && matchesMap && finiteDecimal(draft.x) && finiteDecimal(draft.z)
