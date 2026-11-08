@@ -105,7 +105,7 @@ describe('チャレンジ受付地点の編集', () => {
     expect(masterDataApi.render).toHaveBeenCalledWith(dungeonPath, changedDungeon, '# 元の YAML')
   })
 
-  it('地図で計測した高さは目安として入力され、手入力で直せる', async () => {
+  it('地図で計測した高さを直せて、変更を取り消すと元の座標に戻る', async () => {
     const props = callbacks()
     const { rerender } = render(<ChallengeLocationEditor worldId="other_world" point={null} {...props} />)
     await chooseMaster(dungeonPath)
@@ -121,6 +121,13 @@ describe('チャレンジ受付地点の編集', () => {
     fireEvent.change(height, { target: { value: '68.5' } })
     expect(height).not.toHaveAccessibleDescription(/高さは目安/)
     expect(props.onPositionChange).toHaveBeenLastCalledWith({ x: 18, y: 68.5, z: -9 })
+
+    fireEvent.click(screen.getByRole('button', { name: '変更を取り消す' }))
+    expect(height).toHaveValue('70')
+    expect(height).toHaveFocus()
+    expect(props.onPositionChange).toHaveBeenLastCalledWith({ x: 4, y: 70, z: 6 })
+    expect(props.onDirtyChange).toHaveBeenLastCalledWith(false)
+    expect(masterDataApi.save).not.toHaveBeenCalled()
   })
 
   it('古いマスターの読込結果を無視する', async () => {

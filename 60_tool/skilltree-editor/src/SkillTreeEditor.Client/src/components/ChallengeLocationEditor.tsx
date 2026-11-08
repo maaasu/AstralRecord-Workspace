@@ -113,6 +113,7 @@ export function ChallengeLocationEditor({
   const [conflict, setConflict] = useState(false)
   const operation = useRef(0)
   const savingNow = useRef(false)
+  const heightInput = useRef<HTMLInputElement>(null)
   const heightHintId = useId()
   const dirty = !!(opened && draft && (draft.world !== opened.initial.world || coordinates.some(key => draft[key] !== opened.initial[key])))
   const positionValid = !!(draft && required.every(key => finiteDecimal(draft[key])))
@@ -214,6 +215,19 @@ export function ChallengeLocationEditor({
     if (!conflict) setError('')
   }
 
+  const discardChanges = () => {
+    if (!opened) return
+    setDraft(opened.initial)
+    setPick(null)
+    setMapHeight(null)
+    setReview(null)
+    setReviewedRaw(null)
+    setNotice('')
+    setIssues([])
+    if (!conflict) setError('')
+    heightInput.current?.focus()
+  }
+
   const save = async () => {
     if (!opened || !draft || !valid || !dirty || loading || conflict || savingNow.current) return
     savingNow.current = true
@@ -303,7 +317,7 @@ export function ChallengeLocationEditor({
       </div>
       <div className="challenge-location-height">
         <label>高さ (Y)
-          <input type="text" inputMode="decimal" required aria-invalid={!finiteDecimal(draft.y)} aria-describedby={heightHintId}
+          <input ref={heightInput} type="text" inputMode="decimal" required aria-invalid={!finiteDecimal(draft.y)} aria-describedby={heightHintId}
             value={draft.y} onChange={event => edit('y', event.target.value)} />
         </label>
         <p id={heightHintId} className="sp-muted" role="status">
@@ -330,6 +344,7 @@ export function ChallengeLocationEditor({
       {!orientationValid && <p className="sp-muted">詳細設定の向きには数値を入力するか、空欄にしてください。</p>}
       <div className="challenge-location-actions">
         <button type="button" className="button primary" disabled={!valid || !dirty || conflict || picking} onClick={() => void save()}>受付地点を保存</button>
+        {dirty && <button type="button" className="button" onClick={discardChanges}>変更を取り消す</button>}
       </div>
     </fieldset>}
     {saving && <p role="status">受付地点を保存しています…</p>}
