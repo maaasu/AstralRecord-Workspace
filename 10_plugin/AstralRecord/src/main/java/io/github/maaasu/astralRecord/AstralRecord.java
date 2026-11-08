@@ -2728,7 +2728,8 @@ public final class AstralRecord extends JavaPlugin {
             skillActionRingService,
             skillPermissionService,
             itemService,
-            resourcePackService
+            resourcePackService,
+            dungeonService.cartographHeldMap()
         );
         itemStackPacketAdapter.register();
 

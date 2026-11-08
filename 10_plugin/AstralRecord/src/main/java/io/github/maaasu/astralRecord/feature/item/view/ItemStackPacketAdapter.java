@@ -9,6 +9,7 @@ import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.wrappers.Pair;
+import io.github.maaasu.astralRecord.feature.dungeon.service.CartographHeldMap;
 import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskHotbarIconService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
@@ -96,6 +97,7 @@ public class ItemStackPacketAdapter {
     private final @Nullable SkillPermissionService skillPermissionService;
     private final ItemService itemService;
     private final ResourcePackService resourcePacks;
+    private final CartographHeldMap cartographHeldMap;
     private final Map<UUID, Set<String>> permittedSkillSnapshots = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> bedrockSnapshots = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> actionRingHoldEligibleSnapshots = new ConcurrentHashMap<>();
@@ -112,6 +114,7 @@ public class ItemStackPacketAdapter {
      * @param skillPermissionService 受信者のスキル使用可否を判定するサービス
      * @param itemService 公開済みアイテムマスタを参照するサービス
      * @param resourcePacks 受信者がツールチップ用のパックを使えるか判定するサービス
+     * @param cartographHeldMap 本人の登録済みカルトグラフの表示情報
      */
     public ItemStackPacketAdapter(
         @NotNull Plugin plugin,
@@ -119,7 +122,8 @@ public class ItemStackPacketAdapter {
         @NotNull SkillActionRingService actionRingService,
         @Nullable SkillPermissionService skillPermissionService,
         @NotNull ItemService itemService,
-        @NotNull ResourcePackService resourcePacks
+        @NotNull ResourcePackService resourcePacks,
+        @NotNull CartographHeldMap cartographHeldMap
     ) {
         this.plugin = plugin;
         this.playerSettingService = playerSettingService;
@@ -127,6 +131,7 @@ public class ItemStackPacketAdapter {
         this.skillPermissionService = skillPermissionService;
         this.itemService = itemService;
         this.resourcePacks = resourcePacks;
+        this.cartographHeldMap = cartographHeldMap;
     }
 
     /**
@@ -182,6 +187,7 @@ public class ItemStackPacketAdapter {
                     : selectedHotbarSlots.getOrDefault(viewer.getUniqueId(), -1);
 
                 ItemTooltipPresentation tooltip = tooltipPresentation(viewer.getUniqueId());
+                CartographHeldMap.Projection cartograph = cartographHeldMap.projection(viewer.getUniqueId());
                 if (type == PacketType.Play.Server.SET_SLOT
                     || type == PacketType.Play.Server.SET_PLAYER_INVENTORY
                     || type == PacketType.Play.Server.SET_CURSOR_ITEM) {
@@ -203,7 +209,9 @@ public class ItemStackPacketAdapter {
                         permittedSkillIds,
                         bedrockViewer,
                         randomStatusRangeDisplayEnabled,
-                        tooltip
+                        tooltip,
+                        cartograph,
+                        hotbarSlot
                     );
                 } else if (type == PacketType.Play.Server.WINDOW_ITEMS) {
                     handleWindowItems(
@@ -214,7 +222,8 @@ public class ItemStackPacketAdapter {
                         permittedSkillIds,
                         bedrockViewer,
                         randomStatusRangeDisplayEnabled,
-                        tooltip
+                        tooltip,
+                        cartograph
                     );
                 } else if (type == PacketType.Play.Server.ENTITY_EQUIPMENT) {
                     handleEntityEquipment(
@@ -364,6 +373,8 @@ public class ItemStackPacketAdapter {
      * @param bedrockViewer 受信者が Bedrock Edition の場合は {@code true}
      * @param randomStatusRangeDisplayEnabled ランダムステータス範囲行を表示する場合は {@code true}
      * @param tooltip 受信者の装飾方式。パックが使えない場合は null
+     * @param cartograph 選択中カルトグラフの送信情報
+     * @param hotbarSlot 対象スロット。ホットバー外は負値
      */
     private void handleSetSlot(
         @NotNull PacketContainer packet,
@@ -372,7 +383,9 @@ public class ItemStackPacketAdapter {
         @Nullable Set<String> permittedSkillIds,
         boolean bedrockViewer,
         boolean randomStatusRangeDisplayEnabled,
-        @Nullable ItemTooltipPresentation tooltip
+        @Nullable ItemTooltipPresentation tooltip,
+        @Nullable CartographHeldMap.Projection cartograph,
+        int hotbarSlot
     ) {
         var original = packet.getItemModifier().readSafely(0);
         if (original == null || original.getType() == Material.AIR) {
@@ -381,6 +394,7 @@ public class ItemStackPacketAdapter {
 
         var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer,
             randomStatusRangeDisplayEnabled, tooltip);
+        replaced = applyCartograph(cartograph, hotbarSlot, original, replaced);
         if (replaced != null) {
             packet.getItemModifier().writeSafely(0, replaced);
         }
@@ -397,6 +411,7 @@ public class ItemStackPacketAdapter {
      * @param bedrockViewer 受信者が Bedrock Edition の場合は {@code true}
      * @param randomStatusRangeDisplayEnabled ランダムステータス範囲行を表示する場合は {@code true}
      * @param tooltip 受信者の装飾方式。パックが使えない場合は null
+     * @param cartograph 選択中カルトグラフの送信情報
      */
     private void handleWindowItems(
         @NotNull PacketContainer packet,
@@ -406,11 +421,12 @@ public class ItemStackPacketAdapter {
         @Nullable Set<String> permittedSkillIds,
         boolean bedrockViewer,
         boolean randomStatusRangeDisplayEnabled,
-        @Nullable ItemTooltipPresentation tooltip
+        @Nullable ItemTooltipPresentation tooltip,
+        @Nullable CartographHeldMap.Projection cartograph
     ) {
         // カーソルで保持しているスタックにも、受信者の表示設定を適用します。
         handleSetSlot(packet, armorDisplayEnabled, false, permittedSkillIds, bedrockViewer,
-            randomStatusRangeDisplayEnabled, tooltip);
+            randomStatusRangeDisplayEnabled, tooltip, null, -1);
         var items = packet.getItemListModifier().readSafely(0);
         if (items == null || items.isEmpty()) {
             return;
@@ -423,13 +439,15 @@ public class ItemStackPacketAdapter {
                 continue;
             }
 
+            int hotbarSlot = playerInventoryHotbarSlot(packet, i);
             boolean virtualTrident = shouldVirtualizeHotbarWeapon(
                 actionRingHoldSelectEnabled,
-                playerInventoryHotbarSlot(packet, i),
+                hotbarSlot,
                 selectedHotbarSlot
             );
             var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer,
                 randomStatusRangeDisplayEnabled, tooltip);
+            replaced = applyCartograph(cartograph, hotbarSlot, original, replaced);
             if (replaced != null) {
                 items.set(i, replaced);
                 modified = true;
@@ -439,6 +457,19 @@ public class ItemStackPacketAdapter {
         if (modified) {
             packet.getItemListModifier().writeSafely(0, items);
         }
+    }
+
+    private static @Nullable ItemStack applyCartograph(
+        @Nullable CartographHeldMap.Projection projection,
+        int hotbarSlot,
+        @NotNull ItemStack original,
+        @Nullable ItemStack replaced
+    ) {
+        if (projection == null) {
+            return replaced;
+        }
+        ItemStack map = projection.apply(hotbarSlot, replaced == null ? original : replaced);
+        return map == null ? replaced : map;
     }
 
     /**
@@ -972,6 +1003,8 @@ public class ItemStackPacketAdapter {
         boolean bedrockViewer
     ) {
         boolean armorDisplayEnabled = playerSettingService.isArmorDisplayEnabled(viewer.getUniqueId());
+        CartographHeldMap.Projection cartograph = target == viewer
+            ? cartographHeldMap.projection(viewer.getUniqueId()) : null;
         Map<EquipmentSlot, ItemStack> equipment = new EnumMap<>(EquipmentSlot.class);
         for (EquipmentUpdate update : updates) {
             boolean virtualTrident = virtualizeSelectedMainHand && update.slot() == EquipmentSlot.HAND;
@@ -983,6 +1016,9 @@ public class ItemStackPacketAdapter {
                 bedrockViewer,
                 playerSettingService.isRandomStatusRangeDisplayEnabled(viewer.getUniqueId())
             );
+            if (cartograph != null && update.slot() == EquipmentSlot.HAND) {
+                replaced = applyCartograph(cartograph, viewer.getInventory().getHeldItemSlot(), update.item(), replaced);
+            }
             equipment.put(update.slot(), replaced != null ? replaced : update.item());
         }
         if (equipment.isEmpty()) {

@@ -58,12 +58,12 @@ public final class DungeonMapLayoutPlanner {
 
     /**
      * 部屋の配置結果から、同一ページ内の部屋同士を結ぶ通路 slot を決定します。
-     * 部屋 slot を避けた最短経路を使い、同じ slot へ重なる通路は最初の接続だけを表示します。
+     * 部屋 slot を避けた最短経路を使い、同じ slot へ重なる通路の接続方向をまとめます。
      * ページをまたぐ接続は各ページ内で表現できないため、省略します。
      *
      * @param layout ダンジョン配置
      * @param placements {@link #plan(DungeonLayout)} で得た部屋配置
-     * @return GUI 上へ表示する通路配置
+     * @return GUI 上へ表示する通路配置。各配置に接続する辺の方向マスクを含みます
      */
     public @NotNull List<CorridorPlacement> planCorridors(
             @NotNull DungeonLayout layout,
@@ -100,8 +100,11 @@ public final class DungeonMapLayoutPlanner {
             for (int index = 1; index < path.size() - 1; index++) {
                 PageSlot slot = new PageSlot(from.page(), path.get(index));
                 if (!roomBySlot.containsKey(slot)) {
-                    corridorBySlot.putIfAbsent(slot,
-                            new CorridorPlacement(connection.id(), slot.page(), slot.slot()));
+                    int mask = directionMask(path.get(index), path.get(index - 1))
+                            | directionMask(path.get(index), path.get(index + 1));
+                    corridorBySlot.merge(slot,
+                            new CorridorPlacement(slot.page(), slot.slot(), mask, Map.of(connection.id(), mask)),
+                            CorridorPlacement::join);
                 }
             }
         }
@@ -109,6 +112,21 @@ public final class DungeonMapLayoutPlanner {
                 .sorted(Comparator.comparingInt(CorridorPlacement::page)
                         .thenComparingInt(CorridorPlacement::slot))
                 .toList();
+    }
+
+    /**
+     * 隣接する slot が現在 slot のどちら側にあるかを N/E/S/W のビットで返します。
+     *
+     * @param slot 現在の通路 slot
+     * @param adjacent 隣接する slot
+     * @return N/E/S/W を順に 1/2/4/8 とした方向マスク。非隣接なら 0
+     */
+    private int directionMask(int slot, int adjacent) {
+        if (adjacent == slot - COLUMNS) { return 1; }
+        if (adjacent == slot + 1 && slot / COLUMNS == adjacent / COLUMNS) { return 2; }
+        if (adjacent == slot + COLUMNS) { return 4; }
+        if (adjacent == slot - 1 && slot / COLUMNS == adjacent / COLUMNS) { return 8; }
+        return 0;
     }
 
     private @NotNull List<Integer> shortestPath(
@@ -201,8 +219,19 @@ public final class DungeonMapLayoutPlanner {
     public record Placement(int roomId, int page, int slot) {
     }
 
-    /** GUI 上の通路表示位置です。 */
-    public record CorridorPlacement(int connectionId, int page, int slot) {
+    /** GUI 上の通路表示位置と接続方向のマスクです。 */
+    public record CorridorPlacement(
+            int page, int slot, int directionMask, @NotNull Map<Integer, Integer> directionsByConnection
+    ) {
+        public CorridorPlacement {
+            directionsByConnection = Map.copyOf(directionsByConnection);
+        }
+
+        private @NotNull CorridorPlacement join(@NotNull CorridorPlacement other) {
+            Map<Integer, Integer> joined = new HashMap<>(directionsByConnection);
+            joined.putAll(other.directionsByConnection);
+            return new CorridorPlacement(page, slot, directionMask | other.directionMask, joined);
+        }
     }
 
     private record PageSlot(int page, int slot) {

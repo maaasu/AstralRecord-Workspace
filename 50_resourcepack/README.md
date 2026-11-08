@@ -1,6 +1,6 @@
 # AstralRecord リソースパック
 
-Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメージ数値、アクションリング、アイテムモデル、武器通常攻撃と釣りの演出、GUI共通アイコンを配布します。配布するアイテムの外観は `item-models.json`、GUI専用の46種・84割り当ては `gui-icons.json` で管理します。
+Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメージ数値、アクションリング、アイテムモデル、武器通常攻撃と釣りの演出、GUI共通アイコンを配布します。配布するアイテムの外観は `item-models.json`、GUI専用の119種・166割り当ては `gui-icons.json` で管理します。
 
 ## GUI
 
@@ -9,6 +9,8 @@ Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメー�
 通常の所持品には「AstralRecord」の銘板を表示し、2×2 クラフト欄の矢印と見出しを隠します。Java 版は通常の所持品だけでレシピボタンを背景に溶け込ませ、作業台・かまど類では紺色の本として表示します。ボタンの操作は既存どおりです。統合版 Classic は緑の本を天体のアイコンに差し替え、Pocket はクラフトタブを使います。
 
 ページ移動、確認、取消などの共通操作は紺の台座と金縁で揃え、機能別のアイコンと透過ダミーは既存の絵柄を使います。プレイ中の HUD ホットバーは青灰色で揃え、選択中は金縁を青緑の光が巡ります。対応画面は [GUI対応表](GUI_COVERAGE.md) に記載しています。
+
+ダンジョンのカルトグラフは、部屋の入口・攻略済み・進入可能・進行中・未発見、現在地の8方向、通路の接続方向と開閉を16pxの専用図形で示します。両版で同じ32px配布テクスチャを使い、標準のチェストスロットと部屋選択の操作を維持します。`scripts/generate-cartograph-gui.py --check --preview <PNGパス>` で原画と両版配布画像を確認できます。プレビューの出力には Pillow が必要です。
 
 原画の出典と再生成方法は [gui-source](gui-source/README.md) にあります。両配布パックへ `NOTICE-GUI.txt` を含めます。共通アイコン、両版の背景、Java の所持品とコンテナは、各生成スクリプトの `--check` で検証し、`--preview <path>` で素材を使った配置図を出力できます。HUD ホットバーは `generate-java-hotbar.py` と `generate-bedrock-hotbar.py` で検証できます。
 

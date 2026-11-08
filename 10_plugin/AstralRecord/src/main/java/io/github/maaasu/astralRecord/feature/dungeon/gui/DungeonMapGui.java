@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
+import io.github.maaasu.astralRecord.shared.gui.GuiResourcePackIcons;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import net.kyori.adventure.text.Component;
@@ -41,7 +42,13 @@ public final class DungeonMapGui {
     private static final double COMPASS_TARGET_DISTANCE = 100.0D;
     private final DungeonMapLayoutPlanner layoutPlanner = new DungeonMapLayoutPlanner();
 
-    /** 現在スナップショットを指定ページで表示します。 */
+    /**
+     * 現在スナップショットを指定ページで表示し、部屋・通路・方角の専用モデルを設定します。
+     *
+     * @param player 表示するプレイヤー
+     * @param snapshot 表示するダンジョン状態
+     * @param requestedPage 要求ページ。範囲外なら最寄りのページへ丸めます
+     */
     public void open(
             @NotNull Player player,
             @NotNull DungeonService.MapSnapshot snapshot,
@@ -73,10 +80,11 @@ public final class DungeonMapGui {
             if (corridor.page() != page || roomSlots.contains(corridor.slot())) {
                 continue;
             }
-            DungeonLayout.Connection connection = connectionsById.get(corridor.connectionId());
-            if (connection != null) {
-                inventory.setItem(corridor.slot(), corridorItem(isConnectionOpen(snapshot, connection)));
-            }
+            int openDirections = corridor.directionsByConnection().entrySet().stream()
+                    .filter(entry -> isConnectionOpen(snapshot, connectionsById.get(entry.getKey())))
+                    .mapToInt(Map.Entry::getValue)
+                    .reduce(0, (left, right) -> left | right);
+            inventory.setItem(corridor.slot(), corridorItem(openDirections, corridor.directionMask() & ~openDirections));
         }
         for (DungeonMapLayoutPlanner.Placement placement : placements) {
             if (placement.page() != page) {
@@ -96,7 +104,8 @@ public final class DungeonMapGui {
                     state,
                     current,
                     state == DungeonMapRoomState.CLEARED,
-                    compassTarget));
+                    compassTarget,
+                    LookDirection.fromYaw(snapshot.playerYaw())));
         }
         inventory.setItem(DIRECTION_SLOT, directionItem(snapshot.playerYaw()));
         inventory.setItem(PREVIOUS_SLOT, GuiItems.previousPageButton(
@@ -120,35 +129,88 @@ public final class DungeonMapGui {
         return from == DungeonMapRoomState.CLEARED && to != DungeonMapRoomState.LOCKED;
     }
 
-    private @NotNull ItemStack corridorItem(boolean open) {
-        return GuiItems.create(
-                open ? Material.WHITE_STAINED_GLASS_PANE : Material.GRAY_STAINED_GLASS_PANE,
+    /**
+     * 接続の開閉と方角に対応する通路アイテムを作ります。
+     *
+     * @param openDirections 解放済みの辺を N/E/S/W の順に 1/2/4/8 で表すマスク
+     * @param closedDirections 閉鎖中の辺を同じ順に表すマスク
+     * @return 表示用アイテム
+     */
+    private @NotNull ItemStack corridorItem(int openDirections, int closedDirections) {
+        ItemStack item = GuiItems.create(
+                openDirections != 0 ? Material.WHITE_STAINED_GLASS_PANE : Material.GRAY_STAINED_GLASS_PANE,
                 PlayerMsgResource.getComponent(PlayerMsgId.P_7088.getId()),
                 List.of());
+        String role;
+        if (openDirections == 0) {
+            role = "cartograph_path_closed_" + pathDirections(closedDirections);
+        } else if (closedDirections == 0) {
+            role = "cartograph_path_open_" + pathDirections(openDirections);
+        } else {
+            role = "cartograph_path_mixed_" + pathDirections(openDirections) + "_" + pathDirections(closedDirections);
+        }
+        return GuiResourcePackIcons.apply(item, role);
     }
 
+    /**
+     * N/E/S/W のビットマスクをリソース台帳の方向接尾辞へ変換します。
+     *
+     * @param mask 方角のビットマスク
+     * @return 登録済みモデルの方向接尾辞
+     */
+    private @NotNull String pathDirections(int mask) {
+        StringBuilder directions = new StringBuilder(4);
+        if ((mask & 1) != 0) { directions.append('n'); }
+        if ((mask & 2) != 0) { directions.append('e'); }
+        if ((mask & 4) != 0) { directions.append('s'); }
+        if ((mask & 8) != 0) { directions.append('w'); }
+        return directions.toString();
+    }
+
+    /**
+     * プレイヤーの向きを示す方角アイテムを作ります。
+     *
+     * @param yaw 水平方向の視線角
+     * @return 表示用アイテム
+     */
     private @NotNull ItemStack directionItem(float yaw) {
-        return GuiItems.create(
+        ItemStack item = GuiItems.create(
                 Material.ARROW,
                 PlayerMsgResource.getComponent(LookDirection.fromYaw(yaw).messageId().getId()),
                 List.of());
+        return GuiResourcePackIcons.apply(item,
+                "cartograph_direction_" + LookDirection.fromYaw(yaw).name().toLowerCase(java.util.Locale.ROOT));
     }
 
+    /**
+     * 部屋の状態と現在地の向きに対応する地図アイテムを作ります。
+     *
+     * @param room 表示する部屋
+     * @param sectionNumber 地図上の節番号
+     * @param state 部屋の進行状態
+     * @param current 現在地なら true
+     * @param teleportable 移動可能なら true
+     * @param compassTarget 旧モデル表示用の仮想コンパス目標
+     * @param lookDirection 現在の8方向
+     * @return 名前と説明を保持した表示用アイテム
+     */
     private @NotNull ItemStack roomItem(
             @NotNull DungeonLayout.Room room,
             int sectionNumber,
             @NotNull DungeonMapRoomState state,
             boolean current,
             boolean teleportable,
-            @NotNull Location compassTarget
+            @NotNull Location compassTarget,
+            @NotNull LookDirection lookDirection
     ) {
         if (state == DungeonMapRoomState.LOCKED) {
-            return GuiItems.create(
+            ItemStack item = GuiItems.create(
                     room.role() == DungeonLayout.RoomRole.START
                             ? Material.EMERALD_BLOCK
                             : Material.BLACK_STAINED_GLASS_PANE,
                     PlayerMsgResource.getComponent(PlayerMsgId.P_7049.getId()),
                     List.of(PlayerMsgResource.formatComponent(PlayerMsgId.P_7099.getId(), sectionNumber)));
+            return GuiResourcePackIcons.apply(item, "cartograph_room_locked");
         }
         Material material = room.role() == DungeonLayout.RoomRole.START
                 ? Material.EMERALD_BLOCK
@@ -186,7 +248,12 @@ public final class DungeonMapGui {
         if (current && material == Material.RECOVERY_COMPASS) {
             applyCompassTarget(item, compassTarget);
         }
-        return item;
+        String role = current
+                ? "cartograph_room_current_" + lookDirection.name().toLowerCase(java.util.Locale.ROOT)
+                : room.role() == DungeonLayout.RoomRole.START
+                ? "cartograph_room_entrance"
+                : "cartograph_room_" + state.name().toLowerCase(java.util.Locale.ROOT);
+        return GuiResourcePackIcons.apply(item, role);
     }
 
     /**

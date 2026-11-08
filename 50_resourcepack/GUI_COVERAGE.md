@@ -54,7 +54,7 @@ Java のコンテナテクスチャは `java-gui-native`、統合版の画面別
 | 転生 | 転生、転生開始確認、転生終了確認 | `feature/rebirth/gui/RebirthGui.java` | 共通対応、共通確認ボタン |
 | 転送装置 | 転送先一覧 | `feature/teleporter/gui/TeleporterGui.java` | 共通対応。マスター指定の転送先名・アイコンを維持 |
 | ワールド転送 | 管理者ワールド転送、インスタンス受付転送、種別選択、オーバーワールド転送 | `feature/world/gui/AdminWorldTeleportGui.java`、`InstanceTeleportGui.java`、`OverworldTeleportGui.java` | 管理者画面を含めて共通対応。選択条件・権限は変更しない |
-| ダンジョン | 図鑑一覧・詳細、中断・帰還、緊急転送、部屋地図、報酬 | `feature/dungeon/gui/DungeonArchiveGui.java`、`DungeonCancelGui.java`、`DungeonEmergencyTeleportGui.java`、`DungeonMapGui.java`、`DungeonRewardGui.java` | 共通対応。部屋状態の色、接続・方向、報酬の実モデルを維持 |
+| ダンジョン | 図鑑一覧・詳細、中断・帰還、緊急転送、部屋地図、報酬 | `feature/dungeon/gui/DungeonArchiveGui.java`、`DungeonCancelGui.java`、`DungeonEmergencyTeleportGui.java`、`DungeonMapGui.java`、`DungeonRewardGui.java` | 共通対応。カルトグラフでは入口・攻略済み・進入可能・進行中・未発見の部屋、現在地の8方向、通路の方角と開閉を専用モデルで表示。スロットと選択条件、報酬の実モデルを維持 |
 | ボス | ボス挑戦の中断・帰還 | `feature/boss/gui/BossChallengeCancelGui.java` | 共通対応。クリア状態に応じた操作を維持 |
 | 共通挑戦待機 | 待機から離脱する確認 | `shared/challenge/ChallengeWaitingLeaveConfirmGui.java` | 共通対応、共通確認ボタン |
 | 練習用カカシ | カカシ設定 | `feature/trainingdummy/gui/TrainingDummyGui.java` | 管理画面も共通対応。設定値と操作を維持 |

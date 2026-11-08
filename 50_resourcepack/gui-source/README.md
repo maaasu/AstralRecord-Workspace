@@ -26,6 +26,8 @@ python scripts/generate-gui-assets.py --check --preview <作業用のPNGパス>
 
 ## コンテナと所持品の背景
 
+カルトグラフの部屋・通路・方角は `scripts/generate-cartograph-gui.py` が別の16px設計画素から両版共通の32px PNGを出力します。`gui-icons.json` に登録した73絵柄を `--check` で両版とも照合できます。`--preview <PNGパス>` は実際の配布PNGを並べ、Pillowが必要です。通常の共通コントロールの生成対象とは分けています。
+
 紺と金の枠、銘板、天体の装飾は AstralRecord の原画です。`generate-gui-panels.py` は Java のメニュー背景と統合版の所持品アセットを、`generate-java-inventory.py` は Java の所持品背景とレシピボタンを生成します。
 
 Java のコンテナ用画像は、公式クライアントの背景をもとに、枠、ラベル周辺、スロットを描き直しています。スロットの座標や各ウィジェットが読む画像の範囲は、公式クライアントのアトラスに合わせています。対象は 1.21.11、26.1、26.2、26.3 です。各クライアント JAR は [Mojang のバージョンマニフェスト](https://piston-meta.mojang.com/mc/game/version_manifest_v2.json) から該当バージョンの `downloads.client` を参照して取得し、同じディレクトリに `<バージョン>.jar` として置きます。生成スクリプトは SHA-1 と、全4版で生成画像が一致することを確認します。

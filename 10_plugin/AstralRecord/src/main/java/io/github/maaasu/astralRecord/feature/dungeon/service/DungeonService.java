@@ -93,6 +93,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.BoundingBox;
 import net.kyori.adventure.title.Title;
@@ -139,6 +140,7 @@ public final class DungeonService {
     private static final long ENTRY_VISUAL_PERIOD_TICKS = 10L;
     private static final long PLAYER_ROOM_ENTRY_INVULNERABILITY_TICKS = InvulnerabilityVisualService.THREE_SECONDS_TICKS;
     private static final long DUNGEON_MOB_POSITION_CHECK_PERIOD_TICKS = 1L;
+    private static final long CARTOGRAPH_MAP_UPDATE_PERIOD_TICKS = 4L;
     private static final long ROOM_BOSS_BAR_UPDATE_PERIOD_TICKS = 5L;
     private static final long MOB_RETURN_SEARCH_RETRY_TICKS = 20L;
     private static final int ENTRY_FRAME_POINTS = 39;
@@ -174,6 +176,7 @@ public final class DungeonService {
     private final AdventureRecordStateService adventureRecordStateService;
     private final CartographDurabilityService cartographDurabilityService;
     private final CartographSessionRegistry cartographBindings = new CartographSessionRegistry();
+    private final CartographHeldMap cartographHeldMap;
     private final DungeonCancelGui cancelGui;
     private final DungeonRewardGui rewardGui;
     private final DungeonMapGui mapGui;
@@ -208,6 +211,7 @@ public final class DungeonService {
     private final Set<UUID> loadingArchiveAccounts = new HashSet<>();
     private BukkitTask entryVisualTask;
     private BukkitTask dungeonMobPositionTask;
+    private BukkitTask cartographMapTask;
     private long mobPositionTick;
     private long entryVisualFrame;
     private boolean stopping;
@@ -412,6 +416,7 @@ public final class DungeonService {
         this.adventureRecordRepository = adventureRecordRepository;
         this.adventureRecordStateService = adventureRecordStateService;
         this.cartographDurabilityService = new CartographDurabilityService(inventoryService, itemService);
+        this.cartographHeldMap = new CartographHeldMap(plugin);
         this.cancelGui = new DungeonCancelGui();
         this.rewardGui = new DungeonRewardGui(itemService, itemStackFactory);
         this.mapGui = new DungeonMapGui();
@@ -632,6 +637,41 @@ public final class DungeonService {
                 1L,
                 DUNGEON_MOB_POSITION_CHECK_PERIOD_TICKS
         );
+        if (cartographMapTask != null) {
+            cartographMapTask.cancel();
+        }
+        cartographMapTask = Bukkit.getScheduler().runTaskTimer(
+                plugin, this::tickHeldCartographMaps, 1L, CARTOGRAPH_MAP_UPDATE_PERIOD_TICKS);
+    }
+
+    private void tickHeldCartographMaps() {
+        for (UUID viewerId : cartographHeldMap.viewers()) {
+            if (!sessionIdByParticipant.containsKey(viewerId)) {
+                cartographHeldMap.clear(viewerId);
+            }
+        }
+        for (Map.Entry<UUID, UUID> participant : sessionIdByParticipant.entrySet()) {
+            UUID playerId = participant.getKey();
+            Session session = sessionsById.get(participant.getValue());
+            Player player = Bukkit.getPlayer(playerId);
+            if (player == null || !player.isOnline() || player.isDead()
+                    || session == null || session.ending || session.layout == null || session.instanceWorld == null
+                    || !session.participants.contains(playerId) || session.departingParticipants.contains(playerId)
+                    || !player.getWorld().getUID().equals(session.instanceWorld.world().getUID())
+                    || player.getOpenInventory().getType() != InventoryType.CRAFTING) {
+                cartographHeldMap.clear(playerId);
+                continue;
+            }
+            ItemReference reference = findCartographReference(AstPlayerCache.get(player));
+            if (reference == null || !cartographBindings.isBound(reference.equipmentInstanceId(), playerId, session.id)
+                    || !cartographDurabilityService.hasRemainingDurability(reference)) {
+                cartographHeldMap.clear(playerId);
+                continue;
+            }
+            Location location = player.getLocation();
+            cartographHeldMap.update(player, reference.equipmentInstanceId(), session.layout, session.roomStates,
+                    currentRoomId(session, location), location);
+        }
     }
 
     /**
@@ -2612,6 +2652,9 @@ public final class DungeonService {
     /** @return カルトグラフ現在地図 GUI view */
     public @NotNull DungeonMapGui mapGui() { return mapGui; }
 
+    /** @return 本人向けカルトグラフ地図表示 */
+    public @NotNull CartographHeldMap cartographHeldMap() { return cartographHeldMap; }
+
     /** @return 緊急時の未踏査区画選択 GUI view */
     public @NotNull DungeonEmergencyTeleportGui emergencyTeleportGui() { return emergencyTeleportGui; }
 
@@ -2626,7 +2669,11 @@ public final class DungeonService {
      * @return カルトグラフ候補。対象外なら {@code null}
      */
     public @Nullable CartographTarget findCartographTarget(@NotNull Player player) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
+        ItemReference reference = findCartographReference(AstPlayerCache.get(player));
+        return reference == null ? null : new CartographTarget(reference.equipmentInstanceId());
+    }
+
+    private @Nullable ItemReference findCartographReference(@Nullable AstPlayer astPlayer) {
         if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             return null;
         }
@@ -2641,7 +2688,7 @@ public final class DungeonService {
                 || !MasterTagIds.Equipment.CARTOGRAPH.equals(model.getEquipment().getTag())) {
             return null;
         }
-        return new CartographTarget(reference.equipmentInstanceId());
+        return reference;
     }
 
     /** @return 指定装備個体が現在もメインハンドのカルトグラフなら {@code true} */
@@ -2661,14 +2708,8 @@ public final class DungeonService {
     public void handleCartographRightClick(@NotNull Player player) {
         requireMainThread();
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        CartographTarget target = findCartographTarget(player);
-        if (astPlayer == null || target == null) {
-            messageService.send(player, PlayerMsgId.P_7063);
-            return;
-        }
-        ItemReference reference = inventoryService.getItemReferenceInHand(
-                astPlayer, org.bukkit.inventory.EquipmentSlot.HAND);
-        if (reference == null || !reference.hasEquipmentInstanceId()) {
+        ItemReference reference = findCartographReference(astPlayer);
+        if (astPlayer == null || reference == null) {
             messageService.send(player, PlayerMsgId.P_7063);
             return;
         }
@@ -2686,7 +2727,7 @@ public final class DungeonService {
         }
 
         if (!cartographBindings.isBound(
-                target.equipmentInstanceId(), player.getUniqueId(), session.id)) {
+                reference.equipmentInstanceId(), player.getUniqueId(), session.id)) {
             CartographDurabilityService.Result consumed =
                     cartographDurabilityService.consumeForNewRegistration(astPlayer, reference);
             if (consumed == CartographDurabilityService.Result.INSUFFICIENT) {
@@ -2698,7 +2739,7 @@ public final class DungeonService {
                 return;
             }
             cartographBindings.bind(
-                    target.equipmentInstanceId(), player.getUniqueId(), session.id);
+                    reference.equipmentInstanceId(), player.getUniqueId(), session.id);
             messageService.send(player, PlayerMsgId.P_7064);
         }
         openMapPage(player, session.id, 0);
@@ -4128,6 +4169,7 @@ public final class DungeonService {
         session.departingParticipants.remove(playerId);
         sessionIdByParticipant.remove(playerId, session.id);
         cartographBindings.removeParticipant(playerId, session.id);
+        cartographHeldMap.clear(playerId);
         session.currentRoomByParticipant.remove(playerId);
         session.roomBossBars.removePlayer(playerId);
         Player departingPlayer = Bukkit.getPlayer(playerId);
@@ -4626,6 +4668,11 @@ public final class DungeonService {
             dungeonMobPositionTask.cancel();
             dungeonMobPositionTask = null;
         }
+        if (cartographMapTask != null) {
+            cartographMapTask.cancel();
+            cartographMapTask = null;
+        }
+        cartographHeldMap.stop();
         clearEntryPromptDisplays();
         for (InstanceCreationQueue.Ticket ticket : creationQueue.waitingTickets()) {
             clearQueueTitles(ticket.participantIds());

@@ -504,6 +504,498 @@
       "role": "skill_unavailable",
       "base_item": "minecraft:barrier",
       "custom_model_data": 910084
+    },
+    {
+      "id": "gui_cartograph_room_entrance_emerald_block",
+      "role": "cartograph_room_entrance",
+      "base_item": "minecraft:emerald_block",
+      "custom_model_data": 910085
+    },
+    {
+      "id": "gui_cartograph_room_cleared_lime_stained_glass_pane",
+      "role": "cartograph_room_cleared",
+      "base_item": "minecraft:lime_stained_glass_pane",
+      "custom_model_data": 910086
+    },
+    {
+      "id": "gui_cartograph_room_available_yellow_stained_glass_pane",
+      "role": "cartograph_room_available",
+      "base_item": "minecraft:yellow_stained_glass_pane",
+      "custom_model_data": 910087
+    },
+    {
+      "id": "gui_cartograph_room_active_orange_stained_glass_pane",
+      "role": "cartograph_room_active",
+      "base_item": "minecraft:orange_stained_glass_pane",
+      "custom_model_data": 910088
+    },
+    {
+      "id": "gui_cartograph_room_locked_black_stained_glass_pane",
+      "role": "cartograph_room_locked",
+      "base_item": "minecraft:black_stained_glass_pane",
+      "custom_model_data": 910089
+    },
+    {
+      "id": "gui_cartograph_room_locked_emerald_block",
+      "role": "cartograph_room_locked",
+      "base_item": "minecraft:emerald_block",
+      "custom_model_data": 910090
+    },
+    {
+      "id": "gui_cartograph_room_current_north_recovery_compass",
+      "role": "cartograph_room_current_north",
+      "base_item": "minecraft:recovery_compass",
+      "custom_model_data": 910091
+    },
+    {
+      "id": "gui_cartograph_room_current_north_emerald_block",
+      "role": "cartograph_room_current_north",
+      "base_item": "minecraft:emerald_block",
+      "custom_model_data": 910092
+    },
+    {
+      "id": "gui_cartograph_direction_north_arrow",
+      "role": "cartograph_direction_north",
+      "base_item": "minecraft:arrow",
+      "custom_model_data": 910093
+    },
+    {
+      "id": "gui_cartograph_room_current_north_east_recovery_compass",
+      "role": "cartograph_room_current_north_east",
+      "base_item": "minecraft:recovery_compass",
+      "custom_model_data": 910094
+    },
+    {
+      "id": "gui_cartograph_room_current_north_east_emerald_block",
+      "role": "cartograph_room_current_north_east",
+      "base_item": "minecraft:emerald_block",
+      "custom_model_data": 910095
+    },
+    {
+      "id": "gui_cartograph_direction_north_east_arrow",
+      "role": "cartograph_direction_north_east",
+      "base_item": "minecraft:arrow",
+      "custom_model_data": 910096
+    },
+    {
+      "id": "gui_cartograph_room_current_east_recovery_compass",
+      "role": "cartograph_room_current_east",
+      "base_item": "minecraft:recovery_compass",
+      "custom_model_data": 910097
+    },
+    {
+      "id": "gui_cartograph_room_current_east_emerald_block",
+      "role": "cartograph_room_current_east",
+      "base_item": "minecraft:emerald_block",
+      "custom_model_data": 910098
+    },
+    {
+      "id": "gui_cartograph_direction_east_arrow",
+      "role": "cartograph_direction_east",
+      "base_item": "minecraft:arrow",
+      "custom_model_data": 910099
+    },
+    {
+      "id": "gui_cartograph_room_current_south_east_recovery_compass",
+      "role": "cartograph_room_current_south_east",
+      "base_item": "minecraft:recovery_compass",
+      "custom_model_data": 910100
+    },
+    {
+      "id": "gui_cartograph_room_current_south_east_emerald_block",
+      "role": "cartograph_room_current_south_east",
+      "base_item": "minecraft:emerald_block",
+      "custom_model_data": 910101
+    },
+    {
+      "id": "gui_cartograph_direction_south_east_arrow",
+      "role": "cartograph_direction_south_east",
+      "base_item": "minecraft:arrow",
+      "custom_model_data": 910102
+    },
+    {
+      "id": "gui_cartograph_room_current_south_recovery_compass",
+      "role": "cartograph_room_current_south",
+      "base_item": "minecraft:recovery_compass",
+      "custom_model_data": 910103
+    },
+    {
+      "id": "gui_cartograph_room_current_south_emerald_block",
+      "role": "cartograph_room_current_south",
+      "base_item": "minecraft:emerald_block",
+      "custom_model_data": 910104
+    },
+    {
+      "id": "gui_cartograph_direction_south_arrow",
+      "role": "cartograph_direction_south",
+      "base_item": "minecraft:arrow",
+      "custom_model_data": 910105
+    },
+    {
+      "id": "gui_cartograph_room_current_south_west_recovery_compass",
+      "role": "cartograph_room_current_south_west",
+      "base_item": "minecraft:recovery_compass",
+      "custom_model_data": 910106
+    },
+    {
+      "id": "gui_cartograph_room_current_south_west_emerald_block",
+      "role": "cartograph_room_current_south_west",
+      "base_item": "minecraft:emerald_block",
+      "custom_model_data": 910107
+    },
+    {
+      "id": "gui_cartograph_direction_south_west_arrow",
+      "role": "cartograph_direction_south_west",
+      "base_item": "minecraft:arrow",
+      "custom_model_data": 910108
+    },
+    {
+      "id": "gui_cartograph_room_current_west_recovery_compass",
+      "role": "cartograph_room_current_west",
+      "base_item": "minecraft:recovery_compass",
+      "custom_model_data": 910109
+    },
+    {
+      "id": "gui_cartograph_room_current_west_emerald_block",
+      "role": "cartograph_room_current_west",
+      "base_item": "minecraft:emerald_block",
+      "custom_model_data": 910110
+    },
+    {
+      "id": "gui_cartograph_direction_west_arrow",
+      "role": "cartograph_direction_west",
+      "base_item": "minecraft:arrow",
+      "custom_model_data": 910111
+    },
+    {
+      "id": "gui_cartograph_room_current_north_west_recovery_compass",
+      "role": "cartograph_room_current_north_west",
+      "base_item": "minecraft:recovery_compass",
+      "custom_model_data": 910112
+    },
+    {
+      "id": "gui_cartograph_room_current_north_west_emerald_block",
+      "role": "cartograph_room_current_north_west",
+      "base_item": "minecraft:emerald_block",
+      "custom_model_data": 910113
+    },
+    {
+      "id": "gui_cartograph_direction_north_west_arrow",
+      "role": "cartograph_direction_north_west",
+      "base_item": "minecraft:arrow",
+      "custom_model_data": 910114
+    },
+    {
+      "id": "gui_cartograph_path_open_n_white_stained_glass_pane",
+      "role": "cartograph_path_open_n",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910115
+    },
+    {
+      "id": "gui_cartograph_path_closed_n_gray_stained_glass_pane",
+      "role": "cartograph_path_closed_n",
+      "base_item": "minecraft:gray_stained_glass_pane",
+      "custom_model_data": 910116
+    },
+    {
+      "id": "gui_cartograph_path_open_e_white_stained_glass_pane",
+      "role": "cartograph_path_open_e",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910117
+    },
+    {
+      "id": "gui_cartograph_path_closed_e_gray_stained_glass_pane",
+      "role": "cartograph_path_closed_e",
+      "base_item": "minecraft:gray_stained_glass_pane",
+      "custom_model_data": 910118
+    },
+    {
+      "id": "gui_cartograph_path_open_ne_white_stained_glass_pane",
+      "role": "cartograph_path_open_ne",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910119
+    },
+    {
+      "id": "gui_cartograph_path_closed_ne_gray_stained_glass_pane",
+      "role": "cartograph_path_closed_ne",
+      "base_item": "minecraft:gray_stained_glass_pane",
+      "custom_model_data": 910120
+    },
+    {
+      "id": "gui_cartograph_path_open_s_white_stained_glass_pane",
+      "role": "cartograph_path_open_s",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910121
+    },
+    {
+      "id": "gui_cartograph_path_closed_s_gray_stained_glass_pane",
+      "role": "cartograph_path_closed_s",
+      "base_item": "minecraft:gray_stained_glass_pane",
+      "custom_model_data": 910122
+    },
+    {
+      "id": "gui_cartograph_path_open_ns_white_stained_glass_pane",
+      "role": "cartograph_path_open_ns",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910123
+    },
+    {
+      "id": "gui_cartograph_path_closed_ns_gray_stained_glass_pane",
+      "role": "cartograph_path_closed_ns",
+      "base_item": "minecraft:gray_stained_glass_pane",
+      "custom_model_data": 910124
+    },
+    {
+      "id": "gui_cartograph_path_open_es_white_stained_glass_pane",
+      "role": "cartograph_path_open_es",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910125
+    },
+    {
+      "id": "gui_cartograph_path_closed_es_gray_stained_glass_pane",
+      "role": "cartograph_path_closed_es",
+      "base_item": "minecraft:gray_stained_glass_pane",
+      "custom_model_data": 910126
+    },
+    {
+      "id": "gui_cartograph_path_open_nes_white_stained_glass_pane",
+      "role": "cartograph_path_open_nes",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910127
+    },
+    {
+      "id": "gui_cartograph_path_closed_nes_gray_stained_glass_pane",
+      "role": "cartograph_path_closed_nes",
+      "base_item": "minecraft:gray_stained_glass_pane",
+      "custom_model_data": 910128
+    },
+    {
+      "id": "gui_cartograph_path_open_w_white_stained_glass_pane",
+      "role": "cartograph_path_open_w",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910129
+    },
+    {
+      "id": "gui_cartograph_path_closed_w_gray_stained_glass_pane",
+      "role": "cartograph_path_closed_w",
+      "base_item": "minecraft:gray_stained_glass_pane",
+      "custom_model_data": 910130
+    },
+    {
+      "id": "gui_cartograph_path_open_nw_white_stained_glass_pane",
+      "role": "cartograph_path_open_nw",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910131
+    },
+    {
+      "id": "gui_cartograph_path_closed_nw_gray_stained_glass_pane",
+      "role": "cartograph_path_closed_nw",
+      "base_item": "minecraft:gray_stained_glass_pane",
+      "custom_model_data": 910132
+    },
+    {
+      "id": "gui_cartograph_path_open_ew_white_stained_glass_pane",
+      "role": "cartograph_path_open_ew",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910133
+    },
+    {
+      "id": "gui_cartograph_path_closed_ew_gray_stained_glass_pane",
+      "role": "cartograph_path_closed_ew",
+      "base_item": "minecraft:gray_stained_glass_pane",
+      "custom_model_data": 910134
+    },
+    {
+      "id": "gui_cartograph_path_open_new_white_stained_glass_pane",
+      "role": "cartograph_path_open_new",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910135
+    },
+    {
+      "id": "gui_cartograph_path_closed_new_gray_stained_glass_pane",
+      "role": "cartograph_path_closed_new",
+      "base_item": "minecraft:gray_stained_glass_pane",
+      "custom_model_data": 910136
+    },
+    {
+      "id": "gui_cartograph_path_open_sw_white_stained_glass_pane",
+      "role": "cartograph_path_open_sw",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910137
+    },
+    {
+      "id": "gui_cartograph_path_closed_sw_gray_stained_glass_pane",
+      "role": "cartograph_path_closed_sw",
+      "base_item": "minecraft:gray_stained_glass_pane",
+      "custom_model_data": 910138
+    },
+    {
+      "id": "gui_cartograph_path_open_nsw_white_stained_glass_pane",
+      "role": "cartograph_path_open_nsw",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910139
+    },
+    {
+      "id": "gui_cartograph_path_closed_nsw_gray_stained_glass_pane",
+      "role": "cartograph_path_closed_nsw",
+      "base_item": "minecraft:gray_stained_glass_pane",
+      "custom_model_data": 910140
+    },
+    {
+      "id": "gui_cartograph_path_open_esw_white_stained_glass_pane",
+      "role": "cartograph_path_open_esw",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910141
+    },
+    {
+      "id": "gui_cartograph_path_closed_esw_gray_stained_glass_pane",
+      "role": "cartograph_path_closed_esw",
+      "base_item": "minecraft:gray_stained_glass_pane",
+      "custom_model_data": 910142
+    },
+    {
+      "id": "gui_cartograph_path_open_nesw_white_stained_glass_pane",
+      "role": "cartograph_path_open_nesw",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910143
+    },
+    {
+      "id": "gui_cartograph_path_closed_nesw_gray_stained_glass_pane",
+      "role": "cartograph_path_closed_nesw",
+      "base_item": "minecraft:gray_stained_glass_pane",
+      "custom_model_data": 910144
+    },
+    {
+      "id": "gui_cartograph_path_mixed_ne_s_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_ne_s",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910145
+    },
+    {
+      "id": "gui_cartograph_path_mixed_ns_e_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_ns_e",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910146
+    },
+    {
+      "id": "gui_cartograph_path_mixed_es_n_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_es_n",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910147
+    },
+    {
+      "id": "gui_cartograph_path_mixed_ne_w_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_ne_w",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910148
+    },
+    {
+      "id": "gui_cartograph_path_mixed_nw_e_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_nw_e",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910149
+    },
+    {
+      "id": "gui_cartograph_path_mixed_ew_n_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_ew_n",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910150
+    },
+    {
+      "id": "gui_cartograph_path_mixed_ns_w_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_ns_w",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910151
+    },
+    {
+      "id": "gui_cartograph_path_mixed_nw_s_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_nw_s",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910152
+    },
+    {
+      "id": "gui_cartograph_path_mixed_sw_n_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_sw_n",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910153
+    },
+    {
+      "id": "gui_cartograph_path_mixed_es_w_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_es_w",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910154
+    },
+    {
+      "id": "gui_cartograph_path_mixed_ew_s_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_ew_s",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910155
+    },
+    {
+      "id": "gui_cartograph_path_mixed_sw_e_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_sw_e",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910156
+    },
+    {
+      "id": "gui_cartograph_path_mixed_ne_sw_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_ne_sw",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910157
+    },
+    {
+      "id": "gui_cartograph_path_mixed_ns_ew_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_ns_ew",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910158
+    },
+    {
+      "id": "gui_cartograph_path_mixed_es_nw_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_es_nw",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910159
+    },
+    {
+      "id": "gui_cartograph_path_mixed_nes_w_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_nes_w",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910160
+    },
+    {
+      "id": "gui_cartograph_path_mixed_nw_es_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_nw_es",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910161
+    },
+    {
+      "id": "gui_cartograph_path_mixed_ew_ns_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_ew_ns",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910162
+    },
+    {
+      "id": "gui_cartograph_path_mixed_new_s_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_new_s",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910163
+    },
+    {
+      "id": "gui_cartograph_path_mixed_sw_ne_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_sw_ne",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910164
+    },
+    {
+      "id": "gui_cartograph_path_mixed_nsw_e_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_nsw_e",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910165
+    },
+    {
+      "id": "gui_cartograph_path_mixed_esw_n_white_stained_glass_pane",
+      "role": "cartograph_path_mixed_esw_n",
+      "base_item": "minecraft:white_stained_glass_pane",
+      "custom_model_data": 910166
     }
   ]
 }
