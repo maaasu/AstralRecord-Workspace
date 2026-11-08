@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { ApiError } from '../api/editorApi'
 import { masterDataApi } from '../api/masterDataApi'
 import type { JsonObject, JsonValue, ValidationIssue, ValidationReport } from '../types/editor'
@@ -12,6 +12,7 @@ const dungeonCategory = '65.features.dungeon'
 const worldCategory = '60.features.world'
 const coordinates = ['x', 'y', 'z', 'yaw', 'pitch'] as const
 const required = ['x', 'y', 'z'] as const
+const orientation = ['yaw', 'pitch'] as const
 type Coordinate = typeof coordinates[number]
 type Draft = Record<Coordinate | 'world', string>
 type Point = { key: number; x: number; y: number | null; z: number }
@@ -104,16 +105,19 @@ export function ChallengeLocationEditor({
   const [pick, setPick] = useState<PickRequest | null>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [mapHeight, setMapHeight] = useState<'candidate' | 'unmeasured' | null>(null)
   const [issues, setIssues] = useState<ValidationIssue[]>([])
   const [review, setReview] = useState<Review | null>(null)
   const [reviewedRaw, setReviewedRaw] = useState<string | null>(null)
   const [conflict, setConflict] = useState(false)
   const operation = useRef(0)
   const savingNow = useRef(false)
+  const heightHintId = useId()
   const dirty = !!(opened && draft && (draft.world !== opened.initial.world || coordinates.some(key => draft[key] !== opened.initial[key])))
   const picking = active && canPick && pick !== null && pick.worldId === worldId
   const positionValid = !!(draft && required.every(key => finiteDecimal(draft[key])))
-  const valid = !!(draft?.world && positionValid && coordinates.slice(3).every(key => !draft[key].trim() || finiteDecimal(draft[key])))
+  const orientationValid = orientation.every(key => !draft?.[key].trim() || finiteDecimal(draft[key]))
+  const valid = !!(draft?.world && positionValid && orientationValid)
   const catalogLoading = active && !catalog && !catalogError
   const worlds = (catalog?.worlds ?? []).filter(file => file.id)
   const worldOptions = worlds.map(file => ({ value: opened?.challenge ? file.id! : `world:${file.id}`, label: optionLabel(file) }))
@@ -154,7 +158,8 @@ export function ChallengeLocationEditor({
     setDraft(previous => previous && {
       ...previous, world: currentMapValue, x: String(point.x), y: point.y === null ? '' : String(point.y), z: String(point.z),
     })
-    setNotice(point.y === null ? '地図に高さがありません。Y 座標を入力してください。' : '地図上の地点を入力欄に反映しました。')
+    setMapHeight(point.y === null ? 'unmeasured' : 'candidate')
+    setNotice('')
     setReviewedRaw(null)
     setError('')
     setIssues([])
@@ -184,6 +189,7 @@ export function ChallengeLocationEditor({
       const next = openLocation(document, catalog?.bosses.some(file => file.path === path) ?? false)
       setOpened(next)
       setDraft(next.initial)
+      setMapHeight(null)
       setConflict(false)
       setReviewedRaw(null)
     } catch (reason) {
@@ -198,6 +204,7 @@ export function ChallengeLocationEditor({
 
   const edit = (key: keyof Draft, value: string) => {
     setDraft(previous => previous && { ...previous, [key]: value })
+    if (key !== 'yaw' && key !== 'pitch') setMapHeight(null)
     setReviewedRaw(null)
     setNotice('')
     setIssues([])
@@ -235,6 +242,7 @@ export function ChallengeLocationEditor({
       const next = openLocation(saved, Boolean(opened.challenge))
       setOpened(next)
       setDraft(next.initial)
+      setMapHeight(null)
       setReviewedRaw(null)
       setNotice('受付地点を Filebase に保存しました。')
     } catch (reason) {
@@ -254,7 +262,6 @@ export function ChallengeLocationEditor({
 
   return <section className="challenge-location-editor" aria-label="チャレンジ受付地点" hidden={!active}>
     <h2>チャレンジ受付地点</h2>
-    <p className="sp-muted">ボスとダンジョンの受付地点を Filebase に保存します。</p>
     {catalogLoading && <p role="status">マスター一覧を読み込んでいます…</p>}
     {catalogError && <div role="alert"><p>{catalogError}</p><button type="button" className="button" onClick={() => { setCatalogError(''); setCatalogAttempt(count => count + 1) }}>一覧を再読込</button></div>}
     {catalog && <div className="challenge-location-actions">
@@ -265,12 +272,16 @@ export function ChallengeLocationEditor({
           <optgroup label="ダンジョン">{catalog.dungeons.map(file => <option key={file.path} value={file.path}>{optionLabel(file)}</option>)}</optgroup>
         </select>
       </label>
-      <button type="button" className="button" disabled={!selection || loading || saving} onClick={() => void load(selection)}>マスターを再読込</button>
+      {selection && (!opened || conflict) && <button type="button" className="button" disabled={loading || saving} onClick={() => void load(selection)}>マスターを再読込</button>}
     </div>}
     {catalog && !catalog.bosses.length && !catalog.dungeons.length && <p role="status">編集できる受付地点のマスターがありません。</p>}
     {loading && <p role="status">受付地点を読み込んでいます…</p>}
     {opened && draft && <fieldset disabled={loading || saving}>
-      <legend>受付地点の座標{dirty ? ' · 未保存' : ''}</legend>
+      <legend>受付地点{dirty ? ' · 未保存' : ''}</legend>
+      <div className="challenge-location-actions">
+        <button type="button" className="button" aria-pressed={picking} disabled={!canPick || !currentMapKnown || conflict} onClick={() => setPick(picking ? null : { worldId, afterKey: point?.key })}>{picking ? '地点の選択をキャンセル' : '地図で受付地点を選択'}</button>
+      </div>
+      {picking && <p role="status">受付地点を地図上でクリックしてください。</p>}
       <label>受付地点のワールド
         <select value={draft.world} onChange={event => edit('world', event.target.value)}>
           <option value="">選択してください</option>
@@ -279,17 +290,41 @@ export function ChallengeLocationEditor({
         </select>
       </label>
       <div className="challenge-location-coordinates">
-        {coordinates.map(key => <label key={key}>{key.toUpperCase()}{(key === 'yaw' || key === 'pitch') && '（任意）'}
-          <input type="text" inputMode="decimal" aria-invalid={Boolean(draft[key].trim() && !finiteDecimal(draft[key]))}
+        {(['x', 'z'] as const).map(key => <label key={key}>{key.toUpperCase()}
+          <input type="text" inputMode="decimal" required aria-invalid={!finiteDecimal(draft[key])}
             value={draft[key]} onChange={event => edit(key, event.target.value)} />
         </label>)}
       </div>
+      <div className="challenge-location-height">
+        <label>高さ (Y)
+          <input type="text" inputMode="decimal" required aria-invalid={!finiteDecimal(draft.y)} aria-describedby={heightHintId}
+            value={draft.y} onChange={event => edit('y', event.target.value)} />
+        </label>
+        <p id={heightHintId} className="sp-muted" role="status">
+          {draft.y.trim() && !finiteDecimal(draft.y) ? '高さ (Y) を数値で入力してください。'
+            : mapHeight === 'candidate' ? '地図から取得した高さは目安です。受付でプレイヤーが立つ足元の Y 座標に調整できます。'
+            : mapHeight === 'unmeasured' ? 'この地点は地図に高さのデータがありません。ゲーム内で足元の Y 座標を確認して入力してください。'
+              : '受付でプレイヤーが立つ足元の Y 座標を入力します。'}
+        </p>
+      </div>
+      <details className="challenge-location-details">
+        <summary>詳細設定</summary>
+        <div className="challenge-location-coordinates">
+          {orientation.map(key => <label key={key}>{key === 'yaw' ? '左右の向き (Yaw)' : '上下の向き (Pitch)'}
+            <input type="text" inputMode="decimal" aria-invalid={Boolean(draft[key].trim() && !finiteDecimal(draft[key]))}
+              value={draft[key]} onChange={event => edit(key, event.target.value)} />
+          </label>)}
+        </div>
+        {!conflict && <div className="challenge-location-actions">
+          <button type="button" className="button" onClick={() => void load(selection)}>マスターを再読込</button>
+        </div>}
+      </details>
+      {!draft.world && <p className="sp-muted">受付地点のワールドを選択してください。</p>}
+      {(!finiteDecimal(draft.x) || !finiteDecimal(draft.z)) && <p className="sp-muted">X・Z に数値を入力してください。</p>}
+      {!orientationValid && <p className="sp-muted">詳細設定の向きには数値を入力するか、空欄にしてください。</p>}
       <div className="challenge-location-actions">
-        <button type="button" className="button" aria-pressed={picking} disabled={!canPick || !currentMapKnown || conflict} onClick={() => setPick(picking ? null : { worldId, afterKey: point?.key })}>{picking ? '地点の選択をキャンセル' : '地図で受付地点を選択'}</button>
         <button type="button" className="button primary" disabled={!valid || !dirty || conflict || picking} onClick={() => void save()}>受付地点を保存</button>
       </div>
-      {picking && <p role="status">地図をクリックすると、表示中のワールドと地点を入力欄に反映します。</p>}
-      {!valid && <p className="sp-muted">ワールドと有限の X・Y・Z 座標を指定してください。向きを指定する場合も数値を入力してください。</p>}
     </fieldset>}
     {saving && <p role="status">受付地点を保存しています…</p>}
     {notice && <p role="status">{notice}</p>}

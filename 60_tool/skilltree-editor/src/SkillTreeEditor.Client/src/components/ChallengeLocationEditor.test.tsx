@@ -61,8 +61,10 @@ describe('チャレンジ受付地点の編集', () => {
     expect(masterDataApi.render).toHaveBeenCalledWith(bossPath, changedBoss, '# 元の YAML')
     expect(masterDataApi.validate).toHaveBeenCalledWith(bossPath, '変更後の YAML')
     expect(masterDataApi.save).toHaveBeenCalledWith(bossPath, '変更後の YAML', 'original')
-    expect(props.onDirtyChange).toHaveBeenLastCalledWith(false)
-    expect(props.onBusyChange).toHaveBeenLastCalledWith(false)
+    await waitFor(() => {
+      expect(props.onDirtyChange).toHaveBeenLastCalledWith(false)
+      expect(props.onBusyChange).toHaveBeenLastCalledWith(false)
+    })
   })
 
   it('新しい地図選択だけを反映し、高さが取得できなければ保存前に Y 入力を求める', async () => {
@@ -77,13 +79,16 @@ describe('チャレンジ受付地点の編集', () => {
     expect(screen.getByRole('textbox', { name: 'X' })).toHaveValue('4')
 
     rerender(<ChallengeLocationEditor worldId="current_world" point={{ key: 2, x: 18, y: null, z: -9 }} {...props} />)
-    expect(await screen.findByText('地図に高さがありません。Y 座標を入力してください。')).toBeInTheDocument()
+    expect(await screen.findByText(/この地点は地図に高さのデータがありません/)).toBeInTheDocument()
     expect(props.onPickingChange).toHaveBeenLastCalledWith(false)
     expect(screen.getByRole('combobox', { name: '受付地点のワールド' })).toHaveValue('world:current_world')
     expect(screen.getByRole('textbox', { name: 'X' })).toHaveValue('18')
-    expect(screen.getByRole('textbox', { name: 'Y' })).toHaveValue('')
+    const height = screen.getByRole('textbox', { name: '高さ (Y)' })
+    expect(height).toHaveValue('')
+    expect(height).toBeRequired()
+    expect(height).toHaveAccessibleDescription(/ゲーム内で足元の Y 座標を確認/)
     expect(screen.getByRole('button', { name: '受付地点を保存' })).toBeDisabled()
-    fireEvent.change(screen.getByRole('textbox', { name: 'Y' }), { target: { value: '71' } })
+    fireEvent.change(height, { target: { value: '71' } })
     expect(props.onPositionChange).toHaveBeenLastCalledWith({ x: 18, y: 71, z: -9 })
 
     const changedDungeon = { ...dungeon, entry: { worldRef: 'world:current_world', x: 18, y: 71, z: -9, yaw: 25, radius: 2 } }
@@ -91,6 +96,24 @@ describe('チャレンジ受付地点の編集', () => {
     fireEvent.click(screen.getByRole('button', { name: '受付地点を保存' }))
     expect(await screen.findByText('受付地点を Filebase に保存しました。')).toBeInTheDocument()
     expect(masterDataApi.render).toHaveBeenCalledWith(dungeonPath, changedDungeon, '# 元の YAML')
+  })
+
+  it('地図で計測した高さは目安として入力され、手入力で直せる', async () => {
+    const props = callbacks()
+    const { rerender } = render(<ChallengeLocationEditor worldId="current_world" point={null} {...props} />)
+    await chooseMaster(dungeonPath)
+    const height = await screen.findByRole('textbox', { name: '高さ (Y)' })
+    expect(height).toHaveValue('70')
+    fireEvent.click(screen.getByRole('button', { name: '地図で受付地点を選択' }))
+
+    rerender(<ChallengeLocationEditor worldId="current_world" point={{ key: 1, x: 18, y: 65, z: -9 }} {...props} />)
+    expect(height).toHaveValue('65')
+    expect(height).toHaveAccessibleDescription(/高さは目安/)
+    expect(props.onPositionChange).toHaveBeenLastCalledWith({ x: 18, y: 65, z: -9 })
+
+    fireEvent.change(height, { target: { value: '68.5' } })
+    expect(height).not.toHaveAccessibleDescription(/高さは目安/)
+    expect(props.onPositionChange).toHaveBeenLastCalledWith({ x: 18, y: 68.5, z: -9 })
   })
 
   it('古いマスターの読込結果を無視する', async () => {
@@ -140,7 +163,8 @@ describe('チャレンジ受付地点の編集', () => {
     vi.mocked(masterDataApi.validate).mockResolvedValue({ isValid: false, issues: [{ code: 'TEST', message: '検証内容', severity: 'error', path: '/challenge/entryLocation' }] })
     render(<ChallengeLocationEditor worldId="current_world" point={null} {...callbacks()} />)
     await chooseMaster(bossPath)
-    const yaw = await screen.findByRole('textbox', { name: 'YAW（任意）' })
+    fireEvent.click(await screen.findByText('詳細設定'))
+    const yaw = screen.getByRole('textbox', { name: '左右の向き (Yaw)' })
     fireEvent.change(yaw, { target: { value: '90' } })
     const save = screen.getByRole('button', { name: '受付地点を保存' })
     fireEvent.click(save)
