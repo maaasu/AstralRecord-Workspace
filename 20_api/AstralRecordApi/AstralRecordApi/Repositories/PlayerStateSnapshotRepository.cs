@@ -221,13 +221,13 @@ public sealed class PlayerStateSnapshotRepository(
             .GroupBy(entry => entry.InventoryEntryId).ToDictionary(group => group.Key, group => group.ToArray());
         if (expectedEntriesById.Any(pair => pair.Key == Guid.Empty || pair.Value.Length != 1))
             return Failure(PlayerStateSnapshotSaveFailure.Invalid, "expectedEntries contains an invalid or duplicated inventoryEntryId.");
-        var requestedEntryIds = request.Inventories.SelectMany(inventory => inventory.Entries)
-            .Select(entry => entry.InventoryEntryId)
-            .ToArray();
-        if (requestedEntryIds.Distinct().Count() != requestedEntryIds.Length)
+        var requestedEntries = request.Inventories.SelectMany(snapshot => snapshot.Entries
+            .Select(entry => (snapshot.InventoryId, Entry: entry))).ToArray();
+        var requestedEntryIds = requestedEntries.Select(value => value.Entry.InventoryEntryId).ToHashSet();
+        if (requestedEntryIds.Count != requestedEntries.Length)
             return Failure(PlayerStateSnapshotSaveFailure.Invalid, "inventoryEntryId is duplicated in the snapshot.");
 
-        var nonOwnedEntryIds = requestedEntryIds
+        var nonOwnedEntryIds = requestedEntries.Select(value => value.Entry.InventoryEntryId)
             .Where(entryId => !entriesById.ContainsKey(entryId))
             .ToArray();
         if (nonOwnedEntryIds.Length > 0
@@ -282,8 +282,7 @@ public sealed class PlayerStateSnapshotRepository(
                 }
             }
             if (UsesEntryDelta(inventorySnapshot) && inventorySnapshot.DeletedEntryIds.Any(entryId => !expectedEntriesById.ContainsKey(entryId)
-                    || request.Inventories.SelectMany(snapshot => snapshot.Entries)
-                        .Any(entry => entry.InventoryEntryId == entryId)))
+                    || requestedEntryIds.Contains(entryId)))
                 return Failure(PlayerStateSnapshotSaveFailure.Invalid, "Deleted inventory entry is not an expected baseline row.");
         }
 
@@ -298,19 +297,17 @@ public sealed class PlayerStateSnapshotRepository(
         if (!loadoutResult)
             return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Loadout ownership or expectedUpdatedAt conflict.");
 
-        var requestedEntries = request.Inventories.SelectMany(snapshot => snapshot.Entries
-            .Select(entry => (snapshot.InventoryId, Entry: entry))).ToArray();
-        var entriesToDisable = (request.Inventories.Any(snapshot => !UsesEntryDelta(snapshot))
-            ? accountEntries.Where(entry => !entry.IsDeleted && request.Inventories.Any(snapshot =>
-                !UsesEntryDelta(snapshot) && snapshot.InventoryId == entry.InventoryId))
-                .Concat(requestedEntries.Select(value => entriesById.GetValueOrDefault(value.Entry.InventoryEntryId)).OfType<InventoryEntryEntity>())
-                .DistinctBy(entry => entry.InventoryEntryId).ToArray()
-            : requestedEntries
-            .Select(value => entriesById.GetValueOrDefault(value.Entry.InventoryEntryId))
-            .OfType<InventoryEntryEntity>()
-            .Where(entry => !entry.IsDeleted && requestedEntries.Any(value => value.Entry.InventoryEntryId == entry.InventoryEntryId
-                && (entry.InventoryId != value.InventoryId || entry.SlotIndex != value.Entry.SlotIndex)))
-            .DistinctBy(entry => entry.InventoryEntryId).ToArray())
+        var fullReplacementInventoryIds = request.Inventories.Where(snapshot => !UsesEntryDelta(snapshot))
+            .Select(snapshot => snapshot.InventoryId).ToHashSet();
+        var existingRequestedEntries = requestedEntries.Select(value =>
+            (value.InventoryId, value.Entry.SlotIndex, Current: entriesById.GetValueOrDefault(value.Entry.InventoryEntryId)));
+        var entriesToDisable = (fullReplacementInventoryIds.Count > 0
+            ? accountEntries.Where(entry => !entry.IsDeleted && fullReplacementInventoryIds.Contains(entry.InventoryId))
+                .Concat(existingRequestedEntries.Select(value => value.Current).OfType<InventoryEntryEntity>())
+            : existingRequestedEntries
+                .Where(value => value.Current is { IsDeleted: false } current
+                    && (current.InventoryId != value.InventoryId || current.SlotIndex != value.SlotIndex))
+                .Select(value => value.Current!))
             .Concat(request.Inventories.Where(UsesEntryDelta).SelectMany(snapshot => snapshot.DeletedEntryIds)
                 .Select(entryId => entriesById[entryId]))
             .DistinctBy(entry => entry.InventoryEntryId).ToArray();

@@ -113,6 +113,61 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
         Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, collision.Failure);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("DELTA")]
+    public async Task SaveAsync_SwapsOccupiedSlotsAcrossSnapshotParents(string? firstEntryMode)
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var first = await fixture.DbContext.InventoryEntries.SingleAsync();
+        first.SlotIndex = 1;
+        var secondEntryId = Guid.NewGuid();
+        fixture.DbContext.InventoryEntries.Add(new InventoryEntryEntity
+        {
+            InventoryEntryId = secondEntryId, InventoryId = fixture.SecondInventoryId, SlotIndex = 1,
+            ItemCategory = "CURRENCY", ItemId = "silver", Quantity = 1,
+            CreatedAt = fixture.BaseTime, UpdatedAt = fixture.BaseTime,
+            CreatedBy = fixture.AccountId, UpdatedBy = fixture.AccountId,
+        });
+        await fixture.DbContext.SaveChangesAsync();
+
+        var result = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            Inventories =
+            [
+                new PlayerStateInventorySnapshot
+                {
+                    InventoryId = fixture.FirstInventoryId, EntryMode = firstEntryMode,
+                    ExpectedEntries = [new() { InventoryEntryId = fixture.EntryId, UpdatedAt = fixture.BaseTime }],
+                    Entries = [new()
+                    {
+                        InventoryEntryId = secondEntryId, ExpectedUpdatedAt = fixture.BaseTime, SlotIndex = 1,
+                        ItemCategory = "CURRENCY", ItemId = "silver", Quantity = 1,
+                    }],
+                },
+                new PlayerStateInventorySnapshot
+                {
+                    InventoryId = fixture.SecondInventoryId, EntryMode = "DELTA",
+                    ExpectedEntries = [new() { InventoryEntryId = secondEntryId, UpdatedAt = fixture.BaseTime }],
+                    Entries = [new()
+                    {
+                        InventoryEntryId = fixture.EntryId, ExpectedUpdatedAt = fixture.BaseTime, SlotIndex = 1,
+                        ItemCategory = "CURRENCY", ItemId = "gold", Quantity = 10,
+                    }],
+                },
+            ],
+        });
+
+        Assert.True(result.Succeeded, result.Detail);
+        var active = await fixture.DbContext.InventoryEntries.AsNoTracking()
+            .Where(entry => !entry.IsDeleted)
+            .ToDictionaryAsync(entry => entry.InventoryId, entry => entry.InventoryEntryId);
+        Assert.Equal(secondEntryId, active[fixture.FirstInventoryId]);
+        Assert.Equal(fixture.EntryId, active[fixture.SecondInventoryId]);
+        Assert.Equal(2, result.Ack!.Entries.Count);
+    }
+
     [Fact]
     public async Task SaveAsync_PreservesUnchangedEntryWhenDeltaOmitsIt()
     {
