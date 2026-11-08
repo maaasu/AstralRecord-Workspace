@@ -1886,8 +1886,9 @@ public final class DungeonService {
             completeSafeStartRoom(session);
             return;
         }
+        boolean bossRoom = room.role() == DungeonLayout.RoomRole.BOSS;
         List<MobTemplate> encounters;
-        if (room.role() == DungeonLayout.RoomRole.BOSS) {
+        if (bossRoom) {
             encounters = List.of(session.loaded.bossMob());
         } else {
             List<DungeonEncounterPlanner.WeightedTemplate> pool = session.loaded.normalMobs().stream()
@@ -1904,18 +1905,26 @@ public final class DungeonService {
 
         List<DungeonBlockPlan.Position> spawnPoints = session.blockPlan.spawnPointsByRoom().get(roomId);
         SplittableRandom random = encounterRandom(session, roomId);
+        if (!bossRoom) {
+            spawnPoints = new ArrayList<>(spawnPoints);
+            Collections.shuffle(spawnPoints, random.split());
+        }
+        World world = session.instanceWorld.world();
+        List<NormalMobSpawn> placedSpawns = new ArrayList<>();
         Set<UUID> liveMobs = session.liveMobsByRoom.get(roomId);
-        for (int index = 0; index < encounters.size(); index++) {
-            MobTemplate selected = encounters.get(index);
-            DungeonBlockPlan.Position spawn = spawnPoints.get(index % spawnPoints.size());
-            Location location = new Location(
-                    session.instanceWorld.world(),
-                    spawn.x() + 0.5D,
-                    spawn.y(),
-                    spawn.z() + 0.5D,
-                    (float) random.nextDouble(360.0D),
-                    0.0F
-            );
+        for (MobTemplate selected : encounters) {
+            float yaw = (float) random.nextDouble(360.0D);
+            Location location;
+            NormalMobSpawn normalSpawn = null;
+            if (bossRoom) {
+                location = mobSpawnLocation(world, spawnPoints.getFirst(), yaw);
+            } else {
+                normalSpawn = findNormalMobSpawn(world, room, spawnPoints, selected, yaw, placedSpawns);
+                if (normalSpawn == null) {
+                    continue;
+                }
+                location = normalSpawn.location();
+            }
             MobInstance mob = mobService.spawn(selected, location);
             if (mob != null) {
                 BossMobScalingService.apply(mob, session.originalParticipants.size());
@@ -1923,11 +1932,14 @@ public final class DungeonService {
                 liveMobs.add(mob.instanceId());
                 mobBindings.put(mob.instanceId(), new MobBinding(session.id, roomId));
                 recoverDungeonMobPosition(session, room, mob);
+                if (normalSpawn != null) {
+                    placedSpawns.add(normalSpawn);
+                }
             }
         }
         message(session.participants, PlayerMsgId.P_7010, room.distanceFromStart() + 1);
         if (!liveMobs.isEmpty()) {
-            if (room.role() == DungeonLayout.RoomRole.BOSS) {
+            if (bossRoom) {
                 MobInstance boss = mobService.getInstance(liveMobs.iterator().next());
                 if (boss != null) {
                     session.roomBossBars.updateBossRoom(roomId, boss);
@@ -1938,13 +1950,80 @@ public final class DungeonService {
             refreshRoomBossBars(session);
         }
         if (liveMobs.isEmpty()) {
-            if (room.role() == DungeonLayout.RoomRole.BOSS) {
+            if (bossRoom) {
                 completeSession(session, EndReason.SPAWN_FAILED, false);
             } else {
                 clearRoom(session, roomId);
             }
         }
     }
+
+    /**
+     * シャッフル済みの候補から、部屋の中に収まり衝突せずに立てる位置を選びます。
+     * 先に配置した Mob との重なりが少ない候補を優先し、同数なら同じ座標への集中を避けます。
+     */
+    private @Nullable NormalMobSpawn findNormalMobSpawn(
+            @NotNull World world,
+            @NotNull DungeonLayout.Room room,
+            @NotNull List<DungeonBlockPlan.Position> spawnPoints,
+            @NotNull MobTemplate template,
+            float yaw,
+            @NotNull List<NormalMobSpawn> placedSpawns
+    ) {
+        BoundingBox relativeBody = mobService.entityController()
+                .getSpawnBounds(template, mobSpawnLocation(world, spawnPoints.getFirst(), yaw));
+        if (relativeBody == null) {
+            return null;
+        }
+        NormalMobSpawn fallback = null;
+        int fewestOverlaps = Integer.MAX_VALUE;
+        int fewestSamePosition = Integer.MAX_VALUE;
+        for (DungeonBlockPlan.Position point : spawnPoints) {
+            if (!world.isChunkLoaded(point.x() >> 4, point.z() >> 4)
+                    || world.getBlockAt(point.x(), point.y() - 1, point.z()).isPassable()) {
+                continue;
+            }
+            Location candidate = mobSpawnLocation(world, point, yaw);
+            BoundingBox body = relativeBody.clone().shift(candidate.getX(), candidate.getY(), candidate.getZ());
+            int minX = (int) Math.floor(body.getMinX());
+            int maxX = (int) Math.floor(Math.nextDown(body.getMaxX()));
+            int minZ = (int) Math.floor(body.getMinZ());
+            int maxZ = (int) Math.floor(Math.nextDown(body.getMaxZ()));
+            if (!contains(room, minX, minZ) || !contains(room, minX, maxZ)
+                    || !contains(room, maxX, minZ) || !contains(room, maxX, maxZ)
+                    || world.hasCollisionsIn(body)) {
+                continue;
+            }
+            int overlapCount = 0;
+            int samePositionCount = 0;
+            for (NormalMobSpawn placed : placedSpawns) {
+                if (body.overlaps(placed.body())) {
+                    overlapCount++;
+                }
+                if (candidate.distanceSquared(placed.location()) == 0.0D) {
+                    samePositionCount++;
+                }
+            }
+            if (overlapCount == 0 && samePositionCount == 0) {
+                return new NormalMobSpawn(candidate, body);
+            }
+            if (overlapCount < fewestOverlaps
+                    || (overlapCount == fewestOverlaps && samePositionCount < fewestSamePosition)) {
+                fallback = new NormalMobSpawn(candidate, body);
+                fewestOverlaps = overlapCount;
+                fewestSamePosition = samePositionCount;
+            }
+        }
+        return fallback;
+    }
+
+    private @NotNull Location mobSpawnLocation(
+            @NotNull World world, @NotNull DungeonBlockPlan.Position point, float yaw
+    ) {
+        return new Location(world, point.x() + 0.5D, point.y(), point.z() + 0.5D, yaw, 0.0F);
+    }
+
+    private record NormalMobSpawn(@NotNull Location location, @NotNull BoundingBox body) {}
 
     /**
      * DamageService の死亡確定後フックから呼ばれ、対象部屋の全滅を判定します。

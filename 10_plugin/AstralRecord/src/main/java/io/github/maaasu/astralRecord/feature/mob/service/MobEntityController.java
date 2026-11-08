@@ -130,6 +130,48 @@ public class MobEntityController {
     }
 
     /**
+     * ワールドに追加せずに、スポーン原点からの相対座標で実体の当たり判定を取得します。
+     *
+     * @param template 生成予定の Mob テンプレート
+     * @param origin 寸法取得用の、ワールドが設定された位置
+     * @return スポーン時の相対当たり判定。実体を作成できなければ {@code null}
+     * @implNote メインスレッドから呼び出します。
+     */
+    public @Nullable BoundingBox getSpawnBounds(@NotNull MobTemplate template, @NotNull Location origin) {
+        if (template.blockMaterial() != null) {
+            double halfWidth = BLOCK_INTERACTION_WIDTH / 2.0D;
+            return new BoundingBox(-halfWidth, 0.0D, -halfWidth, halfWidth, BLOCK_INTERACTION_HEIGHT, halfWidth);
+        }
+        Class<? extends Entity> entityClass = template.entityType().getEntityClass();
+        if (entityClass != ArmorStand.class && (entityClass == null || !Mob.class.isAssignableFrom(entityClass))) {
+            return null;
+        }
+        Entity probe;
+        try {
+            probe = origin.getWorld().createEntity(origin, entityClass);
+        } catch (IllegalArgumentException failure) {
+            return null;
+        }
+        float scaleRatio = 1.0F;
+        if (probe instanceof Mob mob) {
+            applyVariant(template, mob);
+            AttributeInstance scale = mob.getAttribute(Attribute.SCALE);
+            if (scale != null) {
+                // 最初の tick で SCALE が反映される前後のうち、大きい方の寸法を確保する。
+                float initialScale = (float) scale.getValue();
+                applyScale(template, mob);
+                scaleRatio = Math.max(1.0F, (float) scale.getValue() / initialScale);
+            }
+        }
+        BoundingBox body = probe.getBoundingBox().shift(-origin.getX(), -origin.getY(), -origin.getZ());
+        return new BoundingBox(
+                (float) body.getMinX() * scaleRatio, (float) body.getMinY() * scaleRatio,
+                (float) body.getMinZ() * scaleRatio, (float) body.getMaxX() * scaleRatio,
+                (float) body.getMaxY() * scaleRatio, (float) body.getMaxZ() * scaleRatio
+        );
+    }
+
+    /**
      * 指定テンプレートの実体 Mob または固定表示用 ArmorStand を生成し、AstralRecord 管理用の初期化を行います。
      *
      * @param instance 紐付ける Mob インスタンス
