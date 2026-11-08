@@ -10,7 +10,7 @@ import java.util.List;
  * filebase から読み込む Mob スポナーの静的定義です。
  *
  * @param id                   スポナー ID
- * @param region               このスポナー範囲を表す地域名。未設定時は地域判定に使用しません
+ * @param region               このスポナー範囲を表す地域名。未設定でも地域レベルの集計対象になります
  * @param radiusMeters         スポーン地点からの有効半径
  * @param spawnMobs            スポーン対象 Mob の重み付き一覧
  * @param timeWindows          スポーン可能時間帯

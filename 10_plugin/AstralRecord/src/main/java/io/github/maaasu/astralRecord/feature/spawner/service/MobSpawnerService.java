@@ -50,7 +50,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Function;
 
 /**
  * Mob スポナー定義・配置座標・スポーン制御を集約するサービスです。
@@ -70,7 +69,7 @@ public class MobSpawnerService {
     private final NamespacedKey spawnerIdKey;
 
     private final Map<String, MobSpawnerDefinition> definitions = new LinkedHashMap<>();
-    private final Map<String, Integer> regionLevelByName = new HashMap<>();
+    private final Map<String, SpawnLevelWeights> spawnLevelWeightsById = new HashMap<>();
     private final Map<String, MobSpawnerLocation> locations = new LinkedHashMap<>();
     private final Map<String, Set<UUID>> spawnedByLocation = new HashMap<>();
     private final LinkedHashMap<String, SpawnAttempt> pendingSpawns = new LinkedHashMap<>();
@@ -107,7 +106,7 @@ public class MobSpawnerService {
     }
 
     /**
-     * マスタ定義と座標ファイルを一括ロードし、地域ごとの出現 Mob 平均レベルを再計算します。
+     * マスタ定義と座標ファイルを一括ロードし、定義ごとの出現 Mob のレベル集計を更新します。
      *
      * @return ロードしたスポナー定義数
      */
@@ -158,17 +157,11 @@ public class MobSpawnerService {
         Map<String, Set<UUID>> previousTracked = new HashMap<>(spawnedByLocation);
         Map<String, SpawnAttempt> previousPending = new LinkedHashMap<>(pendingSpawns);
         definitions.clear();
+        spawnLevelWeightsById.clear();
         for (MobSpawnerDefinition definition : snapshot.definitions()) {
             definitions.put(definition.id(), definition);
+            spawnLevelWeightsById.put(definition.id(), calculateSpawnLevelWeights(definition));
         }
-        regionLevelByName.clear();
-        regionLevelByName.putAll(calculateRegionLevels(
-                definitions.values(),
-                (mobId, level) -> {
-                    var template = mobService.findTemplate(mobId);
-                    return template == null ? null : template.resolveLevel(level).level();
-                }
-        ));
 
         locations.clear();
         spawnedByLocation.clear();
@@ -616,106 +609,83 @@ public class MobSpawnerService {
     }
 
     /**
-     * 各オーバーワールドプレイヤーについて、範囲内で最も近い地域付きスポナーを地域として反映します。
-     * 範囲内に地域付きスポナーがない場合は「オーバーワールド」へ戻します。
+     * 範囲内のスポナー配置から地域名と出現 Mob の加重平均レベルを決めます。
+     * 地域名は最寄りの地域付きスポナーを使い、レベルは地域名にかかわらず集計します。
      */
     private void updateNearbyPlayerRegions() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             AstPlayer astPlayer = AstPlayerCache.get(player);
+            World world = player.getWorld();
             if (astPlayer == null
                     || !astPlayer.getAccount().getMode().shouldProcessGameplay()
-                    || !playerRegionService.isSpawnerRegionWorld(player.getWorld())) {
+                    || !playerRegionService.isSpawnerRegionWorld(world)) {
                 continue;
             }
 
-            PlayerRegionCandidate nearest = null;
-            for (MobSpawnerLocation spawnerLocation : locations.values()) {
+            Location playerLocation = player.getLocation();
+            String nearestRegion = null;
+            String nearestKey = null;
+            double nearestDistanceSquared = Double.POSITIVE_INFINITY;
+            long weightedLevels = 0L;
+            long totalWeight = 0L;
+            for (var placement : locations.entrySet()) {
+                MobSpawnerLocation spawnerLocation = placement.getValue();
                 MobSpawnerDefinition definition = definitions.get(spawnerLocation.spawnerId());
-                if (definition == null || definition.region() == null) {
+                if (definition == null) {
                     continue;
                 }
                 Location origin = spawnerLocation.toLocation();
-                if (origin == null || origin.getWorld() != player.getWorld()) {
+                if (origin == null || origin.getWorld() != world) {
                     continue;
                 }
-                double distanceSquared = player.getLocation().distanceSquared(origin);
+                double distanceSquared = playerLocation.distanceSquared(origin);
                 double radiusSquared = definition.radiusMeters() * definition.radiusMeters();
-                if (distanceSquared > radiusSquared) {
+                if (!(distanceSquared <= radiusSquared)) {
                     continue;
                 }
-                PlayerRegionCandidate candidate = new PlayerRegionCandidate(
-                        definition.region(),
-                        regionLevelByName.getOrDefault(definition.region(), 0),
-                        distanceSquared,
-                        spawnerLocation.locationKey()
-                );
-                if (nearest == null || candidate.isPreferredTo(nearest)) {
-                    nearest = candidate;
+                SpawnLevelWeights weights = spawnLevelWeightsById.get(definition.id());
+                weightedLevels += weights.weightedLevels();
+                totalWeight += weights.totalWeight();
+
+                if (definition.region() != null) {
+                    int comparison = Double.compare(distanceSquared, nearestDistanceSquared);
+                    if (nearestRegion == null || comparison < 0
+                            || (comparison == 0 && placement.getKey().compareTo(nearestKey) < 0)) {
+                        nearestRegion = definition.region();
+                        nearestKey = placement.getKey();
+                        nearestDistanceSquared = distanceSquared;
+                    }
                 }
             }
 
-            if (nearest == null) {
-                playerRegionService.resetOverworldRegion(astPlayer);
-            } else {
-                playerRegionService.updateRegionFromSpawner(astPlayer, nearest.region(), nearest.regionLevel());
-            }
+            int regionLevel = totalWeight == 0L ? 0 : (int) Math.round((double) weightedLevels / totalWeight);
+            playerRegionService.updateRegionFromSpawner(astPlayer, nearestRegion, regionLevel);
         }
     }
 
     /**
-     * 地域ごとに、所属スポナーの出現 Mob を抽選重みで加重した平均レベルを算出します。
-     * 解決できない Mob は集計から除外し、有効な Mob がない地域はレベル 0 とします。
+     * スポナー定義の実効レベルと抽選重みを集計します。出現確率が 0 の定義と解決できない Mob は除外します。
      *
-     * @param definitions 集計対象スポナー定義
-     * @param levelResolver Mob ID からレベルを返す解決処理。未解決時は {@code null}
-     * @return 地域名をキーとする平均レベル
+     * @param definition 集計対象スポナー定義
+     * @return レベルの加重合計と抽選重みの合計
      */
     @NotNull
-    static Map<String, Integer> calculateRegionLevels(
-            @NotNull Collection<MobSpawnerDefinition> definitions,
-            @NotNull Function<String, Integer> levelResolver
-    ) {
-        return calculateRegionLevelsInternal(definitions, entry -> levelResolver.apply(entry.mobId()));
-    }
-
-    /** レベル指定付きスポナーを含む地域レベルを算出します。 */
-    static Map<String, Integer> calculateRegionLevels(
-            @NotNull Collection<MobSpawnerDefinition> definitions,
-            @NotNull java.util.function.BiFunction<String, Integer, Integer> levelResolver
-    ) {
-        return calculateRegionLevelsInternal(
-                definitions,
-                entry -> levelResolver.apply(entry.mobId(), entry.level())
-        );
-    }
-
-    private static Map<String, Integer> calculateRegionLevelsInternal(
-            @NotNull Collection<MobSpawnerDefinition> definitions,
-            @NotNull Function<MobSpawnerEntry, Integer> levelResolver
-    ) {
-        Map<String, long[]> totalsByRegion = new HashMap<>();
-        for (MobSpawnerDefinition definition : definitions) {
-            if (definition.region() == null) {
+    private SpawnLevelWeights calculateSpawnLevelWeights(@NotNull MobSpawnerDefinition definition) {
+        if (definition.spawnChancePercent() == 0.0D) {
+            return new SpawnLevelWeights(0L, 0L);
+        }
+        long weightedLevels = 0L;
+        long totalWeight = 0L;
+        for (MobSpawnerEntry entry : definition.spawnMobs()) {
+            MobTemplate template = mobService.findLoadedTemplate(entry.mobId());
+            if (template == null) {
                 continue;
             }
-            long[] totals = totalsByRegion.computeIfAbsent(definition.region(), ignored -> new long[2]);
-            for (MobSpawnerEntry entry : definition.spawnMobs()) {
-                Integer level = levelResolver.apply(entry);
-                if (level == null) {
-                    continue;
-                }
-                int weight = Math.max(1, entry.weight());
-                totals[0] += (long) Math.max(0, level) * weight;
-                totals[1] += weight;
-            }
+            int level = template.resolveLevel(entry.level()).level();
+            weightedLevels += (long) Math.max(0, level) * entry.weight();
+            totalWeight += entry.weight();
         }
-
-        Map<String, Integer> levels = new HashMap<>();
-        totalsByRegion.forEach((region, totals) -> levels.put(
-                region,
-                totals[1] == 0L ? 0 : (int) Math.round((double) totals[0] / totals[1])
-        ));
-        return Map.copyOf(levels);
+        return new SpawnLevelWeights(weightedLevels, totalWeight);
     }
 
     /**
@@ -875,22 +845,6 @@ public class MobSpawnerService {
         }
     }
 
-    private record PlayerRegionCandidate(
-            @NotNull String region,
-            int regionLevel,
-            double distanceSquared,
-            @NotNull String locationKey
-    ) {
-        /**
-         * 距離を優先し、同距離では配置キー順で決定的に候補を選びます。
-         *
-         * @param other 比較対象候補
-         * @return この候補を優先する場合は {@code true}
-         */
-        private boolean isPreferredTo(@NotNull PlayerRegionCandidate other) {
-            int distanceComparison = Double.compare(distanceSquared, other.distanceSquared);
-            return distanceComparison < 0
-                    || (distanceComparison == 0 && locationKey.compareTo(other.locationKey) < 0);
-        }
+    private record SpawnLevelWeights(long weightedLevels, long totalWeight) {
     }
 }

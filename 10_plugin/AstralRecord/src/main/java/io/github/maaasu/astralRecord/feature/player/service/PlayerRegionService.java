@@ -106,13 +106,13 @@ public final class PlayerRegionService {
 
     /**
      * Mob スポナーの地域をプレイヤーへ反映します。
-     * オーバーワールド以外、地域未設定の場合は何も行いません。同一地域でも地域レベルは更新します。
+     * オーバーワールドで地域名が未設定の場合は既定の地域名を使います。同一地域でも地域レベルは更新します。
      * タイトルは地域ごとに60秒間再表示を抑制し、既定のオーバーワールド地域は表示しません。
      * 表示の抑制中も現在地域と地域レベルは更新します。
      *
      * @param astPlayer 対象プレイヤー
-     * @param region スポナーに定義された地域名
-     * @param regionLevel 地域スポナーから出現する Mob の平均レベル
+     * @param region 最寄りのスポナーに定義された地域名。該当しなければ null
+     * @param regionLevel 範囲内のスポナーから出現する Mob の平均レベル
      * @return 地域が実際に切り替わった場合は {@code true}
      */
     public boolean updateRegionFromSpawner(
@@ -120,10 +120,10 @@ public final class PlayerRegionService {
             @Nullable String region,
             int regionLevel
     ) {
-        if (region == null || region.isBlank() || resolveWorldType(astPlayer.getBukkit().getWorld()) != WorldType.OVERWORLD) {
+        if (resolveWorldType(astPlayer.getBukkit().getWorld()) != WorldType.OVERWORLD) {
             return false;
         }
-        String normalized = region.trim();
+        String normalized = region == null || region.isBlank() ? WorldType.OVERWORLD.getRegionDisplayName() : region.trim();
         boolean regionChanged = setCurrentRegion(astPlayer, normalized);
         astPlayer.setCurrentRegionLevel(Math.max(0, regionLevel));
         if (!regionChanged) {
@@ -133,16 +133,6 @@ public final class PlayerRegionService {
             displayRegionTitleIfAllowed(astPlayer.getBukkit(), normalized);
         }
         return true;
-    }
-
-    /**
-     * 地域付きスポナーの範囲外にいるオーバーワールドプレイヤーを既定地域へ戻します。
-     *
-     * @param astPlayer 対象プレイヤー
-     * @return 地域が実際に切り替わった場合は {@code true}
-     */
-    public boolean resetOverworldRegion(@NotNull AstPlayer astPlayer) {
-        return updateRegionFromSpawner(astPlayer, WorldType.OVERWORLD.getRegionDisplayName(), 0);
     }
 
     /**

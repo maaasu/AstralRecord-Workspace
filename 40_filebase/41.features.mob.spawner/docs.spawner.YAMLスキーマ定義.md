@@ -13,7 +13,7 @@ Mob スポナーの静的マスタ定義です。
 | `schemaVersion` | Integer | ○ | - | スキーマバージョン |
 | `id` | String | ○ | - | スポナー ID |
 | `type` | String | × | `MOB_SPAWNER` | マスタ種別 |
-| `region` | String | × | 未設定 | スポナー範囲の地域表示名。未設定の場合はプレイヤー地域の判定に使用しません |
+| `region` | String | × | 未設定 | スポナー範囲の地域表示名。未設定の配置もエリアレベルの集計対象になります |
 | `radiusMeters` | Double | ○ | - | 登録座標から半径何 m を水平スポーン範囲にするか。上方向の高さ上限にも使う |
 | `spawnMobs[]` | List | ○ | - | スポーン対象 Mob と抽選重み |
 | `spawnMobs[].mobId` | String | ○ | - | スポーン対象 Mob ID（`mob:` 参照） |
