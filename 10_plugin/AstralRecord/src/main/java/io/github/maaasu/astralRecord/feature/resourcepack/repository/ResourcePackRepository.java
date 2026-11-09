@@ -88,7 +88,7 @@ public final class ResourcePackRepository {
                     && reception.getAsJsonPrimitive().isString() && "1".equals(reception.getAsString());
                 JsonElement location = java.get("locationHud");
                 boolean locationHud = location != null && location.isJsonPrimitive()
-                    && location.getAsJsonPrimitive().isString() && "1".equals(location.getAsString());
+                    && location.getAsJsonPrimitive().isString() && "2".equals(location.getAsString());
                 JsonElement backQuiver = java.get("backQuiver");
                 boolean hasBackQuiver = backQuiver != null && backQuiver.isJsonPrimitive()
                     && backQuiver.getAsJsonPrimitive().isBoolean() && backQuiver.getAsBoolean();

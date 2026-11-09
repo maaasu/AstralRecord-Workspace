@@ -30,9 +30,11 @@ import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.wi
 
 /** Java版の右上へ、現在地・挑戦・効果を表示します。 */
 final class LocationHudGlyphs {
+    private static final Key TEXT_FONT = Key.key("astralrecord", "location_hud_text");
     private static final Key ICON_FONT = Key.key("astralrecord", "location_hud_icons");
-    private static final int LEFT = 7;
-    private static final int RIGHT = 165;
+    private static final int LEFT = 10;
+    private static final int RIGHT = 164;
+    private static final int BADGE_PADDING = 4;
     private static final int COLUMN_SPLIT = 94;
     private static final int MAX_ROWS = 16;
     private static final int MAX_CHALLENGE_ROWS = 8;
@@ -69,35 +71,26 @@ final class LocationHudGlyphs {
         return List.copyOf(panels);
     }
 
-    /** ワールド名を必要に応じて別行へ移し、エリアLvと任意の性能行を配置します。 */
+    /** ワールド名を見出しにし、その下にエリア・Lvと任意の性能行を配置します。 */
     private static Panel locationPanel(String world, String area, int level, @Nullable Performance performance) {
         String unknown = message(HudMsgId.P_5673);
-        String worldName = ColorCodeUtil.toPlainText(world, unknown);
+        String worldName = ColorCodeUtil.toPlainText(world, unknown).strip();
         String areaName = ColorCodeUtil.toPlainText(area, unknown);
-        String worldLabel = message(HudMsgId.P_5663);
-        int valueLeft = LEFT + textWidth(worldLabel) + 5;
         List<Row> rows = new ArrayList<>(4);
-        Label label = left(worldLabel, LEFT, valueLeft, Palette.GRAY);
-        int worldWidth = textWidth(worldName);
-        if (worldWidth <= RIGHT - valueLeft) {
-            rows.add(new Row(label, right(worldName, valueLeft, RIGHT, Palette.WHITE)));
-        } else if (worldWidth <= RIGHT - LEFT) {
-            rows.add(new Row(label));
-            rows.add(new Row(right(worldName, LEFT, RIGHT, Palette.WHITE)));
-        } else {
-            int split = HudOverlayGlyphs.prefixEnd(worldName, RIGHT - valueLeft);
-            rows.add(new Row(label, right(worldName.substring(0, split).stripTrailing(), valueLeft, RIGHT, Palette.WHITE)));
-            rows.add(new Row(right(worldName.substring(split).stripLeading(), LEFT, RIGHT, Palette.WHITE)));
+        int split = HudOverlayGlyphs.prefixEnd(worldName, RIGHT - LEFT);
+        rows.add(new Row(left(worldName.substring(0, split).stripTrailing(), LEFT, RIGHT, Palette.WHITE)));
+        if (split < worldName.length()) {
+            rows.add(new Row(left(worldName.substring(split).stripLeading(), LEFT, RIGHT, Palette.WHITE)));
         }
 
         String levelText = "Lv." + Math.max(0, level);
-        int badgeWidth = textWidth(levelText) + 8;
+        int badgeWidth = textWidth(levelText) + BADGE_PADDING * 2;
         int badgeLeft = RIGHT - badgeWidth;
         String areaLabel = message(HudMsgId.P_5664);
-        int areaLeft = LEFT + textWidth(areaLabel) + 5;
+        int areaLeft = LEFT + textWidth(areaLabel) + 4;
         rows.add(new Row(List.of(left(areaLabel, LEFT, areaLeft, Palette.GRAY),
-                right(areaName, areaLeft, badgeLeft - 6, Palette.WHITE),
-                right(levelText, badgeLeft + 3, RIGHT - 4, Palette.GOLD)), 0, false, badgeWidth));
+                left(areaName, areaLeft, badgeLeft - 3, Palette.WHITE),
+                right(levelText, badgeLeft + BADGE_PADDING, RIGHT - BADGE_PADDING, Palette.TEAL)), 0, false, badgeWidth));
 
         if (performance != null) {
             Row values = splitRow(message(HudMsgId.P_5674), String.format(Locale.ROOT, "%.1f", performance.mspt()),
@@ -230,7 +223,7 @@ final class LocationHudGlyphs {
                     List<Integer> glyphs = fit(label.text(), label.right() - label.left());
                     int x = label.rightAligned() ? label.right() - width(glyphs) : label.left();
                     // 本文と同じフォントの字形に影を付け、背景とのテクスチャ順に依存せず読めるようにします。
-                    appendLine(result, glyphs, x, rowIndex, textMarker + label.palette().ordinal(), shadowMarker);
+                    appendLine(result, TEXT_FONT, glyphs, x, rowIndex, textMarker + label.palette().ordinal(), shadowMarker);
                 }
                 rowIndex++;
             }
@@ -248,7 +241,7 @@ final class LocationHudGlyphs {
         int leftValue = LEFT + textWidth(labelA) + 4;
         int rightValue = COLUMN_SPLIT + textWidth(labelB) + 4;
         return new Row(left(labelA, LEFT, leftValue, Palette.GRAY), left(valueA, leftValue, COLUMN_SPLIT - 5, colorA),
-                left(labelB, COLUMN_SPLIT, rightValue, Palette.GRAY), right(valueB, rightValue, RIGHT, colorB));
+                left(labelB, COLUMN_SPLIT, rightValue, Palette.GRAY), left(valueB, rightValue, RIGHT, colorB));
     }
 
     /** 1項目を左ラベルと右値へ分けます。 */

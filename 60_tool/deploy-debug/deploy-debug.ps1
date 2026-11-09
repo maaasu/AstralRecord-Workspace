@@ -534,15 +534,18 @@ function Publish-ResourcePacks {
             try { $questTrackingHud = $reader.ReadToEnd() }
             finally { $reader.Dispose() }
             if ($questTrackingHud -cnotin @('1', '2')) { throw 'Unsupported quest tracking HUD version.' }
+            $questShaders = @(
+                'assets/minecraft/shaders/core/rendertype_text.vsh'
+                'quest_hud_84/assets/minecraft/shaders/core/rendertype_text.vsh'
+                'quest_hud_88/assets/minecraft/shaders/core/text.vsh'
+                'quest_hud_97/assets/minecraft/shaders/core/text.vsh'
+            )
             $questAssets = @(
                 'pack.mcmeta'
                 'assets/astralrecord/font/quest_hud.json'
                 'assets/astralrecord/font/quest_hud_space.json'
                 'assets/astralrecord/textures/font/profile_hud_class_name_compact.png'
-                'assets/minecraft/shaders/core/rendertype_text.vsh'
-                'quest_hud_84/assets/minecraft/shaders/core/rendertype_text.vsh'
-                'quest_hud_88/assets/minecraft/shaders/core/text.vsh'
-                'quest_hud_97/assets/minecraft/shaders/core/text.vsh'
+                $questShaders
             )
             if ($questTrackingHud -ceq '2') {
                 $questAssets += 'assets/astralrecord/textures/font/quest_hud_pixel.png'
@@ -573,8 +576,8 @@ function Publish-ResourcePacks {
             $reader = [IO.StreamReader]::new($locationEntry.Open())
             try { $locationHud = $reader.ReadToEnd() }
             finally { $reader.Dispose() }
-            if ($locationHud -cne '1' -or $questTrackingHud -cne '2') {
-                throw 'Location HUD requires version 1 and Quest HUD assets version 2.'
+            if ($locationHud -cnotin @('1', '2') -or $questTrackingHud -cne '2') {
+                throw 'Location HUD requires version 1 or 2 and Quest HUD assets version 2.'
             }
             $reader = [IO.StreamReader]::new($archive.GetEntry('assets/astralrecord/font/quest_hud_space.json').Open())
             try { $spaceFont = $reader.ReadToEnd() | ConvertFrom-Json }
@@ -587,10 +590,26 @@ function Publish-ResourcePacks {
             if ($null -eq $iconAdvance -or $iconAdvance.Value -isnot [ValueType] -or $iconAdvance.Value -is [bool] -or $iconAdvance.Value -ne -11) {
                 throw 'Location HUD requires U+E00B with advance -11 in the Quest HUD spacing font.'
             }
-            foreach ($asset in @(
+            $locationAssets = @(
                 'assets/astralrecord/font/location_hud_icons.json'
                 'assets/astralrecord/textures/font/buff_hud.png'
-            )) {
+            )
+            if ($locationHud -ceq '2') {
+                $locationAssets += @(
+                    'assets/astralrecord/font/location_hud_text.json'
+                    'assets/astralrecord/textures/font/location_hud_text.png'
+                    'licenses/OFL-NotoSansJP.txt'
+                )
+                foreach ($shader in $questShaders) {
+                    $reader = [IO.StreamReader]::new($archive.GetEntry($shader).Open())
+                    try { $shaderSource = $reader.ReadToEnd() }
+                    finally { $reader.Dispose() }
+                    if (-not $shaderSource.Contains('// BEGIN ASTRALRECORD LOCATION HUD V2')) {
+                        throw "Missing Location HUD version 2 relocation in Java pack shader: $shader"
+                    }
+                }
+            }
+            foreach ($asset in $locationAssets) {
                 $entry = $archive.GetEntry($asset)
                 if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing Location HUD asset in Java pack: $asset" }
             }

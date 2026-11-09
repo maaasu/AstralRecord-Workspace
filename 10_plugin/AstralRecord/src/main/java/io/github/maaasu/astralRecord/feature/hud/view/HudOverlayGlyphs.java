@@ -30,17 +30,17 @@ final class HudOverlayGlyphs {
 
     /** 小型日本語フォントの字形を、指定の行と開始位置から並べます。 */
     static void appendLine(TextComponent.Builder result, List<Integer> text, int x, int row, int marker) {
-        appendLine(result, text, x, row, marker, 0);
+        appendLine(result, FONT, text, x, row, marker, 0);
     }
 
     /** 影の座標マーカーがある場合は、同じ字形の影へ本文と同じ座標を渡します。 */
-    static void appendLine(TextComponent.Builder result, List<Integer> text, int x, int row, int marker, int shadowMarker) {
+    static void appendLine(TextComponent.Builder result, Key font, List<Integer> text, int x, int row, int marker, int shadowMarker) {
         for (int codePoint : text) {
             int advance = ClassNameGlyphs.advance(codePoint, true);
             if (codePoint != ' ' && codePoint != 0x3000) {
                 ShadowColor shadow = shadowMarker == 0 ? ShadowColor.none()
                         : ShadowColor.shadowColor(0xFF000000 | (shadowMarker << 16) | (x << 8) | row);
-                appendGlyph(result, FONT, codePoint, advance, marker, x, row, shadow);
+                appendGlyph(result, font, codePoint, advance, marker, x, row, shadow);
             }
             x += advance;
         }

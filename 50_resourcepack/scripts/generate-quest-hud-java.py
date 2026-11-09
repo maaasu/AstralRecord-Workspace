@@ -26,8 +26,8 @@ VARIANTS = [
 ]
 START = '    // BEGIN ASTRALRECORD QUEST HUD\n'
 END = '    // END ASTRALRECORD QUEST HUD\n'
-LOCATION_START = '    // BEGIN ASTRALRECORD LOCATION HUD\n'
-LOCATION_END = '    // END ASTRALRECORD LOCATION HUD\n'
+LOCATION_START = '    // BEGIN ASTRALRECORD LOCATION HUD V2\n'
+LOCATION_END = '    // END ASTRALRECORD LOCATION HUD V2\n'
 WIDTH = 172
 ROW_HEIGHT = 13
 PADDING = 3
@@ -44,23 +44,26 @@ BAR_WIDTH = 18
 BAR_LEFT = LEFT + 122
 TEXT_COLORS = ((255, 215, 140), (242, 244, 246), (167, 238, 220), (185, 193, 201))
 SHAPE_COLORS = ((151, 142, 118), (100, 105, 109), (115, 122, 132), (255, 224, 168), (167, 238, 220))
-LOCATION_TEXT_COLORS = (TEXT_COLORS[1], TEXT_COLORS[3], TEXT_COLORS[0], TEXT_COLORS[2],
-                        (255, 156, 154), (225, 178, 250), (255, 255, 85), (255, 255, 255))
-LOCATION_FILL = (22, 27, 37)
-LOCATION_BORDERS = ((199, 168, 113), (194, 135, 111), (120, 155, 151))
-LOCATION_DIVIDER = (132, 125, 116)
-LOCATION_BADGE = (125, 97, 56)
-LOCATION_SHADOW = (4, 8, 13)
-LOCATION_FILL_ALPHA = 114
-LOCATION_TOP_ALPHA = 184
-LOCATION_BORDER_ALPHA = 133
-LOCATION_DIVIDER_ALPHA = 120
-LOCATION_BADGE_ALPHA = 96
-LOCATION_SHADOW_ALPHA = 235
+LOCATION_TEXT_COLORS = ((239, 246, 255), (186, 203, 224), (246, 216, 160), (152, 224, 225),
+                        (251, 174, 179), (215, 198, 248), (249, 230, 149), (255, 255, 255))
+LOCATION_FILL = (15, 25, 41)
+LOCATION_ACCENTS = ((107, 198, 224), (211, 173, 112), (172, 158, 224))
+LOCATION_DIVIDER = (114, 144, 176)
+LOCATION_BADGE = (62, 112, 154)
+LOCATION_SHADOW = (6, 12, 23)
+LOCATION_FILL_ALPHA = 128
+LOCATION_ACCENT_ALPHA = 192
+LOCATION_DIVIDER_ALPHA = 90
+LOCATION_BADGE_ALPHA = 112
+LOCATION_SHADOW_ALPHA = 184
 LOCATION_MAX_ROWS = 16
-LOCATION_ROW_HEIGHT = 15
-LOCATION_ROW_INSET = 2
+LOCATION_ROW_HEIGHT = 17
+LOCATION_ROW_INSET = 3
 LOCATION_PANEL_GAP = 2
+LOCATION_TEXT_WIDTH = 9
+LOCATION_TEXT_HEIGHT = 11
+LOCATION_INSET = 10
+LOCATION_RIGHT_INSET = 8
 HUD_GAP = 8
 PIXEL_TEXTURE = PACK / 'assets/astralrecord/textures/font/quest_hud_pixel.png'
 
@@ -180,7 +183,7 @@ def location_injection(version):
     vertex = 'gl_VertexIndex' if version == '26.3' else 'gl_VertexID'
     fog = '' if version in ('26.2', '26.3') else '        sphericalVertexDistance = 0.0;\n        cylindricalVertexDistance = 0.0;\n'
     palette = ',\n                '.join(map(shader_color, LOCATION_TEXT_COLORS))
-    borders = ',\n                '.join(map(shader_color, LOCATION_BORDERS))
+    accents = ',\n                '.join(map(shader_color, LOCATION_ACCENTS))
     return LOCATION_START + f'''{guard}
     // Shares the Quest negative-ascent window. Its RGB marker range is disjoint.
     bool locationText = questType < 128;
@@ -215,49 +218,55 @@ def location_injection(version):
         float opacity = 255.0;
         if (locationShadow) {{
             origin = vec2(float(questCode.g + 1), float({LOCATION_ROW_INSET + 1} + {LOCATION_ROW_HEIGHT} * questCode.b));
-            size = vec2(9.0, 37.0);
+            size = vec2({LOCATION_TEXT_WIDTH}.0, {LOCATION_TEXT_HEIGHT}.0);
             tint = {shader_color(LOCATION_SHADOW)};
             opacity = {LOCATION_SHADOW_ALPHA}.0;
         }} else if (locationText) {{
             const vec3 palette[8] = vec3[8](
                 {palette});
             int style = questType & 7;
-            origin = vec2(float(questCode.g), float({LOCATION_ROW_INSET} + {LOCATION_ROW_HEIGHT} * questCode.b));
+            origin = vec2(float(questCode.g), float({LOCATION_ROW_INSET} + {LOCATION_ROW_HEIGHT} * questCode.b + (style == 7 ? 1 : 0)));
             // The buff bitmap has 10 ink pixels at the top of a 79-pixel cell.
-            size = style == 7 ? vec2(10.0, 79.0) : vec2(9.0, 37.0);
+            size = style == 7 ? vec2(10.0, 79.0) : vec2({LOCATION_TEXT_WIDTH}.0, {LOCATION_TEXT_HEIGHT}.0);
             tint = palette[style];
         }} else if (locationPanel) {{
-            const vec3 borders[3] = vec3[3](
-                {borders});
+            const vec3 accents[3] = vec3[3](
+                {accents});
             int part = (questType - 128) % 5;
             float y = float(locationStart * {LOCATION_ROW_HEIGHT});
             float h = float(locationSpan * {LOCATION_ROW_HEIGHT} - {LOCATION_PANEL_GAP});
-            // Disjoint fill and edge quads avoid doubling the alpha at the panel perimeter.
-            if (part == 0) {{
-                origin = vec2(1.0, y + 1.0);
-                size = vec2({WIDTH - 2}.0, h - 2.0);
-                tint = {shader_color(LOCATION_FILL)};
-                // Compact text can be on another atlas page. Keep it readable through the fill.
-                opacity = {LOCATION_FILL_ALPHA}.0 * max(0.55, scale);
+            if (part == 4) {{
+                origin = vec2(4.0, y + 5.0);
+                size = vec2(2.0, 9.0);
+                tint = accents[(questType - 128) / 5];
+                opacity = {LOCATION_ACCENT_ALPHA}.0;
             }} else {{
-                if (part <= 2) {{
-                    origin = vec2(1.0, part == 1 ? y : y + h - 1.0);
+                // Disjoint strips form stepped corners without a border or extra alpha.
+                if (part == 0) {{
+                    origin = vec2(0.0, y + 2.0);
+                    size = vec2({WIDTH}.0, h - 3.0);
+                }} else if (part == 1) {{
+                    origin = vec2(3.0, y);
+                    size = vec2({WIDTH - 6}.0, 1.0);
+                }} else if (part == 2) {{
+                    origin = vec2(1.0, y + 1.0);
                     size = vec2({WIDTH - 2}.0, 1.0);
                 }} else {{
-                    origin = vec2(part == 3 ? 0.0 : {WIDTH - 1}.0, y + 1.0);
-                    size = vec2(1.0, h - 2.0);
+                    origin = vec2(2.0, y + h - 1.0);
+                    size = vec2({WIDTH - 4}.0, 1.0);
                 }}
-                tint = borders[(questType - 128) / 5];
-                opacity = part == 1 ? {LOCATION_TOP_ALPHA}.0 : {LOCATION_BORDER_ALPHA}.0;
+                tint = {shader_color(LOCATION_FILL)};
+                // Minecraft can composite the fill over glyphs from a different font atlas page.
+                opacity = {LOCATION_FILL_ALPHA}.0 * max(0.55, scale);
             }}
         }} else if (questType == 143) {{
-            origin = vec2(6.0, float(questCode.g * {LOCATION_ROW_HEIGHT}));
-            size = vec2({WIDTH - 12}.0, 1.0);
+            origin = vec2({LOCATION_INSET}.0, float(questCode.g * {LOCATION_ROW_HEIGHT}));
+            size = vec2({WIDTH - LOCATION_INSET - LOCATION_RIGHT_INSET}.0, 1.0);
             tint = {shader_color(LOCATION_DIVIDER)};
             opacity = {LOCATION_DIVIDER_ALPHA}.0;
         }} else {{
-            origin = vec2(float({WIDTH - 7} - questCode.g), float(locationBadgeRow * {LOCATION_ROW_HEIGHT} + 1));
-            size = vec2(float(questCode.g), 11.0);
+            origin = vec2(float({WIDTH - LOCATION_RIGHT_INSET} - questCode.g), float(locationBadgeRow * {LOCATION_ROW_HEIGHT} + 2));
+            size = vec2(float(questCode.g), 13.0);
             tint = {shader_color(LOCATION_BADGE)};
             opacity = {LOCATION_BADGE_ALPHA}.0 * max(0.55, scale);
         }}
@@ -427,11 +436,13 @@ def location_geometry(marker, width, height):
 
     if red < 128 and green < WIDTH and blue < rows:
         palette = red % 8
-        w, h = (10, 79) if palette == 7 else (9, 37)
-        return quad(green, LOCATION_ROW_INSET + blue * LOCATION_ROW_HEIGHT, w, h, LOCATION_TEXT_COLORS[palette])
+        y = LOCATION_ROW_INSET + blue * LOCATION_ROW_HEIGHT
+        if palette == 7:
+            return quad(green, y + 1, 10, 79, LOCATION_TEXT_COLORS[palette])
+        return quad(green, y, LOCATION_TEXT_WIDTH, LOCATION_TEXT_HEIGHT, LOCATION_TEXT_COLORS[palette])
     if shadow and green < WIDTH and blue < rows:
-        return quad(green + 1, LOCATION_ROW_INSET + 1 + blue * LOCATION_ROW_HEIGHT, 9, 37,
-                    LOCATION_SHADOW, LOCATION_SHADOW_ALPHA)
+        return quad(green + 1, LOCATION_ROW_INSET + 1 + blue * LOCATION_ROW_HEIGHT,
+                    LOCATION_TEXT_WIDTH, LOCATION_TEXT_HEIGHT, LOCATION_SHADOW, LOCATION_SHADOW_ALPHA)
     if 128 <= red < 143:
         start, span = green // 8, green % 8 + 1
         if start + span > rows:
@@ -439,17 +450,16 @@ def location_geometry(marker, width, height):
         y = start * LOCATION_ROW_HEIGHT
         h = span * LOCATION_ROW_HEIGHT - LOCATION_PANEL_GAP
         tone, part = divmod(red - 128, 5)
-        border = LOCATION_BORDERS[tone]
-        if part == 0:
-            return quad(1, y + 1, WIDTH - 2, h - 2, LOCATION_FILL, LOCATION_FILL_ALPHA * max(.55, scale))
-        if part in (1, 2):
-            return quad(1, y if part == 1 else y + h - 1, WIDTH - 2, 1, border,
-                        LOCATION_TOP_ALPHA if part == 1 else LOCATION_BORDER_ALPHA)
-        return quad(0 if part == 3 else WIDTH - 1, y + 1, 1, h - 2, border, LOCATION_BORDER_ALPHA)
+        if part == 4:
+            return quad(4, y + 5, 2, 9, LOCATION_ACCENTS[tone], LOCATION_ACCENT_ALPHA)
+        strips = ((0, y + 2, WIDTH, h - 3), (3, y, WIDTH - 6, 1),
+                  (1, y + 1, WIDTH - 2, 1), (2, y + h - 1, WIDTH - 4, 1))
+        return quad(*strips[part], LOCATION_FILL, LOCATION_FILL_ALPHA * max(.55, scale))
     if red == 143 and 0 < green < rows:
-        return quad(6, green * LOCATION_ROW_HEIGHT, WIDTH - 12, 1, LOCATION_DIVIDER, LOCATION_DIVIDER_ALPHA)
+        return quad(LOCATION_INSET, green * LOCATION_ROW_HEIGHT, WIDTH - LOCATION_INSET - LOCATION_RIGHT_INSET, 1,
+                    LOCATION_DIVIDER, LOCATION_DIVIDER_ALPHA)
     if red in (144, 145) and red - 143 < rows and 0 < green <= WIDTH - 14:
-        return quad(WIDTH - 7 - green, (red - 143) * LOCATION_ROW_HEIGHT + 1, green, 11,
+        return quad(WIDTH - LOCATION_RIGHT_INSET - green, (red - 143) * LOCATION_ROW_HEIGHT + 2, green, 13,
                     LOCATION_BADGE, LOCATION_BADGE_ALPHA * max(.55, scale))
     return None
 
@@ -474,11 +484,17 @@ def verify_location_geometry():
             for start in range(rows):
                 for span in range(1, min(8, rows - start) + 1):
                     end = start + span - 1
-                    top_edge, _ = location_geometry((129, start * 8 + span - 1, rows), width, height)
-                    bottom_edge, _ = location_geometry((130, start * 8 + span - 1, rows), width, height)
+                    green = start * 8 + span - 1
+                    fill = [location_geometry((128 + part, green, rows), width, height)[0] for part in (1, 2, 0, 3)]
+                    top_edge, bottom_edge = fill[0], fill[-1]
+                    for upper, lower in zip(fill, fill[1:]):
+                        assert math.isclose(upper[1] + upper[3], lower[1])
+                    accent, _ = location_geometry((132, green, rows), width, height)
+                    assert accent[0] + accent[2] < left + LOCATION_INSET * scale
+                    assert accent[1] >= top_edge[1] and accent[1] + accent[3] <= bottom_edge[1] + 1e-8
                     for palette in range(8):
-                        (x, y, _, _), _ = location_geometry(((rows - 1) * 8 + palette, 7, end), width, height)
-                        ink = 10 if palette == 7 else 9
+                        (x, y, _, _), _ = location_geometry(((rows - 1) * 8 + palette, LOCATION_INSET, end), width, height)
+                        ink = 10 if palette == 7 else LOCATION_TEXT_HEIGHT
                         assert x > left and top_edge[1] < y and y + ink * scale <= bottom_edge[1] + 1e-8
                     assert bottom_edge[1] + bottom_edge[3] <= bottom + 1e-8
                     if end + 1 < rows:
@@ -487,9 +503,16 @@ def verify_location_geometry():
     assert location_placement(640, 360, 9) == (460, 48, 1)
     for rows in range(1, LOCATION_MAX_ROWS + 1):
         left, top, scale = location_placement(640, 360, rows)
-        rect, tint = location_geometry((145 + rows, 7, rows - 1), 640, 360)
-        assert rect == (left + 8 * scale, top + (3 + 15 * (rows - 1)) * scale, 9 * scale, 37 * scale)
+        rect, tint = location_geometry((145 + rows, LOCATION_INSET, rows - 1), 640, 360)
+        assert rect == (left + (LOCATION_INSET + 1) * scale,
+                        top + (LOCATION_ROW_INSET + 1 + LOCATION_ROW_HEIGHT * (rows - 1)) * scale,
+                        LOCATION_TEXT_WIDTH * scale, LOCATION_TEXT_HEIGHT * scale)
         assert tint == (*LOCATION_SHADOW, LOCATION_SHADOW_ALPHA)
+        assert rect[1] + rect[3] <= top + (rows * LOCATION_ROW_HEIGHT - LOCATION_PANEL_GAP) * scale + 1e-8
+    for row in (1, 2):
+        (x, y, w, h), _ = location_geometry((143 + row, 28, 3), 640, 360)
+        assert x + w == 460 + WIDTH - LOCATION_RIGHT_INSET
+        assert y == 48 + row * LOCATION_ROW_HEIGHT + 2 and h == 13
     for marker in ((0, 172, 0), (127, 7, 16), (128, 15, 2), (143, 0, 4), (145, 23, 2),
                    (146, 172, 0), (146, 7, 1), (161, 7, 16), (162, 7, 1), (180, 7, 0)):
         assert location_geometry(marker, 640, 360) is None
@@ -737,7 +760,9 @@ def gpu_check(clients):
                             geometry = (quest[0], (*quest[1], marker_alpha(marker))) if quest else location_geometry(marker, width, height)
                         if marker[0] < 128 and marker[0] % 8 == 7:
                             quad_width, quad_height = 10, 79
-                        elif marker[0] < 128 or 146 <= marker[0] < 162 or 180 <= marker[0] < 220:
+                        elif marker[0] < 128 or 146 <= marker[0] < 162:
+                            quad_width, quad_height = LOCATION_TEXT_WIDTH, LOCATION_TEXT_HEIGHT
+                        elif 180 <= marker[0] < 220:
                             quad_width, quad_height = 9, 37
                         else:
                             quad_width, quad_height = 6, 9

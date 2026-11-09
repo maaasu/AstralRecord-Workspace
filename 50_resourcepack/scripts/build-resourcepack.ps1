@@ -83,6 +83,9 @@ $java = Read-PackEntries $root @(
     'quest-tracking-hud-version.txt'
     'location-hud-version.txt'
     'assets/astralrecord/font/location_hud_icons.json'
+    'assets/astralrecord/font/location_hud_text.json'
+    'assets/astralrecord/textures/font/location_hud_text.png'
+    'licenses/OFL-NotoSansJP.txt'
     'assets/astralrecord/font/quest_hud.json'
     'assets/astralrecord/font/quest_hud_space.json'
     'assets/astralrecord/textures/font/quest_hud_pixel.png'
@@ -513,7 +516,7 @@ if ($utf8.GetString($java['player-progress-hud-version.txt']) -cne '6') {
 }
 Add-BuffHudJavaEntries $java
 
-if ($utf8.GetString($java['location-hud-version.txt']) -cne '1') {
+if ($utf8.GetString($java['location-hud-version.txt']) -cne '2') {
     throw 'Unsupported Location HUD version.'
 }
 $spaceFont = $utf8.GetString($java['assets/astralrecord/font/quest_hud_space.json']) | ConvertFrom-Json
@@ -521,6 +524,12 @@ $spaceProvider = $spaceFont.providers | Where-Object { $_.type -ceq 'space' } | 
 $iconAdvance = $spaceProvider.advances.PSObject.Properties[[string][char]0xE00B]
 if ($null -eq $iconAdvance -or $iconAdvance.Value -isnot [ValueType] -or $iconAdvance.Value -is [bool] -or $iconAdvance.Value -ne -11) {
     throw 'Location HUD requires U+E00B with advance -11 in the Quest HUD spacing font.'
+}
+$locationFont = ($utf8.GetString($java['assets/astralrecord/font/location_hud_text.json']) | ConvertFrom-Json).providers
+$locationBitmap = @($locationFont | Where-Object { $_.type -ceq 'bitmap' })
+if ($locationBitmap.Count -ne 1 -or $locationBitmap[0].file -cne 'astralrecord:font/location_hud_text.png' -or
+    $locationBitmap[0].height -ne 11 -or $locationBitmap[0].ascent -ne -4096) {
+    throw 'Invalid Location HUD text font. Run scripts/generate-location-hud-text.py to regenerate it.'
 }
 $locationIcons = ($utf8.GetString($java['assets/astralrecord/font/location_hud_icons.json']) | ConvertFrom-Json).providers
 $buffBitmap = ($utf8.GetString($java['assets/astralrecord/font/buff_hud.json']) | ConvertFrom-Json).providers |
@@ -534,8 +543,8 @@ if ($locationIcons.Count -ne 2 -or $locationIcons[0].type -cne 'bitmap' -or
     throw 'Location HUD icons differ from the buff atlas. Run scripts/generate-quest-hud-java.py to regenerate the font.'
 }
 foreach ($shader in $hudTextShaders) {
-    if (-not $utf8.GetString($java[$shader]).Contains('// BEGIN ASTRALRECORD LOCATION HUD')) {
-        throw "Missing Location HUD relocation in Java pack shader: $shader"
+    if (-not $utf8.GetString($java[$shader]).Contains('// BEGIN ASTRALRECORD LOCATION HUD V2')) {
+        throw "Missing Location HUD version 2 relocation in Java pack shader: $shader"
     }
 }
 
