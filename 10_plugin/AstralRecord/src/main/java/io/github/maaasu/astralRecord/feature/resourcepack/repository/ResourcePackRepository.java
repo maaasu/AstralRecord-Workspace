@@ -7,6 +7,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.net.http.HttpResponse;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /** 配置済みパックの識別子を内部APIから取得します。 */
@@ -14,6 +16,7 @@ public final class ResourcePackRepository {
     private static final String MANIFEST_PATH = "/api/resource-packs/manifest";
     private static final Pattern SHA1 = Pattern.compile("[0-9a-f]{40}");
     private static final Pattern PANEL_REVISION = Pattern.compile("[0-9a-f]{64}");
+    private static final Pattern MODEL_ID = Pattern.compile("[1-9][0-9]{0,7}");
 
     /** 配布物のハッシュと演出機能の互換情報を識別します。 */
     public record JavaPack(String sha1, @Nullable String actionRingPanel, @Nullable String guiTheme,
@@ -21,7 +24,7 @@ public final class ResourcePackRepository {
                            boolean archmagePhoenixPresentation, boolean itemTooltips,
                            boolean weaponAttackProjectiles, @Nullable ProfileHud profileHud, boolean skillEffects,
                            boolean combatRewardPlaque, boolean questTrackingHud, boolean receptionDisplay,
-                           boolean locationHud) {
+                           boolean locationHud, Set<Integer> wornHelmetModels) {
     }
 
     /** 個人情報HUDの字形とゲージの互換情報です。 */
@@ -105,11 +108,36 @@ public final class ResourcePackRepository {
                     skillEffects, combatRewardPlaque,
                     java.has("questTrackingHud") && java.get("questTrackingHud").isJsonPrimitive()
                         && java.get("questTrackingHud").getAsJsonPrimitive().isString()
-                        && "2".equals(java.get("questTrackingHud").getAsString()), receptionDisplay, locationHud);
+                        && "2".equals(java.get("questTrackingHud").getAsString()), receptionDisplay, locationHud,
+                    parseWornHelmetModels(java.get("wornHelmetModels")));
             }
         } catch (RuntimeException exception) {
             throw new IOException("Invalid resource pack manifest", exception);
         }
         throw new IOException("Missing or invalid Java resource pack SHA-1");
+    }
+
+    /**
+     * 着用モデルの一覧を検証し、欠落や不正があれば標準防具を使う空集合を返します。
+     *
+     * @param values 配布パックの革のヘルメットに対応するモデルIDの一覧
+     * @return パケット送信スレッドと共有できる不変集合
+     */
+    private static Set<Integer> parseWornHelmetModels(@Nullable JsonElement values) {
+        if (values == null || !values.isJsonArray()) {
+            return Set.of();
+        }
+        Set<Integer> modelIds = new HashSet<>();
+        for (JsonElement value : values.getAsJsonArray()) {
+            if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()
+                    || !MODEL_ID.matcher(value.getAsString()).matches()) {
+                return Set.of();
+            }
+            int modelId = value.getAsInt();
+            if (modelId > (1 << 24) || !modelIds.add(modelId)) {
+                return Set.of();
+            }
+        }
+        return Set.copyOf(modelIds);
     }
 }

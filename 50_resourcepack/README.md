@@ -230,7 +230,7 @@ Java 版は管理パックの互換版 `receptionDisplay: "1"` と適用成功�
 防具のインベントリ・装備欄・ホットバーは、`java_gui_sprite` で統合版と共用する専用アイコンを表示します。Java 版は `gui` のときに同じ PNG を選び、手持ちには `item-models.json` の3Dアイテムを使います。着用外観は追加台帳 `armor-assets.json` で管理します。各行は同じ `id` / `base_item` / `custom_model_data` と、身体部位 `slot`（`HEAD` / `CHEST` / `LEGS` / `FEET`）、`equipment_asset` を持ちます。マスターの `appearance.equipmentAsset` と同じ `astralrecord:<path>` を指定します。
 
 - JE: `assets/astralrecord/equipment/<path>.json` の `layers.humanoid`（脚だけは `humanoid_leggings`）から、`textures/entity/equipment/<layer>/<texture>.png` を参照します。標準の立体鎧の各面に、素材に合わせた面取り、接合部の影、布の襞を描きます。
-- 防具表示OFFでは送信コピーの `EQUIPPABLE` が外れます。頭部防具はこのとき頭に載せる通常アイテムへ描画が切り替わるため、登録済み頭部防具の `head` コンテキストには空モデルを割り当てます。防具表示ONは標準装備レイヤーを、所持品・手持ちはそれぞれ専用アイコン・立体アイテムを使います。
+- Java 版の登録済み革の兜は、`head` コンテキストで `EQUIPPABLE` があるときに `models/item/custom/<id>_worn.json` の着用専用モデルを表示します。ビルドが立体着用に対応するモデル番号を `worn-helmet-models.json` に出力し、配布処理が同じ ZIP のマニフェストへ転記します。対応パックを適用した閲覧者への送信コピーでのみ、頭部スロットを保ったまま装備レイヤーの参照を外します。防具表示OFFでは `EQUIPPABLE` が外れ、`head` は空モデルを選びます。所持品・手持ちはそれぞれ専用アイコン・手持ち用の立体アイテムを使います。
 - BE: `models/entity/armor/<id>.geo.json` と `textures/models/armor/<id>.png` を追加します。既存attachableの `geometry.worn` と `textures.armor` がこれらを参照します。着用モデルは標準防具と同じ `waist` → `body` → 頭・腕・脚の骨名と親子関係でプレイヤーの動きに追従します。この骨には明示的な `binding` を付けません。梱包時に部位別の標準オフセットアニメーションを着用側へ追加します。 [Mojang のプレイヤー防具](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/models/entity/player_armor.json) · [部位別オフセット](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/animations/armor.animation.json)
 - 同attachableのrender controllerは、`controller.render.item_default` に `context.item_slot == 'main_hand' || context.item_slot == 'off_hand'`、`controller.render.astralrecord.armor_worn` に `context.item_slot != 'main_hand' && context.item_slot != 'off_hand'` の条件を付けます。追加した当て板、留め具、革の重ねは着用用geometryに含め、着用全体を閲覧者の設定に従って切り替えます。
 
@@ -264,7 +264,7 @@ Java 版アクションバーのバフアイコンは `assets/astralrecord/textu
 
 Minecraftの角形と粗い画素の材質分けを基準に、ノクスは簡素な初期装備、上位は素材の分離、縁、留め具、各系統の意匠を増やしています。防具のインベントリ・手持ち用の立体と、着用用の標準リグ・64×32原画は別の編集データです。JE着用時の自由形状の角・帽頂などは追加していません。
 
-- `blockbench/items/`: native Blockbench 5.2.2で書き出した両版の編集元。防具は `<id>_worn.bedrock.bbmodel`、弓は3段階のJava draw原稿も保持します。
+- `blockbench/items/`: native Blockbench 5.2.2で書き出した両版の編集元。防具は `<id>_worn.bedrock.bbmodel`、Java版の立体着用兜は `<id>_worn.java.bbmodel`、弓は3段階のJava draw原稿も保持します。
 - `blockbench/equipment-drafts/`: 新規3D124点の個別cuboid・素材swatch設計原稿。
 - `blockbench/armor-pixels/`: 着用原画のpalette・pixel-grid記録。原画PNGはJE/BE着用テクスチャと着用Blockbench原稿にも保存しています。
 - `blockbench/pixel-art/`: 防具のスロットアイコン、2Dアクセサリ12点、その他の2Dアイテムの再生成可能な原画。

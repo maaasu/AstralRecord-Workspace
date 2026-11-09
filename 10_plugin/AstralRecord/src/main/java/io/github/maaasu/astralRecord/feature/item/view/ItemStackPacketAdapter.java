@@ -113,7 +113,7 @@ public class ItemStackPacketAdapter {
      * @param actionRingService 受信者のアクションリング表示状態を参照するサービス
      * @param skillPermissionService 受信者のスキル使用可否を判定するサービス
      * @param itemService 公開済みアイテムマスタを参照するサービス
-     * @param resourcePacks 受信者がツールチップ用のパックを使えるか判定するサービス
+     * @param resourcePacks 受信者がツールチップと着用ヘルメットの専用表示を使えるか判定するサービス
      * @param cartographHeldMap 本人の登録済みカルトグラフの表示情報
      */
     public ItemStackPacketAdapter(
@@ -172,9 +172,7 @@ public class ItemStackPacketAdapter {
                     && equipmentOverrideRegistry.consume(packet, viewer.getUniqueId(), System.currentTimeMillis())) {
                     return;
                 }
-                boolean armorDisplayEnabled = playerSettingService.isArmorDisplayEnabled(
-                    viewer.getUniqueId()
-                );
+                ArmorPresentation armor = armorPresentation(viewer.getUniqueId(), bedrockViewer);
                 boolean randomStatusRangeDisplayEnabled = playerSettingService.isRandomStatusRangeDisplayEnabled(
                     viewer.getUniqueId()
                 );
@@ -200,7 +198,7 @@ public class ItemStackPacketAdapter {
                     }
                     handleSetSlot(
                         packet,
-                        armorDisplayEnabled,
+                        armor,
                         shouldVirtualizeHotbarWeapon(
                             actionRingHoldSelectEnabled,
                             hotbarSlot,
@@ -216,7 +214,7 @@ public class ItemStackPacketAdapter {
                 } else if (type == PacketType.Play.Server.WINDOW_ITEMS) {
                     handleWindowItems(
                         packet,
-                        armorDisplayEnabled,
+                        armor,
                         actionRingHoldSelectEnabled,
                         selectedHotbarSlot,
                         permittedSkillIds,
@@ -228,7 +226,7 @@ public class ItemStackPacketAdapter {
                 } else if (type == PacketType.Play.Server.ENTITY_EQUIPMENT) {
                     handleEntityEquipment(
                         event,
-                        armorDisplayEnabled,
+                        armor,
                         actionRingHoldSelectEnabled,
                         selectedHotbarSlot,
                         permittedSkillIds,
@@ -287,6 +285,7 @@ public class ItemStackPacketAdapter {
             }
         }, plugin);
 
+        resourcePacks.onWornHelmetModelsChanged(this::refreshEquipmentView);
         plugin.getServer().getScheduler().runTaskTimer(
             plugin,
             this::refreshDisplaySnapshots,
@@ -355,6 +354,21 @@ public class ItemStackPacketAdapter {
 
     // region --- パケットハンドラ ---
 
+    /**
+     * 受信者の防具表示設定と、適用済み Java パックの着用モデルを取得します。
+     *
+     * @param viewer 受信者の UUID
+     * @param bedrockViewer 受信者が統合版の場合は true
+     * @return 送信コピーに使用する表示設定
+     */
+    private ArmorPresentation armorPresentation(UUID viewer, boolean bedrockViewer) {
+        boolean enabled = playerSettingService.isArmorDisplayEnabled(viewer);
+        return new ArmorPresentation(enabled, enabled && !bedrockViewer ? resourcePacks.wornHelmetModels(viewer) : Set.of());
+    }
+
+    private record ArmorPresentation(boolean enabled, Set<Integer> wornHelmetModels) {
+    }
+
     /** 受信者の接続で利用可能なツールチップ装飾を返します。 */
     private @Nullable ItemTooltipPresentation tooltipPresentation(UUID viewer) {
         if (resourcePacks.hasJavaItemTooltips(viewer)) {
@@ -367,7 +381,7 @@ public class ItemStackPacketAdapter {
      * 単一スロットまたはカーソルの ItemStack を書き換えます。
      *
      * @param packet 書き換え対象パケット
-     * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
+     * @param armor 受信者の防具表示設定と着用モデル一覧
      * @param virtualTrident 選択中の主武器を長押し入力用トライデントとして表示する場合は {@code true}
      * @param permittedSkillIds 受信者が現在使用可能なスキル ID
      * @param bedrockViewer 受信者が Bedrock Edition の場合は {@code true}
@@ -378,7 +392,7 @@ public class ItemStackPacketAdapter {
      */
     private void handleSetSlot(
         @NotNull PacketContainer packet,
-        boolean armorDisplayEnabled,
+        ArmorPresentation armor,
         boolean virtualTrident,
         @Nullable Set<String> permittedSkillIds,
         boolean bedrockViewer,
@@ -392,7 +406,7 @@ public class ItemStackPacketAdapter {
             return;
         }
 
-        var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer,
+        var replaced = replaceIcon(original, armor, virtualTrident, permittedSkillIds, bedrockViewer,
             randomStatusRangeDisplayEnabled, tooltip);
         replaced = applyCartograph(cartograph, hotbarSlot, original, replaced);
         if (replaced != null) {
@@ -404,7 +418,7 @@ public class ItemStackPacketAdapter {
      * WINDOW_ITEMS パケット内の ItemStack リストを書き換えます。
      *
      * @param packet 書き換え対象パケット
-     * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
+     * @param armor 受信者の防具表示設定と着用モデル一覧
      * @param actionRingHoldSelectEnabled 長押し選択設定が有効な場合は {@code true}
      * @param selectedHotbarSlot 選択中 hotbar slot（0-8）、不明な場合は負値
      * @param permittedSkillIds 受信者が現在使用可能なスキル ID
@@ -415,7 +429,7 @@ public class ItemStackPacketAdapter {
      */
     private void handleWindowItems(
         @NotNull PacketContainer packet,
-        boolean armorDisplayEnabled,
+        ArmorPresentation armor,
         boolean actionRingHoldSelectEnabled,
         int selectedHotbarSlot,
         @Nullable Set<String> permittedSkillIds,
@@ -425,7 +439,7 @@ public class ItemStackPacketAdapter {
         @Nullable CartographHeldMap.Projection cartograph
     ) {
         // カーソルで保持しているスタックにも、受信者の表示設定を適用します。
-        handleSetSlot(packet, armorDisplayEnabled, false, permittedSkillIds, bedrockViewer,
+        handleSetSlot(packet, armor, false, permittedSkillIds, bedrockViewer,
             randomStatusRangeDisplayEnabled, tooltip, null, -1);
         var items = packet.getItemListModifier().readSafely(0);
         if (items == null || items.isEmpty()) {
@@ -445,7 +459,7 @@ public class ItemStackPacketAdapter {
                 hotbarSlot,
                 selectedHotbarSlot
             );
-            var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer,
+            var replaced = replaceIcon(original, armor, virtualTrident, permittedSkillIds, bedrockViewer,
                 randomStatusRangeDisplayEnabled, tooltip);
             replaced = applyCartograph(cartograph, hotbarSlot, original, replaced);
             if (replaced != null) {
@@ -477,7 +491,7 @@ public class ItemStackPacketAdapter {
      * 本人のメインハンドだけは、選択中 hotbar slot の仮想トライデント表示も再適用します。
      *
      * @param event 中止対象のパケットイベント
-     * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
+     * @param armor 受信者の防具表示設定と着用モデル一覧
      * @param actionRingHoldSelectEnabled 長押し選択設定が有効な場合は {@code true}
      * @param selectedHotbarSlot 受信者が選択中の hotbar slot
      * @param permittedSkillIds 受信者が現在使用可能なスキル ID
@@ -486,7 +500,7 @@ public class ItemStackPacketAdapter {
      */
     private void handleEntityEquipment(
         @NotNull PacketEvent event,
-        boolean armorDisplayEnabled,
+        ArmorPresentation armor,
         boolean actionRingHoldSelectEnabled,
         int selectedHotbarSlot,
         @Nullable Set<String> permittedSkillIds,
@@ -517,8 +531,8 @@ public class ItemStackPacketAdapter {
             boolean virtualTrident = virtualizeSelectedMainHand
                 && pair.getFirst() == EnumWrappers.ItemSlot.MAINHAND;
             if (original != null && original.getType() != Material.AIR
-                && replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer,
-                    randomStatusRangeDisplayEnabled) != null) {
+                && replaceIcon(original, armor, virtualTrident, permittedSkillIds, bedrockViewer,
+                    randomStatusRangeDisplayEnabled, null) != null) {
                 requiresOverride = true;
             }
             updates.add(new EquipmentUpdate(
@@ -551,100 +565,20 @@ public class ItemStackPacketAdapter {
     // region --- Material 差し替えロジック ---
 
     /**
-     * AstralRecord アイテムであれば、clone して Material を icon に差し替えた ItemStack を返します。
-     * AstralRecord アイテムでなければ {@code null} を返します。
-     *
-     * @param original 元の ItemStack
-     * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
-     * @return icon 適用済み ItemStack、または {@code null}
-     */
-    private ItemStack replaceIcon(@NotNull ItemStack original, boolean armorDisplayEnabled) {
-        return replaceIcon(original, armorDisplayEnabled, false);
-    }
-
-    /**
-     * AstralRecord アイテムをクライアント表示用へ変換します。
-     *
-     * @param original サーバー側 ItemStack
-     * @param armorDisplayEnabled 防具の身体描画を表示する場合は {@code true}
-     * @param virtualTrident hotbar 内の武器を長押し入力用トライデントとして表示する場合は {@code true}
-     * @return 変換済み ItemStack。変換不要の場合は {@code null}
-     */
-    private ItemStack replaceIcon(
-        @NotNull ItemStack original,
-        boolean armorDisplayEnabled,
-        boolean virtualTrident
-    ) {
-        return replaceIcon(original, armorDisplayEnabled, virtualTrident, null);
-    }
-
-    /**
-     * AstralRecord アイテムを、受信者の状態を反映したクライアント表示用へ変換します。
-     *
-     * @param original サーバー側 ItemStack
-     * @param armorDisplayEnabled 防具の身体描画を表示する場合は {@code true}
-     * @param virtualTrident hotbar 内の武器を長押し入力用トライデントとして表示する場合は {@code true}
-     * @param permittedSkillIds 受信者が現在使用可能なスキル ID。未指定の場合は可否表示を追加しません
-     * @return 変換済み ItemStack。変換不要の場合は {@code null}
-     */
-    private ItemStack replaceIcon(
-        @NotNull ItemStack original,
-        boolean armorDisplayEnabled,
-        boolean virtualTrident,
-        @Nullable Set<String> permittedSkillIds
-    ) {
-        return replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, false);
-    }
-
-    /**
-     * AstralRecord アイテムを、受信者の状態を反映したクライアント表示用へ変換します。
-     * 長押し入力用の仮想トライデントは Java 版の受信者にだけ表示します。
-     * Bedrock 受信者へは POTION icon を PAPER として送信し、クリック移動時のポーション固有入力を避けます。
-     *
-     * @param original サーバー側 ItemStack
-     * @param armorDisplayEnabled 防具の身体描画を表示する場合は {@code true}
-     * @param virtualTrident hotbar 内の武器を長押し入力用トライデントとして表示する場合は {@code true}
-     * @param permittedSkillIds 受信者が現在使用可能なスキル ID。未指定の場合は可否表示を追加しません
-     * @param bedrockViewer 受信者が Bedrock Edition の場合は {@code true}
-     * @return 変換済み ItemStack。変換不要の場合は {@code null}
-     */
-    private ItemStack replaceIcon(
-        @NotNull ItemStack original,
-        boolean armorDisplayEnabled,
-        boolean virtualTrident,
-        @Nullable Set<String> permittedSkillIds,
-        boolean bedrockViewer
-    ) {
-        return replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer, false);
-    }
-
-    /**
-     * 受信者の設定に従ってアイコンとランダムステータス範囲行を送信コピーへ反映します。
+     * 受信者の設定とパックに従って、アイコン・防具・ツールチップを送信コピーへ反映します。
      *
      * @param original サーバー側 ItemStack。変更しません
-     * @param armorDisplayEnabled 防具の身体描画を表示する場合は {@code true}
+     * @param armor 受信者の防具表示設定と着用モデル一覧
      * @param virtualTrident 長押し入力用トライデントとして表示する場合は {@code true}
      * @param permittedSkillIds 受信者が使用可能なスキル ID
      * @param bedrockViewer 受信者が Bedrock Edition の場合は {@code true}
      * @param randomStatusRangeDisplayEnabled ランダムステータス範囲行を表示する場合は {@code true}
+     * @param tooltip 受信者の装飾方式。パックが使えない場合は null
      * @return 変換済みコピー。変換不要の場合は {@code null}
      */
     private ItemStack replaceIcon(
         @NotNull ItemStack original,
-        boolean armorDisplayEnabled,
-        boolean virtualTrident,
-        @Nullable Set<String> permittedSkillIds,
-        boolean bedrockViewer,
-        boolean randomStatusRangeDisplayEnabled
-    ) {
-        return replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer,
-            randomStatusRangeDisplayEnabled, null);
-    }
-
-    /** 通常の表示変換と、適用可能なツールチップ装飾を同じ送信コピーにまとめます。 */
-    private ItemStack replaceIcon(
-        @NotNull ItemStack original,
-        boolean armorDisplayEnabled,
+        ArmorPresentation armor,
         boolean virtualTrident,
         @Nullable Set<String> permittedSkillIds,
         boolean bedrockViewer,
@@ -728,10 +662,11 @@ public class ItemStackPacketAdapter {
         if (ItemStackFactory.applyAppearance(replaced)) {
             modified = true;
         }
-        modified |= EquipmentAssetSupport.apply(replaced, equipmentAsset);
+        boolean useWornHelmetModel = customModelData != null && armor.wornHelmetModels().contains(customModelData);
+        modified |= EquipmentAssetSupport.apply(replaced, equipmentAsset, useWornHelmetModel);
         if (bedrockViewer && customModelData != null && EquipmentAssetSupport.isNativeBodyArmor(replaced)) {
             var meta = replaced.getItemMeta();
-            if (meta != null && CustomModelDataComponentUtil.updateArmorHiddenFlag(meta, !armorDisplayEnabled)) {
+            if (meta != null && CustomModelDataComponentUtil.updateArmorHiddenFlag(meta, !armor.enabled())) {
                 replaced.setItemMeta(meta);
                 modified = true;
             }
@@ -739,7 +674,7 @@ public class ItemStackPacketAdapter {
         if (ItemStackFactory.applyDurabilityVisual(replaced)) {
             modified = true;
         }
-        if (!armorDisplayEnabled && replaced.hasData(DataComponentTypes.EQUIPPABLE)) {
+        if (!armor.enabled() && replaced.hasData(DataComponentTypes.EQUIPPABLE)) {
             if (replaced == original) {
                 replaced = original.clone();
             }
@@ -862,7 +797,8 @@ public class ItemStackPacketAdapter {
     /**
      * 指定プレイヤーの inventory と、そのプレイヤーが追跡中の全プレイヤーの防具表示を再送します。
      *
-     * <p>Bukkit メインスレッドから呼び出してください。設定変更時とログイン設定ロード完了時に、
+     * <p>Bukkit メインスレッドから呼び出してください。設定変更時・ログイン設定ロード完了時・
+     * Java 着用モデルの利用可否変更時に、
      * 次の通常装備更新を待たず、現在選択中 hotbar slot の仮想表示と装備表示を含む
      * 表示状態を即時反映します。</p>
      *
@@ -1002,7 +938,7 @@ public class ItemStackPacketAdapter {
         boolean virtualizeSelectedMainHand,
         boolean bedrockViewer
     ) {
-        boolean armorDisplayEnabled = playerSettingService.isArmorDisplayEnabled(viewer.getUniqueId());
+        ArmorPresentation armor = armorPresentation(viewer.getUniqueId(), bedrockViewer);
         CartographHeldMap.Projection cartograph = target == viewer
             ? cartographHeldMap.projection(viewer.getUniqueId()) : null;
         Map<EquipmentSlot, ItemStack> equipment = new EnumMap<>(EquipmentSlot.class);
@@ -1010,11 +946,12 @@ public class ItemStackPacketAdapter {
             boolean virtualTrident = virtualizeSelectedMainHand && update.slot() == EquipmentSlot.HAND;
             ItemStack replaced = replaceIcon(
                 update.item(),
-                armorDisplayEnabled,
+                armor,
                 virtualTrident,
                 permittedSkillSnapshots.getOrDefault(viewer.getUniqueId(), Set.of()),
                 bedrockViewer,
-                playerSettingService.isRandomStatusRangeDisplayEnabled(viewer.getUniqueId())
+                playerSettingService.isRandomStatusRangeDisplayEnabled(viewer.getUniqueId()),
+                null
             );
             if (cartograph != null && update.slot() == EquipmentSlot.HAND) {
                 replaced = applyCartograph(cartograph, viewer.getInventory().getHeldItemSlot(), update.item(), replaced);

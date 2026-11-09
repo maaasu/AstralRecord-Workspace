@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import net.kyori.adventure.key.Key;
+import org.bukkit.Material;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -41,8 +42,26 @@ public final class EquipmentAssetSupport {
      * @return componentを変更した場合はtrue
      */
     public static boolean apply(@NotNull ItemStack item, @Nullable String asset) {
+        return apply(item, asset, false);
+    }
+
+    /**
+     * 身体防具の表示レイヤーを適用します。対応する着用モデルでは、革のヘルメットの
+     * equippable を維持したままアセットIDを外し、Java の頭部アイテム描画を選びます。
+     *
+     * @param item 変更可能な表示専用コピー
+     * @param asset 最新マスターのアセット。削除・不正値は通常防具へ戻す
+     * @param useWornHelmetModel 閲覧者の適用済み Java パックに該当する着用モデルがある場合はtrue
+     * @return componentを変更した場合はtrue
+     */
+    public static boolean apply(@NotNull ItemStack item, @Nullable String asset, boolean useWornHelmetModel) {
         var equippable = item.getData(DataComponentTypes.EQUIPPABLE);
         if (equippable == null || !ARMOR_SLOTS.contains(equippable.slot())) return false;
+        if (useWornHelmetModel && item.getType() == Material.LEATHER_HELMET && equippable.slot() == EquipmentSlot.HEAD) {
+            if (equippable.assetId() == null) return false;
+            item.setData(DataComponentTypes.EQUIPPABLE, equippable.toBuilder().assetId(null));
+            return true;
+        }
         String normalized = normalize(asset);
         if (normalized == null) {
             if (equippable.assetId() != null && equippable.assetId().namespace().equals("astralrecord")) {

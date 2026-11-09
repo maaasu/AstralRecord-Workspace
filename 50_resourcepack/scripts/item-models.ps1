@@ -320,6 +320,7 @@ function Add-ItemModelEntries {
     $gripTargets = Get-PackJson (Join-Path $root 'item-model-grip-targets.json')
     $bedrockItems = @()
     $heldWeapons = [System.Collections.Generic.SortedDictionary[int, object]]::new()
+    $wornHelmetModels = [System.Collections.Generic.List[int]]::new()
     $iconTextures = [ordered] @{}
     $byBase = @{}
     foreach ($item in $models.Values) {
@@ -392,7 +393,20 @@ function Add-ItemModelEntries {
         }
         if ($isArmor -and $armorItems[$id].slot -ceq 'HEAD') {
             # A helmet without EQUIPPABLE falls through to the head item renderer.
-            $displayCases += [ordered] @{ when = 'head'; model = [ordered] @{ type = 'minecraft:empty' } }
+            $head = [ordered] @{ type = 'minecraft:empty' }
+            if ($base -ceq 'leather_helmet') {
+                $worn = "${id}_worn"
+                Add-JavaItemAssets $JavaEntries $worn $false $false $null $null
+                $head = [ordered] @{
+                    type = 'minecraft:condition'
+                    property = 'minecraft:has_component'
+                    component = 'minecraft:equippable'
+                    on_true = New-JavaModelReference "astralrecord:item/custom/$worn"
+                    on_false = $head
+                }
+                $wornHelmetModels.Add($item.custom_model_data)
+            }
+            $displayCases += [ordered] @{ when = 'head'; model = $head }
         }
         if ($displayCases.Count -gt 0) {
             $model = New-JavaItemContextSelection $displayCases $model
@@ -421,6 +435,10 @@ function Add-ItemModelEntries {
     if ($byBase.ContainsKey('trident')) {
         # Format 83 moved the native trident transform from the renderer into the item model.
         Add-JavaItemDispatch $JavaEntries 'trident' $byBase.trident 'transformed_item_models'
+    }
+    if ($wornHelmetModels.Count -gt 0) {
+        $wornHelmetModels.Sort()
+        Add-PackJson $JavaEntries 'worn-helmet-models.json' ($wornHelmetModels.ToArray())
     }
 
     Add-BedrockHeldWeaponEntries $BedrockEntries $heldWeapons

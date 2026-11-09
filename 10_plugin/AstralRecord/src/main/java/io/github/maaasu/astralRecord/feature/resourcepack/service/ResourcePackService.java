@@ -16,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /**
  * Java Edition 向けリソースパック要求の送信と、クライアント側ステータス通知の処理を担当します。
@@ -36,6 +38,8 @@ public class ResourcePackService {
     private final ConfigProperties configProperties;
     private final ResourcePackRepository repository = new ResourcePackRepository();
     private final Set<UUID> loadedManagedJavaPacks = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, Set<Integer>> requestedJavaWornHelmetModels = new HashMap<>();
+    private final Map<UUID, Set<Integer>> readyJavaWornHelmetModels = new ConcurrentHashMap<>();
     private final Map<UUID, String> requestedActionRingPanels = new ConcurrentHashMap<>();
     private final Map<UUID, String> requestedGuiThemes = new ConcurrentHashMap<>();
     private final Set<UUID> requestedGameplaySounds = ConcurrentHashMap.newKeySet();
@@ -63,6 +67,7 @@ public class ResourcePackService {
     private final Set<UUID> readyBedrockQuestHud = ConcurrentHashMap.newKeySet();
     private final Map<UUID, String> bedrockActionRingHudRevisions = new ConcurrentHashMap<>();
     private final Map<UUID, Player> pendingViewers = new LinkedHashMap<>();
+    private Consumer<Player> refreshWornHelmetView = player -> {};
     private boolean manifestLoading;
 
     /**
@@ -145,11 +150,15 @@ public class ResourcePackService {
                     UUID viewer = player.getUniqueId();
                     boolean hadItemTooltips = hasJavaItemTooltips(viewer);
                     loadedManagedJavaPacks.remove(viewer);
+                    requestedJavaWornHelmetModels.remove(viewer);
+                    boolean hadWornHelmetModels = readyJavaWornHelmetModels.remove(viewer) != null;
                     requestedJavaItemTooltips.remove(viewer);
                     requestedJavaProfileHud.remove(viewer);
                     requestedJavaLocationHud.remove(viewer);
                     requestedJavaQuestHud.remove(viewer);
-                    if (hadItemTooltips) {
+                    if (hadWornHelmetModels) {
+                        refreshWornHelmetView.accept(player);
+                    } else if (hadItemTooltips) {
                         player.updateInventory();
                     }
                     requestedActionRingPanels.remove(viewer);
@@ -194,6 +203,9 @@ public class ResourcePackService {
                     }
                     player.addResourcePack(MANAGED_JAVA_PACK_ID, url, HexFormat.of().parseHex(pack.sha1()),
                             blankToNull(configProperties.getResourcePackPrompt()), configProperties.isResourcePackForce());
+                    if (!pack.wornHelmetModels().isEmpty()) {
+                        requestedJavaWornHelmetModels.put(viewer, pack.wornHelmetModels());
+                    }
                     if (pack.sunbirdPresentation()) {
                         requestedSunbirdPresentation.add(viewer);
                     }
@@ -289,15 +301,22 @@ public class ResourcePackService {
         if (MANAGED_JAVA_PACK_ID.equals(packId)) {
             UUID viewer = player.getUniqueId();
             boolean hadItemTooltips = hasJavaItemTooltips(viewer);
+            Set<Integer> previousHelmetModels = wornHelmetModels(viewer);
             switch (status) {
                 case SUCCESSFULLY_LOADED -> {
                     loadedManagedJavaPacks.add(viewer);
+                    Set<Integer> helmetModels = requestedJavaWornHelmetModels.get(viewer);
+                    if (helmetModels != null) {
+                        readyJavaWornHelmetModels.put(viewer, helmetModels);
+                    }
                     if (requestedSunbirdPresentation.contains(viewer)) {
                         loadedSunbirdPresentation.add(viewer);
                     }
                 }
                 case DECLINED, FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD, DISCARDED -> {
                     loadedManagedJavaPacks.remove(viewer);
+                    requestedJavaWornHelmetModels.remove(viewer);
+                    readyJavaWornHelmetModels.remove(viewer);
                     loadedSunbirdPresentation.remove(viewer);
                     requestedSeleneaPresentation.remove(viewer);
                     requestedJavaArchmagePhoenixPresentation.remove(viewer);
@@ -308,7 +327,9 @@ public class ResourcePackService {
                 }
                 default -> { }
             }
-            if (hadItemTooltips != hasJavaItemTooltips(viewer)) {
+            if (!previousHelmetModels.equals(wornHelmetModels(viewer))) {
+                refreshWornHelmetView.accept(player);
+            } else if (hadItemTooltips != hasJavaItemTooltips(viewer)) {
                 player.updateInventory();
             }
         }
@@ -333,6 +354,27 @@ public class ResourcePackService {
      */
     public boolean hasManagedJavaPack(UUID playerId) {
         return loadedManagedJavaPacks.contains(playerId);
+    }
+
+    /**
+     * 着用ヘルメット用モデルの利用可否が変わったときの装備再送を登録します。
+     * 登録と呼び出しは Bukkit メインスレッドで行います。
+     *
+     * @param refresh 本人と追跡中プレイヤーの装備表示を再同期する処理
+     */
+    public void onWornHelmetModelsChanged(Consumer<Player> refresh) {
+        refreshWornHelmetView = refresh;
+    }
+
+    /**
+     * 適用済みの管理パックに含まれる Java 版の着用ヘルメット用モデルIDを返します。
+     * パケット送信スレッドから参照できます。
+     *
+     * @param playerId 閲覧者のUUID
+     * @return 着用モデルの不変集合。未適用・非対応なら空集合
+     */
+    public Set<Integer> wornHelmetModels(UUID playerId) {
+        return readyJavaWornHelmetModels.getOrDefault(playerId, Set.of());
     }
 
     /**
@@ -720,6 +762,8 @@ public class ResourcePackService {
     public void forgetViewer(UUID playerId) {
         pendingViewers.remove(playerId);
         loadedManagedJavaPacks.remove(playerId);
+        requestedJavaWornHelmetModels.remove(playerId);
+        readyJavaWornHelmetModels.remove(playerId);
         requestedActionRingPanels.remove(playerId);
         requestedGuiThemes.remove(playerId);
         requestedGameplaySounds.remove(playerId);

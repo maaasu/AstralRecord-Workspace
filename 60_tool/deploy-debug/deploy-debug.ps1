@@ -427,6 +427,7 @@ function Publish-ResourcePacks {
     $questTrackingHud = $null
     $locationHud = $null
     $wideCombatMeter = $null
+    $wornHelmetModels = $null
     $archive = [IO.Compression.ZipFile]::OpenRead($java)
     try {
         $panelEntry = $archive.GetEntry('action-ring-panel.sha256')
@@ -591,6 +592,23 @@ function Publish-ResourcePacks {
             )) {
                 $entry = $archive.GetEntry($asset)
                 if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing Location HUD asset in Java pack: $asset" }
+            }
+        }
+        $helmetEntry = $archive.GetEntry('worn-helmet-models.json')
+        if ($null -ne $helmetEntry) {
+            $reader = [IO.StreamReader]::new($helmetEntry.Open())
+            try { $wornHelmetModels = ConvertFrom-Json -InputObject ($reader.ReadToEnd()) -NoEnumerate }
+            finally { $reader.Dispose() }
+            if ($wornHelmetModels -isnot [array] -or $wornHelmetModels.Count -eq 0) {
+                throw 'Java worn helmet model list must be a non-empty JSON array.'
+            }
+            $previousModel = 0
+            foreach ($model in $wornHelmetModels) {
+                if (($model -isnot [int] -and $model -isnot [long]) -or
+                    $model -le $previousModel -or $model -gt 16777215) {
+                    throw 'Java worn helmet model numbers must be unique, ascending positive integers up to 16777215.'
+                }
+                $previousModel = $model
             }
         }
         $profileEntry = $archive.GetEntry('player-progress-hud-version.txt')
@@ -780,6 +798,9 @@ function Publish-ResourcePacks {
     }
     if ($null -ne $wideCombatMeter) {
         $javaManifest.wideCombatMeter = $wideCombatMeter
+    }
+    if ($null -ne $wornHelmetModels) {
+        $javaManifest.wornHelmetModels = $wornHelmetModels
     }
     [ordered]@{
         java = $javaManifest
