@@ -13,8 +13,7 @@
       "base_item": "minecraft:bow",
       "custom_model_data": 21002,
       "java_virtual_trident": true,
-      "grip": [5.94, 8, 8],
-      "java_gui_sprite": true
+      "grip": [5.94, 8, 8]
     },
     {
       "id": "nox_staff",
@@ -138,8 +137,7 @@
         6.1,
         9,
         8
-      ],
-      "java_gui_sprite": true
+      ]
     },
     {
       "id": "middle_earth_wand",
@@ -161,8 +159,7 @@
         6.5,
         8,
         8
-      ],
-      "java_gui_sprite": true
+      ]
     },
     {
       "id": "anarion_spear",
@@ -262,8 +259,7 @@
         6.35,
         8,
         8
-      ],
-      "java_gui_sprite": true
+      ]
     },
     {
       "id": "eriva_longbow",
@@ -274,8 +270,7 @@
         5.5,
         10,
         8
-      ],
-      "java_gui_sprite": true
+      ]
     },
     {
       "id": "eriva_wand",
@@ -341,8 +336,7 @@
         5.65,
         8,
         8
-      ],
-      "java_gui_sprite": true
+      ]
     },
     {
       "id": "lapis_longbow",
@@ -540,8 +534,7 @@
         6.2,
         8,
         8
-      ],
-      "java_gui_sprite": true
+      ]
     },
     {
       "id": "lumina_longbow",
@@ -552,8 +545,7 @@
         5.9,
         10,
         8
-      ],
-      "java_gui_sprite": true
+      ]
     },
     {
       "id": "astra_shortbow",
@@ -564,8 +556,7 @@
         6.15,
         8,
         8
-      ],
-      "java_gui_sprite": true
+      ]
     },
     {
       "id": "astra_longbow",
@@ -576,8 +567,7 @@
         5.8,
         10,
         8
-      ],
-      "java_gui_sprite": true
+      ]
     },
     {
       "id": "nox_armor_helmet",

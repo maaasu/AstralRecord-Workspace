@@ -38,6 +38,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryCreativeEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
@@ -90,6 +91,8 @@ public class ItemStackPacketAdapter {
     private static final int PLAYER_INVENTORY_WINDOW_ID = 0;
     private static final int PLAYER_INVENTORY_DIRECT_WINDOW_ID = -2;
     private static final int PLAYER_INVENTORY_HOTBAR_START_SLOT = 36;
+    private static final int PLAYER_INVENTORY_OFFHAND_SLOT = 45;
+    private static final int PLAYER_INVENTORY_DIRECT_OFFHAND_SLOT = 40;
 
     private final Plugin plugin;
     private final PlayerSettingService playerSettingService;
@@ -98,6 +101,7 @@ public class ItemStackPacketAdapter {
     private final ItemService itemService;
     private final ResourcePackService resourcePacks;
     private final CartographHeldMap cartographHeldMap;
+    private final BackQuiverPresentation backQuiver;
     private final Map<UUID, Set<String>> permittedSkillSnapshots = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> bedrockSnapshots = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> actionRingHoldEligibleSnapshots = new ConcurrentHashMap<>();
@@ -132,6 +136,8 @@ public class ItemStackPacketAdapter {
         this.itemService = itemService;
         this.resourcePacks = resourcePacks;
         this.cartographHeldMap = cartographHeldMap;
+        this.backQuiver = new BackQuiverPresentation(
+            plugin, resourcePacks, this::isBedrockViewerOnMainThread, this::refreshOffHand);
     }
 
     /**
@@ -209,7 +215,9 @@ public class ItemStackPacketAdapter {
                         randomStatusRangeDisplayEnabled,
                         tooltip,
                         cartograph,
-                        hotbarSlot
+                        hotbarSlot,
+                        !bedrockViewer && isOffHandSlotUpdate(packet)
+                            && backQuiver.isProjected(viewer.getUniqueId(), viewer.getEntityId())
                     );
                 } else if (type == PacketType.Play.Server.WINDOW_ITEMS) {
                     handleWindowItems(
@@ -221,7 +229,8 @@ public class ItemStackPacketAdapter {
                         bedrockViewer,
                         randomStatusRangeDisplayEnabled,
                         tooltip,
-                        cartograph
+                        cartograph,
+                        !bedrockViewer && backQuiver.isProjected(viewer.getUniqueId(), viewer.getEntityId())
                     );
                 } else if (type == PacketType.Play.Server.ENTITY_EQUIPMENT) {
                     handleEntityEquipment(
@@ -275,8 +284,20 @@ public class ItemStackPacketAdapter {
                 });
             }
 
+            /**
+             * クリエイティブの配置・ドロップで返送された矢筒を通常のアイテムモデルに戻します。
+             *
+             * @param event クライアントからアイテムが返送されたクリエイティブ操作
+             */
+            @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+            public void onInventoryCreative(@NotNull InventoryCreativeEvent event) {
+                ItemStack restored = BackQuiverPresentation.restoreCreativeProjection(event.getCursor());
+                if (restored != null) event.setCursor(restored);
+            }
+
             @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
             public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
+                backQuiver.forget(event.getPlayer());
                 selectedHotbarSlots.remove(event.getPlayer().getUniqueId());
                 permittedSkillSnapshots.remove(event.getPlayer().getUniqueId());
                 bedrockSnapshots.remove(event.getPlayer().getUniqueId());
@@ -292,9 +313,20 @@ public class ItemStackPacketAdapter {
             1L,
             1L
         );
+        plugin.getServer().getScheduler().runTaskTimer(
+            plugin,
+            backQuiver::update,
+            BackQuiverPresentation.UPDATE_TICKS,
+            BackQuiverPresentation.UPDATE_TICKS
+        );
 
         registered = true;
         Logger.log(LogId.I_5210);
+    }
+
+    /** メインスレッドで背負い矢筒の表示を破棄し、閲覧者の副手を再同期します。 */
+    public void stop() {
+        backQuiver.clear();
     }
 
     /**
@@ -389,6 +421,7 @@ public class ItemStackPacketAdapter {
      * @param tooltip 受信者の装飾方式。パックが使えない場合は null
      * @param cartograph 選択中カルトグラフの送信情報
      * @param hotbarSlot 対象スロット。ホットバー外は負値
+     * @param projectOffHand 背負い表示を追跡済みの本人向け副手スロットならtrue
      */
     private void handleSetSlot(
         @NotNull PacketContainer packet,
@@ -399,7 +432,8 @@ public class ItemStackPacketAdapter {
         boolean randomStatusRangeDisplayEnabled,
         @Nullable ItemTooltipPresentation tooltip,
         @Nullable CartographHeldMap.Projection cartograph,
-        int hotbarSlot
+        int hotbarSlot,
+        boolean projectOffHand
     ) {
         var original = packet.getItemModifier().readSafely(0);
         if (original == null || original.getType() == Material.AIR) {
@@ -408,6 +442,7 @@ public class ItemStackPacketAdapter {
 
         var replaced = replaceIcon(original, armor, virtualTrident, permittedSkillIds, bedrockViewer,
             randomStatusRangeDisplayEnabled, tooltip);
+        if (projectOffHand) replaced = BackQuiverPresentation.projectOffHand(original, replaced);
         replaced = applyCartograph(cartograph, hotbarSlot, original, replaced);
         if (replaced != null) {
             packet.getItemModifier().writeSafely(0, replaced);
@@ -426,6 +461,7 @@ public class ItemStackPacketAdapter {
      * @param randomStatusRangeDisplayEnabled ランダムステータス範囲行を表示する場合は {@code true}
      * @param tooltip 受信者の装飾方式。パックが使えない場合は null
      * @param cartograph 選択中カルトグラフの送信情報
+     * @param projectOffHand 本人の背負い表示を追跡済みならtrue
      */
     private void handleWindowItems(
         @NotNull PacketContainer packet,
@@ -436,16 +472,19 @@ public class ItemStackPacketAdapter {
         boolean bedrockViewer,
         boolean randomStatusRangeDisplayEnabled,
         @Nullable ItemTooltipPresentation tooltip,
-        @Nullable CartographHeldMap.Projection cartograph
+        @Nullable CartographHeldMap.Projection cartograph,
+        boolean projectOffHand
     ) {
         // カーソルで保持しているスタックにも、受信者の表示設定を適用します。
         handleSetSlot(packet, armor, false, permittedSkillIds, bedrockViewer,
-            randomStatusRangeDisplayEnabled, tooltip, null, -1);
+            randomStatusRangeDisplayEnabled, tooltip, null, -1, false);
         var items = packet.getItemListModifier().readSafely(0);
         if (items == null || items.isEmpty()) {
             return;
         }
 
+        boolean projectPlayerOffHand = projectOffHand
+            && Integer.valueOf(PLAYER_INVENTORY_WINDOW_ID).equals(packet.getIntegers().readSafely(0));
         var modified = false;
         for (int i = 0; i < items.size(); i++) {
             var original = items.get(i);
@@ -461,6 +500,9 @@ public class ItemStackPacketAdapter {
             );
             var replaced = replaceIcon(original, armor, virtualTrident, permittedSkillIds, bedrockViewer,
                 randomStatusRangeDisplayEnabled, tooltip);
+            if (projectPlayerOffHand && i == PLAYER_INVENTORY_OFFHAND_SLOT) {
+                replaced = BackQuiverPresentation.projectOffHand(original, replaced);
+            }
             replaced = applyCartograph(cartograph, hotbarSlot, original, replaced);
             if (replaced != null) {
                 items.set(i, replaced);
@@ -519,6 +561,7 @@ public class ItemStackPacketAdapter {
         }
 
         Player viewer = event.getPlayer();
+        boolean projectOffHand = !bedrockViewer && backQuiver.isProjected(viewer.getUniqueId(), entityId);
         boolean virtualizeSelectedMainHand = shouldVirtualizeSelectedMainHand(
             actionRingHoldSelectEnabled,
             selectedHotbarSlot,
@@ -530,10 +573,13 @@ public class ItemStackPacketAdapter {
             ItemStack original = pair.getSecond();
             boolean virtualTrident = virtualizeSelectedMainHand
                 && pair.getFirst() == EnumWrappers.ItemSlot.MAINHAND;
-            if (original != null && original.getType() != Material.AIR
-                && replaceIcon(original, armor, virtualTrident, permittedSkillIds, bedrockViewer,
-                    randomStatusRangeDisplayEnabled, null) != null) {
-                requiresOverride = true;
+            if (original != null && original.getType() != Material.AIR) {
+                ItemStack replaced = replaceIcon(original, armor, virtualTrident, permittedSkillIds, bedrockViewer,
+                    randomStatusRangeDisplayEnabled, null);
+                if (projectOffHand && pair.getFirst() == EnumWrappers.ItemSlot.OFFHAND) {
+                    replaced = BackQuiverPresentation.projectOffHand(original, replaced);
+                }
+                requiresOverride |= replaced != null;
             }
             updates.add(new EquipmentUpdate(
                 toBukkitEquipmentSlot(pair.getFirst()),
@@ -706,11 +752,7 @@ public class ItemStackPacketAdapter {
 
     private int hotbarSlotForSetSlot(@NotNull PacketContainer packet) {
         Integer windowId = packet.getIntegers().readSafely(0);
-        Integer slot = packet.getIntegers().readSafely(2);
-        if (slot == null) {
-            Short shortSlot = packet.getShorts().readSafely(0);
-            slot = shortSlot == null ? null : Short.toUnsignedInt(shortSlot);
-        }
+        Integer slot = containerSlot(packet);
         if (windowId == null || slot == null) {
             return -1;
         }
@@ -718,6 +760,35 @@ public class ItemStackPacketAdapter {
             return playerInventoryHotbarSlot(slot);
         }
         return windowId == PLAYER_INVENTORY_DIRECT_WINDOW_ID && slot >= 0 && slot < 9 ? slot : -1;
+    }
+
+    /**
+     * @param packet 単一スロットの更新
+     * @return 副手に対する本人のインベントリ更新ならtrue
+     */
+    private static boolean isOffHandSlotUpdate(PacketContainer packet) {
+        if (packet.getType() == PacketType.Play.Server.SET_PLAYER_INVENTORY) {
+            return Integer.valueOf(PLAYER_INVENTORY_DIRECT_OFFHAND_SLOT).equals(packet.getIntegers().readSafely(0));
+        }
+        if (packet.getType() != PacketType.Play.Server.SET_SLOT) return false;
+        Integer windowId = packet.getIntegers().readSafely(0);
+        Integer slot = containerSlot(packet);
+        return windowId != null && slot != null
+            && (windowId == PLAYER_INVENTORY_WINDOW_ID && slot == PLAYER_INVENTORY_OFFHAND_SLOT
+                || windowId == PLAYER_INVENTORY_DIRECT_WINDOW_ID && slot == PLAYER_INVENTORY_DIRECT_OFFHAND_SLOT);
+    }
+
+    /**
+     * @param packet SET_SLOT パケット
+     * @return パケットのインベントリスロット。読めない場合はnull
+     */
+    private static @Nullable Integer containerSlot(PacketContainer packet) {
+        Integer slot = packet.getIntegers().readSafely(2);
+        if (slot == null) {
+            Short shortSlot = packet.getShorts().readSafely(0);
+            slot = shortSlot == null ? null : Short.toUnsignedInt(shortSlot);
+        }
+        return slot;
     }
 
     /**
@@ -806,6 +877,24 @@ public class ItemStackPacketAdapter {
      */
     public void refreshEquipmentView(@NotNull Player viewer) {
         refreshEquipmentView(viewer, false);
+    }
+
+    /**
+     * 背負い表示の追跡が変わった受信者へ、対象者の副手をメインスレッドで再送します。
+     *
+     * @param viewer 副手表示の受信者
+     * @param wearer 装備者
+     */
+    private void refreshOffHand(Player viewer, Player wearer) {
+        if (!viewer.isOnline() || !wearer.isOnline() || viewer.getWorld() != wearer.getWorld()) return;
+        if (wearer == viewer) {
+            viewer.updateInventory();
+        } else if (!wearer.isTrackedBy(viewer)) {
+            return;
+        }
+        sendEquipmentOverride(viewer, wearer, List.of(new EquipmentUpdate(
+            EquipmentSlot.OFF_HAND, copyOrAir(wearer.getInventory().getItemInOffHand())
+        )));
     }
 
     /**
@@ -939,6 +1028,7 @@ public class ItemStackPacketAdapter {
         boolean bedrockViewer
     ) {
         ArmorPresentation armor = armorPresentation(viewer.getUniqueId(), bedrockViewer);
+        boolean projectOffHand = !bedrockViewer && backQuiver.isProjected(viewer.getUniqueId(), target.getEntityId());
         CartographHeldMap.Projection cartograph = target == viewer
             ? cartographHeldMap.projection(viewer.getUniqueId()) : null;
         Map<EquipmentSlot, ItemStack> equipment = new EnumMap<>(EquipmentSlot.class);
@@ -953,6 +1043,9 @@ public class ItemStackPacketAdapter {
                 playerSettingService.isRandomStatusRangeDisplayEnabled(viewer.getUniqueId()),
                 null
             );
+            if (projectOffHand && update.slot() == EquipmentSlot.OFF_HAND) {
+                replaced = BackQuiverPresentation.projectOffHand(update.item(), replaced);
+            }
             if (cartograph != null && update.slot() == EquipmentSlot.HAND) {
                 replaced = applyCartograph(cartograph, viewer.getInventory().getHeldItemSlot(), update.item(), replaced);
             }

@@ -179,15 +179,19 @@ Java 版は `astralrecord:shared_item` で専用の背景と枠を選び、`astr
 
 ### 武器の握り位置
 
-`java_virtual_trident: true` の武器は、台帳の `grip` に Java モデル座標の握りの中心を `[x, y, z]` で登録します。モデルは握りから先端が +Y 方向になるように作ります。ビルドは握りが形状の内側にあること、一人称・三人称それぞれの左右の手で基本素材の基準に収まることを確認します。位置はモデルの 0.5 px 以内、向きは基準ベクトルとの内積 0.95 以上です。弓では引き段階にも同じ検証を行います。新しい基本素材の武器には `item-model-grip-targets.json` に4つの表示姿勢の基準を登録します。
+`java_virtual_trident: true` の武器は、台帳の `grip` に Java モデル座標の握りの中心を `[x, y, z]` で登録します。モデルは握りから先端が +Y 方向になるように作ります。ビルドは握りが形状の内側にあること、一人称・三人称それぞれの左右の手で基準に収まることを確認します。位置はモデルの 0.5 px 以内、向きは基準ベクトルとの内積 0.95 以上です。弓では引き段階にも同じ検証を行います。`item-model-grip-targets.json` では基本素材ごとに4つの姿勢を登録します。同じ基本素材を使う道具と一人称の構えを分ける場合は `astralrecord:<id>` の行を使います。
 
 BE の対応するモデルは `grip` ルートを `[0, 0, 0]` に置き、`q.item_slot_to_bone_name(context.item_slot)` で手にバインドします。握りのキューブはこの原点を含め、待機アニメーションで `grip` を `[0, 24, 0]` 付近に置きます。三人称ではバニラの手の前端まで、Z を最大 3 px 前に出せます。`first_person` と `third_person` はそれぞれ `context.is_first_person` と `!context.is_first_person` で1回ずつ有効にし、待機中はループさせます。縮尺を指定する場合は全軸を 0.5～2.0 に収めます。攻撃や弓を引く動作は待機姿勢の `grip` を維持します。[Mojang のヒューマノイドモデル](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/models/entity/humanoid.custom.geo.json)
 
 ビルドはモデルの +Y 軸を基準に姿勢を検証します。一人称の主手では通常の腕の回転を合成し、上向き成分を 0.8 以上、奥行き成分の絶対値を 0.5 以下にします。三人称では手のローカル座標で前向きの成分を 0.8 以上にします。形状の先端と刃や弓の面は Blockbench でも確認します。[Mojang の一人称アニメーション](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/animations/player_firstperson.animation.json)
 
-副手用の補助装備4点は、一人称の手持ち縮尺を 0.62、三人称を 0.86 にしています。Java 版は左右の握りと装飾面の向きを確認し、盾を使用すると手持ち姿勢だけを変える子モデルに切り替えます。統合版は一人称で主手・副手を分け、盾の一人称防御姿勢も切り替えます。盾の姿勢はバニラの握り位置を専用モデルの原点に換算したものです。統合版の三人称ではプレイヤーの手にバインドします。防御時に腕を上げる動作は Geyser 経由の実クライアントで未確認です。 [Mojang の盾アニメーション](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/animations/shield.animation.json) · [Mojang のプレイヤー制御](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/animation_controllers/player.animation_controllers.json)
+副手用の補助装備4点も、握りの位置を基準に一人称の構えを調整します。Java 版は左右の握りと装飾面の向きを確認し、盾を使用すると手持ち姿勢だけを変える子モデルに切り替えます。統合版は一人称で主手・副手を分け、盾の一人称防御姿勢も切り替えます。盾の姿勢はバニラの握り位置を専用モデルの原点に換算したものです。統合版の通常の三人称手持ちはプレイヤーの手にバインドします。防御時に腕を上げる動作は Geyser 経由の実クライアントで未確認です。 [Mojang の盾アニメーション](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/animations/shield.animation.json) · [Mojang のプレイヤー制御](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/animation_controllers/player.animation_controllers.json)
 
-アクションリングの長押し設定が有効で候補が2つ以上の場合、本人の選択中の武器を仮想トライデントとして送ります。JE は `java_virtual_trident` を指定した武器の待機モデルを表示できます。`java_gui_sprite` を指定した弓は、通常時と仮想トライデントで選択中のホットバーに同じ弦付きアイコンを表示します。パック形式 83 以降もオーバーレイで通常のトライデント表示を維持します。
+ヴェノムの矢筒は、副手に装備すると斜めに背負います。Java 版は `back-quiver-version.txt` の値 `1` を収録し、配布マニフェストの `java.backQuiver` が `true` の管理パックを適用した接続で、Plugin が胴体に追従する ItemDisplay の FIXED 表示を使います。統合版は `venom_quiver_back.bedrock.bbmodel` から書き出した `body` にバインドする形状を三人称の副手で選びます。どちらも所持品では通常の絵柄を表示します。[Microsoft Learn の attachable](https://learn.microsoft.com/minecraft/creator/documents/attachables)
+
+弓・弩12点のうち、Java 版の11点は弦と弓身の開口が読める3Dの GUI 姿勢を使います。サンクラウン弓は王冠と弦を描き分けた専用アイコンを使います。統合版は同じ意匠を32 pxのアトラス用アイコンに収めています。
+
+アクションリングの長押し設定が有効で候補が2つ以上の場合、本人の選択中の武器を仮想トライデントとして送ります。JE は `java_virtual_trident` を指定した武器の待機モデルを表示できます。通常時と仮想トライデントで選択中のホットバーには同じアイコンを表示します。パック形式 83 以降もオーバーレイで通常のトライデント表示を維持します。
 
 BE では仮想トライデントで長押し入力を受け取りながら、主手の表示を `astralrecord:held_weapon_model` のモデル番号で切り替えます。番号が 0、対象武器の登録外、または副手の場合は、バニラのトライデントのモデルと使用アニメーションを使います。ビルドは `java_virtual_trident: true` の武器だけで切り替えを生成し、Geyser 用カタログに各アイテムの `held_weapon` を出力します。各武器の attachable の `first_person`、`third_person`、`attack` とその条件を再利用します。これらが使う変数は `scripts.pre_animation` で、配列の各要素につき1回の変数代入で設定します。弓の引き絵は実際に弓を使用しているときに適用されます。 [Mojang のトライデント定義](https://github.com/Mojang/bedrock-samples/blob/a3b394c507a6b11a3c6f61552e778ff5c4b89fd2/resource_pack/attachables/trident.entity.json)
 

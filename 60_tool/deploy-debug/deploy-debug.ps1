@@ -428,6 +428,7 @@ function Publish-ResourcePacks {
     $locationHud = $null
     $wideCombatMeter = $null
     $wornHelmetModels = $null
+    $backQuiver = $false
     $archive = [IO.Compression.ZipFile]::OpenRead($java)
     try {
         $panelEntry = $archive.GetEntry('action-ring-panel.sha256')
@@ -662,6 +663,15 @@ function Publish-ResourcePacks {
                 if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing profile HUD asset in Java pack: $asset" }
             }
         }
+        $backQuiverEntry = $archive.GetEntry('back-quiver-version.txt')
+        if ($null -ne $backQuiverEntry) {
+            if ($backQuiverEntry.Length -ne 1) { throw 'Invalid back quiver version in Java pack.' }
+            $reader = [IO.StreamReader]::new($backQuiverEntry.Open())
+            try { $backQuiverVersion = $reader.ReadToEnd() }
+            finally { $reader.Dispose() }
+            if ($backQuiverVersion -cne '1') { throw 'Unsupported back quiver version.' }
+            $backQuiver = $true
+        }
         $meterEntry = $archive.GetEntry('wide-combat-meter-version.txt')
         if ($null -ne $meterEntry) {
             if ($profileHud -cnotin @('2', '3', '4', '5', '6') -or $meterEntry.Length -ne 1) {
@@ -801,6 +811,9 @@ function Publish-ResourcePacks {
     }
     if ($null -ne $wornHelmetModels) {
         $javaManifest.wornHelmetModels = $wornHelmetModels
+    }
+    if ($backQuiver) {
+        $javaManifest.backQuiver = $true
     }
     [ordered]@{
         java = $javaManifest

@@ -38,8 +38,8 @@ public class ResourcePackService {
     private final ConfigProperties configProperties;
     private final ResourcePackRepository repository = new ResourcePackRepository();
     private final Set<UUID> loadedManagedJavaPacks = ConcurrentHashMap.newKeySet();
-    private final Map<UUID, Set<Integer>> requestedJavaWornHelmetModels = new HashMap<>();
-    private final Map<UUID, Set<Integer>> readyJavaWornHelmetModels = new ConcurrentHashMap<>();
+    private final Map<UUID, JavaEquipmentModels> requestedJavaEquipmentModels = new HashMap<>();
+    private final Map<UUID, JavaEquipmentModels> readyJavaEquipmentModels = new ConcurrentHashMap<>();
     private final Map<UUID, String> requestedActionRingPanels = new ConcurrentHashMap<>();
     private final Map<UUID, String> requestedGuiThemes = new ConcurrentHashMap<>();
     private final Set<UUID> requestedGameplaySounds = ConcurrentHashMap.newKeySet();
@@ -69,6 +69,10 @@ public class ResourcePackService {
     private final Map<UUID, Player> pendingViewers = new LinkedHashMap<>();
     private Consumer<Player> refreshWornHelmetView = player -> {};
     private boolean manifestLoading;
+
+    private record JavaEquipmentModels(Set<Integer> wornHelmets, boolean backQuiver) {
+        private static final JavaEquipmentModels NONE = new JavaEquipmentModels(Set.of(), false);
+    }
 
     /**
      * リソースパックサービスを生成します。
@@ -150,13 +154,13 @@ public class ResourcePackService {
                     UUID viewer = player.getUniqueId();
                     boolean hadItemTooltips = hasJavaItemTooltips(viewer);
                     loadedManagedJavaPacks.remove(viewer);
-                    requestedJavaWornHelmetModels.remove(viewer);
-                    boolean hadWornHelmetModels = readyJavaWornHelmetModels.remove(viewer) != null;
+                    requestedJavaEquipmentModels.remove(viewer);
+                    JavaEquipmentModels previousEquipmentModels = readyJavaEquipmentModels.remove(viewer);
                     requestedJavaItemTooltips.remove(viewer);
                     requestedJavaProfileHud.remove(viewer);
                     requestedJavaLocationHud.remove(viewer);
                     requestedJavaQuestHud.remove(viewer);
-                    if (hadWornHelmetModels) {
+                    if (previousEquipmentModels != null && !previousEquipmentModels.wornHelmets().isEmpty()) {
                         refreshWornHelmetView.accept(player);
                     } else if (hadItemTooltips) {
                         player.updateInventory();
@@ -203,8 +207,9 @@ public class ResourcePackService {
                     }
                     player.addResourcePack(MANAGED_JAVA_PACK_ID, url, HexFormat.of().parseHex(pack.sha1()),
                             blankToNull(configProperties.getResourcePackPrompt()), configProperties.isResourcePackForce());
-                    if (!pack.wornHelmetModels().isEmpty()) {
-                        requestedJavaWornHelmetModels.put(viewer, pack.wornHelmetModels());
+                    if (!pack.wornHelmetModels().isEmpty() || pack.backQuiver()) {
+                        requestedJavaEquipmentModels.put(viewer,
+                            new JavaEquipmentModels(pack.wornHelmetModels(), pack.backQuiver()));
                     }
                     if (pack.sunbirdPresentation()) {
                         requestedSunbirdPresentation.add(viewer);
@@ -305,9 +310,9 @@ public class ResourcePackService {
             switch (status) {
                 case SUCCESSFULLY_LOADED -> {
                     loadedManagedJavaPacks.add(viewer);
-                    Set<Integer> helmetModels = requestedJavaWornHelmetModels.get(viewer);
-                    if (helmetModels != null) {
-                        readyJavaWornHelmetModels.put(viewer, helmetModels);
+                    JavaEquipmentModels equipmentModels = requestedJavaEquipmentModels.get(viewer);
+                    if (equipmentModels != null) {
+                        readyJavaEquipmentModels.put(viewer, equipmentModels);
                     }
                     if (requestedSunbirdPresentation.contains(viewer)) {
                         loadedSunbirdPresentation.add(viewer);
@@ -315,8 +320,8 @@ public class ResourcePackService {
                 }
                 case DECLINED, FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD, DISCARDED -> {
                     loadedManagedJavaPacks.remove(viewer);
-                    requestedJavaWornHelmetModels.remove(viewer);
-                    readyJavaWornHelmetModels.remove(viewer);
+                    requestedJavaEquipmentModels.remove(viewer);
+                    readyJavaEquipmentModels.remove(viewer);
                     loadedSunbirdPresentation.remove(viewer);
                     requestedSeleneaPresentation.remove(viewer);
                     requestedJavaArchmagePhoenixPresentation.remove(viewer);
@@ -374,7 +379,17 @@ public class ResourcePackService {
      * @return 着用モデルの不変集合。未適用・非対応なら空集合
      */
     public Set<Integer> wornHelmetModels(UUID playerId) {
-        return readyJavaWornHelmetModels.getOrDefault(playerId, Set.of());
+        return readyJavaEquipmentModels.getOrDefault(playerId, JavaEquipmentModels.NONE).wornHelmets();
+    }
+
+    /**
+     * Java 版の背負い矢筒を含む管理パックの適用が成功したか判定します。
+     *
+     * @param playerId 閲覧者のUUID
+     * @return 対応パックの適用成功後はtrue
+     */
+    public boolean hasJavaBackQuiver(UUID playerId) {
+        return readyJavaEquipmentModels.getOrDefault(playerId, JavaEquipmentModels.NONE).backQuiver();
     }
 
     /**
@@ -762,8 +777,8 @@ public class ResourcePackService {
     public void forgetViewer(UUID playerId) {
         pendingViewers.remove(playerId);
         loadedManagedJavaPacks.remove(playerId);
-        requestedJavaWornHelmetModels.remove(playerId);
-        readyJavaWornHelmetModels.remove(playerId);
+        requestedJavaEquipmentModels.remove(playerId);
+        readyJavaEquipmentModels.remove(playerId);
         requestedActionRingPanels.remove(playerId);
         requestedGuiThemes.remove(playerId);
         requestedGameplaySounds.remove(playerId);

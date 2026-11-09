@@ -18,5 +18,6 @@ public sealed record JavaResourcePack(
     string? ReceptionDisplay = null,
     string? ArchmagePhoenixPresentation = null,
     string? LocationHud = null,
-    int[]? WornHelmetModels = null);
+    int[]? WornHelmetModels = null,
+    bool? BackQuiver = null);
 public sealed record BedrockResourcePack(string Sha256, Guid Uuid);

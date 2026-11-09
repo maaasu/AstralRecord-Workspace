@@ -15,7 +15,7 @@
             33.61537,
             -1.88192
           ],
-          "scale": 0.62
+          "scale": 0.5007
         }
       }
     },
@@ -33,7 +33,7 @@
             22.18554,
             "query.get_equipped_item_name == 'bow' && query.main_hand_item_use_duration > 0 ? -21.78238 : 8.31762"
           ],
-          "scale": 0.62
+          "scale": 0.5007
         }
       }
     },
@@ -51,7 +51,7 @@
             32.53314,
             -6.12154
           ],
-          "scale": 0.62
+          "scale": 0.5301
         }
       }
     },
@@ -69,7 +69,7 @@
             25.29316,
             "query.get_equipped_item_name == 'bow' && query.main_hand_item_use_duration > 0 ? -21.78238 : 9.81762"
           ],
-          "scale": 0.62
+          "scale": 0.5301
         }
       }
     },
