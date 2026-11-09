@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
@@ -165,6 +166,8 @@ public final class GuiOpenSupport {
 
     /**
      * 遷移元 GUI が引き続き開かれている場合だけ内部画面遷移を実行します。
+     * 統合版のコンテナ置換は明示的な OPEN_NEW close を先に送り、Geyser の終了 ACK 待機へ委ねます。
+     * close 中に新しい遷移や別 GUI が開かれた場合は、その画面を上書きしません。
      *
      * @param player 対象プレイヤー
      * @param source 遷移元 GUI
@@ -176,8 +179,38 @@ public final class GuiOpenSupport {
         @NotNull Inventory source,
         @NotNull Inventory target
     ) {
+        var astPlayer = AstPlayerCache.get(player);
+        return openIfSourceIsCurrent(player, source, target, astPlayer != null && astPlayer.isBedrock(),
+            inventory -> inventory.getType() == InventoryType.CRAFTING);
+    }
+
+    /**
+     * 版の判定と Paper の inventory 種別判定を境界に置き、共通の遷移順序を実行します。
+     * メインスレッドでのみ呼び出します。
+     * @param player 対象プレイヤー
+     * @param source 予約時の遷移元
+     * @param target 遷移先
+     * @param bedrock 統合版接続の場合 true
+     * @param isPlayerInventory 通常のプレイヤーインベントリかを判定する処理
+     * @return 遷移先を実際に表示できた場合 true
+     */
+    static boolean openIfSourceIsCurrent(
+        Player player, Inventory source, Inventory target, boolean bedrock,
+        Predicate<Inventory> isPlayerInventory
+    ) {
         if (!isSourceCurrent(player, source)) {
             return false;
+        }
+        if (bedrock && source != target && !isPlayerInventory.test(source)) {
+            // openInventory による暗黙の置換だけでは、Geyser が同じ Bedrock コンテナを再利用する場合があります。
+            // 明示 close を先に送ることで、Geyser の close ACK 待機を経由して target を開きます。
+            // 同じ tick で open まで進め、共有セッションと戻る履歴は切断しません。
+            player.closeInventory(InventoryCloseEvent.Reason.OPEN_NEW);
+            if (!player.isOnline()
+                || !isPlayerInventory.test(player.getOpenInventory().getTopInventory())
+                || PENDING_TRANSITIONS.containsKey(player.getUniqueId())) {
+                return false;
+            }
         }
         GuiResourcePackTitle.open(player, target);
         if (player.getOpenInventory().getTopInventory() != target) {
