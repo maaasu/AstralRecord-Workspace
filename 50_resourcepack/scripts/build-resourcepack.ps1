@@ -101,6 +101,7 @@ $java = Read-PackEntries $root @(
     'archmage-phoenix-presentation-version.txt'
     'combat-reward-plaque-version.txt'
     'fishing-visuals-version.txt'
+    'fishing-rod-tip-version.txt'
     'reception-display-version.txt'
     'assets/astralrecord/items/boss_reception_altar.json'
     'assets/astralrecord/items/dungeon_reception_gate.json'
@@ -502,6 +503,9 @@ if ($utf8.GetString($java[$fishingVersionMarker]) -cne '1') {
     throw 'Invalid fishing visuals version marker in resource pack.'
 }
 $bedrock.Add($fishingVersionMarker, $java[$fishingVersionMarker])
+if ($utf8.GetString($java['fishing-rod-tip-version.txt']) -cne '1') {
+    throw 'Invalid Java fishing rod tip version marker in resource pack.'
+}
 
 $receptionVersionMarker = 'reception-display-version.txt'
 if ($utf8.GetString($java[$receptionVersionMarker]) -cne '1') {

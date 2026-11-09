@@ -45,15 +45,15 @@
       "base_item": "minecraft:wooden_sword",
       "custom_model_data": 21001,
       "sha256": {
-        "assets/astralrecord/models/item/custom/nox_sword.json": "f8dad0ba5db5f25442006fa8cafc2275655ddd49c67d32dfc452c68b4d4fc818",
+        "assets/astralrecord/models/item/custom/nox_sword.json": "53489f578cf7b92f71ba89c3e8eb2f6409e681578971cd26a794feb75e798bc6",
         "assets/astralrecord/textures/item/custom/nox_sword.png": "4ce0efaff25c13076016e1dc8005cb8e2766c352abc1eac4f5172cd75e25ea33",
-        "bedrock/animations/nox_sword.animation.json": "0c01654469e6b55e8d80680be464ca5b4c76e9be4ce0a29db4bee3ffe133a8c1",
+        "bedrock/animations/nox_sword.animation.json": "4c00eb01200cf44f2bba7c9f98eec115546da5080de755ddc3f3353ef3616fc8",
         "bedrock/attachables/nox_sword.json": "01b0e42582275f3a77e2be4e733e3af21f33b0f1e45a8653b6e855dec07d69fe",
         "bedrock/models/entity/items/nox_sword.geo.json": "bbc63bab915c716c99cb8b4bc847d7df029790c926ed4a4cd4e018c806ad642d",
         "bedrock/textures/entity/items/nox_sword.png": "4ce0efaff25c13076016e1dc8005cb8e2766c352abc1eac4f5172cd75e25ea33",
         "bedrock/textures/items/nox_sword.png": "abee307c836fd1496d04b9b2f33bde47aafac8010c1342ab695a705862a0cc9d",
-        "blockbench/items/nox_sword.bedrock.bbmodel": "ee9637b3f9b3f9de2e11e7c0b0204e7189730cdb2e4a1d893bc276a54f9c2f51",
-        "blockbench/items/nox_sword.java.bbmodel": "773b269aa1e90eaf0f6dcb7ff98a90d31eb52d8e61af5242e1b82bb0751710d6"
+        "blockbench/items/nox_sword.bedrock.bbmodel": "18ac47fa06ead8e0b53600fa7e7ca18c0450110653457bdaca7c000de31d61ca",
+        "blockbench/items/nox_sword.java.bbmodel": "d0b8064ceac859e2a81ee63b53c1c7eb0dbbecbd7e3a37dcf8057046b34215dd"
       }
     },
     {
@@ -64,21 +64,21 @@
       "base_item": "minecraft:bow",
       "custom_model_data": 21002,
       "sha256": {
-        "assets/astralrecord/models/item/custom/nox_bow.json": "fb42d7d36dcdbeb913388078e2bf0ad85f6086bbc3192b36fa25224759fa650d",
-        "assets/astralrecord/models/item/custom/nox_bow_pull_0.json": "e4f0a6c580a5f7d5b6f4293b54c241a88d7561dc106fc00405e25c4eb5c948a3",
-        "assets/astralrecord/models/item/custom/nox_bow_pull_1.json": "1ae8010a34630e4abd5a7da785924c7b4c0e968ede12451dfccbf31774066808",
-        "assets/astralrecord/models/item/custom/nox_bow_pull_2.json": "694e9594b4d0c7710054a10494f2350fdcdf21f3daedc6a1602255c2acc6bc4f",
+        "assets/astralrecord/models/item/custom/nox_bow.json": "849199b1d6b0dd979f5888ab5ff1df91e1a0f1b7b68d75d075eefa336efe3bdf",
+        "assets/astralrecord/models/item/custom/nox_bow_pull_0.json": "5814a2eb2c003258bfdd69ba56322dcbde8554b4aa9e13ad0d92b7388bff470c",
+        "assets/astralrecord/models/item/custom/nox_bow_pull_1.json": "219e610e44f268799640318d7dd471da3d4cd7c66a8b43a8685643c3eaea54a5",
+        "assets/astralrecord/models/item/custom/nox_bow_pull_2.json": "e80334974b00bdd034def8dda11a6fc0d3c0bbf64e9b94650bae2a898e567b06",
         "assets/astralrecord/textures/item/custom/nox_bow.png": "2a5176c957ccef21d562dab815c4583b07775e7f09d3023238a0c9b7ce239f37",
-        "bedrock/animations/nox_bow.animation.json": "af090d6f6124347207fd2f3bd0ba5fe214fc45e63eb45c073dca78da0598ba65",
+        "bedrock/animations/nox_bow.animation.json": "b864405e37d7a41d56dc97ce4a0a3bf76b57bc0ea12f7a4b4db02c37fedea954",
         "bedrock/attachables/nox_bow.json": "96f0443baaa67c0686f6c8d7bc9e7cca2aa708193488e2295bbebae5c2a1bcba",
         "bedrock/models/entity/items/nox_bow.geo.json": "fe07d21646a807f2a0f6da26c51d1374028ea07210bb993c2103a945cb862769",
         "bedrock/textures/entity/items/nox_bow.png": "2a5176c957ccef21d562dab815c4583b07775e7f09d3023238a0c9b7ce239f37",
         "bedrock/textures/items/nox_bow.png": "ef0f07c5c5e3b84655b343513a19b09b7544f6f95e5d2908873dc93af4b55ab3",
-        "blockbench/items/nox_bow.bedrock.bbmodel": "f5448e88134f465967643cd47afb96788ba92a5c70f8a725720d3ef30efcd967",
-        "blockbench/items/nox_bow.java.bbmodel": "0f7c99a53d114bb8239f33d82799c5433be6d47e6e59c08bfc495b791c76f62a",
-        "blockbench/items/nox_bow_pull_0.java.bbmodel": "6e8476e513bbacb9fdc70f5f74c88d8753c805c181a8669eec62193b7b153134",
-        "blockbench/items/nox_bow_pull_1.java.bbmodel": "b1a2434a00d3b90905aa14b1e1b3feb95ab95fd87602d185bcb9c78bb7235b90",
-        "blockbench/items/nox_bow_pull_2.java.bbmodel": "ef764808e4c441d41370082b9e7d59d40f61793bd7e6f7c023e8c5726b8411fd"
+        "blockbench/items/nox_bow.bedrock.bbmodel": "1d231b230fe45aeca814a47d1fa80a359cf4b0b19e020b2bd74d6b8f267b6fdb",
+        "blockbench/items/nox_bow.java.bbmodel": "ffd7b057b6b824994ad9ee870c0d2a7d7634078c61cc525e637e5e9280e64113",
+        "blockbench/items/nox_bow_pull_0.java.bbmodel": "b4f78ff5a7f754ba8351432fb034b0b6fe8b68e88cab4208bcbe4c3964f294e8",
+        "blockbench/items/nox_bow_pull_1.java.bbmodel": "78d220e9411e3d796c95d5ef388c9e15e7d7c043965c5b4c5f9b627fb160a8c2",
+        "blockbench/items/nox_bow_pull_2.java.bbmodel": "d45ce2b5bc21406f2b49a55a503aaae2fe09ae023feec7580951a9ddb7d87278"
       }
     },
     {
@@ -89,15 +89,15 @@
       "base_item": "minecraft:wooden_shovel",
       "custom_model_data": 21003,
       "sha256": {
-        "assets/astralrecord/models/item/custom/nox_staff.json": "6f757bfac19192cdab7c7023ba4d05325e1e40bfeaabc2c5ee26a261dbbfa996",
+        "assets/astralrecord/models/item/custom/nox_staff.json": "fd7bcd5bd86f38ae9f65839bf5122cf2a1f97e99371e19a547b4592c5b68d782",
         "assets/astralrecord/textures/item/custom/nox_staff.png": "15c2217beb1ffa39b55b5c5177f12f6d8078b20a6caf120bcf4fda8cc330cb64",
-        "bedrock/animations/nox_staff.animation.json": "ca275785f224bd9452ac26d842835cc9e0086be43e077e2b6975a62ed8b80e09",
+        "bedrock/animations/nox_staff.animation.json": "b665e4504bdec7a0f3e7a62ed6be51caca809474d2f8427ed6a5911aa422caa6",
         "bedrock/attachables/nox_staff.json": "ffd056855d7a8c470d88540424d4fb426584ceab2118697a9cd553c1a0db8a3c",
         "bedrock/models/entity/items/nox_staff.geo.json": "117977e09c59c75511e9edf247c7619d9c89fdb61ef767ec480ca1dbcb7ced55",
         "bedrock/textures/entity/items/nox_staff.png": "15c2217beb1ffa39b55b5c5177f12f6d8078b20a6caf120bcf4fda8cc330cb64",
         "bedrock/textures/items/nox_staff.png": "db76de8e1e8d087fa3f803b90454f30d811a38ca3e2325211decf7a0b13a5033",
-        "blockbench/items/nox_staff.bedrock.bbmodel": "4317a3fa678e160fe3605afbdd0fd54e189248d78f04d455542a71a441ec2111",
-        "blockbench/items/nox_staff.java.bbmodel": "fc6f671ba3471e3a108a0299913fa1d08e9a5851707ab77de0fec1997872312d"
+        "blockbench/items/nox_staff.bedrock.bbmodel": "87537a2240246c993d75805c7e448052d06896608bd82943a664d3a1d95d2f52",
+        "blockbench/items/nox_staff.java.bbmodel": "2c77fde5613b2e3e6d1c36c7e8663ea6104f6222a062dd0bda1e88959d5b889f"
       }
     },
     {
@@ -264,16 +264,16 @@
       "base_item": "minecraft:stick",
       "custom_model_data": 220001,
       "sha256": {
-        "assets/astralrecord/models/item/custom/simple_weapon.json": "3fd62f28397bd9dc865d4361e94b996dd5c8fd800d721ac7ca7c19971257a924",
+        "assets/astralrecord/models/item/custom/simple_weapon.json": "7720b0367adee5bc567330bd66b19799ceea4135faf9b2787e5a2cfaab18ad58",
         "assets/astralrecord/textures/item/custom/simple_weapon.png": "28bc7ad645f4904acc86be48a6e4cc338283c77c376cc3f4b54e871b9359677e",
-        "bedrock/animations/simple_weapon.animation.json": "1b989c270c64b1a42b721bc52a496e540aa314409b0a44a548123ea8b7e535fa",
+        "bedrock/animations/simple_weapon.animation.json": "7742dee13012e65708955387e9b9f10a3250fc76a0c0e36508bba0582d1cf159",
         "bedrock/attachables/simple_weapon.json": "1c5f1baef6a1e40ec6b9d38efcf76a352ceb763de71cbba5c9b539b0ece60efe",
         "bedrock/models/entity/items/simple_weapon.geo.json": "0054b2a6108f052af4e27bb91ee56653849427eb8e3a59af820ba73312689b6e",
         "bedrock/textures/entity/items/simple_weapon.png": "28bc7ad645f4904acc86be48a6e4cc338283c77c376cc3f4b54e871b9359677e",
         "bedrock/textures/items/simple_weapon.png": "ba4aadfbb2fa6b54acdf5f1387e29b665b06991ee6106ee09a2e3b59ba5ddca5",
         "blockbench/equipment-drafts/simple_weapon.json": "515f3e16004ce4385982c21755616afbe24f20bd1a636760bbfb8b99847002e5",
-        "blockbench/items/simple_weapon.bedrock.bbmodel": "ead72f5ec2d882927834ec7817d5aa44f4893121784aa679c31383f6b63e7008",
-        "blockbench/items/simple_weapon.java.bbmodel": "70d4ec4ced79abe2d82cb726dc95ca0a9c57395c3999ad187c4003c4c8090bbe"
+        "blockbench/items/simple_weapon.bedrock.bbmodel": "5654b2ab2e5da34463ba7c4f4f87e0ba096cea8d13bdb8d39570c1ab6fd61afd",
+        "blockbench/items/simple_weapon.java.bbmodel": "051edb4acaeee7266c583d963f04f20a5e205c9756259a934a2509e1a7dd0cf7"
       }
     },
     {
@@ -284,16 +284,16 @@
       "base_item": "minecraft:mace",
       "custom_model_data": 220025,
       "sha256": {
-        "assets/astralrecord/models/item/custom/middle_earth_hammer.json": "56278213085071ed5a87fc8430b41128dad18b883e700b96ab3c2dbc7281bf2d",
+        "assets/astralrecord/models/item/custom/middle_earth_hammer.json": "414718ed1d314dd89c7f5226f524a5b204b71c3b37c7e1ca713c572abe9f3f46",
         "assets/astralrecord/textures/item/custom/middle_earth_hammer.png": "9c3b2a80d6d71eb6c34d4a757767fb9c09227353aca9abe87782e5bc0ff9efc0",
-        "bedrock/animations/middle_earth_hammer.animation.json": "ba77c0e6709c337c6b13944cdab0dec749acdbc2bb61fa96741af2caf3dc9458",
+        "bedrock/animations/middle_earth_hammer.animation.json": "8b92639c4ab42e8d92fe9b77b1def9580a4afd4ed391e737081fa2ef16388240",
         "bedrock/attachables/middle_earth_hammer.json": "032f026bd5e36d3b978b7db0d27ea4b5d29cc78a02dfa201658f279c63969e5a",
         "bedrock/models/entity/items/middle_earth_hammer.geo.json": "2c4995729e6484ae80191b9359131338d70794f5b1b3ec5b0ae27e71f673dc03",
         "bedrock/textures/entity/items/middle_earth_hammer.png": "9c3b2a80d6d71eb6c34d4a757767fb9c09227353aca9abe87782e5bc0ff9efc0",
         "bedrock/textures/items/middle_earth_hammer.png": "8280e88f8636b2ff28a3b1009cb4e224268e25bdce56f518b2c5f9de0c48dba3",
         "blockbench/equipment-drafts/middle_earth_hammer.json": "657c3c37eaf7837c7f668095d836277041bf85aff545d943d20859492b57b8d3",
-        "blockbench/items/middle_earth_hammer.bedrock.bbmodel": "cd25595a663a3aa73d8fcf402d27eb2da6962172bba7e13b30e0eedc2315cd3c",
-        "blockbench/items/middle_earth_hammer.java.bbmodel": "8a9aa907c7428750c1d7934190edefc70d1ba0ac8650a285c3ff403678f58d32"
+        "blockbench/items/middle_earth_hammer.bedrock.bbmodel": "ccb60df90dc239f380da6afe6f9a07f6525004e817d38d088eb3ee9236e9d97c",
+        "blockbench/items/middle_earth_hammer.java.bbmodel": "553f8244afff39053f38945c116e61b433c34ec543d409dcf63646af1abd2395"
       }
     },
     {
@@ -304,22 +304,22 @@
       "base_item": "minecraft:bow",
       "custom_model_data": 220026,
       "sha256": {
-        "assets/astralrecord/models/item/custom/middle_earth_longbow.json": "a23f21c3dd80b57bf02e264294ffbfeb9c6c9e46aa7957b4f30add184c513a15",
-        "assets/astralrecord/models/item/custom/middle_earth_longbow_pull_0.json": "2ad85bacf85bffea09e43a733644aeaca567cc84555a5e71c2a1e663f73fcce0",
-        "assets/astralrecord/models/item/custom/middle_earth_longbow_pull_1.json": "c16ac8b808e17fbb23f6382379e9e341920a60f6b1be88a2402de7c176de4695",
-        "assets/astralrecord/models/item/custom/middle_earth_longbow_pull_2.json": "7a5c78e98738d790ce0f9d524cd58842a736ab9b5afbd8a3dd9d395eab639be5",
+        "assets/astralrecord/models/item/custom/middle_earth_longbow.json": "787994e58ae4338a85039d3c49a4410d0859bd8c085103b75db3d5b3c5086bb7",
+        "assets/astralrecord/models/item/custom/middle_earth_longbow_pull_0.json": "99aa321e0c8b699befccbb63f49fa7fb9b8cbfe2381adfac9990eefad99a1bba",
+        "assets/astralrecord/models/item/custom/middle_earth_longbow_pull_1.json": "ee0bb91e4cca15f2d8c37e1c81501360576fc77fecdd8d9e90153db96c2e0ee8",
+        "assets/astralrecord/models/item/custom/middle_earth_longbow_pull_2.json": "49f751b95e199359b376fe9f215f3ee7d0e99783cb7f814b8d2fdfeeadb4c8e1",
         "assets/astralrecord/textures/item/custom/middle_earth_longbow.png": "7fd8f650d747e31f0efe5adb34b987e409f2c4b903e2476b8ec978b52c60c4ff",
-        "bedrock/animations/middle_earth_longbow.animation.json": "15d91d328587b93c647bb47ebf8b827664b0a11debd2c307dd6b5c86c30799f3",
+        "bedrock/animations/middle_earth_longbow.animation.json": "09f2e1244e0af159e5e3734116247eb4caec92b2c4693acf81a419887d4c0c0c",
         "bedrock/attachables/middle_earth_longbow.json": "ad3dc9520311981319101c59050ee007be4df3bd4c63c5c907dce6e5f71675f9",
         "bedrock/models/entity/items/middle_earth_longbow.geo.json": "b40601035fe664bacc07d0e07d773eac05a2f62f973a732e08b49713e7721f7c",
         "bedrock/textures/entity/items/middle_earth_longbow.png": "7fd8f650d747e31f0efe5adb34b987e409f2c4b903e2476b8ec978b52c60c4ff",
         "bedrock/textures/items/middle_earth_longbow.png": "6d551ce8b474baa685ab89549a01a4d609d4a8498dd7582b53533ff9dec2fc63",
         "blockbench/equipment-drafts/middle_earth_longbow.json": "a4c7c0ab7ae8d5211e1ed704eca969c680bd7d9aa504a93b53e40b0bd55d780d",
-        "blockbench/items/middle_earth_longbow.bedrock.bbmodel": "487fee81b2c3605f2c16691005a585cb45b2691affd3eea739f1258892be4f9e",
-        "blockbench/items/middle_earth_longbow.java.bbmodel": "f0864aa88e816d924382bad36c05268161da04b838269de67ba3cba74f35ae11",
-        "blockbench/items/middle_earth_longbow_pull_0.java.bbmodel": "89002ce5c2ed14c21b8a7d0a0c1fb33eaaa4dc53e8acab578eac5da634ce41dc",
-        "blockbench/items/middle_earth_longbow_pull_1.java.bbmodel": "862a0e2a7d96c9cc5ce40b2f77bd9c733cae33bc49bbe8ed78de7948cbb35a9d",
-        "blockbench/items/middle_earth_longbow_pull_2.java.bbmodel": "9b0718d0fa61964e6bd939736997d6d8064a444444d39a263900fa7bab1dfe8e"
+        "blockbench/items/middle_earth_longbow.bedrock.bbmodel": "b96c4a4dd1e66a990e9a280805140c371c854331ad4a7f0257e0abd95b8992eb",
+        "blockbench/items/middle_earth_longbow.java.bbmodel": "0a2cf5ff8954a5d8889533b80f786dfe6c90054f37881d1496402b47e4545376",
+        "blockbench/items/middle_earth_longbow_pull_0.java.bbmodel": "c60a64cf9092d706a7ca77095287728562f23e40cf9885aaff91a34b66215308",
+        "blockbench/items/middle_earth_longbow_pull_1.java.bbmodel": "afd1ea8fa0650d0de17c27edfffe809968bf08da8428e9da07d19d1fe9e9cb9b",
+        "blockbench/items/middle_earth_longbow_pull_2.java.bbmodel": "72f91ce307b3749defb98a1f3436ff5388652eaa6eaf6b7150b6696cd97a92e8"
       }
     },
     {
@@ -330,16 +330,16 @@
       "base_item": "minecraft:blaze_rod",
       "custom_model_data": 220029,
       "sha256": {
-        "assets/astralrecord/models/item/custom/middle_earth_wand.json": "36ba0988dbcf21b4c4047542c998707e7c9b91d412c8a99e33091c259b632444",
+        "assets/astralrecord/models/item/custom/middle_earth_wand.json": "e2ded902e43dba9c3acbfce6cc72fad8d5faa7d5242d7486f82a844543eccbec",
         "assets/astralrecord/textures/item/custom/middle_earth_wand.png": "cfbb71bca7604906deaf0fbeb3b8e45943980ad6a20fafc19660f38999e00421",
-        "bedrock/animations/middle_earth_wand.animation.json": "790beb2d3aea49a540172b2291e2f0a455a882a7dbc98c373ebf36ddc9dc038a",
+        "bedrock/animations/middle_earth_wand.animation.json": "6e875b24b30086b9b9640a88b503ef4c71bf548bdc49aa480664cb0eb202850b",
         "bedrock/attachables/middle_earth_wand.json": "95a172737e49ea86cde1cfb9086229b5b408686c6d0659d2fef7e4f0f5f0b91c",
         "bedrock/models/entity/items/middle_earth_wand.geo.json": "b170c5281b8c2ada4e02b42caf1bd40b608380b6bd9d5b849e0a1a31b72212d6",
         "bedrock/textures/entity/items/middle_earth_wand.png": "cfbb71bca7604906deaf0fbeb3b8e45943980ad6a20fafc19660f38999e00421",
         "bedrock/textures/items/middle_earth_wand.png": "6e6150fe4a9debdc20aae3519b82a4ef8ce3b25d57563c91bcaaa630a2ffc7a9",
         "blockbench/equipment-drafts/middle_earth_wand.json": "b14e7392bf73a698fa82d0f87d6750e32be6215dff6a71f4042eb28c88795902",
-        "blockbench/items/middle_earth_wand.bedrock.bbmodel": "07a218813d443a57496f6268adcc6e2e2d3be09158d312afab1cd166e298b41c",
-        "blockbench/items/middle_earth_wand.java.bbmodel": "d515de61cdb17ef0fe219069fb8b29a6bcda5dce69fcda3b42e8b1b0742c7bea"
+        "blockbench/items/middle_earth_wand.bedrock.bbmodel": "e63e34c9178338ac350e0812340f707a639d27f825fd3d357943809ca0319b47",
+        "blockbench/items/middle_earth_wand.java.bbmodel": "606592cf6c104d75b3c5450482b6e025576bd8fe2a018e8abc5940fb952f663e"
       }
     },
     {
@@ -350,22 +350,22 @@
       "base_item": "minecraft:bow",
       "custom_model_data": 220030,
       "sha256": {
-        "assets/astralrecord/models/item/custom/anarion_shortbow.json": "e9b4f98db1aad648b52aa07a8b27de536c3ce28bcb400f6445670fcb55ca8b1e",
-        "assets/astralrecord/models/item/custom/anarion_shortbow_pull_0.json": "b125cc3ac4334404018fbf9dbb56311926800f36883c40c46e5815bc10435bdd",
-        "assets/astralrecord/models/item/custom/anarion_shortbow_pull_1.json": "ba35612dd204096f944c8a647277b97e92c62b105c4eacd622eae4e831f47a45",
-        "assets/astralrecord/models/item/custom/anarion_shortbow_pull_2.json": "908048e561d94d5387793b489550e889a6da546c6e421be4eff973d98cb6a24a",
+        "assets/astralrecord/models/item/custom/anarion_shortbow.json": "8506b7708379414fb6cec720f9cd93c42a820788c17248e72cd7e3283cac1032",
+        "assets/astralrecord/models/item/custom/anarion_shortbow_pull_0.json": "0d63ff58aa0ed8bd03b7fd32ee38a9a80630e88f4145bc5b516edff5a5648d21",
+        "assets/astralrecord/models/item/custom/anarion_shortbow_pull_1.json": "9e291276c2cfac4f5066b1ed30d966b8521cc21addbd1ac7e602d6693bef51ef",
+        "assets/astralrecord/models/item/custom/anarion_shortbow_pull_2.json": "2a816600ad57b4866e15ed888a34256714076f138ccf6d5cbc4793f123ee5b94",
         "assets/astralrecord/textures/item/custom/anarion_shortbow.png": "b09a90c6f7e4278e550bc53b72b93400e7f80fbddb9c1c5619e3a330b42516da",
-        "bedrock/animations/anarion_shortbow.animation.json": "34c7b556740604d0e3e629272317157c614eb21791456d4263cb1994cff971d1",
+        "bedrock/animations/anarion_shortbow.animation.json": "923d12e71c143f2262e6da9273bd54edd54d51dde2fbb5f711e2bd2ab8054265",
         "bedrock/attachables/anarion_shortbow.json": "731d49662652c854ffefc1768185433446b717ffe88032ec45797f8306307777",
         "bedrock/models/entity/items/anarion_shortbow.geo.json": "4015a53b40be128da4aff7a02d5b3d7e8db4b4e2d6c95e318de6b69b69de30d8",
         "bedrock/textures/entity/items/anarion_shortbow.png": "b09a90c6f7e4278e550bc53b72b93400e7f80fbddb9c1c5619e3a330b42516da",
         "bedrock/textures/items/anarion_shortbow.png": "bea16fa3fd9e354a08aa5a0873757d88ac9230847e0bf4e7210d1d7f1c0806fe",
         "blockbench/equipment-drafts/anarion_shortbow.json": "8e1a00f673d07a8df10013904e2c12cca12902cdfc62eb76660bfd84cc1068f0",
-        "blockbench/items/anarion_shortbow.bedrock.bbmodel": "d5095ce4e6d416e9532d72da7cc5330285eaafbe83e31046971f981dee2abb49",
-        "blockbench/items/anarion_shortbow.java.bbmodel": "0c5593e3dfd68cfe2bafdc041efef93a6a81464eb8d0ae5b3012365176ff2f51",
-        "blockbench/items/anarion_shortbow_pull_0.java.bbmodel": "2e3aaf5ef33984531e59fd6f00b1a94293627c25448604a7f3a2c60b2318aeb8",
-        "blockbench/items/anarion_shortbow_pull_1.java.bbmodel": "8b5a82c4aabe16745462b47c1fb1e71bab1d9d1a3ec040e9b667ba601bcbdd77",
-        "blockbench/items/anarion_shortbow_pull_2.java.bbmodel": "910cdb0a4f1cff4b3eac8822ae3689798aaf4e14b1bf95691bf58534ce20962e"
+        "blockbench/items/anarion_shortbow.bedrock.bbmodel": "23aa61802b3b8b2cfccc36955259499700ee5a6259cbb2ab72beb847ee33447b",
+        "blockbench/items/anarion_shortbow.java.bbmodel": "b494e6577786a8d378e6f1178278aea0bca88fbd6446c0c2a0298cf1f7f661a7",
+        "blockbench/items/anarion_shortbow_pull_0.java.bbmodel": "b6c596820a1e7abd3fddfa71bac8d1b455161a4a3abc1c89bf3522a02f295aec",
+        "blockbench/items/anarion_shortbow_pull_1.java.bbmodel": "78492ae30cb8237c01f87d421effaaeb00c45c726b48f5bb433caaca082b00e8",
+        "blockbench/items/anarion_shortbow_pull_2.java.bbmodel": "327ac27a4d9f05660b5acccd431f000feccac1da64f59c8835a169cf05028412"
       }
     },
     {
@@ -376,16 +376,16 @@
       "base_item": "minecraft:copper_spear",
       "custom_model_data": 220031,
       "sha256": {
-        "assets/astralrecord/models/item/custom/anarion_spear.json": "60041314acef1b07365ea518794fb46ae634fb3755cd416dc9bdfd0587ebfe94",
+        "assets/astralrecord/models/item/custom/anarion_spear.json": "819e925459ce0b8fa59395050bac3cc621c6796b056674abc68a8886842574f4",
         "assets/astralrecord/textures/item/custom/anarion_spear.png": "e588c5543f8881ebdbd466784ea68eb62e24269eb66588ebcb73b0797cbe4a14",
-        "bedrock/animations/anarion_spear.animation.json": "1c4778c136f66cde9fa22961292bff758acb99089cb5fc925420bcd0eeca4675",
+        "bedrock/animations/anarion_spear.animation.json": "7caeb04e4a098f53c5026b98c2407c0fc4a61507aa78f7dc57aa932f0dc34d5d",
         "bedrock/attachables/anarion_spear.json": "7ab6a74d4b94fede86cb0b606359c0fbeedcabe0d954028de5f259124c894a21",
         "bedrock/models/entity/items/anarion_spear.geo.json": "e26ed2ba6a7e53c29e81a779cd8c6f6febf5514733ee6ea226ee0626db93d242",
         "bedrock/textures/entity/items/anarion_spear.png": "e588c5543f8881ebdbd466784ea68eb62e24269eb66588ebcb73b0797cbe4a14",
         "bedrock/textures/items/anarion_spear.png": "34310d56cfac8eafab751e4973951a6df14ce4e2640d3b1e7fd9ef156b0042ff",
         "blockbench/equipment-drafts/anarion_spear.json": "2b5f7f4abd2d2b50639bb8b54a0c0077bb7e56a7920eb9c376d534105ddc48d3",
-        "blockbench/items/anarion_spear.bedrock.bbmodel": "5307d194c5b8bbbd828c6bb94ab96327761973474ab88c2f3199a680e2da6b82",
-        "blockbench/items/anarion_spear.java.bbmodel": "242064dc676d29745d589ab95e1c4e1e48396497c1df04c020ac35f827e115f5"
+        "blockbench/items/anarion_spear.bedrock.bbmodel": "d160eb62ef1466e17b01deb7574d1d251d5878f9f551f5e4205a8573e8570268",
+        "blockbench/items/anarion_spear.java.bbmodel": "1d6ccbe355ed7fab3f90a00d33a9889dc32e183047f9924f71408016e72bab0a"
       }
     },
     {
@@ -396,16 +396,16 @@
       "base_item": "minecraft:end_rod",
       "custom_model_data": 220032,
       "sha256": {
-        "assets/astralrecord/models/item/custom/anarion_staff.json": "b8ef76a45ef68c3bd7e6147b27fa72ec30bf405c6521366975d92e1484af7913",
+        "assets/astralrecord/models/item/custom/anarion_staff.json": "0de6654e2fb013efe3a6d50471ef7a15c17498b79c8581138ae19be4e17eae0d",
         "assets/astralrecord/textures/item/custom/anarion_staff.png": "a389d3898f4a43d96879da3b4e84d2c441eb7a5c2596c12cddd7fcf4282f6ad2",
-        "bedrock/animations/anarion_staff.animation.json": "8e80f38a5831e21ea232ea9d966b407fff3f03fcc9d5ca4432af61781103aa6e",
+        "bedrock/animations/anarion_staff.animation.json": "6bedddb2bde3de0cba9054e8f76182fe06fb749eb51e50b93af0cbf59a2b7227",
         "bedrock/attachables/anarion_staff.json": "b14b11e3b8c339cfa958a7d1d3f15cdb59d0f29a5d6530247229d658baf12538",
         "bedrock/models/entity/items/anarion_staff.geo.json": "a1cbf500e6581ac505a5f790f4ac2841c2ccda3494b97e49d517d6e40f42da22",
         "bedrock/textures/entity/items/anarion_staff.png": "a389d3898f4a43d96879da3b4e84d2c441eb7a5c2596c12cddd7fcf4282f6ad2",
         "bedrock/textures/items/anarion_staff.png": "e278f5a1701d712be6296a286f2888e326bba2edad3f8a491c8aecab20aa9acd",
         "blockbench/equipment-drafts/anarion_staff.json": "aa0610e97742030c15ee3d82f4ecd0e5746c2987469f924f212766c6f214527f",
-        "blockbench/items/anarion_staff.bedrock.bbmodel": "e702fe2c486f7c4f2235e7bd80443906c5c2f3dd845cb1d03a0c5b908fe87d12",
-        "blockbench/items/anarion_staff.java.bbmodel": "093b1cd555d0a6ff88aa41a13c6cfe1766cc080006aab3dd663fff4cc4e1bf54"
+        "blockbench/items/anarion_staff.bedrock.bbmodel": "a4802956dd48f5acd290405299d801ae4af94de38f7fe3e5299cd1495400f9ec",
+        "blockbench/items/anarion_staff.java.bbmodel": "3fcf6eb97bc598b4657b019a43bb51846aa5f749a7a183ca94fffa6c275e02a2"
       }
     },
     {
@@ -416,22 +416,22 @@
       "base_item": "minecraft:bow",
       "custom_model_data": 220054,
       "sha256": {
-        "assets/astralrecord/models/item/custom/sun_crown_bow.json": "fcefbeb67fb4768b9639c3dc07e121922811551a2829024e10ad7ce5988ca232",
-        "assets/astralrecord/models/item/custom/sun_crown_bow_pull_0.json": "31e8f7732c6ef08880806eaf3184989ce1dd67b3f2a6a76df3fcbd0bb29393d4",
-        "assets/astralrecord/models/item/custom/sun_crown_bow_pull_1.json": "84ee7edf1b1bb6996486d04d81f4394c344bfe07402e9d1998cefa025b7194a6",
-        "assets/astralrecord/models/item/custom/sun_crown_bow_pull_2.json": "dfa69fd7df2a9402469a0fd7f8f3ecc19c1152958eefb03be6bfecdbd7a69bea",
+        "assets/astralrecord/models/item/custom/sun_crown_bow.json": "1f6bd96b9e4fa2d3d1dfd1c4b07b1b55b91162c4e556ab430913aa4daf8eefc3",
+        "assets/astralrecord/models/item/custom/sun_crown_bow_pull_0.json": "48e783e65aa0a63a077c65e0bc9a6415982251320de9593ee1f0ca017ad0d328",
+        "assets/astralrecord/models/item/custom/sun_crown_bow_pull_1.json": "7716f65c7bc6c601a267d3a38ba1360d91db4349ce34e4b60006162c7472acd1",
+        "assets/astralrecord/models/item/custom/sun_crown_bow_pull_2.json": "888df505dfcb5fa5086749997094e19a781185d752e3a9971ca2f6a3934074e1",
         "assets/astralrecord/textures/item/custom/sun_crown_bow.png": "59d908e6f04b646e23f9962a300f5120c8d1504631c5b2311cd756fc17ba6147",
-        "bedrock/animations/sun_crown_bow.animation.json": "f5808434402994b08a2bc34d277490bd5698fa32e52c7f8844c4d4d29cf1449c",
+        "bedrock/animations/sun_crown_bow.animation.json": "95fad556b72d10704ce569a8d3640fd021619cae4414651dde4fe53ada587587",
         "bedrock/attachables/sun_crown_bow.json": "183c3298a9c9d9be00885ac4674c779015cee7348837fada5035fa38787b21d9",
         "bedrock/models/entity/items/sun_crown_bow.geo.json": "2523b662a16ec6002f01e9e440356b77f4cb4521a773dd8876632b75659d057b",
         "bedrock/textures/entity/items/sun_crown_bow.png": "59d908e6f04b646e23f9962a300f5120c8d1504631c5b2311cd756fc17ba6147",
         "bedrock/textures/items/sun_crown_bow.png": "f7efe2f5046b396d2ee60111906436e81d1d1689256eafbc6e93bd348c28076a",
         "blockbench/equipment-drafts/sun_crown_bow.json": "9f6eef8993e5f0dc0524c12e7420ba20fdc6249816c876a031e410ae35e4fe5a",
-        "blockbench/items/sun_crown_bow.bedrock.bbmodel": "065e9bca87e852ef8d2e6f031e37cd4da1e007c1535b9f55d6dbc4e1001f43d3",
-        "blockbench/items/sun_crown_bow.java.bbmodel": "8395b114c148e0de1976042db17e06f68afbff5db696b9bdd6d0488f2ce60647",
-        "blockbench/items/sun_crown_bow_pull_0.java.bbmodel": "83f33767186d077b7b7471829f0871852b956ce6b10c8122c01208ea05fa7776",
-        "blockbench/items/sun_crown_bow_pull_1.java.bbmodel": "127d8f096e2b0fa5ad3a70e872816a0eba753155948f576f5a233c5785d6fade",
-        "blockbench/items/sun_crown_bow_pull_2.java.bbmodel": "8c05ef796e255bc3677b0c7acce3610a17c8d7465e2cd9ca2777c087563916f5",
+        "blockbench/items/sun_crown_bow.bedrock.bbmodel": "9a734c78732146deeb0149d85e01a4cb12aa5310cf3904ef1b554b40f6fb9bd8",
+        "blockbench/items/sun_crown_bow.java.bbmodel": "4681450dcfdd8b7871f7df86ca4dc8441ce2b574798aaa175202aeaea6f3c13f",
+        "blockbench/items/sun_crown_bow_pull_0.java.bbmodel": "f7365792ef90529ead58b372aaeebe1715697e0b518e2252053801785cb7bd6b",
+        "blockbench/items/sun_crown_bow_pull_1.java.bbmodel": "62c581bc53030a323f6492cf03427982d166ca6dbe686135bc2da0a9861303d5",
+        "blockbench/items/sun_crown_bow_pull_2.java.bbmodel": "a27756a5dc50cbe6fd9d4aef52794f0ea4bebd5c8362de49f7b71054bb1d46e7",
         "blockbench/pixel-art/sun_crown_bow.pixel.json": "8a5af1bf0cd0d7805b49dbef22098b0ceb59a143e2b6080bb8a8909ee65e972a"
       }
     },
@@ -443,16 +443,16 @@
       "base_item": "minecraft:breeze_rod",
       "custom_model_data": 220055,
       "sha256": {
-        "assets/astralrecord/models/item/custom/sun_crown_staff.json": "29ab35893808e60951fa87b74e2d34404bca835d3e8d246e683047a70b751b83",
+        "assets/astralrecord/models/item/custom/sun_crown_staff.json": "2d2b32391468edd669281a9e7d1082461d32c14b1e1f5edd8bfea882f52f2a24",
         "assets/astralrecord/textures/item/custom/sun_crown_staff.png": "7c20cded7fd960436673352f29adf7ba6cf99a7db784ba27251065e0117bb63e",
-        "bedrock/animations/sun_crown_staff.animation.json": "ea5b7055b8d9ca66eb1e4eb443653f3fd9f8698959f3169cb8f8aa4c3fd7f586",
+        "bedrock/animations/sun_crown_staff.animation.json": "bab148271e10f50a79da0f88a52ec8cc45fb482d251b8abf4d2ab4d86140eb1e",
         "bedrock/attachables/sun_crown_staff.json": "b38c5ab27ec6163d608738d80f0bc8145302f538ba59e0ccecceb07d321dc3dd",
         "bedrock/models/entity/items/sun_crown_staff.geo.json": "27dbf22fc628e55032fc1308d94ea0157749a79bf59b275c6c3f08b4291f1252",
         "bedrock/textures/entity/items/sun_crown_staff.png": "7c20cded7fd960436673352f29adf7ba6cf99a7db784ba27251065e0117bb63e",
         "bedrock/textures/items/sun_crown_staff.png": "acc1e7beee4e929dc040fa97e6a8debaa1115c626922a7a1cd242e557b552114",
         "blockbench/equipment-drafts/sun_crown_staff.json": "03839f9cfe043f593c1203b2bb5539d121b8e09d8791cc3c8fff9d4a06514f81",
-        "blockbench/items/sun_crown_staff.bedrock.bbmodel": "55f12fbb8ad98225b279ace5aa311ffb20f30f6cb96941c0654f3748b7f248bc",
-        "blockbench/items/sun_crown_staff.java.bbmodel": "e76d06de2617e393ad649864c3ba7e0a8e0fa39eaf95bb8d0879c09c90064baf"
+        "blockbench/items/sun_crown_staff.bedrock.bbmodel": "a92e6c94b01aa742648ecea0bb11e2ef2c89da319a532e3d861c75d1c77f72fd",
+        "blockbench/items/sun_crown_staff.java.bbmodel": "7aebdeab3b79b5455639171abd03458a4dd4ce4803e4b040de40f82d3c547388"
       }
     },
     {
@@ -463,16 +463,16 @@
       "base_item": "minecraft:golden_sword",
       "custom_model_data": 220056,
       "sha256": {
-        "assets/astralrecord/models/item/custom/sun_crown_sword.json": "f384b53786aec96620fa055ca94597ba40267cdcfb8bcecfd833aaed10d60129",
+        "assets/astralrecord/models/item/custom/sun_crown_sword.json": "afd8071ffba57303d3c25a138f25dcf4dd56733f4c00fbb98cd0525ac23a9c92",
         "assets/astralrecord/textures/item/custom/sun_crown_sword.png": "f312ee92b9ed81f502735856afb922878fb0228a022ddb4a05f7fa6aef8cdc67",
-        "bedrock/animations/sun_crown_sword.animation.json": "8cc32c360533440cdcb6e37b0eadcaeb07c84723c0130985639203ffb427af98",
+        "bedrock/animations/sun_crown_sword.animation.json": "daefb61c7a0b1e3f1c22829d4bd270b00f03c3f7c2cfb0cb33b7645b9e1ececf",
         "bedrock/attachables/sun_crown_sword.json": "2d6accd3bb985b8db849e04cd4d805bd240e830969acd60aab37517654014cd1",
         "bedrock/models/entity/items/sun_crown_sword.geo.json": "b8d6731b139e939be6262d062c7b5c2d7513b646cfee033c57d7148afaeec302",
         "bedrock/textures/entity/items/sun_crown_sword.png": "f312ee92b9ed81f502735856afb922878fb0228a022ddb4a05f7fa6aef8cdc67",
         "bedrock/textures/items/sun_crown_sword.png": "2484e07dc903381ca3ad4123f8a1f2056d6e4e55f533b79e1c930ed705ea90be",
         "blockbench/equipment-drafts/sun_crown_sword.json": "52a593bcca08ea3f920b443bc613e7d315224a99e404a971771d35cf1288386a",
-        "blockbench/items/sun_crown_sword.bedrock.bbmodel": "7335365d515914cc00515757983a2a77a1e9d2d117609a199a998ab1691ddec8",
-        "blockbench/items/sun_crown_sword.java.bbmodel": "b76f82b1d2365c66d8e3f466a3c855ae27085f47b33d4730500918b127361801"
+        "blockbench/items/sun_crown_sword.bedrock.bbmodel": "2a2e3c799252e38a4dcf33cb1e3332d096f65b21633785fddc9cfdb07610f904",
+        "blockbench/items/sun_crown_sword.java.bbmodel": "241b12a9720b2671a831e99faae070842f0d2c8ae903d8b419acbcb835235253"
       }
     },
     {
@@ -483,16 +483,16 @@
       "base_item": "minecraft:wooden_sword",
       "custom_model_data": 220073,
       "sha256": {
-        "assets/astralrecord/models/item/custom/eriva_sword.json": "396194a03ce0e3959dc954569f9b930f8064200398e69b11e3190031dc7aa770",
+        "assets/astralrecord/models/item/custom/eriva_sword.json": "0ba541df974bead0e71989363471481802aa596e0e0b69d59cba14846e905a62",
         "assets/astralrecord/textures/item/custom/eriva_sword.png": "c566b148bae001b5ebf43433a97938ae8d38a2a035e029523944fba06fcce205",
-        "bedrock/animations/eriva_sword.animation.json": "757dd4ea618b9f7d4b6274f1faab29098fd5ca5ab4622d9786ceb851b9d6a96a",
+        "bedrock/animations/eriva_sword.animation.json": "cd994dbfda8a5d6b3ee4284c8cf9c3dbca8725337b66ff28a49408e1389ed555",
         "bedrock/attachables/eriva_sword.json": "3046bb39550fb62d20a6b49ea0c20548e231f062eb41c3cf4fbe9852c5076399",
         "bedrock/models/entity/items/eriva_sword.geo.json": "e2db5fe0d98b7054483b0ec602460548bfc4f1279bf901f9b806c18d58bb4953",
         "bedrock/textures/entity/items/eriva_sword.png": "c566b148bae001b5ebf43433a97938ae8d38a2a035e029523944fba06fcce205",
         "bedrock/textures/items/eriva_sword.png": "8200a0f87d0407fac2974f813b7b130335e50e80098e0207c7ffb59d657e6f3c",
         "blockbench/equipment-drafts/eriva_sword.json": "5e8cece0d9bd7583ed5e5247d2cef5505996333030c0bbf904842efbe6713052",
-        "blockbench/items/eriva_sword.bedrock.bbmodel": "685f0c18ae4e7ee7b5734c87f078ee32e8c0a762ff46c8966106452792a2ec2c",
-        "blockbench/items/eriva_sword.java.bbmodel": "e7e3bbd3472011ca289eb7a86db7f86cae6767a001316d7942e8e11a5055c91d"
+        "blockbench/items/eriva_sword.bedrock.bbmodel": "2aada9ed1ee62513f1900b2f627201028e47beeeb0c4f0ec3fd0ee72006cb7f3",
+        "blockbench/items/eriva_sword.java.bbmodel": "70cf5e5e772551d2141e41aa8639945b2a2d822449445227913c1332b7cb4502"
       }
     },
     {
@@ -503,16 +503,16 @@
       "base_item": "minecraft:wooden_axe",
       "custom_model_data": 220074,
       "sha256": {
-        "assets/astralrecord/models/item/custom/eriva_hammer.json": "e60e49bb8313a25c640eba934d8f5c0b6dd839d50b568115ef92d4103726f177",
+        "assets/astralrecord/models/item/custom/eriva_hammer.json": "fb1238993c776fa9622b815d27337c40cda174d6565c58cc7f696f0b396161b7",
         "assets/astralrecord/textures/item/custom/eriva_hammer.png": "41eca29d952f9de9239e7bd1e11936e315f500199be3613d37a4edd33a4795eb",
-        "bedrock/animations/eriva_hammer.animation.json": "fdb4f2856454c124448b45b8924a887f4ba19fb0232b56b04f6918282d502ee3",
+        "bedrock/animations/eriva_hammer.animation.json": "d1fbabd7d129926f5c824572ab880bc3d96e665020466523cfe04ae062b9cce7",
         "bedrock/attachables/eriva_hammer.json": "2c43fb9a63734a99fd73962c78cf6e421af141b090a14decbf184b9bb89d55fb",
         "bedrock/models/entity/items/eriva_hammer.geo.json": "b32756a96ff696c95e2bae40cdd9ab433901cbeb1e77606ba25f7f34e524ae97",
         "bedrock/textures/entity/items/eriva_hammer.png": "41eca29d952f9de9239e7bd1e11936e315f500199be3613d37a4edd33a4795eb",
         "bedrock/textures/items/eriva_hammer.png": "0d574b1ec15574c0b76dd6703b6e13ceb4b8cd6c698729c027e753ecc85b5bef",
         "blockbench/equipment-drafts/eriva_hammer.json": "8c86d1d9e247d6ca6771bac56d8757b1c72b6e2d36fc370412a37cc54213ce95",
-        "blockbench/items/eriva_hammer.bedrock.bbmodel": "da08a69186144132df37b4d8501a1e7bd44bbd7ca7cc38f143cb510f44a3e3d1",
-        "blockbench/items/eriva_hammer.java.bbmodel": "78a3a1602e33519f74bf430cda18a79c58b32bda34db97f7226b559b08d20778"
+        "blockbench/items/eriva_hammer.bedrock.bbmodel": "69e7e11a803ab1ef062b9ba306a37156247922b1ead4068e91249a4c7f705afd",
+        "blockbench/items/eriva_hammer.java.bbmodel": "e8d0ae487db4c46fc433242db64ddbd6082cf95aa0662a7d975fd876704dea43"
       }
     },
     {
@@ -523,16 +523,16 @@
       "base_item": "minecraft:wooden_spear",
       "custom_model_data": 220075,
       "sha256": {
-        "assets/astralrecord/models/item/custom/eriva_spear.json": "dbdbd93b80e30a114fdf72a11a41a79e3389faa086801ca4e5e60566e6357714",
+        "assets/astralrecord/models/item/custom/eriva_spear.json": "4d0718bfc3abd3f8b72a3a073fd0dc708ede8f5563d3236e02f4051cd285714e",
         "assets/astralrecord/textures/item/custom/eriva_spear.png": "c566b148bae001b5ebf43433a97938ae8d38a2a035e029523944fba06fcce205",
-        "bedrock/animations/eriva_spear.animation.json": "680918c09e7e93e6e0c2fea2cbb6b8148399a950fb5810fafc5f70ce73aa6d1b",
+        "bedrock/animations/eriva_spear.animation.json": "34e7b06bfff2fed0f41f025b9fda0048768478e5270280e80ac64a601a923671",
         "bedrock/attachables/eriva_spear.json": "59fd9e44682164847226a792c12f47becbecb1bd5cf75f14c7987d452898a8a1",
         "bedrock/models/entity/items/eriva_spear.geo.json": "f7a771f6b54c808e4de676a97eb87bfd016c4ed7c15e205d317f40b2e405c69d",
         "bedrock/textures/entity/items/eriva_spear.png": "c566b148bae001b5ebf43433a97938ae8d38a2a035e029523944fba06fcce205",
         "bedrock/textures/items/eriva_spear.png": "b4ae464776524644123c7578378c567ff8132972a78cbeec1195a164d0d86352",
         "blockbench/equipment-drafts/eriva_spear.json": "524ed8078294fa8e4fdeb74f730672c6572ec45685fa9523ddee89eef9b69182",
-        "blockbench/items/eriva_spear.bedrock.bbmodel": "9f3f07c915b53c551ccbde399d753bf0383728dc667035171959d93a60f97271",
-        "blockbench/items/eriva_spear.java.bbmodel": "ce3b4c96da5429d0b69324a8e739bd29fe05f66ae6eeb395771f5b59197b4a88"
+        "blockbench/items/eriva_spear.bedrock.bbmodel": "7d2496d906a3d9c098ffdfde93be0841e8b310ef067ab3158f3f2cb51059e3b5",
+        "blockbench/items/eriva_spear.java.bbmodel": "ed8830bc21d67cd3fd9608f5400ba3f6d36a5af1fe15956c9829c33c329034d9"
       }
     },
     {
@@ -543,22 +543,22 @@
       "base_item": "minecraft:bow",
       "custom_model_data": 220077,
       "sha256": {
-        "assets/astralrecord/models/item/custom/eriva_shortbow.json": "3a343fd72bd99a21d88f7b78a1958378fb8a2657190a2cf788520d7af807e599",
-        "assets/astralrecord/models/item/custom/eriva_shortbow_pull_0.json": "4368987c466d8f7e02514681514e55049e0066fc36d200de2b1f39d62323493f",
-        "assets/astralrecord/models/item/custom/eriva_shortbow_pull_1.json": "c80e47c985f43d3bb2e2b41c908e7c3b51995ed03729bf6b89d2e07501cc60a8",
-        "assets/astralrecord/models/item/custom/eriva_shortbow_pull_2.json": "8be3f044bd831a28bc5028d6def19aa43823369387f5cd723225d2309546131f",
+        "assets/astralrecord/models/item/custom/eriva_shortbow.json": "2ab275c7608d88db4c7af9c4d324264dcaceeb48681fc4c6c907fd13ad1c5aac",
+        "assets/astralrecord/models/item/custom/eriva_shortbow_pull_0.json": "ac7ab6cab1132799e355185c33a62e24061a3c30870cd5f290f941096bd5d3c7",
+        "assets/astralrecord/models/item/custom/eriva_shortbow_pull_1.json": "04ed37a5ca16549c47b032405e9718ab3e6def397ebfcad70daefd0ae449f0d6",
+        "assets/astralrecord/models/item/custom/eriva_shortbow_pull_2.json": "4c03958c8fe1e5ddc865008f1fe530bed0cd3a26a146950e84c40058d97a0779",
         "assets/astralrecord/textures/item/custom/eriva_shortbow.png": "bf59cd50f008531464250f26ae3cfe1935a4f5efe89246b98f245450e0567cf2",
-        "bedrock/animations/eriva_shortbow.animation.json": "28a5ff87391532c8e359464b80ea63a49b19d2e21c910e81d11d836ec18f5d88",
+        "bedrock/animations/eriva_shortbow.animation.json": "6fd59d85403650b9ec2d0e4b715148e0eba8f870616d84423087b1bdbaba34c5",
         "bedrock/attachables/eriva_shortbow.json": "8344852f84198845be7878547dad89cce462139e785ae111c60d7f25ce5d5f98",
         "bedrock/models/entity/items/eriva_shortbow.geo.json": "1ab3297ad418885d076c6eb1c9fbd388515883e5a44d894740d2111bfa32e6c2",
         "bedrock/textures/entity/items/eriva_shortbow.png": "bf59cd50f008531464250f26ae3cfe1935a4f5efe89246b98f245450e0567cf2",
         "bedrock/textures/items/eriva_shortbow.png": "b5a7b53de6cf08bcc4036ddc6c2498ff7990803358085b6163f840e32e997270",
         "blockbench/equipment-drafts/eriva_shortbow.json": "c2755bf332dee23133845542e6af722625dbd9127292f1ab4ad53732a5f78e3a",
-        "blockbench/items/eriva_shortbow.bedrock.bbmodel": "b6786bc5e48953cab4d8ee7ea54c2b5f832172a8243b6ad567fb6bb1bfaf27f9",
-        "blockbench/items/eriva_shortbow.java.bbmodel": "b22ad1797b1d8d048b30c2190d722dfb5408f44c76e7b97bb8222c0a9f05b267",
-        "blockbench/items/eriva_shortbow_pull_0.java.bbmodel": "c306b24912b513ca94ae41a58ec35ad6bae2e8b7bb918646bb83b6c4e83fe596",
-        "blockbench/items/eriva_shortbow_pull_1.java.bbmodel": "337217fcf75bce65259e05a1163f835919b4f75674e059dd3f7940cb0db761a4",
-        "blockbench/items/eriva_shortbow_pull_2.java.bbmodel": "d8e7c7ac6380fe1a51103d2b1362df5f4a29da2f2ffcb5d925d19935c99c41a6"
+        "blockbench/items/eriva_shortbow.bedrock.bbmodel": "a229f70d19da682f4f3d090cb533773061677239939d40e1360747bf55f9b60f",
+        "blockbench/items/eriva_shortbow.java.bbmodel": "3b365de6082fc2bdda85eee924c7fc649a107cb8fe02531dd359f294ec82fbb4",
+        "blockbench/items/eriva_shortbow_pull_0.java.bbmodel": "edc7a5fc3b6ef603f96b69f593c8dbd6c2e61a517e6ed30ea254dad23df11580",
+        "blockbench/items/eriva_shortbow_pull_1.java.bbmodel": "b2f24805eb003415de2834f9236c974633466a41341bd625719bbdfb7f336bf6",
+        "blockbench/items/eriva_shortbow_pull_2.java.bbmodel": "19636fcf1f228a67f363bbf2cf2d84d0fd544474939054d4c528502b07e8773f"
       }
     },
     {
@@ -569,19 +569,19 @@
       "base_item": "minecraft:leather_horse_armor",
       "custom_model_data": 220078,
       "sha256": {
-        "assets/astralrecord/models/item/custom/eriva_longbow.json": "d5e1e8313ea7f9de5d923227437498f05f84d7d79ec6630b7ba34a6b9c16333b",
+        "assets/astralrecord/models/item/custom/eriva_longbow.json": "3c63680b4350ec83c23584926fce95e53902698b6e2fdce3c4d4178c90555138",
         "assets/astralrecord/models/item/custom/eriva_longbow_pull_0.json": "aa5735e9cb1ae850b2c39f0df58eaf44f2902ac1068846524737117b291dc347",
         "assets/astralrecord/models/item/custom/eriva_longbow_pull_1.json": "a247a4ab8730d1084e6a042b6360354039e334b0af5ed0eda24a22c858f6bae4",
         "assets/astralrecord/models/item/custom/eriva_longbow_pull_2.json": "35cd0dd22ebfc3866b7f73297a614b20c2a85af3fcc2c6e5ce1b715a0392ebbd",
         "assets/astralrecord/textures/item/custom/eriva_longbow.png": "22c9c0826ef11007cee9985d1ff704ec3189809efc693736a5630508916dcf7d",
-        "bedrock/animations/eriva_longbow.animation.json": "7ec533a48be342618ed7370d6197b564a79fc05d6d1ea6b13e4ba026c4282b39",
+        "bedrock/animations/eriva_longbow.animation.json": "36fcb6795e89e04b4a6abd3e2b39dc759a640f86649d2a919cea499fdc6215a6",
         "bedrock/attachables/eriva_longbow.json": "77217b42d1572e7226cb53040cc761c7b8e370b72c77b0dfac9d47d415bbf2a5",
         "bedrock/models/entity/items/eriva_longbow.geo.json": "44c9d57c8eb2ff951d785aa05edabadba6a9c788d5ab39752eec7ab6c2b666a4",
         "bedrock/textures/entity/items/eriva_longbow.png": "22c9c0826ef11007cee9985d1ff704ec3189809efc693736a5630508916dcf7d",
         "bedrock/textures/items/eriva_longbow.png": "0ea831937e813ab3a7e84473d5de7b3c86d55e5b8ba036787d7303d029fe7f07",
         "blockbench/equipment-drafts/eriva_longbow.json": "65a8fb91cbc1d7d81bab1ae9c88b4985d9eb264ce0bae0f030da41fa0546481f",
-        "blockbench/items/eriva_longbow.bedrock.bbmodel": "570eb0f736b9caaa983873d11916390ca95c9b16518f42f815b3c37fad2b3e39",
-        "blockbench/items/eriva_longbow.java.bbmodel": "02f09e7f55294833be76b88acd256535d0d8615ae8c03c115ea804b32ad8d10b",
+        "blockbench/items/eriva_longbow.bedrock.bbmodel": "704e87e21205fdfb18e36b7d5dbdb8b85be45baeb4576419b13f9461d159cc9d",
+        "blockbench/items/eriva_longbow.java.bbmodel": "61a12e748fd6c6749733cbfa1f2ed6c9b70f5565238695740916af95902d5220",
         "blockbench/items/eriva_longbow_pull_0.java.bbmodel": "dae700526de73be6c340a6f23263e8113773672ae4d0a580457d1ed75d7dcca7",
         "blockbench/items/eriva_longbow_pull_1.java.bbmodel": "b25bf3b3dc2b85638780eb62ec703ad1fb05db4bff6e2931f74ffd2b1d611458",
         "blockbench/items/eriva_longbow_pull_2.java.bbmodel": "881ccc1422886b86a9452104f3f908c5bb954ba918cc7e4fe7518f1348ad0858"
@@ -595,16 +595,16 @@
       "base_item": "minecraft:wooden_hoe",
       "custom_model_data": 220079,
       "sha256": {
-        "assets/astralrecord/models/item/custom/eriva_wand.json": "7d90c8e7ee49b0377a416149f125f4cf68b1ffc1d9b1b3da063bf351b128f8b2",
+        "assets/astralrecord/models/item/custom/eriva_wand.json": "b3ad70bc4f31fcb83a6835f72d78f4123ceed9a1f93320d8a09cfa871673c048",
         "assets/astralrecord/textures/item/custom/eriva_wand.png": "2778a1301fac3f8f3e59752086c43a2f48eeae9a62a9f94b8e37a92da0ad5641",
-        "bedrock/animations/eriva_wand.animation.json": "abaf2c5be0fbdfa4ad6134fadab95f45060cdba23165e6e63a937cdeeebc9e26",
+        "bedrock/animations/eriva_wand.animation.json": "056cb2c1d1f4a826e1967db0de0a00bec2f2cd87dede1cfeb838e4fd4b17bd2d",
         "bedrock/attachables/eriva_wand.json": "218960f8ce9839c000ab3f64200557f2765a9485c583e675a35650b4962c0dec",
         "bedrock/models/entity/items/eriva_wand.geo.json": "54e70f5c5b9f24e75b6d93dda86b2ca565fadc98aed760885c9eb9db6adde89c",
         "bedrock/textures/entity/items/eriva_wand.png": "2778a1301fac3f8f3e59752086c43a2f48eeae9a62a9f94b8e37a92da0ad5641",
         "bedrock/textures/items/eriva_wand.png": "10bc846547d7d07ea2ff8b0f8032f65c2b448e7d6804476626d1b0096e47746d",
         "blockbench/equipment-drafts/eriva_wand.json": "2f8a525b2bc8ca2bf0a6ea6d6ec34441027e4db942b6657c631d19a6d7519a26",
-        "blockbench/items/eriva_wand.bedrock.bbmodel": "5871f2f04462bd944c7939f14c3ab905faec57295041bf57871c904c97ebc83e",
-        "blockbench/items/eriva_wand.java.bbmodel": "ecb6806b20f965866f1bbeb76f721c2802155fc02e8549b2dbe864015362fb0a"
+        "blockbench/items/eriva_wand.bedrock.bbmodel": "8f57870767bb0e3f28c8d232faaffe73f9eb52ed3257c3d86719840fa4ede8ff",
+        "blockbench/items/eriva_wand.java.bbmodel": "db82463943b0813ced0c40bed2bb99050467dea3a5e17bf5080538dd44d36a55"
       }
     },
     {
@@ -615,16 +615,16 @@
       "base_item": "minecraft:wooden_shovel",
       "custom_model_data": 220080,
       "sha256": {
-        "assets/astralrecord/models/item/custom/eriva_staff.json": "ab46f8a2e5f7c7385593e23648a74d7ff4e8a370aebc1fc3e6c759697c2159c5",
+        "assets/astralrecord/models/item/custom/eriva_staff.json": "6a12de7f2d3a688fa42f20e1386d5194a4c9f3f4df498122062395f879c40b1b",
         "assets/astralrecord/textures/item/custom/eriva_staff.png": "56d4f05e2631af5ca25def3d29977989b7049bbf287b74a84ba2578f3827dc39",
-        "bedrock/animations/eriva_staff.animation.json": "c5b11a04545cadb46c74de27d022ed6b6b40ae0b800fb79de699de8773c40668",
+        "bedrock/animations/eriva_staff.animation.json": "aef79c33f87abd72d1ac430f1333cb5e0251b284291e66ed91fe712001afae41",
         "bedrock/attachables/eriva_staff.json": "7de5333d6f0e658ce7554d4d23acb89e91411a523dbace0ac8aa02b61f940550",
         "bedrock/models/entity/items/eriva_staff.geo.json": "4d6fd6a65edd938901bb34a0bbbe2e1bf9ba900bae8814ecb5769b20155429d9",
         "bedrock/textures/entity/items/eriva_staff.png": "56d4f05e2631af5ca25def3d29977989b7049bbf287b74a84ba2578f3827dc39",
         "bedrock/textures/items/eriva_staff.png": "a2e86821f8125f2f8af407d728ea103dee371ad7f724a7e1374687f358bdf815",
         "blockbench/equipment-drafts/eriva_staff.json": "8a01d6a828563ad7ff93fa4ebdbba2757ec05a0dd4ea23a2cef9c886f8176531",
-        "blockbench/items/eriva_staff.bedrock.bbmodel": "c21afcf220f2deab2effad8244d8afea270c5d002ccdd76e4664e7fc6caa7c9c",
-        "blockbench/items/eriva_staff.java.bbmodel": "77031dbf03eb2ac6a5e020ec2d20df3eaace847d9bcaa475bea6710716e85969"
+        "blockbench/items/eriva_staff.bedrock.bbmodel": "271eabc72a2094bb535837ba4923ed4f015a9ad13dc01fb0fc807981b85cdcb2",
+        "blockbench/items/eriva_staff.java.bbmodel": "1144dd19d9b56bc858ca432bacb6b55d8981db04b37698281db10828224cef88"
       }
     },
     {
@@ -635,16 +635,16 @@
       "base_item": "minecraft:iron_sword",
       "custom_model_data": 220400,
       "sha256": {
-        "assets/astralrecord/models/item/custom/lapis_sword.json": "ac7f008210bf1a721095c783d3f268ef126b6b19b1a64b4003d6a727271a26e5",
+        "assets/astralrecord/models/item/custom/lapis_sword.json": "eae6ac0173792ed6f481688a9418d172643447c05471af203aec6d217c3e0149",
         "assets/astralrecord/textures/item/custom/lapis_sword.png": "1a6858b7b9d325cf7bac867f9191dfc2c348f0dea258f5e97d526d0a3fdf58af",
-        "bedrock/animations/lapis_sword.animation.json": "c42de9cba097bf1d6556416aa3ac31385062c2e3a00483492592ab43754f73c4",
+        "bedrock/animations/lapis_sword.animation.json": "7611b456b6c135112bf844b5bf77bab00f8987ae8310e6d19b74c710b259de06",
         "bedrock/attachables/lapis_sword.json": "fc4d33b2f716760a19219bcbb2858e88c283d7d9b026eabe0d950075c60a9f07",
         "bedrock/models/entity/items/lapis_sword.geo.json": "6ad14fb0090ff3186671b7ad4a0b27325482b701429c78a6d51deda4da88665d",
         "bedrock/textures/entity/items/lapis_sword.png": "1a6858b7b9d325cf7bac867f9191dfc2c348f0dea258f5e97d526d0a3fdf58af",
         "bedrock/textures/items/lapis_sword.png": "7a68ee076b79a41aa830f2d78e0d116f87c792aaa24e54df8df61ba9d5fe49d7",
         "blockbench/equipment-drafts/lapis_sword.json": "3072aeeac4befcbe0cbe8c5f96b49af4a06805da7c053d05bf4f785be2f6d7cc",
-        "blockbench/items/lapis_sword.bedrock.bbmodel": "2c0cfe0409743222155f671698ff28766aae80ba2643e0054ac05bb8fc86f0e7",
-        "blockbench/items/lapis_sword.java.bbmodel": "ec250fd554e7e8270bbbf228bba742ea479e47cccb67ca7b8cd5a19ad6c5cffa"
+        "blockbench/items/lapis_sword.bedrock.bbmodel": "c54fee51646e95d396dbee20b326ac88ea176375cb822dafe904291b9f086990",
+        "blockbench/items/lapis_sword.java.bbmodel": "86d28edcf1586c4ba0cb16178e773bbe0d320f2b77df9e0f838511afd214737f"
       }
     },
     {
@@ -655,16 +655,16 @@
       "base_item": "minecraft:iron_axe",
       "custom_model_data": 220401,
       "sha256": {
-        "assets/astralrecord/models/item/custom/lapis_hammer.json": "dd451c21f630adc1ede20ba9e296b5bb29268770adad0477069590a5d767f697",
+        "assets/astralrecord/models/item/custom/lapis_hammer.json": "8d9bd670746024de155c042a3e7711fcf6557ac4371a167d4ea6347249f95f40",
         "assets/astralrecord/textures/item/custom/lapis_hammer.png": "1159de8cf193980f47da0dd3f82c8c23015e4e301697c2e51e7574fb9dbe59f7",
-        "bedrock/animations/lapis_hammer.animation.json": "9058f49bd6247e7a55ac1b157c560b68edfcbecbd4c45f7a43dd23a7d7e72592",
+        "bedrock/animations/lapis_hammer.animation.json": "3fe621cdddc3d6fc992b54a466c310ef354fc053bd3456dcbf7e061a7e39c1c1",
         "bedrock/attachables/lapis_hammer.json": "d031948e678e381d91c9b43496c2f62f41ed1c728bf493b3ccd7bdd86f850d70",
         "bedrock/models/entity/items/lapis_hammer.geo.json": "ff451fbe0fe3447a55a83d7ee2a80d3eb76d6cd3ed4f5f07de96b3e3c651c76f",
         "bedrock/textures/entity/items/lapis_hammer.png": "1159de8cf193980f47da0dd3f82c8c23015e4e301697c2e51e7574fb9dbe59f7",
         "bedrock/textures/items/lapis_hammer.png": "d4858abb13ea72482b27619a0258daf58bb95595c5965b8e274ba842a08bc144",
         "blockbench/equipment-drafts/lapis_hammer.json": "27c10ad80a7b1d867f998437067e47981899b8766fe87011075a2e1bce8afccc",
-        "blockbench/items/lapis_hammer.bedrock.bbmodel": "c1133a7fcc21559e5b4086a490e7ed19415c3b9e58a3b8165e5f6c699c928df2",
-        "blockbench/items/lapis_hammer.java.bbmodel": "dc34007e513435f5c8ee988be130ea7e5011f18b808df887ba34c90390322313"
+        "blockbench/items/lapis_hammer.bedrock.bbmodel": "0ae9298ea76a0517d131e484b3cb8ec659397004eb97c154a10027652cf1abba",
+        "blockbench/items/lapis_hammer.java.bbmodel": "d395e913b276ad5a3448b1f84b279105203d1c2351e5cafc33ea6b316d53317b"
       }
     },
     {
@@ -675,16 +675,16 @@
       "base_item": "minecraft:wooden_spear",
       "custom_model_data": 220402,
       "sha256": {
-        "assets/astralrecord/models/item/custom/lapis_spear.json": "a235cfaab75b8ed6dfe5d55e7079b47518d4c23d937aa34b251c553e4cddf4ae",
+        "assets/astralrecord/models/item/custom/lapis_spear.json": "c24c73586a95b954fd2eefc0acf43b7641aa2130a604d934fee5dbc1225793b4",
         "assets/astralrecord/textures/item/custom/lapis_spear.png": "37dfc538e2ca3329d0cac210d6b040d669c0be682a17ad82860744c581a0d4c0",
-        "bedrock/animations/lapis_spear.animation.json": "19f2cb8ec0bb18fd2275862ef093b833628e6259799afc471220f001ec91c0ef",
+        "bedrock/animations/lapis_spear.animation.json": "c14043036fd21750b62d323facc6ef27ac52672405ee005732812d3dde68a859",
         "bedrock/attachables/lapis_spear.json": "d45f0585f8f10b290005408caabed51cc1782dcfac984f3dbeddca440ba3bc90",
         "bedrock/models/entity/items/lapis_spear.geo.json": "8b342ea3c111bf599474cc9dd9f14f172af18f6ea607f04bc6c4156f07ca4bf1",
         "bedrock/textures/entity/items/lapis_spear.png": "37dfc538e2ca3329d0cac210d6b040d669c0be682a17ad82860744c581a0d4c0",
         "bedrock/textures/items/lapis_spear.png": "b40524b0ffcd76f202e261a4e558825b5dd0582ce2950c0731def121239664ff",
         "blockbench/equipment-drafts/lapis_spear.json": "2a79f622808f153b1ae0e5b028e6e687b4438672cdf31d598d3cad5c19b0f9d4",
-        "blockbench/items/lapis_spear.bedrock.bbmodel": "609535ed379e24f9ebfa51681ec708b8c7524b0914ed51d73494804c9c99139d",
-        "blockbench/items/lapis_spear.java.bbmodel": "4a4823d442c2976337fde665348e3fcfaf86f40b71b7aed9dabbd64e86f93b5e"
+        "blockbench/items/lapis_spear.bedrock.bbmodel": "aedc044d2d98f73286b9c3da50d9410b0fa5530b8a817e0b927e14b636975cb1",
+        "blockbench/items/lapis_spear.java.bbmodel": "acb486b60323aa73b886cea716657b8bc5a6b7b63fee63a9295b79b2a2630a82"
       }
     },
     {
@@ -695,22 +695,22 @@
       "base_item": "minecraft:bow",
       "custom_model_data": 220403,
       "sha256": {
-        "assets/astralrecord/models/item/custom/lapis_shortbow.json": "9434bd04cd37347b4bcac9d64798a5ea7852b4c695fd171e90a6efbbb7d36859",
-        "assets/astralrecord/models/item/custom/lapis_shortbow_pull_0.json": "2b786fa633d53e47cbe735ff2aa0648aa6cd8dc0a5f4b28b22557a5c4b665642",
-        "assets/astralrecord/models/item/custom/lapis_shortbow_pull_1.json": "53adef75bf5355d4771209e1bde70099fd37ca93e7d327ad8b41318cd78a1a44",
-        "assets/astralrecord/models/item/custom/lapis_shortbow_pull_2.json": "53929b476d019cf6dd1a1b41bd54f23f78e3850ae9d2e4d28a753e656e86bfa4",
+        "assets/astralrecord/models/item/custom/lapis_shortbow.json": "c82a38517e70ba5c5f06ce8a1cfb74e083bd6ccfe90529d31b6b824b1f212bfe",
+        "assets/astralrecord/models/item/custom/lapis_shortbow_pull_0.json": "40b2493fee84cd8bfcf7849a9f9c72f830038a1ba6f441d1fed241133819c725",
+        "assets/astralrecord/models/item/custom/lapis_shortbow_pull_1.json": "99f2a952ca02fa4770b61ffbad3cc1e40785615bd9d542bf02e50db51e66f907",
+        "assets/astralrecord/models/item/custom/lapis_shortbow_pull_2.json": "2801d71c54c7e63648d9a8199d59159d463e4429ab48b55498c605195f690e79",
         "assets/astralrecord/textures/item/custom/lapis_shortbow.png": "03a0ce47057d5a186181021144c642843e4a919310744392277ae42c9508206b",
-        "bedrock/animations/lapis_shortbow.animation.json": "4d93494265d6b962ce15d20ba19b414f5e765243a38d8fc9ec1c314ef372e7a6",
+        "bedrock/animations/lapis_shortbow.animation.json": "28d2013638272ce54e5faa1a761d3db5f9e862cf23cb6c25434156b12778db55",
         "bedrock/attachables/lapis_shortbow.json": "c219283a07a69e90795988756e9cd1db816364c27aaafbcbebb3973d4bf1b597",
         "bedrock/models/entity/items/lapis_shortbow.geo.json": "a89bf08639711a8b4fd1282f1f51dcf0b8eefb1cae3d2d4fb05eb1b80369a056",
         "bedrock/textures/entity/items/lapis_shortbow.png": "03a0ce47057d5a186181021144c642843e4a919310744392277ae42c9508206b",
         "bedrock/textures/items/lapis_shortbow.png": "a9f014d3b5f6d0ada822deac8d9e3a05f318977fc08a34b6cd51ac5983541b20",
         "blockbench/equipment-drafts/lapis_shortbow.json": "0003685eada0d72fba5fd47c7dd5f0ca1b5c572aa708c4632ef28ac92ee9b513",
-        "blockbench/items/lapis_shortbow.bedrock.bbmodel": "af3d392e4c86bdd089d47c790af89e53b71d2cd0f6daba80f483eca2fc173e41",
-        "blockbench/items/lapis_shortbow.java.bbmodel": "35c36d5dd3068b246c730d5cace08a38deda6213d03ae3a898d2823da46f4bd9",
-        "blockbench/items/lapis_shortbow_pull_0.java.bbmodel": "a411b452cede41a6b21e1e32327ea5ccc036c6853db920ee90bcc618f647675c",
-        "blockbench/items/lapis_shortbow_pull_1.java.bbmodel": "5390d6f9227c74cd3cf3cd9f535a0389ea87152ef6018eb12af04f706e8e51b3",
-        "blockbench/items/lapis_shortbow_pull_2.java.bbmodel": "1a7d412322562b56d7a5bbe4b87f93848445cca7d3f2a14e628fff2fd184010c"
+        "blockbench/items/lapis_shortbow.bedrock.bbmodel": "e8cad9c06a7757a3204f29b4aa68d252444637d50c66f33761b2799670506f6d",
+        "blockbench/items/lapis_shortbow.java.bbmodel": "7d8b9e67fa403276b46334cbd73b3af8256a4fe0624f3fc91b4070333ebb0be6",
+        "blockbench/items/lapis_shortbow_pull_0.java.bbmodel": "3e4bf7fd4ee85adfda87eb45ea286189af23698cf7ba55c000a8b4138da4f397",
+        "blockbench/items/lapis_shortbow_pull_1.java.bbmodel": "721cd9c67ed5b8d23a013307fde841deeca38bb6845898f19e5fe0e4ec7ce35b",
+        "blockbench/items/lapis_shortbow_pull_2.java.bbmodel": "95002e8494d4e8f7561838f46659d8aed43041e36f75ee0ff061023c8849d7c8"
       }
     },
     {
@@ -721,19 +721,19 @@
       "base_item": "minecraft:crossbow",
       "custom_model_data": 220404,
       "sha256": {
-        "assets/astralrecord/models/item/custom/lapis_longbow.json": "829cbf9efe164188aec0f50b3b920ece3f1b73508202b8e9b50f71c474b15e26",
+        "assets/astralrecord/models/item/custom/lapis_longbow.json": "007ce22b8c0eeb1927395a2fdf8c93714abc4420dfd5aae4008b2a3d8ff0f86e",
         "assets/astralrecord/models/item/custom/lapis_longbow_pull_0.json": "e99abf5341f43078045ac8e871a482563e023179fca671a4b7f9ce76182bad8c",
         "assets/astralrecord/models/item/custom/lapis_longbow_pull_1.json": "7571cbca0ec357c5c45032b4551f1bf9a7be508939f46ee20fbd1203496426e5",
         "assets/astralrecord/models/item/custom/lapis_longbow_pull_2.json": "363ac735139aeb8cb68d39f9298abf3732dfaef8b767b38b85a4d1649a103f1a",
         "assets/astralrecord/textures/item/custom/lapis_longbow.png": "a2d44177821df6a18483cca6c860aabf245b35c1cf37048a1ac366db2b1372b2",
-        "bedrock/animations/lapis_longbow.animation.json": "abecf23accf25e4ee5769006defc3cbb1211fb18e7197b5bbf5ee0d221041886",
+        "bedrock/animations/lapis_longbow.animation.json": "6cb87f7076e67ca239a49e2a733869c61f890e037baf1273e497553b682a236e",
         "bedrock/attachables/lapis_longbow.json": "bee05b961890d59b80da835e224f38dd36541344a8af7c14b47ba42cf6b22eaf",
         "bedrock/models/entity/items/lapis_longbow.geo.json": "26821bd2855595fd4fa51ec79f1c2a38a757b66c49e641ea0c9bcac472ecb438",
         "bedrock/textures/entity/items/lapis_longbow.png": "a2d44177821df6a18483cca6c860aabf245b35c1cf37048a1ac366db2b1372b2",
         "bedrock/textures/items/lapis_longbow.png": "e4bd409f3c97adfa98106d5b8ed6ef7bcd66f9e0d7316d82f2aac3a8b0833dd3",
         "blockbench/equipment-drafts/lapis_longbow.json": "26418f357c02f6aa2cdf8628d7945b9a08cdb845bbc5ebfd620cc22fd29090e8",
-        "blockbench/items/lapis_longbow.bedrock.bbmodel": "6f87ec7117683168da2d52076b6c0df08d980f8875497815b08de892e62bdc74",
-        "blockbench/items/lapis_longbow.java.bbmodel": "2674b77942871d5d1c08a36ee6aeec0e0b7ecac06c22eed412ff29f47969dd87",
+        "blockbench/items/lapis_longbow.bedrock.bbmodel": "759ad842767c6cb369fa552f3717bb694d7dc4fcc586652c032f92a04705d132",
+        "blockbench/items/lapis_longbow.java.bbmodel": "dbec4b2c48b85e83bbcf23577b77af8abdeef5d8a0db1f8234bf529f2180b653",
         "blockbench/items/lapis_longbow_pull_0.java.bbmodel": "1b8cf2a6fbc3557e0791b50bfbc464d4283098591147e6c8b27eb47e0777954c",
         "blockbench/items/lapis_longbow_pull_1.java.bbmodel": "f4b611ddf6df0c41fe44724896c9029179ad9d07ef7e5f5d30db5c0ae7805bf8",
         "blockbench/items/lapis_longbow_pull_2.java.bbmodel": "4aca0458a20ab3089b031c0bddbed47ae406ef3632cf3358f361f6020c95cc54"
@@ -747,7 +747,7 @@
       "base_item": "minecraft:torch",
       "custom_model_data": 220007,
       "sha256": {
-        "assets/astralrecord/models/item/custom/simple_talisman.json": "990462f138c3b1fe7131ad1cf338912314702007683989a7fbb7175c9f4a6cb7",
+        "assets/astralrecord/models/item/custom/simple_talisman.json": "7df82ef76f10a70ceba0b61fe528d5b89ca2e23833bad369381e8141420f583a",
         "assets/astralrecord/textures/item/custom/simple_talisman.png": "22b69502bc4ed1944ad3b230c5c6ecda47729c263ccbeecee77eb42bf8132e31",
         "bedrock/animations/simple_talisman.animation.json": "e4e1f8cbbfad9d205ce046de4881ce7ef532f2cfd48de9fdea85103afae79c3f",
         "bedrock/attachables/simple_talisman.json": "7b34604ffe96d0554c0871e36541e2eaad0af5c92c90119543325f337d2cec6b",
@@ -756,7 +756,7 @@
         "bedrock/textures/items/simple_talisman.png": "8bbf595724c3d0e982c5b1eb57586ad95405a074b6157c137602cbe4eb7ec477",
         "blockbench/equipment-drafts/simple_talisman.json": "17317e40093adbee531114e18cfed829dc3f7b7a6656e7c1322c03f5de7af68b",
         "blockbench/items/simple_talisman.bedrock.bbmodel": "61a9f924f8362680adc93d6409474473d28613437d2bbdc7bebed7f3c1bd118c",
-        "blockbench/items/simple_talisman.java.bbmodel": "b0194bc1ffa5620cdef06ea35d31c5ab74bea0ba50693e0f6a77e8905e264ff2"
+        "blockbench/items/simple_talisman.java.bbmodel": "765e0f95a92a18431ab3040480578914d09d56479973bdd19186b178c52a8155"
       }
     },
     {
@@ -767,16 +767,16 @@
       "base_item": "minecraft:iron_hoe",
       "custom_model_data": 220405,
       "sha256": {
-        "assets/astralrecord/models/item/custom/lapis_wand.json": "f63006fc4f7bc5986df55289d000f402e074a5be03613dd4efaa36a5b3333eb0",
+        "assets/astralrecord/models/item/custom/lapis_wand.json": "26c69c2a52944cb026db05df6cd370ffabbebd1692cfaf030dec4efa3d65a567",
         "assets/astralrecord/textures/item/custom/lapis_wand.png": "99a560c55a5fe4039cfba3991cd246347b4ab1503659a488e5f6f4c2ee1d6ee1",
-        "bedrock/animations/lapis_wand.animation.json": "f1d6718e15d8d529e238cf62a8057bea696dc83c56b562a909b313ccdf0e6b5d",
+        "bedrock/animations/lapis_wand.animation.json": "a604e12f2e4999bbd3eff7d9dfc0a12f4cc2ebf8374e4170e9ebe02b6916856c",
         "bedrock/attachables/lapis_wand.json": "bfb4d76e0e09462629bf9e12f3d861daa5a21e1cb85224405886d4c74f6e391e",
         "bedrock/models/entity/items/lapis_wand.geo.json": "2bef897e0046626a9089c0b11f3257f5e892d7b6ce6ac0f22f9a0839d499ef59",
         "bedrock/textures/entity/items/lapis_wand.png": "99a560c55a5fe4039cfba3991cd246347b4ab1503659a488e5f6f4c2ee1d6ee1",
         "bedrock/textures/items/lapis_wand.png": "3373657e6cf49f297fa5ae9bf41370a86399592eef150501607efbe58b81ea1a",
         "blockbench/equipment-drafts/lapis_wand.json": "be523feea247d146bffef981def173e421f6b64c8703fbc47d2763c7a7e225ea",
-        "blockbench/items/lapis_wand.bedrock.bbmodel": "ae08c6c0ce10c8e3eef0f184d82391da575ee31c56a8e22bb3b0359fa5911182",
-        "blockbench/items/lapis_wand.java.bbmodel": "7975c4071ce1020567a957ec155d5a562b87f39f7b7c1a6373b8166c0642d17e"
+        "blockbench/items/lapis_wand.bedrock.bbmodel": "dabede075746f76d33e875e5e9266845cacce79b9d1e0387de867303647a8290",
+        "blockbench/items/lapis_wand.java.bbmodel": "53b09a784b5135312ae515e4666b8195b62b49d7012631e9ae61e41dfb3e5f1b"
       }
     },
     {
@@ -787,16 +787,16 @@
       "base_item": "minecraft:iron_shovel",
       "custom_model_data": 220406,
       "sha256": {
-        "assets/astralrecord/models/item/custom/lapis_staff.json": "bd817f6de75bfcaa5a895c81776b4f07a4fb0564bcac4fcaa4de160a3c143a6a",
+        "assets/astralrecord/models/item/custom/lapis_staff.json": "cc19ef1475d1a2615899f787bb4d2e7414da354dc9dc52aaf5cf58ad8d7ade1e",
         "assets/astralrecord/textures/item/custom/lapis_staff.png": "99591f6cbdfdc11008ae6d5d8b73b02f0e2aad34131bcef0abba7d22faa6528e",
-        "bedrock/animations/lapis_staff.animation.json": "246c2482cb73608a77998dbdcc015292ef3dbaebc615d70550534cab9f593d91",
+        "bedrock/animations/lapis_staff.animation.json": "b8b2ae638fa16c04c7f42bd02cac32481fd0a04302aa6349bd9281826af25970",
         "bedrock/attachables/lapis_staff.json": "d58de071c3fcbf1905ef0c0d3f407a83d6eefb7563d4643bbc7b2b7a5d3b5f5e",
         "bedrock/models/entity/items/lapis_staff.geo.json": "a8b6f86969271e1a5b12ea1f4e63a60a8c0151da0fbfc274deb68fa6b223d2f9",
         "bedrock/textures/entity/items/lapis_staff.png": "99591f6cbdfdc11008ae6d5d8b73b02f0e2aad34131bcef0abba7d22faa6528e",
         "bedrock/textures/items/lapis_staff.png": "31d574a017f933245cdd45bf3f1a7b4acf9b319c3ef2d2616b64a0159abf3f29",
         "blockbench/equipment-drafts/lapis_staff.json": "9909f148bddcf5b24b147f2bcf8d55eef9fb2f45a3e486b4f92b5566bdd75043",
-        "blockbench/items/lapis_staff.bedrock.bbmodel": "488e6c20f79115220208b798abdddac254023ba0d634256e52435a6c802602d1",
-        "blockbench/items/lapis_staff.java.bbmodel": "f5079de0ead6cd2917435987e34b0fd4a8acc014a824414ca095194dcd7ef224"
+        "blockbench/items/lapis_staff.bedrock.bbmodel": "4e37ab9cf36e109d9bfbfa41021c24ecf0b5d048e3b6f33bcd7425d80acd020b",
+        "blockbench/items/lapis_staff.java.bbmodel": "c23dc26dc82d762f7045ac269fcc082f23fedd4af6f59dcbbf2be1446de24af1"
       }
     },
     {
@@ -807,16 +807,16 @@
       "base_item": "minecraft:iron_sword",
       "custom_model_data": 220419,
       "sha256": {
-        "assets/astralrecord/models/item/custom/lumina_sword.json": "0c6a8f17cc46bad059adf91d94dc6183d4584e8e88231327c3f1db77cb2ace60",
+        "assets/astralrecord/models/item/custom/lumina_sword.json": "1e4f87b821ade26bd58a4401f4d1e7cfae281493648f32676166dcca442ef436",
         "assets/astralrecord/textures/item/custom/lumina_sword.png": "ff2e35ebf01067592b331917ca25ddf214c0f57a5aa0688a770767ce72cabf71",
-        "bedrock/animations/lumina_sword.animation.json": "b26741da81552bcac92039047543a7785099631c82e1a32bf91175fc7ed0fd51",
+        "bedrock/animations/lumina_sword.animation.json": "c7d456b2f3cbf41a4b0d9e9f58a5bc37be68270ddadfc4502174448f8bbfae02",
         "bedrock/attachables/lumina_sword.json": "493a2314aac24ce81429f0ba40adfb14ba1f2256a64084752d08a81f141443c0",
         "bedrock/models/entity/items/lumina_sword.geo.json": "b63189e2c590be3dcfb1d75f12640f9a9490a3979a38efdc960f5edb15ec7894",
         "bedrock/textures/entity/items/lumina_sword.png": "ff2e35ebf01067592b331917ca25ddf214c0f57a5aa0688a770767ce72cabf71",
         "bedrock/textures/items/lumina_sword.png": "07f3b4505dcf4a0e36f0f82264b154874189b75faeda942aceb1247542a86e09",
         "blockbench/equipment-drafts/lumina_sword.json": "13416aab6c08cdd226b02caa9756ad46a20154d065f691460ba77f867ab1762e",
-        "blockbench/items/lumina_sword.bedrock.bbmodel": "f6465c3b4494c5caf07b4d79d58203cb1d4ddfde805ec9e0e313ae8759b230a8",
-        "blockbench/items/lumina_sword.java.bbmodel": "f5d85e71406db31402a6d2ec9b93f9b3f3fca652c1ca69c6c63df7d4f30167d9"
+        "blockbench/items/lumina_sword.bedrock.bbmodel": "f96e25ef822ea8c2cdd894f9c3411d52daebeea0ccd60fa3542309a86bbef184",
+        "blockbench/items/lumina_sword.java.bbmodel": "9f2d60c719bd2a161dcca2b0ef1f8547075e2248092b74715191e37d955a1262"
       }
     },
     {
@@ -827,16 +827,16 @@
       "base_item": "minecraft:iron_axe",
       "custom_model_data": 220420,
       "sha256": {
-        "assets/astralrecord/models/item/custom/lumina_hammer.json": "8f76daf24db0400cb76819ce54f7531c26453b31448c3eeaf4b8266981acc1fa",
+        "assets/astralrecord/models/item/custom/lumina_hammer.json": "ec5dea3492cd8e6a9ef5a2400c4c7e75a564df649879ab244d78956fb7ed7397",
         "assets/astralrecord/textures/item/custom/lumina_hammer.png": "f7b9585443e194a27c6456e85c9821e3e35fb3d2360a00948c1dae8d16186c36",
-        "bedrock/animations/lumina_hammer.animation.json": "400999c8d8d0ba1b1eeaf753159e6d862accf491938907a8c9ce3d10f1dd86b1",
+        "bedrock/animations/lumina_hammer.animation.json": "5e4935ece290224cf85f4f1559ffc8188ede491276257724dcdeaba48e84f85b",
         "bedrock/attachables/lumina_hammer.json": "afcdd9d031f8a94c31a838e8170eca8cc0332a2c045d0cb5f9ac7c73c56ec8f0",
         "bedrock/models/entity/items/lumina_hammer.geo.json": "15c27384937635783250db30234a03ec3ecf3888a19c1c039ced39fe42aebe31",
         "bedrock/textures/entity/items/lumina_hammer.png": "f7b9585443e194a27c6456e85c9821e3e35fb3d2360a00948c1dae8d16186c36",
         "bedrock/textures/items/lumina_hammer.png": "b7d2da0eb22b987e77a8e8ca33ad6374f97a80529b132b0b06685330dc09cc2f",
         "blockbench/equipment-drafts/lumina_hammer.json": "b8dd98a54ed6930d3402e37a96a82591ba87d9cc947fada8c900714e46a713a1",
-        "blockbench/items/lumina_hammer.bedrock.bbmodel": "6082ed4157a89e823e7c8ff50c859f1f44702172d18124197c74b464cb0d0502",
-        "blockbench/items/lumina_hammer.java.bbmodel": "0857243a099b991f8c6cccdde328ea2f54b4cc8ae217f11527427ea492aa3d6a"
+        "blockbench/items/lumina_hammer.bedrock.bbmodel": "4d362fb13c25c6df6b895f7c86339fb1ead28b62327ba375e0e8a59e709e60de",
+        "blockbench/items/lumina_hammer.java.bbmodel": "4a1f497c25331f497b883e79a49d79b4ad6693a2b954d561f570aa89f720a058"
       }
     },
     {
@@ -847,16 +847,16 @@
       "base_item": "minecraft:iron_spear",
       "custom_model_data": 220421,
       "sha256": {
-        "assets/astralrecord/models/item/custom/lumina_spear.json": "54b07fb2a82313dc24f18decd713f9f6a6388311eb1de7284204307c99e336c5",
+        "assets/astralrecord/models/item/custom/lumina_spear.json": "818f0732196faa169a1689b82fded6d6b909730cffe5b9b4b7591ea6d7cbdd12",
         "assets/astralrecord/textures/item/custom/lumina_spear.png": "ab4b59595842e5c5e3360ef9ef4385e93fc4d48ef8f7084ef6e3abad7e87dbd5",
-        "bedrock/animations/lumina_spear.animation.json": "2fcf90ccd6c7f4e1a7ab2ef101f5cc05464e178c670f8b78d80e5527e8352a59",
+        "bedrock/animations/lumina_spear.animation.json": "284cd6ef62eb90051ed635a54b2a32f7893a18ec2fbc5c54f9a04adb054b419c",
         "bedrock/attachables/lumina_spear.json": "6dc447c57a58ff94437a7cc4dfc914026b8536a7657a1c987d4b72f4c384f084",
         "bedrock/models/entity/items/lumina_spear.geo.json": "c9081ae80f6736d217ee595be278e6e4e9681dd7da232609a682c38285f9aa84",
         "bedrock/textures/entity/items/lumina_spear.png": "ab4b59595842e5c5e3360ef9ef4385e93fc4d48ef8f7084ef6e3abad7e87dbd5",
         "bedrock/textures/items/lumina_spear.png": "f1edacfc343097d555124a97dfbf2ec4dc83143a1909b934af342bc5f11545fd",
         "blockbench/equipment-drafts/lumina_spear.json": "1302f80b8b7c4af7ed58011d6a5da67a1f8ff4d0fe89d2cbd8429dfe4396d04c",
-        "blockbench/items/lumina_spear.bedrock.bbmodel": "15c0468d10934e49ed9f6dbdbb357b72fb839c392793b0d6ec85962b071cb2c2",
-        "blockbench/items/lumina_spear.java.bbmodel": "0e0ccf45387e6c19b5b815de8ba4503f2d194c1168677cfbec007710e2878915"
+        "blockbench/items/lumina_spear.bedrock.bbmodel": "36b712bdcf76a3b1607bb11744fffebca7ba543c0e06b80c4817d4694aa677cf",
+        "blockbench/items/lumina_spear.java.bbmodel": "9bdd50fa00978c2c854405040f499d531df46c75a6441d2366bb22e1009b40d4"
       }
     },
     {
@@ -867,16 +867,16 @@
       "base_item": "minecraft:iron_hoe",
       "custom_model_data": 220424,
       "sha256": {
-        "assets/astralrecord/models/item/custom/lumina_wand.json": "0174e64a1829001b3eab8a70164cbef8afa4345f26714751141aa1368a6e5284",
+        "assets/astralrecord/models/item/custom/lumina_wand.json": "2f5d14866109b4a348167bc96fb54208026a7db7255006d21985a9a3473c6787",
         "assets/astralrecord/textures/item/custom/lumina_wand.png": "9de55ce4a40f7847c0d336e6eab757adaf228d7f8a031527d988e249430adb35",
-        "bedrock/animations/lumina_wand.animation.json": "c4663800302bac56afd40a9c10672c6c7b559f51b7f0c9af47cf49d4b6896c6b",
+        "bedrock/animations/lumina_wand.animation.json": "e01f5c37582d16322c289819020f9a25b85b6b18b224931c7c36bd14522b5df3",
         "bedrock/attachables/lumina_wand.json": "18e9ef1510357821a0f6a12f2f555e6aee84eb2dc17439c53c013184b55de010",
         "bedrock/models/entity/items/lumina_wand.geo.json": "c2084d654538cc753266f75bcb6921bb39eba0e5352423e5b124cbbab89483fb",
         "bedrock/textures/entity/items/lumina_wand.png": "9de55ce4a40f7847c0d336e6eab757adaf228d7f8a031527d988e249430adb35",
         "bedrock/textures/items/lumina_wand.png": "31b723c5167aba77b0d6a8981dece1da4bd3b5ce96d2a2996849f8bf313e8e26",
         "blockbench/equipment-drafts/lumina_wand.json": "0ecea36a759b70dae9d2a2ce04bc1b7be918cc7b4390da155dc3613138439dab",
-        "blockbench/items/lumina_wand.bedrock.bbmodel": "5e4abdb537f2cdf69f12201a0f90277fd538a027f8c43017ea4bb77bfa0908fd",
-        "blockbench/items/lumina_wand.java.bbmodel": "0cff9ce7955798ce12081f11c002a1b7fd70bf5410483db8985b8a71888c27d2"
+        "blockbench/items/lumina_wand.bedrock.bbmodel": "14c81ccf208cab104f6dbe55137d0a9bcdcf02dd11dd0d6ca17f03a37dee1bcf",
+        "blockbench/items/lumina_wand.java.bbmodel": "c8eb7f7b4dec2cc22dfb9fdaf98624e47e43e577a606d1b490d70d21e3399f86"
       }
     },
     {
@@ -887,16 +887,16 @@
       "base_item": "minecraft:iron_shovel",
       "custom_model_data": 220425,
       "sha256": {
-        "assets/astralrecord/models/item/custom/lumina_staff.json": "d3acb96eb456c220e2913fa72ce6849d971b984066afdc0e7227aad39ff22177",
+        "assets/astralrecord/models/item/custom/lumina_staff.json": "ad2d32ce51846c9f6b002b40cd6cea062d5eee934bac26ada4b03368d371f7f6",
         "assets/astralrecord/textures/item/custom/lumina_staff.png": "e4ec91842af20eaee72f7f33563d262e8479ca1544786884c5db96f8c6dbdebb",
-        "bedrock/animations/lumina_staff.animation.json": "a900f49f0fedd1326aaefd476589ec89369810f199b5c2b360d2432af51aa434",
+        "bedrock/animations/lumina_staff.animation.json": "0dcc6709130cc7162aa93183deacae9f17b3b8c7b8d8e7f706785bdbcbb43b2b",
         "bedrock/attachables/lumina_staff.json": "35d152f3486038f203cb3dd0893bc47b3358cb642f520f2f0e58374e11bddfb2",
         "bedrock/models/entity/items/lumina_staff.geo.json": "2ba78e35d62c18e19a7ca32daaf2d52eb24d36739b142d71c99c96e16de1d743",
         "bedrock/textures/entity/items/lumina_staff.png": "e4ec91842af20eaee72f7f33563d262e8479ca1544786884c5db96f8c6dbdebb",
         "bedrock/textures/items/lumina_staff.png": "c7e1c84ee40b49631a663bf2171a062f7322b03fbf3a9b899904e037424c678f",
         "blockbench/equipment-drafts/lumina_staff.json": "92af13ab8dfa144c11180f5d5f6af8bafdbcdab77ae279d97845cfe90e5fe8ba",
-        "blockbench/items/lumina_staff.bedrock.bbmodel": "0e546d0a031839ae5248ed51799b353fc4863e5fd740d9b69605bea4d389330a",
-        "blockbench/items/lumina_staff.java.bbmodel": "a246d05ac5737a582ad3d3365abc06d926e4cfa9279dc9bbdb4455be4f8a2b2d"
+        "blockbench/items/lumina_staff.bedrock.bbmodel": "a52e2e46267640857a9df376731437321d05ff5d1b6a89c46477696466acc0c3",
+        "blockbench/items/lumina_staff.java.bbmodel": "2fd72a4d20da3a61abe23bc889ae6d96eabd0518cbbace7f57f671b43add4656"
       }
     },
     {
@@ -907,16 +907,16 @@
       "base_item": "minecraft:diamond_sword",
       "custom_model_data": 220438,
       "sha256": {
-        "assets/astralrecord/models/item/custom/astra_sword.json": "889f8ec27186f0e770813ec8ca335acd6ad6ea001a4c7286b96122222b0d602b",
+        "assets/astralrecord/models/item/custom/astra_sword.json": "e56f2f244fce2aa2aa65f6f42e875896f748a169a6fce682a1c4bf42f252068d",
         "assets/astralrecord/textures/item/custom/astra_sword.png": "2015e5ab0ad4b8fe2cfc6d87cee3056148afc34edf96212cfa46abb09ad5c56f",
-        "bedrock/animations/astra_sword.animation.json": "ad32c87bbf09c3d3547af8f439bebbc474da9144dd9c9c0eeb7face2692ccc0b",
+        "bedrock/animations/astra_sword.animation.json": "fbb83050d635cf4ed9831939f50fad6fd211475e7b1191a328de2ca8e74e31ed",
         "bedrock/attachables/astra_sword.json": "63a619eea03a70a77bd31ae916ddde2726da0a0f866ace7b59585fcf5bb0ed0b",
         "bedrock/models/entity/items/astra_sword.geo.json": "b2b20045e1ed7362fef87304e952947736d88c778b38810799d96b978645c149",
         "bedrock/textures/entity/items/astra_sword.png": "2015e5ab0ad4b8fe2cfc6d87cee3056148afc34edf96212cfa46abb09ad5c56f",
         "bedrock/textures/items/astra_sword.png": "e131103b622fb61f5d89c51a4851b7fbebb812af00e4c7ab0ddc5b81c5bfd29b",
         "blockbench/equipment-drafts/astra_sword.json": "de115d317b9d8d8d6e06620e0dcaebda46e6bd6cb07ae0107c798c401d6b0307",
-        "blockbench/items/astra_sword.bedrock.bbmodel": "626b881ad1e5990decdde942472c629ee32d1675373b0b0c2e3de2ae2f73784e",
-        "blockbench/items/astra_sword.java.bbmodel": "0a7b0dc50fe76b7d7d7c7eca5ca49f2b9a0962b950cb10ed5a00d0cce20664aa"
+        "blockbench/items/astra_sword.bedrock.bbmodel": "afbb4331eeb8e52b2715075776235dcaf5c1a8c5a9da79303bd9bd6c76a2f33a",
+        "blockbench/items/astra_sword.java.bbmodel": "d6837c2a6a9350a5c187606d25704c96902806dda0bfb56c0084347d1958b1e5"
       }
     },
     {
@@ -927,16 +927,16 @@
       "base_item": "minecraft:diamond_axe",
       "custom_model_data": 220439,
       "sha256": {
-        "assets/astralrecord/models/item/custom/astra_hammer.json": "f04be314c28c9e046182e7ef7f417715f5bfc661cd602aa3016e763bcb6dfbc9",
+        "assets/astralrecord/models/item/custom/astra_hammer.json": "1845b65a93f2ac336fb777cfff3d87af819af6ca9afa6a149027760a9c9a1880",
         "assets/astralrecord/textures/item/custom/astra_hammer.png": "8811eb05ffb47861aa298f30c8bdccc4ad34832241379a9d7d686f940831983d",
-        "bedrock/animations/astra_hammer.animation.json": "0802835e0d105a6511360ed75231f0a8ff4de31e8f6cf4523ad2e2abd2acab06",
+        "bedrock/animations/astra_hammer.animation.json": "e18716f2170bcf52cb4d8d7420704c36b802e2735dfda8d0a4764d28be3db59e",
         "bedrock/attachables/astra_hammer.json": "62de72f90827cc2b4eb0ae36d7f95513d0649c82d17dc6c6959fcc21fd8ecd06",
         "bedrock/models/entity/items/astra_hammer.geo.json": "09c4d6bfb4b58e4f6925fd72536126de47abc6d4f060af4726544dd0fccd817b",
         "bedrock/textures/entity/items/astra_hammer.png": "8811eb05ffb47861aa298f30c8bdccc4ad34832241379a9d7d686f940831983d",
         "bedrock/textures/items/astra_hammer.png": "023677a9e8e1e52b872c9cf20551550848f0f5676501a9e95efeab0cd67ffb91",
         "blockbench/equipment-drafts/astra_hammer.json": "b3f9d71424926c512996afa0b214c4655390eed2b50b72b6c0f9a640afb43dd6",
-        "blockbench/items/astra_hammer.bedrock.bbmodel": "034f5293dfdc350799a2590c241ccf6e59ace3b1f68526389020e03190c81396",
-        "blockbench/items/astra_hammer.java.bbmodel": "847aedd7dd26f28d725c82d67f044ff4d2265818723236890a951cda45e83222"
+        "blockbench/items/astra_hammer.bedrock.bbmodel": "7021b8dc8fcdef25f13b2cc55cac09f24a70e07c0a251060d778ca21954205a6",
+        "blockbench/items/astra_hammer.java.bbmodel": "54e50d3ea3029a74183b3f452f3ef7e5944a64dbf6d2557580b7c9dcbca93600"
       }
     },
     {
@@ -947,16 +947,16 @@
       "base_item": "minecraft:diamond_spear",
       "custom_model_data": 220440,
       "sha256": {
-        "assets/astralrecord/models/item/custom/astra_spear.json": "4fe1cbd8632dad74bab6aad2a7ded1d943fda24e4140c2268305b256728ed993",
+        "assets/astralrecord/models/item/custom/astra_spear.json": "132ce04558140543fd6bb92e7b3a7ce7783d341795974aa1aabda638e144e15c",
         "assets/astralrecord/textures/item/custom/astra_spear.png": "2f80fb2348b4c65920b12f4b65b7616db70b91c0c8a1a5c95b31c15b2bed86c5",
-        "bedrock/animations/astra_spear.animation.json": "749cd2399fbc7daf8e11337e32ad06dc1d3352ec3e689cdad0ffbf742cf08bbf",
+        "bedrock/animations/astra_spear.animation.json": "4100a6f38ceda9575ca0d3431e8a1f399649695baf4b7d54ec058d0486913774",
         "bedrock/attachables/astra_spear.json": "b86865ccbce2005fc2fdb43e49b718c5db8c5bbc793b707d867c5f4f069a4fa1",
         "bedrock/models/entity/items/astra_spear.geo.json": "e44c30beb650e12caddff248194afa7afda139947ddc095c0ef58d616fb80bb4",
         "bedrock/textures/entity/items/astra_spear.png": "2f80fb2348b4c65920b12f4b65b7616db70b91c0c8a1a5c95b31c15b2bed86c5",
         "bedrock/textures/items/astra_spear.png": "6e60109efcea4028b6287d09950e95540b7a596946b64ce9116fe0e6433b7337",
         "blockbench/equipment-drafts/astra_spear.json": "623cca8d79dfe264ce9daa9b114c739f02d5c19814002206549b5cca756553f4",
-        "blockbench/items/astra_spear.bedrock.bbmodel": "f09ff46412118a4ec13b163c616406fa301322afb4508142cc94be4d4d651ae4",
-        "blockbench/items/astra_spear.java.bbmodel": "0dd265aca665125b14db7d30c935790d282dba91e6e9169d002aa05aa3ecb0f3"
+        "blockbench/items/astra_spear.bedrock.bbmodel": "3d3091bbaeaaac8c4399b76852d2394a8effc23ad714fe821d270bd7b59c60cd",
+        "blockbench/items/astra_spear.java.bbmodel": "3f23d0422bdf36dd652e2557129ace1dd21bd85a147963a791682e249107ac1b"
       }
     },
     {
@@ -967,16 +967,16 @@
       "base_item": "minecraft:diamond_hoe",
       "custom_model_data": 220443,
       "sha256": {
-        "assets/astralrecord/models/item/custom/astra_wand.json": "7c12638d4654604c1569269cffff1f01385eca39d6845eb961099c1fd460bf36",
+        "assets/astralrecord/models/item/custom/astra_wand.json": "765b304e2b148521348787c4b2e7f80036a85d4430a7d8d57b27cbac0695f123",
         "assets/astralrecord/textures/item/custom/astra_wand.png": "91ff9f194c84b38593d0dca9b57d7dce782139ee7ddd0690595c36a66f76b4e4",
-        "bedrock/animations/astra_wand.animation.json": "8039345018d161a96e47fab15646dd9f374ac5b4ac9e91ee477c160afe83b8d2",
+        "bedrock/animations/astra_wand.animation.json": "517f71b8f483284f8782fbd9d7b3b5675b03a7a4cc120dd375d51d43b413dc8a",
         "bedrock/attachables/astra_wand.json": "0f69a99c4628f5e85756bbb770be9c2dfb784facfb64c13632d9214b258fc87f",
         "bedrock/models/entity/items/astra_wand.geo.json": "a29ccc372f564e90ba835af63d125f9cc24cc5e6e56be21ba6f5c906b2837f72",
         "bedrock/textures/entity/items/astra_wand.png": "91ff9f194c84b38593d0dca9b57d7dce782139ee7ddd0690595c36a66f76b4e4",
         "bedrock/textures/items/astra_wand.png": "20478b14c4aa49888fe504c8e919c3e316e75ff15b051572c23ff7794a329c02",
         "blockbench/equipment-drafts/astra_wand.json": "f748b10c53d71765f75b7fdec1dff07e603a906b7e500f58e0a8a0210903fbdf",
-        "blockbench/items/astra_wand.bedrock.bbmodel": "a0b4b64229ddb65ffdfc0971ff0cf2db8cc5033fca2e5d9d89fda6e5c3153812",
-        "blockbench/items/astra_wand.java.bbmodel": "610c89e6c58bc77995c427a2786b7f3e89bf03cb9382fb86b4384828f9414b6c"
+        "blockbench/items/astra_wand.bedrock.bbmodel": "0a09fdd97cc542e9ca7db3b35473b238f83c695cc4f47e107ac9ac89fac14745",
+        "blockbench/items/astra_wand.java.bbmodel": "5eaf56e5f558178eca6b145af0d568a6fc9b0a6dc498e34a27fe4adfc81ffe9e"
       }
     },
     {
@@ -987,16 +987,16 @@
       "base_item": "minecraft:diamond_shovel",
       "custom_model_data": 220444,
       "sha256": {
-        "assets/astralrecord/models/item/custom/astra_staff.json": "22e97228d7ea0fa0c62a9af1f29e7cb39ad4f8cbf6300d63880e6e8c6063c04c",
+        "assets/astralrecord/models/item/custom/astra_staff.json": "b97cd33381023be89c332a14f28e153aa0a2a0e7f0c4d6321c85f862f5835fc4",
         "assets/astralrecord/textures/item/custom/astra_staff.png": "87676dd52b1dc102fdeb50a0b11292d5381d14ec3639f17f895ae938fb5e7840",
-        "bedrock/animations/astra_staff.animation.json": "d5f566d1cffd0cb48aad79534fad9eb36eaa0fef1af627afa621a6405a59e025",
+        "bedrock/animations/astra_staff.animation.json": "5f52eefe984c3080dd6bcb6ed1b52432169a9a3733ef0061382d0a8699703a2d",
         "bedrock/attachables/astra_staff.json": "4be79871fcb96fb650bbf1424c66c41c55b3d7e9f9f46907998234619fa74af9",
         "bedrock/models/entity/items/astra_staff.geo.json": "081bab378fd4bd129f5a9bd9fe87dfd3ab02ea3b421b471317efca96f3f3f214",
         "bedrock/textures/entity/items/astra_staff.png": "87676dd52b1dc102fdeb50a0b11292d5381d14ec3639f17f895ae938fb5e7840",
         "bedrock/textures/items/astra_staff.png": "de54ce1ec801e4d3fa08ea74ec5a283a9f399f5ff6a95dce09fc6a0e01f52b0a",
         "blockbench/equipment-drafts/astra_staff.json": "a0c96c3776253694b80dfbe85447adbeea5794c7a8a1b2257fbdc89ae2a84523",
-        "blockbench/items/astra_staff.bedrock.bbmodel": "b009ece5ec1784b7485c76daee26a52789a2cd92d1bb5ec26479f6abb0270417",
-        "blockbench/items/astra_staff.java.bbmodel": "5d05efb8cf592e280e1640c42185b2ed58fde1024b650d684090b4e05993736f"
+        "blockbench/items/astra_staff.bedrock.bbmodel": "90b1f6db2441ee98265a45c9e726c81c8c87254c5cc8bbd188f8b21d9cd115b2",
+        "blockbench/items/astra_staff.java.bbmodel": "970d30955a94433d1cfab0c0568b1f05816cad9f64f0f0e4f3599518ea55979a"
       }
     },
     {
@@ -1007,7 +1007,7 @@
       "base_item": "minecraft:flower_banner_pattern",
       "custom_model_data": 220034,
       "sha256": {
-        "assets/astralrecord/models/item/custom/cinder_grimoire.json": "07bdbf3d56f463e37f4009bd7f85265459a4f1bdf0c292a6ebd3b1cea5f65ea2",
+        "assets/astralrecord/models/item/custom/cinder_grimoire.json": "6a69a6107eea182b6370279ca6207f67f420cb32fba74ccb5801790d561bba66",
         "assets/astralrecord/textures/item/custom/cinder_grimoire.png": "1156a1ed3952585b19e13cc849f257e39a7d1c9a5d48961faf118c7ba0ca9ef8",
         "bedrock/animations/cinder_grimoire.animation.json": "59bc4c9035f3514f11a5198657565c834744638c12dcbbce13ee98208c419e9b",
         "bedrock/attachables/cinder_grimoire.json": "77d93f2e5b8aebd01762aac10be831548eb1fc0b5ec16ba54ef9356129058b76",
@@ -1016,7 +1016,7 @@
         "bedrock/textures/items/cinder_grimoire.png": "37efface506a517653b9bc5842880cd0d532ee19912da931f36c152f76a9ecb0",
         "blockbench/equipment-drafts/cinder_grimoire.json": "e9bc9bcfb12e3a1e0a0ad85690a9cb09dc2baa4ec803b3a31f4a02774428f061",
         "blockbench/items/cinder_grimoire.bedrock.bbmodel": "dc4dd1abcd8fba2c0d801f8adc4e1e77c2417b05c721d3e4851cd53fb4db1707",
-        "blockbench/items/cinder_grimoire.java.bbmodel": "befb49cab86214a58243b5657919f38b42bdc9622354715f0c843526b08c62d9"
+        "blockbench/items/cinder_grimoire.java.bbmodel": "f29c850114a2a0a73ad6ff54e5bfde9cee2ca38b0f33d726966e7bad98691779"
       }
     },
     {
@@ -1048,20 +1048,16 @@
       "base_item": "minecraft:flower_pot",
       "custom_model_data": 220040,
       "sha256": {
-        "assets/astralrecord/models/item/custom/venom_quiver.json": "cd1b7c7fd9d7b30decd59b5aa03f1ef6918a58d7d088b52c786b8652364034ef",
-        "assets/astralrecord/models/item/custom/venom_quiver_worn.json": "b342fc4b5ca6ce800ec3d11687f05f3f198b3a5d288be6a692c00dd568ef6327",
+        "assets/astralrecord/models/item/custom/venom_quiver.json": "599b331ad10a857705a4822807a1b00397b92e71f1f5b0b82a15df5c71502465",
         "assets/astralrecord/textures/item/custom/venom_quiver.png": "52b5d3e52b2a183b3a2515195115c5f3349a7d53bee98838f7c97138ffba391d",
         "bedrock/animations/venom_quiver.animation.json": "e734f5115ddb7d0ee62a9463310a4d749d794510e3fac80e79b3bc7a60ad0663",
-        "bedrock/attachables/venom_quiver.json": "ae7b21ae23c5a5e7f78497776905bead67211026393d5d1848b6de7b1d578a4d",
+        "bedrock/attachables/venom_quiver.json": "0ff16a900c70a48de7427445c355dde7c72fec985c2d4370f75f1e9e3879e5bd",
         "bedrock/models/entity/items/venom_quiver.geo.json": "4fbef46d8e17af5122505fb5c1158f231373627c2e940a7f7e222a8338ccadb7",
-        "bedrock/models/entity/items/venom_quiver_back.geo.json": "f64ce5c7a5ee92202a9f02f3e90efb8b511af66ee27272db785d6194d747cb51",
-        "bedrock/render_controllers/venom_quiver.render_controllers.json": "496cbc80a2e9f54a238491a6a6e0b96933828a19e798ef8a757079a917e61982",
         "bedrock/textures/entity/items/venom_quiver.png": "52b5d3e52b2a183b3a2515195115c5f3349a7d53bee98838f7c97138ffba391d",
         "bedrock/textures/items/venom_quiver.png": "f171931f1c31b3e64a8925f32cfe2beb718f4a4fc2b0218b65c5d4c0866767ae",
         "blockbench/equipment-drafts/venom_quiver.json": "282baca05eacc068907fd887c2d6f31d32b714b0471ff7d9fffa4cd19cdd241c",
         "blockbench/items/venom_quiver.bedrock.bbmodel": "a58c14b26cf83217ed926579edb911c1fdfdcf57d7c598e0ecc7a08099ddce9c",
-        "blockbench/items/venom_quiver.java.bbmodel": "8853574a3b69703b14b7fd438db6df415cb4466d873310f8881aa936e3b90386",
-        "blockbench/items/venom_quiver_back.bedrock.bbmodel": "c914f94c667b7fcaa58d06d31b31aed5642f667035b4303f2afc18e799ec237e"
+        "blockbench/items/venom_quiver.java.bbmodel": "6959eaa60503e0f4e9221ed3382aba22dfe6547339895daeea98b397004e21e4"
       }
     },
     {
@@ -1072,22 +1068,22 @@
       "base_item": "minecraft:bow",
       "custom_model_data": 220422,
       "sha256": {
-        "assets/astralrecord/models/item/custom/lumina_shortbow.json": "5f9eee3718b579a6945a4cd7f40a147388476e8228b9a328418b96a2fefd9ba1",
-        "assets/astralrecord/models/item/custom/lumina_shortbow_pull_0.json": "b34f28124c2594bc35629fca9c4eb1cf03d2df2628af00ef8614f80e16f09540",
-        "assets/astralrecord/models/item/custom/lumina_shortbow_pull_1.json": "fe3f947f4f279c359a107133364255ff058973d0c30e0fe37205c29220c96086",
-        "assets/astralrecord/models/item/custom/lumina_shortbow_pull_2.json": "17d99a9cbcae9a098c257c75549aff7c7efe6bd8970fb801590b5c53dbc92d4a",
+        "assets/astralrecord/models/item/custom/lumina_shortbow.json": "214b2086ad98bc8e34d77ccd2035b2391e46e91ad41bdee4915781f03cbbaf7b",
+        "assets/astralrecord/models/item/custom/lumina_shortbow_pull_0.json": "7e047bba7970e9552e1beea32f7912ecfb3aa39798f945b7921ec1b8a2a66703",
+        "assets/astralrecord/models/item/custom/lumina_shortbow_pull_1.json": "9060f967a53ca5403c5d4f42b23e161802faa7c4c1cdca8a9341c9962ac58942",
+        "assets/astralrecord/models/item/custom/lumina_shortbow_pull_2.json": "ea0d06245d5006f968e698a39ebea792ac715efcce0da7decd9de17655409a7f",
         "assets/astralrecord/textures/item/custom/lumina_shortbow.png": "08e44269a9d1a8bdf0ebdc9a95401e6a96bed0bf4d1d39eec99049991dbb874d",
-        "bedrock/animations/lumina_shortbow.animation.json": "ce687125a9e1b64db5ee946fee1af55c170b5a036bc315522fda2770298e2d55",
+        "bedrock/animations/lumina_shortbow.animation.json": "f4ea19e9a7b0872275124f30621767e9eb366bb31fd596381e58b5576fbd5fdd",
         "bedrock/attachables/lumina_shortbow.json": "6fc54e220021736034fc05a188d8c8d888769424816fbce000320a7e874fa853",
         "bedrock/models/entity/items/lumina_shortbow.geo.json": "4d48287bc111dd2d614dadea8c80192d70627970cfac10b795b09d65e2889500",
         "bedrock/textures/entity/items/lumina_shortbow.png": "08e44269a9d1a8bdf0ebdc9a95401e6a96bed0bf4d1d39eec99049991dbb874d",
         "bedrock/textures/items/lumina_shortbow.png": "bc361bd0f0233c33cdb54ed5c8f07e2fed596ef9ab0c1749f8fe810f04ced6d2",
         "blockbench/equipment-drafts/lumina_shortbow.json": "a7d521b024a0b89e6ad7185529cabc9f1d670e06d39dd54c2d72861fb34e2e44",
-        "blockbench/items/lumina_shortbow.bedrock.bbmodel": "f92ee5576666eab1a0a557bd3fdffa0c1a78b8fc6270bedf3c61ff8aa00cc920",
-        "blockbench/items/lumina_shortbow.java.bbmodel": "0f4d167b7b404ca185cf5f3051168f35d58e36221d3eb18ffbe800a68182ecf2",
-        "blockbench/items/lumina_shortbow_pull_0.java.bbmodel": "758d41ea00e039c59ca171f35901cb283c5481f7e2c46351273fb4fbdfd12672",
-        "blockbench/items/lumina_shortbow_pull_1.java.bbmodel": "6b61ef1ca801a015b5a9be6a3b5876c435ce5431b87e9335bcb982d54fcfbb04",
-        "blockbench/items/lumina_shortbow_pull_2.java.bbmodel": "51e6c78c9e4c0a93d1dd041e215ff883aa6fe45a0c464b9422dc8c5492e93d51"
+        "blockbench/items/lumina_shortbow.bedrock.bbmodel": "3a4614f50e4a2d723d165a9404b43e20193923da785bd1c690488d101f00798b",
+        "blockbench/items/lumina_shortbow.java.bbmodel": "01b63b7e1f4f553f88b9f08bf4208dc0bbc3d03fe111cb6ce5699e66c8b72fc7",
+        "blockbench/items/lumina_shortbow_pull_0.java.bbmodel": "e62f7733dd69a0d978e656897439981787364f67eff154aa4df8b975ac1f3b97",
+        "blockbench/items/lumina_shortbow_pull_1.java.bbmodel": "f4b2134d0e84e6e4f5b9314f66197b7bc2388f9a86cc2a216f77b9d36e8a7b44",
+        "blockbench/items/lumina_shortbow_pull_2.java.bbmodel": "b6a882b14a714bb0c9da41144af162915f85ff22841520fd8610647b2011347f"
       }
     },
     {
@@ -1098,22 +1094,22 @@
       "base_item": "minecraft:bow",
       "custom_model_data": 220423,
       "sha256": {
-        "assets/astralrecord/models/item/custom/lumina_longbow.json": "947575260a245b4f2726c8002816c49554ccc61230b7d05b96ee4b350f27d8f5",
-        "assets/astralrecord/models/item/custom/lumina_longbow_pull_0.json": "64d0c533514bab013f816603f0b820c0c4e9512736ba649380d243bca7b9b3f7",
-        "assets/astralrecord/models/item/custom/lumina_longbow_pull_1.json": "cac973339132f7cdd03d9167692188aae489f02fe74f000fafdd032aa69a272a",
-        "assets/astralrecord/models/item/custom/lumina_longbow_pull_2.json": "07c005367916703f1576759c24c92c587096e147e0cc4abe81f46e7c333eeb61",
+        "assets/astralrecord/models/item/custom/lumina_longbow.json": "918484c0f014493d2a60a4a7a84fa5713aad4067eb0cd0fd9e93c1c3da695779",
+        "assets/astralrecord/models/item/custom/lumina_longbow_pull_0.json": "982fa490a4e2ca6a460d87d68547d4d38869b104109d21bebffb0224e2c9d7de",
+        "assets/astralrecord/models/item/custom/lumina_longbow_pull_1.json": "ba0bb46b1658c928bd1abd32c83ef45fc89bad6c96da8207890fa1cf76500028",
+        "assets/astralrecord/models/item/custom/lumina_longbow_pull_2.json": "ddf529c1375f72b0feb411aae29f4b4046deeb43b20f3ccb9dec909e837f2436",
         "assets/astralrecord/textures/item/custom/lumina_longbow.png": "52a76bfca6775a4bb4964ff2cca46f8a7845597864b65a75a594dadca6750527",
-        "bedrock/animations/lumina_longbow.animation.json": "a3a3bdd53914c0934efcbfbd8a91c41e97baebcd3acd427daf4d7a0b82dde228",
+        "bedrock/animations/lumina_longbow.animation.json": "c34be20a73611abb4f286feaaffce5108e08090c77e31df4065ea6ee91162fdb",
         "bedrock/attachables/lumina_longbow.json": "be900f2cf5ecaae596d2be8dae738827904ffb40174cd20f7d536a5a16a5cd6a",
         "bedrock/models/entity/items/lumina_longbow.geo.json": "b3cc6bd277c6737c62400ad7c7538fcb7fd6cf5614f6d761a29cbc8b2bdce153",
         "bedrock/textures/entity/items/lumina_longbow.png": "52a76bfca6775a4bb4964ff2cca46f8a7845597864b65a75a594dadca6750527",
         "bedrock/textures/items/lumina_longbow.png": "2484dbbaa07a6f0d7ee5b9f5702e778a11ebafde1a680bd711b92dfab3aacc47",
         "blockbench/equipment-drafts/lumina_longbow.json": "42acb1802e9001856b31802cece44c17f5d23c6a2db4938589b8fe7dd1b8880a",
-        "blockbench/items/lumina_longbow.bedrock.bbmodel": "864c3b1d3c93dde006db23e8f9b34e8bb4f59e5de1c9cbc2e2fc584517c35994",
-        "blockbench/items/lumina_longbow.java.bbmodel": "ec19f151fc3e27358cc21ddc619c78b2fd156ec22b46a462572cd82b6543f1f6",
-        "blockbench/items/lumina_longbow_pull_0.java.bbmodel": "f4a65ada853a5de9d0a404777ee9c6760e91b7ef3f00678427f3a041254c1db2",
-        "blockbench/items/lumina_longbow_pull_1.java.bbmodel": "d099934fc43fb67808be30d849091764ba57c9d6bc79dbdc0e80411ebddaff36",
-        "blockbench/items/lumina_longbow_pull_2.java.bbmodel": "30be79fb2abd079918810e0fdaec2cea40399942b7b8e64fa64c8b7b361c4ae3"
+        "blockbench/items/lumina_longbow.bedrock.bbmodel": "2ad46e6132f6a6f4e88eba85bce7a87fac32dca2ef40600f94ea787b87491ace",
+        "blockbench/items/lumina_longbow.java.bbmodel": "adb7dbe90c0db7fbb3891353ccd995ce62a2e825f8540ddbc6f57df35a9f1274",
+        "blockbench/items/lumina_longbow_pull_0.java.bbmodel": "1d88e88e19fbabf0f9f87e73c1ec4df6f9440ca9492347d92840a04c8b6946d4",
+        "blockbench/items/lumina_longbow_pull_1.java.bbmodel": "56841c38c9c8864e2e7794afac22ee91b16aedf42379a946f7ea9081e21e92ff",
+        "blockbench/items/lumina_longbow_pull_2.java.bbmodel": "9990221570066d5d089beab64d687111a52b00bd5f8a0af18ab62ae1782632f0"
       }
     },
     {
@@ -1124,22 +1120,22 @@
       "base_item": "minecraft:bow",
       "custom_model_data": 220441,
       "sha256": {
-        "assets/astralrecord/models/item/custom/astra_shortbow.json": "457ace155c9a9b652bfc74e9bbc41d3fcee57633d0a47932ba10d7bd98b5e86d",
-        "assets/astralrecord/models/item/custom/astra_shortbow_pull_0.json": "6897b8189d1a67e8170397b2ab6d688389bfe2d085f6cf1702055948c4bb2e59",
-        "assets/astralrecord/models/item/custom/astra_shortbow_pull_1.json": "53d42a2234d5441298b84ae11f7a08089eb5cdcd5b1882e70de597fcfe41c57e",
-        "assets/astralrecord/models/item/custom/astra_shortbow_pull_2.json": "e0b3a243229f71a42d7eff7e29bf9e6046018c37b2b527166c90c7f4d96abaf2",
+        "assets/astralrecord/models/item/custom/astra_shortbow.json": "0d8df61ee2f70aab7b29e1e8a8cd6e4d3b53a4f8083bcbf9aa1fc848e0721eae",
+        "assets/astralrecord/models/item/custom/astra_shortbow_pull_0.json": "ab816f7127e4205637083ba69b3a4774f206cf3548a044670f540e8d6877c059",
+        "assets/astralrecord/models/item/custom/astra_shortbow_pull_1.json": "df4fd6ed8ad399bbcf3254814d5ac5f15cdcc97f745ac09f4bf64e40da4fddeb",
+        "assets/astralrecord/models/item/custom/astra_shortbow_pull_2.json": "5c79c05a1c8efba60a3c0bda87fdeed8dd3537736d141e119c6da0df22cb171a",
         "assets/astralrecord/textures/item/custom/astra_shortbow.png": "43f23f6e1ca3180b32349859ec83693eeb790dcde42f46de5c980cbd0c52a562",
-        "bedrock/animations/astra_shortbow.animation.json": "4b3aad62f155427596cba64c431a8e13ae8b2c5e117ed515f457afd684281172",
+        "bedrock/animations/astra_shortbow.animation.json": "65b97e6d597d5b64b4c99346ede1d55b01901b5dcb172a472886055ed1de9706",
         "bedrock/attachables/astra_shortbow.json": "820a85ec0087227bffa6acdb11df2cfdf56b7b3ed78b6c5d3bf3da962c398618",
         "bedrock/models/entity/items/astra_shortbow.geo.json": "8a8f1858fb503d1a76577a8093f777983f420220d196e01a774988439c549325",
         "bedrock/textures/entity/items/astra_shortbow.png": "43f23f6e1ca3180b32349859ec83693eeb790dcde42f46de5c980cbd0c52a562",
         "bedrock/textures/items/astra_shortbow.png": "baf8f273b7a87124ac39d5fd0cff92878a88477f53d9885fefc4df68717aa361",
         "blockbench/equipment-drafts/astra_shortbow.json": "7bc59eb6c01941716cacaf4b913f18682fc32ee3782a592e769c5f3fb669699e",
-        "blockbench/items/astra_shortbow.bedrock.bbmodel": "c637ae89a8b124a50a900039d88cd3ef96625f8826f44b8cee94862d4178d257",
-        "blockbench/items/astra_shortbow.java.bbmodel": "c464e7472131364eec8ee7e6db7beff2a1353d1b841c25b29c3a9ff5ad17ac0a",
-        "blockbench/items/astra_shortbow_pull_0.java.bbmodel": "8cc6faa7f3aa175b7b8400fee17fe2eb07bf00d5e005ceb293a0f18abd244697",
-        "blockbench/items/astra_shortbow_pull_1.java.bbmodel": "3059fc2988da3c93a5025c2eea5cbafda8027b7718c9801f71b0b9584cbede73",
-        "blockbench/items/astra_shortbow_pull_2.java.bbmodel": "89206988caa41e0d602890c04f14561cb9320642bed06b4ce7d56ec740b493b8"
+        "blockbench/items/astra_shortbow.bedrock.bbmodel": "3c80a245d2c516ecbc0afdafa32eefe9c80e6fd00d8167279788ab2be985b64d",
+        "blockbench/items/astra_shortbow.java.bbmodel": "36235727b92b8afe5388184519a4668bcab9e7c4a7631d7002bb89c7f9e41171",
+        "blockbench/items/astra_shortbow_pull_0.java.bbmodel": "72f806ab93cba8caf62d696fd4bf94fe9bb8c0f6d62c7a1e46bc35c201a7b430",
+        "blockbench/items/astra_shortbow_pull_1.java.bbmodel": "ba8d1b725cd378f245bd824ef96b9f24deb12b33319073f65e47be125508ec0e",
+        "blockbench/items/astra_shortbow_pull_2.java.bbmodel": "f1682f34ecaa31fc9eee1bd2730c4fad686ef66f18cadfb664b2a7bbc5851f35"
       }
     },
     {
@@ -1150,22 +1146,22 @@
       "base_item": "minecraft:bow",
       "custom_model_data": 220442,
       "sha256": {
-        "assets/astralrecord/models/item/custom/astra_longbow.json": "f5f318ab1cc60f3396323d5cd84cd2bafd79aa179601d5fd9e08a506768ef1e0",
-        "assets/astralrecord/models/item/custom/astra_longbow_pull_0.json": "5957ebc2ff3fffdac3be4d620a3894dcf1475046b34bf7214112ecc559596e15",
-        "assets/astralrecord/models/item/custom/astra_longbow_pull_1.json": "c711331c090794ca45703b24b74dacb5575ec8a0616ceaf85e44c764eeab4b25",
-        "assets/astralrecord/models/item/custom/astra_longbow_pull_2.json": "79e6fd5a71aa1e738a20bae1fe690a36a0ef85eddc71b96b049782dc69a51047",
+        "assets/astralrecord/models/item/custom/astra_longbow.json": "490f600d097f14bbc11bb52973f34635a6718a090e2a9e4e554de20df36a2035",
+        "assets/astralrecord/models/item/custom/astra_longbow_pull_0.json": "53ecd060b77353cf6ef335bde8eb2eb8f6d1ff5e5478d006c12f95103b79bde6",
+        "assets/astralrecord/models/item/custom/astra_longbow_pull_1.json": "2821d9a169e60d6a2424eddc4a8039432d60b55b164f331e1bcd5a52746d9a1b",
+        "assets/astralrecord/models/item/custom/astra_longbow_pull_2.json": "806306dbdc5434c62f888d8015b25ff6880cad83c68a82a9c20dc0503e3cc80b",
         "assets/astralrecord/textures/item/custom/astra_longbow.png": "43f23f6e1ca3180b32349859ec83693eeb790dcde42f46de5c980cbd0c52a562",
-        "bedrock/animations/astra_longbow.animation.json": "c7fbeb5814c82317dc653736ab4b2c16c41702d68846b3865f90c8d56e7b9dd0",
+        "bedrock/animations/astra_longbow.animation.json": "e8b80d4104e084df0e51153c80d86bea1f1803dc957beeefa7cd37b21345293a",
         "bedrock/attachables/astra_longbow.json": "425701ed6b9939e84e7ebf229ac30adfce24af964a1e5378f615aef0d5325a29",
         "bedrock/models/entity/items/astra_longbow.geo.json": "74f1c4a1b2fbadb6a0c0759c6d95f7dc2bf6622cbc3253e52a5fa20645f63cd7",
         "bedrock/textures/entity/items/astra_longbow.png": "43f23f6e1ca3180b32349859ec83693eeb790dcde42f46de5c980cbd0c52a562",
         "bedrock/textures/items/astra_longbow.png": "5fdcc8363a2b8e71801000e887c28f7d4739fb3ea4db6d520dd78d8a3e4e37bb",
         "blockbench/equipment-drafts/astra_longbow.json": "a17a21035b45c4e99d2812fa24802b36c42039e8cb995153aa58e40e8ee7946a",
-        "blockbench/items/astra_longbow.bedrock.bbmodel": "edfdb308223b703d205500c543b17f928abc9169988eec2b79d5247f48ffdf30",
-        "blockbench/items/astra_longbow.java.bbmodel": "be4f911d6f84180a15d38420c7225c9b04214cb43cffe2da2231d020f56d9dbd",
-        "blockbench/items/astra_longbow_pull_0.java.bbmodel": "3a970e516f269430c01b25fa0db0384eabf992a77967075cd33133ddbb72a024",
-        "blockbench/items/astra_longbow_pull_1.java.bbmodel": "7224090cf42a9dbd5f9818f7c6943fe1ac08d3a16f8943b6aab6f7e6764fd49d",
-        "blockbench/items/astra_longbow_pull_2.java.bbmodel": "20e397cd6bf39552859f645d5785e26e4c7aea6928eb78868746767d2a1349c1"
+        "blockbench/items/astra_longbow.bedrock.bbmodel": "9c109cd1272258f2bdd3791e9c635cd8583c2ba3e1d092a28a0979b5aca29210",
+        "blockbench/items/astra_longbow.java.bbmodel": "62fe5881af5b15f6867f8cd72058056aeddc671d6a3d40ed6bd6398185f19ff7",
+        "blockbench/items/astra_longbow_pull_0.java.bbmodel": "28c89be261ec29190504206edbf2d7c9e4fcd201e21f60bc043c75af40252d59",
+        "blockbench/items/astra_longbow_pull_1.java.bbmodel": "87244e54855ae4618831f09125855dbc8fef09e4f44e1b75c39e11682863afab",
+        "blockbench/items/astra_longbow_pull_2.java.bbmodel": "ace03a027baa24b99468e62099779633001fb9761f7a0ca3dea9872a90c1b143"
       }
     },
     {
@@ -3502,16 +3498,16 @@
       "base_item": "minecraft:fishing_rod",
       "custom_model_data": 232081,
       "sha256": {
-        "assets/astralrecord/models/item/custom/wooden_fishing_rod.json": "b23ffb8acaecbde16fde925f13f726d02aa99cfe671ce59be6b15a1bec5a8826",
+        "assets/astralrecord/models/item/custom/wooden_fishing_rod.json": "d68eecd814e6cbc766058310f0eb35c0a912ec7c2854b38833670555d1bece50",
         "assets/astralrecord/textures/item/custom/wooden_fishing_rod.png": "f25fcea46c5991f4402af1b70926a423008d3c8d27f07688e3c182ad8b697b29",
         "bedrock/animations/wooden_fishing_rod.animation.json": "a60d4de759bc04f2040b63eeb36b3f2ff62968bac26fe20497b86ddbba7b6307",
         "bedrock/attachables/wooden_fishing_rod.json": "0efc48a05a11926503b5cd4621f4cdedabca7ca9654a4bceb03096476ef83bfd",
         "bedrock/models/entity/items/wooden_fishing_rod.geo.json": "e3ebca5a951b2f8b3f016fbcd9cc395199a69456e7823d551046e159918de7bd",
         "bedrock/textures/entity/items/wooden_fishing_rod.png": "f25fcea46c5991f4402af1b70926a423008d3c8d27f07688e3c182ad8b697b29",
-        "bedrock/textures/items/wooden_fishing_rod.png": "54d94f5ebf70d24c182c2b04fcea2679019f508b052eeb594d7f507e4a361b0e",
+        "bedrock/textures/items/wooden_fishing_rod.png": "98009d6755ba82a6ed5bf8b1ce5f7dad63ef1f3cad7dcd79e7c1cf0c7c4b7fcb",
         "blockbench/items/wooden_fishing_rod.bedrock.bbmodel": "982235d313b2530d24e9e55ebfb94e3a1da6c5929545ef563dc78634375a58ee",
-        "blockbench/items/wooden_fishing_rod.java.bbmodel": "5bd3be118dabc3e400d037685bc4f60a556b2c4f6dd42339a6a7d9775da6fa84",
-        "blockbench/pixel-art/wooden_fishing_rod.pixel.json": "ecb377ef3e41d75b43216e02eeeee33d9f92b0860d390b12738181598082c131"
+        "blockbench/items/wooden_fishing_rod.java.bbmodel": "0702dd25cde1f70dc3778e7001e001a5eaef41a784243c8a6af96ab7e2bdb8c9",
+        "blockbench/pixel-art/wooden_fishing_rod.pixel.json": "22da963a97b12b0b3c268bb3737c88029db89a8591516c59e9819bbf8bfdfd32"
       }
     },
     {
@@ -3522,16 +3518,16 @@
       "base_item": "minecraft:fishing_rod",
       "custom_model_data": 232082,
       "sha256": {
-        "assets/astralrecord/models/item/custom/reinforced_fishing_rod.json": "24cd3a29240790eef278af647f9eafbf8114a7572738f04d4ff8ba570900fffe",
+        "assets/astralrecord/models/item/custom/reinforced_fishing_rod.json": "9098fd5053d431a0077f862c3b537d9df22dfbf5d592988a1594c2f9bef5acc5",
         "assets/astralrecord/textures/item/custom/reinforced_fishing_rod.png": "2c4b3d67af2ceef32d08c14e52ebdc7a70fe47848911460d04714204064844a2",
         "bedrock/animations/reinforced_fishing_rod.animation.json": "d9d7a6a996e7f564e889103382fc58711a84d6ee967336be251293344541760b",
         "bedrock/attachables/reinforced_fishing_rod.json": "17d9139ec54dccd46d42a41e3db12e2c662e69a8f0d1d544b6495e21e0f44dd6",
         "bedrock/models/entity/items/reinforced_fishing_rod.geo.json": "303bb0349ee17de28ffc91f570785be0b1a49394a93693a703bb4b7bbccf2dfb",
         "bedrock/textures/entity/items/reinforced_fishing_rod.png": "2c4b3d67af2ceef32d08c14e52ebdc7a70fe47848911460d04714204064844a2",
-        "bedrock/textures/items/reinforced_fishing_rod.png": "615a19f4b70b9815610c8d60a90e2d83aa073c16a71a2b641d37f8711aa1fd2b",
+        "bedrock/textures/items/reinforced_fishing_rod.png": "613d760bcaaa5137e97f794b8bf5d560ff744e32fde77567b0927224b177508f",
         "blockbench/items/reinforced_fishing_rod.bedrock.bbmodel": "5a0f35734ce91315ec2f5f94627430339e91b60cfd9cafead3519e716ff41496",
-        "blockbench/items/reinforced_fishing_rod.java.bbmodel": "986c95c98618fd6128b8f8f5a85c9c6a342be99e16df56784a50f28d7b3a5605",
-        "blockbench/pixel-art/reinforced_fishing_rod.pixel.json": "94ec95c92b42d29514a9c43609160eb65410015cbd9bd1c9534085b7f5774e01"
+        "blockbench/items/reinforced_fishing_rod.java.bbmodel": "2bcd375be08a164688ca54d605478dca15c631d2056fea48c775ff413a32035a",
+        "blockbench/pixel-art/reinforced_fishing_rod.pixel.json": "a584251ff4f0a740c217bb2c99dc077a47f81c63c6283ab852071373712000b0"
       }
     },
     {

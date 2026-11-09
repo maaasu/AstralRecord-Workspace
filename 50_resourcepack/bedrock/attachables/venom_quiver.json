@@ -12,8 +12,7 @@
         "enchanted": "textures/misc/enchanted_item_glint"
       },
       "geometry": {
-        "default": "geometry.astralrecord.venom_quiver",
-        "back": "geometry.astralrecord.venom_quiver_back"
+        "default": "geometry.astralrecord.venom_quiver"
       },
       "animations": {
         "first_person": "animation.astralrecord.venom_quiver.first_person",
@@ -41,12 +40,7 @@
         ]
       },
       "render_controllers": [
-        {
-          "controller.render.item_default": "context.item_slot != 'off_hand'"
-        },
-        {
-          "controller.render.astralrecord.venom_quiver_back": "context.item_slot == 'off_hand' && !context.is_first_person"
-        }
+        "controller.render.item_default"
       ]
     }
   }

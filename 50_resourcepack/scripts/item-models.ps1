@@ -178,21 +178,6 @@ function Add-BedrockItemAssets {
     }
     if ($ArmorItem) {
         Confirm-BedrockArmorRenderers $description $Id
-    } elseif ($Id -ceq 'venom_quiver') {
-        $backPath = "models/entity/items/${Id}_back.geo.json"
-        $controllerPath = "render_controllers/$Id.render_controllers.json"
-        Add-PackEntries $Entries $bedrockRoot @($backPath, $controllerPath)
-        $back = (ConvertFrom-Json -InputObject ($utf8.GetString($Entries[$backPath]))).'minecraft:geometry'
-        $controllers = (ConvertFrom-Json -InputObject ($utf8.GetString($Entries[$controllerPath]))).render_controllers
-        $controller = 'controller.render.astralrecord.venom_quiver_back'
-        if ($description.geometry.back -cne $back[0].description.identifier -or
-            $back[0].bones[0].binding -cne "'body'" -or
-            $controllers.$controller.geometry -cne 'geometry.back' -or
-            @($description.render_controllers).Count -ne 2 -or
-            $description.render_controllers[0].'controller.render.item_default' -cne "context.item_slot != 'off_hand'" -or
-            $description.render_controllers[1].$controller -cne "context.item_slot == 'off_hand' && !context.is_first_person") {
-            throw "$attachablePath must use the body-bound quiver on the back in third-person offhand and the hand model elsewhere."
-        }
     } elseif (@($description.render_controllers).Count -ne 1 -or
         $description.render_controllers[0] -isnot [string] -or
         $description.render_controllers[0] -cne 'controller.render.item_default') {
@@ -370,26 +355,6 @@ function Add-ItemModelEntries {
         }
 
         $rest = New-JavaModelReference "astralrecord:item/custom/$id"
-        if ($id -ceq 'venom_quiver') {
-            $worn = "${id}_worn"
-            $wornPath = "assets/astralrecord/models/item/custom/$worn.json"
-            Add-PackEntries $JavaEntries $root @($wornPath)
-            $wornModel = ConvertFrom-Json -InputObject ($utf8.GetString($JavaEntries[$wornPath]))
-            if ($wornModel.parent -cne "astralrecord:item/custom/$id" -or !$wornModel.display.fixed) {
-                throw "$wornPath must inherit the held quiver and define a FIXED back pose."
-            }
-            $cases = @(
-                [ordered] @{
-                    when = @('firstperson_lefthand', 'firstperson_righthand', 'thirdperson_lefthand', 'thirdperson_righthand')
-                    model = [ordered] @{ type = 'minecraft:empty' }
-                }
-                [ordered] @{ when = 'fixed'; model = New-JavaModelReference "astralrecord:item/custom/$worn" }
-            )
-            Add-PackJson $JavaEntries "assets/astralrecord/items/$worn.json" ([ordered] @{
-                model = New-JavaItemContextSelection $cases $rest
-            })
-            $JavaEntries.Add('back-quiver-version.txt', $utf8.GetBytes('1'))
-        }
         $model = $rest
         $virtualModel = $rest
         if ($isBow) {

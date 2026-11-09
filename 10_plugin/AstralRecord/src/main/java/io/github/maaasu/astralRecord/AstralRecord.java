@@ -909,7 +909,6 @@ public final class AstralRecord extends JavaPlugin {
     public void onDisable() {
         io.github.maaasu.astralRecord.shared.gui.GuiResourcePackTitle.clear();
         GameplaySound.configure(null);
-        if (itemStackPacketAdapter != null) itemStackPacketAdapter.stop();
         if (overworldTeleportService != null) overworldTeleportService.stop();
         if (defenseService != null) defenseService.stop();
         RuntimeException shadeHedgehogStopFailure = null;

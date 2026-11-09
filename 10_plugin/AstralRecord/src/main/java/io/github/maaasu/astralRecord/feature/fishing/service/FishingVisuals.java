@@ -53,6 +53,11 @@ public final class FishingVisuals {
     private static final double DISPLAY_TIP_SIDE = 0.375D;
     private static final double DISPLAY_TIP_UP = -0.23D;
     private static final double DISPLAY_TIP_FORWARD = 0.80D;
+    private static final float[] JAVA_OWNER_PREFIX_WIDTHS = {0.009F, 0.013F, 0.018F};
+    // 手持ちとワールドの描画で画角が異なるため、実環境の Java 1.21.11・83° で竿先に合わせる。
+    private static final double JAVA_OWNER_RIGHT_TIP_SIDE = 0.410D;
+    private static final double JAVA_OWNER_LEFT_TIP_SIDE = 0.315D;
+    private static final double JAVA_OWNER_TIP_UP = 0.305D;
     // generate-fishing-visuals.py のウキの環の中心（モデル座標からブロックへ換算）。
     private static final double BOBBER_EYE_HEIGHT = 2.31D / 16.0D;
 
@@ -380,13 +385,18 @@ public final class FishingVisuals {
      * @return 目線を基準とした竿先の表示位置
      */
     static Location resolveDisplayRodTip(Location eye, MainHand hand) {
+        return resolveDisplayRodTip(eye, hand, DISPLAY_TIP_SIDE, DISPLAY_TIP_UP);
+    }
+
+    /** 目線に対する版・表示世代ごとの位置をワールド座標に変換します。 */
+    private static Location resolveDisplayRodTip(Location eye, MainHand hand, double side, double height) {
         double yaw = Math.toRadians(eye.getYaw());
         Vector forward = eye.getDirection();
         Vector right = new Vector(-Math.cos(yaw), 0.0D, -Math.sin(yaw));
         Vector up = right.clone().crossProduct(forward);
-        double side = hand == MainHand.LEFT ? -DISPLAY_TIP_SIDE : DISPLAY_TIP_SIDE;
+        double handSide = hand == MainHand.LEFT ? -side : side;
         return eye.clone().add(forward.multiply(DISPLAY_TIP_FORWARD))
-            .add(right.multiply(side)).add(up.multiply(DISPLAY_TIP_UP));
+            .add(right.multiply(handSide)).add(up.multiply(height));
     }
 
     /**
@@ -410,6 +420,8 @@ public final class FishingVisuals {
         private final Set<Player> bedrockViewers = new HashSet<>();
         private final List<@Nullable ItemDisplay> segments = new ArrayList<>();
         private @Nullable ItemDisplay hookModel;
+        private final List<@Nullable ItemDisplay> ownerSegments = new ArrayList<>();
+        private boolean ownerUsesAdjustedTip;
         private @Nullable Location origin;
         private @Nullable PacketContainer removePacket;
         private int bedrockId;
@@ -437,10 +449,15 @@ public final class FishingVisuals {
                     clearRig();
                     return;
                 }
-                Location displayTip = resolveDisplayRodTip(owner.getEyeLocation(), owner.getMainHand());
+                Location eye = owner.getEyeLocation();
+                MainHand hand = owner.getMainHand();
+                Location displayTip = resolveDisplayRodTip(eye, hand);
                 Vector tipOffset = displayTip.toVector().subtract(castTip.toVector());
                 Audience viewers = audience(owner, displayTip);
-                updateJava(nodes, tipOffset, hookLocation, viewers.java());
+                double adjustedTipSide = hand == MainHand.LEFT ? JAVA_OWNER_LEFT_TIP_SIDE : JAVA_OWNER_RIGHT_TIP_SIDE;
+                Location adjustedTip = viewers.java().contains(owner) && resourcePacks.hasJavaFishingRodTip(owner.getUniqueId())
+                    ? resolveDisplayRodTip(eye, hand, adjustedTipSide, JAVA_OWNER_TIP_UP) : null;
+                updateJava(nodes, tipOffset, hookLocation, viewers.java(), adjustedTip);
                 updateBedrock(displayTip, hookLocation, sag, viewers.bedrock());
             } catch (RuntimeException exception) {
                 clearRig();
@@ -475,6 +492,8 @@ public final class FishingVisuals {
                 }
             }
             segments.clear();
+            clearOwnerSegments();
+            ownerUsesAdjustedTip = false;
             javaViewers.clear();
             clearBedrock();
         }
@@ -486,10 +505,18 @@ public final class FishingVisuals {
          * @param tipOffset 判定用竿先から表示用竿先への差
          * @param hookLocation 判定に使用している針の位置
          * @param viewers Java版の表示対象
+         * @param adjustedTip 対応パックを適用済みの本人に使う竿先
          */
-        private void updateJava(List<Location> nodes, Vector tipOffset, Location hookLocation, Set<Player> viewers) {
+        private void updateJava(List<Location> nodes, Vector tipOffset, Location hookLocation, Set<Player> viewers,
+                                @Nullable Location adjustedTip) {
             hookModel = updateModel(hookModel, hookLocation, hook,
-                transform(new Quaternionf(), new Vector3f(1.0F)), viewers);
+                transform(new Quaternionf(), new Vector3f(1.0F)), viewers, javaViewers);
+            boolean adjustOwner = adjustedTip != null;
+            Set<Player> prefixViewers = adjustOwner ? withoutOwner(viewers) : viewers;
+            Set<Player> previousPrefixViewers = ownerUsesAdjustedTip ? withoutOwner(javaViewers) : javaViewers;
+            Set<Player> previousOwner = ownerUsesAdjustedTip ? Set.of(owner) : Set.of();
+            Vector ownerTipDelta = adjustedTip == null ? null
+                : adjustedTip.toVector().subtract(displayNode(nodes.getFirst(), tipOffset, 0.0D).toVector());
             double lastIndex = nodes.size() - 1;
             for (int i = 0; i + NODE_STEP < nodes.size(); i += NODE_STEP) {
                 int index = i / NODE_STEP;
@@ -499,29 +526,74 @@ public final class FishingVisuals {
                 Location start = displayNode(nodes.get(i), tipOffset, i / lastIndex);
                 int nextIndex = i + NODE_STEP;
                 Location end = displayNode(nodes.get(nextIndex), tipOffset, nextIndex / lastIndex);
-                Vector delta = end.toVector().subtract(start.toVector());
-                float length = (float) delta.length();
-                ItemDisplay current = segments.get(index);
-                if (length <= 1.0E-5F) {
-                    if (current != null) {
-                        current.remove();
+                if (index < JAVA_OWNER_PREFIX_WIDTHS.length) {
+                    segments.set(index, updateSegment(segments.get(index), start, end,
+                        LINE_WIDTH, prefixViewers, previousPrefixViewers));
+                    if (ownerTipDelta != null) {
+                        if (ownerSegments.size() <= index) {
+                            ownerSegments.add(null);
+                        }
+                        Location ownerStart = start.add(ownerTipDelta.clone().multiply(ownerTipWeight(index)));
+                        Location ownerEnd = end.add(ownerTipDelta.clone().multiply(ownerTipWeight(index + 1)));
+                        ownerSegments.set(index, updateSegment(ownerSegments.get(index), ownerStart, ownerEnd,
+                            JAVA_OWNER_PREFIX_WIDTHS[index], Set.of(owner), previousOwner));
                     }
-                    segments.set(index, null);
-                    continue;
+                } else {
+                    segments.set(index, updateSegment(segments.get(index), start, end, LINE_WIDTH, viewers, javaViewers));
                 }
-                Location middle = start.add(delta.clone().multiply(0.5D));
-                Quaternionf rotation = new Quaternionf().rotationTo(0, 0, 1,
-                    (float) (delta.getX() / length), (float) (delta.getY() / length), (float) (delta.getZ() / length));
-                Transformation shape = transform(rotation, new Vector3f(LINE_WIDTH, LINE_WIDTH, length + SEGMENT_OVERLAP));
-                segments.set(index, updateModel(current, middle, line, shape, viewers));
             }
+            if (!adjustOwner) {
+                clearOwnerSegments();
+            }
+            ownerUsesAdjustedTip = adjustOwner;
             javaViewers.retainAll(viewers);
             javaViewers.addAll(viewers);
         }
 
+        /** 本人向けの竿先補正を、共通部分との接続点へ向けて滑らかに減らします。 */
+        private static double ownerTipWeight(int index) {
+            double progress = (double) index / JAVA_OWNER_PREFIX_WIDTHS.length;
+            return 1.0D - progress * progress * (3.0D - 2.0D * progress);
+        }
+
+        /** 本人にだけ見せていた竿先側の線分を破棄します。 */
+        private void clearOwnerSegments() {
+            for (ItemDisplay segment : ownerSegments) {
+                if (segment != null) {
+                    segment.remove();
+                }
+            }
+            ownerSegments.clear();
+        }
+
+        /** 本人向けと他の閲覧者向けで竿先側の線分を切り替えます。 */
+        private Set<Player> withoutOwner(Set<Player> viewers) {
+            Set<Player> others = new HashSet<>(viewers);
+            others.remove(owner);
+            return others;
+        }
+
+        /** 2点を結ぶ一本の糸を更新します。 */
+        private @Nullable ItemDisplay updateSegment(@Nullable ItemDisplay current, Location start, Location end,
+                                                     float width, Set<Player> viewers, Set<Player> previousViewers) {
+            Vector delta = end.toVector().subtract(start.toVector());
+            float length = (float) delta.length();
+            if (length <= 1.0E-5F) {
+                if (current != null) {
+                    current.remove();
+                }
+                return null;
+            }
+            Location middle = start.clone().add(delta.clone().multiply(0.5D));
+            Quaternionf rotation = new Quaternionf().rotationTo(0, 0, 1,
+                (float) (delta.getX() / length), (float) (delta.getY() / length), (float) (delta.getZ() / length));
+            Transformation shape = transform(rotation, new Vector3f(width, width, length + SEGMENT_OVERLAP));
+            return updateModel(current, middle, line, shape, viewers, previousViewers);
+        }
+
         /** Java版の表示を再利用し、範囲または所有者の可視性を外れた閲覧者からは隠します。 */
         private @Nullable ItemDisplay updateModel(@Nullable ItemDisplay display, Location location, ItemStack item,
-                                                   Transformation shape, Set<Player> viewers) {
+                                                   Transformation shape, Set<Player> viewers, Set<Player> previousViewers) {
             if (viewers.isEmpty() || !loaded(location)) {
                 if (display != null) {
                     display.remove();
@@ -532,7 +604,7 @@ public final class FishingVisuals {
             if (created) {
                 display = spawn(location, item, shape);
             } else {
-                for (Player viewer : javaViewers) {
+                for (Player viewer : previousViewers) {
                     if (!viewers.contains(viewer) && viewer.isOnline()) {
                         viewer.hideEntity(plugin, display);
                     }
@@ -550,7 +622,7 @@ public final class FishingVisuals {
                 }
             }
             for (Player viewer : viewers) {
-                if (created || !javaViewers.contains(viewer)) {
+                if (created || !previousViewers.contains(viewer)) {
                     viewer.showEntity(plugin, display);
                 }
             }

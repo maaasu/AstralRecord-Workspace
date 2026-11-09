@@ -98,7 +98,7 @@ Blockbench Web で両版の配布データを読み込み、3つの代表姿勢�
 
 - Java 版は ItemDisplay の `custom_model_data` の文字列で、黒色のコンクリートから `fishing_line`、トリップワイヤーフックから `fishing_hook`、空色のカーペットから `fishing_splash` と `fishing_wake` を選びます。通常アイテムにはバニラのモデルを使います。
 - 統合版は Geyser 拡張を経由して `astralrecord:fishing_visual` を描画します。`astralrecord:style` の `0` が釣り糸とウキ、`1` が着水、`2` が魚の波です。釣り糸は竿先を起点に、ウキまでの相対座標 `dx`・`dy`・`dz` とたるみ `sag` をブロック単位で受け取り、10 区間でつなぎます。
-- 両版の配布物に互換版 `1` の `fishing-visuals-version.txt` を収録します。`python scripts/generate-fishing-visuals.py --check` で両版のモデル、アニメーション、テクスチャを検証できます。
+- 両版の配布物に互換版 `1` の `fishing-visuals-version.txt` を収録します。 Java 版は別途 `fishing-rod-tip-version.txt` に互換版 `1` を収録し、対応パックを適用した釣り人に新しい竿先から最初の線分を表示します。`python scripts/generate-fishing-visuals.py --check` で両版のモデル、アニメーション、テクスチャを検証できます。
 
 両版の配布データをオフスクリーンで描画し、投擲・着水・水中での引き寄せ・巻き取り時の糸とウキ、着水と魚の接近の演出を確認しました。Minecraft 実クライアントでの描画は未確認です。
 
@@ -167,7 +167,7 @@ JE で素材の振り分けだけを確認する場合は `/give @s minecraft:wo
 
 ノクスソードは 21001、ノクスボウは 21002、ノクススタッフは 21003 を使います。通常攻撃の腕振りと戦闘エフェクトはサーバー処理に同期します。BE の手持ちモデルは腕振りの進捗に合わせて動きます。バニラの弓の使用状態では、JE は3段階の引き絵、BE は弦の変形を使います。
 
-採集用のツルハシ6種、クワ6種、釣り竿2種は両版で立体モデルを使います。台帳の `java_gui_sprite` が有効な道具は、`bedrock/textures/items/<id>.png` を両版のインベントリとホットバーに表示します。ツルハシとクワは手持ちモデルから描画し、釣り竿は16 pxで竿先の曲がり、糸、リールが読めるように描いた専用アイコンを使います。Java 版は `gui` コンテキストだけをアイコンへ切り替えます。ヴェルディアの鉄製道具はグレードごとに刃と金具を描き分けます。RPG の釣りではキャスト中も同じ竿を持ち、糸とウキは[釣りの専用演出](#釣り)で描画します。
+採集用のツルハシ6種、クワ6種、釣り竿2種は両版で立体モデルを使います。台帳の `java_gui_sprite` が有効な道具は、`bedrock/textures/items/<id>.png` を両版のインベントリとホットバーに表示します。ツルハシとクワは手持ちモデルから描画します。釣り竿は竿先から垂れる糸、赤白のウキ、リールを16 pxの専用アイコンに描き分けます。Java 版は `gui` コンテキストだけをアイコンへ切り替え、一人称は握りを基準に竿先まで見える縮尺と角度を選びます。ヴェルディアの鉄製道具はグレードごとに刃と金具を描き分けます。RPG の釣りではキャスト中も同じ竿を持ち、糸とウキは[釣りの専用演出](#釣り)で描画します。
 
 ### アイテムのツールチップ
 
@@ -187,7 +187,7 @@ BE の対応するモデルは `grip` ルートを `[0, 0, 0]` に置き、`q.it
 
 副手用の補助装備4点も、握りの位置を基準に一人称の構えを調整します。Java 版は左右の握りと装飾面の向きを確認し、盾を使用すると手持ち姿勢だけを変える子モデルに切り替えます。統合版は一人称で主手・副手を分け、盾の一人称防御姿勢も切り替えます。盾の姿勢はバニラの握り位置を専用モデルの原点に換算したものです。統合版の通常の三人称手持ちはプレイヤーの手にバインドします。防御時に腕を上げる動作は Geyser 経由の実クライアントで未確認です。 [Mojang の盾アニメーション](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/animations/shield.animation.json) · [Mojang のプレイヤー制御](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/animation_controllers/player.animation_controllers.json)
 
-ヴェノムの矢筒は、副手に装備すると斜めに背負います。Java 版は `back-quiver-version.txt` の値 `1` を収録し、配布マニフェストの `java.backQuiver` が `true` の管理パックを適用した接続で、Plugin が胴体に追従する ItemDisplay の FIXED 表示を使います。統合版は `venom_quiver_back.bedrock.bbmodel` から書き出した `body` にバインドする形状を三人称の副手で選びます。どちらも所持品では通常の絵柄を表示します。[Microsoft Learn の attachable](https://learn.microsoft.com/minecraft/creator/documents/attachables)
+ヴェノムの矢筒は Java 版・統合版とも通常の副手アイテムとして表示します。統合版は手にバインドした attachable で副手用の一人称姿勢を選びます。
 
 弓・弩12点のうち、Java 版の11点は弦と弓身の開口が読める3Dの GUI 姿勢を使います。スロットで弦と縁の素材色を見分けられるよう、GUI 照明は正面光を指定します。サンクラウン弓は王冠と弦を描き分けた専用アイコンを使います。統合版は同じ意匠を32 pxのアトラス用アイコンに収めています。
 

@@ -250,8 +250,8 @@ function Confirm-BedrockItemGrip {
             }
         }
         if ($view -ceq 'first_person') {
-            if ($direction[1] -lt 0.8 -or [Math]::Abs($direction[2]) -gt 0.5) {
-                throw "Bedrock animation for $Id first_person must aim the weapon up across the view."
+            if ($direction[1] -lt 0.45 -or $direction[2] -lt -0.85 -or $direction[2] -gt 0.5) {
+                throw "Bedrock animation for $Id first_person must keep the tip raised and allow it to aim forward across the view."
             }
         } elseif ($direction[2] -lt 0.8) {
             throw "Bedrock animation for $Id third_person must aim the weapon forward in the hand."

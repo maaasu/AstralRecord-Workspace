@@ -24,7 +24,7 @@ public final class ResourcePackRepository {
                            boolean archmagePhoenixPresentation, boolean itemTooltips,
                            boolean weaponAttackProjectiles, @Nullable ProfileHud profileHud, boolean skillEffects,
                            boolean combatRewardPlaque, boolean questTrackingHud, boolean receptionDisplay,
-                           boolean locationHud, Set<Integer> wornHelmetModels, boolean backQuiver) {
+                           boolean locationHud, Set<Integer> wornHelmetModels, boolean fishingRodTip) {
     }
 
     /** 個人情報HUDの字形とゲージの互換情報です。 */
@@ -86,12 +86,12 @@ public final class ResourcePackRepository {
                 JsonElement reception = java.get("receptionDisplay");
                 boolean receptionDisplay = reception != null && reception.isJsonPrimitive()
                     && reception.getAsJsonPrimitive().isString() && "1".equals(reception.getAsString());
+                JsonElement rodTip = java.get("fishingRodTip");
+                boolean fishingRodTip = rodTip != null && rodTip.isJsonPrimitive()
+                    && rodTip.getAsJsonPrimitive().isString() && "1".equals(rodTip.getAsString());
                 JsonElement location = java.get("locationHud");
                 boolean locationHud = location != null && location.isJsonPrimitive()
                     && location.getAsJsonPrimitive().isString() && "2".equals(location.getAsString());
-                JsonElement backQuiver = java.get("backQuiver");
-                boolean hasBackQuiver = backQuiver != null && backQuiver.isJsonPrimitive()
-                    && backQuiver.getAsJsonPrimitive().isBoolean() && backQuiver.getAsBoolean();
                 JsonElement profile = java.get("profileHud");
                 String profileVersion = profile != null && profile.isJsonPrimitive()
                     && profile.getAsJsonPrimitive().isString() ? profile.getAsString() : "";
@@ -112,7 +112,7 @@ public final class ResourcePackRepository {
                     java.has("questTrackingHud") && java.get("questTrackingHud").isJsonPrimitive()
                         && java.get("questTrackingHud").getAsJsonPrimitive().isString()
                         && "2".equals(java.get("questTrackingHud").getAsString()), receptionDisplay, locationHud,
-                    parseWornHelmetModels(java.get("wornHelmetModels")), hasBackQuiver);
+                    parseWornHelmetModels(java.get("wornHelmetModels")), fishingRodTip);
             }
         } catch (RuntimeException exception) {
             throw new IOException("Invalid resource pack manifest", exception);
