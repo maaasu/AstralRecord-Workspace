@@ -1,4 +1,4 @@
-import { useCallback, useSyncExternalStore, type FocusEvent, type ReactNode } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore, type FocusEvent, type ReactNode } from 'react'
 import { ResizeHandle } from './ResizeHandle'
 import './resizableTable.css'
 
@@ -18,6 +18,7 @@ interface ResizableTableProps {
   emptyState?: ReactNode
   className?: string
   tableClassName?: string
+  fillWidth?: boolean
   children: ReactNode
 }
 
@@ -100,15 +101,34 @@ function revealFocusedCell({ currentTarget: region, target }: FocusEvent<HTMLDiv
   if (overlap > 0) region.scrollTop -= overlap
 }
 
-export function ResizableTable({ label, storageKey, columns, caption, emptyState, className = '', tableClassName, children }: ResizableTableProps) {
+export function ResizableTable({ label, storageKey, columns, caption, emptyState, className = '', tableClassName, fillWidth = false, children }: ResizableTableProps) {
   const { widths, setWidth } = useColumnWidths(storageKey)
+  const regionRef = useRef<HTMLDivElement>(null)
+  const [regionWidth, setRegionWidth] = useState(0)
+  useLayoutEffect(() => {
+    const region = regionRef.current
+    if (!fillWidth || !region) return
+    const measure = () => setRegionWidth(region.clientWidth)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(region)
+    return () => observer.disconnect()
+  }, [fillWidth])
+
+  const defaultTotal = columns.reduce((total, column) => total + column.width, 0)
+  const scale = fillWidth && defaultTotal > 0 ? Math.max(1, regionWidth / defaultTotal) : 1
+  let offset = 0
   const sizes = columns.map(column => {
     const minimum = column.minWidth ?? defaultMinimum
+    // Round cumulative positions so the default widths add up to the available width.
+    const left = Math.round(offset * scale)
+    offset += column.width
+    const defaultWidth = Math.min(maximum, Math.round(offset * scale) - left)
     const saved = widths[column.id]
-    const width = typeof saved === 'number' && Number.isFinite(saved) ? Math.round(saved) : column.width
-    return { ...column, minimum, current: Math.min(maximum, Math.max(minimum, width)) }
+    const width = typeof saved === 'number' && Number.isFinite(saved) ? Math.round(saved) : defaultWidth
+    return { ...column, width: defaultWidth, minimum, current: Math.min(maximum, Math.max(minimum, width)) }
   })
-  return <div className={`resizable-table ${className}`} role="region" aria-label={label} tabIndex={0} onFocusCapture={revealFocusedCell}>
+  return <div ref={regionRef} className={`resizable-table ${className}`} role="region" aria-label={label} tabIndex={0} onFocusCapture={revealFocusedCell}>
     <table aria-label={caption == null ? label : undefined} className={tableClassName} style={{ width: sizes.reduce((sum, column) => sum + column.current, 0) }}>
       {caption != null && <caption>{caption}</caption>}
       <colgroup>{sizes.map(column => <col key={column.id} style={{ width: column.current }} />)}</colgroup>

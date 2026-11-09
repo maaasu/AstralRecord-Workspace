@@ -11,13 +11,13 @@ import { TeleporterEditPanel, type SavedWaystone, type TeleporterEditTarget } fr
 const nameOrder = new Intl.Collator('ja-JP', { numeric: true, sensitivity: 'base' })
 const tableLayoutKey = 'teleporter-list-v2'
 const columns = [
-  { id: 'name', label: '表示名', width: 284, minWidth: 144 },
-  { id: 'world', label: 'ワールド', width: 148, minWidth: 96 },
-  { id: 'coordinates', label: '座標 (X / Y / Z)', width: 164, minWidth: 116 },
-  { id: 'enabled', label: '状態', width: 84, minWidth: 72 },
-  { id: 'unlock', label: '解放費用', width: 132, minWidth: 90 },
-  { id: 'icon', label: 'アイコン', width: 168, minWidth: 96 },
-  { id: 'actions', label: '操作', width: 68, minWidth: 64 },
+  { id: 'name', label: '表示名', width: 308, minWidth: 144 },
+  { id: 'world', label: 'ワールド', width: 162, minWidth: 96 },
+  { id: 'coordinates', label: '座標 (X / Y / Z)', width: 168, minWidth: 116 },
+  { id: 'enabled', label: '状態', width: 92, minWidth: 72 },
+  { id: 'unlock', label: '解放費用', width: 138, minWidth: 90 },
+  { id: 'icon', label: 'アイコン', width: 204, minWidth: 96 },
+  { id: 'actions', label: '操作', width: 92, minWidth: 64 },
 ]
 
 const fullWorldLabel = ({ worldId, worldName }: WorldPlacement) => worldName || worldId
@@ -97,6 +97,15 @@ export function TeleporterList({ worlds, openDisabled, editDisabled = false, onO
   const filtered = entries.filter(({ placement, search }) => (!worldFilter || placement.worldId === worldFilter)
     && (!enabledFilter || String(placement.enabled) === enabledFilter)
     && words.every(word => search.includes(word)))
+  const hasFilters = Boolean(query || worldFilter || enabledFilter)
+  const enabledCount = entries.filter(({ placement }) => placement.enabled).length
+
+  function clearFilters() {
+    setQuery('')
+    setWorldFilter('')
+    setEnabledFilter('')
+    searchInput.current?.focus()
+  }
 
   function refresh() {
     setError('')
@@ -119,12 +128,20 @@ export function TeleporterList({ worlds, openDisabled, editDisabled = false, onO
 
   return <section className="sp-teleporter-list" aria-labelledby={headingId}>
     <header className="sp-teleporter-heading">
-      <h2 id={headingId}>テレポーター一覧</h2>
-      <p className="sp-muted">Dev に保存済みの道標を表示名順に確認・編集できます。</p>
+      <div>
+        <span className="sp-teleporter-environment">Dev 配置</span>
+        <h2 id={headingId}>テレポーター一覧</h2>
+        <p>保存済みの道標を探して、座標・解放費用・アイコンを確認できます。</p>
+      </div>
+      {saved && <dl className="sp-teleporter-summary" aria-label="保存済み道標の集計">
+        <div><dt>登録済み</dt><dd>{entries.length.toLocaleString('ja-JP')}</dd></div>
+        <div><dt>ワールド</dt><dd>{worldOptions.size.toLocaleString('ja-JP')}</dd></div>
+        <div><dt>有効な道標</dt><dd>{enabledCount.toLocaleString('ja-JP')}</dd></div>
+      </dl>}
     </header>
     <div className="sp-teleporter-toolbar">
       <div className="sp-teleporter-filters">
-        <label>名前・道標IDで検索<input ref={searchInput} type="search" value={query} onChange={event => setQuery(event.target.value)} /></label>
+        <label>名前・道標IDで検索<input ref={searchInput} type="search" placeholder="道標名または ID を入力" value={query} onChange={event => setQuery(event.target.value)} /></label>
         <label>ワールド<select value={worldFilter} onChange={event => setWorldFilter(event.target.value)}>
           <option value="">すべて</option>
           {[...worldOptions].sort((left, right) => nameOrder.compare(left[1], right[1])).map(([id, name]) => <option key={id} value={id}>
@@ -136,14 +153,8 @@ export function TeleporterList({ worlds, openDisabled, editDisabled = false, onO
           <option value="true">有効</option>
           <option value="false">無効</option>
         </select></label>
-      </div>
-      <div className="sp-teleporter-tools">
-        <p className="sp-muted sp-teleporter-count" role="status">
-          {loading ? '読込中…'
-            : saved ? `${filtered.length.toLocaleString('ja-JP')} / ${entries.length.toLocaleString('ja-JP')} 件` : ''}
-        </p>
-        <ResetTableColumns storageKey={tableLayoutKey} className="button subtle compact">列幅をリセット</ResetTableColumns>
-        <button className="button compact" type="button" onClick={refresh} disabled={loading || editing !== null}>再読込</button>
+        <button className="button subtle" type="button" onClick={clearFilters} disabled={!hasFilters}>条件をクリア</button>
+        <button className="button" type="button" onClick={refresh} disabled={loading || editing !== null}>再読込</button>
       </div>
     </div>
     {error && <div className="sp-error" role="alert">
@@ -156,7 +167,17 @@ export function TeleporterList({ worlds, openDisabled, editDisabled = false, onO
     {editing && <TeleporterEditPanel initialTarget={editing} worldLabel={mapNames.get(editing.placement.worldId) || fullWorldLabel(editing.placement)} disabled={editDisabled}
       onSnapshot={acceptSnapshot} onClose={closeEditor} onSaved={savedEdit} onDirtyChange={setDraftDirty}
       onBusyChange={busy => onBusyChange?.(busy)} />}
-    {saved && filtered.length > 0 && <ResizableTable label="保存済みテレポーター" storageKey={tableLayoutKey} columns={columns} className="sp-teleporter-table">
+    <div className="sp-teleporter-results">
+      <p className="sp-teleporter-count" role="status">
+        {loading ? '読込中…' : saved && <>
+          <strong>{filtered.length.toLocaleString('ja-JP')} 件</strong>
+          {hasFilters && <span> / 全 {entries.length.toLocaleString('ja-JP')} 件</span>}
+          <span className="sp-teleporter-order">表示名順</span>
+        </>}
+      </p>
+      {saved && <ResetTableColumns storageKey={tableLayoutKey} className="button subtle compact sp-teleporter-column-reset">列幅をリセット</ResetTableColumns>}
+    </div>
+    {saved && filtered.length > 0 && <ResizableTable label="保存済みテレポーター" storageKey={tableLayoutKey} columns={columns} className="sp-teleporter-table" fillWidth>
         <tbody>{filtered.map(({ placement, name, plainName }) => {
           const { placementId, worldId, x, y, z, yaw, pitch, enabled, waystone } = placement
           const expanded = expandedId === placementId
@@ -164,19 +185,27 @@ export function TeleporterList({ worlds, openDisabled, editDisabled = false, onO
           const icon = configuredIcon || 'BEACON'
           const unlockGold = waystone.unlockGold.toLocaleString('ja-JP')
           return <Fragment key={placementId}>
-            <tr className="sp-teleporter-row">
+            <tr className={`sp-teleporter-row${expanded || editing?.placement.placementId === placementId ? ' is-selected' : ''}`}>
               <th scope="row"><button type="button" className="sp-teleporter-name" aria-label={plainName} title={plainName}
                 aria-expanded={expanded} aria-controls={expanded ? detailId : undefined}
                 onClick={() => setExpandedId(expanded ? null : placementId)}><MinecraftText value={name} /></button></th>
-              <td><span className="sp-teleporter-world" title={fullWorldLabel(placement)}>{worldLabel(placement)}</span></td>
-              <td className="sp-teleporter-coordinates">{x} / {y} / {z}</td>
-              <td><span className={`sp-teleporter-state${enabled ? ' is-enabled' : ''}`}>{enabled ? '有効' : '無効'}</span></td>
-              <td className={waystone.lockEnabled ? 'sp-teleporter-gold' : 'sp-teleporter-no-fee'}>{waystone.lockEnabled ? `${unlockGold} ゴールド` : 'なし'}</td>
-              <td><span className="sp-teleporter-icon" title={configuredIcon ? icon : `${icon}（既定）`}>
+              <td className="sp-teleporter-world-cell">
+                <span className="sp-teleporter-cell-label">ワールド</span>
+                <span className="sp-teleporter-world" title={fullWorldLabel(placement)}>{worldLabel(placement)}</span>
+              </td>
+              <td className="sp-teleporter-coordinates">
+                <span className="sp-teleporter-cell-label">座標 (X / Y / Z)</span>{x} / {y} / {z}
+              </td>
+              <td className="sp-teleporter-state-cell"><span className={`sp-teleporter-state${enabled ? ' is-enabled' : ''}`}>{enabled ? '有効' : '無効'}</span></td>
+              <td className="sp-teleporter-unlock">
+                <span className="sp-teleporter-cell-label">解放費用</span>
+                <span className={waystone.lockEnabled ? 'sp-teleporter-gold' : 'sp-teleporter-no-fee'}>{waystone.lockEnabled ? `${unlockGold} ゴールド` : 'なし'}</span>
+              </td>
+              <td className="sp-teleporter-icon-cell"><span className="sp-teleporter-icon" title={configuredIcon ? icon : `${icon}（既定）`}>
                 <MinecraftIcon icon={icon} className="sp-teleporter-icon-preview" />
                 <span className="sp-teleporter-icon-label"><code>{icon}</code>{!configuredIcon && <small>既定</small>}</span>
               </span></td>
-              <td><button className="button subtle compact sp-teleporter-edit-button" type="button" aria-label={`${plainName}を編集`} disabled={editDisabled || loading || editing !== null}
+              <td className="sp-teleporter-action-cell"><button className="button sp-teleporter-edit-button" type="button" aria-label={`${plainName}を編集`} disabled={editDisabled || loading || editing !== null}
                 onClick={event => {
                   editOpener.current = event.currentTarget
                   setNotice('')
@@ -200,7 +229,9 @@ export function TeleporterList({ worlds, openDisabled, editDisabled = false, onO
           </Fragment>
         })}</tbody>
     </ResizableTable>}
-    {!loading && saved && filtered.length === 0 && <p className="sp-muted">{entries.length
-      ? '条件に一致するテレポーターはありません。' : 'Dev に保存済みのテレポーターはありません。'}</p>}
+    {!loading && saved && filtered.length === 0 && <div className="sp-teleporter-empty">
+      <strong>{entries.length ? '条件に一致するテレポーターはありません。' : 'Dev に保存済みのテレポーターはありません。'}</strong>
+      {entries.length > 0 && <p>別の名前・道標 ID で検索するか、条件をクリアしてください。</p>}
+    </div>}
   </section>
 }
