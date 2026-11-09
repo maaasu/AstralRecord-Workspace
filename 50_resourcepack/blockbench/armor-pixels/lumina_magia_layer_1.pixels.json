@@ -12,14 +12,13 @@
     "h": "EDF2E3FF",
     "o": "474355FF",
     "f": "B0AAC1FF",
-    "a": "635C75FF",
-    "b": "A69EB9FF",
-    "c": "ABA1C8FF",
-    "g": "C1B7DDFF",
-    "i": "C3B8DEFF",
-    "j": "C4B9DEFF",
-    "k": "C6BBE0FF",
-    "m": "C7BDE0FF"
+    "a": "383542FF",
+    "b": "5F5872FF",
+    "c": "738B90FF",
+    "g": "A79DC3FF",
+    "i": "C2B7DDFF",
+    "j": "C4BADFFF",
+    "k": "D8CDE8FF"
   },
   "used_regions": [
     {
@@ -32,17 +31,17 @@
         8
       ],
       "rows": [
-        "eeehheee",
-        "dd....dd",
-        "d......d",
-        "d......d",
-        "d......d",
-        "d......d",
-        "d......d",
-        "dddddddd"
+        "peehcepl",
+        "bb....bb",
+        "j......g",
+        "j......g",
+        "j......g",
+        "b......g",
+        "b......b",
+        "bbbbbbbb"
       ],
       "nontransparent": 30,
-      "meaning": "A compact brow detail frames the existing face opening."
+      "meaning": "Metal brow or soft hood with a recessed face lining."
     },
     {
       "part": "head",
@@ -54,17 +53,17 @@
         8
       ],
       "rows": [
-        "lkkkkkkl",
-        "lkkkkkkl",
-        "lkkllkkl",
-        "lkkllkkl",
-        "lkllllkl",
-        "lkllllkl",
-        "dddddddd",
-        "dddddddd"
+        "ppppplll",
+        "pppplgll",
+        "lppplgll",
+        "lpppggll",
+        "lppdgggl",
+        "lppddggg",
+        "llppdlgg",
+        "bbbbbbbb"
       ],
       "nontransparent": 64,
-      "meaning": "Face and neck openings retain the existing pixel boundaries."
+      "meaning": "Metal brow or soft hood with a recessed face lining."
     },
     {
       "part": "head",
@@ -76,17 +75,17 @@
         8
       ],
       "rows": [
-        "llpllpll",
-        "llpllpll",
-        "llpllpll",
-        "llpllpll",
-        "llpllpll",
-        "llpllpll",
-        "dddddddd",
-        "dddddddd"
+        "kkkkkpll",
+        "aaaaappp",
+        "ppppplll",
+        "pppplggl",
+        "pppgggll",
+        "pppgggll",
+        "pppgggll",
+        "bbbbbbbb"
       ],
       "nontransparent": 64,
-      "meaning": "Face and neck openings retain the existing pixel boundaries."
+      "meaning": "Metal brow or soft hood with a recessed face lining."
     },
     {
       "part": "head",
@@ -98,17 +97,17 @@
         8
       ],
       "rows": [
-        "llpllpll",
-        "llpllpll",
-        "llpllpll",
-        "llpllpll",
-        "llpllpll",
-        "llpllpll",
-        "dddddddd",
-        "dddddddd"
+        "kkkkkpll",
+        "aaaaappp",
+        "ppppplll",
+        "pppplggl",
+        "pppgggll",
+        "pppgggll",
+        "pppgggll",
+        "bbbbbbbb"
       ],
       "nontransparent": 64,
-      "meaning": "Face and neck openings retain the existing pixel boundaries."
+      "meaning": "Metal brow or soft hood with a recessed face lining."
     },
     {
       "part": "head",
@@ -120,17 +119,17 @@
         8
       ],
       "rows": [
-        "eeeeeeee",
-        "llllllll",
-        "llllllll",
-        "llllllll",
-        "llllllll",
-        "llllllll",
-        "llllllll",
-        "llllllll"
+        "ppppplll",
+        "lpppplll",
+        "llppplll",
+        "llppgpll",
+        "lllpgggl",
+        "lllppggl",
+        "lllllggg",
+        "lllllllg"
       ],
       "nontransparent": 64,
-      "meaning": "Face and neck openings retain the existing pixel boundaries."
+      "meaning": "Metal brow or soft hood with a recessed face lining."
     },
     {
       "part": "head",
@@ -142,17 +141,17 @@
         8
       ],
       "rows": [
-        "oooooooo",
-        "o......o",
-        "o......o",
-        "o......o",
-        "o......o",
-        "o......o",
-        "o......o",
-        "oooooooo"
+        "aaaaaaaa",
+        "a......a",
+        "a......a",
+        "a......a",
+        "a......a",
+        "a......a",
+        "a......a",
+        "aaaaaaaa"
       ],
       "nontransparent": 28,
-      "meaning": "Face and neck openings retain the existing pixel boundaries."
+      "meaning": "Metal brow or soft hood with a recessed face lining."
     },
     {
       "part": "body",
@@ -164,21 +163,21 @@
         12
       ],
       "rows": [
-        "dd....dd",
-        "dee..eed",
-        "dleeeeld",
-        "dlppppld",
-        "dlp..pld",
-        "dlp..pld",
-        "dljllpld",
-        "dljjllld",
-        "dlj..lld",
-        "ddd..ddd",
-        "fff..fff",
-        "ddd..ddd"
+        "kk....kk",
+        "bkk..kkk",
+        "pkkkkkkb",
+        "pbkhekbd",
+        "ppb..bdd",
+        "pdg..bdd",
+        "pdgbbbdd",
+        "pggglddd",
+        "pgg..ddd",
+        "pgg..ddj",
+        "ppg..dll",
+        "aaa..aaa"
       ],
       "nontransparent": 78,
-      "meaning": "A compact clasp or inlay anchors the broad front material."
+      "meaning": "Asymmetric broad cloth folds, stepped collar and inlaid clasp."
     },
     {
       "part": "body",
@@ -190,21 +189,21 @@
         12
       ],
       "rows": [
-        "dddddddd",
-        "delllled",
-        "diiillid",
-        "diiillid",
-        "diiillid",
-        "diiillid",
-        "diiddlid",
-        "dclddlcd",
-        "dclddlcd",
-        "dddddddd",
-        "ffffffff",
-        "dddddddd"
+        "ljjjjjjl",
+        "ldjjjjll",
+        "ppjddljd",
+        "ppdddgdd",
+        "ppggggdd",
+        "ppgggjdd",
+        "ppgggddd",
+        "pggglddd",
+        "pgggjddd",
+        "pggljddj",
+        "ppglddll",
+        "aaaaaaaa"
       ],
       "nontransparent": 96,
-      "meaning": "Wide torso panels carry the dominant material and quiet seams."
+      "meaning": "Asymmetric broad cloth folds, stepped collar and inlaid clasp."
     },
     {
       "part": "body",
@@ -216,21 +215,21 @@
         12
       ],
       "rows": [
-        "dddd",
-        "dlld",
-        "dlld",
-        "dlld",
-        "dlld",
-        "dlld",
-        "dlld",
-        "dddd",
-        "llll",
-        "llll",
-        "oooo",
-        "oooo"
+        "ggjg",
+        "gjjg",
+        "jjjd",
+        "jjdd",
+        "jjdd",
+        "jjdd",
+        "jddd",
+        "jddd",
+        "jddd",
+        "jjdd",
+        "jjdg",
+        "bbbb"
       ],
       "nontransparent": 48,
-      "meaning": "Wide torso panels carry the dominant material and quiet seams."
+      "meaning": "Asymmetric broad cloth folds, stepped collar and inlaid clasp."
     },
     {
       "part": "body",
@@ -242,21 +241,21 @@
         12
       ],
       "rows": [
-        "dddd",
-        "dlld",
-        "dlld",
-        "dlld",
-        "dlld",
-        "dlld",
-        "dlld",
-        "dddd",
-        "llll",
-        "llll",
-        "oooo",
-        "oooo"
+        "ggjg",
+        "gjjg",
+        "jjjd",
+        "jjdd",
+        "jjdd",
+        "jjdd",
+        "jddd",
+        "jddd",
+        "jddd",
+        "jjdd",
+        "jjdg",
+        "bbbb"
       ],
       "nontransparent": 48,
-      "meaning": "Wide torso panels carry the dominant material and quiet seams."
+      "meaning": "Asymmetric broad cloth folds, stepped collar and inlaid clasp."
     },
     {
       "part": "body",
@@ -268,13 +267,13 @@
         4
       ],
       "rows": [
-        "pp....pp",
-        "pp....pp",
-        "pp....pp",
-        "ppddddpp"
+        "pp....jj",
+        "pp....jj",
+        "ll....ll",
+        "llllllll"
       ],
       "nontransparent": 20,
-      "meaning": "Wide torso panels carry the dominant material and quiet seams."
+      "meaning": "Asymmetric broad cloth folds, stepped collar and inlaid clasp."
     },
     {
       "part": "body",
@@ -286,13 +285,13 @@
         4
       ],
       "rows": [
-        "dd....dd",
-        "d......d",
-        "d......d",
-        "dddddddd"
+        "bb....bb",
+        "b......b",
+        "b......b",
+        "bbbbbbbb"
       ],
       "nontransparent": 16,
-      "meaning": "Wide torso panels carry the dominant material and quiet seams."
+      "meaning": "Asymmetric broad cloth folds, stepped collar and inlaid clasp."
     },
     {
       "part": "arm",
@@ -304,21 +303,21 @@
         12
       ],
       "rows": [
+        "llpg",
+        "pppg",
+        "pppg",
+        "ppgg",
+        "ppgg",
+        "pggg",
+        "pggg",
+        "pggg",
+        "iiil",
         "dddd",
-        "lmml",
-        "lmml",
-        "lmml",
-        "lmml",
-        "llgl",
-        "llgl",
-        "llgl",
-        "lppl",
         "dddd",
-        "bbbb",
-        "dddd"
+        "aaaa"
       ],
       "nontransparent": 48,
-      "meaning": "The broad sleeve material transitions to a darker joint or cuff."
+      "meaning": "Asymmetric broad cloth folds, stepped collar and inlaid clasp."
     },
     {
       "part": "arm",
@@ -330,21 +329,21 @@
         12
       ],
       "rows": [
+        "llpg",
+        "pppg",
+        "pppg",
+        "ppgg",
+        "ppgg",
+        "pggg",
+        "pggg",
+        "pggg",
+        "iiil",
         "dddd",
-        "lmml",
-        "lmml",
-        "lmml",
-        "lmml",
-        "llgl",
-        "llgl",
-        "llgl",
-        "lppl",
         "dddd",
-        "bbbb",
-        "dddd"
+        "aaaa"
       ],
       "nontransparent": 48,
-      "meaning": "The broad sleeve material transitions to a darker joint or cuff."
+      "meaning": "Asymmetric broad cloth folds, stepped collar and inlaid clasp."
     },
     {
       "part": "arm",
@@ -356,21 +355,21 @@
         12
       ],
       "rows": [
+        "llpg",
+        "pppg",
+        "pppg",
+        "ppgg",
+        "ppgg",
+        "pggg",
+        "pggg",
+        "pggg",
+        "iiil",
         "dddd",
-        "lmml",
-        "lmml",
-        "lmll",
-        "lmll",
-        "llll",
-        "llll",
-        "llll",
-        "llll",
         "dddd",
-        "bbbb",
-        "dddd"
+        "aaaa"
       ],
       "nontransparent": 48,
-      "meaning": "The broad sleeve material transitions to a darker joint or cuff."
+      "meaning": "Asymmetric broad cloth folds, stepped collar and inlaid clasp."
     },
     {
       "part": "arm",
@@ -382,21 +381,21 @@
         12
       ],
       "rows": [
+        "llpg",
+        "pppg",
+        "pppg",
+        "ppgg",
+        "ppgg",
+        "pggg",
+        "pggg",
+        "pggg",
+        "iiil",
         "dddd",
-        "lmml",
-        "lmml",
-        "lmll",
-        "lmll",
-        "llll",
-        "llll",
-        "llll",
-        "llll",
         "dddd",
-        "bbbb",
-        "dddd"
+        "aaaa"
       ],
       "nontransparent": 48,
-      "meaning": "The broad sleeve material transitions to a darker joint or cuff."
+      "meaning": "Asymmetric broad cloth folds, stepped collar and inlaid clasp."
     },
     {
       "part": "arm",
@@ -408,13 +407,13 @@
         4
       ],
       "rows": [
-        "pppp",
-        "pppp",
-        "pppp",
-        "pppp"
+        "pjjl",
+        "pppl",
+        "pppl",
+        "plll"
       ],
       "nontransparent": 16,
-      "meaning": "The broad sleeve material transitions to a darker joint or cuff."
+      "meaning": "Asymmetric broad cloth folds, stepped collar and inlaid clasp."
     },
     {
       "part": "arm",
@@ -426,13 +425,13 @@
         4
       ],
       "rows": [
-        "oooo",
-        "o..o",
-        "o..o",
-        "oooo"
+        "aaaa",
+        "a..a",
+        "a..a",
+        "aaaa"
       ],
       "nontransparent": 12,
-      "meaning": "The broad sleeve material transitions to a darker joint or cuff."
+      "meaning": "Asymmetric broad cloth folds, stepped collar and inlaid clasp."
     },
     {
       "part": "leg",
@@ -452,13 +451,13 @@
         "....",
         "....",
         "....",
-        "llll",
-        "oeeo",
-        "o..o",
-        "aaaa"
+        "aaaa",
+        "fffo",
+        "f..o",
+        "bbbb"
       ],
       "nontransparent": 14,
-      "meaning": "The existing boot opening separates the upper binding and darker sole."
+      "meaning": "Turned cloth cuff above a softly shaded leather toe."
     },
     {
       "part": "leg",
@@ -478,13 +477,13 @@
         "....",
         "....",
         "....",
-        "llll",
-        "ffff",
-        "foof",
-        "aaaa"
+        "aaaa",
+        "oooa",
+        "oooa",
+        "bbbb"
       ],
       "nontransparent": 16,
-      "meaning": "The existing boot opening separates the upper binding and darker sole."
+      "meaning": "Turned cloth cuff above a softly shaded leather toe."
     },
     {
       "part": "leg",
@@ -504,13 +503,13 @@
         "....",
         "....",
         "....",
-        "llll",
-        "ffff",
-        "f..f",
-        "aaaa"
+        "aaaa",
+        "fffo",
+        "f..o",
+        "bbbb"
       ],
       "nontransparent": 14,
-      "meaning": "The existing boot opening separates the upper binding and darker sole."
+      "meaning": "Turned cloth cuff above a softly shaded leather toe."
     },
     {
       "part": "leg",
@@ -530,13 +529,13 @@
         "....",
         "....",
         "....",
-        "llll",
-        "ffff",
-        "f..f",
-        "aaaa"
+        "aaaa",
+        "fffo",
+        "f..o",
+        "bbbb"
       ],
       "nontransparent": 14,
-      "meaning": "The existing boot opening separates the upper binding and darker sole."
+      "meaning": "Turned cloth cuff above a softly shaded leather toe."
     },
     {
       "part": "leg",
@@ -554,7 +553,7 @@
         "...."
       ],
       "nontransparent": 0,
-      "meaning": "The existing boot opening separates the upper binding and darker sole."
+      "meaning": "Turned cloth cuff above a softly shaded leather toe."
     },
     {
       "part": "leg",
@@ -567,47 +566,47 @@
       ],
       "rows": [
         "oooo",
-        "oooo",
-        "oooo",
-        "oooo"
+        "aaaa",
+        "aaaa",
+        "aaaa"
       ],
       "nontransparent": 16,
-      "meaning": "The existing boot opening separates the upper binding and darker sole."
+      "meaning": "Turned cloth cuff above a softly shaded leather toe."
     }
   ],
   "pixels": [
-    "........eeeeeeeeoooooooo........................................",
-    "........llllllllo......o........................................",
-    "........llllllllo......o........................................",
-    "........llllllllo......o........................................",
-    "........llllllllo......o........................................",
-    "........llllllllo......o........................................",
-    "........llllllllo......o........................................",
-    "........lllllllloooooooo........................................",
-    "llpllplleeehheeellpllplllkkkkkkl................................",
-    "llpllplldd....ddllpllplllkkkkkkl................................",
-    "llpllplld......dllpllplllkkllkkl................................",
-    "llpllplld......dllpllplllkkllkkl................................",
-    "llpllplld......dllpllplllkllllkl................................",
-    "llpllplld......dllpllplllkllllkl................................",
-    "ddddddddd......ddddddddddddddddd................................",
-    "dddddddddddddddddddddddddddddddd................................",
-    "........oooo........pp....ppdd....dd........ppppoooo............",
-    "........oooo........pp....ppd......d........ppppo..o............",
-    "........oooo........pp....ppd......d........ppppo..o............",
-    "........oooo........ppddddppdddddddd........ppppoooo............",
-    "................dddddd....dddddddddddddddddddddddddddddd........",
-    "................dllddee..eeddllddelllledlmmllmmllmmllmml........",
-    "................dllddleeeelddllddiiillidlmmllmmllmmllmml........",
-    "................dllddlpppplddllddiiillidlmlllmmllmlllmml........",
-    "................dllddlp..plddllddiiillidlmlllmmllmlllmml........",
-    "................dllddlp..plddllddiiillidllllllglllllllgl........",
-    "................dllddljllplddllddiiddlidllllllglllllllgl........",
-    "................dddddljjlllddddddclddlcdllllllglllllllgl........",
-    "lllllllllllllllllllldlj..lldlllldclddlcdlllllppllllllppl........",
-    "ffffoeeoffffffffllllddd..dddlllldddddddddddddddddddddddd........",
-    "f..fo..of..ffoofoooofff..fffooooffffffffbbbbbbbbbbbbbbbb........",
-    "aaaaaaaaaaaaaaaaooooddd..dddoooodddddddddddddddddddddddd........"
+    "........ppppplllaaaaaaaa........................................",
+    "........lppppllla......a........................................",
+    "........llpppllla......a........................................",
+    "........llppgplla......a........................................",
+    "........lllpgggla......a........................................",
+    "........lllppggla......a........................................",
+    "........lllllggga......a........................................",
+    "........lllllllgaaaaaaaa........................................",
+    "kkkkkpllpeehceplkkkkkpllppppplll................................",
+    "aaaaapppbb....bbaaaaappppppplgll................................",
+    "ppppplllj......gpppppllllppplgll................................",
+    "pppplgglj......gpppplggllpppggll................................",
+    "pppgggllj......gpppggglllppdgggl................................",
+    "pppgggllb......gpppggglllppddggg................................",
+    "pppgggllb......bpppgggllllppdlgg................................",
+    "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb................................",
+    "........oooo........pp....jjbb....bb........pjjlaaaa............",
+    "........aaaa........pp....jjb......b........pppla..a............",
+    "........aaaa........ll....llb......b........pppla..a............",
+    "........aaaa........llllllllbbbbbbbb........plllaaaa............",
+    "................ggjgkk....kkggjgljjjjjjlllpgllpgllpgllpg........",
+    "................gjjgbkk..kkkgjjgldjjjjllpppgpppgpppgpppg........",
+    "................jjjdpkkkkkkbjjjdppjddljdpppgpppgpppgpppg........",
+    "................jjddpbkhekbdjjddppdddgddppggppggppggppgg........",
+    "................jjddppb..bddjjddppggggddppggppggppggppgg........",
+    "................jjddpdg..bddjjddppgggjddpgggpgggpgggpggg........",
+    "................jdddpdgbbbddjdddppgggdddpgggpgggpgggpggg........",
+    "................jdddpgggldddjdddpgggldddpgggpgggpgggpggg........",
+    "aaaaaaaaaaaaaaaajdddpgg..dddjdddpgggjdddiiiliiiliiiliiil........",
+    "fffofffofffooooajjddpgg..ddjjjddpggljddjdddddddddddddddd........",
+    "f..of..of..ooooajjdgppg..dlljjdgppglddlldddddddddddddddd........",
+    "bbbbbbbbbbbbbbbbbbbbaaa..aaabbbbaaaaaaaaaaaaaaaaaaaaaaaa........"
   ],
-  "worn_refinement": "Large cloth folds, small trim runs, a single focal clasp, and darker leather at the foot."
+  "worn_refinement": "Metal brow or soft hood with a recessed face lining. Asymmetric broad cloth folds, stepped collar and inlaid clasp. Turned cloth cuff above a softly shaded leather toe. Lilac cloth with soft silver and grey jade."
 }

@@ -11,9 +11,9 @@
     "e": "B4D7BFFF",
     "b": "6B5540FF",
     "a": "B89A72FF",
-    "c": "DFE9CAFF",
-    "d": "A2CBB9FF",
-    "f": "AAD1BCFF"
+    "c": "4C3F36FF",
+    "d": "536D6BFF",
+    "f": "A4CDBAFF"
   },
   "pixels": [
     "................................................................",
@@ -32,22 +32,22 @@
     "................................................................",
     "................................................................",
     "................................................................",
-    "....gggggggg................gggggggg............................",
-    "....gggggggg................gggggggg............................",
-    "....gggggggg................gggggggg............................",
-    "....gggggggg................gggggggg............................",
-    "gmmmgemmgmmmgemm................................................",
-    "gmmmgemmgmmmgemm................................................",
-    "gmmmgemmgmmmgemm................................................",
-    "gfmmgfmmgfmmgfmm................................................",
-    "gfmmgfmmgfmmgfmm................................................",
-    "gfdmgfdmgfdmgfdm................................................",
-    "gfdmgfdmgfdmgfdm................................................",
-    "bfdmbfdmbfdmbfdm................................................",
-    "gggggggggggggggg................................................",
-    "gggggggggggggggg................................................",
-    "ggggggggggggggggaaaaaaacsaaaaaaaaaaaaaaa........................",
-    "ggggggggggggggggbbbbbbbbbbbbbbbbbbbbbbbb........................"
+    "....fffggggg................dddddddd............................",
+    "....fffggggg................dddddddd............................",
+    "....gggggggg................dddddddd............................",
+    "....gggggggg................dddddddd............................",
+    "eeemeeemeeemeeem................................................",
+    "eeegeeegeeegeeeg................................................",
+    "eeegeeegeeegeeeg................................................",
+    "eeggeeggeeggeegg................................................",
+    "eebgeebgeebgeegg................................................",
+    "ebabebabebabeggg................................................",
+    "ebbcebbcebbceggg................................................",
+    "eccceccceccceggg................................................",
+    "eecgeecgeecgeegg................................................",
+    "eeggeeggeeggeegg................................................",
+    "eegmeegmeegmeegmcccccccasccccccccccccccc........................",
+    "ddddddddddddddddcccccccccccccccccccccccc........................"
   ],
-  "worn_refinement": "Broad fabric or leather panels, one directional closure, and continuous quiet edge binding."
+  "worn_refinement": "Bias-cut field trousers with reinforced outer knee patches. Pale seafoam with warm tan leather."
 }

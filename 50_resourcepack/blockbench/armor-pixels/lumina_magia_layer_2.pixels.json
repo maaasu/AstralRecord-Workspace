@@ -8,12 +8,12 @@
     "l": "B9AFD8FF",
     "p": "CFC4E5FF",
     "d": "8D82A5FF",
-    "e": "DFD4EBFF",
     "q": "738B90FF",
-    "o": "474355FF",
     "c": "B0AAC1FF",
-    "a": "BFB5DCFF",
-    "b": "C7BCE0FF"
+    "a": "383542FF",
+    "b": "5F5872FF",
+    "e": "C2B7DDFF",
+    "f": "C4BADFFF"
   },
   "used_regions": [
     {
@@ -35,12 +35,12 @@
         "........",
         "........",
         "........",
-        "llllllll",
-        "ccceqccc",
-        "ooo..ooo"
+        "cccccccc",
+        "aaacqaaa",
+        "aaa..aaa"
       ],
       "nontransparent": 22,
-      "meaning": "The low waistband continues across the torso faces."
+      "meaning": "Crossed fabric at the hips and tapered hanging folds."
     },
     {
       "part": "body",
@@ -61,12 +61,12 @@
         "........",
         "........",
         "........",
-        "llllllll",
         "cccccccc",
-        "oooooooo"
+        "aaaaaaaa",
+        "aaaaaaaa"
       ],
       "nontransparent": 24,
-      "meaning": "The low waistband continues across the torso faces."
+      "meaning": "Crossed fabric at the hips and tapered hanging folds."
     },
     {
       "part": "body",
@@ -87,12 +87,12 @@
         "....",
         "....",
         "....",
-        "llll",
         "cccc",
-        "oooo"
+        "aaaa",
+        "aaaa"
       ],
       "nontransparent": 12,
-      "meaning": "The low waistband continues across the torso faces."
+      "meaning": "Crossed fabric at the hips and tapered hanging folds."
     },
     {
       "part": "body",
@@ -113,12 +113,12 @@
         "....",
         "....",
         "....",
-        "llll",
         "cccc",
-        "oooo"
+        "aaaa",
+        "aaaa"
       ],
       "nontransparent": 12,
-      "meaning": "The low waistband continues across the torso faces."
+      "meaning": "Crossed fabric at the hips and tapered hanging folds."
     },
     {
       "part": "body",
@@ -136,7 +136,7 @@
         "........"
       ],
       "nontransparent": 0,
-      "meaning": "The low waistband continues across the torso faces."
+      "meaning": "Crossed fabric at the hips and tapered hanging folds."
     },
     {
       "part": "body",
@@ -148,13 +148,13 @@
         4
       ],
       "rows": [
-        "dddddddd",
-        "d......d",
-        "d......d",
-        "dddddddd"
+        "bbbbbbbb",
+        "b......b",
+        "b......b",
+        "bbbbbbbb"
       ],
       "nontransparent": 20,
-      "meaning": "The low waistband continues across the torso faces."
+      "meaning": "Crossed fabric at the hips and tapered hanging folds."
     },
     {
       "part": "leg",
@@ -166,21 +166,21 @@
         12
       ],
       "rows": [
-        "dpll",
-        "dpll",
-        "dpll",
-        "dbll",
-        "dbll",
-        "dbal",
-        "dbal",
-        "dbal",
-        "dpll",
-        "dpll",
+        "pppl",
+        "pppd",
+        "ppfd",
+        "ffdd",
+        "ffdd",
+        "fddd",
+        "pddd",
+        "pddd",
+        "ppdd",
+        "ppdd",
         "....",
         "...."
       ],
       "nontransparent": 40,
-      "meaning": "Broad leg panels carry the base material and the quieter fold or joint."
+      "meaning": "Crossed fabric at the hips and tapered hanging folds."
     },
     {
       "part": "leg",
@@ -192,21 +192,21 @@
         12
       ],
       "rows": [
-        "dpll",
-        "dpll",
-        "dpll",
-        "dbll",
-        "dbll",
-        "dbal",
-        "dbal",
-        "dbal",
-        "dpll",
-        "dpll",
+        "pppl",
+        "pppd",
+        "pppd",
+        "ppdd",
+        "ppdd",
+        "pddd",
+        "pddd",
+        "pddd",
+        "ppdd",
+        "ppdd",
         "....",
         "...."
       ],
       "nontransparent": 40,
-      "meaning": "Broad leg panels carry the base material and the quieter fold or joint."
+      "meaning": "Crossed fabric at the hips and tapered hanging folds."
     },
     {
       "part": "leg",
@@ -218,21 +218,21 @@
         12
       ],
       "rows": [
-        "dlll",
-        "dlll",
-        "dlll",
-        "dbll",
-        "dbll",
-        "dbal",
-        "dbal",
-        "dbal",
-        "dlll",
-        "dlll",
+        "pppl",
+        "pppd",
+        "pppd",
+        "ppdd",
+        "ppdd",
+        "pddd",
+        "pddd",
+        "pddd",
+        "ppdd",
+        "ppdd",
         "....",
         "...."
       ],
       "nontransparent": 40,
-      "meaning": "Broad leg panels carry the base material and the quieter fold or joint."
+      "meaning": "Crossed fabric at the hips and tapered hanging folds."
     },
     {
       "part": "leg",
@@ -244,21 +244,21 @@
         12
       ],
       "rows": [
-        "dlll",
-        "dlll",
-        "dlll",
-        "dbll",
-        "dbll",
-        "dbal",
-        "dbal",
-        "dbal",
-        "dlll",
-        "dlll",
+        "pppl",
+        "pppd",
+        "pppd",
+        "ppdd",
+        "ppdd",
+        "pddd",
+        "pddd",
+        "pddd",
+        "ppdd",
+        "ppdd",
         "....",
         "...."
       ],
       "nontransparent": 40,
-      "meaning": "Broad leg panels carry the base material and the quieter fold or joint."
+      "meaning": "Crossed fabric at the hips and tapered hanging folds."
     },
     {
       "part": "leg",
@@ -270,13 +270,13 @@
         4
       ],
       "rows": [
-        "dddd",
-        "d..d",
+        "eeed",
+        "e..d",
         "d..d",
         "dddd"
       ],
       "nontransparent": 12,
-      "meaning": "Broad leg panels carry the base material and the quieter fold or joint."
+      "meaning": "Crossed fabric at the hips and tapered hanging folds."
     },
     {
       "part": "leg",
@@ -294,7 +294,7 @@
         "...."
       ],
       "nontransparent": 0,
-      "meaning": "Broad leg panels carry the base material and the quieter fold or joint."
+      "meaning": "Crossed fabric at the hips and tapered hanging folds."
     }
   ],
   "pixels": [
@@ -314,22 +314,22 @@
     "................................................................",
     "................................................................",
     "................................................................",
-    "....dddd....................dddddddd............................",
-    "....d..d....................d......d............................",
-    "....d..d....................d......d............................",
-    "....dddd....................dddddddd............................",
-    "dllldplldllldpll................................................",
-    "dllldplldllldpll................................................",
-    "dllldplldllldpll................................................",
-    "dblldblldblldbll................................................",
-    "dblldblldblldbll................................................",
-    "dbaldbaldbaldbal................................................",
-    "dbaldbaldbaldbal................................................",
-    "dbaldbaldbaldbal................................................",
-    "dllldplldllldpll................................................",
-    "dllldplldllldpllllllllllllllllllllllllll........................",
-    "................ccccccceqccccccccccccccc........................",
-    "................ooooooo..ooooooooooooooo........................"
+    "....eeed....................bbbbbbbb............................",
+    "....e..d....................b......b............................",
+    "....d..d....................b......b............................",
+    "....dddd....................bbbbbbbb............................",
+    "ppplppplppplpppl................................................",
+    "pppdpppdpppdpppd................................................",
+    "pppdppfdpppdpppd................................................",
+    "ppddffddppddppdd................................................",
+    "ppddffddppddppdd................................................",
+    "pdddfdddpdddpddd................................................",
+    "pdddpdddpdddpddd................................................",
+    "pdddpdddpdddpddd................................................",
+    "ppddppddppddppdd................................................",
+    "ppddppddppddppddcccccccccccccccccccccccc........................",
+    "................aaaaaaacqaaaaaaaaaaaaaaa........................",
+    "................aaaaaaa..aaaaaaaaaaaaaaa........................"
   ],
-  "worn_refinement": "Large cloth folds, small trim runs, a single focal clasp, and darker leather at the foot."
+  "worn_refinement": "Crossed fabric at the hips and tapered hanging folds. Lilac cloth with soft silver and grey jade."
 }

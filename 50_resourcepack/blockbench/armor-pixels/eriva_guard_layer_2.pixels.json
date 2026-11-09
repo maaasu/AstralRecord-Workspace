@@ -8,9 +8,11 @@
     "d": "DFD5B5FF",
     "e": "ECE5CAFF",
     "h": "775738FF",
-    "k": "9B7750FF",
     "q": "3D9285FF",
-    "a": "D1C6A5FF"
+    "a": "534032FF",
+    "f": "635F55FF",
+    "g": "B9AD8DFF",
+    "i": "D0C5A6FF"
   },
   "pixels": [
     "................................................................",
@@ -29,22 +31,22 @@
     "................................................................",
     "................................................................",
     "................................................................",
-    "....bbbbbbbb................bbbbbbbb............................",
-    "....bbbbbbbb................bbbbbbbb............................",
-    "....bbbbbbbb................bbbbbbbb............................",
-    "....bbbbbbbb................bbbbbbbb............................",
-    "bccbbaabbccbbccb................................................",
-    "bccbbaabbccbbccb................................................",
-    "bccbbaabbccbbccb................................................",
+    "....iiibbbbb................ffffffff............................",
+    "....iiibbbbb................ffffffff............................",
+    "....bbbbbbbb................ffffffff............................",
+    "....bbbbbbbb................ffffffff............................",
+    "dddcdddcdddcdddc................................................",
+    "ddggddggddggddgg................................................",
+    "ddggddggddggddgg................................................",
+    "cccfcccfcccfcccf................................................",
     "hhhhhhhhhhhhhhhh................................................",
-    "cddccddccddccddc................................................",
-    "cddccddccddccddc................................................",
-    "bddcbddcbddcbddc................................................",
-    "bbbcbcccbbbcbbbc................................................",
-    "bbbcbcccbbbcbbbc................................................",
-    "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh........................",
-    "hhhhhhhhhhhhhhhhkkkkkkkeqkkkkkkkkkkkkkkk........................",
-    "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh........................"
+    "fddffddffddfgggg................................................",
+    "dddgdddgdddggggg................................................",
+    "dcggdcggdcgggbbg................................................",
+    "ggggggggggggfbbf................................................",
+    "ffgfffgfffgfffffgggggggeeggggggggggggggg........................",
+    "bbbbbbbbbbbbbbbbaaaaaaaeqaaaaaaaaaaaaaaa........................",
+    "bbbbbbbbbbbbbbbbaaaaaaaaaaaaaaaaaaaaaaaa........................"
   ],
   "uv": {
     "head": {
@@ -200,5 +202,5 @@
       ]
     }
   },
-  "worn_refinement": "Bone plates over hide, a single carved brow and chest inlay, and quieter knee plates."
+  "worn_refinement": "Pale bone knee splints over dark hide joints. Ivory bone over warm brown hide."
 }

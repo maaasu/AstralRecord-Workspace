@@ -8,8 +8,10 @@
     "s": "7B7D6CFF",
     "d": "5C6652FF",
     "l": "5A3B24FF",
-    "L": "765135FF",
-    "a": "8E947EFF"
+    "a": "3C433EFF",
+    "b": "6F7462FF",
+    "c": "8E8F7CFF",
+    "e": "A6AF94FF"
   },
   "pixels": [
     "................................................................",
@@ -28,22 +30,22 @@
     "................................................................",
     "................................................................",
     "................................................................",
-    "....dddddddd........dddddddd....................................",
-    "....dddddddd........dddddddd....................................",
-    "....dddddddd........dddddddd....................................",
-    "....dddddddd........dddddddd....................................",
-    "dssddaaddssddssddddddddddddddddddddddddd........................",
-    "dssddaaddssddssddddddddddddddddddddddddd........................",
-    "dLLddLLddLLddLLddddddddddddddddddddddddd........................",
-    "lLLllLLllLLllLLldddddddddddddddddddddddd........................",
-    "sLLssLLssLLssLLsdddddddddddddddddddddddd........................",
-    "ssssssssssssssssdddddddddddddddddddddddd........................",
-    "ssssssssssssssss................................................",
-    "sddssssssddssdds................................................",
-    "sddssssssddssdds................................................",
-    "llllllllllllllll................................................",
-    "llllllllllllllll................................................",
-    "llllllllllllllll................................................"
+    "....cccddddd........aaaaaaaa....................................",
+    "....cccddddd........aaaaaaaa....................................",
+    "....dddddddd........aaaaaaaa....................................",
+    "....dddddddd........aaaaaaaa....................................",
+    "eeeseeeseeeseeesdddddddddddddddddddddddd........................",
+    "eebbeebbeebbeebbdddddddddddddddddddddddd........................",
+    "eebbeebbeebbeebbdddddddddddddddddddddddd........................",
+    "sssasssasssasssadddddddddddddddddddddddd........................",
+    "lllllllllllllllldddddddddddddddddddddddd........................",
+    "aeeaaeeaaeeabbbbdddddddddddddddddddddddd........................",
+    "eeebeeebeeebbbbb................................................",
+    "esbbesbbesbbbddb................................................",
+    "bbbbbbbbbbbbadda................................................",
+    "aabaaabaaabaaaaa................................................",
+    "dddddddddddddddd................................................",
+    "dddddddddddddddd................................................"
   ],
   "nets": {
     "head": {
@@ -199,5 +201,5 @@
       ]
     }
   },
-  "worn_refinement": "Broad rigid panels, a quieter collar and seams, articulated joints, and a single front ornament."
+  "worn_refinement": "Overlapping thigh and raised knee plates with dark joint gaps. Weathered green-grey steel with bronze."
 }

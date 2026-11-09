@@ -28,13 +28,13 @@ function New-JavaModelReference {
     }
 }
 
-function New-JavaGuiItemSelection {
-    param($GuiModel, $Fallback)
+function New-JavaItemContextSelection {
+    param($Cases, $Fallback)
 
     return [ordered] @{
         type = 'minecraft:select'
         property = 'minecraft:display_context'
-        cases = @([ordered] @{ when = 'gui'; model = $GuiModel })
+        cases = $Cases
         fallback = $Fallback
     }
 }
@@ -378,8 +378,9 @@ function Add-ItemModelEntries {
                 on_true = New-JavaModelReference "astralrecord:item/custom/${id}_blocking"
             }
         }
+        $displayCases = @()
         if ($item.java_gui_sprite) {
-            # Both editions use the same inventory sprite. All other contexts retain their model selection.
+            # Both editions use the same inventory sprite.
             $gui = "${id}_gui"
             $JavaEntries.Add("assets/astralrecord/textures/item/custom/$gui.png", $BedrockEntries["textures/items/$id.png"])
             Add-PackJson $JavaEntries "assets/astralrecord/models/item/custom/$gui.json" ([ordered] @{
@@ -387,8 +388,15 @@ function Add-ItemModelEntries {
                 textures = [ordered] @{ layer0 = "astralrecord:item/custom/$gui" }
             })
             $guiModel = New-JavaModelReference "astralrecord:item/custom/$gui"
-            $model = New-JavaGuiItemSelection $guiModel $model
-            $virtualModel = New-JavaGuiItemSelection $guiModel $rest
+            $displayCases += [ordered] @{ when = 'gui'; model = $guiModel }
+        }
+        if ($isArmor -and $armorItems[$id].slot -ceq 'HEAD') {
+            # A helmet without EQUIPPABLE falls through to the head item renderer.
+            $displayCases += [ordered] @{ when = 'head'; model = [ordered] @{ type = 'minecraft:empty' } }
+        }
+        if ($displayCases.Count -gt 0) {
+            $model = New-JavaItemContextSelection $displayCases $model
+            $virtualModel = New-JavaItemContextSelection $displayCases $rest
         }
         if (!$byBase.ContainsKey($base)) {
             $byBase[$base] = [ordered] @{}

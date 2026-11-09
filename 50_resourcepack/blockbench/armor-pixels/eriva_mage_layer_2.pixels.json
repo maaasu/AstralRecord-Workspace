@@ -10,11 +10,10 @@
     "f": "344968FF",
     "r": "7B8568FF",
     "l": "638975FF",
-    "e": "9EB7A2FF",
-    "a": "293636FF",
-    "b": "29395AFF",
-    "c": "2E4160FF",
-    "g": "304362FF"
+    "a": "1E263AFF",
+    "b": "272E31FF",
+    "c": "2A3C5CFF",
+    "e": "2C3E5EFF"
   },
   "face_grids": {
     "body/front": [
@@ -27,9 +26,9 @@
       "........",
       "........",
       "........",
-      "nnnnnnnn",
-      "rrrelrrr",
-      "aaaaaaaa"
+      "rrrrrrrr",
+      "bbbrlbbb",
+      "bbbbbbbb"
     ],
     "body/back": [
       "........",
@@ -41,9 +40,9 @@
       "........",
       "........",
       "........",
-      "nnnnnnnn",
       "rrrrrrrr",
-      "aaaaaaaa"
+      "bbbbbbbb",
+      "bbbbbbbb"
     ],
     "body/left": [
       "....",
@@ -55,9 +54,9 @@
       "....",
       "....",
       "....",
-      "nnnn",
       "rrrr",
-      "aaaa"
+      "bbbb",
+      "bbbb"
     ],
     "body/right": [
       "....",
@@ -69,9 +68,9 @@
       "....",
       "....",
       "....",
-      "nnnn",
       "rrrr",
-      "aaaa"
+      "bbbb",
+      "bbbb"
     ],
     "body/top": [
       "........",
@@ -80,70 +79,70 @@
       "........"
     ],
     "body/bottom": [
-      "dddddddd",
-      "dddddddd",
-      "dddddddd",
-      "dddddddd"
+      "aaaaaaaa",
+      "aaaaaaaa",
+      "aaaaaaaa",
+      "aaaaaaaa"
     ],
     "leg/front": [
-      "dfnn",
-      "dfnn",
-      "dgnn",
-      "dgnn",
-      "dgnn",
-      "ngbn",
-      "ncbn",
-      "ncbn",
-      "dfnn",
-      "dfnn",
-      "rrrr",
-      "rrrr"
+      "fffn",
+      "fffd",
+      "ffed",
+      "eedd",
+      "eedd",
+      "eddd",
+      "fddd",
+      "fddd",
+      "ffdd",
+      "ffdd",
+      "ccdn",
+      "aaaa"
     ],
     "leg/back": [
-      "dfnn",
-      "dfnn",
-      "dfnn",
-      "dcnn",
-      "dcnn",
-      "dcbn",
-      "dcbn",
-      "dcbn",
-      "dfnn",
-      "dfnn",
-      "dddd",
-      "dddd"
+      "fffn",
+      "fffd",
+      "fffd",
+      "ffdd",
+      "ffdd",
+      "fddd",
+      "fddd",
+      "fddd",
+      "ffdd",
+      "ffdd",
+      "ffdn",
+      "aaaa"
     ],
     "leg/left": [
-      "dnnn",
-      "dnnn",
-      "dnnn",
-      "dcnn",
-      "dcnn",
-      "dcbn",
-      "dcbn",
-      "dcbn",
-      "dnnn",
-      "dnnn",
-      "dddd",
-      "dddd"
+      "fffn",
+      "fffd",
+      "fffd",
+      "ffdd",
+      "ffdd",
+      "fddd",
+      "fddd",
+      "fddd",
+      "ffdd",
+      "ffdd",
+      "ffdn",
+      "aaaa"
     ],
     "leg/right": [
-      "dnnn",
-      "dnnn",
-      "dnnn",
-      "dcnn",
-      "dcnn",
-      "dcbn",
-      "dcbn",
-      "dcbn",
-      "dnnn",
-      "dnnn",
-      "dddd",
-      "dddd"
+      "fffn",
+      "fffd",
+      "fffd",
+      "ffdd",
+      "ffdd",
+      "fddd",
+      "fddd",
+      "fddd",
+      "ffdd",
+      "ffdd",
+      "ffdn",
+      "aaaa"
     ],
     "leg/top": [
-      "dddd",
-      "dddd",
+      "cccd",
+      "cccd",
       "dddd",
       "dddd"
     ],
@@ -305,22 +304,22 @@
     "................................................................",
     "................................................................",
     "................................................................",
-    "....dddddddd................dddddddd............................",
-    "....dddddddd................dddddddd............................",
-    "....dddddddd................dddddddd............................",
-    "....dddddddd................dddddddd............................",
-    "dnnndfnndnnndfnn................................................",
-    "dnnndfnndnnndfnn................................................",
-    "dnnndgnndnnndfnn................................................",
-    "dcnndgnndcnndcnn................................................",
-    "dcnndgnndcnndcnn................................................",
-    "dcbnngbndcbndcbn................................................",
-    "dcbnncbndcbndcbn................................................",
-    "dcbnncbndcbndcbn................................................",
-    "dnnndfnndnnndfnn................................................",
-    "dnnndfnndnnndfnnnnnnnnnnnnnnnnnnnnnnnnnn........................",
-    "ddddrrrrddddddddrrrrrrrelrrrrrrrrrrrrrrr........................",
-    "ddddrrrrddddddddaaaaaaaaaaaaaaaaaaaaaaaa........................"
+    "....cccddddd................aaaaaaaa............................",
+    "....cccddddd................aaaaaaaa............................",
+    "....dddddddd................aaaaaaaa............................",
+    "....dddddddd................aaaaaaaa............................",
+    "fffnfffnfffnfffn................................................",
+    "fffdfffdfffdfffd................................................",
+    "fffdffedfffdfffd................................................",
+    "ffddeeddffddffdd................................................",
+    "ffddeeddffddffdd................................................",
+    "fdddedddfdddfddd................................................",
+    "fdddfdddfdddfddd................................................",
+    "fdddfdddfdddfddd................................................",
+    "ffddffddffddffdd................................................",
+    "ffddffddffddffddrrrrrrrrrrrrrrrrrrrrrrrr........................",
+    "ffdnccdnffdnffdnbbbbbbbrlbbbbbbbbbbbbbbb........................",
+    "aaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbb........................"
   ],
-  "worn_refinement": "Large cloth folds, small trim runs, a single focal clasp, and darker leather at the foot."
+  "worn_refinement": "Crossed fabric at the hips and tapered hanging folds. Indigo cloth with sea-glass fastening."
 }

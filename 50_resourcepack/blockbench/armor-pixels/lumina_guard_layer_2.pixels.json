@@ -6,11 +6,12 @@
     "b": "AC9464FF",
     "d": "E8D7A0FF",
     "j": "4D6670FF",
-    "k": "A7BAB9FF",
     "l": "D2DFD8FF",
     "r": "285B58FF",
-    "a": "ECDDAAFF",
-    "c": "F1E4B7FF"
+    "c": "F1E4B7FF",
+    "a": "3B4951FF",
+    "e": "D0BC88FF",
+    "f": "E2D9AFFF"
   },
   "pixels": [
     "................................................................",
@@ -29,22 +30,22 @@
     "................................................................",
     "................................................................",
     "................................................................",
-    "....bbbbbbbb................bbbbbbbb............................",
-    "....bbbbbbbb................bbbbbbbb............................",
-    "....bbbbbbbb................bbbbbbbb............................",
-    "....bbbbbbbb................bbbbbbbb............................",
-    "bddbbaabbddbbddb................................................",
-    "bddbbaabbddbbddb................................................",
-    "bddbbaabbddbbddb................................................",
+    "....fffbbbbb................jjjjjjjj............................",
+    "....fffbbbbb................jjjjjjjj............................",
+    "....bbbbbbbb................jjjjjjjj............................",
+    "....bbbbbbbb................jjjjjjjj............................",
+    "cccdcccdcccdcccd................................................",
+    "cceecceecceeccee................................................",
+    "cceecceecceeccee................................................",
+    "dddjdddjdddjdddj................................................",
     "jjjjjjjjjjjjjjjj................................................",
-    "dddddllddddddddd................................................",
-    "dddddccddddddddd................................................",
-    "dbbddccddbbddbbd................................................",
-    "dbbddddddbbddbbd................................................",
-    "dbbdjddjdbbddbbd................................................",
-    "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj........................",
-    "jjjjjjjjjjjjjjjjkkkkkkklrkkkkkkkkkkkkkkk........................",
-    "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj........................"
+    "jccjjlcjjccjeeee................................................",
+    "ccceccceccceeeee................................................",
+    "cdeecreecdeeebbe................................................",
+    "eeeeeeeeeeeejbbj................................................",
+    "jjejjjejjjejjjjjeeeeeeelleeeeeeeeeeeeeee........................",
+    "bbbbbbbbbbbbbbbbaaaaaaalraaaaaaaaaaaaaaa........................",
+    "bbbbbbbbbbbbbbbbaaaaaaaaaaaaaaaaaaaaaaaa........................"
   ],
   "uv": {
     "head": {
@@ -200,5 +201,5 @@
       ]
     }
   },
-  "worn_refinement": "Broad rigid panels, a quieter collar and seams, articulated joints, and a single front ornament."
+  "worn_refinement": "Overlapping thigh and raised knee plates with dark joint gaps. Pale champagne metal and deep jade underplates."
 }

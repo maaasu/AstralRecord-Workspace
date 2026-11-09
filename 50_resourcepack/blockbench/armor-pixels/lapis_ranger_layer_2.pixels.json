@@ -9,11 +9,11 @@
     "B": "6F8FBCFF",
     "L": "AC7A4BFF",
     "s": "2856A8FF",
-    "S": "86B6EAFF",
     "e": "3B5586FF",
     "f": "64422CFF",
-    "a": "5575AAFF",
-    "c": "6181B2FF"
+    "a": "303F61FF",
+    "c": "48342BFF",
+    "d": "5979ADFF"
   },
   "pixels": [
     "................................................................",
@@ -32,22 +32,22 @@
     "................................................................",
     "................................................................",
     "................................................................",
-    "....eeeeeeee................eeeeeeee............................",
-    "....eeeeeeee................eeeeeeee............................",
-    "....eeeeeeee................eeeeeeee............................",
-    "....eeeeeeee................eeeeeeee............................",
-    "ebbbeBbbebbbeBbb................................................",
-    "ebbbeBbbebbbeBbb................................................",
-    "ebbbeBbbebbbeBbb................................................",
-    "ecbbecbbecbbecbb................................................",
-    "ecbbecbbecbbecbb................................................",
-    "ecabecabecabecab................................................",
-    "ecabecabecabecab................................................",
-    "fcabfcabfcabfcab................................................",
-    "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee........................",
-    "eeeeeeeeeeeeeeeeffffffffffffffffffffffff........................",
-    "eeeeeeeeeeeeeeeeLLLLLLLSsLLLLLLLLLLLLLLL........................",
-    "eeeeeeeeeeeeeeeeffffffffffffffffffffffff........................"
+    "....dddeeeee................aaaaaaaa............................",
+    "....dddeeeee................aaaaaaaa............................",
+    "....eeeeeeee................aaaaaaaa............................",
+    "....eeeeeeee................aaaaaaaa............................",
+    "BBBbBBBbBBBbBBBb................................................",
+    "BBBeBBBeBBBeBBBe................................................",
+    "BBBeBBBeBBBeBBBe................................................",
+    "BBeeBBeeBBeeBBee................................................",
+    "BBfeBBfeBBfeBBee................................................",
+    "BfLfBfLfBfLfBeee................................................",
+    "BffcBffcBffcBeee................................................",
+    "BcccBcccBcccBeee................................................",
+    "BBceBBceBBceBBeebbbbbbbbbbbbbbbbbbbbbbbb........................",
+    "BBeeBBeeBBeeBBeeLLLLLLLLLLLLLLLLLLLLLLLL........................",
+    "BBebBBebBBebBBebcccccccLsccccccccccccccc........................",
+    "aaaaaaaaaaaaaaaacccccccccccccccccccccccc........................"
   ],
   "nets": {
     "head": {
@@ -203,5 +203,5 @@
       ]
     }
   },
-  "worn_refinement": "Broad fabric or leather panels, one directional closure, and continuous quiet edge binding."
+  "worn_refinement": "Bias-cut field trousers with reinforced outer knee patches. Blue field cloth with rich ochre harness."
 }
