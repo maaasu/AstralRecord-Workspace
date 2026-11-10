@@ -190,7 +190,7 @@ function Confirm-BedrockItemGrip {
         first_person = 'context.is_first_person'
         third_person = '!context.is_first_person'
     }
-    if ($GripStyle -ceq 'utility') {
+    if ($GripStyle -ceq 'utility' -or $Description.animations.first_person_off) {
         $holdConditions.first_person = "context.is_first_person && context.item_slot == 'main_hand'"
         $holdConditions.Add('first_person_off', "context.is_first_person && context.item_slot == 'off_hand'")
     }
@@ -252,6 +252,11 @@ function Confirm-BedrockItemGrip {
         if ($view -ceq 'first_person') {
             if ($direction[1] -lt 0.45 -or $direction[2] -lt -0.85 -or $direction[2] -gt 0.5) {
                 throw "Bedrock animation for $Id first_person must keep the tip raised and allow it to aim forward across the view."
+            }
+        } elseif ($view -ceq 'first_person_off') {
+            # The vanilla first-person offhand does not use the neutral right-arm rotation.
+            if ($direction[1] -lt 0.45) {
+                throw "Bedrock animation for $Id first_person_off must keep the tip raised."
             }
         } elseif ($direction[2] -lt 0.8) {
             throw "Bedrock animation for $Id third_person must aim the weapon forward in the hand."
