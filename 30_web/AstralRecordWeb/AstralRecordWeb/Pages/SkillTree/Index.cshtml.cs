@@ -18,6 +18,11 @@ public sealed class IndexModel(SkillTreeEditorApiClient editor) : PageModel
     public WebSkillTreeProfileResponse? Tree { get; private set; }
     public string? ErrorMessage { get; private set; }
 
+    /// <summary>就職中クラス。スキルツリーの初期表示クラスに使う。</summary>
+    public string? CurrentClassId => EditorState is { ValueKind: JsonValueKind.Object } state
+        && state.TryGetProperty("currentClassId", out var classId) && classId.ValueKind == JsonValueKind.String
+            ? classId.GetString() : null;
+
     public async Task<IActionResult> OnGetAsync(CancellationToken ct)
     {
         if (!TryActor(out var actor)) return Challenge();
@@ -43,6 +48,14 @@ public sealed class IndexModel(SkillTreeEditorApiClient editor) : PageModel
         if (!TryActor(out var actor)) return Challenge();
         if (!ModelState.IsValid || AccountId == Guid.Empty) return BadRequest();
         return ApiResult(await editor.GetStateAsync(actor, AccountId, ct));
+    }
+
+    /// <summary>クラス切替用に、公開済み定義のクラス一覧と1クラスの閲覧専用ノードを返す。</summary>
+    public async Task<IActionResult> OnGetClassTreesAsync(string? generationId, string? classId, CancellationToken ct)
+    {
+        if (!TryActor(out var actor)) return Challenge();
+        if (!ModelState.IsValid || AccountId == Guid.Empty || string.IsNullOrWhiteSpace(generationId)) return BadRequest();
+        return ApiResult(await editor.GetClassTreesAsync(actor, AccountId, generationId, classId, ct));
     }
 
     public async Task<IActionResult> OnPostOperationAsync([FromBody] SkillTreeOperationInput input, CancellationToken ct)

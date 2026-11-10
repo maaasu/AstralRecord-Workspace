@@ -682,6 +682,8 @@ public class SkillTreeService {
             JsonObject value = new JsonObject();
             value.addProperty("nodeId", node.nodeId());
             value.addProperty("name", ColorCodeUtil.toPlainText(node.name(), node.nodeId()));
+            // Webが就職中以外のクラスを閲覧表示するとき、ノードのアイコンにも使う。
+            value.addProperty("icon", node.icon().name());
             value.addProperty("pointType", node.pointType().name());
             value.addProperty("pointCost", node.pointCost());
             JsonObject condition = new JsonObject();

@@ -11,6 +11,7 @@ public interface ISkillTreeOperationRepository
     Task<string?> GetDefinitionAsync(string generationId);
     Task<SkillTreeServerRuntimeResponse?> HeartbeatServerAsync(string serverId, SkillTreeServerHeartbeatRequest request);
     Task<SkillTreeEditorResponse?> GetEditorAsync(Guid accountId, Guid actorUserId, string? targetServerId = null);
+    Task<SkillTreeClassTreesResponse?> GetClassTreesAsync(Guid accountId, Guid actorUserId, string generationId, string? classId);
     Task<SkillTreeEditorResponse?> RegisterPlayerViewAsync(string serverId, Guid accountId, SkillTreePlayerViewRegistrationRequest request);
     Task<bool> RegisterPlayerViewAckAsync(string serverId, Guid accountId, SkillTreePlayerViewRegistrationRequest request);
     Task<IReadOnlyList<SkillTreeAccountHeartbeatItemResponse>?> HeartbeatAccountsAsync(string serverId, SkillTreeAccountHeartbeatBatchRequest request);
