@@ -5,7 +5,7 @@ package io.github.maaasu.astralRecord.feature.item.model
  * equipment API（`/api/equipment/instances`）から取得する装備の個別動的データ。
  * アイテムマスタ（ItemModel）とは異なり、DB に保存されたプレイヤー固有の装備情報を表します。
  */
-data class EquipmentInstance(
+data class EquipmentInstance @JvmOverloads constructor(
     /** 装備インスタンス ID（UUID） */
     val equipmentInstanceId: String,
     /** 所有アカウント ID（UUID） */
@@ -32,7 +32,12 @@ data class EquipmentInstance(
     val enchants: List<EquipmentEnchant> = emptyList(),
     /** ルーン一覧 */
     val runes: List<EquipmentRune> = emptyList(),
-)
+    /** 所有者が廃棄・売却・移管を制限しているか。既存個体の初期値は false。 */
+    val isProtected: Boolean = false,
+) {
+    /** 他の装備状態を保持して保護設定だけ変更した個体を返します。 */
+    fun withProtection(protectedItem: Boolean): EquipmentInstance = copy(isProtected = protectedItem)
+}
 
 /**
  * 装備インスタンスのステータスロール。

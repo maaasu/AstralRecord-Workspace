@@ -852,6 +852,7 @@ class ItemRepository {
             statRolls = parseStatRolls(parseArrayOrNull(obj, "statRolls")),
             enchants = parseEnchants(parseArrayOrNull(obj, "enchants")),
             runes = parseRunes(parseArrayOrNull(obj, "runes")),
+            isProtected = obj.get("isProtected")?.takeUnless { it.isJsonNull }?.asBoolean ?: false,
         )
     }
 

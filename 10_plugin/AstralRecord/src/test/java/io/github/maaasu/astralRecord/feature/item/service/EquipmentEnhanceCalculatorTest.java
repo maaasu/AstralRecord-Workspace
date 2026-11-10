@@ -96,7 +96,7 @@ class EquipmentEnhanceCalculatorTest {
     @Test
     void adjustsDurabilityAndPreservesOtherInstanceState() {
         ItemEquipment equipment = equipment(3, List.of(level(1, 20), level(2, 15), level(3, 15)), List.of());
-        EquipmentInstance original = instance(1, 120, 90);
+        EquipmentInstance original = instance(1, 120, 90).withProtection(true);
         EquipmentInstance raised = EquipmentEnhanceCalculator.withLevel(equipment, original, 3);
         assertEquals(150, raised.getDurabilityMax());
         assertEquals(120, raised.getDurabilityValue());

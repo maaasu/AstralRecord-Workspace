@@ -234,6 +234,7 @@ final class PlayerStateSnapshot {
             object.addProperty("enhanceLevel", instance.getEnhanceLevel());
             object.addProperty("runeMaxSlots", instance.getRuneMaxSlots());
             object.addProperty("transcendenceRank", instance.getTranscendenceRank());
+            object.addProperty("isProtected", instance.isProtected());
             boolean withoutDurability = instance.getDurabilityMax() == 0 && instance.getDurabilityValue() == 0;
             object.addProperty("durabilityMax", withoutDurability ? null : Integer.valueOf(instance.getDurabilityMax()));
             object.addProperty("durabilityValue", withoutDurability ? null : Integer.valueOf(instance.getDurabilityValue()));
