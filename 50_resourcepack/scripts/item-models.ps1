@@ -374,6 +374,55 @@ function Add-ItemModelEntries {
                     )
                 }
             }
+        } elseif ($base -ceq 'crossbow' -and $id -ceq 'lapis_longbow') {
+            $firstperson = @('firstperson_righthand', 'firstperson_lefthand')
+            foreach ($state in @('charging', 'ready')) {
+                $posePath = "assets/astralrecord/models/item/custom/${id}_${state}.json"
+                Add-PackEntries $JavaEntries $root @($posePath)
+                $poseModel = ConvertFrom-Json -InputObject ($utf8.GetString($JavaEntries[$posePath]))
+                if ($poseModel.parent -cne "astralrecord:item/custom/$id" -or
+                    ($poseModel.PSObject.Properties.Name | Where-Object { $_ -cnotin @('parent', 'display') }) -or
+                    ($poseModel.display.PSObject.Properties.Name | Where-Object { $_ -cnotin $firstperson })) {
+                    throw "$posePath must inherit the crossbow model and override only first-person display poses."
+                }
+                foreach ($context in $firstperson) {
+                    $pose = $poseModel.display.$context
+                    if (!(Test-ItemGripVector $pose.rotation) -or !(Test-ItemGripVector $pose.translation) -or
+                        !(Test-ItemGripVector $pose.scale)) {
+                        throw "$posePath must define rotation, translation, and scale for $context."
+                    }
+                }
+            }
+            $charging = New-JavaModelReference "astralrecord:item/custom/${id}_charging"
+            # Vanilla applies the charged centering offset only to the main hand.
+            $firstpersonCases = @(foreach ($hand in @('right', 'left')) {
+                $ready = [ordered] @{
+                    type = 'minecraft:select'
+                    property = 'minecraft:main_hand'
+                    cases = @(
+                        [ordered] @{
+                            when = $hand
+                            model = New-JavaModelReference "astralrecord:item/custom/${id}_ready"
+                        }
+                    )
+                    fallback = $rest
+                }
+                [ordered] @{
+                    when = "firstperson_${hand}hand"
+                    model = [ordered] @{
+                        type = 'minecraft:condition'
+                        property = 'minecraft:using_item'
+                        on_true = $charging
+                        on_false = [ordered] @{
+                            type = 'minecraft:select'
+                            property = 'minecraft:charge_type'
+                            cases = @([ordered] @{ when = @('arrow', 'rocket'); model = $ready })
+                            fallback = $rest
+                        }
+                    }
+                }
+            })
+            $model = New-JavaItemContextSelection $firstpersonCases $rest
         } elseif ($isShield) {
             $model = [ordered] @{
                 type = 'minecraft:condition'

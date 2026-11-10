@@ -2,20 +2,20 @@
   "minecraft:wooden_sword": {
     "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
     "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
-    "firstperson_righthand": { "position": [-0.4, 3.1, -3.9], "up": [-0.50108, 0.76164, -0.41088] },
-    "firstperson_lefthand": { "position": [0.4, 3.1, -3.9], "up": [0.50108, 0.76164, -0.41088] }
+    "firstperson_righthand": { "position": [2.35, -0.458, -3.9], "up": [-0.50108, 0.76164, -0.41088] },
+    "firstperson_lefthand": { "position": [-2.35, -0.458, -3.9], "up": [0.50108, 0.76164, -0.41088] }
   },
   "minecraft:bow": {
     "thirdperson_righthand": { "position": [-0.9016, -2.0589, -0.3791], "up": [-0.171, 0.9853, -0.0026] },
     "thirdperson_lefthand": { "position": [0.9016, -2.0589, -0.3791], "up": [0.171, 0.9853, -0.0026] },
-    "firstperson_righthand": { "position": [0.14, 6.2, -4.7], "up": [-0.36041, 0.91105, -0.20023] },
-    "firstperson_lefthand": { "position": [-0.14, 6.2, -4.7], "up": [0.36041, 0.91105, -0.20023] }
+    "firstperson_righthand": { "position": [5.45, 3.1, -3.75], "up": [0.10645, 0.81543, -0.56899] },
+    "firstperson_lefthand": { "position": [-5.45, 3.1, -3.75], "up": [-0.10645, 0.81543, -0.56899] }
   },
   "minecraft:wooden_shovel": {
     "thirdperson_righthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
     "thirdperson_lefthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
-    "firstperson_righthand": { "position": [-0.1, 3.2, -3.9], "up": [-0.52971, 0.60966, -0.58968] },
-    "firstperson_lefthand": { "position": [0.1, 3.2, -3.9], "up": [0.52971, 0.60966, -0.58968] }
+    "firstperson_righthand": { "position": [2.6, 0.081, -3.9], "up": [-0.52971, 0.60966, -0.58968] },
+    "firstperson_lefthand": { "position": [-2.6, 0.081, -3.9], "up": [0.52971, 0.60966, -0.58968] }
   },
   "minecraft:stick": {
     "thirdperson_righthand": {
@@ -44,8 +44,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        -0.4,
-        3.1,
+        2.35,
+        -0.177,
         -3.9
       ],
       "up": [
@@ -56,8 +56,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        0.4,
-        3.1,
+        -2.35,
+        -0.177,
         -3.9
       ],
       "up": [
@@ -94,8 +94,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        -0.48,
-        3.65,
+        3.4,
+        -0.557,
         -4.1
       ],
       "up": [
@@ -106,8 +106,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        0.48,
-        3.65,
+        -3.4,
+        -0.557,
         -4.1
       ],
       "up": [
@@ -144,8 +144,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        -0.3,
-        2.65,
+        2.4,
+        -0.763,
         -3.9
       ],
       "up": [
@@ -156,8 +156,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        0.3,
-        2.65,
+        -2.4,
+        -0.763,
         -3.9
       ],
       "up": [
@@ -194,8 +194,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        -0.05,
-        2.65,
+        2.6,
+        -0.796,
         -3.6
       ],
       "up": [
@@ -206,8 +206,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        0.05,
-        2.65,
+        -2.6,
+        -0.796,
         -3.6
       ],
       "up": [
@@ -244,8 +244,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        -0.1,
-        3.2,
+        2.6,
+        -1.112,
         -3.9
       ],
       "up": [
@@ -256,8 +256,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        0.1,
-        3.2,
+        -2.6,
+        -1.112,
         -3.9
       ],
       "up": [
@@ -294,8 +294,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        -0.1,
-        3.2,
+        2.6,
+        -1.015,
         -3.9
       ],
       "up": [
@@ -306,8 +306,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        0.1,
-        3.2,
+        -2.6,
+        -1.015,
         -3.9
       ],
       "up": [
@@ -344,8 +344,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        -0.4,
-        3.1,
+        2.35,
+        -0.444,
         -3.9
       ],
       "up": [
@@ -356,8 +356,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        0.4,
-        3.1,
+        -2.35,
+        -0.444,
         -3.9
       ],
       "up": [
@@ -394,8 +394,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        -0.48,
-        3.65,
+        3.4,
+        -0.681,
         -4.1
       ],
       "up": [
@@ -406,8 +406,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        0.48,
-        3.65,
+        -3.4,
+        -0.681,
         -4.1
       ],
       "up": [
@@ -444,8 +444,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        -0.05,
-        3.05,
+        2.6,
+        -1.0275,
         -3.6
       ],
       "up": [
@@ -456,8 +456,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        0.05,
-        3.05,
+        -2.6,
+        -1.0275,
         -3.6
       ],
       "up": [
@@ -494,26 +494,26 @@
     },
     "firstperson_righthand": {
       "position": [
-        0.14,
-        6.2,
-        -4.7
+        5.45,
+        2.95,
+        -3.9
       ],
       "up": [
-        -0.36041,
-        0.91105,
-        -0.20023
+        0.10645,
+        0.81543,
+        -0.56899
       ]
     },
     "firstperson_lefthand": {
       "position": [
-        -0.14,
-        6.2,
-        -4.7
+        -5.45,
+        2.95,
+        -3.9
       ],
       "up": [
-        0.36041,
-        0.91105,
-        -0.20023
+        -0.10645,
+        0.81543,
+        -0.56899
       ]
     }
   },
@@ -594,8 +594,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        -0.4,
-        3.1,
+        2.35,
+        -0.393,
         -3.9
       ],
       "up": [
@@ -606,8 +606,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        0.4,
-        3.1,
+        -2.35,
+        -0.393,
         -3.9
       ],
       "up": [
@@ -644,8 +644,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        -0.48,
-        3.65,
+        3.4,
+        -0.945,
         -4.1
       ],
       "up": [
@@ -656,8 +656,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        0.48,
-        3.65,
+        -3.4,
+        -0.945,
         -4.1
       ],
       "up": [
@@ -694,26 +694,26 @@
     },
     "firstperson_righthand": {
       "position": [
-        0.1,
-        5.35,
-        -4.8
+        4.55,
+        1.35,
+        -4.7
       ],
       "up": [
-        -0.25886,
-        0.93589,
-        -0.23895
+        -0.14287,
+        0.91786,
+        -0.37029
       ]
     },
     "firstperson_lefthand": {
       "position": [
-        -0.1,
-        5.35,
-        -4.8
+        -4.55,
+        1.35,
+        -4.7
       ],
       "up": [
-        0.25886,
-        0.93589,
-        -0.23895
+        0.14287,
+        0.91786,
+        -0.37029
       ]
     }
   },
@@ -754,8 +754,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        0.1,
-        1.8,
+        1.55,
+        -2.132,
         -4.6
       ],
       "up": [
@@ -771,8 +771,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        -0.1,
-        1.8,
+        -1.55,
+        -2.132,
         -4.6
       ],
       "up": [
@@ -864,8 +864,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        -0.1,
-        3.2,
+        2.6,
+        -1.141,
         -3.9
       ],
       "up": [
@@ -876,8 +876,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        0.1,
-        3.2,
+        -2.6,
+        -1.141,
         -3.9
       ],
       "up": [
@@ -914,8 +914,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        -0.05,
-        3.15,
+        2.6,
+        -1.261,
         -4.2
       ],
       "up": [
@@ -926,8 +926,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        0.05,
-        3.15,
+        -2.6,
+        -1.261,
         -4.2
       ],
       "up": [
@@ -964,8 +964,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        -0.4,
-        3.1,
+        2.35,
+        -0.141,
         -3.9
       ],
       "up": [
@@ -976,8 +976,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        0.4,
-        3.1,
+        -2.35,
+        -0.141,
         -3.9
       ],
       "up": [
@@ -1014,8 +1014,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        -0.48,
-        3.65,
+        3.4,
+        -0.348,
         -4.1
       ],
       "up": [
@@ -1026,8 +1026,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        0.48,
-        3.65,
+        -3.4,
+        -0.348,
         -4.1
       ],
       "up": [
@@ -1064,8 +1064,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        -0.05,
-        3.05,
+        2.6,
+        -1.017,
         -3.6
       ],
       "up": [
@@ -1076,8 +1076,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        0.05,
-        3.05,
+        -2.6,
+        -1.017,
         -3.6
       ],
       "up": [
@@ -1114,8 +1114,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        -0.3,
-        3.05,
+        2.4,
+        -0.704,
         -3.9
       ],
       "up": [
@@ -1126,8 +1126,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        0.3,
-        3.05,
+        -2.4,
+        -0.704,
         -3.9
       ],
       "up": [
@@ -1164,8 +1164,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        -0.1,
-        3.2,
+        2.6,
+        -1.322,
         -3.9
       ],
       "up": [
@@ -1176,8 +1176,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        0.1,
-        3.2,
+        -2.6,
+        -1.322,
         -3.9
       ],
       "up": [
@@ -1224,8 +1224,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        0.05,
-        2.55,
+        1.6,
+        -0.88,
         -4.6
       ],
       "up": [
@@ -1241,8 +1241,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        -0.05,
-        2.55,
+        -1.6,
+        -0.88,
         -4.6
       ],
       "up": [
@@ -1434,8 +1434,8 @@
     },
     "firstperson_righthand": {
       "position": [
-        0.15,
-        2.15,
+        1.6,
+        -1.6,
         -4.85
       ],
       "up": [
@@ -1451,8 +1451,8 @@
     },
     "firstperson_lefthand": {
       "position": [
-        -0.15,
-        2.15,
+        -1.6,
+        -1.6,
         -4.85
       ],
       "up": [
@@ -1750,20 +1750,20 @@
   "astralrecord:eriva_wand": {
     "thirdperson_righthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
     "thirdperson_lefthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
-    "firstperson_righthand": { "position": [-0.3, 3.05, -3.9], "up": [-0.40996, 0.64994, -0.63994] },
-    "firstperson_lefthand": { "position": [0.3, 3.05, -3.9], "up": [0.40996, 0.64994, -0.63994] }
+    "firstperson_righthand": { "position": [2.4, -0.698, -3.9], "up": [-0.40996, 0.64994, -0.63994] },
+    "firstperson_lefthand": { "position": [-2.4, -0.698, -3.9], "up": [0.40996, 0.64994, -0.63994] }
   },
   "astralrecord:lapis_wand": {
     "thirdperson_righthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
     "thirdperson_lefthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
-    "firstperson_righthand": { "position": [-0.3, 3.05, -3.9], "up": [-0.40996, 0.64994, -0.63994] },
-    "firstperson_lefthand": { "position": [0.3, 3.05, -3.9], "up": [0.40996, 0.64994, -0.63994] }
+    "firstperson_righthand": { "position": [2.4, -1.138, -3.9], "up": [-0.40996, 0.64994, -0.63994] },
+    "firstperson_lefthand": { "position": [-2.4, -1.138, -3.9], "up": [0.40996, 0.64994, -0.63994] }
   },
   "astralrecord:lumina_wand": {
     "thirdperson_righthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
     "thirdperson_lefthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
-    "firstperson_righthand": { "position": [-0.3, 3.05, -3.9], "up": [-0.40996, 0.64994, -0.63994] },
-    "firstperson_lefthand": { "position": [0.3, 3.05, -3.9], "up": [0.40996, 0.64994, -0.63994] }
+    "firstperson_righthand": { "position": [2.4, -0.349, -3.9], "up": [-0.40996, 0.64994, -0.63994] },
+    "firstperson_lefthand": { "position": [-2.4, -0.349, -3.9], "up": [0.40996, 0.64994, -0.63994] }
   },
   "astralrecord:middle_earth_longbow": {
     "thirdperson_righthand": {
@@ -1792,26 +1792,26 @@
     },
     "firstperson_righthand": {
       "position": [
-        0.14,
-        6.5,
-        -5.1
+        5.25,
+        3.45,
+        -3.85
       ],
       "up": [
-        -0.36041,
-        0.91105,
-        -0.20023
+        0.10645,
+        0.81543,
+        -0.56899
       ]
     },
     "firstperson_lefthand": {
       "position": [
-        -0.14,
-        6.5,
-        -5.1
+        -5.25,
+        3.45,
+        -3.85
       ],
       "up": [
-        0.36041,
-        0.91105,
-        -0.20023
+        -0.10645,
+        0.81543,
+        -0.56899
       ]
     }
   },
@@ -1842,26 +1842,26 @@
     },
     "firstperson_righthand": {
       "position": [
-        0.14,
-        6.05,
-        -4.1
+        5.45,
+        3.43,
+        -3.75
       ],
       "up": [
-        -0.36041,
-        0.91105,
-        -0.20023
+        0.10645,
+        0.81543,
+        -0.56899
       ]
     },
     "firstperson_lefthand": {
       "position": [
-        -0.14,
-        6.05,
-        -4.1
+        -5.45,
+        3.43,
+        -3.75
       ],
       "up": [
-        0.36041,
-        0.91105,
-        -0.20023
+        -0.10645,
+        0.81543,
+        -0.56899
       ]
     }
   },
@@ -1892,26 +1892,26 @@
     },
     "firstperson_righthand": {
       "position": [
-        0.14,
-        6.5,
-        -5.1
+        5.25,
+        3.3,
+        -3.85
       ],
       "up": [
-        -0.36041,
-        0.91105,
-        -0.20023
+        0.10645,
+        0.81543,
+        -0.56899
       ]
     },
     "firstperson_lefthand": {
       "position": [
-        -0.14,
-        6.5,
-        -5.1
+        -5.25,
+        3.3,
+        -3.85
       ],
       "up": [
-        0.36041,
-        0.91105,
-        -0.20023
+        -0.10645,
+        0.81543,
+        -0.56899
       ]
     }
   },
@@ -1942,26 +1942,76 @@
     },
     "firstperson_righthand": {
       "position": [
-        0.14,
-        6.5,
-        -5.1
+        5.25,
+        3.3,
+        -3.85
       ],
       "up": [
-        -0.36041,
-        0.91105,
-        -0.20023
+        0.10645,
+        0.81543,
+        -0.56899
       ]
     },
     "firstperson_lefthand": {
       "position": [
-        -0.14,
-        6.5,
-        -5.1
+        -5.25,
+        3.3,
+        -3.85
       ],
       "up": [
-        0.36041,
-        0.91105,
-        -0.20023
+        -0.10645,
+        0.81543,
+        -0.56899
+      ]
+    }
+  },
+  "astralrecord:eriva_staff": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -0.8328,
+        1.4742
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -0.8328,
+        1.4742
+      ],
+      "up": [
+        0,
+        0.9848,
+        -0.1736
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        2.6,
+        -1.404,
+        -3.9
+      ],
+      "up": [
+        -0.52971,
+        0.60966,
+        -0.58968
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -2.6,
+        -1.404,
+        -3.9
+      ],
+      "up": [
+        0.52971,
+        0.60966,
+        -0.58968
       ]
     }
   }
