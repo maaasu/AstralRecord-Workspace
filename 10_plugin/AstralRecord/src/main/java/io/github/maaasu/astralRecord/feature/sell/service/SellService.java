@@ -135,7 +135,7 @@ public final class SellService {
     }
 
     /**
-     * 売却 GUI のドラッグイベントを処理します。
+     * 売却 GUI のドラッグイベントを処理し、保護中の装備の取り込みを拒否します。
      *
      * @param event ドラッグイベント
      */
@@ -148,6 +148,14 @@ public final class SellService {
             return;
         }
         if (screen == MenuScreen.SELL) {
+            if (event.getWhoClicked() instanceof Player player
+                && event.getRawSlots().stream().anyMatch(this::isSellContentSlot)
+                && inventoryService.isEquipmentProtected(event.getOldCursor())) {
+                event.setCancelled(true);
+                GuiSound.DENY.play(player);
+                sendSellMessage(player, PlayerMsgId.P_5680);
+                return;
+            }
             if (event.getRawSlots().stream().anyMatch(this::isSellControlSlot)) {
                 event.setCancelled(true);
                 if (event.getWhoClicked() instanceof Player player) {
@@ -278,6 +286,12 @@ public final class SellService {
         }
     }
 
+    /**
+     * 売却の確定・返却を処理します。保護中の装備が含まれる場合は確定を拒否します。
+     *
+     * @param event クリックイベント
+     * @param player 操作プレイヤー
+     */
     private void handleSellConfirmClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
         event.setCancelled(true);
         int rawSlot = event.getRawSlot();
@@ -291,6 +305,11 @@ public final class SellService {
 
         if (rawSlot == MenuView.SELL_CONFIRM_SELL_SLOT) {
             List<ItemStack> soldItems = normalizeSellItems(currentSellItems);
+            if (soldItems.stream().anyMatch(inventoryService::isEquipmentProtected)) {
+                GuiSound.DENY.play(player);
+                sendSellMessage(player, PlayerMsgId.P_5680);
+                return;
+            }
             long totalSaleValue = totalSaleValue(soldItems);
             AstPlayer astPlayer = AstPlayerCache.get(player);
             if (!AccountModeGuard.isGameplayPlayer(astPlayer) || !inventoryService.addGold(astPlayer, totalSaleValue)) {
@@ -357,6 +376,14 @@ public final class SellService {
         }
     }
 
+    /**
+     * 所持品の正本スロットを確認し、保護中の装備を除いて売却対象へ取り込みます。
+     * 一括操作でも、装備はクリックした個体の保護状態で判定します。
+     *
+     * @param event クリックイベント
+     * @param player 操作プレイヤー
+     * @param topInventory 売却対象の表示領域
+     */
     private void handleSellPlayerInventoryClick(
         @NotNull InventoryClickEvent event,
         @NotNull Player player,
@@ -386,6 +413,11 @@ public final class SellService {
             sendSellMessage(player, PlayerMsgId.P_5605);
             return;
         }
+        if (inventoryService.isOwnedEquipmentProtected(astPlayer, event.getSlot())) {
+            GuiSound.DENY.play(player);
+            sendSellMessage(player, PlayerMsgId.P_5680);
+            return;
+        }
         ItemTransferSupport.ClickTransferRequest transferRequest =
             ItemTransferSupport.resolveClickTransferRequest(
                 event.getClick(),
@@ -404,10 +436,11 @@ public final class SellService {
             player.updateInventory();
             return;
         }
-        ItemStack moved = inventoryService.takeOwnedMatchingItemAmount(
+        ItemStack moved = inventoryService.takeUnprotectedOwnedItemAmount(
             astPlayer,
             event.getSlot(),
-            capacity
+            capacity,
+            true
         );
         if (moved == null || moved.getType() == Material.AIR) {
             GuiSound.DENY.play(player);
@@ -420,6 +453,14 @@ public final class SellService {
         player.updateInventory();
     }
 
+    /**
+     * 保留中の品を所有者へ返却します。保護中の装備はバッグの容量外にも返却できます。
+     *
+     * @param event クリックイベント
+     * @param player 操作プレイヤー
+     * @param topInventory 保留品の表示領域
+     * @param rawSlot 対象品の表示スロット
+     */
     private void handleSellContentClick(
         @NotNull InventoryClickEvent event,
         @NotNull Player player,
@@ -457,8 +498,10 @@ public final class SellService {
         }
         ItemStack partial = stripTransferDisplayLore(current);
         partial.setAmount(requested);
-        ItemReference reference = resolveTransferReference(partial);
-        if (reference == null || inventoryService.returnItemToOwnedInventory(astPlayer, reference, requested) == null) {
+        boolean returned = inventoryService.isEquipmentProtected(partial)
+            ? inventoryService.returnProtectedEquipmentToOwnedInventory(astPlayer, partial) != null
+            : inventoryService.returnItemToOwnedInventory(astPlayer, resolveTransferReference(partial), requested) != null;
+        if (!returned) {
             GuiSound.DENY.play(player);
             player.updateInventory();
             return;
@@ -528,6 +571,13 @@ public final class SellService {
         return result.failedItems().isEmpty();
     }
 
+    /**
+     * 売却の保留品を所持品へ戻し、保護中の装備には満杯時の返却経路を使用します。
+     *
+     * @param player 所有者
+     * @param items 返却対象
+     * @return 返却結果
+     */
     private @NotNull ReturnSellItemsResult returnSellItemsToInventory(
         @NotNull Player player,
         @NotNull List<ItemStack> items
@@ -547,9 +597,12 @@ public final class SellService {
             }
             ItemStack cleanItem = stripTransferDisplayLore(itemStack);
             ItemModel model = resolveTransferItemModel(cleanItem);
-            if (model == null
-                || !inventoryService.canReturnItemToNormalInventory(astPlayer, model, Math.max(1, cleanItem.getAmount()))
-                || inventoryService.returnItemToOwnedInventory(astPlayer, cleanItem.clone()) == null) {
+            boolean returned = inventoryService.isEquipmentProtected(cleanItem)
+                ? inventoryService.returnProtectedEquipmentToOwnedInventory(astPlayer, cleanItem) != null
+                : model != null
+                    && inventoryService.canReturnItemToNormalInventory(astPlayer, model, Math.max(1, cleanItem.getAmount()))
+                    && inventoryService.returnItemToOwnedInventory(astPlayer, cleanItem) != null;
+            if (!returned) {
                 failedItems.add(cleanItem);
                 continue;
             }

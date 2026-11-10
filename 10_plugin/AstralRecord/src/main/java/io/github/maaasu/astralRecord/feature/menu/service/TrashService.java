@@ -62,12 +62,12 @@ public final class TrashService {
     }
 
     /**
-     * 空のゴミ箱 GUI を開きます。
+     * ゴミ箱 GUI を開き、前回返却できなかった保護中の装備があれば表示します。
      *
      * @param player 対象プレイヤー
      */
     public void open(@NotNull Player player) {
-        open(player, List.of(), 0);
+        open(player, 0);
     }
 
     /**
@@ -125,13 +125,21 @@ public final class TrashService {
     }
 
     /**
-     * ゴミ箱 GUI のドラッグイベントを処理します。
+     * ゴミ箱 GUI のドラッグイベントを処理し、保護中の装備の取り込みを拒否します。
      *
      * @param event ドラッグイベント
      */
     public void handleDrag(@NotNull InventoryDragEvent event) {
         MenuScreen screen = menuView.getMenuScreen(event.getView().getTopInventory());
         if (screen == MenuScreen.TRASH) {
+            if (event.getWhoClicked() instanceof Player player
+                && event.getRawSlots().stream().anyMatch(this::isTrashContentSlot)
+                && inventoryService.isEquipmentProtected(event.getOldCursor())) {
+                event.setCancelled(true);
+                GuiSound.DENY.play(player);
+                sendTrashMessage(player, PlayerMsgId.P_5680);
+                return;
+            }
             if (event.getRawSlots().stream().anyMatch(this::isTrashControlSlot)) {
                 event.setCancelled(true);
                 if (event.getWhoClicked() instanceof Player player) {
@@ -149,7 +157,7 @@ public final class TrashService {
     }
 
     /**
-     * ゴミ箱 GUI クローズ時の後処理を行います。
+     * ゴミ箱 GUI クローズ時にアイテムを返却し、返却できない保護中の装備を保持します。
      *
      * @param inventory 閉じられたインベントリ
      * @param player 対象プレイヤー
@@ -203,22 +211,28 @@ public final class TrashService {
         menuGuiTransitionService.fillPlayerInventoryDummy(player);
     }
 
+    /**
+     * ゴミ箱の編集操作と、全ページを対象とする処分確認への遷移を処理します。
+     *
+     * @param event クリックイベント
+     * @param player 操作プレイヤー
+     */
     private void handleTrashClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
         event.setCancelled(true);
         int rawSlot = event.getRawSlot();
         Inventory topInventory = event.getView().getTopInventory();
-        List<ItemStack> currentTrashItems = snapshotTrashItems(topInventory);
 
         if (rawSlot >= topInventory.getSize()) {
             handleTrashPlayerInventoryClick(event, player, topInventory);
             return;
         }
 
+        List<ItemStack> currentTrashItems = collectAllTrashItems(topInventory, player.getUniqueId());
         if (rawSlot == MenuView.BACK_SLOT) {
-            closeTrashAndReturnItems(
-                player,
-                collectAllTrashItems(topInventory, player.getUniqueId())
-            );
+            if (!closeTrashAndReturnItems(player, currentTrashItems)) {
+                rerenderTrashInventory(player, topInventory, trashItemsByPlayer.get(player.getUniqueId()));
+                return;
+            }
             menuGuiTransitionService.switchGuiWithInventoryRestore(
                 player,
                 () -> plugin.getGuiNavigationService().openPrevious(player)
@@ -263,6 +277,12 @@ public final class TrashService {
         }
     }
 
+    /**
+     * ゴミ箱の確定・返却を処理します。保護中の装備がある場合は処分を確定せず、返却を許可します。
+     *
+     * @param event クリックイベント
+     * @param player 操作プレイヤー
+     */
     private void handleTrashConfirmClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
         event.setCancelled(true);
         int rawSlot = event.getRawSlot();
@@ -276,6 +296,11 @@ public final class TrashService {
 
         if (rawSlot == MenuView.TRASH_CONFIRM_DISPOSE_SLOT) {
             List<ItemStack> disposedItems = normalizeTrashItems(currentTrashItems);
+            if (disposedItems.stream().anyMatch(inventoryService::isEquipmentProtected)) {
+                GuiSound.DENY.play(player);
+                sendTrashMessage(player, PlayerMsgId.P_5680);
+                return;
+            }
             GuiSound.SELECT.play(player);
             GuiSound.TRASH_DISPOSE.play(player);
             discard(player);
@@ -286,7 +311,9 @@ public final class TrashService {
         }
         if (rawSlot == MenuView.TRASH_CONFIRM_RETURN_SLOT) {
             GuiSound.SELECT.play(player);
-            closeTrashAndReturnItems(player, currentTrashItems);
+            if (!closeTrashAndReturnItems(player, currentTrashItems)) {
+                return;
+            }
             menuGuiTransitionService.switchGuiWithInventoryRestore(
                 player,
                 () -> plugin.getGuiNavigationService().openPrevious(
@@ -334,6 +361,13 @@ public final class TrashService {
         }
     }
 
+    /**
+     * 所持品の正本スロットを確認し、保護中の装備を除いてゴミ箱へ取り込みます。
+     *
+     * @param event クリックイベント
+     * @param player 操作プレイヤー
+     * @param topInventory ゴミ箱の表示領域
+     */
     private void handleTrashPlayerInventoryClick(
         @NotNull InventoryClickEvent event,
         @NotNull Player player,
@@ -361,7 +395,12 @@ public final class TrashService {
             GuiSound.DENY.play(player);
             return;
         }
-        ItemStack moved = inventoryService.takeOwnedItemAmount(astPlayer, event.getSlot(), requested);
+        if (inventoryService.isOwnedEquipmentProtected(astPlayer, event.getSlot())) {
+            GuiSound.DENY.play(player);
+            sendTrashMessage(player, PlayerMsgId.P_5680);
+            return;
+        }
+        ItemStack moved = inventoryService.takeUnprotectedOwnedItemAmount(astPlayer, event.getSlot(), requested, false);
         if (moved == null || moved.getType() == Material.AIR) {
             GuiSound.DENY.play(player);
             player.updateInventory();
@@ -376,6 +415,14 @@ public final class TrashService {
         player.updateInventory();
     }
 
+    /**
+     * 保留中の品を所有者へ返却します。保護中の装備はバッグの容量外にも返却できます。
+     *
+     * @param event クリックイベント
+     * @param player 操作プレイヤー
+     * @param topInventory 保留品の表示領域
+     * @param rawSlot 対象品の表示スロット
+     */
     private void handleTrashContentClick(
         @NotNull InventoryClickEvent event,
         @NotNull Player player,
@@ -413,8 +460,10 @@ public final class TrashService {
         }
         ItemStack partial = stripTrashDisplayAmountLore(current);
         partial.setAmount(requested);
-        ItemReference reference = resolveTransferReference(partial);
-        if (reference == null || inventoryService.returnItemToOwnedInventory(astPlayer, reference, requested) == null) {
+        boolean returned = inventoryService.isEquipmentProtected(partial)
+            ? inventoryService.returnProtectedEquipmentToOwnedInventory(astPlayer, partial) != null
+            : inventoryService.returnItemToOwnedInventory(astPlayer, resolveTransferReference(partial), requested) != null;
+        if (!returned) {
             GuiSound.DENY.play(player);
             player.updateInventory();
             return;
@@ -462,15 +511,42 @@ public final class TrashService {
         ));
     }
 
-    private void closeTrashAndReturnItems(@NotNull Player player, @NotNull List<ItemStack> items) {
+    /**
+     * 所持品への返却を試み、返却先を確保できない保護中の装備だけをゴミ箱の保留状態へ残します。
+     *
+     * @param player 所有者
+     * @param items 返却対象
+     * @return 保留品がなければ true
+     */
+    private boolean closeTrashAndReturnItems(@NotNull Player player, @NotNull List<ItemStack> items) {
         ReturnTrashItemsResult result = returnTrashItemsToInventory(player, items);
-        dropTrashItems(player, result.failedItems());
-        discard(player);
+        List<ItemStack> protectedItems = new ArrayList<>();
+        for (ItemStack failedItem : result.failedItems()) {
+            if (inventoryService.isEquipmentProtected(failedItem)) {
+                protectedItems.add(failedItem);
+            } else if (failedItem != null && !failedItem.getType().isAir()) {
+                player.getWorld().dropItemNaturally(player.getLocation(), failedItem.clone());
+            }
+        }
+        if (protectedItems.isEmpty()) {
+            discard(player);
+        } else {
+            trashItemsByPlayer.put(player.getUniqueId(), protectedItems);
+            sendTrashMessage(player, PlayerMsgId.P_5680);
+        }
         if (!result.returnedItems().isEmpty()) {
             notifyTrashReturned(player, result.returnedItems());
         }
+        return protectedItems.isEmpty();
     }
 
+    /**
+     * ゴミ箱の保留品を所持品へ戻し、保護中の装備には満杯時の返却経路を使用します。
+     *
+     * @param player 所有者
+     * @param items 返却対象
+     * @return 返却結果
+     */
     private @NotNull ReturnTrashItemsResult returnTrashItemsToInventory(
         @NotNull Player player,
         @NotNull List<ItemStack> items
@@ -489,22 +565,16 @@ public final class TrashService {
                 continue;
             }
             ItemStack cleanItem = stripTransferDisplayLore(itemStack);
-            if (inventoryService.returnItemToOwnedInventory(astPlayer, cleanItem.clone()) == null) {
+            boolean returned = inventoryService.isEquipmentProtected(cleanItem)
+                ? inventoryService.returnProtectedEquipmentToOwnedInventory(astPlayer, cleanItem) != null
+                : inventoryService.returnItemToOwnedInventory(astPlayer, cleanItem) != null;
+            if (!returned) {
                 failedItems.add(cleanItem);
                 continue;
             }
             returnedItems.add(cleanItem);
         }
         return new ReturnTrashItemsResult(returnedItems, failedItems);
-    }
-
-    private void dropTrashItems(@NotNull Player player, @NotNull List<ItemStack> items) {
-        for (ItemStack itemStack : items) {
-            if (itemStack == null || itemStack.getType() == Material.AIR) {
-                continue;
-            }
-            player.getWorld().dropItemNaturally(player.getLocation(), itemStack.clone());
-        }
     }
 
     private void notifyTrashDisposed(@NotNull Player player, @NotNull List<ItemStack> items) {
