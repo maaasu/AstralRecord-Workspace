@@ -72,6 +72,24 @@
           }
         }
       }
+    },
+    "animation.astralrecord.lapis_wand.first_person_off": {
+      "loop": true,
+      "bones": {
+        "grip": {
+          "rotation": [
+            45.16359,
+            1.65575,
+            20.0
+          ],
+          "position": [
+            0,
+            24,
+            0
+          ],
+          "scale": 0.8413
+        }
+      }
     }
   }
 }

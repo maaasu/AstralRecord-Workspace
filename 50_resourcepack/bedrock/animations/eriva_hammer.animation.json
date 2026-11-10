@@ -72,6 +72,24 @@
           }
         }
       }
+    },
+    "animation.astralrecord.eriva_hammer.first_person_off": {
+      "loop": true,
+      "bones": {
+        "grip": {
+          "rotation": [
+            56.41092,
+            -1.80126,
+            20
+          ],
+          "position": [
+            0,
+            24,
+            0
+          ],
+          "scale": 0.972
+        }
+      }
     }
   }
 }

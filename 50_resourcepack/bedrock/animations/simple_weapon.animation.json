@@ -72,6 +72,24 @@
           }
         }
       }
+    },
+    "animation.astralrecord.simple_weapon.first_person_off": {
+      "loop": true,
+      "bones": {
+        "grip": {
+          "rotation": [
+            56.32612,
+            -5.84979,
+            20
+          ],
+          "position": [
+            0,
+            24,
+            0
+          ],
+          "scale": 0.8413
+        }
+      }
     }
   }
 }

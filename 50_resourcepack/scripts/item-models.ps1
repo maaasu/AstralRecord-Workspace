@@ -96,12 +96,13 @@ function Get-ItemModelRegistry {
 }
 
 function Add-JavaItemAssets {
-    param($Entries, [string] $Id, [bool] $Bow, [bool] $Shield, $Grip, $GripTargets)
+    param($Entries, [string] $Id, [bool] $Bow, [bool] $Shield, $Grip, $GripTargets,
+        [string[]] $FirstPersonVariants = @())
 
     $texture = "assets/astralrecord/textures/item/custom/$Id.png"
     Add-PackEntries $Entries $root @($texture)
 
-    $modelNames = @($Id)
+    $modelNames = @($Id) + $FirstPersonVariants
     if ($Bow) {
         $modelNames += @("${Id}_pull_0", "${Id}_pull_1", "${Id}_pull_2")
     }
@@ -114,7 +115,12 @@ function Add-JavaItemAssets {
         if (!$model.elements -or $textures.Value -cnotcontains $expected) {
             throw "$path must contain 3D elements and use $expected."
         }
-        if ($Grip) {
+        if ($modelName -cin $FirstPersonVariants) {
+            if (!(Test-JavaItemGripGeometry $model.elements $Grip)) {
+                throw "$path must contain the registered grip point inside a cuboid."
+            }
+            Confirm-JavaFirstPersonDisplay $model $path
+        } elseif ($Grip) {
             $poseTargets = $GripTargets
             if ($Bow -and $modelName -cne $Id -and $null -ne $GripTargets.draw) {
                 $poseTargets = @{
@@ -156,6 +162,18 @@ function Add-JavaItemAssets {
     }
 }
 
+function Confirm-JavaFirstPersonDisplay {
+    param($Model, [string] $Path)
+
+    foreach ($context in @('firstperson_righthand', 'firstperson_lefthand')) {
+        $pose = $Model.display.$context
+        if (!(Test-ItemGripVector $pose.rotation) -or !(Test-ItemGripVector $pose.translation) -or
+            !(Test-ItemGripVector $pose.scale)) {
+            throw "$Path must define rotation, translation, and scale for $context."
+        }
+    }
+}
+
 function Add-JavaFirstPersonPose {
     param($Entries, [string] $Id, [string] $Path)
 
@@ -167,13 +185,7 @@ function Add-JavaFirstPersonPose {
         ($model.display.PSObject.Properties.Name | Where-Object { $_ -cnotin $contexts })) {
         throw "$Path must inherit the $Id model and override only first-person display poses."
     }
-    foreach ($context in $contexts) {
-        $pose = $model.display.$context
-        if (!(Test-ItemGripVector $pose.rotation) -or !(Test-ItemGripVector $pose.translation) -or
-            !(Test-ItemGripVector $pose.scale)) {
-            throw "$Path must define rotation, translation, and scale for $context."
-        }
-    }
+    Confirm-JavaFirstPersonDisplay $model $Path
 }
 
 function Add-BedrockItemAssets {
@@ -364,6 +376,7 @@ function Add-ItemModelEntries {
         $base = $item.base_item.Substring('minecraft:'.Length)
         $isBow = $base -ceq 'bow'
         $isShield = $base -ceq 'shield'
+        $isLapisCrossbow = $base -ceq 'crossbow' -and $id -ceq 'lapis_longbow'
         $grip = $item.grip
         if ($isArmor -and !(Test-ItemGripVector $grip)) { throw "Armor $id must declare its held grip point." }
         $gripStyle = if ($isShield) { 'shield' }
@@ -372,7 +385,11 @@ function Add-ItemModelEntries {
         # Keep first-person weapon placement separate from tools that share its base material.
         $gripTarget = $gripTargets."astralrecord:$id"
         if (!$gripTarget) { $gripTarget = $gripTargets.($item.base_item) }
-        Add-JavaItemAssets $JavaEntries $id $isBow $isShield $grip $gripTarget
+        $firstPersonVariants = @()
+        if ($isLapisCrossbow) {
+            $firstPersonVariants = @("${id}_charging", "${id}_ready")
+        }
+        Add-JavaItemAssets $JavaEntries $id $isBow $isShield $grip $gripTarget $firstPersonVariants
         $description = Add-BedrockItemAssets $BedrockEntries $id $gripStyle $isArmor
         if ($item.java_virtual_trident) {
             $heldWeapons.Add($item.custom_model_data, $description)
@@ -405,11 +422,7 @@ function Add-ItemModelEntries {
                     )
                 }
             }
-        } elseif ($base -ceq 'crossbow' -and $id -ceq 'lapis_longbow') {
-            foreach ($state in @('charging', 'ready')) {
-                $posePath = "assets/astralrecord/models/item/custom/${id}_${state}.json"
-                Add-JavaFirstPersonPose $JavaEntries $id $posePath
-            }
+        } elseif ($isLapisCrossbow) {
             $charging = New-JavaModelReference "astralrecord:item/custom/${id}_charging"
             # Vanilla applies the charged centering offset only to the main hand.
             $firstpersonCases = @(foreach ($hand in @('right', 'left')) {

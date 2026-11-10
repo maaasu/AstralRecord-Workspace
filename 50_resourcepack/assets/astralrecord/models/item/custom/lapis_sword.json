@@ -21,6 +21,15 @@
         6.35,
         8.65
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.35,
+          2.15,
+          7.35
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -90,6 +99,15 @@
         2.3,
         9
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7,
+          1.25,
+          7
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -159,6 +177,15 @@
         1.3,
         8.7
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.3,
+          0.85,
+          7.3
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -228,6 +255,15 @@
         2.05,
         7.05
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.5,
+          1.4,
+          6.7
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -297,6 +333,15 @@
         2.05,
         9.3
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.5,
+          1.4,
+          8.95
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -366,6 +411,15 @@
         6.5,
         8.9
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.1,
+          5.85,
+          7.1
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -435,6 +489,15 @@
         6.95,
         9
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          4.75,
+          6.2,
+          7
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -504,6 +567,15 @@
         7.45,
         8.9
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          4.25,
+          6.6,
+          7.1
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -573,6 +645,15 @@
         7.45,
         8.9
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          10.5,
+          6.6,
+          7.1
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -642,6 +723,15 @@
         7.55,
         8.7
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          4.05,
+          6.85,
+          7.3
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -711,6 +801,15 @@
         7.55,
         8.7
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          11.2,
+          6.85,
+          7.3
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -780,6 +879,15 @@
         7.5,
         7.05
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.1,
+          6.2,
+          6.6
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -849,58 +957,67 @@
         7.25,
         6.65
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.4,
+          6.45,
+          6.3
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         }
@@ -918,6 +1035,15 @@
         7.5,
         9.4
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.1,
+          6.2,
+          8.95
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -987,58 +1113,67 @@
         7.25,
         9.7
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.4,
+          6.45,
+          9.35
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         }
@@ -1056,6 +1191,15 @@
         8.2,
         8.85
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.75,
+          6.9,
+          7.15
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1125,6 +1269,15 @@
         10,
         8.7
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.25,
+          8.05,
+          7.3
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1194,58 +1347,67 @@
         10,
         8.55
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.75,
+          8.5,
+          7.45
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -1263,58 +1425,67 @@
         10,
         8.55
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          9.7,
+          8.5,
+          7.45
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -1332,6 +1503,15 @@
         16.6,
         8.7
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.7,
+          10,
+          7.3
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1401,58 +1581,67 @@
         16.6,
         8.55
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.2,
+          10,
+          7.45
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -1470,58 +1659,67 @@
         16.6,
         8.55
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          9.25,
+          10,
+          7.45
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -1539,6 +1737,15 @@
         17.8,
         8.65
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.05,
+          16.55,
+          7.35
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1608,58 +1815,67 @@
         17.8,
         8.5
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.55,
+          16.55,
+          7.5
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -1677,58 +1893,67 @@
         17.8,
         8.5
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.9,
+          16.55,
+          7.5
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -1746,6 +1971,15 @@
         18.85,
         8.55
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.5,
+          17.75,
+          7.45
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1815,58 +2049,67 @@
         18.85,
         8.45
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.05,
+          17.75,
+          7.55
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -1884,6 +2127,93 @@
         18.85,
         8.45
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.45,
+          17.75,
+          7.55
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "square_iron_point",
+      "from": [
+        7.55,
+        18.8,
+        7.6
+      ],
+      "to": [
+        8.45,
+        19.55,
+        8.4
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.55,
+          18.8,
+          7.6
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1942,16 +2272,637 @@
       }
     },
     {
-      "name": "square_iron_point",
+      "name": "Front lapis blade ridge",
       "from": [
-        7.55,
-        18.8,
-        7.6
+        7.7,
+        9.95,
+        7.06
       ],
       "to": [
-        8.45,
-        19.55,
-        8.4
+        8.3,
+        16.55,
+        7.31
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Back lapis blade ridge",
+      "from": [
+        7.7,
+        9.95,
+        8.69
+      ],
+      "to": [
+        8.3,
+        16.55,
+        8.94
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Front shoulder sapphire facet",
+      "from": [
+        7.3,
+        8.35,
+        7.04
+      ],
+      "to": [
+        8.7,
+        9.7,
+        7.31
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Back shoulder sapphire facet",
+      "from": [
+        7.3,
+        8.35,
+        8.69
+      ],
+      "to": [
+        8.7,
+        9.7,
+        8.96
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Left iron guard outer plate",
+      "from": [
+        4.45,
+        6.35,
+        6.82
+      ],
+      "to": [
+        5.65,
+        6.72,
+        7.08
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Right iron guard outer plate",
+      "from": [
+        10.35,
+        6.35,
+        6.82
+      ],
+      "to": [
+        11.55,
+        6.72,
+        7.08
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Guard lapis crown",
+      "from": [
+        7.64,
+        7.38,
+        6.29
+      ],
+      "to": [
+        8.36,
+        7.9,
+        6.67
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Blue pommel upper bead",
+      "from": [
+        7.57,
+        0.48,
+        7.57
+      ],
+      "to": [
+        8.43,
+        0.89,
+        8.43
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip raised ring center",
+      "from": [
+        7.19,
+        3.83,
+        7.19
+      ],
+      "to": [
+        8.81,
+        4.11,
+        8.81
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Iron point sharp cap",
+      "from": [
+        7.79,
+        19.46,
+        7.71
+      ],
+      "to": [
+        8.21,
+        20.01,
+        8.29
       ],
       "faces": {
         "north": {
@@ -2005,6 +2956,231 @@
             0.25,
             9.75,
             2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Lapis crystal needle",
+      "from": [
+        7.83,
+        19.5,
+        7.71
+      ],
+      "to": [
+        8.17,
+        20.06,
+        8.29
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Lapis left continuous cutting facet",
+      "from": [
+        6.55,
+        16.34,
+        7.58
+      ],
+      "to": [
+        6.85,
+        19.65,
+        8.42
+      ],
+      "rotation": {
+        "angle": -22.5,
+        "axis": "z",
+        "origin": [
+          6.7,
+          16.34,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Lapis right continuous cutting facet",
+      "from": [
+        9.15,
+        16.34,
+        7.58
+      ],
+      "to": [
+        9.45,
+        19.65,
+        8.42
+      ],
+      "rotation": {
+        "angle": 22.5,
+        "axis": "z",
+        "origin": [
+          9.3,
+          16.34,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -2048,9 +3224,9 @@
     },
     "firstperson_righthand": {
       "rotation": [
-        -163.76373,
-        10.94244,
-        -173.26867
+        -156.96777,
+        -39.66496,
+        -171.40212
       ],
       "translation": [
         0.28928,
@@ -2065,9 +3241,9 @@
     },
     "firstperson_lefthand": {
       "rotation": [
-        -163.76373,
-        10.94244,
-        -173.26867
+        -156.96778,
+        -39.66496,
+        -171.40212
       ],
       "translation": [
         0.28928,

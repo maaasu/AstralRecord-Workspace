@@ -10,2070 +10,2808 @@
   },
   "elements": [
     {
-      "name": "Straight ash haft",
+      "name": "Tapered ash haft",
       "from": [
-        7.48,
-        1.5,
-        7.48
-      ],
-      "to": [
-        8.52,
-        11.35,
-        8.52
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Worn hand wrapping",
-      "from": [
-        7.37,
-        2.05,
-        7.37
-      ],
-      "to": [
-        8.63,
-        6.05,
-        8.63
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Lower copper ferrule",
-      "from": [
-        7.22,
-        1.57,
-        7.22
-      ],
-      "to": [
-        8.78,
-        2.2,
-        8.78
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Square end cap",
-      "from": [
-        7.13,
-        1.15,
-        7.12
-      ],
-      "to": [
-        8.87,
-        1.66,
-        8.88
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            10.25,
-            2.75,
-            12.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            10.25,
-            2.75,
-            12.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Pommel peen",
-      "from": [
-        7.65,
-        0.92,
-        7.63
-      ],
-      "to": [
-        8.35,
-        1.16,
-        8.37
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Upper grip collar",
-      "from": [
-        7.21,
-        5.91,
-        7.21
-      ],
-      "to": [
-        8.79,
-        6.35,
-        8.79
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Neck reinforcement",
-      "from": [
-        7.3,
-        8.3,
-        7.3
-      ],
-      "to": [
-        8.7,
-        10.65,
-        8.7
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            10.25,
-            2.75,
-            12.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            10.25,
-            2.75,
-            12.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Lower head socket",
-      "from": [
-        6.82,
-        10.16,
-        6.97
-      ],
-      "to": [
-        9.18,
-        10.85,
-        9.03
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            2.75,
-            2.75,
-            4.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            2.75,
-            2.75,
-            4.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Forged masonry hammer core",
-      "from": [
-        4.71,
-        10.75,
-        6.7
-      ],
-      "to": [
-        11.29,
-        13.68,
-        9.3
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            10.25,
-            2.75,
-            12.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            10.25,
-            2.75,
-            12.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Upper head bevel",
-      "from": [
-        4.9,
-        13.68,
-        6.94
-      ],
-      "to": [
-        11.1,
-        14.03,
-        9.06
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Lower head bevel",
-      "from": [
-        4.9,
-        10.4,
-        6.94
-      ],
-      "to": [
-        11.1,
-        10.75,
-        9.06
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            10.25,
-            2.75,
-            12.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            10.25,
-            2.75,
-            12.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Left striking face",
-      "from": [
-        4.18,
-        10.7,
-        6.6
-      ],
-      "to": [
-        4.91,
-        13.77,
-        9.4
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Right striking face",
-      "from": [
-        11.09,
-        10.7,
-        6.6
-      ],
-      "to": [
-        11.82,
-        13.77,
-        9.4
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Left face inset",
-      "from": [
-        4.05,
-        11.12,
-        7.04
-      ],
-      "to": [
-        4.2,
-        13.32,
-        8.96
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Right face inset",
-      "from": [
-        11.8,
-        11.12,
-        7.04
-      ],
-      "to": [
-        11.95,
-        13.32,
-        8.96
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            2.75,
-            9.75,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Left retaining band",
-      "from": [
-        5.47,
-        10.51,
-        6.55
-      ],
-      "to": [
-        6.16,
-        13.9,
-        9.45
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            2.75,
-            2.75,
-            4.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            2.75,
-            2.75,
-            4.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Right retaining band",
-      "from": [
-        9.84,
-        10.51,
-        6.55
-      ],
-      "to": [
-        10.53,
-        13.9,
-        9.45
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            2.75,
-            2.75,
-            4.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            2.75,
-            2.75,
-            4.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Head haft wedge",
-      "from": [
-        7.5,
-        13.9,
+        7.46,
+        1,
         7.5
       ],
       "to": [
-        8.5,
-        14.34,
+        8.54,
+        13.8,
         8.5
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.46,
+          1,
+          7.5
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            0,
+            0,
+            2,
+            2
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
+            0,
+            0,
+            2,
+            2
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            0,
+            0,
+            2,
+            2
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
+            0,
+            0,
+            2,
+            2
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
+            0,
+            0,
+            2,
+            2
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
+            0,
+            0,
+            2,
+            2
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Front ancient mason tablet",
+      "name": "Oval rawhide sleeve",
       "from": [
-        6.64,
-        11.05,
-        6.49
-      ],
-      "to": [
-        9.36,
-        13.39,
-        6.71
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            12.75,
-            2.75,
-            14.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            10.25,
-            2.75,
-            12.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            12.75,
-            2.75,
-            14.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            10.25,
-            2.75,
-            12.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            10.25,
-            2.75,
-            12.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            10.25,
-            2.75,
-            12.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Rear ancient mason tablet",
-      "from": [
-        6.64,
-        11.05,
-        9.29
-      ],
-      "to": [
-        9.36,
-        13.39,
-        9.51
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            12.75,
-            2.75,
-            14.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            10.25,
-            2.75,
-            12.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            12.75,
-            2.75,
-            14.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            10.25,
-            2.75,
-            12.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            10.25,
-            2.75,
-            12.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            10.25,
-            2.75,
-            12.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Blocky leather seam",
-      "from": [
-        7.28,
-        2.7,
+        7.19,
+        2.21,
         7.28
       ],
       "to": [
-        8.72,
-        2.98,
+        8.81,
+        6.73,
         8.72
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.19,
+          2.21,
+          7.28
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
+            2,
+            0,
+            4,
+            2
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            2,
+            0,
+            4,
+            2
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
+            2,
+            0,
+            4,
+            2
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            2,
+            0,
+            4,
+            2
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            2,
+            0,
+            4,
+            2
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            2,
+            0,
+            4,
+            2
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Blocky leather seam",
+      "name": "Palm seam",
+      "from": [
+        7.34,
+        2.49,
+        7.21
+      ],
+      "to": [
+        7.64,
+        6.47,
+        7.29
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.34,
+          2.49,
+          7.21
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Heel ferrule",
+      "from": [
+        7.13,
+        0.66,
+        7.23
+      ],
+      "to": [
+        8.87,
+        1.78,
+        8.77
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.13,
+          0.66,
+          7.23
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Heel bronze lip",
+      "from": [
+        7.09,
+        0.6,
+        7.19
+      ],
+      "to": [
+        8.91,
+        0.83,
+        8.81
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.09,
+          0.6,
+          7.19
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Wrap lower ring",
+      "from": [
+        7.15,
+        2.15,
+        7.24
+      ],
+      "to": [
+        8.85,
+        2.45,
+        8.76
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.15,
+          2.15,
+          7.24
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Wrap upper ring",
+      "from": [
+        7.13,
+        6.52,
+        7.22
+      ],
+      "to": [
+        8.87,
+        6.84,
+        8.78
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.13,
+          6.52,
+          7.22
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Smoked neck binding",
+      "from": [
+        7.26,
+        9.64,
+        7.32
+      ],
+      "to": [
+        8.74,
+        11.25,
+        8.68
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.26,
+          9.64,
+          7.32
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            0,
+            4,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2,
+            0,
+            4,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2,
+            0,
+            4,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2,
+            0,
+            4,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2,
+            0,
+            4,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2,
+            0,
+            4,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Barrel socket",
+      "from": [
+        6.89,
+        10.84,
+        6.89
+      ],
+      "to": [
+        9.11,
+        13.62,
+        9.11
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.89,
+          10.84,
+          6.89
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Bronze socket rim",
+      "from": [
+        6.72,
+        12.21,
+        6.81
+      ],
+      "to": [
+        9.28,
+        12.76,
+        9.19
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.72,
+          12.21,
+          6.81
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Hammer eye body",
+      "from": [
+        5.07,
+        12.55,
+        6.23
+      ],
+      "to": [
+        11.17,
+        15.89,
+        9.77
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.07,
+          12.55,
+          6.23
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Eye roof rail",
+      "from": [
+        5.63,
+        15.89,
+        6.67
+      ],
+      "to": [
+        10.43,
+        16.44,
+        9.33
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.63,
+          15.89,
+          6.67
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Rear peen heel",
+      "from": [
+        3.74,
+        12.77,
+        6.61
+      ],
+      "to": [
+        5.16,
+        15.65,
+        9.39
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          3.74,
+          12.77,
+          6.61
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Rear wedge neck",
+      "from": [
+        2.92,
+        13.07,
+        6.87
+      ],
+      "to": [
+        3.8,
+        15.42,
+        9.13
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          2.92,
+          13.07,
+          6.87
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Rear chisel face",
+      "from": [
+        2.13,
+        13.44,
+        7.05
+      ],
+      "to": [
+        3.03,
+        14.99,
+        8.95
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          2.13,
+          13.44,
+          7.05
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Front socket band",
+      "from": [
+        10.51,
+        12.32,
+        5.99
+      ],
+      "to": [
+        11.08,
+        16.12,
+        10.01
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          10.51,
+          12.32,
+          5.99
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Inset under the die",
+      "from": [
+        10.98,
+        12.5,
+        6.1
+      ],
+      "to": [
+        11.44,
+        15.94,
+        9.9
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          10.98,
+          12.5,
+          6.1
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            12,
+            0,
+            14,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            12,
+            0,
+            14,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            12,
+            0,
+            14,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            12,
+            0,
+            14,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            12,
+            0,
+            14,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            12,
+            0,
+            14,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Masons die central block",
+      "from": [
+        11.3,
+        12.36,
+        5.96
+      ],
+      "to": [
+        13.61,
+        16.06,
+        10.04
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          11.3,
+          12.36,
+          5.96
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            4,
+            0,
+            6,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Die top bevel",
+      "from": [
+        11.74,
+        15.89,
+        6.45
+      ],
+      "to": [
+        13.43,
+        16.43,
+        9.55
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          11.74,
+          15.89,
+          6.45
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Die bottom bevel",
+      "from": [
+        11.74,
+        12.03,
+        6.45
+      ],
+      "to": [
+        13.43,
+        12.51,
+        9.55
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          11.74,
+          12.03,
+          6.45
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Die forward cheek",
+      "from": [
+        11.74,
+        12.88,
+        5.62
+      ],
+      "to": [
+        13.43,
+        15.57,
+        6.12
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          11.74,
+          12.88,
+          5.62
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Die reverse cheek",
+      "from": [
+        11.74,
+        12.88,
+        9.89
+      ],
+      "to": [
+        13.43,
+        15.57,
+        10.38
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          11.74,
+          12.88,
+          9.89
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Hardened striking plate",
+      "from": [
+        13.34,
+        12.79,
+        6.43
+      ],
+      "to": [
+        14.27,
+        15.67,
+        9.57
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          13.34,
+          12.79,
+          6.43
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            6,
+            0,
+            8,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Upper contact flat",
+      "from": [
+        13.64,
+        15.54,
+        6.82
+      ],
+      "to": [
+        14.33,
+        15.92,
+        9.18
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          13.64,
+          15.54,
+          6.82
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Lower contact flat",
+      "from": [
+        13.64,
+        12.55,
+        6.82
+      ],
+      "to": [
+        14.33,
+        12.93,
+        9.18
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          13.64,
+          12.55,
+          6.82
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Visible haft wedge",
+      "from": [
+        7.51,
+        16.4,
+        7.31
+      ],
+      "to": [
+        8.49,
+        16.72,
+        8.69
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.51,
+          16.4,
+          7.31
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Copper wedge pin",
+      "from": [
+        7.84,
+        16.69,
+        7.12
+      ],
+      "to": [
+        8.16,
+        16.85,
+        8.88
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.84,
+          16.69,
+          7.12
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Recessed makers tile front",
+      "from": [
+        5.65,
+        13.04,
+        6.14
+      ],
+      "to": [
+        9.98,
+        15.2,
+        6.26
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.65,
+          13.04,
+          6.14
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Stamped arch left leg",
+      "from": [
+        6.55,
+        13.28,
+        6.06
+      ],
+      "to": [
+        6.89,
+        14.65,
+        6.16
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.55,
+          13.28,
+          6.06
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Stamped arch right leg",
+      "from": [
+        8.26,
+        13.28,
+        6.06
+      ],
+      "to": [
+        8.6,
+        14.65,
+        6.16
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.26,
+          13.28,
+          6.06
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Stamped arch lintel",
+      "from": [
+        6.82,
+        14.48,
+        6.03
+      ],
+      "to": [
+        8.34,
+        14.82,
+        6.19
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.82,
+          14.48,
+          6.03
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            10,
+            0,
+            12,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Worn central keystone",
+      "from": [
+        7.39,
+        14.56,
+        6.01
+      ],
+      "to": [
+        7.73,
+        15,
+        6.14
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.39,
+          14.56,
+          6.01
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            8,
+            0,
+            10,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Forge cartouche reverse",
+      "from": [
+        6.08,
+        13.55,
+        9.68
+      ],
+      "to": [
+        9.65,
+        14.98,
+        9.89
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.08,
+          13.55,
+          9.68
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            14,
+            0,
+            16,
+            2
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Forge punch reverse",
       "from": [
         7.28,
-        5.2,
-        7.28
+        13.71,
+        9.88
       ],
       "to": [
-        8.72,
-        5.48,
-        8.72
+        8.4,
+        14.78,
+        10
       ],
+      "rotation": {
+        "angle": 45,
+        "axis": "z",
+        "origin": [
+          7.84,
+          14.245,
+          9.94
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
+            10,
+            0,
+            12,
+            2
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            10,
+            0,
+            12,
+            2
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
+            10,
+            0,
+            12,
+            2
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            10,
+            0,
+            12,
+            2
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            10,
+            0,
+            12,
+            2
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            10,
+            0,
+            12,
+            2
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Square copper band pin",
+      "name": "Socket front fastening",
       "from": [
-        5.55,
-        11.75,
-        6.36
+        7.64,
+        11.32,
+        6.72
       ],
       "to": [
-        6.05,
-        12.25,
-        6.64
+        8.36,
+        12.04,
+        6.95
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.64,
+          11.32,
+          6.72
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
+            10,
+            0,
+            12,
+            2
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
+            10,
+            0,
+            12,
+            2
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
+            10,
+            0,
+            12,
+            2
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
+            10,
+            0,
+            12,
+            2
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
+            10,
+            0,
+            12,
+            2
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
+            10,
+            0,
+            12,
+            2
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Square copper band pin",
+      "name": "Socket reverse fastening",
       "from": [
-        5.55,
-        11.75,
-        9.36
+        7.64,
+        11.32,
+        9.05
       ],
       "to": [
-        6.05,
-        12.25,
-        9.64
+        8.36,
+        12.04,
+        9.28
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.64,
+          11.32,
+          9.05
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
+            10,
+            0,
+            12,
+            2
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
+            10,
+            0,
+            12,
+            2
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
+            10,
+            0,
+            12,
+            2
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
+            10,
+            0,
+            12,
+            2
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
+            10,
+            0,
+            12,
+            2
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Square copper band pin",
-      "from": [
-        9.95,
-        11.75,
-        6.36
-      ],
-      "to": [
-        10.45,
-        12.25,
-        6.64
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Square copper band pin",
-      "from": [
-        9.95,
-        11.75,
-        9.36
-      ],
-      "to": [
-        10.45,
-        12.25,
-        9.64
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Pixel mason mark stem",
-      "from": [
-        7.76,
-        11.45,
-        6.44
-      ],
-      "to": [
-        8.24,
-        13.02,
-        6.52
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Pixel mason mark crossbar",
-      "from": [
-        7.24,
-        12.48,
-        6.44
-      ],
-      "to": [
-        8.76,
-        12.96,
-        6.52
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Pixel mason mark stem",
-      "from": [
-        7.76,
-        11.45,
-        9.51
-      ],
-      "to": [
-        8.24,
-        13.02,
-        9.59
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Pixel mason mark crossbar",
-      "from": [
-        7.24,
-        12.48,
-        9.51
-      ],
-      "to": [
-        8.76,
-        12.96,
-        9.59
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0.25,
-            5.25,
-            2.25,
-            7.25
+            10,
+            0,
+            12,
+            2
           ],
           "texture": "#surface"
         }
@@ -2117,36 +2855,36 @@
     },
     "firstperson_righthand": {
       "rotation": [
-        -169.82566,
-        -13.09311,
-        -169.63875
+        32.677720000000136,
+        67.07186000000002,
+        -26.722099999999955
       ],
       "translation": [
-        -0.6486,
-        4.16869,
-        -0.63103
+        -0.79896,
+        3.33147,
+        -0.74575
       ],
       "scale": [
-        0.91458,
-        0.91458,
-        0.91458
+        0.7,
+        0.7,
+        0.7
       ]
     },
     "firstperson_lefthand": {
       "rotation": [
-        -169.82566,
-        -13.09311,
-        -169.63875
+        -148.43546000000015,
+        -66.17464999999993,
+        -154.29973999999993
       ],
       "translation": [
-        -0.6486,
-        4.16869,
-        -0.63103
+        -0.79896,
+        3.33147,
+        -0.74575
       ],
       "scale": [
-        0.91458,
-        0.91458,
-        0.91458
+        0.7,
+        0.7,
+        0.7
       ]
     },
     "ground": {

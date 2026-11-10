@@ -17,7 +17,8 @@
       "animations": {
         "first_person": "animation.astralrecord.sun_crown_staff.first_person",
         "third_person": "animation.astralrecord.sun_crown_staff.third_person",
-        "attack": "animation.astralrecord.sun_crown_staff.attack"
+        "attack": "animation.astralrecord.sun_crown_staff.attack",
+        "first_person_off": "animation.astralrecord.sun_crown_staff.first_person_off"
       },
       "scripts": {
         "pre_animation": [
@@ -25,7 +26,10 @@
         ],
         "animate": [
           {
-            "first_person": "context.is_first_person"
+            "first_person": "context.is_first_person && context.item_slot == 'main_hand'"
+          },
+          {
+            "first_person_off": "context.is_first_person && context.item_slot == 'off_hand'"
           },
           {
             "third_person": "!context.is_first_person"
