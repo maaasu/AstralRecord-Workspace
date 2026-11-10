@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/astra_wand",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [-43.19425, -3.02628, 24.23823],
+      "translation": [2.09109, 1.08553, -5.17026],
+      "scale": [0.44937, 0.44937, 0.44937]
+    },
+    "firstperson_lefthand": {
+      "rotation": [136.80575, 3.02628, 155.76177],
+      "translation": [2.09109, 1.08553, -5.17026],
+      "scale": [0.44937, 0.44937, 0.44937]
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/middle_earth_wand",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [-43.52764, -2.2863, 24.22278],
+      "translation": [1.942, 1.32191, -5.40304],
+      "scale": [0.5403, 0.5403, 0.5403]
+    },
+    "firstperson_lefthand": {
+      "rotation": [136.47236, 2.2863, 155.77722],
+      "translation": [1.942, 1.32191, -5.40304],
+      "scale": [0.5403, 0.5403, 0.5403]
+    }
+  }
+}

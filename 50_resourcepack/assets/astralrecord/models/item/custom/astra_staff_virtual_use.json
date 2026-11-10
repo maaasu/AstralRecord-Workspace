@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/astra_staff",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [-43.24018, -1.28869, 31.99483],
+      "translation": [2.15639, 0.69026, -4.76764],
+      "scale": [0.31697, 0.31697, 0.31697]
+    },
+    "firstperson_lefthand": {
+      "rotation": [136.75982, 1.28869, 148.00517],
+      "translation": [2.15639, 0.69026, -4.76764],
+      "scale": [0.31697, 0.31697, 0.31697]
+    }
+  }
+}

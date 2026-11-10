@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/lumina_wand",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [-43.19425, -3.02628, 24.23823],
+      "translation": [1.9683, 1.28021, -5.36198],
+      "scale": [0.52426, 0.52426, 0.52426]
+    },
+    "firstperson_lefthand": {
+      "rotation": [136.80575, 3.02628, 155.76177],
+      "translation": [1.9683, 1.28021, -5.36198],
+      "scale": [0.52426, 0.52426, 0.52426]
+    }
+  }
+}

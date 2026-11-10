@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/anarion_spear",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [-51.07312, -9.58475, 27.1517],
+      "translation": [1.93637, 0.81733, -4.81201],
+      "scale": [0.36894, 0.36894, 0.36894]
+    },
+    "firstperson_lefthand": {
+      "rotation": [128.92688, 9.58475, 152.8483],
+      "translation": [1.93637, 0.81733, -4.81201],
+      "scale": [0.36894, 0.36894, 0.36894]
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/lumina_sword",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [-31.02442, 4.61469, 30.17933],
+      "translation": [1.73825, 1.57369, -4.91359],
+      "scale": [0.5437, 0.5437, 0.5437]
+    },
+    "firstperson_lefthand": {
+      "rotation": [148.97558, -4.61469, 149.82067],
+      "translation": [1.73825, 1.57369, -4.91359],
+      "scale": [0.5437, 0.5437, 0.5437]
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/middle_earth_hammer",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [-33.95678, 13.54861, 30.90352],
+      "translation": [2.21371, 1.85101, -5.63769],
+      "scale": [0.58483, 0.58483, 0.58483]
+    },
+    "firstperson_lefthand": {
+      "rotation": [146.04322, -13.54861, 149.09648],
+      "translation": [2.21371, 1.85101, -5.63769],
+      "scale": [0.58483, 0.58483, 0.58483]
+    }
+  }
+}

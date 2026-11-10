@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/eriva_sword",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [-31.02442, 4.61469, 30.17933],
+      "translation": [1.26218, 2.29731, -5.30396],
+      "scale": [0.78122, 0.78122, 0.78122]
+    },
+    "firstperson_lefthand": {
+      "rotation": [148.97558, -4.61469, 149.82067],
+      "translation": [1.26218, 2.29731, -5.30396],
+      "scale": [0.78122, 0.78122, 0.78122]
+    }
+  }
+}

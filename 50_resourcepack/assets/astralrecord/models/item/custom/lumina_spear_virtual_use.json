@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/lumina_spear",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [-50.61792, -10.4573, 27.23091],
+      "translation": [2.42228, 0.45871, -5.36139],
+      "scale": [0.35184, 0.35184, 0.35184]
+    },
+    "firstperson_lefthand": {
+      "rotation": [129.38208, 10.4573, 152.76909],
+      "translation": [2.42228, 0.45871, -5.36139],
+      "scale": [0.35184, 0.35184, 0.35184]
+    }
+  }
+}
