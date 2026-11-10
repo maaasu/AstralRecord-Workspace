@@ -26,10 +26,11 @@ public sealed class SkillTreeClassTreeTests
         """;
 
     [Fact]
-    public async Task ClassTrees_ListClassesAndProjectOneClassReadOnly()
+    public async Task ClassTrees_LegacyGenerationListsOnlySavedClassesAndProjectsReadOnlyNodes()
     {
         await using var f = await Fixture.CreateAsync();
         var generation = await AddGenerationAsync(f);
+        AddClassProgress(f, " SwordSman ");
         var state = await f.Db.AccountSkillTreeStates.SingleAsync(x => x.AccountId == f.Account);
         f.Db.AccountSkillTreeUnlockedNodes.Add(new() { AccountSkillTreeUnlockedNodeId = Guid.NewGuid(), AccountSkillTreeStateId = state.AccountSkillTreeStateId,
             NodeId = "s1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, CreatedBy = f.User, UpdatedBy = f.User });
@@ -38,9 +39,12 @@ public sealed class SkillTreeClassTreeTests
         var index = await f.Repository.GetClassTreesAsync(f.Account, f.User, generation, null);
         Assert.NotNull(index);
         Assert.Empty(index.Nodes);
-        Assert.Collection(index.Classes,
-            c => { Assert.Equal("swordsman", c.ClassId); Assert.Equal("ソードマン", c.ClassName); Assert.Equal(2, c.NodeCount); Assert.Equal(1, c.UnlockedCount); },
-            c => { Assert.Equal("hunter", c.ClassId); Assert.Equal(1, c.NodeCount); Assert.Equal(0, c.UnlockedCount); });
+        var summary = Assert.Single(index.Classes);
+        Assert.Equal("swordsman", summary.ClassId);
+        Assert.Equal("ソードマン", summary.ClassName);
+        Assert.Equal(["swordsman"], summary.ScopeClassIds);
+        Assert.Equal(2, summary.NodeCount);
+        Assert.Equal(1, summary.UnlockedCount);
 
         var sword = await f.Repository.GetClassTreesAsync(f.Account, f.User, generation, "SWORDSMAN");
         Assert.NotNull(sword);
@@ -65,6 +69,42 @@ public sealed class SkillTreeClassTreeTests
         Assert.NotNull(unknownClass);
         Assert.Null(unknownClass.ClassId);
         Assert.Empty(unknownClass.Nodes);
+        var unownedClass = await f.Repository.GetClassTreesAsync(f.Account, f.User, generation, "hunter");
+        Assert.NotNull(unownedClass);
+        Assert.Null(unownedClass.ClassId);
+        Assert.Empty(unownedClass.Nodes);
+        Assert.Empty(unownedClass.Edges);
+    }
+
+    [Fact]
+    public async Task ClassTrees_TraversesAllPrerequisitesForSavedClassWithoutOwnNodes()
+    {
+        await using var f = await Fixture.CreateAsync();
+        const string classMetadata = """
+            "classes":{
+                "vanguard":{"name":"&a先鋒","unlockClassLevel":[{"classId":" Guard ","level":50},{"classId":"swordsman","level":50}]},
+                "guard":{"name":"護衛","unlockClassLevel":[{"classId":"hunter","level":50}]},
+                "swordsman":{"unlockClassLevel":[{"classId":"vanguard","level":50}]},
+                "hunter":{}
+            }
+            """;
+        var generation = await AddGenerationAsync(f, Canonical.Replace("\"classes\":{}", classMetadata, StringComparison.Ordinal));
+        var account = await f.Db.Accounts.SingleAsync(x => x.Uuid == f.Account);
+        account.ClassId = "Vanguard";
+        AddClassProgress(f, "swordsman");
+        await f.Db.SaveChangesAsync();
+
+        var tree = await f.Repository.GetClassTreesAsync(f.Account, f.User, generation, "vanguard");
+        Assert.NotNull(tree);
+        Assert.Equal("vanguard", tree.ClassId);
+        Assert.Equal(["swordsman", "vanguard"], tree.Classes.Select(entry => entry.ClassId));
+        var summary = Assert.Single(tree.Classes, entry => entry.ClassId == "vanguard");
+        Assert.Equal("先鋒", summary.ClassName);
+        Assert.Equal(0, summary.NodeCount);
+        Assert.Equal(0, summary.UnlockedCount);
+        Assert.Equal(["vanguard", "guard", "swordsman", "hunter"], summary.ScopeClassIds);
+        Assert.Equal(["h1", "s1", "s2"], tree.Nodes.Select(node => node.NodeId));
+        Assert.Equal(["root->h1", "root->s1", "s1->s2"], tree.Edges.Select(e => $"{e.SourceNodeId}->{e.TargetNodeId}").Order());
     }
 
     [Fact]
@@ -89,10 +129,17 @@ public sealed class SkillTreeClassTreeTests
         Assert.IsType<NotFoundResult>(await controller.GetClassTrees(f.Account, Guid.NewGuid(), generation));
     }
 
-    private static async Task<string> AddGenerationAsync(Fixture f)
+    private static void AddClassProgress(Fixture f, string classId) =>
+        f.Db.AccountClassProgresses.Add(new()
+        {
+            AccountId = f.Account, ClassId = classId, Level = 1, Experience = 0,
+            UpdatedAt = DateTime.UtcNow, UpdatedBy = f.User,
+        });
+
+    private static async Task<string> AddGenerationAsync(Fixture f, string canonical = Canonical)
     {
-        var generation = Hash(Canonical);
-        f.Db.SkillTreeDefinitionGenerations.Add(new() { DefinitionGenerationId = generation, CanonicalSnapshotJson = Canonical, CreatedAtUtc = DateTime.UtcNow });
+        var generation = Hash(canonical);
+        f.Db.SkillTreeDefinitionGenerations.Add(new() { DefinitionGenerationId = generation, CanonicalSnapshotJson = canonical, CreatedAtUtc = DateTime.UtcNow });
         await f.Db.SaveChangesAsync();
         return generation;
     }

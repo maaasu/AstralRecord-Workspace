@@ -2,13 +2,14 @@ import { projectNodes, graphBounds, fitCamera, zoomCamera, pinchCamera, wheelZoo
 import { loadIcon } from './minecraft-icons.mjs';
 import { searchNodes } from './skilltree-draft.mjs';
 import { initializeStarfield } from './skilltree-stars.mjs';
-import { nodeClassId, treeClasses, defaultTreeClass, inClassScope, mergeClassTree, mergeClassLists } from './skilltree-scope.mjs';
+import { nodeClassId, inClassScope, mergeClassTree, selectableTreeClasses, classPointUsage } from './skilltree-scope.mjs';
 
 // Selection never changes player state. The editor submits explicit server-validated operations.
 const ns = 'http://www.w3.org/2000/svg';
 const expandedViews = new WeakMap();
 const maxZoom = 2.5;
 const compactLabelWidth = 176;
+const classIndexIntervalMs = 60000;
 const statusMarks = { unlocked: '✓', available: '+', locked: '−', unmet: '!', 'draft-unlock': '↑', 'draft-relock': '↓' };
 const make = (tag, attrs = {}, text) => {
     const element = document.createElementNS(ns, tag);
@@ -16,7 +17,7 @@ const make = (tag, attrs = {}, text) => {
     if (text !== undefined) element.textContent = text;
     return element;
 };
-// Other classes come from the published definition through the editor page, only when the player switches to them.
+// Other class branches come from the published definition when the player switches to them.
 // The cache lives on the map container so rebuilt viewers keep what was already loaded.
 const remoteStores = new WeakMap();
 function remoteClassSource(viewer) {
@@ -26,7 +27,11 @@ function remoteClassSource(viewer) {
     if (!generation) { try { generation = JSON.parse(host.querySelector('[data-editor-state]')?.textContent || '{}').generationId; } catch { generation = ''; } }
     if (!generation) return null;
     let store = remoteStores.get(sanctum);
-    if (!store || store.generation !== generation) { store = { generation, index: null, indexRequest: null, trees: new Map() }; remoteStores.set(sanctum, store); }
+    const currentClass = sanctum.dataset.treeDefaultClass;
+    if (!store || store.generation !== generation || store.currentClass !== currentClass) {
+        store = { generation, currentClass, index: null, indexRequest: null, indexRequestedAt: 0, trees: new Map(), treeRequests: new Map() };
+        remoteStores.set(sanctum, store);
+    }
     const request = async classId => {
         const url = new URL(host.dataset.editorEndpoint || location.href, location.href);
         url.search = new URLSearchParams({ handler: 'ClassTrees', generationId: generation, ...(classId ? { classId } : {}) });
@@ -40,17 +45,32 @@ function remoteClassSource(viewer) {
     };
     return {
         generation,
-        index: () => store.index ?? [],
-        loadIndex: () => store.indexRequest ??= request().then(value => (store.index = value.classes ?? []))
-            .catch(() => { store.indexRequest = null; return []; }),
+        currentClass,
+        index: () => store.index,
+        loadIndex: force => {
+            if (store.indexRequest) return store.indexRequest;
+            if (!force && Date.now() - store.indexRequestedAt < classIndexIntervalMs) return null;
+            store.indexRequestedAt = Date.now();
+            store.indexRequest = request().then(value => {
+                if (value.generationId !== generation || !Array.isArray(value.classes)
+                    || value.classes.some(entry => !Array.isArray(entry.scopeClassIds))) return null;
+                store.index = value.classes;
+                return store.index;
+            }).catch(() => null).finally(() => { store.indexRequest = null; });
+            return store.indexRequest;
+        },
         fragmentFor: classId => classId ? store.trees.get(classId) ?? null : null,
-        loadFragment: async classId => {
-            if (!store.trees.has(classId)) {
-                const value = await request(classId);
-                if (value.classId !== classId || !value.nodes?.length) throw new Error('class not published');
-                store.trees.set(classId, { nodes: value.nodes, edges: value.edges ?? [] });
-            }
-            return store.trees.get(classId);
+        loadFragment: classId => {
+            const pending = store.treeRequests.get(classId);
+            if (pending) return pending;
+            const loaded = request(classId).then(value => {
+                if (value.generationId !== generation || value.classId !== classId || !Array.isArray(value.nodes)) throw new Error('class not published');
+                const fragment = { nodes: value.nodes, edges: value.edges ?? [] };
+                store.trees.set(classId, fragment);
+                return fragment;
+            }).finally(() => { store.treeRequests.delete(classId); });
+            store.treeRequests.set(classId, loaded);
+            return loaded;
         },
     };
 }
@@ -58,9 +78,25 @@ export function initializeViewer(viewer, viewState) {
     let tree;
     try { tree = JSON.parse(viewer.querySelector('[data-tree-json]').textContent); } catch { return; }
     if (!Array.isArray(tree.nodes) || !tree.nodes.length) return;
+    const sanctum = viewer.closest('.ar-tree-sanctum');
+    const currentClassId = sanctum.dataset.treeDefaultClass ?? '';
     const remote = remoteClassSource(viewer);
-    const fragment = remote?.fragmentFor(viewState?.scopeClass);
+    const profileClasses = JSON.parse(viewer.querySelector('[data-tree-profile-classes]').textContent);
+    let classPoints = classPointUsage(JSON.parse(viewer.querySelector('[data-tree-class-points]')?.textContent ?? '[]'));
+    let classPointsKey = JSON.stringify([...classPoints]);
+    let classIndex = remote?.index();
+    const classChoices = () => {
+        const localClassIds = new Set(tree.nodes.map(nodeClassId));
+        return selectableTreeClasses(tree.nodes, classIndex ?? profileClasses, currentClassId, sanctum.dataset.treeDefaultClassName)
+            .filter(entry => remote || entry.id === currentClassId || [...entry.scopeIds].some(id => localClassIds.has(id)));
+    };
+    let classes = classChoices();
+    const rememberedClass = classes.some(entry => entry.id === viewState?.scopeClass) ? viewState.scopeClass : null;
+    let fragment = rememberedClass !== currentClassId ? remote?.fragmentFor(rememberedClass) : null;
+    let scopeClass = rememberedClass && (!remote || rememberedClass === currentClassId || fragment)
+        ? rememberedClass : currentClassId;
     tree = mergeClassTree(tree, fragment);
+    let scopeIds = classes.find(entry => entry.id === scopeClass)?.scopeIds ?? new Set();
     const statusCategories = Object.entries(JSON.parse(viewer.querySelector('[data-tree-status-categories]').textContent))
         .sort(([a], [b]) => b.length - a.length);
     const statusName = text => statusCategories.find(([name]) => text.startsWith(name + ' '));
@@ -85,16 +121,11 @@ export function initializeViewer(viewer, viewState) {
     const artScaleFor = (node, visualScale) => nodeArtScale(visualScale, node.nearest * layoutScale);
     const nodes = new Map(projected.nodes.map(node => [node.nodeId, node]));
     if (!nodes.size) return;
-    // Shared nodes plus one class at a time; every class is never drawn together.
-    let classes = mergeClassLists(treeClasses(tree.nodes), remote?.index());
-    const currentClassId = viewer.closest('.ar-tree-sanctum')?.dataset.treeDefaultClass ?? '';
-    let scopeClass = classes.some(entry => entry.id === viewState?.scopeClass) ? viewState.scopeClass : defaultTreeClass(classes, currentClassId);
-    const inScope = node => node.nodeId === tree.rootNodeId || inClassScope(node, scopeClass);
+    const inScope = node => node.nodeId === tree.rootNodeId || inClassScope(node, scopeIds, scopeClass === currentClassId);
     const scopedNodes = () => [...nodes.values()].filter(inScope);
     let bounds = graphBounds(scopedNodes());
     const viewport = viewer.querySelector('.ar-tree-viewport');
     const mapAction = viewport.querySelector('[data-editor-map-action]');
-    const sanctum = viewer.closest('.ar-tree-sanctum');
     const lifecycle = new AbortController();
     const starsContainer = viewport.querySelector('[data-tree-stars]');
     starsContainer.replaceChildren();
@@ -557,12 +588,25 @@ export function initializeViewer(viewer, viewState) {
     viewer.querySelector('[data-tree-fit]').addEventListener('click', () => { camera = fitCamera(bounds, viewport.clientWidth, viewport.clientHeight); draw(); });
     const classList = viewer.querySelector('[data-tree-class-list]');
     const scopeLabel = viewer.querySelector('[data-tree-scope-label]');
-    const textItems = [...viewer.querySelectorAll('[data-tree-text-node]')];
+    const textList = viewer.querySelector('[data-tree-text-list]');
+    const renderTextList = () => {
+        if (!textList.closest('details').open) return;
+        const items = scopedNodes().map(node => {
+            const item = document.createElement('li');
+            const title = document.createElement('strong');
+            title.textContent = node.name;
+            item.append(title, ` · ${nodeState(node)} / ${nodeCost(node)}`);
+            for (const line of [node.requirementText, ...(node.displayEffects ?? [])].filter(Boolean))
+                item.append(document.createElement('br'), line);
+            return item;
+        });
+        textList.replaceChildren(...items);
+    };
+    textList.closest('details').addEventListener('toggle', renderTextList);
     const renderClassList = () => {
-        const counts = new Map(treeClasses([...nodes.values()]).map(entry => [entry.id, entry]));
+        const focusedClass = classList.contains(document.activeElement) ? document.activeElement.dataset.classId : null;
         classList.replaceChildren();
         for (const entry of classes) {
-            const count = counts.get(entry.id) ?? entry;
             const button = document.createElement('button');
             button.type = 'button';
             button.setAttribute('role', 'radio');
@@ -577,24 +621,38 @@ export function initializeViewer(viewer, viewState) {
                 badge.textContent = '就職中';
                 name.append(badge);
             }
-            const progress = document.createElement('span');
-            progress.className = 'ar-tree-class-count';
-            progress.textContent = `${count.unlocked} / ${count.total}`;
-            const bar = document.createElement('span');
-            bar.className = 'ar-tree-class-bar';
-            bar.setAttribute('aria-hidden', 'true');
-            bar.style.setProperty('--progress', `${count.total ? count.unlocked / count.total * 100 : 0}%`);
-            button.append(name, progress, bar);
+            button.append(name);
+            const points = classPoints.get(entry.id);
+            if (points) {
+                const progress = document.createElement('span');
+                progress.className = 'ar-tree-class-count';
+                progress.textContent = `${points.spentCp} / ${points.earnedCp} CP`;
+                progress.title = '使用CP / 獲得CP';
+                button.setAttribute('aria-label', `${name.textContent}、${points.earnedCp} CP 獲得、${points.spentCp} CP 使用済み`);
+                const bar = document.createElement('span');
+                bar.className = 'ar-tree-class-bar';
+                bar.setAttribute('aria-hidden', 'true');
+                bar.style.setProperty('--progress', `${points.percent}%`);
+                button.append(progress, bar);
+            }
             classList.append(button);
         }
         classList.closest('.ar-tree-class-switch').hidden = !classes.length;
         // On narrow screens the list scrolls sideways; keep the selected class in view without moving the page.
         const checked = classList.querySelector('[aria-checked="true"]');
+        if (focusedClass) (classList.querySelector(`[data-class-id="${CSS.escape(focusedClass)}"]`) ?? checked)?.focus({ preventScroll: true });
         if (checked && classList.scrollWidth > classList.clientWidth)
             classList.scrollLeft = Math.max(0, checked.offsetLeft - classList.offsetLeft - 8);
         const active = classes.find(entry => entry.id === scopeClass);
-        scopeLabel.textContent = active ? `共通 ＋ ${active.name}` : '';
-        scopeLabel.hidden = !active;
+        scopeLabel.textContent = active ? active.name : '共通ノード';
+    };
+    viewer.setClassPoints = points => {
+        const next = classPointUsage(points);
+        const key = JSON.stringify([...next]);
+        if (key === classPointsKey) return;
+        classPoints = next;
+        classPointsKey = key;
+        renderClassList();
     };
     const applyScope = () => {
         for (const link of links) {
@@ -602,7 +660,7 @@ export function initializeViewer(viewer, viewState) {
             link.miniLine.style.display = link.inScope ? '' : 'none';
         }
         miniNodes.forEach((point, id) => { point.style.display = inScope(nodes.get(id)) ? '' : 'none'; });
-        for (const item of textItems) item.hidden = !inScope(nodes.get(item.dataset.treeTextNode) ?? {});
+        renderTextList();
         visibleNodes.clear(); visibleEdges.clear();
         groups.forEach(group => { group.style.display = 'none'; });
         links.forEach(link => { link.line.style.display = 'none'; });
@@ -611,34 +669,53 @@ export function initializeViewer(viewer, viewState) {
         cullBounds = null;
         renderClassList();
     };
-    const onMap = classId => [...nodes.values()].some(node => nodeClassId(node) === classId);
-    let loadingClass = null;
-    const loadClass = async classId => {
-        if (!remote || loadingClass) return;
-        loadingClass = classId;
-        scopeLabel.textContent = '読み込み中…';
-        try { await remote.loadFragment(classId); }
-        catch {
-            loadingClass = null;
-            renderClassList();
-            viewer.querySelector('[data-tree-announcement]').textContent = 'クラスのノードを読み込めませんでした。時間をおいて再度お試しください。';
-            scopeLabel.textContent = 'クラスのノードを読み込めませんでした';
-            return;
-        }
-        if (disposed) return;
+    const replaceScope = (classId, recenter = true) => {
         const focused = classList.contains(document.activeElement);
-        const state = { ...viewer.getViewState(), scopeClass: classId, selectedId: tree.rootNodeId };
+        const state = { ...viewer.getViewState(), scopeClass: classId, recenter };
         const replacement = viewer.cloneNode(true);
         replacement.querySelector('[data-tree-stars]')?.replaceChildren();
         viewer.dispose(); viewer.replaceWith(replacement);
         initializeViewer(replacement, state);
         replacement.dispatchEvent(new CustomEvent('skilltree:replaced', { bubbles: true, detail: replacement }));
-        if (focused) replacement.querySelector(`[data-class-id="${classId}"]`)?.focus({ preventScroll: true });
+        if (focused) replacement.querySelector(`[data-class-id="${CSS.escape(classId)}"]`)?.focus({ preventScroll: true });
     };
-    const setScope = classId => {
-        if (classId === scopeClass || !classes.some(entry => entry.id === classId)) return;
-        if (!onMap(classId)) { loadClass(classId); return; }
+    let classRequest = 0, loadingClass = false, loadedClass = null;
+    const canApplyClass = () => !disposed && !viewer.isInteracting() && !viewer.querySelector('dialog[open]');
+    const applyLoadedClass = () => {
+        if (loadedClass === null || !canApplyClass()) return false;
+        const classId = loadedClass;
+        loadedClass = null;
+        if (!classes.some(entry => entry.id === classId)) return false;
+        replaceScope(classId);
+        return true;
+    };
+    const setScope = async classId => {
+        const choice = classes.find(entry => entry.id === classId);
+        if (!choice) return;
+        const request = ++classRequest;
+        loadedClass = null;
+        loadingClass = Boolean(remote && classId !== scopeClass && classId !== currentClassId);
+        if (classId === scopeClass) { renderClassList(); return; }
+        if (remote) {
+            if (loadingClass) {
+                scopeLabel.textContent = `${choice.name}を読み込み中…`;
+                try { await remote.loadFragment(classId); }
+                catch {
+                    if (disposed || request !== classRequest) return;
+                    scopeLabel.textContent = 'クラスのノードを読み込めませんでした';
+                    return;
+                } finally {
+                    if (request === classRequest) loadingClass = false;
+                }
+            }
+            if (!disposed && request === classRequest) {
+                loadedClass = classId;
+                applyLoadedClass();
+            }
+            return;
+        }
         scopeClass = classId;
+        scopeIds = choice.scopeIds;
         applyScope();
         search(false);
         const selected = nodes.get(selectedId);
@@ -657,7 +734,7 @@ export function initializeViewer(viewer, viewState) {
         const index = classes.findIndex(entry => entry.id === scopeClass);
         const next = classes[(index + step + classes.length) % classes.length];
         setScope(next.id);
-        classList.querySelector(`[data-class-id="${next.id}"]`)?.focus();
+        classList.querySelector(`[data-class-id="${CSS.escape(next.id)}"]`)?.focus();
     });
     viewer.querySelector('[data-tree-home]').addEventListener('click', () => focusNode(nodes.get(selectedId) ?? root));
     viewer.querySelector('[data-tree-reset]')?.addEventListener('click', () => focusNode(root));
@@ -865,7 +942,8 @@ export function initializeViewer(viewer, viewState) {
     const originalGeometry = geometryKey(tree);
     viewer.updateTree = live => {
         // A new definition generation invalidates the browse-only class; rebuild from the fresh source.
-        if (remote && remoteClassSource(viewer)?.generation !== remote.generation) return false;
+        const source = remote && remoteClassSource(viewer);
+        if (source && (source.generation !== remote.generation || source.currentClass !== remote.currentClass)) return false;
         const next = mergeClassTree(live, fragment);
         if (geometryKey(next) !== originalGeometry) return false;
         // Class membership decides what the map shows; rebuild the viewer when it changes.
@@ -890,7 +968,7 @@ export function initializeViewer(viewer, viewState) {
             requirement.classList.toggle('ar-condition-unmet', current.isConditionMet === false);
             viewer.querySelector('[data-node-cost]').textContent = nodeCost(current);
         }
-        renderClassList();
+        renderTextList();
         cullBounds = null; paintedVisualScale = 0; draw();
         return true;
     };
@@ -918,17 +996,61 @@ export function initializeViewer(viewer, viewState) {
         || Boolean(rightPress && !rightPress.released) || Boolean(resizing) || performance.now() < interactionUntil;
     viewer.openDetails = () => setDetailVisible(true);
     viewer.isReadOnlyNode = nodeId => Boolean(nodes.get(nodeId)?.readOnly);
-    if (remote && !remote.index().length) remote.loadIndex().then(index => {
-        if (disposed || !index.length) return;
-        classes = mergeClassLists(treeClasses([...nodes.values()]), index);
-        renderClassList();
-    });
+    const applyRemoteClasses = () => {
+        if (loadingClass || !canApplyClass()) return;
+        const index = remote.index();
+        if (index && index !== classIndex) {
+            classIndex = index;
+            classes = classChoices();
+            const active = classes.find(entry => entry.id === scopeClass);
+            if (scopeClass && scopeClass !== currentClassId && !active) {
+                if (!applyLoadedClass()) replaceScope(currentClassId);
+                return;
+            }
+            const nextIds = active?.scopeIds ?? new Set();
+            if (scopeIds.size === nextIds.size && [...scopeIds].every(id => nextIds.has(id))) {
+                renderClassList();
+            } else {
+                scopeIds = nextIds;
+                applyScope();
+                search(false);
+                const selected = nodes.get(selectedId);
+                if (selected && inScope(selected)) showDetails(selected, false);
+                else { showDetails(root, false); focusNode(root); }
+            }
+        }
+        if (applyLoadedClass()) return;
+        const updated = scopeClass !== currentClassId ? remote.fragmentFor(scopeClass) : null;
+        if (updated && updated !== fragment) {
+            if (JSON.stringify(updated) !== JSON.stringify(fragment)) replaceScope(scopeClass, false);
+            else fragment = updated;
+        }
+    };
+    viewer.refreshClasses = force => {
+        if (!remote) return;
+        const request = remote.loadIndex(force);
+        if (!request) { applyRemoteClasses(); return; }
+        return request.then(async index => {
+            if (disposed || !index) return;
+            if (scopeClass && scopeClass !== currentClassId && index.some(entry => entry.classId === scopeClass))
+                await remote.loadFragment(scopeClass).catch(() => null);
+            applyRemoteClasses();
+        });
+    };
+    viewer.refreshClasses();
     const remembered = nodes.get(viewState?.selectedId);
     const initialNode = remembered && inScope(remembered) ? remembered : root;
     showNodeAction = Boolean(viewState?.showNodeAction && initialNode.nodeId === viewState.selectedId);
     showDetails(initialNode, false);
     setDetailVisible(viewState?.detailVisible ?? !window.matchMedia('(max-width: 760px)').matches);
-    if (viewState) { camera = { ...viewState.camera }; draw(); }
+    if (viewState) {
+        camera = { ...viewState.camera };
+        if (viewState.recenter && initialNode.nodeId === root.nodeId) {
+            camera = fitCamera(bounds, viewportWidth, viewportHeight);
+            draw();
+        } else if (viewState.recenter || (viewState.selectedId && initialNode.nodeId !== viewState.selectedId)) focusNode(initialNode);
+        else draw();
+    }
     else {
         // Open on the area around the root (about five blocks each way) instead of a single node.
         const opening = Math.min(viewportWidth, viewportHeight) / (2 * 5 * layoutScale);

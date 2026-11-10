@@ -3,19 +3,42 @@
 @using AstralRecordApi.Models
 @{
     var editable = ViewData["SkillTreeEditor"] as bool? == true;
-    var defaultClassId = (ViewData["SkillTreeClassId"] as string)?.Trim().ToLowerInvariant() ?? string.Empty;
+    var dedicated = ViewData["SkillTreePage"] as bool? == true;
+    var account = ViewData["SkillTreeProfileAccount"] as AstralRecordWeb.Models.WebPlayerAccountProfileResponse;
+    var defaultClassId = (ViewData["SkillTreeClassId"] as string ?? account?.ClassId)?.Trim().ToLowerInvariant() ?? string.Empty;
+    var profileClasses = (account?.ClassProgresses ?? []).Select(progress => new
+    {
+        classId = progress.ClassId,
+        className = progress.ClassName,
+        scopeClassIds = account?.SkillTreeClassScopes.GetValueOrDefault(progress.ClassId.Trim().ToLowerInvariant())
+    }).ToList();
+    if (account is not null && !profileClasses.Any(entry => string.Equals(entry.classId.Trim(), defaultClassId, StringComparison.OrdinalIgnoreCase)))
+    {
+        profileClasses.Add(new { classId = defaultClassId, className = account.ClassName, scopeClassIds = account.SkillTreeClassScopes.GetValueOrDefault(defaultClassId) });
+    }
     var statusCategories = StatusTypes.All.Values.GroupBy(status => status.DisplayName)
         .ToDictionary(group => group.Key, group => group.First().Category.ToString().ToLowerInvariant());
 }
-<section class="ar-tree-sanctum" data-tree-mode="@(editable ? "edit" : "view")" data-tree-default-class="@defaultClassId" aria-labelledby="skilltree-title">
+<section class="ar-tree-sanctum" data-tree-mode="@(editable ? "edit" : "view")" data-tree-default-class="@defaultClassId" data-tree-default-class-name="@account?.ClassName" aria-labelledby="skilltree-title">
     <div data-skilltree-viewer>
         <header class="ar-tree-heading">
             <div class="ar-tree-heading-identity">
                 <div class="ar-tree-title-row">
-                    <h2 id="skilltree-title">スキルツリー <small data-editor-heading-account></small></h2>
+                    @if (dedicated)
+                    {
+                        <h1 class="ar-tree-title" id="skilltree-title">スキルツリー</h1>
+                    }
+                    else
+                    {
+                        <h2 class="ar-tree-title" id="skilltree-title">スキルツリー</h2>
+                    }
                     <span class="ar-tree-mode-badge">@(editable ? "編集モード" : "閲覧専用")</span>
+                    @if (dedicated)
+                    {
+                        <span class="ar-tree-heading-account" data-editor-heading-account></span>
+                    }
                 </div>
-                <p class="ar-tree-mode-description">@(editable ? "変更は「変更案」にまとめ、確認してから送信します。送信するまで反映されません。" : "習得状況とノードの効果を確認できます。この画面では変更できません。")</p>
+                <p class="ar-tree-mode-description">@(editable ? "ノードの変更をまとめて確認・送信できます。" : "ノードの解放状況と効果を確認できます。")</p>
             </div>
             @if (editable)
             {
@@ -39,6 +62,8 @@
             <p class="ar-empty" data-tree-empty>現在のアカウントで表示できるスキルツリーはありません。</p>
         }
         <script type="application/json" data-tree-json>@Html.Raw(JsonSerializer.Serialize(Model, new JsonSerializerOptions(JsonSerializerDefaults.Web)))</script>
+        <script type="application/json" data-tree-profile-classes>@Html.Raw(JsonSerializer.Serialize(profileClasses))</script>
+        <script type="application/json" data-tree-class-points>@Html.Raw(JsonSerializer.Serialize(account?.SkillTreeClassPoints ?? [], new JsonSerializerOptions(JsonSerializerDefaults.Web)))</script>
         <script type="application/json" data-tree-status-categories>@Html.Raw(JsonSerializer.Serialize(statusCategories))</script>
         @if (editable)
         {
@@ -65,7 +90,7 @@
             <aside class="ar-tree-rail" aria-label="クラスの切り替えと検索">
                 <section class="ar-tree-class-switch" aria-labelledby="tree-class-title">
                     <h3 id="tree-class-title">表示するクラス</h3>
-                    <p class="ar-tree-rail-note">共通ノードと、選んだクラスのノードだけを表示します。</p>
+                    <p class="ar-tree-rail-note">共通ノードに加え、選んだクラスとその下位クラスのノードを表示します。</p>
                     <div class="ar-tree-class-list" role="radiogroup" aria-labelledby="tree-class-title" data-tree-class-list></div>
                 </section>
                 <div class="ar-tree-map-tools">

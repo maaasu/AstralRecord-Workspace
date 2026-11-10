@@ -90,22 +90,27 @@ function startEditor(editor) {
     }, { capture: true });
     const syncTree = () => {
         if (!draft.tree?.nodes?.length) return;
-        if (viewer.updateTree?.(draft.tree)) return;
+        const sanctum = viewer.closest('.ar-tree-sanctum');
+        const currentClass = String(state.currentClassId ?? sanctum.dataset.treeDefaultClass).trim().toLowerCase();
+        const classChanged = currentClass !== sanctum.dataset.treeDefaultClass;
+        if (classChanged) {
+            sanctum.dataset.treeDefaultClass = currentClass;
+            sanctum.dataset.treeDefaultClassName = state.points?.classes?.find(entry => entry.classId.toLowerCase() === currentClass)?.className ?? '';
+        }
+        if (!classChanged && viewer.updateTree?.(draft.tree)) return;
         const viewState = viewer.getViewState?.();
+        if (classChanged && viewState) { viewState.scopeClass = currentClass; viewState.recenter = true; }
         q('[data-editor-node-actions]').close();
         const replacement = viewer.cloneNode(true);
         replacement.querySelector('[data-tree-stars]')?.replaceChildren();
         replacement.querySelector('[data-tree-json]').textContent = JSON.stringify(draft.tree);
-        // A class change rebuilds the map; keep the current-class marker in step with the fresh state.
-        const sanctum = viewer.closest('.ar-tree-sanctum');
-        if (sanctum && state.currentClassId) sanctum.dataset.treeDefaultClass = String(state.currentClassId).toLowerCase();
         viewer.dispose?.(); viewer.replaceWith(replacement); viewer = replacement;
         initializeViewer(viewer, viewState);
         renderPreferences();
     };
     const rebuildDraft = () => {
         // The generation is part of the key so a definition-only change still refreshes browse-only classes.
-        const key = JSON.stringify([state.generationId, state.tree, state.points, state.relockGoldCost, changes]);
+        const key = JSON.stringify([state.generationId, state.currentClassId, state.tree, state.points, state.relockGoldCost, changes]);
         if (key === draftInputKey) return;
         draftInputKey = key; draft = createDraft(state, changes); syncTree();
     };
@@ -206,6 +211,7 @@ function startEditor(editor) {
         if (editor.dataset.treeGeneration !== (state.generationId ?? '')) editor.dataset.treeGeneration = state.generationId ?? '';
         const fresh = hasBalance();
         const before = fresh ? state.points ?? {} : {}, after = fresh ? draft.points : {};
+        viewer.setClassPoints?.(before.classes);
         text('[data-editor-heading-account]', state.accountName);
         text('[data-editor-balance-kind]', !fresh ? '残高未確認' : state.balanceKind === 'SAVED' ? 'オフライン・保存済み残高' : '確定残高');
         text('[data-editor-pp]', number(before.pp));
@@ -243,7 +249,7 @@ function startEditor(editor) {
         q('[data-editor-batch-review]').disabled = busy() || !changes.length || needsReview || Boolean(reason() || draft.error);
         renderSelection();
     };
-    const refresh = async () => {
+    const refresh = async (refreshClassIndex = false) => {
         if (refreshing) return false;
         refreshing = true;
         try {
@@ -256,7 +262,9 @@ function startEditor(editor) {
             editor.dataset.treeGeneration = state.generationId ?? '';
             if (!changes.length) baseline = nextContext;
             if (next.pendingOperation) operation = next.pendingOperation;
-            rebuildDraft(); render(); return true;
+            rebuildDraft(); render();
+            viewer.refreshClasses?.(refreshClassIndex);
+            return true;
         } catch { lastRead = 0; invalidateConfirmation(); render(); return false; }
         finally { refreshing = false; }
     };
@@ -350,7 +358,7 @@ function startEditor(editor) {
     editor.addEventListener('change', event => { if (event.target.matches('[data-editor-source]')) { sourceClassId = event.target.value; renderSelection(); } });
     editor.addEventListener('click', async event => {
         const button = event.target.closest('button'); if (!button || button.disabled) return;
-        if (button.matches('[data-editor-refresh]')) { await refresh(); await pollOperation(); }
+        if (button.matches('[data-editor-refresh]')) { await refresh(true); await pollOperation(); }
         if (button.matches('[data-editor-node-action]')) q('[data-editor-node-actions]').close();
         if (button.matches('[data-editor-node-action], [data-editor-map-action], [data-editor-submit]')) runNodeAction();
         if (button.matches('[data-editor-undo], [data-editor-clear]') && !busy()) {

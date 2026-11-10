@@ -288,7 +288,7 @@ public sealed class SkillTreeClassTreesResponse
 {
     public required string GenerationId { get; init; }
     public required IReadOnlyList<SkillTreeClassSummaryResponse> Classes { get; init; }
-    /// <summary>`class_id`を指定した場合だけ返す、そのクラスのノードです。</summary>
+    /// <summary>閲覧ツリーを返したクラスのIDです。</summary>
     public string? ClassId { get; init; }
     public IReadOnlyList<SkillTreeClassNodeResponse> Nodes { get; init; } = [];
     public IReadOnlyList<WebSkillTreeEdgeResponse> Edges { get; init; } = [];
@@ -298,6 +298,8 @@ public sealed class SkillTreeClassSummaryResponse
 {
     public required string ClassId { get; init; }
     public required string ClassName { get; init; }
+    /// <summary>クラス自身と、転職前提を再帰的にたどった全クラスのIDです。</summary>
+    public required IReadOnlyList<string> ScopeClassIds { get; init; }
     public int NodeCount { get; init; }
     public int UnlockedCount { get; init; }
 }

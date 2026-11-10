@@ -17,7 +17,7 @@ public sealed class SkillTreeEditorController(ISkillTreeOperationRepository repo
     public async Task<IActionResult> GetEditor(Guid accountId, [FromQuery(Name = "actor_user_id")] Guid actorUserId, [FromQuery(Name = "target_server_id")] string? targetServerId = null)
         => actorUserId == Guid.Empty ? BadRequest() : await repository.GetEditorAsync(accountId, actorUserId, targetServerId) is { } result ? Ok(result) : NotFound();
 
-    /// <summary>所有アカウントが就職中以外のクラスを閲覧するため、公開済み定義からクラス一覧と1クラスのノードを返す。解放可否は含めない。</summary>
+    /// <summary>所有アカウントの保存済みクラス一覧と、公開済み定義から指定クラスとその前提クラスの閲覧用ノードを返す。</summary>
     [HttpGet("editor/{accountId:guid}/class-trees")]
     [ProducesResponseType<SkillTreeClassTreesResponse>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetClassTrees(Guid accountId, [FromQuery(Name = "actor_user_id")] Guid actorUserId,

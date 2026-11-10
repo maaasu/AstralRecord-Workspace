@@ -24,6 +24,9 @@ public sealed class WebPlayerAccountProfileResponse
     public required string ClassName { get; init; }
     public required int ClassLevel { get; init; }
     public required IReadOnlyList<WebPlayerClassProgressResponse> ClassProgresses { get; init; }
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> SkillTreeClassScopes { get; init; } =
+        new Dictionary<string, IReadOnlyList<string>>();
+    public IReadOnlyList<WebSkillTreeClassPointsResponse> SkillTreeClassPoints { get; init; } = [];
     public required long Gold { get; init; }
     public required long TotalMobDefeats { get; init; }
     public required DateTime UpdatedAt { get; init; }
@@ -36,6 +39,13 @@ public sealed class WebPlayerClassProgressResponse
     public required string ClassId { get; init; }
     public required string ClassName { get; init; }
     public required int Level { get; init; }
+}
+
+public sealed class WebSkillTreeClassPointsResponse
+{
+    public required string ClassId { get; init; }
+    public required int EarnedCp { get; init; }
+    public required int SpentCp { get; init; }
 }
 
 public sealed class WebSkillTreeProfileResponse
