@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameF
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryInstanceType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
@@ -21,6 +22,7 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGuiLayout;
+import io.github.maaasu.astralRecord.feature.trade.model.TradeCommitItem;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeCommitRequest;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeCommitResult;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeSession;
@@ -58,6 +60,7 @@ import java.util.function.BiConsumer;
 /** 一方向送信を管理します。既存の原子的な Trade API 契約と内部名を維持します。 */
 public final class TradeService {
     public static final String GOLD_AMOUNT_SOURCE_KEY = "send";
+    private static final String PROTECTED_INSTANCE_ERROR = "trade.instance_protected";
 
     private final AstralRecord plugin;
     private final TradeGui tradeGui;
@@ -369,7 +372,7 @@ public final class TradeService {
      * <p>
      * NORMAL inventory の正本 state は変更せず、提示用 clone と起点 entry ID・数量の予約だけを
      * session と GUI 表示へ反映します。session／account／entry が一致しない場合、対象 item が
-     * untradeable の場合、または提示可能数量がない場合は {@code false} を返します。
+     * untradeable の場合、装備が保護中の場合、または提示可能数量がない場合は {@code false} を返します。
      *
      * @param player 提示する online player
      * @param sourceBukkitSlot 起点 item がある Bukkit inventory slot
@@ -401,6 +404,10 @@ public final class TradeService {
             return false;
         }
         if (sourceEntry == null || sourceEntry.getInventoryEntryId() == null) {
+            return false;
+        }
+        if (isProtectedEquipmentEntry(sourceEntry)) {
+            messageService.send(player, PlayerMsgId.P_5680);
             return false;
         }
         int requested = ItemTransferSupport.resolveTransferAmount(
@@ -503,7 +510,7 @@ public final class TradeService {
         return true;
     }
 
-    /** 送受信者のidentityと送信内容を再検証し、重複送信を遮断して非同期確定を開始します。 */
+    /** 送受信者の identity、送信内容、装備の保護状態を再検証し、非同期確定を開始します。 */
     private void completeTrade(@NotNull TradeSession session) {
         try {
             Player playerA = Bukkit.getPlayer(session.getPlayerAUuid());
@@ -540,6 +547,10 @@ public final class TradeService {
                 refreshBoth(session);
                 return;
             }
+            if (hasProtectedOffer(session)) {
+                sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_5680);
+                return;
+            }
             session.setStatus(TradeSessionStatus.COMMITTING);
             refreshBoth(session);
             commitTradeWithInventoryLocks(session).whenComplete((result, throwable) ->
@@ -550,6 +561,36 @@ public final class TradeService {
             session.setStatus(TradeSessionStatus.OPEN);
             refreshBoth(session);
         }
+    }
+
+    /**
+     * 送信者の提示元 entry を所持品の正本から引き直し、保護中の装備を検出します。
+     *
+     * @param session 送信対象セッション
+     * @return 保護中の装備が提示に含まれる場合は true
+     */
+    private boolean hasProtectedOffer(@NotNull TradeSession session) {
+        for (TradeCommitItem item : session.getCommitItems(session.getPlayerAUuid())) {
+            InventoryEntryModel entry = inventoryService.findOwnedEntry(
+                session.getPlayerAAccountId(), item.sourceInventoryEntryId());
+            if (isProtectedEquipmentEntry(entry)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 提示元 entry が表す装備個体の保護状態を確認します。
+     *
+     * @param entry 所持品の正本 entry
+     * @return 装備個体が保護中の場合は true
+     */
+    private boolean isProtectedEquipmentEntry(@Nullable InventoryEntryModel entry) {
+        return entry != null
+            && InventoryInstanceType.EQUIPMENT.getCode().equalsIgnoreCase(entry.getInstanceType())
+            && entry.getInstanceId() != null
+            && inventoryService.isEquipmentProtected(entry.getInstanceId().toString());
     }
 
     /**
@@ -647,7 +688,8 @@ public final class TradeService {
     /** API 確定結果を Bukkit main thread で反映します。 */
     private void finishTradeCommit(@NotNull TradeSession session, @Nullable Throwable throwable) {
         if (throwable != null) {
-            Logger.log(LogId.E_6201, unwrapCompletionFailure(throwable), "commit:" + session.getSessionId());
+            Throwable cause = unwrapCompletionFailure(throwable);
+            Logger.log(LogId.E_6201, cause, "commit:" + session.getSessionId());
             if (tradeCommitRecoveries.containsKey(session.getSessionId())) {
                 session.setStatus(TradeSessionStatus.COMMITTING);
                 scheduleTradeCommitRecovery(session);
@@ -658,7 +700,11 @@ public final class TradeService {
                 cancelTrade(session);
                 return;
             }
-            sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6209);
+            PlayerMsgId messageId = cause instanceof TradeRepository.TradeCommitRejectedException rejected
+                && rejected.getStatusCode() == 409
+                && rejected.getMessage().contains(PROTECTED_INSTANCE_ERROR)
+                ? PlayerMsgId.P_5680 : PlayerMsgId.P_6209;
+            sendIfOnline(session.getPlayerAUuid(), messageId);
             refreshBoth(session);
             return;
         }
