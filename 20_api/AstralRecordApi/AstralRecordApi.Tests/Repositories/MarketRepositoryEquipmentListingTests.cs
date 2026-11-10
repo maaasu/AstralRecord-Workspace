@@ -1046,6 +1046,32 @@ public class MarketRepositoryEquipmentListingTests
     }
 
     [Fact]
+    public async Task CreateListing_RejectsProtectedEquipmentWithoutReservingEscrow()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: true);
+        var equipment = await harness.DbContext.EquipmentInstances.SingleAsync();
+        equipment.IsProtected = true;
+        await harness.DbContext.SaveChangesAsync();
+        var request = harness.CreateRequest();
+
+        var result = await harness.Repository.CreateListingAsync(request);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(409, result.StatusCode);
+        Assert.Equal("market.instance_protected", result.ErrorCode);
+        Assert.Equal(0, harness.PriceService.CallCount);
+        Assert.Empty(await harness.DbContext.MarketListings.ToListAsync());
+        Assert.Empty(await harness.DbContext.MarketListingCreateReceipts.ToListAsync());
+        Assert.False((await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InstanceId == harness.EquipmentInstanceId)).IsDeleted);
+
+        equipment = await harness.DbContext.EquipmentInstances.SingleAsync();
+        equipment.IsProtected = false;
+        await harness.DbContext.SaveChangesAsync();
+        Assert.True((await harness.Repository.CreateListingAsync(request)).Succeeded);
+    }
+
+    [Fact]
     public async Task CreateListing_QuotesInsideSerializableTransactionAfterMembershipReservation()
     {
         await using var harness = await MarketHarness.CreateAsync(addMembership: true);

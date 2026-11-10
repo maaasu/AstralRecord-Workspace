@@ -1056,6 +1056,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(e => e.TranscendenceRank).HasColumnName("transcendence_rank");
             entity.Property(e => e.DurabilityMax).HasColumnName("durability_max");
             entity.Property(e => e.DurabilityValue).HasColumnName("durability_value");
+            entity.Property(e => e.IsProtected).HasColumnName("is_protected").HasDefaultValue(false);
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");

@@ -10,6 +10,7 @@ public class EquipmentInstanceEntity
     public int TranscendenceRank { get; set; }
     public int? DurabilityMax { get; set; }
     public int? DurabilityValue { get; set; }
+    public bool IsProtected { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public Guid CreatedBy { get; set; }

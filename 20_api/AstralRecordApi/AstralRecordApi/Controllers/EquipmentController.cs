@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AstralRecordApi.Controllers;
 
-/// <summary>装備インスタンス API</summary>
+/// <summary>保護状態を含む装備インスタンスを扱う API</summary>
 [ApiController]
 [Route("api/equipment")]
 public class EquipmentController(IEquipmentService equipmentService) : ControllerBase
@@ -31,7 +31,7 @@ public class EquipmentController(IEquipmentService equipmentService) : Controlle
             created);
     }
 
-    /// <summary>装備インスタンス取得</summary>
+    /// <summary>保護状態を含む装備インスタンスを取得します。</summary>
     /// <param name="instanceId">装備インスタンス ID</param>
     /// <response code="200">装備インスタンス取得成功</response>
     /// <response code="404">指定した装備インスタンスが存在しない、または論理削除済み</response>

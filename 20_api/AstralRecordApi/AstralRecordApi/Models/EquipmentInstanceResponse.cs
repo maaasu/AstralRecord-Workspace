@@ -10,6 +10,7 @@ public class EquipmentInstanceResponse
     public int TranscendenceRank { get; init; }
     public int? DurabilityMax { get; init; }
     public int? DurabilityValue { get; init; }
+    public bool IsProtected { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime UpdatedAt { get; init; }
     public IReadOnlyList<EquipmentInstanceStatRollResponse> StatRolls { get; init; } = [];

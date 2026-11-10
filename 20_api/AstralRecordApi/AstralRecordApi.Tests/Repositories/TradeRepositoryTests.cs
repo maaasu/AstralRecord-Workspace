@@ -149,6 +149,37 @@ public sealed class TradeRepositoryTests
     }
 
     [Fact]
+    public async Task CommitAsync_RejectsProtectedEquipmentAndRollsBackEarlierTransfers()
+    {
+        await using var harness = await TradeHarness.CreateAsync();
+        var equipment = await harness.DbContext.EquipmentInstances.SingleAsync();
+        equipment.IsProtected = true;
+        await harness.DbContext.SaveChangesAsync();
+
+        var result = await harness.Repository.CommitAsync(new TradeCommitRequest
+        {
+            OperationId = Guid.NewGuid(), PlayerAAccountId = harness.PlayerAAccountId,
+            PlayerBAccountId = harness.PlayerBAccountId, UpdatedBy = harness.PlayerAAccountId, PlayerAGold = 30,
+            PlayerAItems =
+            [
+                new TradeCommitItemRequest { SourceInventoryEntryId = harness.MaterialEntryId, Quantity = 2 },
+                new TradeCommitItemRequest { SourceInventoryEntryId = harness.EquipmentEntryId, Quantity = 1 },
+            ],
+        });
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(409, result.StatusCode);
+        Assert.Equal("trade.instance_protected", result.ErrorCode);
+        Assert.Empty(await harness.DbContext.TradeCommits.ToListAsync());
+        Assert.False(await harness.DbContext.InventoryEntries.AnyAsync(entry => entry.InventoryId == harness.PlayerBBagId));
+        Assert.Equal(harness.PlayerABagId, (await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == harness.EquipmentEntryId)).InventoryId);
+        Assert.Equal(harness.PlayerAAccountId, (await harness.DbContext.EquipmentInstances.AsNoTracking().SingleAsync()).AccountId);
+        Assert.Equal(100, await harness.TotalGoldAsync(harness.PlayerAAccountId));
+        Assert.Equal(0, await harness.TotalGoldAsync(harness.PlayerBAccountId));
+    }
+
+    [Fact]
     public async Task CommitAsync_ReplaysSameOperationWithoutSecondTransfer()
     {
         await using var harness = await TradeHarness.CreateAsync();

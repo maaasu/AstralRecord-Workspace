@@ -117,7 +117,7 @@ public class MarketController(
     }
 
     /// <summary>
-    /// マーケット出品を作成します。
+    /// マーケット出品を作成します。保護中の装備個体は出品を拒否します。
     /// </summary>
     [HttpPost("listings")]
     [ProducesResponseType(StatusCodes.Status201Created)]

@@ -33,6 +33,7 @@ YAMLマスタは保存せず、`item_id` を参照キーとして個体の動的
 | `transcendence_enchant_max_slots` | `INT`              |    |         |        | 状態変化によって上書きされたエンチャント最大スロット数（NULL時は変更なし） |
 | `durability_max`                  | `INT`              |    |         |        | 耐久上限（YAMLで durability.max がある場合のみ保持）    |
 | `durability_value`                | `INT`              |    |         |        | 現在耐久値（耐久管理対象のときのみ保持）                    |
+| `is_protected`                    | `BIT`              |    |    ○    |  `0`   | 装備個体の保護状態                              |
 | `created_at`                      | `DATETIME2(3)`     |    |    ○    |        | レコード作成日時                                |
 | `updated_at`                      | `DATETIME2(3)`     |    |    ○    |        | レコード最終更新日時                              |
 | `created_by`                      | `UNIQUEIDENTIFIER` |    |    ○    |        | 作成者の UUID                               |
@@ -74,6 +75,7 @@ YAMLマスタは保存せず、`item_id` を参照キーとして個体の動的
 | `DF_equipment_instance_enhance_level`      | `enhance_level`      | `0` |
 | `DF_equipment_instance_rune_max_slots`     | `rune_max_slots`     | `0` |
 | `DF_equipment_instance_transcendence_rank` | `transcendence_rank` | `0` |
+| `DF_equipment_instance_is_protected`      | `is_protected`      | `0` |
 | `DF_equipment_instance_is_deleted`         | `is_deleted`         | `0` |
 
 ---
@@ -104,6 +106,7 @@ CREATE TABLE [dbo].[equipment_instance] (
     [transcendence_enchant_max_slots] INT                  NULL,
     [durability_max]         INT                   NULL,
     [durability_value]       INT                   NULL,
+    [is_protected]           BIT               NOT NULL  CONSTRAINT [DF_equipment_instance_is_protected]     DEFAULT (0),
     [created_at]             DATETIME2(3)      NOT NULL,
     [updated_at]             DATETIME2(3)      NOT NULL,
     [created_by]             UNIQUEIDENTIFIER  NOT NULL,
@@ -152,6 +155,7 @@ GO
 |:-------|:----------------------------------------|
 | 装備個体管理 | 生成済み装備を itemId 単位ではなく個体単位で保持する          |
 | 動的状態管理 | 強化レベル・ルーンスロット・状態変化ランクおよび上書き情報・現在耐久を管理する |
+| 個体保護   | `is_protected = 1` の個体はマーケット出品・トレードを拒否する。既存DBは `migrations/20261110_equipment_protection.sql` で既存行を未保護として列を追加する |
 | 論理削除   | `is_deleted = 1` で物理削除せず無効化する           |
 
 ---

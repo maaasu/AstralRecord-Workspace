@@ -1197,6 +1197,8 @@ public class MarketRepository(
                 return MarketOperationResult<bool>.Failure(404, "market.instance_not_found", "Equipment instance was not found.");
             if (equipment.AccountId != request.SellerAccountId)
                 return MarketOperationResult<bool>.Failure(409, "market.instance_owner_mismatch", "Equipment owner mismatch.");
+            if (equipment.IsProtected)
+                return MarketOperationResult<bool>.Failure(409, "market.instance_protected", "Protected equipment cannot be listed.");
             if (await IsEquipmentEquippedForUpdateAsync(request.SellerAccountId, instanceId))
                 return MarketOperationResult<bool>.Failure(409, "market.instance_equipped", "Equipped equipment cannot be listed.");
             return MarketOperationResult<bool>.Success(true);

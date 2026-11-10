@@ -244,6 +244,7 @@ public class EquipmentService(
         TranscendenceRank = instance.TranscendenceRank,
         DurabilityMax = instance.DurabilityMax,
         DurabilityValue = instance.DurabilityValue,
+        IsProtected = instance.IsProtected,
         CreatedAt = instance.CreatedAt,
         UpdatedAt = instance.UpdatedAt,
         StatRolls = statRolls.Select(r => new EquipmentInstanceStatRollResponse

@@ -9,7 +9,7 @@ namespace AstralRecordApi.Controllers;
 public sealed class TradeController(ITradeRepository tradeRepository) : ControllerBase
 {
     /// <summary>
-    /// 両参加者の提示 item と Gold を単一トランザクションで交換します。
+    /// 両参加者の提示 item と Gold を単一トランザクションで交換します。保護中の装備個体を含む要求は拒否します。
     /// 受取人の遠隔アクセストークン所持時は、新規取得オーブを収納可能なストレージへ格納します。
     /// </summary>
     [HttpPost("commit")]

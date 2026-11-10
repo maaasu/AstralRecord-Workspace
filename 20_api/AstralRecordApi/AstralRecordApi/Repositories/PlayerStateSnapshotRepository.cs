@@ -402,6 +402,7 @@ public sealed class PlayerStateSnapshotRepository(
                     TranscendenceRank = snapshot.TranscendenceRank,
                     DurabilityMax = snapshot.DurabilityMax,
                     DurabilityValue = snapshot.DurabilityValue,
+                    IsProtected = snapshot.IsProtected ?? false,
                     CreatedAt = now,
                     UpdatedAt = now,
                     CreatedBy = request.UpdatedBy,
@@ -438,6 +439,8 @@ public sealed class PlayerStateSnapshotRepository(
                 entity.TranscendenceRank = snapshot.TranscendenceRank;
                 entity.DurabilityMax = snapshot.DurabilityMax;
                 entity.DurabilityValue = snapshot.DurabilityValue;
+                if (snapshot.IsProtected is bool isProtected)
+                    entity.IsProtected = isProtected;
                 entity.UpdatedAt = AdvanceUpdatedAt(entity.UpdatedAt, now);
                 entity.UpdatedBy = request.UpdatedBy;
 

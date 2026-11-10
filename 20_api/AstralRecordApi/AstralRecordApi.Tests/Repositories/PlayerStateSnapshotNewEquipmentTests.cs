@@ -10,12 +10,12 @@ namespace AstralRecordApi.Tests.Repositories;
 public sealed partial class PlayerStateSnapshotRepositoryTests
 {
     [Theory]
-    [InlineData(1, 0, false, false)]
-    [InlineData(0, 1, false, false)]
-    [InlineData(0, 0, true, false)]
-    [InlineData(0, 0, false, true)]
+    [InlineData(1, 0, false, false, null)]
+    [InlineData(0, 1, false, false, null)]
+    [InlineData(0, 0, true, false, null)]
+    [InlineData(0, 0, false, true, true)]
     public async Task SaveAsync_CreatesLocallyModifiedEquipmentWithPaymentAndReplaysAck(
-        int enhanceLevel, int transcendenceRank, bool enchanted, bool runeAttached)
+        int enhanceLevel, int transcendenceRank, bool enchanted, bool runeAttached, bool? isProtected)
     {
         await using var fixture = await SnapshotFixture.CreateAsync();
         var payment = await fixture.DbContext.InventoryEntries.SingleAsync();
@@ -23,7 +23,8 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
         payment.ItemId = "test_orb";
         payment.Quantity = 1;
         await fixture.DbContext.SaveChangesAsync();
-        var request = CreateLocallyModifiedEquipmentRequest(fixture, enhanceLevel, transcendenceRank, enchanted, runeAttached);
+        var request = CreateLocallyModifiedEquipmentRequest(
+            fixture, enhanceLevel, transcendenceRank, enchanted, runeAttached, isProtected);
         var repository = new PlayerStateSnapshotRepository(fixture.DbContext);
 
         var first = await repository.SaveAsync(request);
@@ -38,6 +39,7 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
         Assert.Equal(transcendenceRank, equipment.TranscendenceRank);
         Assert.Equal(200, equipment.DurabilityMax);
         Assert.Equal(200, equipment.DurabilityValue);
+        Assert.Equal(isProtected ?? false, equipment.IsProtected);
         Assert.Equal("48", (await fixture.DbContext.EquipmentInstanceStatRolls.SingleAsync()).RandomMin);
         Assert.Equal(enchanted ? 1 : 0, await fixture.DbContext.EquipmentInstanceEnchants.CountAsync());
         Assert.Equal(runeAttached ? 1 : 0, await fixture.DbContext.EquipmentInstanceRunes.CountAsync());
@@ -89,7 +91,8 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
     }
 
     private static PlayerStateSnapshotSaveRequest CreateLocallyModifiedEquipmentRequest(
-        SnapshotFixture fixture, int enhanceLevel, int transcendenceRank, bool enchanted, bool runeAttached)
+        SnapshotFixture fixture, int enhanceLevel, int transcendenceRank, bool enchanted, bool runeAttached,
+        bool? isProtected = null)
     {
         var equipmentId = Guid.NewGuid();
         return new PlayerStateSnapshotSaveRequest
@@ -116,7 +119,7 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
                 {
                     EquipmentInstanceId = equipmentId, IsNew = true, ItemId = "test_spear",
                     EnhanceLevel = enhanceLevel, TranscendenceRank = transcendenceRank,
-                    RuneMaxSlots = 1, DurabilityMax = 200, DurabilityValue = 200,
+                    RuneMaxSlots = 1, DurabilityMax = 200, DurabilityValue = 200, IsProtected = isProtected,
                     StatRolls = [new PlayerStateEquipmentStatRollSnapshot
                     {
                         StatRollId = Guid.NewGuid(), Status = "MELEE_ATTACK", Min = "48", Max = "60", SortOrder = 0,

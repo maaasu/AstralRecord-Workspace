@@ -226,6 +226,51 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
     }
 
     [Fact]
+    public async Task SaveAsync_ChangesEquipmentProtectionAndPreservesItForLegacySnapshots()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var equipmentId = Guid.NewGuid();
+        fixture.DbContext.EquipmentInstances.Add(CreateEquipment(equipmentId, fixture));
+        await fixture.DbContext.SaveChangesAsync();
+        var repository = new PlayerStateSnapshotRepository(fixture.DbContext);
+
+        PlayerStateSnapshotSaveRequest Request(bool? isProtected, DateTime expectedUpdatedAt) => new()
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            Equipment =
+            [
+                new PlayerStateEquipmentSnapshot
+                {
+                    EquipmentInstanceId = equipmentId, ExpectedUpdatedAt = expectedUpdatedAt,
+                    RuneMaxSlots = 2, IsProtected = isProtected,
+                },
+            ],
+        };
+
+        var protect = Request(true, fixture.BaseTime);
+        var protectedResult = await repository.SaveAsync(protect);
+        Assert.True(protectedResult.Succeeded);
+        Assert.True((await fixture.DbContext.EquipmentInstances.AsNoTracking().SingleAsync()).IsProtected);
+        var protectedAt = protectedResult.Ack!.Equipment.Single().UpdatedAt;
+
+        var legacyRequest = Request(null, protectedAt);
+        var legacyPayload = JsonSerializer.Serialize(legacyRequest, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        Assert.DoesNotContain("isProtected", legacyPayload);
+        var legacyResult = await repository.SaveAsync(legacyRequest);
+        Assert.True(legacyResult.Succeeded);
+        Assert.True((await fixture.DbContext.EquipmentInstances.AsNoTracking().SingleAsync()).IsProtected);
+
+        var staleResult = await repository.SaveAsync(Request(false, protectedAt));
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, staleResult.Failure);
+
+        var unprotect = await repository.SaveAsync(Request(false, legacyResult.Ack!.Equipment.Single().UpdatedAt));
+        Assert.True(unprotect.Succeeded);
+        var replay = await repository.SaveAsync(protect);
+        Assert.Equal(protectedAt, replay.Ack!.Equipment.Single().UpdatedAt);
+        Assert.False((await fixture.DbContext.EquipmentInstances.AsNoTracking().SingleAsync()).IsProtected);
+    }
+
+    [Fact]
     public async Task SaveAsync_AppliesMaterialEquipmentLearnedSkillsAndTreeInOneTransaction()
     {
         await using var fixture = await SnapshotFixture.CreateAsync();
