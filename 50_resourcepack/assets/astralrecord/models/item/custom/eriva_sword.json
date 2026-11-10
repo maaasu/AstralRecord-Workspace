@@ -21,6 +21,15 @@
         5.44,
         8.72
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.25,
+          1.97,
+          7.28
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -90,6 +99,15 @@
         4.72,
         8.85
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.12,
+          2.71,
+          7.15
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -159,6 +177,15 @@
         2.89,
         8.96
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.01,
+          2.46,
+          7.04
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -228,6 +255,15 @@
         5.05,
         8.96
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.01,
+          4.62,
+          7.04
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -297,6 +333,15 @@
         2.28,
         9.02
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.94,
+          1.56,
+          6.98
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -366,6 +411,15 @@
         5.89,
         9
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.97,
+          5.11,
+          7
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -435,6 +489,15 @@
         6.23,
         8.87
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.51,
+          5.18,
+          7.13
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -504,6 +567,15 @@
         6.23,
         8.87
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          9.74,
+          5.18,
+          7.13
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -573,6 +645,15 @@
         12.13,
         8.77
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.48,
+          5.87,
+          7.23
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -642,6 +723,15 @@
         7.24,
         8.6
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.98,
+          5.86,
+          7.4
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -711,6 +801,15 @@
         8.42,
         8.54
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.48,
+          7.21,
+          7.46
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -780,6 +879,15 @@
         11.43,
         8.51
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.14,
+          8.39,
+          7.49
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -849,58 +957,67 @@
         10.71,
         8.35
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.72,
+          8.93,
+          7.65
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -918,58 +1035,67 @@
         10.71,
         8.35
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          9.81,
+          8.93,
+          7.65
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -987,6 +1113,15 @@
         12.57,
         8.47
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.56,
+          11.39,
+          7.53
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1056,6 +1191,15 @@
         13.71,
         8.4
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.03,
+          12.53,
+          7.6
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1125,6 +1269,15 @@
         14.73,
         8.32
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.54,
+          13.67,
+          7.68
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1194,58 +1347,67 @@
         6.73,
         7.46
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.73,
+          6.24,
+          7.11
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         }
@@ -1263,6 +1425,576 @@
         6.73,
         8.89
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.73,
+          6.24,
+          8.54
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Front forest binding square",
+      "from": [
+        7.47,
+        6.13,
+        6.96
+      ],
+      "to": [
+        8.53,
+        6.88,
+        7.14
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.47,
+          6.13,
+          6.96
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Front leaf central pale vein",
+      "from": [
+        7.83,
+        7.45,
+        7.16
+      ],
+      "to": [
+        8.17,
+        12.5,
+        7.45
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Back leaf central pale vein",
+      "from": [
+        7.83,
+        7.45,
+        8.55
+      ],
+      "to": [
+        8.17,
+        12.5,
+        8.84
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Left leaf lower serration",
+      "from": [
+        6.06,
+        8.35,
+        7.65
+      ],
+      "to": [
+        6.45,
+        9,
+        8.35
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Right leaf lower serration",
+      "from": [
+        9.55,
+        8.35,
+        7.65
+      ],
+      "to": [
+        9.94,
+        9,
+        8.35
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Left root quillon extension",
+      "from": [
+        5.16,
+        6.15,
+        7.4
+      ],
+      "to": [
+        5.76,
+        6.8,
+        8.6
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Right root quillon extension",
+      "from": [
+        10.24,
+        6.15,
+        7.4
+      ],
+      "to": [
+        10.84,
+        6.8,
+        8.6
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Front root binding knot",
+      "from": [
+        7.53,
+        6.22,
+        6.91
+      ],
+      "to": [
+        8.47,
+        6.75,
+        7.24
+      ],
       "faces": {
         "north": {
           "uv": [
@@ -1321,23 +2053,23 @@
       }
     },
     {
-      "name": "Front forest binding square",
+      "name": "Grip leaf lower wrap",
       "from": [
-        7.47,
-        6.13,
-        6.96
+        7.04,
+        3.1,
+        7.05
       ],
       "to": [
-        8.53,
-        6.88,
-        7.14
+        8.96,
+        3.39,
+        8.95
       ],
       "faces": {
         "north": {
           "uv": [
+            0.25,
             2.75,
-            2.75,
-            4.75,
+            2.25,
             4.75
           ],
           "texture": "#surface"
@@ -1353,9 +2085,9 @@
         },
         "south": {
           "uv": [
+            0.25,
             2.75,
-            2.75,
-            4.75,
+            2.25,
             4.75
           ],
           "texture": "#surface"
@@ -1384,6 +2116,369 @@
             2.75,
             2.25,
             4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip leaf upper wrap",
+      "from": [
+        7.04,
+        4.08,
+        7.05
+      ],
+      "to": [
+        8.96,
+        4.37,
+        8.95
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Fang tip dorsal cap",
+      "from": [
+        7.59,
+        14.46,
+        7.7
+      ],
+      "to": [
+        8.25,
+        14.92,
+        8.3
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Eriva sharpened ivory tip",
+      "from": [
+        7.81,
+        14.67,
+        7.72
+      ],
+      "to": [
+        8.19,
+        15.15,
+        8.28
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Eriva left continuous fang bevel",
+      "from": [
+        6.02,
+        11.07,
+        7.64
+      ],
+      "to": [
+        6.3,
+        15.12,
+        8.36
+      ],
+      "rotation": {
+        "angle": -22.5,
+        "axis": "z",
+        "origin": [
+          6.16,
+          11.07,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Eriva right continuous fang bevel",
+      "from": [
+        9.7,
+        11.07,
+        7.64
+      ],
+      "to": [
+        9.98,
+        15.12,
+        8.36
+      ],
+      "rotation": {
+        "angle": 22.5,
+        "axis": "z",
+        "origin": [
+          9.84,
+          11.07,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -1427,9 +2522,9 @@
     },
     "firstperson_righthand": {
       "rotation": [
-        -163.76373,
-        10.94244,
-        -173.26867
+        -156.96777,
+        -39.66496,
+        -171.40212
       ],
       "translation": [
         0.42418,
@@ -1444,9 +2539,9 @@
     },
     "firstperson_lefthand": {
       "rotation": [
-        -163.76373,
-        10.94244,
-        -173.26867
+        -156.96778,
+        -39.66496,
+        -171.40212
       ],
       "translation": [
         0.42418,

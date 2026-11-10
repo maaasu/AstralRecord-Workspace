@@ -72,6 +72,24 @@
           }
         }
       }
+    },
+    "animation.astralrecord.lapis_sword.first_person_off": {
+      "loop": true,
+      "bones": {
+        "grip": {
+          "rotation": [
+            56.32612,
+            -5.84979,
+            20.0
+          ],
+          "position": [
+            0,
+            24,
+            0
+          ],
+          "scale": 0.9029
+        }
+      }
     }
   }
 }

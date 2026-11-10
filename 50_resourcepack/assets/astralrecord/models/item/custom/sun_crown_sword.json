@@ -21,6 +21,15 @@
         5.72,
         8.57
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.43,
+          1.53,
+          7.43
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -90,6 +99,15 @@
         5.2,
         8.7
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.3,
+          2.2,
+          7.3
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -159,6 +177,15 @@
         2,
         8.98
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.94,
+          1.2,
+          7.02
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -228,6 +255,15 @@
         1.87,
         7.08
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.5,
+          1.36,
+          6.86
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -297,6 +333,15 @@
         1.87,
         9.14
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.5,
+          1.36,
+          8.92
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -366,6 +411,15 @@
         2.57,
         8.75
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.25,
+          2.28,
+          7.25
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -435,6 +489,15 @@
         4.97,
         8.75
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.25,
+          4.68,
+          7.25
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -504,6 +567,15 @@
         6.1,
         8.85
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          4.35,
+          5.2,
+          7.15
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -573,6 +645,15 @@
         6.55,
         8.79
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          4,
+          5.9,
+          7.21
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -642,6 +723,15 @@
         6.55,
         8.79
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          10.25,
+          5.9,
+          7.21
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -711,6 +801,15 @@
         7.1,
         8.69
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          3.58,
+          6.43,
+          7.31
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -780,6 +879,15 @@
         7.1,
         8.69
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          11.24,
+          6.43,
+          7.31
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -849,6 +957,15 @@
         7.55,
         9.05
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.64,
+          5.75,
+          6.95
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -918,6 +1035,15 @@
         7.35,
         7.06
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.2,
+          6.06,
+          6.72
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -987,6 +1113,15 @@
         7.35,
         9.28
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.2,
+          6.06,
+          8.94
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1056,6 +1191,15 @@
         13.5,
         8.58
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.135,
+          7.2,
+          7.42
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1125,58 +1269,67 @@
         13.5,
         8.38
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.575,
+          7.2,
+          7.62
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -1194,58 +1347,67 @@
         13.5,
         8.38
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.865,
+          7.2,
+          7.62
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -1263,6 +1425,15 @@
         15.65,
         8.58
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.435,
+          13.5,
+          7.42
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1332,58 +1503,67 @@
         15.65,
         8.38
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.875,
+          13.5,
+          7.62
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -1401,58 +1581,67 @@
         15.65,
         8.38
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.565,
+          13.5,
+          7.62
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -1470,6 +1659,15 @@
         16.85,
         8.58
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.681,
+          15.65,
+          7.42
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1539,58 +1737,67 @@
         16.85,
         8.38
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.275,
+          15.65,
+          7.62
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -1608,58 +1815,67 @@
         16.85,
         8.38
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.319,
+          15.65,
+          7.62
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -1677,6 +1893,15 @@
         17.6,
         8.58
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.8416,
+          16.85,
+          7.42
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1746,58 +1971,67 @@
         17.6,
         8.38
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.64,
+          16.85,
+          7.62
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -1815,58 +2049,67 @@
         17.6,
         8.38
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.1584,
+          16.85,
+          7.62
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            0,
+            6,
+            2,
+            8
           ],
           "texture": "#surface"
         }
@@ -1884,58 +2127,67 @@
         13.2,
         7.46
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.66,
+          8.2,
+          7.3
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         }
@@ -1953,58 +2205,67 @@
         13.2,
         8.7
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.66,
+          8.2,
+          8.54
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            4,
+            6,
+            6,
+            8
           ],
           "texture": "#surface"
         }
@@ -2022,6 +2283,15 @@
         7.08,
         8.76
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.58,
+          6.03,
+          7.24
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -2091,6 +2361,15 @@
         7.08,
         8.76
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          9.76,
+          6.03,
+          7.24
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -2147,6 +2426,1197 @@
           "texture": "#surface"
         }
       }
+    },
+    {
+      "name": "Sun blade front raised ridge",
+      "from": [
+        7.82,
+        7.65,
+        7.18
+      ],
+      "to": [
+        8.18,
+        13.45,
+        7.4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Sun blade back raised ridge",
+      "from": [
+        7.82,
+        7.65,
+        8.6
+      ],
+      "to": [
+        8.18,
+        13.45,
+        8.82
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Sun blade front upper ridge",
+      "from": [
+        7.88,
+        13.45,
+        7.18
+      ],
+      "to": [
+        8.12,
+        16.9,
+        7.4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Sun blade back upper ridge",
+      "from": [
+        7.88,
+        13.45,
+        8.6
+      ],
+      "to": [
+        8.12,
+        16.9,
+        8.82
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Left flame-cut edge foot",
+      "from": [
+        6.42,
+        7.75,
+        7.68
+      ],
+      "to": [
+        6.6,
+        11.2,
+        8.32
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Right flame-cut edge foot",
+      "from": [
+        9.4,
+        7.75,
+        7.68
+      ],
+      "to": [
+        9.58,
+        11.2,
+        8.32
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Left outer crown feather",
+      "from": [
+        3.18,
+        7,
+        7.46
+      ],
+      "to": [
+        3.75,
+        7.7,
+        8.54
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Right outer crown feather",
+      "from": [
+        12.25,
+        7,
+        7.46
+      ],
+      "to": [
+        12.82,
+        7.7,
+        8.54
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Left feather shadow",
+      "from": [
+        4.62,
+        6.24,
+        6.91
+      ],
+      "to": [
+        5.75,
+        6.54,
+        7.17
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Right feather shadow",
+      "from": [
+        10.25,
+        6.24,
+        6.91
+      ],
+      "to": [
+        11.38,
+        6.54,
+        7.17
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Sun crest upper ray",
+      "from": [
+        7.74,
+        7.42,
+        6.84
+      ],
+      "to": [
+        8.26,
+        8.18,
+        7.15
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Sun crest back ray",
+      "from": [
+        7.74,
+        7.42,
+        8.85
+      ],
+      "to": [
+        8.26,
+        8.18,
+        9.16
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            4,
+            6,
+            6,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip middle gold wire",
+      "from": [
+        7.18,
+        3.45,
+        7.18
+      ],
+      "to": [
+        8.82,
+        3.7,
+        8.82
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Pommel lower flame nub",
+      "from": [
+        7.53,
+        0.9,
+        7.53
+      ],
+      "to": [
+        8.47,
+        1.25,
+        8.47
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Sun crown honed needle",
+      "from": [
+        7.9,
+        17.54,
+        7.69
+      ],
+      "to": [
+        8.1,
+        18.08,
+        8.31
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Sun left swept tip bevel",
+      "from": [
+        7.09,
+        15.62,
+        7.65
+      ],
+      "to": [
+        7.35,
+        17.8,
+        8.35
+      ],
+      "rotation": {
+        "angle": -22.5,
+        "axis": "z",
+        "origin": [
+          7.22,
+          15.62,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Sun right swept tip bevel",
+      "from": [
+        8.65,
+        15.62,
+        7.65
+      ],
+      "to": [
+        8.91,
+        17.8,
+        8.35
+      ],
+      "rotation": {
+        "angle": 22.5,
+        "axis": "z",
+        "origin": [
+          8.78,
+          15.62,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
     }
   ],
   "display": {
@@ -2186,9 +3656,9 @@
     },
     "firstperson_righthand": {
       "rotation": [
-        -163.76373,
-        10.94244,
-        -173.26867
+        -156.96777,
+        -39.66496,
+        -171.40212
       ],
       "translation": [
         0.33234,
@@ -2203,9 +3673,9 @@
     },
     "firstperson_lefthand": {
       "rotation": [
-        -163.76373,
-        10.94244,
-        -173.26867
+        -156.96778,
+        -39.66496,
+        -171.40212
       ],
       "translation": [
         0.33234,
