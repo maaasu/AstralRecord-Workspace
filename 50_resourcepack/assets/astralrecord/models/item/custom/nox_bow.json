@@ -1,466 +1,5565 @@
 {
-	"gui_light": "front",
-	"format_version": "1.21.11",
-	"credit": "Made with Blockbench",
-	"texture_size": [128, 128],
-	"textures": {
-		"particle": "astralrecord:item/custom/nox_bow",
-		"surface": "astralrecord:item/custom/nox_bow"
-	},
-	"elements": [
-		{
-			"name": "Walnut riser",
-			"from": [5.44, 6.65, 7.52],
-			"to": [6.44, 9.35, 8.48],
-			"faces": {
-				"north": {"uv": [1, 0, 1.75, 2], "texture": "#surface"},
-				"east": {"uv": [1.875, 0, 2.625, 2], "texture": "#surface"},
-				"south": {"uv": [1, 0, 1.75, 2], "texture": "#surface"},
-				"west": {"uv": [1.875, 0, 2.625, 2], "texture": "#surface"},
-				"up": {"uv": [12.5, 0, 13.25, 0.75], "texture": "#surface"},
-				"down": {"uv": [12.5, 0, 13.25, 0.75], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Iron back plate",
-			"from": [5.33, 7.15, 7.69],
-			"to": [5.47, 8.85, 8.31],
-			"faces": {
-				"north": {"uv": [9.125, 0, 9.25, 1.25], "texture": "#surface"},
-				"east": {"uv": [8.5, 0, 9, 1.25], "texture": "#surface"},
-				"south": {"uv": [9.125, 0, 9.25, 1.25], "texture": "#surface"},
-				"west": {"uv": [8.5, 0, 9, 1.25], "texture": "#surface"},
-				"up": {"uv": [0.75, 5.75, 0.875, 6.25], "texture": "#surface"},
-				"down": {"uv": [0.75, 5.75, 0.875, 6.25], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Indigo grip wrap",
-			"from": [5.38, 7.1, 7.46],
-			"to": [6.5, 8.7, 8.54],
-			"faces": {
-				"north": {"uv": [6.625, 0, 7.5, 1.25], "texture": "#surface"},
-				"east": {"uv": [7.625, 0, 8.375, 1.25], "texture": "#surface"},
-				"south": {"uv": [6.625, 0, 7.5, 1.25], "texture": "#surface"},
-				"west": {"uv": [7.625, 0, 8.375, 1.25], "texture": "#surface"},
-				"up": {"uv": [11.5, 0, 12.375, 0.75], "texture": "#surface"},
-				"down": {"uv": [11.5, 0, 12.375, 0.75], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Moonstone stud",
-			"from": [5.82, 8.85, 7.47],
-			"to": [6.18, 9.19, 8.53],
-			"faces": {
-				"north": {"uv": [7, 5.75, 7.25, 6], "texture": "#surface"},
-				"east": {"uv": [5, 5.75, 5.75, 6], "texture": "#surface"},
-				"south": {"uv": [7, 5.75, 7.25, 6], "texture": "#surface"},
-				"west": {"uv": [5, 5.75, 5.75, 6], "texture": "#surface"},
-				"up": {"uv": [13.375, 0, 13.625, 0.75], "texture": "#surface"},
-				"down": {"uv": [13.375, 0, 13.625, 0.75], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Upper brass collar",
-			"from": [5.41, 9.21, 7.47],
-			"to": [6.55, 9.49, 8.53],
-			"faces": {
-				"north": {"uv": [3.125, 5.75, 4, 6], "texture": "#surface"},
-				"east": {"uv": [4.125, 5.75, 4.875, 6], "texture": "#surface"},
-				"south": {"uv": [3.125, 5.75, 4, 6], "texture": "#surface"},
-				"west": {"uv": [4.125, 5.75, 4.875, 6], "texture": "#surface"},
-				"up": {"uv": [10.5, 0, 11.375, 0.75], "texture": "#surface"},
-				"down": {"uv": [10.5, 0, 11.375, 0.75], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Upper limb 1",
-			"from": [5.81, 9.17768, 7.57],
-			"to": [6.55, 11.27232, 8.43],
-			"rotation": {
-				"angle": -15.3382,
-				"axis": "z",
-				"origin": [6.18, 10.225, 8]
-			},
-			"faces": {
-				"north": {"uv": [3.5, 0, 4, 1.625], "texture": "#surface"},
-				"east": {"uv": [2.75, 0, 3.375, 1.625], "texture": "#surface"},
-				"south": {"uv": [3.5, 0, 4, 1.625], "texture": "#surface"},
-				"west": {"uv": [2.75, 0, 3.375, 1.625], "texture": "#surface"},
-				"up": {"uv": [14.375, 0, 14.875, 0.625], "texture": "#surface"},
-				"down": {"uv": [14.375, 0, 14.875, 0.625], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Upper horn belly 1",
-			"from": [6.53, 9.23768, 7.6646],
-			"to": [6.67, 11.21232, 8.3354],
-			"rotation": {
-				"angle": -15.3382,
-				"axis": "z",
-				"origin": [6.18, 10.225, 8]
-			},
-			"faces": {
-				"north": {"uv": [6.375, 0, 6.5, 1.5], "texture": "#surface"},
-				"east": {"uv": [4.125, 0, 4.625, 1.5], "texture": "#surface"},
-				"south": {"uv": [6.375, 0, 6.5, 1.5], "texture": "#surface"},
-				"west": {"uv": [4.125, 0, 4.625, 1.5], "texture": "#surface"},
-				"up": {"uv": [0.5, 5.75, 0.625, 6.25], "texture": "#surface"},
-				"down": {"uv": [0.5, 5.75, 0.625, 6.25], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Upper limb 2",
-			"from": [6.54, 10.85287, 7.61],
-			"to": [7.18, 13.04713, 8.39],
-			"rotation": {
-				"angle": -27.3682,
-				"axis": "z",
-				"origin": [6.86, 11.95, 8]
-			},
-			"faces": {
-				"north": {"uv": [3.5, 0, 4, 1.625], "texture": "#surface"},
-				"east": {"uv": [2.75, 0, 3.375, 1.625], "texture": "#surface"},
-				"south": {"uv": [3.5, 0, 4, 1.625], "texture": "#surface"},
-				"west": {"uv": [2.75, 0, 3.375, 1.625], "texture": "#surface"},
-				"up": {"uv": [14.375, 0, 14.875, 0.625], "texture": "#surface"},
-				"down": {"uv": [14.375, 0, 14.875, 0.625], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Upper horn belly 2",
-			"from": [7.16, 10.91287, 7.6958],
-			"to": [7.3, 12.98713, 8.3042],
-			"rotation": {
-				"angle": -27.3682,
-				"axis": "z",
-				"origin": [6.86, 11.95, 8]
-			},
-			"faces": {
-				"north": {"uv": [6.375, 0, 6.5, 1.5], "texture": "#surface"},
-				"east": {"uv": [4.125, 0, 4.625, 1.5], "texture": "#surface"},
-				"south": {"uv": [6.375, 0, 6.5, 1.5], "texture": "#surface"},
-				"west": {"uv": [4.125, 0, 4.625, 1.5], "texture": "#surface"},
-				"up": {"uv": [0.5, 5.75, 0.625, 6.25], "texture": "#surface"},
-				"down": {"uv": [0.5, 5.75, 0.625, 6.25], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Upper limb 3",
-			"from": [7.61, 12.43473, 7.65],
-			"to": [8.17, 14.48527, 8.35],
-			"rotation": {
-				"angle": -41.7948,
-				"axis": "z",
-				"origin": [7.89, 13.46, 8]
-			},
-			"faces": {
-				"north": {"uv": [5.875, 0, 6.25, 1.5], "texture": "#surface"},
-				"east": {"uv": [4.75, 0, 5.25, 1.5], "texture": "#surface"},
-				"south": {"uv": [5.875, 0, 6.25, 1.5], "texture": "#surface"},
-				"west": {"uv": [4.75, 0, 5.25, 1.5], "texture": "#surface"},
-				"up": {"uv": [0, 5.75, 0.375, 6.25], "texture": "#surface"},
-				"down": {"uv": [0, 5.75, 0.375, 6.25], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Upper horn belly 3",
-			"from": [8.15, 12.49473, 7.727],
-			"to": [8.29, 14.42527, 8.273],
-			"rotation": {
-				"angle": -41.7948,
-				"axis": "z",
-				"origin": [7.89, 13.46, 8]
-			},
-			"faces": {
-				"north": {"uv": [6.375, 0, 6.5, 1.5], "texture": "#surface"},
-				"east": {"uv": [5.375, 0, 5.75, 1.5], "texture": "#surface"},
-				"south": {"uv": [6.375, 0, 6.5, 1.5], "texture": "#surface"},
-				"west": {"uv": [5.375, 0, 5.75, 1.5], "texture": "#surface"},
-				"up": {"uv": [1.5, 5.75, 1.625, 6.125], "texture": "#surface"},
-				"down": {"uv": [1.5, 5.75, 1.625, 6.125], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Upper limb 4",
-			"from": [8.19, 14.0571, 7.69],
-			"to": [8.65, 15.4229, 8.31],
-			"rotation": {
-				"angle": 5.5275,
-				"axis": "z",
-				"origin": [8.42, 14.74, 8]
-			},
-			"faces": {
-				"north": {"uv": [10, 0, 10.375, 1], "texture": "#surface"},
-				"east": {"uv": [9.375, 0, 9.875, 1], "texture": "#surface"},
-				"south": {"uv": [10, 0, 10.375, 1], "texture": "#surface"},
-				"west": {"uv": [9.375, 0, 9.875, 1], "texture": "#surface"},
-				"up": {"uv": [15.5, 0, 15.875, 0.5], "texture": "#surface"},
-				"down": {"uv": [15.5, 0, 15.875, 0.5], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Upper iron band",
-			"from": [8.04002, 13.91054, 7.58],
-			"to": [8.76002, 14.15054, 8.42],
-			"rotation": {
-				"angle": -41.7948,
-				"axis": "z",
-				"origin": [8.40002, 14.03054, 8]
-			},
-			"faces": {
-				"north": {"uv": [7, 6.875, 7.5, 7], "texture": "#surface"},
-				"east": {"uv": [6.25, 6.875, 6.875, 7], "texture": "#surface"},
-				"south": {"uv": [7, 6.875, 7.5, 7], "texture": "#surface"},
-				"west": {"uv": [6.25, 6.875, 6.875, 7], "texture": "#surface"},
-				"up": {"uv": [13.75, 0, 14.25, 0.625], "texture": "#surface"},
-				"down": {"uv": [13.75, 0, 14.25, 0.625], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Upper brass nock",
-			"from": [8.2, 15.21, 7.7],
-			"to": [8.76, 15.51, 8.3],
-			"faces": {
-				"north": {"uv": [6.5, 5.75, 6.875, 6], "texture": "#surface"},
-				"east": {"uv": [5.875, 5.75, 6.375, 6], "texture": "#surface"},
-				"south": {"uv": [6.5, 5.75, 6.875, 6], "texture": "#surface"},
-				"west": {"uv": [5.875, 5.75, 6.375, 6], "texture": "#surface"},
-				"up": {"uv": [15, 0, 15.375, 0.5], "texture": "#surface"},
-				"down": {"uv": [15, 0, 15.375, 0.5], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Lower brass collar",
-			"from": [5.41, 6.51, 7.47],
-			"to": [6.55, 6.79, 8.53],
-			"faces": {
-				"north": {"uv": [3.125, 5.75, 4, 6], "texture": "#surface"},
-				"east": {"uv": [4.125, 5.75, 4.875, 6], "texture": "#surface"},
-				"south": {"uv": [3.125, 5.75, 4, 6], "texture": "#surface"},
-				"west": {"uv": [4.125, 5.75, 4.875, 6], "texture": "#surface"},
-				"up": {"uv": [10.5, 0, 11.375, 0.75], "texture": "#surface"},
-				"down": {"uv": [10.5, 0, 11.375, 0.75], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Lower limb 1",
-			"from": [5.81, 4.72768, 7.57],
-			"to": [6.55, 6.82232, 8.43],
-			"rotation": {
-				"angle": 15.3382,
-				"axis": "z",
-				"origin": [6.18, 5.775, 8]
-			},
-			"faces": {
-				"north": {"uv": [3.5, 0, 4, 1.625], "texture": "#surface"},
-				"east": {"uv": [2.75, 0, 3.375, 1.625], "texture": "#surface"},
-				"south": {"uv": [3.5, 0, 4, 1.625], "texture": "#surface"},
-				"west": {"uv": [2.75, 0, 3.375, 1.625], "texture": "#surface"},
-				"up": {"uv": [14.375, 0, 14.875, 0.625], "texture": "#surface"},
-				"down": {"uv": [14.375, 0, 14.875, 0.625], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Lower horn belly 1",
-			"from": [6.53, 4.78768, 7.6646],
-			"to": [6.67, 6.76232, 8.3354],
-			"rotation": {
-				"angle": 15.3382,
-				"axis": "z",
-				"origin": [6.18, 5.775, 8]
-			},
-			"faces": {
-				"north": {"uv": [6.375, 0, 6.5, 1.5], "texture": "#surface"},
-				"east": {"uv": [4.125, 0, 4.625, 1.5], "texture": "#surface"},
-				"south": {"uv": [6.375, 0, 6.5, 1.5], "texture": "#surface"},
-				"west": {"uv": [4.125, 0, 4.625, 1.5], "texture": "#surface"},
-				"up": {"uv": [0.5, 5.75, 0.625, 6.25], "texture": "#surface"},
-				"down": {"uv": [0.5, 5.75, 0.625, 6.25], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Lower limb 2",
-			"from": [6.54, 2.95287, 7.61],
-			"to": [7.18, 5.14713, 8.39],
-			"rotation": {
-				"angle": 27.3682,
-				"axis": "z",
-				"origin": [6.86, 4.05, 8]
-			},
-			"faces": {
-				"north": {"uv": [3.5, 0, 4, 1.625], "texture": "#surface"},
-				"east": {"uv": [2.75, 0, 3.375, 1.625], "texture": "#surface"},
-				"south": {"uv": [3.5, 0, 4, 1.625], "texture": "#surface"},
-				"west": {"uv": [2.75, 0, 3.375, 1.625], "texture": "#surface"},
-				"up": {"uv": [14.375, 0, 14.875, 0.625], "texture": "#surface"},
-				"down": {"uv": [14.375, 0, 14.875, 0.625], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Lower horn belly 2",
-			"from": [7.16, 3.01287, 7.6958],
-			"to": [7.3, 5.08713, 8.3042],
-			"rotation": {
-				"angle": 27.3682,
-				"axis": "z",
-				"origin": [6.86, 4.05, 8]
-			},
-			"faces": {
-				"north": {"uv": [6.375, 0, 6.5, 1.5], "texture": "#surface"},
-				"east": {"uv": [4.125, 0, 4.625, 1.5], "texture": "#surface"},
-				"south": {"uv": [6.375, 0, 6.5, 1.5], "texture": "#surface"},
-				"west": {"uv": [4.125, 0, 4.625, 1.5], "texture": "#surface"},
-				"up": {"uv": [0.5, 5.75, 0.625, 6.25], "texture": "#surface"},
-				"down": {"uv": [0.5, 5.75, 0.625, 6.25], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Lower limb 3",
-			"from": [7.61, 1.51473, 7.65],
-			"to": [8.17, 3.56527, 8.35],
-			"rotation": {
-				"angle": 41.7948,
-				"axis": "z",
-				"origin": [7.89, 2.54, 8]
-			},
-			"faces": {
-				"north": {"uv": [5.875, 0, 6.25, 1.5], "texture": "#surface"},
-				"east": {"uv": [4.75, 0, 5.25, 1.5], "texture": "#surface"},
-				"south": {"uv": [5.875, 0, 6.25, 1.5], "texture": "#surface"},
-				"west": {"uv": [4.75, 0, 5.25, 1.5], "texture": "#surface"},
-				"up": {"uv": [0, 5.75, 0.375, 6.25], "texture": "#surface"},
-				"down": {"uv": [0, 5.75, 0.375, 6.25], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Lower horn belly 3",
-			"from": [8.15, 1.57473, 7.727],
-			"to": [8.29, 3.50527, 8.273],
-			"rotation": {
-				"angle": 41.7948,
-				"axis": "z",
-				"origin": [7.89, 2.54, 8]
-			},
-			"faces": {
-				"north": {"uv": [6.375, 0, 6.5, 1.5], "texture": "#surface"},
-				"east": {"uv": [5.375, 0, 5.75, 1.5], "texture": "#surface"},
-				"south": {"uv": [6.375, 0, 6.5, 1.5], "texture": "#surface"},
-				"west": {"uv": [5.375, 0, 5.75, 1.5], "texture": "#surface"},
-				"up": {"uv": [1.5, 5.75, 1.625, 6.125], "texture": "#surface"},
-				"down": {"uv": [1.5, 5.75, 1.625, 6.125], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Lower limb 4",
-			"from": [8.19, 0.5771, 7.69],
-			"to": [8.65, 1.9429, 8.31],
-			"rotation": {
-				"angle": -5.5275,
-				"axis": "z",
-				"origin": [8.42, 1.26, 8]
-			},
-			"faces": {
-				"north": {"uv": [10, 0, 10.375, 1], "texture": "#surface"},
-				"east": {"uv": [9.375, 0, 9.875, 1], "texture": "#surface"},
-				"south": {"uv": [10, 0, 10.375, 1], "texture": "#surface"},
-				"west": {"uv": [9.375, 0, 9.875, 1], "texture": "#surface"},
-				"up": {"uv": [15.5, 0, 15.875, 0.5], "texture": "#surface"},
-				"down": {"uv": [15.5, 0, 15.875, 0.5], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Lower iron band",
-			"from": [8.04002, 1.84946, 7.58],
-			"to": [8.76002, 2.08946, 8.42],
-			"rotation": {
-				"angle": 41.7948,
-				"axis": "z",
-				"origin": [8.40002, 1.96946, 8]
-			},
-			"faces": {
-				"north": {"uv": [7, 6.875, 7.5, 7], "texture": "#surface"},
-				"east": {"uv": [6.25, 6.875, 6.875, 7], "texture": "#surface"},
-				"south": {"uv": [7, 6.875, 7.5, 7], "texture": "#surface"},
-				"west": {"uv": [6.25, 6.875, 6.875, 7], "texture": "#surface"},
-				"up": {"uv": [13.75, 0, 14.25, 0.625], "texture": "#surface"},
-				"down": {"uv": [13.75, 0, 14.25, 0.625], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Lower brass nock",
-			"from": [8.2, 0.49, 7.7],
-			"to": [8.76, 0.79, 8.3],
-			"faces": {
-				"north": {"uv": [6.5, 5.75, 6.875, 6], "texture": "#surface"},
-				"east": {"uv": [5.875, 5.75, 6.375, 6], "texture": "#surface"},
-				"south": {"uv": [6.5, 5.75, 6.875, 6], "texture": "#surface"},
-				"west": {"uv": [5.875, 5.75, 6.375, 6], "texture": "#surface"},
-				"up": {"uv": [15, 0, 15.375, 0.5], "texture": "#surface"},
-				"down": {"uv": [15, 0, 15.375, 0.5], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Upper linen cord",
-			"from": [8.78, 8, 7.94],
-			"to": [8.9, 15.36, 8.06],
-			"faces": {
-				"north": {"uv": [0.5, 0, 0.625, 5.5], "texture": "#surface"},
-				"east": {"uv": [0.75, 0, 0.875, 5.5], "texture": "#surface"},
-				"south": {"uv": [0.5, 0, 0.625, 5.5], "texture": "#surface"},
-				"west": {"uv": [0.75, 0, 0.875, 5.5], "texture": "#surface"},
-				"up": {"uv": [10.375, 6.875, 10.5, 7], "texture": "#surface"},
-				"down": {"uv": [10.375, 6.875, 10.5, 7], "texture": "#surface"}
-			}
-		},
-		{
-			"name": "Lower linen cord",
-			"from": [8.78, 0.64, 7.94],
-			"to": [8.9, 8, 8.06],
-			"faces": {
-				"north": {"uv": [0.5, 0, 0.625, 5.5], "texture": "#surface"},
-				"east": {"uv": [0.75, 0, 0.875, 5.5], "texture": "#surface"},
-				"south": {"uv": [0.5, 0, 0.625, 5.5], "texture": "#surface"},
-				"west": {"uv": [0.75, 0, 0.875, 5.5], "texture": "#surface"},
-				"up": {"uv": [10.375, 6.875, 10.5, 7], "texture": "#surface"},
-				"down": {"uv": [10.375, 6.875, 10.5, 7], "texture": "#surface"}
-			}
-		}
-	],
-	"display": {
-		"thirdperson_righthand": {
-			"rotation": [-80, -100, -80],
-			"translation": [-0.97923, -2.06564, 2.19466],
-			"scale": [1.25, 1.25, 1.25]
-		},
-		"thirdperson_lefthand": {
-			"rotation": [-80, 80, 80],
-			"translation": [-0.97923, -2.06564, 2.19466],
-			"scale": [1.25, 1.25, 1.25]
-		},
-		"firstperson_righthand": {
-			"rotation": [145.80915, -6.65305, -173.84783],
-			"translation": [4.24337, 3.28741, -3.70717],
-			"scale": [0.59313, 0.59313, 0.59313]
-		},
-		"firstperson_lefthand": {
-			"rotation": [-34.19085, 6.65305, -6.15217],
-			"translation": [4.24337, 3.28741, -3.70717],
-			"scale": [0.59313, 0.59313, 0.59313]
-		},
-		"ground": {
-			"translation": [0, 2.25, 0],
-			"scale": [0.48, 0.48, 0.48]
-		},
-		"gui": {
-			"rotation": [0, 12, -45.632915],
-			"translation": [-1.575678, 1.646867, 0],
-			"scale": [1.294222, 1.294222, 1.294222]
-		},
-		"fixed": {
-			"rotation": [0, 0, -34],
-			"translation": [0.55, 0, 0],
-			"scale": [0.86, 0.86, 0.86]
-		}
-	}
+  "format_version": "1.21.11",
+  "credit": "Made with Blockbench",
+  "texture_size": [
+    256,
+    256
+  ],
+  "textures": {
+    "0": "astralrecord:item/custom/nox_bow",
+    "particle": "astralrecord:item/custom/nox_bow"
+  },
+  "elements": [
+    {
+      "name": "Upper laminated cheek 1",
+      "from": [
+        5.51,
+        9.03,
+        8.439
+      ],
+      "to": [
+        6.5,
+        9.49011,
+        8.44
+      ],
+      "rotation": {
+        "angle": 1.24536,
+        "axis": "x",
+        "origin": [
+          5.51,
+          9.03,
+          8.44
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            12.8125,
+            9.3125,
+            14.0625,
+            9.9375
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper reverse cheek 1",
+      "from": [
+        6.3,
+        9.03,
+        7.559
+      ],
+      "to": [
+        7.29,
+        9.49011,
+        7.56
+      ],
+      "rotation": {
+        "x": -178.75464,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          6.4,
+          9.03,
+          7.56
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            14.125,
+            9.3125,
+            15.375,
+            9.9375
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper horn back 1",
+      "from": [
+        5.5,
+        9.03,
+        7.559
+      ],
+      "to": [
+        6.4,
+        9.49,
+        7.56
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": 0,
+        "origin": [
+          5.51,
+          9.03,
+          7.56
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            10.1875,
+            1.1875,
+            10.8125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper walnut belly 1",
+      "from": [
+        6.39,
+        9.03,
+        8.439
+      ],
+      "to": [
+        7.29,
+        9.50074,
+        8.44
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -12.26477,
+        "origin": [
+          6.4,
+          9.03,
+          8.44
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1.25,
+            10.1875,
+            2.375,
+            10.8125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper laminated cheek 2",
+      "from": [
+        5.51,
+        9.49,
+        8.449
+      ],
+      "to": [
+        6.59,
+        10.12071,
+        8.45
+      ],
+      "rotation": {
+        "angle": -2.72631,
+        "axis": "x",
+        "origin": [
+          5.51,
+          9.49,
+          8.45
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            10.25,
+            8.1875,
+            11.625,
+            9
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper reverse cheek 2",
+      "from": [
+        6.41,
+        9.49,
+        7.549
+      ],
+      "to": [
+        7.49,
+        10.12071,
+        7.55
+      ],
+      "rotation": {
+        "x": 177.27369,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          6.5,
+          9.49,
+          7.55
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            11.6875,
+            8.1875,
+            13.0625,
+            9
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper horn back 2",
+      "from": [
+        5.51,
+        9.49,
+        7.549
+      ],
+      "to": [
+        6.41,
+        10.12506,
+        7.55
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -7.23692,
+        "origin": [
+          5.51,
+          9.49,
+          7.55
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            13.125,
+            8.1875,
+            14.25,
+            9
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper walnut belly 2",
+      "from": [
+        6.5,
+        9.49,
+        8.449
+      ],
+      "to": [
+        7.4,
+        10.1264,
+        8.45
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -8.1301,
+        "origin": [
+          6.5,
+          9.49,
+          8.45
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            14.3125,
+            8.1875,
+            15.4375,
+            9
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper laminated cheek 3",
+      "from": [
+        5.59,
+        10.12,
+        8.419
+      ],
+      "to": [
+        6.73,
+        11.04087,
+        8.42
+      ],
+      "rotation": {
+        "angle": -2.48955,
+        "axis": "x",
+        "origin": [
+          5.59,
+          10.12,
+          8.42
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            4.0625,
+            6.875,
+            5.5,
+            8.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper reverse cheek 3",
+      "from": [
+        6.45,
+        10.12,
+        7.579
+      ],
+      "to": [
+        7.59,
+        11.04087,
+        7.58
+      ],
+      "rotation": {
+        "x": 177.51045,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          6.59,
+          10.12,
+          7.58
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            5.5625,
+            6.875,
+            7,
+            8.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper horn back 3",
+      "from": [
+        5.59,
+        10.12,
+        7.579
+      ],
+      "to": [
+        6.43,
+        11.07336,
+        7.58
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -15.20241,
+        "origin": [
+          5.59,
+          10.12,
+          7.58
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            6.875,
+            1.125,
+            8.125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper walnut belly 3",
+      "from": [
+        6.59,
+        10.12,
+        8.419
+      ],
+      "to": [
+        7.43,
+        11.05059,
+        8.42
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -8.65254,
+        "origin": [
+          6.59,
+          10.12,
+          8.42
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            7.0625,
+            6.875,
+            8.125,
+            8.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper laminated cheek 4",
+      "from": [
+        5.84,
+        11.04,
+        8.379
+      ],
+      "to": [
+        7.04,
+        12.1604,
+        8.38
+      ],
+      "rotation": {
+        "angle": -1.53434,
+        "axis": "x",
+        "origin": [
+          5.84,
+          11.04,
+          8.38
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            12.4375,
+            0.0625,
+            13.9375,
+            1.5
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper reverse cheek 4",
+      "from": [
+        6.42,
+        11.04,
+        7.619
+      ],
+      "to": [
+        7.62,
+        12.1604,
+        7.62
+      ],
+      "rotation": {
+        "x": 178.46566,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          6.73,
+          11.04,
+          7.62
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            14,
+            0.0625,
+            15.5,
+            1.5
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper horn back 4",
+      "from": [
+        5.84,
+        11.04,
+        7.619
+      ],
+      "to": [
+        6.6,
+        12.23269,
+        7.62
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -20.10623,
+        "origin": [
+          5.84,
+          11.04,
+          7.62
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.1875,
+            0.0625,
+            9.1875,
+            1.5625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper walnut belly 4",
+      "from": [
+        6.73,
+        11.04,
+        8.379
+      ],
+      "to": [
+        7.49,
+        12.20211,
+        8.38
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -15.47133,
+        "origin": [
+          6.73,
+          11.04,
+          8.38
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            9.25,
+            0.0625,
+            10.25,
+            1.5625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper laminated cheek 5",
+      "from": [
+        6.25,
+        12.16,
+        8.349
+      ],
+      "to": [
+        7.49,
+        13.16045,
+        8.35
+      ],
+      "rotation": {
+        "angle": -1.71836,
+        "axis": "x",
+        "origin": [
+          6.25,
+          12.16,
+          8.35
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            6.9375,
+            5.375,
+            8.5,
+            6.6875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper reverse cheek 5",
+      "from": [
+        6.59,
+        12.16,
+        7.649
+      ],
+      "to": [
+        7.83,
+        13.16045,
+        7.65
+      ],
+      "rotation": {
+        "x": 178.28164,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          7.04,
+          12.16,
+          7.65
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.5625,
+            5.375,
+            10.125,
+            6.6875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper horn back 5",
+      "from": [
+        6.25,
+        12.16,
+        7.649
+      ],
+      "to": [
+        6.95,
+        13.28712,
+        7.65
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -27.47443,
+        "origin": [
+          6.25,
+          12.16,
+          7.65
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            5.375,
+            0.9375,
+            6.8125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper walnut belly 5",
+      "from": [
+        7.04,
+        12.16,
+        8.349
+      ],
+      "to": [
+        7.74,
+        13.25659,
+        8.35
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -24.22775,
+        "origin": [
+          7.04,
+          12.16,
+          8.35
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            5.0625,
+            5.375,
+            5.9375,
+            6.75
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper laminated cheek 6",
+      "from": [
+        6.77,
+        13.16,
+        8.319
+      ],
+      "to": [
+        8.02,
+        13.98098,
+        8.32
+      ],
+      "rotation": {
+        "angle": -2.7927,
+        "axis": "x",
+        "origin": [
+          6.77,
+          13.16,
+          8.32
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            12.3125,
+            6.875,
+            13.875,
+            7.9375
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper reverse cheek 6",
+      "from": [
+        6.96,
+        13.16,
+        7.679
+      ],
+      "to": [
+        8.21,
+        13.98098,
+        7.68
+      ],
+      "rotation": {
+        "x": 177.2073,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          7.49,
+          13.16,
+          7.68
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            13.9375,
+            6.875,
+            15.5,
+            7.9375
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper horn back 6",
+      "from": [
+        6.77,
+        13.16,
+        7.679
+      ],
+      "to": [
+        7.41,
+        14.20019,
+        7.68
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -37.9716,
+        "origin": [
+          6.77,
+          13.16,
+          7.68
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            10.1875,
+            5.375,
+            11,
+            6.6875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper walnut belly 6",
+      "from": [
+        7.49,
+        13.16,
+        8.319
+      ],
+      "to": [
+        8.13,
+        14.13637,
+        8.32
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -32.87626,
+        "origin": [
+          7.49,
+          13.16,
+          8.32
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1.1875,
+            6.875,
+            2,
+            8.125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper laminated cheek 7",
+      "from": [
+        7.41,
+        13.98,
+        8.279
+      ],
+      "to": [
+        8.48,
+        14.57053,
+        8.28
+      ],
+      "rotation": {
+        "angle": -2.42634,
+        "axis": "x",
+        "origin": [
+          7.41,
+          13.98,
+          8.28
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            6.125,
+            9.3125,
+            7.5,
+            10.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper reverse cheek 7",
+      "from": [
+        7.56,
+        13.98,
+        7.719
+      ],
+      "to": [
+        8.63,
+        14.57053,
+        7.72
+      ],
+      "rotation": {
+        "x": 177.57366,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.02,
+          13.98,
+          7.72
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            7.5625,
+            9.3125,
+            8.9375,
+            10.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper horn back 7",
+      "from": [
+        7.41,
+        13.98,
+        7.719
+      ],
+      "to": [
+        7.97,
+        14.77981,
+        7.72
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -42.46644,
+        "origin": [
+          7.41,
+          13.98,
+          7.72
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            4.25,
+            8.1875,
+            5,
+            9.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper walnut belly 7",
+      "from": [
+        8.02,
+        13.98,
+        8.279
+      ],
+      "to": [
+        8.58,
+        14.72813,
+        8.28
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -37.94215,
+        "origin": [
+          8.02,
+          13.98,
+          8.28
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            7.25,
+            8.1875,
+            8,
+            9.125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper laminated cheek 8",
+      "from": [
+        7.95,
+        14.57,
+        8.254
+      ],
+      "to": [
+        8.67,
+        14.91085,
+        8.255
+      ],
+      "rotation": {
+        "angle": -4.03771,
+        "axis": "x",
+        "origin": [
+          7.95,
+          14.57,
+          8.255
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            11.0625,
+            10.1875,
+            12,
+            10.625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper reverse cheek 8",
+      "from": [
+        8.29,
+        14.57,
+        7.744
+      ],
+      "to": [
+        9.01,
+        14.91085,
+        7.745
+      ],
+      "rotation": {
+        "x": 175.96229,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.48,
+          14.57,
+          7.745
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            12.0625,
+            10.1875,
+            13,
+            10.625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper horn back 8",
+      "from": [
+        7.95,
+        14.57,
+        7.744
+      ],
+      "to": [
+        8.46,
+        15.01045,
+        7.745
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -39.47246,
+        "origin": [
+          7.95,
+          14.57,
+          7.745
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.0625,
+            10.1875,
+            8.75,
+            10.75
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper walnut belly 8",
+      "from": [
+        8.48,
+        14.57,
+        8.254
+      ],
+      "to": [
+        8.99,
+        14.95949,
+        8.255
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -29.19749,
+        "origin": [
+          8.48,
+          14.57,
+          8.255
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            9.5625,
+            10.1875,
+            10.25,
+            10.6875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper laminated cheek 9",
+      "from": [
+        8.23,
+        14.91,
+        8.23
+      ],
+      "to": [
+        8.75,
+        15.1514,
+        8.231
+      ],
+      "rotation": {
+        "angle": -6.18293,
+        "axis": "x",
+        "origin": [
+          8.23,
+          14.91,
+          8.231
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            4.875,
+            10.875,
+            5.5625,
+            11.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper reverse cheek 9",
+      "from": [
+        8.59,
+        14.91,
+        7.768
+      ],
+      "to": [
+        9.11,
+        15.1514,
+        7.769
+      ],
+      "rotation": {
+        "x": 173.81707,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.67,
+          14.91,
+          7.769
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            5.625,
+            10.875,
+            6.3125,
+            11.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper horn back 9",
+      "from": [
+        8.23,
+        14.91,
+        7.768
+      ],
+      "to": [
+        8.692,
+        15.19302,
+        7.769
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -32.00538,
+        "origin": [
+          8.23,
+          14.91,
+          7.769
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.125,
+            10.875,
+            2.75,
+            11.25
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper walnut belly 9",
+      "from": [
+        8.67,
+        14.91,
+        8.23
+      ],
+      "to": [
+        9.132,
+        15.16298,
+        8.231
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -18.43495,
+        "origin": [
+          8.67,
+          14.91,
+          8.231
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.8125,
+            10.875,
+            3.4375,
+            11.25
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper laminated cheek 10",
+      "from": [
+        8.38,
+        15.15,
+        8.204
+      ],
+      "to": [
+        8.88,
+        15.36015,
+        8.205
+      ],
+      "rotation": {
+        "angle": -2.18164,
+        "axis": "x",
+        "origin": [
+          8.38,
+          15.15,
+          8.205
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            6.375,
+            10.875,
+            7,
+            11.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper reverse cheek 10",
+      "from": [
+        8.62,
+        15.15,
+        7.794
+      ],
+      "to": [
+        9.12,
+        15.36015,
+        7.795
+      ],
+      "rotation": {
+        "x": 177.81836,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.75,
+          15.15,
+          7.795
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            7.0625,
+            10.875,
+            7.6875,
+            11.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper horn back 10",
+      "from": [
+        8.38,
+        15.15,
+        7.794
+      ],
+      "to": [
+        8.79,
+        15.36,
+        7.795
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": 0,
+        "origin": [
+          8.38,
+          15.15,
+          7.795
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            7.75,
+            10.875,
+            8.3125,
+            11.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper walnut belly 10",
+      "from": [
+        8.75,
+        15.15,
+        8.204
+      ],
+      "to": [
+        9.16,
+        15.39698,
+        8.205
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -31.75948,
+        "origin": [
+          8.75,
+          15.15,
+          8.205
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.375,
+            10.875,
+            8.9375,
+            11.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper laminated cheek 11",
+      "from": [
+        8.24,
+        15.36,
+        8.196
+      ],
+      "to": [
+        8.88,
+        15.52243,
+        8.197
+      ],
+      "rotation": {
+        "angle": -9.92625,
+        "axis": "x",
+        "origin": [
+          8.38,
+          15.36,
+          8.197
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            14.25,
+            10.875,
+            15.0625,
+            11.125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper reverse cheek 11",
+      "from": [
+        8.88,
+        15.36,
+        7.802
+      ],
+      "to": [
+        9.52,
+        15.52243,
+        7.803
+      ],
+      "rotation": {
+        "x": 170.07375,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.88,
+          15.36,
+          7.803
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            15.125,
+            10.875,
+            15.9375,
+            11.125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper horn back 11",
+      "from": [
+        8.38,
+        15.36,
+        7.802
+      ],
+      "to": [
+        8.774,
+        15.5726,
+        7.803
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": 41.18593,
+        "origin": [
+          8.38,
+          15.36,
+          7.803
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            9,
+            10.875,
+            9.5,
+            11.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper walnut belly 11",
+      "from": [
+        8.88,
+        15.36,
+        8.196
+      ],
+      "to": [
+        9.274,
+        15.69121,
+        8.197
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": 61.11342,
+        "origin": [
+          8.88,
+          15.36,
+          8.197
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            13.0625,
+            10.1875,
+            13.5625,
+            10.625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper rounded tip closure",
+      "from": [
+        8.24,
+        15.52,
+        8.168
+      ],
+      "to": [
+        8.59,
+        15.858,
+        8.169
+      ],
+      "rotation": {
+        "x": -90,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          8.24,
+          15.52,
+          8.169
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            13.625,
+            10.1875,
+            14.0625,
+            10.625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper forged tip shoe",
+      "from": [
+        8.335,
+        15.197,
+        7.7835
+      ],
+      "to": [
+        8.625,
+        15.537,
+        8.2165
+      ],
+      "rotation": {
+        "angle": 26,
+        "axis": "z",
+        "origin": [
+          8.48,
+          15.367,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper string groove heel",
+      "from": [
+        8.56,
+        15.215,
+        7.805
+      ],
+      "to": [
+        8.87,
+        15.375,
+        8.195
+      ],
+      "rotation": {
+        "angle": -12,
+        "axis": "z",
+        "origin": [
+          8.715,
+          15.295,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper nock cheek -1",
+      "from": [
+        8.635,
+        15.2595,
+        7.7875
+      ],
+      "to": [
+        8.885,
+        15.3945,
+        7.8945
+      ],
+      "rotation": {
+        "angle": -13,
+        "axis": "z",
+        "origin": [
+          8.76,
+          15.327,
+          7.841
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper nock cheek 1",
+      "from": [
+        8.635,
+        15.2595,
+        8.1055
+      ],
+      "to": [
+        8.885,
+        15.3945,
+        8.2125
+      ],
+      "rotation": {
+        "angle": -13,
+        "axis": "z",
+        "origin": [
+          8.76,
+          15.327,
+          8.159
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper nock loop",
+      "from": [
+        8.7645,
+        15.245,
+        7.9325
+      ],
+      "to": [
+        8.9055,
+        15.381,
+        8.0675
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.835,
+          15.313,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            9.75,
+            8.1875,
+            10.1875,
+            9
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            9.75,
+            8.1875,
+            10.1875,
+            9
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            9.75,
+            8.1875,
+            10.1875,
+            9
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            9.75,
+            8.1875,
+            10.1875,
+            9
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.375,
+            5.3125
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.375,
+            5.3125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper linen bowstring",
+      "from": [
+        8.7855,
+        8,
+        7.947
+      ],
+      "to": [
+        8.8945,
+        15.36,
+        8.053
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.84,
+          11.68,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.375,
+            5.3125
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.375,
+            5.3125
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.375,
+            5.3125
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.375,
+            5.3125
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.375,
+            5.3125
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.375,
+            5.3125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper centre serving",
+      "from": [
+        8.7725,
+        7.9995,
+        7.935
+      ],
+      "to": [
+        8.9075,
+        8.5665,
+        8.065
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.84,
+          8.283,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            6.875,
+            8.1875,
+            7.1875,
+            9.125
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            6.875,
+            8.1875,
+            7.1875,
+            9.125
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            6.875,
+            8.1875,
+            7.1875,
+            9.125
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            6.875,
+            8.1875,
+            7.1875,
+            9.125
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            6.875,
+            8.1875,
+            7.1875,
+            9.125
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            6.875,
+            8.1875,
+            7.1875,
+            9.125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper steel shoulder",
+      "from": [
+        5.4925,
+        8.91,
+        7.545
+      ],
+      "to": [
+        6.4275,
+        9.41,
+        8.455
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.96,
+          9.16,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper bronze socket band",
+      "from": [
+        5.453,
+        8.947,
+        7.508
+      ],
+      "to": [
+        6.467,
+        9.147,
+        8.492
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.96,
+          9.047,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper tapered socket cheek -1",
+      "from": [
+        6.42,
+        9.49,
+        7.528
+      ],
+      "to": [
+        7.18,
+        11.04154,
+        7.529
+      ],
+      "rotation": {
+        "x": 177.4511,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          6.42,
+          9.49,
+          7.529
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            3.9375,
+            0.0625,
+            4.9375,
+            2.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper tapered socket cheek 1",
+      "from": [
+        5.66,
+        9.49,
+        8.47
+      ],
+      "to": [
+        6.42,
+        11.04154,
+        8.471
+      ],
+      "rotation": {
+        "angle": -2.5489,
+        "axis": "x",
+        "origin": [
+          5.66,
+          9.49,
+          8.471
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            5,
+            0.0625,
+            6,
+            2.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower laminated cheek 1",
+      "from": [
+        6.3,
+        6.97,
+        8.439
+      ],
+      "to": [
+        7.29,
+        7.43011,
+        8.44
+      ],
+      "rotation": {
+        "x": 1.24536,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          6.4,
+          6.97,
+          8.44
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.4375,
+            10.1875,
+            3.6875,
+            10.8125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower reverse cheek 1",
+      "from": [
+        5.51,
+        6.97,
+        7.559
+      ],
+      "to": [
+        6.5,
+        7.43011,
+        7.56
+      ],
+      "rotation": {
+        "x": -178.75464,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          5.51,
+          6.97,
+          7.56
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            3.75,
+            10.1875,
+            5,
+            10.8125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower horn back 1",
+      "from": [
+        5.5,
+        6.97,
+        8.439
+      ],
+      "to": [
+        6.4,
+        7.43,
+        8.44
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -180,
+        "origin": [
+          5.51,
+          6.97,
+          8.44
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            5.0625,
+            10.1875,
+            6.1875,
+            10.8125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower walnut belly 1",
+      "from": [
+        6.39,
+        6.97,
+        7.559
+      ],
+      "to": [
+        7.29,
+        7.44074,
+        7.56
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -167.73523,
+        "origin": [
+          6.4,
+          6.97,
+          7.56
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            6.25,
+            10.1875,
+            7.375,
+            10.8125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower laminated cheek 2",
+      "from": [
+        6.41,
+        6.51,
+        8.449
+      ],
+      "to": [
+        7.49,
+        7.14071,
+        8.45
+      ],
+      "rotation": {
+        "x": -2.72631,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          6.5,
+          6.51,
+          8.45
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            9.3125,
+            1.4375,
+            10.125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower reverse cheek 2",
+      "from": [
+        5.51,
+        6.51,
+        7.549
+      ],
+      "to": [
+        6.59,
+        7.14071,
+        7.55
+      ],
+      "rotation": {
+        "x": 177.27369,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          5.51,
+          6.51,
+          7.55
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1.5,
+            9.3125,
+            2.875,
+            10.125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower horn back 2",
+      "from": [
+        5.51,
+        6.51,
+        8.449
+      ],
+      "to": [
+        6.41,
+        7.14506,
+        8.45
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -172.76308,
+        "origin": [
+          5.51,
+          6.51,
+          8.45
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.9375,
+            9.3125,
+            4.0625,
+            10.125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower walnut belly 2",
+      "from": [
+        6.5,
+        6.51,
+        7.549
+      ],
+      "to": [
+        7.4,
+        7.1464,
+        7.55
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -171.8699,
+        "origin": [
+          6.5,
+          6.51,
+          7.55
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            4.125,
+            9.3125,
+            5.25,
+            10.125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower laminated cheek 3",
+      "from": [
+        6.45,
+        5.88,
+        8.419
+      ],
+      "to": [
+        7.59,
+        6.80087,
+        8.42
+      ],
+      "rotation": {
+        "x": -2.48955,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          6.59,
+          5.88,
+          8.42
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.1875,
+            6.875,
+            9.625,
+            8.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower reverse cheek 3",
+      "from": [
+        5.59,
+        5.88,
+        7.579
+      ],
+      "to": [
+        6.73,
+        6.80087,
+        7.58
+      ],
+      "rotation": {
+        "x": 177.51045,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          5.59,
+          5.88,
+          7.58
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            9.6875,
+            6.875,
+            11.125,
+            8.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower horn back 3",
+      "from": [
+        5.59,
+        5.88,
+        8.419
+      ],
+      "to": [
+        6.43,
+        6.83336,
+        8.42
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -164.79759,
+        "origin": [
+          5.59,
+          5.88,
+          8.42
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.0625,
+            6.875,
+            3.125,
+            8.125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower walnut belly 3",
+      "from": [
+        6.59,
+        5.88,
+        7.579
+      ],
+      "to": [
+        7.43,
+        6.81059,
+        7.58
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -171.34746,
+        "origin": [
+          6.59,
+          5.88,
+          7.58
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            11.1875,
+            6.875,
+            12.25,
+            8.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower laminated cheek 4",
+      "from": [
+        6.42,
+        4.96,
+        8.379
+      ],
+      "to": [
+        7.62,
+        6.0804,
+        8.38
+      ],
+      "rotation": {
+        "x": -1.53434,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          6.73,
+          4.96,
+          8.38
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1,
+            5.375,
+            2.5,
+            6.8125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower reverse cheek 4",
+      "from": [
+        5.84,
+        4.96,
+        7.619
+      ],
+      "to": [
+        7.04,
+        6.0804,
+        7.62
+      ],
+      "rotation": {
+        "x": 178.46566,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          5.84,
+          4.96,
+          7.62
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.5625,
+            5.375,
+            4.0625,
+            6.8125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower horn back 4",
+      "from": [
+        5.84,
+        4.96,
+        8.379
+      ],
+      "to": [
+        6.6,
+        6.15269,
+        8.38
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -159.89377,
+        "origin": [
+          5.84,
+          4.96,
+          8.38
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            10.3125,
+            0.0625,
+            11.3125,
+            1.5625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower walnut belly 4",
+      "from": [
+        6.73,
+        4.96,
+        7.619
+      ],
+      "to": [
+        7.49,
+        6.12211,
+        7.62
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -164.52867,
+        "origin": [
+          6.73,
+          4.96,
+          7.62
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            11.375,
+            0.0625,
+            12.375,
+            1.5625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower laminated cheek 5",
+      "from": [
+        6.59,
+        3.84,
+        8.349
+      ],
+      "to": [
+        7.83,
+        4.84045,
+        8.35
+      ],
+      "rotation": {
+        "x": -1.71836,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          7.04,
+          3.84,
+          8.35
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            11.0625,
+            5.375,
+            12.625,
+            6.6875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower reverse cheek 5",
+      "from": [
+        6.25,
+        3.84,
+        7.649
+      ],
+      "to": [
+        7.49,
+        4.84045,
+        7.65
+      ],
+      "rotation": {
+        "x": 178.28164,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          6.25,
+          3.84,
+          7.65
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            12.6875,
+            5.375,
+            14.25,
+            6.6875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower horn back 5",
+      "from": [
+        6.25,
+        3.84,
+        8.349
+      ],
+      "to": [
+        6.95,
+        4.96712,
+        8.35
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -152.52557,
+        "origin": [
+          6.25,
+          3.84,
+          8.35
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            4.125,
+            5.375,
+            5,
+            6.8125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower walnut belly 5",
+      "from": [
+        7.04,
+        3.84,
+        7.649
+      ],
+      "to": [
+        7.74,
+        4.93659,
+        7.65
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -155.77225,
+        "origin": [
+          7.04,
+          3.84,
+          7.65
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            6,
+            5.375,
+            6.875,
+            6.75
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower laminated cheek 6",
+      "from": [
+        6.96,
+        2.84,
+        8.319
+      ],
+      "to": [
+        8.21,
+        3.66098,
+        8.32
+      ],
+      "rotation": {
+        "x": -2.7927,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          7.49,
+          2.84,
+          8.32
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            8.1875,
+            1.625,
+            9.25
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower reverse cheek 6",
+      "from": [
+        6.77,
+        2.84,
+        7.679
+      ],
+      "to": [
+        8.02,
+        3.66098,
+        7.68
+      ],
+      "rotation": {
+        "x": 177.2073,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          6.77,
+          2.84,
+          7.68
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1.6875,
+            8.1875,
+            3.25,
+            9.25
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower horn back 6",
+      "from": [
+        6.77,
+        2.84,
+        8.319
+      ],
+      "to": [
+        7.41,
+        3.88019,
+        8.32
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -142.0284,
+        "origin": [
+          6.77,
+          2.84,
+          8.32
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            14.3125,
+            5.375,
+            15.125,
+            6.6875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower walnut belly 6",
+      "from": [
+        7.49,
+        2.84,
+        7.679
+      ],
+      "to": [
+        8.13,
+        3.81637,
+        7.68
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -147.12374,
+        "origin": [
+          7.49,
+          2.84,
+          7.68
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            3.1875,
+            6.875,
+            4,
+            8.125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower laminated cheek 7",
+      "from": [
+        7.56,
+        2.02,
+        8.279
+      ],
+      "to": [
+        8.63,
+        2.61053,
+        8.28
+      ],
+      "rotation": {
+        "x": -2.42634,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.02,
+          2.02,
+          8.28
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            9,
+            9.3125,
+            10.375,
+            10.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower reverse cheek 7",
+      "from": [
+        7.41,
+        2.02,
+        7.719
+      ],
+      "to": [
+        8.48,
+        2.61053,
+        7.72
+      ],
+      "rotation": {
+        "x": 177.57366,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.41,
+          2.02,
+          7.72
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            10.4375,
+            9.3125,
+            11.8125,
+            10.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower horn back 7",
+      "from": [
+        7.41,
+        2.02,
+        8.279
+      ],
+      "to": [
+        7.97,
+        2.81981,
+        8.28
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -137.53356,
+        "origin": [
+          7.41,
+          2.02,
+          8.28
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            5.0625,
+            8.1875,
+            5.8125,
+            9.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower walnut belly 7",
+      "from": [
+        8.02,
+        2.02,
+        7.719
+      ],
+      "to": [
+        8.58,
+        2.76813,
+        7.72
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -142.05785,
+        "origin": [
+          8.02,
+          2.02,
+          7.72
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.0625,
+            8.1875,
+            8.8125,
+            9.125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower laminated cheek 8",
+      "from": [
+        8.29,
+        1.43,
+        8.254
+      ],
+      "to": [
+        9.01,
+        1.77085,
+        8.255
+      ],
+      "rotation": {
+        "x": -4.03771,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.48,
+          1.43,
+          8.255
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            14.125,
+            10.1875,
+            15.0625,
+            10.625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower reverse cheek 8",
+      "from": [
+        7.95,
+        1.43,
+        7.744
+      ],
+      "to": [
+        8.67,
+        1.77085,
+        7.745
+      ],
+      "rotation": {
+        "x": 175.96229,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.95,
+          1.43,
+          7.745
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            10.875,
+            1,
+            11.3125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower horn back 8",
+      "from": [
+        7.95,
+        1.43,
+        8.254
+      ],
+      "to": [
+        8.46,
+        1.87045,
+        8.255
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -140.52754,
+        "origin": [
+          7.95,
+          1.43,
+          8.255
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.8125,
+            10.1875,
+            9.5,
+            10.75
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower walnut belly 8",
+      "from": [
+        8.48,
+        1.43,
+        7.744
+      ],
+      "to": [
+        8.99,
+        1.81949,
+        7.745
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -150.80251,
+        "origin": [
+          8.48,
+          1.43,
+          7.745
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            10.3125,
+            10.1875,
+            11,
+            10.6875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower laminated cheek 9",
+      "from": [
+        8.59,
+        1.09,
+        8.23
+      ],
+      "to": [
+        9.11,
+        1.3314,
+        8.231
+      ],
+      "rotation": {
+        "x": -6.18293,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.67,
+          1.09,
+          8.231
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            9.5625,
+            10.875,
+            10.25,
+            11.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower reverse cheek 9",
+      "from": [
+        8.23,
+        1.09,
+        7.768
+      ],
+      "to": [
+        8.75,
+        1.3314,
+        7.769
+      ],
+      "rotation": {
+        "x": 173.81707,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          8.23,
+          1.09,
+          7.769
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            10.3125,
+            10.875,
+            11,
+            11.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower horn back 9",
+      "from": [
+        8.23,
+        1.09,
+        8.23
+      ],
+      "to": [
+        8.692,
+        1.37302,
+        8.231
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -147.99462,
+        "origin": [
+          8.23,
+          1.09,
+          8.231
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            3.5,
+            10.875,
+            4.125,
+            11.25
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower walnut belly 9",
+      "from": [
+        8.67,
+        1.09,
+        7.768
+      ],
+      "to": [
+        9.132,
+        1.34298,
+        7.769
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -161.56505,
+        "origin": [
+          8.67,
+          1.09,
+          7.769
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            4.1875,
+            10.875,
+            4.8125,
+            11.25
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower laminated cheek 10",
+      "from": [
+        8.62,
+        0.85,
+        8.204
+      ],
+      "to": [
+        9.12,
+        1.06015,
+        8.205
+      ],
+      "rotation": {
+        "x": -2.18164,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.75,
+          0.85,
+          8.205
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            11.0625,
+            10.875,
+            11.6875,
+            11.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower reverse cheek 10",
+      "from": [
+        8.38,
+        0.85,
+        7.794
+      ],
+      "to": [
+        8.88,
+        1.06015,
+        7.795
+      ],
+      "rotation": {
+        "x": 177.81836,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          8.38,
+          0.85,
+          7.795
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            11.75,
+            10.875,
+            12.375,
+            11.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower horn back 10",
+      "from": [
+        8.38,
+        0.85,
+        8.204
+      ],
+      "to": [
+        8.79,
+        1.06,
+        8.205
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -180,
+        "origin": [
+          8.38,
+          0.85,
+          8.205
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            12.4375,
+            10.875,
+            13,
+            11.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower walnut belly 10",
+      "from": [
+        8.75,
+        0.85,
+        7.794
+      ],
+      "to": [
+        9.16,
+        1.09698,
+        7.795
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -148.24052,
+        "origin": [
+          8.75,
+          0.85,
+          7.795
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            13.0625,
+            10.875,
+            13.625,
+            11.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower laminated cheek 11",
+      "from": [
+        8.88,
+        0.64,
+        8.196
+      ],
+      "to": [
+        9.52,
+        0.80243,
+        8.197
+      ],
+      "rotation": {
+        "x": -9.92625,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.88,
+          0.64,
+          8.197
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            11.375,
+            0.875,
+            11.625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower reverse cheek 11",
+      "from": [
+        8.24,
+        0.64,
+        7.802
+      ],
+      "to": [
+        8.88,
+        0.80243,
+        7.803
+      ],
+      "rotation": {
+        "x": 170.07375,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          8.38,
+          0.64,
+          7.803
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.9375,
+            11.375,
+            1.75,
+            11.625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower horn back 11",
+      "from": [
+        8.38,
+        0.64,
+        8.196
+      ],
+      "to": [
+        8.774,
+        0.8526,
+        8.197
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": 138.81407,
+        "origin": [
+          8.38,
+          0.64,
+          8.197
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            13.6875,
+            10.875,
+            14.1875,
+            11.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower walnut belly 11",
+      "from": [
+        8.88,
+        0.64,
+        7.802
+      ],
+      "to": [
+        9.274,
+        0.97121,
+        7.803
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": 118.88658,
+        "origin": [
+          8.88,
+          0.64,
+          7.803
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1.0625,
+            10.875,
+            1.5625,
+            11.3125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower rounded tip closure",
+      "from": [
+        8.24,
+        0.48,
+        7.83
+      ],
+      "to": [
+        8.59,
+        0.818,
+        7.831
+      ],
+      "rotation": {
+        "x": 90,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          8.24,
+          0.48,
+          7.831
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1.625,
+            10.875,
+            2.0625,
+            11.3125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower forged tip shoe",
+      "from": [
+        8.335,
+        0.463,
+        7.7835
+      ],
+      "to": [
+        8.625,
+        0.803,
+        8.2165
+      ],
+      "rotation": {
+        "angle": -26,
+        "axis": "z",
+        "origin": [
+          8.48,
+          0.633,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower string groove heel",
+      "from": [
+        8.56,
+        0.625,
+        7.805
+      ],
+      "to": [
+        8.87,
+        0.785,
+        8.195
+      ],
+      "rotation": {
+        "angle": 12,
+        "axis": "z",
+        "origin": [
+          8.715,
+          0.705,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower nock cheek -1",
+      "from": [
+        8.635,
+        0.6055,
+        7.7875
+      ],
+      "to": [
+        8.885,
+        0.7405,
+        7.8945
+      ],
+      "rotation": {
+        "angle": 13,
+        "axis": "z",
+        "origin": [
+          8.76,
+          0.673,
+          7.841
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower nock cheek 1",
+      "from": [
+        8.635,
+        0.6055,
+        8.1055
+      ],
+      "to": [
+        8.885,
+        0.7405,
+        8.2125
+      ],
+      "rotation": {
+        "angle": 13,
+        "axis": "z",
+        "origin": [
+          8.76,
+          0.673,
+          8.159
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower nock loop",
+      "from": [
+        8.7645,
+        0.619,
+        7.9325
+      ],
+      "to": [
+        8.9055,
+        0.755,
+        8.0675
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.835,
+          0.687,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            9.75,
+            8.1875,
+            10.1875,
+            9
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            9.75,
+            8.1875,
+            10.1875,
+            9
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            9.75,
+            8.1875,
+            10.1875,
+            9
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            9.75,
+            8.1875,
+            10.1875,
+            9
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.375,
+            5.3125
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.375,
+            5.3125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower linen bowstring",
+      "from": [
+        8.7855,
+        0.64,
+        7.947
+      ],
+      "to": [
+        8.8945,
+        8,
+        8.053
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.84,
+          4.32,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.375,
+            5.3125
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.375,
+            5.3125
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.375,
+            5.3125
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.375,
+            5.3125
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.375,
+            5.3125
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.375,
+            5.3125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower centre serving",
+      "from": [
+        8.7725,
+        7.4335,
+        7.935
+      ],
+      "to": [
+        8.9075,
+        8.0005,
+        8.065
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.84,
+          7.717,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            6.875,
+            8.1875,
+            7.1875,
+            9.125
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            6.875,
+            8.1875,
+            7.1875,
+            9.125
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            6.875,
+            8.1875,
+            7.1875,
+            9.125
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            6.875,
+            8.1875,
+            7.1875,
+            9.125
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            6.875,
+            8.1875,
+            7.1875,
+            9.125
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            6.875,
+            8.1875,
+            7.1875,
+            9.125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower steel shoulder",
+      "from": [
+        5.4925,
+        6.59,
+        7.545
+      ],
+      "to": [
+        6.4275,
+        7.09,
+        8.455
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.96,
+          6.84,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower bronze socket band",
+      "from": [
+        5.453,
+        6.853,
+        7.508
+      ],
+      "to": [
+        6.467,
+        7.053,
+        8.492
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.96,
+          6.953,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower tapered socket cheek -1",
+      "from": [
+        5.66,
+        6.51,
+        7.528
+      ],
+      "to": [
+        6.42,
+        8.06153,
+        7.529
+      ],
+      "rotation": {
+        "x": 177.4511,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          5.66,
+          6.51,
+          7.529
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            6.0625,
+            0.0625,
+            7.0625,
+            2.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower tapered socket cheek 1",
+      "from": [
+        6.42,
+        6.51,
+        8.47
+      ],
+      "to": [
+        7.18,
+        8.06153,
+        8.471
+      ],
+      "rotation": {
+        "x": -2.5489,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          6.42,
+          6.51,
+          8.471
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            7.125,
+            0.0625,
+            8.125,
+            2.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Walnut handle core",
+      "from": [
+        5.53,
+        6.78,
+        7.59
+      ],
+      "to": [
+        6.35,
+        9.22,
+        8.41
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.94,
+          8,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            3,
+            0.0625,
+            3.875,
+            2.6875
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            3,
+            0.0625,
+            3.875,
+            2.6875
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            3,
+            0.0625,
+            3.875,
+            2.6875
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            3,
+            0.0625,
+            3.875,
+            2.6875
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            3,
+            0.0625,
+            3.875,
+            2.6875
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            3,
+            0.0625,
+            3.875,
+            2.6875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Indigo leather wrapping",
+      "from": [
+        5.482,
+        7.076,
+        7.54
+      ],
+      "to": [
+        6.398,
+        8.696,
+        8.46
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.94,
+          7.886,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0.4375,
+            0.0625,
+            1.75,
+            2.6875
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            1.8125,
+            0.0625,
+            2.9375,
+            2.6875
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            0.4375,
+            0.0625,
+            1.75,
+            2.6875
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            1.8125,
+            0.0625,
+            2.9375,
+            2.6875
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Back spine strap",
+      "from": [
+        5.422,
+        7.101,
+        7.845
+      ],
+      "to": [
+        5.538,
+        8.671,
+        8.155
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.48,
+          7.886,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lower binding bead",
+      "from": [
+        5.465,
+        7.007,
+        7.52
+      ],
+      "to": [
+        6.415,
+        7.123,
+        8.48
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.94,
+          7.065,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Upper binding bead",
+      "from": [
+        5.465,
+        8.653,
+        7.52
+      ],
+      "to": [
+        6.415,
+        8.773,
+        8.48
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.94,
+          8.713,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            11.875,
+            9.3125,
+            12.75,
+            9.9375
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Sculpted arrow shelf",
+      "from": [
+        6.075,
+        8.8215,
+        7.7025
+      ],
+      "to": [
+        6.685,
+        8.9505,
+        8.2975
+      ],
+      "rotation": {
+        "angle": 3,
+        "axis": "z",
+        "origin": [
+          6.38,
+          8.886,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            3.3125,
+            8.1875,
+            4.1875,
+            9.1875
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lunar seal bronze bezel",
+      "from": [
+        5.7175,
+        8.8075,
+        7.4915
+      ],
+      "to": [
+        6.1625,
+        9.2525,
+        8.5085
+      ],
+      "rotation": {
+        "angle": 45,
+        "axis": "z",
+        "origin": [
+          5.94,
+          9.03,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            5.3125,
+            9.3125,
+            6.0625,
+            10.0625
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Lunar seal inset",
+      "from": [
+        5.7735,
+        8.8635,
+        7.479
+      ],
+      "to": [
+        6.1065,
+        9.1965,
+        8.521
+      ],
+      "rotation": {
+        "angle": 45,
+        "axis": "z",
+        "origin": [
+          5.94,
+          9.03,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            8.875,
+            8.1875,
+            9.6875,
+            9
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            8.875,
+            8.1875,
+            9.6875,
+            9
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            8.875,
+            8.1875,
+            9.6875,
+            9
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            8.875,
+            8.1875,
+            9.6875,
+            9
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            8.875,
+            8.1875,
+            9.6875,
+            9
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            8.875,
+            8.1875,
+            9.6875,
+            9
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Crescent obverse",
+      "from": [
+        5.69,
+        8.78,
+        8.5215
+      ],
+      "to": [
+        6.19,
+        9.28,
+        8.5225
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.94,
+          9.03,
+          8.522
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            5.875,
+            8.1875,
+            6.8125,
+            9.125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Crescent reverse",
+      "from": [
+        5.69,
+        8.78,
+        7.4775
+      ],
+      "to": [
+        6.19,
+        9.28,
+        7.4785
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          5.94,
+          9.03,
+          7.478
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            5.875,
+            8.1875,
+            6.8125,
+            9.125
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Recessed shoulder pin -1",
+      "from": [
+        5.933,
+        6.143,
+        7.531
+      ],
+      "to": [
+        6.067,
+        6.277,
+        8.469
+      ],
+      "rotation": {
+        "angle": 45,
+        "axis": "z",
+        "origin": [
+          6,
+          6.21,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            7.4375,
+            10.1875,
+            8,
+            10.75
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            7.4375,
+            10.1875,
+            8,
+            10.75
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            7.4375,
+            10.1875,
+            8,
+            10.75
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            7.4375,
+            10.1875,
+            8,
+            10.75
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            7.4375,
+            10.1875,
+            8,
+            10.75
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            7.4375,
+            10.1875,
+            8,
+            10.75
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "Recessed shoulder pin 1",
+      "from": [
+        5.933,
+        9.723,
+        7.531
+      ],
+      "to": [
+        6.067,
+        9.857,
+        8.469
+      ],
+      "rotation": {
+        "angle": 45,
+        "axis": "z",
+        "origin": [
+          6,
+          9.79,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            7.4375,
+            10.1875,
+            8,
+            10.75
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            7.4375,
+            10.1875,
+            8,
+            10.75
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            7.4375,
+            10.1875,
+            8,
+            10.75
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            7.4375,
+            10.1875,
+            8,
+            10.75
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            7.4375,
+            10.1875,
+            8,
+            10.75
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            7.4375,
+            10.1875,
+            8,
+            10.75
+          ],
+          "texture": "#0"
+        }
+      }
+    }
+  ],
+  "gui_light": "front",
+  "display": {
+    "thirdperson_righthand": {
+      "rotation": [
+        -80,
+        -100,
+        -80
+      ],
+      "translation": [
+        -0.97923,
+        -2.06564,
+        2.19466
+      ],
+      "scale": [
+        1.25,
+        1.25,
+        1.25
+      ]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [
+        -80,
+        80,
+        80
+      ],
+      "translation": [
+        -0.97923,
+        -2.06564,
+        2.19466
+      ],
+      "scale": [
+        1.25,
+        1.25,
+        1.25
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        48.64246,
+        -54.2813,
+        25.075
+      ],
+      "translation": [
+        2.76159,
+        4.26119,
+        -4.44611
+      ],
+      "scale": [
+        0.51555,
+        0.51555,
+        0.51555
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        -137.02367,
+        45.63619,
+        159.27672
+      ],
+      "translation": [
+        2.89455,
+        4.34086,
+        -5.07425
+      ],
+      "scale": [
+        0.51555,
+        0.51555,
+        0.51555
+      ]
+    },
+    "ground": {
+      "translation": [
+        0,
+        2.25,
+        0
+      ],
+      "scale": [
+        0.48,
+        0.48,
+        0.48
+      ]
+    },
+    "gui": {
+      "rotation": [
+        0,
+        12,
+        -45.632915
+      ],
+      "translation": [
+        -1.575678,
+        1.646867,
+        0
+      ],
+      "scale": [
+        1.294222,
+        1.294222,
+        1.294222
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        -34
+      ],
+      "translation": [
+        0.55,
+        0,
+        0
+      ],
+      "scale": [
+        0.86,
+        0.86,
+        0.86
+      ]
+    }
+  }
 }
