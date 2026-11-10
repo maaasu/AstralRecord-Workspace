@@ -1,32 +1,33 @@
 /* Shared skill tree map for the editor and player profiles. */
 .ar-tree-sanctum {
-    --tree-bg: #faf7ed;
-    --tree-map: #f1eddf;
-    --tree-panel: #fffcf4;
-    --tree-control: #faf7ed;
-    --tree-hover: #eee7d7;
-    --tree-line: var(--ar-rule, #c9c2ad);
-    --tree-line-strong: #93866f;
-    --tree-text: var(--ar-ink, #272822);
-    --tree-muted: var(--ar-muted, #56584e);
-    --tree-gold: #715224;
+    --tree-bg: #2b2e28;
+    --tree-map: #232822;
+    --tree-panel: #31362f;
+    --tree-control: #3b4138;
+    --tree-hover: #454c41;
+    --tree-line: #50584b;
+    --tree-line-strong: #939a8b;
+    --tree-text: #f3eee1;
+    --tree-muted: #c8cbbd;
+    --tree-gold: #e1c587;
     --tree-gold-dark: var(--ar-brass-dark, #866234);
-    --tree-selection: #f0e3c6;
-    --tree-teal: #315c51;
-    --tree-status-locked: #656a61;
-    --tree-status-unlocked: #715224;
-    --tree-status-available: #315c51;
-    --tree-status-unmet: #904421;
-    --tree-status-draft-unlock: #42562b;
-    --tree-status-draft-relock: #934338;
-    --tree-stat-resource: #765013;
-    --tree-stat-primary: #3e5c32;
-    --tree-stat-offense: #973f36;
-    --tree-stat-defense: #385488;
-    --tree-stat-element: #725084;
-    --tree-stat-condition: #873d65;
-    --tree-stat-utility: #575925;
-    --tree-popover-shadow: 0 6px 20px #2e251a29;
+    --tree-primary-ink: #2b2317;
+    --tree-selection: #4c422e;
+    --tree-teal: #9dd7c2;
+    --tree-status-locked: #939a8b;
+    --tree-status-unlocked: var(--tree-gold);
+    --tree-status-available: var(--tree-teal);
+    --tree-status-unmet: #efad81;
+    --tree-status-draft-unlock: #b9d594;
+    --tree-status-draft-relock: #f3a89c;
+    --tree-stat-resource: #e8c787;
+    --tree-stat-primary: #b4d29f;
+    --tree-stat-offense: #f2a297;
+    --tree-stat-defense: #a9c5ef;
+    --tree-stat-element: #dbb7eb;
+    --tree-stat-condition: #e8b3cc;
+    --tree-stat-utility: #d9d39b;
+    --tree-popover-shadow: 0 6px 20px #10120e99;
     --tree-rail-width: 15rem;
     --tree-minimap-width: clamp(5.5rem, 10vw, 8.5rem);
     --tree-map-height: clamp(30rem, 74dvh, 46rem);
@@ -37,7 +38,7 @@
     border-radius: 6px;
     color: var(--tree-text);
     background: var(--tree-bg);
-    color-scheme: light;
+    color-scheme: dark;
     font-family: var(--ar-ui, "Noto Sans JP", sans-serif);
     font-size: .875rem;
 }
@@ -56,16 +57,16 @@
 .ar-tree-sanctum button:disabled { opacity: .45; cursor: default; }
 .ar-tree-sanctum :is(input, button, select, summary, [tabindex]):focus-visible { outline: 2px solid var(--tree-gold); outline-offset: 2px; }
 .ar-player .ar-portal .ar-tree-sanctum label { color: var(--tree-muted); }
-.ar-tree-sanctum .ar-empty { color: var(--tree-muted); }
+.ar-tree-sanctum .ar-empty[data-tree-empty] { color: var(--tree-muted); border-color: var(--tree-line); background: var(--tree-panel); }
 .ar-tree-sanctum .ar-tree-primary,
 .ar-tree-sanctum :is([data-editor-submit], [data-editor-map-action]) {
     border-color: var(--tree-gold-dark);
     background: var(--ar-brass, #dfc37e);
-    color: var(--tree-text);
+    color: var(--tree-primary-ink);
     font-weight: 700;
 }
 .ar-tree-sanctum .ar-tree-primary:not(:disabled):hover,
-.ar-tree-sanctum :is([data-editor-submit], [data-editor-map-action]):not(:disabled):hover { background: #eed597; border-color: var(--tree-gold-dark); color: var(--tree-text); }
+.ar-tree-sanctum :is([data-editor-submit], [data-editor-map-action]):not(:disabled):hover { background: #eed597; border-color: var(--tree-gold-dark); color: var(--tree-primary-ink); }
 
 /* Heading and point ledger. */
 .ar-tree-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem 1.5rem; margin: 0 0 .9rem; }
@@ -197,12 +198,12 @@
     cursor: grab;
     touch-action: none;
     user-select: none;
-    background: radial-gradient(circle, #6e614636 1px, transparent 1.5px) 0 0 / 24px 24px, var(--tree-map);
+    background: radial-gradient(circle, #c8cbbd26 1px, transparent 1.5px) 0 0 / 24px 24px, var(--tree-map);
 }
 .is-panning .ar-tree-viewport, .is-panning .ar-tree-node { cursor: grabbing; }
 .ar-tree-viewport:focus-visible { outline-offset: -3px; }
 .ar-tree-stars { position: absolute; inset: 0; pointer-events: none; }
-.ar-tree-stars > canvas { opacity: .25; }
+.ar-tree-stars > canvas { opacity: .45; }
 .ar-tree-canvas { position: relative; z-index: 1; display: block; width: 100%; height: 100%; }
 .ar-tree-sanctum .ar-tree-map-action { position: absolute; z-index: 3; top: 0; left: 0; visibility: hidden; width: 7rem; max-width: calc(100% - .5rem); padding-inline: .25rem; box-shadow: var(--tree-popover-shadow); font-size: .8125rem; }
 .ar-tree-sanctum .ar-tree-map-action:disabled { opacity: 1; color: var(--tree-muted); background: var(--tree-control); border-color: var(--tree-line-strong); }
@@ -218,7 +219,7 @@
 .ar-tree-mini-node { fill: var(--tree-status-color); }
 .ar-tree-mini-node[data-state="locked"] { fill: var(--tree-muted); }
 .ar-tree-mini-node.is-selected { fill: var(--tree-text); }
-.ar-tree-mini-viewport { fill: #86623420; stroke: var(--tree-gold); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.ar-tree-mini-viewport { fill: color-mix(in srgb, var(--tree-gold) 14%, transparent); stroke: var(--tree-gold); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .ar-tree-node-summary {
     position: absolute;
     z-index: 2;
@@ -298,6 +299,7 @@
 .ar-tree-label-effect { fill: var(--tree-text); font: 14px var(--ar-ui, "Noto Sans JP", sans-serif); }
 .ar-tree-label-cost { fill: var(--tree-gold); font: 700 14px var(--ar-ui, "Noto Sans JP", sans-serif); }
 .ar-tree-label-state { fill: var(--tree-status-color); font: 13px var(--ar-ui, "Noto Sans JP", sans-serif); }
+.ar-tree-node[data-state="locked"] .ar-tree-label-state { fill: var(--tree-muted); }
 .ar-tree-node.is-root .ar-tree-node-frame { stroke-width: 3; }
 .ar-tree-node.is-neighbor .ar-tree-node-aura { stroke: var(--tree-line-strong); }
 .ar-tree-node.is-search-match .ar-tree-node-aura { stroke: var(--tree-teal); }
@@ -363,7 +365,7 @@
 /* Dialogs. */
 .ar-tree-batch-review { width: min(32rem, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); padding: 1.2rem; overflow: auto; border: 1px solid var(--tree-line-strong); border-radius: 6px; color: var(--tree-text); background: var(--tree-panel); box-shadow: var(--tree-popover-shadow); }
 .ar-tree-node-actions { width: min(24rem, calc(100% - 2rem)); }
-.ar-tree-batch-review::backdrop { background: #2e251a70; }
+.ar-tree-batch-review::backdrop { background: #171914a6; }
 .ar-tree-batch-review h3 { margin: 0 0 .5rem; }
 .ar-tree-batch-review ol { max-height: 34dvh; overflow: auto; margin: .75rem 0; padding: .5rem 0 .5rem 1.5rem; border-block: 1px solid var(--tree-line); }
 .ar-tree-batch-review li { margin-block: .3rem; }
