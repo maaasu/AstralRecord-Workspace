@@ -1,5 +1,7 @@
 # Local assistant/tool state
-.claude/
+# .claude/ は settings.json だけ共有。skills は .codex/skills への junction（60_tool/agent-config/link-skills.ps1）
+.claude/*
+!.claude/settings.json
 .codex/tmp/
 
 # IDE and editor metadata
