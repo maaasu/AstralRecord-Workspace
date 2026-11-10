@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/astra_sword",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [-31.02442, 4.61469, 30.17933],
+      "translation": [1.8094, 1.46553, -4.85525],
+      "scale": [0.5082, 0.5082, 0.5082]
+    },
+    "firstperson_lefthand": {
+      "rotation": [148.97558, -4.61469, 149.82067],
+      "translation": [1.8094, 1.46553, -4.85525],
+      "scale": [0.5082, 0.5082, 0.5082]
+    }
+  }
+}

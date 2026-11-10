@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/astra_spear",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [-50.62535, -10.44309, 27.22956],
+      "translation": [2.08472, 0.6525, -4.56806],
+      "scale": [0.28652, 0.28652, 0.28652]
+    },
+    "firstperson_lefthand": {
+      "rotation": [129.37465, 10.44309, 152.77044],
+      "translation": [2.08472, 0.6525, -4.56806],
+      "scale": [0.28652, 0.28652, 0.28652]
+    }
+  }
+}

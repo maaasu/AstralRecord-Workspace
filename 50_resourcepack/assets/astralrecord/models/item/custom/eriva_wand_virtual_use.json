@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/eriva_wand",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [-43.19425, -3.02628, 24.23823],
+      "translation": [1.89422, 1.39765, -5.47759],
+      "scale": [0.56943, 0.56943, 0.56943]
+    },
+    "firstperson_lefthand": {
+      "rotation": [136.80575, 3.02628, 155.76177],
+      "translation": [1.89422, 1.39765, -5.47759],
+      "scale": [0.56943, 0.56943, 0.56943]
+    }
+  }
+}

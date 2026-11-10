@@ -458,6 +458,10 @@ function Add-ItemModelEntries {
                 on_false = $rest
                 on_true = New-JavaModelReference "astralrecord:item/custom/${id}_virtual_use"
             }
+            if ($base.EndsWith('_spear', [StringComparison]::Ordinal)) {
+                # Native spear use also needs its own first-person pose.
+                $model = $virtualModel
+            }
         }
         $displayCases = @()
         if ($item.java_gui_sprite) {

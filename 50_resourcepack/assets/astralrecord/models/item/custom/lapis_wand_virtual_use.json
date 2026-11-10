@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/lapis_wand",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [-43.19425, -3.02628, 24.23823],
+      "translation": [2.17863, 0.94677, -5.03367],
+      "scale": [0.396, 0.396, 0.396]
+    },
+    "firstperson_lefthand": {
+      "rotation": [136.80575, 3.02628, 155.76177],
+      "translation": [2.17863, 0.94677, -5.03367],
+      "scale": [0.396, 0.396, 0.396]
+    }
+  }
+}

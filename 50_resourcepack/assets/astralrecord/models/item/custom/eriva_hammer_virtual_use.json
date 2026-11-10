@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/eriva_hammer",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [-33.95678, 13.54861, 30.90352],
+      "translation": [2.35095, 1.63692, -5.53341],
+      "scale": [0.51612, 0.51612, 0.51612]
+    },
+    "firstperson_lefthand": {
+      "rotation": [146.04322, -13.54861, 149.09648],
+      "translation": [2.35095, 1.63692, -5.53341],
+      "scale": [0.51612, 0.51612, 0.51612]
+    }
+  }
+}

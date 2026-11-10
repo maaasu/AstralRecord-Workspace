@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/lapis_sword",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [-31.02442, 4.61469, 30.17933],
+      "translation": [1.7068, 1.62149, -4.93938],
+      "scale": [0.55939, 0.55939, 0.55939]
+    },
+    "firstperson_lefthand": {
+      "rotation": [148.97558, -4.61469, 149.82067],
+      "translation": [1.7068, 1.62149, -4.93938],
+      "scale": [0.55939, 0.55939, 0.55939]
+    }
+  }
+}

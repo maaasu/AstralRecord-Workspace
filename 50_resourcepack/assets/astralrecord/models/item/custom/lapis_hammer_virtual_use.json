@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/lapis_hammer",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [-33.95678, 13.54861, 30.90352],
+      "translation": [2.55342, 1.32106, -5.37952],
+      "scale": [0.41474, 0.41474, 0.41474]
+    },
+    "firstperson_lefthand": {
+      "rotation": [146.04322, -13.54861, 149.09648],
+      "translation": [2.55342, 1.32106, -5.37952],
+      "scale": [0.41474, 0.41474, 0.41474]
+    }
+  }
+}

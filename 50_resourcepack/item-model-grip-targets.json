@@ -1750,20 +1750,20 @@
   "astralrecord:eriva_wand": {
     "thirdperson_righthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
     "thirdperson_lefthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
-    "firstperson_righthand": { "position": [2.82799, -0.08272, -4.02], "up": [-0.40996, 0.64994, -0.63994] },
-    "firstperson_lefthand": { "position": [-2.82799, -0.08272, -4.02], "up": [0.40996, 0.64994, -0.63994] }
+    "firstperson_righthand": { "position": [0.2594, 0.64946, -1.12], "up": [0.19067, 0.95705, 0.21842], "front": [-0.20491, -0.1788, 0.96231] },
+    "firstperson_lefthand": { "position": [-0.2594, 0.64946, -1.12], "up": [-0.19067, 0.95705, 0.21842], "front": [0.20491, -0.1788, 0.96231] }
   },
   "astralrecord:lapis_wand": {
     "thirdperson_righthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
     "thirdperson_lefthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
-    "firstperson_righthand": { "position": [2.828, -0.08273, -4.02001], "up": [-0.40996, 0.64994, -0.63994] },
-    "firstperson_lefthand": { "position": [-2.828, -0.08273, -4.02001], "up": [0.40996, 0.64994, -0.63994] }
+    "firstperson_righthand": { "position": [-1.73199, 0.64946, -1.12], "up": [0.22075, 0.95017, 0.22012], "front": [0.04429, -0.23522, 0.97093] },
+    "firstperson_lefthand": { "position": [1.73199, 0.64946, -1.12], "up": [-0.22075, 0.95017, 0.22012], "front": [-0.04429, -0.23522, 0.97093] }
   },
   "astralrecord:lumina_wand": {
     "thirdperson_righthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
     "thirdperson_lefthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
-    "firstperson_righthand": { "position": [2.828, -0.08273, -4.02001], "up": [-0.40996, 0.64994, -0.63994] },
-    "firstperson_lefthand": { "position": [-2.828, -0.08273, -4.02001], "up": [0.40996, 0.64994, -0.63994] }
+    "firstperson_righthand": { "position": [-0.18313, 0.64946, -1.12], "up": [0.19802, 0.95563, 0.2181], "front": [-0.01823, -0.21887, 0.97558] },
+    "firstperson_lefthand": { "position": [0.18313, 0.64946, -1.12], "up": [-0.19802, 0.95563, 0.2181], "front": [0.01823, -0.21887, 0.97558] }
   },
   "astralrecord:middle_earth_longbow": {
     "thirdperson_righthand": {
@@ -1918,30 +1918,8 @@
         -0.1736
       ]
     },
-    "firstperson_righthand": {
-      "position": [
-        2.82799,
-        -0.08272,
-        -4.01999
-      ],
-      "up": [
-        -0.52971,
-        0.60966,
-        -0.58968
-      ]
-    },
-    "firstperson_lefthand": {
-      "position": [
-        -2.82799,
-        -0.08272,
-        -4.01999
-      ],
-      "up": [
-        0.52971,
-        0.60966,
-        -0.58968
-      ]
-    }
+    "firstperson_righthand": { "position": [-0.8961, 0.77239, -1.12], "up": [0.12062, 0.92648, 0.35649], "front": [-0.12061, -0.34278, 0.93164] },
+    "firstperson_lefthand": { "position": [0.8961, 0.77239, -1.12], "up": [-0.12062, 0.92648, 0.35649], "front": [0.12061, -0.34278, 0.93164] }
   },
   "astralrecord:nox_armor_legs": {
     "thirdperson_righthand": {
@@ -3078,14 +3056,14 @@
   "astralrecord:nox_sword": {
     "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
     "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
-    "firstperson_righthand": { "position": [2.82558, 0.10872, -2.29236], "up": [-0.24127, 0.96579, 0.09511] },
-    "firstperson_lefthand": { "position": [-2.82558, 0.10872, -2.29236], "up": [0.24127, 0.96579, 0.09511] }
+    "firstperson_righthand": { "position": [-0.01104, 0.82156, -1.12], "up": [0.11508, 0.94728, 0.29903], "front": [-0.18982, -0.27452, 0.94266] },
+    "firstperson_lefthand": { "position": [0.01104, 0.82156, -1.12], "up": [-0.11508, 0.94728, 0.29903], "front": [0.18982, -0.27452, 0.94266] }
   },
   "astralrecord:nox_staff": {
     "thirdperson_righthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
     "thirdperson_lefthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
-    "firstperson_righthand": { "position": [3.08832, -0.15571, -2.75324], "up": [-0.36358, 0.93026, 0.04928] },
-    "firstperson_lefthand": { "position": [-3.08832, -0.15571, -2.75324], "up": [0.36358, 0.93026, 0.04928] }
+    "firstperson_righthand": { "position": [-0.01104, 0.77239, -1.12], "up": [0.09592, 0.92899, 0.35746], "front": [0.32068, 0.31113, -0.89463] },
+    "firstperson_lefthand": { "position": [0.01104, 0.77239, -1.12], "up": [-0.09592, 0.92899, 0.35746], "front": [-0.32068, 0.31113, -0.89463] }
   },
   "astralrecord:anarion_shortbow": {
     "thirdperson_righthand": { "position": [-0.9016, -2.0589, -0.3791], "up": [-0.171, 0.9853, -0.0026] },
@@ -3148,5 +3126,143 @@
       "firstperson_righthand": { "position": [3.4576, 2.81168, -4.85], "up": [0.10645, 0.81543, -0.56899] },
       "firstperson_lefthand": { "position": [-3.4576, 2.81168, -4.85], "up": [-0.10645, 0.81543, -0.56899] }
     }
+  },
+  "astralrecord:simple_weapon": {
+    "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [-0.45357, 0.82156, -1.12], "up": [0.12539, 0.94609, 0.29866], "front": [-0.17311, -0.27555, 0.94557] },
+    "firstperson_lefthand": { "position": [0.45357, 0.82156, -1.12], "up": [-0.12539, 0.94609, 0.29866], "front": [0.17311, -0.27555, 0.94557] }
+  },
+  "astralrecord:middle_earth_hammer": {
+    "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [-1.28946, 0.60029, -1.12], "up": [0.17518, 0.97542, 0.13366], "front": [0.22653, -0.17205, 0.95869] },
+    "firstperson_lefthand": { "position": [1.28946, 0.60029, -1.12], "up": [-0.17518, 0.97542, 0.13366], "front": [-0.22653, -0.17205, 0.95869] }
+  },
+  "astralrecord:middle_earth_wand": {
+    "thirdperson_righthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [0.2594, 0.64946, -1.12], "up": [0.19067, 0.95705, 0.21842], "front": [-0.20491, -0.1788, 0.96231] },
+    "firstperson_lefthand": { "position": [-0.2594, 0.64946, -1.12], "up": [-0.19067, 0.95705, 0.21842], "front": [0.20491, -0.1788, 0.96231] }
+  },
+  "astralrecord:anarion_spear": {
+    "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [1.95577, 0.5757, -1.12], "up": [-0.13791, 0.98103, -0.13623], "front": [0.01143, 0.13912, 0.99021] },
+    "firstperson_lefthand": { "position": [-1.95577, 0.5757, -1.12], "up": [0.13791, 0.98103, -0.13623], "front": [-0.01143, 0.13912, 0.99021] }
+  },
+  "astralrecord:anarion_staff": {
+    "thirdperson_righthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [-0.2323, 0.77239, -1.12], "up": [0.10211, 0.92842, 0.35724], "front": [-0.1445, -0.34146, 0.92872] },
+    "firstperson_lefthand": { "position": [0.2323, 0.77239, -1.12], "up": [-0.10211, 0.92842, 0.35724], "front": [0.1445, -0.34146, 0.92872] }
+  },
+  "astralrecord:sun_crown_staff": {
+    "thirdperson_righthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [-0.8961, 0.77239, -1.12], "up": [0.12062, 0.92648, 0.35649], "front": [-0.12061, -0.34278, 0.93164] },
+    "firstperson_lefthand": { "position": [0.8961, 0.77239, -1.12], "up": [-0.12062, 0.92648, 0.35649], "front": [0.12061, -0.34278, 0.93164] }
+  },
+  "astralrecord:sun_crown_sword": {
+    "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [-0.01104, 0.82156, -1.12], "up": [0.11508, 0.94728, 0.29903], "front": [-0.18982, -0.27452, 0.94266] },
+    "firstperson_lefthand": { "position": [0.01104, 0.82156, -1.12], "up": [-0.11508, 0.94728, 0.29903], "front": [0.18982, -0.27452, 0.94266] }
+  },
+  "astralrecord:eriva_sword": {
+    "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [-0.01104, 0.82156, -1.12], "up": [0.11508, 0.94728, 0.29903], "front": [-0.18982, -0.27452, 0.94266] },
+    "firstperson_lefthand": { "position": [0.01104, 0.82156, -1.12], "up": [-0.11508, 0.94728, 0.29903], "front": [0.18982, -0.27452, 0.94266] }
+  },
+  "astralrecord:eriva_hammer": {
+    "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [-0.74859, 0.62487, -1.12], "up": [0.15623, 0.96977, 0.18746], "front": [0.16411, -0.21264, 0.96325] },
+    "firstperson_lefthand": { "position": [0.74859, 0.62487, -1.12], "up": [-0.15623, 0.96977, 0.18746], "front": [-0.16411, -0.21264, 0.96325] }
+  },
+  "astralrecord:eriva_spear": {
+    "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [1.95577, 0.5757, -1.12], "up": [-0.13791, 0.98103, -0.13623], "front": [0.01143, 0.13912, 0.99021] },
+    "firstperson_lefthand": { "position": [-1.95577, 0.5757, -1.12], "up": [0.13791, 0.98103, -0.13623], "front": [-0.01143, 0.13912, 0.99021] }
+  },
+  "astralrecord:lapis_sword": {
+    "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [-0.01104, 0.82156, -1.12], "up": [0.11508, 0.94728, 0.29903], "front": [-0.18982, -0.27452, 0.94266] },
+    "firstperson_lefthand": { "position": [0.01104, 0.82156, -1.12], "up": [-0.11508, 0.94728, 0.29903], "front": [0.18982, -0.27452, 0.94266] }
+  },
+  "astralrecord:lapis_hammer": {
+    "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [-1.19112, 0.62487, -1.12], "up": [0.16262, 0.96875, 0.18727], "front": [0.18329, -0.21615, 0.959] },
+    "firstperson_lefthand": { "position": [1.19112, 0.62487, -1.12], "up": [-0.16262, 0.96875, 0.18727], "front": [-0.18329, -0.21615, 0.959] }
+  },
+  "astralrecord:lapis_spear": {
+    "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [1.95577, 0.5757, -1.12], "up": [-0.13791, 0.98103, -0.13623], "front": [0.01143, 0.13912, 0.99021] },
+    "firstperson_lefthand": { "position": [-1.95577, 0.5757, -1.12], "up": [0.13791, 0.98103, -0.13623], "front": [-0.01143, 0.13912, 0.99021] }
+  },
+  "astralrecord:lapis_staff": {
+    "thirdperson_righthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [-0.01104, 0.77239, -1.12], "up": [0.09592, 0.92899, 0.35746], "front": [-0.96907, 0.00511, 0.24675] },
+    "firstperson_lefthand": { "position": [0.01104, 0.77239, -1.12], "up": [-0.09592, 0.92899, 0.35746], "front": [0.96907, 0.00511, 0.24675] }
+  },
+  "astralrecord:lumina_sword": {
+    "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [-0.01104, 0.82156, -1.12], "up": [0.11508, 0.94728, 0.29903], "front": [-0.18982, -0.27452, 0.94266] },
+    "firstperson_lefthand": { "position": [0.01104, 0.82156, -1.12], "up": [-0.11508, 0.94728, 0.29903], "front": [0.18982, -0.27452, 0.94266] }
+  },
+  "astralrecord:lumina_hammer": {
+    "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [-1.19112, 0.62487, -1.12], "up": [0.15598, 0.96827, 0.19525], "front": [0.18225, -0.22249, 0.95775] },
+    "firstperson_lefthand": { "position": [1.19112, 0.62487, -1.12], "up": [-0.15598, 0.96827, 0.19525], "front": [-0.18225, -0.22249, 0.95775] }
+  },
+  "astralrecord:lumina_spear": {
+    "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [1.95577, 0.5757, -1.12], "up": [-0.13791, 0.98103, -0.13623], "front": [0.01143, 0.13912, 0.99021] },
+    "firstperson_lefthand": { "position": [-1.95577, 0.5757, -1.12], "up": [0.13791, 0.98103, -0.13623], "front": [-0.01143, 0.13912, 0.99021] }
+  },
+  "astralrecord:lumina_staff": {
+    "thirdperson_righthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [-0.01104, 0.77239, -1.12], "up": [0.09592, 0.92899, 0.35746], "front": [-0.32068, -0.31113, 0.89463] },
+    "firstperson_lefthand": { "position": [0.01104, 0.77239, -1.12], "up": [-0.09592, 0.92899, 0.35746], "front": [0.32068, -0.31113, 0.89463] }
+  },
+  "astralrecord:astra_sword": {
+    "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [-0.01104, 0.82156, -1.12], "up": [0.11508, 0.94728, 0.29903], "front": [-0.18982, -0.27452, 0.94266] },
+    "firstperson_lefthand": { "position": [0.01104, 0.82156, -1.12], "up": [-0.11508, 0.94728, 0.29903], "front": [0.18982, -0.27452, 0.94266] }
+  },
+  "astralrecord:astra_hammer": {
+    "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [-1.41239, 0.62487, -1.12], "up": [0.16581, 0.96823, 0.18717], "front": [0.19308, -0.21799, 0.95666] },
+    "firstperson_lefthand": { "position": [1.41239, 0.62487, -1.12], "up": [-0.16581, 0.96823, 0.18717], "front": [-0.19308, -0.21799, 0.95666] }
+  },
+  "astralrecord:astra_spear": {
+    "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [1.95577, 0.5757, -1.12], "up": [-0.13791, 0.98103, -0.13623], "front": [0.01143, 0.13912, 0.99021] },
+    "firstperson_lefthand": { "position": [-1.95577, 0.5757, -1.12], "up": [0.13791, 0.98103, -0.13623], "front": [-0.01143, 0.13912, 0.99021] }
+  },
+  "astralrecord:astra_wand": {
+    "thirdperson_righthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [-1.28946, 0.64946, -1.12], "up": [0.21625, 0.95186, 0.21724], "front": [0.02624, -0.22809, 0.97329] },
+    "firstperson_lefthand": { "position": [1.28946, 0.64946, -1.12], "up": [-0.21625, 0.95186, 0.21724], "front": [-0.02624, -0.22809, 0.97329] }
+  },
+  "astralrecord:astra_staff": {
+    "thirdperson_righthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
+    "thirdperson_lefthand": { "position": [0, -0.8328, 1.4742], "up": [0, 0.9848, -0.1736] },
+    "firstperson_righthand": { "position": [-0.01104, 0.77239, -1.12], "up": [0.09592, 0.92899, 0.35746], "front": [-0.15218, -0.34121, 0.92759] },
+    "firstperson_lefthand": { "position": [0.01104, 0.77239, -1.12], "up": [-0.09592, 0.92899, 0.35746], "front": [0.15218, -0.34121, 0.92759] }
   }
 }
