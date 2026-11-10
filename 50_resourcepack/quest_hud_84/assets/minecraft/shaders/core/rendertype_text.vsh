@@ -125,19 +125,21 @@ void main() {
     }
 #endif
     // END ASTRALRECORD QUEST HUD
-    // BEGIN ASTRALRECORD LOCATION HUD V3
+    // BEGIN ASTRALRECORD LOCATION HUD V4
 #if 1
     // Shares the Quest negative-ascent window with a disjoint RGB marker range.
-    // Red encodes row count and palette, green is x, and blue encodes row and shadow.
+    // Red encodes row count and palette, green is x.
+    // Blue encodes row (bits 0-3), shadow (bit 4), and performance palette (bit 5).
     int locationRows = questType / 8 + 1;
-    int locationStyle = questType & 7;
+    int locationStyle = (questType & 7) + ((questCode.b & 32) >> 2);
     int locationRow = questCode.b & 15;
-    bool locationShadow = questCode.b >= 16;
+    bool locationShadow = (questCode.b & 16) != 0;
     bool locationIcon = locationStyle == 7;
-    if (questProjection && questType < 128 && questCode.g < 172 && questCode.b < 32
-            && locationRow < locationRows && !(locationShadow && locationIcon)
+    if (questProjection && questType < 128 && questCode.g < 172 && questCode.b < 64
+            && locationStyle < 11 && locationRow < locationRows
+            && !(locationShadow && locationIcon)
             && questScreen.y > questHeight + 4000.0 && questScreen.y < questHeight + 4120.0) {
-        const ivec3 palette[8] = ivec3[8](
+        const ivec3 palette[11] = ivec3[11](
             ivec3(242, 244, 246),
             ivec3(178, 183, 181),
             ivec3(246, 216, 160),
@@ -145,7 +147,10 @@ void main() {
             ivec3(251, 174, 179),
             ivec3(215, 198, 248),
             ivec3(249, 230, 149),
-            ivec3(255, 255, 255));
+            ivec3(255, 255, 255),
+            ivec3(120, 237, 172),
+            ivec3(255, 117, 125),
+            ivec3(255, 224, 107));
         vec2 screen = vec2(2.0 / abs(ProjMat[0][0]), questHeight);
         float right = screen.x - 8.0;
         float height = float(12 * locationRows);
@@ -173,5 +178,5 @@ void main() {
         cylindricalVertexDistance = 0.0;
     }
 #endif
-    // END ASTRALRECORD LOCATION HUD V3
+    // END ASTRALRECORD LOCATION HUD V4
 }

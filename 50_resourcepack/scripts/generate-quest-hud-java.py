@@ -26,8 +26,8 @@ VARIANTS = [
 ]
 START = '    // BEGIN ASTRALRECORD QUEST HUD\n'
 END = '    // END ASTRALRECORD QUEST HUD\n'
-LOCATION_START = '    // BEGIN ASTRALRECORD LOCATION HUD V3\n'
-LOCATION_END = '    // END ASTRALRECORD LOCATION HUD V3\n'
+LOCATION_START = '    // BEGIN ASTRALRECORD LOCATION HUD V4\n'
+LOCATION_END = '    // END ASTRALRECORD LOCATION HUD V4\n'
 WIDTH = 172
 ROW_HEIGHT = 13
 PADDING = 3
@@ -44,8 +44,10 @@ BAR_WIDTH = 18
 BAR_LEFT = LEFT + 122
 TEXT_COLORS = ((255, 215, 140), (242, 244, 246), (167, 238, 220), (185, 193, 201))
 SHAPE_COLORS = ((151, 142, 118), (100, 105, 109), (115, 122, 132), (255, 224, 168), (167, 238, 220))
+# Keep these indices aligned with LocationHudGlyphs.Palette.
 LOCATION_TEXT_COLORS = ((242, 244, 246), (178, 183, 181), (246, 216, 160), (216, 219, 217),
-                        (251, 174, 179), (215, 198, 248), (249, 230, 149), (255, 255, 255))
+                        (251, 174, 179), (215, 198, 248), (249, 230, 149), (255, 255, 255),
+                        (120, 237, 172), (255, 117, 125), (255, 224, 107))
 LOCATION_MAX_ROWS = 16
 LOCATION_ROW_HEIGHT = 12
 LOCATION_TEXT_WIDTH = 9
@@ -171,16 +173,18 @@ def location_injection(version):
     palette = ',\n            '.join(f'ivec3({r}, {g}, {b})' for r, g, b in LOCATION_TEXT_COLORS)
     return LOCATION_START + f'''{guard}
     // Shares the Quest negative-ascent window with a disjoint RGB marker range.
-    // Red encodes row count and palette, green is x, and blue encodes row and shadow.
+    // Red encodes row count and palette, green is x.
+    // Blue encodes row (bits 0-3), shadow (bit 4), and performance palette (bit 5).
     int locationRows = questType / 8 + 1;
-    int locationStyle = questType & 7;
+    int locationStyle = (questType & 7) + ((questCode.b & 32) >> 2);
     int locationRow = questCode.b & 15;
-    bool locationShadow = questCode.b >= 16;
+    bool locationShadow = (questCode.b & 16) != 0;
     bool locationIcon = locationStyle == 7;
-    if (questProjection && questType < 128 && questCode.g < {WIDTH} && questCode.b < 32
-            && locationRow < locationRows && !(locationShadow && locationIcon)
+    if (questProjection && questType < 128 && questCode.g < {WIDTH} && questCode.b < 64
+            && locationStyle < {len(LOCATION_TEXT_COLORS)} && locationRow < locationRows
+            && !(locationShadow && locationIcon)
             && questScreen.y > questHeight + 4000.0 && questScreen.y < questHeight + 4120.0) {{
-        const ivec3 palette[8] = ivec3[8](
+        const ivec3 palette[{len(LOCATION_TEXT_COLORS)}] = ivec3[{len(LOCATION_TEXT_COLORS)}](
             {palette});
         vec2 screen = vec2(2.0 / abs(ProjMat[0][0]), questHeight);
         float right = screen.x - {LEFT}.0;
@@ -353,14 +357,14 @@ def location_placement(width, height, rows):
 
 def location_geometry(marker, width, height):
     red, green, blue = marker
-    if not (0 <= red < 128 and 0 <= green < WIDTH and 0 <= blue < 32):
+    if not (0 <= red < 128 and 0 <= green < WIDTH and 0 <= blue < 64):
         return None
     rows = red // 8 + 1
-    style = red & 7
+    style = (red & 7) + (8 if blue & 32 else 0)
     row = blue & 15
-    shadow = blue >= 16
+    shadow = bool(blue & 16)
     icon = style == 7
-    if row >= rows or (shadow and icon):
+    if style >= len(LOCATION_TEXT_COLORS) or row >= rows or (shadow and icon):
         return None
     left, top, scale = location_placement(width, height, rows)
     x = green + int(shadow)
@@ -393,10 +397,11 @@ def verify_location_geometry():
                 row_top = top + row * LOCATION_ROW_HEIGHT * scale
                 row_bottom = row_top + LOCATION_ROW_HEIGHT * scale
                 for style, color in enumerate(LOCATION_TEXT_COLORS):
-                    red = (rows - 1) * 8 + style
-                    (x, y, w, h), tint = location_geometry((red, 10, row), width, height)
+                    red = (rows - 1) * 8 + (style & 7)
+                    blue = row + (32 if style >= 8 else 0)
+                    (x, y, w, h), tint = location_geometry((red, 10, blue), width, height)
                     assert math.isclose(x, left + 10 * scale) and tint == (*color, 255)
-                    shadow = location_geometry((red, 10, row + 16), width, height)
+                    shadow = location_geometry((red, 10, blue + 16), width, height)
                     if style == 7:
                         assert shadow is None and math.isclose(y, row_top + scale)
                         assert math.isclose(w, 10 * scale) and math.isclose(h, 79 * scale)
@@ -409,7 +414,7 @@ def verify_location_geometry():
                         assert (sw, sh) == (w, h) and math.isclose(sy + sh, row_bottom)
                         assert shade == (*(channel // 4 for channel in color), 255)
     assert location_placement(640, 360, 9) == (460, 48, 1)
-    for marker in ((0, 172, 0), (0, 10, 1), (0, 10, 17), (120, 10, 32), (127, 10, 16),
+    for marker in ((0, 172, 0), (0, 10, 1), (0, 10, 17), (123, 10, 32), (120, 10, 64), (127, 10, 16),
                    (128, 15, 2), (143, 1, 4), (145, 23, 3), (146, 10, 0), (161, 10, 15), (180, 10, 0)):
         assert location_geometry(marker, 640, 360) is None
     print('Location HUD marker bounds, row spacing, shadows and Quest/Profile separation passed.')
@@ -646,7 +651,9 @@ def gpu_check(clients):
                            (255, 255, 255), (220, 11, 0), (219, 25, 10),
                            (0, 10, 0), (0, 10, 16), (0, 10, 17), (0, 172, 0),
                            (65, 84, 24), (66, 10, 24), (67, 150, 24), (68, 84, 24), (69, 25, 24),
-                           (126, 156, 15), (126, 156, 31), (127, 10, 15), (127, 10, 16), (120, 10, 32),
+                           (126, 156, 15), (126, 156, 31), (127, 10, 15), (127, 10, 16),
+                           (64, 150, 32), (65, 150, 40), (66, 150, 56), (122, 156, 63),
+                           (123, 10, 32), (120, 10, 64),
                            (128, 3, 9), (143, 3, 9), (145, 30, 9), (146, 10, 0), (161, 156, 15)]
                 alpha = 204 / 255
                 for marker in markers:
