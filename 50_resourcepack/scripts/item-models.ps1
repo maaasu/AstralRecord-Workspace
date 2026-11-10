@@ -114,7 +114,18 @@ function Add-JavaItemAssets {
         if (!$model.elements -or $textures.Value -cnotcontains $expected) {
             throw "$path must contain 3D elements and use $expected."
         }
-        if ($Grip) { Confirm-JavaItemGrip $model $Grip $GripTargets $path }
+        if ($Grip) {
+            $poseTargets = $GripTargets
+            if ($Bow -and $modelName -cne $Id -and $null -ne $GripTargets.draw) {
+                $poseTargets = @{
+                    thirdperson_righthand = $GripTargets.thirdperson_righthand
+                    thirdperson_lefthand = $GripTargets.thirdperson_lefthand
+                    firstperson_righthand = $GripTargets.draw.firstperson_righthand
+                    firstperson_lefthand = $GripTargets.draw.firstperson_lefthand
+                }
+            }
+            Confirm-JavaItemGrip $model $Grip $poseTargets $path
+        }
         if ($Shield) {
             $blockingPath = "assets/astralrecord/models/item/custom/${Id}_blocking.json"
             Add-PackEntries $Entries $root @($blockingPath)
@@ -141,6 +152,26 @@ function Add-JavaItemAssets {
                     throw "Unresolved face texture $($face.Value.texture) in $path."
                 }
             }
+        }
+    }
+}
+
+function Add-JavaFirstPersonPose {
+    param($Entries, [string] $Id, [string] $Path)
+
+    Add-PackEntries $Entries $root @($Path)
+    $model = ConvertFrom-Json -InputObject ($utf8.GetString($Entries[$Path]))
+    $contexts = @('firstperson_righthand', 'firstperson_lefthand')
+    if ($model.parent -cne "astralrecord:item/custom/$Id" -or
+        ($model.PSObject.Properties.Name | Where-Object { $_ -cnotin @('parent', 'display') }) -or
+        ($model.display.PSObject.Properties.Name | Where-Object { $_ -cnotin $contexts })) {
+        throw "$Path must inherit the $Id model and override only first-person display poses."
+    }
+    foreach ($context in $contexts) {
+        $pose = $model.display.$context
+        if (!(Test-ItemGripVector $pose.rotation) -or !(Test-ItemGripVector $pose.translation) -or
+            !(Test-ItemGripVector $pose.scale)) {
+            throw "$Path must define rotation, translation, and scale for $context."
         }
     }
 }
@@ -375,23 +406,9 @@ function Add-ItemModelEntries {
                 }
             }
         } elseif ($base -ceq 'crossbow' -and $id -ceq 'lapis_longbow') {
-            $firstperson = @('firstperson_righthand', 'firstperson_lefthand')
             foreach ($state in @('charging', 'ready')) {
                 $posePath = "assets/astralrecord/models/item/custom/${id}_${state}.json"
-                Add-PackEntries $JavaEntries $root @($posePath)
-                $poseModel = ConvertFrom-Json -InputObject ($utf8.GetString($JavaEntries[$posePath]))
-                if ($poseModel.parent -cne "astralrecord:item/custom/$id" -or
-                    ($poseModel.PSObject.Properties.Name | Where-Object { $_ -cnotin @('parent', 'display') }) -or
-                    ($poseModel.display.PSObject.Properties.Name | Where-Object { $_ -cnotin $firstperson })) {
-                    throw "$posePath must inherit the crossbow model and override only first-person display poses."
-                }
-                foreach ($context in $firstperson) {
-                    $pose = $poseModel.display.$context
-                    if (!(Test-ItemGripVector $pose.rotation) -or !(Test-ItemGripVector $pose.translation) -or
-                        !(Test-ItemGripVector $pose.scale)) {
-                        throw "$posePath must define rotation, translation, and scale for $context."
-                    }
-                }
+                Add-JavaFirstPersonPose $JavaEntries $id $posePath
             }
             $charging = New-JavaModelReference "astralrecord:item/custom/${id}_charging"
             # Vanilla applies the charged centering offset only to the main hand.
@@ -431,6 +448,17 @@ function Add-ItemModelEntries {
                 on_true = New-JavaModelReference "astralrecord:item/custom/${id}_blocking"
             }
         }
+        $virtualUsePath = "assets/astralrecord/models/item/custom/${id}_virtual_use.json"
+        if ($item.java_virtual_trident -and $base -cne 'trident' -and
+            (Test-Path -LiteralPath (Join-Path $root $virtualUsePath) -PathType Leaf)) {
+            Add-JavaFirstPersonPose $JavaEntries $id $virtualUsePath
+            $virtualModel = [ordered] @{
+                type = 'minecraft:condition'
+                property = 'minecraft:using_item'
+                on_false = $rest
+                on_true = New-JavaModelReference "astralrecord:item/custom/${id}_virtual_use"
+            }
+        }
         $displayCases = @()
         if ($item.java_gui_sprite) {
             # Both editions use the same inventory sprite.
@@ -462,7 +490,7 @@ function Add-ItemModelEntries {
         }
         if ($displayCases.Count -gt 0) {
             $model = New-JavaItemContextSelection $displayCases $model
-            $virtualModel = New-JavaItemContextSelection $displayCases $rest
+            $virtualModel = New-JavaItemContextSelection $displayCases $virtualModel
         }
         if (!$byBase.ContainsKey($base)) {
             $byBase[$base] = [ordered] @{}
@@ -472,7 +500,7 @@ function Add-ItemModelEntries {
             if (!$byBase.ContainsKey('trident')) {
                 $byBase.trident = [ordered] @{}
             }
-            # Action-ring input uses the resting weapon and its optional GUI sprite.
+            # Action-ring input uses the held weapon and its optional GUI sprite.
             $byBase.trident.Add([string] $item.custom_model_data, $virtualModel)
         }
     }

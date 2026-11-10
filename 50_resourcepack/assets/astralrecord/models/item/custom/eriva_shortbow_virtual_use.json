@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/eriva_shortbow",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [145.80915, -6.65305, -173.84783],
+      "translation": [2.51024, 2.95882, -4.81637],
+      "scale": [0.5814, 0.5814, 0.5814]
+    },
+    "firstperson_lefthand": {
+      "rotation": [-34.19085, 6.65305, -6.15217],
+      "translation": [2.51024, 2.95882, -4.81637],
+      "scale": [0.5814, 0.5814, 0.5814]
+    }
+  }
+}

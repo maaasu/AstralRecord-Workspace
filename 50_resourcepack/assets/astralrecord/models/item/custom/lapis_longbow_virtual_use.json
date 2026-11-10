@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/lapis_longbow",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [-22.26631, 2.04595, 8.21966],
+      "translation": [1.9438, 1.24068, -5.10887],
+      "scale": [0.48612, 0.48612, 0.48612]
+    },
+    "firstperson_lefthand": {
+      "rotation": [157.73369, -2.04595, 171.78034],
+      "translation": [1.9438, 1.24068, -5.10887],
+      "scale": [0.48612, 0.48612, 0.48612]
+    }
+  }
+}

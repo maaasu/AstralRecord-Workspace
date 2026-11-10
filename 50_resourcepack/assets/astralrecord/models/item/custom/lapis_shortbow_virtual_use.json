@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/lapis_shortbow",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [145.80915, -6.65305, -173.84783],
+      "translation": [2.23225, 3.00199, -4.8065],
+      "scale": [0.528, 0.528, 0.528]
+    },
+    "firstperson_lefthand": {
+      "rotation": [-34.19085, 6.65305, -6.15217],
+      "translation": [2.23225, 3.00199, -4.8065],
+      "scale": [0.528, 0.528, 0.528]
+    }
+  }
+}

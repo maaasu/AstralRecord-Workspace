@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/astra_shortbow",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [145.80915, -6.65305, -173.84783],
+      "translation": [2.38754, 2.97787, -4.81201],
+      "scale": [0.5857, 0.5857, 0.5857]
+    },
+    "firstperson_lefthand": {
+      "rotation": [-34.19085, 6.65305, -6.15217],
+      "translation": [2.38754, 2.97787, -4.81201],
+      "scale": [0.5857, 0.5857, 0.5857]
+    }
+  }
+}

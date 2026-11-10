@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/sun_crown_bow",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [145.75232, -6.12888, -173.85416],
+      "translation": [2.30269, 2.56397, -4.53133],
+      "scale": [0.50625, 0.50625, 0.50625]
+    },
+    "firstperson_lefthand": {
+      "rotation": [-34.24768, 6.12888, -6.14584],
+      "translation": [2.30269, 2.56397, -4.53133],
+      "scale": [0.50625, 0.50625, 0.50625]
+    }
+  }
+}

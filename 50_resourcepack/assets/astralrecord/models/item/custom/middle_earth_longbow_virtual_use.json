@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/middle_earth_longbow",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [145.81852, -6.73946, -173.84674],
+      "translation": [2.53842, 2.51583, -4.62979],
+      "scale": [0.50192, 0.50192, 0.50192]
+    },
+    "firstperson_lefthand": {
+      "rotation": [-34.18148, 6.73946, -6.15326],
+      "translation": [2.53842, 2.51583, -4.62979],
+      "scale": [0.50192, 0.50192, 0.50192]
+    }
+  }
+}
