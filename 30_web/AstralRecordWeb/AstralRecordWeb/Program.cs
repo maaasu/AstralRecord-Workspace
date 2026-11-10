@@ -218,7 +218,7 @@ builder.Services.AddHttpClient<ResourcePackApiClient>((services, client) =>
     var api = services.GetRequiredService<IOptions<AstralRecordApiOptions>>().Value;
     client.BaseAddress = new Uri(api.BaseUrl);
     client.Timeout = TimeSpan.FromSeconds(20);
-    client.MaxResponseContentBufferSize = 16 * 1024 * 1024;
+    client.MaxResponseContentBufferSize = 32 * 1024 * 1024;
     if (!string.IsNullOrWhiteSpace(api.ApiKey))
         client.DefaultRequestHeaders.Add("X-Api-Key", api.ApiKey);
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
