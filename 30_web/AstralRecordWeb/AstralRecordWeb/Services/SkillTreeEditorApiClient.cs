@@ -10,6 +10,11 @@ public sealed class SkillTreeEditorApiClient(HttpClient httpClient, ILogger<Skil
     public Task<ProfileApiResult<JsonElement>> GetStateAsync(Guid actor, Guid accountId, CancellationToken ct) =>
         SendAsync(HttpMethod.Get, $"/api/skilltree/editor/{accountId:D}?actor_user_id={actor:D}", null, ct);
 
+    /// <summary>就職中以外のクラスを閲覧するため、公開済み定義のクラス一覧と1クラスのノードを取得する。</summary>
+    public Task<ProfileApiResult<JsonElement>> GetClassTreesAsync(Guid actor, Guid accountId, string generationId, string? classId, CancellationToken ct) =>
+        SendAsync(HttpMethod.Get, $"/api/skilltree/editor/{accountId:D}/class-trees?actor_user_id={actor:D}&generation_id={Uri.EscapeDataString(generationId)}"
+            + (string.IsNullOrEmpty(classId) ? string.Empty : $"&class_id={Uri.EscapeDataString(classId)}"), null, ct);
+
     public Task<ProfileApiResult<JsonElement>> SubmitAsync(Guid actor, Guid accountId, SkillTreeOperationInput input, CancellationToken ct) =>
         SendAsync(HttpMethod.Post, $"/api/skilltree/editor/{accountId:D}/operations", new
         {

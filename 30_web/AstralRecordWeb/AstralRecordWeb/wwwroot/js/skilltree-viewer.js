@@ -2,7 +2,7 @@ import { projectNodes, graphBounds, fitCamera, zoomCamera, pinchCamera, wheelZoo
 import { loadIcon } from './minecraft-icons.mjs';
 import { searchNodes } from './skilltree-draft.mjs';
 import { initializeStarfield } from './skilltree-stars.mjs';
-import { nodeClassId, treeClasses, defaultTreeClass, inClassScope } from './skilltree-scope.mjs';
+import { nodeClassId, treeClasses, defaultTreeClass, inClassScope, mergeClassTree, mergeClassLists } from './skilltree-scope.mjs';
 
 // Selection never changes player state. The editor submits explicit server-validated operations.
 const ns = 'http://www.w3.org/2000/svg';
@@ -16,10 +16,51 @@ const make = (tag, attrs = {}, text) => {
     if (text !== undefined) element.textContent = text;
     return element;
 };
+// Other classes come from the published definition through the editor page, only when the player switches to them.
+// The cache lives on the map container so rebuilt viewers keep what was already loaded.
+const remoteStores = new WeakMap();
+function remoteClassSource(viewer) {
+    const host = viewer.closest('[data-skilltree-editor]'), sanctum = viewer.closest('.ar-tree-sanctum');
+    if (!host || !sanctum) return null;
+    let generation = host.dataset.treeGeneration;
+    if (!generation) { try { generation = JSON.parse(host.querySelector('[data-editor-state]')?.textContent || '{}').generationId; } catch { generation = ''; } }
+    if (!generation) return null;
+    let store = remoteStores.get(sanctum);
+    if (!store || store.generation !== generation) { store = { generation, index: null, indexRequest: null, trees: new Map() }; remoteStores.set(sanctum, store); }
+    const request = async classId => {
+        const url = new URL(host.dataset.editorEndpoint || location.href, location.href);
+        url.search = new URLSearchParams({ handler: 'ClassTrees', generationId: generation, ...(classId ? { classId } : {}) });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        try {
+            const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', signal: controller.signal, headers: { Accept: 'application/json' } });
+            if (!response.ok || response.redirected) throw new Error(String(response.status));
+            return await response.json();
+        } finally { clearTimeout(timeout); }
+    };
+    return {
+        generation,
+        index: () => store.index ?? [],
+        loadIndex: () => store.indexRequest ??= request().then(value => (store.index = value.classes ?? []))
+            .catch(() => { store.indexRequest = null; return []; }),
+        fragmentFor: classId => classId ? store.trees.get(classId) ?? null : null,
+        loadFragment: async classId => {
+            if (!store.trees.has(classId)) {
+                const value = await request(classId);
+                if (value.classId !== classId || !value.nodes?.length) throw new Error('class not published');
+                store.trees.set(classId, { nodes: value.nodes, edges: value.edges ?? [] });
+            }
+            return store.trees.get(classId);
+        },
+    };
+}
 export function initializeViewer(viewer, viewState) {
     let tree;
     try { tree = JSON.parse(viewer.querySelector('[data-tree-json]').textContent); } catch { return; }
     if (!Array.isArray(tree.nodes) || !tree.nodes.length) return;
+    const remote = remoteClassSource(viewer);
+    const fragment = remote?.fragmentFor(viewState?.scopeClass);
+    tree = mergeClassTree(tree, fragment);
     const statusCategories = Object.entries(JSON.parse(viewer.querySelector('[data-tree-status-categories]').textContent))
         .sort(([a], [b]) => b.length - a.length);
     const statusName = text => statusCategories.find(([name]) => text.startsWith(name + ' '));
@@ -45,7 +86,7 @@ export function initializeViewer(viewer, viewState) {
     const nodes = new Map(projected.nodes.map(node => [node.nodeId, node]));
     if (!nodes.size) return;
     // Shared nodes plus one class at a time; every class is never drawn together.
-    const classes = treeClasses(tree.nodes);
+    let classes = mergeClassLists(treeClasses(tree.nodes), remote?.index());
     const currentClassId = viewer.closest('.ar-tree-sanctum')?.dataset.treeDefaultClass ?? '';
     let scopeClass = classes.some(entry => entry.id === viewState?.scopeClass) ? viewState.scopeClass : defaultTreeClass(classes, currentClassId);
     const inScope = node => node.nodeId === tree.rootNodeId || inClassScope(node, scopeClass);
@@ -570,8 +611,33 @@ export function initializeViewer(viewer, viewState) {
         cullBounds = null;
         renderClassList();
     };
+    const onMap = classId => [...nodes.values()].some(node => nodeClassId(node) === classId);
+    let loadingClass = null;
+    const loadClass = async classId => {
+        if (!remote || loadingClass) return;
+        loadingClass = classId;
+        scopeLabel.textContent = '読み込み中…';
+        try { await remote.loadFragment(classId); }
+        catch {
+            loadingClass = null;
+            renderClassList();
+            viewer.querySelector('[data-tree-announcement]').textContent = 'クラスのノードを読み込めませんでした。時間をおいて再度お試しください。';
+            scopeLabel.textContent = 'クラスのノードを読み込めませんでした';
+            return;
+        }
+        if (disposed) return;
+        const focused = classList.contains(document.activeElement);
+        const state = { ...viewer.getViewState(), scopeClass: classId, selectedId: tree.rootNodeId };
+        const replacement = viewer.cloneNode(true);
+        replacement.querySelector('[data-tree-stars]')?.replaceChildren();
+        viewer.dispose(); viewer.replaceWith(replacement);
+        initializeViewer(replacement, state);
+        replacement.dispatchEvent(new CustomEvent('skilltree:replaced', { bubbles: true, detail: replacement }));
+        if (focused) replacement.querySelector(`[data-class-id="${classId}"]`)?.focus({ preventScroll: true });
+    };
     const setScope = classId => {
         if (classId === scopeClass || !classes.some(entry => entry.id === classId)) return;
+        if (!onMap(classId)) { loadClass(classId); return; }
         scopeClass = classId;
         applyScope();
         search(false);
@@ -797,7 +863,10 @@ export function initializeViewer(viewer, viewState) {
     viewer.addEventListener('click', event => { if (!event.target.closest('[data-tree-search]')) results.hidden = true; });
     const geometryKey = value => JSON.stringify([value.rootNodeId, value.edges, value.nodes.map(node => [node.nodeId, node.x, node.y, node.z, node.name, node.icon, node.pointType, node.pointCost, node.displayEffects, node.costText])]);
     const originalGeometry = geometryKey(tree);
-    viewer.updateTree = next => {
+    viewer.updateTree = live => {
+        // A new definition generation invalidates the browse-only class; rebuild from the fresh source.
+        if (remote && remoteClassSource(viewer)?.generation !== remote.generation) return false;
+        const next = mergeClassTree(live, fragment);
         if (geometryKey(next) !== originalGeometry) return false;
         // Class membership decides what the map shows; rebuild the viewer when it changes.
         if (next.nodes.some(value => nodes.has(value.nodeId) && nodeClassId(nodes.get(value.nodeId)) !== nodeClassId(value))) return false;
@@ -848,6 +917,12 @@ export function initializeViewer(viewer, viewState) {
     viewer.isInteracting = () => pointers.size > 0 || mapActionPointer !== undefined
         || Boolean(rightPress && !rightPress.released) || Boolean(resizing) || performance.now() < interactionUntil;
     viewer.openDetails = () => setDetailVisible(true);
+    viewer.isReadOnlyNode = nodeId => Boolean(nodes.get(nodeId)?.readOnly);
+    if (remote && !remote.index().length) remote.loadIndex().then(index => {
+        if (disposed || !index.length) return;
+        classes = mergeClassLists(treeClasses([...nodes.values()]), index);
+        renderClassList();
+    });
     const remembered = nodes.get(viewState?.selectedId);
     const initialNode = remembered && inScope(remembered) ? remembered : root;
     showNodeAction = Boolean(viewState?.showNodeAction && initialNode.nodeId === viewState.selectedId);

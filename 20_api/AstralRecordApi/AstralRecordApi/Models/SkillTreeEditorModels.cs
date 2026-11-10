@@ -282,3 +282,40 @@ public sealed class SkillTreeEditorResponse
     public SkillTreeOperationResponse? PendingOperation { get; init; }
     public IReadOnlyList<SkillTreeOperationResponse> PendingOperations { get; init; } = [];
 }
+
+/// <summary>就職中以外のクラスを閲覧するための、公開済み定義から作るクラス別ツリーです。</summary>
+public sealed class SkillTreeClassTreesResponse
+{
+    public required string GenerationId { get; init; }
+    public required IReadOnlyList<SkillTreeClassSummaryResponse> Classes { get; init; }
+    /// <summary>`class_id`を指定した場合だけ返す、そのクラスのノードです。</summary>
+    public string? ClassId { get; init; }
+    public IReadOnlyList<SkillTreeClassNodeResponse> Nodes { get; init; } = [];
+    public IReadOnlyList<WebSkillTreeEdgeResponse> Edges { get; init; } = [];
+}
+
+public sealed class SkillTreeClassSummaryResponse
+{
+    public required string ClassId { get; init; }
+    public required string ClassName { get; init; }
+    public int NodeCount { get; init; }
+    public int UnlockedCount { get; init; }
+}
+
+/// <summary>閲覧専用のノード。解放可否や残高は含めず、保存済みの解放有無だけを返します。</summary>
+public sealed class SkillTreeClassNodeResponse
+{
+    public required string NodeId { get; init; }
+    public required string Name { get; init; }
+    public string? Icon { get; init; }
+    public required string PointType { get; init; }
+    public int PointCost { get; init; }
+    public required string CostText { get; init; }
+    public double X { get; init; }
+    public double Y { get; init; }
+    public double Z { get; init; }
+    public required JsonElement UnlockCondition { get; init; }
+    public required string RequirementText { get; init; }
+    public required IReadOnlyList<string> DisplayEffects { get; init; }
+    public bool IsUnlocked { get; init; }
+}

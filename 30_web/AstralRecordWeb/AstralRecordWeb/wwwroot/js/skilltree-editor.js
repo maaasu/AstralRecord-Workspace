@@ -104,7 +104,8 @@ function startEditor(editor) {
         renderPreferences();
     };
     const rebuildDraft = () => {
-        const key = JSON.stringify([state.tree, state.points, state.relockGoldCost, changes]);
+        // The generation is part of the key so a definition-only change still refreshes browse-only classes.
+        const key = JSON.stringify([state.generationId, state.tree, state.points, state.relockGoldCost, changes]);
         if (key === draftInputKey) return;
         draftInputKey = key; draft = createDraft(state, changes); syncTree();
     };
@@ -134,8 +135,9 @@ function startEditor(editor) {
         const contextAction = q('[data-editor-node-action]');
         const mapAction = q('[data-editor-map-action]');
         if (!node) {
-            const unavailable = reason() || 'ノードの状態を確認できません。';
-            q('[data-editor-node-balance]').hidden = false;
+            const unavailable = (viewer.isReadOnlyNode?.(selectedId) ? 'このクラスのノードは閲覧のみです。就職中のクラスで解放できます。' : '')
+                || reason() || 'ノードの状態を確認できません。';
+            q('[data-editor-node-balance]').hidden = Boolean(viewer.isReadOnlyNode?.(selectedId));
             text('[data-editor-node-balance]', '所持ポイントを確認できません');
             q('[data-editor-source-label]').hidden = true;
             source.disabled = true;
@@ -200,6 +202,8 @@ function startEditor(editor) {
         text('[data-editor-map-action]', mapLabel);
     };
     const render = () => {
+        // The viewer reads other classes from the same definition generation the editor shows.
+        if (editor.dataset.treeGeneration !== (state.generationId ?? '')) editor.dataset.treeGeneration = state.generationId ?? '';
         const fresh = hasBalance();
         const before = fresh ? state.points ?? {} : {}, after = fresh ? draft.points : {};
         text('[data-editor-heading-account]', state.accountName);
@@ -248,6 +252,8 @@ function startEditor(editor) {
             const nextContext = draftContext(next);
             if (changes.length && nextContext !== baseline) { needsReview = true; invalidateConfirmation(); }
             state = next; lastRead = Date.now();
+            // Other-class browsing must follow a new definition generation before the map is rebuilt.
+            editor.dataset.treeGeneration = state.generationId ?? '';
             if (!changes.length) baseline = nextContext;
             if (next.pendingOperation) operation = next.pendingOperation;
             rebuildDraft(); render(); return true;
@@ -304,6 +310,13 @@ function startEditor(editor) {
         text('[data-editor-feedback]', '変更案を更新しました。確認後にまとめて送信できます。');
         sound.play(cue); return true;
     };
+    // Switching to a browse-only class rebuilds the viewer; keep using the live element.
+    // The rebuilt viewer starts from the page's tree, so push the current draft states back into it.
+    editor.addEventListener('skilltree:replaced', event => {
+        viewer = event.detail;
+        draftInputKey = '';
+        rebuildDraft(); renderPreferences(); render();
+    });
     editor.addEventListener('skilltree:select', event => { if (selectedId !== event.detail.nodeId) sourceClassId = ''; selectedId = event.detail.nodeId; renderSelection(); });
     const runNodeAction = requestedAction => {
         renderSelection();

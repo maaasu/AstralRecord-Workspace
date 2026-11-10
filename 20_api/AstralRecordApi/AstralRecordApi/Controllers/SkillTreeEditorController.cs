@@ -17,6 +17,14 @@ public sealed class SkillTreeEditorController(ISkillTreeOperationRepository repo
     public async Task<IActionResult> GetEditor(Guid accountId, [FromQuery(Name = "actor_user_id")] Guid actorUserId, [FromQuery(Name = "target_server_id")] string? targetServerId = null)
         => actorUserId == Guid.Empty ? BadRequest() : await repository.GetEditorAsync(accountId, actorUserId, targetServerId) is { } result ? Ok(result) : NotFound();
 
+    /// <summary>所有アカウントが就職中以外のクラスを閲覧するため、公開済み定義からクラス一覧と1クラスのノードを返す。解放可否は含めない。</summary>
+    [HttpGet("editor/{accountId:guid}/class-trees")]
+    [ProducesResponseType<SkillTreeClassTreesResponse>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetClassTrees(Guid accountId, [FromQuery(Name = "actor_user_id")] Guid actorUserId,
+        [FromQuery(Name = "generation_id")] string? generationId, [FromQuery(Name = "class_id")] string? classId = null)
+        => actorUserId == Guid.Empty || !ValidHash(generationId) || classId is not null && !ValidClassId(classId) ? BadRequest()
+            : await repository.GetClassTreesAsync(accountId, actorUserId, generationId!, classId) is { } result ? Ok(result) : NotFound();
+
     [HttpPost("editor/{accountId:guid}/operations")]
     [ProducesResponseType<SkillTreeOperationResponse>(StatusCodes.Status201Created)]
     public async Task<IActionResult> Create(Guid accountId, [FromBody] SkillTreeOperationCreateRequest request)
@@ -204,6 +212,10 @@ public sealed class SkillTreeEditorController(ISkillTreeOperationRepository repo
                 && assignment.ConsumedClassId == assignment.ConsumedClassId.Trim() && assignment.ConsumedClassId.Length <= 100)
             && request.ConsumedClassAssignments.Select(assignment => assignment.NodeId).Distinct(StringComparer.Ordinal).Count()
                 == request.ConsumedClassAssignments.Count;
+
+    private static bool ValidClassId(string value)
+        => value.Length is > 0 and <= 100 && char.IsAsciiLetterOrDigit(value[0])
+            && value.All(character => char.IsAsciiLetterOrDigit(character) || character is '_' or '-');
 
     private static bool ValidHash(string? value)
         => value?.Length == 64 && value.All(character => character is >= '0' and <= '9' or >= 'a' and <= 'f');

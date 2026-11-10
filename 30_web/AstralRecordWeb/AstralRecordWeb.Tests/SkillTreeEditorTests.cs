@@ -178,6 +178,22 @@ public sealed class SkillTreeEditorTests
         Assert.Contains("data-editor-submit", html);
     }
 
+    [Fact]
+    public async Task ClassTrees_RelaysOnlyForTheSignedInOwner_WithEscapedQuery()
+    {
+        var api = new EditorHandler();
+        await using var factory = new EditorFactory(api);
+        using var client = Client(factory);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(Path + "?handler=ClassTrees&generationId=g")).StatusCode);
+        client.DefaultRequestHeaders.Add("X-Editor-Test-Identity", "yes");
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync(Path + "?handler=ClassTrees")).StatusCode);
+        using var response = await client.GetAsync(Path + "?handler=ClassTrees&generationId=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&classId=hunter%26x%3D1");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("hunter", body.GetProperty("classes")[0].GetProperty("classId").GetString());
+        Assert.Contains(api.Calls, c => c == $"GET /api/skilltree/editor/{AccountId}/class-trees?actor_user_id={Actor}&generation_id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&class_id=hunter%26x%3D1");
+    }
+
     internal static readonly Guid Actor = Guid.Parse("11111111-1111-1111-1111-111111111111");
     internal static readonly Guid AccountId = Guid.Parse("22222222-2222-2222-2222-222222222222");
     internal static string Path => $"/skilltree/{AccountId}";
@@ -234,6 +250,7 @@ public sealed class SkillTreeEditorTests
                 if (Conflict) return new(HttpStatusCode.Conflict) { Content = JsonContent.Create(new { error = "secret-generation" }) };
                 return Json(new { operationId = Submitted.Value.GetProperty("operationId").GetGuid(), status = "PENDING_ONLINE" });
             }
+            if (uri.AbsolutePath.EndsWith("/class-trees")) return Json(new { generationId = "g", classes = new[] { new { classId = "hunter", className = "ハンター", nodeCount = 1, unlockedCount = 0 } }, classId = "hunter", nodes = Array.Empty<object>(), edges = Array.Empty<object>() });
             if (uri.AbsolutePath.Contains("/operations/")) return Json(new { operationId = Guid.Parse(uri.Segments[^1]), status = request.Method == HttpMethod.Delete ? "CANCELED" : "PENDING_ONLINE" });
             return Json(StateOverride ?? Fixture());
         }
