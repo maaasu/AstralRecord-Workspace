@@ -54,6 +54,7 @@ public class MenuView {
     public static final int QUEST_SLOT = MainMenuScreenView.QUEST_SLOT;
     public static final int PLAYER_SETTING_SLOT = MainMenuScreenView.PLAYER_SETTING_SLOT;
     public static final int EQUIPMENT_GUI_SLOT = MainMenuScreenView.EQUIPMENT_GUI_SLOT;
+    public static final int ITEM_PROTECTION_SLOT = MainMenuScreenView.ITEM_PROTECTION_SLOT;
     public static final int TRASH_SLOT = MainMenuScreenView.TRASH_SLOT;
     public static final int GUIDE_SLOT = MainMenuScreenView.GUIDE_SLOT;
     public static final int RETURN_TO_BASE_SLOT = MainMenuScreenView.RETURN_TO_BASE_SLOT;

@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.menu.view;
 
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuIconDefinition;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.ItemProtectionScreenView;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import org.bukkit.Bukkit;
@@ -88,6 +89,8 @@ public record MenuInventoryHolder(
             case EQUIPMENT_GUI -> destination(MenuIconDefinition.EQUIPMENT, "装備");
             case CURRENCY -> destination(MenuIconDefinition.CURRENCY, "カレンシー");
             case GUIDE -> destination(MenuIconDefinition.GUIDE, "ガイド");
+            case ITEM_PROTECTION, ITEM_PROTECTION_ENABLE, ITEM_PROTECTION_DISABLE ->
+                ItemProtectionScreenView.navigationDestination();
             case TRASH, TRASH_CONFIRM -> destination(MenuIconDefinition.TRASH, "ゴミ箱");
             case SELL, SELL_CONFIRM -> new GuiNavigationDestination(Material.EMERALD, "売却");
             case STORAGE -> new GuiNavigationDestination(Material.CHEST, "ストレージ");
@@ -109,7 +112,7 @@ public record MenuInventoryHolder(
     public int getBackSlot() {
         return switch (screen) {
             case MAIN -> MenuView.BACK_SLOT;
-            case CLASS, SELL, STORAGE -> -1;
+            case CLASS, SELL, STORAGE, ITEM_PROTECTION_ENABLE, ITEM_PROTECTION_DISABLE -> -1;
             case TRASH_CONFIRM -> 14;
             case SELL_CONFIRM -> 22;
             default -> MenuView.BACK_SLOT;
