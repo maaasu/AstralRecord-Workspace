@@ -250,7 +250,7 @@ public class PlayerStateUpdateLocksSqlServerTests
                 equipment_instance_id uniqueidentifier NOT NULL CONSTRAINT PK_equipment_instance PRIMARY KEY,
                 account_id uniqueidentifier NOT NULL, item_id nvarchar(100) NOT NULL,
                 enhance_level int NOT NULL, rune_max_slots int NOT NULL, transcendence_rank int NOT NULL,
-                durability_max int NULL, durability_value int NULL,
+                durability_max int NULL, durability_value int NULL, is_protected bit NOT NULL DEFAULT (0),
                 created_at datetime2 NOT NULL, updated_at datetime2 NOT NULL,
                 created_by uniqueidentifier NOT NULL, updated_by uniqueidentifier NOT NULL, is_deleted bit NOT NULL);
             CREATE TABLE dbo.account_mob_record (

@@ -1564,7 +1564,8 @@ public final class OrbService {
             target.instance.getEquipmentInstanceId(), target.instance.getAccountId(), target.instance.getItemId(),
             target.instance.getEnhanceLevel(), target.instance.getRuneMaxSlots(), target.instance.getTranscendenceRank(),
             target.instance.getDurabilityMax(), target.instance.getDurabilityValue(), target.instance.getCreatedAt(),
-            target.instance.getUpdatedAt(), target.instance.getStatRolls(), target.instance.getEnchants(), runes
+            target.instance.getUpdatedAt(), target.instance.getStatRolls(), target.instance.getEnchants(), runes,
+            target.instance.isProtected()
         );
     }
 

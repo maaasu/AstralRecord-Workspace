@@ -461,7 +461,8 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
             EquipmentInstanceId = equipmentIds[instance.EquipmentInstanceId], AccountId = targetAccountId,
             ItemId = instance.ItemId, EnhanceLevel = instance.EnhanceLevel, RuneMaxSlots = instance.RuneMaxSlots,
             TranscendenceRank = instance.TranscendenceRank, DurabilityMax = instance.DurabilityMax,
-            DurabilityValue = instance.DurabilityValue, CreatedAt = now, UpdatedAt = now,
+            DurabilityValue = instance.DurabilityValue, IsProtected = instance.IsProtected,
+            CreatedAt = now, UpdatedAt = now,
             CreatedBy = actorId, UpdatedBy = actorId, IsDeleted = false,
         }));
         if (equipmentIds.Count > 0)

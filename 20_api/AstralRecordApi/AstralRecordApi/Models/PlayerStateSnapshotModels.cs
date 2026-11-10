@@ -120,6 +120,9 @@ public sealed class PlayerStateEquipmentSnapshot
     public int TranscendenceRank { get; init; }
     public int? DurabilityMax { get; init; }
     public int? DurabilityValue { get; init; }
+    /// <summary>null は既存の保護状態を維持する。旧要求の冪等ハッシュを維持するため、null はシリアライズしない。</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? IsProtected { get; init; }
     public IReadOnlyList<PlayerStateEquipmentStatRollSnapshot> StatRolls { get; init; } = [];
     public IReadOnlyList<PlayerStateEquipmentEnchantSnapshot> Enchants { get; init; } = [];
     public IReadOnlyList<PlayerStateEquipmentRuneSnapshot> Runes { get; init; } = [];

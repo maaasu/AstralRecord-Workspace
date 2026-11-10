@@ -71,6 +71,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class MarketGuiEventHandler extends AbstractEventHandler {
     public static final String GOLD_AMOUNT_SOURCE_KEY = "market-listing-price";
     private static final String MARKET_CURRENCY_ID = "gold";
+    private static final String PROTECTED_INSTANCE_ERROR = "market.instance_protected";
     private static final int PAGE_SIZE = MarketGui.CONTENT_SLOT_COUNT;
     private static final int QUERY_PAGE_SIZE = PAGE_SIZE + 1;
     private static final long CANCEL_RECOVERY_INITIAL_DELAY_TICKS = 20L;
@@ -492,7 +493,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
     }
 
     /**
-     * 選択 item の出品案を作り、見積を非同期取得してから価格初期値を表示します。
+     * 保護中の装備を除いた選択 item の出品案を作り、見積を非同期取得してから価格初期値を表示します。
      *
      * @param event 選択クリック
      * @param player 操作プレイヤー
@@ -534,6 +535,11 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         }
 
         boolean instanceListing = entry.getInstanceId() != null;
+        if (instanceListing && inventoryService.isEquipmentProtected(entry.getInstanceId().toString())) {
+            messageService.send(player, PlayerMsgId.P_5680);
+            GuiSound.DENY.play(player);
+            return;
+        }
         List<MarketListingSource> sourceEntries = new ArrayList<>();
         long maxQuantity;
         if (instanceListing) {
@@ -840,7 +846,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
     }
 
     /**
-     * 売値超を事前確認し、保存 lane で出品を確定します。
+     * 装備の保護状態と価格範囲を事前確認し、保存 lane で出品を確定します。
      *
      * @param player 操作プレイヤー
      * @param session 現在のマーケットセッション
@@ -853,6 +859,11 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
     ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || session.busy) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (draft.instanceId() != null && inventoryService.isEquipmentProtected(draft.instanceId().toString())) {
+            messageService.send(player, PlayerMsgId.P_5680);
             GuiSound.DENY.play(player);
             return;
         }
@@ -1129,17 +1140,21 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
 
     /**
      * 出品確定時点の正本 state から、通常アイテム共通消費順の source を再解決します。
-     * 個体品だけは選択した instance の entry ID を保持し、スタック品はクリック元を消費元に固定しません。
+     * 装備は保護状態を再確認して選択時の entry ID を保持し、スタック品はクリック元を消費元に固定しません。
      *
      * @param astPlayer 出品操作中のプレイヤー
      * @param draft 出品設定
      * @return API へ送信する source entry 一覧
+     * @throws IllegalStateException 選択した装備が保護中の場合
      */
     private @NotNull List<MarketListingSource> resolveListingSources(
         @NotNull AstPlayer astPlayer,
         @NotNull MarketListingDraft draft
     ) {
         if (draft.instanceId() != null) {
+            if (inventoryService.isEquipmentProtected(draft.instanceId().toString())) {
+                throw new IllegalStateException(PROTECTED_INSTANCE_ERROR);
+            }
             return draft.selectedSources();
         }
         List<MarketListingSource> currentSources = inventoryService.getOwnedStackEntries(
@@ -2147,7 +2162,9 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             cause = cause.getCause();
         }
         String message = cause.getMessage();
-        if (draft != null && message != null && message.contains("market.price_guard_rejected")) {
+        if (message != null && message.contains(PROTECTED_INSTANCE_ERROR)) {
+            messageService.send(player, PlayerMsgId.P_5680);
+        } else if (draft != null && message != null && message.contains("market.price_guard_rejected")) {
             sendListingPriceRejection(player, draft);
         } else if (message != null && message.contains("market.insufficient_gold")) {
             messageService.send(player, PlayerMsgId.P_6307);

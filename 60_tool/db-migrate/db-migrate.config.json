@@ -2047,6 +2047,20 @@
         "checkConstraints": [],
         "indexes": []
       }
+    },
+    {
+      "id": "20261110_equipment_protection",
+      "fileName": "20261110_equipment_protection.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "equipment_instance",
+        "primaryKey": "PK_equipment_instance",
+        "columns": [
+          { "name": "is_protected", "sqlType": "bit", "maxLengthBytes": 1, "isNullable": false }
+        ],
+        "checkConstraints": [],
+        "indexes": []
+      }
     }
   ]
 }

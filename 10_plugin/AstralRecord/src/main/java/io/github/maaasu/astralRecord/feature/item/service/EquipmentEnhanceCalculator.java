@@ -79,7 +79,8 @@ final class EquipmentEnhanceCalculator {
         return new EquipmentInstance(
             current.getEquipmentInstanceId(), current.getAccountId(), current.getItemId(), level,
             current.getRuneMaxSlots(), current.getTranscendenceRank(), durabilityMax, durabilityValue,
-            current.getCreatedAt(), current.getUpdatedAt(), current.getStatRolls(), current.getEnchants(), current.getRunes()
+            current.getCreatedAt(), current.getUpdatedAt(), current.getStatRolls(), current.getEnchants(),
+            current.getRunes(), current.isProtected()
         );
     }
 

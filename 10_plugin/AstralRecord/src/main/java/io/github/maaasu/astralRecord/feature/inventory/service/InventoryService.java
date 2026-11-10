@@ -5507,6 +5507,199 @@ public class InventoryService {
         saveEquipSlotSnapshot(player);
     }
 
+    /**
+     * バッグ、ホットバー、装備中の保護対象を個体単位の表示用アイテムとして返します。
+     *
+     * @param astPlayer 所持品を表示する通常プレイヤー
+     * @return ロード済みで選択可能な装備の一覧
+     */
+    public @NotNull List<ItemStack> snapshotEquipmentProtectionItems(@NotNull AstPlayer astPlayer) {
+        PlayerInventoryState state = getEquipmentProtectionState(astPlayer);
+        if (state == null) {
+            return List.of();
+        }
+        synchronized (state) {
+            return equipmentProtectionEntries(state).values().stream()
+                .map(entry -> itemStackResolver.resolve(entry, state.getAccountId()))
+                .filter(Objects::nonNull)
+                .toList();
+        }
+    }
+
+    /**
+     * 選択した装備が現在も操作可能か確認し、現在の保護状態を返します。
+     *
+     * @param astPlayer 所有者
+     * @param equipmentInstanceId 対象装備の個体ID
+     * @return 保護状態。未ロード、予約中、または選択可能な所有装備でなければ null
+     */
+    public @Nullable Boolean getEquipmentProtection(
+        @NotNull AstPlayer astPlayer,
+        @NotNull String equipmentInstanceId
+    ) {
+        PlayerInventoryState state = getEquipmentProtectionState(astPlayer);
+        UUID instanceId = parseUuidOrNull(equipmentInstanceId);
+        if (state == null || instanceId == null) {
+            return null;
+        }
+        synchronized (state) {
+            if (!equipmentProtectionEntries(state).containsKey(instanceId)) {
+                return null;
+            }
+            EquipmentInstance instance = itemService.findLoadedEquipmentInstanceById(instanceId.toString());
+            return instance != null && state.getAccountId().toString().equalsIgnoreCase(instance.getAccountId())
+                ? instance.isProtected() : null;
+        }
+    }
+
+    /**
+     * メインスレッドで現在の所有装備を検証して保護設定を反映し、保存を非同期キューに登録します。
+     *
+     * @param astPlayer 操作する所有者
+     * @param equipmentInstanceId 対象装備の個体ID
+     * @param protectedItem 設定する保護状態
+     * @return 設定を受理した場合 true
+     */
+    public boolean setEquipmentProtected(
+        @NotNull AstPlayer astPlayer,
+        @NotNull String equipmentInstanceId,
+        boolean protectedItem
+    ) {
+        PlayerInventoryState state = getEquipmentProtectionState(astPlayer);
+        UUID instanceId = parseUuidOrNull(equipmentInstanceId);
+        if (state == null || instanceId == null) {
+            return false;
+        }
+        UUID accountId = state.getAccountId();
+        EquipmentInstance updated;
+        try {
+            synchronized (state) {
+                updated = saveCoordinator.executeLocalMutation(accountId, () -> {
+                    if (getState(accountId) != state || !equipmentProtectionEntries(state).containsKey(instanceId)) {
+                        return null;
+                    }
+                    return itemService.setLoadedEquipmentProtection(accountId, instanceId.toString(), protectedItem);
+                });
+            }
+        } catch (InventorySaveCoordinator.ExternalOperationPendingException ignored) {
+            return false;
+        }
+        if (updated == null) {
+            return false;
+        }
+        saveNow(accountId);
+        refreshEquipmentInstanceDisplay(astPlayer, updated);
+        return true;
+    }
+
+    /** 操作するプレイヤーが現在の通常プレイ用アカウントを保持している場合だけ state を返します。 */
+    private @Nullable PlayerInventoryState getEquipmentProtectionState(@NotNull AstPlayer astPlayer) {
+        return AccountModeGuard.isGameplayPlayer(astPlayer) && AstPlayerCache.get(astPlayer.getBukkit()) == astPlayer
+            ? getState(astPlayer.getAccount().getUuid()) : null;
+    }
+
+    /** 通常インベントリとアクティブな装備枠から、予約されていない個体を重複なく集めます。 */
+    private @NotNull Map<UUID, InventoryEntryModel> equipmentProtectionEntries(@NotNull PlayerInventoryState state) {
+        Map<UUID, InventoryEntryModel> equipment = new LinkedHashMap<>();
+        EquipmentLoadoutModel loadout = state.findActiveLoadout(DEFAULT_PROFILE);
+        boolean usesLoadout = loadout != null && !loadout.getSlots().isEmpty();
+        List<InventoryType> sources = usesLoadout
+            ? List.of(InventoryType.BAG, InventoryType.HOTBAR)
+            : List.of(InventoryType.BAG, InventoryType.HOTBAR, InventoryType.EQUIP_SLOT);
+        for (InventoryType type : sources) {
+            InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, type);
+            if (inventory == null || !inventory.isEnabled() || inventory.isDeleted()) {
+                continue;
+            }
+            for (InventoryEntryModel entry : state.snapshotEntries(inventory.getInventoryId())) {
+                UUID instanceId = equipmentProtectionInstanceId(entry);
+                if (instanceId != null && !entry.isDeleted() && entry.getQuantity() > 0
+                    && reservedQuantity(state.getAccountId(), entry.getInventoryEntryId()) == 0) {
+                    equipment.putIfAbsent(instanceId, entry);
+                }
+            }
+        }
+        if (usesLoadout) {
+            for (EquipmentLoadoutSlotModel slot : loadout.getSlots()) {
+                if (!slot.isDeleted() && slot.getEquipmentInstanceId() != null) {
+                    equipment.putIfAbsent(slot.getEquipmentInstanceId(), toInventoryEntry(slot));
+                }
+            }
+        }
+        return equipment;
+    }
+
+    /** 通常品やペットの識別子と区別して、装備の個体IDを取得します。 */
+    private static @Nullable UUID equipmentProtectionInstanceId(@Nullable InventoryEntryModel entry) {
+        return entry != null && InventoryInstanceType.EQUIPMENT.getCode().equalsIgnoreCase(entry.getInstanceType())
+            ? entry.getInstanceId() : null;
+    }
+
+    /**
+     * 破棄・移管対象の装備個体が保護されているか判定します。
+     *
+     * @param equipmentInstanceId 装備の個体ID。通常品は null
+     * @return 保護中、または装備の保存状態を確認できない場合は true
+     */
+    public boolean isEquipmentProtected(@Nullable String equipmentInstanceId) {
+        if (equipmentInstanceId == null) {
+            return false;
+        }
+        EquipmentInstance instance = itemService.findLoadedEquipmentInstanceById(equipmentInstanceId);
+        return instance == null || instance.isProtected();
+    }
+
+    /**
+     * 破棄・移管候補に保持された装備の最新の保護状態を確認します。
+     *
+     * @param item 装備IDを持つ表示アイテム、または通常品
+     * @return 保護中、または装備の保存状態を確認できない場合は true
+     */
+    public boolean isEquipmentProtected(@Nullable ItemStack item) {
+        return item != null && isEquipmentProtected(ItemStackFactory.getEquipmentInstanceId(item));
+    }
+
+    /**
+     * Bukkit の表示スロットに対応する所有エントリから装備の保護状態を確認します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param bukkitSlot バッグまたはホットバーの Bukkit スロット番号
+     * @return 保護中、または装備の保存状態を確認できない場合は true
+     */
+    public boolean isOwnedEquipmentProtected(@NotNull AstPlayer astPlayer, int bukkitSlot) {
+        UUID instanceId = equipmentProtectionInstanceId(getOwnedEntryAtBukkitSlot(astPlayer, bukkitSlot));
+        return instanceId != null && isEquipmentProtected(instanceId.toString());
+    }
+
+    /**
+     * ゴミ箱・売却の投入で、保護判定と所有エントリの取り出しを同じ state lock 内で行います。
+     *
+     * @param astPlayer 操作する所有者
+     * @param bukkitSlot バッグまたはホットバーの Bukkit スロット番号
+     * @param amount 取り出す数量
+     * @param matchAllOwned 通常品の同種スタックも対象にする場合 true
+     * @return 取り出したアイテム。保護中または取り出し不可の場合は null
+     */
+    public @Nullable ItemStack takeUnprotectedOwnedItemAmount(
+        @NotNull AstPlayer astPlayer,
+        int bukkitSlot,
+        int amount,
+        boolean matchAllOwned
+    ) {
+        PlayerInventoryState state = getEquipmentProtectionState(astPlayer);
+        if (state == null) {
+            return null;
+        }
+        synchronized (state) {
+            if (isOwnedEquipmentProtected(astPlayer, bukkitSlot)) {
+                return null;
+            }
+            return matchAllOwned
+                ? takeOwnedMatchingItemAmount(astPlayer, bukkitSlot, amount)
+                : takeOwnedItemAmount(astPlayer, bukkitSlot, amount);
+        }
+    }
+
     public List<EquipmentLoadoutModel> getEquipmentLoadouts(@NotNull UUID accountId) {
         PlayerInventoryState state = getState(accountId);
         return state == null ? List.of() : state.snapshotLoadouts(DEFAULT_PROFILE);
@@ -7884,6 +8077,59 @@ public class InventoryService {
             return null;
         }
         return returnResolvedItemToOwnedInventory(astPlayer, itemReferenceResolver.resolve(itemStack), itemStack.getAmount());
+    }
+
+    /**
+     * 確定前に保護が判明した装備を返却します。バッグが満杯でも容量外の枠へ保持します。
+     *
+     * @param astPlayer 返却先の所有者
+     * @param stack 一時保持していた装備
+     * @return 返却先。所有者または状態を確認できない場合は null
+     */
+    public @Nullable InventoryType returnProtectedEquipmentToOwnedInventory(
+        @NotNull AstPlayer astPlayer,
+        @NotNull ItemStack stack
+    ) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        PlayerInventoryState state = getState(accountId);
+        String instanceKey = ItemStackFactory.getEquipmentInstanceId(stack);
+        UUID instanceId = instanceKey == null ? null : parseUuidOrNull(instanceKey);
+        if (state == null || instanceId == null || stack.getAmount() != 1) {
+            return null;
+        }
+        synchronized (state) {
+            EquipmentInstance instance = itemService.findLoadedEquipmentInstanceById(instanceKey);
+            if (instance == null || !accountId.toString().equalsIgnoreCase(instance.getAccountId())) {
+                return null;
+            }
+            for (InventoryModel inventory : state.snapshotInventories()) {
+                if (!inventory.isDeleted() && state.snapshotEntries(inventory.getInventoryId()).stream()
+                    .anyMatch(entry -> !entry.isDeleted() && instanceId.equals(equipmentProtectionInstanceId(entry)))) {
+                    return inventory.getInventoryType();
+                }
+            }
+            for (EquipmentLoadoutModel loadout : state.snapshotLoadouts(DEFAULT_PROFILE)) {
+                if (loadout.getSlots().stream().anyMatch(slot ->
+                    !slot.isDeleted() && instanceId.equals(slot.getEquipmentInstanceId()))) {
+                    return InventoryType.BAG;
+                }
+            }
+
+            InventoryModel bag = ensureInventory(state, InventoryType.BAG);
+            List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(bag.getInventoryId()));
+            Set<Integer> occupiedSlots = collectUsedSlots(state, bag);
+            Integer slot = findNextFreeSlot(bag, occupiedSlots);
+            if (slot == null) {
+                entries.stream().filter(entry -> !entry.isDeleted()).map(InventoryEntryModel::getSlotIndex)
+                    .filter(Objects::nonNull).forEach(occupiedSlots::add);
+                slot = findNextBagOverflowSlot(occupiedSlots, inventoryCapacity(bag));
+            }
+            entries.add(newEntry(bag.getInventoryId(), slot, ItemCategory.EQUIPMENT.name(), instance.getItemId(),
+                InventoryInstanceType.EQUIPMENT.getCode(), instanceId, 1L, null, accountId));
+            state.replaceEntries(bag.getInventoryId(), entries);
+        }
+        saveNow(accountId);
+        return InventoryType.BAG;
     }
 
     /**

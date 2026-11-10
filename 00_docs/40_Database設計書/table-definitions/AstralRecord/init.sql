@@ -1120,6 +1120,7 @@ CREATE TABLE [dbo].[equipment_instance] (
     [transcendence_enchant_max_slots] INT                  NULL,
     [durability_max]         INT                   NULL,
     [durability_value]       INT                   NULL,
+    [is_protected]           BIT               NOT NULL  CONSTRAINT [DF_equipment_instance_is_protected]     DEFAULT (0),
     [created_at]             DATETIME2(3)      NOT NULL,
     [updated_at]             DATETIME2(3)      NOT NULL,
     [created_by]             UNIQUEIDENTIFIER  NOT NULL,

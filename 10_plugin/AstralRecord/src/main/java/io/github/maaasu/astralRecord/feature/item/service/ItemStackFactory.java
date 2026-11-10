@@ -1530,6 +1530,9 @@ public class ItemStackFactory {
             lore.add("");
         }
 
+        if (instance.isProtected()) {
+            lore.add(PlayerMsgResource.getMessage(PlayerMsgId.P_5681.getId()));
+        }
         appendSaleValueLore(lore, model);
         appendTooltipFooter(lore, model);
         return lore;

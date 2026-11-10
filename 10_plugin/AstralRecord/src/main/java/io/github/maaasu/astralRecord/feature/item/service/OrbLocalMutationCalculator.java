@@ -295,7 +295,7 @@ final class OrbLocalMutationCalculator {
         @NotNull List<EquipmentRune> runes) {
         return new EquipmentInstance(current.getEquipmentInstanceId(), current.getAccountId(), current.getItemId(), enhanceLevel,
             runeMaxSlots, transcendenceRank, durabilityMax, durabilityValue, current.getCreatedAt(), current.getUpdatedAt(),
-            current.getStatRolls(), List.copyOf(enchants), List.copyOf(runes));
+            current.getStatRolls(), List.copyOf(enchants), List.copyOf(runes), current.isProtected());
     }
 
     private static @Nullable EnchantEquipmentType enchantEquipmentType(@Nullable ItemEquipmentSlot slot) {

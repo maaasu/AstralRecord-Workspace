@@ -750,7 +750,7 @@ public class AccountRepositoryTests
             });
             setup.EquipmentInstances.Add(new EquipmentInstanceEntity
             {
-                EquipmentInstanceId = equipmentId, AccountId = sourceAccountId, ItemId = "sword", EnhanceLevel = 2,
+                EquipmentInstanceId = equipmentId, AccountId = sourceAccountId, ItemId = "sword", EnhanceLevel = 2, IsProtected = true,
                 CreatedAt = now, UpdatedAt = now, CreatedBy = sourceUserId, UpdatedBy = sourceUserId,
             });
             setup.EquipmentInstanceEnchants.Add(new EquipmentInstanceEnchantEntity
@@ -804,7 +804,8 @@ public class AccountRepositoryTests
         Assert.Equal(2, clonedEnchant.SlotIndex);
         Assert.Equal("enchant003", clonedEnchant.EnchantMasterId);
         Assert.Equal(20, clonedEnchant.Value);
-        Assert.True(await dbContext.EquipmentInstances.AnyAsync(row => row.AccountId == cloned.Account.Uuid));
+        Assert.True(await dbContext.EquipmentInstances.AnyAsync(row =>
+            row.AccountId == cloned.Account.Uuid && row.EquipmentInstanceId == cloneEntry.InstanceId && row.IsProtected));
         var cloneState = await dbContext.AccountSkillTreeStates.SingleAsync(row => row.AccountId == cloned.Account.Uuid);
         Assert.True(await dbContext.AccountSkillTreeUnlockedNodes.AnyAsync(row => row.AccountSkillTreeStateId == cloneState.AccountSkillTreeStateId));
         var cloneLearnedSkillId = await dbContext.AccountLearnedSkills

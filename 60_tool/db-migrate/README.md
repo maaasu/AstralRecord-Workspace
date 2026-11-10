@@ -6,6 +6,8 @@
 
 既存のゲームDBまたはHistoryDBへ、対応する manifest に明示された本番 migration だけを順番に適用し、適用後のテーブル・列・型・NULL性・主キー・check制約・索引キー順を検査する。
 
+装備個体の保護は `20261110_equipment_protection.sql` をAPI更新前にゲームDBへ適用する。既存行の `is_protected` は `0` で初期化する。APIと全RPG Pluginを対応版へ更新してからプレイヤーに保護機能を提供する。
+
 ## 実行
 
 ```powershell

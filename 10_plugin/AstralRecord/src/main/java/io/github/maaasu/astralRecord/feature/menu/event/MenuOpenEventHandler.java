@@ -10,11 +10,13 @@ import io.github.maaasu.astralRecord.feature.guide.model.GuideStep;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BuffScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.GuideScreenView;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.ItemProtectionScreenView;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.item.service.ItemTransferSupport;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutAction;
@@ -37,8 +39,11 @@ import io.github.maaasu.astralRecord.feature.storage.service.StorageService;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
 import io.github.maaasu.astralRecord.feature.world.service.ReturnToBaseService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
+import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiSupport;
+import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndEvent;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
@@ -56,6 +61,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -88,6 +94,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler
 
     private final AstralRecord plugin;
     private final MenuView menuView;
+    private final ItemProtectionScreenView itemProtectionScreenView = new ItemProtectionScreenView();
     private final InventoryService inventoryService;
     private final CurrencyService currencyService;
     private final CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler;
@@ -383,7 +390,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler
                 handleCurrencyClick(event, player);
                 return;
             }
-            if (handleCurrencyItemClick(event, player)) {
+            boolean itemProtection = menuScreen != null && menuScreen.isItemProtection();
+            if (!itemProtection && handleCurrencyItemClick(event, player)) {
                 return;
             }
 
@@ -408,7 +416,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler
                 if (menuScreen == MenuScreen.EQUIPMENT_GUI) {
                     return;
                 }
-                if (handleMenuHotbarShortcutClick(event, player)) {
+                if (!itemProtection && handleMenuHotbarShortcutClick(event, player)) {
                     return;
                 }
                 handleMenuClick(event);
@@ -532,13 +540,15 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         }
 
         switch (screen) {
-            case MAIN -> handleMainMenuClick(player, event.getRawSlot());
+            case MAIN -> handleMainMenuClick(event, player);
             case BUFF -> handleBuffClick(player, event.getRawSlot());
             case CLASS -> handleClassClick(player, event.getCurrentItem(), event.getRawSlot());
             case EQUIPMENT_GUI -> {
             }
             case CURRENCY -> handleCurrencyClick(event, player);
             case GUIDE -> handleGuideClick(event, player);
+            case ITEM_PROTECTION, ITEM_PROTECTION_ENABLE, ITEM_PROTECTION_DISABLE ->
+                handleItemProtectionClick(event, player, screen);
             case TRASH, TRASH_CONFIRM -> GuiSound.DENY.play(player);
             default -> GuiSound.DENY.play(player);
         }
@@ -549,7 +559,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler
     }
 
     /** メインメニューの各機能へ委譲し、効果の前後ボタンでは閲覧者自身のHUDを切り替えます。 */
-    private void handleMainMenuClick(@NotNull Player player, int rawSlot) {
+    private void handleMainMenuClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
+        int rawSlot = event.getRawSlot();
         if (rawSlot == MenuView.SIDEBAR_BUFF_PREVIOUS_SLOT || rawSlot == MenuView.SIDEBAR_BUFF_NEXT_SLOT) {
             AstPlayer astPlayer = AstPlayerCache.get(player);
             boolean handled = astPlayer != null && playerHudService.changeSidebarBuffPage(
@@ -594,6 +605,14 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         if (rawSlot == MenuView.EQUIPMENT_GUI_SLOT) {
             GuiSound.SELECT.play(player);
             openEquipmentGui(player);
+            return;
+        }
+        if (rawSlot == MenuView.ITEM_PROTECTION_SLOT) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null && isOrdinaryClick(event)) {
+                GuiSound.SELECT.play(player);
+                openItemProtectionList(astPlayer, 0);
+            }
             return;
         }
         if (rawSlot == MenuView.TRASH_SLOT) {
@@ -676,6 +695,110 @@ public class MenuOpenEventHandler extends AbstractEventHandler
             return;
         }
         GuiSound.DENY.play(player);
+    }
+
+    /** 一覧の表示用コピーを取得し、指定ページへ遷移します。 */
+    private void openItemProtectionList(@NotNull AstPlayer astPlayer, int pageIndex) {
+        Player player = astPlayer.getBukkit();
+        List<ItemStack> items = inventoryService.snapshotEquipmentProtectionItems(astPlayer);
+        switchGuiWithoutInventoryReload(player, () -> itemProtectionScreenView.openList(player, items, pageIndex));
+    }
+
+    /** 両版の通常クリックだけで一覧の選択・ページ移動・保護確認を行います。 */
+    private void handleItemProtectionClick(
+        @NotNull InventoryClickEvent event, @NotNull Player player, @NotNull MenuScreen screen
+    ) {
+        Inventory inventory = event.getView().getTopInventory();
+        int rawSlot = event.getRawSlot();
+        if (rawSlot < 0 || rawSlot >= inventory.getSize() || !isOrdinaryClick(event)) {
+            return;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            return;
+        }
+        if (screen != MenuScreen.ITEM_PROTECTION) {
+            handleItemProtectionConfirmation(astPlayer, inventory, rawSlot, screen == MenuScreen.ITEM_PROTECTION_ENABLE);
+            return;
+        }
+
+        if (rawSlot == PagedGuiView.PREVIOUS_SLOT || rawSlot == PagedGuiView.NEXT_SLOT) {
+            List<ItemStack> items = inventoryService.snapshotEquipmentProtectionItems(astPlayer);
+            int page = GuiPagination.normalizePage(menuView.getPageIndex(inventory), items.size(),
+                PagedGuiView.CONTENT_SLOT_COUNT);
+            int next = page + (rawSlot == PagedGuiView.PREVIOUS_SLOT ? -1 : 1);
+            if (next == GuiPagination.normalizePage(next, items.size(), PagedGuiView.CONTENT_SLOT_COUNT)) {
+                GuiSound.PAGE.play(player);
+                switchGuiWithoutInventoryReload(player, () -> itemProtectionScreenView.openList(player, items, next));
+            } else {
+                GuiSound.DENY.play(player);
+            }
+            return;
+        }
+
+        ItemStack clicked = event.getCurrentItem();
+        if (rawSlot >= PagedGuiView.CONTENT_SLOT_COUNT || clicked == null) {
+            return;
+        }
+        String instanceId = ItemStackFactory.getEquipmentInstanceId(clicked);
+        if (instanceId == null) {
+            return;
+        }
+        Boolean protectedItem = inventoryService.getEquipmentProtection(astPlayer, instanceId);
+        List<ItemStack> items = inventoryService.snapshotEquipmentProtectionItems(astPlayer);
+        ItemStack preview = items.stream()
+            .filter(item -> instanceId.equals(ItemStackFactory.getEquipmentInstanceId(item)))
+            .findFirst()
+            .orElse(null);
+        if (protectedItem == null || preview == null) {
+            notifyItemProtectionUnavailable(player);
+            switchGuiWithoutInventoryReload(
+                player, () -> itemProtectionScreenView.openList(player, items, menuView.getPageIndex(inventory))
+            );
+            return;
+        }
+        GuiSound.CONFIRM.play(player);
+        switchGuiWithoutInventoryReload(
+            player, () -> itemProtectionScreenView.openConfirm(player, preview, instanceId, !protectedItem)
+        );
+    }
+
+    /** 確定時に対象の所有状態を照合してから変更し、選択元のページへ戻ります。 */
+    private void handleItemProtectionConfirmation(
+        @NotNull AstPlayer astPlayer, @NotNull Inventory inventory, int rawSlot, boolean protect
+    ) {
+        Player player = astPlayer.getBukkit();
+        if (rawSlot == ConfirmDialogView.CONFIRM_SLOT) {
+            String instanceId = menuView.getContentId(inventory);
+            if (instanceId != null && inventoryService.setEquipmentProtected(astPlayer, instanceId, protect)) {
+                GuiSound.TOGGLE.play(player);
+            } else {
+                notifyItemProtectionUnavailable(player);
+            }
+        } else if (rawSlot == ConfirmDialogView.CANCEL_SLOT) {
+            GuiSound.SELECT.play(player);
+        } else {
+            return;
+        }
+
+        Inventory previous = astPlayer.getGuiNavigationState().getPreviousGui();
+        if (previous != null && menuView.getMenuScreen(previous) == MenuScreen.ITEM_PROTECTION) {
+            itemProtectionScreenView.renderList(
+                previous, inventoryService.snapshotEquipmentProtectionItems(astPlayer), menuView.getPageIndex(previous)
+            );
+        }
+        switchGuiWithoutInventoryReload(player, () -> plugin.getGuiNavigationService().openPrevious(player));
+    }
+
+    /** 一覧や確認画面で対象装備を変更できなかったことを通知します。 */
+    private void notifyItemProtectionUnavailable(@NotNull Player player) {
+        GuiSound.DENY.play(player);
+        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5691);
+    }
+
+    /** クリックとタップに対応する通常の左右入力だけを受け付けます。 */
+    private boolean isOrdinaryClick(@NotNull InventoryClickEvent event) {
+        return event.getClick() == ClickType.LEFT || event.getClick() == ClickType.RIGHT;
     }
 
     private void handleGuideClick(@NotNull InventoryClickEvent event, @NotNull Player player) {

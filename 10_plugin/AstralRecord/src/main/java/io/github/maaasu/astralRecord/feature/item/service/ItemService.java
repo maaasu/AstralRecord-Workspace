@@ -722,6 +722,35 @@ public class ItemService {
     }
 
     /**
+     * ロード済みの装備個体を所有者と照合し、保護設定を保存対象へ登録します。
+     *
+     * @param accountId 操作する所有者
+     * @param instanceId 対象装備の個体ID
+     * @param protectedItem 設定する保護状態
+     * @return 更新後の個体。未ロードまたは所有者が異なる場合は null
+     */
+    public @Nullable EquipmentInstance setLoadedEquipmentProtection(
+        @NotNull UUID accountId,
+        @NotNull String instanceId,
+        boolean protectedItem
+    ) {
+        String key = normalize(instanceId);
+        synchronized (equipmentStateMutex) {
+            EquipmentInstance current = loadedEquipmentInstances.get(key);
+            if (current == null || !accountId.toString().equalsIgnoreCase(current.getAccountId())) {
+                return null;
+            }
+            if (current.isProtected() == protectedItem) {
+                return current;
+            }
+            EquipmentInstance updated = current.withProtection(protectedItem);
+            loadedEquipmentInstances.put(key, updated);
+            markEquipmentStateDirty(key, updated);
+            return updated;
+        }
+    }
+
+    /**
      * 重要操作の保存失敗時に、対象アカウントの装備 cache と dirty 世代を操作前へ戻す補償を返します。
      */
     public @NotNull Runnable captureEquipmentStateRollback(@NotNull UUID accountId) {
@@ -890,7 +919,8 @@ public class ItemService {
             loaded.getUpdatedAt(),
             loaded.getStatRolls(),
             loaded.getEnchants(),
-            loaded.getRunes()
+            loaded.getRunes(),
+            loaded.isProtected()
         );
         loadedEquipmentInstances.put(key, merged);
         long revision = ++durabilityRevision;
@@ -958,7 +988,8 @@ public class ItemService {
                 current.getUpdatedAt(),
                 current.getStatRolls(),
                 current.getEnchants(),
-                current.getRunes()
+                current.getRunes(),
+                current.isProtected()
             );
             loadedEquipmentInstances.put(normalizedId, updated);
             markEquipmentStateDirty(normalizedId, updated);
@@ -1159,7 +1190,7 @@ public class ItemService {
             current.getEquipmentInstanceId(), current.getAccountId(), current.getItemId(),
             current.getEnhanceLevel(), current.getRuneMaxSlots(), current.getTranscendenceRank(),
             current.getDurabilityMax(), current.getDurabilityValue(), current.getCreatedAt(), updatedAt,
-            current.getStatRolls(), current.getEnchants(), current.getRunes()
+            current.getStatRolls(), current.getEnchants(), current.getRunes(), current.isProtected()
         );
     }
 

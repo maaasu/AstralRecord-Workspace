@@ -631,6 +631,7 @@ public class EquipmentOrbOperationSqlServerIntegrationTests
                 transcendence_rank int NOT NULL,
                 durability_max int NULL,
                 durability_value int NULL,
+                is_protected bit NOT NULL DEFAULT (0),
                 created_at datetime2 NOT NULL,
                 updated_at datetime2 NOT NULL,
                 created_by uniqueidentifier NOT NULL,
