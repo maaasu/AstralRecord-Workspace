@@ -21,6 +21,15 @@
         17.48,
         8.52
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.5,
+          0.55,
+          7.48
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -90,6 +99,15 @@
         5.92,
         8.72
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.3,
+          1.45,
+          7.28
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -159,6 +177,15 @@
         1.69,
         8.88
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.14,
+          1.16,
+          7.12
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -228,6 +255,15 @@
         6.24,
         8.88
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.14,
+          5.7,
+          7.12
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -297,6 +333,15 @@
         0.86,
         8.82
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.2,
+          0.18,
+          7.18
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -366,6 +411,15 @@
         15.1,
         8.71
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.31,
+          12.5,
+          7.29
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -435,6 +489,15 @@
         12.72,
         8.89
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.13,
+          12.2,
+          7.11
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -504,6 +567,15 @@
         17.4,
         9
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7,
+          14.83,
+          7
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -573,6 +645,15 @@
         17.17,
         8.77
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.48,
+          16.1,
+          7.23
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -642,6 +723,15 @@
         19.8,
         8.55
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.61,
+          17,
+          7.45
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -711,6 +801,15 @@
         19.72,
         8.32
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.18,
+          17.32,
+          7.68
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -780,6 +879,15 @@
         19.72,
         8.32
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          9.31,
+          17.32,
+          7.68
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -849,6 +957,15 @@
         21.68,
         8.49
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.97,
+          19.69,
+          7.51
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -918,6 +1035,15 @@
         21.68,
         8.29
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.65,
+          19.68,
+          7.71
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -987,6 +1113,15 @@
         21.68,
         8.29
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.95,
+          19.68,
+          7.71
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1056,6 +1191,15 @@
         22.96,
         8.39
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.35,
+          21.57,
+          7.61
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1125,6 +1269,15 @@
         23.79,
         8.3
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.69,
+          22.85,
+          7.7
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1194,6 +1347,15 @@
         21.31,
         7.52
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.56,
+          17.3,
+          7.24
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1263,6 +1425,15 @@
         16.41,
         7.85
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.45,
+          15.34,
+          6.91
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1332,6 +1503,15 @@
         21.31,
         8.76
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.56,
+          17.3,
+          8.48
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1401,6 +1581,15 @@
         16.41,
         9.09
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.45,
+          15.34,
+          8.15
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1469,6 +1658,705 @@
         9.1,
         17,
         9.17
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.9,
+          16.54,
+          6.83
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Front luminous head ridge",
+      "from": [
+        7.71,
+        17.55,
+        7.06
+      ],
+      "to": [
+        8.29,
+        22.49,
+        7.32
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            5.25,
+            2.75,
+            7.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            5.25,
+            2.75,
+            7.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Back luminous head ridge",
+      "from": [
+        7.71,
+        17.55,
+        8.68
+      ],
+      "to": [
+        8.29,
+        22.49,
+        8.94
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            5.25,
+            2.75,
+            7.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            5.25,
+            2.75,
+            7.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Front mint blade maker tick",
+      "from": [
+        7.25,
+        18.42,
+        7.04
+      ],
+      "to": [
+        8.75,
+        18.72,
+        7.34
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Back mint blade maker tick",
+      "from": [
+        7.25,
+        18.42,
+        8.66
+      ],
+      "to": [
+        8.75,
+        18.72,
+        8.96
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Left socket pale fin",
+      "from": [
+        6.04,
+        16.62,
+        7.53
+      ],
+      "to": [
+        6.57,
+        17.23,
+        8.47
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Right socket pale fin",
+      "from": [
+        9.43,
+        16.62,
+        7.53
+      ],
+      "to": [
+        9.96,
+        17.23,
+        8.47
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Shaft middle silver ferrule",
+      "from": [
+        7.15,
+        9.33,
+        7.15
+      ],
+      "to": [
+        8.85,
+        9.72,
+        8.85
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            7.75,
+            0.25,
+            9.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip upper mint ring",
+      "from": [
+        7.16,
+        5.7,
+        7.16
+      ],
+      "to": [
+        8.84,
+        6.03,
+        8.84
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            10.25,
+            0.25,
+            12.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Head silver point glint",
+      "from": [
+        7.79,
+        22.91,
+        7.69
+      ],
+      "to": [
+        8.21,
+        23.31,
+        8.31
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Socket front polished rivet",
+      "from": [
+        7.65,
+        16.34,
+        6.68
+      ],
+      "to": [
+        8.35,
+        16.77,
+        7.02
       ],
       "faces": {
         "north": {

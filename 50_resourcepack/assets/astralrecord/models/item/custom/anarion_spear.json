@@ -21,6 +21,15 @@
         16.6,
         8.64
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.36,
+          0.85,
+          7.36
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -90,6 +99,15 @@
         5.27,
         8.78
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.22,
+          2.9,
+          7.22
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -159,6 +177,15 @@
         3.02,
         8.82
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.18,
+          2.62,
+          7.18
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -228,6 +255,15 @@
         5.56,
         8.82
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.18,
+          5.16,
+          7.18
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -297,6 +333,15 @@
         1.2,
         8.83
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.17,
+          0.35,
+          7.17
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -366,6 +411,15 @@
         0.4,
         8.61
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.39,
+          0.12,
+          7.39
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -435,6 +489,15 @@
         17.29,
         8.96
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.04,
+          15.09,
+          7.04
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -504,6 +567,15 @@
         15.32,
         9.06
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.86,
+          14.83,
+          6.94
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -573,6 +645,15 @@
         20.7,
         8.62
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.14,
+          17.24,
+          7.38
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -642,6 +723,15 @@
         19.89,
         8.4
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.57,
+          17.64,
+          7.6
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -711,6 +801,15 @@
         19.89,
         8.4
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.82,
+          17.64,
+          7.6
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -780,6 +879,15 @@
         17.89,
         8.43
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.97,
+          17.26,
+          7.57
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -849,6 +957,15 @@
         17.89,
         8.43
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.53,
+          17.26,
+          7.57
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -918,6 +1035,15 @@
         21.47,
         8.54
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.44,
+          20.67,
+          7.46
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -987,6 +1113,15 @@
         22.22,
         8.35
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.73,
+          21.44,
+          7.65
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1056,6 +1191,15 @@
         20.74,
         8.36
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.95,
+          19.86,
+          7.64
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1125,6 +1269,15 @@
         20.74,
         8.36
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.51,
+          19.86,
+          7.64
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1194,6 +1347,15 @@
         16.94,
         7.06
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.3,
+          15.6,
+          6.81
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1263,6 +1425,15 @@
         16.94,
         9.15
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.3,
+          15.6,
+          8.94
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1332,6 +1503,15 @@
         15.05,
         8.35
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.61,
+          13.35,
+          7.65
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1401,6 +1581,15 @@
         15.05,
         8.35
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          9.02,
+          14.09,
+          7.65
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1470,6 +1659,15 @@
         14.16,
         8.35
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          9.02,
+          13.35,
+          7.65
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1539,6 +1737,15 @@
         15.17,
         8.43
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          9.06,
+          14.89,
+          7.57
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
@@ -1591,6 +1798,696 @@
             2.75,
             4.75,
             4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Front copper spear midrib",
+      "from": [
+        7.74,
+        17.33,
+        7.13
+      ],
+      "to": [
+        8.26,
+        20.65,
+        7.4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Back copper spear midrib",
+      "from": [
+        7.74,
+        17.33,
+        8.6
+      ],
+      "to": [
+        8.26,
+        20.65,
+        8.87
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Left sunblade basal flare",
+      "from": [
+        6.66,
+        17.18,
+        7.64
+      ],
+      "to": [
+        7.13,
+        18.03,
+        8.36
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Right sunblade basal flare",
+      "from": [
+        8.87,
+        17.18,
+        7.64
+      ],
+      "to": [
+        9.34,
+        18.03,
+        8.36
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Front sun socket raised rim",
+      "from": [
+        7.11,
+        15.26,
+        6.68
+      ],
+      "to": [
+        8.89,
+        15.57,
+        7.05
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            5.25,
+            2.75,
+            7.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            5.25,
+            2.75,
+            7.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Back sun socket raised rim",
+      "from": [
+        7.11,
+        15.26,
+        8.95
+      ],
+      "to": [
+        8.89,
+        15.57,
+        9.32
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Pennant upper gold tip",
+      "from": [
+        8.83,
+        14.49,
+        7.43
+      ],
+      "to": [
+        9.44,
+        15.06,
+        8.57
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            2.75,
+            4.75,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Pennant lower crimson tail",
+      "from": [
+        8.51,
+        12.89,
+        7.46
+      ],
+      "to": [
+        9.08,
+        13.74,
+        8.54
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            12.75,
+            0.25,
+            14.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.25,
+            2.75,
+            2.25,
+            4.75
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Shaft copper middle band",
+      "from": [
+        7.21,
+        7.63,
+        7.21
+      ],
+      "to": [
+        8.79,
+        8.04,
+        8.79
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.25,
+            0.25,
+            2.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            5.25,
+            0.25,
+            7.25,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Spear tip gold terminal",
+      "from": [
+        7.81,
+        22.14,
+        7.71
+      ],
+      "to": [
+        8.19,
+        22.58,
+        8.29
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.75,
+            0.25,
+            4.75,
+            2.25
           ],
           "texture": "#surface"
         }
