@@ -36,6 +36,7 @@ final class LocationHudGlyphs {
     private static final int MAX_CHALLENGE_ROWS = 8;
     private static final int MAX_BUFF_ROWS = 5;
     private static final int SHADOW_ROW_OFFSET = 16;
+    private static final int PERFORMANCE_PALETTE_OFFSET = 32;
     private static final String PARTICIPANT_SEPARATOR = "、";
 
     private LocationHudGlyphs() {
@@ -59,7 +60,7 @@ final class LocationHudGlyphs {
         return List.copyOf(rows);
     }
 
-    /** ワールド名、エリア・Lv、任意の性能情報を右端に揃えます。 */
+    /** ワールド名、エリア・金色のLv、任意の性能情報を右端に揃えます。 */
     private static List<Row> locationRows(String world, String area, int level, @Nullable Performance performance) {
         String unknown = message(HudMsgId.P_5673);
         String worldName = ColorCodeUtil.toPlainText(world, unknown).strip();
@@ -74,7 +75,7 @@ final class LocationHudGlyphs {
         String levelText = "Lv." + Math.max(0, level);
         int levelLeft = RIGHT - textWidth(levelText);
         rows.add(new Row(right(areaName, LEFT, levelLeft - 6, Palette.SECONDARY),
-                right(levelText, levelLeft, RIGHT, Palette.SECONDARY)));
+                right(levelText, levelLeft, RIGHT, Palette.GOLD)));
 
         if (performance != null) {
             rows.add(performanceRow(performance));
@@ -93,9 +94,9 @@ final class LocationHudGlyphs {
         int msptRight = pingLeft - 9;
         int msptValueLeft = Math.max(LEFT + textWidth(msptLabel) + 3, msptRight - textWidth(msptValue));
         return new Row(right(msptLabel, LEFT, msptValueLeft - 3, Palette.GRAY),
-                right(msptValue, msptValueLeft, msptRight, performance.msptColor()),
+                right(msptValue, msptValueLeft, msptRight, Palette.performanceColor(performance.msptStatus())),
                 left(pingLabel, pingLeft, pingValueLeft - 3, Palette.GRAY),
-                right(pingValue, pingValueLeft, RIGHT, performance.pingColor()));
+                right(pingValue, pingValueLeft, RIGHT, Palette.performanceColor(performance.pingStatus())));
     }
 
     /** ボスを優先し、ダンジョンでは部屋進捗や帰還待ちも含めます。 */
@@ -205,7 +206,9 @@ final class LocationHudGlyphs {
             for (Label label : row.labels()) {
                 List<Integer> glyphs = TEXT.fit(label.text(), label.right() - label.left());
                 int x = label.rightAligned() ? label.right() - TEXT.width(glyphs) : label.left();
-                TEXT.appendLine(result, glyphs, x, rowIndex, textMarker + label.palette().ordinal(), SHADOW_ROW_OFFSET);
+                int palette = label.palette().ordinal();
+                int encodedRow = rowIndex + (palette >= 8 ? PERFORMANCE_PALETTE_OFFSET : 0);
+                TEXT.appendLine(result, glyphs, x, encodedRow, textMarker + (palette & 7), SHADOW_ROW_OFFSET);
             }
         }
         return result.build();
@@ -259,25 +262,23 @@ final class LocationHudGlyphs {
         return PlayerMsgResource.getMessage(id.getId());
     }
 
-    private enum Palette { WHITE, GRAY, GOLD, SECONDARY, RED, PURPLE, YELLOW, ICON }
+    /** 列挙順は現在地HUDシェーダーのパレット番号と一致させます。 */
+    private enum Palette {
+        WHITE, GRAY, GOLD, SECONDARY, RED, PURPLE, YELLOW, ICON,
+        PERFORMANCE_GREEN, PERFORMANCE_RED, PERFORMANCE_YELLOW;
+
+        /**
+         * @param status 性能値の状態色
+         * @return 状態色に対応するHUD色
+         */
+        private static Palette performanceColor(NamedTextColor status) {
+            if (status == NamedTextColor.RED) return PERFORMANCE_RED;
+            if (status == NamedTextColor.YELLOW) return PERFORMANCE_YELLOW;
+            return PERFORMANCE_GREEN;
+        }
+    }
 
     record Performance(double mspt, int ping, NamedTextColor msptStatus, NamedTextColor pingStatus) {
-        /** @return MSPTの状態色をパック用パレットへ変換した値 */
-        private Palette msptColor() {
-            return color(msptStatus);
-        }
-
-        /** @return Pingの状態色をパック用パレットへ変換した値 */
-        private Palette pingColor() {
-            return color(pingStatus);
-        }
-
-        /** @return 性能値の状態色に対応するHUD色 */
-        private static Palette color(NamedTextColor status) {
-            if (status == NamedTextColor.RED) return Palette.RED;
-            if (status == NamedTextColor.YELLOW) return Palette.YELLOW;
-            return Palette.SECONDARY;
-        }
     }
 
     record Row(List<Label> labels, int icon) {

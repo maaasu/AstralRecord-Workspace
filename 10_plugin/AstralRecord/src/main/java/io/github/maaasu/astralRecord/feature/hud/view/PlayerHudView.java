@@ -26,6 +26,7 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
@@ -669,7 +670,7 @@ public class PlayerHudView {
         lines.add(ColorCodeUtil.GREEN + "エリア" + ColorCodeUtil.GRAY + ": "
                 + ColorCodeUtil.toLegacyText(regionName, "不明"));
         lines.add(ColorCodeUtil.GOLD + "エリアレベル" + ColorCodeUtil.GRAY + ": "
-                + "Lv." + ColorCodeUtil.YELLOW + Math.max(0, regionLevel));
+                + ColorCodeUtil.GOLD + "Lv." + Math.max(0, regionLevel));
         if (showPlayerDetails) {
             lines.add(buildSeparator("player"));
             String playerLevelLine = ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv."
@@ -716,17 +717,18 @@ public class PlayerHudView {
     }
 
     /**
-     * サイドバーの先頭、またはオンライン人数の直後へ性能情報を追加します。
+     * サイドバーの先頭、またはオンライン人数の直後へ、状態色付きの性能値を追加します。
      * @param lines サイドバー表示行
      * @param start 性能表示の挿入位置
      * @param mspt 現在のMSPT
      * @param ping 現在の通信遅延
      */
     private void addPerformanceLines(List<String> lines, int start, double mspt, int ping) {
-        lines.add(start, msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.WHITE + String.format(Locale.ROOT, "%.1f", mspt));
-        lines.add(start + 1, pingLegacyColor(ping) + "PING" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.WHITE + ping + "ms");
+        var serializer = LegacyComponentSerializer.legacySection();
+        lines.add(start, ColorCodeUtil.GRAY + "MSPT: " + serializer.serialize(
+                Component.text(String.format(Locale.ROOT, "%.1f", mspt), msptTextColor(mspt))));
+        lines.add(start + 1, ColorCodeUtil.GRAY + "PING: " + serializer.serialize(
+                Component.text(ping + "ms", pingTextColor(ping))));
     }
 
     /**
@@ -1067,18 +1069,6 @@ public class PlayerHudView {
 
     private String buildSeparator(String label) {
         return ColorCodeUtil.DARK_AQUA + "◈─── " + label + " ───◈";
-    }
-
-    private String msptLegacyColor(double mspt) {
-        if (mspt <= 25.0D) return ColorCodeUtil.GREEN;
-        if (mspt <= 40.0D) return ColorCodeUtil.YELLOW;
-        return ColorCodeUtil.RED;
-    }
-
-    private String pingLegacyColor(int ping) {
-        if (ping < 50) return ColorCodeUtil.GREEN;
-        if (ping < 100) return ColorCodeUtil.YELLOW;
-        return ColorCodeUtil.RED;
     }
 
     private NamedTextColor msptTextColor(double mspt) {
