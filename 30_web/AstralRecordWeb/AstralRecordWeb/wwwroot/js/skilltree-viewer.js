@@ -2,6 +2,7 @@ import { projectNodes, graphBounds, fitCamera, zoomCamera, pinchCamera, wheelZoo
 import { loadIcon } from './minecraft-icons.mjs';
 import { searchNodes } from './skilltree-draft.mjs';
 import { initializeStarfield } from './skilltree-stars.mjs';
+import { nodeClassId, treeClasses, defaultTreeClass, inClassScope } from './skilltree-scope.mjs';
 
 // Selection never changes player state. The editor submits explicit server-validated operations.
 const ns = 'http://www.w3.org/2000/svg';
@@ -43,17 +44,20 @@ export function initializeViewer(viewer, viewState) {
     const artScaleFor = (node, visualScale) => nodeArtScale(visualScale, node.nearest * layoutScale);
     const nodes = new Map(projected.nodes.map(node => [node.nodeId, node]));
     if (!nodes.size) return;
-    let bounds = graphBounds(projected.nodes);
+    // Shared nodes plus one class at a time; every class is never drawn together.
+    const classes = treeClasses(tree.nodes);
+    const currentClassId = viewer.closest('.ar-tree-sanctum')?.dataset.treeDefaultClass ?? '';
+    let scopeClass = classes.some(entry => entry.id === viewState?.scopeClass) ? viewState.scopeClass : defaultTreeClass(classes, currentClassId);
+    const inScope = node => node.nodeId === tree.rootNodeId || inClassScope(node, scopeClass);
+    const scopedNodes = () => [...nodes.values()].filter(inScope);
+    let bounds = graphBounds(scopedNodes());
     const viewport = viewer.querySelector('.ar-tree-viewport');
     const mapAction = viewport.querySelector('[data-editor-map-action]');
     const sanctum = viewer.closest('.ar-tree-sanctum');
     const lifecycle = new AbortController();
     const starsContainer = viewport.querySelector('[data-tree-stars]');
     starsContainer.replaceChildren();
-    const atmosphere = viewport.querySelector('[data-tree-atmosphere]').content.cloneNode(true);
-    const video = atmosphere.querySelector('video');
-    starsContainer.append(atmosphere);
-    const stars = initializeStarfield(starsContainer, video);
+    const stars = initializeStarfield(starsContainer, null);
     const motionButton = viewer.querySelector('[data-tree-motion]');
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     let motionPaused = false;
@@ -75,7 +79,7 @@ export function initializeViewer(viewer, viewState) {
     let detailWidth = viewState?.detailWidth, resizing = null;
     if (detailWidth !== undefined) layout.style.setProperty('--tree-detail-size', `${detailWidth}px`);
     const detailLimits = () => {
-        const max = Math.round(layout.clientWidth * .55);
+        const max = Math.round(layout.clientWidth * .45);
         return { min: Math.min(240, max), max };
     };
     const updateResizeHandle = () => {
@@ -192,7 +196,7 @@ export function initializeViewer(viewer, viewState) {
         graph.append(line);
         const miniLine = make('line', { class: 'ar-tree-mini-edge' });
         minimap.append(miniLine);
-        const link = { line, miniLine, source: source.nodeId, target: target.nodeId };
+        const link = { line, miniLine, source: source.nodeId, target: target.nodeId, inScope: true };
         placeEdge(link);
         links.push(link);
     }
@@ -270,11 +274,11 @@ export function initializeViewer(viewer, viewState) {
         cullBounds = { x0, y0, x1, y1, zoom: camera.zoom };
         for (const [id, group] of groups) {
             const node = nodes.get(id);
-            const shown = node.px >= x0 && node.px <= x1 && node.py >= y0 - (90 + (node.labelExtent ?? 200)) * artScale && node.py <= y1;
+            const shown = inScope(node) && node.px >= x0 && node.px <= x1 && node.py >= y0 - (90 + (node.labelExtent ?? 200)) * artScale && node.py <= y1;
             if (visibleNodes.get(id) !== shown) { group.style.display = shown ? '' : 'none'; visibleNodes.set(id, shown); }
         }
         for (const edge of links) {
-            const shown = edge.maxX >= x0 && edge.minX <= x1 && edge.maxY >= y0 && edge.minY <= y1;
+            const shown = edge.inScope && edge.maxX >= x0 && edge.minX <= x1 && edge.maxY >= y0 && edge.minY <= y1;
             if (visibleEdges.get(edge.line) !== shown) { edge.line.style.display = shown ? '' : 'none'; visibleEdges.set(edge.line, shown); }
         }
         }
@@ -334,13 +338,20 @@ export function initializeViewer(viewer, viewState) {
         viewer.querySelector('[data-node-cost]').textContent = nodeCost(node);
         effects.replaceChildren(...(node.displayEffects?.length ? node.displayEffects : ['追加効果の指定はありません']).map(effectItem));
         const connections = viewer.querySelector('[data-node-connections]'); connections.replaceChildren();
-        for (const other of neighbors.get(node.nodeId)) {
+        const linked = neighbors.get(node.nodeId), hiddenLinks = linked.filter(other => !inScope(other)).length;
+        for (const other of linked.filter(inScope)) {
             const button = document.createElement('button'); button.type = 'button';
+            button.dataset.state = nodeStatus(other);
             button.textContent = other.name;
             button.addEventListener('click', () => { selectNode(other); focusNode(other); });
             connections.append(button);
         }
         if (!connections.childElementCount) connections.textContent = '表示中の接続ノードはありません';
+        if (hiddenLinks) {
+            const note = document.createElement('small');
+            note.textContent = `ほかに別クラスのノードへ ${hiddenLinks} 件つながっています`;
+            connections.append(note);
+        }
         const icon = viewer.querySelector('[data-node-icon]'), fallback = viewer.querySelector('[data-node-icon-fallback]');
         icon.hidden = true; fallback.hidden = false;
         icon.removeAttribute('src');
@@ -403,10 +414,10 @@ export function initializeViewer(viewer, viewState) {
             g.setAttribute('aria-haspopup', 'dialog');
             g.setAttribute('aria-keyshortcuts', 'Shift+F10');
         }
-        g.append(make('circle', { r: 53, class: 'ar-tree-node-aura', 'aria-hidden': 'true' }));
-        g.append(make('circle', { r: 48, class: 'ar-tree-node-runes', 'aria-hidden': 'true' }));
-        g.append(make('path', { d: 'M-24-40 L24-40 40-24 40 24 24 40-24 40-40 24-40-24Z', class: 'ar-tree-node-frame' }));
-        g.append(make('circle', { r: 34, class: 'ar-tree-node-core' }));
+        g.append(make('circle', { r: 52, class: 'ar-tree-node-aura', 'aria-hidden': 'true' }));
+        g.append(node.pointType === 'CP'
+            ? make('rect', { x: -38, y: -38, width: 76, height: 76, rx: 14, class: 'ar-tree-node-frame' })
+            : make('circle', { r: 40, class: 'ar-tree-node-frame' }));
         const fallback = make('text', { y: 10, class: 'ar-tree-symbol', 'aria-hidden': 'true' }, '✧');
         g.append(fallback);
         const icon = make('image', { x: -24, y: -24, width: 48, height: 48, class: 'ar-tree-node-icon', 'aria-hidden': 'true' });
@@ -414,9 +425,8 @@ export function initializeViewer(viewer, viewState) {
             if (disposed || !url) return;
             icon.setAttribute('href', url); fallback.replaceWith(icon);
         });
-        g.append(make('path', { d: 'M0-55 L5-48 0-41-5-48Z', class: 'ar-tree-node-gem', 'aria-hidden': 'true' }));
-        g.append(make('circle', { cx: 34, cy: 34, r: 15, class: 'ar-tree-node-status', 'aria-hidden': 'true' }));
-        g.append(make('text', { x: 34, y: 34, class: 'ar-tree-node-status-mark', 'aria-hidden': 'true' }));
+        g.append(make('circle', { cx: 32, cy: 32, r: 14, class: 'ar-tree-node-status', 'aria-hidden': 'true' }));
+        g.append(make('text', { x: 32, y: 32, class: 'ar-tree-node-status-mark', 'aria-hidden': 'true' }));
         const label = make('g', { class: 'ar-tree-node-label', 'aria-hidden': 'true' });
         renderLabel(label, node);
         g.append(label);
@@ -491,7 +501,7 @@ export function initializeViewer(viewer, viewState) {
             const point = miniNodes.get(node.nodeId);
             point.setAttribute('cx', node.px); point.setAttribute('cy', node.py);
         }
-        bounds = graphBounds([...nodes.values()]);
+        bounds = graphBounds(scopedNodes());
         minimap.setAttribute('viewBox', `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}`);
         miniRadius = Math.max(bounds.width, bounds.height) / 110;
         miniNodes.forEach(point => point.setAttribute('r', miniRadius));
@@ -504,6 +514,85 @@ export function initializeViewer(viewer, viewState) {
     viewer.querySelector('[data-tree-zoom="in"]').addEventListener('click', () => zoomBy(1.25));
     viewer.querySelector('[data-tree-zoom="out"]').addEventListener('click', () => zoomBy(1 / 1.25));
     viewer.querySelector('[data-tree-fit]').addEventListener('click', () => { camera = fitCamera(bounds, viewport.clientWidth, viewport.clientHeight); draw(); });
+    const classList = viewer.querySelector('[data-tree-class-list]');
+    const scopeLabel = viewer.querySelector('[data-tree-scope-label]');
+    const textItems = [...viewer.querySelectorAll('[data-tree-text-node]')];
+    const renderClassList = () => {
+        const counts = new Map(treeClasses([...nodes.values()]).map(entry => [entry.id, entry]));
+        classList.replaceChildren();
+        for (const entry of classes) {
+            const count = counts.get(entry.id) ?? entry;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.setAttribute('role', 'radio');
+            button.setAttribute('aria-checked', String(entry.id === scopeClass));
+            button.tabIndex = entry.id === scopeClass ? 0 : -1;
+            button.dataset.classId = entry.id;
+            const name = document.createElement('span');
+            name.className = 'ar-tree-class-name';
+            name.textContent = entry.name;
+            if (entry.id === currentClassId) {
+                const badge = document.createElement('small');
+                badge.textContent = '就職中';
+                name.append(badge);
+            }
+            const progress = document.createElement('span');
+            progress.className = 'ar-tree-class-count';
+            progress.textContent = `${count.unlocked} / ${count.total}`;
+            const bar = document.createElement('span');
+            bar.className = 'ar-tree-class-bar';
+            bar.setAttribute('aria-hidden', 'true');
+            bar.style.setProperty('--progress', `${count.total ? count.unlocked / count.total * 100 : 0}%`);
+            button.append(name, progress, bar);
+            classList.append(button);
+        }
+        classList.closest('.ar-tree-class-switch').hidden = !classes.length;
+        // On narrow screens the list scrolls sideways; keep the selected class in view without moving the page.
+        const checked = classList.querySelector('[aria-checked="true"]');
+        if (checked && classList.scrollWidth > classList.clientWidth)
+            classList.scrollLeft = Math.max(0, checked.offsetLeft - classList.offsetLeft - 8);
+        const active = classes.find(entry => entry.id === scopeClass);
+        scopeLabel.textContent = active ? `共通 ＋ ${active.name}` : '';
+        scopeLabel.hidden = !active;
+    };
+    const applyScope = () => {
+        for (const link of links) {
+            link.inScope = inScope(nodes.get(link.source)) && inScope(nodes.get(link.target));
+            link.miniLine.style.display = link.inScope ? '' : 'none';
+        }
+        miniNodes.forEach((point, id) => { point.style.display = inScope(nodes.get(id)) ? '' : 'none'; });
+        for (const item of textItems) item.hidden = !inScope(nodes.get(item.dataset.treeTextNode) ?? {});
+        visibleNodes.clear(); visibleEdges.clear();
+        groups.forEach(group => { group.style.display = 'none'; });
+        links.forEach(link => { link.line.style.display = 'none'; });
+        bounds = graphBounds(scopedNodes());
+        minimap.setAttribute('viewBox', `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}`);
+        cullBounds = null;
+        renderClassList();
+    };
+    const setScope = classId => {
+        if (classId === scopeClass || !classes.some(entry => entry.id === classId)) return;
+        scopeClass = classId;
+        applyScope();
+        search(false);
+        const selected = nodes.get(selectedId);
+        if (!selected || !inScope(selected)) { showDetails(root); focusNode(root); }
+        else { showDetails(selected, false); draw(); }
+        viewer.querySelector('[data-tree-announcement]').textContent = `${scopeLabel.textContent} のノードを表示しています`;
+    };
+    classList.addEventListener('click', event => {
+        const button = event.target.closest('[data-class-id]');
+        if (button) setScope(button.dataset.classId);
+    });
+    classList.addEventListener('keydown', event => {
+        const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[event.key];
+        if (!step || !classes.length) return;
+        event.preventDefault();
+        const index = classes.findIndex(entry => entry.id === scopeClass);
+        const next = classes[(index + step + classes.length) % classes.length];
+        setScope(next.id);
+        classList.querySelector(`[data-class-id="${next.id}"]`)?.focus();
+    });
     viewer.querySelector('[data-tree-home]').addEventListener('click', () => focusNode(nodes.get(selectedId) ?? root));
     viewer.querySelector('[data-tree-reset]')?.addEventListener('click', () => focusNode(root));
     detailToggle.addEventListener('click', () => setDetailVisible(viewer.classList.contains('is-detail-hidden')));
@@ -651,7 +740,8 @@ export function initializeViewer(viewer, viewState) {
     let matches = [], matchIndex = -1, searchFrame = 0;
     const search = (showResults = true) => {
         const hasQuery = Boolean(query.value.trim() || effectFilter.value);
-        matches = query.value.trim() ? searchNodes([...nodes.values()], query.value, searchMode.value) : [...nodes.values()];
+        const searchable = scopedNodes();
+        matches = query.value.trim() ? searchNodes(searchable, query.value, searchMode.value) : searchable;
         if (effectFilter.value) matches = matches.filter(node => (node.displayEffects ?? []).some(effect => effect.includes(effectFilter.value)));
         if (!hasQuery) matches = [];
         matchIndex = -1;
@@ -709,6 +799,8 @@ export function initializeViewer(viewer, viewState) {
     const originalGeometry = geometryKey(tree);
     viewer.updateTree = next => {
         if (geometryKey(next) !== originalGeometry) return false;
+        // Class membership decides what the map shows; rebuild the viewer when it changes.
+        if (next.nodes.some(value => nodes.has(value.nodeId) && nodeClassId(nodes.get(value.nodeId)) !== nodeClassId(value))) return false;
         for (const value of next.nodes) {
             const node = nodes.get(value.nodeId), group = groups.get(value.nodeId);
             if (!node || !group) return false;
@@ -729,9 +821,11 @@ export function initializeViewer(viewer, viewState) {
             requirement.classList.toggle('ar-condition-unmet', current.isConditionMet === false);
             viewer.querySelector('[data-node-cost]').textContent = nodeCost(current);
         }
+        renderClassList();
         cullBounds = null; paintedVisualScale = 0; draw();
         return true;
     };
+    applyScope();
     search(false);
     const observer = new ResizeObserver(entries => {
         if (mapAction && entries.some(entry => entry.target === mapAction))
@@ -750,16 +844,22 @@ export function initializeViewer(viewer, viewState) {
         observer.observe(mapAction, { box: 'border-box' });
     }
     viewer.dispose = () => { disposed = true; stars.dispose(); lifecycle.abort(); observer.disconnect(); cancelAnimationFrame(frame); cancelAnimationFrame(searchFrame); };
-    viewer.getViewState = () => ({ camera: { ...camera }, spacingPercent, selectedId, detailVisible: !detail.hidden, detailWidth, showNodeAction, width: previousWidth, height: previousHeight, search: { query: query.value, mode: searchMode.value, effect: effectFilter.value } });
+    viewer.getViewState = () => ({ camera: { ...camera }, scopeClass, spacingPercent, selectedId, detailVisible: !detail.hidden, detailWidth, showNodeAction, width: previousWidth, height: previousHeight, search: { query: query.value, mode: searchMode.value, effect: effectFilter.value } });
     viewer.isInteracting = () => pointers.size > 0 || mapActionPointer !== undefined
         || Boolean(rightPress && !rightPress.released) || Boolean(resizing) || performance.now() < interactionUntil;
     viewer.openDetails = () => setDetailVisible(true);
-    const initialNode = nodes.get(viewState?.selectedId) ?? root;
+    const remembered = nodes.get(viewState?.selectedId);
+    const initialNode = remembered && inScope(remembered) ? remembered : root;
     showNodeAction = Boolean(viewState?.showNodeAction && initialNode.nodeId === viewState.selectedId);
     showDetails(initialNode, false);
     setDetailVisible(viewState?.detailVisible ?? !window.matchMedia('(max-width: 760px)').matches);
     if (viewState) { camera = { ...viewState.camera }; draw(); }
-    else focusNode(root);
+    else {
+        // Open on the area around the root (about five blocks each way) instead of a single node.
+        const opening = Math.min(viewportWidth, viewportHeight) / (2 * 5 * layoutScale);
+        if (opening > 0) camera.zoom = Math.max(minZoom(), Math.min(1, opening));
+        focusNode(root);
+    }
     viewer.querySelector('[data-tree-controls]').hidden = false;
     viewer.querySelector('[data-tree-empty]')?.setAttribute('hidden', '');
 }

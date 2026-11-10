@@ -18,6 +18,11 @@ public sealed class IndexModel(SkillTreeEditorApiClient editor) : PageModel
     public WebSkillTreeProfileResponse? Tree { get; private set; }
     public string? ErrorMessage { get; private set; }
 
+    /// <summary>就職中クラス。スキルツリーの初期表示クラスに使う。</summary>
+    public string? CurrentClassId => EditorState is { ValueKind: JsonValueKind.Object } state
+        && state.TryGetProperty("currentClassId", out var classId) && classId.ValueKind == JsonValueKind.String
+            ? classId.GetString() : null;
+
     public async Task<IActionResult> OnGetAsync(CancellationToken ct)
     {
         if (!TryActor(out var actor)) return Challenge();

@@ -78,6 +78,9 @@ public sealed class WebSkillTreeNodeProfileResponse
     public string RequirementText { get; init; } = string.Empty;
     public string? ConsumedClassId { get; init; }
     public string? ConsumedClassName { get; init; }
+    /// <summary>CPノードの固定消費元クラス。クラス別表示の判定にも使う。</summary>
+    public string? CpSourceClassId { get; init; }
+    public string? CpSourceClassName { get; init; }
     public string? CostText { get; init; }
     public string? StateText { get; init; }
     public string? BlockedReason { get; init; }

@@ -96,6 +96,9 @@ function startEditor(editor) {
         const replacement = viewer.cloneNode(true);
         replacement.querySelector('[data-tree-stars]')?.replaceChildren();
         replacement.querySelector('[data-tree-json]').textContent = JSON.stringify(draft.tree);
+        // A class change rebuilds the map; keep the current-class marker in step with the fresh state.
+        const sanctum = viewer.closest('.ar-tree-sanctum');
+        if (sanctum && state.currentClassId) sanctum.dataset.treeDefaultClass = String(state.currentClassId).toLowerCase();
         viewer.dispose?.(); viewer.replaceWith(replacement); viewer = replacement;
         initializeViewer(viewer, viewState);
         renderPreferences();

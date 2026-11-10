@@ -38,6 +38,8 @@ public sealed class SkillTreeEditorTests
         Assert.Contains("name=\"__RequestVerificationToken\"", html);
         Assert.DoesNotContain("data-tree-mode=\"view\"", html);
         Assert.Contains("skilltree-editor.", html);
+        Assert.Contains("data-tree-default-class=\"swordsman\"", html);
+        Assert.Contains("\"cpSourceClassId\":\"mage\"", html);
     }
 
     [Fact]
@@ -92,6 +94,7 @@ public sealed class SkillTreeEditorTests
         Assert.Equal(HttpStatusCode.BadRequest, noToken.StatusCode);
         Assert.Null(api.Submitted);
         var html = await client.GetStringAsync(Path);
+        Assert.Contains("data-tree-default-class=\"swordsman\"", html);
         client.DefaultRequestHeaders.Add("RequestVerificationToken", Token(html));
         using var submitted = await client.PostAsJsonAsync(Path + "?handler=Operation", payload);
         Assert.Equal(HttpStatusCode.OK, submitted.StatusCode);
@@ -236,7 +239,7 @@ public sealed class SkillTreeEditorTests
         }
         internal static object Fixture() => new
         {
-            accountId = AccountId, accountName = "旅する剣士", generationId = "fixture-generation", stateRevision = 4, canEdit = true, supportsBatch = true, relockGoldCost = 100, balanceKind = "LIVE", hasFreshState = true,
+            accountId = AccountId, accountName = "旅する剣士", currentClassId = "Swordsman", generationId = "fixture-generation", stateRevision = 4, canEdit = true, supportsBatch = true, relockGoldCost = 100, balanceKind = "LIVE", hasFreshState = true,
             connection = new { status = "online", serverId = "test", channelName = "冒険チャンネル 1", worldName = "はじまりの街", x = 120, y = 64, z = -30, canEdit = true, observedAtUtc = DateTime.UtcNow },
             points = new { pp = 12, gold = 15420, classes = new[] { new { classId = "swordsman", className = "剣士", availableCp = 8 }, new { classId = "mage", className = "魔法使い", availableCp = 4 } } },
             tree = new { structureId = "main", name = "成長の星図", rootNodeId = "root", nodes = new object[]
@@ -244,7 +247,7 @@ public sealed class SkillTreeEditorTests
                 new { nodeId = "root", name = "冒険のはじまり", icon = "COMPASS", pointType = "PP", pointCost = 0, costText = "0 PP", x = 0, y = 0, z = 0, isUnlocked = true, displayEffects = new[] { "最大HP +10" }, canRelock = false },
                 new { nodeId = "power", name = "剣の力と揺るぎない守り", icon = "IRON_SWORD", pointType = "CP", pointCost = 3, costText = "消費元を選択 · 3 CP", x = 3, y = 0, z = 0, canUnlock = true, displayEffects = new[] { "物理攻撃力 +5", "物理防御力 +2", "クリティカル率 +2%" }, requiresCpSourceSelection = true, cpSources = new[] { new { classId = "swordsman", className = "剣士", availableCp = 8 }, new { classId = "mage", className = "魔法使い", availableCp = 4 } } },
                 new { nodeId = "vitality", name = "生命の器", icon = "GOLDEN_APPLE", pointType = "PP", pointCost = 2, costText = "2 PP", x = 0, y = 0, z = 3, canUnlock = true, displayEffects = new[] { "最大HP +20", "HP自然回復 +1" } },
-                new { nodeId = "focus", name = "精神統一", icon = "BOOK", pointType = "CP", pointCost = 2, costText = "魔法使い · 2 CP", x = 3, y = 0, z = 3, canUnlock = false, isConditionMet = false, requirementText = "魔法使い Lv.10", displayEffects = new[] { "最大MP +10", "魔法攻撃力 +3", "スキル：精神統一" } },
+                new { nodeId = "focus", name = "精神統一", icon = "BOOK", pointType = "CP", pointCost = 2, costText = "魔法使い · 2 CP", cpSourceClassId = "mage", cpSourceClassName = "魔法使い", x = 3, y = 0, z = 3, canUnlock = false, isConditionMet = false, requirementText = "魔法使い Lv.10", displayEffects = new[] { "最大MP +10", "魔法攻撃力 +3", "スキル：精神統一" } },
             }, edges = new[] { new { sourceNodeId = "root", targetNodeId = "power" }, new { sourceNodeId = "root", targetNodeId = "vitality" }, new { sourceNodeId = "power", targetNodeId = "focus" }, new { sourceNodeId = "vitality", targetNodeId = "focus" } } },
         };
         private static HttpResponseMessage Json(object value) => new(HttpStatusCode.OK) { Content = JsonContent.Create(value) };

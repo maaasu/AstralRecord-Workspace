@@ -58,6 +58,7 @@
     </div>
     <p class="ar-portal-sub">保存済みの最新情報です。ゲーム内の変更が反映されるまで時間がかかる場合があります。<br />最終保存：@(DateTime.SpecifyKind(account.UpdatedAt, DateTimeKind.Utc).AddHours(9).ToString("yyyy/MM/dd HH:mm:ss"))（日本時間）</p>
     <section class="ar-panel"><h2>クラスの成長記録</h2><div class="ar-class-list">@foreach (var c in account.ClassProgresses) { <div class="ar-class-chip"><span>@c.ClassName</span><strong>Lv. @c.Level</strong></div> }</div></section>
+    ViewData["SkillTreeClassId"] = account.ClassId;
     @if (ownProfile && (inlineTree is null || !inlineState.HasValue))
     {
         <p><a class="ar-btn-outline" asp-page="/SkillTree/Index" asp-route-accountId="@account.AccountId">スキルツリーを編集する</a></p>
