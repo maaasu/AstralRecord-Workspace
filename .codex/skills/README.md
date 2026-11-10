@@ -53,3 +53,7 @@
 ## 新しいスキル
 
 新しいスキルを追加した場合は、ここに「スキル名・目的・使う場面」だけを1行追加します。詳細はスキル内に置き、ルート `AGENTS.md` へ個別追記しません。
+
+## Claude Code との共用
+
+このディレクトリが Codex / Claude Code 共通の唯一の正本です。Claude Code は `.claude/skills`（`.codex/skills` への junction。`60_tool/agent-config/link-skills.ps1` が作成）経由で同じファイルを読みます。スキルの追加・編集はここだけで行い、`.claude/skills` 側に実体を置かないでください。

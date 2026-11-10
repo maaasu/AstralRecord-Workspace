@@ -23,6 +23,7 @@
 - 通常の変更はローカルの専用作業ツリーで実装・検証し、統合入口に従ってローカル `develop` に反映する。
 - リポジトリ内の資料・スクリプトは、各工程で `git rev-parse --show-toplevel` が返す作業ルートから解決する。既存資料の Windows 固定パスは、そのリポジトリ内を指す場合に限り作業ルートに読み替える。外部配置先は実行環境の設定を使う。
 - 例外として、指定filebaseを明示的な単一ライター作業で直接更新する場合は `$astralrecord-master-data-create-direct` の適用条件を確認する。コード変更・複数project変更・並列編集や、branch/worktree/merge方式の指定がある場合は統合入口を使う。
+- **ブランチを `develop` にマージするときは、必ず `git merge --no-ff` でマージコミットを残す。** 早送り（`--ff-only`）マージ、squash、ブランチの履歴を消す取り込みは使わない。リベースでブランチを最新の `develop` に揃えてからマージコミットを作る。この規則は全ブランチ・全スキルに共通で、例外はユーザーが明示した場合だけ。
 - 並列編集では task ごとに専用 branch / git worktree を使う。worktreeを省略するために同じ作業ツリーを共有してはいけない。
 - 無関係な未コミット差分だけを理由にコミット・マージを停止しない。対象外の内容とステージ状態を保持し、[Git スキルの分離・競合確認](.codex/skills/astralrecord-git-worktree-develop/references/unrelated-changes.md)に従う。
 - skillを使うときは `.codex/skills/README.md` のカタログで候補を絞り、対象 `SKILL.md` と必要な参照だけを読む。無関係なskill、プロジェクトガイド、参照資料を先読みしない。

@@ -1,23 +1,17 @@
 @AGENTS.md
 
-## Claude Code 固有 `/<name>` 形式プロンプトの扱い
+## Claude Code での読み替え
 
-ユーザーがメッセージ冒頭で `/<name>` 形式のプロンプト（例: `/astralrecord-code <引数>`、`/astralrecord-docs-review <パス>`）を入力した場合、これは **codex skills への参照** として扱うこと。Claude Code の組み込みスラッシュコマンドや本ファイル冒頭のスキルリストに同名が存在しない限り、以下の手順で処理する。
+このリポジトリの指示とスキルは Codex と共用で、正本は1つだけ。**Claude 用の複製は作らない。**
 
-### 解決手順
+| 種類 | 正本 | Claude Code 側 |
+|:--|:--|:--|
+| 指示 | 各ディレクトリの `AGENTS.md` | 同じ場所の `CLAUDE.md`（中身は `@AGENTS.md` の1行のみ） |
+| スキル | `.codex/skills/<name>/SKILL.md` | `.claude/skills` が `.codex/skills` への junction |
 
-1. `<name>` を skill 名として `E:\AstralRecord-Workspace\.codex\skills\<name>\SKILL.md` を Read する。
-2. ファイルが存在しない場合は、`E:\AstralRecord-Workspace\.codex\skills\` 配下を一覧し、`<name>` に近い skill を提示してユーザーに確認する。
-3. `SKILL.md` の frontmatter（`name` / `description`）と本文を **そのまま自分への指示** として解釈し、記載された手順に従って作業する。
-4. `SKILL.md` 内で `references/*.md` などの追加ファイルを読むよう指示されている場合は、その指示に従って読み込む。
-5. `/<name>` 以降の文字列は、skill への引数（対象パス・カスタム指示など）として扱う。
-
-### 等価関係
-
-- codex における `$<skill-name>` 呼び出しと、Claude Code における `/<skill-name>` 呼び出しは **同一 skill（`.codex/skills/<skill-name>/SKILL.md`）を指す**。
-- skill 本体の追加・編集は `.codex/skills/` 側で行う。Claude Code 側に複製ファイルを置く必要はない。
-
-### 注意
-
-- `/<name>` が Claude Code の組み込みコマンドや本セッションの利用可能スキル一覧に存在する場合は、そちらが優先される。混同しそうな場合はユーザーに確認する。
-- skill 実行前に AGENTS.md の「対象判定ルール」「実行前チェック」を必ず満たすこと。
+- 指示の変更は `AGENTS.md` だけを編集する。`CLAUDE.md` は編集しない。新しいサブディレクトリに `AGENTS.md` を置くときは、同じ場所に `@AGENTS.md` だけの `CLAUDE.md` を置く。
+- スキルの追加・編集は `.codex/skills/` だけで行う。Codex の `$<name>` と Claude Code の `/<name>` は同じスキルを指す。
+- `.claude/skills` が無い、または空のときは `powershell -File 60_tool/agent-config/link-skills.ps1` を実行する（SessionStart フックでも自動実行。新規 worktree の初回セッションでは再起動が必要な場合がある）。
+- `agents/openai.yaml` は Codex 専用のメタデータ。Claude Code では使われないが、削除せず正本側で保守する。
+- `AGENTS.md` のサブエージェント指定（GPT-6 / Luna / Sol / Astra）は Codex 向け。Claude Code では同等の役割を Agent ツールで代替し、モデル指定は無視する。
+- 本ファイルの先頭にある `@AGENTS.md` 以外の記述は Claude 固有の補足だけに限定し、`AGENTS.md` の内容を重複させない。
