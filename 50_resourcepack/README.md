@@ -207,7 +207,7 @@ BE では仮想トライデントで長押し入力を受け取りながら、�
 
 統合版は Geyser 拡張1.23.0以降を使用します。ポーションは地面表示のポーションと、所持枠や手持ちに送信する紙の両方に同じアイコンを登録します。鍛冶型のアイコンは、紙に付けた `item_model` とモデル番号で照合します。既定値と異なる統合版のスタック上限は、台帳の `max_stack_size` へ1～64で指定します。
 
-原画は [blockbench/pixel-art](blockbench/pixel-art/README.md) のパレット付きJSONで編集できます。`python scripts/generate-pixel-item-assets.py --check` で、全編集元と両版PNGのバイト一致を検証できます。
+原画は [blockbench/pixel-art](blockbench/pixel-art/README.md) のパレット付きJSONで編集できます。`python scripts/generate-pixel-item-assets.py --check` で、全原画のRGBA画素とPNGの構造、配布PNGの記録済みSHA-256を検証できます。両版にPNGを保存するアイテムでは、両出力のバイト一致も確認します。
 
 配布PNGから最近傍で16・32・64 pxの明暗背景プレビューを作り、全228点の輪郭と透過を確認しました。両アーカイブでマスターからモデル・PNGまでの参照を確認し、隔離したGeyserでプロトコル2168・2193・2225のアイテム変換を検証しました。実クライアントでの手持ちやキャスト中の描画は未確認です。
 
