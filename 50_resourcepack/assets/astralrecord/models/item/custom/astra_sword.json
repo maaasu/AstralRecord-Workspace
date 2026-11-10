@@ -1188,7 +1188,7 @@
       ],
       "to": [
         9.5,
-        17.5,
+        16.05,
         8.9
       ],
       "rotation": {
@@ -1252,162 +1252,6 @@
             0.25,
             7.25,
             2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "diamond_blade_tip_step",
-      "from": [
-        7,
-        17.5,
-        7.2
-      ],
-      "to": [
-        9,
-        19.25,
-        8.8
-      ],
-      "rotation": {
-        "angle": 0,
-        "axis": "y",
-        "origin": [
-          7,
-          17.5,
-          7.2
-        ]
-      },
-      "faces": {
-        "north": {
-          "uv": [
-            0,
-            6,
-            2,
-            8
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0,
-            6,
-            2,
-            8
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0,
-            6,
-            2,
-            8
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0,
-            6,
-            2,
-            8
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0,
-            6,
-            2,
-            8
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0,
-            6,
-            2,
-            8
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "diamond_blade_tip",
-      "from": [
-        7.5,
-        19.25,
-        7.35
-      ],
-      "to": [
-        8.5,
-        20.25,
-        8.65
-      ],
-      "rotation": {
-        "angle": 0,
-        "axis": "y",
-        "origin": [
-          7.5,
-          19.25,
-          7.35
-        ]
-      },
-      "faces": {
-        "north": {
-          "uv": [
-            0,
-            6,
-            2,
-            8
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0,
-            6,
-            2,
-            8
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0,
-            6,
-            2,
-            8
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0,
-            6,
-            2,
-            8
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0,
-            6,
-            2,
-            8
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0,
-            6,
-            2,
-            8
           ],
           "texture": "#surface"
         }
@@ -1500,7 +1344,7 @@
       ],
       "to": [
         8.85,
-        17.5,
+        16.05,
         7.1
       ],
       "rotation": {
@@ -1510,84 +1354,6 @@
           7.15,
           10.25,
           6.9
-        ]
-      },
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "cyan_blade_tip_front",
-      "from": [
-        7.5,
-        17.5,
-        7
-      ],
-      "to": [
-        8.5,
-        18.5,
-        7.2
-      ],
-      "rotation": {
-        "angle": 0,
-        "axis": "y",
-        "origin": [
-          7.5,
-          17.5,
-          7
         ]
       },
       "faces": {
@@ -1734,7 +1500,7 @@
       ],
       "to": [
         8.85,
-        17.5,
+        16.05,
         9.1
       ],
       "rotation": {
@@ -1744,84 +1510,6 @@
           7.15,
           10.25,
           8.9
-        ]
-      },
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "cyan_blade_tip_back",
-      "from": [
-        7.5,
-        17.5,
-        8.8
-      ],
-      "to": [
-        8.5,
-        18.5,
-        9
-      ],
-      "rotation": {
-        "angle": 0,
-        "axis": "y",
-        "origin": [
-          7.5,
-          17.5,
-          8.8
         ]
       },
       "faces": {
@@ -2572,23 +2260,23 @@
       }
     },
     {
-      "name": "Astra starlight needle",
+      "name": "Astra continuous taper 1",
       "from": [
-        7.82,
-        20.18,
-        7.7
+        6.5,
+        16,
+        7.18
       ],
       "to": [
-        8.18,
-        20.81,
-        8.3
+        9.5,
+        16.55,
+        8.82
       ],
       "faces": {
         "north": {
           "uv": [
-            0,
-            6,
             2,
+            6,
+            4,
             8
           ],
           "texture": "#surface"
@@ -2604,9 +2292,9 @@
         },
         "south": {
           "uv": [
-            0,
-            6,
             2,
+            6,
+            4,
             8
           ],
           "texture": "#surface"
@@ -2619,8 +2307,32 @@
             8
           ],
           "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Astra continuous taper 2",
+      "from": [
+        6.67,
+        16.52,
+        7.18
+      ],
+      "to": [
+        9.33,
+        17.05,
+        8.82
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
         },
-        "up": {
+        "east": {
           "uv": [
             0,
             6,
@@ -2629,7 +2341,322 @@
           ],
           "texture": "#surface"
         },
-        "down": {
+        "south": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Astra continuous taper 3",
+      "from": [
+        6.85,
+        17.02,
+        7.18
+      ],
+      "to": [
+        9.15,
+        17.55,
+        8.82
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Astra continuous taper 4",
+      "from": [
+        7.05,
+        17.52,
+        7.18
+      ],
+      "to": [
+        8.95,
+        18.05,
+        8.82
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Astra continuous taper 5",
+      "from": [
+        7.25,
+        18.02,
+        7.18
+      ],
+      "to": [
+        8.75,
+        18.55,
+        8.82
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Astra continuous taper 6",
+      "from": [
+        7.45,
+        18.52,
+        7.18
+      ],
+      "to": [
+        8.55,
+        19.05,
+        8.82
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Astra continuous taper 7",
+      "from": [
+        7.65,
+        19.02,
+        7.18
+      ],
+      "to": [
+        8.35,
+        19.55,
+        8.82
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Astra continuous taper 8",
+      "from": [
+        7.85,
+        19.52,
+        7.18
+      ],
+      "to": [
+        8.15,
+        20.18,
+        8.82
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2,
+            6,
+            4,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
           "uv": [
             0,
             6,
@@ -2678,9 +2705,9 @@
     },
     "firstperson_righthand": {
       "rotation": [
-        -169.28013999999985,
-        45.62350000000015,
-        -170.52880000000005
+        -156.96777,
+        -39.66496,
+        -171.40212
       ],
       "translation": [
         0.27634,
@@ -2695,9 +2722,9 @@
     },
     "firstperson_lefthand": {
       "rotation": [
-        -159.54939000000013,
-        -23.814210000000003,
-        -172.7734599999999
+        -156.96778,
+        -39.66496,
+        -171.40212
       ],
       "translation": [
         0.27634,

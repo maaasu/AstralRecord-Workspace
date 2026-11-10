@@ -2561,6 +2561,162 @@
           "texture": "#surface"
         }
       }
+    },
+    {
+      "name": "Lumina left forged point bevel",
+      "from": [
+        6.9,
+        16.97,
+        7.64
+      ],
+      "to": [
+        7.2,
+        19.5,
+        8.36
+      ],
+      "rotation": {
+        "angle": -22.5,
+        "axis": "z",
+        "origin": [
+          7.05,
+          16.97,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Lumina right forged point bevel",
+      "from": [
+        8.8,
+        16.97,
+        7.64
+      ],
+      "to": [
+        9.1,
+        19.5,
+        8.36
+      ],
+      "rotation": {
+        "angle": 22.5,
+        "axis": "z",
+        "origin": [
+          8.95,
+          16.97,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0,
+            6,
+            2,
+            8
+          ],
+          "texture": "#surface"
+        }
+      }
     }
   ],
   "display": {
@@ -2600,9 +2756,9 @@
     },
     "firstperson_righthand": {
       "rotation": [
-        -169.28013999999985,
-        45.62350000000015,
-        -170.52880000000005
+        -156.96777,
+        -39.66496,
+        -171.40212
       ],
       "translation": [
         0.29181,
@@ -2617,9 +2773,9 @@
     },
     "firstperson_lefthand": {
       "rotation": [
-        -159.54939000000013,
-        -23.814210000000003,
-        -172.7734599999999
+        -156.96778,
+        -39.66496,
+        -171.40212
       ],
       "translation": [
         0.29181,
