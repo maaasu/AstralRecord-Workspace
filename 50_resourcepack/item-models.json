@@ -6,21 +6,24 @@
       "base_item": "minecraft:wooden_sword",
       "custom_model_data": 21001,
       "java_virtual_trident": true,
-      "grip": [8, 2.96, 8]
+      "grip": [8, 2.96, 8],
+      "java_gui_sprite": true
     },
     {
       "id": "nox_bow",
       "base_item": "minecraft:bow",
       "custom_model_data": 21002,
       "java_virtual_trident": true,
-      "grip": [5.94, 8, 8]
+      "grip": [5.94, 8, 8],
+      "java_gui_sprite": true
     },
     {
       "id": "nox_staff",
       "base_item": "minecraft:wooden_shovel",
       "custom_model_data": 21003,
       "java_virtual_trident": true,
-      "grip": [8, 4.70, 8]
+      "grip": [8, 4.70, 8],
+      "java_gui_sprite": true
     },
     {
       "id": "nox_charm",
@@ -115,7 +118,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "middle_earth_hammer",
@@ -126,7 +130,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "middle_earth_longbow",
@@ -137,7 +142,8 @@
         6.1,
         9,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "middle_earth_wand",
@@ -148,7 +154,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "anarion_shortbow",
@@ -159,7 +166,8 @@
         6.5,
         8,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "anarion_spear",
@@ -170,7 +178,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "anarion_staff",
@@ -181,7 +190,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "sun_crown_bow",
@@ -204,7 +214,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "sun_crown_sword",
@@ -215,7 +226,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "eriva_sword",
@@ -226,7 +238,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "eriva_hammer",
@@ -237,7 +250,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "eriva_spear",
@@ -248,7 +262,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "eriva_shortbow",
@@ -259,7 +274,8 @@
         6.35,
         8,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "eriva_longbow",
@@ -270,7 +286,8 @@
         5.5,
         10,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "eriva_wand",
@@ -281,7 +298,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "eriva_staff",
@@ -292,7 +310,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "lapis_sword",
@@ -303,7 +322,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "lapis_hammer",
@@ -314,7 +334,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "lapis_spear",
@@ -325,7 +346,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "lapis_shortbow",
@@ -336,7 +358,8 @@
         5.65,
         8,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "lapis_longbow",
@@ -347,7 +370,8 @@
         11.65,
         7.65,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "simple_talisman",
@@ -369,7 +393,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "lapis_staff",
@@ -380,7 +405,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "lumina_sword",
@@ -391,7 +417,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "lumina_hammer",
@@ -402,7 +429,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "lumina_spear",
@@ -413,7 +441,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "lumina_wand",
@@ -424,7 +453,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "lumina_staff",
@@ -435,7 +465,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "astra_sword",
@@ -446,7 +477,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "astra_hammer",
@@ -457,7 +489,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "astra_spear",
@@ -468,7 +501,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "astra_wand",
@@ -479,7 +513,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "astra_staff",
@@ -490,7 +525,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "cinder_grimoire",
@@ -534,7 +570,8 @@
         6.2,
         8,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "lumina_longbow",
@@ -545,7 +582,8 @@
         5.9,
         10,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "astra_shortbow",
@@ -556,7 +594,8 @@
         6.15,
         8,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "astra_longbow",
@@ -567,7 +606,8 @@
         5.8,
         10,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "nox_armor_helmet",
