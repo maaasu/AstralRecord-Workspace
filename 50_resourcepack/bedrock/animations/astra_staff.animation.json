@@ -72,6 +72,24 @@
           }
         }
       }
+    },
+    "animation.astralrecord.astra_staff.first_person_off": {
+      "loop": true,
+      "bones": {
+        "grip": {
+          "rotation": [
+            52.68361,
+            5.58551,
+            20.0
+          ],
+          "position": [
+            0,
+            24,
+            0
+          ],
+          "scale": 0.7592
+        }
+      }
     }
   }
 }
