@@ -5572,16 +5572,20 @@ public class InventoryService {
         }
         UUID accountId = state.getAccountId();
         EquipmentInstance updated;
-        synchronized (state) {
-            if (saveCoordinator.hasUnresolvedExternalOperation(accountId)
-                || persistence.isPlayerStateBlocked(accountId)
-                || !equipmentProtectionEntries(state).containsKey(instanceId)) {
-                return false;
+        try {
+            synchronized (state) {
+                updated = saveCoordinator.executeLocalMutation(accountId, () -> {
+                    if (getState(accountId) != state || !equipmentProtectionEntries(state).containsKey(instanceId)) {
+                        return null;
+                    }
+                    return itemService.setLoadedEquipmentProtection(accountId, instanceId.toString(), protectedItem);
+                });
             }
-            updated = itemService.setLoadedEquipmentProtection(accountId, instanceId.toString(), protectedItem);
-            if (updated == null) {
-                return false;
-            }
+        } catch (InventorySaveCoordinator.ExternalOperationPendingException ignored) {
+            return false;
+        }
+        if (updated == null) {
+            return false;
         }
         saveNow(accountId);
         refreshEquipmentInstanceDisplay(astPlayer, updated);
@@ -5597,7 +5601,12 @@ public class InventoryService {
     /** 通常インベントリとアクティブな装備枠から、予約されていない個体を重複なく集めます。 */
     private @NotNull Map<UUID, InventoryEntryModel> equipmentProtectionEntries(@NotNull PlayerInventoryState state) {
         Map<UUID, InventoryEntryModel> equipment = new LinkedHashMap<>();
-        for (InventoryType type : List.of(InventoryType.BAG, InventoryType.HOTBAR)) {
+        EquipmentLoadoutModel loadout = state.findActiveLoadout(DEFAULT_PROFILE);
+        boolean usesLoadout = loadout != null && !loadout.getSlots().isEmpty();
+        List<InventoryType> sources = usesLoadout
+            ? List.of(InventoryType.BAG, InventoryType.HOTBAR)
+            : List.of(InventoryType.BAG, InventoryType.HOTBAR, InventoryType.EQUIP_SLOT);
+        for (InventoryType type : sources) {
             InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, type);
             if (inventory == null || !inventory.isEnabled() || inventory.isDeleted()) {
                 continue;
@@ -5610,10 +5619,9 @@ public class InventoryService {
                 }
             }
         }
-        EquipmentLoadoutModel loadout = state.findActiveLoadout(DEFAULT_PROFILE);
-        if (loadout != null) {
+        if (usesLoadout) {
             for (EquipmentLoadoutSlotModel slot : loadout.getSlots()) {
-                if (!slot.isDeleted()) {
+                if (!slot.isDeleted() && slot.getEquipmentInstanceId() != null) {
                     equipment.putIfAbsent(slot.getEquipmentInstanceId(), toInventoryEntry(slot));
                 }
             }
