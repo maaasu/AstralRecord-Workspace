@@ -12,14 +12,18 @@ namespace AstralRecordWeb.Tests;
 public sealed class ResourcePackDownloadTests
 {
     [Fact]
-    public async Task JavaPackAboveSixteenMiBIsServedWithItsVerifiedHash()
+    public async Task JavaPackAboveThirtyTwoMiBIsServedWithItsVerifiedHash()
     {
-        var archive = new byte[17 * 1024 * 1024];
+        var archive = new byte[33 * 1024 * 1024];
         var sha1 = Convert.ToHexStringLower(SHA1.HashData(archive));
         using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.WithIsolatedWebDependencies().ConfigureTestServices(services =>
                 services.AddHttpClient<ResourcePackApiClient>()
                     .ConfigurePrimaryHttpMessageHandler(() => new PackHandler(archive, sha1))));
+        using var upstreamClient = factory.Services.GetRequiredService<IHttpClientFactory>()
+            .CreateClient(nameof(ResourcePackApiClient));
+        Assert.Equal(250L * 1024 * 1024, upstreamClient.MaxResponseContentBufferSize);
+
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             BaseAddress = new Uri("https://localhost")
