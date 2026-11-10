@@ -188,29 +188,35 @@
     "animation.astralrecord.nox_bow.draw": {
       "loop": true,
       "bones": {
-        "cord_lower": {
+        "limb_upper": {
           "rotation": [
             0,
             0,
-            "-math.atan(0.55 * variable.nox_draw)"
-          ],
-          "scale": [
-            1,
-            "math.sqrt(1.0 + (0.55 * variable.nox_draw) * (0.55 * variable.nox_draw))",
-            1
+            "-8.5 * variable.nox_draw"
+          ]
+        },
+        "limb_lower": {
+          "rotation": [
+            0,
+            0,
+            "8.5 * variable.nox_draw"
           ]
         },
         "cord_upper": {
           "rotation": [
             0,
             0,
-            "math.atan(0.55 * variable.nox_draw)"
+            "temp.theta = 8.5 * variable.nox_draw; temp.sn = math.sin(temp.theta); temp.cs = math.cos(temp.theta); temp.dx = 2.88 + 3.76 * variable.nox_draw - 2.88 * temp.cs - 6.2 * temp.sn; temp.dy = 1.16 - 2.88 * temp.sn + 6.2 * temp.cs; return temp.theta + math.atan(temp.dx / temp.dy);"
           ],
-          "scale": [
-            1,
-            "math.sqrt(1.0 + (0.55 * variable.nox_draw) * (0.55 * variable.nox_draw))",
-            1
-          ]
+          "scale": "temp.theta = 8.5 * variable.nox_draw; temp.sn = math.sin(temp.theta); temp.cs = math.cos(temp.theta); temp.dx = 2.88 + 3.76 * variable.nox_draw - 2.88 * temp.cs - 6.2 * temp.sn; temp.dy = 1.16 - 2.88 * temp.sn + 6.2 * temp.cs; return math.sqrt(temp.dx * temp.dx + temp.dy * temp.dy) / 7.36;"
+        },
+        "cord_lower": {
+          "rotation": [
+            0,
+            0,
+            "temp.theta = 8.5 * variable.nox_draw; temp.sn = math.sin(temp.theta); temp.cs = math.cos(temp.theta); temp.dx = 2.88 + 3.76 * variable.nox_draw - 2.88 * temp.cs - 6.2 * temp.sn; temp.dy = 1.16 - 2.88 * temp.sn + 6.2 * temp.cs; return -temp.theta - math.atan(temp.dx / temp.dy);"
+          ],
+          "scale": "temp.theta = 8.5 * variable.nox_draw; temp.sn = math.sin(temp.theta); temp.cs = math.cos(temp.theta); temp.dx = 2.88 + 3.76 * variable.nox_draw - 2.88 * temp.cs - 6.2 * temp.sn; temp.dy = 1.16 - 2.88 * temp.sn + 6.2 * temp.cs; return math.sqrt(temp.dx * temp.dx + temp.dy * temp.dy) / 7.36;"
         }
       }
     }
