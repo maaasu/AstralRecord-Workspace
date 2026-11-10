@@ -13,6 +13,8 @@ python scripts/generate-pixel-item-assets.py --check
 
 2Dアイテムの生成先は `assets/astralrecord/textures/item/custom/<id>.png` と `bedrock/textures/items/<id>.png` です。同じバイト列を両版へ保存し、編集元の `png_sha256` を更新します。`native_pixels` を含む編集元で元グリッドを変更した場合は、その補助情報も編集内容に揃えてください。
 
+`--check` は保存済みPNGの構造とRGBA画素、原画に記録した `png_sha256` を照合します。圧縮後のバイト列は保存済みPNGのSHA-256で検証し、両版に保存する場合は同じバイト列であることを確認します。
+
 2Dアイテムは配布台帳の `render_mode: "generated"` を使います。Java版のアイテムモデルと統合版のアイコン登録はビルド時に生成します。
 
 `item-models.json` で `java_gui_sprite` を指定した立体装備のスロット原画は `bedrock/textures/items/<id>.png` に出力します。Java版のインベントリとホットバーにも、ビルド時に同じPNGを組み込みます。防具と釣り竿は16×16で描きます。主武器は32×32で描き、論理16 pxのスロットで武器種と個体を識別できることを確かめます。手持ちの立体アトラスと着用原画はそれぞれ `blockbench/items/` と `blockbench/armor-pixels/` から管理します。実クライアントの装備表示確認は、ソースとPNGの一致検証とは分けて記録します。 [武器アイコンの制作手順](../../../.codex/skills/astralrecord-item-model-author/references/weapon-slot-icons.md)

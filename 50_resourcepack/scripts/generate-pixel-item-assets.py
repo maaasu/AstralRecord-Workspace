@@ -9,7 +9,10 @@ import struct
 import zlib
 
 
-def encode(spec):
+PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
+
+
+def pixel_data(spec):
     width, height = spec['width'], spec['height']
     rows = spec['pixels']
     if type(width) is not int or type(height) is not int or not (1 <= width <= 256 and 1 <= height <= 256):
@@ -19,19 +22,42 @@ def encode(spec):
     palette = {key: bytes.fromhex(color.lstrip('#')) for key, color in spec['palette'].items()}
     if any(len(key) != 1 or len(color) != 4 for key, color in palette.items()):
         raise ValueError('Palette keys must be single characters with RGBA colors.')
-    raw = b''.join(b'\0' + b''.join(palette[key] for key in row) for row in rows)
+    header = struct.pack('>IIBBBBB', width, height, 8, 6, 0, 0, 0)
+    scanlines = b''.join(b'\0' + b''.join(palette[key] for key in row) for row in rows)
+    return header, scanlines
 
-    def chunk(kind, data):
-        return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', binascii.crc32(kind + data) & 0xffffffff)
 
-    return (b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', width, height, 8, 6, 0, 0, 0))
-            + chunk(b'IDAT', zlib.compress(raw, 9)) + chunk(b'IEND', b''))
+def png_chunk(kind, data):
+    return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', binascii.crc32(kind + data) & 0xffffffff)
+
+
+def encode_png(header, scanlines):
+    return (PNG_SIGNATURE + png_chunk(b'IHDR', header)
+            + png_chunk(b'IDAT', zlib.compress(scanlines, 9)) + png_chunk(b'IEND', b''))
+
+
+def matches_pixels(png, header, scanlines):
+    prefix = PNG_SIGNATURE + png_chunk(b'IHDR', header)
+    suffix = png_chunk(b'IEND', b'')
+    if not png.startswith(prefix) or not png.endswith(suffix):
+        return False
+    idat = png[len(prefix):-len(suffix)]
+    compressed = idat[8:-4]
+    if idat != png_chunk(b'IDAT', compressed):
+        return False
+    # zlib implementations can emit different bytes for the same scanlines.
+    stream = zlib.decompressobj()
+    try:
+        decoded = stream.decompress(compressed, len(scanlines) + 1)
+    except zlib.error:
+        return False
+    return decoded == scanlines and stream.eof and not stream.unused_data
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('ids', nargs='*', help='Asset names; omission selects every pixel source.')
-    parser.add_argument('--check', action='store_true', help='Verify output PNGs and source SHA without writing.')
+    parser.add_argument('--check', action='store_true', help='Verify PNG pixels, recorded SHA and shared output bytes without writing.')
     args = parser.parse_args()
     root = Path(__file__).resolve().parent.parent
     source = root/'blockbench/pixel-art'
@@ -45,13 +71,15 @@ def main():
         spec = json.loads(path.read_text(encoding='utf-8-sig'))
         if spec['id'] != id_:
             raise ValueError('Pixel source ID does not match its filename.')
-        png = encode(spec)
-        digest = hashlib.sha256(png).hexdigest()
+        header, scanlines = pixel_data(spec)
         outputs = [root/f'bedrock/textures/items/{id_}.png']
         if id_ not in shared_gui_ids:
             outputs.append(root/f'assets/astralrecord/textures/item/custom/{id_}.png')
+        png = outputs[0].read_bytes() if args.check else encode_png(header, scanlines)
+        digest = hashlib.sha256(png).hexdigest()
         if args.check:
-            if spec.get('png_sha256') != digest or any(out.read_bytes() != png for out in outputs):
+            if (spec.get('png_sha256') != digest or not matches_pixels(png, header, scanlines)
+                    or any(out.read_bytes() != png for out in outputs[1:])):
                 raise ValueError('Pixel source and PNG differ: ' + id_)
         else:
             for out in outputs:
