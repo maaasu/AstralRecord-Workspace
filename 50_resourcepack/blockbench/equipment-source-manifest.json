@@ -64,10 +64,10 @@
       "base_item": "minecraft:bow",
       "custom_model_data": 21002,
       "sha256": {
-        "assets/astralrecord/models/item/custom/nox_bow.json": "9090622d27ace54e97993c48edf9e45e29d2d9edb07376434d9e119a0fa8b4e2",
-        "assets/astralrecord/models/item/custom/nox_bow_pull_0.json": "911e75838b4500afc3b4095a36007f5e0f25ca1c7adbe3a39ddac965e5293fb8",
-        "assets/astralrecord/models/item/custom/nox_bow_pull_1.json": "3705eef2a7517d86668fe87e1cf5ab229de1c7a9f9407fd31f9880042e5eb0fa",
-        "assets/astralrecord/models/item/custom/nox_bow_pull_2.json": "3b9ca4a4d70c1046291740c1f82def19232c29e097e960a98ff5edf3b62b6970",
+        "assets/astralrecord/models/item/custom/nox_bow.json": "74d525cdc7cd99f6dfe31907920ff411cc450647caca4d5e81ff039a1d73baa4",
+        "assets/astralrecord/models/item/custom/nox_bow_pull_0.json": "205d4b3ae565a478f4ec8b33970d524fbb58b9347c3a899d0d612cf96df119ae",
+        "assets/astralrecord/models/item/custom/nox_bow_pull_1.json": "50c9456442fa50c6002d3aee5e3e77987e324f7c131eeed7a65dc4de402b0f19",
+        "assets/astralrecord/models/item/custom/nox_bow_pull_2.json": "34172920fdf8b2e7c49124d524a2e1883bf3494d9082a15166aacf535bc97132",
         "assets/astralrecord/textures/item/custom/nox_bow.png": "45ff3945a31f5e0c45668340c022feb272b06bdbd360bd8bd3a44d7aaac55726",
         "bedrock/animations/nox_bow.animation.json": "e417539d7d3b4ebedfdeb29bb64b476900011cc24005ae79c81c9b8cd3877d78",
         "bedrock/attachables/nox_bow.json": "96f0443baaa67c0686f6c8d7bc9e7cca2aa708193488e2295bbebae5c2a1bcba",
@@ -75,10 +75,10 @@
         "bedrock/textures/entity/items/nox_bow.png": "45ff3945a31f5e0c45668340c022feb272b06bdbd360bd8bd3a44d7aaac55726",
         "bedrock/textures/items/nox_bow.png": "1c6faa043e728cbd92782362f21b7220ef9a3d9cf7caf983edf517ce0def4e55",
         "blockbench/items/nox_bow.bedrock.bbmodel": "3140e9122e66c36496f952ceaa19b64bd303e0dafd8b39cf67cc0bb07c4ece1e",
-        "blockbench/items/nox_bow.java.bbmodel": "0db384114b4b33c9e84a5f7255ae186be69c98a6966d2b760027f925d57845bf",
-        "blockbench/items/nox_bow_pull_0.java.bbmodel": "3a7dddded3c7ec1db6c15393681e15376e4a51bad672b1617f54b9744b2d0f38",
-        "blockbench/items/nox_bow_pull_1.java.bbmodel": "38b88701b50a2615a8bd6f05fe4c5fcb856b4ba74959459e94f8d84fdb4faa0c",
-        "blockbench/items/nox_bow_pull_2.java.bbmodel": "11a227c41903eb7263969c2487c5691fe0fa15485a90f3023622548f2a685f69"
+        "blockbench/items/nox_bow.java.bbmodel": "4d0010b0cec572f6060dadcc1364d7fb5c992ac95cfecfc2842066c72e612d27",
+        "blockbench/items/nox_bow_pull_0.java.bbmodel": "20b3dbe73f39b366bae2f079f975edbb8b60d4e5b1ef9d0a6627f7b0fbb235e2",
+        "blockbench/items/nox_bow_pull_1.java.bbmodel": "6574b0b88ca03363564f8415648d8c135bcb3f05b100f5de855cb257f793fced",
+        "blockbench/items/nox_bow_pull_2.java.bbmodel": "17b4f79b1a519c7ac90cb40e3613cf3147c0a9172d4cb5790f5197edc16ba546"
       }
     },
     {
