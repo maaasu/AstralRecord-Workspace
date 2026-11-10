@@ -576,8 +576,8 @@ function Publish-ResourcePacks {
             $reader = [IO.StreamReader]::new($locationEntry.Open())
             try { $locationHud = $reader.ReadToEnd() }
             finally { $reader.Dispose() }
-            if ($locationHud -cnotin @('1', '2') -or $questTrackingHud -cne '2') {
-                throw 'Location HUD requires version 1 or 2 and Quest HUD assets version 2.'
+            if ($locationHud -cnotin @('1', '2', '3') -or $questTrackingHud -cne '2') {
+                throw 'Location HUD requires version 1, 2 or 3 and Quest HUD assets version 2.'
             }
             $reader = [IO.StreamReader]::new($archive.GetEntry('assets/astralrecord/font/quest_hud_space.json').Open())
             try { $spaceFont = $reader.ReadToEnd() | ConvertFrom-Json }
@@ -594,7 +594,7 @@ function Publish-ResourcePacks {
                 'assets/astralrecord/font/location_hud_icons.json'
                 'assets/astralrecord/textures/font/buff_hud.png'
             )
-            if ($locationHud -ceq '2') {
+            if ($locationHud -cin @('2', '3')) {
                 $locationAssets += @(
                     'assets/astralrecord/font/location_hud_text.json'
                     'assets/astralrecord/textures/font/location_hud_text.png'
@@ -604,14 +604,28 @@ function Publish-ResourcePacks {
                     $reader = [IO.StreamReader]::new($archive.GetEntry($shader).Open())
                     try { $shaderSource = $reader.ReadToEnd() }
                     finally { $reader.Dispose() }
-                    if (-not $shaderSource.Contains('// BEGIN ASTRALRECORD LOCATION HUD V2')) {
-                        throw "Missing Location HUD version 2 relocation in Java pack shader: $shader"
+                    if (-not $shaderSource.Contains("// BEGIN ASTRALRECORD LOCATION HUD V$locationHud")) {
+                        throw "Missing Location HUD version $locationHud relocation in Java pack shader: $shader"
                     }
                 }
+            }
+            if ($locationHud -ceq '3') {
+                $locationAssets += 'location-hud-atlas.sha256'
             }
             foreach ($asset in $locationAssets) {
                 $entry = $archive.GetEntry($asset)
                 if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing Location HUD asset in Java pack: $asset" }
+            }
+            if ($locationHud -ceq '3') {
+                $reader = [IO.StreamReader]::new($archive.GetEntry('location-hud-atlas.sha256').Open())
+                try { $locationAtlasRevision = $reader.ReadToEnd() }
+                finally { $reader.Dispose() }
+                $atlasStream = $archive.GetEntry('assets/astralrecord/textures/font/location_hud_text.png').Open()
+                try { $locationAtlasHash = (Get-FileHash -InputStream $atlasStream -Algorithm SHA256).Hash.ToLowerInvariant() }
+                finally { $atlasStream.Dispose() }
+                if ($locationAtlasHash -cne $locationAtlasRevision) {
+                    throw 'Location HUD atlas SHA-256 differs in Java pack.'
+                }
             }
         }
         $helmetEntry = $archive.GetEntry('worn-helmet-models.json')

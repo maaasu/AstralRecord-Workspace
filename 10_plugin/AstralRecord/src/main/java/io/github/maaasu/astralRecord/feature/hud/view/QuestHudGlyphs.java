@@ -9,10 +9,8 @@ import java.util.List;
 
 import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.SOLID_PIXEL;
 import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.appendGlyph;
-import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.appendLine;
+import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.QUEST_TEXT;
 import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.appendPixel;
-import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.fit;
-import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.width;
 
 /** 専用パックで画面左上へ移す、送り幅ゼロのクエスト字形を組み立てます。 */
 public final class QuestHudGlyphs {
@@ -61,10 +59,10 @@ public final class QuestHudGlyphs {
             };
             int textMarker = TEXT_MARKER + (rowCount - 1) * 4 + palette;
             int shapeRow = rowCount * 16 + index;
-            List<Integer> value = fit(row.value(), VALUE_MAX_WIDTH);
-            int valueX = TEXT_RIGHT - width(value);
+            List<Integer> value = QUEST_TEXT.fit(row.value(), VALUE_MAX_WIDTH);
+            int valueX = TEXT_RIGHT - QUEST_TEXT.width(value);
             int labelRight = value.isEmpty() ? TEXT_RIGHT : valueX - VALUE_GAP;
-            List<Integer> label = fit(row.label(), labelRight - LABEL_X);
+            List<Integer> label = QUEST_TEXT.fit(row.label(), labelRight - LABEL_X);
             switch (row.kind()) {
                 case TITLE -> {
                     if (index > 0) {
@@ -78,7 +76,7 @@ public final class QuestHudGlyphs {
                     int barSpace = valueX - 3 - BAR_WIDTH - BAR_X;
                     int barShift = Math.clamp(barSpace / 2, 0, 7);
                     if (row.progressPercent() >= 0 && !value.isEmpty() && barSpace >= 0
-                        && width(label) <= BAR_X + barShift * 2 - 3 - LABEL_X) {
+                        && QUEST_TEXT.width(label) <= BAR_X + barShift * 2 - 3 - LABEL_X) {
                         int fill = Math.clamp((row.progressPercent() * BAR_WIDTH + 50) / 100, 0, BAR_WIDTH);
                         int barVariant = barShift * 32 + fill;
                         if (fill < BAR_WIDTH) {
@@ -90,10 +88,10 @@ public final class QuestHudGlyphs {
                         }
                     }
                 }
-                case OVERFLOW -> appendLine(result, List.of((int) '…'), MARKER_X, index, textMarker);
+                case OVERFLOW -> QUEST_TEXT.appendLine(result, List.of((int) '…'), MARKER_X, index, textMarker, 0);
             }
-            appendLine(result, label, LABEL_X, index, textMarker);
-            appendLine(result, value, valueX, index, textMarker);
+            QUEST_TEXT.appendLine(result, label, LABEL_X, index, textMarker, 0);
+            QUEST_TEXT.appendLine(result, value, valueX, index, textMarker, 0);
         }
         return result.build();
     }

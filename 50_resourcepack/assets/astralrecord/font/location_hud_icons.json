@@ -8,15 +8,6 @@
       "chars": [
         "\uea00\uea01\uea02\uea03\uea04\uea05\uea06\uea07\uea08\uea09\uea0a\uea0b\uea0c\uea0d\uea0e"
       ]
-    },
-    {
-      "type": "bitmap",
-      "file": "astralrecord:font/quest_hud_pixel.png",
-      "height": 9,
-      "ascent": -4096,
-      "chars": [
-        "\ue010\u0000\u0000\u0000"
-      ]
     }
   ]
 }

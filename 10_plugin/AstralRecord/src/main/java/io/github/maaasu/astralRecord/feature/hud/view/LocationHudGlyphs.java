@@ -23,85 +23,83 @@ import java.util.Locale;
 import java.util.Set;
 
 import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.appendGlyph;
-import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.appendLine;
-import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.SOLID_PIXEL;
-import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.fit;
-import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.width;
 
 /** Java版の右上へ、現在地・挑戦・効果を表示します。 */
 final class LocationHudGlyphs {
-    private static final Key TEXT_FONT = Key.key("astralrecord", "location_hud_text");
+    private static final HudOverlayGlyphs.Typeface TEXT = new HudOverlayGlyphs.Typeface(
+            Key.key("astralrecord", "location_hud_text"), LocationHudGlyphs::textAdvance);
     private static final Key ICON_FONT = Key.key("astralrecord", "location_hud_icons");
     private static final int LEFT = 10;
-    private static final int RIGHT = 164;
-    private static final int BADGE_PADDING = 4;
+    private static final int RIGHT = 166;
     private static final int COLUMN_SPLIT = 94;
     private static final int MAX_ROWS = 16;
     private static final int MAX_CHALLENGE_ROWS = 8;
     private static final int MAX_BUFF_ROWS = 5;
-    private static final int PANEL_MARKER = 128;
-    private static final int DIVIDER_MARKER = 143;
-    private static final int BADGE_MARKER = 144;
-    private static final int SHADOW_MARKER = 146;
+    private static final int SHADOW_ROW_OFFSET = 16;
     private static final String PARTICIPANT_SEPARATOR = "、";
 
     private LocationHudGlyphs() {
     }
 
     /** 現在地と該当する挑戦を整形し、空き行数に合わせて効果を一度だけ選びます。 */
-    static List<Panel> layout(String world, String area, int level, @Nullable Performance performance,
+    static List<Row> layout(String world, String area, int level, @Nullable Performance performance,
                              @Nullable BossChallengeSidebarInfo boss, @Nullable DungeonSidebarInfo dungeon,
                              SidebarBuffPageState pageState, List<ActiveBuff> activeBuffs, boolean showBuffs,
                              BuffHudIcons icons, LocalDateTime now) {
-        Panel location = locationPanel(world, area, level, performance);
-        List<Panel> panels = new ArrayList<>(3);
-        panels.add(location);
-        int occupied = location.rows().size();
+        List<Row> rows = locationRows(world, area, level, performance);
         if (boss != null || dungeon != null) {
-            Panel challenge = challengePanel(boss, dungeon);
-            panels.add(challenge);
-            occupied += challenge.rows().size();
+            rows.addAll(challengeRows(boss, dungeon));
         }
         // 複数件の効果には件数・ページ番号を1行確保します。
-        int pageSize = Math.min(MAX_BUFF_ROWS, MAX_ROWS - occupied - 1);
+        int pageSize = Math.min(MAX_BUFF_ROWS, MAX_ROWS - rows.size() - 1);
         SidebarBuffPageState.Page page = pageState.select(activeBuffs, showBuffs, pageSize);
         if (!page.buffs().isEmpty()) {
-            panels.add(effectsPanel(page, icons, now));
+            rows.addAll(effectRows(page, icons, now));
         }
-        return List.copyOf(panels);
+        return List.copyOf(rows);
     }
 
-    /** ワールド名を見出しにし、その下にエリア・Lvと任意の性能行を配置します。 */
-    private static Panel locationPanel(String world, String area, int level, @Nullable Performance performance) {
+    /** ワールド名、エリア・Lv、任意の性能情報を右端に揃えます。 */
+    private static List<Row> locationRows(String world, String area, int level, @Nullable Performance performance) {
         String unknown = message(HudMsgId.P_5673);
         String worldName = ColorCodeUtil.toPlainText(world, unknown).strip();
-        String areaName = ColorCodeUtil.toPlainText(area, unknown);
+        String areaName = ColorCodeUtil.toPlainText(area, unknown).strip();
         List<Row> rows = new ArrayList<>(4);
-        int split = HudOverlayGlyphs.prefixEnd(worldName, RIGHT - LEFT);
-        rows.add(new Row(left(worldName.substring(0, split).stripTrailing(), LEFT, RIGHT, Palette.WHITE)));
+        int split = TEXT.prefixEnd(worldName, RIGHT - LEFT);
+        rows.add(new Row(right(worldName.substring(0, split).stripTrailing(), LEFT, RIGHT, Palette.WHITE)));
         if (split < worldName.length()) {
-            rows.add(new Row(left(worldName.substring(split).stripLeading(), LEFT, RIGHT, Palette.WHITE)));
+            rows.add(new Row(right(worldName.substring(split).stripLeading(), LEFT, RIGHT, Palette.WHITE)));
         }
 
         String levelText = "Lv." + Math.max(0, level);
-        int badgeWidth = textWidth(levelText) + BADGE_PADDING * 2;
-        int badgeLeft = RIGHT - badgeWidth;
-        String areaLabel = message(HudMsgId.P_5664);
-        int areaLeft = LEFT + textWidth(areaLabel) + 4;
-        rows.add(new Row(List.of(left(areaLabel, LEFT, areaLeft, Palette.GRAY),
-                left(areaName, areaLeft, badgeLeft - 3, Palette.WHITE),
-                right(levelText, badgeLeft + BADGE_PADDING, RIGHT - BADGE_PADDING, Palette.TEAL)), 0, false, badgeWidth));
+        int levelLeft = RIGHT - textWidth(levelText);
+        rows.add(new Row(right(areaName, LEFT, levelLeft - 6, Palette.SECONDARY),
+                right(levelText, levelLeft, RIGHT, Palette.SECONDARY)));
 
         if (performance != null) {
-            Row values = splitRow(message(HudMsgId.P_5674), String.format(Locale.ROOT, "%.1f", performance.mspt()),
-                    performance.msptColor(), message(HudMsgId.P_5675), performance.ping() + "ms", performance.pingColor());
-            rows.add(new Row(values.labels(), 0, true, 0));
+            rows.add(performanceRow(performance));
         }
-        return new Panel(Tone.LOCATION, rows);
+        return rows;
+    }
+
+    /** MSPTとPingを、アクションバーと同じ文字送りで右寄せします。 */
+    private static Row performanceRow(Performance performance) {
+        String msptLabel = message(HudMsgId.P_5674);
+        String msptValue = String.format(Locale.ROOT, "%.1f", performance.mspt());
+        String pingLabel = message(HudMsgId.P_5675);
+        String pingValue = performance.ping() + "ms";
+        int pingValueLeft = RIGHT - textWidth(pingValue);
+        int pingLeft = pingValueLeft - 3 - textWidth(pingLabel);
+        int msptRight = pingLeft - 9;
+        int msptValueLeft = Math.max(LEFT + textWidth(msptLabel) + 3, msptRight - textWidth(msptValue));
+        return new Row(right(msptLabel, LEFT, msptValueLeft - 3, Palette.GRAY),
+                right(msptValue, msptValueLeft, msptRight, performance.msptColor()),
+                left(pingLabel, pingLeft, pingValueLeft - 3, Palette.GRAY),
+                right(pingValue, pingValueLeft, RIGHT, performance.pingColor()));
     }
 
     /** ボスを優先し、ダンジョンでは部屋進捗や帰還待ちも含めます。 */
-    private static Panel challengePanel(@Nullable BossChallengeSidebarInfo boss, @Nullable DungeonSidebarInfo dungeon) {
+    private static List<Row> challengeRows(@Nullable BossChallengeSidebarInfo boss, @Nullable DungeonSidebarInfo dungeon) {
         List<Row> rows = new ArrayList<>(MAX_CHALLENGE_ROWS);
         if (boss != null) {
             addChallengeTitle(rows, HudMsgId.P_5665, boss.bossDisplayName());
@@ -127,7 +125,7 @@ final class LocationHudGlyphs {
             }
             addParticipants(rows, dungeon.participantNames(), dungeon.waitingParticipantNames());
         }
-        return new Panel(Tone.CHALLENGE, rows);
+        return rows;
     }
 
     /** 挑戦種別と名称を2行に分けます。 */
@@ -173,75 +171,55 @@ final class LocationHudGlyphs {
                     x = next;
                 }
             }
-            rows.add(new Row(labels, 0, false, 0));
+            rows.add(new Row(labels, 0));
         }
     }
 
     /** 期限内の効果をアイコン、名称、残り時間で表示します。 */
-    private static Panel effectsPanel(SidebarBuffPageState.Page page, BuffHudIcons icons, LocalDateTime now) {
+    private static List<Row> effectRows(SidebarBuffPageState.Page page, BuffHudIcons icons, LocalDateTime now) {
         List<Row> rows = new ArrayList<>();
         if (page.totalCount() > 1) {
             String title = PlayerMsgResource.format(HudMsgId.P_5660.getId(), page.totalCount(), page.pageIndex() + 1, page.pageCount());
-            rows.add(new Row(left(ColorCodeUtil.toPlainText(title, ""), LEFT, RIGHT, Palette.TEAL)));
+            rows.add(new Row(left(ColorCodeUtil.toPlainText(title, ""), LEFT, RIGHT, Palette.SECONDARY)));
         }
         for (ActiveBuff buff : page.buffs()) {
             String name = ColorCodeUtil.toPlainText(buff.getType().getDisplayName(), message(HudMsgId.P_5673));
             String remaining = PlayerHudView.formatRemaining(Math.max(0L, Duration.between(now, buff.getExpiresAt()).toSeconds()));
             int timeLeft = RIGHT - textWidth(remaining);
             rows.add(new Row(List.of(left(name, LEFT + 15, timeLeft - 5, buff.getType().isDebuff() ? Palette.RED : Palette.PURPLE),
-                    right(remaining, timeLeft, RIGHT, Palette.WHITE)), icons.glyph(buff.getType()), false, 0));
+                    right(remaining, timeLeft, RIGHT, Palette.WHITE)), icons.glyph(buff.getType())));
         }
-        return new Panel(Tone.EFFECTS, rows);
+        return rows;
     }
 
     /** 画面固定シェーダー用のRGBマーカーを、幅ゼロのActionBar追加要素へ変換します。 */
-    static Component render(List<Panel> panels) {
-        int total = panels.stream().mapToInt(panel -> panel.rows().size()).sum();
+    static Component render(List<Row> rows) {
         TextComponent.Builder result = HudOverlayGlyphs.builder();
-        int textMarker = (total - 1) * 8;
-        int shadowMarker = SHADOW_MARKER + total - 1;
-        int rowIndex = 0;
-        for (Panel panel : panels) {
-            int marker = PANEL_MARKER + panel.tone().ordinal() * 5;
-            int startRow = rowIndex;
-            int span = startRow * 8 + panel.rows().size() - 1;
-            for (int part = 0; part < 5; part++) {
-                appendPixel(result, marker + part, span, total);
+        int textMarker = (rows.size() - 1) * 8;
+        for (int rowIndex = 0; rowIndex < rows.size(); rowIndex++) {
+            Row row = rows.get(rowIndex);
+            if (row.icon() != 0) {
+                appendGlyph(result, ICON_FONT, row.icon(), BuffHudIcons.ICON_ADVANCE,
+                        textMarker + Palette.ICON.ordinal(), LEFT, rowIndex);
             }
-            for (Row row : panel.rows()) {
-                if (row.divider() || (panel.tone() == Tone.CHALLENGE && rowIndex == startRow + 2)) {
-                    appendPixel(result, DIVIDER_MARKER, rowIndex, total);
-                }
-                if (row.badgeWidth() > 0) {
-                    appendPixel(result, BADGE_MARKER + rowIndex - 1, row.badgeWidth(), total);
-                }
-                if (row.icon() != 0) {
-                    appendGlyph(result, ICON_FONT, row.icon(), BuffHudIcons.ICON_ADVANCE,
-                            textMarker + Palette.ICON.ordinal(), LEFT, rowIndex);
-                }
-                for (Label label : row.labels()) {
-                    List<Integer> glyphs = fit(label.text(), label.right() - label.left());
-                    int x = label.rightAligned() ? label.right() - width(glyphs) : label.left();
-                    // 本文と同じフォントの字形に影を付け、背景とのテクスチャ順に依存せず読めるようにします。
-                    appendLine(result, TEXT_FONT, glyphs, x, rowIndex, textMarker + label.palette().ordinal(), shadowMarker);
-                }
-                rowIndex++;
+            for (Label label : row.labels()) {
+                List<Integer> glyphs = TEXT.fit(label.text(), label.right() - label.left());
+                int x = label.rightAligned() ? label.right() - TEXT.width(glyphs) : label.left();
+                TEXT.appendLine(result, glyphs, x, rowIndex, textMarker + label.palette().ordinal(), SHADOW_ROW_OFFSET);
             }
         }
         return result.build();
     }
 
-    /** パネルと効果アイコンを同じフォントのテクスチャページで描画します。 */
-    private static void appendPixel(TextComponent.Builder result, int red, int green, int blue) {
-        appendGlyph(result, ICON_FONT, SOLID_PIXEL, 7, red, green, blue);
-    }
-
     /** 左右の列へラベルと値を並べます。 */
     private static Row splitRow(String labelA, String valueA, Palette colorA, String labelB, String valueB, Palette colorB) {
         int leftValue = LEFT + textWidth(labelA) + 4;
-        int rightValue = COLUMN_SPLIT + textWidth(labelB) + 4;
-        return new Row(left(labelA, LEFT, leftValue, Palette.GRAY), left(valueA, leftValue, COLUMN_SPLIT - 5, colorA),
-                left(labelB, COLUMN_SPLIT, rightValue, Palette.GRAY), left(valueB, rightValue, RIGHT, colorB));
+        int rightLabelWidth = textWidth(labelB);
+        int latestSplit = RIGHT - rightLabelWidth - 4 - textWidth(valueB);
+        int split = Math.max(COLUMN_SPLIT, Math.min(leftValue + textWidth(valueA) + 5, latestSplit));
+        int rightValue = split + rightLabelWidth + 4;
+        return new Row(left(labelA, LEFT, leftValue, Palette.GRAY), left(valueA, leftValue, split - 5, colorA),
+                left(labelB, split, rightValue, Palette.GRAY), left(valueB, rightValue, RIGHT, colorB));
     }
 
     /** 1項目を左ラベルと右値へ分けます。 */
@@ -260,9 +238,15 @@ final class LocationHudGlyphs {
         return new Label(text, left, right, palette, true);
     }
 
+    /** @return アクションバー字形があればその送り幅、その他は現在地用の送り幅 */
+    private static int textAdvance(int codePoint) {
+        int gameplayAdvance = JavaProfileHud.gameplayTextAdvance(codePoint);
+        return gameplayAdvance != 0 ? gameplayAdvance : ClassNameGlyphs.advance(codePoint, true);
+    }
+
     /** @return 折り返し前の字送り */
     private static int textWidth(String text) {
-        return width(fit(text, Integer.MAX_VALUE));
+        return TEXT.width(TEXT.fit(text, Integer.MAX_VALUE));
     }
 
     /** @return 挑戦時間の分:秒表示 */
@@ -275,9 +259,7 @@ final class LocationHudGlyphs {
         return PlayerMsgResource.getMessage(id.getId());
     }
 
-    private enum Tone { LOCATION, CHALLENGE, EFFECTS }
-
-    private enum Palette { WHITE, GRAY, GOLD, TEAL, RED, PURPLE, YELLOW, ICON }
+    private enum Palette { WHITE, GRAY, GOLD, SECONDARY, RED, PURPLE, YELLOW, ICON }
 
     record Performance(double mspt, int ping, NamedTextColor msptStatus, NamedTextColor pingStatus) {
         /** @return MSPTの状態色をパック用パレットへ変換した値 */
@@ -294,22 +276,16 @@ final class LocationHudGlyphs {
         private static Palette color(NamedTextColor status) {
             if (status == NamedTextColor.RED) return Palette.RED;
             if (status == NamedTextColor.YELLOW) return Palette.YELLOW;
-            return Palette.TEAL;
+            return Palette.SECONDARY;
         }
     }
 
-    record Panel(Tone tone, List<Row> rows) {
-        Panel {
-            rows = List.copyOf(rows);
-        }
-    }
-
-    private record Row(List<Label> labels, int icon, boolean divider, int badgeWidth) {
+    record Row(List<Label> labels, int icon) {
         private Row(Label... labels) {
-            this(List.of(labels), 0, false, 0);
+            this(List.of(labels), 0);
         }
 
-        private Row {
+        Row {
             labels = List.copyOf(labels);
         }
     }

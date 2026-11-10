@@ -348,6 +348,13 @@ public final class JavaProfileHud {
         return text.codePoints().map(glyph -> gameplayAdvance(glyph, readableTypeface)).sum();
     }
 
+    /** @return 現行アクションバーの文字の送り幅。未収録の場合は0 */
+    static int gameplayTextAdvance(int glyph) {
+        boolean supported = glyph >= 'A' && glyph <= 'Z' || glyph >= 'a' && glyph <= 'z'
+                || glyph >= '0' && glyph <= '9' || " []!?+-/()%.,:|".indexOf(glyph) >= 0;
+        return supported ? gameplayAdvance(glyph, true) : 0;
+    }
+
     private static int gameplayAdvance(int glyph, boolean readableTypeface) {
         if (glyph >= POSITIVE_SPACE && glyph < NEGATIVE_SPACE) {
             return 1 << (glyph - POSITIVE_SPACE);

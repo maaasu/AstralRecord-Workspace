@@ -91,7 +91,7 @@ public final class ResourcePackRepository {
                     && rodTip.getAsJsonPrimitive().isString() && "1".equals(rodTip.getAsString());
                 JsonElement location = java.get("locationHud");
                 boolean locationHud = location != null && location.isJsonPrimitive()
-                    && location.getAsJsonPrimitive().isString() && "2".equals(location.getAsString());
+                    && location.getAsJsonPrimitive().isString() && "3".equals(location.getAsString());
                 JsonElement profile = java.get("profileHud");
                 String profileVersion = profile != null && profile.isJsonPrimitive()
                     && profile.getAsJsonPrimitive().isString() ? profile.getAsString() : "";

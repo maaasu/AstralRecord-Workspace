@@ -5,7 +5,6 @@ public enum HudMsgId {
     P_5660,
     P_5661,
     P_5662,
-    P_5664,
     P_5665,
     P_5666,
     P_5667,

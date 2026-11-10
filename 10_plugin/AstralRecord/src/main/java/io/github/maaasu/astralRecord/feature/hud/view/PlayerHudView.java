@@ -156,11 +156,11 @@ public class PlayerHudView {
         var performance = showPerformanceInfo
                 ? new LocationHudGlyphs.Performance(mspt, ping, msptTextColor(mspt), pingTextColor(ping)) : null;
         var page = buffPages.computeIfAbsent(playerId, ignored -> new SidebarBuffPageState());
-        var panels = LocationHudGlyphs.layout(worldName, areaName, areaLevel, performance, bossInfo, dungeonInfo,
+        var rows = LocationHudGlyphs.layout(worldName, areaName, areaLevel, performance, bossInfo, dungeonInfo,
                 page, activeBuffs, showBuffInfo, buffHudIcons, LocalDateTime.now());
         JavaLocationHud previous = javaLocations.get(playerId);
-        if (previous == null || !previous.panels().equals(panels)) {
-            javaLocations.put(playerId, new JavaLocationHud(panels, LocationHudGlyphs.render(panels)));
+        if (previous == null || !previous.rows().equals(rows)) {
+            javaLocations.put(playerId, new JavaLocationHud(rows, LocationHudGlyphs.render(rows)));
         }
         removeSidebar(player);
     }
@@ -174,7 +174,7 @@ public class PlayerHudView {
         return javaLocations.remove(playerId) != null;
     }
 
-    private record JavaLocationHud(List<LocationHudGlyphs.Panel> panels, Component component) {
+    private record JavaLocationHud(List<LocationHudGlyphs.Row> rows, Component component) {
     }
 
     /**

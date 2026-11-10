@@ -124,25 +124,30 @@ void main() {
     }
 #endif
     // END ASTRALRECORD QUEST HUD
-    // BEGIN ASTRALRECORD LOCATION HUD V2
+    // BEGIN ASTRALRECORD LOCATION HUD V3
 #if 1
-    // Shares the Quest negative-ascent window. Its RGB marker range is disjoint.
-    bool locationText = questType < 128;
-    bool locationShadow = questType >= 146 && questType < 162;
-    bool locationPanel = questType >= 128 && questType < 143;
-    int locationRows = locationText ? questType / 8 + 1 : locationShadow ? questType - 145 : questCode.b;
-    int locationStart = questCode.g >> 3;
-    int locationSpan = (questCode.g & 7) + 1;
-    int locationBadgeRow = questType - 143;
-    bool locationMarker = (locationText || locationShadow) ? questCode.g < 172 && questCode.b < locationRows
-        : locationPanel ? locationStart + locationSpan <= locationRows
-        : questType == 143 ? questCode.g > 0 && questCode.g < locationRows
-        : questType <= 145 && locationBadgeRow < locationRows && questCode.g > 0 && questCode.g <= 158;
-    if (questProjection && locationMarker && locationRows >= 1 && locationRows <= 16
+    // Shares the Quest negative-ascent window with a disjoint RGB marker range.
+    // Red encodes row count and palette, green is x, and blue encodes row and shadow.
+    int locationRows = questType / 8 + 1;
+    int locationStyle = questType & 7;
+    int locationRow = questCode.b & 15;
+    bool locationShadow = questCode.b >= 16;
+    bool locationIcon = locationStyle == 7;
+    if (questProjection && questType < 128 && questCode.g < 172 && questCode.b < 32
+            && locationRow < locationRows && !(locationShadow && locationIcon)
             && questScreen.y > questHeight + 4000.0 && questScreen.y < questHeight + 4120.0) {
+        const ivec3 palette[8] = ivec3[8](
+            ivec3(242, 244, 246),
+            ivec3(178, 183, 181),
+            ivec3(246, 216, 160),
+            ivec3(216, 219, 217),
+            ivec3(251, 174, 179),
+            ivec3(215, 198, 248),
+            ivec3(249, 230, 149),
+            ivec3(255, 255, 255));
         vec2 screen = vec2(2.0 / abs(ProjMat[0][0]), questHeight);
         float right = screen.x - 8.0;
-        float height = float(17 * locationRows - 2);
+        float height = float(12 * locationRows);
         float limit = questHeight - 4.0;
         // Keep the unchanged Quest geometry and its gap available on narrower screens.
         float leftLimit = 188.0;
@@ -151,83 +156,21 @@ void main() {
         }
         float scale = clamp(min((right - leftLimit) / 172.0,
             (limit - 4.0) / height), 0.0, 1.0);
-        vec2 panelOrigin = vec2(right - 172.0 * scale,
+        vec2 windowOrigin = vec2(right - 172.0 * scale,
             clamp(limit - height * scale, 4.0, 48.0));
-        vec2 origin;
-        vec2 size;
-        vec3 tint;
-        float opacity = 255.0;
-        if (locationShadow) {
-            origin = vec2(float(questCode.g + 1), float(4 + 17 * questCode.b));
-            size = vec2(9.0, 11.0);
-            tint = vec3(0.02352941, 0.04705882, 0.09019608);
-            opacity = 184.0;
-        } else if (locationText) {
-            const vec3 palette[8] = vec3[8](
-                vec3(0.93725490, 0.96470588, 1.00000000),
-                vec3(0.72941176, 0.79607843, 0.87843137),
-                vec3(0.96470588, 0.84705882, 0.62745098),
-                vec3(0.59607843, 0.87843137, 0.88235294),
-                vec3(0.98431373, 0.68235294, 0.70196078),
-                vec3(0.84313725, 0.77647059, 0.97254902),
-                vec3(0.97647059, 0.90196078, 0.58431373),
-                vec3(1.00000000, 1.00000000, 1.00000000));
-            int style = questType & 7;
-            origin = vec2(float(questCode.g), float(3 + 17 * questCode.b + (style == 7 ? 1 : 0)));
-            // The buff bitmap has 10 ink pixels at the top of a 79-pixel cell.
-            size = style == 7 ? vec2(10.0, 79.0) : vec2(9.0, 11.0);
-            tint = palette[style];
-        } else if (locationPanel) {
-            const vec3 accents[3] = vec3[3](
-                vec3(0.41960784, 0.77647059, 0.87843137),
-                vec3(0.82745098, 0.67843137, 0.43921569),
-                vec3(0.67450980, 0.61960784, 0.87843137));
-            int part = (questType - 128) % 5;
-            float y = float(locationStart * 17);
-            float h = float(locationSpan * 17 - 2);
-            if (part == 4) {
-                origin = vec2(4.0, y + 5.0);
-                size = vec2(2.0, 9.0);
-                tint = accents[(questType - 128) / 5];
-                opacity = 192.0;
-            } else {
-                // Disjoint strips form stepped corners without a border or extra alpha.
-                if (part == 0) {
-                    origin = vec2(0.0, y + 2.0);
-                    size = vec2(172.0, h - 3.0);
-                } else if (part == 1) {
-                    origin = vec2(3.0, y);
-                    size = vec2(166.0, 1.0);
-                } else if (part == 2) {
-                    origin = vec2(1.0, y + 1.0);
-                    size = vec2(170.0, 1.0);
-                } else {
-                    origin = vec2(2.0, y + h - 1.0);
-                    size = vec2(168.0, 1.0);
-                }
-                tint = vec3(0.05882353, 0.09803922, 0.16078431);
-                // Minecraft can composite the fill over glyphs from a different font atlas page.
-                opacity = 128.0 * max(0.55, scale);
-            }
-        } else if (questType == 143) {
-            origin = vec2(10.0, float(questCode.g * 17));
-            size = vec2(154.0, 1.0);
-            tint = vec3(0.44705882, 0.56470588, 0.69019608);
-            opacity = 90.0;
-        } else {
-            origin = vec2(float(164 - questCode.g), float(locationBadgeRow * 17 + 2));
-            size = vec2(float(questCode.g), 13.0);
-            tint = vec3(0.24313725, 0.43921569, 0.60392157);
-            opacity = 112.0 * max(0.55, scale);
-        }
+        vec2 origin = vec2(float(questCode.g), float(12 * locationRow));
+        origin += locationShadow ? vec2(1.0) : vec2(0.0, locationIcon ? 1.0 : 0.0);
+        // The buff bitmap has 10 ink pixels at the top of a 79-pixel cell.
+        vec2 size = locationIcon ? vec2(10.0, 79.0) : vec2(9.0, 11.0);
+        ivec3 tint = palette[locationStyle];
         int corner = gl_VertexID & 3;
-        vec2 pixel = panelOrigin + (origin + size * vec2(corner >= 2 ? 1.0 : 0.0,
+        vec2 pixel = windowOrigin + (origin + size * vec2(corner >= 2 ? 1.0 : 0.0,
             corner == 1 || corner == 2 ? 1.0 : 0.0)) * scale;
         gl_Position.xy = (vec2(-1.0, 1.0) + pixel / screen * vec2(2.0, -2.0)) * gl_Position.w;
-        vertexColor = vec4(tint, Color.a * opacity / 255.0);
+        vertexColor = vec4(vec3(locationShadow ? tint / 4 : tint) / 255.0, Color.a);
         sphericalVertexDistance = 0.0;
         cylindricalVertexDistance = 0.0;
     }
 #endif
-    // END ASTRALRECORD LOCATION HUD V2
+    // END ASTRALRECORD LOCATION HUD V3
 }
