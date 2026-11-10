@@ -75,11 +75,11 @@
           "rotation": [
             0,
             0,
-            "math.atan(0.058670143 * math.sin(variable.astral_bow_swing * 360.0))"
+            "math.atan(0.060321716 * math.sin(variable.astral_bow_swing * 360.0))"
           ],
           "scale": [
             1,
-            "math.sqrt(1.0 + (0.058670143 * math.sin(variable.astral_bow_swing * 360.0)) * (0.058670143 * math.sin(variable.astral_bow_swing * 360.0)))",
+            "math.sqrt(1.0 + (0.060321716 * math.sin(variable.astral_bow_swing * 360.0)) * (0.060321716 * math.sin(variable.astral_bow_swing * 360.0)))",
             1
           ]
         },
@@ -87,11 +87,11 @@
           "rotation": [
             0,
             0,
-            "-math.atan(0.058670143 * math.sin(variable.astral_bow_swing * 360.0))"
+            "-math.atan(0.060321716 * math.sin(variable.astral_bow_swing * 360.0))"
           ],
           "scale": [
             1,
-            "math.sqrt(1.0 + (0.058670143 * math.sin(variable.astral_bow_swing * 360.0)) * (0.058670143 * math.sin(variable.astral_bow_swing * 360.0)))",
+            "math.sqrt(1.0 + (0.060321716 * math.sin(variable.astral_bow_swing * 360.0)) * (0.060321716 * math.sin(variable.astral_bow_swing * 360.0)))",
             1
           ]
         }
@@ -104,11 +104,11 @@
           "rotation": [
             0,
             0,
-            "math.atan(0.43024772 * variable.astral_bow_draw)"
+            "math.atan(0.44235925 * variable.astral_bow_draw)"
           ],
           "scale": [
             1,
-            "math.sqrt(1.0 + (0.43024772 * variable.astral_bow_draw) * (0.43024772 * variable.astral_bow_draw))",
+            "math.sqrt(1.0 + (0.44235925 * variable.astral_bow_draw) * (0.44235925 * variable.astral_bow_draw))",
             1
           ]
         },
@@ -116,11 +116,11 @@
           "rotation": [
             0,
             0,
-            "-math.atan(0.43024772 * variable.astral_bow_draw)"
+            "-math.atan(0.44235925 * variable.astral_bow_draw)"
           ],
           "scale": [
             1,
-            "math.sqrt(1.0 + (0.43024772 * variable.astral_bow_draw) * (0.43024772 * variable.astral_bow_draw))",
+            "math.sqrt(1.0 + (0.44235925 * variable.astral_bow_draw) * (0.44235925 * variable.astral_bow_draw))",
             1
           ]
         }

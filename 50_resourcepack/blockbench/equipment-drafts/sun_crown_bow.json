@@ -7,7 +7,7 @@
     9,
     8
   ],
-  "intent": "Minecraftの弓の角張ったD形を起点に、反張する赤木の枝と金の太い面を組み合わせた陽冠の長弓。枝の外へ三段の鳥羽を張り出し、ノクスや遺跡弓とは輪郭で差をつける。クリーム色の裏面は大きな色面で読む。",
+  "intent": "赤木の弓身に細い金の羽根を沿わせた陽冠の長弓。金具で弦を両端に留め、弓身との開口を確保する。赤革の握りには琥珀の太陽飾りを留める。",
   "materials": {
     "sun_gold": {
       "palette": [
@@ -228,7 +228,8 @@
         8.7
       ],
       "material": "warm_wrap",
-      "side": "wrap_dark"
+      "side": "wrap_dark",
+      "cap": "wrap_dark"
     },
     {
       "name": "Upper gold grip band",
@@ -270,667 +271,542 @@
         7.2
       ],
       "to": [
-        7.19,
+        6.83,
         9.57,
         8.8
       ],
       "material": "gold_edge",
-      "side": "sun_gold"
+      "side": "sun_gold",
+      "cap": "sun_gold"
     },
     {
       "name": "Amber hand sun front",
       "from": [
-        5.25,
-        8.45,
+        5.43,
+        8.63,
         7.1
       ],
       "to": [
-        6.35,
-        9.55,
+        6.17,
+        9.37,
         7.39
       ],
       "material": "sun_amber",
-      "side": "gold_edge"
+      "side": "gold_edge",
+      "cap": "gold_edge"
     },
     {
       "name": "Amber hand sun back",
       "from": [
-        5.25,
-        8.45,
+        5.43,
+        8.63,
         8.61
       ],
       "to": [
-        6.35,
-        9.55,
+        6.17,
+        9.37,
         8.9
       ],
       "material": "sun_amber",
-      "side": "gold_edge"
-    },
-    {
-      "name": "Upper redwood recurve 1",
-      "from": [
-        5.21,
-        10.09,
-        7.46
-      ],
-      "to": [
-        6.39,
-        13.02,
-        8.54
-      ],
-      "material": "redwood",
-      "side": "gold_dark",
-      "cap": "wood_end",
-      "rotation": {
-        "axis": "z",
-        "angle": -45,
-        "origin": [
-          5.8,
-          10.25,
-          8
-        ]
-      }
-    },
-    {
-      "name": "Upper broad gold facing 1",
-      "from": [
-        5.3162,
-        10.16,
-        7.33
-      ],
-      "to": [
-        6.283799999999999,
-        12.98,
-        7.5200000000000005
-      ],
-      "material": "sun_gold",
       "side": "gold_edge",
-      "cap": "gold_edge",
-      "rotation": {
-        "axis": "z",
-        "angle": -45,
-        "origin": [
-          5.8,
-          10.25,
-          8
-        ]
-      }
-    },
-    {
-      "name": "Upper rear cream facing 1",
-      "from": [
-        5.4578,
-        10.16,
-        8.48
-      ],
-      "to": [
-        6.1422,
-        12.98,
-        8.670000000000002
-      ],
-      "material": "feather_cream",
-      "side": "sun_gold",
-      "rotation": {
-        "axis": "z",
-        "angle": -45,
-        "origin": [
-          5.8,
-          10.25,
-          8
-        ]
-      }
-    },
-    {
-      "name": "Upper redwood recurve 2",
-      "from": [
-        7.130000000000001,
-        11.94,
-        7.52
-      ],
-      "to": [
-        8.17,
-        15.069999999999999,
-        8.48
-      ],
-      "material": "redwood",
-      "side": "gold_dark",
-      "cap": "wood_end",
-      "rotation": {
-        "axis": "z",
-        "angle": -22.5,
-        "origin": [
-          7.65,
-          12.1,
-          8
-        ]
-      }
-    },
-    {
-      "name": "Upper broad gold facing 2",
-      "from": [
-        7.2236,
-        12.01,
-        7.390000000000001
-      ],
-      "to": [
-        8.0764,
-        15.03,
-        7.58
-      ],
-      "material": "sun_gold",
-      "side": "gold_edge",
-      "cap": "gold_edge",
-      "rotation": {
-        "axis": "z",
-        "angle": -22.5,
-        "origin": [
-          7.65,
-          12.1,
-          8
-        ]
-      }
-    },
-    {
-      "name": "Upper rear cream facing 2",
-      "from": [
-        7.348400000000001,
-        12.01,
-        8.42
-      ],
-      "to": [
-        7.9516,
-        15.03,
-        8.610000000000001
-      ],
-      "material": "feather_cream",
-      "side": "sun_gold",
-      "rotation": {
-        "axis": "z",
-        "angle": -22.5,
-        "origin": [
-          7.65,
-          12.1,
-          8
-        ]
-      }
-    },
-    {
-      "name": "Upper redwood recurve 3",
-      "from": [
-        8.295,
-        14.54,
-        7.595
-      ],
-      "to": [
-        9.145000000000001,
-        16.82,
-        8.405
-      ],
-      "material": "redwood",
-      "side": "gold_dark",
-      "cap": "wood_end",
-      "rotation": {
-        "axis": "z",
-        "angle": 22.5,
-        "origin": [
-          8.72,
-          14.7,
-          8
-        ]
-      }
-    },
-    {
-      "name": "Upper broad gold facing 3",
-      "from": [
-        8.371500000000001,
-        14.61,
-        7.465
-      ],
-      "to": [
-        9.0685,
-        16.779999999999998,
-        7.655
-      ],
-      "material": "sun_gold",
-      "side": "gold_edge",
-      "cap": "gold_edge",
-      "rotation": {
-        "axis": "z",
-        "angle": 22.5,
-        "origin": [
-          8.72,
-          14.7,
-          8
-        ]
-      }
-    },
-    {
-      "name": "Upper rear cream facing 3",
-      "from": [
-        8.473500000000001,
-        14.61,
-        8.345
-      ],
-      "to": [
-        8.9665,
-        16.779999999999998,
-        8.535
-      ],
-      "material": "feather_cream",
-      "side": "sun_gold",
-      "rotation": {
-        "axis": "z",
-        "angle": 22.5,
-        "origin": [
-          8.72,
-          14.7,
-          8
-        ]
-      }
-    },
-    {
-      "name": "Upper broad bird feather",
-      "from": [
-        8.15,
-        12.9,
-        7.42
-      ],
-      "to": [
-        10.3,
-        13.95,
-        8.58
-      ],
-      "material": "sun_gold",
-      "side": "gold_dark",
       "cap": "gold_edge"
     },
     {
-      "name": "Upper feather outer step",
+      "name": "Upper redwood limb 1",
       "from": [
-        9.9,
-        13.3,
-        7.48
+        5.23,
+        10.015,
+        7.45
       ],
       "to": [
-        10.8,
-        14.35,
-        8.52
+        6.37,
+        11.7787,
+        8.55
+      ],
+      "material": "redwood",
+      "side": "gold_dark",
+      "cap": "wood_end",
+      "rotation": {
+        "angle": -22.5,
+        "axis": "z",
+        "origin": [
+          5.8,
+          10.15,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Upper redwood limb 2",
+      "from": [
+        5.86161,
+        11.395,
+        7.5
+      ],
+      "to": [
+        6.88161,
+        14.38029,
+        8.5
+      ],
+      "material": "redwood",
+      "side": "gold_dark",
+      "cap": "wood_end",
+      "rotation": {
+        "angle": -45,
+        "axis": "z",
+        "origin": [
+          6.37161,
+          11.53,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Upper long feather inlay front",
+      "from": [
+        5.84161,
+        11.9,
+        7.41
+      ],
+      "to": [
+        6.18161,
+        13.92,
+        7.57
+      ],
+      "material": "sun_gold",
+      "side": "gold_edge",
+      "cap": "gold_edge",
+      "rotation": {
+        "angle": -45,
+        "axis": "z",
+        "origin": [
+          6.37161,
+          11.53,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Upper short feather inlay front",
+      "from": [
+        5.66661,
+        12.73,
+        7.39
+      ],
+      "to": [
+        5.93661,
+        13.77,
+        7.55
       ],
       "material": "gold_edge",
-      "side": "sun_gold"
-    },
-    {
-      "name": "Upper feather cream tip",
-      "from": [
-        10.35,
-        13.88,
-        7.56
-      ],
-      "to": [
-        11.05,
-        14.65,
-        8.44
-      ],
-      "material": "feather_cream",
-      "side": "sun_gold"
-    },
-    {
-      "name": "Lower redwood recurve 1",
-      "from": [
-        5.21,
-        4.98,
-        7.46
-      ],
-      "to": [
-        6.39,
-        7.91,
-        8.54
-      ],
-      "material": "redwood",
-      "side": "gold_dark",
-      "cap": "wood_end",
+      "side": "sun_gold",
+      "cap": "sun_gold",
       "rotation": {
+        "angle": -45,
         "axis": "z",
-        "angle": 45,
         "origin": [
-          5.8,
-          7.75,
+          6.37161,
+          11.53,
           8
         ]
       }
     },
     {
-      "name": "Lower broad gold facing 1",
+      "name": "Upper long feather inlay rear",
       "from": [
-        5.3162,
-        5.02,
-        7.33
+        5.84161,
+        11.9,
+        8.43
       ],
       "to": [
-        6.283799999999999,
-        7.84,
-        7.5200000000000005
+        6.18161,
+        13.92,
+        8.59
       ],
       "material": "sun_gold",
       "side": "gold_edge",
       "cap": "gold_edge",
       "rotation": {
+        "angle": -45,
         "axis": "z",
-        "angle": 45,
         "origin": [
-          5.8,
-          7.75,
+          6.37161,
+          11.53,
           8
         ]
       }
     },
     {
-      "name": "Lower rear cream facing 1",
+      "name": "Upper short feather inlay rear",
       "from": [
-        5.4578,
-        5.02,
-        8.48
+        5.66661,
+        12.73,
+        8.45
       ],
       "to": [
-        6.1422,
-        7.84,
-        8.670000000000002
-      ],
-      "material": "feather_cream",
-      "side": "sun_gold",
-      "rotation": {
-        "axis": "z",
-        "angle": 45,
-        "origin": [
-          5.8,
-          7.75,
-          8
-        ]
-      }
-    },
-    {
-      "name": "Lower redwood recurve 2",
-      "from": [
-        7.130000000000001,
-        2.9300000000000015,
-        7.52
-      ],
-      "to": [
-        8.17,
-        6.0600000000000005,
-        8.48
-      ],
-      "material": "redwood",
-      "side": "gold_dark",
-      "cap": "wood_end",
-      "rotation": {
-        "axis": "z",
-        "angle": 22.5,
-        "origin": [
-          7.65,
-          5.9,
-          8
-        ]
-      }
-    },
-    {
-      "name": "Lower broad gold facing 2",
-      "from": [
-        7.2236,
-        2.9700000000000006,
-        7.390000000000001
-      ],
-      "to": [
-        8.0764,
-        5.99,
-        7.58
-      ],
-      "material": "sun_gold",
-      "side": "gold_edge",
-      "cap": "gold_edge",
-      "rotation": {
-        "axis": "z",
-        "angle": 22.5,
-        "origin": [
-          7.65,
-          5.9,
-          8
-        ]
-      }
-    },
-    {
-      "name": "Lower rear cream facing 2",
-      "from": [
-        7.348400000000001,
-        2.9700000000000006,
-        8.42
-      ],
-      "to": [
-        7.9516,
-        5.99,
-        8.610000000000001
-      ],
-      "material": "feather_cream",
-      "side": "sun_gold",
-      "rotation": {
-        "axis": "z",
-        "angle": 22.5,
-        "origin": [
-          7.65,
-          5.9,
-          8
-        ]
-      }
-    },
-    {
-      "name": "Lower redwood recurve 3",
-      "from": [
-        8.295,
-        1.1799999999999997,
-        7.595
-      ],
-      "to": [
-        9.145000000000001,
-        3.460000000000001,
-        8.405
-      ],
-      "material": "redwood",
-      "side": "gold_dark",
-      "cap": "wood_end",
-      "rotation": {
-        "axis": "z",
-        "angle": -22.5,
-        "origin": [
-          8.72,
-          3.3000000000000007,
-          8
-        ]
-      }
-    },
-    {
-      "name": "Lower broad gold facing 3",
-      "from": [
-        8.371500000000001,
-        1.2200000000000024,
-        7.465
-      ],
-      "to": [
-        9.0685,
-        3.3900000000000006,
-        7.655
-      ],
-      "material": "sun_gold",
-      "side": "gold_edge",
-      "cap": "gold_edge",
-      "rotation": {
-        "axis": "z",
-        "angle": -22.5,
-        "origin": [
-          8.72,
-          3.3000000000000007,
-          8
-        ]
-      }
-    },
-    {
-      "name": "Lower rear cream facing 3",
-      "from": [
-        8.473500000000001,
-        1.2200000000000024,
-        8.345
-      ],
-      "to": [
-        8.9665,
-        3.3900000000000006,
-        8.535
-      ],
-      "material": "feather_cream",
-      "side": "sun_gold",
-      "rotation": {
-        "axis": "z",
-        "angle": -22.5,
-        "origin": [
-          8.72,
-          3.3000000000000007,
-          8
-        ]
-      }
-    },
-    {
-      "name": "Lower broad bird feather",
-      "from": [
-        8.15,
-        4.050000000000001,
-        7.42
-      ],
-      "to": [
-        10.3,
-        5.1,
-        8.58
-      ],
-      "material": "sun_gold",
-      "side": "gold_dark",
-      "cap": "gold_edge"
-    },
-    {
-      "name": "Lower feather outer step",
-      "from": [
-        9.9,
-        3.6500000000000004,
-        7.48
-      ],
-      "to": [
-        10.8,
-        4.699999999999999,
-        8.52
+        5.93661,
+        13.77,
+        8.61
       ],
       "material": "gold_edge",
-      "side": "sun_gold"
+      "side": "sun_gold",
+      "cap": "sun_gold",
+      "rotation": {
+        "angle": -45,
+        "axis": "z",
+        "origin": [
+          6.37161,
+          11.53,
+          8
+        ]
+      }
     },
     {
-      "name": "Lower feather cream tip",
+      "name": "Upper redwood limb 3",
       "from": [
-        10.35,
-        3.3499999999999996,
-        7.56
+        7.87661,
+        13.315,
+        7.57
       ],
       "to": [
-        11.05,
-        4.119999999999999,
-        8.44
+        8.70661,
+        16.0745,
+        8.43
       ],
-      "material": "feather_cream",
-      "side": "sun_gold"
+      "material": "redwood",
+      "side": "gold_dark",
+      "cap": "wood_end",
+      "rotation": {
+        "angle": -22.5,
+        "axis": "z",
+        "origin": [
+          8.29161,
+          13.45,
+          8
+        ]
+      }
     },
     {
-      "name": "Upper golden nock",
+      "name": "Upper gold limb binding",
       "from": [
-        7.62,
-        16.31,
+        7.81161,
+        15.4795,
         7.51
       ],
       "to": [
-        8.34,
-        16.91,
+        8.77161,
+        15.7995,
         8.49
       ],
-      "material": "gold_edge",
-      "side": "sun_gold"
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge",
+      "rotation": {
+        "angle": -22.5,
+        "axis": "z",
+        "origin": [
+          8.29161,
+          13.45,
+          8
+        ]
+      }
     },
     {
-      "name": "Lower golden nock",
+      "name": "Upper redwood limb 4",
       "from": [
-        7.62,
-        1.09,
+        8.91931,
+        15.615,
+        7.64
+      ],
+      "to": [
+        9.56931,
+        16.785,
+        8.36
+      ],
+      "material": "redwood",
+      "side": "gold_dark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Upper tip nock",
+      "from": [
+        8.83431,
+        16.19,
+        7.55
+      ],
+      "to": [
+        9.81431,
+        16.73,
+        8.45
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold",
+      "cap": "sun_gold"
+    },
+    {
+      "name": "Upper taut cord",
+      "from": [
+        9.34931,
+        9.0,
+        7.885
+      ],
+      "to": [
+        9.57931,
+        16.46,
+        8.115
+      ],
+      "material": "cord",
+      "side": "cord",
+      "cap": "cord",
+      "bone": "cord_upper"
+    },
+    {
+      "name": "Lower redwood limb 1",
+      "from": [
+        5.23,
+        6.2213,
+        7.45
+      ],
+      "to": [
+        6.37,
+        7.985,
+        8.55
+      ],
+      "material": "redwood",
+      "side": "gold_dark",
+      "cap": "wood_end",
+      "rotation": {
+        "angle": 22.5,
+        "axis": "z",
+        "origin": [
+          5.8,
+          7.85,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Lower redwood limb 2",
+      "from": [
+        5.86161,
+        3.61971,
+        7.5
+      ],
+      "to": [
+        6.88161,
+        6.605,
+        8.5
+      ],
+      "material": "redwood",
+      "side": "gold_dark",
+      "cap": "wood_end",
+      "rotation": {
+        "angle": 45,
+        "axis": "z",
+        "origin": [
+          6.37161,
+          6.47,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Lower long feather inlay front",
+      "from": [
+        5.84161,
+        4.08,
+        7.41
+      ],
+      "to": [
+        6.18161,
+        6.1,
+        7.57
+      ],
+      "material": "sun_gold",
+      "side": "gold_edge",
+      "cap": "gold_edge",
+      "rotation": {
+        "angle": 45,
+        "axis": "z",
+        "origin": [
+          6.37161,
+          6.47,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Lower short feather inlay front",
+      "from": [
+        5.66661,
+        4.23,
+        7.39
+      ],
+      "to": [
+        5.93661,
+        5.27,
+        7.55
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold",
+      "cap": "sun_gold",
+      "rotation": {
+        "angle": 45,
+        "axis": "z",
+        "origin": [
+          6.37161,
+          6.47,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Lower long feather inlay rear",
+      "from": [
+        5.84161,
+        4.08,
+        8.43
+      ],
+      "to": [
+        6.18161,
+        6.1,
+        8.59
+      ],
+      "material": "sun_gold",
+      "side": "gold_edge",
+      "cap": "gold_edge",
+      "rotation": {
+        "angle": 45,
+        "axis": "z",
+        "origin": [
+          6.37161,
+          6.47,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Lower short feather inlay rear",
+      "from": [
+        5.66661,
+        4.23,
+        8.45
+      ],
+      "to": [
+        5.93661,
+        5.27,
+        8.61
+      ],
+      "material": "gold_edge",
+      "side": "sun_gold",
+      "cap": "sun_gold",
+      "rotation": {
+        "angle": 45,
+        "axis": "z",
+        "origin": [
+          6.37161,
+          6.47,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Lower redwood limb 3",
+      "from": [
+        7.87661,
+        1.9255,
+        7.57
+      ],
+      "to": [
+        8.70661,
+        4.685,
+        8.43
+      ],
+      "material": "redwood",
+      "side": "gold_dark",
+      "cap": "wood_end",
+      "rotation": {
+        "angle": 22.5,
+        "axis": "z",
+        "origin": [
+          8.29161,
+          4.55,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Lower gold limb binding",
+      "from": [
+        7.81161,
+        2.2005,
         7.51
       ],
       "to": [
-        8.34,
-        1.69,
+        8.77161,
+        2.5205,
         8.49
       ],
+      "material": "sun_gold",
+      "side": "gold_dark",
+      "cap": "gold_edge",
+      "rotation": {
+        "angle": 22.5,
+        "axis": "z",
+        "origin": [
+          8.29161,
+          4.55,
+          8
+        ]
+      }
+    },
+    {
+      "name": "Lower redwood limb 4",
+      "from": [
+        8.91931,
+        1.215,
+        7.64
+      ],
+      "to": [
+        9.56931,
+        2.385,
+        8.36
+      ],
+      "material": "redwood",
+      "side": "gold_dark",
+      "cap": "wood_end"
+    },
+    {
+      "name": "Lower tip nock",
+      "from": [
+        8.83431,
+        1.27,
+        7.55
+      ],
+      "to": [
+        9.81431,
+        1.81,
+        8.45
+      ],
       "material": "gold_edge",
-      "side": "sun_gold"
+      "side": "sun_gold",
+      "cap": "sun_gold"
     },
     {
-      "name": "Upper pale sun string",
+      "name": "Lower taut cord",
       "from": [
-        7.85,
-        9,
-        7.87
+        9.34931,
+        1.54,
+        7.885
       ],
       "to": [
-        8.11,
-        16.67,
-        8.13
+        9.57931,
+        9.0,
+        8.115
       ],
       "material": "cord",
-      "bone": "cord_upper"
-    },
-    {
-      "name": "Lower pale sun string",
-      "from": [
-        7.85,
-        1.33,
-        7.87
-      ],
-      "to": [
-        8.11,
-        9,
-        8.13
-      ],
-      "material": "cord",
-      "bone": "cord_lower"
-    },
-    {
-      "name": "Upper dark nocking serving",
-      "from": [
-        7.79,
-        9.1,
-        7.79
-      ],
-      "to": [
-        8.17,
-        9.5,
-        8.21
-      ],
-      "material": "wrap_dark",
-      "bone": "cord_upper"
-    },
-    {
-      "name": "Lower dark nocking serving",
-      "from": [
-        7.79,
-        8.5,
-        7.79
-      ],
-      "to": [
-        8.17,
-        8.9,
-        8.21
-      ],
-      "material": "wrap_dark",
+      "side": "cord",
+      "cap": "cord",
       "bone": "cord_lower"
     }
   ],
@@ -949,17 +825,17 @@
   },
   "bow": {
     "upper_tip": [
-      7.98,
-      16.67,
+      9.46431,
+      16.46,
       8
     ],
     "lower_tip": [
-      7.98,
-      1.33,
+      9.46431,
+      1.54,
       8
     ],
     "string_center": [
-      7.98,
+      9.46431,
       9,
       8
     ]
