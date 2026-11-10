@@ -686,6 +686,7 @@ public class EquipmentOrbOperationRepository(
             TranscendenceRank = instance.TranscendenceRank,
             DurabilityMax = instance.DurabilityMax,
             DurabilityValue = instance.DurabilityValue,
+            IsProtected = instance.IsProtected,
             CreatedAt = instance.CreatedAt,
             UpdatedAt = instance.UpdatedAt,
             StatRolls = statRolls.Select(roll => new EquipmentInstanceStatRollResponse

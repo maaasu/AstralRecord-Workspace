@@ -25,7 +25,10 @@ public class EquipmentOrbOperationRepositoryTests
         var request = harness.CreateRequest(Guid.NewGuid(), "snapshot_repair", orb);
         var first = await harness.ExecuteAsync(request);
         Assert.Equal(1, Assert.Single(first.InventorySnapshot!.Entries).Quantity);
-        await harness.ExecuteAsync("snapshot_repair", orb);
+        Assert.False(first.Equipment!.IsProtected);
+        await harness.SetEquipmentStateAsync(instance => instance.IsProtected = true);
+        var second = await harness.ExecuteAsync("snapshot_repair", orb);
+        Assert.True(second.Equipment!.IsProtected);
 
         var replay = await harness.ExecuteAsync(request);
         var lookup = await harness.FindAsync(request.OperationId, harness.AccountId);
@@ -35,6 +38,8 @@ public class EquipmentOrbOperationRepositoryTests
         Assert.Empty(replay.InventorySnapshot.Entries);
         Assert.Empty(lookup!.InventorySnapshot!.Entries);
         Assert.Equal(30, replay.Equipment!.DurabilityValue);
+        Assert.True(replay.Equipment.IsProtected);
+        Assert.True(lookup.Equipment!.IsProtected);
         Assert.Equal(2, (await harness.GetLedgersAsync()).Count);
     }
 

@@ -248,6 +248,8 @@ public sealed class TradeRepository(AstralRecordDbContext dbContext) : ITradeRep
                 return TradeOperationResult<bool>.Failure(404, "trade.instance_not_found", "Equipment instance was not found.");
             if (equipment.AccountId != sourceAccountId)
                 return TradeOperationResult<bool>.Failure(409, "trade.instance_owner_changed", "Equipment owner changed.");
+            if (equipment.IsProtected)
+                return TradeOperationResult<bool>.Failure(409, "trade.instance_protected", "Protected equipment cannot be traded.");
             equipment.AccountId = destinationBag.AccountId;
             equipment.UpdatedAt = now;
             equipment.UpdatedBy = updatedBy;
