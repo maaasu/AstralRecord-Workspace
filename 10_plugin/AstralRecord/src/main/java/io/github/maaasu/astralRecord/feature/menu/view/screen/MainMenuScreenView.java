@@ -24,6 +24,7 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int PLAYER_INFO_SLOT = 32;
     public static final int MAIL_SLOT = 38;
     public static final int RETURN_TO_BASE_SLOT = 40;
+    public static final int ITEM_PROTECTION_SLOT = 41;
     public static final int TRASH_SLOT = 42;
     public static final int SIDEBAR_BUFF_PREVIOUS_SLOT = 47;
     public static final int SIDEBAR_BUFF_NEXT_SLOT = 51;
@@ -63,6 +64,7 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
             MenuIconDefinition.RETURN_TO_BASE,
             MenuIconFactory.returnToBaseDetails(context)
         ));
+        inventory.setItem(ITEM_PROTECTION_SLOT, ItemProtectionScreenView.createMenuIcon());
         inventory.setItem(TRASH_SLOT, MenuIconFactory.create(MenuIconDefinition.TRASH));
         inventory.setItem(SIDEBAR_BUFF_PREVIOUS_SLOT, GuiItems.previousPageButton(
             PlayerMsgResource.getComponent(MenuMsgId.P_5650.getId()),
