@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/anarion_shortbow",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [145.80915, -6.65305, -173.84783],
+      "translation": [2.58067, 2.94788, -4.81887],
+      "scale": [0.59199, 0.59199, 0.59199]
+    },
+    "firstperson_lefthand": {
+      "rotation": [-34.19085, 6.65305, -6.15217],
+      "translation": [2.58067, 2.94788, -4.81887],
+      "scale": [0.59199, 0.59199, 0.59199]
+    }
+  }
+}

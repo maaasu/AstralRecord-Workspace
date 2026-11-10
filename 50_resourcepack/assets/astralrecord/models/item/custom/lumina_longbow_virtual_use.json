@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/lumina_longbow",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [145.81852, -6.73946, -173.84674],
+      "translation": [2.56803, 2.22616, -4.4373],
+      "scale": [0.42225, 0.42225, 0.42225]
+    },
+    "firstperson_lefthand": {
+      "rotation": [-34.18148, 6.73946, -6.15326],
+      "translation": [2.56803, 2.22616, -4.4373],
+      "scale": [0.42225, 0.42225, 0.42225]
+    }
+  }
+}

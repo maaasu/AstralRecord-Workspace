@@ -1,0 +1,15 @@
+{
+  "parent": "astralrecord:item/custom/nox_bow",
+  "display": {
+    "firstperson_righthand": {
+      "rotation": [25.68817, -79.66618, 12.43042],
+      "translation": [1.16269, 4.67951, -1.34883],
+      "scale": [0.481859, 0.481859, 0.481859]
+    },
+    "firstperson_lefthand": {
+      "rotation": [-160.31403, 70.40808, 173.38756],
+      "translation": [1.31944, 4.69503, -1.38768],
+      "scale": [0.481859, 0.481859, 0.481859]
+    }
+  }
+}
