@@ -79,7 +79,7 @@ test('mounts an inert teal and gold canvas with bounded density and pixel ratio'
     assert.deepEqual(h.context.transform, [1.5, 0, 0, 1.5, 0, 0]);
     assert.equal(h.frames.size, 1);
     h.step(100);
-    assert.match(h.context.fillStyle, /rgba\((137, 246, 225|255, 231, 166),/);
+    assert.match(h.context.fillStyle, /rgba\((74, 109, 98|134, 98, 52),/);
     h.controller.dispose();
 });
 

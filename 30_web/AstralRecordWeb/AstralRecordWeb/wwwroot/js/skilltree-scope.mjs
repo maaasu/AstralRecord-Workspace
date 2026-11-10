@@ -1,14 +1,14 @@
-// The map shows the shared nodes plus one class at a time. Never every class at once.
+const normalizeClassId = value => String(value ?? '').trim().toLowerCase();
 
 const conditionClassId = condition => {
     if (!condition || typeof condition !== 'object') return '';
     const value = condition.classId ?? condition.ClassId;
-    return typeof value === 'string' ? value.trim().toLowerCase() : '';
+    return typeof value === 'string' ? normalizeClassId(value) : '';
 };
 
 /** Returns the class a node belongs to, or '' for shared nodes. */
 export function nodeClassId(node) {
-    return conditionClassId(node?.unlockCondition) || String(node?.cpSourceClassId ?? '').trim().toLowerCase();
+    return conditionClassId(node?.unlockCondition) || normalizeClassId(node?.cpSourceClassId);
 }
 
 const requirementClassName = node => {
@@ -16,34 +16,10 @@ const requirementClassName = node => {
     return match ? match[1].trim() : '';
 };
 
-/** Lists the classes that own nodes, in map order, with progress counts. */
-export function treeClasses(nodes) {
-    const classes = new Map();
-    for (const node of nodes ?? []) {
-        const id = nodeClassId(node);
-        if (!id) continue;
-        if (!classes.has(id)) classes.set(id, { id, name: '', total: 0, unlocked: 0 });
-        const entry = classes.get(id);
-        entry.total++;
-        if (node.isUnlocked) entry.unlocked++;
-        entry.name ||= node.unlockCondition?.classDisplayName || node.cpSourceClassName || requirementClassName(node) || node.consumedClassName || '';
-    }
-    for (const entry of classes.values()) entry.name ||= entry.id;
-    return [...classes.values()];
-}
-
-/** Picks the preferred class (the current class), then the most progressed one. */
-export function defaultTreeClass(classes, preferred) {
-    const wanted = String(preferred ?? '').trim().toLowerCase();
-    if (classes.some(entry => entry.id === wanted)) return wanted;
-    const progressed = [...classes].sort((a, b) => b.unlocked - a.unlocked)[0];
-    return progressed?.unlocked ? progressed.id : classes[0]?.id ?? '';
-}
-
-/** Whether a node is shown while the given class is selected. */
-export function inClassScope(node, classId) {
+/** A current-class runtime view already contains only CP nodes visible in the game. */
+export function inClassScope(node, classIds, isCurrentClass) {
     const id = nodeClassId(node);
-    return !id || id === classId;
+    return !id || classIds.has(id) || (isCurrentClass && node.pointType === 'CP' && node.isConditionMet !== false && !node.readOnly);
 }
 
 /** Marks a node from the published definition as browse-only. */
@@ -66,13 +42,38 @@ export function mergeClassTree(base, fragment) {
     return { ...base, nodes, edges: [...(base.edges ?? []), ...extra] };
 }
 
-/** Combines classes on the map with the published class index, keeping the index order. */
-export function mergeClassLists(local, remote) {
-    const byId = new Map(local.map(entry => [entry.id, entry]));
-    const merged = (remote ?? []).map(entry => {
-        const id = String(entry.classId ?? '').trim().toLowerCase();
-        return byId.get(id) ?? { id, name: entry.className || id, total: entry.nodeCount ?? 0, unlocked: entry.unlockedCount ?? 0 };
-    }).filter(entry => entry.id);
-    const seen = new Set(merged.map(entry => entry.id));
-    return [...merged, ...local.filter(entry => !seen.has(entry.id))];
+/** The saved class list determines eligibility. Visible nodes can supply a class name. */
+export function selectableTreeClasses(nodes, savedClasses, currentClassId, currentClassName) {
+    const localNames = new Map();
+    for (const node of nodes ?? []) {
+        const id = nodeClassId(node);
+        if (!id || localNames.has(id)) continue;
+        const name = node.unlockCondition?.classDisplayName || node.cpSourceClassName || requirementClassName(node) || node.consumedClassName;
+        if (name) localNames.set(id, name);
+    }
+    const current = normalizeClassId(currentClassId);
+    const classes = new Map();
+    for (const entry of savedClasses ?? []) {
+        const id = normalizeClassId(entry.classId);
+        if (!id) continue;
+        const scopeIds = new Set([id, ...(entry.scopeClassIds ?? []).map(normalizeClassId)]);
+        classes.set(id, { id, scopeIds, name: entry.className || localNames.get(id) || id });
+    }
+    if (current && !classes.has(current)) {
+        classes.set(current, {
+            id: current, scopeIds: new Set([current]), name: localNames.get(current) || currentClassName || '就職中のクラス',
+        });
+    }
+    return [...classes.values()];
+}
+
+export function classPointUsage(points) {
+    const usage = new Map();
+    for (const { classId, spentCp, earnedCp } of points ?? []) {
+        const id = normalizeClassId(classId);
+        if (!id || !Number.isInteger(spentCp) || spentCp < 0 || !Number.isInteger(earnedCp) || earnedCp < 0) continue;
+        const percent = earnedCp ? Math.min(100, spentCp / earnedCp * 100) : spentCp > 0 ? 100 : 0;
+        usage.set(id, { spentCp, earnedCp, percent });
+    }
+    return usage;
 }

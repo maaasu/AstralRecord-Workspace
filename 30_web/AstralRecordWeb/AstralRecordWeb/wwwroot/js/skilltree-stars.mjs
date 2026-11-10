@@ -97,7 +97,7 @@ export function initializeStarfield(container, video) {
             y: ((index * 47 + 31) % 103) / 103,
             speed: 6 + (index % 7) * 2,
             size: index % 9 === 0 ? 2.3 : index % 3 === 0 ? 1.5 : .9,
-            color: index % 3 === 0 ? '255, 231, 166' : '137, 246, 225',
+            color: index % 3 === 0 ? '134, 98, 52' : '74, 109, 98',
             phase: index * 1.7,
         }));
         if (context && visible && !doc.hidden) draw();

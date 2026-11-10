@@ -4,14 +4,14 @@
 @{
     ViewData["Title"] = "スキルツリー編集";
     ViewData["SkillTreeEditor"] = true;
+    ViewData["SkillTreePage"] = true;
     ViewData["SkillTreeClassId"] = Model.CurrentClassId;
 }
 <div class="ar-portal ar-skilltree-editor" data-skilltree-editor data-account-id="@Model.AccountId">
     <div class="container">
-    <header class="ar-portal-heading ar-skilltree-page-heading">
-        <div><p class="ar-portal-eyebrow">成長の記録</p><h1>スキルツリー編集</h1></div>
-        <a asp-page="/MyPage" class="btn ar-btn-outline">マイページへ</a>
-    </header>
+    <nav class="ar-skilltree-page-nav" aria-label="マイページへの移動">
+        <a asp-page="/MyPage">マイページに戻る</a>
+    </nav>
     @Html.AntiForgeryToken()
     @if (Model.ErrorMessage is not null)
     {
@@ -27,6 +27,7 @@
     }
     else
     {
+        <h1 class="ar-tree-title">スキルツリー</h1>
         <p class="ar-empty">参加先のスキルツリーを確認できません。サーバーの更新完了後に再取得してください。</p>
         <a href="" class="ar-btn-outline">最新の状態を再取得</a>
     }

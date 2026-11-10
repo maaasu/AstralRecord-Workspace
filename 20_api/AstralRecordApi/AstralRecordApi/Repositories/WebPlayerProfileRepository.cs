@@ -157,6 +157,12 @@ public sealed class WebPlayerProfileRepository(
             .Where(record => record.AccountId == account.Uuid && !record.IsDeleted)
             .SumAsync(record => (long?)record.DefeatCount) ?? 0L;
         var editor = runtime is null ? null : await runtime.GetEditorAsync(account.Uuid, account.UserId);
+        var skillTree = BuildVerifiedSkillTree(editor);
+        var classTrees = runtime is not null && skillTree.Nodes.Count > 0 && editor?.GenerationId is { Length: > 0 } generation
+            ? await runtime.GetClassTreesAsync(account.Uuid, account.UserId, generation, null)
+            : null;
+        var savedClasses = progress.Select(item => item.ClassId.Trim()).Append(account.ClassId.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         return new WebPlayerAccountProfileResponse
         {
             AccountId = account.Uuid,
@@ -172,10 +178,13 @@ public sealed class WebPlayerProfileRepository(
                 ClassName = classMap.TryGetValue(item.ClassId, out var classValue) ? StripLegacyColors(classValue.Name) : item.ClassId,
                 Level = item.Level,
             }).ToList(),
+            SkillTreeClassScopes = classTrees?.Classes.ToDictionary(item => item.ClassId, item => item.ScopeClassIds)
+                ?? new Dictionary<string, IReadOnlyList<string>>(),
+            SkillTreeClassPoints = BuildSkillTreeClassPoints(editor, savedClasses),
             Gold = gold,
             TotalMobDefeats = totalMobDefeats,
             UpdatedAt = DateTime.SpecifyKind(account.UpdatedAt, DateTimeKind.Utc),
-            SkillTree = BuildVerifiedSkillTree(editor),
+            SkillTree = skillTree,
             Connection = includeConnection ? editor?.Connection : null,
         };
     }
@@ -196,6 +205,20 @@ public sealed class WebPlayerProfileRepository(
         if (editor?.Tree is not { ValueKind: JsonValueKind.Object } tree) return EmptySkillTree();
         try { return tree.Deserialize<WebSkillTreeProfileResponse>(new JsonSerializerOptions(JsonSerializerDefaults.Web)) ?? EmptySkillTree(); }
         catch (JsonException) { return EmptySkillTree(); }
+    }
+
+    private static IReadOnlyList<WebSkillTreeClassPointsResponse> BuildSkillTreeClassPoints(
+        SkillTreeEditorResponse? editor, HashSet<string> savedClasses)
+    {
+        if (editor?.BalanceKind is not ("LIVE" or "SAVED") || editor.Points is not { ValueKind: JsonValueKind.Object } points
+            || !points.TryGetProperty("classes", out var classes) || classes.ValueKind != JsonValueKind.Array) return [];
+        try
+        {
+            var balances = classes.Deserialize<List<WebSkillTreeClassPointsResponse>>(new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            return balances?.Where(item => item?.ClassId is not null && savedClasses.Contains(item.ClassId.Trim())
+                && item.EarnedCp >= 0 && item.SpentCp >= 0).ToList() ?? [];
+        }
+        catch (JsonException) { return []; }
     }
 
     private static WebPlayerProfileResponse WithoutPermission(WebPlayerProfileResponse profile) => new()

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nodeClassId, treeClasses, defaultTreeClass, inClassScope, readOnlyClassNode, mergeClassTree, mergeClassLists } from '../AstralRecordWeb/wwwroot/js/skilltree-scope.mjs';
+import { nodeClassId, inClassScope, readOnlyClassNode, mergeClassTree, selectableTreeClasses, classPointUsage } from '../AstralRecordWeb/wwwroot/js/skilltree-scope.mjs';
 
 const nodes = [
     { nodeId: 'root', isUnlocked: true },
@@ -17,25 +17,13 @@ test('node class comes from the unlock condition, then the fixed CP source', () 
     assert.equal(nodeClassId({ unlockCondition: { classId: null } }), '');
 });
 
-test('classes are listed in map order with names and progress', () => {
-    assert.deepEqual(treeClasses(nodes), [
-        { id: 'swordsman', name: 'ソードマン', total: 2, unlocked: 1 },
-        { id: 'hunter', name: 'ハンター', total: 1, unlocked: 0 },
-        { id: 'mage', name: 'mage', total: 1, unlocked: 0 },
-    ]);
-});
-
-test('the current class is the default, otherwise the most progressed class', () => {
-    const classes = treeClasses(nodes);
-    assert.equal(defaultTreeClass(classes, 'HUNTER'), 'hunter');
-    assert.equal(defaultTreeClass(classes, 'paladin'), 'swordsman');
-    assert.equal(defaultTreeClass(classes.map(c => ({ ...c, unlocked: 0 })), ''), 'swordsman');
-    assert.equal(defaultTreeClass([], 'hunter'), '');
-});
-
-test('only shared nodes and the selected class are in scope', () => {
-    const shown = nodes.filter(node => inClassScope(node, 'hunter')).map(node => node.nodeId);
-    assert.deepEqual(shown, ['root', 'h1']);
+test('an advanced class with no own nodes shows shared and prerequisite branches', () => {
+    const [entry] = selectableTreeClasses(nodes, [{
+        classId: ' Paladin ', className: 'パラディン', scopeClassIds: ['Swordsman', 'Adventurer'],
+    }], 'paladin');
+    const shown = nodes.filter(node => inClassScope(node, entry.scopeIds, true)).map(node => node.nodeId);
+    assert.deepEqual(shown, ['root', 's1', 's2']);
+    assert.deepEqual([...entry.scopeIds], ['paladin', 'swordsman', 'adventurer']);
 });
 
 test('editor data without unlockCondition still groups CP nodes by their fixed CP source', () => {
@@ -44,8 +32,12 @@ test('editor data without unlockCondition still groups CP nodes by their fixed C
         { nodeId: 'cp', pointType: 'CP', cpSourceClassId: 'Swordsman', cpSourceClassName: 'ソードマン' },
         { nodeId: 'named', unlockCondition: { classId: 'mage', classDisplayName: 'メイジ' }, requirementText: '必要クラス: 魔法' },
     ];
-    assert.deepEqual(treeClasses(editorNodes).map(entry => [entry.id, entry.name]), [['swordsman', 'ソードマン'], ['mage', 'メイジ']]);
-    assert.equal(inClassScope(editorNodes[1], 'mage'), false);
+    assert.deepEqual(selectableTreeClasses(editorNodes, [{ classId: 'swordsman' }, { classId: 'mage' }])
+        .map(entry => [entry.id, entry.name]), [['swordsman', 'ソードマン'], ['mage', 'メイジ']]);
+    assert.equal(inClassScope(editorNodes[1], new Set(['mage']), false), false);
+    assert.equal(inClassScope(editorNodes[1], new Set(['paladin']), true), true);
+    assert.equal(inClassScope(readOnlyClassNode(editorNodes[1]), new Set(['paladin']), true), false);
+    assert.equal(inClassScope({ ...editorNodes[1], isConditionMet: false }, new Set(['paladin']), true), false);
 });
 
 test('a published class merges in as browse-only without replacing live nodes or edges', () => {
@@ -68,12 +60,27 @@ test('a published class merges in as browse-only without replacing live nodes or
     assert.equal(readOnlyClassNode({ nodeId: 'x', isUnlocked: false }).stateText, '閲覧のみ・就職中のクラスで解放できます');
 });
 
-test('class lists follow the published order and keep live counts', () => {
-    const local = [{ id: 'swordsman', name: 'ソードマン', total: 57, unlocked: 5 }];
-    const remote = [{ classId: 'Adventurer', className: '冒険者', nodeCount: 30, unlockedCount: 12 }, { classId: 'swordsman', className: 'ソードマン', nodeCount: 57, unlockedCount: 4 }];
-    assert.deepEqual(mergeClassLists(local, remote), [
-        { id: 'adventurer', name: '冒険者', total: 30, unlocked: 12 },
-        { id: 'swordsman', name: 'ソードマン', total: 57, unlocked: 5 },
+test('only class history and the current class are selectable regardless of node progress', () => {
+    const saved = [{ classId: 'Hunter', className: 'ハンター', nodeCount: 10, unlockedCount: 0 }];
+    assert.deepEqual(selectableTreeClasses(nodes, saved, 'Paladin', 'パラディン'), [
+        { id: 'hunter', scopeIds: new Set(['hunter']), name: 'ハンター' },
+        { id: 'paladin', scopeIds: new Set(['paladin']), name: 'パラディン' },
     ]);
-    assert.deepEqual(mergeClassLists(local, undefined), local);
+    assert.deepEqual(selectableTreeClasses(nodes, undefined, 'Paladin').map(entry => entry.id), ['paladin']);
+});
+
+test('class bars compare spent CP with earned CP and clamp only the fill', () => {
+    const points = classPointUsage([
+        { classId: ' SwordSman ', spentCp: 3, earnedCp: 12 },
+        { classId: 'mage', spentCp: 6, earnedCp: 4 },
+        { classId: 'hunter', spentCp: 0, earnedCp: 0 },
+        { classId: 'priest', spentCp: 2, earnedCp: 0 },
+        { classId: 'paladin', availableCp: 10 },
+    ]);
+    assert.deepEqual([...points], [
+        ['swordsman', { spentCp: 3, earnedCp: 12, percent: 25 }],
+        ['mage', { spentCp: 6, earnedCp: 4, percent: 100 }],
+        ['hunter', { spentCp: 0, earnedCp: 0, percent: 0 }],
+        ['priest', { spentCp: 2, earnedCp: 0, percent: 100 }],
+    ]);
 });

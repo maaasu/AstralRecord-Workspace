@@ -50,7 +50,7 @@ public sealed class IndexModel(SkillTreeEditorApiClient editor) : PageModel
         return ApiResult(await editor.GetStateAsync(actor, AccountId, ct));
     }
 
-    /// <summary>クラス切替用に、公開済み定義のクラス一覧と1クラスの閲覧専用ノードを返す。</summary>
+    /// <summary>クラス切替用に、解放済みクラスの一覧と選択した系統の閲覧専用ノードを返す。</summary>
     public async Task<IActionResult> OnGetClassTreesAsync(string? generationId, string? classId, CancellationToken ct)
     {
         if (!TryActor(out var actor)) return Challenge();
