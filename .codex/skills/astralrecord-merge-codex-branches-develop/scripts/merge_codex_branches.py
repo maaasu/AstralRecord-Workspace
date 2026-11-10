@@ -155,7 +155,7 @@ def main() -> int:
 
         for branch in mergeable:
             ensure_merge_safe(repo, branch)
-            git(repo, ["merge", "--ff-only", branch])
+            git(repo, ["merge", "--no-ff", "--no-edit", branch])
             merged.append(branch)
 
         if args.delete_merged:
