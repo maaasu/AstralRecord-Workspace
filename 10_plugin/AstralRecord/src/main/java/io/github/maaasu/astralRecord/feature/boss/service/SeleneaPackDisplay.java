@@ -170,7 +170,7 @@ final class SeleneaPackDisplay implements Listener {
         boolean moving = body.position.distanceSquared(target) > 0.04D || source.getVelocity().lengthSquared() > 0.01D;
         body.position = target;
         Pose motion = tick < body.strikeUntil ? Pose.ATTACK : pose != Pose.IDLE ? pose : moving ? Pose.MOVE : Pose.IDLE;
-        int mode = motion.bedrock | (immune ? 0x100 : 0);
+        long mode = BossBedrockMotion.state(motion.bedrock, immune, target.getYaw());
         Set<Player> tracked = Set.copyOf(source.getTrackedBy());
         Set<Player> java = new HashSet<>();
         for (Player viewer : tracked) {
@@ -182,7 +182,7 @@ final class SeleneaPackDisplay implements Listener {
                 viewer.hideEntity(plugin, source);
                 viewer.showEntity(plugin, source);
             }
-            if (body.carrier.bedrock.contains(id) && !Integer.valueOf(mode).equals(body.carrier.motion.get(id))
+            if (body.carrier.bedrock.contains(id) && !Long.valueOf(mode).equals(body.carrier.motion.get(id))
                     && sendMotion(viewer, source.getEntityId(), target, mode)) body.carrier.motion.put(id, mode);
         }
         if (body.model != null && !body.model.isValid()) removeModel(body);
@@ -438,10 +438,10 @@ final class SeleneaPackDisplay implements Listener {
         return false;
     }
 
-    /** @param viewer 宛先 @param id 戦闘実体ID @param position 本体位置 @param mode 姿勢と無敵の値 @return 送信成功 */
-    private boolean sendMotion(Player viewer, int id, Location position, int mode) {
+    /** @param viewer 宛先 @param id 戦闘実体ID @param position 本体位置 @param mode 姿勢・無敵・yawの値 @return 送信成功 */
+    private boolean sendMotion(Player viewer, int id, Location position, long mode) {
         int packetId = PacketEntityIdAllocator.nextEntityId();
-        long bits = Integer.toUnsignedLong(id) | ((long) mode << 32);
+        long bits = BossBedrockMotion.payload(id, mode);
         boolean sent = send(viewer, marker(packetId, BEDROCK_MOTION, bits, position));
         send(viewer, destroy(packetId));
         return sent;
@@ -671,7 +671,7 @@ final class SeleneaPackDisplay implements Listener {
         final UUID source;
         final Set<UUID> bedrock = ConcurrentHashMap.newKeySet();
         final Set<UUID> masked = ConcurrentHashMap.newKeySet();
-        final Map<UUID, Integer> motion = new HashMap<>();
+        final Map<UUID, Long> motion = new HashMap<>();
 
         Carrier(UUID source) { this.source = source; }
     }

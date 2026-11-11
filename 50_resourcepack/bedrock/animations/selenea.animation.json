@@ -5,6 +5,7 @@
 			"loop": true,
 			"bones": {
 				"root": {
+					"rotation": [0, "variable.body_yaw - query.body_y_rotation", 0],
 					"scale": 0.8
 				}
 			}

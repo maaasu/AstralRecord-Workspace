@@ -300,7 +300,7 @@ final class SunbirdPackDisplay implements Listener {
     /** 追跡開始時と状態が変化した時だけ、統合版へ現在の姿勢と無敵状態を渡します。 */
     private void syncBedrockMotion(MotionState state, Set<Player> tracked, Location location, Motion motion,
                                    boolean invulnerable) {
-        long mode = motion.id | (invulnerable ? 0x100L : 0L);
+        long mode = BossBedrockMotion.state(motion.id, invulnerable, location.getYaw());
         boolean changed = state.mode != mode;
         state.viewers.retainAll(tracked);
         PacketContainer spawn = null;
@@ -309,7 +309,7 @@ final class SunbirdPackDisplay implements Listener {
             if (!isBedrock(viewer) || !changed && state.viewers.contains(viewer)) continue;
             if (spawn == null) {
                 int id = PacketEntityIdAllocator.nextEntityId();
-                long data = Integer.toUnsignedLong(state.source.getEntityId()) | (mode << 32);
+                long data = BossBedrockMotion.payload(state.source.getEntityId(), mode);
                 spawn = protocol.createPacket(PacketType.Play.Server.SPAWN_ENTITY);
                 spawn.getIntegers().write(0, id);
                 spawn.getUUIDs().write(0, new UUID(BEDROCK_MOTION_MARKER, data));

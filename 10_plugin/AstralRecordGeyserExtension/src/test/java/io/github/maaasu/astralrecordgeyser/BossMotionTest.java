@@ -13,16 +13,16 @@ class BossMotionTest {
 
     @Test
     void decodesMotionAndInvulnerabilityIndependently() {
-        assertEquals(new BossMotion.Frame(42, 2, true),
-            BossMotion.decode(new UUID(SUNBIRD_MARKER, 0xdead01020000002aL), SUNBIRD_MARKER, SUNBIRD_MAX_MOTION));
-        assertEquals(new BossMotion.Frame(Integer.MAX_VALUE, 3, false),
+        assertEquals(new BossMotion.Frame(42, 2, true, -1),
+            BossMotion.decode(new UUID(SUNBIRD_MARKER, 0xdea001020000002aL), SUNBIRD_MARKER, SUNBIRD_MAX_MOTION));
+        assertEquals(new BossMotion.Frame(Integer.MAX_VALUE, 3, false, -1),
             BossMotion.decode(new UUID(SUNBIRD_MARKER, 0x000000037fffffffL), SUNBIRD_MARKER, SUNBIRD_MAX_MOTION));
     }
 
     @Test
     void decodesSeleneaRecoveryWithoutAcceptingItAsSunbird() {
         var uuid = new UUID(SELENEA_MARKER, 0x0000010400000064L);
-        assertEquals(new BossMotion.Frame(100, 4, true), BossMotion.decode(uuid, SELENEA_MARKER, SELENEA_MAX_MOTION));
+        assertEquals(new BossMotion.Frame(100, 4, true, -1), BossMotion.decode(uuid, SELENEA_MARKER, SELENEA_MAX_MOTION));
         assertNull(BossMotion.decode(new UUID(SELENEA_MARKER, 0x0000000500000064L), SELENEA_MARKER, SELENEA_MAX_MOTION));
         assertNull(BossMotion.decode(uuid, SUNBIRD_MARKER, SUNBIRD_MAX_MOTION));
     }
@@ -33,5 +33,24 @@ class BossMotionTest {
         assertNull(BossMotion.decode(new UUID(SUNBIRD_MARKER, 0x000000040000002aL), SUNBIRD_MARKER, SUNBIRD_MAX_MOTION));
         assertNull(BossMotion.decode(new UUID(SUNBIRD_MARKER, 0L), SUNBIRD_MARKER, SUNBIRD_MAX_MOTION));
         assertNull(BossMotion.decode(new UUID(SUNBIRD_MARKER, 0x00000000ffffffffL), SUNBIRD_MARKER, SUNBIRD_MAX_MOTION));
+    }
+
+    @Test
+    void decodesEveryYawWithoutChangingIdMotionOrInvulnerability() {
+        for (long marker : new long[]{SUNBIRD_MARKER, SELENEA_MARKER}) {
+            for (int yaw = 0; yaw < 3600; yaw++) {
+                long bits = 42L | (2L << 32) | (1L << 40) | ((long) (yaw + 1) << 41);
+                assertEquals(new BossMotion.Frame(42, 2, true, yaw),
+                    BossMotion.decode(new UUID(marker, bits), marker, 4));
+            }
+        }
+    }
+
+    @Test
+    void rejectsYawOutsideTheWireContract() {
+        for (int encodedYaw : new int[]{3601, 4095}) {
+            long bits = 42L | ((long) encodedYaw << 41);
+            assertNull(BossMotion.decode(new UUID(SUNBIRD_MARKER, bits), SUNBIRD_MARKER, 3));
+        }
     }
 }
