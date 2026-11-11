@@ -33,6 +33,7 @@ Java のコンテナテクスチャは `java-gui-native`、統合版の画面別
 | プレイヤー一覧・情報 | パーティー招待対象、プレイヤー一覧、プロフィール、習得スキル・現在のバインド、ステータス詳細 | `feature/menu/player/PlayerListGui.java`、`feature/menu/player/PlayerDetailGui.java` | 共通対応。各プレイヤーの顔と装備のモデルを維持 |
 | 通貨両替 | ゴールド両替所 | `feature/currency/view/CurrencyExchangeGuiView.java` | 共通対応。金額・通貨カードを維持 |
 | アイテム管理 | 管理者アイテム一覧、フィルター候補 | `feature/item/gui/ItemAdminGuiView.java` | 管理者画面も共通対応。アイテム自体のモデルを維持 |
+| アイテム保護 | メインメニューの保護入口、保護済みアイテム一覧と確認画面 | `feature/menu/view/screen/ItemProtectionScreenView.java` | 入口は専用の金色の鍵アイコン。保護対象の実アイテム表示は維持 |
 | キャストディスク | スキルキャストディスク設定 | `feature/item/castdisk/CastDiskGui.java` | 共通対応。設定済みスキルとホットバー上のディスクに共通スキルアイコンを適用 |
 | 装備オーブ・ルーン | 対象装備一覧、所持オーブ一覧、状態変化確認、必要素材一覧、ルーン装着・脱着・脱着ルーン選択 | `feature/item/service/OrbService.java`、`feature/item/gui/OrbGuiHolder.java` | 共通対応。実行中のロック、消費、候補再解決、下段操作を維持 |
 | スキルマネージャー | 一覧、詳細、合成、確認 | `feature/skill/gui/SkillBindGui.java` | スキルカードと、下段の設定済みバインドで有効な枠から解決できた習得個体は、使用許可があれば共通スキルアイコン、使用不可なら両版共通の赤い南京錠を表示。対応パックがない場合はバリアを表示 |
