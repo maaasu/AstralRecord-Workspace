@@ -38,7 +38,7 @@
                         {
                             <p>アップロードはありません。</p>
                         }
-                        <p>新しい建築を登録するには、開発サーバーで <code>/builder</code> を開き、「.schemを登録」からリンクを発行してください。</p>
+                        <p>新しい建築を登録するには、開発サーバーで <code>/builder upload</code> を実行してリンクを発行してください。</p>
                     }
 
                     @if (Model.CanUpload)
@@ -67,11 +67,11 @@
                                 <p class="alert alert-info" role="status">受付済みです。開発サーバーでファイルを確認しています。</p>
                                 break;
                             case "registered":
-                                <p class="alert alert-success" role="status">登録されました。開発サーバーで <code>/builder</code> を開き、「登録済み建築」から確認できます。</p>
+                                <p class="alert alert-success" role="status">登録されました。開発サーバーで <code>/builder load</code> を実行すると登録済み建築を選べます。</p>
                                 break;
                             case "rejected":
                                 <p class="alert alert-warning" role="status">登録できませんでした。@AstralRecordWeb.Pages.Builder.SchematicsModel.RejectionMessage(upload.Error)</p>
-                                <p>再送信するには、開発サーバーで <code>/builder</code> を開き、「.schemを登録」から新しいリンクを発行してください。</p>
+                                <p>再送信するには、開発サーバーで <code>/builder upload</code> を実行して新しいリンクを発行してください。</p>
                                 break;
                         }
                     }

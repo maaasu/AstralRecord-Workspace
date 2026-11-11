@@ -41,6 +41,18 @@ public final class BuilderService {
     public BuilderSchematicImport schematicImport() { return schematicImport; }
 
     /**
+     * dev の建築ファイル登録を利用できるか確認し、利用できない場合は理由を通知します。
+     * @param player 登録リンクの発行または登録済み一覧を要求したプレイヤー
+     * @return ビルダーGUIを使え、dev の建築ファイル登録が有効なら true
+     */
+    public boolean checkSchematicImport(Player player) {
+        if (!checkAccess(player)) return false;
+        if (schematicImport.enabled()) return true;
+        message(player, PlayerMsgId.P_7764);
+        return false;
+    }
+
+    /**
      * GUIの利用権限を判定します。WorldEdit操作の権限は別途維持します。
      * @param player 判定対象
      * @return 管理者またはGUI権限保持者ならtrue

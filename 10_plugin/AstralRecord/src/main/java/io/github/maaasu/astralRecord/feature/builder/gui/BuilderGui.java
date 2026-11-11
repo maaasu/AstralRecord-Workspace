@@ -44,10 +44,14 @@ public final class BuilderGui {
             Material.TERRACOTTA, Material.WHITE_TERRACOTTA, Material.GLASS, Material.WHITE_STAINED_GLASS, Material.SEA_LANTERN,
             Material.GRASS_BLOCK, Material.DIRT, Material.COARSE_DIRT, Material.SAND, Material.GRAVEL,
             Material.PRISMARINE, Material.COPPER_BLOCK, Material.IRON_BLOCK, Material.AIR);
-    private static final List<Material> ALL_BLOCKS = Arrays.stream(Material.values())
-            .filter(material -> !material.isLegacy() && material.isBlock() && material.isItem())
-            .sorted(Comparator.comparing(Material::name)).toList();
     private final BuilderService service;
+
+    /** 全ブロックを表示する時点で、Bukkit のレジストリからパレットを作ります。 */
+    private static final class AllBlocks {
+        private static final List<Material> PALETTE = Arrays.stream(Material.values())
+                .filter(material -> !material.isLegacy() && material.isBlock() && material.isItem())
+                .sorted(Comparator.comparing(Material::name)).toList();
+    }
 
     /**
      * GUIを生成します。
@@ -60,6 +64,26 @@ public final class BuilderGui {
      * @param player GUIを開くプレイヤー
      */
     public void open(@NotNull Player player) { show(player, Screen.HOME); }
+
+    /** @return dev の建築ファイル登録が有効なら true */
+    public boolean schematicImportEnabled() { return service.schematicImport().enabled(); }
+
+    /**
+     * 利用権限を確認し、本人用の Web 登録リンクを非同期に発行します。
+     * @param player 発行したリンクを受け取るプレイヤー
+     */
+    public void requestSchematicUpload(@NotNull Player player) {
+        if (service.checkSchematicImport(player)) service.schematicImport().sendUploadLink(player);
+    }
+
+    /**
+     * 利用権限を確認して非同期に一覧を取得し、本人の選択画面を開きます。
+     * @param player 登録済み建築の一覧を開くプレイヤー
+     */
+    public void openRegisteredSchematics(@NotNull Player player) {
+        if (!service.checkSchematicImport(player)) return;
+        service.schematicImport().list(player, entries -> show(player, Screen.SCHEMATICS, Screen.HOME, false, false, 0, null, entries));
+    }
 
     /**
      * このGUIのインベントリか確認します。
@@ -162,14 +186,14 @@ public final class BuilderGui {
         button(holder, 28, Material.SNOW_BLOCK, "球・円柱を作る", List.of("範囲選択は不要です", "通常は立っている位置を基準に作ります", "確認画面のWorldEdit基準位置を確認してください", "半径や高さをボタンで調整できます"), p -> show(p, Screen.SHAPES));
         button(holder, 30, Material.PISTON, "繰り返す・移動する", List.of("選択した範囲を指定方向へ並べる/移す", "方向・距離/回数をボタンで調整できます"), p -> show(p, Screen.REPEAT));
         button(holder, 32, Material.BOOK, "使い方・困ったとき", List.of("初めての操作例、コピーの基準位置", "取り消し・空気・マスクの注意点"), p -> show(p, Screen.GUIDE));
-        if (service.schematicImport().enabled()) {
+        if (schematicImportEnabled()) {
             button(holder, 34, Material.WRITABLE_BOOK, ".schemを登録", List.of("本人用のアップロードリンクをチャットに表示します"), p -> {
                 holder.consumed = false;
-                service.schematicImport().sendUploadLink(p);
+                requestSchematicUpload(p);
             });
             button(holder, 36, Material.CHEST, "登録済み建築", List.of("Webで登録した建築を読み込みます"), p -> {
                 holder.consumed = false;
-                service.schematicImport().list(p, entries -> show(p, Screen.SCHEMATICS, Screen.HOME, false, false, 0, null, entries));
+                openRegisteredSchematics(p);
             });
         }
         operation(player, holder, 38, BuilderOperation.UNDO, snapshot, "直前のWorldEdit編集を1回取り消します", "失敗したときは、まずこのボタンへ");
@@ -180,7 +204,7 @@ public final class BuilderGui {
     /** 本人が登録した建築から、クリップボードに読み込むファイルを選びます。 */
     private void schematics(Holder holder, List<Entry> entries) {
         if (entries.isEmpty()) {
-            info(holder, 22, Material.PAPER, "登録済み建築はありません", "ホームの「.schemを登録」から登録できます");
+            info(holder, 22, Material.PAPER, "登録済み建築はありません", "/builder upload で登録リンクを発行できます");
             return;
         }
         for (int slot = 0; slot < Math.min(entries.size(), PAGE_SIZE); slot++) {
@@ -241,7 +265,7 @@ public final class BuilderGui {
 
     /** パレットまたは全ブロック一覧を45件ずつ表示します。 */
     private void materials(Holder holder, BuilderSettings settings) {
-        List<Material> source = holder.allBlocks ? ALL_BLOCKS : PALETTE;
+        List<Material> source = holder.allBlocks ? AllBlocks.PALETTE : PALETTE;
         int pages = Math.max(1, (source.size() + PAGE_SIZE - 1) / PAGE_SIZE);
         int page = Math.max(0, Math.min(holder.page, pages - 1));
         for (int slot = 0; slot < PAGE_SIZE && page * PAGE_SIZE + slot < source.size(); slot++) {

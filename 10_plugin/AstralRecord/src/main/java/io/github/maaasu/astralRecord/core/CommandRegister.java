@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.core;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.builder.command.BuilderCommand;
+import io.github.maaasu.astralRecord.feature.builder.command.BuilderTabCompleter;
 import io.github.maaasu.astralRecord.feature.builder.gui.BuilderGui;
 import io.github.maaasu.astralRecord.core.command.MasterDataCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountCommand;
@@ -296,8 +297,9 @@ public class CommandRegister {
         cm.registerCommand("wtp", new WorldTeleportCommand(worldCommand), new WorldTeleportTabCompleter(worldService));
         cm.registerCommand("adminitem", new AdminWorldTeleportItemCommand(adminWorldTeleportItemService));
         BuilderCommand builderCommand = new BuilderCommand(builderGui);
-        cm.registerCommand("builder", builderCommand);
-        cm.registerCommand("bg", builderCommand);
+        BuilderTabCompleter builderTabCompleter = new BuilderTabCompleter(builderGui);
+        cm.registerCommand("builder", builderCommand, builderTabCompleter);
+        cm.registerCommand("bg", builderCommand, builderTabCompleter);
         cm.registerCommand("boss", new BossCommand(), new BossTabCompleter());
         cm.registerCommand("dungeon", new DungeonCommand());
         cm.registerCommand("defense", new io.github.maaasu.astralRecord.feature.defense.DefenseCommand(
