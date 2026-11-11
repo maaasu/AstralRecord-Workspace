@@ -176,6 +176,7 @@ builder.Services.AddScoped<IRuntimeFilebaseRepository, RuntimeFilebaseRepository
 builder.Services.AddScoped<IMasterDataSeeder, MasterDataSeeder>();
 builder.Services.AddSingleton<IMasterDataFileService, MasterDataFileService>();
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<IBuilderSchematicRepository, BuilderSchematicRepository>();
 builder.Services.AddSingleton<ServerRecordsCache>();
 builder.Services.AddSingleton<MasterDataCache>();
 builder.Services.AddSingleton<INetworkRuntimeService, NetworkRuntimeService>();

@@ -1,0 +1,109 @@
+@page
+@model AstralRecordWeb.Pages.Builder.SchematicsModel
+@{
+    ViewData["Title"] = "建築の登録";
+}
+
+<section class="ar-portal" aria-labelledby="schematic-title">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-8">
+                <div class="ar-panel">
+                    <h1 id="schematic-title">開発サーバーへの建築登録</h1>
+                    @if (Model.ErrorMessage is { } error)
+                    {
+                        <p class="alert alert-warning" role="alert">@error</p>
+                    }
+                    @if (Model.StatusMessage is { } message)
+                    {
+                        <p class="alert alert-info" role="status">@message</p>
+                    }
+
+                    @if (Model.ShowList)
+                    {
+                        <h2 class="h4">自分のアップロード</h2>
+                        @if (Model.Uploads.Count > 0)
+                        {
+                            <ul>
+                                @foreach (var item in Model.Uploads)
+                                {
+                                    <li class="mb-2">
+                                        <a asp-page="/Builder/Schematics" asp-route-id="@item.Id">@(item.Name ?? "建築の詳細")</a>
+                                        <span>（@(item.Status == "registered" ? "登録済み" : "確認中")）</span>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else if (Model.ErrorMessage is null)
+                        {
+                            <p>アップロードはありません。</p>
+                        }
+                        <p>新しい建築を登録するには、開発サーバーで <code>/builder</code> を開き、「.schemを登録」からリンクを発行してください。</p>
+                    }
+
+                    @if (Model.CanUpload)
+                    {
+                        <form method="post" asp-page="/Builder/Schematics" enctype="multipart/form-data">
+                            <input type="hidden" asp-for="Token" />
+                            <div class="mb-3">
+                                <label asp-for="SchematicFile" class="form-label">.schem ファイル</label>
+                                <input asp-for="SchematicFile" type="file" class="form-control" accept=".schem" required
+                                       aria-describedby="schematic-file-help" data-max-upload-bytes="@AstralRecordWeb.Pages.Builder.SchematicsModel.MaxFileBytes" />
+                                <div class="form-text" id="schematic-file-help">ファイルの上限は 1 MiB です。</div>
+                            </div>
+                            <button type="submit" class="btn ar-btn-primary">アップロード</button>
+                        </form>
+                    }
+
+                    @if (Model.Upload is { } upload)
+                    {
+                        @if (!string.IsNullOrWhiteSpace(upload.Name))
+                        {
+                            <p>建築名 <strong>@upload.Name</strong></p>
+                        }
+                        @switch (upload.Status)
+                        {
+                            case "pending":
+                                <p class="alert alert-info" role="status">受付済みです。開発サーバーでファイルを確認しています。</p>
+                                break;
+                            case "registered":
+                                <p class="alert alert-success" role="status">登録されました。開発サーバーで <code>/builder</code> を開き、「登録済み建築」から確認できます。</p>
+                                break;
+                            case "rejected":
+                                <p class="alert alert-warning" role="status">登録できませんでした。@AstralRecordWeb.Pages.Builder.SchematicsModel.RejectionMessage(upload.Error)</p>
+                                <p>再送信するには、開発サーバーで <code>/builder</code> を開き、「.schemを登録」から新しいリンクを発行してください。</p>
+                                break;
+                        }
+                    }
+
+                    @if (Model.StatusId is { } statusId && (Model.Upload is null or { Status: "pending" }))
+                    {
+                        <a class="btn ar-btn-outline" asp-page="/Builder/Schematics" asp-route-id="@statusId">登録状況を更新</a>
+                    }
+
+                    @if (Model.Upload is { Status: "pending" or "registered" } removable)
+                    {
+                        <details class="mt-3">
+                            <summary>このアップロードを削除する</summary>
+                            <form method="post" asp-page="/Builder/Schematics" asp-page-handler="Delete" asp-route-id="@removable.Id" class="mt-2">
+                                <p>削除すると登録状況を確認できなくなり、登録済みの場合はゲーム内の一覧からも消えます。</p>
+                                <button type="submit" class="btn btn-outline-danger">削除を確定</button>
+                            </form>
+                        </details>
+                    }
+                    @if (!Model.ShowList)
+                    {
+                        <p class="mt-3 mb-0"><a asp-page="/Builder/Schematics">自分のアップロード一覧</a></p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    @if (Model.CanUpload)
+    {
+        <script src="~/js/builder-schematic-upload.js" asp-append-version="true"></script>
+    }
+}

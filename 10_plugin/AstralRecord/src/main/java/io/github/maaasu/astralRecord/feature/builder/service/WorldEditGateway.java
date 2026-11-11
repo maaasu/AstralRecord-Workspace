@@ -9,9 +9,15 @@ import org.bukkit.command.PluginIdentifiableCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
+import java.io.ByteArrayInputStream;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.UUID;
+import java.util.function.Function;
 import java.util.List;
 
 /**
@@ -28,6 +34,114 @@ final class WorldEditGateway {
             plugin = Bukkit.getPluginManager().getPlugin("FastAsyncWorldEdit");
         }
         return plugin != null && plugin.isEnabled() ? plugin : null;
+    }
+
+    /** メインスレッドで、現在の提供元とそのデータバージョンを解決します。 */
+    SchematicCodec schematicCodec() throws ReflectiveOperationException {
+        Plugin plugin = provider();
+        if (plugin == null) return null;
+        Api api = new Api(plugin.getClass().getClassLoader());
+        Object worldEdit = api.invoke("WorldEdit", null, "getInstance");
+        Object manager = api.invoke("WorldEdit", worldEdit, "getPlatformManager");
+        Class<?> capability = api.type("extension.platform.Capability");
+        Object platform = api.invoke("extension.platform.PlatformManager", manager, "queryCapability",
+                new Class<?>[]{capability}, capability.getField("WORLD_EDITING").get(null));
+        int version = (int) api.invoke("extension.platform.Platform", platform, "getDataVersion");
+        Class<?> formats = api.type("extent.clipboard.io.BuiltInClipboardFormat");
+        boolean fawe = "FastAsyncWorldEdit".equals(plugin.getName());
+        Object format = formats.getField(fawe ? "FAST_V3" : "SPONGE_V3_SCHEMATIC").get(null);
+        int paletteLimit = Integer.MAX_VALUE;
+        if (fawe) {
+            Object[] states = (Object[]) api.type("world.block.BlockTypesCache").getField("states").get(null);
+            paletteLimit = Math.min(states.length, Character.MAX_VALUE + 1);
+        }
+        return new SchematicCodec(plugin, api, platform, format, version, fawe, paletteLimit);
+    }
+
+    /** 検証済みのクリップボードを実行者自身のセッションに設定します。 */
+    boolean installClipboard(Player player, SchematicCodec codec, Object clipboard) throws ReflectiveOperationException {
+        if (provider() != codec.plugin()) return false;
+        Api api = codec.api();
+        Object session = api.invoke("bukkit.WorldEditPlugin", codec.plugin(), "getSession",
+                new Class<?>[]{Player.class}, player);
+        Class<?> holderType = api.type("session.ClipboardHolder");
+        Object holder = holderType.getConstructor(api.type("extent.clipboard.Clipboard")).newInstance(clipboard);
+        api.invoke("LocalSession", session, "setClipboard", new Class<?>[]{holderType}, holder);
+        return true;
+    }
+
+    /** 検証後のファイルをプラットフォーム共通の公開 API でデコードします。 */
+    record SchematicCodec(Plugin plugin, Api api, Object platform, Object format, int dataVersion, boolean fawe,
+                          int paletteLimit) {
+        Object read(byte[] bytes, SchematicImportValidator.Validation validation)
+                throws IOException, ReflectiveOperationException {
+            if (validation.dataVersion() > dataVersion) throw new IOException("Unsupported Minecraft data version");
+            if (validation.blockStates().size() > paletteLimit) {
+                throw new IOException("Schematic palette exceeds the FAWE palette index range");
+            }
+            validatePalette(validation);
+            byte[] input = fawe && !validation.hasOffset() ? SchematicImportNbt.withDefaultOffset(bytes) : bytes;
+            try (Closeable reader = (Closeable) api.invoke("extent.clipboard.io.ClipboardFormat", format,
+                    "getReader", new Class<?>[]{InputStream.class}, new ByteArrayInputStream(input))) {
+                if (fawe) {
+                    Function<Object, Object> clipboardFactory = this::memoryClipboard;
+                    return api.invoke("extent.clipboard.io.ClipboardReader", reader, "read",
+                            new Class<?>[]{UUID.class, Function.class}, UUID.randomUUID(), clipboardFactory);
+                }
+                return api.invoke("extent.clipboard.io.ClipboardReader", reader, "read");
+            }
+        }
+
+        /** Reader が不明なパレットを空気に置換する前に、移行後の状態を厳密に照合します。 */
+        private void validatePalette(SchematicImportValidator.Validation validation)
+                throws IOException, ReflectiveOperationException {
+            Object fixer = validation.dataVersion() < dataVersion
+                    ? api.invoke("extension.platform.Platform", platform, "getDataFixer") : null;
+            Object blockStateFix = fixer == null ? null : api.type("world.DataFixer$FixTypes").getField("BLOCK_STATE").get(null);
+            for (String original : validation.blockStates()) {
+                String state = original;
+                if (fixer != null) {
+                    state = (String) api.invoke("world.DataFixer", fixer, "fixUp",
+                            new Class<?>[]{api.type("world.DataFixer$FixType"), Object.class, int.class},
+                            blockStateFix, original, validation.dataVersion());
+                }
+                String id = "minecraft:" + SchematicImportValidator.readBlockState(state);
+                Object block = api.invoke("world.block.BlockTypes", null, "get", new Class<?>[]{String.class}, id);
+                if (block == null) throw new IOException("Unknown block in schematic palette");
+                int start = state.indexOf('[');
+                if (start >= 0) validateProperties(block, state.substring(start + 1, state.length() - 1));
+            }
+        }
+
+        private void validateProperties(Object block, String properties)
+                throws IOException, ReflectiveOperationException {
+            for (String assignment : properties.split(",")) {
+                int separator = assignment.indexOf('=');
+                Object property = api.invoke("world.block.BlockType", block, "getProperty",
+                        new Class<?>[]{String.class}, assignment.substring(0, separator));
+                if (property == null) throw new IOException("Unknown schematic block property");
+                Object value = api.invoke("registry.state.Property", property, "getValueFor",
+                        new Class<?>[]{String.class}, assignment.substring(separator + 1));
+                List<?> allowed = (List<?>) api.invoke("registry.state.Property", property, "getValues");
+                if (value == null || !allowed.contains(value)) throw new IOException("Unknown schematic block property value");
+            }
+        }
+
+        /** デコードや検証だけで FAWE のディスククリップボードを生成しないようにします。 */
+        private Object memoryClipboard(Object dimensions) {
+            try {
+                Class<?> vector = api.type("math.BlockVector3");
+                Object zero = vector.getField("ZERO").get(null);
+                Object one = vector.getField("ONE").get(null);
+                Object max = api.invoke("math.BlockVector3", dimensions, "subtract", new Class<?>[]{vector}, one);
+                Object region = api.type("regions.CuboidRegion").getConstructor(vector, vector).newInstance(zero, max);
+                Class<?> clipboard = Class.forName("com.fastasyncworldedit.core.extent.clipboard.CPUOptimizedClipboard",
+                        false, api.loader());
+                return clipboard.getConstructor(api.type("regions.Region")).newInstance(region);
+            } catch (ReflectiveOperationException failure) {
+                throw new IllegalStateException("Cannot create an in-memory FAWE clipboard", failure);
+            }
+        }
     }
 
     /** 実際のセッションを読みます。未選択・未コピーは正常な空状態として扱います。 */

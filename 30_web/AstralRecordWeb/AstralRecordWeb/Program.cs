@@ -152,6 +152,18 @@ builder.Services.AddHttpClient<WebAuthApiClient>((serviceProvider, httpClient) =
     if (!string.IsNullOrWhiteSpace(options.ApiKey))
         httpClient.DefaultRequestHeaders.Add("X-Api-Key", options.ApiKey);
 });
+builder.Services.AddHttpClient<BuilderSchematicApiClient>((services, client) =>
+{
+    var api = services.GetRequiredService<IOptions<AstralRecordApiOptions>>().Value;
+    client.BaseAddress = new Uri(api.BaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(20);
+    client.MaxResponseContentBufferSize = 64 * 1024;
+    if (!string.IsNullOrWhiteSpace(api.ApiKey)) client.DefaultRequestHeaders.Add("X-Api-Key", api.ApiKey);
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    AllowAutoRedirect = false,
+    UseCookies = false
+}).RemoveAllLoggers();
 builder.Services.AddHttpClient<NetworkManagementApiClient>((serviceProvider, httpClient) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<AstralRecordApiOptions>>().Value;
@@ -238,6 +250,18 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
+// Upload links can also appear inside the login ReturnUrl, including on authorization redirects.
+app.Use((context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/Builder/Schematics") ||
+        context.Request.Path.StartsWithSegments("/Login"))
+    {
+        context.Response.Headers["Referrer-Policy"] = "no-referrer";
+        context.Response.Headers.CacheControl = "no-store";
+    }
+    return next(context);
+});
 
 app.UseHttpsRedirection();
 
