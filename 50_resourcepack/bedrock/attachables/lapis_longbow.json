@@ -18,17 +18,22 @@
         "first_person": "animation.astralrecord.lapis_longbow.first_person",
         "third_person": "animation.astralrecord.lapis_longbow.third_person",
         "attack": "animation.astralrecord.lapis_longbow.attack",
-        "draw": "animation.astralrecord.lapis_longbow.draw"
+        "draw": "animation.astralrecord.lapis_longbow.draw",
+        "first_person_off": "animation.astralrecord.lapis_longbow.first_person_off"
       },
       "scripts": {
         "pre_animation": [
           "variable.astral_bow_swing = math.clamp((context.owning_entity->variable.attack_time) ?? 0.0, 0.0, 1.0);",
           "variable.astral_bow_hold_input = context.item_slot == 'main_hand' && ((context.owning_entity->query.has_property('astralrecord:held_weapon_model')) ?? 0.0) ? ((context.owning_entity->query.property('astralrecord:held_weapon_model')) ?? 0.0) > 0.0 : 0.0;",
-          "variable.astral_bow_draw = !variable.astral_bow_hold_input && query.main_hand_item_use_duration > 0.0 ? math.clamp((query.main_hand_item_max_duration - (query.main_hand_item_use_duration - query.frame_alpha + 1.0)) / 20.0, 0.0, 1.0) : 0.0;"
+          "variable.astral_bow_ready = !variable.astral_bow_hold_input && query.item_is_charged(context.item_slot) ? 1.0 : 0.0;",
+          "variable.astral_bow_draw = variable.astral_bow_ready > 0.0 ? 1.0 : (context.item_slot == 'main_hand' && !variable.astral_bow_hold_input && query.main_hand_item_use_duration > 0.0 ? math.clamp((query.main_hand_item_max_duration - (query.main_hand_item_use_duration - query.frame_alpha + 1.0)) / 10.0, 0.0, 1.0) : 0.0);"
         ],
         "animate": [
           {
-            "first_person": "context.is_first_person"
+            "first_person": "context.is_first_person && context.item_slot == 'main_hand'"
+          },
+          {
+            "first_person_off": "context.is_first_person && context.item_slot == 'off_hand'"
           },
           {
             "third_person": "!context.is_first_person"
@@ -37,7 +42,7 @@
             "attack": "context.item_slot == 'main_hand' && variable.astral_bow_swing > 0.0 && variable.astral_bow_draw <= 0.0"
           },
           {
-            "draw": "context.item_slot == 'main_hand' && variable.astral_bow_draw > 0.0"
+            "draw": "(context.item_slot == 'main_hand' || variable.astral_bow_ready > 0.0) && variable.astral_bow_draw > 0.0"
           }
         ]
       },

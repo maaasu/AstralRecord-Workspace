@@ -6,9 +6,9 @@
       "bones": {
         "grip": {
           "rotation": [
-            58.59553,
-            -26.65494,
-            174.8482
+            126.94589,
+            -44.811248,
+            94.066658
           ],
           "position": [
             0,
@@ -16,6 +16,9 @@
             0
           ],
           "scale": 0.972
+        },
+        "arrow": {
+          "scale": "variable.astral_bow_draw > 0.0 ? 1.0 : 0.0"
         }
       }
     },
@@ -34,6 +37,9 @@
             0
           ],
           "scale": 1.25
+        },
+        "arrow": {
+          "scale": "variable.astral_bow_draw > 0.0 ? 1.0 : 0.0"
         }
       }
     },
@@ -75,11 +81,11 @@
           "rotation": [
             0,
             0,
-            "math.atan(0.067669173 * math.sin(variable.astral_bow_swing * 360.0))"
+            "1 * math.atan((0.35 * math.sin(variable.astral_bow_swing * 360.0) / 5.9))"
           ],
           "scale": [
             1,
-            "math.sqrt(1.0 + (0.067669173 * math.sin(variable.astral_bow_swing * 360.0)) * (0.067669173 * math.sin(variable.astral_bow_swing * 360.0)))",
+            "math.sqrt(1.0 + (0.35 * math.sin(variable.astral_bow_swing * 360.0) / 5.9) * (0.35 * math.sin(variable.astral_bow_swing * 360.0) / 5.9))",
             1
           ]
         },
@@ -87,11 +93,11 @@
           "rotation": [
             0,
             0,
-            "-math.atan(0.067669173 * math.sin(variable.astral_bow_swing * 360.0))"
+            "-1 * math.atan((0.35 * math.sin(variable.astral_bow_swing * 360.0) / 7))"
           ],
           "scale": [
             1,
-            "math.sqrt(1.0 + (0.067669173 * math.sin(variable.astral_bow_swing * 360.0)) * (0.067669173 * math.sin(variable.astral_bow_swing * 360.0)))",
+            "math.sqrt(1.0 + (0.35 * math.sin(variable.astral_bow_swing * 360.0) / 7) * (0.35 * math.sin(variable.astral_bow_swing * 360.0) / 7))",
             1
           ]
         }
@@ -100,29 +106,81 @@
     "animation.astralrecord.lapis_shortbow.draw": {
       "loop": true,
       "bones": {
-        "cord_upper": {
+        "arrow": {
+          "position": [
+            "-2.9 * variable.astral_bow_draw",
+            0,
+            0
+          ]
+        },
+        "limb_upper": {
           "rotation": [
             0,
             0,
-            "math.atan(0.45000000 * variable.astral_bow_draw)"
+            "-7.5 * variable.astral_bow_draw"
+          ]
+        },
+        "cord_upper": {
+          "position": [
+            "temp.a = 7.5 * variable.astral_bow_draw; temp.tx = 3.7 * math.cos(temp.a) + 5.29 * math.sin(temp.a); temp.ty = 1 * (1.16 - 3.7 * math.sin(temp.a) + 5.29 * math.cos(temp.a)); temp.dx = 3.7 + 2.9 * variable.astral_bow_draw - temp.tx; temp.dy = 1 * (temp.ty - 0.55); return 3.7 - temp.tx;",
+            "temp.a = 7.5 * variable.astral_bow_draw; temp.tx = 3.7 * math.cos(temp.a) + 5.29 * math.sin(temp.a); temp.ty = 1 * (1.16 - 3.7 * math.sin(temp.a) + 5.29 * math.cos(temp.a)); temp.dx = 3.7 + 2.9 * variable.astral_bow_draw - temp.tx; temp.dy = 1 * (temp.ty - 0.55); return temp.ty - 6.45;",
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            "temp.a = 7.5 * variable.astral_bow_draw; temp.tx = 3.7 * math.cos(temp.a) + 5.29 * math.sin(temp.a); temp.ty = 1 * (1.16 - 3.7 * math.sin(temp.a) + 5.29 * math.cos(temp.a)); temp.dx = 3.7 + 2.9 * variable.astral_bow_draw - temp.tx; temp.dy = 1 * (temp.ty - 0.55); return 1 * math.atan(temp.dx / temp.dy);"
           ],
           "scale": [
             1,
-            "math.sqrt(1.0 + (0.45000000 * variable.astral_bow_draw) * (0.45000000 * variable.astral_bow_draw))",
+            "temp.a = 7.5 * variable.astral_bow_draw; temp.tx = 3.7 * math.cos(temp.a) + 5.29 * math.sin(temp.a); temp.ty = 1 * (1.16 - 3.7 * math.sin(temp.a) + 5.29 * math.cos(temp.a)); temp.dx = 3.7 + 2.9 * variable.astral_bow_draw - temp.tx; temp.dy = 1 * (temp.ty - 0.55); return math.sqrt(temp.dx * temp.dx + temp.dy * temp.dy) / 5.9;",
             1
           ]
         },
-        "cord_lower": {
+        "limb_lower": {
           "rotation": [
             0,
             0,
-            "-math.atan(0.45000000 * variable.astral_bow_draw)"
+            "7.5 * variable.astral_bow_draw"
+          ]
+        },
+        "cord_lower": {
+          "position": [
+            "temp.a = 7.5 * variable.astral_bow_draw; temp.tx = 3.7 * math.cos(temp.a) + 5.29 * math.sin(temp.a); temp.ty = -1 * (1.16 - 3.7 * math.sin(temp.a) + 5.29 * math.cos(temp.a)); temp.dx = 3.7 + 2.9 * variable.astral_bow_draw - temp.tx; temp.dy = -1 * (temp.ty - 0.55); return 3.7 - temp.tx;",
+            "temp.a = 7.5 * variable.astral_bow_draw; temp.tx = 3.7 * math.cos(temp.a) + 5.29 * math.sin(temp.a); temp.ty = -1 * (1.16 - 3.7 * math.sin(temp.a) + 5.29 * math.cos(temp.a)); temp.dx = 3.7 + 2.9 * variable.astral_bow_draw - temp.tx; temp.dy = -1 * (temp.ty - 0.55); return temp.ty - -6.45;",
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            "temp.a = 7.5 * variable.astral_bow_draw; temp.tx = 3.7 * math.cos(temp.a) + 5.29 * math.sin(temp.a); temp.ty = -1 * (1.16 - 3.7 * math.sin(temp.a) + 5.29 * math.cos(temp.a)); temp.dx = 3.7 + 2.9 * variable.astral_bow_draw - temp.tx; temp.dy = -1 * (temp.ty - 0.55); return -1 * math.atan(temp.dx / temp.dy);"
           ],
           "scale": [
             1,
-            "math.sqrt(1.0 + (0.45000000 * variable.astral_bow_draw) * (0.45000000 * variable.astral_bow_draw))",
+            "temp.a = 7.5 * variable.astral_bow_draw; temp.tx = 3.7 * math.cos(temp.a) + 5.29 * math.sin(temp.a); temp.ty = -1 * (1.16 - 3.7 * math.sin(temp.a) + 5.29 * math.cos(temp.a)); temp.dx = 3.7 + 2.9 * variable.astral_bow_draw - temp.tx; temp.dy = -1 * (temp.ty - 0.55); return math.sqrt(temp.dx * temp.dx + temp.dy * temp.dy) / 7;",
             1
           ]
+        }
+      }
+    },
+    "animation.astralrecord.lapis_shortbow.first_person_off": {
+      "loop": true,
+      "bones": {
+        "grip": {
+          "rotation": [
+            3.252541,
+            24.801013,
+            7.71533
+          ],
+          "position": [
+            0,
+            24,
+            0
+          ],
+          "scale": 0.972
+        },
+        "arrow": {
+          "scale": "variable.astral_bow_draw > 0.0 ? 1.0 : 0.0"
         }
       }
     }

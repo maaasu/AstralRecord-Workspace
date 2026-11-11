@@ -1,8 +1,8 @@
 {
   "credit": "Made with Blockbench",
   "texture_size": [
-    64,
-    64
+    512,
+    512
   ],
   "textures": {
     "particle": "astralrecord:item/custom/simple_weapon",
@@ -33,55 +33,55 @@
       "faces": {
         "north": {
           "uv": [
-            2,
+            0.25,
             0,
-            4,
-            2
+            0.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            2,
+            0.25,
             0,
-            4,
-            2
+            0.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            2,
+            0.25,
             0,
-            4,
-            2
+            0.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            2,
+            0.25,
             0,
-            4,
-            2
+            0.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            2,
+            0.25,
             0,
-            4,
-            2
+            0.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            2,
+            0.25,
             0,
-            4,
-            2
+            0.5,
+            0.25
           ],
           "texture": "#surface"
         }
@@ -111,55 +111,55 @@
       "faces": {
         "north": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         }
@@ -189,55 +189,55 @@
       "faces": {
         "north": {
           "uv": [
-            2,
+            0.25,
             0,
-            4,
-            2
+            0.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            2,
+            0.25,
             0,
-            4,
-            2
+            0.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            2,
+            0.25,
             0,
-            4,
-            2
+            0.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            2,
+            0.25,
             0,
-            4,
-            2
+            0.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            2,
+            0.25,
             0,
-            4,
-            2
+            0.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            2,
+            0.25,
             0,
-            4,
-            2
+            0.5,
+            0.25
           ],
           "texture": "#surface"
         }
@@ -267,55 +267,55 @@
       "faces": {
         "north": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         }
@@ -345,55 +345,55 @@
       "faces": {
         "north": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         }
@@ -423,55 +423,55 @@
       "faces": {
         "north": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            8,
+            1,
             0,
-            10,
-            2
+            1.25,
+            0.25
           ],
           "texture": "#surface"
         }
@@ -503,8 +503,8 @@
           "uv": [
             0,
             0,
-            2,
-            2
+            0.25,
+            0.25
           ],
           "texture": "#surface"
         },
@@ -512,8 +512,8 @@
           "uv": [
             0,
             0,
-            2,
-            2
+            0.25,
+            0.25
           ],
           "texture": "#surface"
         },
@@ -521,8 +521,8 @@
           "uv": [
             0,
             0,
-            2,
-            2
+            0.25,
+            0.25
           ],
           "texture": "#surface"
         },
@@ -530,8 +530,8 @@
           "uv": [
             0,
             0,
-            2,
-            2
+            0.25,
+            0.25
           ],
           "texture": "#surface"
         },
@@ -539,8 +539,8 @@
           "uv": [
             0,
             0,
-            2,
-            2
+            0.25,
+            0.25
           ],
           "texture": "#surface"
         },
@@ -548,8 +548,8 @@
           "uv": [
             0,
             0,
-            2,
-            2
+            0.25,
+            0.25
           ],
           "texture": "#surface"
         }
@@ -579,55 +579,55 @@
       "faces": {
         "north": {
           "uv": [
-            6,
+            0.75,
             0,
-            8,
-            2
+            1,
+            0.25
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            6,
+            0.75,
             0,
-            8,
-            2
+            1,
+            0.25
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            6,
+            0.75,
             0,
-            8,
-            2
+            1,
+            0.25
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            6,
+            0.75,
             0,
-            8,
-            2
+            1,
+            0.25
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            6,
+            0.75,
             0,
-            8,
-            2
+            1,
+            0.25
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            6,
+            0.75,
             0,
-            8,
-            2
+            1,
+            0.25
           ],
           "texture": "#surface"
         }
@@ -657,55 +657,55 @@
       "faces": {
         "north": {
           "uv": [
-            2,
+            0.25,
             0,
-            4,
-            2
+            0.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            2,
+            0.25,
             0,
-            4,
-            2
+            0.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            2,
+            0.25,
             0,
-            4,
-            2
+            0.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            2,
+            0.25,
             0,
-            4,
-            2
+            0.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            2,
+            0.25,
             0,
-            4,
-            2
+            0.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            2,
+            0.25,
             0,
-            4,
-            2
+            0.5,
+            0.25
           ],
           "texture": "#surface"
         }
@@ -737,8 +737,8 @@
           "uv": [
             0,
             0,
-            2,
-            2
+            0.25,
+            0.25
           ],
           "texture": "#surface"
         },
@@ -746,8 +746,8 @@
           "uv": [
             0,
             0,
-            2,
-            2
+            0.25,
+            0.25
           ],
           "texture": "#surface"
         },
@@ -755,8 +755,8 @@
           "uv": [
             0,
             0,
-            2,
-            2
+            0.25,
+            0.25
           ],
           "texture": "#surface"
         },
@@ -764,8 +764,8 @@
           "uv": [
             0,
             0,
-            2,
-            2
+            0.25,
+            0.25
           ],
           "texture": "#surface"
         },
@@ -773,8 +773,8 @@
           "uv": [
             0,
             0,
-            2,
-            2
+            0.25,
+            0.25
           ],
           "texture": "#surface"
         },
@@ -782,8 +782,8 @@
           "uv": [
             0,
             0,
-            2,
-            2
+            0.25,
+            0.25
           ],
           "texture": "#surface"
         }
@@ -815,8 +815,8 @@
           "uv": [
             0,
             0,
-            2,
-            2
+            0.25,
+            0.25
           ],
           "texture": "#surface"
         },
@@ -824,8 +824,8 @@
           "uv": [
             0,
             0,
-            2,
-            2
+            0.25,
+            0.25
           ],
           "texture": "#surface"
         },
@@ -833,8 +833,8 @@
           "uv": [
             0,
             0,
-            2,
-            2
+            0.25,
+            0.25
           ],
           "texture": "#surface"
         },
@@ -842,8 +842,8 @@
           "uv": [
             0,
             0,
-            2,
-            2
+            0.25,
+            0.25
           ],
           "texture": "#surface"
         },
@@ -851,8 +851,8 @@
           "uv": [
             0,
             0,
-            2,
-            2
+            0.25,
+            0.25
           ],
           "texture": "#surface"
         },
@@ -860,8 +860,8 @@
           "uv": [
             0,
             0,
-            2,
-            2
+            0.25,
+            0.25
           ],
           "texture": "#surface"
         }
@@ -891,55 +891,55 @@
       "faces": {
         "north": {
           "uv": [
-            10,
+            1.25,
             0,
-            12,
-            2
+            1.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            10,
+            1.25,
             0,
-            12,
-            2
+            1.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            10,
+            1.25,
             0,
-            12,
-            2
+            1.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            10,
+            1.25,
             0,
-            12,
-            2
+            1.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            10,
+            1.25,
             0,
-            12,
-            2
+            1.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            10,
+            1.25,
             0,
-            12,
-            2
+            1.5,
+            0.25
           ],
           "texture": "#surface"
         }
@@ -969,1225 +969,5907 @@
       "faces": {
         "north": {
           "uv": [
-            10,
+            1.25,
             0,
-            12,
-            2
+            1.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            10,
+            1.25,
             0,
-            12,
-            2
+            1.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            10,
+            1.25,
             0,
-            12,
-            2
+            1.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            10,
+            1.25,
             0,
-            12,
-            2
+            1.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            10,
+            1.25,
             0,
-            12,
-            2
+            1.5,
+            0.25
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            10,
+            1.25,
             0,
-            12,
-            2
+            1.5,
+            0.25
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Squared ricasso",
+      "name": "Planed ash blade 0 0",
       "from": [
-        6.98,
-        6.94,
-        7.38
+        7.18,
+        8.16,
+        7.51
       ],
       "to": [
-        9.02,
-        8.24,
-        8.62
+        8.82,
+        9.29424,
+        7.511
       ],
       "rotation": {
-        "angle": 0,
-        "axis": "y",
+        "x": 175.04339,
+        "y": 0,
+        "z": 0,
         "origin": [
-          6.98,
-          6.94,
-          7.38
+          7.18,
+          8.16,
+          7.51
         ]
       },
       "faces": {
-        "north": {
-          "uv": [
-            2,
-            0,
-            4,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            2,
-            0,
-            4,
-            2
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            2,
-            0,
-            4,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            2,
-            0,
-            4,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            2,
-            0,
-            4,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            2,
-            0,
-            4,
-            2
+            0.0625,
+            2.1875,
+            0.875,
+            4
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Straight plane of the practice blade",
+      "name": "Planed ash blade 0 1",
       "from": [
-        7.02,
-        8.18,
-        7.49
+        8.75169,
+        8.16,
+        7.46446
       ],
       "to": [
-        8.98,
-        16.71,
-        8.51
+        9.30251,
+        9.30309,
+        7.46546
       ],
       "rotation": {
-        "angle": 0,
-        "axis": "y",
+        "x": 171.31994,
+        "y": -33.69007,
+        "z": 0,
         "origin": [
-          7.02,
-          8.18,
-          7.49
+          8.75169,
+          8.16,
+          7.46446
         ]
       },
       "faces": {
-        "north": {
-          "uv": [
-            0,
-            0,
-            2,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0,
-            0,
-            2,
-            2
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            0,
-            0,
-            2,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0,
-            0,
-            2,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0,
-            0,
-            2,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0,
-            0,
-            2,
-            2
+            1,
+            2.1875,
+            1.8125,
+            4
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Left planed bevel long",
+      "name": "Planed ash blade 0 2",
       "from": [
-        6.72,
-        8.19,
-        7.6
+        9.21,
+        8.16,
+        7.77
       ],
       "to": [
-        7.06,
-        16.66,
-        8.4
+        9.67,
+        9.31562,
+        7.771
       ],
       "rotation": {
-        "angle": 0,
-        "axis": "y",
+        "x": 0,
+        "y": -90,
+        "z": 167.91217,
         "origin": [
-          6.72,
-          8.19,
-          7.6
+          9.21,
+          8.16,
+          7.77
         ]
       },
       "faces": {
-        "north": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
+            1.9375,
+            2.1875,
+            2.75,
+            4
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Right planed bevel long",
+      "name": "Planed ash blade 0 3",
       "from": [
-        8.94,
-        8.19,
-        7.6
+        9.21,
+        8.16,
+        8.23
       ],
       "to": [
-        9.28,
-        16.66,
-        8.4
+        9.76082,
+        9.30309,
+        8.231
       ],
       "rotation": {
-        "angle": 0,
-        "axis": "y",
+        "x": -8.68006,
+        "y": -33.69007,
+        "z": 180,
         "origin": [
-          8.94,
-          8.19,
-          7.6
+          9.21,
+          8.16,
+          8.23
         ]
       },
       "faces": {
-        "north": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
+            2.875,
+            2.1875,
+            3.6875,
+            4
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Blunted point inner taper",
+      "name": "Planed ash blade 0 4",
       "from": [
-        7.14,
-        16.63,
-        7.55
+        8.82,
+        8.16,
+        8.49
       ],
       "to": [
-        8.86,
-        17.57,
-        8.45
+        10.46,
+        9.29424,
+        8.491
       ],
       "rotation": {
-        "angle": 0,
-        "axis": "y",
+        "x": -4.95661,
+        "y": 0,
+        "z": 180,
         "origin": [
-          7.14,
-          16.63,
-          7.55
+          8.82,
+          8.16,
+          8.49
         ]
       },
       "faces": {
-        "north": {
-          "uv": [
-            0,
-            0,
-            2,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0,
-            0,
-            2,
-            2
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            0,
-            0,
-            2,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0,
-            0,
-            2,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0,
-            0,
-            2,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0,
-            0,
-            2,
-            2
+            3.8125,
+            2.1875,
+            4.625,
+            4
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Left first taper bevel",
+      "name": "Planed ash blade 0 5",
       "from": [
-        6.91,
-        16.6,
-        7.66
+        7.24831,
+        8.16,
+        8.53554
       ],
       "to": [
-        7.2,
-        17.53,
-        8.34
+        7.79912,
+        9.30309,
+        8.53654
       ],
       "rotation": {
-        "angle": 0,
-        "axis": "y",
+        "x": -8.68006,
+        "y": 33.69007,
+        "z": 180,
         "origin": [
-          6.91,
-          16.6,
-          7.66
+          7.24831,
+          8.16,
+          8.53554
         ]
       },
       "faces": {
-        "north": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
+            4.75,
+            2.1875,
+            5.5625,
+            4
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Right first taper bevel",
+      "name": "Planed ash blade 0 6",
       "from": [
-        8.8,
-        16.6,
-        7.66
+        6.79,
+        8.16,
+        8.23
       ],
       "to": [
-        9.09,
-        17.53,
-        8.34
+        7.25,
+        9.31562,
+        8.231
       ],
       "rotation": {
-        "angle": 0,
-        "axis": "y",
+        "x": 0,
+        "y": 90,
+        "z": -167.91217,
         "origin": [
-          8.8,
-          16.6,
-          7.66
+          6.79,
+          8.16,
+          8.23
         ]
       },
       "faces": {
-        "north": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
+            5.6875,
+            2.1875,
+            6.5,
+            4
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Tip second taper",
+      "name": "Planed ash blade 0 7",
       "from": [
-        7.32,
-        17.5,
-        7.62
+        6.79,
+        8.16,
+        7.77
       ],
       "to": [
-        8.68,
-        18.33,
-        8.38
+        7.34082,
+        9.30309,
+        7.771
       ],
       "rotation": {
-        "angle": 0,
-        "axis": "y",
+        "x": 171.31994,
+        "y": 33.69007,
+        "z": 0,
         "origin": [
-          7.32,
-          17.5,
-          7.62
+          6.79,
+          8.16,
+          7.77
         ]
       },
       "faces": {
-        "north": {
-          "uv": [
-            0,
-            0,
-            2,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0,
-            0,
-            2,
-            2
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            0,
-            0,
-            2,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0,
-            0,
-            2,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0,
-            0,
-            2,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0,
-            0,
-            2,
-            2
+            6.625,
+            2.1875,
+            7.4375,
+            4
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Left second taper bevel",
+      "name": "Planed ash blade 1 0",
       "from": [
-        7.1,
-        17.48,
-        7.7
+        7.18,
+        16.2,
+        7.5296
       ],
       "to": [
-        7.38,
-        18.3,
-        8.3
+        8.82,
+        24.24002,
+        7.5306
       ],
       "rotation": {
-        "angle": 0,
-        "axis": "y",
+        "x": -179.86032,
+        "y": 0,
+        "z": 0,
         "origin": [
-          7.1,
-          17.48,
-          7.7
+          7.18,
+          16.2,
+          7.5296
         ]
       },
       "faces": {
-        "north": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
+            7.5625,
+            2.1875,
+            8.375,
+            4
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Right second taper bevel",
+      "name": "Planed ash blade 1 1",
       "from": [
-        8.62,
-        17.48,
-        7.7
+        8.7872,
+        16.2,
+        7.5296
       ],
       "to": [
-        8.9,
-        18.3,
-        8.3
+        9.27234,
+        24.24007,
+        7.5306
       ],
       "rotation": {
-        "angle": 0,
-        "axis": "y",
+        "x": -179.75413,
+        "y": -33.69007,
+        "z": 0,
         "origin": [
-          8.62,
-          17.48,
-          7.7
+          8.7872,
+          16.2,
+          7.5296
         ]
       },
       "faces": {
-        "north": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
+            8.5,
+            2.1875,
+            9.3125,
+            4
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Rounded terminal",
+      "name": "Planed ash blade 1 2",
       "from": [
-        7.49,
-        18.26,
-        7.73
+        9.1616,
+        16.2,
+        7.77
       ],
       "to": [
-        8.51,
-        18.79,
-        8.27
+        9.6216,
+        24.24015,
+        7.771
       ],
       "rotation": {
-        "angle": 0,
-        "axis": "y",
+        "x": 0,
+        "y": -90,
+        "z": -179.65509,
         "origin": [
-          7.49,
-          18.26,
-          7.73
+          9.1616,
+          16.2,
+          7.77
         ]
       },
       "faces": {
-        "north": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            4,
-            0,
-            6,
-            2
+            9.4375,
+            2.1875,
+            10.25,
+            4
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Obverse shallow center ridge",
+      "name": "Planed ash blade 1 3",
       "from": [
-        7.59,
-        8.51,
-        7.4
+        9.19086,
+        16.2,
+        8.20129
       ],
       "to": [
-        8.41,
-        16.42,
-        7.5
+        9.676,
+        24.24007,
+        8.20229
       ],
       "rotation": {
-        "angle": 0,
-        "axis": "y",
+        "x": 0.24587,
+        "y": -33.69007,
+        "z": 180,
         "origin": [
-          7.59,
-          8.51,
-          7.4
+          9.19086,
+          16.2,
+          8.20129
         ]
       },
       "faces": {
-        "north": {
-          "uv": [
-            2,
-            0,
-            4,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            2,
-            0,
-            4,
-            2
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            2,
-            0,
-            4,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            2,
-            0,
-            4,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            2,
-            0,
-            4,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            2,
-            0,
-            4,
-            2
+            10.375,
+            2.1875,
+            11.1875,
+            4
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Reverse shallow center ridge",
+      "name": "Planed ash blade 1 4",
       "from": [
-        7.59,
-        8.51,
-        8.5
+        8.82,
+        16.2,
+        8.4704
       ],
       "to": [
-        8.41,
-        16.42,
-        8.6
+        10.46,
+        24.24002,
+        8.4714
       ],
       "rotation": {
-        "angle": 0,
-        "axis": "y",
+        "x": 0.13968,
+        "y": 0,
+        "z": 180,
         "origin": [
-          7.59,
-          8.51,
-          8.5
+          8.82,
+          16.2,
+          8.4704
         ]
       },
       "faces": {
-        "north": {
-          "uv": [
-            2,
-            0,
-            4,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            2,
-            0,
-            4,
-            2
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            2,
-            0,
-            4,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            2,
-            0,
-            4,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            2,
-            0,
-            4,
-            2
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            2,
-            0,
-            4,
-            2
+            11.3125,
+            2.1875,
+            12.125,
+            4
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Workshop stamp obverse",
+      "name": "Planed ash blade 1 5",
       "from": [
-        7.77,
-        9.11,
-        7.36
+        7.2128,
+        16.2,
+        8.4704
       ],
       "to": [
-        8.25,
-        9.64,
-        7.42
+        7.69794,
+        24.24007,
+        8.4714
       ],
       "rotation": {
-        "angle": 45,
-        "axis": "z",
+        "x": 0.24587,
+        "y": 33.69007,
+        "z": 180,
+        "origin": [
+          7.2128,
+          16.2,
+          8.4704
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            12.25,
+            2.1875,
+            13.0625,
+            4
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 1 6",
+      "from": [
+        6.8384,
+        16.2,
+        8.23
+      ],
+      "to": [
+        7.2984,
+        24.24015,
+        8.231
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": 179.65509,
+        "origin": [
+          6.8384,
+          16.2,
+          8.23
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            13.1875,
+            2.1875,
+            14,
+            4
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 1 7",
+      "from": [
+        6.80914,
+        16.2,
+        7.79871
+      ],
+      "to": [
+        7.29428,
+        24.24007,
+        7.79971
+      ],
+      "rotation": {
+        "x": -179.75413,
+        "y": 33.69007,
+        "z": 0,
+        "origin": [
+          6.80914,
+          16.2,
+          7.79871
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            14.125,
+            2.1875,
+            14.9375,
+            4
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 2 0",
+      "from": [
+        7.2128,
+        17.4,
+        7.5982
+      ],
+      "to": [
+        8.7872,
+        18.60196,
+        7.5992
+      ],
+      "rotation": {
+        "x": -176.72815,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.2128,
+          17.4,
+          7.5982
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            15.0625,
+            2.1875,
+            15.875,
+            4
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 2 1",
+      "from": [
+        8.6724,
+        17.4,
+        7.5982
+      ],
+      "to": [
+        9.17984,
+        18.60606,
+        7.5992
+      ],
+      "rotation": {
+        "x": -174.25356,
+        "y": -33.69007,
+        "z": 0,
+        "origin": [
+          8.6724,
+          17.4,
+          7.5982
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            4.125,
+            0.875,
+            5.9375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 2 2",
+      "from": [
+        8.9922,
+        17.4,
+        7.7792
+      ],
+      "to": [
+        9.4338,
+        18.6119,
+        7.7802
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -171.96484,
+        "origin": [
+          8.9922,
+          17.4,
+          7.7792
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1,
+            4.125,
+            1.8125,
+            5.9375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 2 3",
+      "from": [
+        9.09462,
+        17.4,
+        8.12032
+      ],
+      "to": [
+        9.60206,
+        18.60606,
+        8.12132
+      ],
+      "rotation": {
+        "x": 5.74644,
+        "y": -33.69007,
+        "z": 180,
+        "origin": [
+          9.09462,
+          17.4,
+          8.12032
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1.9375,
+            4.125,
+            2.75,
+            5.9375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 2 4",
+      "from": [
+        8.7872,
+        17.4,
+        8.4018
+      ],
+      "to": [
+        10.3616,
+        18.60196,
+        8.4028
+      ],
+      "rotation": {
+        "x": 3.27185,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.7872,
+          17.4,
+          8.4018
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.875,
+            4.125,
+            3.6875,
+            5.9375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 2 5",
+      "from": [
+        7.3276,
+        17.4,
+        8.4018
+      ],
+      "to": [
+        7.83504,
+        18.60606,
+        8.4028
+      ],
+      "rotation": {
+        "x": 5.74644,
+        "y": 33.69007,
+        "z": 180,
+        "origin": [
+          7.3276,
+          17.4,
+          8.4018
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            3.8125,
+            4.125,
+            4.625,
+            5.9375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 2 6",
+      "from": [
+        7.0078,
+        17.4,
+        8.2208
+      ],
+      "to": [
+        7.4494,
+        18.6119,
+        8.2218
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": 171.96484,
+        "origin": [
+          7.0078,
+          17.4,
+          8.2208
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            4.75,
+            4.125,
+            5.5625,
+            5.9375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 2 7",
+      "from": [
+        6.90538,
+        17.4,
+        7.87968
+      ],
+      "to": [
+        7.41282,
+        18.60606,
+        7.88068
+      ],
+      "rotation": {
+        "x": -174.25356,
+        "y": 33.69007,
+        "z": 0,
+        "origin": [
+          6.90538,
+          17.4,
+          7.87968
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            5.6875,
+            4.125,
+            6.5,
+            5.9375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 3 0",
+      "from": [
+        7.3276,
+        18.18,
+        7.706
+      ],
+      "to": [
+        8.6724,
+        18.96741,
+        7.707
+      ],
+      "rotation": {
+        "x": -172.13128,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.3276,
+          18.18,
+          7.706
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            6.625,
+            4.125,
+            7.4375,
+            5.9375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 3 1",
+      "from": [
+        8.492,
+        18.18,
+        7.706
+      ],
+      "to": [
+        8.96666,
+        18.98275,
+        7.707
+      ],
+      "rotation": {
+        "x": -166.32639,
+        "y": -33.69007,
+        "z": 0,
+        "origin": [
+          8.492,
+          18.18,
+          7.706
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            7.5625,
+            4.125,
+            8.375,
+            5.9375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 3 2",
+      "from": [
+        8.726,
+        18.18,
+        7.8114
+      ],
+      "to": [
+        9.1032,
+        19.00417,
+        7.8124
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -161.15615,
+        "origin": [
+          8.726,
+          18.18,
+          7.8114
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.5,
+            4.125,
+            9.3125,
+            5.9375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 3 3",
+      "from": [
+        8.88694,
+        18.18,
+        8.03071
+      ],
+      "to": [
+        9.3616,
+        18.98275,
+        8.03171
+      ],
+      "rotation": {
+        "x": 13.67361,
+        "y": -33.69007,
+        "z": 180,
+        "origin": [
+          8.88694,
+          18.18,
+          8.03071
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            9.4375,
+            4.125,
+            10.25,
+            5.9375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 3 4",
+      "from": [
+        8.6724,
+        18.18,
+        8.294
+      ],
+      "to": [
+        10.0172,
+        18.96741,
+        8.295
+      ],
+      "rotation": {
+        "x": 7.86872,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.6724,
+          18.18,
+          8.294
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            10.375,
+            4.125,
+            11.1875,
+            5.9375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 3 5",
+      "from": [
+        7.508,
+        18.18,
+        8.294
+      ],
+      "to": [
+        7.98266,
+        18.98275,
+        8.295
+      ],
+      "rotation": {
+        "x": 13.67361,
+        "y": 33.69007,
+        "z": 180,
+        "origin": [
+          7.508,
+          18.18,
+          8.294
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            11.3125,
+            4.125,
+            12.125,
+            5.9375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 3 6",
+      "from": [
+        7.274,
+        18.18,
+        8.1886
+      ],
+      "to": [
+        7.6512,
+        19.00417,
+        8.1896
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": 161.15615,
+        "origin": [
+          7.274,
+          18.18,
+          8.1886
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            12.25,
+            4.125,
+            13.0625,
+            5.9375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 3 7",
+      "from": [
+        7.11306,
+        18.18,
+        7.96929
+      ],
+      "to": [
+        7.58772,
+        18.98275,
+        7.97029
+      ],
+      "rotation": {
+        "x": -166.32639,
+        "y": 33.69007,
+        "z": 0,
+        "origin": [
+          7.11306,
+          18.18,
+          7.96929
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            13.1875,
+            4.125,
+            14,
+            5.9375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 4 0",
+      "from": [
+        7.508,
+        18.62,
+        7.8383
+      ],
+      "to": [
+        8.492,
+        19.07946,
+        7.8393
+      ],
+      "rotation": {
+        "x": -163.26492,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.508,
+          18.62,
+          7.8383
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            14.125,
+            4.125,
+            14.9375,
+            5.9375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 4 1",
+      "from": [
+        8.2706,
+        18.62,
+        7.8383
+      ],
+      "to": [
+        8.66266,
+        19.11783,
+        7.8393
+      ],
+      "rotation": {
+        "x": -152.10785,
+        "y": -33.69007,
+        "z": 0,
+        "origin": [
+          8.2706,
+          18.62,
+          7.8383
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            15.0625,
+            4.125,
+            15.875,
+            5.9375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 4 2",
+      "from": [
+        8.3993,
+        18.62,
+        7.862
+      ],
+      "to": [
+        8.6753,
+        19.16803,
+        7.863
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -143.40611,
+        "origin": [
+          8.3993,
+          18.62,
+          7.862
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            6.0625,
+            0.875,
+            7.875
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 4 3",
+      "from": [
+        8.59682,
+        18.62,
+        7.94422
+      ],
+      "to": [
+        8.98888,
+        19.11783,
+        7.94522
+      ],
+      "rotation": {
+        "x": 27.89215,
+        "y": -33.69007,
+        "z": 180,
+        "origin": [
+          8.59682,
+          18.62,
+          7.94422
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1,
+            6.0625,
+            1.8125,
+            7.875
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 4 4",
+      "from": [
+        8.492,
+        18.62,
+        8.1617
+      ],
+      "to": [
+        9.476,
+        19.07946,
+        8.1627
+      ],
+      "rotation": {
+        "x": 16.73508,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.492,
+          18.62,
+          8.1617
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1.9375,
+            6.0625,
+            2.75,
+            7.875
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 4 5",
+      "from": [
+        7.7294,
+        18.62,
+        8.1617
+      ],
+      "to": [
+        8.12146,
+        19.11783,
+        8.1627
+      ],
+      "rotation": {
+        "x": 27.89215,
+        "y": 33.69007,
+        "z": 180,
+        "origin": [
+          7.7294,
+          18.62,
+          8.1617
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.875,
+            6.0625,
+            3.6875,
+            7.875
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 4 6",
+      "from": [
+        7.6007,
+        18.62,
+        8.138
+      ],
+      "to": [
+        7.8767,
+        19.16803,
+        8.139
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": 143.40611,
+        "origin": [
+          7.6007,
+          18.62,
+          8.138
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            3.8125,
+            6.0625,
+            4.625,
+            7.875
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Planed ash blade 4 7",
+      "from": [
+        7.40318,
+        18.62,
+        8.05578
+      ],
+      "to": [
+        7.79525,
+        19.11783,
+        8.05678
+      ],
+      "rotation": {
+        "x": -152.10785,
+        "y": 33.69007,
+        "z": 0,
+        "origin": [
+          7.40318,
+          18.62,
+          8.05578
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            4.75,
+            6.0625,
+            5.5625,
+            7.875
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Blunt end grain",
+      "from": [
+        7.6007,
+        18.62,
+        7.8383
+      ],
+      "to": [
+        7.9241,
+        19.4186,
+        7.8393
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -90,
+        "origin": [
+          7.6007,
+          18.62,
+          7.8383
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            5.6875,
+            6.0625,
+            6.5,
+            7.875
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mortised blade heel",
+      "from": [
+        7.032,
+        7.03,
+        7.608
+      ],
+      "to": [
+        8.968,
+        7.814,
+        7.609
+      ],
+      "rotation": {
+        "x": 90,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.032,
+          7.03,
+          7.608
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            6.625,
+            6.0625,
+            7.4375,
+            7.875
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 0 0",
+      "from": [
+        7.5091,
+        2.27938,
+        7.3
+      ],
+      "to": [
+        8.4909,
+        2.61937,
+        7.34
+      ],
+      "rotation": {
+        "x": 180,
+        "y": 0,
+        "z": 3.50201,
         "origin": [
           8,
-          9.38,
-          7.39
+          2.44938,
+          7.32
         ]
       },
       "faces": {
         "north": {
           "uv": [
-            6,
+            1,
             0,
-            8,
-            2
+            1.03125,
+            0.03125
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            6,
+            1,
             0,
-            8,
-            2
+            1.03125,
+            0.03125
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            6,
+            1,
             0,
-            8,
-            2
+            1.03125,
+            0.03125
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            6,
+            1,
             0,
-            8,
-            2
+            1.03125,
+            0.03125
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            6,
+            1,
             0,
-            8,
-            2
+            1.03125,
+            0.03125
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            6,
+            1,
             0,
-            8,
-            2
+            1.03125,
+            0.03125
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Workshop stamp reverse",
+      "name": "Tactile leather wrap 0 1",
       "from": [
-        7.77,
-        9.11,
-        8.58
+        8.41728,
+        2.33812,
+        7.425
       ],
       "to": [
-        8.25,
-        9.64,
-        8.64
+        8.80272,
+        2.67812,
+        7.465
       ],
       "rotation": {
-        "angle": 45,
-        "axis": "z",
+        "x": 170.59683,
+        "y": -43.16436,
+        "z": 12.73281,
         "origin": [
-          8,
-          9.38,
-          8.61
+          8.61,
+          2.50812,
+          7.445
         ]
       },
       "faces": {
         "north": {
           "uv": [
-            6,
+            1,
             0,
-            8,
-            2
+            1.03125,
+            0.03125
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            6,
+            1,
             0,
-            8,
-            2
+            1.03125,
+            0.03125
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            6,
+            1,
             0,
-            8,
-            2
+            1.03125,
+            0.03125
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            6,
+            1,
             0,
-            8,
-            2
+            1.03125,
+            0.03125
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            6,
+            1,
             0,
-            8,
-            2
+            1.03125,
+            0.03125
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            6,
+            1,
             0,
-            8,
-            2
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 0 2",
+      "from": [
+        8.299,
+        2.39688,
+        7.98
+      ],
+      "to": [
+        9.181,
+        2.73688,
+        8.02
+      ],
+      "rotation": {
+        "x": 90,
+        "y": -86.09197,
+        "z": 90,
+        "origin": [
+          8.74,
+          2.56688,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 0 3",
+      "from": [
+        8.41728,
+        2.45563,
+        8.535
+      ],
+      "to": [
+        8.80272,
+        2.79563,
+        8.575
+      ],
+      "rotation": {
+        "x": 9.40317,
+        "y": -43.16436,
+        "z": 167.26719,
+        "origin": [
+          8.61,
+          2.62563,
+          8.555
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 0 4",
+      "from": [
+        7.5091,
+        2.51438,
+        8.66
+      ],
+      "to": [
+        8.4909,
+        2.85438,
+        8.7
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 176.49799,
+        "origin": [
+          8,
+          2.68438,
+          8.68
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 0 5",
+      "from": [
+        7.19728,
+        2.57313,
+        8.535
+      ],
+      "to": [
+        7.58272,
+        2.91313,
+        8.575
+      ],
+      "rotation": {
+        "x": -9.40317,
+        "y": 43.16436,
+        "z": 167.26719,
+        "origin": [
+          7.39,
+          2.74313,
+          8.555
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 0 6",
+      "from": [
+        6.819,
+        2.63188,
+        7.98
+      ],
+      "to": [
+        7.701,
+        2.97188,
+        8.02
+      ],
+      "rotation": {
+        "x": -90,
+        "y": 86.09197,
+        "z": 90,
+        "origin": [
+          7.26,
+          2.80188,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 0 7",
+      "from": [
+        7.19728,
+        2.69063,
+        7.425
+      ],
+      "to": [
+        7.58272,
+        3.03062,
+        7.465
+      ],
+      "rotation": {
+        "x": -170.59683,
+        "y": 43.16436,
+        "z": 12.73281,
+        "origin": [
+          7.39,
+          2.86063,
+          7.445
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 1 0",
+      "from": [
+        7.5091,
+        2.74937,
+        7.3
+      ],
+      "to": [
+        8.4909,
+        3.08937,
+        7.34
+      ],
+      "rotation": {
+        "x": 180,
+        "y": 0,
+        "z": 3.50201,
+        "origin": [
+          8,
+          2.91937,
+          7.32
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 1 1",
+      "from": [
+        8.41728,
+        2.80813,
+        7.425
+      ],
+      "to": [
+        8.80272,
+        3.14813,
+        7.465
+      ],
+      "rotation": {
+        "x": 170.59683,
+        "y": -43.16436,
+        "z": 12.73281,
+        "origin": [
+          8.61,
+          2.97813,
+          7.445
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 1 2",
+      "from": [
+        8.299,
+        2.86688,
+        7.98
+      ],
+      "to": [
+        9.181,
+        3.20688,
+        8.02
+      ],
+      "rotation": {
+        "x": 90,
+        "y": -86.09197,
+        "z": 90,
+        "origin": [
+          8.74,
+          3.03688,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 1 3",
+      "from": [
+        8.41728,
+        2.92563,
+        8.535
+      ],
+      "to": [
+        8.80272,
+        3.26563,
+        8.575
+      ],
+      "rotation": {
+        "x": 9.40317,
+        "y": -43.16436,
+        "z": 167.26719,
+        "origin": [
+          8.61,
+          3.09563,
+          8.555
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 1 4",
+      "from": [
+        7.5091,
+        2.98438,
+        8.66
+      ],
+      "to": [
+        8.4909,
+        3.32438,
+        8.7
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 176.49799,
+        "origin": [
+          8,
+          3.15438,
+          8.68
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 1 5",
+      "from": [
+        7.19728,
+        3.04313,
+        8.535
+      ],
+      "to": [
+        7.58272,
+        3.38313,
+        8.575
+      ],
+      "rotation": {
+        "x": -9.40317,
+        "y": 43.16436,
+        "z": 167.26719,
+        "origin": [
+          7.39,
+          3.21313,
+          8.555
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 1 6",
+      "from": [
+        6.819,
+        3.10188,
+        7.98
+      ],
+      "to": [
+        7.701,
+        3.44187,
+        8.02
+      ],
+      "rotation": {
+        "x": -90,
+        "y": 86.09197,
+        "z": 90,
+        "origin": [
+          7.26,
+          3.27187,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 1 7",
+      "from": [
+        7.19728,
+        3.16063,
+        7.425
+      ],
+      "to": [
+        7.58272,
+        3.50063,
+        7.465
+      ],
+      "rotation": {
+        "x": -170.59683,
+        "y": 43.16436,
+        "z": 12.73281,
+        "origin": [
+          7.39,
+          3.33063,
+          7.445
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 2 0",
+      "from": [
+        7.5091,
+        3.21938,
+        7.3
+      ],
+      "to": [
+        8.4909,
+        3.55938,
+        7.34
+      ],
+      "rotation": {
+        "x": 180,
+        "y": 0,
+        "z": 3.50201,
+        "origin": [
+          8,
+          3.38938,
+          7.32
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 2 1",
+      "from": [
+        8.41728,
+        3.27813,
+        7.425
+      ],
+      "to": [
+        8.80272,
+        3.61813,
+        7.465
+      ],
+      "rotation": {
+        "x": 170.59683,
+        "y": -43.16436,
+        "z": 12.73281,
+        "origin": [
+          8.61,
+          3.44813,
+          7.445
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 2 2",
+      "from": [
+        8.299,
+        3.33688,
+        7.98
+      ],
+      "to": [
+        9.181,
+        3.67688,
+        8.02
+      ],
+      "rotation": {
+        "x": 90,
+        "y": -86.09197,
+        "z": 90,
+        "origin": [
+          8.74,
+          3.50688,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 2 3",
+      "from": [
+        8.41728,
+        3.39563,
+        8.535
+      ],
+      "to": [
+        8.80272,
+        3.73563,
+        8.575
+      ],
+      "rotation": {
+        "x": 9.40317,
+        "y": -43.16436,
+        "z": 167.26719,
+        "origin": [
+          8.61,
+          3.56563,
+          8.555
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 2 4",
+      "from": [
+        7.5091,
+        3.45438,
+        8.66
+      ],
+      "to": [
+        8.4909,
+        3.79437,
+        8.7
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 176.49799,
+        "origin": [
+          8,
+          3.62437,
+          8.68
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 2 5",
+      "from": [
+        7.19728,
+        3.51312,
+        8.535
+      ],
+      "to": [
+        7.58272,
+        3.85312,
+        8.575
+      ],
+      "rotation": {
+        "x": -9.40317,
+        "y": 43.16436,
+        "z": 167.26719,
+        "origin": [
+          7.39,
+          3.68312,
+          8.555
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 2 6",
+      "from": [
+        6.819,
+        3.57188,
+        7.98
+      ],
+      "to": [
+        7.701,
+        3.91188,
+        8.02
+      ],
+      "rotation": {
+        "x": -90,
+        "y": 86.09197,
+        "z": 90,
+        "origin": [
+          7.26,
+          3.74188,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 2 7",
+      "from": [
+        7.19728,
+        3.63063,
+        7.425
+      ],
+      "to": [
+        7.58272,
+        3.97063,
+        7.465
+      ],
+      "rotation": {
+        "x": -170.59683,
+        "y": 43.16436,
+        "z": 12.73281,
+        "origin": [
+          7.39,
+          3.80063,
+          7.445
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 3 0",
+      "from": [
+        7.5091,
+        3.68938,
+        7.3
+      ],
+      "to": [
+        8.4909,
+        4.02938,
+        7.34
+      ],
+      "rotation": {
+        "x": 180,
+        "y": 0,
+        "z": 3.50201,
+        "origin": [
+          8,
+          3.85938,
+          7.32
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 3 1",
+      "from": [
+        8.41728,
+        3.74813,
+        7.425
+      ],
+      "to": [
+        8.80272,
+        4.08813,
+        7.465
+      ],
+      "rotation": {
+        "x": 170.59683,
+        "y": -43.16436,
+        "z": 12.73281,
+        "origin": [
+          8.61,
+          3.91813,
+          7.445
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 3 2",
+      "from": [
+        8.299,
+        3.80688,
+        7.98
+      ],
+      "to": [
+        9.181,
+        4.14687,
+        8.02
+      ],
+      "rotation": {
+        "x": 90,
+        "y": -86.09197,
+        "z": 90,
+        "origin": [
+          8.74,
+          3.97688,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 3 3",
+      "from": [
+        8.41728,
+        3.86562,
+        8.535
+      ],
+      "to": [
+        8.80272,
+        4.20562,
+        8.575
+      ],
+      "rotation": {
+        "x": 9.40317,
+        "y": -43.16436,
+        "z": 167.26719,
+        "origin": [
+          8.61,
+          4.03562,
+          8.555
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 3 4",
+      "from": [
+        7.5091,
+        3.92437,
+        8.66
+      ],
+      "to": [
+        8.4909,
+        4.26437,
+        8.7
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 176.49799,
+        "origin": [
+          8,
+          4.09437,
+          8.68
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 3 5",
+      "from": [
+        7.19728,
+        3.98312,
+        8.535
+      ],
+      "to": [
+        7.58272,
+        4.32312,
+        8.575
+      ],
+      "rotation": {
+        "x": -9.40317,
+        "y": 43.16436,
+        "z": 167.26719,
+        "origin": [
+          7.39,
+          4.15312,
+          8.555
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 3 6",
+      "from": [
+        6.819,
+        4.04188,
+        7.98
+      ],
+      "to": [
+        7.701,
+        4.38188,
+        8.02
+      ],
+      "rotation": {
+        "x": -90,
+        "y": 86.09197,
+        "z": 90,
+        "origin": [
+          7.26,
+          4.21188,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 3 7",
+      "from": [
+        7.19728,
+        4.10063,
+        7.425
+      ],
+      "to": [
+        7.58272,
+        4.44063,
+        7.465
+      ],
+      "rotation": {
+        "x": -170.59683,
+        "y": 43.16436,
+        "z": 12.73281,
+        "origin": [
+          7.39,
+          4.27063,
+          7.445
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 4 0",
+      "from": [
+        7.5091,
+        4.15938,
+        7.3
+      ],
+      "to": [
+        8.4909,
+        4.49937,
+        7.34
+      ],
+      "rotation": {
+        "x": 180,
+        "y": 0,
+        "z": 3.50201,
+        "origin": [
+          8,
+          4.32938,
+          7.32
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 4 1",
+      "from": [
+        8.41728,
+        4.21812,
+        7.425
+      ],
+      "to": [
+        8.80272,
+        4.55812,
+        7.465
+      ],
+      "rotation": {
+        "x": 170.59683,
+        "y": -43.16436,
+        "z": 12.73281,
+        "origin": [
+          8.61,
+          4.38812,
+          7.445
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 4 2",
+      "from": [
+        8.299,
+        4.27688,
+        7.98
+      ],
+      "to": [
+        9.181,
+        4.61688,
+        8.02
+      ],
+      "rotation": {
+        "x": 90,
+        "y": -86.09197,
+        "z": 90,
+        "origin": [
+          8.74,
+          4.44688,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 4 3",
+      "from": [
+        8.41728,
+        4.33563,
+        8.535
+      ],
+      "to": [
+        8.80272,
+        4.67563,
+        8.575
+      ],
+      "rotation": {
+        "x": 9.40317,
+        "y": -43.16436,
+        "z": 167.26719,
+        "origin": [
+          8.61,
+          4.50563,
+          8.555
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 4 4",
+      "from": [
+        7.5091,
+        4.39438,
+        8.66
+      ],
+      "to": [
+        8.4909,
+        4.73438,
+        8.7
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 176.49799,
+        "origin": [
+          8,
+          4.56438,
+          8.68
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 4 5",
+      "from": [
+        7.19728,
+        4.45313,
+        8.535
+      ],
+      "to": [
+        7.58272,
+        4.79313,
+        8.575
+      ],
+      "rotation": {
+        "x": -9.40317,
+        "y": 43.16436,
+        "z": 167.26719,
+        "origin": [
+          7.39,
+          4.62313,
+          8.555
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 4 6",
+      "from": [
+        6.819,
+        4.51188,
+        7.98
+      ],
+      "to": [
+        7.701,
+        4.85188,
+        8.02
+      ],
+      "rotation": {
+        "x": -90,
+        "y": 86.09197,
+        "z": 90,
+        "origin": [
+          7.26,
+          4.68188,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 4 7",
+      "from": [
+        7.19728,
+        4.57063,
+        7.425
+      ],
+      "to": [
+        7.58272,
+        4.91062,
+        7.465
+      ],
+      "rotation": {
+        "x": -170.59683,
+        "y": 43.16436,
+        "z": 12.73281,
+        "origin": [
+          7.39,
+          4.74062,
+          7.445
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 5 0",
+      "from": [
+        7.5091,
+        4.62937,
+        7.3
+      ],
+      "to": [
+        8.4909,
+        4.96937,
+        7.34
+      ],
+      "rotation": {
+        "x": 180,
+        "y": 0,
+        "z": 3.50201,
+        "origin": [
+          8,
+          4.79937,
+          7.32
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 5 1",
+      "from": [
+        8.41728,
+        4.68812,
+        7.425
+      ],
+      "to": [
+        8.80272,
+        5.02812,
+        7.465
+      ],
+      "rotation": {
+        "x": 170.59683,
+        "y": -43.16436,
+        "z": 12.73281,
+        "origin": [
+          8.61,
+          4.85812,
+          7.445
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 5 2",
+      "from": [
+        8.299,
+        4.74687,
+        7.98
+      ],
+      "to": [
+        9.181,
+        5.08687,
+        8.02
+      ],
+      "rotation": {
+        "x": 90,
+        "y": -86.09197,
+        "z": 90,
+        "origin": [
+          8.74,
+          4.91687,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 5 3",
+      "from": [
+        8.41728,
+        4.80562,
+        8.535
+      ],
+      "to": [
+        8.80272,
+        5.14562,
+        8.575
+      ],
+      "rotation": {
+        "x": 9.40317,
+        "y": -43.16436,
+        "z": 167.26719,
+        "origin": [
+          8.61,
+          4.97562,
+          8.555
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 5 4",
+      "from": [
+        7.5091,
+        4.86438,
+        8.66
+      ],
+      "to": [
+        8.4909,
+        5.20438,
+        8.7
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 176.49799,
+        "origin": [
+          8,
+          5.03438,
+          8.68
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 5 5",
+      "from": [
+        7.19728,
+        4.92313,
+        8.535
+      ],
+      "to": [
+        7.58272,
+        5.26313,
+        8.575
+      ],
+      "rotation": {
+        "x": -9.40317,
+        "y": 43.16436,
+        "z": 167.26719,
+        "origin": [
+          7.39,
+          5.09312,
+          8.555
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 5 6",
+      "from": [
+        6.819,
+        4.98188,
+        7.98
+      ],
+      "to": [
+        7.701,
+        5.32188,
+        8.02
+      ],
+      "rotation": {
+        "x": -90,
+        "y": 86.09197,
+        "z": 90,
+        "origin": [
+          7.26,
+          5.15188,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 5 7",
+      "from": [
+        7.19728,
+        5.04063,
+        7.425
+      ],
+      "to": [
+        7.58272,
+        5.38063,
+        7.465
+      ],
+      "rotation": {
+        "x": -170.59683,
+        "y": 43.16436,
+        "z": 12.73281,
+        "origin": [
+          7.39,
+          5.21063,
+          7.445
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 6 0",
+      "from": [
+        7.5091,
+        5.09938,
+        7.3
+      ],
+      "to": [
+        8.4909,
+        5.43938,
+        7.34
+      ],
+      "rotation": {
+        "x": 180,
+        "y": 0,
+        "z": 3.50201,
+        "origin": [
+          8,
+          5.26938,
+          7.32
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 6 1",
+      "from": [
+        8.41728,
+        5.15813,
+        7.425
+      ],
+      "to": [
+        8.80272,
+        5.49813,
+        7.465
+      ],
+      "rotation": {
+        "x": 170.59683,
+        "y": -43.16436,
+        "z": 12.73281,
+        "origin": [
+          8.61,
+          5.32813,
+          7.445
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 6 2",
+      "from": [
+        8.299,
+        5.21688,
+        7.98
+      ],
+      "to": [
+        9.181,
+        5.55688,
+        8.02
+      ],
+      "rotation": {
+        "x": 90,
+        "y": -86.09197,
+        "z": 90,
+        "origin": [
+          8.74,
+          5.38688,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 6 3",
+      "from": [
+        8.41728,
+        5.27563,
+        8.535
+      ],
+      "to": [
+        8.80272,
+        5.61563,
+        8.575
+      ],
+      "rotation": {
+        "x": 9.40317,
+        "y": -43.16436,
+        "z": 167.26719,
+        "origin": [
+          8.61,
+          5.44563,
+          8.555
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 6 4",
+      "from": [
+        7.5091,
+        5.33438,
+        8.66
+      ],
+      "to": [
+        8.4909,
+        5.67438,
+        8.7
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 176.49799,
+        "origin": [
+          8,
+          5.50438,
+          8.68
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 6 5",
+      "from": [
+        7.19728,
+        5.39313,
+        8.535
+      ],
+      "to": [
+        7.58272,
+        5.73312,
+        8.575
+      ],
+      "rotation": {
+        "x": -9.40317,
+        "y": 43.16436,
+        "z": 167.26719,
+        "origin": [
+          7.39,
+          5.56313,
+          8.555
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 6 6",
+      "from": [
+        6.819,
+        5.45187,
+        7.98
+      ],
+      "to": [
+        7.701,
+        5.79187,
+        8.02
+      ],
+      "rotation": {
+        "x": -90,
+        "y": 86.09197,
+        "z": 90,
+        "origin": [
+          7.26,
+          5.62187,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tactile leather wrap 6 7",
+      "from": [
+        7.19728,
+        5.51062,
+        7.425
+      ],
+      "to": [
+        7.58272,
+        5.85062,
+        7.465
+      ],
+      "rotation": {
+        "x": -170.59683,
+        "y": 43.16436,
+        "z": 12.73281,
+        "origin": [
+          7.39,
+          5.68062,
+          7.445
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            1.03125,
+            0.03125
           ],
           "texture": "#surface"
         }
