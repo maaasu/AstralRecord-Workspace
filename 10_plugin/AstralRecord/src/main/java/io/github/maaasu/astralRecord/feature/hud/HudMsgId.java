@@ -15,7 +15,11 @@ public enum HudMsgId {
     P_5672,
     P_5673,
     P_5674,
-    P_5675;
+    P_5675,
+    P_5676,
+    P_5677,
+    P_5678,
+    P_5679;
 
     /** @return player.propertiesの対応キー */
     public String getId() {

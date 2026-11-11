@@ -2626,6 +2626,9 @@ public final class AstralRecord extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PhantomArcherWeaponLifecycleListener(), this);
         getServer().getPluginManager().registerEvents(new RangedStarweaveLifecycleListener(rangedStarweaveRuntimeService), this);
         skillActionRingService.setItemWeaponAttackService(itemWeaponAttackService);
+        var skillCooldownHudService = new io.github.maaasu.astralRecord.feature.skill.service.SkillCooldownHudService(
+                skillBindPresetService, skillService, skillOwnershipService, skillPermissionService, itemWeaponAttackService);
+        playerHudService.setSkillCooldownProvider(skillCooldownHudService::snapshot);
         skillActionRingHoldService = new SkillActionRingHoldService(
             this,
             skillActionRingService,

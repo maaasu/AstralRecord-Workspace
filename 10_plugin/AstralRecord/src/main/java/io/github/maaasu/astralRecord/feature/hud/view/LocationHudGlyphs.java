@@ -6,6 +6,8 @@ import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonSidebarInfo;
 import io.github.maaasu.astralRecord.feature.hud.HudMsgId;
 import io.github.maaasu.astralRecord.feature.hud.model.SidebarBuffPageState;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillCooldownHudEntry;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingStatus;
 import io.github.maaasu.astralRecord.shared.challenge.ParticipantNameLineFormatter;
@@ -33,6 +35,7 @@ final class LocationHudGlyphs {
     private static final int RIGHT = 166;
     private static final int COLUMN_SPLIT = 94;
     private static final int MAX_ROWS = 16;
+    private static final int EXPANDED_MAX_ROWS = 32;
     private static final int MAX_CHALLENGE_ROWS = 8;
     private static final int MAX_BUFF_ROWS = 5;
     private static final int SHADOW_ROW_OFFSET = 16;
@@ -46,18 +49,56 @@ final class LocationHudGlyphs {
     static List<Row> layout(String world, String area, int level, @Nullable Performance performance,
                              @Nullable BossChallengeSidebarInfo boss, @Nullable DungeonSidebarInfo dungeon,
                              SidebarBuffPageState pageState, List<ActiveBuff> activeBuffs, boolean showBuffs,
-                             BuffHudIcons icons, LocalDateTime now) {
+                             BuffHudIcons icons, LocalDateTime now,
+                             List<SkillCooldownHudEntry> equippedSkills, boolean expanded) {
         List<Row> rows = locationRows(world, area, level, performance);
+        if (expanded && !equippedSkills.isEmpty()) {
+            rows.add(new Row(List.of(), 0));
+            rows.add(new Row(left(message(HudMsgId.P_5676), LEFT, RIGHT, Palette.GOLD),
+                    right(message(HudMsgId.P_5678), RIGHT - 20, RIGHT, Palette.GRAY)));
+            for (SkillCooldownHudEntry skill : equippedSkills.stream().limit(SkillCooldownHudEntry.MAX_ENTRIES).toList()) {
+                rows.add(skillRow(skill));
+            }
+        }
         if (boss != null || dungeon != null) {
             rows.addAll(challengeRows(boss, dungeon));
         }
         // 複数件の効果には件数・ページ番号を1行確保します。
-        int pageSize = Math.min(MAX_BUFF_ROWS, MAX_ROWS - rows.size() - 1);
+        int pageSize = Math.max(0, Math.min(MAX_BUFF_ROWS, (expanded ? EXPANDED_MAX_ROWS : MAX_ROWS) - rows.size() - 1));
         SidebarBuffPageState.Page page = pageState.select(activeBuffs, showBuffs, pageSize);
         if (!page.buffs().isEmpty()) {
             rows.addAll(effectRows(page, icons, now));
         }
         return List.copyOf(rows);
+    }
+
+    /** 装備枠を左、CTまたは一般的な使用条件を右へ揃え、長い名前だけを省略します。 */
+    private static Row skillRow(SkillCooldownHudEntry skill) {
+        String value;
+        Palette color;
+        if (skill.remainingTicks() > 0) {
+            value = cooldownSeconds(skill.remainingTicks());
+            color = Palette.YELLOW;
+        } else {
+            value = switch (skill.state()) {
+                case READY -> message(HudMsgId.P_5677);
+                case MANA -> PlayerMsgResource.getMessage(PlayerMsgId.P_5895.getId());
+                case ENERGY -> PlayerMsgResource.getMessage(PlayerMsgId.P_5896.getId());
+                default -> PlayerMsgResource.getMessage(PlayerMsgId.P_5897.getId());
+            };
+            color = skill.state() == SkillCooldownHudEntry.State.READY ? Palette.PERFORMANCE_GREEN : Palette.RED;
+        }
+        int valueLeft = RIGHT - textWidth(value);
+        String slot = skill.slot() == 0 ? message(HudMsgId.P_5679) : skill.slot() + ".";
+        return new Row(left(slot, LEFT, LEFT + 20, Palette.GRAY),
+                left(skill.name(), LEFT + 20, valueLeft - 5, Palette.WHITE),
+                right(value, valueLeft, RIGHT, color));
+    }
+
+    /** 端数を切り上げ、CTが残っている間に0.0sを表示しません。 */
+    static String cooldownSeconds(long ticks) {
+        long tenths = Math.max(0L, ticks) / 2 + Math.max(0L, ticks) % 2;
+        return tenths / 10 + "." + tenths % 10 + "s";
     }
 
     /** ワールド名、エリア・金色のLv、任意の性能情報を右端に揃えます。 */
@@ -194,21 +235,28 @@ final class LocationHudGlyphs {
     }
 
     /** 画面固定シェーダー用のRGBマーカーを、幅ゼロのActionBar追加要素へ変換します。 */
-    static Component render(List<Row> rows) {
+    static Component render(List<Row> rows, boolean expanded) {
+        if (rows.isEmpty()) return Component.empty();
+        if (rows.size() > (expanded ? EXPANDED_MAX_ROWS : MAX_ROWS)) {
+            throw new IllegalArgumentException("Location HUD row limit exceeded");
+        }
         TextComponent.Builder result = HudOverlayGlyphs.builder();
-        int textMarker = (rows.size() - 1) * 8;
+        int textMarker = (expanded ? (rows.size() - 1) / 2 : rows.size() - 1) * 8;
+        int rowCountFlag = expanded ? ((rows.size() - 1) & 1) * 128 : 0;
+        int paletteOffset = expanded ? 64 : PERFORMANCE_PALETTE_OFFSET;
+        int shadowOffset = expanded ? 32 : SHADOW_ROW_OFFSET;
         for (int rowIndex = 0; rowIndex < rows.size(); rowIndex++) {
             Row row = rows.get(rowIndex);
             if (row.icon() != 0) {
                 appendGlyph(result, ICON_FONT, row.icon(), BuffHudIcons.ICON_ADVANCE,
-                        textMarker + Palette.ICON.ordinal(), LEFT, rowIndex);
+                        textMarker + Palette.ICON.ordinal(), LEFT, rowCountFlag + rowIndex);
             }
             for (Label label : row.labels()) {
                 List<Integer> glyphs = TEXT.fit(label.text(), label.right() - label.left());
                 int x = label.rightAligned() ? label.right() - TEXT.width(glyphs) : label.left();
                 int palette = label.palette().ordinal();
-                int encodedRow = rowIndex + (palette >= 8 ? PERFORMANCE_PALETTE_OFFSET : 0);
-                TEXT.appendLine(result, glyphs, x, encodedRow, textMarker + (palette & 7), SHADOW_ROW_OFFSET);
+                int encodedRow = rowCountFlag + rowIndex + (palette >= 8 ? paletteOffset : 0);
+                TEXT.appendLine(result, glyphs, x, encodedRow, textMarker + (palette & 7), shadowOffset);
             }
         }
         return result.build();

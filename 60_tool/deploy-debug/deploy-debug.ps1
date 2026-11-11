@@ -576,8 +576,8 @@ function Publish-ResourcePacks {
             $reader = [IO.StreamReader]::new($locationEntry.Open())
             try { $locationHud = $reader.ReadToEnd() }
             finally { $reader.Dispose() }
-            if ($locationHud -cnotin @('1', '2', '3', '4') -or $questTrackingHud -cne '2') {
-                throw 'Location HUD requires version 1, 2, 3 or 4 and Quest HUD assets version 2.'
+            if ($locationHud -cnotin @('1', '2', '3', '4', '5') -or $questTrackingHud -cne '2') {
+                throw 'Location HUD requires version 1, 2, 3, 4 or 5 and Quest HUD assets version 2.'
             }
             $reader = [IO.StreamReader]::new($archive.GetEntry('assets/astralrecord/font/quest_hud_space.json').Open())
             try { $spaceFont = $reader.ReadToEnd() | ConvertFrom-Json }
@@ -594,7 +594,7 @@ function Publish-ResourcePacks {
                 'assets/astralrecord/font/location_hud_icons.json'
                 'assets/astralrecord/textures/font/buff_hud.png'
             )
-            if ($locationHud -cin @('2', '3', '4')) {
+            if ($locationHud -cin @('2', '3', '4', '5')) {
                 $locationAssets += @(
                     'assets/astralrecord/font/location_hud_text.json'
                     'assets/astralrecord/textures/font/location_hud_text.png'
@@ -609,14 +609,14 @@ function Publish-ResourcePacks {
                     }
                 }
             }
-            if ($locationHud -cin @('3', '4')) {
+            if ($locationHud -cin @('3', '4', '5')) {
                 $locationAssets += 'location-hud-atlas.sha256'
             }
             foreach ($asset in $locationAssets) {
                 $entry = $archive.GetEntry($asset)
                 if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing Location HUD asset in Java pack: $asset" }
             }
-            if ($locationHud -cin @('3', '4')) {
+            if ($locationHud -cin @('3', '4', '5')) {
                 $reader = [IO.StreamReader]::new($archive.GetEntry('location-hud-atlas.sha256').Open())
                 try { $locationAtlasRevision = $reader.ReadToEnd() }
                 finally { $reader.Dispose() }

@@ -63,6 +63,7 @@ public class ResourcePackService {
     private final Set<UUID> readyBedrockCombatRewardPlaqueWidth = ConcurrentHashMap.newKeySet();
     private final Map<UUID, ResourcePackRepository.ProfileHud> requestedJavaProfileHud = new ConcurrentHashMap<>();
     private final Set<UUID> requestedJavaLocationHud = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> requestedJavaSkillCooldownHud = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaFishingRodTip = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaQuestHud = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockQuestHud = ConcurrentHashMap.newKeySet();
@@ -156,6 +157,7 @@ public class ResourcePackService {
                     requestedJavaItemTooltips.remove(viewer);
                     requestedJavaProfileHud.remove(viewer);
                     requestedJavaLocationHud.remove(viewer);
+                    requestedJavaSkillCooldownHud.remove(viewer);
                     requestedJavaFishingRodTip.remove(viewer);
                     requestedJavaQuestHud.remove(viewer);
                     if (hadWornHelmetModels) {
@@ -169,6 +171,7 @@ public class ResourcePackService {
                     requestedJavaWeaponAttackProjectiles.remove(viewer);
                     requestedJavaSkillEffects.remove(viewer);
                     if (pack.locationHud()) requestedJavaLocationHud.add(viewer);
+                    if (pack.skillCooldownHud()) requestedJavaSkillCooldownHud.add(viewer);
                     if (pack.fishingRodTip()) requestedJavaFishingRodTip.add(viewer);
                     if (pack.questTrackingHud()) requestedJavaQuestHud.add(viewer);
                     if (pack.actionRingPanel() != null) {
@@ -467,6 +470,14 @@ public class ResourcePackService {
      */
     public boolean hasJavaQuestHud(UUID playerId) {
         return hasManagedJavaPack(playerId) && requestedJavaQuestHud.contains(playerId);
+    }
+
+    /**
+     * @param playerId 対象接続UUID
+     * @return 32行のCT一覧に対応する互換版5の管理パック適用済みならtrue
+     */
+    public boolean hasJavaSkillCooldownHud(UUID playerId) {
+        return hasJavaLocationHud(playerId) && requestedJavaSkillCooldownHud.contains(playerId);
     }
 
     /**
@@ -798,6 +809,7 @@ public class ResourcePackService {
         readyBedrockCombatRewardPlaqueWidth.remove(playerId);
         requestedJavaProfileHud.remove(playerId);
         requestedJavaLocationHud.remove(playerId);
+        requestedJavaSkillCooldownHud.remove(playerId);
         requestedJavaFishingRodTip.remove(playerId);
         requestedJavaQuestHud.remove(playerId);
         readyBedrockQuestHud.remove(playerId);
