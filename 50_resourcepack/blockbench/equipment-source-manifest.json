@@ -574,7 +574,7 @@
       "base_item": "minecraft:bow",
       "custom_model_data": 220077,
       "sha256": {
-        "assets/astralrecord/models/item/custom/eriva_shortbow.json": "68eefed57189e6a32b729294c99d5db512aa933efa52ac905abdcbf7b821ee59",
+        "assets/astralrecord/models/item/custom/eriva_shortbow.json": "5bef2810d445899a64bf0a4d6092eab81207f800c39f3621c73300401d7d737a",
         "assets/astralrecord/models/item/custom/eriva_shortbow_virtual_use.json": "92ad88d55763ad3b888ecfb85b0765f0bf2166b9d377b0e05876b0670f649846",
         "assets/astralrecord/models/item/custom/eriva_shortbow_pull_0.json": "e9fbc1ff72191028ca1da1260e6dd931d99d6e73edb1e96761799083eab5793d",
         "assets/astralrecord/models/item/custom/eriva_shortbow_pull_1.json": "2db3130e94d2548360f5b98007058d6df49829f920cd87884234915cbb392415",
@@ -588,7 +588,7 @@
         "bedrock/textures/items/eriva_shortbow.png": "eae56ba2ec393961c30dd26c65d70f9f5ff0b2739c014d2e0a204e85d84a25a4",
         "blockbench/equipment-drafts/eriva_shortbow.json": "c2755bf332dee23133845542e6af722625dbd9127292f1ab4ad53732a5f78e3a",
         "blockbench/items/eriva_shortbow.bedrock.bbmodel": "4b7604bd829d85b4fe5ac3fb295c8e2307e0f1c7bfe5f0659f924c625be39b31",
-        "blockbench/items/eriva_shortbow.java.bbmodel": "00a7270c9779b10754f240103e2ab2ff6b18d75ddf51d7e312523e8b9f9ea9a6",
+        "blockbench/items/eriva_shortbow.java.bbmodel": "4c314594195207d9fd7c74a2a26bac7d0d548b61f5511a13920de07f7207e15a",
         "blockbench/items/eriva_shortbow_pull_0.java.bbmodel": "7c1f26c7f96846a8c96243f4561b9a394d222efb889be029d810c1918bf06682",
         "blockbench/items/eriva_shortbow_pull_1.java.bbmodel": "827dc39f6e921f0d5c9c7f8ea5d7f3124a56cf631620f0a21059c9762ab706d9",
         "blockbench/items/eriva_shortbow_pull_2.java.bbmodel": "9d730d4f3b57592ce4998fc581b55c6e15845af1174220bdc3c735267d43f9e3"
@@ -602,7 +602,7 @@
       "base_item": "minecraft:leather_horse_armor",
       "custom_model_data": 220078,
       "sha256": {
-        "assets/astralrecord/models/item/custom/eriva_longbow.json": "a8fcbb65bc717179bed0e0b906ee08934771ed23c7535f19ca531ba44521cf04",
+        "assets/astralrecord/models/item/custom/eriva_longbow.json": "b17dfbac489034e6d3f74d186276a12fa8fd73257b8c66b255d9881e6d9b5a2e",
         "assets/astralrecord/models/item/custom/eriva_longbow_virtual_use.json": "c02fc355388e847737dad7a0422772d7c2ea4caaece18bb9c90dca096f6c30c2",
         "assets/astralrecord/models/item/custom/eriva_longbow_pull_0.json": "d55ee9c062d3dd05885a64b3f1a39bb850bcfe4e6f4b75df15eb7cc0fbc39cc0",
         "assets/astralrecord/models/item/custom/eriva_longbow_pull_1.json": "4266ffd885c347a85616077342185a197bea6d77c618805cee359568089bc1ab",
@@ -616,7 +616,7 @@
         "bedrock/textures/items/eriva_longbow.png": "d1b20996b0e1fa3f0e76cefc16c5499eeffce1dbf8f356f18261226b7cfc2cce",
         "blockbench/equipment-drafts/eriva_longbow.json": "65a8fb91cbc1d7d81bab1ae9c88b4985d9eb264ce0bae0f030da41fa0546481f",
         "blockbench/items/eriva_longbow.bedrock.bbmodel": "4ddff8f36aa3c811cd17ec6897da6184ac00aac012c44ae44fac8f8bd9398708",
-        "blockbench/items/eriva_longbow.java.bbmodel": "12c115366d3b68620bce3c82c09186cf44907f446ff2055054e7ee106e954ecd",
+        "blockbench/items/eriva_longbow.java.bbmodel": "93a45eb65a14e186a33dfcf65bca5ce9d66804ce520d38726e42b0b272dca22c",
         "blockbench/items/eriva_longbow_pull_0.java.bbmodel": "6fbedb73fa90ddbc282151a7128c84e2d29df29751b5dfaccaaeea2602c1116a",
         "blockbench/items/eriva_longbow_pull_1.java.bbmodel": "d7d9f7b72dbaa824188fe01db532f1fba07bc88d09d64c8da30cf4afccbc242b",
         "blockbench/items/eriva_longbow_pull_2.java.bbmodel": "a97fb4a4c4411d740cff1dcb89e636b670c3a28982bc204670bd879da189bf2c"
