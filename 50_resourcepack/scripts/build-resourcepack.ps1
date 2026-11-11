@@ -469,7 +469,7 @@ foreach ($entries in @($java, $bedrock)) {
 
 $seleneaSkillStyles = @(
     'warning_circle', 'warning_line', 'warning_boundary', 'warning_safe', 'impact', 'impact_line',
-    'wave', 'bolt', 'warning_edge', 'warning_grimoire', 'impact_grimoire'
+    'wave', 'bolt', 'warning_edge', 'warning_grimoire', 'impact_grimoire', 'gate', 'eclipse'
 )
 foreach ($style in $seleneaSkillStyles) {
     $name = "selenea_$style"

@@ -542,7 +542,8 @@ final class SeleneaPackDisplay implements Listener {
         CIRCLE(0, "warning_circle"), LINE(1, "warning_line"), BOUNDARY(2, "warning_boundary"),
         SAFE(3, "warning_safe"), IMPACT(4, "impact"), IMPACT_LINE(5, "impact_line"),
         WAVE(6, "wave"), BOLT(7, "bolt"), EDGE(8, "warning_edge"),
-        GRIMOIRE(9, "warning_grimoire"), GRIMOIRE_IMPACT(10, "impact_grimoire");
+        GRIMOIRE(9, "warning_grimoire"), GRIMOIRE_IMPACT(10, "impact_grimoire"),
+        GATE(11, "gate"), ECLIPSE(12, "eclipse");
 
         private final int id;
         private final String model;

@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Mob;
@@ -79,9 +80,9 @@ final class SeleneaPressureController {
     }
 
     /**
-     * 生成済み遭遇の弾・波と発射予告だけを進めます。分身生成と主呪文の更新は行いません。
+     * 生成済み遭遇の弾・波と発射予告を進めます。予告開始時に狙いと床の小輪を固定します。
      * @param boss 所有ボス @param entity 本体 @param active 現在の生存参加者 @param tick 共通軸の1tick時計
-     * @param suspended 大技・登場中か @param radius 通常波の半径 @param field 専用フィールドか
+     * @param suspended 通常弾と波を停止する期間か @param radius 通常波の半径 @param field 専用フィールドか
      */
     void tickMotion(MobInstance boss, Entity entity, List<Player> active, long tick, boolean suspended,
                     double radius, boolean field) {
@@ -107,14 +108,24 @@ final class SeleneaPressureController {
             List<Entity> casters = new ArrayList<>(6);
             casters.add(entity);
             casters.addAll(state.clones);
-            state.volley = new Volley(target.getUniqueId(), target.getLocation().add(0, 0.9D, 0), casters, tick);
+            Location feet = target.getLocation();
+            Location floor = SeleneaArena.ground(feet, boss.spawnLocation(), field);
+            Location base = floor == null ? feet : floor;
+            List<Location> aimRing = new ArrayList<>(16);
+            for (int index = 0; index < 16; index++) {
+                double angle = index * Math.PI / 8.0D;
+                Location point = base.clone().add(Math.cos(angle) * 0.9D, 0.15D, Math.sin(angle) * 0.9D);
+                if (SeleneaArena.loaded(point)) aimRing.add(point);
+            }
+            state.volley = new Volley(target.getUniqueId(), feet.add(0, 0.9D, 0), aimRing, casters, tick);
             List<SeleneaPackDisplay.Shape> charge = new ArrayList<>(casters.size());
             for (Entity caster : casters) {
                 Location origin = caster.getLocation().add(0, LAUNCH_HEIGHT, 0);
                 charge.add(SeleneaPackDisplay.Shape.circle(SeleneaPackDisplay.Style.GRIMOIRE, origin, 0.7D, 2.0D));
             }
             state.volley.packWarning = pack.effects(boss.instanceId(), charge, tick, VOLLEY_CHARGE);
-            entity.getWorld().playSound(entity.getLocation().add(0, LAUNCH_HEIGHT, 0), Sound.BLOCK_BEACON_POWER_SELECT, 0.7F, 1.1F);
+            cue(active, state.volley.targetId, entity.getLocation().add(0, LAUNCH_HEIGHT, 0),
+                Sound.BLOCK_BEACON_POWER_SELECT, 0.7F, 1.1F);
         }
         if (state.volley != null) {
             Volley volley = state.volley;
@@ -130,10 +141,11 @@ final class SeleneaPressureController {
                 }
                 particles.spawnBurstsForNearbyViewers(entity.getLocation(), flashes,
                     SharedParticleDefinitions.SELENEA_VOLLEY_RELEASE, true);
-                entity.getWorld().playSound(entity.getLocation().add(0, LAUNCH_HEIGHT, 0), Sound.ENTITY_EVOKER_CAST_SPELL, 0.8F, 1.6F);
+                cue(active, volley.targetId, entity.getLocation().add(0, LAUNCH_HEIGHT, 0),
+                    Sound.ENTITY_EVOKER_CAST_SPELL, 0.8F, 1.6F);
             } else if (tick >= volley.nextRenderAt) {
                 volley.nextRenderAt = tick + RENDER_INTERVAL;
-                drawVolley(volley, entity, tick);
+                drawVolley(volley, entity, active, tick);
             }
         }
         if (tick >= state.nextWaveAt) {
@@ -142,8 +154,11 @@ final class SeleneaPressureController {
         }
     }
 
-    /** 発射点に収束する明るい赤の小粒の輪と白い光球を一括描画し、発射直前ほど高い音で予告します。 */
-    private void drawVolley(Volley volley, Entity boss, long tick) {
+    /**
+     * 発射点の輪と光球、狙い地点の小輪を描画し、発射直前ほど高い音で予告します。
+     * @param volley 固定した発射予告 @param boss 本体 @param active 生存参加者 @param tick 共通時計
+     */
+    private void drawVolley(Volley volley, Entity boss, List<Player> active, long tick) {
         double progress = Math.clamp((tick - volley.startedAt) / (double) VOLLEY_CHARGE, 0, 1);
         List<Location> ring = new ArrayList<>(192);
         List<Location> orbs = new ArrayList<>(18);
@@ -162,10 +177,23 @@ final class SeleneaPressureController {
         }
         particles.spawnForNearbyViewers(ring, SharedParticleDefinitions.SELENEA_VOLLEY_RING, true);
         particles.spawnForNearbyViewers(orbs, SharedParticleDefinitions.SELENEA_VOLLEY_CHARGE, true);
+        particles.spawnForNearbyViewers(volley.aimRing, SharedParticleDefinitions.SELENEA_VOLLEY_RING, true);
         if (tick >= volley.nextSoundAt) {
             volley.nextSoundAt = tick + 10L;
-            boss.getWorld().playSound(boss.getLocation().add(0, LAUNCH_HEIGHT, 0), Sound.BLOCK_AMETHYST_BLOCK_CHIME,
-                0.5F, (float) (0.8D + progress));
+            cue(active, volley.targetId, boss.getLocation().add(0, LAUNCH_HEIGHT, 0),
+                Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.5F, (float) (0.8D + progress));
+        }
+    }
+
+    /**
+     * 標的には本人の位置で、他の参加者には発射位置から聞こえるように再生します。
+     * @param active 生存参加者 @param targetId 標的 @param source 発射位置
+     * @param sound 音 @param volume 音量 @param pitch 音の高さ
+     */
+    private static void cue(List<Player> active, UUID targetId, Location source, Sound sound, float volume, float pitch) {
+        for (Player player : active) {
+            Location at = player.getUniqueId().equals(targetId) ? player.getLocation() : source;
+            player.playSound(at, sound, SoundCategory.HOSTILE, volume, pitch);
         }
     }
 
@@ -444,13 +472,18 @@ final class SeleneaPressureController {
     private static final class Volley {
         final UUID targetId;
         final Location aim;
+        final List<Location> aimRing;
         final List<Entity> casters;
         final long startedAt;
         long nextRenderAt, nextSoundAt;
         Runnable packWarning;
-        /** @param targetId 対象 @param aim 予告開始時の固定狙い @param casters 発射元最大六体 @param tick 開始時刻 */
-        Volley(UUID targetId, Location aim, List<Entity> casters, long tick) {
-            this.targetId = targetId; this.aim = aim.clone(); this.casters = List.copyOf(casters); startedAt = tick;
+        /**
+         * @param targetId 対象 @param aim 予告開始時の固定狙い @param aimRing 表示専用の床の小輪
+         * @param casters 発射元最大六体 @param tick 開始時刻
+         */
+        Volley(UUID targetId, Location aim, List<Location> aimRing, List<Entity> casters, long tick) {
+            this.targetId = targetId; this.aim = aim.clone(); this.aimRing = List.copyOf(aimRing);
+            this.casters = List.copyOf(casters); startedAt = tick;
             nextRenderAt = tick; nextSoundAt = tick;
         }
     }

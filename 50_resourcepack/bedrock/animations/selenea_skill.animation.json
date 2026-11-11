@@ -97,6 +97,20 @@
             "variable.style == 10 ? 0.1 + 2.5 * variable.arc : 0.4 * variable.breath",
             0
           ]
+        },
+        "gate_flow": {
+          "position": [
+            0,
+            "math.lerp(-2.4, 2.4, variable.pulse)",
+            0
+          ]
+        },
+        "corona": {
+          "scale": [
+            "0.86 + 0.18 * variable.breath",
+            1,
+            "0.86 + 0.18 * variable.breath"
+          ]
         }
       }
     }

@@ -117,6 +117,10 @@ public final class SharedParticleDefinitions {
     /** 月影渡りの出発点と到着点に一度だけ表示する白い光です。 */
     public static final SharedParticleDefinition SELENEA_TELEPORT_BURST =
         new SharedParticleDefinition("selenea_teleport_burst", Particle.END_ROD, 24, 0.35D, 0.8D, 0.35D, 0.02D);
+    /** 解呪成功の反撃窓で、ほつれた頁を示す金色の輪です。 */
+    public static final SharedParticleDefinition SELENEA_EXPOSURE_SPARK =
+        new SharedParticleDefinition("selenea_exposure_spark", Particle.DUST, 2, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(255, 215, 120), 1.0F));
     /** 命中判定と同時に危険面だけへ出す、地形を変更しない爆発演出です。 */
     public static final SharedParticleDefinition SELENEA_ATTACK_BURST =
         new SharedParticleDefinition("selenea_attack_burst", Particle.EXPLOSION, 2, 0, 0, 0, 0);

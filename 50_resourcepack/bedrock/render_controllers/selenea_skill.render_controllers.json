@@ -15,11 +15,13 @@
             "Geometry.bolt",
             "Geometry.warning_edge",
             "Geometry.warning_grimoire",
-            "Geometry.impact_grimoire"
+            "Geometry.impact_grimoire",
+            "Geometry.gate",
+            "Geometry.eclipse"
           ]
         }
       },
-      "geometry": "Array.shapes[math.clamp(query.property('astralrecord:style'), 0, 10)]",
+      "geometry": "Array.shapes[math.clamp(query.property('astralrecord:style'), 0, 12)]",
       "materials": [
         {
           "*": "Material.default"
