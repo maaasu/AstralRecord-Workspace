@@ -19,6 +19,7 @@ public class LoginModel(WebAuthApiClient webAuthApiClient, TimeProvider clock) :
     [BindProperty] public string? LoginId { get; set; }
     [BindProperty] public string? Password { get; set; }
     [BindProperty] public bool TrustBrowser { get; set; }
+    [BindProperty(SupportsGet = true)] public string? ReturnUrl { get; set; }
     public bool PasswordMode { get; private set; }
 
     public void OnGet() { }
@@ -58,7 +59,7 @@ public class LoginModel(WebAuthApiClient webAuthApiClient, TimeProvider clock) :
             await WebSession.SignInAsync(HttpContext, session, code ? session.CodeAuthenticatedAt : null);
             if (code && TrustBrowser && !string.IsNullOrWhiteSpace(session.TrustedBrowserToken))
                 WebSession.SetTrustedBrowserCookie(HttpContext, session.TrustedBrowserToken, clock);
-            return RedirectToPage("/MyPage");
+            return Url.IsLocalUrl(ReturnUrl) ? LocalRedirect(ReturnUrl) : RedirectToPage("/MyPage");
         }
         return Page();
     }

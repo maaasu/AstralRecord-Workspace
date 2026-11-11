@@ -20,7 +20,8 @@
                     </div>
 
                     <p class="ar-login-ownership" id="login-ownership">Webログインには、ご自身のMinecraftアカウントのみを使用してください。自分以外のMinecraftアカウントでログインした場合は、利用制限やBANなどの処分の対象となります。<a asp-page="/Terms" asp-fragment="web-login-rules">利用規約を確認する</a></p>
-                    <form method="post" aria-describedby="login-guide login-ownership">
+                    <form method="post" asp-page="/Login" aria-describedby="login-guide login-ownership">
+                        <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
                         <div class="mb-3">
                             <label asp-for="LoginCode" class="form-label">ログインコード</label>
                             <input asp-for="LoginCode" class="form-control form-control-lg text-uppercase"
@@ -40,6 +41,7 @@
                         <summary class="h5">ログインIDとパスワードを使う</summary>
                         <p>マイページで有効にした方が利用できます。</p>
                         <form method="post" asp-page-handler="Password">
+                            <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
                             <div class="mb-3">
                                 <label asp-for="LoginId" class="form-label">ログインID</label>
                                 <input asp-for="LoginId" class="form-control" autocomplete="username" maxlength="64" required />
