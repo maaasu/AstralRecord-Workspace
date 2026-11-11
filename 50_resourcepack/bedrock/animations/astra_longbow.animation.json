@@ -16,6 +16,9 @@
             0
           ],
           "scale": 0.8516
+        },
+        "arrow": {
+          "scale": "variable.astral_bow_draw > 0.0 ? 1.0 : 0.0"
         }
       }
     },
@@ -34,6 +37,9 @@
             0
           ],
           "scale": 1.25
+        },
+        "arrow": {
+          "scale": "variable.astral_bow_draw > 0.0 ? 1.0 : 0.0"
         }
       }
     },
@@ -75,11 +81,11 @@
           "rotation": [
             0,
             0,
-            "math.atan(0.048491379 * math.sin(variable.astral_bow_swing * 360.0))"
+            "1 * math.atan((0.0546780073 * math.sin(variable.astral_bow_swing * 360.0)))"
           ],
           "scale": [
             1,
-            "math.sqrt(1.0 + (0.048491379 * math.sin(variable.astral_bow_swing * 360.0)) * (0.048491379 * math.sin(variable.astral_bow_swing * 360.0)))",
+            "math.sqrt(1.0 + (0.0546780073 * math.sin(variable.astral_bow_swing * 360.0)) * (0.0546780073 * math.sin(variable.astral_bow_swing * 360.0)))",
             1
           ]
         },
@@ -87,11 +93,11 @@
           "rotation": [
             0,
             0,
-            "-math.atan(0.048491379 * math.sin(variable.astral_bow_swing * 360.0))"
+            "-1 * math.atan((0.0435624395 * math.sin(variable.astral_bow_swing * 360.0)))"
           ],
           "scale": [
             1,
-            "math.sqrt(1.0 + (0.048491379 * math.sin(variable.astral_bow_swing * 360.0)) * (0.048491379 * math.sin(variable.astral_bow_swing * 360.0)))",
+            "math.sqrt(1.0 + (0.0435624395 * math.sin(variable.astral_bow_swing * 360.0)) * (0.0435624395 * math.sin(variable.astral_bow_swing * 360.0)))",
             1
           ]
         }
@@ -100,27 +106,48 @@
     "animation.astralrecord.astra_longbow.draw": {
       "loop": true,
       "bones": {
+        "arrow": {
+          "position": [
+            "-4.18 * variable.astral_bow_draw",
+            0,
+            0
+          ]
+        },
+        "limb_upper": {
+          "rotation": [
+            0,
+            0,
+            "-7 * variable.astral_bow_draw"
+          ]
+        },
         "cord_upper": {
           "rotation": [
             0,
             0,
-            "math.atan(0.35560345 * variable.astral_bow_draw)"
+            "temp.theta = 7 * variable.astral_bow_draw; temp.sn = math.sin(temp.theta); temp.cs = math.cos(temp.theta); temp.dx = 5.2 + 4.18 * variable.astral_bow_draw - 5.2 * temp.cs - 8.12 * temp.sn; temp.dy = 0.10999999999999988 - 5.2 * temp.sn + 8.12 * temp.cs; return 1 * (temp.theta + math.atan(temp.dx / temp.dy));"
           ],
           "scale": [
             1,
-            "math.sqrt(1.0 + (0.35560345 * variable.astral_bow_draw) * (0.35560345 * variable.astral_bow_draw))",
+            "temp.theta = 7 * variable.astral_bow_draw; temp.sn = math.sin(temp.theta); temp.cs = math.cos(temp.theta); temp.dx = 5.2 + 4.18 * variable.astral_bow_draw - 5.2 * temp.cs - 8.12 * temp.sn; temp.dy = 0.10999999999999988 - 5.2 * temp.sn + 8.12 * temp.cs; return math.sqrt(temp.dx * temp.dx + temp.dy * temp.dy) / 8.229999999999999;",
             1
+          ]
+        },
+        "limb_lower": {
+          "rotation": [
+            0,
+            0,
+            "7 * variable.astral_bow_draw"
           ]
         },
         "cord_lower": {
           "rotation": [
             0,
             0,
-            "-math.atan(0.35560345 * variable.astral_bow_draw)"
+            "temp.theta = 7 * variable.astral_bow_draw; temp.sn = math.sin(temp.theta); temp.cs = math.cos(temp.theta); temp.dx = 5.2 + 4.18 * variable.astral_bow_draw - 5.2 * temp.cs - 8.12 * temp.sn; temp.dy = 2.21 - 5.2 * temp.sn + 8.12 * temp.cs; return -1 * (temp.theta + math.atan(temp.dx / temp.dy));"
           ],
           "scale": [
             1,
-            "math.sqrt(1.0 + (0.35560345 * variable.astral_bow_draw) * (0.35560345 * variable.astral_bow_draw))",
+            "temp.theta = 7 * variable.astral_bow_draw; temp.sn = math.sin(temp.theta); temp.cs = math.cos(temp.theta); temp.dx = 5.2 + 4.18 * variable.astral_bow_draw - 5.2 * temp.cs - 8.12 * temp.sn; temp.dy = 2.21 - 5.2 * temp.sn + 8.12 * temp.cs; return math.sqrt(temp.dx * temp.dx + temp.dy * temp.dy) / 10.33;",
             1
           ]
         }

@@ -382,7 +382,8 @@
         8,
         4,
         8
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "lapis_wand",
@@ -537,7 +538,8 @@
         8,
         4.5,
         10.75
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "fang_shield",
@@ -548,7 +550,8 @@
         8,
         4.5,
         10.75
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "venom_quiver",
@@ -559,7 +562,8 @@
         8,
         4.5,
         11.25
-      ]
+      ],
+      "java_gui_sprite": true
     },
     {
       "id": "lumina_shortbow",

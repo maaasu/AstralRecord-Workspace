@@ -1,8 +1,8 @@
 {
   "credit": "Made with Blockbench",
   "texture_size": [
-    64,
-    64
+    512,
+    512
   ],
   "textures": {
     "particle": "astralrecord:item/custom/lumina_wand",
@@ -10,2967 +10,7980 @@
   },
   "elements": [
     {
-      "name": "Pale ash wand core",
+      "name": "Continuous pale ash heart",
       "from": [
-        7.5,
-        0.9,
-        7.5
+        7.685,
+        0.65,
+        7.685
       ],
       "to": [
-        8.5,
-        10.7,
-        8.5
+        8.315,
+        10.43,
+        8.315
       ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.685,
+          0.65,
+          7.685
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            2.75,
-            2.75,
-            4.75,
-            4.75
+            1.4375,
+            0.0625,
+            1.6875,
+            0.8125
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            2.75,
-            2.75,
-            4.75,
-            4.75
+            1.4375,
+            0.0625,
+            1.6875,
+            0.8125
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            2.75,
-            2.75,
-            4.75,
-            4.75
+            1.4375,
+            0.0625,
+            1.6875,
+            0.8125
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            2.75,
-            2.75,
-            4.75,
-            4.75
+            1.4375,
+            0.0625,
+            1.6875,
+            0.8125
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
+            1.4375,
+            0.0625,
+            1.6875,
+            0.8125
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
+            1.4375,
+            0.0625,
+            1.6875,
+            0.8125
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Unrotated mint leather grip",
+      "name": "Turned pale ash shaft course 0 face 0",
       "from": [
-        7.25,
-        1.6,
-        7.25
+        7.73,
+        9.63,
+        7.586
       ],
       "to": [
-        8.75,
-        5.65,
-        8.75
+        8.27,
+        18.62006,
+        7.587
       ],
+      "rotation": {
+        "x": 179.79924,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.73,
+          9.63,
+          7.586
+        ]
+      },
       "faces": {
-        "north": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
+            4.875,
+            0.0625,
+            5.25,
+            2.0625
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Iron grip ferrule",
+      "name": "Turned pale ash shaft course 0 face 1",
       "from": [
-        7.08,
-        1.25,
-        7.08
+        8.27,
+        9.63,
+        7.586
       ],
       "to": [
-        8.92,
-        1.8,
-        8.92
+        8.51459,
+        18.62011,
+        7.587
       ],
+      "rotation": {
+        "x": 179.71718,
+        "y": -42.61406,
+        "z": 0,
+        "origin": [
+          8.27,
+          9.63,
+          7.586
+        ]
+      },
       "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            5.34375,
+            0.0625,
+            5.71875,
+            2.0625
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Iron grip ferrule",
+      "name": "Turned pale ash shaft course 0 face 2",
       "from": [
-        7.08,
-        5.35,
-        7.08
+        8.45,
+        9.63,
+        7.7516
       ],
       "to": [
-        8.92,
-        5.9,
-        8.92
+        8.9468,
+        18.62011,
+        7.7526
       ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": 179.7132,
+        "origin": [
+          8.45,
+          9.63,
+          7.7516
+        ]
+      },
       "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            5.8125,
+            0.0625,
+            6.1875,
+            2.0625
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Squared palm end",
+      "name": "Turned pale ash shaft course 0 face 3",
       "from": [
-        6.95,
-        0.6,
-        7
+        8.45,
+        9.63,
+        8.2484
       ],
       "to": [
-        9.05,
-        1.35,
-        9
+        8.69459,
+        18.62011,
+        8.2494
       ],
+      "rotation": {
+        "x": -0.26425,
+        "y": -42.61406,
+        "z": 180,
+        "origin": [
+          8.45,
+          9.63,
+          8.2484
+        ]
+      },
       "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            6.28125,
+            0.0625,
+            6.65625,
+            2.0625
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Iron head neck",
+      "name": "Turned pale ash shaft course 0 face 4",
       "from": [
-        7.25,
-        9.7,
-        7.25
+        8.27,
+        9.63,
+        8.414
       ],
       "to": [
-        8.75,
-        11.4,
-        8.75
+        8.81,
+        18.62006,
+        8.415
       ],
+      "rotation": {
+        "x": -0.20076,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.27,
+          9.63,
+          8.414
+        ]
+      },
       "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
+            4.875,
+            0.0625,
             5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            2.0625
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Broad hoe inspired transverse head",
+      "name": "Turned pale ash shaft course 0 face 5",
       "from": [
-        5.72,
-        11.05,
-        7.35
+        7.73,
+        9.63,
+        8.414
       ],
       "to": [
-        10.88,
-        11.49,
-        8.65
+        7.97459,
+        18.62011,
+        8.415
       ],
+      "rotation": {
+        "x": -0.28282,
+        "y": 42.61406,
+        "z": 180,
+        "origin": [
+          7.73,
+          9.63,
+          8.414
+        ]
+      },
       "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            5.34375,
+            0.0625,
+            5.71875,
+            2.0625
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Short square left tine",
+      "name": "Turned pale ash shaft course 0 face 6",
       "from": [
-        5.79,
-        11.42,
-        7.35
+        7.55,
+        9.63,
+        8.2484
       ],
       "to": [
-        6.55,
-        13.32,
-        8.65
+        8.0468,
+        18.62011,
+        8.2494
       ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -179.7132,
+        "origin": [
+          7.55,
+          9.63,
+          8.2484
+        ]
+      },
       "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            5.8125,
+            0.0625,
+            6.1875,
+            2.0625
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Raised square right tine",
+      "name": "Turned pale ash shaft course 0 face 7",
       "from": [
-        10.05,
-        11.42,
-        7.35
+        7.55,
+        9.63,
+        7.7516
       ],
       "to": [
-        10.81,
-        13.94,
-        8.65
+        7.79459,
+        18.62011,
+        7.7526
       ],
+      "rotation": {
+        "x": 179.73575,
+        "y": 42.61406,
+        "z": 0,
+        "origin": [
+          7.55,
+          9.63,
+          7.7516
+        ]
+      },
       "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
+            6.28125,
+            0.0625,
+            6.65625,
+            2.0625
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Solid pale focus block",
+      "name": "Turned pale ash shaft course 1 face 0",
       "from": [
-        7.54,
-        11.75,
-        7.35
-      ],
-      "to": [
-        9.06,
-        13.5,
-        8.65
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Focus upper step",
-      "from": [
-        7.7,
-        13.5,
-        7.5
-      ],
-      "to": [
-        8.9,
-        14.25,
-        8.5
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Mint head inset True",
-      "from": [
-        7.8,
-        12.1,
-        7
-      ],
-      "to": [
-        8.8,
-        13.1,
-        7.42
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Pale neck craft mark True",
-      "from": [
-        7.65,
-        10.1,
-        7.04
-      ],
-      "to": [
-        8.35,
-        10.85,
-        7.34
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Mint head inset False",
-      "from": [
-        7.8,
-        12.1,
-        8.58
-      ],
-      "to": [
-        8.8,
-        13.1,
-        9
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Pale neck craft mark False",
-      "from": [
-        7.65,
-        10.1,
-        8.66
-      ],
-      "to": [
-        8.35,
-        10.85,
-        8.96
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Pale ash neck north edge",
-      "from": [
-        7.41,
-        6.09,
-        7.37
-      ],
-      "to": [
-        7.65,
-        9.43,
-        7.62
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            2.75,
-            2.75,
-            4.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            2.75,
-            2.75,
-            4.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            2.75,
-            2.75,
-            4.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            2.75,
-            2.75,
-            4.75,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Mint leather lower stitch",
-      "from": [
-        7.16,
-        2.57,
-        7.16
-      ],
-      "to": [
-        8.84,
-        2.84,
-        8.84
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Mint leather upper stitch",
-      "from": [
-        7.16,
-        4.78,
-        7.16
-      ],
-      "to": [
-        8.84,
-        5.05,
-        8.84
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            12.75,
-            0.25,
-            14.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            0.25,
-            2.75,
-            2.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Silver left tine face front",
-      "from": [
-        5.48,
-        12.13,
-        6.92
-      ],
-      "to": [
-        6.03,
-        13.42,
-        7.23
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Silver right tine face front",
-      "from": [
-        10.57,
-        12.13,
-        6.92
-      ],
-      "to": [
-        11.12,
-        14.12,
-        7.23
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Silver left tine face rear",
-      "from": [
-        5.48,
-        12.13,
-        8.77
-      ],
-      "to": [
-        6.03,
-        13.42,
-        9.08
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Silver right tine face rear",
-      "from": [
-        10.57,
-        12.13,
-        8.77
-      ],
-      "to": [
-        11.12,
-        14.12,
-        9.08
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Ivory focus front side plane",
-      "from": [
-        7.3,
-        11.86,
-        6.97
-      ],
-      "to": [
-        7.7,
-        13.47,
-        7.39
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Ivory focus rear side plane",
-      "from": [
-        8.9,
-        11.86,
-        8.61
-      ],
-      "to": [
-        9.3,
-        13.47,
-        9.03
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Mint focus top facet front",
-      "from": [
-        7.75,
-        13.79,
-        7.15
-      ],
-      "to": [
-        8.85,
-        14.36,
-        7.52
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Mint focus top facet rear",
-      "from": [
-        7.75,
-        13.79,
-        8.48
-      ],
-      "to": [
-        8.85,
-        14.36,
-        8.85
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Silver transverse head front rim",
-      "from": [
-        6.52,
-        11.03,
-        7.06
-      ],
-      "to": [
-        10.19,
-        11.36,
-        7.39
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Silver transverse head rear rim",
-      "from": [
-        6.52,
-        11.03,
-        8.61
-      ],
-      "to": [
-        10.19,
-        11.36,
-        8.94
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Mint neck front tiny signature",
-      "from": [
-        7.69,
-        10.41,
-        6.78
-      ],
-      "to": [
-        8.31,
-        10.92,
-        7.06
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Left iron support rising step",
-      "from": [
-        6.1,
-        11.4,
-        7.28
-      ],
-      "to": [
-        6.75,
-        12.49,
-        8.72
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Left iron support pale tip",
-      "from": [
-        5.77,
-        13.29,
-        7.49
-      ],
-      "to": [
-        6.39,
-        13.91,
-        8.51
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Right iron support rising step",
-      "from": [
-        9.64,
-        11.48,
-        7.28
-      ],
-      "to": [
-        10.33,
-        12.73,
-        8.72
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Right iron support pale tip",
-      "from": [
-        10.18,
-        13.87,
-        7.48
-      ],
-      "to": [
-        10.73,
-        14.56,
-        8.52
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Lumina open head lower left bridge",
-      "from": [
-        6.5,
-        11.13,
-        7.28
-      ],
-      "to": [
-        7.38,
-        11.51,
-        8.72
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Lumina open head lower right bridge",
-      "from": [
-        9.12,
-        11.13,
-        7.28
-      ],
-      "to": [
-        10.07,
-        11.51,
-        8.72
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Lumina ivory front core bevel",
-      "from": [
-        7.56,
-        12.13,
-        6.93
-      ],
-      "to": [
-        8.88,
-        13.33,
-        7.38
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Lumina ivory rear core bevel",
-      "from": [
-        7.56,
-        12.13,
-        8.62
-      ],
-      "to": [
-        8.88,
-        13.33,
-        9.07
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Lumina mint front inset raised",
-      "from": [
-        7.81,
-        12.45,
-        6.69
-      ],
-      "to": [
-        8.63,
-        13.18,
-        7.03
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Lumina mint rear inset raised",
-      "from": [
-        7.81,
-        12.45,
-        8.97
-      ],
-      "to": [
-        8.63,
-        13.18,
-        9.31
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            10.25,
-            0.25,
-            12.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            7.75,
-            0.25,
-            9.75,
-            2.25
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Lumina light crown lower step",
-      "from": [
-        7.62,
-        13.45,
-        7.45
-      ],
-      "to": [
-        8.98,
-        14.15,
-        8.55
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "south": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        }
-      }
-    },
-    {
-      "name": "Lumina light crown narrow top",
-      "from": [
-        8,
-        14.11,
+        7.73,
+        10.43,
         7.64
       ],
       "to": [
-        8.6,
-        14.72,
+        8.27,
+        11.23182,
+        7.641
+      ],
+      "rotation": {
+        "x": -176.13839,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.73,
+          10.43,
+          7.64
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            6.75,
+            0.0625,
+            7.125,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Turned pale ash shaft course 1 face 1",
+      "from": [
+        8.22403,
+        10.43,
+        7.63485
+      ],
+      "to": [
+        8.4686,
+        11.23304,
+        7.63585
+      ],
+      "rotation": {
+        "x": -175.0096,
+        "y": -43.2643,
+        "z": 0,
+        "origin": [
+          8.22403,
+          10.43,
+          7.63485
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            7.21875,
+            0.0625,
+            7.59375,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Turned pale ash shaft course 1 face 2",
+      "from": [
+        8.3825,
+        10.43,
+        7.7516
+      ],
+      "to": [
+        8.8793,
+        11.23284,
+        7.7526
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -175.17709,
+        "origin": [
+          8.3825,
+          10.43,
+          7.7516
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            7.6875,
+            0.0625,
+            8.0625,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Turned pale ash shaft course 1 face 3",
+      "from": [
+        8.40212,
+        10.43,
+        8.19753
+      ],
+      "to": [
+        8.6467,
+        11.23304,
+        8.19853
+      ],
+      "rotation": {
+        "x": 4.79304,
+        "y": -43.2643,
+        "z": 180,
+        "origin": [
+          8.40212,
+          10.43,
+          8.19753
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.15625,
+            0.0625,
+            8.53125,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Turned pale ash shaft course 1 face 4",
+      "from": [
+        8.27,
+        10.43,
         8.36
       ],
+      "to": [
+        8.81,
+        11.23182,
+        8.361
+      ],
+      "rotation": {
+        "x": 3.86161,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.27,
+          10.43,
+          8.36
+        ]
+      },
       "faces": {
-        "north": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            5.25,
-            2.75,
-            7.25,
-            4.75
+            6.75,
+            0.0625,
+            7.125,
+            0.4375
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Lumina left underside iron wedge",
+      "name": "Turned pale ash shaft course 1 face 5",
       "from": [
-        5.83,
-        10.69,
-        7.46
+        7.77597,
+        10.43,
+        8.36515
       ],
       "to": [
-        6.69,
-        11.11,
-        8.54
+        8.02055,
+        11.23304,
+        8.36615
       ],
+      "rotation": {
+        "x": 4.9904,
+        "y": 43.2643,
+        "z": 180,
+        "origin": [
+          7.77597,
+          10.43,
+          8.36515
+        ]
+      },
       "faces": {
-        "north": {
-          "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "east": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
         "south": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "west": {
-          "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "up": {
-          "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
-          ],
-          "texture": "#surface"
-        },
-        "down": {
-          "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            7.21875,
+            0.0625,
+            7.59375,
+            0.4375
           ],
           "texture": "#surface"
         }
       }
     },
     {
-      "name": "Lumina right underside iron wedge",
+      "name": "Turned pale ash shaft course 1 face 6",
       "from": [
-        9.94,
-        10.69,
-        7.46
+        7.6175,
+        10.43,
+        8.2484
       ],
       "to": [
-        10.8,
-        11.11,
-        8.54
+        8.1143,
+        11.23284,
+        8.2494
       ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": 175.17709,
+        "origin": [
+          7.6175,
+          10.43,
+          8.2484
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            7.6875,
+            0.0625,
+            8.0625,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Turned pale ash shaft course 1 face 7",
+      "from": [
+        7.59788,
+        10.43,
+        7.80247
+      ],
+      "to": [
+        7.84245,
+        11.23304,
+        7.80347
+      ],
+      "rotation": {
+        "x": -175.20696,
+        "y": 43.2643,
+        "z": 0,
+        "origin": [
+          7.59788,
+          10.43,
+          7.80247
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.15625,
+            0.0625,
+            8.53125,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Turned pale ash shaft closed end 0",
+      "from": [
+        7.595,
+        0.64,
+        7.6175
+      ],
+      "to": [
+        8.405,
+        1.405,
+        7.6185
+      ],
+      "rotation": {
+        "x": 90,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.595,
+          0.64,
+          7.6175
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.625,
+            0.0625,
+            9,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Turned pale ash shaft closed end 2",
+      "from": [
+        7.6175,
+        10.43,
+        7.64
+      ],
+      "to": [
+        8.3375,
+        11.195,
+        7.641
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -90,
+        "origin": [
+          7.6175,
+          10.43,
+          7.64
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.625,
+            0.0625,
+            9,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Unbroken load bearing grip core",
+      "from": [
+        7.5125,
+        1.6,
+        7.55
+      ],
+      "to": [
+        8.4875,
+        5.56,
+        8.45
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.5125,
+          1.6,
+          7.55
+        ]
+      },
       "faces": {
         "north": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
           ],
           "texture": "#surface"
         },
         "east": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
           ],
           "texture": "#surface"
         },
         "south": {
           "uv": [
-            0.25,
-            0.25,
-            2.25,
-            2.25
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
           ],
           "texture": "#surface"
         },
         "west": {
           "uv": [
-            5.25,
-            0.25,
-            7.25,
-            2.25
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
           ],
           "texture": "#surface"
         },
         "up": {
           "uv": [
-            2.75,
-            0.25,
-            4.75,
-            2.25
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
           ],
           "texture": "#surface"
         },
         "down": {
           "uv": [
-            2.75,
-            0.25,
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint leather grip course 0 face 0",
+      "from": [
+        7.61,
+        5.56,
+        7.4
+      ],
+      "to": [
+        8.39,
+        9.52,
+        7.401
+      ],
+      "rotation": {
+        "x": 180,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.61,
+          5.56,
+          7.4
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint leather grip course 0 face 1",
+      "from": [
+        8.39,
+        5.56,
+        7.4
+      ],
+      "to": [
+        8.74384,
+        9.52,
+        7.401
+      ],
+      "rotation": {
+        "x": 180,
+        "y": -42.70939,
+        "z": 0,
+        "origin": [
+          8.39,
+          5.56,
+          7.4
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint leather grip course 0 face 2",
+      "from": [
+        8.65,
+        5.56,
+        7.64
+      ],
+      "to": [
+        9.37,
+        9.52,
+        7.641
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -180,
+        "origin": [
+          8.65,
+          5.56,
+          7.64
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint leather grip course 0 face 3",
+      "from": [
+        8.65,
+        5.56,
+        8.36
+      ],
+      "to": [
+        9.00384,
+        9.52,
+        8.361
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -42.70939,
+        "z": 180,
+        "origin": [
+          8.65,
+          5.56,
+          8.36
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint leather grip course 0 face 4",
+      "from": [
+        8.39,
+        5.56,
+        8.6
+      ],
+      "to": [
+        9.17,
+        9.52,
+        8.601
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.39,
+          5.56,
+          8.6
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint leather grip course 0 face 5",
+      "from": [
+        7.61,
+        5.56,
+        8.6
+      ],
+      "to": [
+        7.96384,
+        9.52,
+        8.601
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 42.70939,
+        "z": 180,
+        "origin": [
+          7.61,
+          5.56,
+          8.6
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint leather grip course 0 face 6",
+      "from": [
+        7.35,
+        5.56,
+        8.36
+      ],
+      "to": [
+        8.07,
+        9.52,
+        8.361
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -180,
+        "origin": [
+          7.35,
+          5.56,
+          8.36
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint leather grip course 0 face 7",
+      "from": [
+        7.35,
+        5.56,
+        7.64
+      ],
+      "to": [
+        7.70384,
+        9.52,
+        7.641
+      ],
+      "rotation": {
+        "x": -180,
+        "y": 42.70939,
+        "z": 0,
+        "origin": [
+          7.35,
+          5.56,
+          7.64
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint leather grip closed end 0",
+      "from": [
+        7.35,
+        1.6,
+        7.4
+      ],
+      "to": [
+        8.65,
+        2.8,
+        7.401
+      ],
+      "rotation": {
+        "x": 90,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.35,
+          1.6,
+          7.4
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            9.09375,
+            0.0625,
+            9.6875,
+            0.59375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint leather grip closed end 1",
+      "from": [
+        7.35,
+        5.56,
+        7.4
+      ],
+      "to": [
+        8.55,
+        6.86,
+        7.401
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -90,
+        "origin": [
+          7.35,
+          5.56,
+          7.4
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            9.09375,
+            0.0625,
+            9.6875,
+            0.59375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Overlapping leather wrap 0 -1",
+      "from": [
+        7.93,
+        1.42097,
+        7.325
+      ],
+      "to": [
+        8.07,
+        2.23903,
+        7.425
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": -80.14619,
+        "origin": [
+          8,
+          1.83,
+          7.375
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Overlapping leather wrap 0 1",
+      "from": [
+        7.93,
+        1.42097,
+        8.575
+      ],
+      "to": [
+        8.07,
+        2.23903,
+        8.675
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": -80.14619,
+        "origin": [
+          8,
+          1.83,
+          8.625
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Leather side return 0",
+      "from": [
+        7.325,
+        1.71,
+        7.64
+      ],
+      "to": [
+        7.42,
+        1.89,
+        8.36
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.325,
+          1.71,
+          7.64
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Leather opposite return 0",
+      "from": [
+        8.58,
+        1.86,
+        7.64
+      ],
+      "to": [
+        8.675,
+        2.04,
+        8.36
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.58,
+          1.86,
+          7.64
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Overlapping leather wrap 1 -1",
+      "from": [
+        7.93,
+        2.00597,
+        7.325
+      ],
+      "to": [
+        8.07,
+        2.82403,
+        7.425
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": -80.14619,
+        "origin": [
+          8,
+          2.415,
+          7.375
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Overlapping leather wrap 1 1",
+      "from": [
+        7.93,
+        2.00597,
+        8.575
+      ],
+      "to": [
+        8.07,
+        2.82403,
+        8.675
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": -80.14619,
+        "origin": [
+          8,
+          2.415,
+          8.625
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Leather side return 1",
+      "from": [
+        7.325,
+        2.295,
+        7.64
+      ],
+      "to": [
+        7.42,
+        2.475,
+        8.36
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.325,
+          2.295,
+          7.64
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Leather opposite return 1",
+      "from": [
+        8.58,
+        2.445,
+        7.64
+      ],
+      "to": [
+        8.675,
+        2.625,
+        8.36
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.58,
+          2.445,
+          7.64
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Overlapping leather wrap 2 -1",
+      "from": [
+        7.93,
+        2.59097,
+        7.325
+      ],
+      "to": [
+        8.07,
+        3.40903,
+        7.425
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": -80.14619,
+        "origin": [
+          8,
+          3,
+          7.375
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Overlapping leather wrap 2 1",
+      "from": [
+        7.93,
+        2.59097,
+        8.575
+      ],
+      "to": [
+        8.07,
+        3.40903,
+        8.675
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": -80.14619,
+        "origin": [
+          8,
+          3,
+          8.625
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Leather side return 2",
+      "from": [
+        7.325,
+        2.88,
+        7.64
+      ],
+      "to": [
+        7.42,
+        3.06,
+        8.36
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.325,
+          2.88,
+          7.64
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Leather opposite return 2",
+      "from": [
+        8.58,
+        3.03,
+        7.64
+      ],
+      "to": [
+        8.675,
+        3.21,
+        8.36
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.58,
+          3.03,
+          7.64
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Overlapping leather wrap 3 -1",
+      "from": [
+        7.93,
+        3.17597,
+        7.325
+      ],
+      "to": [
+        8.07,
+        3.99403,
+        7.425
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": -80.14619,
+        "origin": [
+          8,
+          3.585,
+          7.375
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Overlapping leather wrap 3 1",
+      "from": [
+        7.93,
+        3.17597,
+        8.575
+      ],
+      "to": [
+        8.07,
+        3.99403,
+        8.675
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": -80.14619,
+        "origin": [
+          8,
+          3.585,
+          8.625
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Leather side return 3",
+      "from": [
+        7.325,
+        3.465,
+        7.64
+      ],
+      "to": [
+        7.42,
+        3.645,
+        8.36
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.325,
+          3.465,
+          7.64
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Leather opposite return 3",
+      "from": [
+        8.58,
+        3.615,
+        7.64
+      ],
+      "to": [
+        8.675,
+        3.795,
+        8.36
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.58,
+          3.615,
+          7.64
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Overlapping leather wrap 4 -1",
+      "from": [
+        7.93,
+        3.76097,
+        7.325
+      ],
+      "to": [
+        8.07,
+        4.57903,
+        7.425
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": -80.14619,
+        "origin": [
+          8,
+          4.17,
+          7.375
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Overlapping leather wrap 4 1",
+      "from": [
+        7.93,
+        3.76097,
+        8.575
+      ],
+      "to": [
+        8.07,
+        4.57903,
+        8.675
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": -80.14619,
+        "origin": [
+          8,
+          4.17,
+          8.625
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Leather side return 4",
+      "from": [
+        7.325,
+        4.05,
+        7.64
+      ],
+      "to": [
+        7.42,
+        4.23,
+        8.36
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.325,
+          4.05,
+          7.64
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Leather opposite return 4",
+      "from": [
+        8.58,
+        4.2,
+        7.64
+      ],
+      "to": [
+        8.675,
+        4.38,
+        8.36
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.58,
+          4.2,
+          7.64
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Overlapping leather wrap 5 -1",
+      "from": [
+        7.93,
+        4.34597,
+        7.325
+      ],
+      "to": [
+        8.07,
+        5.16403,
+        7.425
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": -80.14619,
+        "origin": [
+          8,
+          4.755,
+          7.375
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Overlapping leather wrap 5 1",
+      "from": [
+        7.93,
+        4.34597,
+        8.575
+      ],
+      "to": [
+        8.07,
+        5.16403,
+        8.675
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": -80.14619,
+        "origin": [
+          8,
+          4.755,
+          8.625
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Leather side return 5",
+      "from": [
+        7.325,
+        4.635,
+        7.64
+      ],
+      "to": [
+        7.42,
+        4.815,
+        8.36
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.325,
+          4.635,
+          7.64
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.8125,
+            0.0625,
+            3.0625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Leather opposite return 5",
+      "from": [
+        8.58,
+        4.785,
+        7.64
+      ],
+      "to": [
+        8.675,
+        4.965,
+        8.36
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8.58,
+          4.785,
+          7.64
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.46875,
+            0.0625,
+            2.71875,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip lower silver ferrule course 0 face 0",
+      "from": [
+        7.538,
+        1.67,
+        7.28
+      ],
+      "to": [
+        8.462,
+        1.91,
+        7.281
+      ],
+      "rotation": {
+        "x": 180,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.538,
+          1.67,
+          7.28
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip lower silver ferrule course 0 face 1",
+      "from": [
+        8.462,
+        1.67,
+        7.28
+      ],
+      "to": [
+        8.88367,
+        1.91,
+        7.281
+      ],
+      "rotation": {
+        "x": 180,
+        "y": -43.07804,
+        "z": 0,
+        "origin": [
+          8.462,
+          1.67,
+          7.28
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip lower silver ferrule course 0 face 2",
+      "from": [
+        8.77,
+        1.67,
+        7.568
+      ],
+      "to": [
+        9.634,
+        1.91,
+        7.569
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -180,
+        "origin": [
+          8.77,
+          1.67,
+          7.568
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip lower silver ferrule course 0 face 3",
+      "from": [
+        8.77,
+        1.67,
+        8.432
+      ],
+      "to": [
+        9.19167,
+        1.91,
+        8.433
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -43.07804,
+        "z": 180,
+        "origin": [
+          8.77,
+          1.67,
+          8.432
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip lower silver ferrule course 0 face 4",
+      "from": [
+        8.462,
+        1.67,
+        8.72
+      ],
+      "to": [
+        9.386,
+        1.91,
+        8.721
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.462,
+          1.67,
+          8.72
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip lower silver ferrule course 0 face 5",
+      "from": [
+        7.538,
+        1.67,
+        8.72
+      ],
+      "to": [
+        7.95967,
+        1.91,
+        8.721
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 43.07804,
+        "z": 180,
+        "origin": [
+          7.538,
+          1.67,
+          8.72
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1.09375,
+            0.0625,
+            1.34375,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip lower silver ferrule course 0 face 6",
+      "from": [
+        7.23,
+        1.67,
+        8.432
+      ],
+      "to": [
+        8.094,
+        1.91,
+        8.433
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -180,
+        "origin": [
+          7.23,
+          1.67,
+          8.432
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip lower silver ferrule course 0 face 7",
+      "from": [
+        7.23,
+        1.67,
+        7.568
+      ],
+      "to": [
+        7.65167,
+        1.91,
+        7.569
+      ],
+      "rotation": {
+        "x": -180,
+        "y": 43.07804,
+        "z": 0,
+        "origin": [
+          7.23,
+          1.67,
+          7.568
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip lower silver ferrule closed end 0",
+      "from": [
+        7.23,
+        1.43,
+        7.28
+      ],
+      "to": [
+        8.77,
+        2.87,
+        7.281
+      ],
+      "rotation": {
+        "x": 90,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.23,
+          1.43,
+          7.28
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.625,
+            0.0625,
+            9,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip lower silver ferrule closed end 1",
+      "from": [
+        7.23,
+        1.67,
+        7.28
+      ],
+      "to": [
+        8.67,
+        3.21,
+        7.281
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -90,
+        "origin": [
+          7.23,
+          1.67,
+          7.28
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.625,
+            0.0625,
+            9,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip upper silver ferrule course 0 face 0",
+      "from": [
+        7.538,
+        5.74,
+        7.28
+      ],
+      "to": [
+        8.462,
+        5.99,
+        7.281
+      ],
+      "rotation": {
+        "x": 180,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.538,
+          5.74,
+          7.28
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip upper silver ferrule course 0 face 1",
+      "from": [
+        8.462,
+        5.74,
+        7.28
+      ],
+      "to": [
+        8.88367,
+        5.99,
+        7.281
+      ],
+      "rotation": {
+        "x": 180,
+        "y": -43.07804,
+        "z": 0,
+        "origin": [
+          8.462,
+          5.74,
+          7.28
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip upper silver ferrule course 0 face 2",
+      "from": [
+        8.77,
+        5.74,
+        7.568
+      ],
+      "to": [
+        9.634,
+        5.99,
+        7.569
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -180,
+        "origin": [
+          8.77,
+          5.74,
+          7.568
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip upper silver ferrule course 0 face 3",
+      "from": [
+        8.77,
+        5.74,
+        8.432
+      ],
+      "to": [
+        9.19167,
+        5.99,
+        8.433
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -43.07804,
+        "z": 180,
+        "origin": [
+          8.77,
+          5.74,
+          8.432
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip upper silver ferrule course 0 face 4",
+      "from": [
+        8.462,
+        5.74,
+        8.72
+      ],
+      "to": [
+        9.386,
+        5.99,
+        8.721
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.462,
+          5.74,
+          8.72
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip upper silver ferrule course 0 face 5",
+      "from": [
+        7.538,
+        5.74,
+        8.72
+      ],
+      "to": [
+        7.95967,
+        5.99,
+        8.721
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 43.07804,
+        "z": 180,
+        "origin": [
+          7.538,
+          5.74,
+          8.72
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1.09375,
+            0.0625,
+            1.34375,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip upper silver ferrule course 0 face 6",
+      "from": [
+        7.23,
+        5.74,
+        8.432
+      ],
+      "to": [
+        8.094,
+        5.99,
+        8.433
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -180,
+        "origin": [
+          7.23,
+          5.74,
+          8.432
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip upper silver ferrule course 0 face 7",
+      "from": [
+        7.23,
+        5.74,
+        7.568
+      ],
+      "to": [
+        7.65167,
+        5.99,
+        7.569
+      ],
+      "rotation": {
+        "x": -180,
+        "y": 43.07804,
+        "z": 0,
+        "origin": [
+          7.23,
+          5.74,
+          7.568
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip upper silver ferrule closed end 0",
+      "from": [
+        7.23,
+        5.49,
+        7.28
+      ],
+      "to": [
+        8.77,
+        6.93,
+        7.281
+      ],
+      "rotation": {
+        "x": 90,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.23,
+          5.49,
+          7.28
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.625,
+            0.0625,
+            9,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Grip upper silver ferrule closed end 1",
+      "from": [
+        7.23,
+        5.74,
+        7.28
+      ],
+      "to": [
+        8.67,
+        7.28,
+        7.281
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -90,
+        "origin": [
+          7.23,
+          5.74,
+          7.28
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.625,
+            0.0625,
+            9,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 0 face 0",
+      "from": [
+        7.568,
+        0.55,
+        7.36
+      ],
+      "to": [
+        8.432,
+        0.80612,
+        7.361
+      ],
+      "rotation": {
+        "x": 141.34019,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.568,
+          0.55,
+          7.36
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            9.78125,
+            0.0625,
+            10.1875,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 0 face 1",
+      "from": [
+        8.432,
+        0.55,
+        7.36
+      ],
+      "to": [
+        8.81733,
+        0.83142,
+        7.361
+      ],
+      "rotation": {
+        "x": 135.29075,
+        "y": -41.63354,
+        "z": 0,
+        "origin": [
+          8.432,
+          0.55,
+          7.36
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            10.28125,
+            0.0625,
+            10.65625,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 0 face 2",
+      "from": [
+        8.72,
+        0.55,
+        7.616
+      ],
+      "to": [
+        9.488,
+        0.82586,
+        7.617
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": 136.4688,
+        "origin": [
+          8.72,
+          0.55,
+          7.616
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            10.75,
+            0.0625,
+            11.125,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 0 face 3",
+      "from": [
+        8.72,
+        0.55,
+        8.384
+      ],
+      "to": [
+        9.10533,
+        0.83141,
+        8.385
+      ],
+      "rotation": {
+        "x": -44.32217,
+        "y": -41.63354,
+        "z": 180,
+        "origin": [
+          8.72,
+          0.55,
+          8.384
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            11.21875,
+            0.0625,
+            11.59375,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 0 face 4",
+      "from": [
+        8.432,
+        0.55,
+        8.64
+      ],
+      "to": [
+        9.296,
+        0.80612,
+        8.641
+      ],
+      "rotation": {
+        "x": -38.65981,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.432,
+          0.55,
+          8.64
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            9.78125,
+            0.0625,
+            10.1875,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 0 face 5",
+      "from": [
+        7.568,
+        0.55,
+        8.64
+      ],
+      "to": [
+        7.95333,
+        0.83142,
+        8.641
+      ],
+      "rotation": {
+        "x": -44.70925,
+        "y": 41.63354,
+        "z": 180,
+        "origin": [
+          7.568,
+          0.55,
+          8.64
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            11.6875,
+            0.0625,
+            12.0625,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 0 face 6",
+      "from": [
+        7.28,
+        0.55,
+        8.384
+      ],
+      "to": [
+        8.048,
+        0.82586,
+        8.385
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -136.4688,
+        "origin": [
+          7.28,
+          0.55,
+          8.384
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            10.75,
+            0.0625,
+            11.125,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 0 face 7",
+      "from": [
+        7.28,
+        0.55,
+        7.616
+      ],
+      "to": [
+        7.66533,
+        0.83141,
+        7.617
+      ],
+      "rotation": {
+        "x": 135.67783,
+        "y": 41.63354,
+        "z": 0,
+        "origin": [
+          7.28,
+          0.55,
+          7.616
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            11.21875,
+            0.0625,
+            11.59375,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 1 face 0",
+      "from": [
+        7.568,
+        1.05,
+        7.36
+      ],
+      "to": [
+        8.432,
+        1.55,
+        7.361
+      ],
+      "rotation": {
+        "x": 180,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.568,
+          1.05,
+          7.36
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 1 face 1",
+      "from": [
+        8.432,
+        1.05,
+        7.36
+      ],
+      "to": [
+        8.81733,
+        1.55,
+        7.361
+      ],
+      "rotation": {
+        "x": 180,
+        "y": -41.63354,
+        "z": 0,
+        "origin": [
+          8.432,
+          1.05,
+          7.36
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 1 face 2",
+      "from": [
+        8.72,
+        1.05,
+        7.616
+      ],
+      "to": [
+        9.488,
+        1.55,
+        7.617
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -180,
+        "origin": [
+          8.72,
+          1.05,
+          7.616
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 1 face 3",
+      "from": [
+        8.72,
+        1.05,
+        8.384
+      ],
+      "to": [
+        9.10533,
+        1.55,
+        8.385
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -41.63354,
+        "z": 180,
+        "origin": [
+          8.72,
+          1.05,
+          8.384
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 1 face 4",
+      "from": [
+        8.432,
+        1.05,
+        8.64
+      ],
+      "to": [
+        9.296,
+        1.55,
+        8.641
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.432,
+          1.05,
+          8.64
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 1 face 5",
+      "from": [
+        7.568,
+        1.05,
+        8.64
+      ],
+      "to": [
+        7.95333,
+        1.55,
+        8.641
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 41.63354,
+        "z": 180,
+        "origin": [
+          7.568,
+          1.05,
+          8.64
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1.09375,
+            0.0625,
+            1.34375,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 1 face 6",
+      "from": [
+        7.28,
+        1.05,
+        8.384
+      ],
+      "to": [
+        8.048,
+        1.55,
+        8.385
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -180,
+        "origin": [
+          7.28,
+          1.05,
+          8.384
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 1 face 7",
+      "from": [
+        7.28,
+        1.05,
+        7.616
+      ],
+      "to": [
+        7.66533,
+        1.55,
+        7.617
+      ],
+      "rotation": {
+        "x": -180,
+        "y": 41.63354,
+        "z": 0,
+        "origin": [
+          7.28,
+          1.05,
+          7.616
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 2 face 0",
+      "from": [
+        7.568,
+        1.25,
+        7.52
+      ],
+      "to": [
+        8.432,
+        1.50612,
+        7.521
+      ],
+      "rotation": {
+        "x": -141.34019,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.568,
+          1.25,
+          7.52
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            12.15625,
+            0.0625,
+            12.5625,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 2 face 1",
+      "from": [
+        8.30488,
+        1.25,
+        7.50301
+      ],
+      "to": [
+        8.69021,
+        1.52678,
+        7.50401
+      ],
+      "rotation": {
+        "x": -136.26818,
+        "y": -41.63354,
+        "z": 0,
+        "origin": [
+          8.30488,
+          1.25,
+          7.50301
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            12.65625,
+            0.0625,
+            13.03125,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 2 face 2",
+      "from": [
+        8.54,
+        1.25,
+        7.616
+      ],
+      "to": [
+        9.308,
+        1.51907,
+        7.617
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -138.01279,
+        "origin": [
+          8.54,
+          1.25,
+          7.616
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            12.15625,
+            0.0625,
+            12.5625,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 2 face 3",
+      "from": [
+        8.59288,
+        1.25,
+        8.24099
+      ],
+      "to": [
+        8.97821,
+        1.52678,
+        8.24199
+      ],
+      "rotation": {
+        "x": 43.73182,
+        "y": -41.63354,
+        "z": 180,
+        "origin": [
+          8.59288,
+          1.25,
+          8.24099
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            13.125,
+            0.0625,
+            13.5,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 2 face 4",
+      "from": [
+        8.432,
+        1.25,
+        8.48
+      ],
+      "to": [
+        9.296,
+        1.50612,
+        8.481
+      ],
+      "rotation": {
+        "x": 38.65981,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.432,
+          1.25,
+          8.48
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            12.15625,
+            0.0625,
+            12.5625,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 2 face 5",
+      "from": [
+        7.69512,
+        1.25,
+        8.49699
+      ],
+      "to": [
+        8.08045,
+        1.52678,
+        8.49799
+      ],
+      "rotation": {
+        "x": 43.73182,
+        "y": 41.63354,
+        "z": 180,
+        "origin": [
+          7.69512,
+          1.25,
+          8.49699
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            13.59375,
+            0.0625,
+            13.96875,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 2 face 6",
+      "from": [
+        7.46,
+        1.25,
+        8.384
+      ],
+      "to": [
+        8.228,
+        1.51907,
+        8.385
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": 138.01279,
+        "origin": [
+          7.46,
+          1.25,
+          8.384
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            12.15625,
+            0.0625,
+            12.5625,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel course 2 face 7",
+      "from": [
+        7.40712,
+        1.25,
+        7.75901
+      ],
+      "to": [
+        7.79245,
+        1.52678,
+        7.76001
+      ],
+      "rotation": {
+        "x": -136.26818,
+        "y": 41.63354,
+        "z": 0,
+        "origin": [
+          7.40712,
+          1.25,
+          7.75901
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            13.125,
+            0.0625,
+            13.5,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel closed end 0",
+      "from": [
+        7.47,
+        0.35,
+        7.52
+      ],
+      "to": [
+        8.53,
+        1.31,
+        7.521
+      ],
+      "rotation": {
+        "x": 90,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.47,
+          0.35,
+          7.52
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.625,
+            0.0625,
+            9,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Chamfered silver heel closed end 3",
+      "from": [
+        7.46,
+        1.25,
+        7.52
+      ],
+      "to": [
+        8.42,
+        2.33,
+        7.521
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -90,
+        "origin": [
+          7.46,
+          1.25,
+          7.52
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.625,
+            0.0625,
+            9,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 0 face 0",
+      "from": [
+        7.484,
+        10.16,
+        7.24
+      ],
+      "to": [
+        8.516,
+        10.99169,
+        7.241
+      ],
+      "rotation": {
+        "x": 161.7829,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.484,
+          10.16,
+          7.24
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            14.0625,
+            0.0625,
+            14.53125,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 0 face 1",
+      "from": [
+        8.516,
+        10.16,
+        7.24
+      ],
+      "to": [
+        8.97508,
+        11.01569,
+        7.241
+      ],
+      "rotation": {
+        "x": 157.40288,
+        "y": -41.46771,
+        "z": 0,
+        "origin": [
+          8.516,
+          10.16,
+          7.24
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            14.625,
+            0.0625,
+            15,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 0 face 2",
+      "from": [
+        8.86,
+        10.16,
+        7.544
+      ],
+      "to": [
+        9.772,
+        11.01235,
+        7.545
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": 157.94894,
+        "origin": [
+          8.86,
+          10.16,
+          7.544
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            15.09375,
+            0.0625,
+            15.5,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 0 face 3",
+      "from": [
+        8.86,
+        10.16,
+        8.456
+      ],
+      "to": [
+        9.31908,
+        11.01567,
+        8.457
+      ],
+      "rotation": {
+        "x": -22.17354,
+        "y": -41.46771,
+        "z": 180,
+        "origin": [
+          8.86,
+          10.16,
+          8.456
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            2.15625,
+            0.4375,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 0 face 4",
+      "from": [
+        8.516,
+        10.16,
+        8.76
+      ],
+      "to": [
+        9.548,
+        10.99169,
+        8.761
+      ],
+      "rotation": {
+        "x": -18.2171,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.516,
+          10.16,
+          8.76
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            14.0625,
+            0.0625,
+            14.53125,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 0 face 5",
+      "from": [
+        7.484,
+        10.16,
+        8.76
+      ],
+      "to": [
+        7.94308,
+        11.01569,
+        8.761
+      ],
+      "rotation": {
+        "x": -22.59712,
+        "y": 41.46771,
+        "z": 180,
+        "origin": [
+          7.484,
+          10.16,
+          8.76
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.53125,
+            2.15625,
+            0.90625,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 0 face 6",
+      "from": [
+        7.14,
+        10.16,
+        8.456
+      ],
+      "to": [
+        8.052,
+        11.01235,
+        8.457
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -157.94894,
+        "origin": [
+          7.14,
+          10.16,
+          8.456
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            15.09375,
+            0.0625,
+            15.5,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 0 face 7",
+      "from": [
+        7.14,
+        10.16,
+        7.544
+      ],
+      "to": [
+        7.59908,
+        11.01567,
+        7.545
+      ],
+      "rotation": {
+        "x": 157.82646,
+        "y": 41.46771,
+        "z": 0,
+        "origin": [
+          7.14,
+          10.16,
+          7.544
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            2.15625,
+            0.4375,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 1 face 0",
+      "from": [
+        7.376,
+        10.62,
+        7.14
+      ],
+      "to": [
+        8.624,
+        11.09074,
+        7.141
+      ],
+      "rotation": {
+        "x": 167.73523,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.376,
+          10.62,
+          7.14
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1,
+            2.15625,
+            1.5625,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 1 face 1",
+      "from": [
+        8.60897,
+        10.62,
+        7.12757
+      ],
+      "to": [
+        9.16828,
+        11.10734,
+        7.12857
+      ],
+      "rotation": {
+        "x": 160.71591,
+        "y": -39.58813,
+        "z": 0,
+        "origin": [
+          8.60897,
+          10.62,
+          7.12757
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1.65625,
+            2.15625,
+            2.03125,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 1 face 2",
+      "from": [
+        9.04,
+        10.62,
+        7.484
+      ],
+      "to": [
+        10.072,
+        11.11396,
+        7.485
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": 158.62938,
+        "origin": [
+          9.04,
+          10.62,
+          7.484
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.125,
+            2.15625,
+            2.59375,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 1 face 3",
+      "from": [
+        9.04,
+        10.62,
+        8.516
+      ],
+      "to": [
+        9.59931,
+        11.10713,
+        8.517
+      ],
+      "rotation": {
+        "x": -17.59643,
+        "y": -39.58813,
+        "z": 180,
+        "origin": [
+          9.04,
+          10.62,
+          8.516
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.6875,
+            2.15625,
+            3.0625,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 1 face 4",
+      "from": [
+        8.624,
+        10.62,
+        8.86
+      ],
+      "to": [
+        9.872,
+        11.09074,
+        8.861
+      ],
+      "rotation": {
+        "x": -12.26477,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.624,
+          10.62,
+          8.86
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1,
+            2.15625,
+            1.5625,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 1 face 5",
+      "from": [
+        7.39103,
+        10.62,
+        8.87243
+      ],
+      "to": [
+        7.95034,
+        11.10734,
+        8.87343
+      ],
+      "rotation": {
+        "x": -19.28409,
+        "y": 39.58813,
+        "z": 180,
+        "origin": [
+          7.39103,
+          10.62,
+          8.87243
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            3.15625,
+            2.15625,
+            3.53125,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 1 face 6",
+      "from": [
+        6.96,
+        10.62,
+        8.516
+      ],
+      "to": [
+        7.992,
+        11.11396,
+        8.517
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -158.62938,
+        "origin": [
+          6.96,
+          10.62,
+          8.516
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.125,
+            2.15625,
+            2.59375,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 1 face 7",
+      "from": [
+        6.96,
+        10.62,
+        7.484
+      ],
+      "to": [
+        7.51931,
+        11.10713,
+        7.485
+      ],
+      "rotation": {
+        "x": 162.40357,
+        "y": 39.58813,
+        "z": 0,
+        "origin": [
+          6.96,
+          10.62,
+          7.484
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.6875,
+            2.15625,
+            3.0625,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 2 face 0",
+      "from": [
+        7.376,
+        11,
+        7.27
+      ],
+      "to": [
+        8.624,
+        11.40162,
+        7.271
+      ],
+      "rotation": {
+        "x": -161.11391,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.376,
+          11,
+          7.27
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            3.625,
+            2.15625,
+            4.1875,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 2 face 1",
+      "from": [
+        8.52406,
+        11,
+        7.26185
+      ],
+      "to": [
+        9.06386,
+        11.41138,
+        7.26285
+      ],
+      "rotation": {
+        "x": -157.7534,
+        "y": -39.35945,
+        "z": 0,
+        "origin": [
+          8.52406,
+          11,
+          7.26185
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            4.28125,
+            2.15625,
+            4.65625,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 2 face 2",
+      "from": [
+        8.89,
+        11,
+        7.484
+      ],
+      "to": [
+        9.922,
+        11.40853,
+        7.485
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -158.45902,
+        "origin": [
+          8.89,
+          11,
+          7.484
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
             4.75,
-            2.25
+            2.15625,
+            5.21875,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 2 face 3",
+      "from": [
+        8.94143,
+        11,
+        8.39582
+      ],
+      "to": [
+        9.48123,
+        11.41138,
+        8.39682
+      ],
+      "rotation": {
+        "x": 22.52433,
+        "y": -39.35945,
+        "z": 180,
+        "origin": [
+          8.94143,
+          11,
+          8.39582
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            5.3125,
+            2.15625,
+            5.6875,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 2 face 4",
+      "from": [
+        8.624,
+        11,
+        8.73
+      ],
+      "to": [
+        9.872,
+        11.40162,
+        8.731
+      ],
+      "rotation": {
+        "x": 18.88609,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.624,
+          11,
+          8.73
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            3.625,
+            2.15625,
+            4.1875,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 2 face 5",
+      "from": [
+        7.47594,
+        11,
+        8.73815
+      ],
+      "to": [
+        8.01574,
+        11.41138,
+        8.73915
+      ],
+      "rotation": {
+        "x": 22.2466,
+        "y": 39.35945,
+        "z": 180,
+        "origin": [
+          7.47594,
+          11,
+          8.73815
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            5.78125,
+            2.15625,
+            6.15625,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 2 face 6",
+      "from": [
+        7.11,
+        11,
+        8.516
+      ],
+      "to": [
+        8.142,
+        11.40853,
+        8.517
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": 158.45902,
+        "origin": [
+          7.11,
+          11,
+          8.516
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            4.75,
+            2.15625,
+            5.21875,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice course 2 face 7",
+      "from": [
+        7.05857,
+        11,
+        7.60418
+      ],
+      "to": [
+        7.59838,
+        11.41138,
+        7.60518
+      ],
+      "rotation": {
+        "x": -157.47567,
+        "y": 39.35945,
+        "z": 0,
+        "origin": [
+          7.05857,
+          11,
+          7.60418
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            5.3125,
+            2.15625,
+            5.6875,
+            2.53125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice closed end 0",
+      "from": [
+        7.46,
+        9.37,
+        7.5
+      ],
+      "to": [
+        8.54,
+        10.37,
+        7.501
+      ],
+      "rotation": {
+        "x": 90,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.46,
+          9.37,
+          7.5
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.625,
+            0.0625,
+            9,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Tapered wand chalice closed end 3",
+      "from": [
+        7.11,
+        11,
+        7.27
+      ],
+      "to": [
+        8.57,
+        12.78,
+        7.271
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -90,
+        "origin": [
+          7.11,
+          11,
+          7.27
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.625,
+            0.0625,
+            9,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint socket gasket course 0 face 0",
+      "from": [
+        7.472,
+        10.32,
+        7.22
+      ],
+      "to": [
+        8.528,
+        10.51,
+        7.221
+      ],
+      "rotation": {
+        "x": 180,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.472,
+          10.32,
+          7.22
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint socket gasket course 0 face 1",
+      "from": [
+        8.528,
+        10.32,
+        7.22
+      ],
+      "to": [
+        8.99837,
+        10.51,
+        7.221
+      ],
+      "rotation": {
+        "x": 180,
+        "y": -41.55261,
+        "z": 0,
+        "origin": [
+          8.528,
+          10.32,
+          7.22
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint socket gasket course 0 face 2",
+      "from": [
+        8.88,
+        10.32,
+        7.532
+      ],
+      "to": [
+        9.816,
+        10.51,
+        7.533
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -180,
+        "origin": [
+          8.88,
+          10.32,
+          7.532
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint socket gasket course 0 face 3",
+      "from": [
+        8.88,
+        10.32,
+        8.468
+      ],
+      "to": [
+        9.35037,
+        10.51,
+        8.469
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -41.55261,
+        "z": 180,
+        "origin": [
+          8.88,
+          10.32,
+          8.468
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint socket gasket course 0 face 4",
+      "from": [
+        8.528,
+        10.32,
+        8.78
+      ],
+      "to": [
+        9.584,
+        10.51,
+        8.781
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.528,
+          10.32,
+          8.78
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint socket gasket course 0 face 5",
+      "from": [
+        7.472,
+        10.32,
+        8.78
+      ],
+      "to": [
+        7.94237,
+        10.51,
+        8.781
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 41.55261,
+        "z": 180,
+        "origin": [
+          7.472,
+          10.32,
+          8.78
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint socket gasket course 0 face 6",
+      "from": [
+        7.12,
+        10.32,
+        8.468
+      ],
+      "to": [
+        8.056,
+        10.51,
+        8.469
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -180,
+        "origin": [
+          7.12,
+          10.32,
+          8.468
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint socket gasket course 0 face 7",
+      "from": [
+        7.12,
+        10.32,
+        7.532
+      ],
+      "to": [
+        7.59037,
+        10.51,
+        7.533
+      ],
+      "rotation": {
+        "x": -180,
+        "y": 41.55261,
+        "z": 0,
+        "origin": [
+          7.12,
+          10.32,
+          7.532
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint socket gasket closed end 0",
+      "from": [
+        7.12,
+        10.13,
+        7.22
+      ],
+      "to": [
+        8.88,
+        11.69,
+        7.221
+      ],
+      "rotation": {
+        "x": 90,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.12,
+          10.13,
+          7.22
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            6.25,
+            2.15625,
+            7.03125,
+            2.84375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Mint socket gasket closed end 1",
+      "from": [
+        7.12,
+        10.32,
+        7.22
+      ],
+      "to": [
+        8.68,
+        12.08,
+        7.221
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -90,
+        "origin": [
+          7.12,
+          10.32,
+          7.22
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            6.25,
+            2.15625,
+            7.03125,
+            2.84375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Rising silver fork root -1",
+      "from": [
+        6.75,
+        10.40595,
+        7.605
+      ],
+      "to": [
+        7.21,
+        11.69405,
+        8.395
+      ],
+      "rotation": {
+        "angle": 36.15819,
+        "axis": "z",
+        "origin": [
+          6.98,
+          11.05,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Silver fork curved cheek -1",
+      "from": [
+        6.34,
+        11.56435,
+        7.675
+      ],
+      "to": [
+        6.71,
+        12.56565,
+        8.325
+      ],
+      "rotation": {
+        "angle": 8.61565,
+        "axis": "z",
+        "origin": [
+          6.525,
+          12.065,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Inward focus retaining claw -1",
+      "from": [
+        6.75,
+        12.32941,
+        7.75
+      ],
+      "to": [
+        7.02,
+        13.38059,
+        8.25
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": -55.85641,
+        "origin": [
+          6.885,
+          12.855,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Rising silver fork root 1",
+      "from": [
+        8.79,
+        10.40595,
+        7.605
+      ],
+      "to": [
+        9.25,
+        11.69405,
+        8.395
+      ],
+      "rotation": {
+        "angle": -36.15819,
+        "axis": "z",
+        "origin": [
+          9.02,
+          11.05,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Silver fork curved cheek 1",
+      "from": [
+        9.29,
+        11.56582,
+        7.675
+      ],
+      "to": [
+        9.66,
+        12.91418,
+        8.325
+      ],
+      "rotation": {
+        "angle": -6.38712,
+        "axis": "z",
+        "origin": [
+          9.475,
+          12.24,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Inward focus retaining claw 1",
+      "from": [
+        8.915,
+        12.62446,
+        7.75
+      ],
+      "to": [
+        9.185,
+        13.78554,
+        8.25
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 59.4594,
+        "origin": [
+          9.05,
+          13.205,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Rear focus support",
+      "from": [
+        7.825,
+        10.67,
+        8.435
+      ],
+      "to": [
+        8.175,
+        12.3,
+        8.805
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8,
+          11.485,
+          8.62
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            0.0625,
+            0.0625,
+            0.3125,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 0 face 0",
+      "from": [
+        7.60928,
+        11.5235,
+        7.4888
+      ],
+      "to": [
+        8.39072,
+        12.38466,
+        7.4898
+      ],
+      "rotation": {
+        "x": 148.40296,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.60928,
+          11.5235,
+          7.4888
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            7.125,
+            2.15625,
+            7.5,
+            2.5625
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 0 face 1",
+      "from": [
+        8.3904,
+        11.5235,
+        7.48855
+      ],
+      "to": [
+        8.72196,
+        12.45737,
+        7.48955
+      ],
+      "rotation": {
+        "x": 141.76185,
+        "y": -38.13235,
+        "z": 0,
+        "origin": [
+          8.3904,
+          11.5235,
+          7.48855
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            7.59375,
+            2.15625,
+            7.96875,
+            2.59375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 0 face 2",
+      "from": [
+        8.6512,
+        11.5235,
+        7.69328
+      ],
+      "to": [
+        9.26464,
+        12.46559,
+        7.69428
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": 141.13123,
+        "origin": [
+          8.6512,
+          11.5235,
+          7.69328
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.0625,
+            2.15625,
+            8.4375,
+            2.59375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 0 face 3",
+      "from": [
+        8.6512,
+        11.5235,
+        8.30672
+      ],
+      "to": [
+        8.98276,
+        12.45736,
+        8.30772
+      ],
+      "rotation": {
+        "x": -38.04205,
+        "y": -38.13235,
+        "z": 180,
+        "origin": [
+          8.6512,
+          11.5235,
+          8.30672
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.53125,
+            2.15625,
+            8.90625,
+            2.59375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 0 face 4",
+      "from": [
+        8.39072,
+        11.5235,
+        8.5112
+      ],
+      "to": [
+        9.17216,
+        12.38466,
+        8.5122
+      ],
+      "rotation": {
+        "x": -31.59704,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.39072,
+          11.5235,
+          8.5112
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            9,
+            2.15625,
+            9.375,
+            2.5625
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 0 face 5",
+      "from": [
+        7.6096,
+        11.5235,
+        8.51145
+      ],
+      "to": [
+        7.94117,
+        12.45737,
+        8.51245
+      ],
+      "rotation": {
+        "x": -38.23815,
+        "y": 38.13235,
+        "z": 180,
+        "origin": [
+          7.6096,
+          11.5235,
+          8.51145
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            9.46875,
+            2.15625,
+            9.84375,
+            2.59375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 0 face 6",
+      "from": [
+        7.3488,
+        11.5235,
+        8.30672
+      ],
+      "to": [
+        7.96224,
+        12.46559,
+        8.30772
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -141.13123,
+        "origin": [
+          7.3488,
+          11.5235,
+          8.30672
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            9.9375,
+            2.15625,
+            10.3125,
+            2.59375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 0 face 7",
+      "from": [
+        7.3488,
+        11.5235,
+        7.69328
+      ],
+      "to": [
+        7.68036,
+        12.45736,
+        7.69428
+      ],
+      "rotation": {
+        "x": 141.95795,
+        "y": 38.13235,
+        "z": 0,
+        "origin": [
+          7.3488,
+          11.5235,
+          7.69328
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            10.40625,
+            2.15625,
+            10.78125,
+            2.59375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 1 face 0",
+      "from": [
+        7.472,
+        12.583,
+        7.29
+      ],
+      "to": [
+        8.528,
+        13.66099,
+        7.291
+      ],
+      "rotation": {
+        "x": 169.37284,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.472,
+          12.583,
+          7.29
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            10.875,
+            2.15625,
+            11.34375,
+            2.65625
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 1 face 1",
+      "from": [
+        8.528,
+        12.583,
+        7.29
+      ],
+      "to": [
+        8.98028,
+        13.66954,
+        7.291
+      ],
+      "rotation": {
+        "x": 167.41672,
+        "y": -38.89722,
+        "z": 0,
+        "origin": [
+          8.528,
+          12.583,
+          7.29
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            11.4375,
+            2.15625,
+            11.8125,
+            2.65625
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 1 face 2",
+      "from": [
+        8.88,
+        12.583,
+        7.574
+      ],
+      "to": [
+        9.732,
+        13.66692,
+        7.575
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": 167.81405,
+        "origin": [
+          8.88,
+          12.583,
+          7.574
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            11.90625,
+            2.15625,
+            12.28125,
+            2.65625
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 1 face 3",
+      "from": [
+        8.88,
+        12.583,
+        8.426
+      ],
+      "to": [
+        9.33228,
+        13.66955,
+        8.427
+      ],
+      "rotation": {
+        "x": -12.81079,
+        "y": -38.89722,
+        "z": 180,
+        "origin": [
+          8.88,
+          12.583,
+          8.426
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            12.375,
+            2.15625,
+            12.75,
+            2.65625
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 1 face 4",
+      "from": [
+        8.528,
+        12.583,
+        8.71
+      ],
+      "to": [
+        9.584,
+        13.66099,
+        8.711
+      ],
+      "rotation": {
+        "x": -10.62716,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.528,
+          12.583,
+          8.71
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            12.84375,
+            2.15625,
+            13.3125,
+            2.65625
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 1 face 5",
+      "from": [
+        7.472,
+        12.583,
+        8.71
+      ],
+      "to": [
+        7.92428,
+        13.66954,
+        8.711
+      ],
+      "rotation": {
+        "x": -12.58328,
+        "y": 38.89722,
+        "z": 180,
+        "origin": [
+          7.472,
+          12.583,
+          8.71
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            13.40625,
+            2.15625,
+            13.78125,
+            2.65625
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 1 face 6",
+      "from": [
+        7.12,
+        12.583,
+        8.426
+      ],
+      "to": [
+        7.972,
+        13.66692,
+        8.427
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -167.81405,
+        "origin": [
+          7.12,
+          12.583,
+          8.426
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            13.875,
+            2.15625,
+            14.25,
+            2.65625
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 1 face 7",
+      "from": [
+        7.12,
+        12.583,
+        7.574
+      ],
+      "to": [
+        7.57228,
+        13.66955,
+        7.575
+      ],
+      "rotation": {
+        "x": 167.18921,
+        "y": 38.89722,
+        "z": 0,
+        "origin": [
+          7.12,
+          12.583,
+          7.574
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            14.34375,
+            2.15625,
+            14.71875,
+            2.65625
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 2 face 0",
+      "from": [
+        7.472,
+        13.4469,
+        7.5385
+      ],
+      "to": [
+        8.528,
+        14.34583,
+        7.5395
+      ],
+      "rotation": {
+        "x": -163.95217,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.472,
+          13.4469,
+          7.5385
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            14.8125,
+            2.15625,
+            15.28125,
+            2.5625
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 2 face 1",
+      "from": [
+        8.30906,
+        13.4469,
+        7.53631
+      ],
+      "to": [
+        8.76083,
+        14.37944,
+        7.53731
+      ],
+      "rotation": {
+        "x": -157.88032,
+        "y": -41.63285,
+        "z": 0,
+        "origin": [
+          8.30906,
+          13.4469,
+          7.53631
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            15.375,
+            2.15625,
+            15.75,
+            2.59375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 2 face 2",
+      "from": [
+        8.5192,
+        13.4469,
+        7.574
+      ],
+      "to": [
+        9.3712,
+        14.38312,
+        7.575
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -157.33259,
+        "origin": [
+          8.5192,
+          13.4469,
+          7.574
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.0625,
+            2.9375,
+            0.4375,
+            3.375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 2 face 3",
+      "from": [
+        8.64672,
+        13.4469,
+        8.16355
+      ],
+      "to": [
+        9.09849,
+        14.37922,
+        8.16455
+      ],
+      "rotation": {
+        "x": 20.8804,
+        "y": -41.63285,
+        "z": 180,
+        "origin": [
+          8.64672,
+          13.4469,
+          8.16355
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.53125,
+            2.9375,
+            0.90625,
+            3.375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 2 face 4",
+      "from": [
+        8.528,
+        13.4469,
+        8.4615
+      ],
+      "to": [
+        9.584,
+        14.34583,
+        8.4625
+      ],
+      "rotation": {
+        "x": 16.04783,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.528,
+          13.4469,
+          8.4615
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1,
+            2.9375,
+            1.46875,
+            3.34375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 2 face 5",
+      "from": [
+        7.69094,
+        13.4469,
+        8.46369
+      ],
+      "to": [
+        8.14271,
+        14.37944,
+        8.46469
+      ],
+      "rotation": {
+        "x": 22.11968,
+        "y": 41.63285,
+        "z": 180,
+        "origin": [
+          7.69094,
+          13.4469,
+          8.46369
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            1.5625,
+            2.9375,
+            1.9375,
+            3.375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 2 face 6",
+      "from": [
+        7.4808,
+        13.4469,
+        8.426
+      ],
+      "to": [
+        8.3328,
+        14.38312,
+        8.427
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": 157.33259,
+        "origin": [
+          7.4808,
+          13.4469,
+          8.426
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.03125,
+            2.9375,
+            2.40625,
+            3.375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 2 face 7",
+      "from": [
+        7.35328,
+        13.4469,
+        7.83645
+      ],
+      "to": [
+        7.80505,
+        14.37922,
+        7.83745
+      ],
+      "rotation": {
+        "x": -159.1196,
+        "y": 41.63285,
+        "z": 0,
+        "origin": [
+          7.35328,
+          13.4469,
+          7.83645
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.5,
+            2.9375,
+            2.875,
+            3.375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 3 face 0",
+      "from": [
+        7.68848,
+        14.05,
+        7.96
+      ],
+      "to": [
+        8.31152,
+        14.78579,
+        7.961
+      ],
+      "rotation": {
+        "x": -145.05072,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.68848,
+          14.05,
+          7.96
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            2.96875,
+            2.9375,
+            3.34375,
+            3.3125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 3 face 1",
+      "from": [
+        7.95701,
+        14.05,
+        7.89301
+      ],
+      "to": [
+        8.23439,
+        14.8448,
+        7.89401
+      ],
+      "rotation": {
+        "x": -139.35875,
+        "y": -45,
+        "z": 0,
+        "origin": [
+          7.95701,
+          14.05,
+          7.89301
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            3.4375,
+            2.9375,
+            3.8125,
+            3.3125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 3 face 2",
+      "from": [
+        8.04,
+        14.05,
+        7.7231
+      ],
+      "to": [
+        8.5938,
+        14.8203,
+        7.7241
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -141.5307,
+        "origin": [
+          8.04,
+          14.05,
+          7.7231
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            3.90625,
+            2.9375,
+            4.28125,
+            3.3125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 3 face 3",
+      "from": [
+        8.15315,
+        14.05,
+        7.91085
+      ],
+      "to": [
+        8.43053,
+        14.84471,
+        7.91185
+      ],
+      "rotation": {
+        "x": 39.73651,
+        "y": -45,
+        "z": 180,
+        "origin": [
+          8.15315,
+          14.05,
+          7.91085
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            4.375,
+            2.9375,
+            4.75,
+            3.3125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 3 face 4",
+      "from": [
+        8.31152,
+        14.05,
+        8.04
+      ],
+      "to": [
+        8.93456,
+        14.78579,
+        8.041
+      ],
+      "rotation": {
+        "x": 34.94928,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.31152,
+          14.05,
+          8.04
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            4.84375,
+            2.9375,
+            5.21875,
+            3.3125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 3 face 5",
+      "from": [
+        8.04299,
+        14.05,
+        8.10699
+      ],
+      "to": [
+        8.32037,
+        14.8448,
+        8.10799
+      ],
+      "rotation": {
+        "x": 40.64125,
+        "y": 45,
+        "z": 180,
+        "origin": [
+          8.04299,
+          14.05,
+          8.10699
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            5.3125,
+            2.9375,
+            5.6875,
+            3.3125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 3 face 6",
+      "from": [
+        7.96,
+        14.05,
+        8.2769
+      ],
+      "to": [
+        8.5138,
+        14.8203,
+        8.2779
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": 141.5307,
+        "origin": [
+          7.96,
+          14.05,
+          8.2769
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            5.78125,
+            2.9375,
+            6.15625,
+            3.3125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus course 3 face 7",
+      "from": [
+        7.84685,
+        14.05,
+        8.08915
+      ],
+      "to": [
+        8.12423,
+        14.84471,
+        8.09015
+      ],
+      "rotation": {
+        "x": -140.26349,
+        "y": 45,
+        "z": 0,
+        "origin": [
+          7.84685,
+          14.05,
+          8.08915
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            6.25,
+            2.9375,
+            6.625,
+            3.3125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus closed end 0",
+      "from": [
+        7.94,
+        10.79,
+        7.94
+      ],
+      "to": [
+        8.06,
+        10.91,
+        7.941
+      ],
+      "rotation": {
+        "x": 90,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.94,
+          10.79,
+          7.94
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.625,
+            0.0625,
+            9,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Ivory mint focus closed end 4",
+      "from": [
+        7.96,
+        14.05,
+        7.96
+      ],
+      "to": [
+        8.04,
+        14.13,
+        7.961
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -90,
+        "origin": [
+          7.96,
+          14.05,
+          7.96
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.625,
+            0.0625,
+            9,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Focus lower compression seat course 0 face 0",
+      "from": [
+        7.634,
+        11.18,
+        7.44
+      ],
+      "to": [
+        8.366,
+        11.45,
+        7.441
+      ],
+      "rotation": {
+        "x": 180,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.634,
+          11.18,
+          7.44
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Focus lower compression seat course 0 face 1",
+      "from": [
+        8.366,
+        11.18,
+        7.44
+      ],
+      "to": [
+        8.69723,
+        11.45,
+        7.441
+      ],
+      "rotation": {
+        "x": 180,
+        "y": -42.55295,
+        "z": 0,
+        "origin": [
+          8.366,
+          11.18,
+          7.44
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Focus lower compression seat course 0 face 2",
+      "from": [
+        8.61,
+        11.18,
+        7.664
+      ],
+      "to": [
+        9.282,
+        11.45,
+        7.665
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -180,
+        "origin": [
+          8.61,
+          11.18,
+          7.664
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Focus lower compression seat course 0 face 3",
+      "from": [
+        8.61,
+        11.18,
+        8.336
+      ],
+      "to": [
+        8.94123,
+        11.45,
+        8.337
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -42.55295,
+        "z": 180,
+        "origin": [
+          8.61,
+          11.18,
+          8.336
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Focus lower compression seat course 0 face 4",
+      "from": [
+        8.366,
+        11.18,
+        8.56
+      ],
+      "to": [
+        9.098,
+        11.45,
+        8.561
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 180,
+        "origin": [
+          8.366,
+          11.18,
+          8.56
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Focus lower compression seat course 0 face 5",
+      "from": [
+        7.634,
+        11.18,
+        8.56
+      ],
+      "to": [
+        7.96523,
+        11.45,
+        8.561
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 42.55295,
+        "z": 180,
+        "origin": [
+          7.634,
+          11.18,
+          8.56
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Focus lower compression seat course 0 face 6",
+      "from": [
+        7.39,
+        11.18,
+        8.336
+      ],
+      "to": [
+        8.062,
+        11.45,
+        8.337
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": -180,
+        "origin": [
+          7.39,
+          11.18,
+          8.336
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Focus lower compression seat course 0 face 7",
+      "from": [
+        7.39,
+        11.18,
+        7.664
+      ],
+      "to": [
+        7.72123,
+        11.45,
+        7.665
+      ],
+      "rotation": {
+        "x": -180,
+        "y": 42.55295,
+        "z": 0,
+        "origin": [
+          7.39,
+          11.18,
+          7.664
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            0.40625,
+            0.0625,
+            0.65625,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Focus lower compression seat closed end 0",
+      "from": [
+        7.39,
+        10.91,
+        7.44
+      ],
+      "to": [
+        8.61,
+        12.03,
+        7.441
+      ],
+      "rotation": {
+        "x": 90,
+        "y": 0,
+        "z": 0,
+        "origin": [
+          7.39,
+          10.91,
+          7.44
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.625,
+            0.0625,
+            9,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Focus lower compression seat closed end 1",
+      "from": [
+        7.39,
+        11.18,
+        7.44
+      ],
+      "to": [
+        8.51,
+        12.4,
+        7.441
+      ],
+      "rotation": {
+        "x": 0,
+        "y": -90,
+        "z": -90,
+        "origin": [
+          7.39,
+          11.18,
+          7.44
+        ]
+      },
+      "faces": {
+        "south": {
+          "uv": [
+            8.625,
+            0.0625,
+            9,
+            0.4375
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Wand mint maker seal -1",
+      "from": [
+        7.75,
+        9.73,
+        7.35
+      ],
+      "to": [
+        8.25,
+        10.1,
+        7.42
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.75,
+          9.73,
+          7.35
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        }
+      }
+    },
+    {
+      "name": "Wand mint maker seal 1",
+      "from": [
+        7.75,
+        9.73,
+        8.58
+      ],
+      "to": [
+        8.25,
+        10.1,
+        8.65
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          7.75,
+          9.73,
+          8.58
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "east": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "south": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "west": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "up": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
+          ],
+          "texture": "#surface"
+        },
+        "down": {
+          "uv": [
+            2.125,
+            0.0625,
+            2.375,
+            0.8125
           ],
           "texture": "#surface"
         }

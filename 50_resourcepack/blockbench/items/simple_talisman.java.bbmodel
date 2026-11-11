@@ -1,1 +1,6089 @@
-{"meta":{"format_version":"5.0","model_format":"java_block","box_uv":false},"name":"simple_talisman","parent":"","java_block_version":"26.3","ambientocclusion":true,"front_gui_light":false,"visible_box":[1,1,0],"variable_placeholders":"","multi_file_ruleset":"","variable_placeholder_buttons":[],"unhandled_root_fields":{},"resolution":{"width":64,"height":64},"elements":[{"name":"Short holding peg","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[7.47,2.42,7.46],"to":[8.53,6.34,8.54],"autouv":0,"color":6,"origin":[7.47,2.42,7.46],"faces":{"north":{"uv":[1,1,9,9],"texture":0},"east":{"uv":[11,1,19,9],"texture":0},"south":{"uv":[1,1,9,9],"texture":0},"west":{"uv":[11,1,19,9],"texture":0},"up":{"uv":[21,1,29,9],"texture":0},"down":{"uv":[21,1,29,9],"texture":0}},"type":"cube","uuid":"126bbb04-a132-54af-9a48-e1072e60731f"},{"name":"Peg rounded lower end","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[7.6,2.17,7.57],"to":[8.4,2.44,8.43],"autouv":0,"color":3,"origin":[7.6,2.17,7.57],"faces":{"north":{"uv":[11,1,19,9],"texture":0},"east":{"uv":[11,1,19,9],"texture":0},"south":{"uv":[11,1,19,9],"texture":0},"west":{"uv":[11,1,19,9],"texture":0},"up":{"uv":[21,1,29,9],"texture":0},"down":{"uv":[21,1,29,9],"texture":0}},"type":"cube","uuid":"46df197d-04bf-5195-a52a-6f812f494a6c"},{"name":"Peg linen hand binding","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[7.36,3.38,7.36],"to":[8.64,4.25,8.64],"autouv":0,"color":1,"origin":[7.36,3.38,7.36],"faces":{"north":{"uv":[1,11,9,19],"texture":0},"east":{"uv":[11,11,19,19],"texture":0},"south":{"uv":[1,11,9,19],"texture":0},"west":{"uv":[11,11,19,19],"texture":0},"up":{"uv":[11,11,19,19],"texture":0},"down":{"uv":[11,11,19,19],"texture":0}},"type":"cube","uuid":"89f9d9e6-24f6-5c19-b664-65bc63060168"},{"name":"Carved cedar backboard","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[5.75,5.88,7.53],"to":[10.25,12.35,8.47],"autouv":0,"color":8,"origin":[5.75,5.88,7.53],"faces":{"north":{"uv":[1,1,9,9],"texture":0},"east":{"uv":[11,1,19,9],"texture":0},"south":{"uv":[1,1,9,9],"texture":0},"west":{"uv":[11,1,19,9],"texture":0},"up":{"uv":[21,1,29,9],"texture":0},"down":{"uv":[21,1,29,9],"texture":0}},"type":"cube","uuid":"c2d1e947-61a8-5d37-a3a0-a7f532918ae1"},{"name":"Upper cross slat","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[5.52,12.13,7.36],"to":[10.48,12.62,8.61],"autouv":0,"color":7,"origin":[5.52,12.13,7.36],"faces":{"north":{"uv":[1,1,9,9],"texture":0},"east":{"uv":[11,1,19,9],"texture":0},"south":{"uv":[1,1,9,9],"texture":0},"west":{"uv":[11,1,19,9],"texture":0},"up":{"uv":[21,1,29,9],"texture":0},"down":{"uv":[21,1,29,9],"texture":0}},"type":"cube","uuid":"6dd94858-cb69-506d-a74b-cec242ebab1d"},{"name":"Lower cross slat","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[5.62,5.67,7.41],"to":[10.38,6.12,8.57],"autouv":0,"color":2,"origin":[5.62,5.67,7.41],"faces":{"north":{"uv":[1,1,9,9],"texture":0},"east":{"uv":[11,1,19,9],"texture":0},"south":{"uv":[1,1,9,9],"texture":0},"west":{"uv":[11,1,19,9],"texture":0},"up":{"uv":[21,1,29,9],"texture":0},"down":{"uv":[21,1,29,9],"texture":0}},"type":"cube","uuid":"48aee8c9-cdb1-59e7-804d-5658226ca279"},{"name":"Handmade paper with one protective mark","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[6.08,6.22,7.25],"to":[9.92,11.99,7.55],"autouv":0,"color":8,"origin":[6.08,6.22,7.25],"faces":{"north":{"uv":[41,1,49,9],"texture":0},"east":{"uv":[51,1,59,9],"texture":0},"south":{"uv":[41,1,49,9],"texture":0},"west":{"uv":[51,1,59,9],"texture":0},"up":{"uv":[31,1,39,9],"texture":0},"down":{"uv":[31,1,39,9],"texture":0}},"type":"cube","uuid":"a842f756-ec4b-56d7-93d1-d8a931f1c775"},{"name":"Uninked folded paper border left","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[5.98,6.51,7.19],"to":[6.34,11.86,7.5],"autouv":0,"color":4,"origin":[5.98,6.51,7.19],"faces":{"north":{"uv":[31,1,39,9],"texture":0},"east":{"uv":[51,1,59,9],"texture":0},"south":{"uv":[31,1,39,9],"texture":0},"west":{"uv":[51,1,59,9],"texture":0},"up":{"uv":[51,1,59,9],"texture":0},"down":{"uv":[51,1,59,9],"texture":0}},"type":"cube","uuid":"71690632-33b6-5e8c-b74e-f41712f01412"},{"name":"Uninked folded paper border right","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[9.66,6.44,7.2],"to":[10.02,11.81,7.51],"autouv":0,"color":1,"origin":[9.66,6.44,7.2],"faces":{"north":{"uv":[31,1,39,9],"texture":0},"east":{"uv":[51,1,59,9],"texture":0},"south":{"uv":[31,1,39,9],"texture":0},"west":{"uv":[51,1,59,9],"texture":0},"up":{"uv":[51,1,59,9],"texture":0},"down":{"uv":[51,1,59,9],"texture":0}},"type":"cube","uuid":"3c60b5f7-4494-5232-a766-4f5e808e3e14"},{"name":"Uneven paper foot left","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[6.15,6.04,7.27],"to":[7.27,6.35,7.54],"autouv":0,"color":0,"origin":[6.15,6.04,7.27],"faces":{"north":{"uv":[31,1,39,9],"texture":0},"east":{"uv":[51,1,59,9],"texture":0},"south":{"uv":[31,1,39,9],"texture":0},"west":{"uv":[51,1,59,9],"texture":0},"up":{"uv":[51,1,59,9],"texture":0},"down":{"uv":[51,1,59,9],"texture":0}},"type":"cube","uuid":"471e558c-cf60-53a8-9fc1-d31cac90d9bd"},{"name":"Uneven paper foot right","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[8.51,6.09,7.26],"to":[9.83,6.36,7.54],"autouv":0,"color":9,"origin":[8.51,6.09,7.26],"faces":{"north":{"uv":[31,1,39,9],"texture":0},"east":{"uv":[51,1,59,9],"texture":0},"south":{"uv":[31,1,39,9],"texture":0},"west":{"uv":[51,1,59,9],"texture":0},"up":{"uv":[51,1,59,9],"texture":0},"down":{"uv":[51,1,59,9],"texture":0}},"type":"cube","uuid":"4cec4762-1461-51b9-86f5-4c971b6c36ae"},{"name":"Linen front tie across top","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[5.55,10.83,7.09],"to":[10.45,11.17,7.29],"autouv":0,"color":6,"origin":[5.55,10.83,7.09],"faces":{"north":{"uv":[1,11,9,19],"texture":0},"east":{"uv":[11,11,19,19],"texture":0},"south":{"uv":[1,11,9,19],"texture":0},"west":{"uv":[11,11,19,19],"texture":0},"up":{"uv":[11,11,19,19],"texture":0},"down":{"uv":[11,11,19,19],"texture":0}},"type":"cube","uuid":"187788b7-06da-599c-a2cf-a7697d960032"},{"name":"Linen rear tie across top","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[5.55,10.83,8.46],"to":[10.45,11.17,8.66],"autouv":0,"color":3,"origin":[5.55,10.83,8.46],"faces":{"north":{"uv":[11,11,19,19],"texture":0},"east":{"uv":[11,11,19,19],"texture":0},"south":{"uv":[11,11,19,19],"texture":0},"west":{"uv":[11,11,19,19],"texture":0},"up":{"uv":[11,11,19,19],"texture":0},"down":{"uv":[11,11,19,19],"texture":0}},"type":"cube","uuid":"16885892-9514-518d-bfed-7c0e64fbcbf1"},{"name":"Linen tie around left board edge","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[5.55,10.83,7.09],"to":[5.85,11.17,8.66],"autouv":0,"color":7,"origin":[5.55,10.83,7.09],"faces":{"north":{"uv":[11,11,19,19],"texture":0},"east":{"uv":[11,11,19,19],"texture":0},"south":{"uv":[11,11,19,19],"texture":0},"west":{"uv":[11,11,19,19],"texture":0},"up":{"uv":[11,11,19,19],"texture":0},"down":{"uv":[11,11,19,19],"texture":0}},"type":"cube","uuid":"0284be92-8027-545f-b0c4-e89fd2907e9e"},{"name":"Linen tie around right board edge","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[10.15,10.83,7.09],"to":[10.45,11.17,8.66],"autouv":0,"color":2,"origin":[10.15,10.83,7.09],"faces":{"north":{"uv":[1,11,9,19],"texture":0},"east":{"uv":[1,11,9,19],"texture":0},"south":{"uv":[1,11,9,19],"texture":0},"west":{"uv":[1,11,9,19],"texture":0},"up":{"uv":[1,11,9,19],"texture":0},"down":{"uv":[1,11,9,19],"texture":0}},"type":"cube","uuid":"ec81ef80-5fc7-5fb3-a893-bd68932c7bf1"},{"name":"Square tied linen knot","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[8.92,10.66,6.98],"to":[9.51,11.33,7.24],"autouv":0,"color":1,"origin":[8.92,10.66,6.98],"faces":{"north":{"uv":[1,11,9,19],"texture":0},"east":{"uv":[11,11,19,19],"texture":0},"south":{"uv":[1,11,9,19],"texture":0},"west":{"uv":[11,11,19,19],"texture":0},"up":{"uv":[11,11,19,19],"texture":0},"down":{"uv":[11,11,19,19],"texture":0}},"type":"cube","uuid":"746d3f3b-863f-5e65-bd35-bdcaf06fa35d"},{"name":"Left hanging cord tail","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[8.83,9.94,6.98],"to":[9.27,10.77,7.29],"autouv":0,"color":2,"rotation":[0,0,-22.5],"origin":[9.05,10.75,7.15],"faces":{"north":{"uv":[1,11,9,19],"texture":0},"east":{"uv":[11,11,19,19],"texture":0},"south":{"uv":[1,11,9,19],"texture":0},"west":{"uv":[11,11,19,19],"texture":0},"up":{"uv":[11,11,19,19],"texture":0},"down":{"uv":[11,11,19,19],"texture":0}},"type":"cube","uuid":"2084d899-d4eb-5b9a-aa05-316f170253fb"},{"name":"Right hanging cord tail","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[9.21,10.05,6.98],"to":[9.65,10.8,7.29],"autouv":0,"color":8,"rotation":[0,0,22.5],"origin":[9.43,10.75,7.15],"faces":{"north":{"uv":[1,11,9,19],"texture":0},"east":{"uv":[11,11,19,19],"texture":0},"south":{"uv":[1,11,9,19],"texture":0},"west":{"uv":[11,11,19,19],"texture":0},"up":{"uv":[11,11,19,19],"texture":0},"down":{"uv":[11,11,19,19],"texture":0}},"type":"cube","uuid":"47f3c7d1-44c5-5745-8ef8-efa490089e77"},{"name":"Small earthy red wax seal","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[7.39,6.95,7.03],"to":[8.61,8.14,7.27],"autouv":0,"color":0,"origin":[7.39,6.95,7.03],"faces":{"north":{"uv":[21,11,29,19],"texture":0},"east":{"uv":[21,11,29,19],"texture":0},"south":{"uv":[21,11,29,19],"texture":0},"west":{"uv":[21,11,29,19],"texture":0},"up":{"uv":[21,11,29,19],"texture":0},"down":{"uv":[21,11,29,19],"texture":0}},"type":"cube","uuid":"a7d08464-d31b-53fa-8586-e78670e4865c"},{"name":"Pressed simple wax stamp","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[7.61,7.17,6.92],"to":[8.39,7.92,7.05],"autouv":0,"color":1,"origin":[7.61,7.17,6.92],"faces":{"north":{"uv":[31,11,39,19],"texture":0},"east":{"uv":[21,11,29,19],"texture":0},"south":{"uv":[31,11,39,19],"texture":0},"west":{"uv":[21,11,29,19],"texture":0},"up":{"uv":[21,11,29,19],"texture":0},"down":{"uv":[21,11,29,19],"texture":0}},"type":"cube","uuid":"81a74dd6-b0c4-5ab3-ae60-66bf2d420aa3"},{"name":"Left slat fixing pin front","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[6.42,12.22,7.23],"to":[6.78,12.52,7.39],"autouv":0,"color":6,"origin":[6.42,12.22,7.23],"faces":{"north":{"uv":[41,11,49,19],"texture":0},"east":{"uv":[41,11,49,19],"texture":0},"south":{"uv":[41,11,49,19],"texture":0},"west":{"uv":[41,11,49,19],"texture":0},"up":{"uv":[41,11,49,19],"texture":0},"down":{"uv":[41,11,49,19],"texture":0}},"type":"cube","uuid":"2c0fcb31-58ce-5be8-88b7-dd412df494fd"},{"name":"Right slat fixing pin front","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[9.22,12.22,7.23],"to":[9.58,12.52,7.39],"autouv":0,"color":1,"origin":[9.22,12.22,7.23],"faces":{"north":{"uv":[41,11,49,19],"texture":0},"east":{"uv":[41,11,49,19],"texture":0},"south":{"uv":[41,11,49,19],"texture":0},"west":{"uv":[41,11,49,19],"texture":0},"up":{"uv":[41,11,49,19],"texture":0},"down":{"uv":[41,11,49,19],"texture":0}},"type":"cube","uuid":"de22230a-9069-5e79-894c-a657fec559da"},{"name":"Rear peg fixing pin","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[7.8,6.26,8.45],"to":[8.2,6.65,8.63],"autouv":0,"color":1,"origin":[7.8,6.26,8.45],"faces":{"north":{"uv":[41,11,49,19],"texture":0},"east":{"uv":[41,11,49,19],"texture":0},"south":{"uv":[41,11,49,19],"texture":0},"west":{"uv":[41,11,49,19],"texture":0},"up":{"uv":[41,11,49,19],"texture":0},"down":{"uv":[41,11,49,19],"texture":0}},"type":"cube","uuid":"b58ab704-a83f-58ba-b745-b40983f4b984"},{"name":"Left loop support","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[6.92,12.56,7.74],"to":[7.38,13.27,8.2],"autouv":0,"color":0,"origin":[6.92,12.56,7.74],"faces":{"north":{"uv":[11,11,19,19],"texture":0},"east":{"uv":[11,11,19,19],"texture":0},"south":{"uv":[11,11,19,19],"texture":0},"west":{"uv":[11,11,19,19],"texture":0},"up":{"uv":[11,11,19,19],"texture":0},"down":{"uv":[11,11,19,19],"texture":0}},"type":"cube","uuid":"aefa8a8f-234a-5f76-87bd-53a2b9488e3a"},{"name":"Right loop support","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[8.62,12.56,7.74],"to":[9.08,13.27,8.2],"autouv":0,"color":5,"origin":[8.62,12.56,7.74],"faces":{"north":{"uv":[1,11,9,19],"texture":0},"east":{"uv":[1,11,9,19],"texture":0},"south":{"uv":[1,11,9,19],"texture":0},"west":{"uv":[1,11,9,19],"texture":0},"up":{"uv":[1,11,9,19],"texture":0},"down":{"uv":[1,11,9,19],"texture":0}},"type":"cube","uuid":"fa4c231b-a140-5c66-a219-0f8e926e406d"},{"name":"Loop left shoulder","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[6.93,13.12,7.74],"to":[7.39,14.01,8.2],"autouv":0,"color":4,"rotation":[0,0,-45],"origin":[7.16,13.12,7.96],"faces":{"north":{"uv":[11,11,19,19],"texture":0},"east":{"uv":[11,11,19,19],"texture":0},"south":{"uv":[11,11,19,19],"texture":0},"west":{"uv":[11,11,19,19],"texture":0},"up":{"uv":[11,11,19,19],"texture":0},"down":{"uv":[11,11,19,19],"texture":0}},"type":"cube","uuid":"90ef42ca-d63e-5a75-aeb3-4238fba98a1e"},{"name":"Loop right shoulder","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[8.61,13.12,7.74],"to":[9.07,14.01,8.2],"autouv":0,"color":1,"rotation":[0,0,45],"origin":[8.84,13.12,7.96],"faces":{"north":{"uv":[1,11,9,19],"texture":0},"east":{"uv":[1,11,9,19],"texture":0},"south":{"uv":[1,11,9,19],"texture":0},"west":{"uv":[1,11,9,19],"texture":0},"up":{"uv":[1,11,9,19],"texture":0},"down":{"uv":[1,11,9,19],"texture":0}},"type":"cube","uuid":"0953b99b-4e58-5dd0-8a74-a6d4ec6f33b1"},{"name":"Loop top arch","box_uv":false,"render_order":"default","rescale":false,"locked":false,"shade_direction_override":"","light_emission":0,"export":true,"scope":0,"allow_mirror_modeling":true,"from":[7.69,13.56,7.74],"to":[8.31,14.02,8.2],"autouv":0,"color":1,"origin":[7.69,13.56,7.74],"faces":{"north":{"uv":[1,11,9,19],"texture":0},"east":{"uv":[11,11,19,19],"texture":0},"south":{"uv":[1,11,9,19],"texture":0},"west":{"uv":[11,11,19,19],"texture":0},"up":{"uv":[11,11,19,19],"texture":0},"down":{"uv":[11,11,19,19],"texture":0}},"type":"cube","uuid":"2a2f4540-fe2a-5443-8351-729d587ff0b7"}],"groups":[],"outliner":["126bbb04-a132-54af-9a48-e1072e60731f","46df197d-04bf-5195-a52a-6f812f494a6c","89f9d9e6-24f6-5c19-b664-65bc63060168","c2d1e947-61a8-5d37-a3a0-a7f532918ae1","6dd94858-cb69-506d-a74b-cec242ebab1d","48aee8c9-cdb1-59e7-804d-5658226ca279","a842f756-ec4b-56d7-93d1-d8a931f1c775","71690632-33b6-5e8c-b74e-f41712f01412","3c60b5f7-4494-5232-a766-4f5e808e3e14","471e558c-cf60-53a8-9fc1-d31cac90d9bd","4cec4762-1461-51b9-86f5-4c971b6c36ae","187788b7-06da-599c-a2cf-a7697d960032","16885892-9514-518d-bfed-7c0e64fbcbf1","0284be92-8027-545f-b0c4-e89fd2907e9e","ec81ef80-5fc7-5fb3-a893-bd68932c7bf1","746d3f3b-863f-5e65-bd35-bdcaf06fa35d","2084d899-d4eb-5b9a-aa05-316f170253fb","47f3c7d1-44c5-5745-8ef8-efa490089e77","a7d08464-d31b-53fa-8586-e78670e4865c","81a74dd6-b0c4-5ab3-ae60-66bf2d420aa3","2c0fcb31-58ce-5be8-88b7-dd412df494fd","de22230a-9069-5e79-894c-a657fec559da","b58ab704-a83f-58ba-b745-b40983f4b984","aefa8a8f-234a-5f76-87bd-53a2b9488e3a","fa4c231b-a140-5c66-a219-0f8e926e406d","90ef42ca-d63e-5a75-aeb3-4238fba98a1e","0953b99b-4e58-5dd0-8a74-a6d4ec6f33b1","2a2f4540-fe2a-5443-8351-729d587ff0b7"],"textures":[{"name":"simple_talisman.png","path":"","folder":"item/custom","namespace":"astralrecord","id":"surface","group":"","scope":0,"width":64,"height":64,"uv_width":64,"uv_height":64,"particle":true,"use_as_default":false,"layers_enabled":false,"sync_to_project":"","file_format":"png","render_mode":"default","render_sides":"auto","wrap_mode":"limited","pbr_channel":"color","fps":7,"force_translucent":false,"frame_time":1,"frame_order_type":"loop","frame_order":"","frame_interpolate":false,"visible":true,"internal":true,"saved":false,"uuid":"449e23dc-e923-5880-8933-96d57c32acc5","source":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAEE0lEQVR42u2XQWwTRxSGf1ehDYVgpVlns7azhIQ4USVaFSEEAqkFLhGilwquoJ6KBIJ7D1wq9YhEpEotqloJDly4FQUuEaAWEQlaQKgk2MnGWa+9WdsJLElJVFHSw3gms+tdmwSHXN53ye7MyM7/3v/eG0eO7etbAgC9PYq4ugWcgvMCZtEV7/OLrwEA8dhmdHy0UaxPzy6gUJqH/WIRALAhsgQASEhnZPKzCwCAn385BwBoU9SqMzNlRzy3trZ59j5sYedfzjme9SljDACgxDTPerlkAwBKeXb+q5ODEXm/iYvnomV4UEYe58TazpSCQvkf1GPvjjjuPi7UPSeLDSNMdBBcsIwS06DENIw+fFi114QV4hdfKM173nnmTdtFQtkEXWPBvXp7ArtTijjXpqiYKTuBDuCBaVNUvP7vlUf48a/PAgB+HPwWjeC9uoJ9rpiuWDiubBIlEYauRWHaLkzbxdHPe976nz155vvA5zUNQBB/PS3VLQNdi+Lq7QnoWlQEgrthtchZf2cOWCvepPb9DJ7/aX0dcGRfF2uEfTFRAmENkNuelwB3gdwDVsqT7EzDE7GiAFy7kw1thjK8+3PhfvH1nBDmjtWWQNBk8EwBs+iKUcjf5fG4EvicF+++QPF9WWSY4NEH99D3yWeetUu/XggciXzOxxLhzho3rNpjkF+E4uqWqovQWsNLggejmDMb8rk8MHd//zNwP3Lt4ukl/pLsZjVuGczq6fRyxEqzLBjdW9sBAFqS3bhsy4YxVRTn/n3KnvVoM7sXqC0s884cTHdRnNv8/gYAQE8Huzf09rM7QmasjInpZRcZHex7tnexv73bEuzcZB7j2WVrX75yPfLOpgAXH8aXh1L4dJde93NOfPcN9p86jvWkqV72U6kkc8CItxxsK7ix6NFmPLpvIqG2IKG2QOlsxW/DaexNxVh/qbigp2Mj/vjhEnr7FZH9G7dyGPiiE8CyC/yZT6reviS7YFUB4MLDxIv9kb+rsi9bPwils5WNxYr4WqiHDmMAQ6H7fuENH4M1xfvwZ5/3harxk3uGcu6Z6AFvEoQgDuz5GJbDHGg5LizHRWYy35gAWEbWI/7gwH6PeHlfFs+d0L21vWZPyDtzVQ0wDGd4CDdu5arWb448Ec+ZyTyu37wvSqJhPYBn3jKySKctJLu7PMJljKmisL9ffJhQPdocuJcZK6O3X4EzPCR6gzwF5BrnWd/epVVNgVUHQB51PPOyeHlfrns580EN0XQXxSiUA5N5vuAZg5ViEU9c/GiZ/Qr9oDIGx7O2aIhyYIzsdGMc4Ld9kHi55sPuAVxgEPIeFxh4A5T2agl8W/Hr+muQIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAhiLfkfJmvnWhyx8u4AAAAASUVORK5CYII="}],"display":{"thirdperson_righthand":{"rotation":[0,-90,10],"translation":[0,1.23184,0.98805],"scale":[0.86,0.86,0.86]},"thirdperson_lefthand":{"rotation":[0,-90,10],"translation":[0,1.23184,0.98805],"scale":[0.86,0.86,0.86]},"firstperson_righthand":{"rotation":[161,-9,164],"translation":[-0.11826,-0.26256,-1.21816],"scale":[0.43,0.43,0.43]},"firstperson_lefthand":{"rotation":[161,-9,164],"translation":[-0.11826,-0.26256,-1.21816],"scale":[0.43,0.43,0.43]},"ground":{"translation":[0,2.25,0],"scale":[0.48,0.48,0.48]},"gui":{"rotation":[12,154,-15],"translation":[0.40638,-0.07885,0],"scale":[1.25,1.25,1.25]},"fixed":{"rotation":[0,154,0],"scale":[0.7,0.7,0.7]}}}
+{
+  "meta": {
+    "format_version": "5.0",
+    "model_format": "java_block",
+    "box_uv": false
+  },
+  "name": "simple_talisman",
+  "parent": "",
+  "java_block_version": "26.3",
+  "ambientocclusion": true,
+  "front_gui_light": false,
+  "visible_box": [
+    1,
+    1,
+    0
+  ],
+  "variable_placeholders": "",
+  "multi_file_ruleset": "",
+  "variable_placeholder_buttons": [],
+  "unhandled_root_fields": {},
+  "resolution": {
+    "width": 512,
+    "height": 512
+  },
+  "elements": [
+    {
+      "name": "Short holding peg",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        7.47,
+        2.42,
+        7.46
+      ],
+      "to": [
+        8.53,
+        6.34,
+        8.54
+      ],
+      "autouv": 0,
+      "color": 6,
+      "origin": [
+        7.47,
+        2.42,
+        7.46
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            9,
+            9
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            11,
+            1,
+            19,
+            9
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            9,
+            9
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            11,
+            1,
+            19,
+            9
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            21,
+            1,
+            29,
+            9
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            21,
+            1,
+            29,
+            9
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "126bbb04-a132-54af-9a48-e1072e60731f"
+    },
+    {
+      "name": "Peg rounded lower end",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        7.6,
+        2.17,
+        7.57
+      ],
+      "to": [
+        8.4,
+        2.44,
+        8.43
+      ],
+      "autouv": 0,
+      "color": 3,
+      "origin": [
+        7.6,
+        2.17,
+        7.57
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            11,
+            1,
+            19,
+            9
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            11,
+            1,
+            19,
+            9
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            11,
+            1,
+            19,
+            9
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            11,
+            1,
+            19,
+            9
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            21,
+            1,
+            29,
+            9
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            21,
+            1,
+            29,
+            9
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "46df197d-04bf-5195-a52a-6f812f494a6c"
+    },
+    {
+      "name": "Peg linen hand binding",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        7.36,
+        3.38,
+        7.36
+      ],
+      "to": [
+        8.64,
+        4.25,
+        8.64
+      ],
+      "autouv": 0,
+      "color": 1,
+      "origin": [
+        7.36,
+        3.38,
+        7.36
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "89f9d9e6-24f6-5c19-b664-65bc63060168"
+    },
+    {
+      "name": "Upper cross slat",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.52,
+        12.13,
+        7.36
+      ],
+      "to": [
+        10.48,
+        12.62,
+        8.61
+      ],
+      "autouv": 0,
+      "color": 7,
+      "origin": [
+        5.52,
+        12.13,
+        7.36
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            9,
+            9
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            11,
+            1,
+            19,
+            9
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            9,
+            9
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            11,
+            1,
+            19,
+            9
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            21,
+            1,
+            29,
+            9
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            21,
+            1,
+            29,
+            9
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "6dd94858-cb69-506d-a74b-cec242ebab1d"
+    },
+    {
+      "name": "Lower cross slat",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.62,
+        5.67,
+        7.41
+      ],
+      "to": [
+        10.38,
+        6.12,
+        8.57
+      ],
+      "autouv": 0,
+      "color": 2,
+      "origin": [
+        5.62,
+        5.67,
+        7.41
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            9,
+            9
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            11,
+            1,
+            19,
+            9
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            9,
+            9
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            11,
+            1,
+            19,
+            9
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            21,
+            1,
+            29,
+            9
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            21,
+            1,
+            29,
+            9
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "48aee8c9-cdb1-59e7-804d-5658226ca279"
+    },
+    {
+      "name": "Handmade paper with one protective mark",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        6.08,
+        6.22,
+        7.25
+      ],
+      "to": [
+        9.92,
+        11.99,
+        7.55
+      ],
+      "autouv": 0,
+      "color": 8,
+      "origin": [
+        6.08,
+        6.22,
+        7.25
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            41,
+            1,
+            49,
+            9
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            51,
+            1,
+            59,
+            9
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            41,
+            1,
+            49,
+            9
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            51,
+            1,
+            59,
+            9
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            31,
+            1,
+            39,
+            9
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            31,
+            1,
+            39,
+            9
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "a842f756-ec4b-56d7-93d1-d8a931f1c775"
+    },
+    {
+      "name": "Uninked folded paper border left",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.98,
+        6.51,
+        7.19
+      ],
+      "to": [
+        6.34,
+        11.86,
+        7.5
+      ],
+      "autouv": 0,
+      "color": 4,
+      "origin": [
+        5.98,
+        6.51,
+        7.19
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            31,
+            1,
+            39,
+            9
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            51,
+            1,
+            59,
+            9
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            31,
+            1,
+            39,
+            9
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            51,
+            1,
+            59,
+            9
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            51,
+            1,
+            59,
+            9
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            51,
+            1,
+            59,
+            9
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "71690632-33b6-5e8c-b74e-f41712f01412"
+    },
+    {
+      "name": "Uninked folded paper border right",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        9.66,
+        6.44,
+        7.2
+      ],
+      "to": [
+        10.02,
+        11.81,
+        7.51
+      ],
+      "autouv": 0,
+      "color": 1,
+      "origin": [
+        9.66,
+        6.44,
+        7.2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            31,
+            1,
+            39,
+            9
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            51,
+            1,
+            59,
+            9
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            31,
+            1,
+            39,
+            9
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            51,
+            1,
+            59,
+            9
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            51,
+            1,
+            59,
+            9
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            51,
+            1,
+            59,
+            9
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "3c60b5f7-4494-5232-a766-4f5e808e3e14"
+    },
+    {
+      "name": "Uneven paper foot left",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        6.15,
+        6.04,
+        7.27
+      ],
+      "to": [
+        7.27,
+        6.35,
+        7.54
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        6.15,
+        6.04,
+        7.27
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            31,
+            1,
+            39,
+            9
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            51,
+            1,
+            59,
+            9
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            31,
+            1,
+            39,
+            9
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            51,
+            1,
+            59,
+            9
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            51,
+            1,
+            59,
+            9
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            51,
+            1,
+            59,
+            9
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "471e558c-cf60-53a8-9fc1-d31cac90d9bd"
+    },
+    {
+      "name": "Uneven paper foot right",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        8.51,
+        6.09,
+        7.26
+      ],
+      "to": [
+        9.83,
+        6.36,
+        7.54
+      ],
+      "autouv": 0,
+      "color": 9,
+      "origin": [
+        8.51,
+        6.09,
+        7.26
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            31,
+            1,
+            39,
+            9
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            51,
+            1,
+            59,
+            9
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            31,
+            1,
+            39,
+            9
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            51,
+            1,
+            59,
+            9
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            51,
+            1,
+            59,
+            9
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            51,
+            1,
+            59,
+            9
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "4cec4762-1461-51b9-86f5-4c971b6c36ae"
+    },
+    {
+      "name": "Linen front tie across top",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.55,
+        10.83,
+        7.09
+      ],
+      "to": [
+        10.45,
+        11.17,
+        7.29
+      ],
+      "autouv": 0,
+      "color": 6,
+      "origin": [
+        5.55,
+        10.83,
+        7.09
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "187788b7-06da-599c-a2cf-a7697d960032"
+    },
+    {
+      "name": "Linen rear tie across top",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.55,
+        10.83,
+        8.46
+      ],
+      "to": [
+        10.45,
+        11.17,
+        8.66
+      ],
+      "autouv": 0,
+      "color": 3,
+      "origin": [
+        5.55,
+        10.83,
+        8.46
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "16885892-9514-518d-bfed-7c0e64fbcbf1"
+    },
+    {
+      "name": "Linen tie around left board edge",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.55,
+        10.83,
+        7.09
+      ],
+      "to": [
+        5.85,
+        11.17,
+        8.66
+      ],
+      "autouv": 0,
+      "color": 7,
+      "origin": [
+        5.55,
+        10.83,
+        7.09
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "0284be92-8027-545f-b0c4-e89fd2907e9e"
+    },
+    {
+      "name": "Linen tie around right board edge",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        10.15,
+        10.83,
+        7.09
+      ],
+      "to": [
+        10.45,
+        11.17,
+        8.66
+      ],
+      "autouv": 0,
+      "color": 2,
+      "origin": [
+        10.15,
+        10.83,
+        7.09
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "ec81ef80-5fc7-5fb3-a893-bd68932c7bf1"
+    },
+    {
+      "name": "Square tied linen knot",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        8.92,
+        10.66,
+        6.98
+      ],
+      "to": [
+        9.51,
+        11.33,
+        7.24
+      ],
+      "autouv": 0,
+      "color": 1,
+      "origin": [
+        8.92,
+        10.66,
+        6.98
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "746d3f3b-863f-5e65-bd35-bdcaf06fa35d"
+    },
+    {
+      "name": "Left hanging cord tail",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        8.83,
+        9.94,
+        6.98
+      ],
+      "to": [
+        9.27,
+        10.77,
+        7.29
+      ],
+      "autouv": 0,
+      "color": 2,
+      "rotation": [
+        0,
+        0,
+        -22.5
+      ],
+      "origin": [
+        9.05,
+        10.75,
+        7.15
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "2084d899-d4eb-5b9a-aa05-316f170253fb"
+    },
+    {
+      "name": "Right hanging cord tail",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        9.21,
+        10.05,
+        6.98
+      ],
+      "to": [
+        9.65,
+        10.8,
+        7.29
+      ],
+      "autouv": 0,
+      "color": 8,
+      "rotation": [
+        0,
+        0,
+        22.5
+      ],
+      "origin": [
+        9.43,
+        10.75,
+        7.15
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "47f3c7d1-44c5-5745-8ef8-efa490089e77"
+    },
+    {
+      "name": "Small earthy red wax seal",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        7.39,
+        6.95,
+        7.03
+      ],
+      "to": [
+        8.61,
+        8.14,
+        7.27
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        7.39,
+        6.95,
+        7.03
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            21,
+            11,
+            29,
+            19
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            21,
+            11,
+            29,
+            19
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            21,
+            11,
+            29,
+            19
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            21,
+            11,
+            29,
+            19
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            21,
+            11,
+            29,
+            19
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            21,
+            11,
+            29,
+            19
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "a7d08464-d31b-53fa-8586-e78670e4865c"
+    },
+    {
+      "name": "Pressed simple wax stamp",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        7.61,
+        7.17,
+        6.92
+      ],
+      "to": [
+        8.39,
+        7.92,
+        7.05
+      ],
+      "autouv": 0,
+      "color": 1,
+      "origin": [
+        7.61,
+        7.17,
+        6.92
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            31,
+            11,
+            39,
+            19
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            21,
+            11,
+            29,
+            19
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            31,
+            11,
+            39,
+            19
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            21,
+            11,
+            29,
+            19
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            21,
+            11,
+            29,
+            19
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            21,
+            11,
+            29,
+            19
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "81a74dd6-b0c4-5ab3-ae60-66bf2d420aa3"
+    },
+    {
+      "name": "Left slat fixing pin front",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        6.42,
+        12.22,
+        7.23
+      ],
+      "to": [
+        6.78,
+        12.52,
+        7.39
+      ],
+      "autouv": 0,
+      "color": 6,
+      "origin": [
+        6.42,
+        12.22,
+        7.23
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            41,
+            11,
+            49,
+            19
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            41,
+            11,
+            49,
+            19
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            41,
+            11,
+            49,
+            19
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            41,
+            11,
+            49,
+            19
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            41,
+            11,
+            49,
+            19
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            41,
+            11,
+            49,
+            19
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "2c0fcb31-58ce-5be8-88b7-dd412df494fd"
+    },
+    {
+      "name": "Right slat fixing pin front",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        9.22,
+        12.22,
+        7.23
+      ],
+      "to": [
+        9.58,
+        12.52,
+        7.39
+      ],
+      "autouv": 0,
+      "color": 1,
+      "origin": [
+        9.22,
+        12.22,
+        7.23
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            41,
+            11,
+            49,
+            19
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            41,
+            11,
+            49,
+            19
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            41,
+            11,
+            49,
+            19
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            41,
+            11,
+            49,
+            19
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            41,
+            11,
+            49,
+            19
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            41,
+            11,
+            49,
+            19
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "de22230a-9069-5e79-894c-a657fec559da"
+    },
+    {
+      "name": "Rear peg fixing pin",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        7.8,
+        6.26,
+        8.45
+      ],
+      "to": [
+        8.2,
+        6.65,
+        8.63
+      ],
+      "autouv": 0,
+      "color": 1,
+      "origin": [
+        7.8,
+        6.26,
+        8.45
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            41,
+            11,
+            49,
+            19
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            41,
+            11,
+            49,
+            19
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            41,
+            11,
+            49,
+            19
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            41,
+            11,
+            49,
+            19
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            41,
+            11,
+            49,
+            19
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            41,
+            11,
+            49,
+            19
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "b58ab704-a83f-58ba-b745-b40983f4b984"
+    },
+    {
+      "name": "Left loop support",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        6.92,
+        12.56,
+        7.74
+      ],
+      "to": [
+        7.38,
+        13.27,
+        8.2
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        6.92,
+        12.56,
+        7.74
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "aefa8a8f-234a-5f76-87bd-53a2b9488e3a"
+    },
+    {
+      "name": "Right loop support",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        8.62,
+        12.56,
+        7.74
+      ],
+      "to": [
+        9.08,
+        13.27,
+        8.2
+      ],
+      "autouv": 0,
+      "color": 5,
+      "origin": [
+        8.62,
+        12.56,
+        7.74
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "fa4c231b-a140-5c66-a219-0f8e926e406d"
+    },
+    {
+      "name": "Loop left shoulder",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        6.93,
+        13.12,
+        7.74
+      ],
+      "to": [
+        7.39,
+        14.01,
+        8.2
+      ],
+      "autouv": 0,
+      "color": 4,
+      "rotation": [
+        0,
+        0,
+        -45
+      ],
+      "origin": [
+        7.16,
+        13.12,
+        7.96
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "90ef42ca-d63e-5a75-aeb3-4238fba98a1e"
+    },
+    {
+      "name": "Loop right shoulder",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        8.61,
+        13.12,
+        7.74
+      ],
+      "to": [
+        9.07,
+        14.01,
+        8.2
+      ],
+      "autouv": 0,
+      "color": 1,
+      "rotation": [
+        0,
+        0,
+        45
+      ],
+      "origin": [
+        8.84,
+        13.12,
+        7.96
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "0953b99b-4e58-5dd0-8a74-a6d4ec6f33b1"
+    },
+    {
+      "name": "Loop top arch",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        7.69,
+        13.56,
+        7.74
+      ],
+      "to": [
+        8.31,
+        14.02,
+        8.2
+      ],
+      "autouv": 0,
+      "color": 1,
+      "origin": [
+        7.69,
+        13.56,
+        7.74
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            11,
+            9,
+            19
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            11,
+            11,
+            19,
+            19
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "2a2f4540-fe2a-5443-8351-729d587ff0b7"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain front 6 7",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.75,
+        12.12,
+        7.53
+      ],
+      "to": [
+        11.994237,
+        12.341372,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 2,
+      "rotation": [
+        180,
+        0,
+        -87.88909193460094
+      ],
+      "origin": [
+        5.75,
+        12.12,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            98,
+            29,
+            2,
+            125
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            2,
+            29,
+            98,
+            125
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "a7042dbf-aeb7-9c36-da7b-56187ba4b6cd"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain rear 6 7",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.75,
+        12.12,
+        8.47
+      ],
+      "to": [
+        11.99,
+        12.35,
+        8.471
+      ],
+      "autouv": 0,
+      "color": 7,
+      "rotation": [
+        0,
+        0,
+        -90
+      ],
+      "origin": [
+        5.75,
+        12.12,
+        8.47
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            197,
+            29,
+            101,
+            125
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            101,
+            29,
+            197,
+            125
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "314ad8ea-0aab-c6e6-e295-dd2b2d917615"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain front 0 1",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.98,
+        5.88,
+        7.53
+      ],
+      "to": [
+        10.25619,
+        6.097296,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 1,
+      "rotation": [
+        180,
+        0,
+        3.083210009912047
+      ],
+      "origin": [
+        5.98,
+        5.88,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            296,
+            29,
+            200,
+            125
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            200,
+            29,
+            296,
+            125
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "78404005-4888-3e96-a837-98f0c3f59445"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain rear 0 1",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.98,
+        5.88,
+        8.47
+      ],
+      "to": [
+        10.25,
+        6.11,
+        8.471
+      ],
+      "autouv": 0,
+      "color": 3,
+      "origin": [
+        5.98,
+        5.88,
+        8.47
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            395,
+            29,
+            299,
+            125
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            299,
+            29,
+            395,
+            125
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "13d156aa-1644-323d-6aa3-b0988a7730ae"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain front 2 3",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        10.25,
+        6.11,
+        7.53
+      ],
+      "to": [
+        16.494237,
+        6.331372,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 4,
+      "rotation": [
+        180,
+        0,
+        92.11090806539909
+      ],
+      "origin": [
+        10.25,
+        6.11,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            98,
+            29,
+            2,
+            125
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            2,
+            29,
+            98,
+            125
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "1af1db14-2946-a44d-fe1b-f11b2cba971b"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain rear 2 3",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        10.25,
+        6.11,
+        8.47
+      ],
+      "to": [
+        16.49,
+        6.34,
+        8.471
+      ],
+      "autouv": 0,
+      "color": 3,
+      "rotation": [
+        0,
+        0,
+        90
+      ],
+      "origin": [
+        10.25,
+        6.11,
+        8.47
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            197,
+            29,
+            101,
+            125
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            101,
+            29,
+            197,
+            125
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "2affec04-babc-e35a-9c9a-a335198c50b2"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain front 4 5",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        10.02,
+        12.35,
+        7.53
+      ],
+      "to": [
+        14.29619,
+        12.567296,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 0,
+      "rotation": [
+        180,
+        0,
+        -176.91678999008795
+      ],
+      "origin": [
+        10.02,
+        12.35,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            296,
+            29,
+            200,
+            125
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            200,
+            29,
+            296,
+            125
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "a636f81e-aba9-853a-2143-2056a2e317b9"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain rear 4 5",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        10.02,
+        12.35,
+        8.47
+      ],
+      "to": [
+        14.29,
+        12.58,
+        8.471
+      ],
+      "autouv": 0,
+      "color": 4,
+      "rotation": [
+        0,
+        0,
+        180
+      ],
+      "origin": [
+        10.02,
+        12.35,
+        8.47
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            395,
+            29,
+            299,
+            125
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            299,
+            29,
+            395,
+            125
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "ff70c8de-15ae-a05d-e554-7e98420fc489"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain front 6 0",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.75,
+        12.12,
+        7.53
+      ],
+      "to": [
+        13.258002,
+        15.675899,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 8,
+      "rotation": [
+        180,
+        0,
+        -53.17589012771699
+      ],
+      "origin": [
+        5.75,
+        12.12,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            494,
+            29,
+            398,
+            125
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            398,
+            29,
+            494,
+            125
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "7a063ac1-fdb4-c1ef-26b6-56765a69ce7c"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain rear 6 0",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.75,
+        12.12,
+        8.47
+      ],
+      "to": [
+        11.994237,
+        16.395574,
+        8.471
+      ],
+      "autouv": 0,
+      "color": 4,
+      "rotation": [
+        0,
+        0,
+        -87.88909193460094
+      ],
+      "origin": [
+        5.75,
+        12.12,
+        8.47
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            98,
+            128,
+            2,
+            224
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            2,
+            128,
+            98,
+            224
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "62fbdb89-7131-c2f7-02f6-a3c317999959"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain front 2 4",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        10.25,
+        6.11,
+        7.53
+      ],
+      "to": [
+        17.758002,
+        9.665899,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 0,
+      "rotation": [
+        180,
+        0,
+        126.824109872283
+      ],
+      "origin": [
+        10.25,
+        6.11,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            494,
+            29,
+            398,
+            125
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            398,
+            29,
+            494,
+            125
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "6b05579f-65b7-4eda-e91a-4ede637bcb43"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain rear 2 4",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        10.25,
+        6.11,
+        8.47
+      ],
+      "to": [
+        16.494237,
+        10.385574,
+        8.471
+      ],
+      "autouv": 0,
+      "color": 4,
+      "rotation": [
+        0,
+        0,
+        92.11090806539909
+      ],
+      "origin": [
+        10.25,
+        6.11,
+        8.47
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            98,
+            128,
+            2,
+            224
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            2,
+            128,
+            98,
+            224
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "d5133531-2ed9-7375-fb50-6042e36c43f8"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain edge 0 A",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.98,
+        5.88,
+        7.53
+      ],
+      "to": [
+        10.02,
+        6.82,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 7,
+      "rotation": [
+        90,
+        0,
+        0
+      ],
+      "origin": [
+        5.98,
+        5.88,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            197,
+            128,
+            101,
+            224
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            101,
+            128,
+            197,
+            224
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "b444afcf-cf00-55d6-3dc3-08229fde1122"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain edge 0 B",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.98,
+        5.88,
+        7.53
+      ],
+      "to": [
+        10.127915,
+        6.795544,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 1,
+      "rotation": [
+        90,
+        -13.09815079471877,
+        0
+      ],
+      "origin": [
+        5.98,
+        5.88,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            296,
+            128,
+            200,
+            224
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            200,
+            128,
+            296,
+            224
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "a31ddae1-06ed-7224-5fac-3f84fd018734"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain edge 1 A",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        10.02,
+        5.88,
+        7.53
+      ],
+      "to": [
+        10.345269,
+        6.82,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 4,
+      "rotation": [
+        90,
+        0,
+        45
+      ],
+      "origin": [
+        10.02,
+        5.88,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            197,
+            128,
+            101,
+            224
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            101,
+            128,
+            197,
+            224
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "d06d56aa-2fea-9db6-4979-0194fc0a86ef"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain edge 1 B",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        10.02,
+        5.88,
+        7.53
+      ],
+      "to": [
+        11.014686,
+        6.187386,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 1,
+      "rotation": [
+        90,
+        -70.91279479275944,
+        45
+      ],
+      "origin": [
+        10.02,
+        5.88,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            347,
+            128,
+            299,
+            176
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            299,
+            128,
+            347,
+            176
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "a8af61a2-5777-ec19-f1ed-9a1343e84546"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain edge 2 A",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        10.25,
+        6.11,
+        7.53
+      ],
+      "to": [
+        16.26,
+        7.05,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 8,
+      "rotation": [
+        90,
+        0,
+        90
+      ],
+      "origin": [
+        10.25,
+        6.11,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            197,
+            128,
+            101,
+            224
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            101,
+            128,
+            197,
+            224
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "e74b3e69-43e1-0c15-bbc0-d85785ce3a09"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain edge 2 B",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        10.25,
+        6.11,
+        7.53
+      ],
+      "to": [
+        16.333067,
+        7.038709,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 2,
+      "rotation": [
+        90,
+        -8.889383510342137,
+        90
+      ],
+      "origin": [
+        10.25,
+        6.11,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            446,
+            128,
+            350,
+            224
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            350,
+            128,
+            446,
+            224
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "f6e00db6-3a5c-282e-b71e-72963e48f801"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain edge 3 A",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        10.25,
+        12.12,
+        7.53
+      ],
+      "to": [
+        10.575269,
+        13.06,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 4,
+      "rotation": [
+        90,
+        0,
+        135
+      ],
+      "origin": [
+        10.25,
+        12.12,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            197,
+            128,
+            101,
+            224
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            101,
+            128,
+            197,
+            224
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "1012a25e-d510-4eb0-d521-6b412fb1712e"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain edge 3 B",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        10.25,
+        12.12,
+        7.53
+      ],
+      "to": [
+        11.244686,
+        12.427386,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 4,
+      "rotation": [
+        90,
+        -70.91279479275944,
+        135
+      ],
+      "origin": [
+        10.25,
+        12.12,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            347,
+            128,
+            299,
+            176
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            299,
+            128,
+            347,
+            176
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "9cae5f5a-10b9-6828-7b22-9f40f96dcb81"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain edge 4 A",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        10.02,
+        12.35,
+        7.53
+      ],
+      "to": [
+        14.06,
+        13.29,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 9,
+      "rotation": [
+        90,
+        0,
+        180
+      ],
+      "origin": [
+        10.02,
+        12.35,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            197,
+            128,
+            101,
+            224
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            101,
+            128,
+            197,
+            224
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "8ca5c408-f5aa-654e-3fa6-38cf4b52d6aa"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain edge 4 B",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        10.02,
+        12.35,
+        7.53
+      ],
+      "to": [
+        14.167915,
+        13.265544,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 7,
+      "rotation": [
+        90,
+        -13.09815079471877,
+        180
+      ],
+      "origin": [
+        10.02,
+        12.35,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            296,
+            128,
+            200,
+            224
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            200,
+            128,
+            296,
+            224
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "1cfcbc3c-549e-6080-b552-c12ee68d7868"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain edge 5 A",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.98,
+        12.35,
+        7.53
+      ],
+      "to": [
+        6.305269,
+        13.29,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 2,
+      "rotation": [
+        90,
+        0,
+        -135
+      ],
+      "origin": [
+        5.98,
+        12.35,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            197,
+            128,
+            101,
+            224
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            101,
+            128,
+            197,
+            224
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "62117727-8102-4c09-8bd7-dcac83c13335"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain edge 5 B",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.98,
+        12.35,
+        7.53
+      ],
+      "to": [
+        6.974686,
+        12.657386,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 2,
+      "rotation": [
+        90,
+        -70.91279479275944,
+        -135
+      ],
+      "origin": [
+        5.98,
+        12.35,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            347,
+            128,
+            299,
+            176
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            299,
+            128,
+            347,
+            176
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "c9d21937-6531-e24d-d4f3-fd6a71da50c9"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain edge 6 A",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.75,
+        12.12,
+        7.53
+      ],
+      "to": [
+        11.76,
+        13.06,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 7,
+      "rotation": [
+        90,
+        0,
+        -90
+      ],
+      "origin": [
+        5.75,
+        12.12,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            197,
+            128,
+            101,
+            224
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            101,
+            128,
+            197,
+            224
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "6e5c10ce-a053-12dc-ce09-b024f3b88243"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain edge 6 B",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.75,
+        12.12,
+        7.53
+      ],
+      "to": [
+        11.833067,
+        13.048709,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 8,
+      "rotation": [
+        90,
+        -8.889383510342137,
+        -90
+      ],
+      "origin": [
+        5.75,
+        12.12,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            446,
+            128,
+            350,
+            224
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            350,
+            128,
+            446,
+            224
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "adb555a0-eb8e-f0ed-f507-4243a71b9d4a"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain edge 7 A",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.75,
+        6.11,
+        7.53
+      ],
+      "to": [
+        6.075269,
+        7.05,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 3,
+      "rotation": [
+        90,
+        0,
+        -45
+      ],
+      "origin": [
+        5.75,
+        6.11,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            197,
+            128,
+            101,
+            224
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            101,
+            128,
+            197,
+            224
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "4632059e-8bc2-be8c-b294-4998bf1723ad"
+    },
+    {
+      "name": "Cedar tablet chamfered end grain edge 7 B",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.75,
+        6.11,
+        7.53
+      ],
+      "to": [
+        6.744686,
+        6.417386,
+        7.531
+      ],
+      "autouv": 0,
+      "color": 3,
+      "rotation": [
+        90,
+        -70.91279479275944,
+        -45
+      ],
+      "origin": [
+        5.75,
+        6.11,
+        7.53
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            347,
+            128,
+            299,
+            176
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "south": {
+          "uv": [
+            299,
+            128,
+            347,
+            176
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "texture": null
+        }
+      },
+      "type": "cube",
+      "uuid": "70106510-786a-fee6-abfa-cb5d82f327b9"
+    },
+    {
+      "name": "Rear peg mortise shoulder",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        7.36,
+        5.72,
+        8.35
+      ],
+      "to": [
+        8.64,
+        6.9,
+        8.72
+      ],
+      "autouv": 0,
+      "color": 2,
+      "origin": [
+        7.36,
+        5.72,
+        8.35
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "42a59245-720e-34c5-d9a7-abf1cf3aff02"
+    },
+    {
+      "name": "Narrow raised cedar edge 5.91",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        5.91,
+        6.14,
+        8.45
+      ],
+      "to": [
+        6.05,
+        12.06,
+        8.52
+      ],
+      "autouv": 0,
+      "color": 2,
+      "origin": [
+        5.91,
+        6.14,
+        8.45
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "34d4058c-1e28-5a7c-591a-013b67282419"
+    },
+    {
+      "name": "Narrow raised cedar edge 9.95",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        9.95,
+        6.14,
+        8.45
+      ],
+      "to": [
+        10.09,
+        12.06,
+        8.52
+      ],
+      "autouv": 0,
+      "color": 7,
+      "origin": [
+        9.95,
+        6.14,
+        8.45
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "74e4c8b0-fe5c-1b39-e835-b362f50d6e96"
+    },
+    {
+      "name": "Linen securing peg collar 6.07",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        7.34,
+        6.07,
+        8.52
+      ],
+      "to": [
+        8.66,
+        6.21,
+        8.78
+      ],
+      "autouv": 0,
+      "color": 1,
+      "origin": [
+        7.34,
+        6.07,
+        8.52
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            108,
+            2,
+            124,
+            26
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            108,
+            2,
+            124,
+            26
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            108,
+            2,
+            124,
+            26
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            108,
+            2,
+            124,
+            26
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            108,
+            2,
+            124,
+            26
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            108,
+            2,
+            124,
+            26
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "736032b7-075c-214e-eec6-760356145bde"
+    },
+    {
+      "name": "Linen securing peg collar 6.35",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        7.34,
+        6.35,
+        8.52
+      ],
+      "to": [
+        8.66,
+        6.49,
+        8.78
+      ],
+      "autouv": 0,
+      "color": 1,
+      "origin": [
+        7.34,
+        6.35,
+        8.52
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            108,
+            2,
+            124,
+            26
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            108,
+            2,
+            124,
+            26
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            108,
+            2,
+            124,
+            26
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            108,
+            2,
+            124,
+            26
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            108,
+            2,
+            124,
+            26
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            108,
+            2,
+            124,
+            26
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "76ee9328-9896-20ca-5167-ca76aa162762"
+    },
+    {
+      "name": "Peg bevel -1",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        7.51,
+        2.58,
+        8.435
+      ],
+      "to": [
+        7.63,
+        3.3,
+        8.585
+      ],
+      "autouv": 0,
+      "color": 9,
+      "origin": [
+        7.57,
+        2.94,
+        8.51
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "afb3068f-5cde-6ad6-e8b8-2ac59533e1f4"
+    },
+    {
+      "name": "Peg bevel 1",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        8.37,
+        2.58,
+        8.435
+      ],
+      "to": [
+        8.49,
+        3.3,
+        8.585
+      ],
+      "autouv": 0,
+      "color": 9,
+      "origin": [
+        8.43,
+        2.94,
+        8.51
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            70,
+            2,
+            86,
+            26
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "34908a8b-c267-bc82-f312-1f2a8a9e773d"
+    },
+    {
+      "name": "Recessed longitudinal wood split 6.7",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        6.7,
+        7.25,
+        8.469
+      ],
+      "to": [
+        6.745,
+        8.5,
+        8.478
+      ],
+      "autouv": 0,
+      "color": 1,
+      "origin": [
+        6.7,
+        7.25,
+        8.469
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "d4291ead-f5b2-fb44-9305-d0b4c087e10f"
+    },
+    {
+      "name": "Recessed longitudinal wood split 9.25",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        9.25,
+        8.1,
+        8.469
+      ],
+      "to": [
+        9.295,
+        9.9,
+        8.478
+      ],
+      "autouv": 0,
+      "color": 3,
+      "origin": [
+        9.25,
+        8.1,
+        8.469
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "165cc02b-97d5-e880-72b1-9634f404923a"
+    },
+    {
+      "name": "Recessed longitudinal wood split 7",
+      "box_uv": false,
+      "render_order": "default",
+      "rescale": false,
+      "locked": false,
+      "shade_direction_override": "",
+      "light_emission": 0,
+      "export": true,
+      "scope": 0,
+      "allow_mirror_modeling": true,
+      "from": [
+        7,
+        10.3,
+        8.469
+      ],
+      "to": [
+        7.045,
+        11,
+        8.478
+      ],
+      "autouv": 0,
+      "color": 6,
+      "origin": [
+        7,
+        10.3,
+        8.469
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            89,
+            2,
+            105,
+            26
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "b3cc41fe-b396-47f3-0814-3eb2fe952f9c"
+    }
+  ],
+  "groups": [
+    {
+      "name": "Crafted simple_talisman",
+      "uuid": "143fbe1d-fee5-7bfb-e7a3-3e636c4a6d81",
+      "export": true,
+      "locked": false,
+      "scope": 0,
+      "selected": false,
+      "visibility": true,
+      "_static": {
+        "properties": {},
+        "temp_data": {}
+      },
+      "origin": [
+        8,
+        4,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 0,
+      "children": [],
+      "reset": false,
+      "shade": true,
+      "mirror_uv": false,
+      "autouv": 0,
+      "isOpen": false,
+      "primary_selected": false
+    }
+  ],
+  "outliner": [
+    "126bbb04-a132-54af-9a48-e1072e60731f",
+    "46df197d-04bf-5195-a52a-6f812f494a6c",
+    "89f9d9e6-24f6-5c19-b664-65bc63060168",
+    "6dd94858-cb69-506d-a74b-cec242ebab1d",
+    "48aee8c9-cdb1-59e7-804d-5658226ca279",
+    "a842f756-ec4b-56d7-93d1-d8a931f1c775",
+    "71690632-33b6-5e8c-b74e-f41712f01412",
+    "3c60b5f7-4494-5232-a766-4f5e808e3e14",
+    "471e558c-cf60-53a8-9fc1-d31cac90d9bd",
+    "4cec4762-1461-51b9-86f5-4c971b6c36ae",
+    "187788b7-06da-599c-a2cf-a7697d960032",
+    "16885892-9514-518d-bfed-7c0e64fbcbf1",
+    "0284be92-8027-545f-b0c4-e89fd2907e9e",
+    "ec81ef80-5fc7-5fb3-a893-bd68932c7bf1",
+    "746d3f3b-863f-5e65-bd35-bdcaf06fa35d",
+    "2084d899-d4eb-5b9a-aa05-316f170253fb",
+    "47f3c7d1-44c5-5745-8ef8-efa490089e77",
+    "a7d08464-d31b-53fa-8586-e78670e4865c",
+    "81a74dd6-b0c4-5ab3-ae60-66bf2d420aa3",
+    "2c0fcb31-58ce-5be8-88b7-dd412df494fd",
+    "de22230a-9069-5e79-894c-a657fec559da",
+    "b58ab704-a83f-58ba-b745-b40983f4b984",
+    "aefa8a8f-234a-5f76-87bd-53a2b9488e3a",
+    "fa4c231b-a140-5c66-a219-0f8e926e406d",
+    "90ef42ca-d63e-5a75-aeb3-4238fba98a1e",
+    "0953b99b-4e58-5dd0-8a74-a6d4ec6f33b1",
+    "2a2f4540-fe2a-5443-8351-729d587ff0b7",
+    {
+      "uuid": "143fbe1d-fee5-7bfb-e7a3-3e636c4a6d81",
+      "isOpen": false,
+      "children": [
+        "a7042dbf-aeb7-9c36-da7b-56187ba4b6cd",
+        "314ad8ea-0aab-c6e6-e295-dd2b2d917615",
+        "78404005-4888-3e96-a837-98f0c3f59445",
+        "13d156aa-1644-323d-6aa3-b0988a7730ae",
+        "1af1db14-2946-a44d-fe1b-f11b2cba971b",
+        "2affec04-babc-e35a-9c9a-a335198c50b2",
+        "a636f81e-aba9-853a-2143-2056a2e317b9",
+        "ff70c8de-15ae-a05d-e554-7e98420fc489",
+        "7a063ac1-fdb4-c1ef-26b6-56765a69ce7c",
+        "62fbdb89-7131-c2f7-02f6-a3c317999959",
+        "6b05579f-65b7-4eda-e91a-4ede637bcb43",
+        "d5133531-2ed9-7375-fb50-6042e36c43f8",
+        "b444afcf-cf00-55d6-3dc3-08229fde1122",
+        "a31ddae1-06ed-7224-5fac-3f84fd018734",
+        "d06d56aa-2fea-9db6-4979-0194fc0a86ef",
+        "a8af61a2-5777-ec19-f1ed-9a1343e84546",
+        "e74b3e69-43e1-0c15-bbc0-d85785ce3a09",
+        "f6e00db6-3a5c-282e-b71e-72963e48f801",
+        "1012a25e-d510-4eb0-d521-6b412fb1712e",
+        "9cae5f5a-10b9-6828-7b22-9f40f96dcb81",
+        "8ca5c408-f5aa-654e-3fa6-38cf4b52d6aa",
+        "1cfcbc3c-549e-6080-b552-c12ee68d7868",
+        "62117727-8102-4c09-8bd7-dcac83c13335",
+        "c9d21937-6531-e24d-d4f3-fd6a71da50c9",
+        "6e5c10ce-a053-12dc-ce09-b024f3b88243",
+        "adb555a0-eb8e-f0ed-f507-4243a71b9d4a",
+        "4632059e-8bc2-be8c-b294-4998bf1723ad",
+        "70106510-786a-fee6-abfa-cb5d82f327b9",
+        "42a59245-720e-34c5-d9a7-abf1cf3aff02",
+        "34d4058c-1e28-5a7c-591a-013b67282419",
+        "74e4c8b0-fe5c-1b39-e835-b362f50d6e96",
+        "736032b7-075c-214e-eec6-760356145bde",
+        "76ee9328-9896-20ca-5167-ca76aa162762",
+        "afb3068f-5cde-6ad6-e8b8-2ac59533e1f4",
+        "34908a8b-c267-bc82-f312-1f2a8a9e773d",
+        "d4291ead-f5b2-fb44-9305-d0b4c087e10f",
+        "165cc02b-97d5-e880-72b1-9634f404923a",
+        "b3cc41fe-b396-47f3-0814-3eb2fe952f9c"
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "name": "simple_talisman.png",
+      "path": "",
+      "folder": "item/custom",
+      "namespace": "astralrecord",
+      "id": "surface",
+      "group": "",
+      "scope": 0,
+      "width": 512,
+      "height": 512,
+      "uv_width": 512,
+      "uv_height": 512,
+      "particle": true,
+      "use_as_default": false,
+      "layers_enabled": false,
+      "sync_to_project": "",
+      "file_format": "png",
+      "render_mode": "default",
+      "render_sides": "auto",
+      "wrap_mode": "limited",
+      "pbr_channel": "color",
+      "fps": 7,
+      "force_translucent": false,
+      "frame_time": 1,
+      "frame_order_type": "loop",
+      "frame_order": "",
+      "frame_interpolate": false,
+      "visible": true,
+      "internal": true,
+      "saved": false,
+      "uuid": "449e23dc-e923-5880-8933-96d57c32acc5",
+      "source": "data:image/png;base64,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"
+    }
+  ],
+  "display": {
+    "thirdperson_righthand": {
+      "rotation": [
+        0,
+        -90,
+        10
+      ],
+      "translation": [
+        0,
+        1.23184,
+        0.98805
+      ],
+      "scale": [
+        0.86,
+        0.86,
+        0.86
+      ]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [
+        0,
+        -90,
+        10
+      ],
+      "translation": [
+        0,
+        1.23184,
+        0.98805
+      ],
+      "scale": [
+        0.86,
+        0.86,
+        0.86
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        161,
+        -9,
+        164
+      ],
+      "translation": [
+        -0.11826,
+        -0.26256,
+        -1.21816
+      ],
+      "scale": [
+        0.43,
+        0.43,
+        0.43
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        161,
+        -9,
+        164
+      ],
+      "translation": [
+        -0.11826,
+        -0.26256,
+        -1.21816
+      ],
+      "scale": [
+        0.43,
+        0.43,
+        0.43
+      ]
+    },
+    "ground": {
+      "translation": [
+        0,
+        2.25,
+        0
+      ],
+      "scale": [
+        0.48,
+        0.48,
+        0.48
+      ]
+    },
+    "gui": {
+      "rotation": [
+        12,
+        154,
+        -15
+      ],
+      "translation": [
+        0.40638,
+        -0.07885,
+        0
+      ],
+      "scale": [
+        1.25,
+        1.25,
+        1.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        154,
+        0
+      ],
+      "scale": [
+        0.7,
+        0.7,
+        0.7
+      ]
+    }
+  }
+}
