@@ -974,18 +974,18 @@
       "base_item": "minecraft:diamond_sword",
       "custom_model_data": 220438,
       "sha256": {
-        "assets/astralrecord/models/item/custom/astra_sword.json": "2bb9aad0d1033c189f948a70b5b53ed6d43bfba0fe712975628e358607b6ea89",
+        "assets/astralrecord/models/item/custom/astra_sword.json": "807aa222181717c38058ba79f0f2b96bf3f2501acb58d745936fecc6ea4f22cf",
         "assets/astralrecord/models/item/custom/astra_sword_virtual_use.json": "c4b9f378c317a213c042838e3857f8c23712a0ca7436cccaba8da623bcc65877",
-        "assets/astralrecord/textures/item/custom/astra_sword.png": "e2d4ef14680352e149819b3a6d85e06c8c7195987a378d86f33a8ef0e9453329",
+        "assets/astralrecord/textures/item/custom/astra_sword.png": "505b801eca941988cdc3c964697d0f2c822a5bc6c0c5a82f17bf438e152080fd",
         "bedrock/animations/astra_sword.animation.json": "3baf1360b29f6bf9019d616d022c90a1b79750b7cebad6be937a2aeceec074ff",
         "bedrock/attachables/astra_sword.json": "37ada1da9250d1b9ac95f916ef9c6d8e8d638cf5407a334ef25dedb7ebadf4f3",
-        "bedrock/models/entity/items/astra_sword.geo.json": "905dfa8e7cd0954baa9ca9ef91943dde7891a8bd3e2335f2969d9afd024d1471",
-        "bedrock/textures/entity/items/astra_sword.png": "e2d4ef14680352e149819b3a6d85e06c8c7195987a378d86f33a8ef0e9453329",
-        "blockbench/pixel-art/astra_sword.pixel.json": "1e5b387962a3b72f8f91cced39c232ae2ebbb570eda2c28ea6aba28548a4a64e",
-        "bedrock/textures/items/astra_sword.png": "f40da0526a16fcd9bff841bc0d464e67c12dead831b5c52110ef5665a993cfca",
+        "bedrock/models/entity/items/astra_sword.geo.json": "60dfe7fb9ae453f865f44b374a55b68dfd9e3dda370a0ad9f2965585a26fa80d",
+        "bedrock/textures/entity/items/astra_sword.png": "505b801eca941988cdc3c964697d0f2c822a5bc6c0c5a82f17bf438e152080fd",
+        "blockbench/pixel-art/astra_sword.pixel.json": "2ed6ea574221db19d96e01544b1484db31ef84b6715838c6a8c4e588bd714e07",
+        "bedrock/textures/items/astra_sword.png": "ed5a29b7a922f0aabc50b494c3ff717645fda2465adf259894080d95df056b83",
         "blockbench/equipment-drafts/astra_sword.json": "de115d317b9d8d8d6e06620e0dcaebda46e6bd6cb07ae0107c798c401d6b0307",
-        "blockbench/items/astra_sword.bedrock.bbmodel": "a30b043359f50bf4c2b70ac683f6ed690804dafec49869da4b5b89723c956fe1",
-        "blockbench/items/astra_sword.java.bbmodel": "ab4d9839900ce8a8635b28848ab4ddf52b1c5459551563243da8b55ca50815e8"
+        "blockbench/items/astra_sword.bedrock.bbmodel": "c193c7c1a4e42e0fea7c1a0301a73e2b4641da2da2bb40a0d47a35da5fc4bd03",
+        "blockbench/items/astra_sword.java.bbmodel": "ae380d0a3a50061c997d8562c329a28b3cd1c05c51ca10259375613fa3957bc8"
       }
     },
     {
