@@ -1019,18 +1019,18 @@
       "base_item": "minecraft:diamond_spear",
       "custom_model_data": 220440,
       "sha256": {
-        "assets/astralrecord/models/item/custom/astra_spear.json": "293c1763f69657ababf1aa9fb21632512d823e86cf9a10ac722d929c76b6a34b",
+        "assets/astralrecord/models/item/custom/astra_spear.json": "539f3cbc4b5eced6938575221c971f31a75c094a3dec93f11e2a47c24871b3a5",
         "assets/astralrecord/models/item/custom/astra_spear_virtual_use.json": "890ef4d8c2c20382092e0618be7faffb5206c10dd405fab2dded3b117b12186a",
-        "assets/astralrecord/textures/item/custom/astra_spear.png": "2f80fb2348b4c65920b12f4b65b7616db70b91c0c8a1a5c95b31c15b2bed86c5",
+        "assets/astralrecord/textures/item/custom/astra_spear.png": "6653f0e0b2c1be9b03e2c3bfe4721e4541ff0e3e51cee2e27051aa139982544b",
         "bedrock/animations/astra_spear.animation.json": "13c54894df6c4c48b97cca4126f089f94123791438628582ab446ea49dcd662c",
         "bedrock/attachables/astra_spear.json": "1ffb66b5b1f54e0da160845ff60049cfc08d127f80289d778018a192eb39b1e0",
-        "bedrock/models/entity/items/astra_spear.geo.json": "214d167738fdc97c46cf41447210ccb197d5e3bfe2d97554da807d56f4064b5e",
-        "bedrock/textures/entity/items/astra_spear.png": "2f80fb2348b4c65920b12f4b65b7616db70b91c0c8a1a5c95b31c15b2bed86c5",
-        "blockbench/pixel-art/astra_spear.pixel.json": "177e8502044e92edd0a75d09961d2a7f639757f3bd9963dab0a3f194de564ccb",
-        "bedrock/textures/items/astra_spear.png": "dbdbc5d0af8db590399637f2e294ef64fdd9728860c70ff75ca582442572fbaa",
+        "bedrock/models/entity/items/astra_spear.geo.json": "11be2f5a87caa6685b49c8b4629f1c29287661d3d075a81439c0ad4de94f397a",
+        "bedrock/textures/entity/items/astra_spear.png": "6653f0e0b2c1be9b03e2c3bfe4721e4541ff0e3e51cee2e27051aa139982544b",
+        "blockbench/pixel-art/astra_spear.pixel.json": "183c11747579b0d14c07a076a3f0405ae965edbfaa0e2e6eb9984e48a3601976",
+        "bedrock/textures/items/astra_spear.png": "b2899fbf63fcbdd6be5f41c0f70d8e0c197fc043a3d78a25fe7ec693a126c4af",
         "blockbench/equipment-drafts/astra_spear.json": "623cca8d79dfe264ce9daa9b114c739f02d5c19814002206549b5cca756553f4",
-        "blockbench/items/astra_spear.bedrock.bbmodel": "24715e6143445e66192d0abe582bade983b4c1ea64f6410f8b423b3ee0bdcbda",
-        "blockbench/items/astra_spear.java.bbmodel": "c161ea240ff5573cd707388187998b13ee4ebcdfda7c35c2248b4cbff7918931"
+        "blockbench/items/astra_spear.bedrock.bbmodel": "2f5b3cba558f11905a8c3bdc9f83f3bfc5b988985ffe7c1245934e4a81dbc2a9",
+        "blockbench/items/astra_spear.java.bbmodel": "def4f8e2f712c1bef129f41dfd3d4cdce7d0fdfaa04c89afada735b42cf02800"
       }
     },
     {
