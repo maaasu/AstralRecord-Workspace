@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.hud.view;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.hud.HudMsgId;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillCooldownHudEntry;
 import io.github.maaasu.astralRecord.feature.hud.model.SidebarBuffPageState;
 import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeSidebarInfo;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonSidebarInfo;
@@ -148,20 +149,23 @@ public class PlayerHudView {
      * @param dungeonInfo 挑戦中のダンジョン情報
      * @param showBuffInfo 通常バフの詳細を表示するならtrue
      * @param activeBuffs 現在有効な効果
+     * @param equippedSkills 現在装備している発動スキルのCT一覧
      */
     public void renderJavaLocationHud(Player player, String worldName, String areaName, int areaLevel,
             boolean showPerformanceInfo, double mspt, @Nullable BossChallengeSidebarInfo bossInfo,
-            @Nullable DungeonSidebarInfo dungeonInfo, boolean showBuffInfo, List<ActiveBuff> activeBuffs) {
+            @Nullable DungeonSidebarInfo dungeonInfo, boolean showBuffInfo, List<ActiveBuff> activeBuffs,
+            List<SkillCooldownHudEntry> equippedSkills) {
         UUID playerId = player.getUniqueId();
         int ping = showPerformanceInfo ? player.getPing() : 0;
         var performance = showPerformanceInfo
                 ? new LocationHudGlyphs.Performance(mspt, ping, msptTextColor(mspt), pingTextColor(ping)) : null;
         var page = buffPages.computeIfAbsent(playerId, ignored -> new SidebarBuffPageState());
+        boolean expanded = resourcePackService.hasJavaSkillCooldownHud(playerId);
         var rows = LocationHudGlyphs.layout(worldName, areaName, areaLevel, performance, bossInfo, dungeonInfo,
-                page, activeBuffs, showBuffInfo, buffHudIcons, LocalDateTime.now());
+                page, activeBuffs, showBuffInfo, buffHudIcons, LocalDateTime.now(), equippedSkills, expanded);
         JavaLocationHud previous = javaLocations.get(playerId);
-        if (previous == null || !previous.rows().equals(rows)) {
-            javaLocations.put(playerId, new JavaLocationHud(rows, LocationHudGlyphs.render(rows)));
+        if (previous == null || previous.expanded() != expanded || !previous.rows().equals(rows)) {
+            javaLocations.put(playerId, new JavaLocationHud(rows, LocationHudGlyphs.render(rows, expanded), expanded));
         }
         removeSidebar(player);
     }
@@ -175,7 +179,7 @@ public class PlayerHudView {
         return javaLocations.remove(playerId) != null;
     }
 
-    private record JavaLocationHud(List<LocationHudGlyphs.Row> rows, Component component) {
+    private record JavaLocationHud(List<LocationHudGlyphs.Row> rows, Component component, boolean expanded) {
     }
 
     /**

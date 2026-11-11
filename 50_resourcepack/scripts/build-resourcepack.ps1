@@ -521,7 +521,7 @@ if ($utf8.GetString($java['player-progress-hud-version.txt']) -cne '6') {
 }
 Add-BuffHudJavaEntries $java
 
-if ($utf8.GetString($java['location-hud-version.txt']) -cne '4') {
+if ($utf8.GetString($java['location-hud-version.txt']) -cne '5') {
     throw 'Unsupported Location HUD version.'
 }
 $spaceFont = $utf8.GetString($java['assets/astralrecord/font/quest_hud_space.json']) | ConvertFrom-Json
@@ -551,8 +551,8 @@ if ($locationIcons.Count -ne 1 -or $locationIcons[0].type -cne 'bitmap' -or
     throw 'Location HUD icons differ from the buff atlas. Run scripts/generate-quest-hud-java.py to regenerate the font.'
 }
 foreach ($shader in $hudTextShaders) {
-    if (-not $utf8.GetString($java[$shader]).Contains('// BEGIN ASTRALRECORD LOCATION HUD V4')) {
-        throw "Missing Location HUD version 4 relocation in Java pack shader: $shader"
+    if (-not $utf8.GetString($java[$shader]).Contains('// BEGIN ASTRALRECORD LOCATION HUD V5')) {
+        throw "Missing Location HUD version 5 relocation in Java pack shader: $shader"
     }
 }
 

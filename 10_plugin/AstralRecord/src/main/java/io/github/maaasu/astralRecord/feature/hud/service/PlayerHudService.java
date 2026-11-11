@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.hud.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.hud.model.QuestHudLayout;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillCooldownHudEntry;
 import io.github.maaasu.astralRecord.feature.hud.view.PlayerHudView;
 import io.github.maaasu.astralRecord.feature.hud.view.QuestHudGlyphs;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
@@ -62,6 +63,13 @@ public class PlayerHudService {
     private ArchmagePhoenixRuntimeService archmagePhoenixRuntimeService;
     private DungeonService dungeonService;
     private QuestService questService;
+    private Function<AstPlayer, List<SkillCooldownHudEntry>> skillCooldownProvider = ignored -> List.of();
+
+    /** @param provider メインスレッドで現在装備とCTを返す、通信を伴わない参照先 */
+    public void setSkillCooldownProvider(@NotNull Function<AstPlayer, List<SkillCooldownHudEntry>> provider) {
+        skillCooldownProvider = provider;
+    }
+
     private java.util.function.BiPredicate<Player, String> bedrockQuestHudSender = (player, text) -> false;
     private final Map<UUID, JavaQuestHud> javaQuestHuds = new HashMap<>();
     private final Map<UUID, String> bedrockQuestTexts = new HashMap<>();
@@ -438,7 +446,9 @@ public class PlayerHudService {
         var activeBuffs = statusService.getActiveBuffs(astPlayer);
         if (overlay && resourcePackService.hasJavaLocationHud(player.getUniqueId())) {
             playerHudView.renderJavaLocationHud(player, worldName, regionName, regionLevel, showPerformanceInfo,
-                    mspt, bossInfo, dungeonInfo, showBuffInfo, activeBuffs);
+                    mspt, bossInfo, dungeonInfo, showBuffInfo, activeBuffs,
+                    resourcePackService.hasJavaSkillCooldownHud(player.getUniqueId())
+                            ? skillCooldownProvider.apply(astPlayer) : List.of());
             return true;
         }
 

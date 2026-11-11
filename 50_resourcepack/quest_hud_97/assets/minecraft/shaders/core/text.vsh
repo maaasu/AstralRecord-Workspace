@@ -135,17 +135,17 @@ void main() {
     }
 #endif
     // END ASTRALRECORD QUEST HUD
-    // BEGIN ASTRALRECORD LOCATION HUD V4
+    // BEGIN ASTRALRECORD LOCATION HUD V5
 #if defined(IS_GUI)
     // Shares the Quest negative-ascent window with a disjoint RGB marker range.
-    // Red encodes row count and palette, green is x.
-    // Blue encodes row (bits 0-3), shadow (bit 4), and performance palette (bit 5).
-    int locationRows = questType / 8 + 1;
-    int locationStyle = (questType & 7) + ((questCode.b & 32) >> 2);
-    int locationRow = questCode.b & 15;
-    bool locationShadow = (questCode.b & 16) != 0;
+    // Red encodes row-count pairs and palette, green is x.
+    // Blue: row bits 0-4, shadow bit 5, performance palette bit 6, row-count parity bit 7.
+    int locationRows = (questType / 8) * 2 + 1 + (questCode.b >> 7);
+    int locationStyle = (questType & 7) + ((questCode.b & 64) >> 3);
+    int locationRow = questCode.b & 31;
+    bool locationShadow = (questCode.b & 32) != 0;
     bool locationIcon = locationStyle == 7;
-    if (questProjection && questType < 128 && questCode.g < 172 && questCode.b < 64
+    if (questProjection && questType < 128 && questCode.g < 172 && questCode.b < 256
             && locationStyle < 11 && locationRow < locationRows
             && !(locationShadow && locationIcon)
             && questScreen.y > questHeight + 4000.0 && questScreen.y < questHeight + 4120.0) {
@@ -186,5 +186,5 @@ void main() {
         vertexColor = vec4(vec3(locationShadow ? tint / 4 : tint) / 255.0, Color.a);
     }
 #endif
-    // END ASTRALRECORD LOCATION HUD V4
+    // END ASTRALRECORD LOCATION HUD V5
 }
