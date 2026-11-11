@@ -223,6 +223,12 @@ Java 版は表示用 ItemDisplay の `custom_model_data.strings[0]` で `assets/
 
 統合版は `astralrecord:world_display` の状態値に応じて、対応する形状とテクスチャを選びます。新しいパックの公開後に対応する AstralRecordGeyserExtension を配置して Proxy を再起動し、統合版の接続をやり直します。変換の仕様は [Geyser 拡張の導入手順](../10_plugin/AstralRecordGeyserExtension/README.md) を参照してください。
 
+石碑は所持・着用アイテムではなく、配置地点の専用3D表示です。統合版では生成マーカー付きの空TextDisplayをGeyserが `astralrecord:world_display` に変換し、`astralrecord:style` の0（未解除）/1（解除済み）で同じ形状の赤橙/青緑テクスチャを選びます。名称・解除費用の文字は別のTextDisplayで表示します。モデル対応パックがない接続では専用モデルを送らず、名称と状態色の粒子を維持します。
+
+`python scripts/validate-world-display.py` は、両版の石碑の形状・全面UV・状態別テクスチャと描画参照を照合し、配布元資産を使った3方向の比較PNGとJSON結果を `../target/bedrock-teleporter-qa/` へ出力します。PillowとNumPyが必要です。`--java-pack <ZIP>` と `--bedrock-pack <MCPACK>` を併用すると、生成アーカイブの参照と収録資産も検証します。比較PNGはキューブとUVを使う独立したソフトウェア描画で、Minecraftクライアントの描画結果ではありません。
+
+2026-11-11の確認では、未解除・解除済みの8パーツと全面UV・64×64テクスチャが両版で一致し、現行パックとGeyser拡張による隔離通信検証で3D識別子・状態・座標・表示倍率・非表示フラグ・消去を確認しました。パックなし・旧パック・必要資産が欠けたパックの代替表示も確認しました。実際の統合版クライアントでの描画と、本番環境への適用は未確認です。
+
 ## ボス・ダンジョン受付
 
 ボス受付では石の祭壇に桃色の浮遊剣、ダンジョン受付では青緑の石門を表示します。表示は受付地点の向きに合わせます。スニーク案内はモデルの上に表示します。
