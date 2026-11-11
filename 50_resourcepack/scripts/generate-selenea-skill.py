@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parent.parent
 STYLES = (
     'warning_circle', 'warning_line', 'warning_boundary', 'warning_safe',
     'impact', 'impact_line', 'wave', 'bolt', 'warning_edge',
-    'warning_grimoire', 'impact_grimoire',
+    'warning_grimoire', 'impact_grimoire', 'gate', 'eclipse',
 )
 ATLAS_SIZE = 256
 FACES = ('north', 'south', 'west', 'east', 'up', 'down')
@@ -33,8 +33,9 @@ SWATCHES = {name: (index * 8, 232) for index, name in enumerate(PALETTE)}
 PATTERNS = {
     'circle': (0, 0, 128), 'boundary': (128, 0, 128), 'seal': (0, 128, 96),
     'page': (96, 128, 32), 'cover': (128, 128, 32), 'wave': (160, 128, 96),
+    'eclipse': (96, 160, 64),
 }
-DECALS = ('circle', 'boundary', 'seal', 'wave')
+DECALS = ('circle', 'boundary', 'seal', 'wave', 'eclipse')
 PIVOTS = {
     'left_leaf': (0, 4.5, 0), 'right_leaf': (0, 4.5, 0),
 }
@@ -94,6 +95,13 @@ def texture():
     draw.rectangle((x+14, y+13, x+17, y+18), fill='#f3c6ed')
     x, y, size = PATTERNS['wave']
     draw.ellipse((x, y, x + size - 1, y + size - 1), outline=PALETTE['lilac'][1])
+    x, y, size = PATTERNS['eclipse']
+    moon = Image.new('RGBA', (size, size))
+    pen = ImageDraw.Draw(moon)
+    pen.ellipse((1, 1, size - 2, size - 2), outline=PALETTE['moonlight'][2], width=2)
+    pen.ellipse((5, 5, size - 6, size - 6), fill='#120a1c', outline=PALETTE['lilac'][1], width=2)
+    pen.arc((9, 9, size - 10, size - 10), 200, 320, fill=PALETTE['moonlight'][1], width=2)
+    atlas.paste(moon, (x, y))
     data = BytesIO()
     atlas.save(data, format='PNG', optimize=True)
     return data.getvalue()
@@ -116,6 +124,9 @@ class Part:
     def uv(self, face):
         if self.pattern and face in ('up', 'down'):
             u, v, size = PATTERNS[self.pattern]
+            if self.pattern == 'eclipse':
+                # Sample inside the tile so its neighbors cannot leak onto the disc's edges.
+                return (u + 1, v + 1, size - 2, size - 2)
             return (u, v, size, size)
         u, v = SWATCHES[self.material]
         return (u + 1, v + 1, 6, 5)
@@ -282,6 +293,34 @@ def grimoire(frame, impact_spell):
     return parts if frame is None else grimoire_pose(parts, frame, impact_spell)
 
 
+def gate(frame):
+    parts = []
+    for index in range(16):
+        angle = math.radians(index * 22.5)
+        x, y = 7.15 * math.sin(angle), 8 + 7.15 * math.cos(angle)
+        parts.append(Part((x, y, 0), (2.8, 2.8, .94 if index % 2 == 0 else .88), 'ink'))
+        parts.append(Part((x * .93, 8 + (y - 8) * .93, 0), (1.1, 1.1, 1.3), 'lilac'))
+        if index % 4 == 0:
+            parts.append(Part((x * 1.05, 8 + (y - 8) * 1.05, 0), (.8, .8, 1.7), 'moonlight'))
+    for y, width in ((5, 5), (8, 7.5), (11, 5)):
+        parts.append(Part((0, y, 0), (width, .35, .3), 'silver', 'gate_flow'))
+    if frame is None:
+        return parts
+    return transform(parts, 'gate_flow', shift=(0, (-2.4, -.8, .8, 2.4)[frame], 0))
+
+
+def eclipse(frame):
+    parts = [Part((0, .06, 0), (16, .06, 16), 'ink', pattern='eclipse')]
+    for index in range(16):
+        long = index % 2 == 0
+        radial(parts, index * 22.5, 7.2 if long else 6.6, .06,
+               (.5, .3, 2.6 if long else 1.5), 'moonlight' if long else 'lilac', 'corona')
+    if frame is None:
+        return parts
+    scale = (.86, .95, 1.04, .95)[frame]
+    return transform(parts, 'corona', scale=(scale, 1, scale))
+
+
 def transform(parts, bone, scale=(1, 1, 1), shift=(0, 0, 0)):
     for part in parts:
         if part.bone == bone:
@@ -319,6 +358,10 @@ def model(style, frame=None):
         return wave(frame)
     if style == 'bolt':
         return bolt(frame)
+    if style == 'gate':
+        return gate(frame)
+    if style == 'eclipse':
+        return eclipse(frame)
     return grimoire(frame, style == 'impact_grimoire')
 
 
@@ -417,6 +460,8 @@ def skill_animation():
             'right_leaf': {'rotation': [0, 0, '-variable.leaf_angle']},
             'pages': {'scale': ['variable.page_scale', 1, 'variable.page_scale'],
                       'position': [0, 'variable.style == 10 ? 0.1 + 2.5 * variable.arc : 0.4 * variable.breath', 0]},
+            'gate_flow': {'position': [0, 'math.lerp(-2.4, 2.4, variable.pulse)', 0]},
+            'corona': {'scale': ['0.86 + 0.18 * variable.breath', 1, '0.86 + 0.18 * variable.breath']},
         },
     }}}
 

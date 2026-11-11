@@ -19,10 +19,10 @@ class BossSkillEntityTest {
     @Test
     void decodesSeleneaStylesAndRejectsTheNextStyle() {
         long seleneaMarker = 0x41535453454c4631L;
-        var uuid = new UUID(seleneaMarker, 0x0200200200aL);
-        assertEquals(new BossSkillEntity.Frame(10, 1f, 1f, 1f), BossSkillEntity.decode(uuid, seleneaMarker, 10));
+        var uuid = new UUID(seleneaMarker, 0x0200200200cL);
+        assertEquals(new BossSkillEntity.Frame(12, 1f, 1f, 1f), BossSkillEntity.decode(uuid, seleneaMarker, 12));
         assertNull(BossSkillEntity.decode(uuid, SUNBIRD_MARKER, SUNBIRD_MAX_STYLE));
-        assertNull(BossSkillEntity.decode(new UUID(seleneaMarker, 0x0200200200bL), seleneaMarker, 10));
+        assertNull(BossSkillEntity.decode(new UUID(seleneaMarker, 0x0200200200dL), seleneaMarker, 12));
     }
 
     @Test

@@ -86,6 +86,14 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 
 拡張 `1.18.0` 以降は、互換版 `1` の `selenea-presentation-version.txt` と、本体・スキルの描画ファイルが揃ったパックを登録してログインした接続を確認します。Velocity の AstralRecordProxy `1.6.0` 以降が RPG に対応を通知します。対応した接続では、RPG が印を付けたウィッチを `astralrecord:selenea` に変換し、移動・詠唱・攻撃・復帰の動きと無敵中の外観を更新します。警告・発動・飛翔演出は `astralrecord:selenea_skill` で描画します。対応を確認できない接続ではウィッチと RPG のパーティクルを表示します。パック更新後は再接続してください。
 
+拡張 `1.27.0` 以降は、転送門のアーチと月蝕の円盤の形状（11・12）に対応します。パックを API で公開し、Geyser 拡張を更新して Proxy を再起動した後、RPG Plugin を更新してください。判定と粒子・音は以下の組み合わせでも同じです。
+
+| 組み合わせ | 新形状の見え方 |
+|:--|:--|
+| 新 Plugin と旧拡張 | 統合版では拡張が未知の形状番号を破棄し、この2形状の表示を省略します。 |
+| 新 Plugin・新拡張と旧統合版パック | 旧パックの上限である形状10（魔導書の着弾）で表示します。 |
+| 新 Plugin と旧 Java 版パック | 欠損モデルを表示します。 |
+
 ## Bedrock のアークメイジのフェニックス
 
 拡張 `1.26.0` と AstralRecordProxy `1.6.7` 以降は、互換版 `1` の `archmage-phoenix-presentation-version.txt` と、フェニックスのエンティティ定義・形状・テクスチャ・アニメーションが揃ったパックに対応します。Geyser の `gameplay.force-resource-packs: true` で配布対象に登録したパックでログインまで進んだ接続を、Velocity が RPG に通知します。RPG が印を付けたオウムを `astralrecord:archmage_phoenix` として表示し、統合版クライアントが羽ばたきを繰り返します。パックを利用できない接続では RPG の代替演出を表示します。更新後は Proxy を再起動し、統合版クライアントを再接続してください。

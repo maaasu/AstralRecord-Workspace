@@ -20,7 +20,9 @@
         "bolt": "geometry.astralrecord.selenea_bolt",
         "warning_edge": "geometry.astralrecord.selenea_warning_edge",
         "warning_grimoire": "geometry.astralrecord.selenea_warning_grimoire",
-        "impact_grimoire": "geometry.astralrecord.selenea_impact_grimoire"
+        "impact_grimoire": "geometry.astralrecord.selenea_impact_grimoire",
+        "gate": "geometry.astralrecord.selenea_gate",
+        "eclipse": "geometry.astralrecord.selenea_eclipse"
       },
       "animations": {
         "shape": "animation.astralrecord.selenea_skill.shape"

@@ -67,7 +67,7 @@ public final class AstralRecordGeyserExtension implements Extension {
         0x41535453554e4231L, 0x41535453554e4631L, 0x41535453554e4d31L, 5, 3,
         DamagePack::sunbird, DamagePack::sunbirdMotion);
     private final BossDisplay selenea = new BossDisplay("selenea", "witch",
-        0x41535453454c4231L, 0x41535453454c4631L, 0x41535453454c4d31L, 10, 4,
+        0x41535453454c4231L, 0x41535453454c4631L, 0x41535453454c4d31L, 12, 4,
         DamagePack::selenea, DamagePack::selenea);
     private WorldDisplayEntity worldDisplays;
     private CustomEntityDefinition receptionDisplayDefinition;
