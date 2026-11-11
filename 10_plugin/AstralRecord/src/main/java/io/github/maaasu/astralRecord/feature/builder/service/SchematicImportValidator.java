@@ -44,7 +44,7 @@ public final class SchematicImportValidator {
      *
      * @param compressed gzip 圧縮済みのアップロード内容
      * @param maxBlocks 選択範囲の最大体積
-     * @return 保存元 Minecraft のデータ版と、パレットに記載された名前空間付きブロック ID
+     * @return 保存元 Minecraft のデータ版と、パレットに記載されたブロック状態
      * @throws IOException 読めないデータまたは許可範囲外のデータが含まれる場合
      */
     public static Validation validate(byte[] compressed, int maxBlocks) throws IOException {
@@ -73,15 +73,12 @@ public final class SchematicImportValidator {
 
         Compound blocks = schematic.required("Blocks", Compound.class);
         blocks.requireOnly(Set.of("Palette", "Data", "BlockEntities"));
-        String[] palette = readPalette(blocks.required("Palette", Compound.class), dimensions.volume());
+        Compound paletteTag = blocks.required("Palette", Compound.class);
+        String[] palette = readPalette(paletteTag, dimensions.volume());
         TagList blockEntities = blocks.optional("BlockEntities", TagList.class);
         Map<Integer, String> blockEntitiesByIndex = readBlockEntities(blockEntities, dimensions);
         validateBlockData(blocks.required("Data", byte[].class), palette, dimensions.volume(), blockEntitiesByIndex);
-        Set<String> blockIds = new HashSet<>();
-        for (String id : palette) {
-            blockIds.add("minecraft:" + id);
-        }
-        return new Validation(dataVersion, Set.copyOf(blockIds));
+        return new Validation(dataVersion, Set.copyOf(paletteTag.values().keySet()), schematic.values().containsKey("Offset"));
     }
 
     /** 符号なし short の寸法を取り出し、体積が設定範囲内か調べる。 */
@@ -164,7 +161,7 @@ public final class SchematicImportValidator {
     }
 
     /** WorldEdit の入力構文へ展開されないバニラのブロック状態から ID を取り出す。 */
-    private static String readBlockState(String state) throws IOException {
+    static String readBlockState(String state) throws IOException {
         if (state.length() > MAX_BLOCK_STATE_LENGTH) {
             throw new IOException("Invalid schematic block state");
         }
@@ -294,8 +291,8 @@ public final class SchematicImportValidator {
         return block.endsWith(suffix) && prefixes.contains(block.substring(0, block.length() - suffix.length()));
     }
 
-    /** WorldEdit の解釈前に検証した、Minecraft データ版と名前空間付きブロック ID。 */
-    public record Validation(int dataVersion, Set<String> blockIds) {
+    /** WorldEdit の解釈前に検証した Minecraft データ版、ブロック状態、任意の Offset の有無。 */
+    public record Validation(int dataVersion, Set<String> blockStates, boolean hasOffset) {
     }
 
     private record Dimensions(int width, int height, int length, int volume) {

@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.builder.model.BuilderRequest;
 import io.github.maaasu.astralRecord.feature.builder.model.BuilderSelectionAction;
 import io.github.maaasu.astralRecord.feature.builder.model.BuilderSettings;
 import io.github.maaasu.astralRecord.feature.builder.model.WorldEditSnapshot;
+import io.github.maaasu.astralRecord.feature.builder.repository.BuilderSchematicRepository.Entry;
 import io.github.maaasu.astralRecord.feature.builder.service.BuilderService;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
@@ -119,6 +120,11 @@ public final class BuilderGui {
     /** 画面状態と確認要求をholderに保持して、共通の安全な遷移を使います。 */
     private void show(Player player, Screen screen, Screen back, boolean replaceFrom,
                       boolean allBlocks, int page, @Nullable BuilderRequest request) {
+        show(player, screen, back, replaceFrom, allBlocks, page, request, List.of());
+    }
+
+    private void show(Player player, Screen screen, Screen back, boolean replaceFrom,
+                      boolean allBlocks, int page, @Nullable BuilderRequest request, List<Entry> schematics) {
         if (!player.isOnline() || !service.checkAccess(player)) return;
         Holder holder = new Holder(player.getUniqueId(), screen, back, replaceFrom, allBlocks, page);
         Inventory inventory = Bukkit.createInventory(holder, SIZE, Component.text("ビルダー | " + screen.label, NamedTextColor.GOLD));
@@ -131,6 +137,7 @@ public final class BuilderGui {
             case MATERIAL -> materials(holder, settings);
             case EDIT -> edit(player, holder, settings, snapshot);
             case COPY -> clipboard(player, holder, settings, snapshot);
+            case SCHEMATICS -> schematics(holder, schematics);
             case SHAPES -> shapes(player, holder, settings, snapshot);
             case REPEAT -> repeat(player, holder, settings, snapshot);
             case GUIDE -> guide(holder);
@@ -155,9 +162,34 @@ public final class BuilderGui {
         button(holder, 28, Material.SNOW_BLOCK, "球・円柱を作る", List.of("範囲選択は不要です", "通常は立っている位置を基準に作ります", "確認画面のWorldEdit基準位置を確認してください", "半径や高さをボタンで調整できます"), p -> show(p, Screen.SHAPES));
         button(holder, 30, Material.PISTON, "繰り返す・移動する", List.of("選択した範囲を指定方向へ並べる/移す", "方向・距離/回数をボタンで調整できます"), p -> show(p, Screen.REPEAT));
         button(holder, 32, Material.BOOK, "使い方・困ったとき", List.of("初めての操作例、コピーの基準位置", "取り消し・空気・マスクの注意点"), p -> show(p, Screen.GUIDE));
+        if (service.schematicImport().enabled()) {
+            button(holder, 34, Material.WRITABLE_BOOK, ".schemを登録", List.of("本人用のアップロードリンクをチャットに表示します"), p -> {
+                holder.consumed = false;
+                service.schematicImport().sendUploadLink(p);
+            });
+            button(holder, 36, Material.CHEST, "登録済み建築", List.of("Webで登録した建築を読み込みます"), p -> {
+                holder.consumed = false;
+                service.schematicImport().list(p, entries -> show(p, Screen.SCHEMATICS, Screen.HOME, false, false, 0, null, entries));
+            });
+        }
         operation(player, holder, 38, BuilderOperation.UNDO, snapshot, "直前のWorldEdit編集を1回取り消します", "失敗したときは、まずこのボタンへ");
         operation(player, holder, 42, BuilderOperation.REDO, snapshot, "取り消したWorldEdit編集を1回やり直します");
         status(holder, 49, snapshot);
+    }
+
+    /** 本人が登録した建築から、クリップボードに読み込むファイルを選びます。 */
+    private void schematics(Holder holder, List<Entry> entries) {
+        if (entries.isEmpty()) {
+            info(holder, 22, Material.PAPER, "登録済み建築はありません", "ホームの「.schemを登録」から登録できます");
+            return;
+        }
+        for (int slot = 0; slot < Math.min(entries.size(), PAGE_SIZE); slot++) {
+            Entry entry = entries.get(slot);
+            button(holder, slot, Material.PAPER, entry.name(), List.of("現在のクリップボードに読み込みます"), player -> {
+                holder.consumed = false;
+                service.schematicImport().load(player, entry.id(), () -> show(player, Screen.COPY));
+            });
+        }
     }
 
     /** 対角2隅の指定、選択ツール、範囲の拡縮を説明とともに表示します。 */
@@ -502,7 +534,7 @@ public final class BuilderGui {
     /** GUIの画面種別と表示名です。 */
     private enum Screen {
         HOME("ホーム"), SELECTION("範囲を選ぶ"), MATERIAL("素材を選ぶ"), EDIT("範囲の編集"),
-        COPY("コピー・貼り付け"), SHAPES("球・円柱"), REPEAT("繰り返し・移動"), GUIDE("使い方"), CONFIRM("実行前の確認");
+        COPY("コピー・貼り付け"), SCHEMATICS("登録済み建築"), SHAPES("球・円柱"), REPEAT("繰り返し・移動"), GUIDE("使い方"), CONFIRM("実行前の確認");
         private final String label;
         /** 画面名を設定します。 */
         Screen(String label) { this.label = label; }

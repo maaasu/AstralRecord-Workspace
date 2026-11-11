@@ -11,7 +11,9 @@ import java.util.Set;
 import java.util.zip.GZIPOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SchematicImportValidatorTest {
     private static final int DATA_VERSION = 4671;
@@ -36,7 +38,13 @@ class SchematicImportValidatorTest {
         SchematicImportValidator.Validation validation = SchematicImportValidator.validate(file, 2);
 
         assertEquals(DATA_VERSION, validation.dataVersion());
-        assertEquals(Set.of("minecraft:stone", "minecraft:lectern"), validation.blockIds());
+        assertEquals(Set.of("stone", "minecraft:lectern[facing=west,has_book=false,powered=false]"),
+                validation.blockStates());
+        assertFalse(validation.hasOffset());
+        SchematicImportValidator.Validation normalized =
+                SchematicImportValidator.validate(SchematicImportNbt.withDefaultOffset(file), 2);
+        assertTrue(normalized.hasOffset());
+        assertEquals(validation.blockStates(), normalized.blockStates());
     }
 
     /**

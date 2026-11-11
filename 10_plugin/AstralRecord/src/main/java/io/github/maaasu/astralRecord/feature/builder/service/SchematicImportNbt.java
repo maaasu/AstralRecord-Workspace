@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.builder.service;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.zip.CRC32;
 import java.util.zip.DataFormatException;
+import java.util.zip.GZIPOutputStream;
 import java.util.zip.Inflater;
 
 /** アップロード用のサイズと構造の上限を設けた gzip / Java NBT 読み取り。 */
@@ -51,6 +53,23 @@ final class SchematicImportNbt {
     /** 単一 gzip メンバー内にある無名のルート Compound 全体を読む。 */
     static Compound read(byte[] compressed) throws IOException {
         return new SchematicImportNbt(inflate(compressed)).readRoot();
+    }
+
+    /** Offset を省略した検証済み v3 に既定の [0, 0, 0] を補う。 */
+    static byte[] withDefaultOffset(byte[] validated) throws IOException {
+        byte[] nbt = inflate(validated);
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream(validated.length);
+        try (DataOutputStream output = new DataOutputStream(new GZIPOutputStream(buffer))) {
+            // 末尾の Schematic と無名ルートの終端は入力検証で確認済み。
+            output.write(nbt, 0, nbt.length - 2);
+            output.writeByte(INT_ARRAY);
+            output.writeUTF("Offset");
+            output.writeInt(3);
+            output.write(new byte[3 * Integer.BYTES]);
+            output.writeByte(END);
+            output.writeByte(END);
+        }
+        return buffer.toByteArray();
     }
 
     /** gzip のフッターを照合し、解凍サイズと後続データを検証する。 */

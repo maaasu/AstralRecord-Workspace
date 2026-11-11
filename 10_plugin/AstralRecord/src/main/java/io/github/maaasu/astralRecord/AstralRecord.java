@@ -895,6 +895,7 @@ public final class AstralRecord extends JavaPlugin {
 
         // 4. イベントとコマンドを登録
         registerPluginFeatures();
+        builderService.schematicImport().start();
         playerActivityHistoryService.start();
         donationNotificationService.start();
         marketGuiEventHandler.startWebPurchasePolling();

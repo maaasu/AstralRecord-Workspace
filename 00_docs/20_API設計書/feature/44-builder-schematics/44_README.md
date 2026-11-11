@@ -1,6 +1,6 @@
 # ビルダースキーマティック API
 
-AstralRecord Web で受け付けた `.schem` を Dev Minecraft サーバーで検証し、承認済みのファイルを本人の `/builder load` に提供する。
+AstralRecord Web で受け付けた `.schem` を Dev Minecraft サーバーで検証し、承認済みのファイルを本人の `/builder` の「登録済み建築」に表示する。
 
 - 実装は `20_api/AstralRecordApi/AstralRecordApi/` の `Controllers/BuilderSchematicsController.cs`、`Models/BuilderSchematicModels.cs`、`Repositories/BuilderSchematicRepository.cs`。
 - 対応 Plugin 機能は [[38_0-概要|ビルダーGUI]]。

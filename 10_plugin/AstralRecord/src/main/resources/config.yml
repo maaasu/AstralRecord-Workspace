@@ -15,6 +15,10 @@ plugin:
 # 取り消し・やり直しの履歴サイズはWorldEdit自身が管理します。
 builder:
   maxBlocks: 100000
+  schematicImport:
+    # dev のみ。既存の AstralRecordWeb の HTTPS ベース URL と API の BuilderSchematics:DevKey を指定。
+    webBaseUrl: ""
+    devKey: ""
 
 # Player connection capacity
 # maxPlayers is reserved for PLAYER. donorExtraPlayers can be used by active account VIP and ADMIN,

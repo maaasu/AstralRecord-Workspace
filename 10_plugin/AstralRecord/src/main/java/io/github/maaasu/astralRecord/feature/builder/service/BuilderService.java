@@ -26,12 +26,19 @@ public final class BuilderService {
     public static final String PERMISSION = "astralrecord.builder";
     private final Plugin plugin;
     private final WorldEditGateway gateway = new WorldEditGateway();
+    private final BuilderSchematicImport schematicImport;
     private final Map<UUID, BuilderSettings> settings = new HashMap<>();
     private final Map<UUID, BuilderRequest> pending = new HashMap<>();
     private boolean stopped;
 
     /** @param plugin 同期タスクとGUI上限設定を提供する本体プラグイン */
-    public BuilderService(Plugin plugin) { this.plugin = plugin; }
+    public BuilderService(Plugin plugin) {
+        this.plugin = plugin;
+        schematicImport = new BuilderSchematicImport(plugin, gateway);
+    }
+
+    /** @return dev 専用の建築ファイル登録と読み込み */
+    public BuilderSchematicImport schematicImport() { return schematicImport; }
 
     /**
      * GUIの利用権限を判定します。WorldEdit操作の権限は別途維持します。
@@ -185,7 +192,12 @@ public final class BuilderService {
     public void clear(UUID playerId) { settings.remove(playerId); pending.remove(playerId); }
 
     /** プラグイン停止時に未実行要求と設定を破棄します。 */
-    public void stop() { stopped = true; settings.clear(); pending.clear(); }
+    public void stop() {
+        stopped = true;
+        schematicImport.stop();
+        settings.clear();
+        pending.clear();
+    }
 
     /** 素材名はBukkit定数から作り、空白やWorldEdit式を受け入れません。 */
     private boolean valid(BuilderSettings options) {
