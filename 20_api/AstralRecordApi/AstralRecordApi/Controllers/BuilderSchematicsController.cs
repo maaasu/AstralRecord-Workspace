@@ -86,6 +86,28 @@ public sealed class BuilderSchematicsController(IBuilderSchematicRepository repo
         return upload is null ? NotFound() : Ok(upload);
     }
 
+    /// <summary>Lists the owner's pending and registered uploads, newest first.</summary>
+    [HttpGet("uploads")]
+    [BuilderSchematicAccess]
+    public ActionResult<IReadOnlyList<BuilderSchematicResponse>> GetUploads([FromQuery] Guid userUuid)
+    {
+        if (userUuid == Guid.Empty)
+            return BadRequest();
+
+        return Ok(repository.GetUploads(userUuid));
+    }
+
+    /// <summary>Removes an upload and its content for the owner.</summary>
+    [HttpDelete("uploads/{id:guid}")]
+    [BuilderSchematicAccess]
+    public IActionResult DeleteUpload(Guid id, [FromQuery] Guid userUuid)
+    {
+        if (userUuid == Guid.Empty)
+            return BadRequest();
+
+        return repository.DeleteUpload(id, userUuid) ? NoContent() : NotFound();
+    }
+
     /// <summary>Returns the queue of uploads awaiting development-server validation.</summary>
     [HttpGet("pending")]
     [BuilderSchematicAccess(devOnly: true)]

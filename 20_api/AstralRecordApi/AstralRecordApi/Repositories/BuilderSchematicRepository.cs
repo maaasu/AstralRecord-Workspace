@@ -102,6 +102,27 @@ public sealed class BuilderSchematicRepository(
         return rows.Read() ? ReadResponse(rows) : null;
     }
 
+    public IReadOnlyList<BuilderSchematicResponse> GetUploads(Guid userUuid)
+    {
+        using var connection = OpenDatabase();
+        using var command = Command(connection, null, """
+            SELECT id, name, status, error FROM uploads
+            WHERE user_uuid = $owner AND status IN ($pending, $registered)
+            ORDER BY created_at DESC, id DESC
+            LIMIT $limit
+            """, ("$owner", userUuid), ("$pending", BuilderSchematicStatus.Pending),
+            ("$registered", BuilderSchematicStatus.Registered), ("$limit", MaxStoredPerOwner));
+        return ReadResponses(command);
+    }
+
+    public bool DeleteUpload(Guid id, Guid userUuid)
+    {
+        using var connection = OpenDatabase();
+        using var command = Command(connection, null,
+            "DELETE FROM uploads WHERE id = $id AND user_uuid = $owner", ("$id", id), ("$owner", userUuid));
+        return command.ExecuteNonQuery() == 1;
+    }
+
     public IReadOnlyList<BuilderSchematicResponse> GetPending() =>
         GetList(BuilderSchematicStatus.Pending, null);
 
@@ -153,6 +174,11 @@ public sealed class BuilderSchematicRepository(
             WHERE status = $status AND ($owner IS NULL OR user_uuid = $owner)
             ORDER BY created_at, id
             """, ("$status", status), ("$owner", userUuid));
+        return ReadResponses(command);
+    }
+
+    private static IReadOnlyList<BuilderSchematicResponse> ReadResponses(SqliteCommand command)
+    {
         using var rows = command.ExecuteReader();
         var results = new List<BuilderSchematicResponse>();
         while (rows.Read())
