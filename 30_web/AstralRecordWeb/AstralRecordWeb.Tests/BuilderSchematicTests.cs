@@ -127,6 +127,48 @@ public sealed class BuilderSchematicTests
         Assert.Equal(1, api.UploadCalls);
     }
 
+    [Fact]
+    public async Task ListAndDelete_UseSessionIdentityAndRequireAntiforgeryForDeletion()
+    {
+        var api = new ApiHandler { UploadStatus = "registered" };
+        await using var factory = new Factory(api);
+        using var client = CreateClient(factory);
+        await Login(client, "/Login", false, "/MyPage");
+
+        using var list = await client.GetAsync(PagePath + "?userUuid=" + Guid.NewGuid());
+        AssertPrivate(list);
+        var receiptPath = PagePath + "?id=" + api.UploadId;
+        var listBody = WebUtility.HtmlDecode(await list.Content.ReadAsStringAsync());
+        Assert.Contains("自分のアップロード", listBody);
+        Assert.Contains($"href=\"{receiptPath}\"", listBody);
+        Assert.Contains("tower", listBody);
+        Assert.DoesNotContain(ApiKey, listBody);
+
+        var receipt = await client.GetStringAsync(receiptPath);
+        Assert.Contains("handler=Delete", receipt);
+        var deletePath = receiptPath + "&handler=Delete&userUuid=" + Guid.NewGuid();
+        using var noAntiforgery = await client.PostAsync(deletePath, new FormUrlEncodedContent([]));
+        Assert.Equal(HttpStatusCode.BadRequest, noAntiforgery.StatusCode);
+        Assert.Equal(0, api.DeleteCalls);
+
+        using var removed = await client.PostAsync(deletePath, new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = HiddenValue(receipt, "__RequestVerificationToken"),
+            ["userUuid"] = Guid.NewGuid().ToString(),
+        }));
+        Assert.Equal(HttpStatusCode.Found, removed.StatusCode);
+        AssertPrivate(removed);
+        Assert.Equal(PagePath, removed.Headers.Location!.OriginalString);
+        Assert.Equal(1, api.DeleteCalls);
+
+        var updated = WebUtility.HtmlDecode(await client.GetStringAsync(PagePath));
+        Assert.Contains("アップロードを削除しました", updated);
+        Assert.Contains("アップロードはありません", updated);
+        Assert.DoesNotContain(receiptPath, updated);
+        using var notFound = await client.GetAsync(receiptPath);
+        Assert.Equal(HttpStatusCode.NotFound, notFound.StatusCode);
+    }
+
     private static HttpClient CreateClient(Factory factory) => factory.CreateClient(new WebApplicationFactoryClientOptions
     {
         BaseAddress = new Uri("https://localhost"),
@@ -198,6 +240,8 @@ public sealed class BuilderSchematicTests
 
         public Guid UploadId { get; } = Guid.NewGuid();
         public int UploadCalls { get; private set; }
+        public int DeleteCalls { get; private set; }
+        public bool Deleted { get; private set; }
         public string UploadStatus { get; set; } = "pending";
         public string? ErrorCode { get; set; }
         public HttpStatusCode SubmissionStatus { get; init; } = HttpStatusCode.Accepted;
@@ -229,11 +273,25 @@ public sealed class BuilderSchematicTests
                     : new HttpResponseMessage(SubmissionStatus);
             }
 
-            if (path == $"/api/builder-schematics/uploads/{UploadId:D}")
+            var upload = new { id = UploadId, name = "tower", status = UploadStatus, error = ErrorCode };
+            if (path == "/api/builder-schematics/uploads" && request.Method == HttpMethod.Get)
             {
                 Assert.Equal(ApiKey, Assert.Single(request.Headers.GetValues("X-Api-Key")));
                 Assert.Equal("?userUuid=" + userId, request.RequestUri.Query);
-                return Json(HttpStatusCode.OK, new { id = UploadId, name = "tower", status = UploadStatus, error = ErrorCode });
+                return Json(HttpStatusCode.OK, Deleted ? [] : new[] { upload });
+            }
+
+            if (path == $"/api/builder-schematics/uploads/{UploadId:D}" && !Deleted)
+            {
+                Assert.Equal(ApiKey, Assert.Single(request.Headers.GetValues("X-Api-Key")));
+                Assert.Equal("?userUuid=" + userId, request.RequestUri.Query);
+                if (request.Method == HttpMethod.Delete)
+                {
+                    DeleteCalls++;
+                    Deleted = true;
+                    return new HttpResponseMessage(HttpStatusCode.NoContent);
+                }
+                return Json(HttpStatusCode.OK, upload);
             }
             return new HttpResponseMessage(HttpStatusCode.NotFound);
         }
