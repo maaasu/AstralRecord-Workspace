@@ -829,6 +829,14 @@ def validate(files):
                     raise ValueError('%s: invalid parent %s' % (path.name, bone['parent']))
 
 
+def same_content(path, data):
+    """Compare text assets with LF line endings so CRLF checkouts verify like the pack build."""
+    current = path.read_bytes()
+    if path.suffix in ('.json', '.txt'):
+        return current.replace(b'\r\n', b'\n') == data
+    return current == data
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true', help='verify committed files instead of writing')
@@ -838,7 +846,7 @@ def main():
     mismatched = []
     for path, data in sorted(files.items()):
         if args.check:
-            if not path.exists() or path.read_bytes() != data:
+            if not path.exists() or not same_content(path, data):
                 mismatched.append(path.relative_to(ROOT).as_posix())
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
