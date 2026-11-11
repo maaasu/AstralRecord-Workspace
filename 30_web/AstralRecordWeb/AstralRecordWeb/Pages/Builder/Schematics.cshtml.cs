@@ -18,8 +18,11 @@ public sealed class SchematicsModel(BuilderSchematicApiClient api) : PageModel
 
     [BindProperty] public string? Token { get; set; }
     [BindProperty] public IFormFile? SchematicFile { get; set; }
+    [TempData] public string? StatusMessage { get; set; }
     public bool CanUpload { get; private set; }
+    public bool ShowList { get; private set; }
     public Guid? StatusId { get; private set; }
+    public IReadOnlyList<BuilderSchematicUpload> Uploads { get; private set; } = [];
     public BuilderSchematicUpload? Upload { get; private set; }
     public string? ErrorMessage { get; private set; }
 
@@ -51,11 +54,20 @@ public sealed class SchematicsModel(BuilderSchematicApiClient api) : PageModel
                 StatusId = uploadId;
             }
         }
-        else
+        else if (token is not null)
         {
             Token = token;
             CanUpload = IsUploadToken(Token);
             if (!CanUpload) ErrorMessage = LinkInstructions;
+        }
+        else
+        {
+            ShowList = true;
+            var uploads = await api.ListAsync(playerId, ct);
+            if (uploads is not null)
+                Uploads = uploads.Where(upload => upload is { Id: var entryId, Status: "pending" or "registered" } && entryId != Guid.Empty).ToArray();
+            else
+                ErrorMessage = "建築の一覧を取得できませんでした。しばらくしてから更新してください。";
         }
         return Page();
     }
@@ -84,10 +96,32 @@ public sealed class SchematicsModel(BuilderSchematicApiClient api) : PageModel
                 HttpStatusCode.Forbidden => "このリンクでは送信できません。発行したMinecraftアカウントでログインし、新しいリンクを発行してください。",
                 HttpStatusCode.BadRequest => ".schem ファイルの形式またはファイル名を確認してください。",
                 HttpStatusCode.RequestEntityTooLarge => "1 MiB 以下のファイルを選択してください。",
-                HttpStatusCode.TooManyRequests => "登録の上限に達しました。時間をおいて再度お試しください。",
+                HttpStatusCode.TooManyRequests => "登録の上限に達しました。不要なファイルを一覧から削除するか、確認中のファイルの処理が終わってからお試しください。",
                 _ => "送信結果を確認できませんでした。しばらくしてから開発サーバーの「登録済み建築」を確認してください。",
             };
         }
+        return Page();
+    }
+
+    public async Task<IActionResult> OnPostDeleteAsync(Guid id, CancellationToken ct)
+    {
+        if (!TryGetPlayer(out var playerId)) return Challenge();
+        if (id == Guid.Empty) return NotFound();
+
+        var code = await api.DeleteAsync(playerId, id, ct);
+        if (code == HttpStatusCode.NoContent)
+        {
+            StatusMessage = "アップロードを削除しました。";
+            return RedirectToPage("/Builder/Schematics");
+        }
+        if (code == HttpStatusCode.NotFound)
+        {
+            StatusMessage = "指定したアップロードは一覧にありません。";
+            return RedirectToPage("/Builder/Schematics");
+        }
+
+        ErrorMessage = "削除の結果を確認できませんでした。登録状況を更新してください。";
+        StatusId = id;
         return Page();
     }
 

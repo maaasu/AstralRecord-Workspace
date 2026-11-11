@@ -14,6 +14,32 @@
                     {
                         <p class="alert alert-warning" role="alert">@error</p>
                     }
+                    @if (Model.StatusMessage is { } message)
+                    {
+                        <p class="alert alert-info" role="status">@message</p>
+                    }
+
+                    @if (Model.ShowList)
+                    {
+                        <h2 class="h4">自分のアップロード</h2>
+                        @if (Model.Uploads.Count > 0)
+                        {
+                            <ul>
+                                @foreach (var item in Model.Uploads)
+                                {
+                                    <li class="mb-2">
+                                        <a asp-page="/Builder/Schematics" asp-route-id="@item.Id">@(item.Name ?? "建築の詳細")</a>
+                                        <span>（@(item.Status == "registered" ? "登録済み" : "確認中")）</span>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else if (Model.ErrorMessage is null)
+                        {
+                            <p>アップロードはありません。</p>
+                        }
+                        <p>新しい建築を登録するには、開発サーバーで <code>/builder</code> を開き、「.schemを登録」からリンクを発行してください。</p>
+                    }
 
                     @if (Model.CanUpload)
                     {
@@ -53,6 +79,21 @@
                     @if (Model.StatusId is { } statusId && (Model.Upload is null or { Status: "pending" }))
                     {
                         <a class="btn ar-btn-outline" asp-page="/Builder/Schematics" asp-route-id="@statusId">登録状況を更新</a>
+                    }
+
+                    @if (Model.Upload is { Status: "pending" or "registered" } removable)
+                    {
+                        <details class="mt-3">
+                            <summary>このアップロードを削除する</summary>
+                            <form method="post" asp-page="/Builder/Schematics" asp-page-handler="Delete" asp-route-id="@removable.Id" class="mt-2">
+                                <p>削除すると登録状況を確認できなくなり、登録済みの場合はゲーム内の一覧からも消えます。</p>
+                                <button type="submit" class="btn btn-outline-danger">削除を確定</button>
+                            </form>
+                        </details>
+                    }
+                    @if (!Model.ShowList)
+                    {
+                        <p class="mt-3 mb-0"><a asp-page="/Builder/Schematics">自分のアップロード一覧</a></p>
                     }
                 </div>
             </div>
