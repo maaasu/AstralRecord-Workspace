@@ -996,18 +996,18 @@
       "base_item": "minecraft:diamond_axe",
       "custom_model_data": 220439,
       "sha256": {
-        "assets/astralrecord/models/item/custom/astra_hammer.json": "f2690d4c1e81d59af95ce97178b59c11ce84cc8ea367d4cd3a3ac53f88418ac6",
+        "assets/astralrecord/models/item/custom/astra_hammer.json": "16e610ccf499d7683d7bee3fcebf28dc76e4fdcdecbfaaeba7177b971451f70d",
         "assets/astralrecord/models/item/custom/astra_hammer_virtual_use.json": "ddba4d1a647ef9ad85157b4220f867c706f5b42733b292bcb7a7739cd6578df0",
-        "assets/astralrecord/textures/item/custom/astra_hammer.png": "af113dfe82570991f228349caa42446ad2ed63e36602ecf7fa81c47b42e3eb9d",
+        "assets/astralrecord/textures/item/custom/astra_hammer.png": "7aa0716541c9fee0a5e680d20c6b319205c8917d08c26a820a0d81c19b2b218d",
         "bedrock/animations/astra_hammer.animation.json": "62907181eaeb765a115952c929143e776a4e2bfe90dec40dc0db593da4931c94",
         "bedrock/attachables/astra_hammer.json": "53f411bec03d48729ac114783ce2c2443a40aa25d12a48b2837e109de453a71c",
-        "bedrock/models/entity/items/astra_hammer.geo.json": "458b7a90cba24c9bc56182620e9037eb8bdbc8ffe2d38a83efe9cf8da0b09776",
-        "bedrock/textures/entity/items/astra_hammer.png": "af113dfe82570991f228349caa42446ad2ed63e36602ecf7fa81c47b42e3eb9d",
-        "blockbench/pixel-art/astra_hammer.pixel.json": "d11d9fe5f215c7b955d9a50ff61b905551a9f58204418bcc283832a0b73c542a",
-        "bedrock/textures/items/astra_hammer.png": "528548486422360dd5dacc7424b872a5053fc0cd6ea3909b2fc1265973d92331",
+        "bedrock/models/entity/items/astra_hammer.geo.json": "913e4a14c2d0c0c838b8541f08db41d230cfc636f8f366824f36b3fbd034f622",
+        "bedrock/textures/entity/items/astra_hammer.png": "7aa0716541c9fee0a5e680d20c6b319205c8917d08c26a820a0d81c19b2b218d",
+        "blockbench/pixel-art/astra_hammer.pixel.json": "a3f3f053f935f20a98bdaf4e0be614884c930bd6126c10aa1d7109a912b6bdc9",
+        "bedrock/textures/items/astra_hammer.png": "eeb96ab0c11a95cc62bb4bbdbf20fda16ae3fe748bff7094103e6ceabc1bf1ed",
         "blockbench/equipment-drafts/astra_hammer.json": "b3f9d71424926c512996afa0b214c4655390eed2b50b72b6c0f9a640afb43dd6",
-        "blockbench/items/astra_hammer.bedrock.bbmodel": "0bf259834b3201f1e48721f3f18d872789c4475a66c2c6c032dcd42015054afc",
-        "blockbench/items/astra_hammer.java.bbmodel": "399fec96b73b0b4d42a4e0f0fbaf07fdb228967eb720a08b9f35528def9e10ee"
+        "blockbench/items/astra_hammer.bedrock.bbmodel": "1e8fdc90d23ddb65a0228e6f5fa2b2fe30451d5d182197e1343146fb2c591410",
+        "blockbench/items/astra_hammer.java.bbmodel": "c7c85c4068987922c61d575c6f7963450687bad73010b912f1f4e1d031cd98a0"
       }
     },
     {
