@@ -141,6 +141,11 @@ PICTOGRAMS: dict[str, tuple[str, ...]] = {
         "...WWSSSS...", "...WWSSSS...", "...WWSSSS...", "...WWSSSS...",
         "...WWSSSS...", "...SSSSSS...",
     ),
+    "item_protection": (
+        "...GGGGGG...", "..GH....HG..", "..GH....HG..", "..GH....HG..",
+        "..GG....GG..", ".GGGGGGGGGG.", ".GHHHHHHHHG.", ".GHHHKKHHHG.",
+        ".GHHHKKHHHG.", ".GGGGKKGGGG.", "..GGGGGGGG..",
+    ),
     "trash": (
         "....SSS....", "..SSSSSSS..", ".SWWWWWWSS.", "..mMMMMMm..",
         "..mMsMsMm..", "..mMsMsMm..", "..mMsMsMm..", "..mMMMMMm..",

@@ -996,6 +996,18 @@
       "role": "cartograph_path_mixed_esw_n",
       "base_item": "minecraft:white_stained_glass_pane",
       "custom_model_data": 910166
+    },
+    {
+      "id": "gui_item_protection_shield",
+      "role": "item_protection",
+      "base_item": "minecraft:shield",
+      "custom_model_data": 910167
+    },
+    {
+      "id": "gui_back_shield",
+      "role": "back",
+      "base_item": "minecraft:shield",
+      "custom_model_data": 910168
     }
   ]
 }

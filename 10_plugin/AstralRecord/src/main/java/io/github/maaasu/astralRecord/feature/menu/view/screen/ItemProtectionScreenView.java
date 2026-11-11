@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuInventoryHolder;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.GuiResourcePackIcons;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationDestination;
@@ -34,10 +35,12 @@ public final class ItemProtectionScreenView {
     /**
      * メインメニューに表示するアイテム保護の入口を作ります。
      *
-     * @return 入口用の盾アイコン
+     * @return 専用パックでは南京錠、未適用時は盾を表示する入口アイコン
      */
     public static @NotNull ItemStack createMenuIcon() {
-        return GuiItems.create(MENU_ICON, title(), List.of(message(MenuMsgId.P_5683)));
+        return GuiResourcePackIcons.apply(
+            GuiItems.create(MENU_ICON, title(), List.of(message(MenuMsgId.P_5683))), "item_protection"
+        );
     }
 
     /**

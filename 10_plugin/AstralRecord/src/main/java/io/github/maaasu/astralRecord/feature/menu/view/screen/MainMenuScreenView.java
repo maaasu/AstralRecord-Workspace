@@ -22,10 +22,11 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int QUEST_SLOT = 24;
     public static final int PARTY_SLOT = 30;
     public static final int PLAYER_INFO_SLOT = 32;
-    public static final int MAIL_SLOT = 38;
-    public static final int RETURN_TO_BASE_SLOT = 40;
+    // 下段のユーティリティは1マス間隔で左右対称に配置します。
+    public static final int MAIL_SLOT = 37;
+    public static final int RETURN_TO_BASE_SLOT = 39;
     public static final int ITEM_PROTECTION_SLOT = 41;
-    public static final int TRASH_SLOT = 42;
+    public static final int TRASH_SLOT = 43;
     public static final int SIDEBAR_BUFF_PREVIOUS_SLOT = 47;
     public static final int SIDEBAR_BUFF_NEXT_SLOT = 51;
 
