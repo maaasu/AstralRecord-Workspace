@@ -532,8 +532,11 @@ public final class BossMechanicService {
                 || boss.currentHealth() <= 0.0D) {
                 continue;
             }
+            // 実体が一時的に無効でも、生存中の個体は調律の進捗を保持する。
+            if (nyxeron) activeNyxerons.add(boss.instanceId());
             Entity entity = mobService.entityController().getEntity(boss);
             if (entity == null || !entity.isValid() || entity.isDead()) {
+                if (nyxeron) nyxeronEncounterController.suspend(boss.instanceId(), clockTicks);
                 continue;
             }
 

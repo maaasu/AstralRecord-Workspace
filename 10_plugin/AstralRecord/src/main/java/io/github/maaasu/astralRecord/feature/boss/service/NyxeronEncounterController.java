@@ -137,7 +137,6 @@ final class NyxeronEncounterController {
         List<Player> active = List.of();
         try {
             active = participants.apply(boss);
-            display.body(boss.instanceId(), entity, tick, pose(state, tick), state.ritual != null);
             if (state.particlesUnavailable || state.soundUnavailable) warnPresentation(state, active);
             if (active.isEmpty()) {
                 closeCast(state);
@@ -191,12 +190,18 @@ final class NyxeronEncounterController {
                 Logger.log(LogId.E_6549, abortFailure, boss.instanceId());
                 mobs.destroy(boss.instanceId());
             }
+        } finally {
+            // 調律の開始・終了と同じtickの結果を姿勢と無敵表示へ反映する。
+            if (!state.disabled && encounters.get(boss.instanceId()) == state) {
+                boolean immune = state.ritual != null || protectedNow(boss);
+                display.body(boss.instanceId(), entity, tick, pose(state, tick, immune), immune);
+            }
         }
     }
 
     /** @return 調律・露出・予告・通常の順で決まる本体の姿勢 */
-    private static NyxeronPackDisplay.Pose pose(Encounter state, long tick) {
-        if (state.ritual != null) return NyxeronPackDisplay.Pose.GUARD;
+    private static NyxeronPackDisplay.Pose pose(Encounter state, long tick, boolean immune) {
+        if (immune) return NyxeronPackDisplay.Pose.GUARD;
         if (tick < state.exposureUntil) return NyxeronPackDisplay.Pose.EXPOSED;
         if (state.cast != null && state.cast.next == 0) return NyxeronPackDisplay.Pose.CAST;
         return NyxeronPackDisplay.Pose.IDLE;
@@ -228,10 +233,7 @@ final class NyxeronEncounterController {
         cast.bar = Bukkit.createBossBar(cast.title.apply(tick), cast.color, BarStyle.SEGMENTED_10);
         cast.bar.setVisible(true);
         cast.intro.accept(active);
-        if (!cast.shapes.isEmpty()) {
-            cast.cleanup = display.effects(state.boss.instanceId(), cast.shapes, tick,
-                Math.max(10L, cast.steps.getLast().at() - tick));
-        }
+        showStep(state, cast, tick);
         updateBar(cast, active, tick);
         drawSafely(state, cast, active, tick);
         playSoundSafely(state, active, cast.sound, 1.4F, cast.pitch);
@@ -248,7 +250,8 @@ final class NyxeronEncounterController {
         for (int i = 0; i < strikes; i++) patterns.add((even ^ (i % 2 == 1)) ? EVEN_BANDS : ODD_BANDS);
         for (int i = 0; i < strikes; i++) {
             int[] bands = patterns.get(i);
-            cast.steps.add(new Step(first + gap * i, (s, c, players, now) -> strikeBands(s, c, players, bands, 0.55D)));
+            cast.steps.add(new Step(first + gap * i, (s, c, players, now) -> strikeBands(s, c, players, bands, 0.55D),
+                c -> bandShapes(state.center, bands)));
         }
         cast.drawer = (s, c, now, warn, safe, accent) -> {
             int index = Math.min(c.next, patterns.size() - 1);
@@ -266,7 +269,6 @@ final class NyxeronEncounterController {
             cast.intro = players -> announce(players, PlayerMsgId.P_8095, bandNames(patterns.get(0)),
                 bandNames(patterns.get(1)), seconds(first, tick), gap / 20.0D);
         }
-        cast.shapes = bandShapes(state.center, patterns.get(0));
         return cast;
     }
 
@@ -276,16 +278,18 @@ final class NyxeronEncounterController {
         long first = tick + 50L;
         if (phase == 0) {
             double[] set = state.spokeParity++ % 2 == 0 ? EVEN_STATUES : ODD_STATUES;
-            cast.steps.add(new Step(first, (s, c, players, now) -> strikeSpokes(s, c, players, set, 0.60D)));
+            cast.steps.add(new Step(first, (s, c, players, now) -> strikeSpokes(s, c, players, set, 0.60D),
+                c -> spokeShapes(state.center, set)));
             cast.drawer = (s, c, now, warn, safe, accent) -> drawSpokes(s.center, set, warn);
             cast.intro = players -> announce(players, PlayerMsgId.P_8102, directionNames(set), seconds(first, tick));
             cast.title = now -> PlayerMsgResource.format(PlayerMsgId.P_8104.getId(), directionNames(set),
                 seconds(cast.nextAt(), now));
-            cast.shapes = spokeShapes(state.center, set);
         } else {
             long second = first + 30L;
-            cast.steps.add(new Step(first, (s, c, players, now) -> strikeSpokes(s, c, players, ALL_STATUES, 0.55D)));
-            cast.steps.add(new Step(second, (s, c, players, now) -> strikeSpokes(s, c, players, BISECTORS, 0.55D)));
+            cast.steps.add(new Step(first, (s, c, players, now) -> strikeSpokes(s, c, players, ALL_STATUES, 0.55D),
+                c -> spokeShapes(state.center, ALL_STATUES)));
+            cast.steps.add(new Step(second, (s, c, players, now) -> strikeSpokes(s, c, players, BISECTORS, 0.55D),
+                c -> spokeShapes(state.center, BISECTORS)));
             cast.drawer = (s, c, now, warn, safe, accent) -> {
                 if (c.next == 0) {
                     drawSpokes(s.center, ALL_STATUES, warn);
@@ -301,7 +305,6 @@ final class NyxeronEncounterController {
             cast.title = now -> PlayerMsgResource.format(PlayerMsgId.P_8104.getId(),
                 cast.next == 0 ? directionNames(ALL_STATUES) : PlayerMsgResource.getMessage(PlayerMsgId.P_8134.getId()),
                 seconds(cast.nextAt(), now));
-            cast.shapes = spokeShapes(state.center, ALL_STATUES);
         }
         return cast;
     }
@@ -310,12 +313,17 @@ final class NyxeronEncounterController {
     private Cast heart(Encounter state, int phase, long tick) {
         Cast cast = new Cast(Action.HEART, tick, BarColor.PINK, Sound.ENTITY_WARDEN_HEARTBEAT, 0.8F);
         long first = tick + 40L;
-        cast.steps.add(new Step(first, (s, c, players, now) -> strikeRing(s, c, players, 0.0D, HEART_INNER, 0.55D, now)));
+        List<NyxeronPackDisplay.Shape> innerShapes = List.of(
+            NyxeronPackDisplay.Shape.circle(NyxeronPackDisplay.Style.DISC, state.center, HEART_INNER, 0.6D));
+        List<NyxeronPackDisplay.Shape> outerShapes = List.of(
+            NyxeronPackDisplay.Shape.circle(NyxeronPackDisplay.Style.HEART, state.center, HEART_OUTER, 0.6D));
+        cast.steps.add(new Step(first, (s, c, players, now) -> strikeRing(s, c, players, 0.0D, HEART_INNER, 0.55D, now),
+            c -> innerShapes));
         cast.steps.add(new Step(first + 20L, (s, c, players, now) ->
-            strikeRing(s, c, players, HEART_INNER, HEART_OUTER, 0.55D, now)));
+            strikeRing(s, c, players, HEART_INNER, HEART_OUTER, 0.55D, now), c -> outerShapes));
         if (phase >= 2) {
             cast.steps.add(new Step(first + 40L, (s, c, players, now) ->
-                strikeRing(s, c, players, 0.0D, HEART_INNER, 0.50D, now)));
+                strikeRing(s, c, players, 0.0D, HEART_INNER, 0.50D, now), c -> innerShapes));
         }
         cast.drawer = (s, c, now, warn, safe, accent) -> {
             boolean inner = c.next != 1;
@@ -326,9 +334,6 @@ final class NyxeronEncounterController {
         cast.intro = players -> announce(players, PlayerMsgId.P_8105, seconds(first, tick));
         cast.title = now -> PlayerMsgResource.format(PlayerMsgId.P_8106.getId(), cast.next + 1,
             seconds(cast.nextAt(), now));
-        cast.shapes = List.of(
-            NyxeronPackDisplay.Shape.circle(NyxeronPackDisplay.Style.DISC, state.center, HEART_INNER, 0.6D),
-            NyxeronPackDisplay.Shape.circle(NyxeronPackDisplay.Style.HEART, state.center, HEART_OUTER, 0.6D));
         return cast;
     }
 
@@ -348,7 +353,6 @@ final class NyxeronEncounterController {
             for (Player player : inside) PlayerMessageService.getInstance().send(player, PlayerMsgId.P_8109);
         };
         cast.title = now -> PlayerMsgResource.format(PlayerMsgId.P_8108.getId(), seconds(cast.nextAt(), now));
-        cast.shapes = List.of();
         return cast;
     }
 
@@ -361,7 +365,10 @@ final class NyxeronEncounterController {
         if (phase >= 2) origins.add((firstSeal + 4) % NyxeronArena.SEALS.size());
         for (int i = 0; i < origins.size(); i++) {
             int seal = origins.get(i);
-            cast.steps.add(new Step(first + 50L * i, (s, c, players, now) -> strikeGaze(s, c, players, seal, 0.70D, now)));
+            List<NyxeronPackDisplay.Shape> eye = List.of(NyxeronPackDisplay.Shape.facing(NyxeronPackDisplay.Style.GAZE,
+                NyxeronArena.seal(state.center, seal), state.center, 4.0F, 4.0F));
+            cast.steps.add(new Step(first + 50L * i, (s, c, players, now) -> strikeGaze(s, c, players, seal, 0.70D, now),
+                c -> eye));
         }
         cast.drawer = (s, c, now, warn, safe, accent) -> {
             int index = Math.min(c.next, origins.size() - 1);
@@ -381,10 +388,6 @@ final class NyxeronEncounterController {
             return PlayerMsgResource.format(PlayerMsgId.P_8112.getId(), NyxeronArena.sealBearing(origins.get(index)),
                 seconds(cast.nextAt(), now));
         };
-        List<NyxeronPackDisplay.Shape> shapes = new ArrayList<>();
-        for (int seal : origins) shapes.add(NyxeronPackDisplay.Shape.facing(NyxeronPackDisplay.Style.GAZE,
-            NyxeronArena.seal(state.center, seal), state.center, 4.0F, 4.0F));
-        cast.shapes = shapes;
         return cast;
     }
 
@@ -394,28 +397,27 @@ final class NyxeronEncounterController {
         long first = tick + 60L;
         List<Location> targets = meteorTargets(state, inside);
         cast.meteors.addAll(targets);
-        cast.steps.add(new Step(first, (s, c, players, now) -> strikeMeteors(s, c, players, List.copyOf(c.meteors), 0.70D, now)));
-        if (phase >= 2) {
-            cast.steps.add(new Step(first + 35L, (s, c, players, now) -> {
-                // 二波目は一波目の着弾時点の位置を狙う。
-                List<Location> retarget = new ArrayList<>();
-                for (Player player : players) {
-                    if (c.eligible.contains(player.getUniqueId()) && NyxeronArena.inside(player.getLocation(), s.center))
-                        retarget.add(jitter(player.getLocation(), 1.0D));
-                }
-                c.meteors.clear();
-                c.meteors.addAll(retarget);
-                if (!retarget.isEmpty()) display.effects(s.boss.instanceId(), meteorShapes(retarget), now, 35L);
-            }));
-            cast.steps.add(new Step(first + 70L, (s, c, players, now) ->
-                strikeMeteors(s, c, players, List.copyOf(c.meteors), 0.60D, now)));
+        boolean twoWaves = phase >= 2;
+        cast.steps.add(new Step(first, (s, c, players, now) -> {
+            strikeMeteors(s, c, players, List.copyOf(c.meteors), 0.70D, now);
+            if (ended(s, c)) return;
+            c.meteors.clear();
+            if (!twoWaves) return;
+            // 二波目は一波目の着弾時点の位置を狙う。表示は次の段の開始時に切り替える。
+            for (Player player : players) {
+                if (c.eligible.contains(player.getUniqueId()) && NyxeronArena.inside(player.getLocation(), s.center))
+                    c.meteors.add(jitter(player.getLocation(), 1.0D));
+            }
+        }, c -> meteorShapes(c.meteors)));
+        if (twoWaves) {
+            cast.steps.add(new Step(first + 60L, (s, c, players, now) ->
+                strikeMeteors(s, c, players, List.copyOf(c.meteors), 0.60D, now), c -> meteorShapes(c.meteors)));
         }
         cast.drawer = (s, c, now, warn, safe, accent) -> {
             for (Location target : c.meteors) circle(target, METEOR_RADIUS, 10, warn);
         };
         cast.intro = players -> announce(players, PlayerMsgId.P_8114, targets.size(), seconds(first, tick));
         cast.title = now -> PlayerMsgResource.format(PlayerMsgId.P_8115.getId(), seconds(cast.nextAt(), now));
-        cast.shapes = meteorShapes(targets);
         return cast;
     }
 
@@ -445,6 +447,10 @@ final class NyxeronEncounterController {
             impact(s, c, now, bandImpactShapes(s.center, bands));
             impact(s, c, now, spokeShapes(s.center, spokes));
             playSoundSafely(s, players, Sound.ENTITY_GENERIC_EXPLODE, 1.0F, 0.6F);
+        }, c -> {
+            List<NyxeronPackDisplay.Shape> shapes = new ArrayList<>(bandShapes(state.center, bands));
+            shapes.addAll(spokeShapes(state.center, spokes));
+            return shapes;
         }));
         cast.drawer = (s, c, now, warn, safe, accent) -> {
             drawBands(s.center, bands, warn, safe);
@@ -453,9 +459,6 @@ final class NyxeronEncounterController {
         cast.intro = players -> announce(players, PlayerMsgId.P_8116, bandNames(bands), directionNames(spokes),
             seconds(strike, tick));
         cast.title = now -> PlayerMsgResource.format(PlayerMsgId.P_8117.getId(), seconds(cast.nextAt(), now));
-        List<NyxeronPackDisplay.Shape> shapes = new ArrayList<>(bandShapes(state.center, bands));
-        shapes.addAll(spokeShapes(state.center, spokes));
-        cast.shapes = shapes;
         return cast;
     }
 
@@ -468,14 +471,18 @@ final class NyxeronEncounterController {
         Set<UUID> present = new HashSet<>();
         for (Player player : active) if (NyxeronArena.inside(player.getLocation(), state.center)) present.add(player.getUniqueId());
         cast.eligible.retainAll(present);
+        // 場外へ出た・倒れた参加者の星印は、仲間を巻き込まないよう取り消す。
+        cast.brands.keySet().retainAll(cast.eligible);
         for (Player player : active) {
             UUID id = player.getUniqueId();
             if (present.contains(id) && !cast.eligible.contains(id) && cast.protectionNotified.add(id))
                 PlayerMessageService.getInstance().send(player, PlayerMsgId.P_8124);
-            if (cast.brands.containsKey(id) && cast.eligible.contains(id)) cast.brands.put(id, player.getLocation().clone());
+            if (cast.brands.containsKey(id)) cast.brands.put(id, player.getLocation().clone());
         }
+        boolean fired = false;
         while (cast.next < cast.steps.size() && tick >= cast.steps.get(cast.next).at()) {
             Step step = cast.steps.get(cast.next++);
+            fired = true;
             step.action().fire(state, cast, active, tick);
             if (ended(state, cast)) return;
         }
@@ -484,8 +491,23 @@ final class NyxeronEncounterController {
             state.nextAt = tick + (state.completed == 0 ? 40L : state.completed == 1 ? 30L : 25L);
             return;
         }
+        if (fired) showStep(state, cast, tick);
         updateBar(cast, active, tick);
         if (tick % 10L == 0L) drawSafely(state, cast, active, tick);
+    }
+
+    /**
+     * 前の段の形状を外し、次に発動する段の危険範囲だけを対応パックへ表示します。
+     * @param state 所有個体 @param cast 進行中の行動 @param tick 現在tick
+     */
+    private void showStep(Encounter state, Cast cast, long tick) {
+        cast.cleanup.run();
+        cast.cleanup = () -> { };
+        if (cast.next >= cast.steps.size()) return;
+        Step step = cast.steps.get(cast.next);
+        List<NyxeronPackDisplay.Shape> shapes = step.shapes().apply(cast);
+        if (shapes.isEmpty()) return;
+        cast.cleanup = display.effects(state.boss.instanceId(), shapes, tick, Math.max(10L, step.at() - tick));
     }
 
     /** @return 命中で挑戦が終わったなど、この詠唱を続けられない場合true */
@@ -1082,6 +1104,28 @@ final class NyxeronEncounterController {
 
     // ------------------------------------------------------------------ lifecycle
 
+    /**
+     * 戦闘実体が一時的に無効な間、予告を取り消して調律の期限を止めます。
+     * 再開時に期限切れの連撃がまとめて発動したり、不在中に調律が失敗したりしないようにします。
+     * @param bossId 生存中の個体 @param tick 単調時計
+     */
+    void suspend(UUID bossId, long tick) {
+        Encounter state = encounters.get(bossId);
+        if (state == null || state.disabled) return;
+        closeCast(state);
+        closeExposureBar(state);
+        state.nextAt = Math.max(state.nextAt, tick + 40L);
+        Ritual ritual = state.ritual;
+        if (ritual == null) return;
+        ritual.endsAt += 5L;
+        ritual.nextHazardAt += 5L;
+        List<Hazard> shifted = new ArrayList<>();
+        for (Hazard hazard : ritual.hazards) shifted.add(new Hazard(hazard.at(), hazard.strikeAt() + 5L));
+        ritual.hazards.clear();
+        ritual.hazards.addAll(shifted);
+        syncBar(ritual.bar, List.of());
+    }
+
     /** @param bossId 終了した個体。表示とBossBarを回収します */
     void clear(UUID bossId) {
         Encounter state = encounters.remove(bossId);
@@ -1171,7 +1215,12 @@ final class NyxeronEncounterController {
         void draw(Encounter state, Cast cast, long tick, List<Location> warn, List<Location> safe, List<Location> accent);
     }
 
-    private record Step(long at, StepAction action) {}
+    /** @param at 発動tick @param action 発動処理 @param shapes この段の予告中に対応パックへ出す形状 */
+    private record Step(long at, StepAction action, Function<Cast, List<NyxeronPackDisplay.Shape>> shapes) {
+        Step(long at, StepAction action) {
+            this(at, action, ignored -> List.of());
+        }
+    }
 
     private record Scar(Location at, long until, Runnable cleanup) {}
 
@@ -1220,7 +1269,6 @@ final class NyxeronEncounterController {
         Drawer drawer;
         Function<Long, String> title = ignored -> "";
         Consumer<List<Player>> intro = ignored -> { };
-        List<NyxeronPackDisplay.Shape> shapes = List.of();
         Runnable cleanup = () -> { };
 
         Cast(Action action, long startedAt, BarColor color, Sound sound, float pitch) {
@@ -1240,7 +1288,7 @@ final class NyxeronEncounterController {
     private static final class Ritual {
         final int number;
         final long startedAt;
-        final long endsAt;
+        long endsAt;
         final List<Integer> seals;
         final long[] progress;
         final List<Runnable> sealEffects = new ArrayList<>();
