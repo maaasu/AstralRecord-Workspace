@@ -9,13 +9,18 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-/** 建築用WorldEdit GUIの入口です。 */
+import java.util.Locale;
+
+/** 建築用WorldEdit GUIとdevの建築ファイル登録を開きます。 */
 public final class BuilderCommand extends AstCommand {
+    static final String UPLOAD = "upload";
+    static final String LOAD = "load";
     private final BuilderGui gui;
 
     /** @param gui 表示するビルダーGUI */
     public BuilderCommand(BuilderGui gui) {
-        super("builder", "日本語の案内付き建築GUIを開きます。", "/builder", true, UserPermission.ADMIN.getValue());
+        super("builder", "建築GUIやdevの建築ファイル登録を開きます。",
+                "/builder [" + UPLOAD + "|" + LOAD + "]", true, UserPermission.ADMIN.getValue());
         this.gui = gui;
     }
 
@@ -25,10 +30,20 @@ public final class BuilderCommand extends AstCommand {
         return sender instanceof Player player && BuilderService.hasAccess(player);
     }
 
-    /** プレイヤー自身のGUIを開きます。引数は受け付けません。 */
+    /** 引数に応じて本人のホーム、登録リンク、または登録済み一覧を開きます。 */
     @Override
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
-        if (args.length != 0) { sendUsage(player.getBukkit()); return; }
-        gui.open(player.getBukkit());
+        Player sender = player.getBukkit();
+        if (args.length == 0) {
+            gui.open(sender);
+        } else if (args.length == 1) {
+            switch (args[0].toLowerCase(Locale.ROOT)) {
+                case UPLOAD -> gui.requestSchematicUpload(sender);
+                case LOAD -> gui.openRegisteredSchematics(sender);
+                default -> sendUsage(sender);
+            }
+        } else {
+            sendUsage(sender);
+        }
     }
 }

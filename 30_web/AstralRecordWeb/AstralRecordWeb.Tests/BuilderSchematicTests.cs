@@ -87,6 +87,7 @@ public sealed class BuilderSchematicTests
         var rejected = WebUtility.HtmlDecode(await client.GetStringAsync(statusPath));
         Assert.Contains("登録できませんでした", rejected);
         Assert.Contains("WorldEdit で読み込めませんでした", rejected);
+        Assert.Contains("<code>/builder upload</code>", rejected);
         Assert.DoesNotContain(api.ErrorCode, rejected);
 
         api.UploadStatus = "registered";
@@ -94,6 +95,7 @@ public sealed class BuilderSchematicTests
         var registered = WebUtility.HtmlDecode(await client.GetStringAsync(statusPath));
         Assert.Contains("登録されました", registered);
         Assert.Contains("登録済み建築", registered);
+        Assert.Contains("<code>/builder load</code>", registered);
 
         using var notFound = await client.GetAsync(PagePath + "?id=" + Guid.NewGuid());
         Assert.Equal(HttpStatusCode.NotFound, notFound.StatusCode);
