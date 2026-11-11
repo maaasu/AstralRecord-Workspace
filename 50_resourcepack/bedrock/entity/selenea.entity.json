@@ -24,7 +24,13 @@
         "body_scale": "animation.astralrecord.selenea.body_scale"
       },
       "scripts": {
+        "initialize": [
+          "variable.body_yaw_ready = 0;"
+        ],
         "pre_animation": [
+          "variable.body_yaw_target = query.has_property('astralrecord:body_yaw_tenths') ? query.property('astralrecord:body_yaw_tenths') : -1;",
+          "variable.body_yaw = variable.body_yaw_target < 0 ? query.body_y_rotation : (variable.body_yaw_ready ? math.lerprotate(variable.body_yaw, variable.body_yaw_target / 10.0, math.min(1, query.delta_time * 12)) : variable.body_yaw_target / 10.0);",
+          "variable.body_yaw_ready = variable.body_yaw_target >= 0;",
           "variable.motion = query.has_property('astralrecord:motion') ? query.property('astralrecord:motion') : 0;",
           "variable.invulnerable = query.has_property('astralrecord:invulnerable') ? query.property('astralrecord:invulnerable') : 0;"
         ],
