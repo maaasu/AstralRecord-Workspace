@@ -17,9 +17,9 @@
   "pixels": [
     "................",
     "................",
-    "......BBBB......",
-    "......BCCCB.....",
-    ".....BCDDDCB....",
+    "....BBBBBBBB....",
+    "....BCCCCCCB....",
+    "....BDDDDDDB....",
     "....BCDCCCCC....",
     "....BDCCCCCCB...",
     "...DCCCEDCCCC...",
@@ -32,5 +32,5 @@
     "................",
     "................"
   ],
-  "png_sha256": "c9bc3fa97054df1f369bb941b779055214d1e7346e7bac6e62dc5f3aa7f929ce"
+  "png_sha256": "c5fa2d5777e726ba43a18bb41f86fd39e1ec541ebd52934e2b9f6130ba4b9e32"
 }
