@@ -1,0 +1,83 @@
+# design:
+#   motif: "天体 / 星蝕と天球儀の心臓"
+#   progression: 50
+schemaVersion: 1
+id: orrery_heart_nyxeron
+type: MOB
+category: BOSS
+name: "&5&l天球心臓 ニクセロン"
+title: "&8―― 影輪の天球儀に脈打つもの ――"
+level: 50
+entityType: IRON_GOLEM
+variant:
+  scale: 1.2
+icon: IRON_GOLEM_SPAWN_EGG
+nameVisible: true
+lore:
+  - "&7影輪の天球儀の中心で脈打つ、星蝕の心臓。"
+  - "&7エリヴァ超大陸の受付でスニークして挑戦。1～6人に対応。"
+  - "&7床の環と放射線、四本の遮蔽柱、八枚の封印板が攻略の手掛かり。"
+  - "&7赤い環の帯から逃れ、守護像の光条と心拍の二拍を見切ろう。"
+  - "&7星印は場の外周で解き放ち、残る星痕を中央に残さないこと。"
+  - "&7残り七割から蝕光の視線と星墜が加わる。視線は遮蔽柱の影で防げる。"
+  - "&7残り七割・四割で封印調律。光る封印板に立って天球を開き、露出時に攻撃しよう。"
+  - "&7残り四割からは環影と光条が重なる。安全な帯の隙間を探せ。"
+tags:
+  - boss
+  - magic
+# Lv50基礎職+アストラ武器/防具+10（ツリー/アクセなし）での有効攻撃R=674～708、
+# HP=368～1727、魔防=639～812を基準にホロロギウムと同じ尺度で調整。
+# 無敵の封印調律が2回あるため、露出時の1.35倍を含めたソロ4～6分を目標にHPを1.2倍とする。
+# 技の倍率0.45～0.70（失敗時の天球崩落のみ1.20）は未実測の仮定。
+baseStats:
+  - status: MAX_HEALTH
+    value: 120000
+  - status: ATTACK
+    value: 520
+  - status: DEFENSE
+    value: 500
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 80
+  - status: KNOCKBACK_RESISTANCE
+    value: 100
+  - status: SHIELD_BREAK
+    value: 9
+ai:
+  idle:
+    behavior: STATIONARY
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 42
+    deaggroRange: 48
+    leashRange: 48
+  combat:
+    style: MAGIC
+    preferredRange: 6
+challenge:
+  recommendedPlayerLevel: 50
+  fieldWorldId: umbral_orrery
+  entryLocation:
+    worldId: eriva_supercontinent
+    x: -1147.5
+    y: 105.0
+    z: 1462.5
+  entryRadius: 3.0
+  playerSpawnLocation:
+    x: 10.5
+    y: -42.0
+    z: -41.5
+  bossSpawnLocation:
+    x: 10.5
+    y: -42.0
+    z: -64.5
+  partyMin: 1
+  partyMax: 6
+  timeLimitSeconds: 900
+  deathLimit: 5
+  reviveDelaySeconds: 5
+drops:
+  exp: 26000

@@ -1,0 +1,51 @@
+{
+ "format_version": "1.8.0",
+ "render_controllers": {
+  "controller.render.astralrecord.nyxeron": {
+   "geometry": "Geometry.default",
+   "materials": [
+    {
+     "*": "Material.default"
+    },
+    {
+     "glow_*": "Material.glow"
+    }
+   ],
+   "textures": [
+    "Texture.default"
+   ],
+   "part_visibility": [
+    {
+     "*": true
+    },
+    {
+     "shell": "variable.motion != 4"
+    },
+    {
+     "glow_veins": "variable.motion != 4"
+    },
+    {
+     "glow_eye": "variable.motion != 4 && variable.motion != 1"
+    },
+    {
+     "glow_eye_cast": "variable.motion == 1"
+    },
+    {
+     "petal": "variable.motion == 2"
+    },
+    {
+     "glow_petal": "variable.motion == 2"
+    },
+    {
+     "glow_guard": "variable.invulnerable"
+    },
+    {
+     "glow_exposed": "variable.motion == 4"
+    },
+    {
+     "shell_shard": "variable.motion == 4"
+    }
+   ]
+  }
+ }
+}

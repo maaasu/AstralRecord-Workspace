@@ -33,6 +33,7 @@ record DamagePack(
     boolean combatResult, int combatRewardPlaqueVersion, boolean weaponAttack, boolean weaponAttackProjectiles,
     boolean skillEffectsV2, boolean fishingVisuals,
     boolean gameplaySounds, boolean sunbird, boolean sunbirdMotion, boolean selenea, boolean archmagePhoenix,
+    boolean nyxeron,
     Set<Integer> heldWeaponModels,
     Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips,
     String actionRingHudRevision, boolean questHud, boolean receptionDisplay
@@ -115,6 +116,14 @@ record DamagePack(
         "models/entity/selenea_skill.geo.json", "render_controllers/selenea_skill.render_controllers.json",
         "textures/entity/selenea_skill.png"
     );
+    private static final List<String> NYXERON_ENTRIES = List.of(
+        "entity/nyxeron.entity.json", "animations/nyxeron.animation.json",
+        "animation_controllers/nyxeron.animation_controllers.json", "render_controllers/nyxeron.render_controllers.json",
+        "models/entity/nyxeron.geo.json", "textures/entity/nyxeron.png",
+        "entity/nyxeron_skill.entity.json", "animations/nyxeron_skill.animation.json",
+        "models/entity/nyxeron_skill.geo.json", "render_controllers/nyxeron_skill.render_controllers.json",
+        "textures/entity/nyxeron_skill.png"
+    );
     private static final List<String> WORLD_DISPLAY_ENTRIES = List.of(
         "entity/world_display.entity.json", "models/entity/world_display.geo.json",
         "render_controllers/world_display.render_controllers.json",
@@ -171,6 +180,7 @@ record DamagePack(
             boolean sunbirdMotion;
             boolean selenea;
             boolean archmagePhoenix;
+            boolean nyxeron;
             boolean worldDisplay;
             boolean itemTooltips;
             String actionRingHudRevision;
@@ -213,6 +223,8 @@ record DamagePack(
                     && SELENEA_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 archmagePhoenix = hasVersionOne(zip, "archmage-phoenix-presentation-version.txt")
                     && ARCHMAGE_PHOENIX_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
+                nyxeron = hasVersionOne(zip, "nyxeron-presentation-version.txt")
+                    && NYXERON_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 worldDisplay = WORLD_DISPLAY_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 itemTooltips = present(zip.getEntry("font/glyph_E6.png"))
                     && present(zip.getEntry("textures/ui/purpleBorder.png"))
@@ -240,7 +252,7 @@ record DamagePack(
             keep = true;
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, combatRewardPlaqueVersion,
                 weaponAttack, weaponAttackProjectiles, skillEffectsV2, fishingVisuals, gameplaySounds, sunbird, sunbirdMotion, selenea,
-                archmagePhoenix, heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips, actionRingHudRevision,
+                archmagePhoenix, nyxeron, heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips, actionRingHudRevision,
                 questHud, receptionDisplay);
         } finally {
             if (!keep) Files.deleteIfExists(file);

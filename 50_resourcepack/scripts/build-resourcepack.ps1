@@ -100,6 +100,7 @@ $java = Read-PackEntries $root @(
     'sunbird-presentation-version.txt'
     'selenea-presentation-version.txt'
     'archmage-phoenix-presentation-version.txt'
+    'nyxeron-presentation-version.txt'
     'combat-reward-plaque-version.txt'
     'fishing-visuals-version.txt'
     'fishing-rod-tip-version.txt'
@@ -286,6 +287,8 @@ $java = Read-PackEntries $root @(
     'assets/astralrecord/models/item/archmage_phoenix_wing_up.json'
     'assets/astralrecord/models/item/archmage_phoenix_wing_down.json'
     'assets/astralrecord/textures/item/archmage_phoenix.png'
+    'assets/astralrecord/textures/item/nyxeron.png'
+    'assets/astralrecord/textures/item/nyxeron_skill.png'
 )
 $bedrock = Read-PackEntries $bedrockRoot @(
     'manifest.json'
@@ -454,6 +457,17 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'animations/archmage_phoenix.animation.json'
     'models/entity/archmage_phoenix.geo.json'
     'textures/entity/archmage_phoenix.png'
+    'entity/nyxeron.entity.json'
+    'animations/nyxeron.animation.json'
+    'animation_controllers/nyxeron.animation_controllers.json'
+    'render_controllers/nyxeron.render_controllers.json'
+    'models/entity/nyxeron.geo.json'
+    'textures/entity/nyxeron.png'
+    'entity/nyxeron_skill.entity.json'
+    'animations/nyxeron_skill.animation.json'
+    'render_controllers/nyxeron_skill.render_controllers.json'
+    'models/entity/nyxeron_skill.geo.json'
+    'textures/entity/nyxeron_skill.png'
     'entity/fishing_visual.entity.json'
     'animations/fishing_visual.animation.json'
     'models/entity/fishing_visual.geo.json'
@@ -484,6 +498,32 @@ if ($utf8.GetString($java[$seleneaVersionMarker]) -cne '1') {
     throw 'Invalid Selenea presentation version marker in resource pack.'
 }
 $bedrock.Add($seleneaVersionMarker, $java[$seleneaVersionMarker])
+
+# Orrery Heart Nyxeron: body (core poses and three rings) and 13 spell shapes with 4 frames each.
+$nyxeronPaths = @()
+foreach ($name in @('nyxeron_core', 'nyxeron_ring_outer', 'nyxeron_ring_mid', 'nyxeron_ring_inner')) {
+    $nyxeronPaths += "assets/astralrecord/items/$name.json"
+    $nyxeronPaths += "assets/astralrecord/models/item/$name.json"
+}
+foreach ($pose in @('cast', 'attack', 'guard', 'exposed')) {
+    $nyxeronPaths += "assets/astralrecord/models/item/nyxeron_core_$pose.json"
+}
+$nyxeronSkillStyles = @(
+    'disc', 'band_1', 'band_2', 'band_3', 'band_4', 'spoke', 'seal', 'seal_done',
+    'scar', 'impact', 'gaze', 'meteor', 'heart'
+)
+foreach ($style in $nyxeronSkillStyles) {
+    $name = "nyxeron_$style"
+    $nyxeronPaths += "assets/astralrecord/items/$name.json"
+    $nyxeronPaths += "assets/astralrecord/models/item/$name.json"
+    $nyxeronPaths += 1..3 | ForEach-Object { "assets/astralrecord/models/item/${name}_frame_$_.json" }
+}
+Add-PackEntries $java $root $nyxeronPaths
+$nyxeronVersionMarker = 'nyxeron-presentation-version.txt'
+if ($utf8.GetString($java[$nyxeronVersionMarker]) -cne '1') {
+    throw 'Invalid Nyxeron presentation version marker in resource pack.'
+}
+$bedrock.Add($nyxeronVersionMarker, $java[$nyxeronVersionMarker])
 
 $archmagePhoenixVersionMarker = 'archmage-phoenix-presentation-version.txt'
 if ($utf8.GetString($java[$archmagePhoenixVersionMarker]) -cne '1') {

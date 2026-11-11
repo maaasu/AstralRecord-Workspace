@@ -1,0 +1,47 @@
+{
+ "format_version": "1.10.0",
+ "minecraft:client_entity": {
+  "description": {
+   "identifier": "astralrecord:nyxeron_skill",
+   "materials": {
+    "default": "entity_emissive_alpha"
+   },
+   "textures": {
+    "default": "textures/entity/nyxeron_skill"
+   },
+   "geometry": {
+    "disc": "geometry.astralrecord.nyxeron_disc",
+    "band_1": "geometry.astralrecord.nyxeron_band_1",
+    "band_2": "geometry.astralrecord.nyxeron_band_2",
+    "band_3": "geometry.astralrecord.nyxeron_band_3",
+    "band_4": "geometry.astralrecord.nyxeron_band_4",
+    "spoke": "geometry.astralrecord.nyxeron_spoke",
+    "seal": "geometry.astralrecord.nyxeron_seal",
+    "seal_done": "geometry.astralrecord.nyxeron_seal_done",
+    "scar": "geometry.astralrecord.nyxeron_scar",
+    "impact": "geometry.astralrecord.nyxeron_impact",
+    "gaze": "geometry.astralrecord.nyxeron_gaze",
+    "meteor": "geometry.astralrecord.nyxeron_meteor",
+    "heart": "geometry.astralrecord.nyxeron_heart"
+   },
+   "animations": {
+    "shape": "animation.astralrecord.nyxeron_skill.shape"
+   },
+   "scripts": {
+    "pre_animation": [
+     "variable.style = query.property('astralrecord:style');",
+     "variable.pulse = math.mod(query.life_time, 0.8) / 0.8;",
+     "variable.breath = math.sin(180.0 * variable.pulse);",
+     "variable.travel = math.clamp(query.life_time / 0.45, 0.0, 1.0);",
+     "variable.fall = math.clamp(query.life_time / 3.0, 0.0, 1.0);"
+    ],
+    "animate": [
+     "shape"
+    ]
+   },
+   "render_controllers": [
+    "controller.render.astralrecord.nyxeron_skill"
+   ]
+  }
+ }
+}

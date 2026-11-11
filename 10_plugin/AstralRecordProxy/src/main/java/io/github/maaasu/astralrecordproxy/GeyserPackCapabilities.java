@@ -53,6 +53,14 @@ final class GeyserPackCapabilities {
 
     /**
      * @param playerId 接続中プレイヤーの Java 側 UUID
+     * @return 拡張が天球心臓ニクセロンの描画に対応する接続と確認した場合は true
+     */
+    static boolean hasNyxeron(UUID playerId) {
+        return supports(playerId, "hasNyxeron");
+    }
+
+    /**
+     * @param playerId 接続中プレイヤーの Java 側 UUID
      * @return 拡張が戦闘報酬プレートに対応する接続と確認した場合は true
      */
     static boolean hasCombatRewardPlaque(UUID playerId) {

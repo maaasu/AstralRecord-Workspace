@@ -69,6 +69,10 @@ public final class AstralRecordGeyserExtension implements Extension {
     private final BossDisplay selenea = new BossDisplay("selenea", "witch",
         0x41535453454c4231L, 0x41535453454c4631L, 0x41535453454c4d31L, 12, 4,
         DamagePack::selenea, DamagePack::selenea);
+    // ASTNYXB1 / ASTNYXF1 / ASTNYXM1。技の形状は0～12、姿勢は0～4。
+    private final BossDisplay nyxeron = new BossDisplay("nyxeron", "iron_golem",
+        0x4153544e59584231L, 0x4153544e59584631L, 0x4153544e59584d31L, 12, 4,
+        DamagePack::nyxeron, DamagePack::nyxeron);
     private WorldDisplayEntity worldDisplays;
     private CustomEntityDefinition receptionDisplayDefinition;
     private ReceptionDisplayEntity receptionDisplays;
@@ -105,6 +109,7 @@ public final class AstralRecordGeyserExtension implements Extension {
         event.register(receptionDefinition);
         receptionDisplayDefinition = receptionDefinition;
         selenea.register(event);
+        nyxeron.register(event);
         var phoenix = CustomEntityDefinition.of(Identifier.of("astralrecord", "archmage_phoenix"));
         event.register(phoenix);
         archmagePhoenixDefinition = phoenix;
@@ -126,6 +131,7 @@ public final class AstralRecordGeyserExtension implements Extension {
         }
         sunbird.registerProperties(event);
         selenea.registerProperties(event);
+        nyxeron.registerProperties(event);
         if (skillEffectDefinition != null) {
             skillEffectProperties = SkillEffectEntity.registerProperties(event, skillEffectDefinition.identifier());
         }
@@ -210,6 +216,15 @@ public final class AstralRecordGeyserExtension implements Extension {
     public boolean hasSelenea(UUID playerId) {
         var connection = geyserApi().connectionByUuid(playerId);
         return connection != null && selenea.ready(damagePacks, connection);
+    }
+
+    /**
+     * @param playerId 接続中プレイヤーの Java 側 UUID
+     * @return 天球心臓ニクセロンの描画に対応するパックを登録し、ログインまで完了した場合は true
+     */
+    public boolean hasNyxeron(UUID playerId) {
+        var connection = geyserApi().connectionByUuid(playerId);
+        return connection != null && nyxeron.ready(damagePacks, connection);
     }
 
     /**
@@ -340,7 +355,8 @@ public final class AstralRecordGeyserExtension implements Extension {
             worldDisplays.onSpawn(event, damagePacks);
             if (event.isCancelled()) return;
         }
-        if (sunbird.onSpawn(event, damagePacks) || selenea.onSpawn(event, damagePacks)) return;
+        if (sunbird.onSpawn(event, damagePacks) || selenea.onSpawn(event, damagePacks)
+            || nyxeron.onSpawn(event, damagePacks)) return;
         if (archmagePhoenixDefinition != null && event.uuid().getMostSignificantBits() == ARCHMAGE_PHOENIX_MARKER
             && event.entityType().is(PARROT) && damagePacks.archmagePhoenixReady(event.connection())) {
             event.definition(archmagePhoenixDefinition);

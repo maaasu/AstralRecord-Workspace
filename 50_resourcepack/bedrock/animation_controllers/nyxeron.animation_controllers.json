@@ -1,0 +1,110 @@
+{
+ "format_version": "1.10.0",
+ "animation_controllers": {
+  "controller.animation.astralrecord.nyxeron": {
+   "initial_state": "idle",
+   "states": {
+    "idle": {
+     "animations": [
+      "idle"
+     ],
+     "transitions": [
+      {
+       "cast": "variable.motion == 1"
+      },
+      {
+       "attack": "variable.motion == 2"
+      },
+      {
+       "guard": "variable.motion == 3"
+      },
+      {
+       "exposed": "variable.motion == 4"
+      }
+     ],
+     "blend_transition": 0.12
+    },
+    "cast": {
+     "animations": [
+      "cast"
+     ],
+     "transitions": [
+      {
+       "idle": "variable.motion == 0"
+      },
+      {
+       "attack": "variable.motion == 2"
+      },
+      {
+       "guard": "variable.motion == 3"
+      },
+      {
+       "exposed": "variable.motion == 4"
+      }
+     ],
+     "blend_transition": 0.12
+    },
+    "attack": {
+     "animations": [
+      "attack"
+     ],
+     "transitions": [
+      {
+       "idle": "variable.motion == 0"
+      },
+      {
+       "cast": "variable.motion == 1"
+      },
+      {
+       "guard": "variable.motion == 3"
+      },
+      {
+       "exposed": "variable.motion == 4"
+      }
+     ],
+     "blend_transition": 0.12
+    },
+    "guard": {
+     "animations": [
+      "guard"
+     ],
+     "transitions": [
+      {
+       "idle": "variable.motion == 0"
+      },
+      {
+       "cast": "variable.motion == 1"
+      },
+      {
+       "attack": "variable.motion == 2"
+      },
+      {
+       "exposed": "variable.motion == 4"
+      }
+     ],
+     "blend_transition": 0.12
+    },
+    "exposed": {
+     "animations": [
+      "exposed"
+     ],
+     "transitions": [
+      {
+       "idle": "variable.motion == 0"
+      },
+      {
+       "cast": "variable.motion == 1"
+      },
+      {
+       "attack": "variable.motion == 2"
+      },
+      {
+       "guard": "variable.motion == 3"
+      }
+     ],
+     "blend_transition": 0.12
+    }
+   }
+  }
+ }
+}

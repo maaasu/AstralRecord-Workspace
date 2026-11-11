@@ -1,0 +1,72 @@
+{
+ "format_version": "1.10.0",
+ "minecraft:client_entity": {
+  "description": {
+   "identifier": "astralrecord:nyxeron",
+   "materials": {
+    "default": "entity_alphatest",
+    "glow": "entity_emissive_alpha"
+   },
+   "textures": {
+    "default": "textures/entity/nyxeron"
+   },
+   "geometry": {
+    "default": "geometry.astralrecord.nyxeron"
+   },
+   "animations": {
+    "rings": "animation.astralrecord.nyxeron.rings",
+    "idle": "animation.astralrecord.nyxeron.idle",
+    "cast": "animation.astralrecord.nyxeron.cast",
+    "attack": "animation.astralrecord.nyxeron.attack",
+    "guard": "animation.astralrecord.nyxeron.guard",
+    "exposed": "animation.astralrecord.nyxeron.exposed",
+    "motion": "controller.animation.astralrecord.nyxeron"
+   },
+   "scripts": {
+    "initialize": [
+     "variable.body_yaw_ready = 0;",
+     "variable.ring_scale = 1.0;",
+     "variable.lift = 0.0;",
+     "variable.prec_a = 0;",
+     "variable.spin_a = 0;",
+     "variable.tilt_a = 24;",
+     "variable.prec_b = 90;",
+     "variable.spin_b = 0;",
+     "variable.tilt_b = 72;",
+     "variable.prec_c = 45;",
+     "variable.spin_c = 0;",
+     "variable.tilt_c = -48;"
+    ],
+    "pre_animation": [
+     "variable.body_yaw_target = query.has_property('astralrecord:body_yaw_tenths') ? query.property('astralrecord:body_yaw_tenths') : -1;",
+     "variable.body_yaw = variable.body_yaw_target < 0 ? query.body_y_rotation : (variable.body_yaw_ready ? math.lerprotate(variable.body_yaw, variable.body_yaw_target / 10.0, math.min(1, query.delta_time * 12)) : variable.body_yaw_target / 10.0);",
+     "variable.body_yaw_ready = variable.body_yaw_target >= 0;",
+     "variable.motion = query.has_property('astralrecord:motion') ? query.property('astralrecord:motion') : 0;",
+     "variable.invulnerable = query.has_property('astralrecord:invulnerable') ? query.property('astralrecord:invulnerable') : 0;",
+     "variable.rate = variable.motion == 1 ? 2.5 : (variable.motion == 2 ? 3.2 : (variable.motion == 3 ? 0.35 : (variable.motion == 4 ? 0.4 : 1.0)));",
+     "variable.step = math.clamp(query.delta_time, 0.0, 0.1);",
+     "variable.ease = math.min(1.0, variable.step * 5.0);",
+     "variable.prec_a = math.mod(variable.prec_a + variable.step * 18.0 * variable.rate, 360.0);",
+     "variable.spin_a = math.mod(variable.spin_a + variable.step * 30.0 * variable.rate, 360.0);",
+     "variable.tilt_a = math.lerp(variable.tilt_a, variable.motion == 2 ? 0 : (variable.motion == 3 ? 90 : (variable.motion == 4 ? 62 : 24)), variable.ease);",
+     "variable.prec_b = math.mod(variable.prec_b + variable.step * -12.0 * variable.rate, 360.0);",
+     "variable.spin_b = math.mod(variable.spin_b + variable.step * 44.0 * variable.rate, 360.0);",
+     "variable.tilt_b = math.lerp(variable.tilt_b, variable.motion == 2 ? 0 : (variable.motion == 3 ? 90 : (variable.motion == 4 ? 28 : 72)), variable.ease);",
+     "variable.prec_c = math.mod(variable.prec_c + variable.step * 28.0 * variable.rate, 360.0);",
+     "variable.spin_c = math.mod(variable.spin_c + variable.step * -60.0 * variable.rate, 360.0);",
+     "variable.tilt_c = math.lerp(variable.tilt_c, variable.motion == 2 ? 0 : (variable.motion == 3 ? 0 : (variable.motion == 4 ? 84 : -48)), variable.ease);",
+     "variable.ring_scale = math.lerp(variable.ring_scale, variable.motion == 1 ? 1.1 : (variable.motion == 2 ? 1.18 : (variable.motion == 3 ? 0.72 : (variable.motion == 4 ? 1.04 : 1.0))), variable.ease);",
+     "variable.lift = math.lerp(variable.lift, variable.motion == 4 ? -11.2 : (variable.motion == 1 ? 4.0 : 0.0), variable.ease);"
+    ],
+    "animate": [
+     "rings",
+     "motion"
+    ]
+   },
+   "render_controllers": [
+    "controller.render.astralrecord.nyxeron"
+   ],
+   "enable_attachables": false
+  }
+ }
+}

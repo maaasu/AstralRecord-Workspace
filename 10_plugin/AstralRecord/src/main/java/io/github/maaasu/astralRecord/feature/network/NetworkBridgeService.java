@@ -403,6 +403,12 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
             }
             return;
         }
+        if (BackendProtocol.isNyxeronReady(message)) {
+            if (resourcePackService != null) {
+                resourcePackService.markBedrockNyxeronPresentationReady(player);
+            }
+            return;
+        }
         if (BackendProtocol.isCombatRewardPlaqueReady(message)) {
             if (resourcePackService != null) {
                 resourcePackService.markBedrockCombatRewardPlaqueReady(player);

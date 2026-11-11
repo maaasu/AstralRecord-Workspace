@@ -90,6 +90,18 @@ Java 版は本体のアイテム定義から翼を上げる、下げる、引く
 
 本体は Blockbench Web、技は両版の配布データをオフスクリーンで描画し、姿勢、境界、発動時の動きを確認しました。Minecraft 実クライアントでの描画は未確認です。
 
+### 天球心臓 ニクセロン
+
+`orrery_heart_nyxeron` は、黒曜石の心臓を銅・緑青・アメジストの三本の環が囲む天球儀の姿です。心臓は四方に光る眼、紫の脈、金の帯と極の棘を持ち、予告では眼が開き、発動では花弁状に開き、無敵の封印調律ではアメジストの檻に閉じ、露出では殻が割れて金の核が現れます。
+
+Java 版は戦闘用のアイアンゴーレムを閲覧者ごとに不可視にし、核（`nyxeron_core`、`custom_model_data` の先頭値 0～4 が通常・予告・発動・調律・露出）と三本の環（`nyxeron_ring_outer`・`_mid`・`_inner`）を別々の ItemDisplay で表示します。環の歳差・傾き・自転はプラグインが5tickごとに更新し、表示補間で回します。被弾中は核を赤、調律中は紫、露出中は金に染めます。統合版は `astralrecord:nyxeron` が姿勢番号と無敵状態から同じ傾きと速さを Molang 変数で補間します。
+
+技は中心円・帯4種・光条・封印板・調律済み・星痕・衝撃・視線・星墜・心拍の13形状です。Java 版は `nyxeron_<形状>` の4フレーム、統合版は `astralrecord:nyxeron_skill` の `style`（0～12）と `width`・`height`・`length` で寸法を受け取ります。危険範囲は赤紫、封印板は金、調律済みは青緑、星痕は紫で、正確な判定範囲は床の粒子が引き続き示します。
+
+両版の形状・テクスチャ・アニメーションは `scripts/generate-nyxeron-assets.py` が同じ箱の定義から生成し、これを編集元とします。`uv run --with pillow==13.0.0 python scripts/generate-nyxeron-assets.py --check` で配布アセットの一致と、Java のキューブ範囲・回転角、統合版のボーン階層を検査できます。両版のパックに互換マーカー `nyxeron-presentation-version.txt`（`1`）を収録します。Java 版は配布マニフェストの `java.nyxeronPresentation` が `"1"` の管理パックの適用成功後に表示します。統合版は Geyser 拡張 1.28.0 と AstralRecordProxy 1.6.8 以降を経由して表示します。非対応の接続ではアイアンゴーレムと粒子の予兆を使います。
+
+両版の配布データを独立したソフトウェア描画（面の平均色）で5姿勢・4方向から描き、Java と統合版の輪郭・環の傾き・姿勢差が一致することを確認しました。技はテクスチャ原画と形状の輪郭を確認しました。Minecraft 実クライアントでの描画は未確認です。
+
 ### 不死鳥との共鳴
 
 `archmage_phoenix_resonance` の召喚中は、炎の翼と三本の尾羽を持つ `astralrecord:archmage_phoenix` を表示します。両版の編集元は [blockbench/entities](blockbench/entities) にあり、同じ 128×128 px のテクスチャを使います。

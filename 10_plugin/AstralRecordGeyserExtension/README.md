@@ -98,6 +98,10 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 
 拡張 `1.26.0` と AstralRecordProxy `1.6.7` 以降は、互換版 `1` の `archmage-phoenix-presentation-version.txt` と、フェニックスのエンティティ定義・形状・テクスチャ・アニメーションが揃ったパックに対応します。Geyser の `gameplay.force-resource-packs: true` で配布対象に登録したパックでログインまで進んだ接続を、Velocity が RPG に通知します。RPG が印を付けたオウムを `astralrecord:archmage_phoenix` として表示し、統合版クライアントが羽ばたきを繰り返します。パックを利用できない接続では RPG の代替演出を表示します。更新後は Proxy を再起動し、統合版クライアントを再接続してください。
 
+## Bedrock の天球心臓ニクセロン
+
+拡張 `1.28.0` と AstralRecordProxy `1.6.8` 以降は、互換版 `1` の `nyxeron-presentation-version.txt` と、本体・技のエンティティ定義・形状・テクスチャ・アニメーション・描画制御が揃ったパックに対応します。RPG が UUID に印を付けたアイアンゴーレムを `astralrecord:nyxeron` に、技の TextDisplay を `astralrecord:nyxeron_skill`（形状0～12）に置き換えます。姿勢は0～4（通常・予告・発動・調律・露出）です。パックを利用できない接続ではアイアンゴーレムと粒子の予兆を表示します。更新後は Proxy を再起動し、統合版クライアントを再接続してください。
+
 ## Bedrockのウェイストーンと施設NPC
 
 拡張 1.12.0 以降は、ワールド表示用のエンティティ定義、形状、レンダーコントローラー、テクスチャが揃ったパックを登録した接続で、RPG が送る印付きの空 TextDisplay を `astralrecord:world_display` に変換します。ウェイストーンの解除状態と施設NPCの素材は、生成時の `astralrecord:style` でモデルへ渡します。
