@@ -1,0 +1,36 @@
+{
+ "format_version": "1.8.0",
+ "render_controllers": {
+  "controller.render.astralrecord.nyxeron_skill": {
+   "arrays": {
+    "geometries": {
+     "Array.shapes": [
+      "Geometry.disc",
+      "Geometry.band_1",
+      "Geometry.band_2",
+      "Geometry.band_3",
+      "Geometry.band_4",
+      "Geometry.spoke",
+      "Geometry.seal",
+      "Geometry.seal_done",
+      "Geometry.scar",
+      "Geometry.impact",
+      "Geometry.gaze",
+      "Geometry.meteor",
+      "Geometry.heart"
+     ]
+    }
+   },
+   "geometry": "Array.shapes[math.clamp(query.property('astralrecord:style'), 0, 12)]",
+   "materials": [
+    {
+     "*": "Material.default"
+    }
+   ],
+   "textures": [
+    "Texture.default"
+   ],
+   "ignore_lighting": true
+  }
+ }
+}

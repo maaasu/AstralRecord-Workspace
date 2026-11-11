@@ -177,6 +177,8 @@ public final class BossMechanicService {
     private final Map<UUID, Set<UUID>> astraiosDirectParticipants = new HashMap<>();
     private final HorologiumEncounterController horologiumEncounterController;
     private final Map<UUID, Set<UUID>> horologiumDirectParticipants = new HashMap<>();
+    private final NyxeronEncounterController nyxeronEncounterController;
+    private final Map<UUID, Set<UUID>> nyxeronDirectParticipants = new HashMap<>();
     private final Map<UUID, Set<UUID>> seleneaDirectParticipants = new HashMap<>();
     private final Map<UUID, Long> seleneaRangeNoticeUntil = new HashMap<>();
     private @Nullable BindCircleRuntimeService bindCircleRuntimeService;
@@ -190,6 +192,7 @@ public final class BossMechanicService {
 
     private final SunbirdPackDisplay sunbirdDisplay;
     private final SeleneaPackDisplay seleneaDisplay;
+    private final NyxeronPackDisplay nyxeronDisplay;
     private final Map<PendingMechanic, List<Effect>> sunbirdWarnings = new HashMap<>();
 
     private BukkitTask tickTask;
@@ -230,6 +233,7 @@ public final class BossMechanicService {
         this.particleDisplayService = particleDisplayService;
         this.sunbirdDisplay = new SunbirdPackDisplay(plugin, resourcePackService);
         this.seleneaDisplay = new SeleneaPackDisplay(plugin, resourcePackService);
+        this.nyxeronDisplay = new NyxeronPackDisplay(plugin, resourcePackService);
         this.charonRitualController = new CharonRitualController(
             mobService,
             particleDisplayService,
@@ -275,6 +279,15 @@ public final class BossMechanicService {
             },
             boss -> bossChallengeService.isBossMob(boss.instanceId())
         );
+        this.nyxeronEncounterController = new NyxeronEncounterController(
+            mobService, particleDisplayService, this::nyxeronParticipants,
+            (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, ratio, 1000.0D),
+            boss -> {
+                if (!bossChallengeService.abortForMechanicFailure(boss.instanceId()))
+                    mobService.destroy(boss.instanceId());
+            },
+            nyxeronDisplay
+        );
         this.seleneaEncounterController = new SeleneaEncounterController(
             mobService, particleDisplayService, this::seleneaParticipants,
             (boss, player, ratio) -> damagePlayer(boss, player, AttackType.MAGIC, DamageElement.NONE, ratio),
@@ -315,6 +328,8 @@ public final class BossMechanicService {
         if (seleneaEncounterController.ultimateProtected(victim.mob())) return 0.0D;
         if (HorologiumEncounterController.BOSS_ID.equals(victim.mob().template().id()))
             return horologiumEncounterController.incomingDamageMultiplier(victim.mob(), clockTicks);
+        if (NyxeronEncounterController.BOSS_ID.equals(victim.mob().template().id()))
+            return nyxeronEncounterController.incomingDamageMultiplier(victim.mob(), clockTicks);
         try {
             return seleneaSupportController.incomingDamageMultiplier(victim.mob(), clockTicks);
         } catch (RuntimeException exception) {
@@ -328,7 +343,7 @@ public final class BossMechanicService {
      * @param boss 被弾個体 @return アストライオスの次の境界HP、対象外は0
      */
     public double minimumHealthAfterDamage(@NotNull MobInstance boss) {
-        return astraiosEncounterController.healthFloor(boss);
+        return Math.max(astraiosEncounterController.healthFloor(boss), nyxeronEncounterController.healthFloor(boss));
     }
 
     /**
@@ -361,6 +376,7 @@ public final class BossMechanicService {
         }
         sunbirdDisplay.start();
         seleneaDisplay.start();
+        nyxeronDisplay.start();
         clockTicks = 0L;
         motionClockTicks = TICK_PERIOD - 1L;
         tickTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::pulse, 20L, 1L);
@@ -371,6 +387,7 @@ public final class BossMechanicService {
         motionClockTicks++;
         sunbirdDisplay.animate(motionClockTicks);
         seleneaDisplay.animate(motionClockTicks);
+        nyxeronDisplay.animate(motionClockTicks);
         if (motionClockTicks % TICK_PERIOD == 0L) {
             tick();
         } else {
@@ -409,6 +426,8 @@ public final class BossMechanicService {
         astraiosDirectParticipants.remove(bossInstanceId);
         horologiumEncounterController.clear(bossInstanceId);
         horologiumDirectParticipants.remove(bossInstanceId);
+        nyxeronEncounterController.clear(bossInstanceId);
+        nyxeronDirectParticipants.remove(bossInstanceId);
     }
 
     /**
@@ -422,6 +441,8 @@ public final class BossMechanicService {
             sunbirdDisplay.hurt(boss.instanceId(), entity, motionClockTicks);
         } else if (SeleneaEncounterController.BOSS_ID.equals(boss.template().id())) {
             seleneaDisplay.hurt(boss.instanceId(), motionClockTicks);
+        } else if (NyxeronEncounterController.BOSS_ID.equals(boss.template().id())) {
+            nyxeronEncounterController.hurt(boss.instanceId(), motionClockTicks);
         }
     }
 
@@ -466,9 +487,12 @@ public final class BossMechanicService {
         astraiosDirectParticipants.clear();
         horologiumEncounterController.clearAll();
         horologiumDirectParticipants.clear();
+        nyxeronEncounterController.clearAll();
+        nyxeronDirectParticipants.clear();
         seleneaRangeNoticeUntil.clear();
         sunbirdDisplay.stop();
         seleneaDisplay.stop();
+        nyxeronDisplay.stop();
     }
 
     /**
@@ -491,6 +515,7 @@ public final class BossMechanicService {
         Set<UUID> activeSeleneas = new HashSet<>();
         Set<UUID> activeAstraioses = new HashSet<>();
         Set<UUID> activeHorologiums = new HashSet<>();
+        Set<UUID> activeNyxerons = new HashSet<>();
         for (MobInstance boss : List.copyOf(mobService.getInstances())) {
             BossMechanicProfile profile = BossMechanicProfile.find(boss.template().id());
             boolean empusa = BossMechanicProfile.EMPUSA_WITCH.equals(boss.template().id());
@@ -501,7 +526,9 @@ public final class BossMechanicService {
             boolean greatroot = GreatrootEncounterController.BOSS_ID.equals(boss.template().id());
             boolean astraios = AstraiosEncounterController.BOSS_ID.equals(boss.template().id());
             boolean horologium = HorologiumEncounterController.BOSS_ID.equals(boss.template().id());
-            if ((profile == null && !empusa && !knocker && !vesperala && !ventos && !selenea && !greatroot && !astraios && !horologium)
+            boolean nyxeron = NyxeronEncounterController.BOSS_ID.equals(boss.template().id());
+            if ((profile == null && !empusa && !knocker && !vesperala && !ventos && !selenea && !greatroot && !astraios
+                && !horologium && !nyxeron)
                 || boss.currentHealth() <= 0.0D) {
                 continue;
             }
@@ -521,6 +548,22 @@ public final class BossMechanicService {
                         && conditionService.canCastSkill(AstEntity.mob(boss))
                         && (bindCircleRuntimeService == null || !bindCircleRuntimeService.isBound(boss.instanceId()));
                     astraiosEncounterController.tick(boss, entity, clockTicks, canAct,
+                        bossChallengeService.isBossMob(boss.instanceId()) || dungeonService.isDungeonMob(boss.instanceId()));
+                }
+                continue;
+            }
+
+            if (nyxeron) {
+                activeNyxerons.add(boss.instanceId());
+                if (!bossChallengeService.isBossMob(boss.instanceId())
+                    && (boss.state() == MobState.LEASHED || boss.state() == MobState.IDLE)) {
+                    nyxeronEncounterController.clear(boss.instanceId());
+                    nyxeronDirectParticipants.remove(boss.instanceId());
+                } else {
+                    boolean canAct = conditionService.canRunAi(AstEntity.mob(boss))
+                        && conditionService.canCastSkill(AstEntity.mob(boss))
+                        && (bindCircleRuntimeService == null || !bindCircleRuntimeService.isBound(boss.instanceId()));
+                    nyxeronEncounterController.tick(boss, entity, clockTicks, canAct,
                         bossChallengeService.isBossMob(boss.instanceId()) || dungeonService.isDungeonMob(boss.instanceId()));
                 }
                 continue;
@@ -763,6 +806,8 @@ public final class BossMechanicService {
         astraiosDirectParticipants.keySet().retainAll(activeAstraioses);
         horologiumEncounterController.retain(activeHorologiums);
         horologiumDirectParticipants.keySet().retainAll(activeHorologiums);
+        nyxeronEncounterController.retain(activeNyxerons);
+        nyxeronDirectParticipants.keySet().retainAll(activeNyxerons);
 
         Iterator<Map.Entry<UUID, BossRuntime>> iterator = runtimes.entrySet().iterator();
         while (iterator.hasNext()) {
@@ -2901,6 +2946,21 @@ public final class BossMechanicService {
             }
             return horologiumParticipants(boss).contains(owner.getBukkit());
         }
+        if (victim.isMob() && NyxeronEncounterController.BOSS_ID.equals(victim.mob().template().id())) {
+            var owner = attacker == null ? null : attacker.combatOwner();
+            if (owner == null || !damageService.isMobCombatTarget(owner.getBukkit())
+                || owner.getBukkit().getGameMode() == org.bukkit.GameMode.CREATIVE
+                || owner.getBukkit().getGameMode() == org.bukkit.GameMode.SPECTATOR
+                || !NyxeronArena.inside(owner.getBukkit().getLocation(), victim.mob().spawnLocation())) return false;
+            MobInstance boss = victim.mob();
+            if (!bossChallengeService.isBossMob(boss.instanceId()) && !dungeonService.isDungeonMob(boss.instanceId())) {
+                nyxeronDirectParticipants.computeIfAbsent(boss.instanceId(), ignored -> {
+                    Party party = partyService.findParty(owner.getBukkit().getUniqueId());
+                    return party == null ? Set.of(owner.getBukkit().getUniqueId()) : Set.copyOf(party.members());
+                });
+            }
+            return nyxeronParticipants(boss).contains(owner.getBukkit());
+        }
         if (victim.isMob() && AstraiosEncounterController.BOSS_ID.equals(victim.mob().template().id())) {
             var owner = attacker == null ? null : attacker.combatOwner();
             if (owner == null || !damageService.isMobCombatTarget(owner.getBukkit())
@@ -3049,6 +3109,28 @@ public final class BossMechanicService {
             .filter(p -> p.getGameMode() != org.bukkit.GameMode.CREATIVE && p.getGameMode() != org.bukkit.GameMode.SPECTATOR)
             .filter(p -> p.getWorld() == center.getWorld() && Math.abs(p.getY() - center.getY()) <= 6.0D
                 && horizontalDistanceSquared(p.getLocation(), center) <= 24.0D * 24.0D)
+            .filter(p -> !dungeonService.isDungeonMob(boss.instanceId())
+                || dungeonService.canApplyCombatDamage(damageService.resolveEntity(p), AstEntity.mob(boss))).toList();
+    }
+
+    /**
+     * 影輪の天球儀の確定参加者を返します。壁外への逸脱も表示回収のため44m・高さ±10mまで追跡します。
+     * @param boss 所有個体
+     * @return 生存する戦闘参加者。見学者・別world・別ダンジョン部屋は除外
+     */
+    private @NotNull List<Player> nyxeronParticipants(@NotNull MobInstance boss) {
+        Set<UUID> ids = bossChallengeService.isBossMob(boss.instanceId())
+            ? bossChallengeService.participantIdsForBossMob(boss.instanceId())
+            : dungeonService.isDungeonMob(boss.instanceId())
+                ? dungeonService.resolveMobRewardRecipients(boss.instanceId()).stream()
+                    .map(p -> p.getBukkit().getUniqueId()).collect(java.util.stream.Collectors.toSet())
+                : nyxeronDirectParticipants.getOrDefault(boss.instanceId(), Set.of());
+        Location center = boss.spawnLocation();
+        return ids.stream().map(Bukkit::getPlayer).filter(java.util.Objects::nonNull)
+            .filter(damageService::isMobCombatTarget)
+            .filter(p -> p.getGameMode() != org.bukkit.GameMode.CREATIVE && p.getGameMode() != org.bukkit.GameMode.SPECTATOR)
+            .filter(p -> p.getWorld() == center.getWorld() && Math.abs(p.getY() - center.getY()) <= 10.0D
+                && horizontalDistanceSquared(p.getLocation(), center) <= 44.0D * 44.0D)
             .filter(p -> !dungeonService.isDungeonMob(boss.instanceId())
                 || dungeonService.canApplyCombatDamage(damageService.resolveEntity(p), AstEntity.mob(boss))).toList();
     }

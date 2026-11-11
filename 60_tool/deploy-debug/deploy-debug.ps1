@@ -418,6 +418,7 @@ function Publish-ResourcePacks {
     $sunbirdPresentation = $null
     $seleneaPresentation = $null
     $archmagePhoenixPresentation = $null
+    $nyxeronPresentation = $null
     $itemTooltips = $null
     $weaponAttackProjectiles = $null
     $skillEffects = $null
@@ -516,6 +517,25 @@ function Publish-ResourcePacks {
             )) {
                 $entry = $archive.GetEntry($asset)
                 if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing Archmage Phoenix asset in Java pack: $asset" }
+            }
+        }
+
+        $nyxeronEntry = $archive.GetEntry('nyxeron-presentation-version.txt')
+        if ($null -ne $nyxeronEntry) {
+            if ($nyxeronEntry.Length -ne 1) { throw 'Invalid Nyxeron presentation version marker.' }
+            $reader = [IO.StreamReader]::new($nyxeronEntry.Open())
+            try { $nyxeronPresentation = $reader.ReadToEnd() }
+            finally { $reader.Dispose() }
+            if ($nyxeronPresentation -cne '1') { throw 'Unsupported Nyxeron presentation version.' }
+            foreach ($asset in @(
+                'assets/astralrecord/items/nyxeron_core.json'
+                'assets/astralrecord/items/nyxeron_ring_outer.json'
+                'assets/astralrecord/items/nyxeron_disc.json'
+                'assets/astralrecord/textures/item/nyxeron.png'
+                'assets/astralrecord/textures/item/nyxeron_skill.png'
+            )) {
+                $entry = $archive.GetEntry($asset)
+                if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing Nyxeron asset in Java pack: $asset" }
             }
         }
 
@@ -816,6 +836,9 @@ function Publish-ResourcePacks {
     }
     if ($null -ne $archmagePhoenixPresentation) {
         $javaManifest.archmagePhoenixPresentation = $archmagePhoenixPresentation
+    }
+    if ($null -ne $nyxeronPresentation) {
+        $javaManifest.nyxeronPresentation = $nyxeronPresentation
     }
     if ($null -ne $sunbirdPresentation) {
         $javaManifest.sunbirdPresentation = $sunbirdPresentation

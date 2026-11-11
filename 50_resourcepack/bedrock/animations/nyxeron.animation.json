@@ -1,0 +1,228 @@
+{
+ "format_version": "1.8.0",
+ "animations": {
+  "animation.astralrecord.nyxeron.rings": {
+   "loop": true,
+   "bones": {
+    "root": {
+     "rotation": [
+      0,
+      "variable.body_yaw - query.body_y_rotation",
+      0
+     ]
+    },
+    "body": {
+     "position": [
+      0,
+      "variable.lift",
+      0
+     ]
+    },
+    "core": {
+     "rotation": [
+      0,
+      "variable.spin_a * 0.3",
+      0
+     ]
+    },
+    "ring_outer_prec": {
+     "rotation": [
+      0,
+      "variable.prec_a",
+      0
+     ],
+     "scale": [
+      "variable.ring_scale",
+      "variable.ring_scale",
+      "variable.ring_scale"
+     ]
+    },
+    "ring_outer_tilt": {
+     "rotation": [
+      "variable.tilt_a",
+      0,
+      0
+     ]
+    },
+    "ring_outer_spin": {
+     "rotation": [
+      0,
+      "variable.spin_a",
+      0
+     ]
+    },
+    "ring_mid_prec": {
+     "rotation": [
+      0,
+      "variable.prec_b",
+      0
+     ],
+     "scale": [
+      "variable.ring_scale",
+      "variable.ring_scale",
+      "variable.ring_scale"
+     ]
+    },
+    "ring_mid_tilt": {
+     "rotation": [
+      "variable.tilt_b",
+      0,
+      0
+     ]
+    },
+    "ring_mid_spin": {
+     "rotation": [
+      0,
+      "variable.spin_b",
+      0
+     ]
+    },
+    "ring_inner_prec": {
+     "rotation": [
+      0,
+      "variable.prec_c",
+      0
+     ],
+     "scale": [
+      "variable.ring_scale",
+      "variable.ring_scale",
+      "variable.ring_scale"
+     ]
+    },
+    "ring_inner_tilt": {
+     "rotation": [
+      "variable.tilt_c",
+      0,
+      0
+     ]
+    },
+    "ring_inner_spin": {
+     "rotation": [
+      0,
+      "variable.spin_c",
+      0
+     ]
+    }
+   }
+  },
+  "animation.astralrecord.nyxeron.idle": {
+   "loop": true,
+   "bones": {
+    "core": {
+     "scale": [
+      "1.0 + 0.06 * math.max(0, math.sin(query.life_time * 400.0))",
+      "1.0 + 0.06 * math.max(0, math.sin(query.life_time * 400.0))",
+      "1.0 + 0.06 * math.max(0, math.sin(query.life_time * 400.0))"
+     ]
+    }
+   }
+  },
+  "animation.astralrecord.nyxeron.cast": {
+   "loop": true,
+   "bones": {
+    "core": {
+     "scale": [
+      "1.06 + 0.08 * math.max(0, math.sin(query.life_time * 720.0))",
+      "1.06 + 0.08 * math.max(0, math.sin(query.life_time * 720.0))",
+      "1.06 + 0.08 * math.max(0, math.sin(query.life_time * 720.0))"
+     ]
+    },
+    "glow_eye": {
+     "scale": [
+      1,
+      1.35,
+      1.35
+     ]
+    },
+    "crown": {
+     "scale": [
+      1,
+      1.4,
+      1
+     ]
+    }
+   }
+  },
+  "animation.astralrecord.nyxeron.attack": {
+   "loop": true,
+   "bones": {
+    "core": {
+     "scale": 1.12
+    },
+    "glow_eye": {
+     "scale": [
+      1,
+      1.15,
+      1.15
+     ]
+    },
+    "crown": {
+     "scale": [
+      1,
+      1.7,
+      1
+     ]
+    }
+   }
+  },
+  "animation.astralrecord.nyxeron.guard": {
+   "loop": true,
+   "animation_length": 2.0,
+   "bones": {
+    "glow_guard": {
+     "rotation": {
+      "0.0": [
+       0,
+       0,
+       0
+      ],
+      "1.0": [
+       0,
+       180,
+       0
+      ],
+      "2.0": [
+       0,
+       360,
+       0
+      ]
+     }
+    },
+    "core": {
+     "scale": 0.94
+    },
+    "glow_eye": {
+     "scale": [
+      1,
+      0.8,
+      0.8
+     ]
+    }
+   }
+  },
+  "animation.astralrecord.nyxeron.exposed": {
+   "loop": true,
+   "bones": {
+    "core": {
+     "position": [
+      "math.sin(query.life_time * 1500.0) * 0.4",
+      0,
+      "math.cos(query.life_time * 1300.0) * 0.4"
+     ],
+     "scale": [
+      "1.0 + 0.06 * math.max(0, math.sin(query.life_time * 400.0))",
+      "1.0 + 0.06 * math.max(0, math.sin(query.life_time * 400.0))",
+      "1.0 + 0.06 * math.max(0, math.sin(query.life_time * 400.0))"
+     ]
+    },
+    "shell_shard": {
+     "rotation": [
+      0,
+      "query.life_time * 40.0",
+      0
+     ]
+    }
+   }
+  }
+ }
+}

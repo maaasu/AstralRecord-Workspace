@@ -1,0 +1,24 @@
+# design:
+#   motif: "天体 / 星蝕と天球儀の環"
+#   progression: 50
+schemaVersion: 1
+id: umbral_orrery
+displayName: "天球心臓 ニクセロン・影輪の天球儀"
+worldType: BOSS_FIELD
+baseWorldPath: "plugins/AstralRecord/worlds/boss_field/umbral_orrery"
+instanceRootPath: "plugins/AstralRecord/_world_instances/boss_field/umbral_orrery"
+autoLoad: false
+instanceEnabled: true
+maxPlayers: 6
+allowBlockBreak: false
+allowBlockPlace: false
+allowMobSpawn: false
+showSpawnParticle: false
+# 闘技場中心(10.5,-42,-64.5)の南23mから、北の中心を向いて始める。
+spawnLocation:
+  x: 10.5
+  y: -42.0
+  z: -41.5
+  yaw: 180.0
+  pitch: 0.0
+description: "頭上の天球儀に囲まれた、遮蔽柱と八つの封印板を持つ円形闘技場。"

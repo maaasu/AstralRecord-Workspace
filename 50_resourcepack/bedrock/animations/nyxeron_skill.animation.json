@@ -1,0 +1,66 @@
+{
+ "format_version": "1.8.0",
+ "animations": {
+  "animation.astralrecord.nyxeron_skill.shape": {
+   "loop": true,
+   "bones": {
+    "root": {
+     "scale": [
+      "query.property('astralrecord:width')",
+      "query.property('astralrecord:height')",
+      "query.property('astralrecord:length')"
+     ]
+    },
+    "posts": {
+     "scale": [
+      1,
+      "0.65 + 0.35 * variable.breath",
+      1
+     ]
+    },
+    "posts_inner": {
+     "scale": [
+      1,
+      "0.65 + 0.35 * variable.breath",
+      1
+     ]
+    },
+    "blade": {
+     "scale": [
+      1,
+      "0.55 + 0.45 * variable.breath",
+      1
+     ]
+    },
+    "pillar": {
+     "scale": [
+      "0.9 + 0.12 * variable.breath",
+      1,
+      "0.9 + 0.12 * variable.breath"
+     ]
+    },
+    "burst": {
+     "scale": [
+      "math.lerp(0.45, 1.0, variable.travel)",
+      "math.lerp(0.6, 1.0, variable.travel)",
+      "math.lerp(0.45, 1.0, variable.travel)"
+     ]
+    },
+    "iris": {
+     "scale": [
+      "0.8 + 0.3 * variable.breath",
+      "0.8 + 0.3 * variable.breath",
+      "0.8 + 0.3 * variable.breath"
+     ]
+    },
+    "star": {
+     "position": [
+      0,
+      "math.lerp(14.0, -6.5, variable.fall)",
+      0
+     ]
+    }
+   }
+  }
+ }
+}

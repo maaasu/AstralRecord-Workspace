@@ -1,0 +1,76 @@
+{
+ "model": {
+  "type": "minecraft:range_dispatch",
+  "property": "minecraft:custom_model_data",
+  "index": 0,
+  "fallback": {
+   "type": "minecraft:model",
+   "model": "astralrecord:item/nyxeron_core",
+   "tints": [
+    {
+     "type": "minecraft:custom_model_data",
+     "index": 0,
+     "default": 16777215
+    }
+   ]
+  },
+  "entries": [
+   {
+    "threshold": 1,
+    "model": {
+     "type": "minecraft:model",
+     "model": "astralrecord:item/nyxeron_core_cast",
+     "tints": [
+      {
+       "type": "minecraft:custom_model_data",
+       "index": 0,
+       "default": 16777215
+      }
+     ]
+    }
+   },
+   {
+    "threshold": 2,
+    "model": {
+     "type": "minecraft:model",
+     "model": "astralrecord:item/nyxeron_core_attack",
+     "tints": [
+      {
+       "type": "minecraft:custom_model_data",
+       "index": 0,
+       "default": 16777215
+      }
+     ]
+    }
+   },
+   {
+    "threshold": 3,
+    "model": {
+     "type": "minecraft:model",
+     "model": "astralrecord:item/nyxeron_core_guard",
+     "tints": [
+      {
+       "type": "minecraft:custom_model_data",
+       "index": 0,
+       "default": 16777215
+      }
+     ]
+    }
+   },
+   {
+    "threshold": 4,
+    "model": {
+     "type": "minecraft:model",
+     "model": "astralrecord:item/nyxeron_core_exposed",
+     "tints": [
+      {
+       "type": "minecraft:custom_model_data",
+       "index": 0,
+       "default": 16777215
+      }
+     ]
+    }
+   }
+  ]
+ }
+}

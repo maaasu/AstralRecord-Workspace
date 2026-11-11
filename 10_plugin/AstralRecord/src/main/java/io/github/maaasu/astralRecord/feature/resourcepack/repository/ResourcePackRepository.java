@@ -21,7 +21,7 @@ public final class ResourcePackRepository {
     /** 配布物のハッシュと演出機能の互換情報を識別します。 */
     public record JavaPack(String sha1, @Nullable String actionRingPanel, @Nullable String guiTheme,
                            boolean hasGameplaySounds, boolean sunbirdPresentation, boolean seleneaPresentation,
-                           boolean archmagePhoenixPresentation, boolean itemTooltips,
+                           boolean archmagePhoenixPresentation, boolean nyxeronPresentation, boolean itemTooltips,
                            boolean weaponAttackProjectiles, @Nullable ProfileHud profileHud, boolean skillEffects,
                            boolean combatRewardPlaque, boolean questTrackingHud, boolean receptionDisplay,
                            boolean locationHud, Set<Integer> wornHelmetModels, boolean fishingRodTip, boolean skillCooldownHud) {
@@ -71,6 +71,9 @@ public final class ResourcePackRepository {
                 JsonElement phoenix = java.get("archmagePhoenixPresentation");
                 boolean archmagePhoenixPresentation = phoenix != null && phoenix.isJsonPrimitive()
                     && phoenix.getAsJsonPrimitive().isString() && "1".equals(phoenix.getAsString());
+                JsonElement nyxeron = java.get("nyxeronPresentation");
+                boolean nyxeronPresentation = nyxeron != null && nyxeron.isJsonPrimitive()
+                    && nyxeron.getAsJsonPrimitive().isString() && "1".equals(nyxeron.getAsString());
                 JsonElement tooltips = java.get("itemTooltips");
                 boolean itemTooltips = tooltips != null && tooltips.isJsonPrimitive()
                     && tooltips.getAsJsonPrimitive().isString() && "1".equals(tooltips.getAsString());
@@ -109,7 +112,8 @@ public final class ResourcePackRepository {
                     default -> null;
                 };
                 return new JavaPack(sha1.getAsString(), panel, guiTheme, hasGameplaySounds, sunbirdPresentation,
-                    seleneaPresentation, archmagePhoenixPresentation, itemTooltips, weaponAttackProjectiles, profileHud,
+                    seleneaPresentation, archmagePhoenixPresentation, nyxeronPresentation, itemTooltips,
+                    weaponAttackProjectiles, profileHud,
                     skillEffects, combatRewardPlaque,
                     java.has("questTrackingHud") && java.get("questTrackingHud").isJsonPrimitive()
                         && java.get("questTrackingHud").getAsJsonPrimitive().isString()

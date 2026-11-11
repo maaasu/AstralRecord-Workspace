@@ -141,6 +141,18 @@ public final class SharedParticleDefinitions {
     /** 安全地帯の輪郭の上に置く白いエンドロッド装飾です。 */
     public static final SharedParticleDefinition BOSS_SAFE_BEACON =
         new SharedParticleDefinition("boss_safe_beacon", Particle.END_ROD, 4, 0, 0, 0, 0);
+    /** ニクセロンの次段の予告。赤い危険線と区別する薄紫の装飾線です。 */
+    public static final SharedParticleDefinition NYXERON_ACCENT =
+        new SharedParticleDefinition("nyxeron_accent", Particle.DUST, 4, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(190, 140, 255), 1.1F));
+    /** ニクセロンの調律中の封印板。金の縁と光柱を描きます。 */
+    public static final SharedParticleDefinition NYXERON_SEAL =
+        new SharedParticleDefinition("nyxeron_seal", Particle.DUST, 4, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(255, 205, 80), 1.25F));
+    /** ニクセロンの星痕。継続ダメージ域の紫の縁です。 */
+    public static final SharedParticleDefinition NYXERON_SCAR =
+        new SharedParticleDefinition("nyxeron_scar", Particle.DUST, 4, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(150, 60, 220), 1.0F));
 
     /** 館主の危険面。点間隔で密度を表す幽翠色。 */
     public static final SharedParticleDefinition VESPERALA_WARNING =

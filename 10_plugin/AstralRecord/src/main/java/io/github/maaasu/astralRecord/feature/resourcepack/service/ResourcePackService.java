@@ -50,6 +50,8 @@ public class ResourcePackService {
     private final Set<UUID> readyBedrockSeleneaPresentation = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaArchmagePhoenixPresentation = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockArchmagePhoenixPresentation = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> requestedJavaNyxeronPresentation = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> readyBedrockNyxeronPresentation = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaItemTooltips = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockItemTooltips = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaWeaponAttackProjectiles = ConcurrentHashMap.newKeySet();
@@ -102,6 +104,7 @@ public class ResourcePackService {
         requestedSunbirdPresentation.remove(player.getUniqueId());
         requestedSeleneaPresentation.remove(player.getUniqueId());
         requestedJavaArchmagePhoenixPresentation.remove(player.getUniqueId());
+        requestedJavaNyxeronPresentation.remove(player.getUniqueId());
         requestedJavaWeaponAttackProjectiles.remove(player.getUniqueId());
         requestedJavaSkillEffects.remove(player.getUniqueId());
         requestedJavaCombatRewardPlaque.remove(player.getUniqueId());
@@ -191,6 +194,9 @@ public class ResourcePackService {
                     }
                     if (pack.archmagePhoenixPresentation()) {
                         requestedJavaArchmagePhoenixPresentation.add(viewer);
+                    }
+                    if (pack.nyxeronPresentation()) {
+                        requestedJavaNyxeronPresentation.add(viewer);
                     }
                     if (pack.weaponAttackProjectiles()) {
                         requestedJavaWeaponAttackProjectiles.add(viewer);
@@ -326,6 +332,7 @@ public class ResourcePackService {
                     loadedSunbirdPresentation.remove(viewer);
                     requestedSeleneaPresentation.remove(viewer);
                     requestedJavaArchmagePhoenixPresentation.remove(viewer);
+                    requestedJavaNyxeronPresentation.remove(viewer);
                     requestedJavaWeaponAttackProjectiles.remove(viewer);
                     requestedJavaSkillEffects.remove(viewer);
                     requestedJavaCombatRewardPlaque.remove(viewer);
@@ -699,6 +706,30 @@ public class ResourcePackService {
     }
 
     /**
+     * @param playerId 閲覧者のUUID
+     * @return 天球心臓ニクセロンの本体と技を含む管理Javaパックの適用に成功した場合はtrue
+     */
+    public boolean hasJavaNyxeronPresentation(UUID playerId) {
+        return hasManagedJavaPack(playerId) && requestedJavaNyxeronPresentation.contains(playerId);
+    }
+
+    /**
+     * @param playerId 閲覧者のUUID
+     * @return 現在の統合版接続でニクセロンの本体と技を描画できる場合はtrue
+     */
+    public boolean hasBedrockNyxeronPresentation(UUID playerId) {
+        return readyBedrockNyxeronPresentation.contains(playerId);
+    }
+
+    /**
+     * Proxyの互換版1の通知をオンライン接続に登録します。
+     * @param player 通知対象の閲覧者
+     */
+    public void markBedrockNyxeronPresentationReady(Player player) {
+        if (player.isOnline()) readyBedrockNyxeronPresentation.add(player.getUniqueId());
+    }
+
+    /**
      * 戦闘報酬プレートの互換版1を含む管理Javaパックの適用成功を確認します。
      *
      * @param playerId 閲覧者のUUID
@@ -796,6 +827,8 @@ public class ResourcePackService {
         readyBedrockSeleneaPresentation.remove(playerId);
         requestedJavaArchmagePhoenixPresentation.remove(playerId);
         readyBedrockArchmagePhoenixPresentation.remove(playerId);
+        requestedJavaNyxeronPresentation.remove(playerId);
+        readyBedrockNyxeronPresentation.remove(playerId);
         requestedJavaItemTooltips.remove(playerId);
         readyBedrockItemTooltips.remove(playerId);
         requestedJavaWeaponAttackProjectiles.remove(playerId);
