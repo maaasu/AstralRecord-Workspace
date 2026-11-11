@@ -30,6 +30,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -247,7 +248,7 @@ final class SeleneaSupportController {
 
     /**
      * ボスの遭遇または個別写本守の所有関係を解除します。破棄通知の再入に対応します。
-     * ボスの遭遇を解除する場合は、転送門の専用表示も回収します。
+     * 撃破した写本守の役割と残数を記録し、ボスの遭遇を解除する場合は転送門の専用表示も回収します。
      * @param instanceId ボスまたは写本守のMobインスタンスID
      */
     void clear(@NotNull UUID instanceId) {
@@ -256,6 +257,7 @@ final class SeleneaSupportController {
             UUID owner = addOwners.remove(instanceId);
             Encounter owningState = owner == null ? null : encounters.get(owner);
             if (owningState != null) {
+                recordDefeat(owningState, instanceId);
                 owningState.orbs.removeIf(orb -> orb.sourceId.equals(instanceId) || orb.targetId.equals(instanceId));
                 refreshBuffs(owningState);
             }
@@ -375,6 +377,22 @@ final class SeleneaSupportController {
     }
 
     /**
+     * 撃破時点の残数を保存し、同じ進行間隔で複数体が倒れても順番を維持します。
+     * @param state 写本守を所有する遭遇 @param instanceId 破棄された写本守のID
+     */
+    private void recordDefeat(Encounter state, UUID instanceId) {
+        if (!state.addsSummoned || state.detonated) return;
+        for (Add add : state.adds.values()) {
+            if (add.instanceId.equals(instanceId) && add.combatActive && add.wave == state.wavesSummoned
+                    && add.instance.currentHealth() <= 0.0D) {
+                int remaining = (int) state.adds.values().stream().filter(this::isAlive).count();
+                state.pendingDefeats.addLast(new Defeat(add.role, remaining));
+                return;
+            }
+        }
+    }
+
+    /**
      * 確定参加者へ生存数・役割の生死・残秒を表示し、各撃破・期限前の警告・帰還を案内します。
      * 召喚前と爆発後は表示せず、永久支援と戦闘用写本守の全滅を区別して案内します。
      * @param state 支援表示を所有する遭遇
@@ -383,19 +401,16 @@ final class SeleneaSupportController {
      */
     private void updateSupportPresentation(Encounter state, List<Player> active, long tick) {
         if (!state.addsSummoned || encounters.get(state.boss.instanceId()) != state) return;
-        int alive = (int) state.adds.values().stream().filter(this::isAlive).count();
-        if (!state.detonated) {
-            for (Map.Entry<Role, Add> entry : state.adds.entrySet()) {
-                Add add = entry.getValue();
-                if (!add.combatActive || isAlive(add) || !state.downAnnounced.add(entry.getKey())) continue;
-                if (alive == 0) continue;
-                announce(state, active, PlayerMsgId.P_7742,
-                    PlayerMsgResource.format(entry.getKey().aliveMark.getId()), alive * 25);
-                if (encounters.get(state.boss.instanceId()) != state) return;
-                cue(active, Sound.BLOCK_AMETHYST_BLOCK_BREAK, 1.0F, 1.2F);
-                cue(active, Sound.BLOCK_BEACON_DEACTIVATE, 0.6F, 1.6F);
-            }
+        while (!state.pendingDefeats.isEmpty()) {
+            Defeat defeat = state.pendingDefeats.removeFirst();
+            if (!state.downAnnounced.add(defeat.role()) || defeat.remaining() == 0) continue;
+            announce(state, active, PlayerMsgId.P_7742,
+                PlayerMsgResource.format(defeat.role().aliveMark.getId()), defeat.remaining() * 25);
+            if (encounters.get(state.boss.instanceId()) != state) return;
+            cue(active, Sound.BLOCK_AMETHYST_BLOCK_BREAK, 1.0F, 1.2F);
+            cue(active, Sound.BLOCK_BEACON_DEACTIVATE, 0.6F, 1.6F);
         }
+        int alive = (int) state.adds.values().stream().filter(this::isAlive).count();
         if (alive == 0) {
             if (state.supportBar != null) {
                 state.supportBar.removeAll();
@@ -554,7 +569,7 @@ final class SeleneaSupportController {
                     mobs.destroy(add.instanceId());
                     return;
                 }
-                state.adds.put(role, new Add(add.instanceId(), anchor, wave == 1 ? 6.0D : 3.0D, role));
+                state.adds.put(role, new Add(add, anchor, wave, role));
                 addOwners.put(add.instanceId(), boss.instanceId());
                 add.maxHealth(boss.maxHealth() / (wave == 1 ? 6.0D : 3.0D));
                 add.currentHealth(add.maxHealth());
@@ -582,6 +597,7 @@ final class SeleneaSupportController {
             state.detonated = false;
             state.returnAnnounced = false;
             state.downAnnounced.clear();
+            state.pendingDefeats.clear();
             state.warnedSeconds.clear();
             state.detonateAt = currentTick + DETONATION_DELAY;
             if (state.nextHealAt == 0L) state.nextHealAt = currentTick + HEAL_INTERVAL;
@@ -811,7 +827,7 @@ final class SeleneaSupportController {
                 mobs.destroy(instance.instanceId());
                 return;
             }
-            Add remnant = new Add(instance.instanceId(), anchor, add.healthDivisor, add.role);
+            Add remnant = new Add(instance, anchor, add.wave, add.role);
             remnant.combatActive = false;
             state.remnants.add(remnant);
             addOwners.put(instance.instanceId(), state.boss.instanceId());
@@ -1102,17 +1118,24 @@ final class SeleneaSupportController {
 
     /** 位置を固定する一体の写本守です。 */
     private static final class Add {
+        private final MobInstance instance;
         private final UUID instanceId;
         private final Location anchor;
+        private final int wave;
         private final double healthDivisor;
         private final Role role;
         private boolean combatActive = true;
 
-        /** 管理Mob ID・固定位置・波別HP比率・役割を保存します。 */
-        private Add(UUID instanceId, Location anchor, double healthDivisor, Role role) {
-            this.instanceId = instanceId;
+        /**
+         * @param instance 破棄通知時にHPを確認する管理Mob @param anchor 固定位置
+         * @param wave 所属する召喚波 @param role 写本守の役割
+         */
+        private Add(MobInstance instance, Location anchor, int wave, Role role) {
+            this.instance = instance;
+            this.instanceId = instance.instanceId();
             this.anchor = anchor.clone();
-            this.healthDivisor = healthDivisor;
+            this.wave = wave;
+            this.healthDivisor = wave == 1 ? 6.0D : 3.0D;
             this.role = role;
         }
     }
@@ -1146,6 +1169,7 @@ final class SeleneaSupportController {
         private @Nullable BossBar supportBar;
         private @Nullable Runnable gateDisplay;
         private final Set<Role> downAnnounced = EnumSet.noneOf(Role.class);
+        private final ArrayDeque<Defeat> pendingDefeats = new ArrayDeque<>(Role.values().length);
         private final Set<Long> warnedSeconds = new java.util.HashSet<>();
 
         /** 実際のboss.spawnLocationを保持し、召喚前は回復・爆発の時計を開始しません。 */
@@ -1156,6 +1180,9 @@ final class SeleneaSupportController {
             nextRenderAt = tick;
         }
     }
+
+    /** 撃破した写本守の役割と、その時点の残り生存数です。 */
+    private record Defeat(Role role, int remaining) { }
 
     /** 回復弾の発射元・対象・発射位置・開始tickです。 */
     private record Orb(UUID sourceId, UUID targetId, Location origin, long startedAt) { }
