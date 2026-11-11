@@ -23,7 +23,7 @@ internal sealed class BuilderSchematicAccessFilter(
     public void OnResourceExecuting(ResourceExecutingContext context)
     {
         var expectedKey = configuration["BuilderSchematics:DevKey"];
-        if (string.IsNullOrWhiteSpace(expectedKey) || !repository.IsEnabled)
+        if (string.IsNullOrWhiteSpace(expectedKey) || expectedKey == configuration["ApiKey:Key"] || !repository.IsEnabled)
         {
             context.Result = new StatusCodeResult(StatusCodes.Status503ServiceUnavailable);
             return;

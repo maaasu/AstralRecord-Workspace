@@ -29,6 +29,10 @@ public sealed class BuilderSchematicsControllerTests
         Assert.Equal(HttpStatusCode.Unauthorized, unauthorizedDev.StatusCode);
         using var unauthorizedWeb = await api.SendAsync(HttpMethod.Post, "uploads", commonKey: false);
         Assert.Equal(HttpStatusCode.Unauthorized, unauthorizedWeb.StatusCode);
+        using var unauthorizedList = await api.SendAsync(HttpMethod.Get, $"uploads?userUuid={owner}", commonKey: false);
+        Assert.Equal(HttpStatusCode.Unauthorized, unauthorizedList.StatusCode);
+        using var unauthorizedDelete = await api.SendAsync(HttpMethod.Delete, $"uploads/{Guid.NewGuid()}?userUuid={owner}", commonKey: false);
+        Assert.Equal(HttpStatusCode.Unauthorized, unauthorizedDelete.StatusCode);
         using var missingDev = await api.SendAsync(HttpMethod.Post, "tickets");
         Assert.Equal(HttpStatusCode.Unauthorized, missingDev.StatusCode);
         using var wrongDev = await api.SendAsync(HttpMethod.Get, "pending", devKey: "wrong");
@@ -46,14 +50,15 @@ public sealed class BuilderSchematicsControllerTests
     }
 
     [Theory]
-    [InlineData(null, true)]
-    [InlineData("relative", true)]
-    [InlineData("web-root", true)]
-    [InlineData("valid", false)]
-    public async Task MissingOrUnsafeConfigurationDisablesAllRoutes(string? rootSetting, bool configureDevKey)
+    [InlineData(null, "dev-secret")]
+    [InlineData("relative", "dev-secret")]
+    [InlineData("web-root", "dev-secret")]
+    [InlineData("valid", null)]
+    [InlineData("valid", "common-secret")]
+    public async Task MissingOrUnsafeConfigurationDisablesAllRoutes(string? rootSetting, string? configuredDevKey)
     {
         using var directory = new TestDirectory();
-        await using var api = await TestApi.StartAsync(directory, rootSetting: rootSetting, configureDevKey: configureDevKey);
+        await using var api = await TestApi.StartAsync(directory, rootSetting: rootSetting, configuredDevKey: configuredDevKey);
 
         using var dev = await api.SendAsync(HttpMethod.Get, "pending", devKey: "dev-secret");
         Assert.Equal(HttpStatusCode.ServiceUnavailable, dev.StatusCode);
@@ -195,6 +200,69 @@ public sealed class BuilderSchematicsControllerTests
     }
 
     [Fact]
+    public async Task OwnersCanListAndRemoveUploadsBeforeDevMakesADecision()
+    {
+        using var directory = new TestDirectory();
+        var time = new TestClock();
+        await using var api = await TestApi.StartAsync(directory, time);
+        var owner = Guid.NewGuid();
+        var other = Guid.NewGuid();
+        var registered = await api.UploadAsync(owner, await api.IssueTicketAsync(owner));
+        using var approved = await api.DecideAsync(registered, true, null);
+        Assert.Equal(HttpStatusCode.NoContent, approved.StatusCode);
+        time.UtcNow += TimeSpan.FromMilliseconds(1);
+        var pending = await api.UploadAsync(owner, await api.IssueTicketAsync(owner));
+        var rejected = await api.UploadAsync(owner, await api.IssueTicketAsync(owner));
+        using var refused = await api.DecideAsync(rejected, false, "invalid_schematic");
+        Assert.Equal(HttpStatusCode.NoContent, refused.StatusCode);
+
+        var ownList = await api.GetUploadsAsync(owner);
+        Assert.Equal(new[] { pending, registered }, ownList.Select(upload => upload.Id));
+        Assert.Empty(await api.GetUploadsAsync(other));
+        using var wrongOwner = await api.DeleteUploadAsync(pending, other);
+        Assert.Equal(HttpStatusCode.NotFound, wrongOwner.StatusCode);
+        Assert.Equal(BuilderSchematicStatus.Pending, (await api.GetStatusAsync(pending, owner)).Status);
+
+        using var removed = await api.DeleteUploadAsync(pending, owner);
+        Assert.Equal(HttpStatusCode.NoContent, removed.StatusCode);
+        using var repeatedDelete = await api.DeleteUploadAsync(pending, owner);
+        Assert.Equal(HttpStatusCode.NotFound, repeatedDelete.StatusCode);
+        using var lateApproval = await api.DecideAsync(pending, true, null);
+        Assert.Equal(HttpStatusCode.NotFound, lateApproval.StatusCode);
+        using var removedFile = await api.SendAsync(HttpMethod.Get, $"files/{pending}", devKey: "dev-secret");
+        Assert.Equal(HttpStatusCode.NotFound, removedFile.StatusCode);
+        Assert.Equal(registered, Assert.Single(await api.GetUploadsAsync(owner)).Id);
+    }
+
+    [Fact]
+    public async Task RemovingRegisteredUploadReleasesOwnerStorageQuota()
+    {
+        using var directory = new TestDirectory();
+        await using var api = await TestApi.StartAsync(directory);
+        var owner = Guid.NewGuid();
+        var registered = new List<Guid>();
+        for (var i = 0; i < 32; i++)
+        {
+            var id = await api.UploadAsync(owner, await api.IssueTicketAsync(owner));
+            using var approved = await api.DecideAsync(id, true, null);
+            Assert.Equal(HttpStatusCode.NoContent, approved.StatusCode);
+            registered.Add(id);
+        }
+
+        var nextToken = await api.IssueTicketAsync(owner);
+        using var full = await api.PostUploadAsync(owner, nextToken);
+        Assert.Equal(HttpStatusCode.TooManyRequests, full.StatusCode);
+        Assert.Equal(32, (await api.GetUploadsAsync(owner)).Length);
+        using var removed = await api.DeleteUploadAsync(registered[0], owner);
+        Assert.Equal(HttpStatusCode.NoContent, removed.StatusCode);
+        using var removedFile = await api.SendAsync(HttpMethod.Get, $"files/{registered[0]}?userUuid={owner}", devKey: "dev-secret");
+        Assert.Equal(HttpStatusCode.NotFound, removedFile.StatusCode);
+
+        await api.UploadAsync(owner, nextToken);
+        Assert.Equal(32, (await api.GetUploadsAsync(owner)).Length);
+    }
+
+    [Fact]
     public async Task ExpiredTicketsCannotEnqueue()
     {
         using var directory = new TestDirectory();
@@ -224,7 +292,7 @@ public sealed class BuilderSchematicsControllerTests
     private sealed class TestApi(WebApplication app, HttpClient client) : IAsyncDisposable
     {
         public static async Task<TestApi> StartAsync(
-            TestDirectory directory, TimeProvider? time = null, string? rootSetting = "valid", bool configureDevKey = true)
+            TestDirectory directory, TimeProvider? time = null, string? rootSetting = "valid", string? configuredDevKey = "dev-secret")
         {
             var webRoot = Directory.CreateDirectory(Path.Combine(directory.Path, "wwwroot")).FullName;
             var rootPath = rootSetting switch
@@ -244,7 +312,7 @@ public sealed class BuilderSchematicsControllerTests
             builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ApiKey:Key"] = "common-secret",
-                ["BuilderSchematics:DevKey"] = configureDevKey ? "dev-secret" : null,
+                ["BuilderSchematics:DevKey"] = configuredDevKey,
                 ["BuilderSchematics:RootPath"] = rootPath
             });
             builder.Services.AddSingleton(time ?? TimeProvider.System);
@@ -309,6 +377,16 @@ public sealed class BuilderSchematicsControllerTests
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             return Assert.IsType<BuilderSchematicResponse>(await response.Content.ReadFromJsonAsync<BuilderSchematicResponse>());
         }
+
+        public async Task<BuilderSchematicResponse[]> GetUploadsAsync(Guid owner)
+        {
+            using var response = await SendAsync(HttpMethod.Get, $"uploads?userUuid={owner}");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            return Assert.IsType<BuilderSchematicResponse[]>(await response.Content.ReadFromJsonAsync<BuilderSchematicResponse[]>());
+        }
+
+        public Task<HttpResponseMessage> DeleteUploadAsync(Guid id, Guid owner) =>
+            SendAsync(HttpMethod.Delete, $"uploads/{id}?userUuid={owner}");
 
         public async Task<BuilderSchematicResponse[]> GetDevListAsync(string path)
         {
