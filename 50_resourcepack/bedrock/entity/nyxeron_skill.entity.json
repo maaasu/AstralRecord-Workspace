@@ -22,7 +22,18 @@
     "impact": "geometry.astralrecord.nyxeron_impact",
     "gaze": "geometry.astralrecord.nyxeron_gaze",
     "meteor": "geometry.astralrecord.nyxeron_meteor",
-    "heart": "geometry.astralrecord.nyxeron_heart"
+    "heart": "geometry.astralrecord.nyxeron_heart",
+    "approach": "geometry.astralrecord.nyxeron_approach",
+    "fill_bar": "geometry.astralrecord.nyxeron_fill_bar",
+    "bullet": "geometry.astralrecord.nyxeron_bullet",
+    "ring_low": "geometry.astralrecord.nyxeron_ring_low",
+    "ring_high": "geometry.astralrecord.nyxeron_ring_high",
+    "beam_low": "geometry.astralrecord.nyxeron_beam_low",
+    "beam_high": "geometry.astralrecord.nyxeron_beam_high",
+    "fragment": "geometry.astralrecord.nyxeron_fragment",
+    "star": "geometry.astralrecord.nyxeron_star",
+    "nova": "geometry.astralrecord.nyxeron_nova",
+    "supernova": "geometry.astralrecord.nyxeron_supernova"
    },
    "animations": {
     "shape": "animation.astralrecord.nyxeron_skill.shape"
@@ -30,10 +41,25 @@
    "scripts": {
     "pre_animation": [
      "variable.style = query.property('astralrecord:style');",
-     "variable.pulse = math.mod(query.life_time, 0.8) / 0.8;",
+     "variable.param = query.has_property('astralrecord:param') ? query.property('astralrecord:param') : 0;",
+     "variable.w = query.property('astralrecord:width');",
+     "variable.h = query.property('astralrecord:height');",
+     "variable.l = query.property('astralrecord:length');",
+     "variable.t = query.life_time;",
+     "variable.dur = math.max(0.05, variable.param / 20.0);",
+     "variable.k = math.clamp(variable.t / variable.dur, 0.0, 1.0);",
+     "variable.pulse = math.mod(variable.t, 0.8) / 0.8;",
      "variable.breath = math.sin(180.0 * variable.pulse);",
-     "variable.travel = math.clamp(query.life_time / 0.45, 0.0, 1.0);",
-     "variable.fall = math.clamp(query.life_time / 3.0, 0.0, 1.0);"
+     "variable.travel = math.clamp(variable.t / 0.3, 0.0, 1.0);",
+     "variable.grow = math.lerp(variable.w, variable.l, variable.k);",
+     "variable.supernova = variable.w * math.lerp(0.2, 1.0, variable.k) * (1.0 + 0.05 * variable.breath);",
+     "variable.sx = (variable.style == 13 || variable.style == 16 || variable.style == 17) ? variable.grow : ((variable.style == 15 || variable.style == 21 || variable.style == 22) ? 1.0 : (variable.style == 23 ? variable.supernova : variable.w));",
+     "variable.sy = (variable.style == 15 || variable.style == 21 || variable.style == 22) ? 1.0 : (variable.style == 20 ? variable.w : (variable.style == 23 ? variable.supernova : variable.h));",
+     "variable.sz = (variable.style == 13 || variable.style == 16 || variable.style == 17) ? variable.grow : ((variable.style == 15 || variable.style == 21 || variable.style == 22) ? 1.0 : (variable.style == 14 ? variable.l * math.max(0.02, variable.k) : (variable.style == 20 ? variable.w : (variable.style == 23 ? variable.supernova : variable.l))));",
+     "variable.spin = (variable.style == 18 || variable.style == 19) ? (variable.param - 2048) / 8.0 * variable.t : (variable.style == 23 ? variable.t * 40.0 : 0.0);",
+     "variable.nova_r = variable.h + variable.l * variable.t;",
+     "variable.nova_p = 48 / math.max(1, math.mod(variable.param, 16));",
+     "variable.nova_w = math.floor(variable.param / 16);"
     ],
     "animate": [
      "shape"

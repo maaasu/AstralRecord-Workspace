@@ -22,7 +22,7 @@
        "exposed": "variable.motion == 4"
       }
      ],
-     "blend_transition": 0.12
+     "blend_transition": 0.25
     },
     "cast": {
      "animations": [
@@ -42,7 +42,7 @@
        "exposed": "variable.motion == 4"
       }
      ],
-     "blend_transition": 0.12
+     "blend_transition": 0.25
     },
     "attack": {
      "animations": [
@@ -62,7 +62,7 @@
        "exposed": "variable.motion == 4"
       }
      ],
-     "blend_transition": 0.12
+     "blend_transition": 0.25
     },
     "guard": {
      "animations": [
@@ -82,7 +82,7 @@
        "exposed": "variable.motion == 4"
       }
      ],
-     "blend_transition": 0.12
+     "blend_transition": 0.25
     },
     "exposed": {
      "animations": [
@@ -102,7 +102,7 @@
        "guard": "variable.motion == 3"
       }
      ],
-     "blend_transition": 0.12
+     "blend_transition": 0.25
     }
    }
   }

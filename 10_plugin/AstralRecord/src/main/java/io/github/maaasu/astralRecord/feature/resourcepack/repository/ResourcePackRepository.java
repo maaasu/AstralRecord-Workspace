@@ -72,8 +72,9 @@ public final class ResourcePackRepository {
                 boolean archmagePhoenixPresentation = phoenix != null && phoenix.isJsonPrimitive()
                     && phoenix.getAsJsonPrimitive().isString() && "1".equals(phoenix.getAsString());
                 JsonElement nyxeron = java.get("nyxeronPresentation");
+                // 互換版2: 弾幕・衝撃環・光刃・星雨の形状と専用効果音を含む。
                 boolean nyxeronPresentation = nyxeron != null && nyxeron.isJsonPrimitive()
-                    && nyxeron.getAsJsonPrimitive().isString() && "1".equals(nyxeron.getAsString());
+                    && nyxeron.getAsJsonPrimitive().isString() && "2".equals(nyxeron.getAsString());
                 JsonElement tooltips = java.get("itemTooltips");
                 boolean itemTooltips = tooltips != null && tooltips.isJsonPrimitive()
                     && tooltips.getAsJsonPrimitive().isString() && "1".equals(tooltips.getAsString());

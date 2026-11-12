@@ -6,9 +6,14 @@
    "bones": {
     "root": {
      "scale": [
-      "query.property('astralrecord:width')",
-      "query.property('astralrecord:height')",
-      "query.property('astralrecord:length')"
+      "variable.sx",
+      "variable.sy",
+      "variable.sz"
+     ],
+     "rotation": [
+      0,
+      "variable.spin",
+      0
      ]
     },
     "posts": {
@@ -42,7 +47,7 @@
     "burst": {
      "scale": [
       "math.lerp(0.45, 1.0, variable.travel)",
-      "math.lerp(0.6, 1.0, variable.travel)",
+      "math.lerp(0.6, 1.0, variable.travel) * (1.0 - 0.8 * math.clamp((variable.t - 0.35) / 0.25, 0.0, 1.0))",
       "math.lerp(0.45, 1.0, variable.travel)"
      ]
     },
@@ -53,11 +58,889 @@
       "0.8 + 0.3 * variable.breath"
      ]
     },
-    "star": {
+    "orb": {
      "position": [
       0,
-      "math.lerp(14.0, -6.5, variable.fall)",
+      0,
+      "-16.0 * variable.l * variable.t"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
       0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "fall": {
+     "position": [
+      0,
+      "16.0 * variable.h * (1.0 - variable.k)",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "gem": {
+     "position": [
+      0,
+      "math.sin(variable.t * 200.0) * 1.2",
+      0
+     ],
+     "rotation": [
+      0,
+      "variable.t * 120.0",
+      0
+     ]
+    },
+    "ring": {
+     "scale": [
+      1,
+      "0.92 + 0.08 * variable.breath",
+      1
+     ]
+    },
+    "bar": {
+     "scale": [
+      1,
+      "0.8 + 0.4 * variable.breath",
+      1
+     ]
+    },
+    "beam": {
+     "scale": [
+      1,
+      "0.92 + 0.08 * variable.breath",
+      1
+     ]
+    },
+    "corona": {
+     "rotation": [
+      0,
+      "variable.t * -70.0",
+      0
+     ]
+    },
+    "b00": {
+     "position": [
+      "variable.nova_r * 0.0000",
+      0,
+      "variable.nova_r * -16.0000"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b01": {
+     "position": [
+      "variable.nova_r * 2.0884",
+      0,
+      "variable.nova_r * -15.8631"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b02": {
+     "position": [
+      "variable.nova_r * 4.1411",
+      0,
+      "variable.nova_r * -15.4548"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b03": {
+     "position": [
+      "variable.nova_r * 6.1229",
+      0,
+      "variable.nova_r * -14.7821"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b04": {
+     "position": [
+      "variable.nova_r * 8.0000",
+      0,
+      "variable.nova_r * -13.8564"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b05": {
+     "position": [
+      "variable.nova_r * 9.7402",
+      0,
+      "variable.nova_r * -12.6937"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b06": {
+     "position": [
+      "variable.nova_r * 11.3137",
+      0,
+      "variable.nova_r * -11.3137"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b07": {
+     "position": [
+      "variable.nova_r * 12.6937",
+      0,
+      "variable.nova_r * -9.7402"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b08": {
+     "position": [
+      "variable.nova_r * 13.8564",
+      0,
+      "variable.nova_r * -8.0000"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b09": {
+     "position": [
+      "variable.nova_r * 14.7821",
+      0,
+      "variable.nova_r * -6.1229"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b10": {
+     "position": [
+      "variable.nova_r * 15.4548",
+      0,
+      "variable.nova_r * -4.1411"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b11": {
+     "position": [
+      "variable.nova_r * 15.8631",
+      0,
+      "variable.nova_r * -2.0884"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b12": {
+     "position": [
+      "variable.nova_r * 16.0000",
+      0,
+      "variable.nova_r * -0.0000"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b13": {
+     "position": [
+      "variable.nova_r * 15.8631",
+      0,
+      "variable.nova_r * 2.0884"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b14": {
+     "position": [
+      "variable.nova_r * 15.4548",
+      0,
+      "variable.nova_r * 4.1411"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b15": {
+     "position": [
+      "variable.nova_r * 14.7821",
+      0,
+      "variable.nova_r * 6.1229"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b16": {
+     "position": [
+      "variable.nova_r * 13.8564",
+      0,
+      "variable.nova_r * 8.0000"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b17": {
+     "position": [
+      "variable.nova_r * 12.6937",
+      0,
+      "variable.nova_r * 9.7402"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b18": {
+     "position": [
+      "variable.nova_r * 11.3137",
+      0,
+      "variable.nova_r * 11.3137"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b19": {
+     "position": [
+      "variable.nova_r * 9.7402",
+      0,
+      "variable.nova_r * 12.6937"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b20": {
+     "position": [
+      "variable.nova_r * 8.0000",
+      0,
+      "variable.nova_r * 13.8564"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b21": {
+     "position": [
+      "variable.nova_r * 6.1229",
+      0,
+      "variable.nova_r * 14.7821"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b22": {
+     "position": [
+      "variable.nova_r * 4.1411",
+      0,
+      "variable.nova_r * 15.4548"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b23": {
+     "position": [
+      "variable.nova_r * 2.0884",
+      0,
+      "variable.nova_r * 15.8631"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b24": {
+     "position": [
+      "variable.nova_r * 0.0000",
+      0,
+      "variable.nova_r * 16.0000"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b25": {
+     "position": [
+      "variable.nova_r * -2.0884",
+      0,
+      "variable.nova_r * 15.8631"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b26": {
+     "position": [
+      "variable.nova_r * -4.1411",
+      0,
+      "variable.nova_r * 15.4548"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b27": {
+     "position": [
+      "variable.nova_r * -6.1229",
+      0,
+      "variable.nova_r * 14.7821"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b28": {
+     "position": [
+      "variable.nova_r * -8.0000",
+      0,
+      "variable.nova_r * 13.8564"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b29": {
+     "position": [
+      "variable.nova_r * -9.7402",
+      0,
+      "variable.nova_r * 12.6937"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b30": {
+     "position": [
+      "variable.nova_r * -11.3137",
+      0,
+      "variable.nova_r * 11.3137"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b31": {
+     "position": [
+      "variable.nova_r * -12.6937",
+      0,
+      "variable.nova_r * 9.7402"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b32": {
+     "position": [
+      "variable.nova_r * -13.8564",
+      0,
+      "variable.nova_r * 8.0000"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b33": {
+     "position": [
+      "variable.nova_r * -14.7821",
+      0,
+      "variable.nova_r * 6.1229"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b34": {
+     "position": [
+      "variable.nova_r * -15.4548",
+      0,
+      "variable.nova_r * 4.1411"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b35": {
+     "position": [
+      "variable.nova_r * -15.8631",
+      0,
+      "variable.nova_r * 2.0884"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b36": {
+     "position": [
+      "variable.nova_r * -16.0000",
+      0,
+      "variable.nova_r * 0.0000"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b37": {
+     "position": [
+      "variable.nova_r * -15.8631",
+      0,
+      "variable.nova_r * -2.0884"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b38": {
+     "position": [
+      "variable.nova_r * -15.4548",
+      0,
+      "variable.nova_r * -4.1411"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b39": {
+     "position": [
+      "variable.nova_r * -14.7821",
+      0,
+      "variable.nova_r * -6.1229"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b40": {
+     "position": [
+      "variable.nova_r * -13.8564",
+      0,
+      "variable.nova_r * -8.0000"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b41": {
+     "position": [
+      "variable.nova_r * -12.6937",
+      0,
+      "variable.nova_r * -9.7402"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b42": {
+     "position": [
+      "variable.nova_r * -11.3137",
+      0,
+      "variable.nova_r * -11.3137"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b43": {
+     "position": [
+      "variable.nova_r * -9.7402",
+      0,
+      "variable.nova_r * -12.6937"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b44": {
+     "position": [
+      "variable.nova_r * -8.0000",
+      0,
+      "variable.nova_r * -13.8564"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b45": {
+     "position": [
+      "variable.nova_r * -6.1229",
+      0,
+      "variable.nova_r * -14.7821"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b46": {
+     "position": [
+      "variable.nova_r * -4.1411",
+      0,
+      "variable.nova_r * -15.4548"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
+     ]
+    },
+    "b47": {
+     "position": [
+      "variable.nova_r * -2.0884",
+      0,
+      "variable.nova_r * -15.8631"
+     ],
+     "rotation": [
+      0,
+      "variable.t * 240.0",
+      0
+     ],
+     "scale": [
+      "variable.w",
+      "variable.w",
+      "variable.w"
      ]
     }
    }

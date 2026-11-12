@@ -17,8 +17,6 @@
     8.06,
     16
    ],
-   "shade": false,
-   "light_emission": 15,
    "faces": {
     "up": {
      "uv": [
@@ -38,7 +36,9 @@
      ],
      "texture": "#0"
     }
-   }
+   },
+   "shade": false,
+   "light_emission": 15
   },
   {
    "from": [
@@ -51,8 +51,6 @@
     16.0,
     10.0
    ],
-   "shade": false,
-   "light_emission": 15,
    "faces": {
     "north": {
      "uv": [
@@ -90,7 +88,9 @@
      ],
      "texture": "#0"
     }
-   }
+   },
+   "shade": false,
+   "light_emission": 15
   }
  ]
 }

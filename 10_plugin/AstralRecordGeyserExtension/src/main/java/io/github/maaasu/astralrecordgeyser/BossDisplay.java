@@ -23,12 +23,19 @@ final class BossDisplay {
     private final int maxMotion;
     private final Predicate<DamagePack> bodyAndSkillAssets;
     private final Predicate<DamagePack> motionAssets;
+    private final boolean withParam;
     private boolean registered;
     private BossSkillEntity skillProperties;
     private BossMotion motionProperties;
 
     BossDisplay(String id, String carrier, long bodyMarker, long skillMarker, long motionMarker, int maxStyle, int maxMotion,
                 Predicate<DamagePack> bodyAndSkillAssets, Predicate<DamagePack> motionAssets) {
+        this(id, carrier, bodyMarker, skillMarker, motionMarker, maxStyle, maxMotion, bodyAndSkillAssets, motionAssets, false);
+    }
+
+    /** @param withParam 技の UUID 44～55bit を {@code astralrecord:param} として渡すボス */
+    BossDisplay(String id, String carrier, long bodyMarker, long skillMarker, long motionMarker, int maxStyle, int maxMotion,
+                Predicate<DamagePack> bodyAndSkillAssets, Predicate<DamagePack> motionAssets, boolean withParam) {
         this.carrier = Identifier.of("minecraft", carrier);
         body = CustomEntityDefinition.of(Identifier.of("astralrecord", id));
         skill = CustomEntityDefinition.of(Identifier.of("astralrecord", id + "_skill"));
@@ -39,6 +46,7 @@ final class BossDisplay {
         this.maxMotion = maxMotion;
         this.bodyAndSkillAssets = bodyAndSkillAssets;
         this.motionAssets = motionAssets;
+        this.withParam = withParam;
     }
 
     void register(GeyserDefineEntitiesEvent event) {
@@ -49,7 +57,7 @@ final class BossDisplay {
 
     void registerProperties(GeyserDefineEntityPropertiesEvent event) {
         if (!registered) return;
-        skillProperties = BossSkillEntity.registerProperties(event, skill.identifier(), maxStyle);
+        skillProperties = BossSkillEntity.registerProperties(event, skill.identifier(), maxStyle, withParam);
         motionProperties = BossMotion.registerProperties(event, body.identifier(), maxMotion);
     }
 
@@ -84,7 +92,8 @@ final class BossDisplay {
                 event.setCancelled(true);
             } else {
                 event.definition(skill);
-                event.preSpawnConsumer(entity -> properties.initialize(entity, frame));
+                int param = BossSkillEntity.param(event.uuid());
+                event.preSpawnConsumer(entity -> properties.initialize(entity, frame, param));
             }
             return true;
         }

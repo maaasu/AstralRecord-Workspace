@@ -14,7 +14,7 @@
     "body": {
      "position": [
       0,
-      "variable.lift",
+      "variable.lift + math.sin(query.life_time * 120.0) * 0.6",
       0
      ]
     },
@@ -22,6 +22,70 @@
      "rotation": [
       0,
       "variable.spin_a * 0.3",
+      0
+     ]
+    },
+    "petals": {
+     "rotation": [
+      0,
+      "variable.spin_a * 0.3",
+      0
+     ],
+     "scale": [
+      "math.max(0.001, variable.petal)",
+      "math.max(0.001, variable.petal)",
+      "math.max(0.001, variable.petal)"
+     ]
+    },
+    "cage": {
+     "rotation": [
+      0,
+      "query.life_time * 50.0",
+      "math.sin(query.life_time * 90.0) * 8.0"
+     ],
+     "scale": [
+      "math.max(0.001, variable.cage)",
+      "math.max(0.001, variable.cage)",
+      "math.max(0.001, variable.cage)"
+     ]
+    },
+    "motes": {
+     "rotation": [
+      0,
+      "variable.mote_angle",
+      0
+     ],
+     "scale": [
+      "variable.mote_r",
+      1,
+      "variable.mote_r"
+     ]
+    },
+    "mote_0": {
+     "position": [
+      0,
+      "math.sin(query.life_time * 160.0 + 0) * 1.6",
+      0
+     ]
+    },
+    "mote_1": {
+     "position": [
+      0,
+      "math.sin(query.life_time * 160.0 + 90) * 1.6",
+      0
+     ]
+    },
+    "mote_2": {
+     "position": [
+      0,
+      "math.sin(query.life_time * 160.0 + 180) * 1.6",
+      0
+     ]
+    },
+    "mote_3": {
+     "position": [
+      0,
+      "math.sin(query.life_time * 160.0 + 270) * 1.6",
       0
      ]
     },
@@ -167,27 +231,7 @@
   },
   "animation.astralrecord.nyxeron.guard": {
    "loop": true,
-   "animation_length": 2.0,
    "bones": {
-    "glow_guard": {
-     "rotation": {
-      "0.0": [
-       0,
-       0,
-       0
-      ],
-      "1.0": [
-       0,
-       180,
-       0
-      ],
-      "2.0": [
-       0,
-       360,
-       0
-      ]
-     }
-    },
     "core": {
      "scale": 0.94
     },

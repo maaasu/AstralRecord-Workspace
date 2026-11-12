@@ -27,6 +27,10 @@
      "variable.body_yaw_ready = 0;",
      "variable.ring_scale = 1.0;",
      "variable.lift = 0.0;",
+     "variable.petal = 0.0;",
+     "variable.cage = 0.0;",
+     "variable.mote_angle = 0.0;",
+     "variable.mote_r = 1.0;",
      "variable.prec_a = 0;",
      "variable.spin_a = 0;",
      "variable.tilt_a = 24;",
@@ -46,6 +50,7 @@
      "variable.rate = variable.motion == 1 ? 2.5 : (variable.motion == 2 ? 3.2 : (variable.motion == 3 ? 0.35 : (variable.motion == 4 ? 0.4 : 1.0)));",
      "variable.step = math.clamp(query.delta_time, 0.0, 0.1);",
      "variable.ease = math.min(1.0, variable.step * 5.0);",
+     "variable.snap = math.min(1.0, variable.step * 9.0);",
      "variable.prec_a = math.mod(variable.prec_a + variable.step * 18.0 * variable.rate, 360.0);",
      "variable.spin_a = math.mod(variable.spin_a + variable.step * 30.0 * variable.rate, 360.0);",
      "variable.tilt_a = math.lerp(variable.tilt_a, variable.motion == 2 ? 0 : (variable.motion == 3 ? 90 : (variable.motion == 4 ? 62 : 24)), variable.ease);",
@@ -56,7 +61,11 @@
      "variable.spin_c = math.mod(variable.spin_c + variable.step * -60.0 * variable.rate, 360.0);",
      "variable.tilt_c = math.lerp(variable.tilt_c, variable.motion == 2 ? 0 : (variable.motion == 3 ? 0 : (variable.motion == 4 ? 84 : -48)), variable.ease);",
      "variable.ring_scale = math.lerp(variable.ring_scale, variable.motion == 1 ? 1.1 : (variable.motion == 2 ? 1.18 : (variable.motion == 3 ? 0.72 : (variable.motion == 4 ? 1.04 : 1.0))), variable.ease);",
-     "variable.lift = math.lerp(variable.lift, variable.motion == 4 ? -11.2 : (variable.motion == 1 ? 4.0 : 0.0), variable.ease);"
+     "variable.lift = math.lerp(variable.lift, variable.motion == 4 ? -11.2 : (variable.motion == 1 ? 4.0 : 0.0), variable.ease);",
+     "variable.petal = math.lerp(variable.petal, variable.motion == 2 ? 1.0 : (variable.motion == 1 ? 0.45 : 0.0), variable.snap);",
+     "variable.cage = math.lerp(variable.cage, variable.invulnerable ? 1.0 : 0.0, variable.ease);",
+     "variable.mote_angle = math.mod(variable.mote_angle + variable.step * 70.0 * variable.rate, 360.0);",
+     "variable.mote_r = math.lerp(variable.mote_r, variable.motion == 1 ? 0.7 : (variable.motion == 2 ? 1.45 : (variable.motion == 3 ? 0.55 : 1.0)), variable.ease);"
     ],
     "animate": [
      "rings",

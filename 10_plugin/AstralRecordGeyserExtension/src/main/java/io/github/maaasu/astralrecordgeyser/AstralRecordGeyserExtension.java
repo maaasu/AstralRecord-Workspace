@@ -69,10 +69,10 @@ public final class AstralRecordGeyserExtension implements Extension {
     private final BossDisplay selenea = new BossDisplay("selenea", "witch",
         0x41535453454c4231L, 0x41535453454c4631L, 0x41535453454c4d31L, 12, 4,
         DamagePack::selenea, DamagePack::selenea);
-    // ASTNYXB1 / ASTNYXF1 / ASTNYXM1。技の形状は0～12、姿勢は0～4。
+    // ASTNYXB1 / ASTNYXF1 / ASTNYXM1。技の形状は0～23、姿勢は0～4。技は残りtickや隙間の配置を param で受け取る。
     private final BossDisplay nyxeron = new BossDisplay("nyxeron", "iron_golem",
-        0x4153544e59584231L, 0x4153544e59584631L, 0x4153544e59584d31L, 12, 4,
-        DamagePack::nyxeron, DamagePack::nyxeron);
+        0x4153544e59584231L, 0x4153544e59584631L, 0x4153544e59584d31L, 23, 4,
+        DamagePack::nyxeron, DamagePack::nyxeron, true);
     private WorldDisplayEntity worldDisplays;
     private CustomEntityDefinition receptionDisplayDefinition;
     private ReceptionDisplayEntity receptionDisplays;

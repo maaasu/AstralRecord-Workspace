@@ -134,5 +134,185 @@
     "sounds": [
       "astralrecord:challenge/countdown/start"
     ]
+  },
+  "boss.nyxeron.intro": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/intro"
+    ]
+  },
+  "boss.nyxeron.phase": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/phase"
+    ]
+  },
+  "boss.nyxeron.cue_band": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/cue_band"
+    ]
+  },
+  "boss.nyxeron.cue_spoke": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/cue_spoke"
+    ]
+  },
+  "boss.nyxeron.cue_heart": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/cue_heart"
+    ]
+  },
+  "boss.nyxeron.cue_brand": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/cue_brand"
+    ]
+  },
+  "boss.nyxeron.cue_gaze": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/cue_gaze"
+    ]
+  },
+  "boss.nyxeron.cue_meteor": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/cue_meteor"
+    ]
+  },
+  "boss.nyxeron.cue_combo": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/cue_combo"
+    ]
+  },
+  "boss.nyxeron.cue_nova": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/cue_nova"
+    ]
+  },
+  "boss.nyxeron.cue_spiral": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/cue_spiral"
+    ]
+  },
+  "boss.nyxeron.cue_shock": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/cue_shock"
+    ]
+  },
+  "boss.nyxeron.cue_sweep": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/cue_sweep"
+    ]
+  },
+  "boss.nyxeron.cue_starfall": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/cue_starfall"
+    ]
+  },
+  "boss.nyxeron.count": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/count"
+    ]
+  },
+  "boss.nyxeron.count_final": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/count_final"
+    ]
+  },
+  "boss.nyxeron.impact_band": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/impact_band"
+    ]
+  },
+  "boss.nyxeron.impact_spoke": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/impact_spoke"
+    ]
+  },
+  "boss.nyxeron.impact_heart": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/impact_heart"
+    ]
+  },
+  "boss.nyxeron.impact_brand": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/impact_brand"
+    ]
+  },
+  "boss.nyxeron.impact_gaze": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/impact_gaze"
+    ]
+  },
+  "boss.nyxeron.impact_meteor": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/impact_meteor"
+    ]
+  },
+  "boss.nyxeron.bullet": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/bullet"
+    ]
+  },
+  "boss.nyxeron.nova_burst": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/nova_burst"
+    ]
+  },
+  "boss.nyxeron.shock_low": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/shock_low"
+    ]
+  },
+  "boss.nyxeron.shock_high": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/shock_high"
+    ]
+  },
+  "boss.nyxeron.sweep_reverse": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/sweep_reverse"
+    ]
+  },
+  "boss.nyxeron.fragment_drop": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/fragment_drop"
+    ]
+  },
+  "boss.nyxeron.fragment_pickup": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/fragment_pickup"
+    ]
+  },
+  "boss.nyxeron.supernova_charge": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/supernova_charge"
+    ]
+  },
+  "boss.nyxeron.supernova_blast": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/supernova_blast"
+    ]
+  },
+  "boss.nyxeron.stagger": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/stagger"
+    ]
+  },
+  "boss.nyxeron.ritual_start": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/ritual_start"
+    ]
+  },
+  "boss.nyxeron.seal_done": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/seal_done"
+    ]
+  },
+  "boss.nyxeron.ritual_success": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/ritual_success"
+    ]
+  },
+  "boss.nyxeron.ritual_fail": {
+    "sounds": [
+      "astralrecord:boss/nyxeron/ritual_fail"
+    ]
   }
 }
