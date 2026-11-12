@@ -361,8 +361,10 @@ public sealed class ProcessTests
         runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
     }
 
-    [Fact]
-    public async Task RunnerRestartLeavesLiveChildUnmanagedAndCannotReplayStdin()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task RunnerRestartLeavesLiveChildUnmanagedAndCannotReplayStdin(bool keepHold)
     {
         using var fixture = new Fixture();
         Guid session;
@@ -373,14 +375,58 @@ public sealed class ProcessTests
             var start = fixture.Request(runner, hold, OperationKind.Start);
             session = Assert.IsType<Guid>((await WaitTerminal(runner, runner.Execute(start).OperationId)).ServerSessionId);
             fixture.Track(runner.InspectRecovery(new(fixture.Server.ServerId)));
+            if (!keepHold) runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
         }
         using var restarted = fixture.Open();
         var inspection = restarted.InspectRecovery(new(fixture.Server.ServerId));
         Assert.Equal(ProcessState.Unmanaged, inspection.Runtime.ProcessState);
         Assert.Equal(session, inspection.Runtime.CurrentSessionId);
         Assert.True(inspection.ProcessAlive);
-        Assert.Equal(ErrorCode.RecoveryRequired, Assert.Throws<RunnerFault>(() => restarted.Execute(fixture.Request(restarted, Assert.Single(restarted.GetSnapshot().Holds), OperationKind.ConsoleCommand, new { command = "hello" }))).Code);
+        var currentHold = keepHold ? Assert.Single(restarted.GetSnapshot().Holds) : fixture.Hold(restarted);
+        Assert.Equal(ErrorCode.RecoveryRequired, Assert.Throws<RunnerFault>(() => restarted.Execute(fixture.Request(restarted, currentHold, OperationKind.ConsoleCommand, new { command = "hello" }))).Code);
         fixture.KillFixtureProcess(inspection);
+    }
+
+    [Theory]
+    [InlineData(false, false, false, ProcessState.Stopped)]
+    [InlineData(true, false, false, ProcessState.Unmanaged)]
+    [InlineData(false, true, false, ProcessState.Unmanaged)]
+    [InlineData(false, false, true, ProcessState.Unmanaged)]
+    public async Task RunnerRestartSettlesOnlyVerifiedExitedSessionsWithoutPendingWork(
+        bool keepHold, bool loseProcessIdentity, bool unresolvedOperation, ProcessState expectedState)
+    {
+        using var fixture = new Fixture(restartOnCrash: true);
+        RecoveryInspection original;
+        using (var runner = fixture.Open())
+        {
+            runner.ApplyInventory(fixture.Envelope());
+            var hold = fixture.Hold(runner);
+            var start = runner.Execute(fixture.Request(runner, hold, OperationKind.Start));
+            Assert.Equal(OperationStatus.Succeeded, (await WaitTerminal(runner, start.OperationId)).Status);
+            original = runner.InspectRecovery(new(fixture.Server.ServerId));
+            fixture.Track(original);
+            if (!keepHold) runner.ReleaseHold(new(hold.ReservationId, hold.OwnerWorkflowId, hold.Fence));
+        }
+        fixture.KillFixtureProcess(original);
+        if (loseProcessIdentity || unresolvedOperation)
+        {
+            using var db = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = fixture.DatabasePath, Pooling = false }.ToString());
+            db.Open();
+            using var command = db.CreateCommand();
+            command.CommandText = loseProcessIdentity
+                ? "UPDATE ServerSessions SET processCreatedUtc=NULL WHERE sessionId=$session;"
+                : "UPDATE ExecutionLedger SET status='NeedsAttention' WHERE operationId=(SELECT startOperationId FROM ServerSessions WHERE sessionId=$session);";
+            command.Parameters.AddWithValue("$session", original.Session!.ServerSessionId.ToString());
+            Assert.Equal(1, command.ExecuteNonQuery());
+        }
+
+        using var restarted = fixture.Open();
+        await restarted.RunAutomaticStartsAsync();
+        var inspection = restarted.InspectRecovery(new(fixture.Server.ServerId));
+        Assert.Equal(expectedState, inspection.Runtime.ProcessState);
+        Assert.Equal(expectedState == ProcessState.Stopped ? null : original.Runtime.CurrentSessionId, inspection.Runtime.CurrentSessionId);
+        Assert.Equal(expectedState == ProcessState.Unmanaged, inspection.RecoveryRequired);
+        Assert.Equal(keepHold ? 1 : 0, restarted.GetSnapshot().Holds.Length);
     }
 
     [Theory]

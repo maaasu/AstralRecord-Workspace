@@ -87,7 +87,7 @@ DPAPI鍵/トークンを別PCへコピーするだけでは復旧できません
 
 運転・保守履歴は詳細ボタンで処理結果と予約・復旧情報を表示します。チェックボックスで単体/複数の履歴を選び、確認画面で削除できます。削除は完了済みかつ予約解放済み・要復旧なしに限り、管理Webの履歴本文と操作結果JSON実ファイルを削除します。再送照合用ID/hash/statusは保持し、実行PCのコンソールログ・バックアップ本体・復旧journalは対象に含めません。ファイル削除失敗は画面で案内し、定期保持処理で再試行します。
 
-Runnerはshellを介さず登録済み実行ファイルをArgumentListで起動します。WebやAgentが停止してもプロセスとログ読取を継続します。Runnerが再起動した場合、生きている旧SessionはUnmanagedです。PID・生成時刻・実行ファイルfingerprintが一致しても標準入出力を再取得できないため、自動再採用しません。停止タイムアウトでは自動Killせず、同じWorkflowの要確認状態とholdを保持します。
+Runnerはshellを介さず登録済み実行ファイルをArgumentListで起動します。WebやAgentが停止してもプロセスとログ読取を継続します。Runnerの起動時、記録したプロセスの終了を確認でき、対象に未解決の操作や保守holdがない場合はStoppedに戻します。この復旧でゲームの自動起動は予約しません。生存中や確認不能な旧SessionはUnmanagedです。PID・生成時刻・実行ファイルfingerprintが一致しても標準入出力を再取得できないため、自動再採用しません。停止タイムアウトでは自動Killせず、同じWorkflowの要確認状態とholdを保持します。
 
 CLIは各管理PCのWindowsユーザーで一度`login --server-url https://control.example:5443`を実行し、ログインをDPAPIで保持します。同じControlへの再実行は有効なログインを再利用します。`agent enroll --host-id <GUID>`は登録済みサービスからAgentの実パスを検出し、接続用資格情報を自動配置してAgentを起動します。運用者によるtokenコピーは不要です。段階導入では`--start-agent false`で設定だけ行います。gateの各コマンドは`--expected-server-url`で接続先を照合します。CLIの配置・初回登録は[導入手順](../../60_tool/control-deploy/README.md)、bindingは[共通gate手順](../../60_tool/control-gate/README.md)を参照してください。
 
