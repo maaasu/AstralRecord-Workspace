@@ -37,6 +37,7 @@ import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeDeathPolicy;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeParticipationRegistry;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeStartCountdown;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeCountdownPresentation;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingStatus;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingHubArrivalGuard;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueue;
@@ -1677,25 +1678,17 @@ public final class BossChallengeService {
         }
     }
 
+    /** 対応パックへ秒tickと同期した挑戦演出を表示します。 */
     private void showCountdown(@NotNull List<Player> players, @NotNull String name, int seconds) {
         for (Player player : players) {
-            player.showTitle(Title.title(
-                    PlayerMsgResource.formatComponent(PlayerMsgId.P_6529.getId(), seconds),
-                    PlayerMsgResource.formatComponent(PlayerMsgId.P_6530.getId(), name),
-                    COUNTDOWN_TITLE_TIMES
-            ));
-            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, SoundCategory.PLAYERS, 0.8F, 1.2F);
+            ChallengeCountdownPresentation.show(player, name, true, seconds);
         }
     }
 
+    /** 対応パックへ秒tickと同期した挑戦演出を表示します。 */
     private void showChallengeStart(@NotNull List<Player> players, @NotNull String name) {
         for (Player player : players) {
-            player.showTitle(Title.title(
-                    PlayerMsgResource.formatComponent(PlayerMsgId.P_6531.getId(), name),
-                    PlayerMsgResource.getComponent(PlayerMsgId.P_6532.getId()),
-                    COUNTDOWN_TITLE_TIMES
-            ));
-            player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.9F, 1.0F);
+            ChallengeCountdownPresentation.show(player, name, true, 0);
         }
     }
 
@@ -2174,6 +2167,7 @@ public final class BossChallengeService {
             task.cancel();
             challenge.startCountdownTask(null);
         }
+        challenge.participantIds().forEach(ChallengeCountdownPresentation::clear);
     }
 
     /**

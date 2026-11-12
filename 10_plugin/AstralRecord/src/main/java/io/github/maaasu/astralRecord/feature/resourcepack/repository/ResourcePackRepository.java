@@ -24,7 +24,7 @@ public final class ResourcePackRepository {
                            boolean archmagePhoenixPresentation, boolean nyxeronPresentation, boolean itemTooltips,
                            boolean weaponAttackProjectiles, @Nullable ProfileHud profileHud, boolean skillEffects,
                            boolean combatRewardPlaque, boolean questTrackingHud, boolean receptionDisplay,
-                           boolean locationHud, Set<Integer> wornHelmetModels, boolean fishingRodTip, boolean skillCooldownHud) {
+                           boolean locationHud, Set<Integer> wornHelmetModels, boolean fishingRodTip, boolean skillCooldownHud, boolean challengeCountdown) {
     }
 
     /** 個人情報HUDの字形とゲージの互換情報です。 */
@@ -86,6 +86,9 @@ public final class ResourcePackRepository {
                 JsonElement plaque = java.get("combatRewardPlaque");
                 boolean combatRewardPlaque = plaque != null && plaque.isJsonPrimitive()
                     && plaque.getAsJsonPrimitive().isString() && "1".equals(plaque.getAsString());
+                JsonElement countdown = java.get("challengeCountdown");
+                boolean challengeCountdown = countdown != null && countdown.isJsonPrimitive()
+                    && countdown.getAsJsonPrimitive().isString() && "1".equals(countdown.getAsString());
                 JsonElement reception = java.get("receptionDisplay");
                 boolean receptionDisplay = reception != null && reception.isJsonPrimitive()
                     && reception.getAsJsonPrimitive().isString() && "1".equals(reception.getAsString());
@@ -118,7 +121,7 @@ public final class ResourcePackRepository {
                     java.has("questTrackingHud") && java.get("questTrackingHud").isJsonPrimitive()
                         && java.get("questTrackingHud").getAsJsonPrimitive().isString()
                         && "2".equals(java.get("questTrackingHud").getAsString()), receptionDisplay, locationHud,
-                    parseWornHelmetModels(java.get("wornHelmetModels")), fishingRodTip, skillCooldownHud);
+                    parseWornHelmetModels(java.get("wornHelmetModels")), fishingRodTip, skillCooldownHud, challengeCountdown);
             }
         } catch (RuntimeException exception) {
             throw new IOException("Invalid resource pack manifest", exception);

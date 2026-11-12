@@ -16,6 +16,7 @@ public sealed record JavaResourcePack(
     string? CombatRewardPlaque = null,
     string? QuestTrackingHud = null,
     string? ReceptionDisplay = null,
+    string? ChallengeCountdown = null,
     string? ArchmagePhoenixPresentation = null,
     string? LocationHud = null,
     int[]? WornHelmetModels = null,

@@ -910,6 +910,7 @@ public final class AstralRecord extends JavaPlugin {
     public void onDisable() {
         io.github.maaasu.astralRecord.shared.gui.GuiResourcePackTitle.clear();
         GameplaySound.configure(null);
+        io.github.maaasu.astralRecord.shared.challenge.ChallengeCountdownPresentation.configure(this, null);
         if (overworldTeleportService != null) overworldTeleportService.stop();
         if (defenseService != null) defenseService.stop();
         RuntimeException shadeHedgehogStopFailure = null;
@@ -1590,6 +1591,7 @@ public final class AstralRecord extends JavaPlugin {
         mobSpawnerService.setParticleDisplayService(particleDisplayService);
         gatheringSpawnerService.setParticleDisplayService(particleDisplayService);
         GameplaySound.configure(resourcePackService);
+        io.github.maaasu.astralRecord.shared.challenge.ChallengeCountdownPresentation.configure(this, resourcePackService);
         io.github.maaasu.astralRecord.shared.gui.GuiResourcePackTitle.configure(this, resourcePackService);
         displayTextService = new DisplayTextService(playerSettingService, resourcePackService);
         textDisplayPlacementService.setDisplayTextService(displayTextService);

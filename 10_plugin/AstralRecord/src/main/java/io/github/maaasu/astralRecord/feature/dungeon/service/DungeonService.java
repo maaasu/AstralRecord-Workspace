@@ -70,6 +70,7 @@ import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeDeathPolicy;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeParticipationRegistry;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeStartCountdown;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeCountdownPresentation;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingStatus;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingHubArrivalGuard;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueue;
@@ -1718,14 +1719,10 @@ public final class DungeonService {
         session.startCountdownTask = taskRef[0];
     }
 
+    /** 対応パックへ秒tickと同期した挑戦演出を表示します。 */
     private void showDungeonCountdown(@NotNull List<Player> players, @NotNull String name, int seconds) {
         for (Player player : players) {
-            player.showTitle(Title.title(
-                    PlayerMsgResource.formatComponent(PlayerMsgId.P_7020.getId(), seconds),
-                    PlayerMsgResource.formatComponent(PlayerMsgId.P_7021.getId(), name),
-                    COUNTDOWN_TITLE_TIMES
-            ));
-            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, SoundCategory.PLAYERS, 0.8F, 1.2F);
+            ChallengeCountdownPresentation.show(player, name, false, seconds);
         }
     }
 
@@ -1746,14 +1743,10 @@ public final class DungeonService {
         }
     }
 
+    /** 対応パックへ秒tickと同期した挑戦演出を表示します。 */
     private void showDungeonStart(@NotNull List<Player> players, @NotNull String name) {
         for (Player player : players) {
-            player.showTitle(Title.title(
-                    PlayerMsgResource.formatComponent(PlayerMsgId.P_7022.getId(), name),
-                    PlayerMsgResource.getComponent(PlayerMsgId.P_7023.getId()),
-                    COUNTDOWN_TITLE_TIMES
-            ));
-            player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.9F, 1.0F);
+            ChallengeCountdownPresentation.show(player, name, false, 0);
         }
     }
 
@@ -4524,6 +4517,7 @@ public final class DungeonService {
             session.startCountdownTask = null;
             cleanupSafely(session, "start_countdown_task", task::cancel);
         }
+        session.originalParticipants.forEach(ChallengeCountdownPresentation::clear);
         if (session.clearReturnTask != null) {
             BukkitTask task = session.clearReturnTask;
             session.clearReturnTask = null;

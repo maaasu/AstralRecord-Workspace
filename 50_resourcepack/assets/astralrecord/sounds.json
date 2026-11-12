@@ -109,5 +109,30 @@
     "sounds": [
       "astralrecord:gui/toggle"
     ]
+  },
+  "challenge.countdown.tick": {
+    "sounds": [
+      "astralrecord:challenge/countdown/tick"
+    ]
+  },
+  "challenge.countdown.three": {
+    "sounds": [
+      "astralrecord:challenge/countdown/three"
+    ]
+  },
+  "challenge.countdown.two": {
+    "sounds": [
+      "astralrecord:challenge/countdown/two"
+    ]
+  },
+  "challenge.countdown.one": {
+    "sounds": [
+      "astralrecord:challenge/countdown/one"
+    ]
+  },
+  "challenge.countdown.start": {
+    "sounds": [
+      "astralrecord:challenge/countdown/start"
+    ]
   }
 }

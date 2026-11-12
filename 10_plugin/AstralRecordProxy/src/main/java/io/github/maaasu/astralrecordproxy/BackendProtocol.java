@@ -22,6 +22,7 @@ final class BackendProtocol {
     static final String OPEN_MENU = "open_menu";
     static final String PREPARE_CONNECT = "prepare_connect";
     static final String CHANNEL_CONNECTION = "channel_connection";
+    static final String CHALLENGE_COUNTDOWN_READY = "challenge_countdown_v1_ready";
     static final String GAMEPLAY_SOUNDS_READY = "gameplay_sounds_ready";
     static final String ITEM_TOOLTIPS_READY = "item_tooltips_ready";
     static final String SKILL_EFFECTS_V2_READY = "skill_effects_v2_ready";
@@ -153,6 +154,11 @@ final class BackendProtocol {
     }
 
     /** @return 対象プレイヤーのBedrockパックが効果音に対応していることを伝える通知 */
+    static byte[] challengeCountdownReady() {
+        return outgoing(CHALLENGE_COUNTDOWN_READY, null);
+    }
+
+    /** @return 専用効果音の対応通知 */
     static byte[] gameplaySoundsReady() {
         return outgoing(GAMEPLAY_SOUNDS_READY, null);
     }

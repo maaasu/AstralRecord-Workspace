@@ -59,6 +59,8 @@ public class ResourcePackService {
     private final Set<UUID> requestedJavaSkillEffects = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockSkillEffects = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaCombatRewardPlaque = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> requestedJavaChallengeCountdown = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> readyBedrockChallengeCountdown = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaReceptionDisplay = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockCombatRewardPlaque = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockCombatRewardPlaqueTiming = ConcurrentHashMap.newKeySet();
@@ -109,6 +111,7 @@ public class ResourcePackService {
         requestedJavaSkillEffects.remove(player.getUniqueId());
         requestedJavaCombatRewardPlaque.remove(player.getUniqueId());
         requestedJavaReceptionDisplay.remove(player.getUniqueId());
+        requestedJavaChallengeCountdown.remove(player.getUniqueId());
         if (configProperties.isResourcePackManagedEnabled() && !isBedrock(player.getName())) {
             pendingViewers.put(player.getUniqueId(), player);
             if (!manifestLoading) {
@@ -207,6 +210,7 @@ public class ResourcePackService {
                     if (pack.combatRewardPlaque()) {
                         requestedJavaCombatRewardPlaque.add(viewer);
                     }
+                    if (pack.challengeCountdown()) requestedJavaChallengeCountdown.add(viewer);
                     if (pack.receptionDisplay()) {
                         requestedJavaReceptionDisplay.add(viewer);
                     }
@@ -337,6 +341,7 @@ public class ResourcePackService {
                     requestedJavaSkillEffects.remove(viewer);
                     requestedJavaCombatRewardPlaque.remove(viewer);
                     requestedJavaReceptionDisplay.remove(viewer);
+                    requestedJavaChallengeCountdown.remove(viewer);
                 }
                 default -> { }
             }
@@ -739,6 +744,21 @@ public class ResourcePackService {
         return hasManagedJavaPack(playerId) && requestedJavaCombatRewardPlaque.contains(playerId);
     }
 
+    /** @param playerId 閲覧者UUID @return 適用済みJavaパックが挑戦演出v1に対応する場合true */
+    public boolean hasJavaChallengeCountdown(UUID playerId) {
+        return hasManagedJavaPack(playerId) && requestedJavaChallengeCountdown.contains(playerId);
+    }
+
+    /** @param playerId 閲覧者UUID @return 現在の統合版接続が挑戦演出v1に対応する場合true */
+    public boolean hasBedrockChallengeCountdown(UUID playerId) {
+        return readyBedrockChallengeCountdown.contains(playerId);
+    }
+
+    /** @param player Proxyが確認した現在のオンライン接続 */
+    public void markBedrockChallengeCountdownReady(Player player) {
+        if (player.isOnline()) readyBedrockChallengeCountdown.add(player.getUniqueId());
+    }
+
     /**
      * 受付モデル対応の管理Javaパックが現在の接続で適用済みか確認します。
      * @param playerId 閲覧者のUUID
@@ -821,6 +841,7 @@ public class ResourcePackService {
         requestedGuiThemes.remove(playerId);
         requestedGameplaySounds.remove(playerId);
         readyBedrockGameplaySounds.remove(playerId);
+        readyBedrockChallengeCountdown.remove(playerId);
         loadedSunbirdPresentation.remove(playerId);
         requestedSunbirdPresentation.remove(playerId);
         requestedSeleneaPresentation.remove(playerId);
@@ -837,6 +858,7 @@ public class ResourcePackService {
         readyBedrockSkillEffects.remove(playerId);
         requestedJavaCombatRewardPlaque.remove(playerId);
         requestedJavaReceptionDisplay.remove(playerId);
+        requestedJavaChallengeCountdown.remove(playerId);
         readyBedrockCombatRewardPlaque.remove(playerId);
         readyBedrockCombatRewardPlaqueTiming.remove(playerId);
         readyBedrockCombatRewardPlaqueWidth.remove(playerId);

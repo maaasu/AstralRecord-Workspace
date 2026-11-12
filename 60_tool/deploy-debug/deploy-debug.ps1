@@ -424,6 +424,7 @@ function Publish-ResourcePacks {
     $skillEffects = $null
     $combatRewardPlaque = $null
     $receptionDisplay = $null
+    $challengeCountdown = $null
     $profileHud = $null
     $questTrackingHud = $null
     $locationHud = $null
@@ -470,6 +471,27 @@ function Publish-ResourcePacks {
             foreach ($asset in $plaqueAssets) {
                 $entry = $archive.GetEntry($asset)
                 if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing combat reward plaque asset in Java pack: $asset" }
+            }
+        }
+
+        $countdownEntry = $archive.GetEntry('challenge-countdown-version.txt')
+        if ($null -ne $countdownEntry) {
+            if ($countdownEntry.Length -ne 1) { throw 'Invalid countdown version marker.' }
+            $reader = [IO.StreamReader]::new($countdownEntry.Open())
+            try { $challengeCountdown = $reader.ReadToEnd() } finally { $reader.Dispose() }
+            if ($challengeCountdown -cne '1') { throw 'Unsupported countdown version.' }
+            $countdownAssets = @('assets/astralrecord/font/challenge_countdown.json',
+                'assets/astralrecord/font/challenge_countdown_name.json',
+                'assets/astralrecord/textures/font/challenge_countdown_name.png')
+            foreach ($kind in @('boss', 'dungeon')) {
+                foreach ($seconds in 0..10) { $countdownAssets += "assets/astralrecord/textures/gui/challenge_countdown/${kind}_${seconds}.png" }
+            }
+            foreach ($cue in @('tick', 'three', 'two', 'one', 'start')) {
+                $countdownAssets += "assets/astralrecord/sounds/challenge/countdown/$cue.ogg"
+            }
+            foreach ($asset in $countdownAssets) {
+                $entry = $archive.GetEntry($asset)
+                if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing countdown asset: $asset" }
             }
         }
 
@@ -828,6 +850,7 @@ function Publish-ResourcePacks {
     if ($null -ne $combatRewardPlaque) {
         $javaManifest.combatRewardPlaque = $combatRewardPlaque
     }
+    if ($null -ne $challengeCountdown) { $javaManifest.challengeCountdown = $challengeCountdown }
     if ($null -ne $receptionDisplay) {
         $javaManifest.receptionDisplay = $receptionDisplay
     }
