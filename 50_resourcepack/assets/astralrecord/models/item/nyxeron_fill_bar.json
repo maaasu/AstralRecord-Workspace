@@ -1,0 +1,150 @@
+{
+ "credit": "AstralRecord generate-nyxeron-assets.py",
+ "ambientocclusion": false,
+ "textures": {
+  "0": "astralrecord:item/nyxeron_skill",
+  "particle": "astralrecord:item/nyxeron_skill"
+ },
+ "elements": [
+  {
+   "from": [
+    0,
+    8.0,
+    0.0
+   ],
+   "to": [
+    16,
+    9.0,
+    16.0
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      10.125,
+      12.125,
+      10.375,
+      12.375
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      10.125,
+      12.125,
+      10.375,
+      12.375
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      10.125,
+      12.125,
+      10.375,
+      12.375
+     ],
+     "texture": "#0"
+    },
+    "east": {
+     "uv": [
+      10.125,
+      12.125,
+      10.375,
+      12.375
+     ],
+     "texture": "#0"
+    },
+    "up": {
+     "uv": [
+      10.125,
+      12.125,
+      10.375,
+      12.375
+     ],
+     "texture": "#0"
+    },
+    "down": {
+     "uv": [
+      10.125,
+      12.125,
+      10.375,
+      12.375
+     ],
+     "texture": "#0"
+    }
+   },
+   "shade": false,
+   "light_emission": 15
+  },
+  {
+   "from": [
+    6,
+    8.0,
+    0.0
+   ],
+   "to": [
+    10,
+    9.4,
+    16.0
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      9.125,
+      12.125,
+      9.375,
+      12.375
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      9.125,
+      12.125,
+      9.375,
+      12.375
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      9.125,
+      12.125,
+      9.375,
+      12.375
+     ],
+     "texture": "#0"
+    },
+    "east": {
+     "uv": [
+      9.125,
+      12.125,
+      9.375,
+      12.375
+     ],
+     "texture": "#0"
+    },
+    "up": {
+     "uv": [
+      9.125,
+      12.125,
+      9.375,
+      12.375
+     ],
+     "texture": "#0"
+    },
+    "down": {
+     "uv": [
+      9.125,
+      12.125,
+      9.375,
+      12.375
+     ],
+     "texture": "#0"
+    }
+   },
+   "shade": false,
+   "light_emission": 15
+  }
+ ]
+}

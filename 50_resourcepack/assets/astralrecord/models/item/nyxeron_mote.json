@@ -1,0 +1,229 @@
+{
+ "credit": "AstralRecord generate-nyxeron-assets.py",
+ "ambientocclusion": false,
+ "textures": {
+  "0": "astralrecord:item/nyxeron",
+  "particle": "astralrecord:item/nyxeron"
+ },
+ "elements": [
+  {
+   "from": [
+    6.7,
+    6.7,
+    6.7
+   ],
+   "to": [
+    9.3,
+    9.3,
+    9.3
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      6.0,
+      2.0,
+      8.0,
+      4.0
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      6.0,
+      2.0,
+      8.0,
+      4.0
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      6.0,
+      2.0,
+      8.0,
+      4.0
+     ],
+     "texture": "#0"
+    },
+    "east": {
+     "uv": [
+      6.0,
+      2.0,
+      8.0,
+      4.0
+     ],
+     "texture": "#0"
+    },
+    "up": {
+     "uv": [
+      6.0,
+      2.0,
+      8.0,
+      4.0
+     ],
+     "texture": "#0"
+    },
+    "down": {
+     "uv": [
+      6.0,
+      2.0,
+      8.0,
+      4.0
+     ],
+     "texture": "#0"
+    }
+   },
+   "shade": false,
+   "light_emission": 15
+  },
+  {
+   "from": [
+    6.9,
+    6.9,
+    6.9
+   ],
+   "to": [
+    9.1,
+    9.1,
+    9.1
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      4.0,
+      0.0,
+      6.0,
+      2.0
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      4.0,
+      0.0,
+      6.0,
+      2.0
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      4.0,
+      0.0,
+      6.0,
+      2.0
+     ],
+     "texture": "#0"
+    },
+    "east": {
+     "uv": [
+      4.0,
+      0.0,
+      6.0,
+      2.0
+     ],
+     "texture": "#0"
+    },
+    "up": {
+     "uv": [
+      4.0,
+      0.0,
+      6.0,
+      2.0
+     ],
+     "texture": "#0"
+    },
+    "down": {
+     "uv": [
+      4.0,
+      0.0,
+      6.0,
+      2.0
+     ],
+     "texture": "#0"
+    }
+   },
+   "rotation": {
+    "angle": 45.0,
+    "axis": "y",
+    "origin": [
+     8,
+     8,
+     8
+    ]
+   },
+   "shade": false,
+   "light_emission": 15
+  },
+  {
+   "from": [
+    7.6,
+    5.8,
+    7.6
+   ],
+   "to": [
+    8.4,
+    10.2,
+    8.4
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      6.0,
+      2.0,
+      8.0,
+      4.0
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      6.0,
+      2.0,
+      8.0,
+      4.0
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      6.0,
+      2.0,
+      8.0,
+      4.0
+     ],
+     "texture": "#0"
+    },
+    "east": {
+     "uv": [
+      6.0,
+      2.0,
+      8.0,
+      4.0
+     ],
+     "texture": "#0"
+    },
+    "up": {
+     "uv": [
+      6.0,
+      2.0,
+      8.0,
+      4.0
+     ],
+     "texture": "#0"
+    },
+    "down": {
+     "uv": [
+      6.0,
+      2.0,
+      8.0,
+      4.0
+     ],
+     "texture": "#0"
+    }
+   },
+   "shade": false,
+   "light_emission": 15
+  }
+ ]
+}

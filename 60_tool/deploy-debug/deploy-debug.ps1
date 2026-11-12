@@ -548,13 +548,19 @@ function Publish-ResourcePacks {
             $reader = [IO.StreamReader]::new($nyxeronEntry.Open())
             try { $nyxeronPresentation = $reader.ReadToEnd() }
             finally { $reader.Dispose() }
-            if ($nyxeronPresentation -cne '1') { throw 'Unsupported Nyxeron presentation version.' }
+            if ($nyxeronPresentation -cne '2') { throw 'Unsupported Nyxeron presentation version.' }
             foreach ($asset in @(
                 'assets/astralrecord/items/nyxeron_core.json'
                 'assets/astralrecord/items/nyxeron_ring_outer.json'
+                'assets/astralrecord/items/nyxeron_petal.json'
                 'assets/astralrecord/items/nyxeron_disc.json'
+                'assets/astralrecord/items/nyxeron_bullet.json'
+                'assets/astralrecord/items/nyxeron_ring_low.json'
+                'assets/astralrecord/items/nyxeron_beam_high.json'
                 'assets/astralrecord/textures/item/nyxeron.png'
                 'assets/astralrecord/textures/item/nyxeron_skill.png'
+                'assets/astralrecord/textures/item/nyxeron_skill.png.mcmeta'
+                'assets/astralrecord/sounds/boss/nyxeron/cue_nova.ogg'
             )) {
                 $entry = $archive.GetEntry($asset)
                 if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing Nyxeron asset in Java pack: $asset" }

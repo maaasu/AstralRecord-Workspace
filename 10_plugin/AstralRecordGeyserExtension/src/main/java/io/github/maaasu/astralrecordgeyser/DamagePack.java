@@ -122,7 +122,8 @@ record DamagePack(
         "models/entity/nyxeron.geo.json", "textures/entity/nyxeron.png",
         "entity/nyxeron_skill.entity.json", "animations/nyxeron_skill.animation.json",
         "models/entity/nyxeron_skill.geo.json", "render_controllers/nyxeron_skill.render_controllers.json",
-        "textures/entity/nyxeron_skill.png"
+        "textures/entity/nyxeron_skill.png", "sounds/sound_definitions.json",
+        "sounds/astralrecord/boss/nyxeron/cue_nova.ogg"
     );
     private static final List<String> WORLD_DISPLAY_ENTRIES = List.of(
         "entity/world_display.entity.json", "models/entity/world_display.geo.json",
@@ -225,7 +226,8 @@ record DamagePack(
                     && SELENEA_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 archmagePhoenix = hasVersionOne(zip, "archmage-phoenix-presentation-version.txt")
                     && ARCHMAGE_PHOENIX_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
-                nyxeron = hasVersionOne(zip, "nyxeron-presentation-version.txt")
+                // 互換版2: 弾幕・衝撃環・光刃・星雨の形状、param、専用効果音を含む。
+                nyxeron = hasVersion(zip, "nyxeron-presentation-version.txt", '2')
                     && NYXERON_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 worldDisplay = WORLD_DISPLAY_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 itemTooltips = present(zip.getEntry("font/glyph_E6.png"))

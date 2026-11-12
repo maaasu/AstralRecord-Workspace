@@ -8,11 +8,16 @@ import org.geysermc.geyser.api.entity.type.GeyserEntity;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineEntityPropertiesEvent;
 import org.geysermc.geyser.api.util.Identifier;
 
-/** Paper が技の TextDisplay に載せた寸法を Bedrock の描画プロパティへ渡します。 */
+/**
+ * Paper が技の TextDisplay に載せた寸法を Bedrock の描画プロパティへ渡します。
+ * {@code param} はボスごとに任意で、UUID 下位64bitの44～55bitを残りtickや隙間の配置としてそのまま渡します。
+ */
 record BossSkillEntity(GeyserIntEntityProperty style, GeyserFloatEntityProperty width,
-                          GeyserFloatEntityProperty length, GeyserFloatEntityProperty height) {
+                          GeyserFloatEntityProperty length, GeyserFloatEntityProperty height,
+                          GeyserIntEntityProperty param) {
     private static final long SIZE_MASK = 0xfffL;
     private static final float SIZE_UNIT = 1f / 32;
+    private static final int PARAM_MAX = 0xfff;
 
     static Frame decode(UUID uuid, long marker, int maxStyle) {
         if (uuid.getMostSignificantBits() != marker) return null;
@@ -29,12 +34,19 @@ record BossSkillEntity(GeyserIntEntityProperty style, GeyserFloatEntityProperty 
         return ((bits >>> shift) & SIZE_MASK) * SIZE_UNIT;
     }
 
-    static BossSkillEntity registerProperties(GeyserDefineEntityPropertiesEvent event, Identifier identifier, int maxStyle) {
+    /** @return UUID 下位64bitの44～55bit。param を使わないボスでは上位の乱数部分にあたります */
+    static int param(UUID uuid) {
+        return (int) ((uuid.getLeastSignificantBits() >>> 44) & PARAM_MAX);
+    }
+
+    static BossSkillEntity registerProperties(GeyserDefineEntityPropertiesEvent event, Identifier identifier, int maxStyle,
+                                              boolean withParam) {
         return new BossSkillEntity(
             event.registerIntegerProperty(identifier, Identifier.of("astralrecord", "style"), 0, maxStyle, 0),
             registerSize(event, identifier, "width"),
             registerSize(event, identifier, "length"),
-            registerSize(event, identifier, "height")
+            registerSize(event, identifier, "height"),
+            withParam ? event.registerIntegerProperty(identifier, Identifier.of("astralrecord", "param"), 0, PARAM_MAX, 0) : null
         );
     }
 
@@ -45,7 +57,7 @@ record BossSkillEntity(GeyserIntEntityProperty style, GeyserFloatEntityProperty 
         );
     }
 
-    void initialize(GeyserEntity entity, Frame frame) {
+    void initialize(GeyserEntity entity, Frame frame, int value) {
         entity.override(GeyserEntityDataTypes.SCALE, 1f);
         entity.override(GeyserEntityDataTypes.WIDTH, 0f);
         entity.override(GeyserEntityDataTypes.HEIGHT, 0f);
@@ -55,6 +67,7 @@ record BossSkillEntity(GeyserIntEntityProperty style, GeyserFloatEntityProperty 
             batch.update(width, frame.width());
             batch.update(length, frame.length());
             batch.update(height, frame.height());
+            if (param != null) batch.update(param, value);
         }, false);
     }
 

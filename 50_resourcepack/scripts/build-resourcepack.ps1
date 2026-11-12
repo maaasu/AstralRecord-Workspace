@@ -288,7 +288,9 @@ $java = Read-PackEntries $root @(
     'assets/astralrecord/models/item/archmage_phoenix_wing_down.json'
     'assets/astralrecord/textures/item/archmage_phoenix.png'
     'assets/astralrecord/textures/item/nyxeron.png'
+    'assets/astralrecord/textures/item/nyxeron.png.mcmeta'
     'assets/astralrecord/textures/item/nyxeron_skill.png'
+    'assets/astralrecord/textures/item/nyxeron_skill.png.mcmeta'
 )
 $bedrock = Read-PackEntries $bedrockRoot @(
     'manifest.json'
@@ -499,9 +501,11 @@ if ($utf8.GetString($java[$seleneaVersionMarker]) -cne '1') {
 }
 $bedrock.Add($seleneaVersionMarker, $java[$seleneaVersionMarker])
 
-# Orrery Heart Nyxeron: body (core poses and three rings) and 13 spell shapes with 4 frames each.
+# Orrery Heart Nyxeron: body (core poses, rings, petals, cage, motes) and the Java spell shapes.
+# The Bedrock-only nova ring has no Java model; Java draws its bullets one by one.
 $nyxeronPaths = @()
-foreach ($name in @('nyxeron_core', 'nyxeron_ring_outer', 'nyxeron_ring_mid', 'nyxeron_ring_inner')) {
+foreach ($name in @('nyxeron_core', 'nyxeron_ring_outer', 'nyxeron_ring_mid', 'nyxeron_ring_inner',
+        'nyxeron_petal', 'nyxeron_cage', 'nyxeron_mote')) {
     $nyxeronPaths += "assets/astralrecord/items/$name.json"
     $nyxeronPaths += "assets/astralrecord/models/item/$name.json"
 }
@@ -510,17 +514,18 @@ foreach ($pose in @('cast', 'attack', 'guard', 'exposed')) {
 }
 $nyxeronSkillStyles = @(
     'disc', 'band_1', 'band_2', 'band_3', 'band_4', 'spoke', 'seal', 'seal_done',
-    'scar', 'impact', 'gaze', 'meteor', 'heart'
+    'scar', 'impact', 'gaze', 'meteor', 'heart',
+    'approach', 'fill_bar', 'bullet', 'ring_low', 'ring_high', 'beam_low', 'beam_high',
+    'fragment', 'star', 'supernova'
 )
 foreach ($style in $nyxeronSkillStyles) {
     $name = "nyxeron_$style"
     $nyxeronPaths += "assets/astralrecord/items/$name.json"
     $nyxeronPaths += "assets/astralrecord/models/item/$name.json"
-    $nyxeronPaths += 1..3 | ForEach-Object { "assets/astralrecord/models/item/${name}_frame_$_.json" }
 }
 Add-PackEntries $java $root $nyxeronPaths
 $nyxeronVersionMarker = 'nyxeron-presentation-version.txt'
-if ($utf8.GetString($java[$nyxeronVersionMarker]) -cne '1') {
+if ($utf8.GetString($java[$nyxeronVersionMarker]) -cne '2') {
     throw 'Invalid Nyxeron presentation version marker in resource pack.'
 }
 $bedrock.Add($nyxeronVersionMarker, $java[$nyxeronVersionMarker])
@@ -724,12 +729,12 @@ Add-PackEntries $java $root @($javaSoundPath)
 $javaSounds = ConvertFrom-Json -InputObject ($utf8.GetString($java[$javaSoundPath]))
 $bedrockSounds = [ordered]@{}
 foreach ($event in $javaSounds.PSObject.Properties) {
-    if ($event.Name -cnotmatch '^gui\.[a-z_]+$|^combat\.attack\.[a-z_]+$|^challenge\.countdown\.[a-z_]+$' -or !$event.Value.sounds) {
+    if ($event.Name -cnotmatch '^gui\.[a-z_]+$|^combat\.attack\.[a-z_]+$|^challenge\.countdown\.[a-z_]+$|^boss\.nyxeron\.[a-z_]+$' -or !$event.Value.sounds) {
         throw "Invalid gameplay sound event: $($event.Name)"
     }
-    $category = if (($event.Name.StartsWith('gui.') -or $event.Name.StartsWith('challenge.'))) { 'ui' } else { 'player' }
+    $category = if (($event.Name.StartsWith('gui.') -or $event.Name.StartsWith('challenge.'))) { 'ui' } elseif ($event.Name.StartsWith('boss.')) { 'hostile' } else { 'player' }
     $paths = foreach ($sound in $event.Value.sounds) {
-        if ($sound -isnot [string] -or $sound -cnotmatch '^astralrecord:(gui|combat/attack|challenge/countdown)/[a-z0-9_]+$') {
+        if ($sound -isnot [string] -or $sound -cnotmatch '^astralrecord:(gui|combat/attack|challenge/countdown|boss/nyxeron)/[a-z0-9_]+$') {
             throw "Invalid gameplay sound asset in event: $($event.Name)"
         }
         $path = $sound.Substring('astralrecord:'.Length)

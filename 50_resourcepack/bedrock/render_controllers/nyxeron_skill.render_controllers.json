@@ -17,11 +17,22 @@
       "Geometry.impact",
       "Geometry.gaze",
       "Geometry.meteor",
-      "Geometry.heart"
+      "Geometry.heart",
+      "Geometry.approach",
+      "Geometry.fill_bar",
+      "Geometry.bullet",
+      "Geometry.ring_low",
+      "Geometry.ring_high",
+      "Geometry.beam_low",
+      "Geometry.beam_high",
+      "Geometry.fragment",
+      "Geometry.star",
+      "Geometry.nova",
+      "Geometry.supernova"
      ]
     }
    },
-   "geometry": "Array.shapes[math.clamp(query.property('astralrecord:style'), 0, 12)]",
+   "geometry": "Array.shapes[math.clamp(query.property('astralrecord:style'), 0, 23)]",
    "materials": [
     {
      "*": "Material.default"
@@ -29,6 +40,155 @@
    ],
    "textures": [
     "Texture.default"
+   ],
+   "part_visibility": [
+    {
+     "*": true
+    },
+    {
+     "b00": "math.mod(0, variable.nova_p) > variable.nova_w && math.mod(0, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b01": "math.mod(1, variable.nova_p) > variable.nova_w && math.mod(1, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b02": "math.mod(2, variable.nova_p) > variable.nova_w && math.mod(2, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b03": "math.mod(3, variable.nova_p) > variable.nova_w && math.mod(3, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b04": "math.mod(4, variable.nova_p) > variable.nova_w && math.mod(4, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b05": "math.mod(5, variable.nova_p) > variable.nova_w && math.mod(5, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b06": "math.mod(6, variable.nova_p) > variable.nova_w && math.mod(6, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b07": "math.mod(7, variable.nova_p) > variable.nova_w && math.mod(7, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b08": "math.mod(8, variable.nova_p) > variable.nova_w && math.mod(8, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b09": "math.mod(9, variable.nova_p) > variable.nova_w && math.mod(9, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b10": "math.mod(10, variable.nova_p) > variable.nova_w && math.mod(10, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b11": "math.mod(11, variable.nova_p) > variable.nova_w && math.mod(11, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b12": "math.mod(12, variable.nova_p) > variable.nova_w && math.mod(12, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b13": "math.mod(13, variable.nova_p) > variable.nova_w && math.mod(13, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b14": "math.mod(14, variable.nova_p) > variable.nova_w && math.mod(14, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b15": "math.mod(15, variable.nova_p) > variable.nova_w && math.mod(15, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b16": "math.mod(16, variable.nova_p) > variable.nova_w && math.mod(16, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b17": "math.mod(17, variable.nova_p) > variable.nova_w && math.mod(17, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b18": "math.mod(18, variable.nova_p) > variable.nova_w && math.mod(18, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b19": "math.mod(19, variable.nova_p) > variable.nova_w && math.mod(19, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b20": "math.mod(20, variable.nova_p) > variable.nova_w && math.mod(20, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b21": "math.mod(21, variable.nova_p) > variable.nova_w && math.mod(21, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b22": "math.mod(22, variable.nova_p) > variable.nova_w && math.mod(22, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b23": "math.mod(23, variable.nova_p) > variable.nova_w && math.mod(23, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b24": "math.mod(24, variable.nova_p) > variable.nova_w && math.mod(24, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b25": "math.mod(25, variable.nova_p) > variable.nova_w && math.mod(25, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b26": "math.mod(26, variable.nova_p) > variable.nova_w && math.mod(26, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b27": "math.mod(27, variable.nova_p) > variable.nova_w && math.mod(27, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b28": "math.mod(28, variable.nova_p) > variable.nova_w && math.mod(28, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b29": "math.mod(29, variable.nova_p) > variable.nova_w && math.mod(29, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b30": "math.mod(30, variable.nova_p) > variable.nova_w && math.mod(30, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b31": "math.mod(31, variable.nova_p) > variable.nova_w && math.mod(31, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b32": "math.mod(32, variable.nova_p) > variable.nova_w && math.mod(32, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b33": "math.mod(33, variable.nova_p) > variable.nova_w && math.mod(33, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b34": "math.mod(34, variable.nova_p) > variable.nova_w && math.mod(34, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b35": "math.mod(35, variable.nova_p) > variable.nova_w && math.mod(35, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b36": "math.mod(36, variable.nova_p) > variable.nova_w && math.mod(36, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b37": "math.mod(37, variable.nova_p) > variable.nova_w && math.mod(37, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b38": "math.mod(38, variable.nova_p) > variable.nova_w && math.mod(38, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b39": "math.mod(39, variable.nova_p) > variable.nova_w && math.mod(39, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b40": "math.mod(40, variable.nova_p) > variable.nova_w && math.mod(40, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b41": "math.mod(41, variable.nova_p) > variable.nova_w && math.mod(41, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b42": "math.mod(42, variable.nova_p) > variable.nova_w && math.mod(42, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b43": "math.mod(43, variable.nova_p) > variable.nova_w && math.mod(43, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b44": "math.mod(44, variable.nova_p) > variable.nova_w && math.mod(44, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b45": "math.mod(45, variable.nova_p) > variable.nova_w && math.mod(45, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b46": "math.mod(46, variable.nova_p) > variable.nova_w && math.mod(46, variable.nova_p) < variable.nova_p - variable.nova_w"
+    },
+    {
+     "b47": "math.mod(47, variable.nova_p) > variable.nova_w && math.mod(47, variable.nova_p) < variable.nova_p - variable.nova_w"
+    }
    ],
    "ignore_lighting": true
   }

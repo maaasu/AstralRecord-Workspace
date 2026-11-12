@@ -100,7 +100,7 @@ RPG本体や `AstralRecordProxy.jar` をextensionsフォルダに入れない。
 
 ## Bedrock の天球心臓ニクセロン
 
-拡張 `1.28.0` と AstralRecordProxy `1.6.8` 以降は、互換版 `1` の `nyxeron-presentation-version.txt` と、本体・技のエンティティ定義・形状・テクスチャ・アニメーション・描画制御が揃ったパックに対応します。RPG が UUID に印を付けたアイアンゴーレムを `astralrecord:nyxeron` に、技の TextDisplay を `astralrecord:nyxeron_skill`（形状0～12）に置き換えます。姿勢は0～4（通常・予告・発動・調律・露出）です。パックを利用できない接続ではアイアンゴーレムと粒子の予兆を表示します。更新後は Proxy を再起動し、統合版クライアントを再接続してください。
+拡張 `1.29.0` と AstralRecordProxy `1.6.8` 以降は、互換版 `2` の `nyxeron-presentation-version.txt` と、本体・技のエンティティ定義・形状・テクスチャ・アニメーション・描画制御・専用効果音が揃ったパックに対応します。RPG が UUID に印を付けたアイアンゴーレムを `astralrecord:nyxeron` に、技の TextDisplay を `astralrecord:nyxeron_skill`（形状0～23）に置き換えます。技の UUID 下位64bitは、0～7bitが形状、8～19・20～31・32～43bitが幅・長さ・高さ（1/32ブロック）、44～55bitが `astralrecord:param`（残りtick、光刃の回転速度、星環弾の隙間の配置）、56～63bitが重複を避ける番号です。互換版 `1` のパックや拡張 `1.28.0` 以前では対応なしとして扱い、粒子の予兆と標準音を使います。姿勢は0～4（通常・予告・発動・調律・露出）です。パックを利用できない接続ではアイアンゴーレムと粒子の予兆を表示します。更新後は Proxy を再起動し、統合版クライアントを再接続してください。
 
 ## Bedrockのウェイストーンと施設NPC
 

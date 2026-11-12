@@ -9,6 +9,12 @@
     },
     {
      "glow_*": "Material.glow"
+    },
+    {
+     "cage": "Material.glow"
+    },
+    {
+     "mote_*": "Material.glow"
     }
    ],
    "textures": [
@@ -29,15 +35,6 @@
     },
     {
      "glow_eye_cast": "variable.motion == 1"
-    },
-    {
-     "petal": "variable.motion == 2"
-    },
-    {
-     "glow_petal": "variable.motion == 2"
-    },
-    {
-     "glow_guard": "variable.invulnerable"
     },
     {
      "glow_exposed": "variable.motion == 4"

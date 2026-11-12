@@ -153,6 +153,22 @@ public final class SharedParticleDefinitions {
     public static final SharedParticleDefinition NYXERON_SCAR =
         new SharedParticleDefinition("nyxeron_scar", Particle.DUST, 4, 0, 0, 0, 0,
             new Particle.DustOptions(Color.fromRGB(150, 60, 220), 1.0F));
+    /** ニクセロンの星弾。専用表示のない接続へ弾の現在位置を示す金白の粒です。 */
+    public static final SharedParticleDefinition NYXERON_BULLET =
+        new SharedParticleDefinition("nyxeron_bullet", Particle.DUST, 4, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(255, 235, 150), 1.7F));
+    /** ニクセロンの低い衝撃環・光刃。跳んで避ける青です。 */
+    public static final SharedParticleDefinition NYXERON_LOW =
+        new SharedParticleDefinition("nyxeron_low", Particle.DUST, 4, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(95, 240, 255), 1.4F));
+    /** ニクセロンの高い衝撃環・光刃。しゃがんで避けるピンクです。 */
+    public static final SharedParticleDefinition NYXERON_HIGH =
+        new SharedParticleDefinition("nyxeron_high", Particle.DUST, 4, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(255, 95, 216), 1.4F));
+    /** ニクセロンの星片。拾える位置を示す水色の光です。 */
+    public static final SharedParticleDefinition NYXERON_FRAGMENT =
+        new SharedParticleDefinition("nyxeron_fragment", Particle.DUST, 4, 0, 0, 0, 0,
+            new Particle.DustOptions(Color.fromRGB(190, 247, 255), 1.6F));
 
     /** 館主の危険面。点間隔で密度を表す幽翠色。 */
     public static final SharedParticleDefinition VESPERALA_WARNING =
