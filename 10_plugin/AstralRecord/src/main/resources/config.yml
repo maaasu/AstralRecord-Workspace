@@ -16,7 +16,7 @@ plugin:
 builder:
   maxBlocks: 100000
   schematicImport:
-    # dev のみ。既存の AstralRecordWeb の HTTPS ベース URL と API の BuilderSchematics:DevKey を指定。
+    # api.serverId が Dev のサーバーに、登録用の Web HTTPS URL と API の専用キーを設定します。
     webBaseUrl: ""
     devKey: ""
 

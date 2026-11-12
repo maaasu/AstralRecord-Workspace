@@ -19,7 +19,7 @@ public final class BuilderTabCompleter extends AstTabCompleter {
     }
 
     /**
-     * インポートが有効な dev のビルダーにだけ候補を返します。
+     * 接続設定に関係なく、Dev のビルダーにだけ候補を返します。
      * @param player 入力中のプレイヤー
      * @param args 入力済みのコマンド引数
      * @return 最初の引数の候補。利用できない場合は空リスト
