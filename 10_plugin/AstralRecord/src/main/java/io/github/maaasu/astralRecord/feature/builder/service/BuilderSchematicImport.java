@@ -51,23 +51,28 @@ public final class BuilderSchematicImport {
 
     /** プラグイン有効化と API 初期化の後に、dev の検証待ち監視を開始します。 */
     public void start() {
-        if (stopped || pollTask != null || !isDev()) return;
+        if (!enabled() || pollTask != null) return;
         uploadPage = uploadPage(plugin.getConfig().getString(CONFIG + "webBaseUrl", ""));
         String devKey = plugin.getConfig().getString(CONFIG + "devKey", "");
-        if (devKey.isBlank() || uploadPage == null) return;
+        if (devKey.isBlank()) return;
         repository = new BuilderSchematicRepository(devKey);
         pollTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::poll, POLL_TICKS, POLL_TICKS);
     }
 
-    /** @return dev のみでインポートが設定され、利用可能なら true */
+    /** @return インポートの対象である Dev サーバーが稼働中なら true */
     public boolean enabled() {
-        return !stopped && repository != null && isDev();
+        return !stopped && "Dev".equalsIgnoreCase(plugin.getConfig().getString(ConfigKeys.API_SERVER_ID));
     }
 
     /** @param player 本人用の登録リンクを受け取るビルダー */
     public void sendUploadLink(Player player) {
+        URI page = uploadPage;
+        if (page == null) {
+            if (currentOwner(player) != null) notify(player, PlayerMsgId.P_7765);
+            return;
+        }
         submit(player, owner -> repository.issueTicket(owner), token -> {
-            String url = uploadPage + "?token=" + token;
+            String url = page + "?token=" + token;
             player.closeInventory();
             PlayerMessageService.getInstance().sendComponent(player,
                     PlayerMsgResource.formatComponent(PlayerMsgId.P_7760.getId()).clickEvent(ClickEvent.openUrl(url)));
@@ -131,11 +136,6 @@ public final class BuilderSchematicImport {
         requests.clear();
     }
 
-    private boolean isDev() {
-        return "dev".equals(plugin.getConfig().getString("worldPlacements.environment"))
-                && "Dev".equalsIgnoreCase(plugin.getConfig().getString(ConfigKeys.API_SERVER_ID));
-    }
-
     private static URI uploadPage(String baseUrl) {
         if (baseUrl.isBlank()) return null;
         try {
@@ -153,7 +153,7 @@ public final class BuilderSchematicImport {
     }
 
     private void poll() {
-        if (!enabled() || !polling.compareAndSet(false, true)) return;
+        if (!enabled() || repository == null || !polling.compareAndSet(false, true)) return;
         try {
             WorldEditGateway.SchematicCodec codec = gateway.schematicCodec();
             if (codec == null) {
@@ -212,6 +212,10 @@ public final class BuilderSchematicImport {
     private <T> void submit(Player player, OwnerRequest<T> operation, Consumer<T> apply, Consumer<T> discard) {
         UUID owner = currentOwner(player);
         if (owner == null) return;
+        if (repository == null) {
+            notify(player, PlayerMsgId.P_7765);
+            return;
+        }
         if (requests.size() >= MAX_GUI_REQUESTS || !requests.add(player.getUniqueId())) {
             notify(player, PlayerMsgId.P_7762);
             return;
