@@ -1,3 +1,6 @@
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Globalization;
 using AstralRecordControl.Contracts;
 using Microsoft.Data.Sqlite;
 
@@ -36,14 +39,73 @@ public sealed partial class RunnerStore
 
     private void ReconcileAfterRestart()
     {
-        // An inherited PID cannot restore anonymous pipes. No process is adopted or killed here.
+        // An inherited PID cannot restore anonymous pipes. Keep unresolved sessions isolated.
         using var transaction = database.BeginTransaction();
         Execute("UPDATE Servers SET processState='Unmanaged',recoveryRequired=1,stateRevision=stateRevision+1 WHERE processState IN ('Starting','Running','Stopping') OR currentSessionId IS NOT NULL;", transaction);
         Execute("UPDATE ExecutionLedger SET status='NeedsAttention',phase='Unknown',statusVersion=statusVersion+1,errorCode='RecoveryRequired',finishedUtc=$now WHERE status IN ('Accepted','Running');", transaction, ("$now", clock.GetUtcNow().ToString("O")));
         Execute("UPDATE Servers SET recoveryRequired=1,stateRevision=stateRevision+1 WHERE recoveryRequired=0 AND id IN (SELECT serverId FROM ExecutionLedger WHERE status='NeedsAttention');", transaction);
         Execute("UPDATE DataOperationLedger SET status='NeedsAttention',statusVersion=statusVersion+1 WHERE status IN ('Accepted','Running');", transaction);
         Execute("UPDATE Servers SET recoveryRequired=1,stateRevision=stateRevision+1 WHERE recoveryRequired=0 AND id IN (SELECT serverId FROM DataOperationLedger WHERE status='NeedsAttention');", transaction);
+        ReconcileExitedSessions(transaction);
         transaction.Commit();
+    }
+
+    private void ReconcileExitedSessions(SqliteTransaction transaction)
+    {
+        var candidates = new List<(ServerConfig Server, int Pid, DateTimeOffset Created)>();
+        using (var command = Command("""
+            SELECT s.config,x.pid,x.processCreatedUtc
+            FROM Servers s JOIN ServerSessions x ON x.sessionId=s.currentSessionId AND x.serverId=s.id
+            WHERE s.processState='Unmanaged' AND x.pid>0 AND x.processCreatedUtc IS NOT NULL
+                AND NOT EXISTS(SELECT 1 FROM ExecutionLedger WHERE serverId=s.id AND status='NeedsAttention')
+                AND NOT EXISTS(SELECT 1 FROM DataOperationLedger WHERE serverId=s.id AND status='NeedsAttention');
+            """, transaction))
+        using (var reader = command.ExecuteReader())
+            while (reader.Read())
+                if (DateTimeOffset.TryParseExact(reader.GetString(2), "O", CultureInfo.InvariantCulture, DateTimeStyles.None, out var created))
+                    candidates.Add((ControlJson.Deserialize<ServerConfig>(reader.GetString(0)), reader.GetInt32(1), created));
+
+        var holds = ReadHolds(transaction);
+        foreach (var (server, pid, created) in candidates)
+        {
+            if (!RecordedProcessHasExited(pid, created) || RestartRecoveryIsBlockedByHold(server, holds)) continue;
+            Execute("""
+                UPDATE Servers SET processState='Stopped',currentSessionId=NULL,desiredState='Stopped',
+                    recoveryRequired=0,nextAutoStartUtc=NULL,stateRevision=stateRevision+1 WHERE id=$server;
+                """, transaction, ("$server", server.ServerId.ToString()));
+        }
+    }
+
+    private bool RestartRecoveryIsBlockedByHold(ServerConfig server, ResourceHold[] holds)
+    {
+        try { return ConfigurationIsHeld(server, holds); }
+        catch (Exception exception) when (exception is RunnerFault or IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            // A persisted hold can refer to a root that is no longer accessible.
+            return true;
+        }
+    }
+
+    private static bool RecordedProcessHasExited(int pid, DateTimeOffset created)
+    {
+        Process process;
+        try { process = Process.GetProcessById(pid); }
+        catch (ArgumentException) { return true; } // The OS no longer lists this PID.
+        catch (Win32Exception) { return false; }
+
+        using (process)
+        {
+            try
+            {
+                var delta = process.StartTime.ToUniversalTime() - created.UtcDateTime;
+                return delta.TotalMilliseconds > 1 ||
+                    (Math.Abs(delta.TotalMilliseconds) <= 1 && process.HasExited);
+            }
+            catch (Exception exception) when (exception is Win32Exception or InvalidOperationException)
+            {
+                return false;
+            }
+        }
     }
 
     private void MigrateV3(string path, bool backupExisting)

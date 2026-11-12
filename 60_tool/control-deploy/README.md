@@ -40,6 +40,16 @@ Web/Runner/AgentはWindows起動時に自動起動します。Agentは同じPC�
 
 `-WhatIf`は計画のみ、`-PreflightOnly`は設定検査のみです。異なるdata rootを使用するときは、登録・CLI・Agent設定に同じ値を指定します。
 
+### MC-01のAgent異常終了からの復旧
+
+既存の`AstralRecordControl.Agent`に復旧を設定するには、`Enable-ControlAgentRecovery.ps1`をMC-01にコピーし、コピー先で管理者PowerShellから実行します。
+
+```powershell
+./Enable-ControlAgentRecovery.ps1
+```
+
+異常終了後は初回10秒、2回目30秒、3回目以降60秒でAgentを再起動します。障害が24時間発生しなければ回数をリセットします。実行時に復旧設定を読み返して表示します。Windowsサービスがエラーコードを返して停止した場合も、次回のWindows起動後から復旧の対象になります。Windowsに正常終了と報告された停止は復旧の対象外です。[Microsoftの復旧フラグ仕様](https://learn.microsoft.com/en-us/windows/win32/api/winsvc/ns-winsvc-service_failure_actions_flag)
+
 ## Webの初回設定
 
 `Web\config.json`を作成します。証明書はLocalMachine/Myに配置し、秘密鍵の読み取りをWebサービスアカウントへ付与します。自己署名証明書を使う場合も、各Agent PCとアクセス端末で正しく信頼する必要があります。
