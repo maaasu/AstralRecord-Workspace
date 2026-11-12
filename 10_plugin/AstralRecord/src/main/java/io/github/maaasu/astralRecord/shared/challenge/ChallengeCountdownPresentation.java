@@ -66,7 +66,10 @@ public final class ChallengeCountdownPresentation implements Listener {
         } else if (seconds > 0) {
             title = PlayerMsgResource.formatComponent((boss ? PlayerMsgId.P_6529 : PlayerMsgId.P_7020).getId(), seconds);
         } else {
-            title = subtitle;
+            Component legacyStart = PlayerMsgResource.formatComponent(
+                    (boss ? PlayerMsgId.P_6531 : PlayerMsgId.P_7022).getId(), normalizeName(name));
+            title = Component.text(net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+                    .plainText().serialize(legacyStart), color);
             subtitle = PlayerMsgResource.getComponent((boss ? PlayerMsgId.P_6532 : PlayerMsgId.P_7023).getId());
         }
         player.showTitle(Title.title(title, subtitle, TIMES));
