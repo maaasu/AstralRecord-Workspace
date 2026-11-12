@@ -2,7 +2,10 @@
   "namespace": "hud",
   "astral_hotbar_selection_animation": {
     "anim_type": "flip_book",
-    "initial_uv": [ 0, 0 ],
+    "initial_uv": [
+      0,
+      0
+    ],
     "frame_count": 12,
     "frame_step": 24,
     "fps": 10,
@@ -11,19 +14,43 @@
   },
   "hotbar_slot_selected_image": {
     "texture": "textures/ui/astralrecord/hotbar_selection",
-    "uv_size": [ 24, 24 ],
+    "uv_size": [
+      24,
+      24
+    ],
     "uv": "@hud.astral_hotbar_selection_animation"
   },
   "hud_actionbar_text": {
-    "size": [ "100%c + 18px", "100%c + 5px" ],
+    "size": [
+      "100%c + 18px",
+      "100%c + 5px"
+    ],
     "texture": "textures/ui/astralrecord/actionbar_plate",
     "modifications": [
       {
         "array_name": "controls",
         "operation": "insert_front",
         "value": [
-          { "left_ornament@astralrecord_hud.actionbar_ornament": { "anchor_from": "left_middle", "anchor_to": "left_middle", "offset": [ 3, 0 ] } },
-          { "right_ornament@astralrecord_hud.actionbar_ornament": { "anchor_from": "right_middle", "anchor_to": "right_middle", "offset": [ -3, 0 ] } }
+          {
+            "left_ornament@astralrecord_hud.actionbar_ornament": {
+              "anchor_from": "left_middle",
+              "anchor_to": "left_middle",
+              "offset": [
+                3,
+                0
+              ]
+            }
+          },
+          {
+            "right_ornament@astralrecord_hud.actionbar_ornament": {
+              "anchor_from": "right_middle",
+              "anchor_to": "right_middle",
+              "offset": [
+                -3,
+                0
+              ]
+            }
+          }
         ]
       }
     ]
@@ -95,6 +122,636 @@
         "binding_type": "view",
         "source_property_name": "(not (('%.33s' * #tip_text) = 'geyseropt:astralrecord_quest_hud:'))",
         "target_property_name": "#visible"
+      }
+    ]
+  },
+  "root_panel/hud_title_text_area": {
+    "factory": {
+      "name": "hud_title_text_factory",
+      "control_ids": {
+        "hud_title_text": "hud_title_text@hud.astralrecord_countdown_route"
+      }
+    }
+  },
+  "astralrecord_countdown_route": {
+    "type": "panel",
+    "size": [
+      "100%",
+      "100%"
+    ],
+    "controls": [
+      {
+        "normal@hud.hud_title_text": {
+          "bindings": [
+            {
+              "binding_name": "#hud_title_text_string",
+              "binding_condition": "always"
+            },
+            {
+              "binding_type": "view",
+              "source_property_name": "(not (((#hud_title_text_string - '\u00a7r') = 'arcd1:b:0') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:1') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:2') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:3') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:4') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:5') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:6') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:7') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:8') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:9') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:10') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:0') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:1') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:2') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:3') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:4') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:5') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:6') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:7') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:8') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:9') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:10')))",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      },
+      {
+        "countdown": {
+          "type": "panel",
+          "size": [
+            "100%",
+            "100%"
+          ],
+          "alpha": "@hud.anim_title_text_alpha_in",
+          "propagate_alpha": true,
+          "bindings": [
+            {
+              "binding_name": "#hud_title_text_string",
+              "binding_condition": "always"
+            },
+            {
+              "binding_type": "view",
+              "source_property_name": "(((#hud_title_text_string - '\u00a7r') = 'arcd1:b:0') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:1') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:2') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:3') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:4') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:5') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:6') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:7') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:8') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:9') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:b:10') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:0') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:1') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:2') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:3') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:4') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:5') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:6') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:7') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:8') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:9') or ((#hud_title_text_string - '\u00a7r') = 'arcd1:d:10'))",
+              "target_property_name": "#visible"
+            }
+          ],
+          "controls": [
+            {
+              "boss_0": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/boss_0",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:b:0')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "boss_1": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/boss_1",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:b:1')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "boss_2": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/boss_2",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:b:2')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "boss_3": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/boss_3",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:b:3')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "boss_4": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/boss_4",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:b:4')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "boss_5": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/boss_5",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:b:5')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "boss_6": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/boss_6",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:b:6')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "boss_7": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/boss_7",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:b:7')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "boss_8": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/boss_8",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:b:8')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "boss_9": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/boss_9",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:b:9')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "boss_10": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/boss_10",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:b:10')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "dungeon_0": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/dungeon_0",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:d:0')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "dungeon_1": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/dungeon_1",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:d:1')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "dungeon_2": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/dungeon_2",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:d:2')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "dungeon_3": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/dungeon_3",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:d:3')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "dungeon_4": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/dungeon_4",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:d:4')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "dungeon_5": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/dungeon_5",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:d:5')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "dungeon_6": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/dungeon_6",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:d:6')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "dungeon_7": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/dungeon_7",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:d:7')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "dungeon_8": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/dungeon_8",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:d:8')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "dungeon_9": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/dungeon_9",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:d:9')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "dungeon_10": {
+                "type": "image",
+                "size": [
+                  128,
+                  96
+                ],
+                "offset": [
+                  0,
+                  -8
+                ],
+                "texture": "textures/ui/astralrecord/challenge_countdown/dungeon_10",
+                "bindings": [
+                  {
+                    "binding_name": "#hud_title_text_string",
+                    "binding_condition": "always"
+                  },
+                  {
+                    "binding_type": "view",
+                    "source_property_name": "((#hud_title_text_string - '\u00a7r') = 'arcd1:d:10')",
+                    "target_property_name": "#visible"
+                  }
+                ]
+              }
+            },
+            {
+              "name": {
+                "type": "label",
+                "size": [
+                  "100%",
+                  16
+                ],
+                "offset": [
+                  0,
+                  -62
+                ],
+                "font_size": "normal",
+                "shadow": true,
+                "text_alignment": "center",
+                "text": "#text",
+                "localize": false,
+                "bindings": [
+                  {
+                    "binding_name": "#hud_subtitle_text_string",
+                    "binding_name_override": "#text"
+                  }
+                ]
+              }
+            }
+          ]
+        }
       }
     ]
   }

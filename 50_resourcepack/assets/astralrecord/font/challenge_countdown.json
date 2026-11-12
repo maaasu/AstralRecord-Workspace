@@ -1,0 +1,208 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/boss_0.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue900"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/boss_1.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue901"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/boss_2.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue902"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/boss_3.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue903"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/boss_4.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue904"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/boss_5.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue905"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/boss_6.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue906"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/boss_7.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue907"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/boss_8.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue908"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/boss_9.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue909"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/boss_10.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue90a"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/dungeon_0.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue910"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/dungeon_1.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue911"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/dungeon_2.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue912"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/dungeon_3.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue913"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/dungeon_4.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue914"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/dungeon_5.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue915"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/dungeon_6.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue916"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/dungeon_7.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue917"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/dungeon_8.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue918"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/dungeon_9.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue919"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/challenge_countdown/dungeon_10.png",
+      "height": 24,
+      "ascent": 12,
+      "chars": [
+        "\ue91a"
+      ]
+    },
+    {
+      "type": "space",
+      "advances": {
+        "\ue9ff": 6
+      }
+    }
+  ]
+}

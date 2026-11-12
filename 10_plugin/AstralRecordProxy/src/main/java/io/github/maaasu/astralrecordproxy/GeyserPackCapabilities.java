@@ -15,6 +15,11 @@ final class GeyserPackCapabilities {
      * @param playerId 接続中プレイヤーのJava側UUID
      * @return 拡張が専用効果音に対応する接続と確認した場合はtrue
      */
+    static boolean hasChallengeCountdown(UUID playerId) {
+        return supports(playerId, "hasChallengeCountdown");
+    }
+
+    /** @return 拡張が専用効果音の対応を確認した場合true */
     static boolean hasGameplaySounds(UUID playerId) {
         return supports(playerId, "hasGameplaySounds");
     }

@@ -188,6 +188,12 @@ final class DamagePackDistribution {
     }
 
     /** @return ログイン時に登録済みのパックが専用効果音に対応していればtrue */
+    boolean challengeCountdownReady(GeyserConnection connection) {
+        SessionPack selection = sessions.get(connection);
+        return selection != null && selection.ready() && selection.forced() && selection.pack().challengeCountdown();
+    }
+
+    /** @return 接続で専用効果音を使用できる場合true */
     boolean gameplaySoundsReady(GeyserConnection connection) {
         SessionPack selection = sessions.get(connection);
         return selection != null && selection.ready() && selection.pack().gameplaySounds();

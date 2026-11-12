@@ -36,7 +36,7 @@ record DamagePack(
     boolean nyxeron,
     Set<Integer> heldWeaponModels,
     Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips,
-    String actionRingHudRevision, boolean questHud, boolean receptionDisplay
+    String actionRingHudRevision, boolean questHud, boolean receptionDisplay, boolean challengeCountdown
 ) {
     private static final String ROOT = "../resource-packs/";
     private static final int MAX_MANIFEST_BYTES = 64 * 1024;
@@ -186,6 +186,7 @@ record DamagePack(
             String actionRingHudRevision;
             boolean questHud;
             boolean receptionDisplay;
+            boolean challengeCountdown;
             Set<Integer> heldWeaponModels;
             Set<ItemModel> itemModels;
             Set<Integer> actionRingSprites;
@@ -215,6 +216,7 @@ record DamagePack(
                 fishingVisuals = hasVersionOne(zip, "fishing-visuals-version.txt")
                     && FISHING_VISUAL_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 gameplaySounds = hasGameplaySounds(zip);
+                challengeCountdown = hasChallengeCountdown(zip);
                 sunbird = SUNBIRD_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 sunbirdMotion = sunbird
                     && present(zip.getEntry("animation_controllers/sunbird.animation_controllers.json"))
@@ -253,7 +255,7 @@ record DamagePack(
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, combatRewardPlaqueVersion,
                 weaponAttack, weaponAttackProjectiles, skillEffectsV2, fishingVisuals, gameplaySounds, sunbird, sunbirdMotion, selenea,
                 archmagePhoenix, nyxeron, heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips, actionRingHudRevision,
-                questHud, receptionDisplay);
+                questHud, receptionDisplay, challengeCountdown);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }
@@ -287,6 +289,21 @@ record DamagePack(
     }
 
     /** 効果音の定義と、ビルド時に記録した対応バージョンを確認します。 */
+    private static boolean hasChallengeCountdown(ZipFile zip) throws IOException {
+        if (!hasVersionOne(zip, "challenge-countdown-version.txt")
+            || !present(zip.getEntry("ui/hud_screen.json")) || !hasGameplaySounds(zip)) return false;
+        for (String kind : List.of("boss", "dungeon")) {
+            for (int seconds = 0; seconds <= 10; seconds++) {
+                if (!present(zip.getEntry("textures/ui/astralrecord/challenge_countdown/" + kind + "_" + seconds + ".png"))) return false;
+            }
+        }
+        for (String cue : List.of("tick", "three", "two", "one", "start")) {
+            if (!present(zip.getEntry("sounds/astralrecord/challenge/countdown/" + cue + ".ogg"))) return false;
+        }
+        return true;
+    }
+
+    /** 効果音の定義と対応バージョンを確認します。 */
     private static boolean hasGameplaySounds(ZipFile zip) throws IOException {
         return present(zip.getEntry("sounds/sound_definitions.json"))
             && hasVersionOne(zip, "gameplay-sounds-version.txt");

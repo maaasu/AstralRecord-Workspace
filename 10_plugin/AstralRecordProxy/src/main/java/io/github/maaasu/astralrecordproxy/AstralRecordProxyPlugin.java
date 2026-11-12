@@ -464,6 +464,9 @@ public final class AstralRecordProxyPlugin {
                     update.level(), update.className(), update.afk(), update.permission(),
                     update.classLevelMax(), update.accountNameOnly(), update.vipTier(), update.playerLevel()));
                 if (proxy.getPluginManager().isLoaded("geyser")) {
+                    if (GeyserPackCapabilities.hasChallengeCountdown(update.playerId())) {
+                        connection.sendPluginMessage(CHANNEL, BackendProtocol.challengeCountdownReady());
+                    }
                     if (GeyserPackCapabilities.hasGameplaySounds(update.playerId())) {
                         connection.sendPluginMessage(CHANNEL, BackendProtocol.gameplaySoundsReady());
                     }

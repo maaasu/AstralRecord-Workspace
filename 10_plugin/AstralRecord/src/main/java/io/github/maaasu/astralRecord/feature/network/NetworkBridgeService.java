@@ -367,6 +367,10 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener, 
         byte @NotNull [] message
     ) {
         if (!enabled || !BackendProtocol.CHANNEL.equals(channel)) return;
+        if (BackendProtocol.isChallengeCountdownReady(message)) {
+            if (resourcePackService != null) resourcePackService.markBedrockChallengeCountdownReady(player);
+            return;
+        }
         if (BackendProtocol.isGameplaySoundsReady(message)) {
             if (resourcePackService != null) {
                 resourcePackService.markBedrockGameplaySoundsReady(player);

@@ -317,3 +317,11 @@ Java 版の立体装備141点は、握りの中心と左右の一人称表示を
 アクションリングやスキル表示の更新時は、対応する両版パックを API へ公開してから RPG Plugin を更新します。統合版のアイテム登録に更新を反映するには Geyser プロキシを再起動し、クライアントを再接続します。旧パックでは新規のスキル表示用モデルが紙の見た目になります。
 
 RPG Plugin の `resourcePack.bedrockNamePrefixes` は、Velocity の Floodgate の接続名接頭辞と一致させます。現行環境は `.` です。
+
+## 挑戦開始カウントダウン v1
+
+`challenge-countdown-version.txt=1` はボス／ダンジョン開始の画像・音声が一式揃うことを表す。Java manifest は `challengeCountdown: "1"`、Bedrock は選択済みパックのマーカーと22フレーム・5短音を検証する。従来の gameplay-sounds v1 だけでは対応扱いしない。
+
+`python scripts/generate-challenge-countdown.py` は Pillow・numpy・imageio-ffmpeg を使い、同梱のライセンス済み NotoSansJP atlasから画像・名前fontを、数式合成からOgg短音を再生成する。新たなOSフォントや音源素材は不要。リングは10秒を維持し、3→1を強調。金／青緑で名前も色付けし上部へ表示する。
+
+Bedrock Title factory はGeyserの先頭 `§r` を除いた `arcd1:b:0..10` / `arcd1:d:0..10` の完全一致だけを画像表示し、その他のTitleはバニラ定義をそのまま継承する。専用音は `astralrecord:challenge.countdown.{tick,three,two,one,start}`。各秒をサーバーから独立送信し、中断時は停止する。

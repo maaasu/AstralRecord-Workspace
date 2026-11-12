@@ -183,6 +183,12 @@ public final class AstralRecordGeyserExtension implements Extension {
      * @param playerId 接続中プレイヤーのJava側UUID
      * @return ログインまで完了した接続のパックに専用効果音がある場合はtrue
      */
+    public boolean hasChallengeCountdown(UUID playerId) {
+        var connection = geyserApi().connectionByUuid(playerId);
+        return connection != null && forcesResourcePacks() && damagePacks.challengeCountdownReady(connection);
+    }
+
+    /** @param playerId 接続UUID @return 専用効果音を使用できる場合true */
     public boolean hasGameplaySounds(UUID playerId) {
         var connection = geyserApi().connectionByUuid(playerId);
         return connection != null && damagePacks.gameplaySoundsReady(connection);
