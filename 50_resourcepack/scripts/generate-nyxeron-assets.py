@@ -337,14 +337,16 @@ def skill_parts(style, edition='java'):
         parts += orb(12.0, 'star', 'ember', 'fall')
         parts.append(SkillPart((7.3, 13.0, 7.3), (8.7, 32.0, 8.7), swatch='ember', group='fall'))
     elif style == 'supernova':
-        for size, swatch, yaw in ((11.0, 'supernova', 0.0), (9.0, 'ember', 22.5), (6.5, 'nova_core', 45.0)):
-            half = size / 2
-            parts.append(SkillPart((8 - half, 8 - half, 8 - half), (8 + half, 8 + half, 8 + half), swatch=swatch,
-                                   group='corona', yaw=yaw))
+        # A small blazing core inside an octagonal corona, with long rays in eight directions and up/down.
+        for size, height, swatch, yaw in ((6.0, 6.0, 'nova_core', 0.0), (5.4, 7.6, 'supernova', 45.0),
+                                          (7.6, 4.4, 'ember', 0.0)):
+            parts.append(SkillPart((8 - size / 2, 8 - height / 2, 8 - size / 2), (8 + size / 2, 8 + height / 2, 8 + size / 2),
+                                   swatch=swatch, group='corona', yaw=yaw))
         for yaw in (0.0, 45.0):
-            parts.append(SkillPart((0, 7.4, 7.4), (16, 8.6, 8.6), swatch='nova_core', group='corona', yaw=yaw))
-            parts.append(SkillPart((7.4, 7.4, 0), (8.6, 8.6, 16), swatch='nova_core', group='corona', yaw=yaw))
-        parts.append(SkillPart((7.4, 0, 7.4), (8.6, 16, 8.6), swatch='nova_core', group='corona'))
+            parts.append(SkillPart((0, 7.3, 7.3), (16, 8.7, 8.7), swatch='nova_core', group='corona', yaw=yaw))
+            parts.append(SkillPart((7.3, 7.3, 0), (8.7, 8.7, 16), swatch='nova_core', group='corona', yaw=yaw))
+            parts.append(SkillPart((1.5, 7.7, 7.7), (14.5, 8.3, 8.3), swatch='white', group='corona', yaw=yaw + 22.5))
+        parts.append(SkillPart((7.3, 0, 7.3), (8.7, 16, 8.7), swatch='nova_core', group='corona'))
     elif style == 'nova':
         parts += orb(16.0, 'nova_core', 'approach', 'orb')
     return parts
