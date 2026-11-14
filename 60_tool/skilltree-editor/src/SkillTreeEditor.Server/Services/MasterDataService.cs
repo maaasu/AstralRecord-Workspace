@@ -61,7 +61,7 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
         return result;
     }
 
-    private static int? ReadModelData(JsonNode? node)
+    internal static int? ReadModelData(JsonNode? node)
     {
         if (node is not JsonValue value) return null;
         if (value.TryGetValue<int>(out var integer)) return integer;
@@ -392,7 +392,7 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
             for (var index = 0; index < array.Count; index++) CollectCatalogCandidates(array[index], path, pointer + "/" + index, kind, result);
     }
 
-    private static string? DisplayName(JsonObject? obj)
+    internal static string? DisplayName(JsonObject? obj)
     {
         foreach (var key in new[] { "displayName", "name", "title" })
             if (obj?[key] is JsonValue value && value.TryGetValue<string>(out var name) && !string.IsNullOrWhiteSpace(name))

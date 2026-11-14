@@ -21,6 +21,10 @@ public static class MasterDataEndpoints
             service.ListAsync(category, query, token, reload == true));
         api.MapGet("/filter-index", (bool? reload, MasterDataFilterIndexService service, CancellationToken token) =>
             service.ReadAsync(token, reload == true));
+        api.MapGet("/progression-design", (bool? reload, ProgressionDesignService service, CancellationToken token) =>
+            service.ReadAsync(token, reload == true));
+        api.MapPost("/progression-design/preview", (ProgressionDesignPreviewRequest request, ProgressionDesignService service, CancellationToken token) =>
+            service.PreviewAsync(request, token));
         api.MapGet("/file", (string path, MasterDataService service, CancellationToken token) => service.ReadAsync(path, token));
         api.MapPut("/file", (MasterDataSaveRequest request, MasterDataService service, CancellationToken token) => service.SaveAsync(request, token));
         api.MapPost("/file", async (MasterDataCreateRequest request, MasterDataService service, CancellationToken token) =>
