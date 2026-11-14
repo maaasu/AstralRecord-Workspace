@@ -1,0 +1,291 @@
+[
+  {
+    "path": "vanilla/textures/entity/armadillo.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/armadillo.png",
+    "sha256": "a2a4782ba071a88aadfed84ef2c8a060dc4d9a3167fba5d48806e79848dd2689"
+  },
+  {
+    "path": "vanilla/textures/entity/bat_v2.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/bat_v2.png",
+    "sha256": "a8a160971d994074c934753768d063a4239e1c76e5c9765d632b076a9104d975"
+  },
+  {
+    "path": "vanilla/textures/entity/blaze.tga",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/blaze.tga",
+    "sha256": "9a22bceab26ff6f7a0176ad99a7c73f4d3d1a92db188e5fe72d96c765fd40b53"
+  },
+  {
+    "path": "vanilla/textures/entity/skeleton/bogged.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/skeleton/bogged.png",
+    "sha256": "c183b9b88320208c62b75a880ae0a3cc09d48aa6215cb77de420d358f6da87ac"
+  },
+  {
+    "path": "vanilla/textures/entity/breeze/breeze.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/breeze/breeze.png",
+    "sha256": "009ca2cb475c0b7eafe4e75b8fcfd1cf2389e625f934f7473a48461711681efd"
+  },
+  {
+    "path": "vanilla/textures/entity/breeze/breeze_eyes.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/breeze/breeze_eyes.png",
+    "sha256": "a686f8027aeef5980f03280d2b5bb12758728c23214cf24c9d47b60e6392845e"
+  },
+  {
+    "path": "vanilla/textures/entity/camel/camel.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/camel/camel.png",
+    "sha256": "046dd9058209832d2cefe3f220a16785c676dc951bb8b6fe8b0fca1bcf54d494"
+  },
+  {
+    "path": "vanilla/textures/entity/chicken/chicken.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/chicken/chicken.png",
+    "sha256": "487a9bed72731b586bbbd365b78320fbe04e4c44aeb840e7d2f3a828a0906c9d"
+  },
+  {
+    "path": "vanilla/textures/entity/cow/cow_v2.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/cow/cow_v2.png",
+    "sha256": "7b8ceb1ab4d202a17318351110b7f2fd55f6948758094e5a4abc0899aa5e5749"
+  },
+  {
+    "path": "vanilla/textures/entity/illager/evoker.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/illager/evoker.png",
+    "sha256": "9b35ad0e9bd6e8a58928681308959c6a59f7d4e85827089324cce7da9fa38ed0"
+  },
+  {
+    "path": "vanilla/textures/entity/fox/fox.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/fox/fox.png",
+    "sha256": "71d86e995dcc908b4abc9153f7a5bec1d36887cc4da2b8e4ddf572e5dcb11260"
+  },
+  {
+    "path": "vanilla/textures/entity/goat/goat.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/goat/goat.png",
+    "sha256": "76b85155267cc6e8dc8145248ec72dce1984e1d6c08818780854922b4e264c04"
+  },
+  {
+    "path": "vanilla/textures/entity/zombie/husk.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/zombie/husk.png",
+    "sha256": "461af7ce595331d0e5d4d1a60ba28eedcb222ee7e43c4a50cd4545653f6e9ba0"
+  },
+  {
+    "path": "vanilla/textures/entity/iron_golem.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/iron_golem.png",
+    "sha256": "5b000bb62afa071c6519876ee77fdf8a649d618374686c999edf9ddd38886f3b"
+  },
+  {
+    "path": "vanilla/textures/entity/cow/mooshroom_v2.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/cow/mooshroom_v2.png",
+    "sha256": "49d079cbe28db7a254dc2586d510e50abed6f8faa97986faa9a8ce23d73a7197"
+  },
+  {
+    "path": "vanilla/textures/entity/parched/parched.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/parched/parched.png",
+    "sha256": "430085135c6bcdc32456ee2d6448bef107a9df52c37128528175606627c4a490"
+  },
+  {
+    "path": "vanilla/textures/entity/parrot/parrot_red_blue.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/parrot/parrot_red_blue.png",
+    "sha256": "ab86abab02cd33ea8c3fe4dacb2f849a9f37d9fd2450a1b437268b75a0985838"
+  },
+  {
+    "path": "vanilla/textures/entity/pig/pig_v3.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/pig/pig_v3.png",
+    "sha256": "4e2891d9e7d7ac592c911a43c419e9bc6c91918fad3c45a1e8db2021b5553f0d"
+  },
+  {
+    "path": "vanilla/textures/entity/rabbit/brown.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/rabbit/brown.png",
+    "sha256": "90b1f574b9c4a1600e6cecf0e1f6e93a6d5234fc6c587d362c2c128605687dcb"
+  },
+  {
+    "path": "vanilla/textures/entity/illager/ravager.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/illager/ravager.png",
+    "sha256": "24f2b8ea6a0f02965e95c4d1316fe8f96bf3273ea75f0cf809dfdaefb06d3e32"
+  },
+  {
+    "path": "vanilla/textures/entity/sheep/sheep.tga",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/sheep/sheep.tga",
+    "sha256": "15307393a12a984adfcad8cbd9a5666d1d1e775d36ec4cbac3193208b70ea86d"
+  },
+  {
+    "path": "vanilla/textures/entity/silverfish.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/silverfish.png",
+    "sha256": "2b8e2b7b9365d576c6175ded7cdb1a21a8af807b34343229a41718bf6947d0ec"
+  },
+  {
+    "path": "vanilla/textures/entity/slime/slime.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/slime/slime.png",
+    "sha256": "48251f1a8a4ee083bfed0011c9457b50ffda68a9158d40379cb4c01150d7eba0"
+  },
+  {
+    "path": "vanilla/textures/entity/sniffer/sniffer.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/sniffer/sniffer.png",
+    "sha256": "f274df87f38036cb0bece9f8e9a26f95d6a6c902fd9a959016a1e5a8c02bfcf8"
+  },
+  {
+    "path": "vanilla/textures/entity/spider/spider.tga",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/spider/spider.tga",
+    "sha256": "f0f18496f3356aaec725ddbe7e2d7782e5eaa376d3b0cd94cf6b98b58c00e938"
+  },
+  {
+    "path": "vanilla/textures/entity/skeleton/stray.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/skeleton/stray.png",
+    "sha256": "aa641d92d75b98dd0b385af43d1d06d6f642099a552fc5c59085bbb6f9d314ae"
+  },
+  {
+    "path": "vanilla/textures/entity/skeleton/stray_overlay.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/skeleton/stray_overlay.png",
+    "sha256": "07ebaba70f33df916c300330555378acd363482f292797e0aa1a47384ff87454"
+  },
+  {
+    "path": "vanilla/textures/entity/sea_turtle.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/sea_turtle.png",
+    "sha256": "0f5791c670c21c15e10d16eb42082a9fb87e039fe0925dfecc508b83d85696d9"
+  },
+  {
+    "path": "vanilla/textures/entity/witch.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/witch.png",
+    "sha256": "cef6cfa844fd1356ac5231899385ac55bcba50bc9f382d32022ac8cae90e3a8f"
+  },
+  {
+    "path": "vanilla/textures/entity/wolf/wolf.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/wolf/wolf.png",
+    "sha256": "3b09ef516c429a9d2fd64c59017b5b327c13158b11f067ce92feecdc7ee3ecfb"
+  },
+  {
+    "path": "vanilla/textures/entity/cow/brown_mooshroom_v2.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/cow/brown_mooshroom_v2.png",
+    "sha256": "2dc406001b924b9037571b49c27196e53ead577f360bd069ec5604f7b878191b"
+  },
+  {
+    "path": "vanilla/textures/entity/parrot/parrot_green.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/parrot/parrot_green.png",
+    "sha256": "c824469e6296e6083a9691a2a55cee2fc166cc6bc7348054c41cf15eb7767e68"
+  },
+  {
+    "path": "vanilla/textures/entity/parrot/parrot_grey.png",
+    "url": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/textures/entity/parrot/parrot_grey.png",
+    "sha256": "52a70c1e6d809eb214b89b6400eb07ca55cb121f10e2af1be4b79f3ebfbbd554"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/armadillo.geo.json",
+    "sha256": "32f97a395a798cfb78cb22e0a2793f8b18064d145c667c917267e274b702d211"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/bat_v2.geo.json",
+    "sha256": "6a94c27d4f0775de2607f33850150e2469019caa4ecc253c56e5a7260d8c10f8"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/blaze.geo.json",
+    "sha256": "edc1508a7b6d972a038ea4d8514a9876c7de9068823666ff7ecbd2c811a0290d"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/bogged.geo.json",
+    "sha256": "fa88d2bf03c4b487d19630b7509a8bb0d795c5513833c2cb9535dae58820fda6"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/breeze.geo.json",
+    "sha256": "e8ecf8a26b38a1367dd496c793e720aa965537f196b87f2eb0ebb0684b7d4737"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/camel.geo.json",
+    "sha256": "1640b3efc06f3af3249495dde70f40c13cac15d0d6ca8bcdea0c35d2d5a55524"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/chicken.geo.json",
+    "sha256": "c803bd306f9f3b123e67d7b4c78e00e1bcb18b3a6851b4671686eff9490ed388"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/cow.v2.geo.json",
+    "sha256": "90f03c9f813e96028d510fa067ca7787ca8533e266633fcaccccd98e124f1f94"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/evoker.geo.json",
+    "sha256": "c5f149fb2ebbcf9dd764053aca4d15f54fbf3aa241718e94a6a3373f7ca22362"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/fox.geo.json",
+    "sha256": "16a2b1ccd97d2e23aad027486933fdf198b9a9be1a7bada1c8b9d26ba723c023"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/goat.geo.json",
+    "sha256": "d397aa6727e906e26dd5e75a6d3471d72fac9a3421d3e332ff5a69d98794ea08"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/husk.geo.json",
+    "sha256": "2ee8798180297ccce177aba8e8923fcfe7095608ff8c2570e562f13201a8d4e7"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/iron_golem.geo.json",
+    "sha256": "635d687a2e3ed34a447f721f3279a3a4e5169bff7d8eb68316f7cbda690980bd"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/mooshroom.v2.geo.json",
+    "sha256": "f4784e02d2f8a489f2a9fe3412bad4299eb02ba475d9edf967ecc6e3cc19044d"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/parched.geo.json",
+    "sha256": "34cf423874e5c57068bca1f55c0f30f4619ad94ed3bc9452c143720e2b4b0842"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/parrot.geo.json",
+    "sha256": "bc1981aaa8fcba8e044326b97c05323c53525cbf418d7575db2277b7c25712f0"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/pig.v3.geo.json",
+    "sha256": "1123e23b070a905f17efe978ae96b6bca7fc86f3184f92a00ed231a6dd9372b9"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/rabbit.geo.json",
+    "sha256": "9ec8b690d1e8d3af8ba30329c091d68a2fec05c30d2e24434cef93ecfb46e3c9"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/ravager.geo.json",
+    "sha256": "6fd22596fa0ce8364e1df714ca9e7642b09675b0dce22cefd72eb98caeacc894"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/sheep.geo.json",
+    "sha256": "235fc82d217b13a93ad0323c6b8a1cf312aefffe2212839b6e9f8daa2ba185b7"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/silverfish.geo.json",
+    "sha256": "7f75af58b2884256e8827201c8e513b8829ea3bde18207b666b2dd4742a9d1e5"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/slime.geo.json",
+    "sha256": "2406656a9a60b5b650096f7f6d97806d91b8e7e20860717601f4d2df9324cfde"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/slime_armor.geo.json",
+    "sha256": "42dec2fd30200782001663417fac1d3945a088714ef096b22986db7c47227015"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/sniffer.geo.json",
+    "sha256": "b7d45a3e4f6ea2452b78887c193e393f72d09cd3347ee79f0911a7d8f13c5546"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/spider.geo.json",
+    "sha256": "035b5ce48207c07a0a6546053adff3bbd1279685e6fa0bbee7014c13d6465a2e"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/stray.geo.json",
+    "sha256": "6e78613813bcea63130752e45ee03047a7466106b56c4f3290a9dc4cf2595a3a"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/stray_armor.geo.json",
+    "sha256": "1bf5a6ef5dd72ef23f665f47d9ebb45bc6be25237ce5c57954b77e8465041302"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/turtle.geo.json",
+    "sha256": "56b51e62dfa0552725520987fc2da2eabf7cadefcf401c89c0ec671e6770120a"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/villager.geo.json",
+    "sha256": "21e69d8ce3abcdac543362f38e2deb08dd03fc1390954f15350422fa765325df"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/witch.geo.json",
+    "sha256": "36fe685464e6c4c839e8167ed9b5bb376e5bbf6e07d04a1cc7ab41590179400e"
+  },
+  {
+    "geometry_source": "https://raw.githubusercontent.com/Mojang/bedrock-samples/84aa19df535fcf6d044f28bf76f236029bd8407a/resource_pack/models/entity/wolf.geo.json",
+    "sha256": "d722bd0a921ab0293b7925724051b17ed78609ef4dbb21e38e7ec2dd291b3955"
+  }
+]

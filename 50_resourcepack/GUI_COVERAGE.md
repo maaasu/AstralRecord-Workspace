@@ -47,7 +47,7 @@ Java のコンテナテクスチャは `java-gui-native`、統合版の画面別
 | 金額入力 | 送金・価格設定などの共通ゴールド入力 | `shared/gui/gold/GoldAmountSettingGui.java` | 共通対応。± と確定を個別に設定。半分・2倍・桁変更は既存の意味を維持 |
 | メール | メール一覧、各フィルターとページ | `feature/mail/gui/MailGuiView.java` | 共通対応。報酬のモデルと受取状態を維持 |
 | ログイン報酬 | 月別ログイン報酬カレンダー | `feature/loginbonus/view/LoginBonusGui.java` | 共通対応。日付・受取状態とカレンダーの配置を維持 |
-| 冒険記録 | モブ一覧、カテゴリ、アイテム検索、モブ詳細、レベル選択、モブステータス詳細 | `feature/adventurerecord/gui/AdventureRecordGui.java` | 共通対応。モブ、素材、ステータスの内容アイコンを維持 |
+| 冒険記録 | モブ一覧、カテゴリ、アイテム検索、モブ詳細、レベル選択、モブステータス詳細 | `feature/adventurerecord/gui/AdventureRecordGui.java` | 一覧と詳細のモブは外見に対応する頭。バニラ頭を流用し、その他は35種の両版共通の頭部アイコン。素材・ステータスの内容アイコンを維持 |
 | パーティー | 状況・招待、掲示板、メンバー操作、募集設定 | `feature/party/gui/PartyGui.java`、`PartyBoardGui.java`、`PartyMemberActionGui.java`、`PartyRecruitmentSettingsGui.java` | 共通対応。プレイヤーの顔を維持 |
 | 募集文入力 | 金床を使った募集内容の文字入力 | `feature/party/gui/PartyRecruitmentMessageAnvilGui.java` | 専用チェスト背景の対象外。金床のテキスト欄・入力・確定の標準操作を維持 |
 | ペット | 飼育員、ペット復活 | `feature/pet/gui/PetGui.java` | 共通対応。ペットとオーブの内容表示を維持 |

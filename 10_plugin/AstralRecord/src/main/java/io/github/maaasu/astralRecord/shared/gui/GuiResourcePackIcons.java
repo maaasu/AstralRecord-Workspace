@@ -95,6 +95,17 @@ public final class GuiResourcePackIcons {
         return itemStack;
     }
 
+    /**
+     * 台帳に役割と素材の組み合わせが登録されているか判定します。
+     *
+     * @param role GUI モデルの役割名
+     * @param material 台帳で指定した基礎素材
+     * @return 組み合わせが登録済みなら {@code true}
+     */
+    public static boolean hasIcon(@NotNull String role, @NotNull Material material) {
+        return ICONS.containsKey(new IconKey(role, material));
+    }
+
     /** 同梱台帳を一度だけ読み込み、重複や不正な登録は起動時に検出します。 */
     private static Map<IconKey, Integer> loadIcons() {
         try (InputStream stream = GuiResourcePackIcons.class.getResourceAsStream("/gui-icons.json")) {

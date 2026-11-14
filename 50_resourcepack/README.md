@@ -1,6 +1,6 @@
 # AstralRecord リソースパック
 
-Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメージ数値、アクションリング、アイテムモデル、武器通常攻撃と釣りの演出、GUI共通アイコンを配布します。配布するアイテムの外観は `item-models.json`、GUI専用の120種・168割り当ては `gui-icons.json` で管理します。
+Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメージ数値、アクションリング、アイテムモデル、武器通常攻撃と釣りの演出、GUI共通アイコンを配布します。配布するアイテムの外観は `item-models.json`、GUI専用の155種・203割り当ては `gui-icons.json` で管理します。
 
 ## GUI
 
@@ -18,6 +18,14 @@ Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメー�
 
 - Java Edition 1.21.11〜26.3（リソースパック形式 75.0〜97.1）は `astralrecord:damage_number` フォントを使います。縁付きの数字と記号を収録し、色と動きはサーバープラグインで設定します。
 - Bedrock Edition は `astralrecord:damage_number` クライアントエンティティを使います。数字をカメラに向けて中央に揃え、上昇しながら縮小・フェードさせます。
+
+### 冒険記録のモブの頭
+
+冒険記録の一覧と詳細では、モブの外見に対応する頭を表示します。ゾンビ、スケルトン、ウィザースケルトン、ピグリンはバニラの頭アイテムを使います。その他の現行モブ28種、色違い4種、専用ボス3種には `mob_head_*` の35種類のGUIアイコンを用意しています。バニラのクリーパーとエンダードラゴンの頭も選択に対応します。
+
+追加分は実モデルの頭部とテクスチャを斜め上から描画した32px透過PNGで、Java・統合版で同じ絵柄を使います。サンバード、セレネア、ニクセロンは既存の専用モデルから頭部・顔の部分を抽出します。JavaはGUIモデル、統合版は既存Geyserのgeneratedアイテム経路を使用し、ゲーム内のモブ本体は変更しません。Pluginと両版パックを一緒に更新し、統合版ではパックのカタログを読み込むProxyを再起動してから再接続します。
+
+原稿・出典は [gui-source/mob-heads](gui-source/mob-heads/README.md) を参照してください。`scripts/generate-mob-head-icons.py --check --preview <PNGパス>` で35種の両版配布PNGと16pxスロットの見本を検証できます（Pillow・NumPyが必要）。プレビューは配布用描画データによるオフスクリーン画像です。実クライアントの表示確認とは区別します。
 
 ### クエスト追跡HUD
 
