@@ -1008,6 +1008,216 @@
       "role": "back",
       "base_item": "minecraft:shield",
       "custom_model_data": 910168
+    },
+    {
+      "id": "gui_mob_head_armadillo_paper",
+      "role": "mob_head_armadillo",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910169
+    },
+    {
+      "id": "gui_mob_head_bat_paper",
+      "role": "mob_head_bat",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910170
+    },
+    {
+      "id": "gui_mob_head_blaze_paper",
+      "role": "mob_head_blaze",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910171
+    },
+    {
+      "id": "gui_mob_head_bogged_paper",
+      "role": "mob_head_bogged",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910172
+    },
+    {
+      "id": "gui_mob_head_breeze_paper",
+      "role": "mob_head_breeze",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910173
+    },
+    {
+      "id": "gui_mob_head_camel_paper",
+      "role": "mob_head_camel",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910174
+    },
+    {
+      "id": "gui_mob_head_chicken_paper",
+      "role": "mob_head_chicken",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910175
+    },
+    {
+      "id": "gui_mob_head_cow_paper",
+      "role": "mob_head_cow",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910176
+    },
+    {
+      "id": "gui_mob_head_evoker_paper",
+      "role": "mob_head_evoker",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910177
+    },
+    {
+      "id": "gui_mob_head_fox_paper",
+      "role": "mob_head_fox",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910178
+    },
+    {
+      "id": "gui_mob_head_goat_paper",
+      "role": "mob_head_goat",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910179
+    },
+    {
+      "id": "gui_mob_head_husk_paper",
+      "role": "mob_head_husk",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910180
+    },
+    {
+      "id": "gui_mob_head_iron_golem_paper",
+      "role": "mob_head_iron_golem",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910181
+    },
+    {
+      "id": "gui_mob_head_mooshroom_paper",
+      "role": "mob_head_mooshroom",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910182
+    },
+    {
+      "id": "gui_mob_head_mooshroom_brown_paper",
+      "role": "mob_head_mooshroom_brown",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910183
+    },
+    {
+      "id": "gui_mob_head_nyxeron_paper",
+      "role": "mob_head_nyxeron",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910184
+    },
+    {
+      "id": "gui_mob_head_parched_paper",
+      "role": "mob_head_parched",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910185
+    },
+    {
+      "id": "gui_mob_head_parrot_paper",
+      "role": "mob_head_parrot",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910186
+    },
+    {
+      "id": "gui_mob_head_parrot_gray_paper",
+      "role": "mob_head_parrot_gray",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910187
+    },
+    {
+      "id": "gui_mob_head_parrot_green_paper",
+      "role": "mob_head_parrot_green",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910188
+    },
+    {
+      "id": "gui_mob_head_pig_paper",
+      "role": "mob_head_pig",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910189
+    },
+    {
+      "id": "gui_mob_head_rabbit_paper",
+      "role": "mob_head_rabbit",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910190
+    },
+    {
+      "id": "gui_mob_head_rabbit_brown_paper",
+      "role": "mob_head_rabbit_brown",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910191
+    },
+    {
+      "id": "gui_mob_head_ravager_paper",
+      "role": "mob_head_ravager",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910192
+    },
+    {
+      "id": "gui_mob_head_selenea_paper",
+      "role": "mob_head_selenea",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910193
+    },
+    {
+      "id": "gui_mob_head_sheep_paper",
+      "role": "mob_head_sheep",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910194
+    },
+    {
+      "id": "gui_mob_head_silverfish_paper",
+      "role": "mob_head_silverfish",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910195
+    },
+    {
+      "id": "gui_mob_head_slime_paper",
+      "role": "mob_head_slime",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910196
+    },
+    {
+      "id": "gui_mob_head_sniffer_paper",
+      "role": "mob_head_sniffer",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910197
+    },
+    {
+      "id": "gui_mob_head_spider_paper",
+      "role": "mob_head_spider",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910198
+    },
+    {
+      "id": "gui_mob_head_stray_paper",
+      "role": "mob_head_stray",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910199
+    },
+    {
+      "id": "gui_mob_head_sunbird_paper",
+      "role": "mob_head_sunbird",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910200
+    },
+    {
+      "id": "gui_mob_head_turtle_paper",
+      "role": "mob_head_turtle",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910201
+    },
+    {
+      "id": "gui_mob_head_witch_paper",
+      "role": "mob_head_witch",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910202
+    },
+    {
+      "id": "gui_mob_head_wolf_paper",
+      "role": "mob_head_wolf",
+      "base_item": "minecraft:paper",
+      "custom_model_data": 910203
     }
   ]
 }
