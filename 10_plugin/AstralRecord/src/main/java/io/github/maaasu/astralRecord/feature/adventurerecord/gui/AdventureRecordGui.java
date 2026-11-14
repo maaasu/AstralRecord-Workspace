@@ -513,6 +513,13 @@ public class AdventureRecordGui {
         return result;
     }
 
+    /**
+     * 一覧の Mob を共通の頭アイコンと討伐情報で表示します。
+     *
+     * @param entry 表示対象の記録
+     * @param superMode 管理情報を表示するか
+     * @return 新しく生成した一覧アイテム
+     */
     private @NotNull ItemStack createMobItem(@NotNull AdventureRecordService.Entry entry, boolean superMode) {
         MobTemplate template = entry.template();
         List<Component> lore = new ArrayList<>();
@@ -534,12 +541,10 @@ public class AdventureRecordGui {
             lore.add(Component.text(DisplaySeparators.SECTION, NamedTextColor.DARK_GRAY));
         }
         appendDrops(lore, template.drops());
-        ItemStack itemStack = createItem(resolveMaterial(template.icon(), Material.ZOMBIE_HEAD), Component.text(
+        return AdventureRecordMobIcon.create(template, Component.text(
             mobListDisplayName(template),
             NamedTextColor.WHITE
         ), lore);
-        io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport.apply(itemStack, template.iconTexture());
-        return itemStack;
     }
 
     private void renderMobDetail(
@@ -575,6 +580,13 @@ public class AdventureRecordGui {
         ));
     }
 
+    /**
+     * 選択レベルの Mob 情報を一覧と同じ頭アイコンへ描画します。
+     *
+     * @param entry 表示対象の記録
+     * @param selectedLevel 表示するレベル
+     * @return 新しく生成した詳細アイテム
+     */
     private @NotNull ItemStack mobProfileItem(@NotNull AdventureRecordService.Entry entry, int selectedLevel) {
         MobTemplate template = resolveMobTemplate(entry, selectedLevel);
         List<Component> lore = new ArrayList<>();
@@ -605,13 +617,11 @@ public class AdventureRecordGui {
             lore.add(Component.text(DisplaySeparators.SECTION, NamedTextColor.DARK_GRAY));
         }
         appendDrops(lore, template.drops());
-        ItemStack itemStack = createItem(
-            resolveMaterial(template.icon(), Material.ZOMBIE_HEAD),
+        return AdventureRecordMobIcon.create(
+            template,
             Component.text(mobDisplayName(template), NamedTextColor.WHITE),
             lore
         );
-        io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport.apply(itemStack, template.iconTexture());
-        return itemStack;
     }
 
     /** 選択済みレベルと遷移先を表示する操作アイテムを作成します。 */
@@ -934,17 +944,6 @@ public class AdventureRecordGui {
         @NotNull List<Component> lore
     ) {
         return GuiItems.create(material, name, lore);
-    }
-
-    private @NotNull Material resolveMaterial(@Nullable String icon, @NotNull Material fallback) {
-        if (icon == null || icon.isBlank()) {
-            return fallback;
-        }
-        try {
-            return Material.valueOf(icon.trim().toUpperCase());
-        } catch (IllegalArgumentException ignored) {
-            return fallback;
-        }
     }
 
     public enum Screen {
