@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Security.Cryptography;
+using System.Text;
 using SkillTreeEditor.Server.Models;
 
 namespace SkillTreeEditor.Server.Services;
@@ -45,6 +47,8 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
                 || Kind(document.Path) is null || !overrides.TryAdd(document.Path, draft.Content))
                 throw new ArgumentException("同じ編集対象マスターを重複せずに指定してください。");
             paths.Resolve(document.Path);
+            if (draft.Revision is not null && draft.Revision != document.Revision)
+                throw new InvalidOperationException($"{document.Path} は別の編集で更新されました。下書きを保持して差分を確認してください。");
         }
         return Build(snapshot, overrides, token);
     }
@@ -110,6 +114,11 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
                 case "fishing":
                     ReadFishing(master, fish, sources);
                     break;
+                case "world":
+                    if (Id(master.Data["requiredItemId"]) is { } requiredItem)
+                        usages.Add(new(requiredItem, "world", master.Name + "（入場条件）", master.Path,
+                            RefPointer(master.Data["requiredItemId"], "/requiredItemId"), null, []));
+                    break;
             }
         }
 
@@ -122,8 +131,17 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
                 foreach (var assignment in checkpoint.Equipment)
                     usages.Add(new(assignment.ItemId, "preset", preset.Name, preset.Path, assignment.Pointer, null, []));
 
-        return new(classes, presets, items, sources, usages.DistinctBy(usage =>
-            (usage.ItemId, usage.Kind, usage.Path, usage.Pointer, usage.OutputItemId)).ToArray(), targets);
+        var uniqueSources = sources.Select(source => source with
+        {
+            Id = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new
+            {
+                source.Kind, source.Path, source.Pointer, source.ItemPath, source.ItemPointer, source.ItemId,
+                source.Level, Context = source.Context.Select(context => new { context.Kind, context.Path, context.Pointer })
+            }))))
+        }).DistinctBy(source => source.Id).ToArray();
+        return new(classes, presets, items, uniqueSources, usages.DistinctBy(usage =>
+            (usage.ItemId, usage.Kind, usage.Path, usage.Pointer, usage.OutputItemId)).ToArray(), targets,
+            snapshot.Documents.Where(document => Kind(document.Path) is not null).ToDictionary(document => document.Path, document => document.Revision));
     }
 
     private static Dictionary<string, Master> Index(IEnumerable<Master> masters, string kind) =>
@@ -285,7 +303,8 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
 
     private static string Availability(Drop drop, out string[] warnings)
     {
-        var zero = drop.Rates.Any(field => JsonValueReader.Number(field.Value) is <= 0);
+        var zero = drop.Rates.Any(field => JsonValueReader.Number(field.Value) is <= 0 ||
+            Text(field.Value) is { } range && range.Contains('~') && range.Split('~').All(part => decimal.TryParse(part, out var number) && number <= 0));
         warnings = zero ? ["抽選値が 0 以下のため入手できません。"] : [];
         return zero ? DefinitionOnly : Configured;
     }
@@ -389,7 +408,7 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
         var kind = MasterDataService.Kind(path);
         return kind switch
         {
-            "class" or "item" or "recipe" or "shop" or "gathering" or "dungeon" => kind,
+            "class" or "item" or "recipe" or "shop" or "gathering" or "dungeon" or "world" => kind,
             "mob" => path.StartsWith("40.features.mob/npc/", MasterDataPaths.Comparison) ? "shopNpc" : "mob",
             "mob_spawner" => "mobSpawner",
             "gathering_spawner" => "gatheringSpawner",

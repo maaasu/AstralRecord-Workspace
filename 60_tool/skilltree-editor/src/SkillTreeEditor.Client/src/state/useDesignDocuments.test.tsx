@@ -60,6 +60,15 @@ describe('useDesignDocuments', () => {
     expect(result.current.drafts[shop].content).toEqual({ amount: 3, chance: 55 })
   })
 
+  it('rejects stale catalog pointers before changing a freshly fetched document', async () => {
+    const transform = vi.fn(() => ({ amount: 99 }))
+    const { result } = renderHook(() => useDesignDocuments(root, { [shop]: 'older-revision' }))
+    await act(async () => { await expect(result.current.edit(shop, transform)).resolves.toBe(false) })
+    expect(transform).not.toHaveBeenCalled()
+    expect(result.current.dirty).toBe(false)
+    expect(result.current.error).toContain('表示後にファイルが変更')
+  })
+
   it('preserves drafts through render, validation, and revision conflict failures', async () => {
     const { result } = renderHook(() => useDesignDocuments(root))
     await act(async () => { await result.current.edit(shop, () => ({ amount: 3 })) })

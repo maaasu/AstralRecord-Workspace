@@ -8,7 +8,8 @@ public sealed record ProgressionDesignCatalog(
     IReadOnlyList<ProgressionDesignItem> Items,
     IReadOnlyList<ProgressionDesignSource> Sources,
     IReadOnlyList<ProgressionDesignUsage> Usages,
-    IReadOnlyList<ProgressionDesignAddTarget> AddTargets);
+    IReadOnlyList<ProgressionDesignAddTarget> AddTargets,
+    IReadOnlyDictionary<string, string> Revisions);
 
 public sealed record ProgressionDesignClass(string Id, string Name, string Path, IReadOnlyList<string> PrerequisiteClassIds);
 
@@ -44,4 +45,4 @@ public sealed record ProgressionDesignAddTarget(string Id, string Kind, string N
     string? Icon, int? CustomModelData, string? IconTexture, int? Level);
 
 public sealed record ProgressionDesignPreviewRequest(IReadOnlyList<ProgressionDesignPreviewDocument> Documents);
-public sealed record ProgressionDesignPreviewDocument(string Path, JsonObject Content);
+public sealed record ProgressionDesignPreviewDocument(string Path, JsonObject Content, string? Revision = null);

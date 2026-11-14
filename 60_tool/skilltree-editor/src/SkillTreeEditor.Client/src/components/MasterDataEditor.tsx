@@ -43,9 +43,9 @@ const categoryOptionLabel = (entry: MasterCategory, count: number, categories: M
   return `${'　'.repeat(depth)}${depth ? '└ ' : ''}${number ? `${number} ` : ''}${name} (${count})`
 }
 
-interface MasterDataEditorProps { active?: boolean; onDirtyChange?: (dirty: boolean) => void; onOpenSkillTree?: () => void }
+interface MasterDataEditorProps { active?: boolean; onDirtyChange?: (dirty: boolean) => void; onOpenSkillTree?: () => void; openRequest?: { path: string; pointer: string; requestId: number } }
 
-export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree }: MasterDataEditorProps) {
+export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree, openRequest }: MasterDataEditorProps) {
   const workspace = useMasterDataWorkspace()
   const [browserWidth, setBrowserWidth] = usePanelSize('master-browser', 520, 400, 1000)
   const [tabsState, dispatch] = useReducer(masterTabsReducer, emptyMasterTabs)
@@ -84,6 +84,12 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
       if (!reference) requestAnimationFrame(() => tabButtons.current.get(existing.id)?.focus())
     }
   }, [workspace.setSidebarCollapsed])
+  const handledOpenRequest = useRef<number | null>(null)
+  useEffect(() => {
+    if (!active || !openRequest || handledOpenRequest.current === openRequest.requestId) return
+    handledOpenRequest.current = openRequest.requestId
+    openFile(openRequest.path, undefined, openRequest.pointer ? { pointer: openRequest.pointer, value: '', locationOnly: true } : undefined)
+  }, [active, openRequest, openFile])
   const updateStatus = useCallback((id: string, status: MasterTabStatus) => {
     if (id === 'welcome') { latestWelcomeDirty.current = status.dirty; setWelcomeDirty(status.dirty); setWelcomeBusy(status.busy) }
     else dispatch({ type: 'status', id, status })
@@ -516,7 +522,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     let value: JsonValue | undefined
     try { value = valueAtPointer(draft.content, referenceTarget.pointer) }
     catch { explain('参照元を開きました。項目パスが不正なため移動できません。参照元を更新して確認してください。'); return }
-    if (value !== referenceTarget.value) { explain('参照元を開きました。現在の原稿では参照位置の値が異なるか、項目がありません。編集内容を確認し、必要に応じて参照元を更新してください。'); return }
+    if (referenceTarget.locationOnly ? value === undefined : value !== referenceTarget.value) { explain('参照元を開きました。現在の原稿では参照位置の値が異なるか、項目がありません。編集内容を確認し、必要に応じて参照元を更新してください。'); return }
     setNotice(`参照位置 ${referenceTarget.pointer || '/'} へ移動しました。現在の原稿で参照値を確認しています。`)
     setFocusPath({ path: referenceTarget.pointer })
   }, [referenceTarget, active, busy, document, initialPath, browserDialogOpen, createMode, diffRaw, documentation, recovery, invalidInputs, draft, onReferenceHandled, tabId])

@@ -96,6 +96,9 @@ describe('progression design master updates', () => {
   })
 
   it('rejects amounts that cannot be represented as safe integers', () => {
+    expect(numericDesignValue('2147483647', 'rolls')).toBe(2147483647)
+    expect(numericDesignValue('2147483648', 'rolls')).toBeUndefined()
+    expect(numericDesignValue('1~2147483648', 'pick')).toBeUndefined()
     expect(numericDesignValue('9007199254740992', 'amount')).toBeUndefined()
     expect(numericDesignValue('1~9007199254740992', 'amount')).toBeUndefined()
     expect(numericDesignValue(`1~${'9'.repeat(310)}`, 'amount')).toBeUndefined()
