@@ -263,6 +263,10 @@ Java 版は表示用 ItemDisplay の `custom_model_data.strings[0]` で `assets/
 
 Java 版は管理パックの互換版 `receptionDisplay: "1"` と適用成功を確認し、固定向きの ItemDisplay に専用アイテムモデルを割り当てます。統合版は Geyser の `gameplay.force-resource-packs: true` が有効で、対応パックを登録してログインした接続で Geyser Extension が専用の `astralrecord:reception_display` に変換します。対応パックがない接続では案内テキストを使います。配布時は両版のパックを公開し、対応する RPG Plugin と Geyser Extension を配置して再起動します。
 
+ダンジョン受付は門枠を固定したまま、青緑の膜の渦を動かします。Java 版は透明な画素の抜けで奥が見え、ボス受付の剣は刃の光だけが流れます。統合版は膜と刃の発光芯に半透明を使い、ボス受付では剣だけが 3.2 秒周期でわずかに上下します。台座・門枠・当たり判定・挑戦条件は変わりません。
+
+素材の再生成結果は `python scripts/generate-reception-animation.py --check` で照合できます（Pillow、NumPy が必要）。両版の実クライアントでの描画は未確認です。
+
 ## ビルド
 
 ### 着用防具

@@ -11,8 +11,70 @@
         },
         "textures": {
           "Array.styles": [
-            "Texture.style_0",
-            "Texture.style_1"
+            "Texture.sword_frame_00",
+            "Texture.sword_frame_01",
+            "Texture.sword_frame_02",
+            "Texture.sword_frame_03",
+            "Texture.sword_frame_04",
+            "Texture.sword_frame_05",
+            "Texture.sword_frame_06",
+            "Texture.sword_frame_07",
+            "Texture.sword_frame_08",
+            "Texture.sword_frame_09",
+            "Texture.sword_frame_10",
+            "Texture.sword_frame_11",
+            "Texture.sword_frame_12",
+            "Texture.sword_frame_13",
+            "Texture.sword_frame_14",
+            "Texture.sword_frame_15",
+            "Texture.sword_frame_16",
+            "Texture.sword_frame_17",
+            "Texture.sword_frame_18",
+            "Texture.sword_frame_19",
+            "Texture.sword_frame_20",
+            "Texture.sword_frame_21",
+            "Texture.sword_frame_22",
+            "Texture.sword_frame_23",
+            "Texture.sword_frame_24",
+            "Texture.sword_frame_25",
+            "Texture.sword_frame_26",
+            "Texture.sword_frame_27",
+            "Texture.sword_frame_28",
+            "Texture.sword_frame_29",
+            "Texture.sword_frame_30",
+            "Texture.sword_frame_31",
+            "Texture.frame_00",
+            "Texture.frame_01",
+            "Texture.frame_02",
+            "Texture.frame_03",
+            "Texture.frame_04",
+            "Texture.frame_05",
+            "Texture.frame_06",
+            "Texture.frame_07",
+            "Texture.frame_08",
+            "Texture.frame_09",
+            "Texture.frame_10",
+            "Texture.frame_11",
+            "Texture.frame_12",
+            "Texture.frame_13",
+            "Texture.frame_14",
+            "Texture.frame_15",
+            "Texture.frame_16",
+            "Texture.frame_17",
+            "Texture.frame_18",
+            "Texture.frame_19",
+            "Texture.frame_20",
+            "Texture.frame_21",
+            "Texture.frame_22",
+            "Texture.frame_23",
+            "Texture.frame_24",
+            "Texture.frame_25",
+            "Texture.frame_26",
+            "Texture.frame_27",
+            "Texture.frame_28",
+            "Texture.frame_29",
+            "Texture.frame_30",
+            "Texture.frame_31"
           ]
         }
       },
@@ -23,10 +85,19 @@
         },
         {
           "emissive": "Material.emissive"
+        },
+        {
+          "portal": "Material.portal"
+        },
+        {
+          "sword_emissive": "Material.emissive"
+        },
+        {
+          "sword_light": "Material.sword_light"
         }
       ],
       "textures": [
-        "Array.styles[math.clamp(query.property('astralrecord:reception_style'), 0, 1)]"
+        "Array.styles[(query.property('astralrecord:reception_style') < 1.0 ? 0.0 : 32.0) + math.mod(math.floor(query.life_time * 10.0), 32.0)]"
       ]
     }
   }

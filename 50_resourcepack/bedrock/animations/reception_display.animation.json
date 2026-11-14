@@ -12,6 +12,41 @@
           ]
         }
       }
+    },
+    "animation.astralrecord.reception_display.sword_idle": {
+      "loop": true,
+      "animation_length": 3.2,
+      "bones": {
+        "sword": {
+          "position": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.8": [
+              0,
+              0.28,
+              0
+            ],
+            "1.6": [
+              0,
+              0.74,
+              0
+            ],
+            "2.4": [
+              0,
+              0.28,
+              0
+            ],
+            "3.2": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      }
     }
   }
 }

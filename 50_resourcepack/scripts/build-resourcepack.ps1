@@ -111,6 +111,10 @@ $java = Read-PackEntries $root @(
     'assets/astralrecord/models/world/dungeon_reception_gate.json'
     'assets/astralrecord/textures/item/world/boss_reception_altar.png'
     'assets/astralrecord/textures/item/world/dungeon_reception_gate.png'
+    'assets/astralrecord/textures/item/world/boss_reception_altar_animation.png'
+    'assets/astralrecord/textures/item/world/boss_reception_altar_animation.png.mcmeta'
+    'assets/astralrecord/textures/item/world/dungeon_reception_gate_animation.png'
+    'assets/astralrecord/textures/item/world/dungeon_reception_gate_animation.png.mcmeta'
     'assets/astralrecord/font/damage_number.json'
     'assets/astralrecord/textures/font/damage_number.png'
     'assets/astralrecord/font/combat_hud.json'
@@ -558,6 +562,12 @@ if ($utf8.GetString($java[$receptionVersionMarker]) -cne '1') {
     throw 'Invalid reception display version marker in resource pack.'
 }
 $bedrock.Add($receptionVersionMarker, $java[$receptionVersionMarker])
+$receptionAnimationFrames = foreach ($style in @('boss', 'dungeon')) {
+    foreach ($frame in 0..31) {
+        'textures/entity/world/reception_animation/{0}_{1:D2}.png' -f $style, $frame
+    }
+}
+Add-PackEntries $bedrock $bedrockRoot $receptionAnimationFrames
 
 $skillIcons = Get-ActionRingIcons
 Add-ItemModelEntries $java $bedrock $skillIcons
