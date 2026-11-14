@@ -5,22 +5,92 @@
       "identifier": "astralrecord:reception_display",
       "materials": {
         "default": "entity_alphatest",
-        "emissive": "entity_emissive_alpha"
+        "emissive": "entity_emissive_alpha",
+        "portal": "entity_alphablend",
+        "sword_light": "entity_alphablend"
       },
       "textures": {
         "style_0": "textures/entity/world/boss_reception_altar",
-        "style_1": "textures/entity/world/dungeon_reception_gate"
+        "style_1": "textures/entity/world/dungeon_reception_gate",
+        "frame_00": "textures/entity/world/reception_animation/dungeon_00",
+        "frame_01": "textures/entity/world/reception_animation/dungeon_01",
+        "frame_02": "textures/entity/world/reception_animation/dungeon_02",
+        "frame_03": "textures/entity/world/reception_animation/dungeon_03",
+        "frame_04": "textures/entity/world/reception_animation/dungeon_04",
+        "frame_05": "textures/entity/world/reception_animation/dungeon_05",
+        "frame_06": "textures/entity/world/reception_animation/dungeon_06",
+        "frame_07": "textures/entity/world/reception_animation/dungeon_07",
+        "frame_08": "textures/entity/world/reception_animation/dungeon_08",
+        "frame_09": "textures/entity/world/reception_animation/dungeon_09",
+        "frame_10": "textures/entity/world/reception_animation/dungeon_10",
+        "frame_11": "textures/entity/world/reception_animation/dungeon_11",
+        "frame_12": "textures/entity/world/reception_animation/dungeon_12",
+        "frame_13": "textures/entity/world/reception_animation/dungeon_13",
+        "frame_14": "textures/entity/world/reception_animation/dungeon_14",
+        "frame_15": "textures/entity/world/reception_animation/dungeon_15",
+        "frame_16": "textures/entity/world/reception_animation/dungeon_16",
+        "frame_17": "textures/entity/world/reception_animation/dungeon_17",
+        "frame_18": "textures/entity/world/reception_animation/dungeon_18",
+        "frame_19": "textures/entity/world/reception_animation/dungeon_19",
+        "frame_20": "textures/entity/world/reception_animation/dungeon_20",
+        "frame_21": "textures/entity/world/reception_animation/dungeon_21",
+        "frame_22": "textures/entity/world/reception_animation/dungeon_22",
+        "frame_23": "textures/entity/world/reception_animation/dungeon_23",
+        "frame_24": "textures/entity/world/reception_animation/dungeon_24",
+        "frame_25": "textures/entity/world/reception_animation/dungeon_25",
+        "frame_26": "textures/entity/world/reception_animation/dungeon_26",
+        "frame_27": "textures/entity/world/reception_animation/dungeon_27",
+        "frame_28": "textures/entity/world/reception_animation/dungeon_28",
+        "frame_29": "textures/entity/world/reception_animation/dungeon_29",
+        "frame_30": "textures/entity/world/reception_animation/dungeon_30",
+        "frame_31": "textures/entity/world/reception_animation/dungeon_31",
+        "sword_frame_00": "textures/entity/world/reception_animation/boss_00",
+        "sword_frame_01": "textures/entity/world/reception_animation/boss_01",
+        "sword_frame_02": "textures/entity/world/reception_animation/boss_02",
+        "sword_frame_03": "textures/entity/world/reception_animation/boss_03",
+        "sword_frame_04": "textures/entity/world/reception_animation/boss_04",
+        "sword_frame_05": "textures/entity/world/reception_animation/boss_05",
+        "sword_frame_06": "textures/entity/world/reception_animation/boss_06",
+        "sword_frame_07": "textures/entity/world/reception_animation/boss_07",
+        "sword_frame_08": "textures/entity/world/reception_animation/boss_08",
+        "sword_frame_09": "textures/entity/world/reception_animation/boss_09",
+        "sword_frame_10": "textures/entity/world/reception_animation/boss_10",
+        "sword_frame_11": "textures/entity/world/reception_animation/boss_11",
+        "sword_frame_12": "textures/entity/world/reception_animation/boss_12",
+        "sword_frame_13": "textures/entity/world/reception_animation/boss_13",
+        "sword_frame_14": "textures/entity/world/reception_animation/boss_14",
+        "sword_frame_15": "textures/entity/world/reception_animation/boss_15",
+        "sword_frame_16": "textures/entity/world/reception_animation/boss_16",
+        "sword_frame_17": "textures/entity/world/reception_animation/boss_17",
+        "sword_frame_18": "textures/entity/world/reception_animation/boss_18",
+        "sword_frame_19": "textures/entity/world/reception_animation/boss_19",
+        "sword_frame_20": "textures/entity/world/reception_animation/boss_20",
+        "sword_frame_21": "textures/entity/world/reception_animation/boss_21",
+        "sword_frame_22": "textures/entity/world/reception_animation/boss_22",
+        "sword_frame_23": "textures/entity/world/reception_animation/boss_23",
+        "sword_frame_24": "textures/entity/world/reception_animation/boss_24",
+        "sword_frame_25": "textures/entity/world/reception_animation/boss_25",
+        "sword_frame_26": "textures/entity/world/reception_animation/boss_26",
+        "sword_frame_27": "textures/entity/world/reception_animation/boss_27",
+        "sword_frame_28": "textures/entity/world/reception_animation/boss_28",
+        "sword_frame_29": "textures/entity/world/reception_animation/boss_29",
+        "sword_frame_30": "textures/entity/world/reception_animation/boss_30",
+        "sword_frame_31": "textures/entity/world/reception_animation/boss_31"
       },
       "geometry": {
         "style_0": "geometry.astralrecord.boss_reception_altar",
         "style_1": "geometry.astralrecord.dungeon_reception_gate"
       },
       "animations": {
-        "orient": "animation.astralrecord.reception_display.orient"
+        "orient": "animation.astralrecord.reception_display.orient",
+        "sword_idle": "animation.astralrecord.reception_display.sword_idle"
       },
       "scripts": {
         "animate": [
-          "orient"
+          "orient",
+          {
+            "sword_idle": "query.property('astralrecord:reception_style') < 1.0"
+          }
         ]
       },
       "render_controllers": [
