@@ -334,6 +334,39 @@ public final class JavaProfileHud {
         return enabled ? withHudFont(stat, font, readableTypeface, vanillaTypeface, false).text() : stat;
     }
 
+    /** 職業リソースの数値は補足行の書体、未収録の日本語は標準書体のままにします。 */
+    static Component styleJobResource(Component resource, boolean readableTypeface, boolean vanillaTypeface) {
+        return readableTypeface && !resource.equals(Component.empty())
+                ? jobResourceWithFallback(resource, vanillaTypeface) : resource;
+    }
+
+    private static Component jobResourceWithFallback(Component source, boolean vanillaTypeface) {
+        if (!(source instanceof TextComponent text)) {
+            return source;
+        }
+        Component styled = Component.empty().style(source.style()).font(DETAIL_FONT);
+        String value = text.content();
+        for (int start = 0; start < value.length();) {
+            int glyph = value.codePointAt(start);
+            boolean standard = isJobResourceFallback(glyph);
+            int end = start + Character.charCount(glyph);
+            while (end < value.length() && isJobResourceFallback(value.codePointAt(end)) == standard) {
+                end += Character.charCount(value.codePointAt(end));
+            }
+            Component span = Component.text(value.substring(start, end));
+            styled = styled.append(standard ? span.font(DEFAULT_FONT) : styleStat(span, true, true, vanillaTypeface));
+            start = end;
+        }
+        for (Component child : source.children()) {
+            styled = styled.append(jobResourceWithFallback(child, vanillaTypeface));
+        }
+        return styled;
+    }
+
+    private static boolean isJobResourceFallback(int glyph) {
+        return glyph > 0x7F && glyph != '〚' && glyph != '〛';
+    }
+
     /** 3種のリソースの送り幅に合わせ、横長HUDの2つの間隔を等しく確保します。 */
     static Component wideResourceGap(Component hp, Component mp, Component energy) {
         int resourcesWidth = combatWidthUpperBound(hp, null, false, true)

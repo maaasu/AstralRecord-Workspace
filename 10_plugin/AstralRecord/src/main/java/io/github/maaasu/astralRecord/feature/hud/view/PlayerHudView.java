@@ -201,6 +201,20 @@ public class PlayerHudView {
         }
     }
 
+    /**
+     * 構えなどの一時表示に含む職業リソースを、通常の戦闘補足行と同じ書体で整えます。
+     *
+     * @param player アクションバーの表示対象
+     * @param resource 既存のラベル、現在値と上限を含む表示
+     * @return 対応するJava版パックのときだけ整形した職業リソース
+     */
+    public Component styleJobResource(AstPlayer player, Component resource) {
+        UUID playerId = player.getBukkit().getUniqueId();
+        boolean readable = !player.isBedrock() && resourcePackService.hasReadableJavaHudTypeface(playerId);
+        boolean vanilla = readable && resourcePackService.hasJavaHudV5(playerId);
+        return JavaProfileHud.styleJobResource(resource, readable, vanilla);
+    }
+
     public void renderActionBar(Player player, StatusSnapshot snapshot) {
         renderActionBar(player, snapshot, List.of(), null, 0.0D);
     }
@@ -435,7 +449,7 @@ public class PlayerHudView {
                     separated(statText("PHOENIX", currentPhoenix, maximumPhoenix, NamedTextColor.GOLD)),
                     styledJavaHud, readableTypeface, vanillaTypeface)
                     : Component.empty())
-            .append(additionalResource)
+            .append(JavaProfileHud.styleJobResource(additionalResource, readableTypeface, vanillaTypeface))
             .append(JavaProfileHud.styleStat(
                     shieldActionText(snapshot, shieldRechargeState, shieldDisplayCapacity),
                     styledJavaHud, readableTypeface, vanillaTypeface))
