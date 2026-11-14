@@ -125,7 +125,7 @@ internal static class ProgressionPresetValidation
                 $"状態変化前の装備の強化上限は +{maxEnhanceLevel} です。"));
     }
 
-    private static int ReachableEnhanceLevel(JsonObject? enhance)
+    internal static int ReachableEnhanceLevel(JsonObject? enhance)
     {
         var cap = ReadInteger(enhance?["maxLevel"]);
         var levels = (enhance?["levels"] as JsonArray ?? []).OfType<JsonObject>()

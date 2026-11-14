@@ -1,0 +1,155 @@
+.acquisition-graph {
+  --acq-line: #294953;
+  --acq-teal: #80dfcb;
+  --acq-copper: #f2bc8d;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--acq-line);
+  border-radius: 13px;
+  background: #101d25;
+  color: #e5f1f1;
+}
+.acquisition-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  padding: 15px 16px 11px;
+}
+.acquisition-header h3 { margin: 0; color: inherit; font-size: 1rem; }
+.acquisition-header p, .acquisition-footnote { margin: 4px 0 0; color: #a5bdc4; font-size: .76rem; }
+.acquisition-actions, .acquisition-toggle, .acquisition-zoom, .acquisition-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.acquisition-actions { gap: 8px; }
+.acquisition-toggle, .acquisition-zoom { border: 1px solid #34515e; border-radius: 8px; padding: 2px; background: #0c1920; }
+.acquisition-actions button {
+  min-width: 28px;
+  min-height: 29px;
+  padding: 3px 7px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: #b9d0d5;
+  background: transparent;
+  font: inherit;
+  font-size: .74rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.acquisition-actions button:hover:not(:disabled), .acquisition-actions button[aria-pressed="true"] { color: #e0fffa; background: #244740; }
+.acquisition-actions button:disabled { opacity: .4; cursor: default; }
+.acquisition-summary { padding: 0 16px 10px; gap: 6px; color: #b9d0d5; font-size: .75rem; }
+.acquisition-summary span { border-radius: 50px; border: 1px solid #31505c; padding: 2px 8px; }
+.acquisition-summary .acquisition-limit { color: var(--acq-copper); border-color: #6b4c36; }
+.acquisition-viewport {
+  position: relative;
+  height: clamp(265px, 48vh, 580px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: radial-gradient(circle, #2d444e 1px, transparent 1.3px) 0 0 / 18px 18px, #0b161e;
+  border-block: 1px solid var(--acq-line);
+  cursor: grab;
+}
+.acquisition-viewport[data-dragging="true"] { cursor: grabbing; user-select: none; }
+.acquisition-viewport:focus-visible { outline: 2px solid var(--acq-teal); outline-offset: -3px; }
+.acquisition-extent { position: relative; overflow: hidden; }
+.acquisition-board { position: absolute; transform-origin: top left; }
+.acquisition-connectors { position: absolute; inset: 0; pointer-events: none; }
+.acquisition-connectors > path { fill: none; stroke: #63828c; stroke-width: 1.4; }
+.acquisition-connectors > path[data-active="true"] { stroke: #89e9d4; stroke-width: 2.5; }
+.acquisition-column { position: absolute; top: 0; }
+.acquisition-column-label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  position: absolute;
+  inset: 12px 0 auto;
+  border-bottom: 1px solid #334f5b;
+  padding: 5px 0 8px;
+  background: #0b161e;
+  color: #e6f2f3;
+  font-size: .86rem;
+  font-weight: 700;
+}
+.acquisition-column-label span { color: var(--acq-teal); font-size: .67rem; font-variant-numeric: tabular-nums; letter-spacing: .12em; }
+.acquisition-card-position { position: absolute; width: 100%; }
+.acquisition-node {
+  --acq-accent: #86bdc9;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  height: 100%;
+  min-height: 75px;
+  border: 1px solid #486772;
+  border-inline-start: 3px solid var(--acq-accent);
+  border-radius: 9px;
+  padding: 8px 7px 8px 9px;
+  background: #15262f;
+  color: #e5f1f1;
+  text-align: start;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 3px 8px #050b10aa;
+}
+.acquisition-node[data-kind="operation"] { --acq-accent: var(--acq-copper); background: #2b2826; border-color: #725843; border-inline-start-color: var(--acq-accent); }
+.acquisition-node[data-kind="material"] { --acq-accent: #97b6db; }
+.acquisition-node[data-kind="result"] { --acq-accent: var(--acq-teal); background: #173b37; border-color: #548a7b; border-inline-start-color: var(--acq-accent); }
+.acquisition-node[data-on-path="true"] { border-color: #79cbbb; }
+.acquisition-node[data-selected="true"] { border-color: #a6f8e3; outline: 2px solid #79cbbb; outline-offset: 2px; }
+.acquisition-node:hover:not(:disabled) { filter: brightness(1.18); }
+.acquisition-node:focus-visible, .acquisition-actions button:focus-visible { outline: 2px solid #aaf7e6; outline-offset: 2px; }
+.acquisition-node:disabled { cursor: default; }
+.acquisition-node-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #081217;
+  color: var(--acq-accent);
+  font-size: 1.22rem;
+}
+.acquisition-node-icon .minecraft-icon { width: 25px; height: 25px; }
+.acquisition-node-content { display: grid; gap: 1px; min-width: 0; line-height: 1.2; }
+.acquisition-node-content strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: .86rem;
+}
+.acquisition-node-kind, .acquisition-node-meta, .acquisition-node-notes { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .68rem; }
+.acquisition-node-kind { color: var(--acq-accent); }
+.acquisition-node-meta { color: #bdcbd1; }
+.acquisition-node-notes { color: #f1c0a4; font-weight: 650; }
+.acquisition-quantity {
+  position: absolute;
+  inset: auto auto -16px 10px;
+  max-width: calc(100% - 15px);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #223743;
+  color: #d7ebf5;
+  font-size: .64rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+.acquisition-empty-column { position: absolute; top: 57px; color: #8ca7b1; font-size: .75rem; }
+.acquisition-empty { padding: 32px 16px; margin: 0; color: #b9d0d5; text-align: center; }
+.acquisition-footnote { padding: 8px 16px 11px; margin: 0; line-height: 1.5; }
+.acquisition-list { display: grid; gap: 10px; padding: 12px 16px; border-block: 1px solid var(--acq-line); background: #0b161e; }
+.acquisition-list h4 { margin: 0 0 7px; color: var(--acq-teal); font-size: .82rem; }
+.acquisition-list ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 225px), 1fr)); align-items: start; gap: 9px; margin: 0; padding: 0; list-style: none; }
+.acquisition-list li { display: grid; gap: 4px; }
+.acquisition-list p, .acquisition-list-connection { margin: 0; padding: 2px 5px; color: #b9d0d5; font-size: .73rem; overflow-wrap: anywhere; }
+.acquisition-list .acquisition-node { height: auto; }
+.acquisition-list .acquisition-node-content :is(strong, .acquisition-node-meta, .acquisition-node-notes) { display: block; white-space: normal; overflow-wrap: anywhere; }

@@ -1,7 +1,7 @@
 import type { MasterDocument } from '../types/masterData'
 
 export interface MasterTabStatus { dirty: boolean; busy: boolean; name: string }
-export interface MasterReferenceTarget { requestId: number; pointer: string; value: string }
+export interface MasterReferenceTarget { requestId: number; pointer: string; value: string; locationOnly?: boolean }
 export interface MasterFileTab extends MasterTabStatus { id: string; path: string; initialDocument?: MasterDocument; referenceTarget?: MasterReferenceTarget }
 export interface MasterTabsState { tabs: MasterFileTab[]; activeId: string; sequence: number }
 export const emptyMasterTabs: MasterTabsState = { tabs: [], activeId: '', sequence: 0 }

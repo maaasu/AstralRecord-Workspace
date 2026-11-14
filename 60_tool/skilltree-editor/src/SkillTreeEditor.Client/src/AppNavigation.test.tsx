@@ -13,7 +13,7 @@ it('shows the active workspace and retains edited inputs across navigation', asy
   vi.spyOn(window, 'confirm').mockReturnValue(true)
   render(<App />)
   const nav = within(screen.getByRole('navigation', { name: '開発ツール' }))
-  expect(nav.getAllByRole('button')).toHaveLength(4)
+  expect(nav.getAllByRole('button')).toHaveLength(5)
   expect(nav.getByRole('button', { name: 'マスターデータ' })).toHaveAttribute('aria-current', 'page')
   const draft = await screen.findByLabelText('マスターの下書き')
   fireEvent.change(draft, { target: { value: '編集中の値' } })

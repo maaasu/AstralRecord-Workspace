@@ -8,6 +8,7 @@ EditorHostOptions.AddLocalSettings(builder, args);
 
 builder.Services.Configure<EditorOptions>(builder.Configuration.GetSection(EditorOptions.SectionName));
 builder.Services.AddProblemDetails();
+builder.Services.AddResponseCompression();
 builder.Services.AddSingleton<MasterAnalyticsService>();
 builder.Services.AddSingleton<SpawnerPlanningService>();
 builder.Services.AddSingleton<GatheringSpawnerPlacementService>();
@@ -31,6 +32,7 @@ builder.Services.AddSingleton<MasterDataCatalog>();
 builder.Services.AddSingleton<MasterDataValidation>();
 builder.Services.AddSingleton<MasterDataService>();
 builder.Services.AddSingleton<MasterDataFilterIndexService>();
+builder.Services.AddSingleton<ProgressionDesignService>();
 builder.Services.AddSingleton<WorkspaceItemTextures>();
 builder.Services.AddHttpClient<MinecraftIconService>((services, client) =>
 {
@@ -42,6 +44,8 @@ builder.Services.AddHttpClient<MinecraftIconService>((services, client) =>
 
 var app = builder.Build();
 app.UseMiddleware<LocalEditorRequestBoundaryMiddleware>();
+app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/master-data/progression-design"),
+    branch => branch.UseResponseCompression());
 var staticFilesRoot = EditorStaticFiles.ResolveRoot(app.Environment);
 app.MapMasterAnalyticsEndpoints();
 app.MapSpawnerPlanningEndpoints();

@@ -40,6 +40,12 @@ const toggleReferences = () => fireEvent.click(screen.getByRole('button', { name
 const panel = () => within(screen.getByRole('region', { name: '保存済みデータの参照元' }))
 
 describe('on-demand references', () => {
+  it('opens a design workspace location without weakening reference value checks', async () => {
+    render(<MasterDataEditor openRequest={{ path: second.path, pointer: '/name', requestId: 41 }} />)
+    await waitFor(() => expect(screen.getByRole('textbox', { name: '/name' })).toHaveFocus())
+    expect(screen.getByRole('textbox', { name: '/name' })).toHaveValue('次のクラス')
+    expect(screen.queryByText(/現在の原稿では参照位置の値が異なる/)).not.toBeInTheDocument()
+  })
   it('参照元カテゴリと複数語で検索し、ページ・未保存原稿・一覧外の案内を保つ', async () => {
     const spawnerPath = '50.features.spawner/mobs/wolf.yml'
     const questPath = '70.features.quest/wolf.yml'
