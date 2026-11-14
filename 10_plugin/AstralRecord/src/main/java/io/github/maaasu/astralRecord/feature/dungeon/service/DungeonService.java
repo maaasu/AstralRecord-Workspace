@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.dungeon.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.resourcepack.service.GameplaySound;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureDungeonRecord;
 import io.github.maaasu.astralRecord.feature.adventurerecord.repository.AdventureRecordRepository;
@@ -1751,7 +1752,8 @@ public final class DungeonService {
     }
 
     /**
-     * ダンジョンクリアを通知します。Bedrock 接続プレイヤーには報酬再表示用の {@code /drop} を表示します。
+     * ダンジョンクリアを通知し、対応パックへ専用音、非対応の接続へ標準音を一度送ります。
+     * Bedrock 接続プレイヤーには報酬再表示用の {@code /drop} を表示します。
      *
      * @param players クリア時点でダンジョン World にいる参加者
      * @param name ダンジョン表示名
@@ -1767,7 +1769,9 @@ public final class DungeonService {
                     PlayerMsgResource.getComponent(subtitleId.getId()),
                     COUNTDOWN_TITLE_TIMES
             ));
-            player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.9F, 1.0F);
+            if (!GameplaySound.tryPlayDungeonClear(player)) {
+                player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.9F, 1.0F);
+            }
         }
     }
 

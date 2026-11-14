@@ -193,6 +193,12 @@ final class DamagePackDistribution {
         return selection != null && selection.ready() && selection.forced() && selection.pack().challengeCountdown();
     }
 
+    /** @return 強制配布したパックにダンジョンクリア音がある場合 true */
+    boolean dungeonClearSoundReady(GeyserConnection connection) {
+        SessionPack selection = sessions.get(connection);
+        return selection != null && selection.ready() && selection.forced() && selection.pack().dungeonClearSound();
+    }
+
     /** @return 接続で専用効果音を使用できる場合true */
     boolean gameplaySoundsReady(GeyserConnection connection) {
         SessionPack selection = sessions.get(connection);

@@ -176,6 +176,14 @@ Java版は `astralrecord:weapon_attack` の字形を更新し、軌跡・着弾�
 
 Java版は効果音対応の管理パックを適用した接続で専用音を再生します。統合版は更新した AstralRecordProxy と Geyser 拡張で接続時の対応パックを確認します。RPG の `network.enabled: true` と Geyser の `gameplay.force-resource-packs: true` を設定し、更新したパックを配布した後にクライアントを再接続します。対応を確認できない接続では標準音を再生します。
 
+### ダンジョンクリア音
+
+ボス部屋クリア時は `astralrecord:dungeon.clear` の約6.2秒のファンファーレを、クリア時点でダンジョン内にいる参加者へ一度だけ再生します。承認済みプレビューと同じステレオ Ogg Vorbis を `assets/astralrecord/sounds/dungeon/clear.ogg` に収録し、統合版へも同じ音源とイベントIDを出力します。統合版の分類は `ui` です。
+
+両版の配布パックに `dungeon-clear-sound-version.txt=1` を含め、Java配布マニフェストには `dungeonClearSound: "1"` を設定します。Java版は対応管理パックの適用成功後、統合版はGeyser拡張が専用イベント・音源・マーカーを確認し、ProxyがRPGへ対応通知した接続だけで専用音を使います。従来の `gameplay-sounds-version.txt=1` だけでは対応扱いしません。非対応の接続は標準クリア音を使います。
+
+更新時はRPG本体・AstralRecordProxy・AstralRecordGeyserExtensionと両版パックを同時に配布し、Proxyを再起動してクライアントを再接続します。既存の `60_tool/01-deploy-debug.bat` のパック配布・マニフェスト生成経路を使います。通常部屋のクリア、失敗・中止、報酬画面の再表示ではファンファーレを再生しません。
+
 ## アイテムモデル
 
 Filebase の `icon` が基本素材、`customModelData` がモデル番号です。Paper はクライアントへの送信アイテムに番号を適用します。ビルドは `item-models.json` をもとに、JE 用の振り分けと、Geyser が BE 用パックから読み込む登録情報を生成します。パックとマスターの番号が一致すると、両版で該当アイテムの立体モデルまたは2Dアイコンを使います。未登録の番号は各版の基本素材で表示します。

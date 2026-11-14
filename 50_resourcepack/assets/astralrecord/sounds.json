@@ -1,4 +1,9 @@
 {
+  "dungeon.clear": {
+    "sounds": [
+      "astralrecord:dungeon/clear"
+    ]
+  },
   "combat.attack.bow": {
     "sounds": [
       "astralrecord:combat/attack/bow_1",

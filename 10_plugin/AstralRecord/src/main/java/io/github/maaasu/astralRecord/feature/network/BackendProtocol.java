@@ -23,6 +23,7 @@ final class BackendProtocol {
     private static final int MAX_PAYLOAD_SIZE = 32_767;
     private static final String PREPARE_CONNECT = "prepare_connect";
     private static final byte[] CHALLENGE_COUNTDOWN_READY = emptyNotification("challenge_countdown_v1_ready");
+    private static final byte[] DUNGEON_CLEAR_SOUND_READY = emptyNotification("dungeon_clear_sound_v1_ready");
     private static final byte[] GAMEPLAY_SOUNDS_READY = emptyNotification("gameplay_sounds_ready");
     private static final byte[] ITEM_TOOLTIPS_READY = emptyNotification("item_tooltips_ready");
     private static final byte[] WEAPON_ATTACK_PROJECTILES_READY =
@@ -45,6 +46,11 @@ final class BackendProtocol {
     /** 対応パックを登録済みの統合版接続について、Proxy から届く完全な通知か判定します。 */
     static boolean isChallengeCountdownReady(byte[] payload) {
         return Arrays.equals(CHALLENGE_COUNTDOWN_READY, payload);
+    }
+
+    /** ダンジョンクリア音を収録した統合版パックの対応通知を判定します。 */
+    static boolean isDungeonClearSoundReady(byte[] payload) {
+        return Arrays.equals(DUNGEON_CLEAR_SOUND_READY, payload);
     }
 
     /** 専用効果音の対応通知を判定します。 */

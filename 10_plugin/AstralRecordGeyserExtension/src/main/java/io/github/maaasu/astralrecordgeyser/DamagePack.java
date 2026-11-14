@@ -36,7 +36,8 @@ record DamagePack(
     boolean nyxeron,
     Set<Integer> heldWeaponModels,
     Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips,
-    String actionRingHudRevision, boolean questHud, boolean receptionDisplay, boolean challengeCountdown
+    String actionRingHudRevision, boolean questHud, boolean receptionDisplay, boolean challengeCountdown,
+    boolean dungeonClearSound
 ) {
     private static final String ROOT = "../resource-packs/";
     private static final int MAX_MANIFEST_BYTES = 64 * 1024;
@@ -188,6 +189,7 @@ record DamagePack(
             boolean questHud;
             boolean receptionDisplay;
             boolean challengeCountdown;
+            boolean dungeonClearSound;
             Set<Integer> heldWeaponModels;
             Set<ItemModel> itemModels;
             Set<Integer> actionRingSprites;
@@ -218,6 +220,7 @@ record DamagePack(
                     && FISHING_VISUAL_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 gameplaySounds = hasGameplaySounds(zip);
                 challengeCountdown = hasChallengeCountdown(zip);
+                dungeonClearSound = hasDungeonClearSound(zip);
                 sunbird = SUNBIRD_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 sunbirdMotion = sunbird
                     && present(zip.getEntry("animation_controllers/sunbird.animation_controllers.json"))
@@ -257,7 +260,7 @@ record DamagePack(
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, combatRewardPlaqueVersion,
                 weaponAttack, weaponAttackProjectiles, skillEffectsV2, fishingVisuals, gameplaySounds, sunbird, sunbirdMotion, selenea,
                 archmagePhoenix, nyxeron, heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips, actionRingHudRevision,
-                questHud, receptionDisplay, challengeCountdown);
+                questHud, receptionDisplay, challengeCountdown, dungeonClearSound);
         } finally {
             if (!keep) Files.deleteIfExists(file);
         }
@@ -309,6 +312,30 @@ record DamagePack(
     private static boolean hasGameplaySounds(ZipFile zip) throws IOException {
         return present(zip.getEntry("sounds/sound_definitions.json"))
             && hasVersionOne(zip, "gameplay-sounds-version.txt");
+    }
+
+    /** 専用マーカー、音源、名前空間付きイベントの参照が揃う場合だけ対応扱いにします。 */
+    private static boolean hasDungeonClearSound(ZipFile zip) throws IOException {
+        if (!hasVersionOne(zip, "dungeon-clear-sound-version.txt")
+            || !present(zip.getEntry("sounds/astralrecord/dungeon/clear.ogg"))) return false;
+        var definition = zip.getEntry("sounds/sound_definitions.json");
+        if (!present(definition) || definition.getSize() > 256 * 1024) return false;
+        try (var input = zip.getInputStream(definition)) {
+            byte[] bytes = input.readNBytes(256 * 1024 + 1);
+            if (bytes.length > 256 * 1024) return false;
+            var root = JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8)).getAsJsonObject();
+            var definitions = root.getAsJsonObject("sound_definitions");
+            if (definitions == null || !definitions.has("astralrecord:dungeon.clear")) return false;
+            var event = definitions.getAsJsonObject("astralrecord:dungeon.clear");
+            if (event == null || !event.has("sounds") || !event.get("sounds").isJsonArray()) return false;
+            for (var sound : event.getAsJsonArray("sounds")) {
+                if (sound.isJsonPrimitive() && sound.getAsJsonPrimitive().isString()
+                    && "sounds/astralrecord/dungeon/clear".equals(sound.getAsString())) return true;
+            }
+            return false;
+        } catch (com.google.gson.JsonParseException | IllegalStateException | ClassCastException failure) {
+            return false;
+        }
     }
 
     private static boolean hasVersionOne(ZipFile zip, String path) throws IOException {
