@@ -209,6 +209,17 @@ public class PlayerHudService {
         this.swordSpiritRenderer = renderer;
     }
 
+    /**
+     * 一時表示で使う職業リソースを書体互換性に合わせて整えます。
+     *
+     * @param player アクションバーの表示対象
+     * @param resource 整形前の職業リソース
+     * @return 対応するJava版パックに合わせた表示
+     */
+    public @NotNull Component styleJobResource(@NotNull AstPlayer player, @NotNull Component resource) {
+        return playerHudView.styleJobResource(player, resource);
+    }
+
     /** @param dungeonService ダンジョン Sidebar 情報の参照先 */
     public void setDungeonService(@NotNull DungeonService dungeonService) {
         this.dungeonService = dungeonService;

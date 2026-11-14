@@ -507,7 +507,7 @@ public final class SeijakuIssenSkillRuntimeService {
                 remaining * 10.0D / state.configuration().counterTicks()), 0, 10);
         String bar = "■".repeat(filled) + "□".repeat(10 - filled);
         return PlayerMsgResource.formatComponent(PlayerMsgId.P_7616.getId(), bar, remaining)
-                .append(spiritActionBar(state.player()));
+                .append(hudService.styleJobResource(state.player(), spiritActionBar(state.player())));
     }
 
     private void applySlow(@NotNull Player player) {
