@@ -181,6 +181,122 @@ public sealed class ProgressionDesignTests : IDisposable
             _service.PreviewAsync(new([new(path, draft), new(path, draft)]), default));
     }
 
+    [Fact]
+    public async Task RouteIdsDistinguishProductsDropRowsAndInheritedMobLevels()
+    {
+        const string shopPath = "45.features.shop/v1.shop.yml";
+        Write(shopPath, """
+            id: shop
+            items:
+              - { id: first, itemId: "item:sword", amount: 1 }
+              - { id: second, itemId: "item:sword", amount: 2 }
+              - { id: third, itemId: "item:shield", amount: 1 }
+            """);
+        Write("40.features.mob/enemy/v1.boar.yml", """
+            id: boar
+            drops:
+              items:
+                - { itemId: "item:sword", rate: 50, amount: 1 }
+                - { itemId: "item:sword", rate: 60, amount: 2 }
+            levels:
+              - { level: 3 }
+              - { level: 4 }
+            """);
+
+        var saved = await _service.ReadAsync(default);
+        Assert.Equal(3, saved.Sources.Count(route => route.Kind == "shop"));
+        Assert.Equal(4, saved.Sources.Count(route => route.Kind == "mob"));
+        Assert.Equal(7, saved.Sources.Select(route => route.Id).Distinct(StringComparer.Ordinal).Count());
+
+        var draft = JsonNode.Parse("""
+            {"id":"shop","items":[{"id":"first","itemId":"item:sword","amount":9},
+            {"id":"second","itemId":"item:sword","amount":2},{"id":"third","itemId":"item:shield","amount":1}]}
+            """)!.AsObject();
+        var preview = await _service.PreviewAsync(new([new(shopPath, draft, saved.Revisions[shopPath])]), default);
+        Assert.Equal(saved.Sources.Select(route => route.Id), preview.Sources.Select(route => route.Id));
+        Assert.Equal(9, JsonValueReader.Number(Assert.Single(preview.Sources.First(route => route.Path == shopPath).Quantity).Value));
+    }
+
+    [Fact]
+    public async Task PreviewRejectsRevisionOfDocumentChangedSinceCatalogRead()
+    {
+        const string path = "42.features.gathering/harvesting/v1.herb.yml";
+        Write(path, "id: herb\ndrops: { exp: 1 }\n");
+        var saved = await _service.ReadAsync(default);
+
+        Write(path, "id: herb\ndrops: { exp: 123 }\n");
+        var changed = await _service.ReadAsync(default);
+        Assert.NotEqual(saved.Revisions[path], changed.Revisions[path]);
+        var draft = JsonNode.Parse("""{"id":"herb","drops":{"exp":9}}""")!.AsObject();
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _service.PreviewAsync(new([new(path, draft, saved.Revisions[path])]), default));
+        var preview = await _service.PreviewAsync(new([new(path, draft, changed.Revisions[path])]), default);
+        Assert.Equal(changed.Revisions[path], preview.Revisions[path]);
+    }
+
+    [Theory]
+    [InlineData("0", "1", "definitionOnly")]
+    [InlineData("1", "0", "definitionOnly")]
+    [InlineData("'0~0'", "1", "definitionOnly")]
+    [InlineData("1", "'0~0'", "definitionOnly")]
+    [InlineData("'0~1'", "'1~0'", "configured")]
+    public async Task LootRequiresPositiveRollsAndPicks(string rolls, string pick, string availability)
+    {
+        Write("80.shared.loot/table/v1.common.yml", $"""
+            id: common
+            rolls: {rolls}
+            pools: ["loot_pool:common"]
+            """);
+        Write("80.shared.loot/pool/v1.common.yml", $"""
+            id: common
+            pick: {pick}
+            contents:
+              - itemId: "item:orb"
+                rate: 100
+                amount: 1
+            """);
+        Write("65.features.dungeon/v1.ruin.yml", """
+            id: ruin
+            clearRewards:
+              lootTable: "loot_table:common"
+            """);
+
+        var result = await _service.ReadAsync(default);
+        var route = Assert.Single(result.Sources, source => source.Kind == "dungeon");
+        Assert.Equal(availability, route.Availability);
+        Assert.Equal(availability == "definitionOnly", route.Warnings.Count > 0);
+        Assert.Equal(["/rolls", "/pick", "/contents/0/rate"], route.Rates.Select(field => field.Pointer));
+    }
+
+    [Fact]
+    public async Task LinksDungeonRewardToWorldEntranceRequirement()
+    {
+        const string path = "60.features.world/v1.verdia.yml";
+        Write(path, """
+            id: verdia
+            displayName: Verdia
+            requiredItemId:
+              ref: item:verdia_token
+            """);
+        Write("65.features.dungeon/v1.ruin.yml", """
+            id: ruin
+            clearRewards:
+              items:
+                - { itemId: "item:verdia_token", rate: 100, amount: 1 }
+            """);
+
+        var result = await _service.ReadAsync(default);
+        var source = Assert.Single(result.Sources);
+        Assert.Equal("dungeon", source.Kind);
+        var usage = Assert.Single(result.Usages, usage => usage.ItemId == source.ItemId);
+        Assert.Equal("world", usage.Kind);
+        Assert.Contains("入場条件", usage.Name);
+        Assert.Equal(path, usage.Path);
+        Assert.Equal("/requiredItemId/ref", usage.Pointer);
+        Assert.Null(usage.OutputItemId);
+        Assert.Empty(usage.Quantity);
+    }
+
     private void Write(string path, string content)
     {
         var fullPath = Path.Combine(_root, "40_filebase", path);
