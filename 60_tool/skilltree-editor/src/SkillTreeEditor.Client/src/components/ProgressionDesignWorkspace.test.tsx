@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ApiError } from '../api/editorApi'
 import { masterDataApi } from '../api/masterDataApi'
 import { progressionDesignApi } from '../api/progressionDesignApi'
 import type { JsonValue } from '../types/editor'
@@ -8,11 +9,12 @@ import type { DesignItem, DesignPreset, DesignSource, ProgressionDesignCatalog }
 import { ProgressionDesignWorkspace } from './ProgressionDesignWorkspace'
 
 const buildPath = 'presets/knight.yml'
-const shopPath = 'shops/merchant.yml'
-const poolPath = 'rewards/pool.yml'
+const shopPath = '45.features.shop/merchant.yml'
+const poolPath = '80.shared.loot/pool.yml'
+const recipePath = '85.shared.recipe/forge.yml'
 const mobPath = 'mobs/skeleton.yml'
 const shopContent = { offers: [{ amount: 2 }, { amount: 6 }] }
-const poolContent = { rolls: 2, pick: '1~2' }
+const poolContent = { rolls: 2, pick: '1~2', amount: 2 }
 const baseDrop = { itemId: 'item:bone', rate: 35, amount: 2 }
 const mobContent = { drops: { items: [baseDrop] }, levels: [{ level: 10, drops: { rolls: 3 } }] }
 const buildContent = { levels: [
@@ -21,6 +23,7 @@ const buildContent = { levels: [
 ] }
 const raw = (content: JsonValue) => JSON.stringify(content)
 const documents: Record<string, JsonValue> = {
+  [recipePath]: { result: { amount: 1 } },
   [buildPath]: buildContent, [shopPath]: shopContent, [poolPath]: poolContent, [mobPath]: mobContent,
 }
 const savedDocument = (path: string, content: JsonValue, revision = 'original') =>
@@ -57,7 +60,8 @@ const fixture: ProgressionDesignCatalog = {
   sources: [
     { ...source('shop:1', '駅前の店', 'shop', shopPath, '/offers/0'), quantity: [{ path: shopPath, pointer: '/offers/0/amount', value: 2 }] },
     { ...source('shop:2', '市場の店', 'shop', shopPath, '/offers/1'), quantity: [{ path: shopPath, pointer: '/offers/1/amount', value: 6 }] },
-    { ...source('pool:1', '共有の宝箱', 'lootPool', poolPath, ''), rates: [
+    { ...source('recipe:1', '鍛冶レシピ', 'recipe', recipePath, '/result'), quantity: [{ path: recipePath, pointer: '/result/amount', value: 1 }] },
+    { ...source('pool:1', '共有の宝箱', 'lootPool', poolPath, ''), quantity: [{ path: poolPath, pointer: '/amount', value: 2 }], rates: [
       { path: poolPath, pointer: '/rolls', value: 2 },
       { path: poolPath, pointer: '/pick', value: '1~2' },
     ] },
@@ -184,5 +188,100 @@ describe('ProgressionDesignWorkspace', () => {
     expect(vi.mocked(progressionDesignApi.preview).mock.calls[1][0]).toEqual(payload)
     await waitFor(() => expect(saveButton()).toBeEnabled())
     expect(masterDataApi.save).not.toHaveBeenCalled()
+  })
+  it('locks source quantity inputs immediately through each delayed undo and redo refresh', async () => {
+    const user = await loadWorkspace()
+    await user.click(inspector().getByRole('button', { name: /市場の店/ }))
+    const getQuantity = () => inspector().getByRole('textbox', { name: '獲得数 /offers/1/amount' })
+    const updated = {
+      ...fixture,
+      sources: fixture.sources.map(entry => entry.id === 'shop:2' ? {
+        ...entry, quantity: entry.quantity.map(field => ({ ...field, value: 12 })),
+      } : entry),
+    }
+    vi.mocked(progressionDesignApi.preview).mockResolvedValueOnce(updated)
+    await user.click(getQuantity())
+    fireEvent.change(getQuantity(), { target: { value: '12' } })
+    await user.tab()
+    await waitFor(() => expect(saveButton()).toBeEnabled())
+    const undo = screen.getByRole('button', { name: '元に戻す' })
+    const redo = screen.getByRole('button', { name: 'やり直す' })
+
+    let finishUndo!: (catalog: ProgressionDesignCatalog) => void
+    vi.mocked(progressionDesignApi.catalog).mockReturnValueOnce(new Promise(resolve => { finishUndo = resolve }))
+    expect(undo).toBeEnabled()
+    fireEvent.click(undo)
+    expect(getQuantity()).toBeDisabled()
+    await waitFor(() => expect(progressionDesignApi.catalog).toHaveBeenCalledTimes(3))
+    expect(getQuantity()).toBeDisabled()
+    finishUndo(fixture)
+    await waitFor(() => expect(getQuantity()).toHaveValue('6'))
+    expect(getQuantity()).toBeEnabled()
+
+    let finishRedo!: (catalog: ProgressionDesignCatalog) => void
+    vi.mocked(progressionDesignApi.preview).mockReturnValueOnce(new Promise(resolve => { finishRedo = resolve }))
+    expect(redo).toBeEnabled()
+    fireEvent.click(redo)
+    expect(getQuantity()).toBeDisabled()
+    await waitFor(() => expect(progressionDesignApi.preview).toHaveBeenCalledTimes(2))
+    expect(getQuantity()).toBeDisabled()
+    finishRedo(updated)
+    await waitFor(() => expect(getQuantity()).toHaveValue('12'))
+    expect(getQuantity()).toBeEnabled()
+  })
+
+  it('lets an operator export after a revision conflict and discard only after confirming reload', async () => {
+    const user = await loadWorkspace()
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
+    const exportUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:design-draft')
+    const releaseUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    const download = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    vi.mocked(progressionDesignApi.preview).mockRejectedValueOnce(new ApiError('保存済み原稿が変更されました', 409))
+
+    await user.click(inspector().getByRole('button', { name: /市場の店/ }))
+    fireEvent.change(inspector().getByRole('textbox', { name: '獲得数 /offers/1/amount' }), { target: { value: '12' } })
+    const alert = within(await screen.findByRole('alert'))
+    expect(alert.getByText(/保存済み原稿が変更されました/)).toBeInTheDocument()
+    await user.click(alert.getByRole('button', { name: '下書きを書き出す' }))
+    expect(exportUrl).toHaveBeenCalledExactlyOnceWith(expect.any(Blob))
+    expect(download).toHaveBeenCalledOnce()
+    expect(releaseUrl).toHaveBeenCalledExactlyOnceWith('blob:design-draft')
+    expect(saveButton()).toBeDisabled()
+
+    const reload = screen.getByRole('button', { name: '再読込' })
+    expect(reload).toBeEnabled()
+    await user.click(reload)
+    expect(confirm).toHaveBeenCalledOnce()
+    expect(screen.getByText('1ファイル 未保存')).toBeInTheDocument()
+    expect(progressionDesignApi.catalog).not.toHaveBeenCalledWith(true)
+
+    await user.click(reload)
+    expect(confirm).toHaveBeenCalledTimes(2)
+    await waitFor(() => expect(progressionDesignApi.catalog).toHaveBeenCalledWith(true))
+    expect(screen.getByText('保存済み')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(masterDataApi.save).not.toHaveBeenCalled()
+  })
+
+  it('accepts an open-ended shared loot amount while rejecting amount ranges in shop and recipe entries', async () => {
+    const user = await loadWorkspace()
+    for (const name of [/市場の店/, /鍛冶レシピ/]) {
+      await user.click(inspector().getByRole('button', { name }))
+      const amount = inspector().getByRole('textbox', { name: /^獲得数/ })
+      fireEvent.change(amount, { target: { value: '1~3' } })
+      expect(amount).toHaveAttribute('aria-invalid', 'true')
+      expect(saveButton()).toBeDisabled()
+      fireEvent.keyDown(amount, { key: 'Escape' })
+      expect(amount).toHaveAttribute('aria-invalid', 'false')
+    }
+    expect(masterDataApi.file).not.toHaveBeenCalled()
+    await user.click(inspector().getByRole('button', { name: /共有の宝箱/ }))
+    const amount = inspector().getByRole('textbox', { name: '獲得数 /amount' })
+    fireEvent.change(amount, { target: { value: '1~0' } })
+    expect(amount).toHaveAttribute('aria-invalid', 'false')
+    await waitFor(() => expect(progressionDesignApi.preview).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(progressionDesignApi.preview).mock.calls[0][0]).toEqual([
+      { path: poolPath, revision: 'original', content: { ...poolContent, amount: '1~0' } },
+    ])
   })
 })
