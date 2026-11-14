@@ -188,6 +188,12 @@ public final class AstralRecordGeyserExtension implements Extension {
         return connection != null && forcesResourcePacks() && damagePacks.challengeCountdownReady(connection);
     }
 
+    /** @param playerId 接続UUID @return ダンジョンクリア音を使用できる場合 true */
+    public boolean hasDungeonClearSound(UUID playerId) {
+        var connection = geyserApi().connectionByUuid(playerId);
+        return connection != null && forcesResourcePacks() && damagePacks.dungeonClearSoundReady(connection);
+    }
+
     /** @param playerId 接続UUID @return 専用効果音を使用できる場合true */
     public boolean hasGameplaySounds(UUID playerId) {
         var connection = geyserApi().connectionByUuid(playerId);

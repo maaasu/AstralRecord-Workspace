@@ -425,6 +425,7 @@ function Publish-ResourcePacks {
     $combatRewardPlaque = $null
     $receptionDisplay = $null
     $challengeCountdown = $null
+    $dungeonClearSound = $null
     $profileHud = $null
     $questTrackingHud = $null
     $locationHud = $null
@@ -475,6 +476,17 @@ function Publish-ResourcePacks {
         }
 
         $countdownEntry = $archive.GetEntry('challenge-countdown-version.txt')
+        $dungeonClearEntry = $archive.GetEntry('dungeon-clear-sound-version.txt')
+        if ($null -ne $dungeonClearEntry) {
+            if ($dungeonClearEntry.Length -ne 1) { throw 'Invalid dungeon clear sound version marker.' }
+            $reader = [IO.StreamReader]::new($dungeonClearEntry.Open())
+            try { $dungeonClearSound = $reader.ReadToEnd() } finally { $reader.Dispose() }
+            if ($dungeonClearSound -cne '1') { throw 'Unsupported dungeon clear sound version.' }
+            $dungeonClearOgg = $archive.GetEntry('assets/astralrecord/sounds/dungeon/clear.ogg')
+            if ($null -eq $dungeonClearOgg -or $dungeonClearOgg.Length -eq 0) {
+                throw 'Missing dungeon clear sound in Java pack.'
+            }
+        }
         if ($null -ne $countdownEntry) {
             if ($countdownEntry.Length -ne 1) { throw 'Invalid countdown version marker.' }
             $reader = [IO.StreamReader]::new($countdownEntry.Open())
@@ -857,6 +869,7 @@ function Publish-ResourcePacks {
         $javaManifest.combatRewardPlaque = $combatRewardPlaque
     }
     if ($null -ne $challengeCountdown) { $javaManifest.challengeCountdown = $challengeCountdown }
+    if ($null -ne $dungeonClearSound) { $javaManifest.dungeonClearSound = $dungeonClearSound }
     if ($null -ne $receptionDisplay) {
         $javaManifest.receptionDisplay = $receptionDisplay
     }

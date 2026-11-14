@@ -729,12 +729,12 @@ Add-PackEntries $java $root @($javaSoundPath)
 $javaSounds = ConvertFrom-Json -InputObject ($utf8.GetString($java[$javaSoundPath]))
 $bedrockSounds = [ordered]@{}
 foreach ($event in $javaSounds.PSObject.Properties) {
-    if ($event.Name -cnotmatch '^gui\.[a-z_]+$|^combat\.attack\.[a-z_]+$|^challenge\.countdown\.[a-z_]+$|^boss\.nyxeron\.[a-z_]+$' -or !$event.Value.sounds) {
+    if ($event.Name -cnotmatch '^gui\.[a-z_]+$|^combat\.attack\.[a-z_]+$|^challenge\.countdown\.[a-z_]+$|^boss\.nyxeron\.[a-z_]+$|^dungeon\.clear$' -or !$event.Value.sounds) {
         throw "Invalid gameplay sound event: $($event.Name)"
     }
-    $category = if (($event.Name.StartsWith('gui.') -or $event.Name.StartsWith('challenge.'))) { 'ui' } elseif ($event.Name.StartsWith('boss.')) { 'hostile' } else { 'player' }
+    $category = if (($event.Name.StartsWith('gui.') -or $event.Name.StartsWith('challenge.') -or $event.Name -ceq 'dungeon.clear')) { 'ui' } elseif ($event.Name.StartsWith('boss.')) { 'hostile' } else { 'player' }
     $paths = foreach ($sound in $event.Value.sounds) {
-        if ($sound -isnot [string] -or $sound -cnotmatch '^astralrecord:(gui|combat/attack|challenge/countdown|boss/nyxeron)/[a-z0-9_]+$') {
+        if ($sound -isnot [string] -or $sound -cnotmatch '^astralrecord:(gui|combat/attack|challenge/countdown|boss/nyxeron)/[a-z0-9_]+$|^astralrecord:dungeon/clear$') {
             throw "Invalid gameplay sound asset in event: $($event.Name)"
         }
         $path = $sound.Substring('astralrecord:'.Length)
@@ -760,6 +760,20 @@ $bedrock.Add('sounds/sound_definitions.json', $utf8.GetBytes($bedrockSoundJson +
 $soundVersion = $utf8.GetBytes('1')
 $java.Add('gameplay-sounds-version.txt', $soundVersion)
 $bedrock.Add('gameplay-sounds-version.txt', $soundVersion)
+
+# Advertise the clear cue only when the expected event and approved-format audio are present.
+if (@($javaSounds.'dungeon.clear'.sounds).Count -ne 1 -or
+    $javaSounds.'dungeon.clear'.sounds[0] -cne 'astralrecord:dungeon/clear') {
+    throw 'Invalid dungeon clear sound event.'
+}
+$clearAudio = $java['assets/astralrecord/sounds/dungeon/clear.ogg']
+if ($clearAudio.Length -lt 35 -or $utf8.GetString($clearAudio, 0, 4) -cne 'OggS' -or
+    $clearAudio[28] -ne 1 -or $utf8.GetString($clearAudio, 29, 6) -cne 'vorbis') {
+    throw 'Dungeon clear sound must be Ogg Vorbis.'
+}
+$clearSoundVersion = $utf8.GetBytes('1')
+$java.Add('dungeon-clear-sound-version.txt', $clearSoundVersion)
+$bedrock.Add('dungeon-clear-sound-version.txt', $clearSoundVersion)
 
 # Include the template and file names in the fingerprint. Any distributed
 # Bedrock asset change results in a new pack ID, bypassing client pack caching.

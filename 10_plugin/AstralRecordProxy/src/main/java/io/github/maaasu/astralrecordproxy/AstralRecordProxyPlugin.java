@@ -467,6 +467,9 @@ public final class AstralRecordProxyPlugin {
                     if (GeyserPackCapabilities.hasChallengeCountdown(update.playerId())) {
                         connection.sendPluginMessage(CHANNEL, BackendProtocol.challengeCountdownReady());
                     }
+                    if (GeyserPackCapabilities.hasDungeonClearSound(update.playerId())) {
+                        connection.sendPluginMessage(CHANNEL, BackendProtocol.dungeonClearSoundReady());
+                    }
                     if (GeyserPackCapabilities.hasGameplaySounds(update.playerId())) {
                         connection.sendPluginMessage(CHANNEL, BackendProtocol.gameplaySoundsReady());
                     }

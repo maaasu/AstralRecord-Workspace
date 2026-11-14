@@ -6,7 +6,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/** 通常攻撃とGUIのリソースパック音を、対応する接続へ送ります。 */
+/** 通常攻撃・GUI・ダンジョンクリアのリソースパック音を、対応する接続へ送ります。 */
 public final class GameplaySound {
     private static final String NAMESPACE = "astralrecord:";
     private static @Nullable ResourcePackService resourcePacks;
@@ -39,6 +39,20 @@ public final class GameplaySound {
             return false;
         }
         player.playSound(origin, NAMESPACE + eventPath, SoundCategory.PLAYERS, volume, pitch);
+        return true;
+    }
+
+    /**
+     * メインスレッドから、対応パックを適用したプレイヤー本人へダンジョンクリア音を一度送ります。
+     *
+     * @param player 再生対象
+     * @return 専用音を送信した場合は true
+     */
+    public static boolean tryPlayDungeonClear(@NotNull Player player) {
+        if (resourcePacks == null || !resourcePacks.hasDungeonClearSound(player)) {
+            return false;
+        }
+        player.playSound(player.getLocation(), NAMESPACE + "dungeon.clear", SoundCategory.PLAYERS, 0.9F, 1.0F);
         return true;
     }
 }

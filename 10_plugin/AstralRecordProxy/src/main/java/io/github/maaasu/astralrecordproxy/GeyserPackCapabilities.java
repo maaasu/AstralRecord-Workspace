@@ -19,6 +19,11 @@ final class GeyserPackCapabilities {
         return supports(playerId, "hasChallengeCountdown");
     }
 
+    /** @return 専用ダンジョンクリア音がある接続の場合 true */
+    static boolean hasDungeonClearSound(UUID playerId) {
+        return supports(playerId, "hasDungeonClearSound");
+    }
+
     /** @return 拡張が専用効果音の対応を確認した場合true */
     static boolean hasGameplaySounds(UUID playerId) {
         return supports(playerId, "hasGameplaySounds");

@@ -61,6 +61,8 @@ public class ResourcePackService {
     private final Set<UUID> requestedJavaCombatRewardPlaque = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaChallengeCountdown = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockChallengeCountdown = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> requestedJavaDungeonClearSound = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> readyBedrockDungeonClearSound = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaReceptionDisplay = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockCombatRewardPlaque = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockCombatRewardPlaqueTiming = ConcurrentHashMap.newKeySet();
@@ -112,6 +114,7 @@ public class ResourcePackService {
         requestedJavaCombatRewardPlaque.remove(player.getUniqueId());
         requestedJavaReceptionDisplay.remove(player.getUniqueId());
         requestedJavaChallengeCountdown.remove(player.getUniqueId());
+        requestedJavaDungeonClearSound.remove(player.getUniqueId());
         if (configProperties.isResourcePackManagedEnabled() && !isBedrock(player.getName())) {
             pendingViewers.put(player.getUniqueId(), player);
             if (!manifestLoading) {
@@ -211,6 +214,7 @@ public class ResourcePackService {
                         requestedJavaCombatRewardPlaque.add(viewer);
                     }
                     if (pack.challengeCountdown()) requestedJavaChallengeCountdown.add(viewer);
+                    if (pack.dungeonClearSound()) requestedJavaDungeonClearSound.add(viewer);
                     if (pack.receptionDisplay()) {
                         requestedJavaReceptionDisplay.add(viewer);
                     }
@@ -342,6 +346,7 @@ public class ResourcePackService {
                     requestedJavaCombatRewardPlaque.remove(viewer);
                     requestedJavaReceptionDisplay.remove(viewer);
                     requestedJavaChallengeCountdown.remove(viewer);
+                    requestedJavaDungeonClearSound.remove(viewer);
                 }
                 default -> { }
             }
@@ -760,6 +765,25 @@ public class ResourcePackService {
     }
 
     /**
+     * 対応する管理パックを適用した接続だけがダンジョンクリア音を使えます。
+     * @param player 再生対象のプレイヤー
+     * @return 専用音を含むパックの適用を確認済みなら true
+     */
+    public boolean hasDungeonClearSound(Player player) {
+        UUID viewer = player.getUniqueId();
+        return readyBedrockDungeonClearSound.contains(viewer)
+            || (hasManagedJavaPack(viewer) && requestedJavaDungeonClearSound.contains(viewer));
+    }
+
+    /**
+     * Proxy が検証した Bedrock パックのダンジョンクリア音対応を記録します。
+     * @param player 対応通知を受信したオンラインプレイヤー
+     */
+    public void markBedrockDungeonClearSoundReady(Player player) {
+        if (player.isOnline()) readyBedrockDungeonClearSound.add(player.getUniqueId());
+    }
+
+    /**
      * 受付モデル対応の管理Javaパックが現在の接続で適用済みか確認します。
      * @param playerId 閲覧者のUUID
      * @return 受付モデル対応を宣言したパックの適用が成功済みならtrue
@@ -842,6 +866,7 @@ public class ResourcePackService {
         requestedGameplaySounds.remove(playerId);
         readyBedrockGameplaySounds.remove(playerId);
         readyBedrockChallengeCountdown.remove(playerId);
+        readyBedrockDungeonClearSound.remove(playerId);
         loadedSunbirdPresentation.remove(playerId);
         requestedSunbirdPresentation.remove(playerId);
         requestedSeleneaPresentation.remove(playerId);
@@ -859,6 +884,7 @@ public class ResourcePackService {
         requestedJavaCombatRewardPlaque.remove(playerId);
         requestedJavaReceptionDisplay.remove(playerId);
         requestedJavaChallengeCountdown.remove(playerId);
+        requestedJavaDungeonClearSound.remove(playerId);
         readyBedrockCombatRewardPlaque.remove(playerId);
         readyBedrockCombatRewardPlaqueTiming.remove(playerId);
         readyBedrockCombatRewardPlaqueWidth.remove(playerId);
