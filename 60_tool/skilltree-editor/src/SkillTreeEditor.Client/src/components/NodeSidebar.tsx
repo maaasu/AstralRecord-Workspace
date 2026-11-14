@@ -17,6 +17,9 @@ interface NodeSidebarProps {
   onEdit: (node: NodeMaster) => void
   onCreate: () => void
   onPlace?: (node: NodeMaster) => void
+  /** 配置済みノードをキャンバスの中央へ表示する。 */
+  onShow?: (node: NodeMaster) => void
+  selectedNodeId?: string | null
   placementDisabled?: boolean
   iconRevision?: number
   skillMasters: readonly SkillMasterSummary[]
@@ -48,6 +51,8 @@ export function NodeSidebar({
   onEdit,
   onCreate,
   onPlace,
+  onShow,
+  selectedNodeId = null,
   placementDisabled = false,
   iconRevision = 0,
   skillMasters,
@@ -102,9 +107,9 @@ export function NodeSidebar({
         </select>
       </div>
       <div className="node-groups" data-split={unplaced.length > 0 && placed.length > 0} style={{ '--node-group-height': `${groupHeight}px` } as CSSProperties}>
-      <NodeGroup label="未配置" pageContext={pageContext} entries={unplaced} placedIds={placedIds} onEdit={onEdit} onPlace={onPlace} placementDisabled={placementDisabled} iconRevision={iconRevision} />
+      <NodeGroup label="未配置" pageContext={pageContext} entries={unplaced} placedIds={placedIds} selectedNodeId={selectedNodeId} onEdit={onEdit} onPlace={onPlace} placementDisabled={placementDisabled} iconRevision={iconRevision} />
       {unplaced.length > 0 && placed.length > 0 && <ResizeHandle label="未配置と配置済み一覧の高さを変更" size={groupHeight} min={100} max={1000} defaultSize={280} minRemaining={100} orientation="horizontal" onResize={setGroupHeight} />}
-      <NodeGroup label="配置済み" pageContext={pageContext} entries={placed} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} />
+      <NodeGroup label="配置済み" pageContext={pageContext} entries={placed} placedIds={placedIds} selectedNodeId={selectedNodeId} onEdit={onEdit} onShow={onShow} placementDisabled={placementDisabled} iconRevision={iconRevision} />
       </div>
     </aside>
   )
@@ -115,8 +120,10 @@ function NodeGroup({
   pageContext,
   entries,
   placedIds,
+  selectedNodeId,
   onEdit,
   onPlace,
+  onShow,
   placementDisabled,
   iconRevision,
 }: {
@@ -124,8 +131,10 @@ function NodeGroup({
   pageContext: string
   entries: NodeListingEntry[]
   placedIds: Set<string>
+  selectedNodeId: string | null
   onEdit: (node: NodeMaster) => void
   onPlace?: (node: NodeMaster) => void
+  onShow?: (node: NodeMaster) => void
   placementDisabled?: boolean
   iconRevision: number
 }) {
@@ -162,7 +171,8 @@ function NodeGroup({
       <div className="node-list" ref={listRef}>
         {visibleEntries.map(({ node, name, effects, cost, tags, tooltip }, index) => {
           return <article
-            className={`node-list-item ${placedIds.has(node.nodeId) ? 'placed' : ''}`}
+            className={`node-list-item ${placedIds.has(node.nodeId) ? 'placed' : ''} ${node.nodeId === selectedNodeId ? 'selected' : ''}`}
+            aria-current={node.nodeId === selectedNodeId ? 'true' : undefined}
             key={node.nodeId}
             title={tooltip}
             draggable={!placedIds.has(node.nodeId)}
@@ -191,7 +201,11 @@ function NodeGroup({
                 {effects.length > 2 && <span className="node-effect more">ほか{effects.length - 2}件</span>}
               </div>
             )}
-            <div className="node-list-actions">{onPlace && <button className="button compact subtle" aria-label={`${name}を座標指定で配置`} disabled={placementDisabled} onClick={() => onPlace(node)}>配置</button>}<button className="text-button" ref={index === 0 ? firstEditRef : undefined} onClick={() => onEdit(node)}>編集</button></div>
+            <div className="node-list-actions">
+              {onPlace && <button className="button compact subtle" aria-label={`${name}を座標指定で配置`} disabled={placementDisabled} onClick={() => onPlace(node)}>配置</button>}
+              {onShow && <button className="button compact subtle" aria-label={`${name}をキャンバスで表示`} title="キャンバスの中央に表示して選択" disabled={placementDisabled} onClick={() => onShow(node)}>表示</button>}
+              <button className="text-button" ref={index === 0 ? firstEditRef : undefined} onClick={() => onEdit(node)}>編集</button>
+            </div>
           </article>
         })}
         {entries.length === 0 && <p className="empty-state">該当ノードはありません。</p>}

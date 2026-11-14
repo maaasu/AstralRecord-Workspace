@@ -4,19 +4,36 @@ using SkillTreeEditor.Server.Models;
 namespace SkillTreeEditor.Server.Services;
 
 /// <summary>Filebase の一覧用ファセット、ドロップ元、タグを一度の解析で索引化する。</summary>
-public sealed class MasterDataFilterIndexService(MasterDataPaths paths, MasterDataCodec codec, MasterTagCatalog tagCatalog)
+public sealed class MasterDataFilterIndexService(MasterDataPaths paths, MasterDataCodec codec, MasterTagCatalog tagCatalog,
+    FilebaseSnapshotCache? snapshots = null)
 {
-    public async Task<MasterDataFilterIndex> ReadAsync(CancellationToken token)
+    private readonly FilebaseSnapshotCache _snapshots = snapshots ?? new(paths, codec);
+    // Filebase が変わらない間は、前回組み立てた索引をそのまま返す。
+    private volatile Latest? _latest;
+
+    private sealed record Latest(FilebaseSnapshot Snapshot, MasterDataFilterIndex Index);
+
+    public async Task<MasterDataFilterIndex> ReadAsync(CancellationToken token, bool reload = false)
+    {
+        var snapshot = await _snapshots.GetAsync(token, reload: reload, includeSchemas: false);
+        if (!reload && _latest is { } latest && ReferenceEquals(latest.Snapshot, snapshot)) return latest.Index;
+        var index = await BuildAsync(snapshot, token);
+        _latest = new(snapshot, index);
+        return index;
+    }
+
+    private async Task<MasterDataFilterIndex> BuildAsync(FilebaseSnapshot snapshot, CancellationToken token)
     {
         var documents = new List<(string Path, JsonObject Content)>();
         var pools = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
         var tables = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
-        foreach (var file in DataFiles())
+        foreach (var source in snapshot.Documents.OrderBy(document => document.FullPath, StringComparer.Ordinal))
         {
             token.ThrowIfCancellationRequested();
-            var obj = await ReadObjectAsync(file, token);
+            // UTF-8 として不正なファイルは、従来どおり寛容に読み直した結果を使う。
+            var obj = source.DecodeError is null ? source.Content as JsonObject : await ReadObjectAsync(source.FullPath, token);
             if (obj is null) continue;
-            var path = paths.Relative(file);
+            var path = source.Path;
             documents.Add((path, obj));
             if (Text(obj["id"]) is not { Length: > 0 } id) continue;
             if (path.StartsWith("80.shared.loot/pool/", StringComparison.Ordinal)) pools[id] = obj;
@@ -89,10 +106,6 @@ public sealed class MasterDataFilterIndexService(MasterDataPaths paths, MasterDa
             skillTags.OrderBy(skill => skill.Path, StringComparer.Ordinal).ToArray(), tagsForFilter,
             entries.OrderBy(entry => entry.Path, StringComparer.Ordinal).ToArray());
     }
-
-    private IEnumerable<string> DataFiles() => paths.Enumerate()
-        .Where(path => MasterDataPaths.IsData(path) && !path.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase))
-        .Order(StringComparer.Ordinal);
 
     private static string[] StringArray(JsonNode? node)
     {
@@ -168,6 +181,7 @@ public sealed class MasterDataFilterIndexService(MasterDataPaths paths, MasterDa
 
     private async Task<JsonObject?> ReadObjectAsync(string path, CancellationToken token)
     {
+        paths.RequireNoLinks(path);
         var raw = await File.ReadAllTextAsync(path, token);
         return codec.Parse(path, raw).Content as JsonObject;
     }

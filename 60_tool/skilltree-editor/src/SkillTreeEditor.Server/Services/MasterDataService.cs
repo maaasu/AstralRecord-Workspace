@@ -9,22 +9,28 @@ using SkillTreeEditor.Server.Models;
 namespace SkillTreeEditor.Server.Services;
 
 public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths workspace, MasterDataCodec codec,
-    MasterDataValidation validation, WorkspaceMutationGate mutations, BackupService backups)
+    MasterDataValidation validation, WorkspaceMutationGate mutations, BackupService backups,
+    FilebaseSnapshotCache? snapshots = null)
 {
-    public async Task<IReadOnlyList<MasterDataFile>> ListAsync(string? category, string? query, CancellationToken token)
+    // 全ファイルを走査する処理は読込済みの文書を共有する。1件の読込・保存は常にファイルから読み直す。
+    private readonly FilebaseSnapshotCache _snapshots = snapshots ?? new(paths, codec);
+
+    public async Task<IReadOnlyList<MasterDataFile>> ListAsync(string? category, string? query, CancellationToken token, bool reload = false)
     {
         var result = new List<MasterDataFile>();
         Dictionary<string, string>? mobNames = null;
-        foreach (var file in paths.Enumerate(string.IsNullOrWhiteSpace(category) || category == "." ? null : category).Where(MasterDataPaths.IsData).Order(StringComparer.Ordinal))
+        var wholeFilebase = string.IsNullOrWhiteSpace(category) || category == ".";
+        var snapshot = await _snapshots.GetAsync(token, wholeFilebase ? null : category, reload);
+        foreach (var source in snapshot.Documents.OrderBy(document => document.FullPath, StringComparer.Ordinal))
         {
-            var document = await ReadAsync(paths.Relative(file), token);
+            var document = source.RequireReadable();
             var obj = document.Content as JsonObject;
             var id = MasterDataValidation.Text(obj?["id"] ?? obj?["nodeId"] ?? obj?["structureId"]);
             var name = DisplayName(obj);
             var kind = Kind(document.Path);
             if (kind == "mob_spawner" && obj?["spawnMobs"] is JsonArray spawns)
             {
-                mobNames ??= await ReadMobNamesAsync(token);
+                mobNames ??= ReadMobNames(wholeFilebase ? snapshot : await _snapshots.GetAsync(token, "40.features.mob", reload));
                 var labels = spawns.OfType<JsonObject>().Select(spawn =>
                 {
                     var mobId = MasterDataValidation.Text(spawn["mobId"]) ?? "不明なモブ";
@@ -48,10 +54,9 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
             var modelData = ReadModelData(obj?["customModelData"]);
             var iconTexture = JsonValueReader.String(obj?["iconTexture"]);
             if (!string.IsNullOrWhiteSpace(query) && !(document.Path + "\n" + id + "\n" + name + "\n" + document.Raw).Contains(query, StringComparison.OrdinalIgnoreCase)) continue;
-            var info = new FileInfo(file);
-            result.Add(new(document.Path, paths.Relative(info.DirectoryName!), document.Format, id, name,
-                info.Length, info.LastWriteTimeUtc, document.Revision, document.Issues.FirstOrDefault()?.Message,
-                MasterDataPaths.IsReadOnly(document.Path), icon, icon is null ? null : modelData, iconTexture));
+            result.Add(new(document.Path, paths.Relative(Path.GetDirectoryName(document.FullPath)!), document.Format, id, name,
+                document.Length, document.LastWriteTimeUtc, document.Revision, document.Issues.FirstOrDefault()?.Message,
+                document.IsReadOnly, icon, icon is null ? null : modelData, iconTexture));
         }
         return result;
     }
@@ -152,12 +157,12 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
         }
     }
 
-    private async Task<Dictionary<string, string>> ReadMobNamesAsync(CancellationToken token)
+    private Dictionary<string, string> ReadMobNames(FilebaseSnapshot snapshot)
     {
         var names = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var file in paths.Enumerate("40.features.mob").Where(MasterDataPaths.IsData))
+        foreach (var source in snapshot.Under(paths.Resolve("40.features.mob", true)))
         {
-            var document = await ReadAsync(paths.Relative(file), token);
+            var document = source.RequireReadable();
             if (document.Content is not JsonObject obj) continue;
             var id = MasterDataValidation.Text(obj["id"]);
             var name = DisplayName(obj);
@@ -197,7 +202,7 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
             var oldWorldId = BossEntryWorldId(existing.Content);
             var newWorldId = BossEntryWorldId(parsed.Content);
             if (newWorldId is not null && newWorldId != oldWorldId &&
-                !(await ListAsync("60.features.world", null, token)).Any(world => world.Id == newWorldId))
+                !(await ListAsync("60.features.world", null, token, reload: true)).Any(world => world.Id == newWorldId))
                 throw new MasterDataValidationException(new(false,
                     [new("error", "REFERENCE_MISSING", "/challenge/entryLocation/worldId", "指定した受付地点のワールドマスターがありません。")]));
         }
@@ -319,11 +324,13 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
         }
         var prefixes = await ConfiguredPrefixesAsync(kind, token);
         var result = new List<MasterDataReference>();
-        foreach (var file in paths.Enumerate().Where(MasterDataPaths.IsData))
+        // 削除時の保護と外部編集後の参照元確認に使うため、参照元は実ファイルから読み直す。
+        foreach (var cached in (await _snapshots.GetAsync(token, reload: true, includeSchemas: false)).Documents)
         {
-            var relative = paths.Relative(file);
-            if (relative.Equals(path, MasterDataPaths.Comparison) || file.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase)) continue;
-            var document = await ReadAsync(relative, token);
+            var relative = cached.Path;
+            var file = cached.FullPath;
+            if (relative.Equals(path, MasterDataPaths.Comparison)) continue;
+            var document = cached.RequireReadable();
             foreach (var value in Walk(document.Content))
             {
                 if (sourceIds.Any(sourceId => prefixes.Any(prefix => value.Value == prefix + ":" + sourceId)
@@ -354,11 +361,10 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
     public async Task<IReadOnlyList<MasterDataReference>> CandidatesAsync(CancellationToken token)
     {
         var result = new List<MasterDataReference>();
-        foreach (var file in paths.Enumerate().Where(MasterDataPaths.IsData))
+        foreach (var source in (await _snapshots.GetAsync(token, includeSchemas: false)).Documents)
         {
-            if (file.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase)) continue;
-            var path = paths.Relative(file);
-            var document = await ReadAsync(path, token);
+            var path = source.Path;
+            var document = source.RequireReadable();
             if (document.Content is JsonObject root)
             {
                 var key = root.ContainsKey("id") ? "id" : root.ContainsKey("nodeId") ? "nodeId" : "structureId";

@@ -101,6 +101,7 @@ body.resizing-rows, body.resizing-rows * { cursor: row-resize !important; }
 .node-list-item { position: relative; display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; grid-template-rows: auto auto auto auto auto; gap: 2px 8px; margin: 5px 0; padding: 8px 8px 8px 10px; border: 1px solid var(--line); border-left: 3px solid #607ba3; border-radius: 5px; background: #182231; cursor: grab; }
 .node-list-item.placed { border-left-color: #536070; opacity: .72; cursor: default; }
 .node-list-item:hover { border-color: #4a607e; }
+.node-list-item.selected { border-color: #9cc8ff; border-left-color: #9cc8ff; opacity: 1; box-shadow: 0 0 0 1px #75a7e844; }
 .node-list-item strong { grid-column: 2; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .node-list-item .text-button { grid-column: 3; grid-row: 1 / -1; align-self: center; }
 .node-id { color: var(--text-muted); font: 10px ui-monospace, monospace; }
@@ -139,10 +140,30 @@ body.resizing-rows, body.resizing-rows * { cursor: row-resize !important; }
 .skill-node strong { width: 100%; display: -webkit-box; overflow: hidden; font-size: 11px; line-height: 1.25; text-align: center; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .skill-node.compact { grid-template-rows: 1fr; }
 .skill-node.compact strong, .skill-node.compact .node-kicker, .skill-node.compact .root-label { display: none; }
+/* アイコンだけの大きさでも、ポインターを重ねたノードと選択中のノードは名前を下に出す。 */
+.skill-node.compact:hover strong, .skill-node.compact.selected strong { position: absolute; top: calc(100% + 5px); left: 50%; z-index: 5; display: block; width: max-content; max-width: 240px; padding: 3px 7px; overflow: hidden; border: 1px solid var(--line-bright); border-radius: 4px; color: #e8eef7; background: #0d141ff2; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; transform: translateX(-50%); pointer-events: none; }
+.skill-node.compact.selected strong { border-color: #9cc8ff; }
+.react-flow__node:hover { z-index: 1001 !important; }
 .node-kicker { display: block; max-width: 100%; overflow: hidden; color: #93a4bc; font: 8px ui-monospace, monospace; text-overflow: ellipsis; white-space: nowrap; }
 .root-label { position: absolute; right: 6px; top: -8px; padding: 2px 5px; border: 1px solid #b28a48; border-radius: 3px; color: #20180c; background: var(--gold); font-size: 8px; font-weight: 800; }
 .effect-count { position: absolute; right: -5px; bottom: -5px; min-width: 15px; height: 15px; display: grid; place-items: center; padding: 0 3px; border: 1px solid #76568a; border-radius: 99px; color: #f2defc; background: #392747; font: 700 8px ui-monospace, monospace; }
 .react-flow__handle { width: 8px; height: 8px; border-color: #151d29; background: #9fb6d7; }
+.react-flow__edge.connected .react-flow__edge-path { stroke: #9cc8ff; stroke-width: 3; }
+.react-flow__edge.connected.selected .react-flow__edge-path { stroke: var(--gold); }
+/* 縮小表示では文字と影を省く。接続ハンドルは引き続き操作できる。 */
+.canvas.overview .skill-node { box-shadow: none; }
+.canvas.overview .skill-node strong, .canvas.overview .node-kicker, .canvas.overview .root-label, .canvas.overview .effect-count { visibility: hidden; }
+.canvas.overview .skill-node.root { outline: 6px solid var(--gold); outline-offset: 3px; }
+.canvas.overview .skill-node.selected { outline: 6px solid #9cc8ff; outline-offset: 3px; }
+.canvas.overview .react-flow__edge-path { stroke-width: 5; }
+.canvas.overview .react-flow__edge.connected .react-flow__edge-path, .canvas.overview .react-flow__edge.selected .react-flow__edge-path { stroke-width: 8; }
+.canvas-controls { display: flex; flex-wrap: wrap; align-items: center; max-width: calc(100% - 20px); gap: 4px; margin: 10px; padding: 4px; border: 1px solid var(--line); border-radius: 7px; background: #111925ee; box-shadow: 0 6px 18px #0006; }
+.canvas-controls button { min-height: 28px; padding: 4px 9px; border: 1px solid transparent; border-radius: 4px; color: #dce5f1; background: transparent; cursor: pointer; font-size: 11px; white-space: nowrap; }
+.canvas-controls button:hover:not(:disabled) { border-color: var(--line-bright); background: var(--surface-soft); }
+.canvas-controls button:disabled { color: #637186; cursor: default; }
+.canvas-zoom { display: flex; align-items: center; padding-right: 4px; border-right: 1px solid var(--line); }
+.canvas-zoom button { min-width: 28px; padding-inline: 0; font-size: 14px; line-height: 1; }
+.canvas-zoom-level { min-width: 42px; color: var(--text-muted); font: 11px ui-monospace, monospace; text-align: center; }
 .node-context-menu { position: absolute; z-index: 30; width: 230px; padding: 6px; border: 1px solid #536987; border-radius: 7px; background: #151e2bf5; box-shadow: 0 14px 36px #000c; backdrop-filter: blur(7px); }
 .node-context-menu button { width: 100%; padding: 8px 9px; border: 0; border-radius: 4px; color: #dce5f1; background: transparent; cursor: pointer; font-size: 11px; text-align: left; }
 .node-context-menu button:hover:not(:disabled), .node-context-menu button:focus-visible { outline: none; background: #2b3a50; }

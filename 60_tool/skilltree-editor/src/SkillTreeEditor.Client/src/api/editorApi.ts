@@ -78,7 +78,7 @@ export const editorApi = {
   metadata: () => request<EditorMetadata>('/api/metadata'),
   listClasses: () => request<ClassMasterSummary[]>('/api/classes'),
   listSkills: () => request<SkillMasterSummary[]>('/api/skills'),
-  listNodes: () => request<StoredDocument<NodeMaster>[]>('/api/nodes'),
+  listNodes: (reload = false) => request<StoredDocument<NodeMaster>[]>(reload ? '/api/nodes?reload=true' : '/api/nodes'),
   createNode: (node: JsonObject) => versionedRequest<NodeMaster>('/api/nodes', json('POST', node)),
   saveNode: (node: NodeMaster, revision: string) => versionedRequest<NodeMaster>(
     `/api/nodes/${encodeURIComponent(node.nodeId)}`,
@@ -88,7 +88,7 @@ export const editorApi = {
     `/api/nodes/${encodeURIComponent(nodeId)}`,
     matchRevision({ method: 'DELETE' }, revision),
   ),
-  listStructures: () => request<StoredDocument<StructureDocument>[]>('/api/structures'),
+  listStructures: (reload = false) => request<StoredDocument<StructureDocument>[]>(reload ? '/api/structures?reload=true' : '/api/structures'),
   createStructure: (structure: StructureDocument) => versionedRequest<StructureDocument>(
     '/api/structures',
     json('POST', structure),

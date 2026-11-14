@@ -390,6 +390,134 @@ describe('SkillTreeCanvas', () => {
     expect(onRecord).toHaveBeenCalledWith({ ...structure, edges: [] })
   })
 
+  describe('large structures', () => {
+    // 20 × 20 の格子。起点は左上で、初期表示では周辺の数ノードしか画面に入らない。
+    const largeMasters = Array.from({ length: 400 }, (_, index) => ({ ...masters[1], nodeId: String(3000 + index), name: `大規模${index}` }))
+    const largeStructure: StructureDocument = {
+      ...structure,
+      rootNodeId: '3000',
+      nodes: largeMasters.map((master, index) => ({ nodeId: master.nodeId, x: index % 20 * 6, y: 0, z: Math.floor(index / 20) * 6 })),
+      edges: largeMasters.slice(1).map((master, index) => ({ sourceNodeId: String(3000 + index), targetNodeId: master.nodeId })),
+    }
+    const renderLarge = (patch: Partial<ComponentProps<typeof SkillTreeCanvas>> = {}) => {
+      let props: ComponentProps<typeof SkillTreeCanvas> = { structure: largeStructure, masters: largeMasters, onRecord: vi.fn(), onReplace: vi.fn(),
+        onSelectedNode: vi.fn(), onBeginTransaction: vi.fn(), onCommitTransaction: vi.fn(), onEditMaster: vi.fn(), onNotify: vi.fn(), ...patch }
+      const view = render(<div style={{ width: 800, height: 600 }}><SkillTreeCanvas {...props} /></div>)
+      return {
+        props,
+        update: (next: Partial<typeof props>) => {
+          props = { ...props, ...next }
+          view.rerender(<div style={{ width: 800, height: 600 }}><SkillTreeCanvas {...props} /></div>)
+        },
+      }
+    }
+    const renderedNodes = () => document.querySelectorAll('.react-flow__node').length
+
+    it('opens around the root and renders only the nodes in view', async () => {
+      const effects = vi.spyOn(nodePresentation, 'describeNodeEffects')
+      renderLarge()
+      expect(await screen.findByTestId('rf__node-3000')).toBeInTheDocument()
+      await waitFor(() => expect(renderedNodes()).toBeLessThan(60))
+      expect(screen.queryByTestId('rf__node-3399')).not.toBeInTheDocument()
+      // 画面外のノードも説明文は用意済みで、表示したときに作り直さない。
+      expect(effects).toHaveBeenCalledTimes(400)
+      // 画面外へ伸びる接続も、計測前の寸法から引ける。
+      expect(await screen.findByTestId('rf__edge-edge:3000:3001')).toBeInTheDocument()
+    })
+
+    it('moves the view to a requested node, selects it and reports nodes hidden by the filter', { timeout: 15000 }, async () => {
+      const onSelectedNode = vi.fn(), onNotify = vi.fn()
+      const { update } = renderLarge({ onSelectedNode, onNotify })
+      await screen.findByTestId('rf__node-3000')
+      await waitFor(() => expect(screen.queryByTestId('rf__node-3399')).not.toBeInTheDocument())
+
+      update({ focusRequest: { nodeId: '3399' } })
+      const target = await screen.findByTestId('rf__node-3399')
+      await waitFor(() => expect(target).toHaveClass('selected'))
+      expect(onSelectedNode).toHaveBeenLastCalledWith('3399')
+      await waitFor(() => expect(screen.queryByTestId('rf__node-3000')).not.toBeInTheDocument())
+
+      // 同じ依頼は再描画されても繰り返さない。
+      fireEvent.click(screen.getByRole('button', { name: '起点へ' }))
+      expect(await screen.findByTestId('rf__node-3000')).toBeInTheDocument()
+      update({ iconRevision: 1 })
+      expect(screen.getByTestId('rf__node-3000')).toBeInTheDocument()
+
+      update({ visibleNodeIds: new Set(['3000']), focusRequest: { nodeId: '3399' } })
+      await waitFor(() => expect(onNotify).toHaveBeenCalledWith('ノード #3399 は現在の表示条件ではキャンバスに表示されていません。'))
+    })
+
+    it('keeps unchanged nodes mounted when one placement moves', async () => {
+      const { update } = renderLarge()
+      const root = await screen.findByTestId('rf__node-3000')
+      const neighbour = await screen.findByTestId('rf__node-3001')
+      const icon = neighbour.querySelector('img')
+      update({ structure: { ...largeStructure, nodes: largeStructure.nodes.map(placement => placement.nodeId === '3000' ? { ...placement, x: 1, z: 1 } : { ...placement }) } })
+      await waitFor(() => expect(root.style.transform).toMatch(/translate\(36px,\s*36px\)/))
+      expect(screen.getByTestId('rf__node-3001')).toBe(neighbour)
+      expect(neighbour.querySelector('img')).toBe(icon)
+    })
+
+    it('fits the remaining nodes when a simulation hides all nodes in the viewport', async () => {
+      const { update } = renderLarge()
+      await screen.findByTestId('rf__node-3000')
+      expect(screen.queryByTestId('rf__node-3399')).not.toBeInTheDocument()
+
+      update({ visibleNodeIds: new Set(['3399']) })
+      await waitFor(() => expect(screen.getByRole('button', { name: '起点へ' })).toBeDisabled())
+      await waitFor(() => expect(screen.getByLabelText('現在の表示倍率')).toHaveTextContent(/250%/))
+      expect(screen.getByTestId('rf__node-3399')).toBeInTheDocument()
+    })
+  })
+
+  it('fits distant nodes below 10% and keeps the initial selection', async () => {
+    const distant = { ...structure, nodes: [structure.nodes[0], { ...structure.nodes[1], x: 300 }] }
+    render(<div style={{ width: 800, height: 600 }}><SkillTreeCanvas structure={distant} masters={masters}
+      selectedNodeId="1001" onRecord={vi.fn()} onReplace={vi.fn()} onSelectedNode={vi.fn()} onBeginTransaction={vi.fn()}
+      onCommitTransaction={vi.fn()} onEditMaster={vi.fn()} onNotify={vi.fn()} /></div>)
+    const node = await screen.findByTestId('rf__node-1001')
+    expect(node).toHaveClass('selected')
+    expect(screen.getByRole('button', { name: '選択へ' })).toBeEnabled()
+    fireEvent.click(screen.getByRole('button', { name: '全体表示' }))
+    await waitFor(() => expect(Number.parseFloat(screen.getByLabelText('現在の表示倍率').textContent)).toBeLessThan(10))
+  })
+
+  it('keeps the selected placement and its connections when deletion is declined', async () => {
+    const onRecord = vi.fn().mockReturnValue(false)
+    render(<div style={{ width: 800, height: 600 }}><SkillTreeCanvas structure={structure} masters={masters}
+      onRecord={onRecord} onReplace={vi.fn()} onSelectedNode={vi.fn()} onBeginTransaction={vi.fn()}
+      onCommitTransaction={vi.fn()} onEditMaster={vi.fn()} onNotify={vi.fn()} /></div>)
+    const node = await screen.findByTestId('rf__node-1001')
+    fireEvent.click(node)
+    await waitFor(() => expect(node).toHaveClass('selected'))
+    fireEvent.keyDown(document, { key: 'Delete', code: 'Delete' })
+    try {
+      await waitFor(() => expect(onRecord).toHaveBeenCalledOnce())
+    } finally {
+      fireEvent.keyUp(document, { key: 'Delete', code: 'Delete' })
+    }
+    expect(onRecord).toHaveBeenCalledWith({ ...structure, nodes: [structure.nodes[0]], edges: [] })
+    expect(node).toHaveClass('selected')
+    expect(screen.getByTestId('rf__edge-edge:1000:1001')).toBeInTheDocument()
+  })
+
+  it('offers view controls and opens the master editor on double click', async () => {
+    const onEditMaster = vi.fn()
+    render(<div style={{ width: 800, height: 600 }}><SkillTreeCanvas structure={structure} masters={masters}
+      onRecord={vi.fn()} onReplace={vi.fn()} onSelectedNode={vi.fn()} onBeginTransaction={vi.fn()} onCommitTransaction={vi.fn()} onEditMaster={onEditMaster} onNotify={vi.fn()} /></div>)
+    const node = await screen.findByTestId('rf__node-1001')
+    expect(screen.getByRole('button', { name: '選択へ' })).toBeDisabled()
+    for (const name of ['縮小', '拡大', '起点へ', '全体表示']) expect(screen.getByRole('button', { name })).toBeEnabled()
+    expect(screen.getByLabelText('現在の表示倍率')).toHaveTextContent(/^\d+%$/)
+
+    fireEvent.click(node)
+    await waitFor(() => expect(screen.getByRole('button', { name: '選択へ' })).toBeEnabled())
+    // 選択したノードにつながる接続を強調する。
+    expect(screen.getByTestId('rf__edge-edge:1000:1001')).toHaveClass('connected')
+    fireEvent.doubleClick(node)
+    expect(onEditMaster).toHaveBeenCalledWith(masters[1])
+  })
+
   it('applies the selected visual node size', async () => {
     render(
       <div style={{ width: 800, height: 600 }}>

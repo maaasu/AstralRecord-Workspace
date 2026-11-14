@@ -25,6 +25,8 @@ builder.Services.AddSingleton<MasterTagCatalog>();
 builder.Services.AddSingleton<WorkspaceMutationGate>();
 builder.Services.AddSingleton<MasterDataPaths>();
 builder.Services.AddSingleton<MasterDataCodec>();
+builder.Services.AddSingleton<FilebaseSnapshotCache>();
+builder.Services.AddHostedService<EditorWarmup>();
 builder.Services.AddSingleton<MasterDataCatalog>();
 builder.Services.AddSingleton<MasterDataValidation>();
 builder.Services.AddSingleton<MasterDataService>();

@@ -8,6 +8,12 @@ namespace SkillTreeEditor.Server.Services;
 
 public sealed partial class MasterDataCatalog(MasterDataPaths paths)
 {
+    // Filebase と Buff HUD アイコン登録が変わらない間は、前回組み立てたカタログをそのまま返す。
+    private volatile Latest? _latest;
+
+    private sealed record Latest(MasterDataEntry[] Entries, BuffHudStamp BuffHud, string Backups, MasterDataCatalogResult Result);
+    private readonly record struct BuffHudStamp(bool Exists, long Length, DateTime LastWriteTimeUtc);
+
     internal const string BuffCategory = "70.shared.buff";
     internal const string BuffHudIconFieldPath = "/hudIconTexture";
 
@@ -72,9 +78,31 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         ["harvesting"] = "植物採集", ["mining"] = "採掘"
     };
 
-    public async Task<MasterDataCatalogResult> ReadAsync(string backups, CancellationToken token)
+    public async Task<MasterDataCatalogResult> ReadAsync(string backups, CancellationToken token, bool reload = false)
     {
-        var entries = paths.Enumerate().ToArray();
+        var entries = paths.EnumerateEntries().ToArray();
+        var buffHud = ReadBuffHudStamp();
+        var readAt = DateTime.UtcNow;
+        var settled = (!buffHud.Exists || readAt - buffHud.LastWriteTimeUtc > FilebaseSnapshotCache.RecentWriteWindow)
+            && entries.All(entry => readAt - entry.LastWriteTimeUtc > FilebaseSnapshotCache.RecentWriteWindow);
+        if (!reload && settled && _latest is { } latest && latest.BuffHud == buffHud
+            && latest.Backups == backups && latest.Entries.AsSpan().SequenceEqual(entries))
+            return latest.Result;
+        var result = await BuildAsync(entries.Select(entry => entry.FullPath).ToArray(), backups, token);
+        // 書き換え直後の登録ファイルは属性だけでは区別できないことがあるため、落ち着くまで再利用しない。
+        if (settled) _latest = new(entries, buffHud, backups, result);
+        return result;
+    }
+
+    private BuffHudStamp ReadBuffHudStamp()
+    {
+        paths.RequireNoLinks(paths.BuffHudIconRegistry);
+        var file = new FileInfo(paths.BuffHudIconRegistry);
+        return file.Exists ? new(true, file.Length, file.LastWriteTimeUtc) : default;
+    }
+
+    private async Task<MasterDataCatalogResult> BuildAsync(string[] entries, string backups, CancellationToken token)
+    {
         var directories = entries.Where(path => MasterDataPaths.IsData(path) || path.EndsWith("YAMLスキーマ定義.md", StringComparison.Ordinal))
             .Select(path => Path.GetDirectoryName(path)!).Distinct(MasterDataPaths.Comparer).Order(StringComparer.Ordinal).ToArray();
         var categories = new List<MasterDataCategory>();
@@ -103,7 +131,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
                 && path.EndsWith("YAMLスキーマ定義.md", StringComparison.Ordinal)).ToArray();
             documentPaths.InsertRange(0, localDocuments);
             // A separately defined resource (e.g. set_effect) is not an item subtype.
-            if (ancestor == directory && localDocuments.Any(document => Regex.IsMatch(File.ReadAllText(document), @"(?m)^\|\s*`schemaVersion`\s*\|"))) break;
+            if (ancestor == directory && localDocuments.Any(DefinesOwnVersion)) break;
             if (ancestor == paths.Root) break;
             ancestor = Path.GetDirectoryName(ancestor)!;
         }
@@ -111,6 +139,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         var fields = new Dictionary<string, MasterDataField>(StringComparer.Ordinal);
         foreach (var document in documentPaths)
         {
+            paths.RequireNoLinks(document);
             var raw = await File.ReadAllTextAsync(document, Encoding.UTF8, token);
             documents.Add(new(paths.Relative(document), raw.Split('\n').FirstOrDefault(line => line.StartsWith("# ", StringComparison.Ordinal))?.TrimStart('#', ' ', '\r') ?? Path.GetFileName(document)));
             if (category is not ("55.features.pet" or ProgressionPresetValidation.Category))
@@ -129,6 +158,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         {
             try
             {
+                paths.RequireNoLinks(path);
                 var schema = JsonNode.Parse(await File.ReadAllTextAsync(path, Encoding.UTF8, token));
                 if (schema is not null) schemas.Add(new(paths.Relative(path), schema["title"]?.ToString() ?? Path.GetFileName(path), schema));
             }
@@ -139,7 +169,10 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
                 foreach (var field in SchemaFields(schema.Schema, schema.Path)) fields[field.Path] = field;
         var templates = new List<MasterDataTemplate>();
         foreach (var path in ownFiles.Where(path => !path.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase)).Take(3))
+        {
+            paths.RequireNoLinks(path);
             templates.Add(new(paths.Relative(path), await File.ReadAllTextAsync(path, Encoding.UTF8, token)));
+        }
         var parts = category.Split('/');
         var label = string.Join(" / ", parts.Select(part => part switch
         {
@@ -149,6 +182,12 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         }));
         return new(category, category == "." ? "Filebase 設定" : label, category, ownFiles.Length,
             documents, fields.Values.ToArray(), schemas, templates, ItemCode(category));
+    }
+
+    private bool DefinesOwnVersion(string document)
+    {
+        paths.RequireNoLinks(document);
+        return Regex.IsMatch(File.ReadAllText(document), @"(?m)^\|\s*`schemaVersion`\s*\|");
     }
 
     private async Task<JsonArray?> ReadBuffHudIconsAsync(CancellationToken token)
