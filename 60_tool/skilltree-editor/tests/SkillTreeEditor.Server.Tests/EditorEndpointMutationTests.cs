@@ -22,10 +22,15 @@ public sealed class EditorEndpointMutationTests : IDisposable
     public async Task StaleNodeRevisionCannotOverwriteOrDeleteChangedNode()
     {
         await using var host = await StartAsync();
+        var path = Path.Combine(host.Paths.Nodes, "1000.json");
+        File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddMinutes(-10));
+        var stamp = File.GetLastWriteTimeUtc(path);
         using var original = await host.Client.GetAsync("/api/nodes/1000");
         var revision = original.Headers.ETag?.ToString() ?? "\"missing\"";
-        await File.WriteAllTextAsync(Path.Combine(host.Paths.Nodes, "1000.json"),
-            StableJson.Serialize(Node("1000", "External")));
+        var length = new FileInfo(path).Length;
+        await File.WriteAllTextAsync(path, StableJson.Serialize(Node("1000", "Edit")));
+        File.SetLastWriteTimeUtc(path, stamp);
+        Assert.Equal(length, new FileInfo(path).Length);
         using var save = new HttpRequestMessage(HttpMethod.Put, "/api/nodes/1000")
         { Content = JsonContent.Create(Node("1000", "Stale")) };
         save.Headers.TryAddWithoutValidation("If-Match", revision);
@@ -35,7 +40,7 @@ public sealed class EditorEndpointMutationTests : IDisposable
         using var deleted = await host.Client.SendAsync(delete);
         Assert.Equal(HttpStatusCode.Conflict, saved.StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, deleted.StatusCode);
-        Assert.Contains("External", await File.ReadAllTextAsync(Path.Combine(host.Paths.Nodes, "1000.json")));
+        Assert.Contains("Edit", await File.ReadAllTextAsync(path));
     }
 
     [Fact]

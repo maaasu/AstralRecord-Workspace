@@ -36,20 +36,29 @@ export function useMasterDataWorkspace() {
   const refreshId = useRef(0)
   const rememberedPaths = useRef<Record<string, string>>({})
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (reload = false) => {
     const requestId = ++refreshId.current
     // A save/create/delete can succeed even if the subsequent list refresh fails.
-    invalidateReferences()
+    if (!reload) invalidateReferences()
     setRefreshing(true)
     let nextCatalog: MasterCatalog
     let nextFiles: MasterFileSummary[]
     let nextFilterIndex: MasterFilterIndex | null
     try {
-      [nextCatalog, nextFiles, nextFilterIndex] = await Promise.all([
-        masterDataApi.catalog(), masterDataApi.files(), masterDataApi.filterIndex().catch(() => null),
+      // 明示的な再読込では、索引と候補の取得前に一覧用の文書をファイルから読み直す。
+      const fileList = reload ? masterDataApi.files('', '', true) : masterDataApi.files()
+      const filterIndex = reload ? fileList.then(() => masterDataApi.filterIndex()) : masterDataApi.filterIndex()
+      const result = await Promise.all([
+        reload ? masterDataApi.catalog(true) : masterDataApi.catalog(),
+        fileList,
+        filterIndex.catch(() => null),
       ])
+      nextCatalog = result[0]
+      nextFiles = result[1]
+      nextFilterIndex = result[2]
     } catch (reason) { if (requestId === refreshId.current) { setRefreshing(false); throw reason }; return }
     if (requestId !== refreshId.current) return
+    if (reload) invalidateReferences()
     setRefreshing(false); setError('')
     setCatalog(nextCatalog); setFiles(nextFiles); setFilterIndex(nextFilterIndex)
     setCategoryId((current) => nextCatalog.categories.some((entry) => entry.id === current) ? current

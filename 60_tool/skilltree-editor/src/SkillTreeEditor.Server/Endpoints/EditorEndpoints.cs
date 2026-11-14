@@ -23,14 +23,18 @@ public static class EditorEndpoints
                 string material,
                 bool? refresh,
                 MinecraftIconService icons,
+                HttpContext context,
                 CancellationToken token) =>
             {
                 try
                 {
                     var path = await icons.GetIconPathAsync(material, refresh ?? false, token);
-                    return path is null
-                        ? Results.NotFound(new { message = $"Minecraftアイコン '{material}' が見つかりません。" })
-                        : Results.File(path, "image/png", enableRangeProcessing: false);
+                    if (path is null)
+                        return Results.NotFound(new { message = $"Minecraftアイコン '{material}' が見つかりません。" });
+                    // 同じ素材のアイコンは変わらない。画面の「アイコン再読込」は revision を変えたURLで取り直す。
+                    context.Response.Headers.CacheControl = refresh == true ? "no-store" : "private, max-age=86400";
+                    return Results.File(path, "image/png", lastModified: refresh == true ? null : File.GetLastWriteTimeUtc(path),
+                        enableRangeProcessing: false);
                 }
                 catch (HttpRequestException exception)
                 {
@@ -54,9 +58,9 @@ public static class EditorEndpoints
                 });
         }
 
-        api.MapGet("/nodes", async (FilebaseRepository repository, CancellationToken token) =>
+        api.MapGet("/nodes", async (bool? reload, FilebaseRepository repository, CancellationToken token) =>
         {
-            var documents = await repository.ReadNodesAsync(token);
+            var documents = await repository.ReadNodesAsync(token, reload == true);
             return Results.Ok(documents.Select(document => new
             {
                 document.FileName,
@@ -75,9 +79,9 @@ public static class EditorEndpoints
         api.MapPut("/nodes/{nodeId}", SaveNodeAsync);
         api.MapDelete("/nodes/{nodeId}", DeleteNodeAsync);
 
-        api.MapGet("/structures", async (FilebaseRepository repository, CancellationToken token) =>
+        api.MapGet("/structures", async (bool? reload, FilebaseRepository repository, CancellationToken token) =>
         {
-            var documents = await repository.ReadStructuresAsync(token);
+            var documents = await repository.ReadStructuresAsync(token, reload == true);
             return Results.Ok(documents.Select(document => new
             {
                 document.FileName,
@@ -237,7 +241,7 @@ public static class EditorEndpoints
         var existing = await repository.GetNodeAsync(nodeId, token);
         if (existing is null) return Results.NotFound();
         if (!EditorRevision.Matches(context.Request, existing.Revision)) return EditorRevision.Conflict();
-        var structures = await repository.ReadStructuresAsync(token);
+        var structures = await repository.ReadStructuresAsync(token, reload: true);
         var referencedBy = structures
             .Where(structure => ReferencesNode(structure.Content, nodeId))
             .Select(structure => JsonValueReader.String(structure.Content["structureId"]) ?? structure.FileName)

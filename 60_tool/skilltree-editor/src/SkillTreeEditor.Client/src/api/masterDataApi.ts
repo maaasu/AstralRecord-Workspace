@@ -30,8 +30,9 @@ async function request<T>(path: string, method = 'GET', body?: unknown): Promise
 }
 
 export const masterDataApi = {
-  catalog: () => request<MasterCatalog>('/catalog'),
-  files: (category = '', query = '') => request<MasterFileSummary[]>(`/files?${new URLSearchParams({ category, query })}`),
+  catalog: (reload = false) => request<MasterCatalog>(reload ? '/catalog?reload=true' : '/catalog'),
+  files: (category = '', query = '', reload = false) =>
+    request<MasterFileSummary[]>(`/files?${new URLSearchParams({ category, query, ...(reload ? { reload: 'true' } : {}) })}`),
   file: (path: string) => request<MasterDocument>(`/file?${new URLSearchParams({ path })}`),
   save: (path: string, raw: string, revision: string, requireBossEntryWorldMaster?: boolean) =>
     request<MasterDocument>('/file', 'PUT', { path, raw, revision, requireBossEntryWorldMaster }),

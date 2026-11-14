@@ -1,5 +1,8 @@
 namespace SkillTreeEditor.Server.Services;
 
+/// <summary>列挙で得たファイルの絶対パス・長さ・更新時刻。</summary>
+public readonly record struct MasterDataEntry(string FullPath, long Length, DateTime LastWriteTimeUtc);
+
 // Both user paths and discovered filesystem entries pass the same boundary checks.
 public sealed class MasterDataPaths(WorkspacePaths workspace)
 {
@@ -11,10 +14,8 @@ public sealed class MasterDataPaths(WorkspacePaths workspace)
 
     public string Resolve(string relative, bool directory = false)
     {
-        if (string.IsNullOrWhiteSpace(relative) || Path.IsPathRooted(relative)
-            || relative.Contains(':') || relative.Contains('\\')
-            || relative.Split('/').Any(part => part is "" or "." or ".." || part.EndsWith('.') || part.EndsWith(' ')))
-            throw new ArgumentException("Filebase 内の相対パスを / 区切りで指定してください。");
+        if (!IsRelativeSyntax(relative))
+            throw new ArgumentException(RelativeSyntaxMessage);
         var full = SafePath.UnderRoot(Root, relative);
         if (!directory && !IsData(full))
             throw new ArgumentException("編集できるファイルは .yml / .yaml / .json です。");
@@ -22,6 +23,14 @@ public sealed class MasterDataPaths(WorkspacePaths workspace)
         RequireCanonicalCase(relative);
         return full;
     }
+
+    internal const string RelativeSyntaxMessage = "Filebase 内の相対パスを / 区切りで指定してください。";
+
+    /// <summary>ファイルシステムへ触れずに判定できる、相対パスの書式だけを確認する。</summary>
+    internal static bool IsRelativeSyntax(string relative) =>
+        !(string.IsNullOrWhiteSpace(relative) || Path.IsPathRooted(relative)
+          || relative.Contains(':') || relative.Contains('\\')
+          || relative.Split('/').Any(part => part is "" or "." or ".." || part.EndsWith('.') || part.EndsWith(' ')));
 
     private void RequireCanonicalCase(string relative)
     {
@@ -58,7 +67,16 @@ public sealed class MasterDataPaths(WorkspacePaths workspace)
         }
     }
 
-    public IEnumerable<string> Enumerate(string? directory = null)
+    public IEnumerable<string> Enumerate(string? directory = null) =>
+        EnumerateEntries(directory)
+            .Where(entry => (File.GetAttributes(entry.FullPath) & FileAttributes.ReparsePoint) == 0)
+            .Select(entry => entry.FullPath);
+
+    /// <summary>
+    /// ファイルを、列挙時に得られる長さと更新時刻つきで返す。属性は列挙結果から読むため、
+    /// ファイルごとの追加の問い合わせを行わない。
+    /// </summary>
+    public IEnumerable<MasterDataEntry> EnumerateEntries(string? directory = null)
     {
         var root = directory is null ? Root : Resolve(directory, true);
         RequireNoLinks(root);
@@ -67,19 +85,22 @@ public sealed class MasterDataPaths(WorkspacePaths workspace)
         stack.Push(root);
         while (stack.TryPop(out var current))
         {
-            foreach (var entry in Directory.EnumerateFileSystemEntries(current).Order(StringComparer.Ordinal))
+            RequireNoLinks(current);
+            foreach (var entry in new DirectoryInfo(current).EnumerateFileSystemInfos()
+                         .OrderBy(entry => entry.FullName, StringComparer.Ordinal))
             {
                 // Do not traverse links, including links pointing back into Filebase.
-                if ((File.GetAttributes(entry) & FileAttributes.ReparsePoint) != 0) continue;
-                if (Directory.Exists(entry)) stack.Push(entry);
-                else yield return entry;
+                if ((entry.Attributes & FileAttributes.ReparsePoint) != 0) continue;
+                if ((entry.Attributes & FileAttributes.Directory) != 0) stack.Push(entry.FullName);
+                else if (entry is FileInfo file) yield return new(file.FullName, file.Length, file.LastWriteTimeUtc);
             }
         }
     }
 
     public string Relative(string full) => Path.GetRelativePath(Root, full).Replace('\\', '/');
     public static bool IsData(string path) => Path.GetExtension(path).ToLowerInvariant() is ".yml" or ".yaml" or ".json";
+    internal static bool IsSchema(string path) => path.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase);
     public static string Format(string path) => path.EndsWith(".json", StringComparison.OrdinalIgnoreCase) ? "json" : "yaml";
     public static bool IsReadOnly(string path) => path.Equals("35.features.skilltree/node-id-sequence.json", Comparison)
-        || path.EndsWith(".schema.json", StringComparison.OrdinalIgnoreCase);
+        || IsSchema(path);
 }

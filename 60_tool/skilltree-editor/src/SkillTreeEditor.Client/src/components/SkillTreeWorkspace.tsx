@@ -4,9 +4,9 @@ import { NodeSidebar } from './NodeSidebar'
 import { NodePlacementDialog } from './NodePlacementDialog'
 import { PlacementInspector } from './PlacementInspector'
 import { defaultFromSchema } from './SchemaForm'
-import { SkillTreeCanvas } from './SkillTreeCanvas'
+import { SkillTreeCanvas, type CanvasFocusRequest } from './SkillTreeCanvas'
 import { ValidationPanel } from './ValidationPanel'
-import { WorkspaceLayout } from './WorkspaceLayout'
+import { WorkspaceLayout, type LayoutPane } from './WorkspaceLayout'
 import { buildNodeFieldSuggestions, minecraftMaterialSuggestions } from '../data/nodeFieldSuggestions'
 import { duplicateNodeDraft } from '../data/nodeDuplication'
 import { useHistory } from '../state/history'
@@ -54,7 +54,8 @@ const SettingsDialog = lazy(() => import('./SettingsDialog').then((module) => ({
 const NodeEditor = lazy(() => import('./NodeEditor').then((module) => ({ default: module.NodeEditor })))
 
 function initialNodeSize(): number {
-  const stored = typeof window === 'undefined' ? Number.NaN : Number(window.localStorage.getItem(NODE_SIZE_STORAGE_KEY))
+  const saved = typeof window === 'undefined' ? null : window.localStorage.getItem(NODE_SIZE_STORAGE_KEY)
+  const stored = saved === null ? Number.NaN : Number(saved)
   return Number.isFinite(stored)
     ? Math.min(MAX_NODE_SIZE, Math.max(MIN_NODE_SIZE, stored))
     : DEFAULT_NODE_SIZE
@@ -100,7 +101,12 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
     canvas: true,
     details: true,
   })
+  const [focusedPane, setFocusedPane] = useState<LayoutPane>('center')
   const [savedSnapshot, setSavedSnapshot] = useState(JSON.stringify(emptyStructure()))
+  const [focusRequest, setFocusRequest] = useState<CanvasFocusRequest | null>(null)
+  const clearFocusRequest = useCallback((handled: CanvasFocusRequest) => {
+    setFocusRequest((current) => current === handled ? null : current)
+  }, [])
   const history = useHistory(emptyStructure())
 
   const nodes = useMemo(
@@ -109,7 +115,9 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
   )
   const structures = useMemo(() => structureDocuments.map((document) => document.content), [structureDocuments])
   const currentStructure = history.present
-  const dirty = Boolean(selectedStructureId) && JSON.stringify(currentStructure) !== savedSnapshot
+  // 構造が変わったときだけ比較する。選択などの再描画のたびに全体を文字列化しない。
+  const structureChanged = useMemo(() => JSON.stringify(currentStructure) !== savedSnapshot, [currentStructure, savedSnapshot])
+  const dirty = Boolean(selectedStructureId) && structureChanged
   const anyDirty = dirty || nodeDirty || settingsDirty || inspectorDirty || placementDirty
   useEffect(() => { onDirtyChange(anyDirty) }, [anyDirty, onDirtyChange])
   const placedIds = useMemo(() => new Set(currentStructure.nodes.map((node) => node.nodeId)), [currentStructure.nodes])
@@ -146,13 +154,13 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
     }
   }, [])
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (reload = false) => {
     setLoading(true)
     setError('')
     try {
       const [loadedNodes, loadedStructures, loadedSchemas, loadedSettings, loadedMetadata, loadedClasses, loadedSkills] = await Promise.all([
-        editorApi.listNodes(),
-        editorApi.listStructures(),
+        editorApi.listNodes(reload),
+        editorApi.listStructures(reload),
         editorApi.listSchemas(),
         editorApi.getSettings(),
         editorApi.metadata(),
@@ -226,10 +234,19 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
     return () => window.removeEventListener('keydown', keyboard)
   }, [active, history, nodeEditor, settingsOpen, placementNode, saving, inspectorDirty, inspectorInputValid])
 
-  const selectNode = (nodeId: string | null) => {
-    if (saving || nodeId === selectedNodeId) return
-    if (inspectorDirty && !window.confirm('インスペクターの未保存の入力を破棄して別のノードへ移動しますか？')) return
+  const selectNode = useCallback((nodeId: string | null) => {
+    if (nodeId === selectedNodeId) return true
+    if (saving || !inspectorInputValid) return false
+    if (inspectorDirty && !window.confirm('インスペクターの未保存の入力を破棄して別のノードへ移動しますか？')) return false
     setSelectedNodeId(nodeId)
+    return true
+  }, [inspectorDirty, inspectorInputValid, saving, selectedNodeId])
+
+  const showOnCanvas = (node: NodeMaster) => {
+    if (saving || !inspectorInputValid || !selectNode(node.nodeId)) return
+    setVisiblePanes((current) => current.canvas ? current : { ...current, canvas: true })
+    setFocusedPane('center')
+    setFocusRequest({ nodeId: node.nodeId })
   }
 
   const editMaster = (node: NodeMaster) => {
@@ -250,10 +267,13 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
   }
 
   const recordCanvas = (value: StructureDocument) => {
-    if (saving || !inspectorInputValid) return
-    if (selectedNodeId && inspectorDirty && !value.nodes.some((node) => node.nodeId === selectedNodeId)
-        && !window.confirm('インスペクターの未保存の入力を破棄して配置を削除しますか？')) return
+    if (saving || !inspectorInputValid) return false
+    if (selectedNodeId && !value.nodes.some((node) => node.nodeId === selectedNodeId)) {
+      if (inspectorDirty && !window.confirm('インスペクターの未保存の入力を破棄して配置を削除しますか？')) return false
+      setSelectedNodeId(null)
+    }
     history.record(value)
+    return true
   }
 
   const selectStructure = (structureId: string) => {
@@ -265,6 +285,7 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
     history.reset(selected)
     setSavedSnapshot(JSON.stringify(selected))
     setSelectedNodeId(null)
+    setFocusRequest(null)
     setReport(null)
   }
 
@@ -533,7 +554,8 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
             setNodeEditor(null)
             setSettingsOpen(false)
             setSelectedNodeId(null)
-            void load()
+            setFocusRequest(null)
+            void load(true)
           }}>再読み込み</button>
           </div>
         </div>
@@ -547,7 +569,11 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
       )}
 
       <WorkspaceLayout
-        onActivatePane={(pane) => setVisiblePanes((current) => ({ ...current, [pane === 'left' ? 'nodes' : pane === 'center' ? 'canvas' : 'details']: true }))}
+        focusedPane={focusedPane}
+        onActivatePane={(pane) => {
+          setFocusedPane(pane)
+          setVisiblePanes((current) => ({ ...current, [pane === 'left' ? 'nodes' : pane === 'center' ? 'canvas' : 'details']: true }))
+        }}
         leftVisible={visiblePanes.nodes}
         centerVisible={visiblePanes.canvas}
         rightVisible={visiblePanes.details}
@@ -563,6 +589,8 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
             onEdit={editMaster}
             onCreate={openNewNode}
             onPlace={(node) => { if (!saving && inspectorInputValid && selectedStructureId && !placedIds.has(node.nodeId)) setPlacementNode(node) }}
+            onShow={selectedStructureId ? showOnCanvas : undefined}
+            selectedNodeId={selectedNodeId}
             placementDisabled={saving || !inspectorInputValid || !selectedStructureId}
             iconRevision={iconRevision}
             skillMasters={skillMasters}
@@ -618,6 +646,7 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
             </div>
             {selectedStructureId ? (
               <SkillTreeCanvas
+                key={selectedStructureId}
                 structure={currentStructure}
                 masters={nodes}
                 onRecord={recordCanvas}
@@ -632,6 +661,9 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
                 skillMasters={skillMasters}
                 classMasters={classMasters}
                 nodeSize={nodeSize}
+                selectedNodeId={selectedNodeId}
+                focusRequest={focusRequest}
+                onFocusHandled={clearFocusRequest}
               />
             ) : (
               <div className="canvas-placeholder"><h2>構造を作成してください</h2><p>ノードマスターを用意し、「＋ 構造」から始めます。</p></div>

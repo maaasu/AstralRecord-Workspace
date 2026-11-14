@@ -20,9 +20,9 @@ public static class WorldPlacementEndpoints
             Results.Ok(await service.ListAsync(worldId, token)));
         group.MapGet("/catalog", async (MasterDataService masters, CancellationToken token) =>
         {
-            var spawners = await masters.ListAsync("41.features.mob.spawner", null, token);
-            var mobs = await masters.ListAsync("40.features.mob", null, token);
-            var worlds = await masters.ListAsync("60.features.world", null, token);
+            var spawners = await masters.ListAsync("41.features.mob.spawner", null, token, reload: true);
+            var mobs = await masters.ListAsync("40.features.mob", null, token, reload: true);
+            var worlds = await masters.ListAsync("60.features.world", null, token, reload: true);
             var spawnerEntries = new List<object>();
             foreach (var item in spawners.Where(item => item.Id is not null))
             {

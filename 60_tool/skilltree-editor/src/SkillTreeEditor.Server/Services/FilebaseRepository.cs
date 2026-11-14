@@ -12,16 +12,18 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
     private static readonly BigInteger MinimumIssuedNodeId = new(999);
     private static readonly BigInteger MaximumNodeId = BigInteger.Pow(10, 100) - BigInteger.One;
     private readonly SemaphoreSlim _writeLock = new(1, 1);
+    private readonly SemaphoreSlim _readLock = new(1, 1);
     private readonly MasterDataPaths _boundary = new(paths);
+    private readonly Dictionary<string, CachedSource> _sources = new(StringComparer.Ordinal);
 
     public Task<IReadOnlyList<string>> FindProgressionPresetNodeReferencesAsync(string nodeId, CancellationToken token)
         => ProgressionPresetValidation.FindNodeReferencesAsync(_boundary, new MasterDataCodec(), nodeId, token);
 
-    public Task<IReadOnlyList<StoredDocument>> ReadNodesAsync(CancellationToken cancellationToken)
-        => ReadDirectoryAsync(paths.Nodes, cancellationToken);
+    public Task<IReadOnlyList<StoredDocument>> ReadNodesAsync(CancellationToken cancellationToken, bool reload = false)
+        => ReadDirectoryAsync(paths.Nodes, cancellationToken, reload);
 
-    public Task<IReadOnlyList<StoredDocument>> ReadStructuresAsync(CancellationToken cancellationToken)
-        => ReadDirectoryAsync(paths.Structures, cancellationToken);
+    public Task<IReadOnlyList<StoredDocument>> ReadStructuresAsync(CancellationToken cancellationToken, bool reload = false)
+        => ReadDirectoryAsync(paths.Structures, cancellationToken, reload);
 
     public async Task<StoredDocument?> GetNodeAsync(string nodeId, CancellationToken cancellationToken)
         => await FindByPropertyAsync(paths.Nodes, "nodeId", nodeId, cancellationToken);
@@ -41,7 +43,7 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
 
     private async Task<string> GetNextNodeIdLockedAsync(CancellationToken cancellationToken)
     {
-        var documents = await ReadNodesAsync(cancellationToken);
+        var documents = await ReadNodesAsync(cancellationToken, reload: true);
         var maximum = MinimumIssuedNodeId;
         foreach (var document in documents)
         {
@@ -193,19 +195,45 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
 
     private async Task<IReadOnlyList<StoredDocument>> ReadDirectoryAsync(
         string directory,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool reload)
+    {
+        // 同時に要求が届いても、同じディレクトリのキャッシュ更新を重ねない。
+        await _readLock.WaitAsync(cancellationToken);
+        try
+        {
+            return await ReadDirectoryCoreAsync(directory, cancellationToken, reload);
+        }
+        finally
+        {
+            _readLock.Release();
+        }
+    }
+
+    private async Task<IReadOnlyList<StoredDocument>> ReadDirectoryCoreAsync(
+        string directory,
+        CancellationToken cancellationToken,
+        bool reload)
     {
         _boundary.RequireNoLinks(directory);
         if (!Directory.Exists(directory))
             return [];
 
-        var documents = new List<StoredDocument>();
-        foreach (var file in Directory.EnumerateFiles(directory, "*.json", SearchOption.TopDirectoryOnly)
-                     .OrderBy(value => value, StringComparer.OrdinalIgnoreCase))
+        var files = new DirectoryInfo(directory).EnumerateFiles("*.json", SearchOption.TopDirectoryOnly)
+            .OrderBy(file => file.FullName, StringComparer.OrdinalIgnoreCase).ToArray();
+        var sources = new CachedSource[files.Length];
+        await Parallel.ForEachAsync(Enumerable.Range(0, files.Length),
+            new ParallelOptions { CancellationToken = cancellationToken, MaxDegreeOfParallelism = Math.Clamp(Environment.ProcessorCount, 2, 8) },
+            async (index, token) => sources[index] = await ReadSourceAsync(files[index], reload, token));
+
+        var documents = new List<StoredDocument>(files.Length);
+        for (var index = 0; index < files.Length; index++)
         {
-            _boundary.RequireNoLinks(file);
-            var bytes = await File.ReadAllBytesAsync(file, cancellationToken);
-            var text = Encoding.UTF8.GetString(bytes);
+            cancellationToken.ThrowIfCancellationRequested();
+            var file = files[index];
+            var source = sources[index];
+            // 呼出側が内容を書き換えられるよう、解析結果は共有せず毎回作る。
+            var text = source.Text;
             if (text.StartsWith('\uFEFF')) text = text[1..];
             var content = JsonNode.Parse(
                 text,
@@ -214,12 +242,37 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
                     CommentHandling = JsonCommentHandling.Disallow,
                     AllowTrailingCommas = false
                 }) as JsonObject
-                ?? throw new InvalidDataException($"JSONのルートはオブジェクトで記載してください: {file}");
-            documents.Add(new StoredDocument(Path.GetFileName(file), Path.GetFullPath(file), content, EditorRevision.Hash(bytes)));
+                ?? throw new InvalidDataException($"JSONのルートはオブジェクトで記載してください: {file.FullName}");
+            documents.Add(new StoredDocument(file.Name, file.FullName, content, source.Revision));
         }
 
+        var listed = files.Select(file => file.FullName).ToHashSet(StringComparer.Ordinal);
+        var prefix = directory.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        foreach (var path in _sources.Keys.Where(path => path.StartsWith(prefix, MasterDataPaths.Comparison) && !listed.Contains(path)).ToArray())
+            _sources.Remove(path);
+        for (var index = 0; index < files.Length; index++)
+            _sources[files[index].FullName] = sources[index];
         return documents;
     }
+
+    /// <summary>長さと更新時刻が前回と同じファイルは読み直さない。書き換え直後に読んだ内容は次回も読み直す。</summary>
+    private async Task<CachedSource> ReadSourceAsync(FileInfo file, bool reload, CancellationToken cancellationToken)
+    {
+        if ((file.Attributes & FileAttributes.ReparsePoint) != 0)
+            throw new UnauthorizedAccessException("シンボリックリンク / junction は編集できません。");
+        if (!reload && _sources.TryGetValue(file.FullName, out var cached)
+            && cached.Length == file.Length && cached.LastWriteTimeUtc == file.LastWriteTimeUtc
+            && cached.ReadAtUtc - cached.LastWriteTimeUtc > FilebaseSnapshotCache.RecentWriteWindow)
+            return cached;
+
+        _boundary.RequireNoLinks(file.FullName);
+        var readAt = DateTime.UtcNow;
+        var bytes = await SharedFileReader.ReadAllBytesAsync(file.FullName, cancellationToken);
+        return new CachedSource(file.Length, file.LastWriteTimeUtc, readAt,
+            Encoding.UTF8.GetString(bytes), EditorRevision.Hash(bytes));
+    }
+
+    private sealed record CachedSource(long Length, DateTime LastWriteTimeUtc, DateTime ReadAtUtc, string Text, string Revision);
 
     private async Task<string> ReadRevisionAsync(string path, CancellationToken token)
     {
@@ -234,7 +287,7 @@ public sealed class FilebaseRepository(WorkspacePaths paths, BackupService backu
         CancellationToken cancellationToken)
     {
         SafePath.RequireIdentifier(propertyValue, propertyName);
-        var matches = (await ReadDirectoryAsync(directory, cancellationToken))
+        var matches = (await ReadDirectoryAsync(directory, cancellationToken, reload: true))
             .Where(document => string.Equals(
                 JsonValueReader.String(document.Content[propertyName]),
                 propertyValue,

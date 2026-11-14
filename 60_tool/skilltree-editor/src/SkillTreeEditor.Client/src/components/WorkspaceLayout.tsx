@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ResizeHandle, usePanelSize } from './ResizeHandle'
 
+export type LayoutPane = 'left' | 'center' | 'right'
+
 interface WorkspaceLayoutProps {
   left: ReactNode
   center: ReactNode
@@ -8,7 +10,8 @@ interface WorkspaceLayoutProps {
   leftVisible: boolean
   centerVisible: boolean
   rightVisible: boolean
-  onActivatePane?: (pane: 'left' | 'center' | 'right') => void
+  focusedPane?: LayoutPane
+  onActivatePane?: (pane: LayoutPane) => void
 }
 
 const LEFT_DEFAULT = 280
@@ -25,6 +28,7 @@ export function WorkspaceLayout({
   leftVisible,
   centerVisible,
   rightVisible,
+  focusedPane,
   onActivatePane,
 }: WorkspaceLayoutProps) {
   const [leftWidth, setLeftWidth] = usePanelSize('tree-left', LEFT_DEFAULT, LEFT_MIN, LEFT_MAX)
@@ -51,17 +55,17 @@ export function WorkspaceLayout({
   }, [leftWidth, rightWidth, leftVisible, centerVisible, rightVisible])
   const actualLeft = measured.left ?? leftWidth
   const actualRight = measured.right ?? rightWidth
-  const [focusedPane, setFocusedPane] = useState('center')
+  const [localPane, setLocalPane] = useState<LayoutPane>('center')
   const panes = [
     { id: 'left', label: 'ノード一覧', visible: leftVisible },
     { id: 'center', label: 'キャンバス', visible: centerVisible },
     { id: 'right', label: '詳細・検証', visible: rightVisible },
   ] as const
-  const activePane = panes.find((pane) => pane.id === focusedPane && pane.visible)?.id ?? panes.find((pane) => pane.visible)?.id
+  const activePane = panes.find((pane) => pane.id === (focusedPane ?? localPane) && pane.visible)?.id ?? panes.find((pane) => pane.visible)?.id
 
   return (
     <div className="workspace-layout">
-    <div className="compact-pane-navigation" role="group" aria-label="作業領域の切替">{panes.filter((pane) => pane.visible || onActivatePane).map((pane) => <button key={pane.id} type="button" className={`button ${activePane === pane.id ? 'active' : ''}`} aria-pressed={activePane === pane.id} onClick={() => { setFocusedPane(pane.id); onActivatePane?.(pane.id) }}>{pane.label}</button>)}</div>
+    <div className="compact-pane-navigation" role="group" aria-label="作業領域の切替">{panes.filter((pane) => pane.visible || onActivatePane).map((pane) => <button key={pane.id} type="button" className={`button ${activePane === pane.id ? 'active' : ''}`} aria-pressed={activePane === pane.id} onClick={() => { setLocalPane(pane.id); onActivatePane?.(pane.id) }}>{pane.label}</button>)}</div>
     <div ref={grid} className={centerVisible ? 'workspace-grid' : 'workspace-grid no-center'}>
       {leftVisible && <div ref={leftPane} className="workspace-pane left-pane" data-compact-active={activePane === 'left'} style={{ flexBasis: leftWidth }}>{left}</div>}
       {leftVisible && centerVisible && (
