@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import App from './App'
 
@@ -12,7 +12,7 @@ afterEach(() => vi.restoreAllMocks())
 it('未保存の配置を保持して画面切替を確認する', async () => {
   const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
   render(<App />)
-  fireEvent.click(screen.getByRole('button', { name: 'ワールド配置・編集' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'ワールド配置・編集' }))
   fireEvent.click(await screen.findByRole('button', { name: 'Dev 配置を編集' }))
   fireEvent.click(screen.getByRole('button', { name: 'マスターデータ' }))
   expect(confirm).toHaveBeenCalledOnce()
@@ -20,5 +20,5 @@ it('未保存の配置を保持して画面切替を確認する', async () => {
   confirm.mockReturnValue(true)
   fireEvent.click(screen.getByRole('button', { name: 'マスターデータ' }))
   fireEvent.click(screen.getByRole('button', { name: 'ワールド配置・編集 ●' }))
-  expect(screen.getByText('配置画面を保持')).toBeVisible()
+  await waitFor(() => expect(screen.getByText('配置画面を保持')).toBeVisible())
 })

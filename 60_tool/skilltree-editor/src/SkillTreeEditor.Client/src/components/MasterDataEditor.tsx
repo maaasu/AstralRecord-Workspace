@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState, type CSSProperties } from 'react'
 import { ResizeHandle, usePanelSize } from './ResizeHandle'
+import { DockPanelContent, useDocking, usePanelDocument } from '../docking/dockPanel'
 import { ResizableTable } from './ResizableTable'
 import { ApiError } from '../api/editorApi'
 import { masterDataApi } from '../api/masterDataApi'
@@ -47,6 +48,10 @@ interface MasterDataEditorProps { active?: boolean; onDirtyChange?: (dirty: bool
 
 export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree, openRequest }: MasterDataEditorProps) {
   const workspace = useMasterDataWorkspace()
+  const docking = useDocking()
+  const latestDocking = useRef(docking)
+  latestDocking.current = docking
+  const editorWindow = () => latestDocking.current?.documents.get('master')?.defaultView ?? window
   const [browserWidth, setBrowserWidth] = usePanelSize('master-browser', 520, 400, 1000)
   const [tabsState, dispatch] = useReducer(masterTabsReducer, emptyMasterTabs)
   const tabPrefix = useId()
@@ -74,12 +79,13 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   const referenceHandled = useCallback((id: string, requestId: number) => dispatch({ type: 'referenceHandled', id, requestId }), [])
   const dirty = welcomeDirty || tabsState.tabs.some((tab) => tab.dirty)
   const openFile = useCallback((path: string, document?: MasterDocument, reference?: Omit<MasterReferenceTarget, 'requestId'>) => {
-    if (!document && latestWelcomeDirty.current && !window.confirm('未保存の新規原稿を破棄してファイルを開きますか？')) return
+    if (!document && latestWelcomeDirty.current && !editorWindow().confirm('未保存の新規原稿を破棄してファイルを開きますか？')) return
     latestWelcomeDirty.current = false
     setWelcomeDirty(false)
     dispatch({ type: 'open', path, document, referenceTarget: reference ? { ...reference, requestId: ++referenceSequence.current } : undefined })
+    latestDocking.current?.show('master')
     const existing = latestTabs.current.tabs.find((tab) => tab.path === path)
-    if (existing && window.innerWidth <= 1100) {
+    if (!latestDocking.current && existing && window.innerWidth <= 1100) {
       workspace.setSidebarCollapsed(true)
       if (!reference) requestAnimationFrame(() => tabButtons.current.get(existing.id)?.focus())
     }
@@ -97,7 +103,7 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   const recoveryHandled = useCallback((path: string) => setRecoverableDrafts((current) => current.filter((entry) => entry.document.path !== path)), [])
   const closeTab = (id: string, deleted = false) => {
     const tab = latestTabs.current.tabs.find((entry) => entry.id === id)
-    if (!tab || !deleted && (tab.busy || tab.dirty && !window.confirm(`${tab.path}\n未保存の編集内容を破棄してタブを閉じますか？`))) return
+    if (!tab || !deleted && (tab.busy || tab.dirty && !editorWindow().confirm(`${tab.path}\n未保存の編集内容を破棄してタブを閉じますか？`))) return
     if (latestTabs.current.tabs.length === 1) workspace.setSidebarCollapsed(false)
     if (workspace.catalog) removeMasterDraft(workspace.catalog.root, tab.path)
     setRecoverableDrafts((current) => current.filter((entry) => entry.document.path !== tab.path))
@@ -108,7 +114,7 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     const targets = latestTabs.current.tabs.filter((tab) => ids.includes(tab.id))
     if (!targets.length || targets.some((tab) => tab.busy)) return
     const unsaved = targets.filter((tab) => tab.dirty)
-    if (unsaved.length && !window.confirm(`未保存の編集内容を破棄してタブを閉じますか？\n${unsaved.map((tab) => `${stripMinecraftFormatting(tab.name) || baseName(tab.path)} · ${tab.path}`).join('\n')}`)) return
+    if (unsaved.length && !editorWindow().confirm(`未保存の編集内容を破棄してタブを閉じますか？\n${unsaved.map((tab) => `${stripMinecraftFormatting(tab.name) || baseName(tab.path)} · ${tab.path}`).join('\n')}`)) return
     if (targets.length === latestTabs.current.tabs.length) workspace.setSidebarCollapsed(false)
     if (workspace.catalog) targets.forEach((tab) => removeMasterDraft(workspace.catalog!.root, tab.path))
     setRecoverableDrafts((current) => current.filter((entry) => !targets.some((tab) => tab.path === entry.document.path)))
@@ -151,16 +157,13 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     const target = tabButtons.current.get(tabsState.activeId) ?? editorHost.current?.querySelector<HTMLButtonElement>('.master-browser button:not(:disabled)')
     target?.focus(); focusAfterClose.current = false
   }, [tabsState.activeId, tabsState.tabs.length])
-  if (workspace.loading) return <div className="loading-screen"><p>Filebaseのカテゴリとファイルを読み込んでいます…</p></div>
-  return <div ref={editorHost} className="master-tabbed-editor">
-    <header className="workspace-heading master-workspace-heading"><div><span className="eyebrow">編集ワークスペース</span><h1>マスターデータ</h1><p>フォルダから探し、フォームで編集して、検証・保存します。</p></div><span className="workspace-count">{workspace.files.length.toLocaleString()} <small>ファイル</small>{tabsState.tabs.length > 0 && <small> · {tabsState.tabs.length} 件を編集中</small>}</span></header>
-    {(workspace.error || workspace.notice) && <div className={`master-message master-global-message ${workspace.error ? 'error' : 'success'}`} role={workspace.error ? 'alert' : 'status'}><span>{workspace.error || workspace.notice}</span><button type="button" className="button compact subtle" onClick={() => { workspace.setError(''); workspace.setNotice('') }}>閉じる</button></div>}
-    {workspace.error && !workspace.catalog && <div className="master-empty"><p>マスターを読み込めませんでした。接続を確認して再試行してください。</p><button type="button" className="button" disabled={workspace.refreshing} onClick={() => void workspace.refresh().catch((reason) => workspace.setError(reason instanceof Error ? reason.message : String(reason)))}>再試行</button></div>}
-    {recoverableDrafts.length > 0 && <details className="master-recovery-list"><summary>復元できる未保存の下書き · {recoverableDrafts.length} 件</summary><p>同じブラウザタブの再読込前の編集です。ファイルを開いて復元または破棄できます。</p>{recoverableDrafts.map((entry) => <button type="button" className="button compact" key={entry.document.path} onClick={() => openFile(entry.document.path)}>{masterDisplayName(entry.draft.content) || baseName(entry.document.path)}</button>)}</details>}
-    <div className={'master-workbench' + (workspace.sidebarCollapsed ? ' browser-hidden' : '')} style={{ '--browser-width': `${browserWidth}px` } as CSSProperties}>
-      <MasterFileBrowser workspace={workspace} selectedPath={tabsState.tabs.find((tab) => tab.id === tabsState.activeId)?.path} busy={tabsState.tabs.find((tab) => tab.id === tabsState.activeId)?.busy ?? welcomeBusy} active={active} onOpen={openFile} onNew={() => browserActions.current.get(tabsState.activeId || 'welcome')?.create()} onImport={() => browserActions.current.get(tabsState.activeId || 'welcome')?.import()} onDialogChange={setBrowserDialogOpen} />
-      {!workspace.sidebarCollapsed && <ResizeHandle label="ファイル一覧と編集領域の幅を変更" size={browserWidth} min={400} max={1000} defaultSize={520} minRemaining={420} onResize={setBrowserWidth} className="master-browser-resizer" />}
-      <section className="master-document-area" aria-label="マスターの編集領域">
+  if (workspace.loading) return <DockPanelContent id="master"><div className="loading-screen"><p>Filebaseのカテゴリとファイルを読み込んでいます…</p></div></DockPanelContent>
+  const runBrowserAction = (kind: keyof BrowserActions) => {
+    docking?.show('master')
+    browserActions.current.get(tabsState.activeId || 'welcome')?.[kind]()
+  }
+  const browser = <MasterFileBrowser workspace={workspace} selectedPath={tabsState.tabs.find(tab => tab.id === tabsState.activeId)?.path} busy={tabsState.tabs.find(tab => tab.id === tabsState.activeId)?.busy ?? welcomeBusy} active={docking ? docking.visible.has('master-files') || docking.visible.has('master-folders') : active} onOpen={openFile} onNew={() => runBrowserAction('create')} onImport={() => runBrowserAction('import')} onDialogChange={setBrowserDialogOpen} />
+  const documentArea = <section className="master-document-area" aria-label="マスターの編集領域">
     {tabsState.tabs.length > 0 && <div className="master-tab-bar"><div className="master-document-tabs" role="tablist" aria-label="開いているマスターファイル">{displayTabs.map((tab, index) => {
       const selected = tab.id === tabsState.activeId
       const name = tab.name
@@ -186,13 +189,32 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
       focusAfterSwitch.current = true
       setTabSearchOpen(false)
       dispatch({ type: 'select', id })
-      if (window.innerWidth <= 1100) workspace.setSidebarCollapsed(true)
+      if (!docking && window.innerWidth <= 1100) workspace.setSidebarCollapsed(true)
     }} />}
     {active && tabMenu && tabCommands.length > 0 && <MasterTabContextMenu x={tabMenu.x} y={tabMenu.y} commands={tabCommands} onDismiss={dismissTabMenu} />}
     {tabsState.tabs.length ? tabsState.tabs.map((tab) => <div className="master-editor-panel" key={tab.id} id={`${tabPrefix}-${tab.id}-panel`} role="tabpanel" aria-labelledby={`${tabPrefix}-${tab.id}`} hidden={tab.id !== tabsState.activeId}>
-      <MasterDataEditorPane workspace={workspace} tabId={tab.id} initialPath={tab.path} initialDocument={tab.initialDocument} referenceTarget={tab.referenceTarget} onReferenceHandled={referenceHandled} active={active && tab.id === tabsState.activeId} onOpenFile={openFile} onCloseTab={() => closeTab(tab.id, true)} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen || tabSearchOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} />
+      <MasterDataEditorPane workspace={workspace} tabId={tab.id} initialPath={tab.path} initialDocument={tab.initialDocument} referenceTarget={tab.referenceTarget} onReferenceHandled={referenceHandled} selected={tab.id === tabsState.activeId} active={active && tab.id === tabsState.activeId} onOpenFile={openFile} onCloseTab={() => closeTab(tab.id, true)} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen || tabSearchOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} />
     </div>) : <div className="master-editor-panel"><MasterDataEditorPane workspace={workspace} tabId="welcome" active={active} onOpenFile={openFile} onCloseTab={() => {}} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} /></div>}
-      </section>
+  </section>
+  const workspaceNotices = <>
+    {(workspace.error || workspace.notice) && <div className={`master-message master-global-message ${workspace.error ? 'error' : 'success'}`} role={workspace.error ? 'alert' : 'status'}><span>{workspace.error || workspace.notice}</span><button type="button" className="button compact subtle" onClick={() => { workspace.setError(''); workspace.setNotice('') }}>閉じる</button></div>}
+    {workspace.error && !workspace.catalog && <div className="master-empty"><p>マスターを読み込めませんでした。接続を確認して再試行してください。</p><button type="button" className="button" disabled={workspace.refreshing} onClick={() => void workspace.refresh().catch((reason) => workspace.setError(reason instanceof Error ? reason.message : String(reason)))}>再試行</button></div>}
+    {recoverableDrafts.length > 0 && <details className="master-recovery-list"><summary>復元できる未保存の下書き · {recoverableDrafts.length} 件</summary><p>同じブラウザタブの再読込前の編集です。ファイルを開いて復元または破棄できます。</p>{recoverableDrafts.map((entry) => <button type="button" className="button compact" key={entry.document.path} onClick={() => openFile(entry.document.path)}>{masterDisplayName(entry.draft.content) || baseName(entry.document.path)}</button>)}</details>}
+  </>
+  if (docking) return <>
+    {browser}
+    <DockPanelContent id="master"><div ref={editorHost} className="master-tabbed-editor dock-master-editor">
+      {workspaceNotices}
+      {documentArea}
+    </div></DockPanelContent>
+  </>
+  return <div ref={editorHost} className="master-tabbed-editor">
+    <header className="workspace-heading master-workspace-heading"><div><span className="eyebrow">編集ワークスペース</span><h1>マスターデータ</h1><p>フォルダから探し、フォームで編集して、検証・保存します。</p></div><span className="workspace-count">{workspace.files.length.toLocaleString()} <small>ファイル</small>{tabsState.tabs.length > 0 && <small> · {tabsState.tabs.length} 件を編集中</small>}</span></header>
+    {workspaceNotices}
+    <div className={'master-workbench' + (workspace.sidebarCollapsed ? ' browser-hidden' : '')} style={{ '--browser-width': `${browserWidth}px` } as CSSProperties}>
+      {browser}
+      {!workspace.sidebarCollapsed && <ResizeHandle label="ファイル一覧と編集領域の幅を変更" size={browserWidth} min={400} max={1000} defaultSize={520} minRemaining={420} onResize={setBrowserWidth} className="master-browser-resizer" />}
+      {documentArea}
     </div>
   </div>
 }
@@ -200,6 +222,7 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
 interface BrowserActions { create: () => void; import: () => void }
 
 interface MasterDataEditorPaneProps {
+  selected?: boolean
   workspace: MasterDataWorkspace
   tabId: string
   initialPath?: string
@@ -216,7 +239,11 @@ interface MasterDataEditorPaneProps {
   onOpenSkillTree?: () => void
 }
 
-function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, referenceTarget, onReferenceHandled, active, onOpenFile, onCloseTab, onTabStatus, onRegisterBrowserActions, browserDialogOpen, onRecoveryHandled, onOpenSkillTree }: MasterDataEditorPaneProps) {
+function MasterDataEditorPane({ selected = true, workspace, tabId, initialPath, initialDocument, referenceTarget, onReferenceHandled, active, onOpenFile, onCloseTab, onTabStatus, onRegisterBrowserActions, browserDialogOpen, onRecoveryHandled, onOpenSkillTree }: MasterDataEditorPaneProps) {
+  const docking = useDocking()
+  const panelDocument = usePanelDocument()
+  const panelWindow = panelDocument.defaultView ?? window
+  const isDocked = Boolean(docking)
   const { catalog, files, filesByPath, candidates, refresh, rememberedPaths, categoryId, setCategoryId, sidebarCollapsed, setSidebarCollapsed, referenceVersion, invalidateReferences } = workspace
   const [document, setDocument] = useState<MasterDocument | null>(null)
   const [documentVersion, setDocumentVersion] = useState(0)
@@ -334,10 +361,10 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     setConflictDocument(null); setDiffBefore(null)
     setDocumentVersion((version) => version + 1)
     setFormPath(closestContainerPointer(loaded.content, rememberedPaths.current[loaded.path] ?? '')); setFocusPath(null)
-    if (window.innerWidth <= 1100) setSidebarCollapsed(true)
+    if (!isDocked && window.innerWidth <= 1100) setSidebarCollapsed(true)
     setReport({ isValid: !loaded.issues.some((entry) => entry.severity === 'error'), issues: loaded.issues }); setRenderWarnings([])
     latestRenderWarnings.current = []; reviewedRaw.current = ''; setReferencePage(0)
-  }, [history.reset, setSidebarCollapsed, rememberedPaths, catalog?.root])
+  }, [history.reset, isDocked, setSidebarCollapsed, rememberedPaths, catalog?.root])
   useEffect(() => {
     if (!initialPath) return
     const requestId = ++operationId.current
@@ -440,6 +467,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
   useEffect(() => {
     if (!active) return
     const keyboard = (event: KeyboardEvent) => {
+      if (isDocked && !editorElement.current?.contains(panelDocument.activeElement)) return
       if (!(event.ctrlKey || event.metaKey)) return
       // Keep repeated saves and modal/busy states from opening the browser's Save Page dialog.
       const saveShortcut = event.key.toLowerCase() === 's'
@@ -450,8 +478,8 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
       if (event.key.toLowerCase() === 'z') { event.preventDefault(); moveHistory(event.shiftKey ? 'redo' : 'undo') }
       if (event.key.toLowerCase() === 'y') { event.preventDefault(); moveHistory('redo') }
     }
-    window.addEventListener('keydown', keyboard)
-    return () => window.removeEventListener('keydown', keyboard)
+    panelWindow.addEventListener('keydown', keyboard)
+    return () => panelWindow.removeEventListener('keydown', keyboard)
   })
   const showDiff = async () => {
     if (!document || busy || Object.keys(invalidInputs).length) return
@@ -459,7 +487,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     try { setDiffRaw(await currentRaw()) } catch (reason) { showError(reason) } finally { setBusy(false) }
   }
   const deleteDocument = async () => {
-    if (!document || readOnly || busy || !window.confirm(`${document.path}\nこのファイルを削除しますか？${dirty ? '\n未保存の編集内容も破棄されます。' : ''}`)) return
+    if (!document || readOnly || busy || !panelWindow.confirm(`${document.path}\nこのファイルを削除しますか？${dirty ? '\n未保存の編集内容も破棄されます。' : ''}`)) return
     setBusy(true); setError('')
     try {
       await masterDataApi.delete(document.path, document.revision)
@@ -474,7 +502,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     setBusy(true)
     try {
       const url = URL.createObjectURL(new Blob([await currentRaw()], { type: document.format === 'json' ? 'application/json;charset=utf-8' : 'text/yaml;charset=utf-8' }))
-      const anchor = window.document.createElement('a'); anchor.href = url; anchor.download = baseName(document.path); anchor.click(); URL.revokeObjectURL(url)
+      const anchor = panelDocument.createElement('a'); anchor.href = url; anchor.download = baseName(document.path); anchor.click(); URL.revokeObjectURL(url)
     } catch (reason) { showError(reason) } finally { setBusy(false) }
   }
   const create = async (newDraft: MasterDraft) => {
@@ -491,7 +519,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     try {
       const raw = await file.text()
       if (document && !readOnly) {
-        if (!window.confirm(`読み込んだ原稿で ${baseName(document.path)} の編集内容を置き換えますか？（保存はまだ行いません）`)) return
+        if (!panelWindow.confirm(`読み込んだ原稿で ${baseName(document.path)} の編集内容を置き換えますか？（保存はまだ行いません）`)) return
         history.record({ raw, content: null, source: 'raw' }); setInvalidInputs({}); setInvalidValues({}); setReport(null); setRenderWarnings([]); setNotice('原稿を読み込みました。検証してから保存してください。')
       } else { setImportText(raw); setCreateMode('import') }
     } catch (reason) { showError(reason) }
@@ -533,6 +561,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
   }, [active, busy, focusNotice, notice])
   const presentValidation = (validation: ValidationReport) => {
     setReport(validation)
+    docking?.show('master-validation', false)
     if (validation.isValid) return
     const paths = validation.issues.filter((entry) => entry.severity === 'error').map((entry) => entry.path)
       .filter((path): path is string => typeof path === 'string' && (!path || path.startsWith('/')) && !/~(?![01])/.test(path))
@@ -543,14 +572,18 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
         && !paths.some((other) => other !== candidate && other.startsWith(`${candidate}/`))
     })
     if (draft.source === 'form' && path !== undefined) setFocusPath({ path })
-    else setFocusValidation(true)
+    else {
+      docking?.show('master-validation')
+      setFocusValidation(true)
+    }
   }
   useEffect(() => {
-    if (!active || busy || !focusValidation) return
-    validationHeading.current?.focus()
+    if ((!active && !docking?.visible.has('master-validation')) || busy || !focusValidation) return
+    if (!validationHeading.current?.isConnected) return
+    validationHeading.current.focus()
     validationHeading.current?.scrollIntoView?.({ block: 'center' })
     setFocusValidation(false)
-  }, [active, busy, focusValidation])
+  }, [active, busy, focusValidation, docking?.visible])
   useEffect(() => {
     if (!active || !focusPath || draft.source !== 'form' || busy) return
     const targetValue = valueAtPointer(draft.content, focusPath.path)
@@ -567,7 +600,7 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     const parent = parentPointer(focusPath.path)
     const target = inlineTarget ?? (Array.isArray(valueAtPointer(draft.content, parent)) ? findControl(parent) : undefined)
     if (target) {
-      for (let parent = target.parentElement; parent; parent = parent.parentElement) if (parent instanceof HTMLDetailsElement) parent.open = true
+      for (let parent = target.parentElement; parent; parent = parent.parentElement) if (parent.tagName === 'DETAILS') (parent as HTMLDetailsElement).open = true
       target.focus(); target.scrollIntoView?.({ block: 'center' })
       const scrollArea = target.closest<HTMLElement>('.master-edit-area')
       const navigation = scrollArea?.querySelector<HTMLElement>('.master-form-navigation')
@@ -579,6 +612,9 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
     } else editorElement.current?.querySelector<HTMLElement>('[data-node-heading]')?.focus()
     setFocusPath(null)
   }, [active, focusPath, selectedFormPath, draft.content, draft.source, busy, invalidInputs, document])
+  const validation = report || Object.keys(invalidInputs).length > 0
+    ? <MasterValidationResults report={report} invalidInputs={invalidInputs} headingRef={validationHeading} active={active || Boolean(docking?.visible.has('master-validation'))} onSelect={path => { docking?.show('master'); focusIssue(path) }} />
+    : null
   return <main ref={editorElement} className="master-editor master-document-only">
     <input hidden ref={importInput} type="file" accept=".yml,.yaml,.json,text/yaml,application/json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void replaceRaw(file); event.target.value = '' }} />
     <section className="master-workspace">
@@ -648,7 +684,8 @@ function MasterDataEditorPane({ workspace, tabId, initialPath, initialDocument, 
           history.record({ raw: `${draft.raw.slice(0, start)}  ${draft.raw.slice(end)}`, content: null, source: 'raw' }); requestAnimationFrame(() => { target.selectionStart = target.selectionEnd = start + 2 })
         }} /></> : <MasterDataDetails key={documentVersion} value={draft.content} path={selectedFormPath} fields={documentCategory?.fields ?? []} schema={schema} references={candidates} visualReferences={visualReferences} disabled={busy || readOnly} navigationDisabled={busy || Object.keys(invalidInputs).length > 0} onSelect={selectFormPath} onFocus={focusIssue} onInvalid={handleInvalid} invalidValues={invalidValues} onChange={(content) => { history.record({ ...draft, content, source: 'form' }); setReport(null) }} />}
       </> : <div className="master-empty"><h2>{initialPath ? busy ? 'ファイルを読み込んでいます…' : 'ファイルを読み込めませんでした' : 'マスターデータを編集'}</h2><p>左の一覧からファイルを選択するか、新規作成・原稿の読込で開始します。</p>{initialPath && <button type="button" className="button" disabled={busy} onClick={() => void loadDocument(initialPath)}>ファイルを再読込</button>}{category && <p>{category.label} · {category.directory}</p>}{!initialPath && <div className="master-empty-steps"><div><b>01 / 探す</b><strong>目的のファイルへ</strong><span>フォルダと名前・IDの検索、詳細フィルターを使って絞り込みます。</span></div><div><b>02 / 編集する</b><strong>自分に合った方法で</strong><span>日本語フォームと原稿を切り替え、複数のタブで作業できます。</span></div><div><b>03 / 確かめる</b><strong>差分・検証から保存へ</strong><span>変更点と入力エラーを確認し、保存ボタンまたは Ctrl+S で反映します。</span></div></div>}</div>}</div>
-      {(report || Object.keys(invalidInputs).length > 0) && <MasterValidationResults report={report} invalidInputs={invalidInputs} headingRef={validationHeading} active={active} onSelect={focusIssue} />}
+      {!isDocked && validation}
+      {isDocked && selected && <DockPanelContent id="master-validation"><div className="dock-master-validation">{validation ?? <p className="dock-validation-empty master-muted">現在のファイルを検証すると、結果が表示されます。</p>}</div></DockPanelContent>}
       </fieldset>
     </section>
     {diffRaw !== null && document && <MasterDataDiff before={diffBefore ?? document.raw} after={diffRaw} onClose={() => { reviewedRaw.current = diffRaw; setDiffRaw(null); setDiffBefore(null) }} />}

@@ -1,3 +1,4 @@
+import { usePanelDocument, usePanelVisibility } from '../docking/dockPanel'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import type { MasterCategory, MasterFileSummary } from '../types/masterData'
@@ -19,6 +20,9 @@ interface FolderMenu { directory: string; x: number; y: number }
 interface CopyFeedback { state: 'success' | 'failure'; value: string }
 
 function FolderContextMenu({ x, y, commands, onDismiss }: { x: number; y: number; commands: { label: string; disabled?: boolean; run: () => void }[]; onDismiss: (restoreFocus?: boolean) => void }) {
+  const document = usePanelDocument()
+  const visibleInLayout = usePanelVisibility()
+  const window = document.defaultView!
   const menu = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
     const element = menu.current
@@ -29,6 +33,7 @@ function FolderContextMenu({ x, y, commands, onDismiss }: { x: number; y: number
     element.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus()
   }, [x, y])
   useEffect(() => {
+    if (!visibleInLayout) return
     const outside = (event: Event) => { if (!menu.current?.contains(event.target as Node)) onDismiss() }
     const dismiss = () => onDismiss()
     document.addEventListener('pointerdown', outside)
@@ -41,8 +46,8 @@ function FolderContextMenu({ x, y, commands, onDismiss }: { x: number; y: number
       window.removeEventListener('resize', dismiss)
       document.removeEventListener('scroll', dismiss, true)
     }
-  }, [onDismiss])
-  return createPortal(<div ref={menu} className="master-folder-context-menu" role="menu" tabIndex={-1} aria-label="フォルダの操作" style={{ left: x, top: y }} onKeyDown={(event) => {
+  }, [onDismiss, document, window, visibleInLayout])
+  return createPortal(<div hidden={!visibleInLayout} ref={menu} className="master-folder-context-menu" role="menu" tabIndex={-1} aria-label="フォルダの操作" style={{ left: x, top: y }} onKeyDown={(event) => {
     if (event.key === 'Escape' || event.key === 'Tab') { event.preventDefault(); onDismiss(true); return }
     const buttons = Array.from(menu.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])
     const index = buttons.indexOf(document.activeElement as HTMLButtonElement)
