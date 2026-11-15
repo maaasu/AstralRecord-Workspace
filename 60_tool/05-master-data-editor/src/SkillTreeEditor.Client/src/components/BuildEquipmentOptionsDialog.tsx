@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { usePanelDocument, usePanelVisibility } from '../docking/dockPanel'
 import { compatibleEnchantChoices, enchantAmount, enchantChoiceKey, enchantEffectKey } from '../data/progressionDesign'
 import type { DesignEquipment, DesignEquipmentEnchant, DesignItem, ProgressionDesignCatalog } from '../types/progressionDesign'
 import { stripMinecraftFormatting } from '../utils/minecraft'
@@ -19,6 +21,8 @@ interface Props {
 type Draft = Omit<DesignEquipmentEnchant, 'value'> & { amount: string }
 
 export function BuildEquipmentOptionsDialog({ item, equipment, catalog, onClose, onDirtyChange, onApply }: Props) {
+  const document = usePanelDocument()
+  const visible = usePanelVisibility()
   const maxSlots = item.maxEnchantSlots ?? 0
   const [enhanceLevel, setEnhanceLevel] = useState(equipment.enhanceLevel)
   const [enchants, setEnchants] = useState<Draft[]>(() => (equipment.enchants ?? []).map(({ value, ...entry }) => ({ ...entry, amount: value })))
@@ -59,7 +63,7 @@ export function BuildEquipmentOptionsDialog({ item, equipment, catalog, onClose,
   const close = () => { if (!applying) onClose() }
 
   return <>
-    <Modal ariaLabel="装備の強化・エンチャント" className="design-build-dialog design-gear-dialog" onClose={close} closeDisabled={applying || picking !== null}>
+    {createPortal(<div hidden={!visible}><Modal ariaLabel="装備の強化・エンチャント" className="design-build-dialog design-gear-dialog" onClose={close} closeDisabled={applying || picking !== null}>
       <header className="modal-header">
         <div><h2>装備の強化・エンチャント</h2><p><MinecraftText value={item.name} /></p></div>
       </header>
@@ -103,7 +107,7 @@ export function BuildEquipmentOptionsDialog({ item, equipment, catalog, onClose,
         <button className="button" disabled={applying} onClick={close}>キャンセル</button>
         <button className="button primary" disabled={!valid || !dirty || applying} onClick={() => void apply()}>下書きに反映</button>
       </footer>
-    </Modal>
+    </Modal></div>, document.body)}
     {picking !== null && <MasterEntityPicker title="付与エンチャントを選択" choices={pickerChoices}
       value={enchants[picking] && enchantChoiceKey(enchants[picking])} onClose={() => setPicking(null)} onSelect={id => {
         const choice = byKey.get(id)
