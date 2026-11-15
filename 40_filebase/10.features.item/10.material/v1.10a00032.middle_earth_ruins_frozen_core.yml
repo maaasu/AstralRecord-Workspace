@@ -11,7 +11,7 @@ rarity: RARE
 maxStack: 64
 saleValue: 48
 lore:
-  - "&7万物のエルが残した、冷気を帯びる核の欠片。"
+  - "&7遺跡の奥で見つかる、冷気を帯びる核の欠片。"
   - "&7遺跡の武器やアクセサリとの交換に使われる。"
 unTradeable: false
 unSellable: false

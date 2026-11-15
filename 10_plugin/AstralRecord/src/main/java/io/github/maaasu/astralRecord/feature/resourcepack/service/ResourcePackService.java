@@ -49,6 +49,7 @@ public class ResourcePackService {
     private final Set<UUID> requestedSunbirdPresentationV2 = ConcurrentHashMap.newKeySet();
     private final Set<UUID> loadedSunbirdPresentationV2 = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedSeleneaPresentation = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> requestedMossZombiePresentation = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockSeleneaPresentation = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaArchmagePhoenixPresentation = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockArchmagePhoenixPresentation = ConcurrentHashMap.newKeySet();
@@ -111,6 +112,7 @@ public class ResourcePackService {
         requestedSunbirdPresentationV2.remove(player.getUniqueId());
         loadedSunbirdPresentationV2.remove(player.getUniqueId());
         requestedSeleneaPresentation.remove(player.getUniqueId());
+        requestedMossZombiePresentation.remove(player.getUniqueId());
         requestedJavaArchmagePhoenixPresentation.remove(player.getUniqueId());
         requestedJavaNyxeronPresentation.remove(player.getUniqueId());
         requestedJavaWeaponAttackProjectiles.remove(player.getUniqueId());
@@ -199,6 +201,7 @@ public class ResourcePackService {
                     if (pack.itemTooltips()) {
                         requestedJavaItemTooltips.add(viewer);
                     }
+                    if (pack.mossZombiePresentation()) requestedMossZombiePresentation.add(viewer);
                     if (pack.seleneaPresentation()) {
                         requestedSeleneaPresentation.add(viewer);
                     }
@@ -348,6 +351,7 @@ public class ResourcePackService {
                     requestedSunbirdPresentation.remove(viewer);
                     requestedSunbirdPresentationV2.remove(viewer);
                     requestedSeleneaPresentation.remove(viewer);
+                    requestedMossZombiePresentation.remove(viewer);
                     requestedJavaArchmagePhoenixPresentation.remove(viewer);
                     requestedJavaNyxeronPresentation.remove(viewer);
                     requestedJavaWeaponAttackProjectiles.remove(viewer);
@@ -688,6 +692,11 @@ public class ResourcePackService {
         return hasManagedJavaPack(playerId) && requestedSeleneaPresentation.contains(playerId);
     }
 
+    /** 苔むしたゾンビのモデルを含む管理パックの読み込み成功を確認します。 */
+    public boolean hasJavaMossZombiePresentation(UUID playerId) {
+        return hasManagedJavaPack(playerId) && requestedMossZombiePresentation.contains(playerId);
+    }
+
     /**
      * Proxyが確認した統合版パックの対応状態を調べます。
      * @param playerId 閲覧者のUUID
@@ -886,6 +895,7 @@ public class ResourcePackService {
         requestedSunbirdPresentationV2.remove(playerId);
         loadedSunbirdPresentationV2.remove(playerId);
         requestedSeleneaPresentation.remove(playerId);
+        requestedMossZombiePresentation.remove(playerId);
         readyBedrockSeleneaPresentation.remove(playerId);
         requestedJavaArchmagePhoenixPresentation.remove(playerId);
         readyBedrockArchmagePhoenixPresentation.remove(playerId);

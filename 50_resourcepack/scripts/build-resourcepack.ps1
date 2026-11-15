@@ -98,6 +98,7 @@ $java = Read-PackEntries $root @(
     'assets/minecraft/textures/gui/sprites/hud/hotbar_offhand_left.png'
     'assets/minecraft/textures/gui/sprites/hud/hotbar_offhand_right.png'
     'sunbird-presentation-version.txt'
+    'midgard-moss-zombie-presentation-version.txt'
     'selenea-presentation-version.txt'
     'archmage-phoenix-presentation-version.txt'
     'nyxeron-presentation-version.txt'
@@ -238,6 +239,11 @@ $java = Read-PackEntries $root @(
     'assets/astralrecord/textures/item/action_ring.png'
     'assets/astralrecord/textures/item/action_ring_icons.png'
     'assets/astralrecord/textures/item/action_ring_panel.png'
+    'assets/astralrecord/items/midgard_moss_zombie.json'
+    'assets/astralrecord/models/item/midgard_moss_zombie.json'
+    'assets/astralrecord/models/item/midgard_moss_zombie_walk_a.json'
+    'assets/astralrecord/models/item/midgard_moss_zombie_walk_b.json'
+    'assets/astralrecord/textures/item/midgard_moss_zombie.png'
     'assets/astralrecord/items/sunbird.json'
     'assets/astralrecord/items/sunbird_warning_circle.json'
     'assets/astralrecord/items/sunbird_warning_line.json'
@@ -462,6 +468,11 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'textures/entity/weapon_attack/bow_impact.png'
     'textures/entity/weapon_attack/wand_impact.png'
     'textures/entity/weapon_attack/staff_impact.png'
+    'entity/midgard_moss_zombie.entity.json'
+    'animations/midgard_moss_zombie.animation.json'
+    'render_controllers/midgard_moss_zombie.render_controllers.json'
+    'models/entity/midgard_moss_zombie.geo.json'
+    'textures/entity/midgard_moss_zombie.png'
     'entity/sunbird.entity.json'
     'animations/sunbird.animation.json'
     'animation_controllers/sunbird.animation_controllers.json'
@@ -524,6 +535,11 @@ foreach ($style in $seleneaSkillStyles) {
     }
     Add-PackEntries $java $root $paths
 }
+$mossZombieVersionMarker = 'midgard-moss-zombie-presentation-version.txt'
+if ($utf8.GetString($java[$mossZombieVersionMarker]) -cne '1') {
+    throw 'Invalid Moss Zombie presentation version marker in resource pack.'
+}
+$bedrock.Add($mossZombieVersionMarker, $java[$mossZombieVersionMarker])
 $seleneaVersionMarker = 'selenea-presentation-version.txt'
 if ($utf8.GetString($java[$seleneaVersionMarker]) -cne '1') {
     throw 'Invalid Selenea presentation version marker in resource pack.'

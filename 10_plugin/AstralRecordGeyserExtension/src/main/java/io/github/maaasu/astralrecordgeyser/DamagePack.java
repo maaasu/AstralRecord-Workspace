@@ -32,7 +32,7 @@ record DamagePack(
     String sha256, Path file, ResourcePack pack, boolean damageNumbers, boolean actionRing,
     boolean combatResult, int combatRewardPlaqueVersion, boolean weaponAttack, boolean weaponAttackProjectiles,
     boolean skillEffectsV2, boolean fishingVisuals,
-    boolean gameplaySounds, boolean sunbird, boolean sunbirdMotion, boolean selenea, boolean archmagePhoenix,
+    boolean gameplaySounds, boolean sunbird, boolean sunbirdMotion, boolean selenea, boolean mossZombie, boolean archmagePhoenix,
     boolean nyxeron,
     Set<Integer> heldWeaponModels,
     Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips,
@@ -109,6 +109,13 @@ record DamagePack(
         "entity/archmage_phoenix.entity.json", "animations/archmage_phoenix.animation.json",
         "models/entity/archmage_phoenix.geo.json", "textures/entity/archmage_phoenix.png"
     );
+    private static final List<String> MOSS_ZOMBIE_ENTRIES = List.of(
+        "entity/midgard_moss_zombie.entity.json",
+        "animations/midgard_moss_zombie.animation.json",
+        "render_controllers/midgard_moss_zombie.render_controllers.json",
+        "models/entity/midgard_moss_zombie.geo.json",
+        "textures/entity/midgard_moss_zombie.png"
+    );
     private static final List<String> SELENEA_ENTRIES = List.of(
         "entity/selenea.entity.json", "animations/selenea.animation.json",
         "animation_controllers/selenea.animation_controllers.json", "render_controllers/selenea.render_controllers.json",
@@ -181,6 +188,7 @@ record DamagePack(
             boolean sunbird;
             boolean sunbirdMotion;
             boolean selenea;
+            boolean mossZombie;
             boolean archmagePhoenix;
             boolean nyxeron;
             boolean worldDisplay;
@@ -225,6 +233,8 @@ record DamagePack(
                 sunbirdMotion = sunbird
                     && present(zip.getEntry("animation_controllers/sunbird.animation_controllers.json"))
                     && present(zip.getEntry("render_controllers/sunbird.render_controllers.json"));
+                mossZombie = hasVersionOne(zip, "midgard-moss-zombie-presentation-version.txt")
+                    && MOSS_ZOMBIE_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 selenea = hasVersionOne(zip, "selenea-presentation-version.txt")
                     && SELENEA_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 archmagePhoenix = hasVersionOne(zip, "archmage-phoenix-presentation-version.txt")
@@ -258,7 +268,7 @@ record DamagePack(
             file.toFile().deleteOnExit();
             keep = true;
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, combatRewardPlaqueVersion,
-                weaponAttack, weaponAttackProjectiles, skillEffectsV2, fishingVisuals, gameplaySounds, sunbird, sunbirdMotion, selenea,
+                weaponAttack, weaponAttackProjectiles, skillEffectsV2, fishingVisuals, gameplaySounds, sunbird, sunbirdMotion, selenea, mossZombie,
                 archmagePhoenix, nyxeron, heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips, actionRingHudRevision,
                 questHud, receptionDisplay, challengeCountdown, dungeonClearSound);
         } finally {

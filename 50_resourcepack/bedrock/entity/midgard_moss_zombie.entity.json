@@ -1,0 +1,43 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "astralrecord:midgard_moss_zombie",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/midgard_moss_zombie"
+      },
+      "geometry": {
+        "default": "geometry.astralrecord.midgard_moss_zombie"
+      },
+      "animations": {
+        "body_scale": "animation.astralrecord.midgard_moss_zombie.body_scale",
+        "idle": "animation.astralrecord.midgard_moss_zombie.idle",
+        "walk": "animation.astralrecord.midgard_moss_zombie.walk"
+      },
+      "scripts": {
+        "initialize": [
+          "variable.moss_gait = 0.0;"
+        ],
+        "pre_animation": [
+          "variable.moss_gait = math.lerp(variable.moss_gait, math.clamp(query.modified_move_speed * 4.0, 0.0, 1.0), math.min(1.0, query.delta_time * 8.0));"
+        ],
+        "animate": [
+          "body_scale",
+          {
+            "idle": "1.0 - variable.moss_gait"
+          },
+          {
+            "walk": "variable.moss_gait"
+          }
+        ]
+      },
+      "render_controllers": [
+        "controller.render.astralrecord.midgard_moss_zombie"
+      ],
+      "enable_attachables": false
+    }
+  }
+}
