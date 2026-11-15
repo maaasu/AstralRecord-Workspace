@@ -21,5 +21,6 @@ public sealed record JavaResourcePack(
     string? LocationHud = null,
     int[]? WornHelmetModels = null,
     string? FishingRodTip = null,
-    string? NyxeronPresentation = null);
+    string? NyxeronPresentation = null,
+    string? MossZombiePresentation = null);
 public sealed record BedrockResourcePack(string Sha256, Guid Uuid);

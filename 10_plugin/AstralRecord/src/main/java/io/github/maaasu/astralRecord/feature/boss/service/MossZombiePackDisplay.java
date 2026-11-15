@@ -48,7 +48,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * Mob スキルが要求した攻撃姿勢を、Java は姿勢モデル、統合版は {@code astralrecord:motion} で表示します。
  */
 final class MossZombiePackDisplay implements Listener {
-    static final String BOSS_ID = "all_things_el";
+    static final String BOSS_ID = "morgras";
     // Geyser 拡張と共有する表示専用 UUID マーカー。実体の entity ID は変えない。
     private static final long BEDROCK_MARKER = 0x4153544D4F535331L;
     // ASTMOSM1。統合版の攻撃姿勢を Geyser 拡張へ渡す一時 TextDisplay の UUID 上位64bit。
