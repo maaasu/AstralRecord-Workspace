@@ -123,9 +123,8 @@ function WorkspaceViews({ workspaceRoot, desktop }: { workspaceRoot: string; des
     return () => { live = false }
   }, [capabilitiesRequest])
 
-  const selectPage = (next: Page) => {
-    const navDocument = docking.documents.get('navigation') ?? document
-    if (next !== page && !isToolPage(page) && dirtyByPage[page] && !navDocument.defaultView?.confirm('未保存の編集があります。画面を切り替えますか？（編集内容は保持されます）')) return
+  const selectPage = (next: Page, ownerDocument: Document = document) => {
+    if (next !== page && !isToolPage(page) && dirtyByPage[page] && !ownerDocument.defaultView?.confirm('未保存の編集があります。画面を切り替えますか？（編集内容は保持されます）')) return
     show(next)
   }
   const retryCapabilities = () => { setCapabilitiesError(''); setCapabilitiesRequest(value => value + 1) }
@@ -135,17 +134,17 @@ function WorkspaceViews({ workspaceRoot, desktop }: { workspaceRoot: string; des
     <DockPanelContent id="navigation">
       <div id="workspace-navigation" className="master-app-sidebar">
         <nav aria-label="開発ツール">
-          {editorPages.map(item => <button key={item.id} type="button" className="workspace-nav-item" aria-label={`${item.label}${dirtyByPage[item.id] ? ' ●' : ''}`} aria-pressed={page === item.id} aria-current={page === item.id ? 'page' : undefined} onClick={() => selectPage(item.id)}>
+          {editorPages.map(item => <button key={item.id} type="button" className="workspace-nav-item" aria-label={`${item.label}${dirtyByPage[item.id] ? ' ●' : ''}`} aria-pressed={page === item.id} aria-current={page === item.id ? 'page' : undefined} onClick={event => selectPage(item.id, event.currentTarget.ownerDocument)}>
             <AppIcon path={item.icon} /><span>{item.label}</span>{dirtyByPage[item.id] && <b className="workspace-nav-dirty" aria-hidden="true">●</b>}
           </button>)}
         </nav>
         <nav aria-label="ビルド・反映">
           <span className="workspace-nav-label">ビルド・反映</span>
-          {toolIds.map(id => <button key={id} type="button" className="workspace-nav-item" aria-current={page === id ? 'page' : undefined} onClick={() => selectPage(id)}>
+          {toolIds.map(id => <button key={id} type="button" className="workspace-nav-item" aria-current={page === id ? 'page' : undefined} onClick={event => selectPage(id, event.currentTarget.ownerDocument)}>
             <code>{id}</code><span>{toolSpecs[id].label}</span>
           </button>)}
         </nav>
-        <button type="button" className="workspace-nav-item workspace-history-link" aria-current={page === 'history' ? 'page' : undefined} onClick={() => selectPage('history')}>
+        <button type="button" className="workspace-nav-item workspace-history-link" aria-current={page === 'history' ? 'page' : undefined} onClick={event => selectPage('history', event.currentTarget.ownerDocument)}>
           <AppIcon path="M3 12a9 9 0 1 1 3 6.7 M3 5v7h7 M12 7v5l3 2" /><span>実行履歴</span>
         </button>
       </div>

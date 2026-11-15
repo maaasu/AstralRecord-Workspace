@@ -34,8 +34,8 @@
   min-width: 0;
   padding: 17px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
+  border-radius: var(--radius-panel);
+  background: var(--surface-raised);
 }
 .tool-settings-grid + .tool-panel, .tool-panel + .tool-panel, .tool-actions + .tool-panel, .tool-history-details { margin-top: 14px; }
 .tool-settings-grid > .tool-panel { margin-top: 0; }
@@ -57,7 +57,7 @@
   margin: 14px 0 0;
   padding: 11px 13px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   color: var(--accent);
   background: var(--accent-soft);
   overflow-wrap: anywhere;
@@ -67,7 +67,7 @@ ul.tool-note { padding-left: 31px; }
 .tool-note.warning { color: var(--gold); background: #3e3629; }
 .tool-note.error { color: var(--danger); background: #422e35; }
 .tool-note > p + button, .tool-note .tool-button-row { margin-top: 8px; }
-.tool-confirmations { display: grid; gap: 8px; min-width: 0; margin: 15px 0 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: 7px; }
+.tool-confirmations { display: grid; gap: 8px; min-width: 0; margin: 15px 0 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--radius-panel); }
 .tool-confirmations legend { padding: 0 5px; font-weight: 650; }
 .tool-confirmations label { display: flex; gap: 8px; align-items: flex-start; }
 .tool-confirmations input { margin: 3px 0 0; }
@@ -85,7 +85,7 @@ ul.tool-note { padding-left: 31px; }
   overflow-wrap: anywhere;
   background: var(--surface-sidebar);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
 }
 .tool-log-stderr { color: var(--danger); }
 .tool-table-wrap { overflow-x: auto; }
