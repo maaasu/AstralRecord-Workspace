@@ -45,6 +45,10 @@ internal static class ProgressionPresetValidation
         var equipment = await ReadReferenceIndexAsync(paths, codec, "10.features.item/20.equipment", "item:", token);
         var skills = await ReadReferenceIndexAsync(paths, codec, "30.features.skill", "skill:", token);
         var sigils = await ReadReferenceIndexAsync(paths, codec, "10.features.item/70.sigil", "item:", token);
+        var hasEnchants = levels.OfType<JsonObject>()
+            .SelectMany(level => (level["equipment"] as JsonArray ?? []).OfType<JsonObject>())
+            .Any(assignment => assignment["enchants"] is JsonArray { Count: > 0 });
+        var enchantChoices = hasEnchants ? await ReadEnchantChoicesAsync(paths, codec, token) : [];
         var previous = 0;
         for (var index = 0; index < levels.Count; index++)
         {
@@ -99,7 +103,7 @@ internal static class ProgressionPresetValidation
                             $"スロット '{slot}' が重複しています。"));
                     if (key == "equipment")
                     {
-                        ValidateEquipment(assignment, equipment, assignmentPath, level, classId,
+                        ValidateEquipment(assignment, equipment, enchantChoices, assignmentPath, level, classId,
                             ReadInteger(snapshot["classLevel"], 1), issues);
                         continue;
                     }
@@ -128,6 +132,7 @@ internal static class ProgressionPresetValidation
             : null;
 
     private static void ValidateEquipment(JsonObject assignment, IReadOnlyDictionary<string, JsonObject> equipment,
+        IReadOnlyList<ProgressionEquipmentEnchants.Effect> enchantChoices,
         string pointer, int playerLevel, string? classId, int classLevel, List<MasterDataIssue> issues)
     {
         if (MasterDataValidation.Text(assignment["item"]) is not { } reference) return;
@@ -165,11 +170,56 @@ internal static class ProgressionPresetValidation
         }
 
         var enhanceLevel = ReadInteger(assignment["enhanceLevel"]);
-        if (enhanceLevel == 0) return;
         var maxEnhanceLevel = ReachableEnhanceLevel(definition["enhance"] as JsonObject);
         if (enhanceLevel > maxEnhanceLevel)
             issues.Add(new("error", "PROGRESSION_PRESET_ENHANCE_LEVEL", pointer + "/enhanceLevel",
                 $"状態変化前の装備の強化上限は +{maxEnhanceLevel} です。"));
+        ValidateEnchants(assignment["enchants"] as JsonArray, definition, enchantChoices, pointer + "/enchants", issues);
+    }
+
+    private static void ValidateEnchants(JsonArray? enchants, JsonObject definition,
+        IReadOnlyList<ProgressionEquipmentEnchants.Effect> choices, string pointer, List<MasterDataIssue> issues)
+    {
+        if (enchants is not { Count: > 0 }) return;
+        var max = ProgressionEquipmentEnchants.MaxSlots(definition);
+        if (enchants.Count > max)
+            issues.Add(new("error", "PROGRESSION_PRESET_ENCHANT_SLOTS", pointer,
+                $"状態変化前の装備に付与できるエンチャントは {max} 件までです。"));
+
+        var equipmentType = ProgressionEquipmentEnchants.EquipmentType(MasterDataValidation.Text(definition["slot"]));
+        var effects = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var index = 0; index < enchants.Count; index++)
+        {
+            if (enchants[index] is not JsonObject enchant
+                || MasterDataValidation.Text(enchant["enchantMasterId"]) is not { } master
+                || MasterDataValidation.Text(enchant["effectId"]) is not { } effect) continue;
+            var path = $"{pointer}/{index}";
+            if (!effects.Add(effect.Trim()))
+                issues.Add(new("error", "PROGRESSION_PRESET_DUPLICATE_ENCHANT", path + "/effectId",
+                    "同じ効果は同じ装備に重複して付与できません。"));
+
+            var matches = choices.Where(choice => choice.EquipmentType == equipmentType
+                && choice.MasterId.Equals(master, StringComparison.OrdinalIgnoreCase)
+                && choice.EffectId.Equals(effect.Trim(), StringComparison.OrdinalIgnoreCase)).Take(2).ToArray();
+            if (matches.Length != 1)
+                issues.Add(new("error", "PROGRESSION_PRESET_ENCHANT_EFFECT", path + "/effectId",
+                    "指定した候補マスターに、この装備区分へ付与できる効果がありません。"));
+            else if (ProgressionEquipmentEnchants.Value(enchant["value"]) is not { } value
+                || !ProgressionEquipmentEnchants.CanStore(value) || value < matches[0].Min || value > matches[0].Max)
+                issues.Add(new("error", "PROGRESSION_PRESET_ENCHANT_VALUE", path + "/value",
+                    FormattableString.Invariant($"付与値を {matches[0].Min}〜{matches[0].Max} の範囲で小数4桁以内にしてください。")));
+        }
+    }
+
+    private static async Task<ProgressionEquipmentEnchants.Effect[]> ReadEnchantChoicesAsync(
+        MasterDataPaths paths, MasterDataCodec codec, CancellationToken token)
+    {
+        var orbs = await ReadMastersAsync(paths, codec, "10.features.item/40.orb", token);
+        var available = orbs.Select(orb => ProgressionEquipmentEnchants.OrbSource(orb.Content)?.MasterId)
+            .OfType<string>().ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var masters = await ReadMastersAsync(paths, codec, "12.features.enchant", token);
+        return masters.SelectMany(entry => ProgressionEquipmentEnchants.Read(entry.Content))
+            .Where(effect => available.Contains(effect.MasterId)).ToArray();
     }
 
     internal static int ReachableEnhanceLevel(JsonObject? enhance)

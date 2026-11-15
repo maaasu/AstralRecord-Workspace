@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.account.model;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /** 職業とビルドに対応する戦闘検証用の進行プリセットです。 */
@@ -37,8 +38,16 @@ public record ProgressionPreset(String id, String name, String classId, String b
         }
     }
 
-    /** 装備先の枠、item: 参照、強化値です。 */
-    public record Equipment(String slot, String item, int enhanceLevel) { }
+    /** 装備先の枠、item: 参照、初期強化値、枠順の付与効果です。 */
+    public record Equipment(String slot, String item, int enhanceLevel, List<Enchant> enchants) {
+        /** 付与効果の一覧を不変のスナップショットとして保持します。 */
+        public Equipment {
+            enchants = List.copyOf(enchants);
+        }
+    }
+
+    /** ランク0の装備へ付与する共通エンチャント効果と確定値です。 */
+    public record Enchant(String enchantMasterId, String effectId, BigDecimal value) { }
 
     /** 1始まりの設定枠、skill: 参照、個体のレベルとシジルです。 */
     public record SkillBinding(int slot, String skill, int skillLevel, List<Sigil> sigils) {
