@@ -162,6 +162,10 @@ public sealed class BossMasterEditorTests : IDisposable
             Assert.Contains(category.Fields, field => field.Path == "/generation/area/" + dimension && field.Type == "Integer");
         foreach (var surface in new[] { "floor", "wall", "ceiling" })
             Assert.Contains(category.Fields, field => field.Path == "/theme/" + surface && field.Type == "List");
+        Assert.Contains(category.Fields, field => field.Path == "/entry/worldRef" && field.Reference == "world");
+        Assert.Contains(category.Fields, field => field.Path == "/encounter/bossMobId" && field.Reference == "mob");
+        Assert.Contains(category.Fields, field => field.Path == "/encounter/normalMobPool/*/mobId" && field.Reference == "mob");
+        Assert.Contains(category.Fields, field => field.Path == "/clearRewards/lootTable" && field.Reference == "loot_table");
         Assert.DoesNotContain(category.Fields, field => field.Path.Contains("~1", StringComparison.Ordinal));
     }
 

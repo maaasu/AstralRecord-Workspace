@@ -17,6 +17,9 @@ import type { MasterVisualReferences } from '../state/masterVisualReferences'
 import { useMasterArrayOrder } from '../state/useMasterArrayOrder'
 import { fishingChanceTotal, MasterReferenceCollection, ReferenceIcon } from './MasterReferenceCollection'
 import { MasterRowActions } from './MasterRowActions'
+import { dungeonRoomChoices, dungeonSection, dungeonSectionPaths, fallbackBossRoomSize, isDungeonMaster, isDungeonMaterialList } from '../data/dungeonForm'
+import { DungeonReferenceField, dungeonReferenceKind } from './DungeonReferenceField'
+import { DungeonMaterialField } from './DungeonMaterialField'
 import './masterDataForm.css'
 
 type ValueType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array' | 'null'
@@ -152,14 +155,21 @@ interface MasterDataFormProps {
   invalidValues?: Record<string, string>
   onNavigate?: (path: string) => void
   navigationDisabled?: boolean
+  dungeonRoomSize?: JsonValue
 }
 
-export function MasterDataForm({ value, onChange, fields, references = emptyReferences, schema = {}, rootSchema = schema, path = '', onInvalid, invalidValues, onNavigate, navigationDisabled }: MasterDataFormProps) {
+export function MasterDataForm({ value, onChange, fields, references = emptyReferences, schema = {}, rootSchema = schema, path = '', onInvalid, invalidValues, onNavigate, navigationDisabled, dungeonRoomSize }: MasterDataFormProps) {
   const visualReferences = useContext(MasterVisualReferencesContext)
+  const dungeon = isDungeonMaster(visualReferences?.documentPath)
   const resolved = resolveSchema(schema, rootSchema)
   const metadata = fieldForPath(fields, path)
-  const kind = valueType(value, resolved, metadata)
-  const inherited = { fields, references, rootSchema, onInvalid, invalidValues, onNavigate, navigationDisabled }
+  const parent = path.slice(0, path.lastIndexOf('/'))
+  const key = textFieldName(path) ?? ''
+  const dungeonFields = dungeon ? dungeonSection(parent) : undefined
+  const numericType = dungeonFields && Object.hasOwn(dungeonFields, key) ? dungeonFields[key].type
+    : dungeon && key === 'weight' && isDungeonWeightedList(parent.replace(/\/\d+$/, '')) ? 'integer' : undefined
+  const kind = valueType(value, numericType ? { ...resolved, type: numericType } : resolved, metadata)
+  const inherited = { fields, references, rootSchema, onInvalid, invalidValues, onNavigate, navigationDisabled, dungeonRoomSize }
   const unions = Array.isArray(resolved.oneOf ?? resolved.anyOf) ? (resolved.oneOf ?? resolved.anyOf) as JsonValue[] : []
   const choices = unions.map((choice) => resolveSchema(objectOf(choice) ?? {}, rootSchema))
   const selectedUnion = Math.max(0, choices.findIndex((choice) => masterUnionMatches(choice, value, rootSchema)))
@@ -179,15 +189,44 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
     const values = Array.isArray(value) ? value : []
     if (isTextLineArray(path, values)) return <TextLineArrayEditor path={path} values={values} onChange={onChange} />
     const collection = visualReferences && visualReferenceCollection(visualReferences.documentPath, path)
-    if (visualReferences && onNavigate && collection && canShowReferenceCollection(collection, values)) {
+    if (visualReferences && (onNavigate || dungeon) && collection && canShowReferenceCollection(collection, values)) {
       return <MasterReferenceCollection path={path} definition={collection} context={visualReferences} values={values} references={references}
         onChange={onChange} onNavigate={onNavigate} disabled={navigationDisabled}
-        renderNumber={(fieldPath, value, kind, change) => <NumberEditor path={fieldPath} value={value} kind={kind}
+        renderNumber={(fieldPath, value, kind, change, optional) => <NumberEditor path={fieldPath} value={value} kind={kind} optional={optional}
           onChange={change} onInvalid={onInvalid} restoredText={invalidValues?.[fieldPath]} />} />
     }
     const declaredItemType = metadata?.type.match(/^(?:List|Array|Set)\s*<\s*([^>]+)\s*>$/i)?.[1]
     const itemSchema = objectOf(resolved.items) ?? (normalizeMasterType(declaredItemType) ? { type: normalizeMasterType(declaredItemType) } : {})
     return <ArrayEditor {...inherited} path={path} values={values} itemSchema={itemSchema} onChange={onChange} />
+  }
+  if (dungeon && path === '/challenge/timeLimitSeconds' && (value === null || typeof value === 'number')) {
+    return <div className="dungeon-time-limit">
+      {typeof value === 'number' && <NumberEditor value={value} kind="integer" path={path} onChange={onChange} onInvalid={onInvalid} restoredText={invalidValues?.[path]} />}
+      <label><input type="checkbox" checked={value === null} onChange={event => {
+        onInvalid?.(path, null)
+        onChange(event.target.checked ? null : 600)
+      }} />時間制限なし</label>
+    </div>
+  }
+  if (dungeon && (path === '/encounter/bossMobLevel' || /^\/encounter\/normalMobPool\/\d+\/level$/.test(path)) && (value === null || typeof value === 'number')) {
+    return <NumberEditor value={value} kind="integer" path={path} optional onChange={onChange} onInvalid={onInvalid} restoredText={invalidValues?.[path]} />
+  }
+  const roomOptionsPath = dungeon && /^\/generation\/room(?:Shapes|Types)\/\d+\/type$/.test(path) ? parent.replace(/\/\d+$/, '') : path
+  const roomOptions = dungeon && Object.hasOwn(dungeonRoomChoices, roomOptionsPath) ? dungeonRoomChoices[roomOptionsPath] : undefined
+  if (roomOptions && typeof value === 'string') {
+    return <select aria-label={path} value={value} onChange={event => onChange(event.target.value)}>
+      {!Object.hasOwn(roomOptions, value) && <option value={value}>未定義 {value}</option>}
+      {Object.entries(roomOptions).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+    </select>
+  }
+  if (dungeon && typeof value === 'string') {
+    const referenceKind = dungeonReferenceKind(path)
+    if (referenceKind && visualReferences) return <DungeonReferenceField path={path} kind={referenceKind}
+      label={dungeonFields?.[key]?.label ?? masterFieldTitle(key, metadata?.label)} value={value} references={references}
+      context={visualReferences} disabled={navigationDisabled} onChange={onChange} />
+    if (path.startsWith('/theme/') && /[mM]aterial$/.test(key)) {
+      return <DungeonMaterialField path={path} value={value} disabled={navigationDisabled} onChange={onChange} />
+    }
   }
   const enumValues = Array.isArray(resolved.enum) ? resolved.enum : metadata?.enum
   if (enumValues?.length) {
@@ -227,8 +266,19 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
     referenceFilter={progressionSigilReference ? isSigilReference : path.endsWith('/caughtItemId/ref') ? isCaughtItemReference : undefined} />
 }
 
-function ObjectEditor({ value, onChange, fields, references, schema, rootSchema, path, onInvalid, invalidValues, onNavigate, navigationDisabled }: Omit<MasterDataFormProps, 'value'> & { value: JsonObject; schema: JsonObject; rootSchema: JsonObject; path: string }) {
+function ObjectEditor({ value, onChange, fields, references, schema, rootSchema, path, onInvalid, invalidValues, onNavigate, navigationDisabled, dungeonRoomSize }: Omit<MasterDataFormProps, 'value'> & { value: JsonObject; schema: JsonObject; rootSchema: JsonObject; path: string }) {
   const visualReferences = useContext(MasterVisualReferencesContext)
+  const dungeon = isDungeonMaster(visualReferences?.documentPath)
+  const weightedPath = path.replace(/\/\d+$/, '')
+  const weightedRow = dungeon && weightedPath !== path && isDungeonWeightedList(weightedPath)
+  const dungeonFields = dungeon ? dungeonSection(path) : undefined
+  const orderedKeys = dungeonFields ? [...new Set([...Object.keys(dungeonFields), ...Object.keys(value)])] : weightedRow
+    ? [...new Set([...Object.keys(value), 'weight'])] : Object.keys(value)
+  const presentedDefault = (key: string): JsonValue | undefined => {
+    if (path === '/generation/bossRoomSize' && dungeon && (key === 'min' || key === 'max')) return fallbackBossRoomSize(key, dungeonRoomSize)
+    if (weightedRow && key === 'weight') return 1
+    return dungeonFields && Object.hasOwn(dungeonFields, key) ? dungeonFields[key].defaultValue : undefined
+  }
   const [newKey, setNewKey] = useState('')
   const [newType, setNewType] = useState<ValueType>('string')
   const [addError, setAddError] = useState('')
@@ -242,15 +292,18 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
     const pattern = fieldPath.split('/').slice(0, -1).join('/')
     return fieldPath.split('/').at(-1) !== '*' && (pattern === path || pattern.split('/').every((part, index) => part === '*' || part === path.split('/')[index]) && pattern.split('/').length === path.split('/').length)
   })
-  const optionalKeys = [...new Set([...Object.keys(properties), ...metadataChildren.map((field) => field.path.split('/').at(-1)?.replaceAll('~1', '/').replaceAll('~0', '~') ?? field.key)])].filter((key) => !Object.hasOwn(value, key))
+  const optionalKeys = [...new Set([...Object.keys(properties), ...metadataChildren.map((field) => field.path.split('/').at(-1)?.replaceAll('~1', '/').replaceAll('~0', '~') ?? field.key)])]
+    .filter((key) => !Object.hasOwn(value, key) && presentedDefault(key) === undefined)
   const add = (key: string, type = newType) => {
     if (!key.trim() || Object.hasOwn(value, key)) { setAddError('キーが空、または同名キーが存在します。'); return }
     const field = fieldForPath(fields, `${path}/${pointerKey(key)}`)
     onChange({ ...value, [key]: documentedFieldDefault(field, childSchema(key), type, rootSchema) })
     setNewKey(''); setAddError('')
   }
-  return <div className="master-object">
-    {Object.entries(value).map(([key, child]) => {
+  return <div className={`master-object${dungeon ? ' dungeon-object' : ''}${weightedRow ? ' dungeon-weighted-row' : ''}`}>
+    {orderedKeys.map(key => {
+      const existing = Object.hasOwn(value, key)
+      const child = existing ? value[key] : presentedDefault(key)
       if (child === undefined) return null
       const childPath = `${path}/${pointerKey(key)}`
       const field = fieldForPath(fields, childPath)
@@ -259,15 +312,20 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
       const structured = Array.isArray(child) || objectOf(child)
       const textLines = isTextLineArray(childPath, child)
       const collection = visualReferences && Array.isArray(child) ? visualReferenceCollection(visualReferences.documentPath, childPath) : undefined
-      const inlineCollection = Boolean(onNavigate && collection && Array.isArray(child) && canShowReferenceCollection(collection, child)
+      const inlineCollection = Boolean((onNavigate || dungeon) && collection && Array.isArray(child) && canShowReferenceCollection(collection, child)
         && (path !== '' || collection.kind === 'mob' || collection.kind === 'gathering'))
+      const weightedList = dungeon && isDungeonWeightedList(childPath)
+      const inlineDungeon = dungeon && structured && (dungeonSection(childPath) || weightedList)
+      const mainSection = dungeon && path === '' && dungeonSectionPaths.includes(childPath)
       const refValue = objectOf(child)?.ref
       const refPath = childPath + '/ref'
       const inlineRef = visualReferences && typeof refValue === 'string' && Object.keys(objectOf(child) ?? {}).length === 1
-      const label = collection?.title ?? masterFieldTitle(key, definition.title ?? field?.label)
+      const dungeonLabel = dungeonFields && Object.hasOwn(dungeonFields, key) ? dungeonFields[key].label : undefined
+      const label = collection?.title ?? dungeonLabel ?? (weightedRow && key === 'weight' ? '抽選重み' : weightedRow && key === 'material' ? '素材'
+        : weightedRow && key === 'type' ? '種類' : masterFieldTitle(key, definition.title ?? field?.label))
       const description = String(definition.description ?? field?.description ?? '')
-      const declaredType = normalizeMasterType(definition.type ?? field?.type)
-      const currentType = valueType(child, definition, field)
+      const declaredType = dungeonFields && Object.hasOwn(dungeonFields, key) && dungeonFields[key].type || normalizeMasterType(definition.type ?? field?.type)
+      const currentType = valueType(child, declaredType ? { ...definition, type: declaredType } : definition, field)
       const canChangeType = !declaredType || declaredType !== currentType
       const actions = <div className="master-field-inline-actions" role="group" aria-label={`${label}（${key}）の操作`}>
           {canChangeType && <select disabled={navigationDisabled} className="master-type-select" aria-label={`${childPath} の型`} value={valueType(child)} onChange={(event) => {
@@ -275,15 +333,23 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
             if ((structured || typeof child === 'string' && child) && !window.confirm(`「${key}」の型を変更して現在の値を置き換えますか？`)) return
             onChange({ ...value, [key]: masterDefault({}, nextType) })
           }}>{types.map((type) => <option value={type} key={type}>{typeLabels[type]}</option>)}</select>}
-          <button disabled={navigationDisabled} type="button" className="button subtle danger compact" aria-label={`${childPath} を削除`} onClick={() => {
+          {existing && <button disabled={navigationDisabled} type="button" className="button subtle danger compact" aria-label={`${childPath} を削除`} onClick={() => {
             if (isRequired && !window.confirm(`「${key}」は必須項目です。削除しますか？（保存前の検証で確認されます）`)) return
             onChange(Object.fromEntries(Object.entries(value).filter(([entry]) => entry !== key)))
-          }}>項目を削除</button></div>
+          }}>項目を削除</button>}</div>
       const metadata = <><code>{key}</code><span className="master-type">{typeLabels[currentType]}</span></>
-      const form = { fields, references, rootSchema, onInvalid, invalidValues, onNavigate, navigationDisabled }
+      const form = { fields, references, rootSchema, onInvalid, invalidValues, onNavigate, navigationDisabled, dungeonRoomSize: path === '/generation' ? value.roomSize : dungeonRoomSize }
+      const change = (next: JsonValue) => {
+        const updated = { ...value, [key]: next }
+        if (dungeon && (childPath === '/clearRewards/lootTable' && next === '' || childPath === '/encounter/bossMobLevel' && next === null)) delete updated[key]
+        onChange(updated)
+      }
       const content = <>
-        <div className="master-field-heading"><strong>{label}</strong>{!visualReferences && metadata}
-          {isRequired && <b className="master-required">必須</b>}
+        <div className="master-field-heading">
+          {mainSection ? <h4 tabIndex={-1} data-master-field-path={childPath}>{label}</h4>
+            : (!inlineCollection || !dungeon) && <strong tabIndex={inlineDungeon ? -1 : undefined} data-master-field-path={inlineDungeon ? childPath : undefined}>{label}</strong>}
+          {!visualReferences && metadata}
+          {isRequired && (!inlineCollection || !dungeon) && <b className="master-required">必須</b>}
           <span className="master-spacer" />
           {visualReferences ? <details className="master-field-inspector">
             <summary aria-label={`${childPath} の項目情報`} title="説明と項目の設定">⋯</summary>
@@ -297,18 +363,18 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
         {!visualReferences && description && (description.length > 120 || description.includes('\n')
           ? <details className="master-field-help"><summary>{label}の詳しい説明</summary><p className="master-field-description">{description}</p></details>
           : <p className="master-field-description">{description}</p>)}
-        {declaredType && declaredType !== currentType && !inlineRef && <p className="master-field-description">定義上の型: {typeLabels[declaredType]}。現在の値の型で表示しています。</p>}
+        {declaredType && declaredType !== currentType && !inlineRef && !(dungeon && child === null && (childPath === '/challenge/timeLimitSeconds' || childPath === '/encounter/bossMobLevel')) && <p className="master-field-description">定義上の型: {typeLabels[declaredType]}。現在の値の型で表示しています。</p>}
         {inlineRef && typeof refValue === 'string'
           ? <MasterDataForm {...form} schema={objectOf(objectOf(resolveSchema(definition, rootSchema).properties)?.ref) ?? {}} value={refValue} path={refPath}
             onChange={next => onChange({ ...value, [key]: { ref: next } })} />
-          : structured && onNavigate && !textLines && !inlineCollection
+          : structured && onNavigate && !textLines && !inlineCollection && !inlineDungeon
             ? <button type="button" className="master-node-link" aria-label={childPath + ' を開く'} disabled={navigationDisabled} onClick={() => onNavigate(childPath)}>
               <span><MinecraftText value={summarizeMasterValue(child)} /></span><b>{visualReferences ? '開く →' : label + 'を編集 →'}</b>
             </button>
-            : <MasterDataForm {...form} schema={definition} value={child} path={childPath} onChange={(next) => onChange({ ...value, [key]: next })} />}
+            : <MasterDataForm {...form} schema={definition} value={child} path={childPath} onChange={change} />}
       </>
-      return structured && !onNavigate ? <details open key={key} className="master-field master-field-wide"><summary>{label} <code>{key}</code> <small>{Array.isArray(child) ? child.length + ' 件' : Object.keys(objectOf(child) ?? {}).length + ' 項目'}</small></summary>{content}</details>
-        : <div key={key} className={'master-field ' + (inlineCollection || textLines || !visualReferences && structured || !structured && isDescriptionField(childPath) || typeof child === 'string' && child.includes('\n') || materialFieldKind(childPath, visualReferences?.documentPath) ? 'master-field-wide' : 'master-field-scalar')}>{content}</div>
+      return structured && !onNavigate && !inlineDungeon && !inlineCollection ? <details open key={key} className="master-field master-field-wide"><summary>{label} <code>{key}</code> <small>{Array.isArray(child) ? child.length + ' 件' : Object.keys(objectOf(child) ?? {}).length + ' 項目'}</small></summary>{content}</details>
+        : <div key={key} className={'master-field ' + (inlineCollection || inlineDungeon || mainSection || textLines || !visualReferences && structured || !structured && isDescriptionField(childPath) || typeof child === 'string' && child.includes('\n') || materialFieldKind(childPath, visualReferences?.documentPath) ? 'master-field-wide' : 'master-field-scalar') + (mainSection ? ' dungeon-section' : inlineDungeon ? ' dungeon-group' : '')}>{content}</div>
     })}
     {onNavigate && (createDrops || emptyDrops) &&
       <div className="master-field-wide"><MasterDataForm fields={fields} references={references} path={createDrops ? '/drops/items' : path + '/items'} value={[]} rootSchema={rootSchema}
@@ -324,6 +390,8 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
     </div></details>
   </div>
 }
+
+const isDungeonWeightedList = (path: string) => isDungeonMaterialList(path) || /^\/generation\/room(?:Shapes|Types)$/.test(path)
 
 function FormattedField({ path, editor, display, multiline = false, initiallyEditing = false, toggleable = true }: {
   path: string; editor: ReactNode; display: ReactNode; multiline?: boolean; initiallyEditing?: boolean; toggleable?: boolean
@@ -355,11 +423,12 @@ function TextLineArrayEditor({ values, path, onChange }: { values: string[]; pat
 function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<MasterDataFormProps, 'value' | 'schema'> & { values: JsonValue[]; itemSchema: JsonObject; path: string }) {
   const visual = useContext(MasterVisualReferencesContext)
   const compact = Boolean(visual && inherited.onNavigate)
+  const weighted = isDungeonMaster(visual?.documentPath) && isDungeonWeightedList(path)
   const [newType, setNewType] = useState<ValueType>(() => normalizeMasterType(itemSchema.type)
     ?? (compact && values.length > 0 && values.every(objectOf) ? 'object' : 'string'))
   const [page, setPage] = useState(0)
   const pageSize = 25
-  const paged = Boolean(inherited.onNavigate) && values.every((entry) => entry !== null && typeof entry === 'object')
+  const paged = !weighted && Boolean(inherited.onNavigate) && values.every((entry) => entry !== null && typeof entry === 'object')
   const pageCount = Math.max(1, Math.ceil(values.length / pageSize))
   const currentPage = Math.min(page, pageCount - 1)
   const offset = paged ? currentPage * pageSize : 0
@@ -369,7 +438,7 @@ function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<
   const order = useMasterArrayOrder(values, Boolean(inherited.navigationDisabled), onChange, index => {
     if (paged) setPage(Math.floor(index / pageSize))
   })
-  return <div className="master-array">{isFishDistribution && <p className={Math.abs(chanceTotal - 100) <= 0.000001 ? 'master-muted' : 'error-message'} role="status">出現確率の合計: {chanceTotal.toLocaleString('ja-JP', { maximumFractionDigits: 6 })}% / 100%</p>}{visible.map((entry, visibleIndex) => {
+  return <div className={`master-array${weighted ? ' dungeon-weighted-list' : ''}`}>{isFishDistribution && <p className={Math.abs(chanceTotal - 100) <= 0.000001 ? 'master-muted' : 'error-message'} role="status">出現確率の合計: {chanceTotal.toLocaleString('ja-JP', { maximumFractionDigits: 6 })}% / 100%</p>}{visible.map((entry, visibleIndex) => {
     const index = offset + visibleIndex
     const structured = entry !== null && typeof entry === 'object'
     const rowPath = path + '/' + index
@@ -377,11 +446,11 @@ function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<
     const remove = () => onChange(values.filter((_, item) => item !== index))
     const edit = <MasterDataForm {...inherited} path={rowPath} value={entry} schema={itemSchema}
       onChange={(next) => onChange(values.map((current, item) => item === index ? next : current))} />
-    if (compact) return <div className="master-array-compact" key={index} {...order.destination(index)}>
+    if (compact || weighted) return <div className="master-array-compact" key={index} {...order.destination(index)}>
       {values.length > 1 && <button type="button" className="master-order-handle" aria-label={rowPath + ' を並べ替え'}
         title="ドラッグまたは上下キーで移動" {...order.handle(index)}>⠿</button>}
       <div className="master-array-compact-content">
-        {structured ? <button type="button" className="master-node-link" aria-label={rowPath + ' を開く'} disabled={inherited.navigationDisabled}
+        {structured && !weighted ? <button type="button" className="master-node-link" aria-label={rowPath + ' を開く'} disabled={inherited.navigationDisabled}
           onClick={() => inherited.onNavigate?.(rowPath)}>
           <span><MinecraftText value={summarizeMasterValue(entry)} /></span><b>編集 →</b>
         </button> : edit}
@@ -394,35 +463,44 @@ function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<
     {structured && inherited.onNavigate ? <div className="master-node-link"><span><MinecraftText value={summarizeMasterValue(entry)} /></span><button type="button" className="button compact" aria-label={rowPath + ' を開く'} disabled={inherited.navigationDisabled} onClick={() => inherited.onNavigate?.(rowPath)}>編集 →</button></div> : edit}
   </div>})}
     {paged && pageCount > 1 && <div className="master-pagination"><button type="button" className="button compact" disabled={currentPage === 0 || inherited.navigationDisabled} onClick={() => setPage(currentPage - 1)}>前の要素</button><span>{offset + 1}–{Math.min(offset + pageSize, values.length)} / {values.length}件</span><button type="button" className="button compact" disabled={currentPage + 1 >= pageCount || inherited.navigationDisabled} onClick={() => setPage(currentPage + 1)}>次の要素</button></div>}
-    <div className="master-add-row">{!itemSchema.type && <select aria-label={path + ' 配列に追加する型'} disabled={inherited.navigationDisabled} value={newType} onChange={(event) => setNewType(event.target.value as ValueType)}>{types.map((type) => <option key={type} value={type}>{typeLabels[type]}</option>)}</select>}<button type="button" className="button" disabled={inherited.navigationDisabled} onClick={() => {
+    {weighted && isDungeonMaterialList(path)
+      ? <DungeonMaterialField add path={path} value="" disabled={inherited.navigationDisabled}
+        onChange={material => onChange([...values, { material, weight: 1 }])} />
+      : weighted
+        ? <button type="button" className="button compact dungeon-add-weighted" disabled={inherited.navigationDisabled} onClick={() => {
+          onChange([...values, { type: Object.keys(dungeonRoomChoices[path])[0], weight: 1 }])
+        }}>＋ {path.endsWith('roomShapes') ? '形状' : '種類'}を追加</button>
+        : <div className="master-add-row">{!itemSchema.type && <select aria-label={path + ' 配列に追加する型'} disabled={inherited.navigationDisabled} value={newType} onChange={(event) => setNewType(event.target.value as ValueType)}>{types.map((type) => <option key={type} value={type}>{typeLabels[type]}</option>)}</select>}<button type="button" className="button" disabled={inherited.navigationDisabled} onClick={() => {
       onChange([...values, masterDefault(itemSchema, newType, inherited.rootSchema)])
       if (paged) setPage(Math.floor(values.length / pageSize))
-    }}>＋ 要素を追加</button><span className="master-muted">{values.length} 件</span></div></div>
+    }}>＋ 要素を追加</button><span className="master-muted">{values.length} 件</span></div>}</div>
 }
 
-function numberInputError(text: string, kind: 'number' | 'integer'): string {
+function numberInputError(text: string, kind: 'number' | 'integer', optional = false): string {
+  if (optional && !text.trim()) return ''
   const number = Number(text)
   const invalid = !text.trim() || !Number.isFinite(number) || kind === 'integer' && !Number.isInteger(number)
   return invalid ? kind === 'integer' ? '有限の整数を入力してください。' : '有限の数値を入力してください。' : ''
 }
 
-function NumberEditor({ value, kind, path, onChange, onInvalid, restoredText, candidates }: { value: number; kind: 'number' | 'integer'; path: string; onChange: (value: JsonValue) => void; onInvalid?: MasterDataFormProps['onInvalid']; restoredText?: string; candidates?: MasterReference[] }) {
+function NumberEditor({ value, kind, path, onChange, onInvalid, restoredText, candidates, optional }: { value: number | null; kind: 'number' | 'integer'; path: string; onChange: (value: JsonValue) => void; onInvalid?: MasterDataFormProps['onInvalid']; restoredText?: string; candidates?: MasterReference[]; optional?: boolean }) {
   const listId = useId()
-  const [text, setText] = useState(restoredText ?? String(value))
-  const [error, setError] = useState(() => numberInputError(restoredText ?? String(value), kind))
+  const [text, setText] = useState(restoredText ?? String(value ?? ''))
+  const [error, setError] = useState(() => numberInputError(restoredText ?? String(value ?? ''), kind, optional))
   useEffect(() => {
-    const nextText = restoredText ?? String(value)
-    const message = numberInputError(nextText, kind)
+    const nextText = restoredText ?? String(value ?? '')
+    const message = numberInputError(nextText, kind, optional)
     setText(nextText); setError(message)
     if (message) onInvalid?.(path, message, nextText)
     else onInvalid?.(path, null)
-  }, [value, path, kind, onInvalid, restoredText])
-  return <div><input type="text" inputMode="decimal" list={candidates?.length ? listId : undefined} aria-label={path || '/'} aria-invalid={Boolean(error)} value={text} onChange={(event) => {
+  }, [value, path, kind, onInvalid, restoredText, optional])
+  return <div><input type="text" inputMode="decimal" list={candidates?.length ? listId : undefined} aria-label={path || '/'} aria-invalid={Boolean(error)}
+    placeholder={optional ? '最小レベル' : undefined} value={text} onChange={(event) => {
     setText(event.target.value)
-    const message = numberInputError(event.target.value, kind)
+    const message = numberInputError(event.target.value, kind, optional)
     setError(message)
     if (message) onInvalid?.(path, message, event.target.value)
-    else { onInvalid?.(path, null); onChange(Number(event.target.value)) }
+    else { onInvalid?.(path, null); onChange(optional && !event.target.value.trim() ? null : Number(event.target.value)) }
   }} />{Boolean(candidates?.length) && <datalist id={listId}>{candidates?.map((entry) =>
     <option key={entry.path} value={entry.value} label={stripMinecraftFormatting(entry.label ?? entry.value)} />
   )}</datalist>}{error && <small className="error-message">{error}</small>}</div>

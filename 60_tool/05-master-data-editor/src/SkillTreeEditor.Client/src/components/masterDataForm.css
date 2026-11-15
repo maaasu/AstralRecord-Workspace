@@ -142,3 +142,39 @@
   border-radius: 3px;
   pointer-events: none;
 }
+
+.master-object.dungeon-object {
+  grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
+  gap: 12px 16px;
+}
+
+.master-field.dungeon-section,
+.master-field.dungeon-group {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+
+.master-field.dungeon-group { grid-column: auto; background: var(--surface-raised); }
+.dungeon-section > .master-field-heading { padding-bottom: 7px; border-bottom: 1px solid var(--line); }
+.dungeon-section > .master-field-heading h4 { margin: 0; font-size: 15px; }
+.dungeon-object > .master-field > div > input,
+.dungeon-object > .master-field > select,
+.dungeon-object .master-reference-id input { min-width: 0; width: 100%; }
+.dungeon-time-limit { display: grid; gap: 5px; }
+.dungeon-time-limit label { display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
+.dungeon-time-limit input[type="text"] { width: 100%; }
+.dungeon-reference-field { grid-template-columns: minmax(0, 1fr) auto; }
+.dungeon-reference-field .master-reference-selection small { color: var(--text-muted); }
+.dungeon-material-field { display: grid; justify-items: start; gap: 4px; min-width: 0; }
+.dungeon-material-field .dungeon-material-choice { display: flex; align-items: center; gap: 6px; white-space: normal; text-align: start; }
+.dungeon-material-choice .master-reference-icon { width: 25px; height: 25px; flex: 0 0 25px; }
+.dungeon-weighted-list { gap: 6px; }
+.master-object.dungeon-weighted-row { grid-template-columns: minmax(0, 1fr) minmax(55px, 75px); gap: 5px 7px; }
+.dungeon-weighted-row .master-field { padding: 0; border: 0; }
+.dungeon-weighted-row .master-field-heading { margin-bottom: 3px; }
+.dungeon-weighted-row .master-field-inspector > summary { min-height: 22px; width: 22px; }
+.dungeon-weighted-row .master-add-field { font-size: 11px; }
+.dungeon-add-weighted { justify-self: start; }
