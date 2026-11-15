@@ -118,7 +118,7 @@ python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- pr
 
 `preview --ops <操作ファイルの絶対パス>` で編集をメモリ内で仮適用し、候補を書き換えずに確認できます。屋内の確認には `--clip-y` で屋根を非表示にするか、屋内にカメラを置きます。
 
-作業中の変更を見る場合は `live` を起動してローカル URL を開き、AI が `live-ops` で送った操作を3D画面で確認できます。カメラを操作している間も作業結果が反映されます。詳しくは[ライブ3Dビューアーの手順](../../.codex/skills/astralarchitect-builder/references/ticket-contract.md#ライブ3dビューアー)を参照してください。
+作業中の変更を見る場合は `live` を起動してローカル URL を開き、AI が `live-ops` で送った操作を3D画面で確認できます。カメラを操作している間も作業結果が反映されます。Java 1.21.11 のクライアント JAR を指定すると、草・葉・柵を含むブロックをゲームのモデルとテクスチャで表示できます。詳しくは[ライブ3Dビューアーの手順](../../.codex/skills/astralarchitect-builder/references/ticket-contract.md#ライブ3dビューアー)を参照してください。
 
 編集は`set`、`fill`、`line`、`replace`操作をJSON/NDJSONで指定します。詳細は`tools/README.md`と`$astralarchitect-builder`を参照してください。CLIにはワールド適用、ロールバック、チケット削除機能を持たせていません。
 
