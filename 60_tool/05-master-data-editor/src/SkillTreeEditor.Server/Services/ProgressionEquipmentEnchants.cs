@@ -11,6 +11,8 @@ internal static class ProgressionEquipmentEnchants
     private const long Resolution = 10_000;
     private const long MaxUnits = (long)MaxValue * Resolution;
     private const int MaxUnitDigits = 16;
+    // Java String.trim() と同じ範囲だけを除去し、候補マスターの解釈を揃える。
+    private static readonly char[] EndpointWhitespace = Enumerable.Range(0, 33).Select(code => (char)code).ToArray();
     private static readonly Regex ValuePattern = new(@"\A-?(0|[1-9][0-9]{0,11})([.][0-9]{1,4})?\z", RegexOptions.CultureInvariant);
     private static readonly Regex EndpointPattern = new(
         @"\A(?<sign>[+-]?)(?<whole>[0-9]*)(?:[.](?<fraction>[0-9]*))?(?:[eE](?<exponent>[+-]?[0-9]+))?\z",
@@ -93,7 +95,7 @@ internal static class ProgressionEquipmentEnchants
     private static bool TryBracketEndpoint(string text, out (long Floor, long Ceiling) bounds)
     {
         bounds = (0, 0);
-        var match = EndpointPattern.Match(text.Trim());
+        var match = EndpointPattern.Match(text.Trim(EndpointWhitespace));
         if (!match.Success) return false;
         var whole = match.Groups["whole"].ValueSpan;
         var fraction = match.Groups["fraction"].ValueSpan;
