@@ -36,6 +36,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemRarity;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentRequirementService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.item.service.PresetEquipmentEnchant;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.GameModeChangeGuard;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
@@ -5372,7 +5373,7 @@ public class InventoryService {
 
     /**
      * 戦闘検証用装備をアカウントのローカル保存ロック内で差し替えます。
-     * 退避する装備はバッグに戻し、同じマスターと強化値の個体は再利用します。
+     * 退避する装備はバッグに戻し、マスター・強化値・付与効果が一致する個体は再利用します。
      * @param accountId 対象アカウント
      * @param gear プリセット枠名から使用する装備マスターへの対応。空欄は装備解除
      * @return バッグの空きと個体準備が揃い、更新できた場合 true
@@ -5453,7 +5454,7 @@ public class InventoryService {
             InventoryEntryModel existing = reused.get(target.getKey());
             var desired = target.getValue();
             UUID instanceId = existing == null
-                ? createEquipmentInstanceId(desired.model(), accountId, desired.enhanceLevel())
+                ? createEquipmentInstanceId(desired.model(), accountId, desired.enhanceLevel(), desired.enchants())
                 : existing.getInstanceId();
             if (instanceId == null) {
                 created.forEach(id -> itemService.evictEquipmentInstanceFromCache(id.toString()));
@@ -5500,9 +5501,11 @@ public class InventoryService {
         return slots;
     }
 
-    /** 検証済みの装備マスターと初期強化値です。 */
-    public record ProgressionPresetGear(@NotNull ItemModel model, int enhanceLevel) { }
+    /** 検証済みの装備マスター、初期強化値、付与効果です。 */
+    public record ProgressionPresetGear(@NotNull ItemModel model, int enhanceLevel,
+                                       @NotNull List<PresetEquipmentEnchant> enchants) { }
 
+    /** 個体や付与効果を変更せず、指定された構成を再利用できるか判定します。 */
     private boolean matchesProgressionPresetGear(
         @NotNull InventoryEntryModel entry, @Nullable ProgressionPresetGear gear
     ) {
@@ -5512,7 +5515,8 @@ public class InventoryService {
         return instance != null && instance.getItemId().equalsIgnoreCase(gear.model().getId())
             && instance.getDurabilityValue() == instance.getDurabilityMax()
             && instance.getEnhanceLevel() == gear.enhanceLevel() && instance.getTranscendenceRank() == 0
-            && instance.getEnchants().isEmpty() && instance.getRunes().isEmpty();
+            && instance.getRunes().isEmpty()
+            && PresetEquipmentEnchant.matchesAll(gear.enchants(), instance.getEnchants());
     }
 
     /**
@@ -9331,13 +9335,15 @@ public class InventoryService {
         @NotNull UUID accountId,
         @NotNull String source
     ) {
-        return createEquipmentInstanceId(model, accountId, 0);
+        return createEquipmentInstanceId(model, accountId, 0, List.of());
     }
 
+    /** 次回保存する装備個体を生成し、インベントリへ紐づける識別子を返します。 */
     private @Nullable UUID createEquipmentInstanceId(
-        @NotNull ItemModel model, @NotNull UUID accountId, int enhanceLevel
+        @NotNull ItemModel model, @NotNull UUID accountId, int enhanceLevel,
+        @NotNull List<PresetEquipmentEnchant> enchants
     ) {
-        EquipmentInstance instance = itemService.createLocalEquipmentInstance(model, accountId, enhanceLevel);
+        EquipmentInstance instance = itemService.createLocalEquipmentInstance(model, accountId, enhanceLevel, enchants);
         String instanceId = instance == null ? null : instance.getEquipmentInstanceId();
         return instanceId == null ? null : parseUuidOrNull(instanceId);
     }

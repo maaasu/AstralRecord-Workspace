@@ -11,7 +11,8 @@ public sealed record ProgressionDesignCatalog(
     IReadOnlyList<ProgressionDesignAddTarget> AddTargets,
     IReadOnlyDictionary<string, string> Revisions,
     IReadOnlyList<ProgressionDesignSkill> Skills,
-    IReadOnlyList<ProgressionDesignNode> Nodes);
+    IReadOnlyList<ProgressionDesignNode> Nodes,
+    IReadOnlyList<ProgressionDesignEnchantChoice> EnchantChoices);
 
 public sealed record ProgressionDesignClass(string Id, string Name, string Path, IReadOnlyList<string> PrerequisiteClassIds,
     int MaxLevel = 0, IReadOnlyList<string>? UsableSkillIds = null);
@@ -33,13 +34,18 @@ public sealed record ProgressionDesignSkill(string Id, string Name, string Path,
 public sealed record ProgressionDesignNode(int Id, string Name, string Path, string? Icon, string? IconTexture,
     int? CustomModelData, IReadOnlyList<string> SkillIds);
 
-public sealed record ProgressionDesignEquipment(string Slot, string ItemId, string Pointer, int EnhanceLevel);
+public sealed record ProgressionDesignEquipment(string Slot, string ItemId, string Pointer, int EnhanceLevel,
+    IReadOnlyList<ProgressionDesignEnchant> Enchants);
+public sealed record ProgressionDesignEnchant(string EnchantMasterId, string EffectId, decimal Value);
+public sealed record ProgressionDesignEnchantChoice(string EnchantMasterId, string EquipmentType, string EffectId,
+    string Name, string Type, decimal Min, decimal Max, string SourceItemId);
 
 public sealed record ProgressionDesignItem(string Id, string Name, string Path, string? Category, string? Rarity, string? Icon,
     string? IconTexture, int? CustomModelData, string? Slot, string? HandType, int RequiredLevel,
     IReadOnlyList<string> RequiredClasses, IReadOnlyList<string> CompatibleSlots, int MaxEnhanceLevel,
     string? SigilEquipGroupId = null, IReadOnlyList<string>? UsableSkillIds = null,
-    IReadOnlyList<ProgressionDesignClassRequirement>? RequiredClassLevels = null);
+    IReadOnlyList<ProgressionDesignClassRequirement>? RequiredClassLevels = null,
+    int MaxEnchantSlots = 0, string? EnchantEquipmentType = null);
 public sealed record ProgressionDesignClassRequirement(string ClassId, int Level);
 
 public sealed record ProgressionDesignLocation(string Path, string Pointer);

@@ -2,15 +2,18 @@ package io.github.maaasu.astralRecord.feature.account.repository;
 
 import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset;
 import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset.Checkpoint;
+import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset.Enchant;
 import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset.Equipment;
 import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset.Sigil;
 import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset.SkillBinding;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseSnapshot;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -89,12 +92,13 @@ public final class ProgressionPresetRepository {
         List<Equipment> equipment = new ArrayList<>();
         for (Object value : list(row.get("equipment"), "equipment")) {
             Map<?, ?> entry = map(value, "equipment");
-            fields(entry, Set.of("slot", "item"), Set.of("enhanceLevel"));
+            fields(entry, Set.of("slot", "item"), Set.of("enhanceLevel", "enchants"));
             String slot = string(entry.get("slot"), "equipment.slot");
             require(EQUIPMENT_SLOTS.contains(slot) && equipmentSlots.add(slot), "invalid or duplicate equipment slot: " + slot);
             int enhanceLevel = entry.containsKey("enhanceLevel")
                 ? integer(entry.get("enhanceLevel"), "equipment.enhanceLevel", 0) : 0;
-            equipment.add(new Equipment(slot, reference(entry, "item"), enhanceLevel));
+            List<Enchant> enchants = entry.containsKey("enchants") ? enchants(entry.get("enchants")) : List.of();
+            equipment.add(new Equipment(slot, reference(entry, "item"), enhanceLevel, enchants));
         }
         require(equipmentSlots.contains("MAIN_HAND"), "MAIN_HAND equipment is required");
         List<SkillBinding> skills = bindings(row.get("skills"), "skills", SkillBindPreset.ACTION_RING_SLOT_COUNT);
@@ -102,6 +106,27 @@ public final class ProgressionPresetRepository {
         List<SkillBinding> passives = row.containsKey("passives")
             ? bindings(row.get("passives"), "passives", SkillBindPreset.PASSIVE_SLOT_COUNT) : List.of();
         return new Checkpoint(level, classLevel, nodes, equipment, skills, passives);
+    }
+
+    /** 付与効果の参照と、個体の永続化で丸めずに保存できる確定値を読み込みます。 */
+    private static List<Enchant> enchants(Object value) {
+        Set<String> effects = new HashSet<>();
+        List<Enchant> result = new ArrayList<>();
+        for (Object element : list(value, "equipment.enchants")) {
+            Map<?, ?> row = map(element, "equipment.enchants");
+            fields(row, Set.of("enchantMasterId", "effectId", "value"), Set.of());
+            String master = string(row.get("enchantMasterId"), "equipment.enchants.enchantMasterId");
+            require(master.matches("enchant:[A-Za-z0-9_-]+"), "invalid enchant master reference");
+            String effect = string(row.get("effectId"), "equipment.enchants.effectId");
+            require(effect.length() <= 100 && effects.add(effect.trim().toLowerCase(Locale.ROOT)),
+                "invalid or duplicate enchant effect");
+            require(row.get("value") instanceof Number, "equipment.enchants.value must be a number");
+            BigDecimal amount = new BigDecimal(row.get("value").toString()).stripTrailingZeros();
+            require(amount.scale() <= 4 && amount.abs().compareTo(new BigDecimal("99999999999999.9999")) <= 0,
+                "equipment.enchants.value exceeds the equipment value precision");
+            result.add(new Enchant(master, effect, amount));
+        }
+        return result;
     }
 
     private static List<SkillBinding> bindings(Object value, String key, int max) {
