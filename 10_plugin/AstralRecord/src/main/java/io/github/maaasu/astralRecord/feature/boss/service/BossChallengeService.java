@@ -38,6 +38,7 @@ import io.github.maaasu.astralRecord.shared.challenge.ChallengeDeathPolicy;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeParticipationRegistry;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeStartCountdown;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeCountdownPresentation;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeLevelConfirmation;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingStatus;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingHubArrivalGuard;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueue;
@@ -71,6 +72,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -117,6 +119,7 @@ public final class BossChallengeService {
     private final InstanceCreationQueue creationQueue;
     private final ChallengeParticipationRegistry challengeParticipationRegistry;
     private final ChallengeWaitingHubArrivalGuard arrivalGuard;
+    private final ChallengeLevelConfirmation levelConfirmation;
     private final String hubWorldId;
     private @Nullable InvulnerabilityVisualService invulnerabilityVisualService;
     private @Nullable StatusService statusService;
@@ -254,6 +257,7 @@ public final class BossChallengeService {
         this.creationQueue = creationQueue;
         this.challengeParticipationRegistry = challengeParticipationRegistry;
         this.arrivalGuard = arrivalGuard;
+        this.levelConfirmation = plugin.getChallengeLevelConfirmation();
         this.hubWorldId = hubWorldId;
     }
 
@@ -469,6 +473,13 @@ public final class BossChallengeService {
 
     /** @param commandEntry 専用コマンドで登録済BASE/HUBから受け付ける場合だけtrue */
     private void acceptChallenge(@NotNull Player player, @NotNull String bossId, boolean commandEntry) {
+        acceptChallenge(player, bossId, commandEntry, false);
+    }
+
+    /** 受付条件を検証し、対象が未確認の場合は受付や転送を保留します。 */
+    private void acceptChallenge(
+            @NotNull Player player, @NotNull String bossId, boolean commandEntry, boolean levelConfirmed
+    ) {
         var astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || !AccountModeGuard.isGameplayPlayer(astPlayer)) {
             messageService.send(player, PlayerMsgId.P_5065);
@@ -500,7 +511,7 @@ public final class BossChallengeService {
             return;
         }
 
-        String partyKey = party == null ? "solo:" + player.getUniqueId() : "party:" + party.getPartyId();
+        String partyKey = partyKey(player, party);
         UUID existingChallengeId = challengeIdByPartyKey.get(partyKey);
         BossChallengeInstance existingChallenge = existingChallengeId == null
                 ? null : challengesById.get(existingChallengeId);
@@ -520,6 +531,17 @@ public final class BossChallengeService {
                 return;
             }
             synchronizeWaitingParty(existingChallenge);
+            if (!isWaitingForPartyMembers(existingChallenge)
+                    || !existingChallenge.expectedParticipantIds().contains(player.getUniqueId())) {
+                return;
+            }
+            if (!levelConfirmed && !existingChallenge.hasConfirmedRecommendedLevel(player.getUniqueId())
+                    && deferLevelConfirmation(player, astPlayer, template, commandEntry, partyKey, existingChallenge)) {
+                return;
+            }
+            if (levelConfirmed) {
+                existingChallenge.confirmRecommendedLevel(player.getUniqueId());
+            }
             acceptWaitingParticipant(existingChallenge, player, existingHubData);
             return;
         }
@@ -543,6 +565,9 @@ public final class BossChallengeService {
             messageService.send(player, PlayerMsgId.P_6522, config.fieldWorldId());
             return;
         }
+        if (!levelConfirmed && deferLevelConfirmation(player, astPlayer, template, commandEntry, partyKey, null)) {
+            return;
+        }
 
         UUID challengeId = UUID.randomUUID();
         ChallengeParticipationRegistry.ReservationResult reservation = challengeParticipationRegistry.reserve(
@@ -563,6 +588,9 @@ public final class BossChallengeService {
                 config,
                 participants
         );
+        if (levelConfirmed) {
+            challenge.confirmRecommendedLevel(player.getUniqueId());
+        }
         challengesById.put(challenge.challengeId(), challenge);
         challengeIdByPartyKey.put(partyKey, challenge.challengeId());
         Logger.log(LogId.I_6500, challenge.challengeId(), template.id(), partyKey);
@@ -572,6 +600,36 @@ public final class BossChallengeService {
         teleportParticipantToHubAsync(player, hubData).whenComplete((result, throwable) ->
                 runSync(() -> finishHubTransfer(
                         challenge.challengeId(), fieldData, player.getUniqueId(), result, throwable)));
+    }
+
+    /** 確認後は受付対象とパーティーが同一の場合だけ、現在の条件で受付を再試行します。 */
+    private boolean deferLevelConfirmation(
+            @NotNull Player player,
+            @NotNull AstPlayer astPlayer,
+            @NotNull MobTemplate template,
+            boolean commandEntry,
+            @NotNull String partyKey,
+            @Nullable BossChallengeInstance challenge
+    ) {
+        UUID challengeId = challenge == null ? null : challenge.challengeId();
+        BossChallengeConfig definition = challenge == null ? template.challenge() : challenge.config();
+        String displayName = challenge == null ? template.displayName() : challenge.bossTemplate().displayName();
+        return levelConfirmation.deferIfNeeded(
+                astPlayer, challengeId, displayName, definition.recommendedPlayerLevel(),
+                () -> {
+                    Party current = partyService.findParty(player.getUniqueId());
+                    if (partyKey.equals(partyKey(player, current))
+                            && Objects.equals(challengeId, challengeIdByPartyKey.get(partyKey))
+                            && mobService.findTemplate(template.id()) == template) {
+                        acceptChallenge(player, template.id(), commandEntry, true);
+                    }
+                },
+                () -> {});
+    }
+
+    /** プレイヤーの現在のパーティーまたはソロ受付キーを返します。 */
+    private @NotNull String partyKey(@NotNull Player player, @Nullable Party party) {
+        return party == null ? "solo:" + player.getUniqueId() : "party:" + party.getPartyId();
     }
 
     /**
@@ -1392,6 +1450,10 @@ public final class BossChallengeService {
         if (readyCount < challenge.config().partyMin() || readyCount > challenge.config().partyMax()) {
             return;
         }
+        if (!confirmWaitingPartyLevels(challenge, readyParticipants)) {
+            cancelWaitingTicket(challenge);
+            return;
+        }
         if (challenge.creationQueueTicketId() != null) {
             return;
         }
@@ -1420,6 +1482,45 @@ public final class BossChallengeService {
         renderQueueStatus(challenge, ticket);
     }
 
+    /** Hubに先着した参加者も、生成受付の前に本人から推奨レベル未満の続行を確認します。 */
+    private boolean confirmWaitingPartyLevels(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull List<Player> participants
+    ) {
+        boolean ready = true;
+        for (Player player : participants) {
+            UUID playerId = player.getUniqueId();
+            if (challenge.hasConfirmedRecommendedLevel(playerId)) {
+                continue;
+            }
+            if (levelConfirmation.deferIfNeeded(
+                    AstPlayerCache.get(player), challenge.challengeId(), challenge.bossTemplate().displayName(),
+                    challenge.config().recommendedPlayerLevel(),
+                    () -> {
+                        if (challenge.expectedParticipantIds().contains(playerId) && isInHub(player)) {
+                            challenge.confirmRecommendedLevel(playerId);
+                        }
+                    },
+                    () -> {
+                        if (isWaitingForPartyMembers(challenge) && challenge.expectedParticipantIds().contains(playerId)) {
+                            leaveHubWaiting(player);
+                        }
+                    })) {
+                ready = false;
+            }
+        }
+        return ready;
+    }
+
+    /** フィールドに送る直前にも、現在のレベルまたは本人の承諾を確認します。 */
+    private @NotNull List<Player> eligibleConfirmedParticipants(@NotNull BossChallengeInstance challenge) {
+        return eligibleParticipantsForEntry(challenge).stream()
+                .filter(player -> challenge.hasConfirmedRecommendedLevel(player.getUniqueId())
+                        || !ChallengeLevelConfirmation.requiresConfirmation(
+                                AstPlayerCache.get(player), challenge.config().recommendedPlayerLevel()))
+                .toList();
+    }
+
     /** 待機参加条件を再確認して生成を開始し、開始できた場合だけtrueを返します。 */
     private boolean beginQueuedFieldPreparation(
             @NotNull BossChallengeInstance challenge,
@@ -1428,7 +1529,7 @@ public final class BossChallengeService {
         if (challenge.state() != BossChallengeState.PREPARING) {
             return false;
         }
-        List<Player> participants = eligibleParticipantsForEntry(challenge);
+        List<Player> participants = eligibleConfirmedParticipants(challenge);
         if (participants.size() < challenge.config().partyMin()) {
             endChallenge(challenge, BossChallengeEndReason.PARTICIPANT_REQUIREMENT_NOT_MET);
             return false;
@@ -1502,7 +1603,7 @@ public final class BossChallengeService {
             return;
         }
 
-        List<Player> entrants = eligibleParticipantsForEntry(challenge);
+        List<Player> entrants = eligibleConfirmedParticipants(challenge);
         challenge.confirmParticipants(entrants.stream().map(Player::getUniqueId).toList());
         captureParticipantHistory(challenge, entrants);
         if (entrants.size() < challenge.config().partyMin()) {
@@ -1824,6 +1925,7 @@ public final class BossChallengeService {
         if (challenge.state() == BossChallengeState.ENDING || challenge.state() == BossChallengeState.ENDED) {
             return;
         }
+        levelConfirmation.dismiss(challenge.challengeId());
         if (reason == BossChallengeEndReason.DEFEATED) {
             BossFieldInstance field = challenge.field();
             Location resultLocation = field == null
@@ -2551,6 +2653,7 @@ public final class BossChallengeService {
                 clearQueueTitles(removed);
             }
             for (UUID removedId : removed) {
+                levelConfirmation.dismiss(challenge.challengeId(), removedId);
                 Player removedPlayer = Bukkit.getPlayer(removedId);
                 if (removedPlayer != null && removedPlayer.isOnline() && isInHub(removedPlayer)) {
                     teleportParticipantOutAsync(challenge, removedPlayer);

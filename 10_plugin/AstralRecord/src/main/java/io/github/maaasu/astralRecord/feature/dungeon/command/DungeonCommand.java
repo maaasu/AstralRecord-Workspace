@@ -56,9 +56,23 @@ public final class DungeonCommand extends AstCommand {
         if (!requireGameplayMode(astPlayer)) {
             return;
         }
-        DungeonService.StartRequestResult result = service.requestStart(astPlayer.getBukkit(), args[1]);
+        String dungeonId = args[1];
+        DungeonService.StartRequestResult result = service.requestStart(astPlayer.getBukkit(), dungeonId,
+                resumed -> notifyStartResult(astPlayer, dungeonId, resumed));
+        notifyStartResult(astPlayer, dungeonId, result);
+    }
+
+    /** 即時受付と確認後の受付結果を同じ方法で案内します。 */
+    private void notifyStartResult(
+            @NotNull AstPlayer astPlayer,
+            @NotNull String dungeonId,
+            @NotNull DungeonService.StartRequestResult result
+    ) {
         PlayerMessageService messages = PlayerMessageService.getInstance();
         switch (result.status()) {
+            case CONFIRMATION_PENDING -> {
+                // 本人の確認画面が受付操作を案内します。
+            }
             case ACCEPTED -> {
                 // 準備開始メッセージは参加者全員へ DungeonService から送信済みです。
             }
@@ -67,7 +81,7 @@ public final class DungeonCommand extends AstCommand {
             }
             case ALREADY_IN_PROGRESS -> sendChallengeConflict(messages, astPlayer, result.activeChallengeName());
             case UNAVAILABLE -> messages.send(astPlayer, PlayerMsgId.P_7000);
-            case NOT_FOUND -> messages.send(astPlayer, PlayerMsgId.P_7002, args[1]);
+            case NOT_FOUND -> messages.send(astPlayer, PlayerMsgId.P_7002, dungeonId);
             case PARTY_SIZE -> messages.send(
                     astPlayer,
                     PlayerMsgId.P_7004,
