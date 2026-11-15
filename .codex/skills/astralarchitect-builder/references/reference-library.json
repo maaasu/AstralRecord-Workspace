@@ -4,6 +4,25 @@
   "purpose": "AstralArchitectの参照資料索引。学習済みデータ、実ゲーム確認済み作例、美観の正解集を意味しない。",
   "entries": [
     {
+      "id": "AR-NATURAL-ROAD-01",
+      "title": "利用者承認済みの標準の自然な道",
+      "author": "利用者の指示に基づくCodex制作",
+      "status": "reference",
+      "tags": ["road", "default-road", "natural", "moss", "carpet", "leaf-litter", "curve", "slope"],
+      "checked_at": "2026-11-15",
+      "local_reference": "../../minecraft-build-quality/references/natural-road-default.md",
+      "local_record": "../../minecraft-build-quality/references/natural-road-example.json",
+      "local_file": "../../minecraft-build-quality/references/images/natural-road-default.jpg",
+      "sha256": "7fff840f2b0d4d07f02e229ad2a1e2a8054986845bdfb82ca24b84be05ba9330",
+      "bytes": 192505,
+      "license_scope": "利用者が今後の道の設計ベースに指定した自作候補。ゲーム素材の権利は別。",
+      "format": "設計指針・作例記録JSON・実ライブ画像JPEG",
+      "stated_dimensions": "作例は歩行幅5、曲線半径8、3ブロックの上り下り。固定要件ではない。",
+      "inspection_level": "正規CLI調査と3D表示確認、利用者の採用承認。ゲーム内未検証。",
+      "features": "土と苔の自然な道。不規則な苔/緑のカーペット、道端の落ち葉・小石・岩・倒木・植生。",
+      "limitations": ["個別指定の別様式と保存範囲を優先", "落ち葉の白い表示はビューアーの色付け制限", "元チケットの座標・旧操作・Schematicを新チケットへそのまま流用しない"]
+    },
+    {
       "id": "BL-CABIN",
       "title": "Alpine cabin shell",
       "author": "Block Library",
