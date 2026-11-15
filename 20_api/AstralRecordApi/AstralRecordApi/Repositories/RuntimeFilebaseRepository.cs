@@ -13,7 +13,7 @@ public sealed class RuntimeFilebaseRepository(IOptions<FileDatabaseOptions> opti
     [
         new("35.features.skilltree/nodes", ".json"),
         new("35.features.skilltree/structures", ".json"),
-        new("36.features.progression_preset", ".yml", Optional: true),
+        new("90.shared.progression_preset", ".yml", Optional: true),
         new("45.features.shop", ".yml"),
         new("85.shared.recipe", ".yml"),
         new("51.features.quest", ".yml"),

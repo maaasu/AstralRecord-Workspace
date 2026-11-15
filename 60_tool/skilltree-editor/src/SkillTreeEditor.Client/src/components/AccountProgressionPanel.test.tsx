@@ -7,7 +7,7 @@ const skill: DesignSkill = { id: 'slash', name: '剣撃', path: '30.features.ski
   passive: false, bindRequired: true, requiredLevel: 1, maxLevel: 5, sigilSlotsByLevel: [{ level: 1, slots: 1 }], allowedSigilIds: [] }
 const checkpoint: DesignCheckpoint = { level: 10, classLevel: 10, pointer: '/levels/0', equipment: [], nodes: [1],
   skills: [{ slot: 1, skillId: 'slash', pointer: '/levels/0/skills/0', skillLevel: 1, sigils: [] }], passives: [] }
-const preset: DesignPreset = { id: 'sword', name: '剣士', path: '36.features.progression_preset/v1.sword.yml', classId: 'sword', buildId: 'sword', checkpoints: [checkpoint] }
+const preset: DesignPreset = { id: 'sword', name: '剣士', path: '90.shared.progression_preset/v1.sword.yml', classId: 'sword', buildId: 'sword', checkpoints: [checkpoint] }
 const catalog: ProgressionDesignCatalog = { classes: [{ id: 'sword', name: '剣士', path: 'class.yml', prerequisiteClassIds: [], usableSkillIds: ['slash'] }],
   presets: [preset], skills: [skill, { ...skill, id: 'meteor', name: '流星魔術' }, { ...skill, id: 'node_skill', name: 'ノードの技' }],
   nodes: [{ id: 1, name: '技の習得', path: 'node.json', icon: null, iconTexture: null, customModelData: null, skillIds: ['node_skill'] }],

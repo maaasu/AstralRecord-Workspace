@@ -126,7 +126,7 @@ public sealed class ProgressionDesignTests : IDisposable
     [Fact]
     public async Task PreviewRebuildsReferencesAndCompatibleEquipmentWithoutSaving()
     {
-        const string path = "36.features.progression_preset/v1.build.yml";
+        const string path = "90.shared.progression_preset/v1.build.yml";
         Write(path, """
             id: build
             classId: swordsman
@@ -361,7 +361,7 @@ public sealed class ProgressionDesignTests : IDisposable
     [Fact]
     public async Task PreviewCarriesAccountAssignmentsAndLocationsWithoutChangingOtherCheckpoints()
     {
-        const string path = "36.features.progression_preset/v1.build.yml";
+        const string path = "90.shared.progression_preset/v1.build.yml";
         Write(path, """
             id: build
             classId: swordsman

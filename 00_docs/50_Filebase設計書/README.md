@@ -92,7 +92,6 @@ feature 設計書の先頭番号は、原則として `40_filebase` のディレ
 │  ├─ 20-class.md
 │  ├─ 30-skill.md
 │  ├─ 35-skilltree.md
-│  ├─ 36-progression_preset.md
 │  ├─ 40-mob.md
 │  ├─ 41-mob_spawner.md
 │  ├─ 42-gathering.md
@@ -111,7 +110,8 @@ feature 設計書の先頭番号は、原則として `40_filebase` のディレ
 │  ├─ 75-status.md
 │  ├─ 76-tag.md
 │  ├─ 80-loot.md
-│  └─ 85-recipe.md
+│  ├─ 85-recipe.md
+│  └─ 90-progression_preset.md
 ├─ モチーフ選定ガイド.md
 └─ 作成時チェックリスト.md
 ```

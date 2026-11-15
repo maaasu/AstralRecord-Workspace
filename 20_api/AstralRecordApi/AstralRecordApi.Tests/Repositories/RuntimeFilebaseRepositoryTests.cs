@@ -40,10 +40,11 @@ public sealed class RuntimeFilebaseRepositoryTests
         expected.Add("42.features.gathering/mining/deep.yml", "id: deep\n");
         fixture.Write("35.features.skilltree/schemas/private.json", "{}\n");
         fixture.Write("35.features.skilltree/node-id-sequence.json", "{}\n");
-        const string presetPath = "36.features.progression_preset/v1.adventurer_default.yml";
+        const string presetPath = "90.shared.progression_preset/v1.adventurer_default.yml";
         fixture.Write(presetPath, "id: adventurer_default\n");
         expected.Add(presetPath, "id: adventurer_default\n");
-        fixture.Write("36.features.progression_preset/schemas/private.json", "{}\n");
+        fixture.Write("36.features.progression_preset/v1.adventurer_default.yml", "id: old_version\n");
+        fixture.Write("90.shared.progression_preset/schemas/private.json", "{}\n");
         fixture.Write("45.features.shop/docs.shop.yml", "not a runtime definition\n");
         fixture.Write("45.features.shop/other.json", "{}\n");
         fixture.Write("45.features.shop/nested/hidden.yml", "id: hidden\n");
