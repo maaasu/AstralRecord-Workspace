@@ -34,11 +34,32 @@ function Test-UpdateWorkflowStartupRestart([string]$RunDirectory, [string]$Label
         $state.configurationFingerprint -ceq $Fingerprint -and $state.status -ceq 'WaitingForStartup')
 }
 
+function Get-UpdateWorkflowDatabaseRetryArchive($State, [string]$RunDirectory, [string]$Fingerprint) {
+    if (!$State.Contains('databaseRecoveryAttempt') -or $State.databaseRecoveryAttempt -cnotmatch '^attempt-[a-f0-9]{32}$') { return }
+    $archive=Join-Path $RunDirectory ('database-retries/'+$State.databaseRecoveryAttempt)
+    $receiptPath=Join-Path $archive 'retry.json'
+    $gatePath=Join-Path $RunDirectory 'control-gate-run.json'
+    if (!(Test-Path -LiteralPath $receiptPath -PathType Leaf) -or !(Test-Path -LiteralPath $gatePath -PathType Leaf)) { return }
+    $receipt=Get-Content -Raw -Encoding UTF8 -LiteralPath $receiptPath | ConvertFrom-Json -AsHashtable
+    $gate=Get-Content -Raw -Encoding UTF8 -LiteralPath $gatePath | ConvertFrom-Json -AsHashtable
+    if ($receipt.schemaVersion -ne 1 -or $receipt.action -cne 'RetryDatabaseInSameRun' -or
+        $receipt.configurationFingerprint -cne $Fingerprint -or $receipt.runReference -cne $RunDirectory -or
+        $receipt.workflowId -cne $gate.workflowId -or $receipt.reservationId -cne $gate.reservationId) { return }
+    foreach ($name in @('workflow-state.json','dev-deployment-progress.json','dev-deploy.log')) {
+        $path=Join-Path $archive $name
+        if (!(Test-Path -LiteralPath $path -PathType Leaf) -or
+            (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -cne $receipt.hashes[$name]) { return }
+    }
+    $archivedState=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $archive 'workflow-state.json') | ConvertFrom-Json -AsHashtable
+    if ($archivedState.status -ceq 'DeploymentFailed' -and
+        (Test-UpdateWorkflowFailedDevRetry $archivedState $archive $Fingerprint -CheckedDatabase)) { return $archive }
+}
+
 <#
-    同じControl予約で再試行できる、外部処理前の確定したDevビルド失敗だけを判定する。
-    ReadyToDeploy は再試行準備の状態保存後、旧進行記録の退避前に中断した場合に限って扱う。
+    同じControl予約で再試行できるDevの配布失敗を判定する。
+    Databaseの再試行は外部状態を確認した明示操作からだけ呼ぶ。
 #>
-function Test-UpdateWorkflowFailedBuildRetry($State, [string]$RunDirectory, [string]$Fingerprint) {
+function Test-UpdateWorkflowFailedDevRetry($State, [string]$RunDirectory, [string]$Fingerprint, [switch]$CheckedDatabase) {
     if (!$State -or $State.schemaVersion -ne 1 -or $State.label -cne 'Dev' -or
         $State.configurationFingerprint -cne $Fingerprint -or $State.status -cnotin @('DeploymentFailed','ReadyToDeploy') -or
         $State.seedStatus -cne 'PENDING' -or !$State.Contains('deployedRuntimes') -or @($State.deployedRuntimes).Count -ne 0 -or
@@ -47,47 +68,102 @@ function Test-UpdateWorkflowFailedBuildRetry($State, [string]$RunDirectory, [str
     foreach ($name in @('deploy-action-success.json','deployment.json','patch-publication-result.json','control-dev-start.json','control-dev-start.request.json')) {
         if (Test-Path -LiteralPath (Join-Path $RunDirectory $name)) { return $false }
     }
+    if ($CheckedDatabase -and $State.Contains('devStartRequestedAtUtc')) { return $false }
     $path=Join-Path $RunDirectory 'dev-deployment-progress.json'
+    if ($CheckedDatabase -and $State.status -ceq 'ReadyToDeploy') {
+        if (!(Get-UpdateWorkflowDatabaseRetryArchive $State $RunDirectory $Fingerprint)) { return $false }
+        if (!(Test-Path -LiteralPath $path -PathType Leaf)) { return $true }
+    }
     if (!(Test-Path -LiteralPath $path -PathType Leaf)) { return $false }
     $progress=Get-Content -Raw -Encoding UTF8 -LiteralPath $path | ConvertFrom-Json -AsHashtable
-    return ($progress.schemaVersion -eq 1 -and $progress.configurationFingerprint -ceq $Fingerprint -and
-        $progress.stage -ceq 'Build' -and $progress.status -ceq 'Failed' -and
-        $progress.buildIsolated -is [bool] -and $progress.buildIsolated)
+    if ($progress.schemaVersion -ne 1 -or $progress.configurationFingerprint -cne $Fingerprint -or $progress.status -cne 'Failed') { return $false }
+    if ($CheckedDatabase) {
+        return ($progress.stage -ceq 'Database' -and
+            (Test-Path -LiteralPath (Join-Path $RunDirectory 'dev-deploy.log') -PathType Leaf))
+    }
+    return ($progress.stage -ceq 'Build' -and $progress.buildIsolated -is [bool] -and $progress.buildIsolated)
+}
+
+function Assert-UpdateWorkflowDatabaseRetryStop($GateContext, [string]$RunDirectory, [scriptblock]$ConfirmStoppedAction) {
+    $stopPath=Join-Path $RunDirectory 'control-dev-stop.json'
+    if (!(Test-Path -LiteralPath $stopPath -PathType Leaf)) { throw 'Databaseの復旧には同じ実行のDev停止記録が必要です。' }
+    $stop=Get-Content -Raw -Encoding UTF8 -LiteralPath $stopPath | ConvertFrom-Json -AsHashtable
+    $operationId=[Guid]::Empty
+    if ($stop.schemaVersion -ne 1 -or $stop.kind -cne 'Stop' -or
+        $stop.workflowId -cne $GateContext.WorkflowId -or $stop.reservationId -cne $GateContext.ReservationId -or
+        $stop.status -cnotin @('Succeeded','AlreadyStopped') -or
+        ($stop.status -ceq 'Succeeded' -and (![Guid]::TryParse([string]$stop.operationId,[ref]$operationId) -or $operationId -eq [Guid]::Empty)) -or
+        ($stop.status -ceq 'AlreadyStopped' -and $stop.operationId)) {
+        throw '同じ予約のDev停止結果を確認できないため、Databaseの復旧を中止しました。'
+    }
+    # 既存の停止確認を再利用する。操作IDのある終端記録とAlreadyStoppedでは新しい停止操作を送らない。
+    $null=& $ConfirmStoppedAction $RunDirectory
 }
 
 <#
-    workflow.lock保持中に、検証済みControl予約のDevビルド失敗を同じrunで再試行可能にする。
+    workflow.lock保持中に、検証済みControl予約のDev配布失敗を同じrunで再試行可能にする。
     run.lockと停止条件を再確認し、旧記録をハッシュ照合して保全してから状態と進行記録を更新する。
 #>
-function Restart-UpdateWorkflowFailedBuild([string]$RunDirectory, [string]$Fingerprint, $GateContext) {
+function Restart-UpdateWorkflowFailedDevDeployment([string]$RunDirectory, [string]$Fingerprint, $GateContext,
+    [switch]$CheckedDatabase, [scriptblock]$ConfirmStoppedAction) {
     $lock=$null
     try {
         try { $lock=[IO.File]::Open((Join-Path $RunDirectory 'run.lock'),'OpenOrCreate','ReadWrite','None') }
         catch [IO.IOException] { throw '前回の処理が実行中、または記録がロックされています。終了を待ってから再実行してください。' }
         $statePath=Join-Path $RunDirectory 'workflow-state.json'
         $state=Get-Content -Raw -Encoding UTF8 -LiteralPath $statePath | ConvertFrom-Json -AsHashtable
-        if (!(Test-UpdateWorkflowFailedBuildRetry $state $RunDirectory $Fingerprint)) { throw 'Dev build failure changed before retry preparation.' }
+        if (!(Test-UpdateWorkflowFailedDevRetry $state $RunDirectory $Fingerprint -CheckedDatabase:$CheckedDatabase)) { throw 'Dev deployment failure changed before retry preparation.' }
         Assert-ControlGateStep $GateContext 'Deploy'
-        $archive=Join-Path $RunDirectory ('build-retries/attempt-'+[Guid]::NewGuid().ToString('N'))
+        $progressPath=Join-Path $RunDirectory 'dev-deployment-progress.json'
+        if ($CheckedDatabase) {
+            Assert-UpdateWorkflowDatabaseRetryStop $GateContext $RunDirectory $ConfirmStoppedAction
+            if ($state.status -ceq 'ReadyToDeploy') {
+                $archive=Get-UpdateWorkflowDatabaseRetryArchive $state $RunDirectory $Fingerprint
+                if (Test-Path -LiteralPath $progressPath -PathType Leaf) {
+                    if ((Get-FileHash -LiteralPath $progressPath -Algorithm SHA256).Hash -cne
+                        (Get-FileHash -LiteralPath (Join-Path $archive 'dev-deployment-progress.json') -Algorithm SHA256).Hash) {
+                        throw '保存済みのDatabase進行記録と一致しないため、復旧を中止しました。'
+                    }
+                    Remove-Item -LiteralPath $progressPath -ErrorAction Stop
+                }
+                return $state
+            }
+        }
+        $retryDirectory=if ($CheckedDatabase) { 'database-retries' } else { 'build-retries' }
+        $stage=if ($CheckedDatabase) { 'Database' } else { 'Build' }
+        $archive=Join-Path $RunDirectory ("$retryDirectory/attempt-"+[Guid]::NewGuid().ToString('N'))
         New-Item -ItemType Directory -Path $archive -Force | Out-Null
+        $hashes=@{}
         foreach ($name in @('workflow-state.json','dev-deployment-progress.json','dev-deploy.log')) {
             $source=Join-Path $RunDirectory $name
             if (Test-Path -LiteralPath $source -PathType Leaf) {
                 $hash=(Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash
                 $destination=Join-Path $archive $name
                 Copy-Item -LiteralPath $source -Destination $destination -ErrorAction Stop
-                if ((Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash -cne $hash) { throw 'Build retry record preservation failed.' }
+                if ((Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash -cne $hash) { throw 'Dev deployment retry record preservation failed.' }
+                $hashes[$name]=$hash
             }
         }
-        Write-MaintenanceJson @{schemaVersion=1;action='RetryBuildInSameRun';configurationFingerprint=$Fingerprint;
-            atUtc=[DateTime]::UtcNow.ToString('o')} (Join-Path $archive 'retry.json')
-        # Persist intent before removing the old progress. An interruption at either boundary remains resumable:
-        # ReadyToDeploy + Failed progress repeats this preparation; ReadyToDeploy without progress starts the child.
+        $receipt=@{schemaVersion=1;action="Retry${stage}InSameRun";configurationFingerprint=$Fingerprint;atUtc=[DateTime]::UtcNow.ToString('o')}
+        if ($CheckedDatabase) {
+            $receipt.runReference=$RunDirectory
+            $receipt.workflowId=$GateContext.WorkflowId
+            $receipt.reservationId=$GateContext.ReservationId
+            $receipt.hashes=$hashes
+        }
+        Write-MaintenanceJson $receipt (Join-Path $archive 'retry.json')
+        # The saved intent makes a retry safe on either side of the old-progress removal.
         $state.status='ReadyToDeploy'
+        if ($CheckedDatabase) { $state.databaseRecoveryAttempt=[IO.Path]::GetFileName($archive) }
         Save-UpdateWorkflowJson $state $statePath
-        Remove-Item -LiteralPath (Join-Path $RunDirectory 'dev-deployment-progress.json') -ErrorAction Stop
-        Write-Host "前回のビルド失敗記録を保全しました: $archive"
-        Write-Host '同じControl予約と実行記録でビルドを再試行します。'
+        Remove-Item -LiteralPath $progressPath -ErrorAction Stop
+        if ($CheckedDatabase) {
+            Write-Host "前回のDatabase失敗記録を保全しました: $archive"
+            Write-Host '同じControl予約と実行記録で配布を再試行します。'
+        } else {
+            Write-Host "前回のビルド失敗記録を保全しました: $archive"
+            Write-Host '同じControl予約と実行記録でビルドを再試行します。'
+        }
         return $state
     } finally { if ($lock) { $lock.Dispose() } }
 }
