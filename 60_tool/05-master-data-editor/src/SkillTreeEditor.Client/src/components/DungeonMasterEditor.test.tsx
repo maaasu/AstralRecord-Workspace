@@ -62,6 +62,8 @@ it('presents one editable dungeon overview and scrolls to a section without drop
   expect(editor.getByRole('button', { name: '/encounter/bossMobId の定義を開く' }).querySelector('img')).toHaveAttribute('src', '/api/minecraft-icons/HUSK_SPAWN_EGG?revision=0')
   expect(editor.getByRole('combobox', { name: '/generation/roomShapes/0/type' })).toHaveDisplayValue('長方形')
   expect(editor.getAllByRole('button', { name: 'Stone Bricks' })[0].querySelector('img')).toHaveAttribute('src', '/api/minecraft-icons/STONE_BRICKS?revision=0')
+  expect(editor.getByText('生成範囲に項目を追加')).toBeVisible()
+  expect(editor.getByText('部屋ごとの出現数に項目を追加')).toBeVisible()
 
   fireEvent.click(editor.getByRole('button', { name: '生成設定' }))
   await waitFor(() => expect(editor.getByRole('heading', { name: '生成設定' })).toHaveFocus())
