@@ -12,6 +12,8 @@
 
 モルグラスのID変更は `20261115_rename_morgras_mob_id.sql` で討伐記録の `all_things_el` を `morgras` へ移行する。記録UUID・討伐数・初回/最新討伐日時・論理削除状態を保持する。同一アカウントに両IDが存在する場合は、合算方針を推測せず全変更前に停止する。RPGサーバーの保存を完了して停止し、migration、API更新、旧Mob YAMLを除いたFilebase配置・seed、新Pluginの配置を終えてから再開する。既存のダンジョン個体は持ち越さず、新規入場で確認する。HistoryDBの攻略履歴はイベント発生時のID・名称として保持する。
 
+このデータ移行の検査は、DDLから作成した `mob_id = nvarchar(100)` と、既存のEFモデルから作成した `nvarchar(450)` の両方を受け入れる。列型・NOT NULL・主キー・アカウント/Mob索引の列順を検査し、移行で変更しない列幅やEF側にないCHECK制約は要求しない。SQL実行後のスキーマ検査で失敗した場合、データ更新が済んでいても移行履歴は未登録になり得る。SQL本文を変更せず、修正済みmanifestで同じバッチを再実行する。旧IDが残っていなければUPDATEは0件となり、検査通過後に履歴が登録される。
+
 ```powershell
 C:\AstralRecord-Workspace\60_tool\13-db-migrate.bat
 C:\AstralRecord-Workspace\60_tool\15-history-db-migrate.bat
