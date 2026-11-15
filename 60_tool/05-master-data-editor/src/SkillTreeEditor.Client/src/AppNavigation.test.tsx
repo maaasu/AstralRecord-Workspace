@@ -1,4 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { DockviewApi } from 'dockview-react'
 import { afterEach, expect, it, vi } from 'vitest'
 import App from './App'
 import { toolJobApi } from './api/toolJobApi'
@@ -10,7 +12,10 @@ vi.mock('./components/MasterAnalytics', () => ({ MasterAnalytics: () => <p>比�
 vi.mock('./components/SpawnerPlanningWorkspace', () => ({ SpawnerPlanningWorkspace: () => <p>配置の作業領域</p> }))
 vi.mock('./components/ProgressionDesignWorkspace', () => ({ ProgressionDesignWorkspace: ({ onDirtyChange }: { onDirtyChange: (value: boolean) => void }) => <label>装備設計の下書き<input onChange={() => onDirtyChange(true)} /></label> }))
 
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+})
 
 it('warns about unsaved equipment design before master reflection', async () => {
   vi.spyOn(window, 'confirm').mockReturnValue(true)
@@ -58,4 +63,56 @@ it('hides and restores the editing navigation without changing the current page'
   fireEvent.click(toggle)
   expect(await screen.findByRole('navigation', { name: '開発ツール' })).toBeVisible()
   expect(toggle).toHaveAttribute('aria-pressed', 'true')
+})
+
+it('opens desktop panels from the keyboard and keeps workspace and popout commands in the command bar', async () => {
+  const user = userEvent.setup()
+  const postMessage = vi.fn()
+  vi.stubGlobal('chrome', { webview: { postMessage } })
+  vi.spyOn(toolJobApi, 'capabilities').mockResolvedValue({
+    enabled: true, reason: null, workspaceRoot: 'C:/worktrees/editor-fixture', activeRunId: null,
+  })
+  const openPopout = vi.spyOn(DockviewApi.prototype, 'addPopoutGroup').mockResolvedValue(true)
+  render(<App />)
+  const bar = within(screen.getByRole('banner'))
+  expect(bar.getByRole('button', { name: '編集ナビゲーション' })).toHaveAttribute('aria-pressed', 'true')
+  const workspace = bar.getByRole('button', { name: 'ワークスペースを変更' })
+  expect(await bar.findByText('editor-fixture')).toBeVisible()
+  expect(workspace).toHaveAttribute('title', 'C:/worktrees/editor-fixture')
+  await user.click(workspace)
+  expect(postMessage).toHaveBeenCalledWith('select-workspace')
+
+  const trigger = bar.getByRole('button', { name: 'パネル' })
+  const popout = bar.getByRole('button', { name: '別ウィンドウで開く' })
+  trigger.focus()
+  await user.keyboard('{ArrowDown}')
+  const menu = within(screen.getByRole('menu', { name: 'パネル' }))
+  const first = menu.getByRole('menuitem', { name: 'マスターデータ' })
+  const reset = menu.getByRole('menuitem', { name: 'レイアウトを初期化' })
+  expect(first).toHaveFocus()
+  expect(menu.queryByRole('menuitem', { name: /編集ナビ/ })).not.toBeInTheDocument()
+  await user.keyboard('{End}')
+  expect(reset).toHaveFocus()
+  await user.keyboard('{Home}')
+  expect(first).toHaveFocus()
+  await user.keyboard('{ArrowUp}')
+  expect(reset).toHaveFocus()
+  await user.keyboard('{Escape}')
+  expect(trigger).toHaveFocus()
+  expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  await user.keyboard('{ArrowUp}')
+  const reopenedReset = screen.getByRole('menuitem', { name: 'レイアウトを初期化' })
+  expect(reopenedReset).toHaveFocus()
+  fireEvent.keyDown(reopenedReset, { key: 'Tab' })
+  expect(trigger).toHaveFocus()
+  await user.tab()
+  expect(popout).toHaveFocus()
+  expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+
+  trigger.focus()
+  await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{Enter}')
+  expect(await screen.findByText('比較の作業領域')).toBeVisible()
+  expect(trigger).toHaveFocus()
+  await user.click(popout)
+  expect(openPopout).toHaveBeenCalledWith(expect.objectContaining({ id: 'analytics' }), expect.objectContaining({ position: expect.any(Object) }))
 })

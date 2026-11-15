@@ -3,8 +3,11 @@ import { editorApi } from './api/editorApi'
 import { toolJobApi, type ToolCapabilities } from './api/toolJobApi'
 import { DesktopToolRunHistoryProvider, DesktopToolWorkspace } from './components/DesktopToolWorkspace'
 import { toolIds, toolSpecs } from './data/desktopTools'
-import { DockMenu, DockWorkspace, getDesktopBridge, workspaceLayoutKey } from './docking/DockWorkspace'
-import { DockPanelContent, editorPages, isPage, isToolPage, useDocking, type EditorPage, type Page } from './docking/dockPanel'
+import { DockCommandMenu } from './docking/DockCommandMenu'
+import { DockIcon } from './docking/DockIcon'
+import { DockWindowButton, DockWorkspace, getDesktopBridge, workspaceLayoutKey, type DesktopBridge } from './docking/DockWorkspace'
+import { DockPanelContent, dockPanels, editorPages, isPage, isToolPage, useDocking, type DockPanelId, type EditorPage, type Page } from './docking/dockPanel'
+import './docking/editorCommandBar.css'
 import './masterData.css'
 
 const MasterDataEditor = lazy(() => import('./components/MasterDataEditor').then((module) => ({ default: module.MasterDataEditor })))
@@ -17,6 +20,54 @@ function AppIcon({ path }: { path: string }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d={path} /></svg>
 }
 
+const editPanelIds = [...editorPages.map(item => item.id), 'master-folders', 'master-files', 'master-validation'] as const
+const toolPanelIds = [...toolIds, 'history'] as const
+
+function EditorCommandBar({ desktop, workspaceRoot, branch, page, selectPage }: {
+  desktop?: DesktopBridge
+  workspaceRoot?: string
+  branch?: string
+  page: Page
+  selectPage: (page: Page) => void
+}) {
+  const { api, activeId, visible, open, show, close, reset } = useDocking()!
+  const navigationVisible = visible.has('navigation')
+  const panelCommand = (id: DockPanelId) => ({ label: dockPanels[id], run: () => isPage(id) ? selectPage(id) : show(id) })
+  const workspaceName = workspaceRoot?.split(/[\\/]/).filter(Boolean).at(-1) ?? workspaceRoot
+  const viewLabel = dockPanels[activeId ?? page]
+  return <header className="editor-command-bar">
+    {!desktop && <div className="editor-command-brand">
+      <img src="/app-icon.svg" alt="" /><strong>AstralRecord マスターデータエディタ</strong>
+    </div>}
+    <div className="editor-command-row">
+      <div className="editor-command-actions" role="group" aria-label="パネル表示">
+        <button type="button" className="editor-command-button" title="編集ナビゲーション" aria-label="編集ナビゲーション" aria-pressed={navigationVisible}
+          onClick={() => navigationVisible ? close('navigation') : show('navigation', open.has('navigation'))}>
+          <DockIcon name="sidebar" /><span>編集ナビ</span>
+        </button>
+        <DockCommandMenu label="パネル" className="editor-command-button editor-command-panel" align="start" groups={[
+          { label: '編集・ファイル', commands: editPanelIds.map(panelCommand) },
+          { label: 'ビルド・反映', commands: toolPanelIds.map(panelCommand) },
+          { commands: [{ label: 'レイアウトを初期化', run: reset }] },
+        ]}><span>パネル</span><DockIcon name="chevron" /></DockCommandMenu>
+        <DockWindowButton api={api} panel={activeId ? api?.getPanel(activeId) : undefined} />
+      </div>
+      <div className="editor-command-context">
+        <span className="editor-command-view" title={viewLabel}>{viewLabel}</span>
+        <div className="editor-command-workspace">
+          {desktop ? <button type="button" className="editor-command-button editor-command-workspace-button" title={workspaceRoot || 'ワークスペースを変更'}
+            aria-label="ワークスペースを変更" onClick={() => desktop.postMessage('select-workspace')}>
+            <DockIcon name="folder" /><span>ワークスペース</span>
+            {workspaceName && <span className="editor-command-path">{workspaceName}</span>}
+            <DockIcon name="chevron" />
+          </button> : workspaceRoot && <span className="editor-command-path" title={workspaceRoot}>{workspaceRoot}</span>}
+          {branch && <span className="editor-command-branch" title={branch}>{branch}</span>}
+        </div>
+      </div>
+    </div>
+  </header>
+}
+
 export default function App() {
   const [workspaceRoot, setWorkspaceRoot] = useState('')
   const desktop = getDesktopBridge()
@@ -27,12 +78,12 @@ export default function App() {
   }, [])
   return <div className="master-app-shell">
     <DockWorkspace desktop={desktop} layoutKey={workspaceLayoutKey(workspaceRoot)}>
-      <WorkspaceViews workspaceRoot={workspaceRoot} native={Boolean(desktop)} />
+      <WorkspaceViews workspaceRoot={workspaceRoot} desktop={desktop} />
     </DockWorkspace>
   </div>
 }
 
-function WorkspaceViews({ workspaceRoot, native }: { workspaceRoot: string; native: boolean }) {
+function WorkspaceViews({ workspaceRoot, desktop }: { workspaceRoot: string; desktop?: DesktopBridge }) {
   const docking = useDocking()!
   const { activeId, visited, visible, show } = docking
   const [lastPage, setLastPage] = useState<Page>('master')
@@ -72,35 +123,28 @@ function WorkspaceViews({ workspaceRoot, native }: { workspaceRoot: string; nati
     return () => { live = false }
   }, [capabilitiesRequest])
 
-  const selectPage = (next: Page) => {
-    const navDocument = docking.documents.get('navigation') ?? document
-    if (next !== page && !isToolPage(page) && dirtyByPage[page] && !navDocument.defaultView?.confirm('未保存の編集があります。画面を切り替えますか？（編集内容は保持されます）')) return
+  const selectPage = (next: Page, ownerDocument: Document = document) => {
+    if (next !== page && !isToolPage(page) && dirtyByPage[page] && !ownerDocument.defaultView?.confirm('未保存の編集があります。画面を切り替えますか？（編集内容は保持されます）')) return
     show(next)
   }
   const retryCapabilities = () => { setCapabilitiesError(''); setCapabilitiesRequest(value => value + 1) }
   const displayRoot = workspaceRoot || capabilities?.workspaceRoot
   return <>
-    {!native && <header className="master-app-header">
-      <div className="master-app-brand"><img className="master-app-emblem" src="/app-icon.svg" alt="" /><strong>AstralRecord マスターデータエディタ</strong></div>
-      <code className="dock-workspace-path" title={displayRoot}>{displayRoot}</code>
-      {capabilities?.workspaceBranch && <span className="workspace-branch">{capabilities.workspaceBranch}</span>}
-      <button type="button" className="dock-header-button" title="編集ナビゲーション" aria-label="編集ナビゲーション" aria-pressed={visible.has('navigation')} onClick={() => visible.has('navigation') ? docking.close('navigation') : show('navigation', docking.open.has('navigation'))}>☰</button>
-      <DockMenu label="表示メニュー" />
-    </header>}
+    <EditorCommandBar desktop={desktop} workspaceRoot={displayRoot} branch={capabilities?.workspaceBranch ?? undefined} page={page} selectPage={selectPage} />
     <DockPanelContent id="navigation">
       <div id="workspace-navigation" className="master-app-sidebar">
         <nav aria-label="開発ツール">
-          {editorPages.map(item => <button key={item.id} type="button" className="workspace-nav-item" aria-label={`${item.label}${dirtyByPage[item.id] ? ' ●' : ''}`} aria-pressed={page === item.id} aria-current={page === item.id ? 'page' : undefined} onClick={() => selectPage(item.id)}>
+          {editorPages.map(item => <button key={item.id} type="button" className="workspace-nav-item" aria-label={`${item.label}${dirtyByPage[item.id] ? ' ●' : ''}`} aria-pressed={page === item.id} aria-current={page === item.id ? 'page' : undefined} onClick={event => selectPage(item.id, event.currentTarget.ownerDocument)}>
             <AppIcon path={item.icon} /><span>{item.label}</span>{dirtyByPage[item.id] && <b className="workspace-nav-dirty" aria-hidden="true">●</b>}
           </button>)}
         </nav>
         <nav aria-label="ビルド・反映">
           <span className="workspace-nav-label">ビルド・反映</span>
-          {toolIds.map(id => <button key={id} type="button" className="workspace-nav-item" aria-current={page === id ? 'page' : undefined} onClick={() => selectPage(id)}>
+          {toolIds.map(id => <button key={id} type="button" className="workspace-nav-item" aria-current={page === id ? 'page' : undefined} onClick={event => selectPage(id, event.currentTarget.ownerDocument)}>
             <code>{id}</code><span>{toolSpecs[id].label}</span>
           </button>)}
         </nav>
-        <button type="button" className="workspace-nav-item workspace-history-link" aria-current={page === 'history' ? 'page' : undefined} onClick={() => selectPage('history')}>
+        <button type="button" className="workspace-nav-item workspace-history-link" aria-current={page === 'history' ? 'page' : undefined} onClick={event => selectPage('history', event.currentTarget.ownerDocument)}>
           <AppIcon path="M3 12a9 9 0 1 1 3 6.7 M3 5v7h7 M12 7v5l3 2" /><span>実行履歴</span>
         </button>
       </div>

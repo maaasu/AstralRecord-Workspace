@@ -1,0 +1,76 @@
+.editor-command-bar {
+  flex: none;
+  min-width: 0;
+  background: var(--surface-sidebar);
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+.editor-command-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.editor-command-brand img { width: 18px; height: 18px; }
+.editor-command-brand strong { font-size: 13px; font-weight: 650; }
+.editor-command-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  min-width: 0;
+  padding: 5px 10px;
+}
+.editor-command-actions, .editor-command-context, .editor-command-workspace {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.editor-command-actions { flex: none; gap: 5px; }
+.editor-command-context { flex: 1; justify-content: space-between; gap: 12px; }
+.editor-command-workspace { max-width: 70%; gap: 8px; }
+.editor-command-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control, 7px);
+  background: transparent;
+  color: var(--text);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.editor-command-button:hover:not(:disabled), .editor-command-button[aria-expanded="true"] { background: var(--surface-soft); }
+.editor-command-button[aria-pressed="true"] {
+  background: var(--surface-raised);
+  color: var(--accent);
+  border-color: var(--line-bright);
+}
+.editor-command-button:focus-visible { outline-offset: 1px; }
+.editor-command-button:disabled { color: var(--text-muted); opacity: .6; cursor: default; }
+.editor-command-panel .dock-icon, .editor-command-workspace-button .dock-icon:last-child { width: 12px; height: 12px; }
+.editor-command-window, .editor-command-view, .editor-command-path, .editor-command-branch { color: var(--text-muted); }
+.editor-command-view, .editor-command-path, .editor-command-branch {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.editor-command-view { border-left: 1px solid var(--line); padding-left: 12px; }
+.editor-command-branch { flex: 0 1 auto; max-width: 140px; }
+
+@media (max-width: 760px) {
+  .editor-command-row { flex-wrap: wrap; gap: 4px; }
+  .editor-command-context { flex-basis: 100%; padding-inline: 8px; }
+  .editor-command-view { border-left: 0; padding-left: 0; }
+  .editor-command-workspace { max-width: 60%; }
+  .editor-command-branch { display: none; }
+}
+@media (max-width: 360px) {
+  .editor-command-window > span { display: none; }
+}

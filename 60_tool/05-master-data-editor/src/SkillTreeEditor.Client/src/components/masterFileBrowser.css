@@ -39,11 +39,11 @@
 .master-results-heading > strong small { font-size: 10px; color: var(--text-muted); font-weight: 400; }
 .master-applied-filters { padding: 0 10px 10px; border-bottom: 1px solid var(--line); display: grid; gap: 5px; }
 .master-applied-filters > div { display: flex; gap: 5px; overflow-x: auto; padding: 3px 0 5px; }
-.master-filter-chip { flex-shrink: 0; display: flex; align-items: center; gap: 6px; max-width: 230px; border: 1px solid var(--line-bright); border-radius: 5px; background: var(--accent-soft); color: var(--accent); cursor: pointer; padding: 5px 7px; font-size: 11px; }
+.master-filter-chip { flex-shrink: 0; display: flex; align-items: center; gap: 6px; max-width: 230px; border: 1px solid var(--line-bright); border-radius: var(--radius-control); background: var(--accent-soft); color: var(--accent); cursor: pointer; padding: 5px 7px; font-size: 11px; }
 .master-filter-chip > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .master-applied-filters > .text-button { justify-self: end; font-size: 10px; }
 .master-results-pane .master-file-list { border-top: 1px solid var(--line); padding: 4px; min-height: 0; flex: 1 1 0; }
-.master-results-pane .master-file { border-radius: 5px; margin: 2px 0; padding: 10px 8px; gap: 4px; }
+.master-results-pane .master-file { border-radius: var(--radius-control); margin: 2px 0; padding: 10px 8px; gap: 4px; }
 .master-results-pane .master-file-identity { align-items: center; gap: 8px; }
 .master-results-pane .master-file strong { font-size: 13px; line-height: 1.5; }
 .master-results-pane .master-list-icon { width: 28px; height: 28px; flex-shrink: 0; }
@@ -64,13 +64,13 @@
 .master-filter-dialog h2 { margin: 4px 0 6px; font-size: 20px; }
 .master-filter-dialog .modal-header p { margin: 0; color: var(--text-muted); font-size: 12px; line-height: 1.7; }
 .master-filter-body { display: grid; gap: 18px; padding: 20px; }
-.master-filter-section { margin: 0; padding: 16px; border: 1px solid var(--line-bright); border-radius: 8px; min-width: 0; background: var(--surface-sidebar); }
+.master-filter-section { margin: 0; padding: 16px; border: 1px solid var(--line-bright); border-radius: var(--radius-panel); min-width: 0; background: var(--surface-sidebar); }
 .master-filter-section legend { padding: 0 7px; font-size: 13px; font-weight: 600; color: var(--text); }
 .master-filter-section p { margin: 0 0 12px; color: var(--text-muted); font-size: 11px; line-height: 1.7; }
 .master-filter-fields, .master-range-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
 .master-filter-section label { display: grid; gap: 6px; min-width: 0; color: var(--text-muted); font-size: 12px; }
 .master-filter-section input, .master-filter-section select { min-width: 0; max-width: 100%; padding: 9px; font-size: 12px; }
-.master-range-field { padding: 11px; border-radius: 5px; background: var(--surface-raised); min-width: 0; }
+.master-range-field { padding: 11px; border-radius: var(--radius-control); background: var(--surface-raised); min-width: 0; }
 .master-range-field > strong { display: block; font-size: 12px; margin-bottom: 10px; }
 .master-range-field > div { display: grid; grid-template-columns: minmax(0, 1fr) 15px minmax(0, 1fr); align-items: end; gap: 6px; }
 .master-range-field > div > span { align-self: center; margin-top: 19px; color: var(--text-muted); }
@@ -86,7 +86,7 @@
 }
 
 .master-sidebar.master-browser { background: var(--surface-sidebar); }
-.master-browser-heading { background: var(--surface-raised); }
+.master-browser-heading { background: var(--surface-sidebar); }
 .master-browser-heading h2 { font-size: 13px; font-weight: 650; }
 .master-browser-heading .button { font-size: 11px; }
 .master-results-pane { background: var(--surface); }
@@ -95,7 +95,7 @@
 .master-results-heading { padding: 8px 10px; }
 .master-results-heading h3 { font-size: 13px; }
 .master-results-pane .master-file-list { padding: 6px; }
-.master-results-pane .master-file { border: 1px solid transparent; border-bottom-color: var(--line); border-radius: 6px; padding: 11px 10px; }
+.master-results-pane .master-file { border: 1px solid transparent; border-bottom-color: var(--line); border-radius: var(--radius-control); padding: 12px 10px; margin-bottom: 4px; }
 .master-results-pane .master-file.selected { background: var(--accent-soft); border-color: var(--accent); }
 .master-results-pane .master-file:hover:not(.selected) { background: var(--surface-raised); border-color: var(--line-bright); }
 .master-results-pane .master-file:focus-visible { outline-offset: -2px; }
