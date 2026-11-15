@@ -73,11 +73,15 @@ function WorkspaceSlot({ api }: IDockviewPanelProps) {
   useLayoutEffect(() => {
     const host = slot.current
     if (!host || !target) return
+    // Dockview hides the always renderer with visibility, which a child can override.
+    host.hidden = !api.isVisible
+    const visibility = api.onDidVisibilityChange(({ isVisible }) => { host.hidden = !isVisible })
     host.appendChild(target)
     return () => {
+      visibility.dispose()
       if (target.parentNode === host) target.remove()
     }
-  }, [target])
+  }, [api, target])
   return <div ref={slot} className="dock-panel-slot" />
 }
 

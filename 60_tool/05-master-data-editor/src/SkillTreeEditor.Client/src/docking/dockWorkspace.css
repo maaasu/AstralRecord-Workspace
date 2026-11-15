@@ -41,6 +41,7 @@
 }
 .dock-panel-slot, .dock-panel-content, .dock-panel-content > .master-app-content { height: 100%; min-width: 0; min-height: 0; }
 .dock-panel-slot { overflow: hidden; }
+.dock-panel-slot[hidden] { display: none; }
 .dock-panel-content > .master-app-sidebar { height: 100%; }
 .dock-group-actions { display: flex; align-items: center; gap: 1px; padding: 2px 1px; }
 .dock-icon { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
