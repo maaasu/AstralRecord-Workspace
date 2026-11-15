@@ -296,7 +296,7 @@ describe('ProgressionDesignWorkspace', () => {
     const separator = screen.getByRole('separator', { name: '上部設定と入手経路の高さを変更' })
     expect(separator).toHaveAttribute('aria-orientation', 'horizontal')
     fireEvent.keyDown(separator, { key: 'Home' })
-    expect(separator).toHaveAttribute('aria-valuenow', '94')
+    expect(separator).toHaveAttribute('aria-valuenow', '200')
     await user.click(screen.getByRole('button', { name: '上部を折りたたむ' }))
     expect(screen.queryByRole('combobox', { name: '職業' })).not.toBeInTheDocument()
     expect(screen.getByRole('region', { name: '入手経路の図' })).toBeVisible()
