@@ -113,7 +113,10 @@ python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- ge
 python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- slice --y <Y> --x-min <X> --x-max <X> --z-min <Z> --z-max <Z>
 python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- surface --x-min <X> --x-max <X> --z-min <Z> --z-max <Z>
 python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- diff
+python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- preview --eye <X> <Y> <Z> --target <X> <Y> <Z> --output <新規PNGの絶対パス>
 ```
+
+`preview --ops <操作ファイルの絶対パス>` で編集をメモリ内で仮適用し、候補を書き換えずに確認できます。屋内の確認には `--clip-y` で屋根を非表示にするか、屋内にカメラを置きます。
 
 編集は`set`、`fill`、`line`、`replace`操作をJSON/NDJSONで指定します。詳細は`tools/README.md`と`$astralarchitect-builder`を参照してください。CLIにはワールド適用、ロールバック、チケット削除機能を持たせていません。
 

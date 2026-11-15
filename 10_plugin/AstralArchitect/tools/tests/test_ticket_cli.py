@@ -198,6 +198,93 @@ class TicketCliTest(unittest.TestCase):
             with self.assertRaisesRegex(schematic_module.TicketError, "at most 3 cells"):
                 cli_module._inspection_window(ticket, None, None, None, None)
 
+    def _preview_args(self, output: Path) -> tuple[str, ...]:
+        return (
+            "preview", str(self.ticket_dir),
+            "--eye", "105", "67", "196",
+            "--target", "101", "65", "201",
+            "--width", "96", "--height", "72", "--output", str(output),
+        )
+
+    def test_preview_proposal_matches_applied_scene_without_writing_ticket(self) -> None:
+        filenames = ("source.schem", "candidate.schem", "ticket.json")
+        before = {name: self._sha256(self.ticket_dir / name) for name in filenames}
+        original_image = self.root / "original.png"
+        proposed_image = self.root / "proposed.png"
+        committed_image = self.root / "committed.png"
+        operation = json.dumps({
+            "op": "fill", "from": {"x": 100, "y": 65, "z": 200},
+            "to": {"x": 102, "y": 65, "z": 201},
+            "block": "minecraft:prismarine_bricks", "expect": "minecraft:air",
+        })
+        process, _ = self._run(*self._preview_args(original_image), "--source")
+        self.assertEqual(0, process.returncode)
+        process, preview = self._run(*self._preview_args(proposed_image), "--ops", "-", stdin=operation)
+        self.assertEqual(0, process.returncode, preview)
+        self.assertEqual("proposed", preview["scene"])
+        self.assertEqual(6, preview["changedBlockCount"])
+        self.assertEqual(before["candidate.schem"], preview["baseCandidateSha256"])
+        self.assertEqual(preview["imageSha256"], self._sha256(proposed_image))
+        self.assertTrue(proposed_image.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"))
+        self.assertNotEqual(original_image.read_bytes(), proposed_image.read_bytes())
+        self.assertEqual(before, {name: self._sha256(self.ticket_dir / name) for name in filenames})
+        self.assertEqual(set(filenames), {path.name for path in self.ticket_dir.iterdir()})
+
+        process, result = self._run(
+            "apply-ops", str(self.ticket_dir), "--ops", "-",
+            "--expect-candidate-sha256", preview["baseCandidateSha256"], stdin=operation
+        )
+        self.assertEqual(0, process.returncode, result)
+        self.assertEqual(preview["changedBlockCount"], result["changedBlockCount"])
+        process, result = self._run(*self._preview_args(committed_image))
+        self.assertEqual(0, process.returncode, result)
+        self.assertEqual(proposed_image.read_bytes(), committed_image.read_bytes())
+
+        process, failure = self._run(
+            "apply-ops", str(self.ticket_dir), "--ops", "-",
+            "--expect-candidate-sha256", preview["baseCandidateSha256"], stdin=operation
+        )
+        self.assertNotEqual(0, process.returncode)
+        self.assertIn("differs from the preview base", failure["error"])
+
+    def test_preview_rejects_invalid_operation_and_unsafe_output(self) -> None:
+        output = self.root / "proposed.png"
+        operation = json.dumps({
+            "op": "set", "x": 100, "y": 64, "z": 200, "block": "minecraft:air"
+        })
+        process, result = self._run(*self._preview_args(output), "--ops", "-", stdin=operation)
+        self.assertNotEqual(0, process.returncode)
+        self.assertIn("block entity", result["error"])
+        self.assertFalse(output.exists())
+        process, result = self._run(*self._preview_args(self.ticket_dir / "forbidden.png"))
+        self.assertNotEqual(0, process.returncode)
+        self.assertIn("outside AstralArchitect ticket data", result["error"])
+        owner_file = self.root / "existing.txt"
+        owner_file.write_bytes(b"existing")
+        stream_path = owner_file.with_name(owner_file.name + ":test.png")
+        process, result = self._run(*self._preview_args(stream_path))
+        self.assertNotEqual(0, process.returncode)
+        self.assertIn("standalone PNG", result["error"])
+        self.assertEqual(b"existing", owner_file.read_bytes())
+
+        output.write_bytes(b"existing")
+        process, result = self._run(*self._preview_args(output))
+        self.assertNotEqual(0, process.returncode)
+        self.assertEqual(b"existing", output.read_bytes())
+
+    def test_preview_revalidates_parent_after_rendering(self) -> None:
+        output = self.root / "preview.png"
+        args = cli_module._parser().parse_args(self._preview_args(output))
+
+        # Model an output parent replaced by a link during a long render.
+        with patch.object(
+            cli_module, "reject_reparse_chain",
+            side_effect=(None, schematic_module.TicketError("output parent became a symlink")),
+        ), patch.object(cli_module, "render_preview", return_value=b"PNG"):
+            with self.assertRaisesRegex(schematic_module.TicketError, "became a symlink"):
+                cli_module.execute(args)
+        self.assertFalse(output.exists())
+
     def test_apply_ops_maps_world_coordinates_and_preserves_unknown_nbt(self) -> None:
         source_before = self._sha256(self.source_path)
         operations_path = self.root / "operations.json"

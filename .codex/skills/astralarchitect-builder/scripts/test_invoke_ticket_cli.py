@@ -47,6 +47,14 @@ class InvokeTicketCliTest(unittest.TestCase):
             ["apply-ops", str(self.ticket), "--ops", str(operations)], command[2:]
         )
 
+    def test_forwards_preview_camera_and_output(self) -> None:
+        arguments = [
+            "--eye", "110", "80", "180", "--target", "101", "65", "200",
+            "--output", str(self.root / "view.png"),
+        ]
+        command = wrapper.build_invocation(self.arguments("preview") + arguments)
+        self.assertEqual(["preview", str(self.ticket), *arguments], command[2:])
+
     def test_rejects_relative_ticket_path(self) -> None:
         with self.assertRaises(wrapper.SafetyError):
             wrapper.build_invocation(["--ticket", "tickets/example", "--", "info"])
