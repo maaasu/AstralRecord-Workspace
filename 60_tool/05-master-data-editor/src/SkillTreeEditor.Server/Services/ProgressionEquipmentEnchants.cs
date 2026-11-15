@@ -7,8 +7,14 @@ namespace SkillTreeEditor.Server.Services;
 internal static class ProgressionEquipmentEnchants
 {
     private const decimal MaxValue = 100_000_000_000m;
-    private const decimal Resolution = 10_000m; // 付与値は小数4桁
+    private const int FractionDigits = 4;
+    private const long Resolution = 10_000;
+    private const long MaxUnits = (long)MaxValue * Resolution;
+    private const int MaxUnitDigits = 16;
     private static readonly Regex ValuePattern = new(@"\A-?(0|[1-9][0-9]{0,11})([.][0-9]{1,4})?\z", RegexOptions.CultureInvariant);
+    private static readonly Regex EndpointPattern = new(
+        @"\A(?<sign>[+-]?)(?<whole>[0-9]*)(?:[.](?<fraction>[0-9]*))?(?:[eE](?<exponent>[+-]?[0-9]+))?\z",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking);
 
     internal sealed record Effect(string MasterId, string EquipmentType, string EffectId, string Status, string Type,
         decimal Min, decimal Max);
@@ -59,9 +65,6 @@ internal static class ProgressionEquipmentEnchants
                     || MasterDataService.ReadModelData(entry["weight"]) is not > 0
                     || !TryRange(entry["value"], out var min, out var max))
                     continue;
-                min = decimal.Ceiling(Math.Max(min, -MaxValue) * Resolution) / Resolution;
-                max = decimal.Floor(Math.Min(max, MaxValue) * Resolution) / Resolution;
-                if (min > max) continue;
                 yield return new("enchant:" + id, equipment, effectId, status,
                     MasterDataValidation.Text(entry["type"])!.Trim().ToUpperInvariant(), min, max);
             }
@@ -75,11 +78,56 @@ internal static class ProgressionEquipmentEnchants
     {
         min = max = 0;
         var endpoints = (MasterDataValidation.Text(node) ?? node?.ToJsonString())?.Split('~');
-        if (endpoints is not { Length: 1 or 2 } || !TryDecimal(endpoints[0], out var first)
-            || !TryDecimal(endpoints[^1], out var last)) return false;
-        min = Math.Min(first, last);
-        max = Math.Max(first, last);
-        return min <= MaxValue && max >= -MaxValue;
+        if (endpoints is not { Length: 1 or 2 } || !TryBracketEndpoint(endpoints[0], out var first)
+            || !TryBracketEndpoint(endpoints[^1], out var last)) return false;
+        // 切り上げと切り下げは単調なので、端点が逆順でも内側の範囲を求められる。
+        var lower = Math.Max(-MaxUnits, Math.Min(first.Ceiling, last.Ceiling));
+        var upper = Math.Min(MaxUnits, Math.Max(first.Floor, last.Floor));
+        min = (decimal)lower / Resolution;
+        max = (decimal)upper / Resolution;
+        return lower <= upper;
+    }
+
+    // プラグインの BigDecimal と同じく、src の全桁を使って 0.0001 刻みの両側を決める。
+    // 保存範囲の外側は番兵へ写し、巨大な指数や係数でも累乗や多倍長整数を作らない。
+    private static bool TryBracketEndpoint(string text, out (long Floor, long Ceiling) bounds)
+    {
+        bounds = (0, 0);
+        var match = EndpointPattern.Match(text.Trim());
+        if (!match.Success) return false;
+        var whole = match.Groups["whole"].ValueSpan;
+        var fraction = match.Groups["fraction"].ValueSpan;
+        if (whole.IsEmpty && fraction.IsEmpty) return false;
+
+        var exponentGroup = match.Groups["exponent"];
+        var exponent = 0;
+        if (exponentGroup.Success && !int.TryParse(exponentGroup.ValueSpan, NumberStyles.AllowLeadingSign,
+            CultureInfo.InvariantCulture, out exponent)) return false;
+        var scale = (long)fraction.Length - exponent;
+        if (scale is < int.MinValue or > int.MaxValue) return false;
+
+        var digits = string.Concat(whole, fraction).AsSpan().TrimStart('0');
+        if (digits.IsEmpty) return true;
+        var unitDigits = digits.Length - scale + FractionDigits;
+        const long outside = MaxUnits + 1;
+        long floor;
+        long ceiling;
+        if (unitDigits > MaxUnitDigits)
+        {
+            floor = ceiling = outside;
+        }
+        else
+        {
+            var kept = (int)Math.Clamp(unitDigits, 0, digits.Length);
+            floor = kept == 0 ? 0 : long.Parse(digits[..kept], NumberStyles.None, CultureInfo.InvariantCulture);
+            for (var index = kept; index < unitDigits; index++) floor *= 10;
+            var hasRemainder = !digits[kept..].TrimEnd('0').IsEmpty;
+            ceiling = Math.Min(outside, floor + (hasRemainder ? 1 : 0));
+            floor = Math.Min(outside, floor);
+        }
+
+        bounds = match.Groups["sign"].Value == "-" ? (-ceiling, -floor) : (floor, ceiling);
+        return true;
     }
 
     private static bool TryDecimal(string text, out decimal value)
