@@ -12,7 +12,7 @@
     <PackageReference Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>
 
-  <Target Name="PublishRunFrontend" AfterTargets="ComputeFilesToPublish">
+  <Target Name="PublishRunFrontend" AfterTargets="ComputeFilesToPublish" Condition="'$(BuildDesktopPackage)' != 'true'">
     <Exec WorkingDirectory="$(SpaRoot)" Command="npm ci" />
     <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />
     <ItemGroup>

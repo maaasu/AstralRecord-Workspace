@@ -4,6 +4,14 @@ public static class EditorHostOptions
 {
     public static void AddLocalSettings(WebApplicationBuilder builder, string[] args)
     {
+        var workspace = builder.Configuration["SkillTreeEditor:WorkspaceRoot"];
+        if (!string.IsNullOrEmpty(builder.Configuration["SkillTreeEditor:DesktopSessionToken"])
+            && !string.IsNullOrWhiteSpace(workspace))
+        {
+            var workspaceSettings = Path.Combine(Path.GetFullPath(workspace), "60_tool", "skilltree-editor",
+                "src", "SkillTreeEditor.Server", "appsettings.local.json");
+            builder.Configuration.AddJsonFile(workspaceSettings, optional: true, reloadOnChange: false);
+        }
         var path = Path.Combine(builder.Environment.ContentRootPath, "appsettings.local.json");
         builder.Configuration.AddJsonFile(path, optional: true, reloadOnChange: false);
         // The optional local file sits below environment variables and command line settings.

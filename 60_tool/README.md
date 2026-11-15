@@ -6,6 +6,7 @@
 
 | 目的 | 入口 | 責務・手順 |
 |---|---|---|
+| マスタ編集と更新ツールをアプリで使う | `AstralRecordMasterEditor.exe` | ZIP 展開型の Windows アプリ。マスタ編集、03・01・12・16 の計画・実行・結果。[デスクトップ版](skilltree-editor/DESKTOP.md) |
 | Devを更新する | `01-deploy-debug.bat` | 有効なAPI/Web/Plugin/Filebaseのビルド・配置、seed、Dev起動待ち、パッチ公開。[Dev更新](deploy-debug/README.md) |
 | Pluginだけ更新する | `02-deploy-debug-plugin-only.bat` | 01の`-PluginOnly`。既定でPluginテストを省略。Filebase/seedは実行しない |
 | マスタだけ更新する | `03-master-data-reload.bat` | 01の`-MasterDataOnly`。Filebase同期・seed・再読込または起動待ち・パッチ公開 |
