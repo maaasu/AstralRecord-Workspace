@@ -4,7 +4,7 @@
 .master-editor.master-document-only { display: block; height: 100%; }
 .master-document-area .modal-backdrop { visibility: visible; }
 .master-document-only > .master-workspace { height: 100%; }
-.master-sidebar.master-browser { padding: 0; gap: 0; overflow: hidden; background: #101722; border-right: 1px solid var(--line-bright); }
+.master-sidebar.master-browser { padding: 0; gap: 0; overflow: hidden; background: var(--surface-sidebar); border-right: 1px solid var(--line-bright); }
 .master-browser[hidden] { display: none; }
 .master-browser-heading { display: flex; flex-shrink: 0; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 8px 10px; min-height: 44px; border-bottom: 1px solid var(--line); }
 .master-browser-heading h2 { font-size: 13px; letter-spacing: .03em; white-space: nowrap; }
@@ -18,7 +18,7 @@
 .master-folder-pane > .master-category-browser { flex: 1; min-height: 0; }
 .master-folder-pane > footer { padding: 10px; border-top: 1px solid var(--line); display: grid; gap: 8px; font-size: 10px; color: var(--text-muted); }
 .master-folder-pane > footer .text-button { text-align: left; font-size: 11px; }
-.master-results-pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: #151e2b; }
+.master-results-pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--surface); }
 .master-result-search { padding: 10px; border-bottom: 1px solid var(--line); display: grid; flex-shrink: 0; gap: 7px; }
 .master-result-search > small { color: var(--text-muted); font-size: 10px; line-height: 1.5; }
 .master-result-search > label { color: var(--text); font-weight: 600; }
@@ -64,7 +64,7 @@
 .master-filter-dialog h2 { margin: 4px 0 6px; font-size: 20px; }
 .master-filter-dialog .modal-header p { margin: 0; color: var(--text-muted); font-size: 12px; line-height: 1.7; }
 .master-filter-body { display: grid; gap: 18px; padding: 20px; }
-.master-filter-section { margin: 0; padding: 16px; border: 1px solid var(--line-bright); border-radius: 8px; min-width: 0; background: #111925; }
+.master-filter-section { margin: 0; padding: 16px; border: 1px solid var(--line-bright); border-radius: 8px; min-width: 0; background: var(--surface-sidebar); }
 .master-filter-section legend { padding: 0 7px; font-size: 13px; font-weight: 600; color: #d9e4f3; }
 .master-filter-section p { margin: 0 0 12px; color: var(--text-muted); font-size: 11px; line-height: 1.7; }
 .master-filter-fields, .master-range-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
@@ -85,23 +85,23 @@
   .master-browser-heading .button { font-size: 10px; }
 }
 
-.master-sidebar.master-browser { background: #101925; }
+.master-sidebar.master-browser { background: var(--surface-sidebar); }
 .master-browser-heading { background: var(--surface-raised); }
 .master-browser-heading h2 { font-size: 13px; font-weight: 650; }
 .master-browser-heading .button { font-size: 11px; }
 .master-results-pane { background: var(--surface); }
-.master-result-search { background: #111b29; }
-.master-search-input input { min-height: 38px; background: var(--surface); }
+.master-result-search { background: var(--surface); }
+.master-search-input input { min-height: 38px; background: var(--surface-raised); }
 .master-results-heading { padding: 8px 10px; }
 .master-results-heading h3 { font-size: 13px; }
 .master-results-pane .master-file-list { padding: 6px; }
 .master-results-pane .master-file { border: 1px solid transparent; border-bottom-color: var(--line); border-radius: 6px; padding: 11px 10px; }
-.master-results-pane .master-file.selected { background: var(--accent-soft); border-color: #497b7e; box-shadow: inset 3px 0 var(--accent); }
+.master-results-pane .master-file.selected { background: var(--accent-soft); border-color: var(--accent); }
 .master-results-pane .master-file:hover:not(.selected) { background: var(--surface-raised); border-color: var(--line-bright); }
 .master-results-pane .master-file:focus-visible { outline-offset: -2px; }
 .master-result-badges small { background: var(--surface-soft); }
 .master-results-footer { padding: 6px 10px; flex-shrink: 0; line-height: 1.5; }
-.master-browser-switch [aria-pressed="true"] { color: #d7f7f2; border-color: #497b7e; background: var(--accent-soft); }
+.master-browser-switch [aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
 @media (max-width: 680px) {
   .master-browser-heading { padding: 10px; }
   .master-browser-heading > div { flex-wrap: wrap; justify-content: flex-end; }

@@ -2,7 +2,7 @@ import { masterFieldLabel, masterFieldTitle } from '../data/masterDataPresentati
 import { masterStatusSuggestions, masterTagSuggestions, masterValueFieldKey, masterValueLabel, masterValueReferenceKind } from '../data/masterValuePresentation'
 import { masterUnionMatches, mergeMasterUnion, resolveMasterSchema as resolveSchema } from '../data/masterFormSchema'
 import { useContext, useEffect, useId, useMemo, useRef, useState } from 'react'
-import type { KeyboardEvent } from 'react'
+import type { KeyboardEvent, ReactNode } from 'react'
 import type { JsonObject, JsonValue } from '../types/editor'
 import type { MasterField, MasterReference } from '../types/masterData'
 import { MaterialIconInput } from './MaterialIconInput'
@@ -28,7 +28,17 @@ const emptyReferences: MasterReference[] = []
 const isSigilReference = (entry: MasterReference) => entry.path.startsWith('10.features.item/70.sigil/')
 const isCaughtItemReference = (entry: MasterReference) => !['20.equipment', '80.pet', '81.pet_egg'].some((category) => entry.path.startsWith(`10.features.item/${category}/`))
 const textFieldName = (path: string) => path.split('/').at(-1)?.replaceAll('~1', '/').replaceAll('~0', '~')
+const isNameField = (path: string) => ['name', 'displayName'].includes(textFieldName(path) ?? '')
 const isDescriptionField = (path: string) => ['description', 'lore'].includes(textFieldName(path) ?? '')
+// Same colors as ItemStackFactory.rarityToColor.
+const itemRarityColors: Readonly<Record<string, string>> = {
+  COMMON: '#ffffff', UNCOMMON: '#55ff55', RARE: '#55ffff',
+  EPIC: '#ff55ff', LEGENDARY: '#ffaa00', MYTHIC: '#ff5555',
+}
+const rarityColor = (value: JsonValue | undefined) => {
+  const key = typeof value === 'string' ? value.toUpperCase() : ''
+  return Object.hasOwn(itemRarityColors, key) ? itemRarityColors[key] : undefined
+}
 const isTextLineArray = (path: string, value: JsonValue): value is string[] =>
   Array.isArray(value) && isDescriptionField(path) && value.every((entry) => typeof entry === 'string')
 
@@ -180,10 +190,15 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
     return <ArrayEditor {...inherited} path={path} values={values} itemSchema={itemSchema} onChange={onChange} />
   }
   const enumValues = Array.isArray(resolved.enum) ? resolved.enum : metadata?.enum
-  if (enumValues?.length) return <select aria-label={path || '/'} value={JSON.stringify(value)} onChange={(event) => onChange(JSON.parse(event.target.value))}>
-    {!enumValues.some((entry) => JSON.stringify(entry) === JSON.stringify(value)) && <option value={JSON.stringify(value)}>未定義: {String(value)}</option>}
-    {enumValues.map((entry, index) => <option key={index} value={JSON.stringify(entry)}>{masterValueLabel(path, String(entry))}</option>)}
-  </select>
+  if (enumValues?.length) {
+    const rarity = masterValueFieldKey(path) === 'rarity'
+    return <select aria-label={path || '/'} value={JSON.stringify(value)} style={rarity ? { color: rarityColor(value) } : undefined} onChange={(event) => onChange(JSON.parse(event.target.value))}>
+      {!enumValues.some((entry) => JSON.stringify(entry) === JSON.stringify(value)) && <option value={JSON.stringify(value)}>未定義: {String(value)}</option>}
+      {enumValues.map((entry, index) => <option key={index} value={JSON.stringify(entry)} style={rarity ? { color: rarityColor(entry) } : undefined}>
+        {masterValueLabel(path, String(entry))}
+      </option>)}
+    </select>
+  }
   if (kind === 'boolean') return <label className={visualReferences ? 'master-checkbox master-switch' : 'master-checkbox'}>
     <input aria-label={path || '/'} type="checkbox" checked={value === true} onChange={(event) => onChange(event.target.checked)} />
     {value === true ? '有効' : '無効'}
@@ -286,14 +301,14 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
         {inlineRef && typeof refValue === 'string'
           ? <MasterDataForm {...form} schema={objectOf(objectOf(resolveSchema(definition, rootSchema).properties)?.ref) ?? {}} value={refValue} path={refPath}
             onChange={next => onChange({ ...value, [key]: { ref: next } })} />
-          : structured && onNavigate && (!textLines || visualReferences) && !inlineCollection
+          : structured && onNavigate && !textLines && !inlineCollection
             ? <button type="button" className="master-node-link" aria-label={childPath + ' を開く'} disabled={navigationDisabled} onClick={() => onNavigate(childPath)}>
               <span><MinecraftText value={summarizeMasterValue(child)} /></span><b>{visualReferences ? '開く →' : label + 'を編集 →'}</b>
             </button>
             : <MasterDataForm {...form} schema={definition} value={child} path={childPath} onChange={(next) => onChange({ ...value, [key]: next })} />}
       </>
       return structured && !onNavigate ? <details open key={key} className="master-field master-field-wide"><summary>{label} <code>{key}</code> <small>{Array.isArray(child) ? child.length + ' 件' : Object.keys(objectOf(child) ?? {}).length + ' 項目'}</small></summary>{content}</details>
-        : <div key={key} className={'master-field ' + (inlineCollection || !visualReferences && structured || !structured && isDescriptionField(childPath) || typeof child === 'string' && child.includes('\n') || materialFieldKind(childPath, visualReferences?.documentPath) ? 'master-field-wide' : 'master-field-scalar')}>{content}</div>
+        : <div key={key} className={'master-field ' + (inlineCollection || textLines || !visualReferences && structured || !structured && isDescriptionField(childPath) || typeof child === 'string' && child.includes('\n') || materialFieldKind(childPath, visualReferences?.documentPath) ? 'master-field-wide' : 'master-field-scalar')}>{content}</div>
     })}
     {onNavigate && (createDrops || emptyDrops) &&
       <div className="master-field-wide"><MasterDataForm fields={fields} references={references} path={createDrops ? '/drops/items' : path + '/items'} value={[]} rootSchema={rootSchema}
@@ -310,21 +325,31 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
   </div>
 }
 
+function FormattedField({ path, editor, display, multiline = false, initiallyEditing = false }: {
+  path: string; editor: ReactNode; display: ReactNode; multiline?: boolean; initiallyEditing?: boolean
+}) {
+  const [editing, setEditing] = useState(initiallyEditing)
+  return <details className="master-formatted-field" open={editing} onToggle={event => setEditing(event.currentTarget.open)}>
+    <summary aria-label={`${path || '/'} ${editing ? '色付き表示' : 'コードを編集'}`}>
+      <span className="master-format-mode">{editing ? '色付き表示' : 'コードを編集'}</span>
+      <span className={`master-formatted-value${multiline ? ' multiline' : ''}`}>{display}</span>
+    </summary>
+    {editor}
+  </details>
+}
+
 function TextLineArrayEditor({ values, path, onChange }: { values: string[]; path: string; onChange: (value: JsonValue) => void }) {
-  return <div className="master-line-editor">
-    <textarea className="master-multiline-input" aria-label={path || '/'} rows={Math.min(12, Math.max(5, values.length + 2))}
-      value={values.join('\n')} onChange={(event) => {
-        const text = event.target.value.replace(/\r\n?/g, '\n')
-        onChange(text === '' ? [] : text.split('\n'))
-      }} />
-    <small className="master-line-guide">1 行が YAML の配列 1 要素になります。空行は空文字の要素、すべて消すと空配列になります。</small>
-    {values.some((line) => line.includes('\n')) && <small className="master-line-guide">既存の要素内に改行があります。編集するとその改行も別の要素に分かれます。</small>}
-    <div className="master-text-preview master-line-preview" aria-label={`${path || '/'} 表示プレビュー`}>
-      <strong>表示プレビュー</strong>
-      {values.length ? values.map((line, index) => <div className="master-line-preview-row" key={index}><code>{index + 1}</code><span><MinecraftText value={line || ' '} /></span></div>)
-        : <span className="master-muted">表示する行がありません。</span>}
-    </div>
-  </div>
+  return <FormattedField path={path} multiline
+    display={values.length ? values.map((line, index) => <span className="master-formatted-line" key={index}><MinecraftText value={line || ' '} /></span>) : '空のリスト'}
+    editor={<div className="master-line-editor">
+      <textarea className="master-multiline-input" aria-label={path || '/'} rows={Math.min(12, Math.max(5, values.length + 2))}
+        value={values.join('\n')} onChange={(event) => {
+          const text = event.target.value.replace(/\r\n?/g, '\n')
+          onChange(text === '' ? [] : text.split('\n'))
+        }} />
+      <small className="master-line-guide">1 行が YAML の配列 1 要素になります。空行は空文字の要素、すべて消すと空配列になります。</small>
+      {values.some((line) => line.includes('\n')) && <small className="master-line-guide">既存の要素内に改行があります。編集するとその改行も別の要素に分かれます。</small>}
+    </div>} />
 }
 
 function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<MasterDataFormProps, 'value' | 'schema'> & { values: JsonValue[]; itemSchema: JsonObject; path: string }) {
@@ -492,22 +517,25 @@ function StringEditor({ value, path, label, onChange, references, referenceKind,
   const description = isDescriptionField(path)
   const colorField = textFieldName(path)?.toLowerCase() === 'color'
   const hexColor = colorField && /^#[0-9a-f]{6}$/i.test(value)
-  const input = description || value.includes('\n')
+  const styledText = !referenceKind && !colorField && (formatted || description || isNameField(path))
+  const rarity = masterValueFieldKey(path) === 'rarity'
+  const multiline = description || value.includes('\n')
+  const input = multiline
     ? <textarea className="master-multiline-input" aria-label={path || '/'} rows={Math.min(12, Math.max(4, value.split('\n').length + 1))} value={value} onChange={(event) => onChange(event.target.value)} />
-    : <input aria-label={path || '/'} list={!compact && candidates.length ? listId : undefined} value={value} onChange={(event) => onChange(event.target.value)} />
+    : <input aria-label={path || '/'} style={rarity ? { color: rarityColor(value) } : undefined} list={!compact && candidates.length ? listId : undefined} value={value} onChange={(event) => onChange(event.target.value)} />
   const selection = <><ReferenceIcon file={selectedFile || undefined} kind={referenceKind} /><MinecraftText value={preview || '未設定'} /></>
   return <div className={compact ? 'master-reference-field' : undefined}>
     {compact && (selectedFile && visualReferences
       ? <button type="button" className="master-reference-selection master-reference-link" aria-label={`${path || '/'} の定義を開く`}
         title={value} onClick={() => visualReferences.openFile(selectedFile.path)}>{selection}<span aria-hidden="true">↗</span></button>
       : <div className="master-reference-selection" title={value}>{selection}</div>)}
-    {!compact && (colorField && visualReferences
-      ? <div className="master-color-input"><input type="color" value={hexColor ? value : '#000000'} aria-label={`${path || '/'} の色を選ぶ`} onChange={event => onChange(event.target.value)} />{input}</div>
-      : input)}
-    {!compact && description && !visualReferences && <small className="master-line-guide">この欄は 1 つの文字列として保存します。詳細を行ごとに分ける場合は lore を使います。</small>}
-    {!compact && (formatted || description) && <div className="master-text-preview master-scalar-preview" aria-label={`${path || '/'} 表示プレビュー`}><strong>表示プレビュー</strong><span><MinecraftText value={preview || ' '} /></span></div>}
-    {!compact && !formatted && !description && preview !== value && <div className="master-value-label" aria-label={`${path || '/'} 選択中の名前`}>{preview}</div>}
-    {hexColor && !visualReferences && <output className="master-color-preview" aria-label={`${path || '/'} 色プレビュー`}><span className="master-color-swatch" style={{ backgroundColor: value }} /><code>{value.toUpperCase()}</code></output>}
+    {!compact && (colorField
+      ? <div className="master-color-input">{hexColor && <span aria-hidden="true" className="master-color-swatch" style={{ backgroundColor: value }} />}{input}</div>
+      : styledText
+        ? <FormattedField path={path} multiline={multiline} initiallyEditing={!formatted && !description} display={<MinecraftText value={preview || ' '} />}
+          editor={<>{input}{description && !visualReferences && <small className="master-line-guide">この欄は 1 つの文字列として保存します。詳細を行ごとに分ける場合は lore を使います。</small>}</>} />
+        : input)}
+    {!compact && !styledText && !colorField && preview !== value && <div className="master-value-label" aria-label={`${path || '/'} 選択中の名前`}>{preview}</div>}
     {candidates.length > 0 && <>
       {!compact && <><datalist id={listId}>{visibleCandidates.map((entry, index) => <option key={`${entry.value}-${index}`} value={entry.value}>{candidateIndex.label(entry)}</option>)}</datalist><small className="master-muted">参照候補 {candidates.length} 件。入力欄の補完は最大100件です。自由入力も可能です。</small></>}
       <details className="master-colored-candidates" open={candidatesOpen}><summary ref={candidateSummary} aria-label={`${label}（${path}）の候補を選択`} onClick={(event) => { event.preventDefault(); if (event.currentTarget.closest('fieldset:disabled')) return; focusAfterCandidatePage.current = false; setCandidatesOpen((open) => !open) }}>{compact ? '候補を選ぶ' : label + 'の候補を選択'}</summary>{candidatesOpen && <div className="master-candidate-browser">
