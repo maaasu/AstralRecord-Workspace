@@ -16,6 +16,7 @@ icon: ZOMBIE_SPAWN_EGG
 nameVisible: true
 lore:
   - "&7苔と石片をまとい、遺跡の奥で侵入者を待ち構える。"
+  - "&7腕を振り上げたら正面から離れ、胞子の輪からは歩いて出よう。"
 tags:
   - boss
   - undead
@@ -49,5 +50,10 @@ ai:
     normalAttack:
       range: 2.2
       intervalTicks: 30
+    # 最初のボス向け。全技が1.5秒以上の固定予告を持ち、状態異常は付与しない。
+    skills:
+      - id: mob_moss_zombie_moss_slam
+      - id: mob_moss_zombie_spore_pool
+      - id: mob_moss_zombie_moss_quake
 drops:
   exp: 600

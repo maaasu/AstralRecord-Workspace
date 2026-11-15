@@ -15,22 +15,43 @@
       "animations": {
         "body_scale": "animation.astralrecord.midgard_moss_zombie.body_scale",
         "idle": "animation.astralrecord.midgard_moss_zombie.idle",
-        "walk": "animation.astralrecord.midgard_moss_zombie.walk"
+        "walk": "animation.astralrecord.midgard_moss_zombie.walk",
+        "raise": "animation.astralrecord.midgard_moss_zombie.raise",
+        "slam": "animation.astralrecord.midgard_moss_zombie.slam",
+        "roar": "animation.astralrecord.midgard_moss_zombie.roar"
       },
       "scripts": {
         "initialize": [
-          "variable.moss_gait = 0.0;"
+          "variable.moss_gait = 0.0;",
+          "variable.moss_raise = 0.0;",
+          "variable.moss_slam = 0.0;",
+          "variable.moss_roar = 0.0;"
         ],
         "pre_animation": [
-          "variable.moss_gait = math.lerp(variable.moss_gait, math.clamp(query.modified_move_speed * 4.0, 0.0, 1.0), math.min(1.0, query.delta_time * 8.0));"
+          "variable.moss_gait = math.lerp(variable.moss_gait, math.clamp(query.modified_move_speed * 4.0, 0.0, 1.0), math.min(1.0, query.delta_time * 8.0));",
+          "variable.moss_motion = query.has_property('astralrecord:motion') ? query.property('astralrecord:motion') : 0;",
+          "variable.moss_blend = math.min(1.0, query.delta_time * 12.0);",
+          "variable.moss_raise = math.lerp(variable.moss_raise, variable.moss_motion == 1 ? 1.0 : 0.0, variable.moss_blend);",
+          "variable.moss_slam = math.lerp(variable.moss_slam, variable.moss_motion == 2 ? 1.0 : 0.0, variable.moss_blend);",
+          "variable.moss_roar = math.lerp(variable.moss_roar, variable.moss_motion == 3 ? 1.0 : 0.0, variable.moss_blend);",
+          "variable.moss_rest = math.clamp(1.0 - variable.moss_raise - variable.moss_slam - variable.moss_roar, 0.0, 1.0);"
         ],
         "animate": [
           "body_scale",
           {
-            "idle": "1.0 - variable.moss_gait"
+            "idle": "(1.0 - variable.moss_gait) * variable.moss_rest"
           },
           {
-            "walk": "variable.moss_gait"
+            "walk": "variable.moss_gait * variable.moss_rest"
+          },
+          {
+            "raise": "variable.moss_raise"
+          },
+          {
+            "slam": "variable.moss_slam"
+          },
+          {
+            "roar": "variable.moss_roar"
           }
         ]
       },

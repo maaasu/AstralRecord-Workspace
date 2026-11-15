@@ -195,6 +195,11 @@ import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.AinurindaleFa
 import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.IluvatarFireSphereMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.IluvatarFlameChargeMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.MiddleEarthPiglinRushMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.MossZombieMossQuakeMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.MossZombieMossSlamMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.MossZombieMotion;
+import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.MossZombieSkillSupport;
+import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.MossZombieSporePoolMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.mossshell.MossShellShellBashMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.purpletree.PurpleTreeMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.skeletonarcher.SkeletonArcherBowShotMobSkillExecutor;
@@ -583,6 +588,8 @@ public final class AstralRecord extends JavaPlugin {
     private RootweaverRootSnareMobSkillExecutor rootweaverRootSnareMobSkillExecutor;
     private WitchForestSkillSupport witchForestSkillSupport;
     private GreatrootSkillSupport greatrootSkillSupport;
+    /** 苔むしたゾンビの技と外観表示が共有する攻撃姿勢です。 */
+    private final MossZombieMotion mossZombieMotion = new MossZombieMotion();
     private MobTauntService mobTauntService;
     private MobProjectileService mobProjectileService;
     private MobVanillaEffectProtectionService mobVanillaEffectProtectionService;
@@ -1893,6 +1900,7 @@ public final class AstralRecord extends JavaPlugin {
             particleDisplayService,
             resourcePackService
         );
+        bossMechanicService.setMossZombieMotion(mossZombieMotion);
         bossMechanicService.setSeleneaFieldResolver(boss -> {
             var world = boss.spawnLocation().getWorld();
             var master = world == null ? null : worldService.findByBukkitWorld(world);
@@ -2309,6 +2317,11 @@ public final class AstralRecord extends JavaPlugin {
         mobSkillRegistry.register(new AllThingsElIceSphereMobSkillExecutor(damageService, conditionService, mobProjectileService));
         mobSkillRegistry.register(new SavannaWitchEmberBoltMobSkillExecutor(damageService, conditionService, mobProjectileService));
         mobSkillRegistry.register(new AllThingsElChargeMobSkillExecutor(mobService, damageService, particleDisplayService));
+        var mossZombieSkillSupport = new MossZombieSkillSupport(
+            mobService, damageService, conditionService, particleDisplayService, mossZombieMotion);
+        mobSkillRegistry.register(new MossZombieMossSlamMobSkillExecutor(mossZombieSkillSupport));
+        mobSkillRegistry.register(new MossZombieSporePoolMobSkillExecutor(mossZombieSkillSupport));
+        mobSkillRegistry.register(new MossZombieMossQuakeMobSkillExecutor(mossZombieSkillSupport));
         mobSkillRegistry.register(new AinuaBiteRushMobSkillExecutor(mobService, damageService));
         mobSkillRegistry.register(new AinurindaleFangWaveMobSkillExecutor(mobService, damageService, particleDisplayService));
         mobSkillRegistry.register(new IluvatarFireSphereMobSkillExecutor(damageService, conditionService, mobProjectileService));

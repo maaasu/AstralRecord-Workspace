@@ -31,6 +31,48 @@
             }
           ]
         }
+      },
+      {
+        "when": "raise",
+        "model": {
+          "type": "minecraft:model",
+          "model": "astralrecord:item/midgard_moss_zombie_raise",
+          "tints": [
+            {
+              "type": "minecraft:custom_model_data",
+              "index": 0,
+              "default": 16777215
+            }
+          ]
+        }
+      },
+      {
+        "when": "slam",
+        "model": {
+          "type": "minecraft:model",
+          "model": "astralrecord:item/midgard_moss_zombie_slam",
+          "tints": [
+            {
+              "type": "minecraft:custom_model_data",
+              "index": 0,
+              "default": 16777215
+            }
+          ]
+        }
+      },
+      {
+        "when": "roar",
+        "model": {
+          "type": "minecraft:model",
+          "model": "astralrecord:item/midgard_moss_zombie_roar",
+          "tints": [
+            {
+              "type": "minecraft:custom_model_data",
+              "index": 0,
+              "default": 16777215
+            }
+          ]
+        }
       }
     ],
     "fallback": {
