@@ -2,7 +2,7 @@ export interface DesignField { path: string; pointer: string; value: number | st
 export interface DesignLocation { path: string; pointer: string }
 export interface DesignClass { id: string; name: string; path: string; prerequisiteClassIds: string[]; maxLevel?: number; usableSkillIds?: string[] }
 export interface DesignEquipment { slot: string; itemId: string; pointer: string; enhanceLevel: number; enchants?: DesignEquipmentEnchant[] }
-export interface DesignEquipmentEnchant { enchantMasterId: string; effectId: string; value: number }
+export interface DesignEquipmentEnchant { enchantMasterId: string; effectId: string; value: string }
 export interface DesignEnchantChoice {
   enchantMasterId: string; equipmentType: string; effectId: string; name: string; type: string
   min: number; max: number; sourceItemId: string

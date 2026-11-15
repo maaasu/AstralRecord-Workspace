@@ -23,6 +23,8 @@ public final class ProgressionPresetRepository {
     private static final String DIRECTORY = "90.shared.progression_preset";
     private static final String LEGACY_DIRECTORY = "36.features.progression_preset";
     private static final Pattern ID = Pattern.compile("[a-z0-9]+(?:_[a-z0-9]+)*");
+    private static final Pattern ENCHANT_VALUE = Pattern.compile("-?(0|[1-9][0-9]{0,11})([.][0-9]{1,4})?");
+    private static final BigDecimal MAX_ENCHANT_VALUE = new BigDecimal("100000000000");
     private static final Set<String> EQUIPMENT_SLOTS = Set.of(
         "MAIN_HAND", "OFF_HAND", "HEAD", "CHEST", "LEGS", "FEET", "SKILLBOOK",
         "AMULET", "TALISMAN_1", "TALISMAN_2", "CHARM_1", "CHARM_2", "CHARM_3",
@@ -120,10 +122,10 @@ public final class ProgressionPresetRepository {
             String effect = string(row.get("effectId"), "equipment.enchants.effectId");
             require(effect.length() <= 100 && effects.add(effect.trim().toLowerCase(Locale.ROOT)),
                 "invalid or duplicate enchant effect");
-            require(row.get("value") instanceof Number, "equipment.enchants.value must be a number");
-            BigDecimal amount = new BigDecimal(row.get("value").toString()).stripTrailingZeros();
-            require(amount.scale() <= 4 && amount.abs().compareTo(new BigDecimal("99999999999999.9999")) <= 0,
-                "equipment.enchants.value exceeds the equipment value precision");
+            String text = string(row.get("value"), "equipment.enchants.value");
+            require(ENCHANT_VALUE.matcher(text).matches(), "equipment.enchants.value must be a decimal string with up to 4 fractional digits");
+            BigDecimal amount = new BigDecimal(text);
+            require(amount.abs().compareTo(MAX_ENCHANT_VALUE) <= 0, "equipment.enchants.value exceeds the supported range");
             result.add(new Enchant(master, effect, amount));
         }
         return result;
