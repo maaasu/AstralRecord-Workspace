@@ -17,7 +17,7 @@ import type { MasterVisualReferences } from '../state/masterVisualReferences'
 import { useMasterArrayOrder } from '../state/useMasterArrayOrder'
 import { fishingChanceTotal, MasterReferenceCollection, ReferenceIcon } from './MasterReferenceCollection'
 import { MasterRowActions } from './MasterRowActions'
-import { dungeonRoomChoices, dungeonSection, dungeonSectionPaths, fallbackBossRoomSize, isDungeonMaster, isDungeonMaterialList } from '../data/dungeonForm'
+import { dungeonFieldDefault, dungeonFieldKeys, dungeonFieldLabel, dungeonRoomChoices, dungeonSection, dungeonSectionPaths, isDungeonMaster, isDungeonMaterialList, isDungeonWeightedList, isDungeonWeightedRow } from '../data/dungeonForm'
 import { DungeonReferenceField, dungeonReferenceKind } from './DungeonReferenceField'
 import { DungeonMaterialField } from './DungeonMaterialField'
 import './masterDataForm.css'
@@ -269,19 +269,12 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
 function ObjectEditor({ value, onChange, fields, references, schema, rootSchema, path, onInvalid, invalidValues, onNavigate, navigationDisabled, dungeonRoomSize }: Omit<MasterDataFormProps, 'value'> & { value: JsonObject; schema: JsonObject; rootSchema: JsonObject; path: string }) {
   const visualReferences = useContext(MasterVisualReferencesContext)
   const dungeon = isDungeonMaster(visualReferences?.documentPath)
-  const weightedPath = path.replace(/\/\d+$/, '')
-  const weightedRow = dungeon && weightedPath !== path && isDungeonWeightedList(weightedPath)
+  const weightedRow = dungeon && isDungeonWeightedRow(path)
   const dungeonFields = dungeon ? dungeonSection(path) : undefined
   const sectionKey = textFieldName(path) ?? ''
-  const parentFields = dungeon && path ? dungeonSection(path.slice(0, path.lastIndexOf('/'))) : undefined
-  const sectionLabel = parentFields && Object.hasOwn(parentFields, sectionKey) ? parentFields[sectionKey].label : masterFieldLabel(sectionKey) || '基本情報'
-  const orderedKeys = dungeonFields ? [...new Set([...Object.keys(dungeonFields), ...Object.keys(value)])] : weightedRow
-    ? [...new Set([...Object.keys(value), 'weight'])] : Object.keys(value)
-  const presentedDefault = (key: string): JsonValue | undefined => {
-    if (path === '/generation/bossRoomSize' && dungeon && (key === 'min' || key === 'max')) return fallbackBossRoomSize(key, dungeonRoomSize)
-    if (weightedRow && key === 'weight') return 1
-    return dungeonFields && Object.hasOwn(dungeonFields, key) ? dungeonFields[key].defaultValue : undefined
-  }
+  const sectionLabel = (dungeon && dungeonFieldLabel(path.slice(0, path.lastIndexOf('/')), sectionKey)) || masterFieldLabel(sectionKey) || '基本情報'
+  const orderedKeys = dungeon ? dungeonFieldKeys(path, value) : Object.keys(value)
+  const presentedDefault = (key: string) => dungeon ? dungeonFieldDefault(path, key, dungeonRoomSize) : undefined
   const [newKey, setNewKey] = useState('')
   const [newType, setNewType] = useState<ValueType>('string')
   const [addError, setAddError] = useState('')
@@ -323,9 +316,8 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
       const refValue = objectOf(child)?.ref
       const refPath = childPath + '/ref'
       const inlineRef = visualReferences && typeof refValue === 'string' && Object.keys(objectOf(child) ?? {}).length === 1
-      const dungeonLabel = dungeonFields && Object.hasOwn(dungeonFields, key) ? dungeonFields[key].label : undefined
-      const label = collection?.title ?? dungeonLabel ?? (weightedRow && key === 'weight' ? '抽選重み' : weightedRow && key === 'material' ? '素材'
-        : weightedRow && key === 'type' ? '種類' : masterFieldTitle(key, definition.title ?? field?.label))
+      const dungeonLabel = dungeon ? dungeonFieldLabel(path, key) : undefined
+      const label = collection?.title ?? dungeonLabel ?? masterFieldTitle(key, definition.title ?? field?.label)
       const description = String(definition.description ?? field?.description ?? '')
       const declaredType = dungeonFields && Object.hasOwn(dungeonFields, key) && dungeonFields[key].type || normalizeMasterType(definition.type ?? field?.type)
       const currentType = valueType(child, declaredType ? { ...definition, type: declaredType } : definition, field)
@@ -393,8 +385,6 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
     </div></details>
   </div>
 }
-
-const isDungeonWeightedList = (path: string) => isDungeonMaterialList(path) || /^\/generation\/room(?:Shapes|Types)$/.test(path)
 
 function FormattedField({ path, editor, display, multiline = false, initiallyEditing = false, toggleable = true }: {
   path: string; editor: ReactNode; display: ReactNode; multiline?: boolean; initiallyEditing?: boolean; toggleable?: boolean

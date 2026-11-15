@@ -1,4 +1,4 @@
-import type { JsonValue } from '../types/editor'
+import type { JsonObject, JsonValue } from '../types/editor'
 
 export const isDungeonMaster = (path: string | undefined) => path?.startsWith('65.features.dungeon/') === true
 
@@ -73,8 +73,31 @@ export const dungeonRoomChoices: Readonly<Record<string, Readonly<Record<string,
 }
 
 export const isDungeonMaterialList = (path: string) => /^\/theme\/(?:floor|wall|ceiling|corridor|decorations\/(?:rubble|accent))$/.test(path)
+export const isDungeonWeightedList = (path: string) => isDungeonMaterialList(path) || /^\/generation\/room(?:Shapes|Types)$/.test(path)
+export const isDungeonWeightedRow = (path: string) => /\/\d+$/.test(path) && isDungeonWeightedList(path.replace(/\/\d+$/, ''))
 
-export const fallbackBossRoomSize = (key: 'min' | 'max', roomSize: JsonValue | undefined) => {
-  const configured = roomSize && typeof roomSize === 'object' && !Array.isArray(roomSize) ? roomSize[key] : undefined
-  return typeof configured === 'number' ? configured : key === 'min' ? 11 : 23
+export function dungeonFieldKeys(path: string, value: JsonObject) {
+  const fields = dungeonSection(path)
+  const keys = Object.keys(value)
+  if (fields) return [...new Set([...Object.keys(fields), ...keys])]
+  return isDungeonWeightedRow(path) && !Object.hasOwn(value, 'weight') ? [...keys, 'weight'] : keys
+}
+
+export function dungeonFieldDefault(path: string, key: string, roomSize: JsonValue | undefined): JsonValue | undefined {
+  if (path === '/generation/bossRoomSize' && (key === 'min' || key === 'max')) {
+    const configured = roomSize && typeof roomSize === 'object' && !Array.isArray(roomSize) ? roomSize[key] : undefined
+    return typeof configured === 'number' ? configured : key === 'min' ? 11 : 23
+  }
+  if (key === 'weight' && isDungeonWeightedRow(path)) return 1
+  const fields = dungeonSection(path)
+  return fields && Object.hasOwn(fields, key) ? fields[key].defaultValue : undefined
+}
+
+export function dungeonFieldLabel(path: string, key: string): string | undefined {
+  const fields = dungeonSection(path)
+  if (fields && Object.hasOwn(fields, key)) return fields[key].label
+  if (!isDungeonWeightedRow(path)) return undefined
+  if (key === 'weight') return '抽選重み'
+  if (key === 'material') return '素材'
+  if (key === 'type') return '種類'
 }
