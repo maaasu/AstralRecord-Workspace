@@ -46,6 +46,8 @@ public class ResourcePackService {
     private final Set<UUID> readyBedrockGameplaySounds = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedSunbirdPresentation = ConcurrentHashMap.newKeySet();
     private final Set<UUID> loadedSunbirdPresentation = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> requestedSunbirdPresentationV2 = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> loadedSunbirdPresentationV2 = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedSeleneaPresentation = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockSeleneaPresentation = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaArchmagePhoenixPresentation = ConcurrentHashMap.newKeySet();
@@ -106,6 +108,8 @@ public class ResourcePackService {
     public void applyTo(Player player) {
         loadedSunbirdPresentation.remove(player.getUniqueId());
         requestedSunbirdPresentation.remove(player.getUniqueId());
+        requestedSunbirdPresentationV2.remove(player.getUniqueId());
+        loadedSunbirdPresentationV2.remove(player.getUniqueId());
         requestedSeleneaPresentation.remove(player.getUniqueId());
         requestedJavaArchmagePhoenixPresentation.remove(player.getUniqueId());
         requestedJavaNyxeronPresentation.remove(player.getUniqueId());
@@ -221,13 +225,12 @@ public class ResourcePackService {
                     if (pack.profileHud() != null) {
                         requestedJavaProfileHud.put(viewer, pack.profileHud());
                     }
+                    if (pack.sunbirdPresentation()) requestedSunbirdPresentation.add(viewer);
+                    if (pack.sunbirdPresentationV2()) requestedSunbirdPresentationV2.add(viewer);
                     player.addResourcePack(MANAGED_JAVA_PACK_ID, url, HexFormat.of().parseHex(pack.sha1()),
                             blankToNull(configProperties.getResourcePackPrompt()), configProperties.isResourcePackForce());
                     if (!pack.wornHelmetModels().isEmpty()) {
                         requestedJavaWornHelmetModels.put(viewer, pack.wornHelmetModels());
-                    }
-                    if (pack.sunbirdPresentation()) {
-                        requestedSunbirdPresentation.add(viewer);
                     }
                     Logger.log(LogId.I_5550, player.getName(), url, configProperties.isResourcePackForce());
                 } else {
@@ -332,12 +335,18 @@ public class ResourcePackService {
                     if (requestedSunbirdPresentation.contains(viewer)) {
                         loadedSunbirdPresentation.add(viewer);
                     }
+                    if (requestedSunbirdPresentationV2.contains(viewer)) {
+                        loadedSunbirdPresentationV2.add(viewer);
+                    }
                 }
                 case DECLINED, FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD, DISCARDED -> {
                     loadedManagedJavaPacks.remove(viewer);
                     requestedJavaWornHelmetModels.remove(viewer);
                     readyJavaWornHelmetModels.remove(viewer);
                     loadedSunbirdPresentation.remove(viewer);
+                    loadedSunbirdPresentationV2.remove(viewer);
+                    requestedSunbirdPresentation.remove(viewer);
+                    requestedSunbirdPresentationV2.remove(viewer);
                     requestedSeleneaPresentation.remove(viewer);
                     requestedJavaArchmagePhoenixPresentation.remove(viewer);
                     requestedJavaNyxeronPresentation.remove(viewer);
@@ -665,6 +674,11 @@ public class ResourcePackService {
         return loadedSunbirdPresentation.contains(playerId);
     }
 
+    /** 分割モデルと連続エフェクトを含む管理 Java パックの適用成功を確認します。 */
+    public boolean hasSunbirdPresentationV2(UUID playerId) {
+        return loadedSunbirdPresentationV2.contains(playerId);
+    }
+
     /**
      * セレネアの互換版1を含む管理Javaパックの適用成功を確認します。
      * @param playerId 閲覧者のUUID
@@ -869,6 +883,8 @@ public class ResourcePackService {
         readyBedrockDungeonClearSound.remove(playerId);
         loadedSunbirdPresentation.remove(playerId);
         requestedSunbirdPresentation.remove(playerId);
+        requestedSunbirdPresentationV2.remove(playerId);
+        loadedSunbirdPresentationV2.remove(playerId);
         requestedSeleneaPresentation.remove(playerId);
         readyBedrockSeleneaPresentation.remove(playerId);
         requestedJavaArchmagePhoenixPresentation.remove(playerId);

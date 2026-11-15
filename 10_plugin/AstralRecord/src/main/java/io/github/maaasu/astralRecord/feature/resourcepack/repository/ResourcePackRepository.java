@@ -20,7 +20,7 @@ public final class ResourcePackRepository {
 
     /** 配布物のハッシュと演出機能の互換情報を識別します。 */
     public record JavaPack(String sha1, @Nullable String actionRingPanel, @Nullable String guiTheme,
-                           boolean hasGameplaySounds, boolean sunbirdPresentation, boolean seleneaPresentation,
+                           boolean hasGameplaySounds, boolean sunbirdPresentation, boolean sunbirdPresentationV2, boolean seleneaPresentation,
                            boolean archmagePhoenixPresentation, boolean nyxeronPresentation, boolean itemTooltips,
                            boolean weaponAttackProjectiles, @Nullable ProfileHud profileHud, boolean skillEffects,
                            boolean combatRewardPlaque, boolean questTrackingHud, boolean receptionDisplay,
@@ -64,8 +64,10 @@ public final class ResourcePackRepository {
                 boolean hasGameplaySounds = sounds != null && sounds.isJsonPrimitive()
                     && sounds.getAsJsonPrimitive().isString() && "1".equals(sounds.getAsString());
                 JsonElement sunbird = java.get("sunbirdPresentation");
-                boolean sunbirdPresentation = sunbird != null && sunbird.isJsonPrimitive()
-                    && sunbird.getAsJsonPrimitive().isString() && "1".equals(sunbird.getAsString());
+                String sunbirdVersion = sunbird != null && sunbird.isJsonPrimitive()
+                    && sunbird.getAsJsonPrimitive().isString() ? sunbird.getAsString() : "";
+                boolean sunbirdPresentationV2 = "2".equals(sunbirdVersion);
+                boolean sunbirdPresentation = "1".equals(sunbirdVersion) || sunbirdPresentationV2;
                 JsonElement selenea = java.get("seleneaPresentation");
                 boolean seleneaPresentation = selenea != null && selenea.isJsonPrimitive()
                     && selenea.getAsJsonPrimitive().isString() && "1".equals(selenea.getAsString());
@@ -119,7 +121,7 @@ public final class ResourcePackRepository {
                     case "6" -> new ProfileHud(wideCombatMeter, 6);
                     default -> null;
                 };
-                return new JavaPack(sha1.getAsString(), panel, guiTheme, hasGameplaySounds, sunbirdPresentation,
+                return new JavaPack(sha1.getAsString(), panel, guiTheme, hasGameplaySounds, sunbirdPresentation, sunbirdPresentationV2,
                     seleneaPresentation, archmagePhoenixPresentation, nyxeronPresentation, itemTooltips,
                     weaponAttackProjectiles, profileHud,
                     skillEffects, combatRewardPlaque,

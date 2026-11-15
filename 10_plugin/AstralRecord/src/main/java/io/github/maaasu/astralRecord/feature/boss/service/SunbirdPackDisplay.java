@@ -39,6 +39,7 @@ import org.joml.Vector3f;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -62,6 +63,7 @@ final class SunbirdPackDisplay implements Listener {
     private static final int FX_FRAMES = 4;
     private static final double VIEW_DISTANCE = 64.0D;
     private static final int POSE_TICKS = 5;
+    private static final int RIG_STEP_TICKS = 2;
     private static final int HURT_TINT_TICKS = 4;
     private static final int HURT_COOLDOWN_TICKS = 10;
     private static final String BODY_MODEL = "sunbird";
@@ -78,6 +80,8 @@ final class SunbirdPackDisplay implements Listener {
     private final Map<UUID, MotionState> motionStates = new HashMap<>();
     private final Map<UUID, Long> strikeUntil = new HashMap<>();
     private final Map<BodyPose, BodyItems> bodyItems = new EnumMap<>(BodyPose.class);
+    private final Map<SunbirdDisplayRig.Part, BodyItems> rigItems = new EnumMap<>(SunbirdDisplayRig.Part.class);
+    private final Map<Style, ItemStack> smoothEffects = new EnumMap<>(Style.class);
     private final Map<Style, List<ItemStack>> effectFrames = new EnumMap<>(Style.class);
     private final Set<Effect> animatedEffects = new HashSet<>();
     private long animationTick;
@@ -91,6 +95,9 @@ final class SunbirdPackDisplay implements Listener {
         this.templateKey = new NamespacedKey(plugin, "mob_template_id");
         for (BodyPose pose : BodyPose.values()) {
             bodyItems.put(pose, new BodyItems(createBodyItem(pose, false), createBodyItem(pose, true)));
+        }
+        for (SunbirdDisplayRig.Part part : SunbirdDisplayRig.Part.values()) {
+            rigItems.put(part, new BodyItems(modelItem(part.model()), withHurtTint(modelItem(part.model()))));
         }
         this.packets = new PacketAdapter(plugin, PacketType.Play.Server.BUNDLE,
                 PacketType.Play.Server.SPAWN_ENTITY, PacketType.Play.Server.ENTITY_METADATA) {
@@ -144,7 +151,7 @@ final class SunbirdPackDisplay implements Listener {
             for (Body body : bodies.values()) {
                 if (body.source != entity) continue;
                 UUID viewerId = viewer.getUniqueId();
-                if (packs.hasSunbirdPresentation(viewerId) && body.model.getTrackedBy().contains(viewer)) {
+                if (body.tracks(viewer, javaPresentation(viewer))) {
                     body.masked.add(viewerId);
                 } else {
                     body.masked.remove(viewerId);
@@ -159,8 +166,7 @@ final class SunbirdPackDisplay implements Listener {
         if (entity.getType() != EntityType.PARROT) return;
         trackedBosses.put(entity.getEntityId(), entity.getUniqueId());
         Body body = bodies.get(bossId);
-        if (body != null && (body.source != entity || !body.model.isValid()
-                || body.model.getWorld() != entity.getWorld())) {
+        if (body != null && (body.source != entity || body.world != entity.getWorld())) {
             clearBody(bossId);
             trackedBosses.put(entity.getEntityId(), entity.getUniqueId());
             body = null;
@@ -181,59 +187,141 @@ final class SunbirdPackDisplay implements Listener {
         boolean invulnerable = entity.isInvulnerable();
         syncBedrockMotion(state, tracked, target, motion, invulnerable);
 
-        Set<Player> viewers = new HashSet<>();
+        Set<Player> legacyViewers = new HashSet<>();
+        Set<Player> rigViewers = new HashSet<>();
         for (Player viewer : tracked) {
-            if (packs.hasSunbirdPresentation(viewer.getUniqueId())) viewers.add(viewer);
+            switch (javaPresentation(viewer)) {
+                case LEGACY -> legacyViewers.add(viewer);
+                case SMOOTH -> rigViewers.add(viewer);
+                default -> { }
+            }
         }
-        if (body == null && viewers.isEmpty()) return;
-        BodyPose pose = motion.poseAt(tick);
+        if (body == null && legacyViewers.isEmpty() && rigViewers.isEmpty()) return;
         if (body == null) {
-            body = new Body(entity, spawn(target, bodyItems.get(pose).normal(), false), pose);
+            body = new Body(entity);
             bodies.put(bossId, body);
             maskedViewers.put(entity.getEntityId(), body.masked);
         }
-        if (body.pose != pose) {
-            body.pose = pose;
-            BodyItems items = bodyItems.get(pose);
-            body.model.setItemStack(body.restoreTint == null ? items.normal() : items.hurt());
+        body.motion = motion;
+        body.resumeMotion = casting ? Motion.CAST : moving ? Motion.MOVE : Motion.IDLE;
+        if (body.legacy != null && !body.legacy.isValid()) {
+            body.legacy = null;
+            body.javaLegacyViewers.clear();
         }
-        boolean glowing = invulnerable || entity.isGlowing();
+        if (!body.rig.isEmpty() && body.rig.values().stream().anyMatch(part -> !part.isValid())) {
+            body.removeRig();
+        }
+        if (!legacyViewers.isEmpty()) updateLegacy(body, target, motion, tick);
+        if (!rigViewers.isEmpty() && body.rig.isEmpty()) createRig(body, target, tick);
         if (body.invulnerable != invulnerable) {
             body.invulnerable = invulnerable;
-            body.model.setGlowColorOverride(invulnerable ? Color.YELLOW : null);
+            body.displays().forEach(display -> display.setGlowColorOverride(invulnerable ? Color.YELLOW : null));
         }
-        if (body.model.isGlowing() != glowing) body.model.setGlowing(glowing);
-        Location previous = body.model.getLocation();
-        if (!previous.equals(target)) {
-            body.model.setTeleportDuration(previous.distanceSquared(target) > 9.0D ? 0 : POSE_TICKS);
-            body.model.teleport(target);
+        boolean glowing = invulnerable || entity.isGlowing();
+        for (ItemDisplay display : body.displays()) {
+            if (display.isGlowing() != glowing) display.setGlowing(glowing);
         }
-        float wave = (float) Math.sin(tick * (motion == Motion.MOVE ? 0.30D : 0.15D));
-        float lean = motion == Motion.MOVE ? 0.16F : 0.0F;
-        body.model.setInterpolationDelay(0);
-        body.model.setInterpolationDuration(POSE_TICKS);
-        body.model.setTransformation(new Transformation(new Vector3f(0.0F, 0.16F + wave * 0.13F, 0.0F),
-            new Quaternionf().rotateX(lean + wave * 0.06F), new Vector3f(1.0F), new Quaternionf()));
 
-        Iterator<Player> iterator = body.viewers.iterator();
-        while (iterator.hasNext()) {
-            Player viewer = iterator.next();
-            if (!viewers.contains(viewer)) {
-                body.masked.remove(viewer.getUniqueId());
-                viewer.hideEntity(plugin, body.model);
-                if (viewer.isOnline() && tracked.contains(viewer)) sendFlags(viewer, entity, false);
-                iterator.remove();
-            }
-        }
-        for (Player viewer : viewers) {
-            if (body.viewers.add(viewer)) viewer.showEntity(plugin, body.model);
+        syncViewers(body.javaLegacyViewers, legacyViewers, body.legacy == null ? List.of() : List.of(body.legacy));
+        syncViewers(body.javaRigViewers, rigViewers, body.rig.values());
+        // 部品が全部追跡されるまで実体を残す。V1/V2 の移行や部品の再生成時も空白にしない。
+        Set<UUID> trackedIds = new HashSet<>();
+        for (Player viewer : tracked) {
             UUID viewerId = viewer.getUniqueId();
-            if (!body.model.getTrackedBy().contains(viewer)) {
-                if (body.masked.remove(viewerId)) sendFlags(viewer, entity, false);
+            trackedIds.add(viewerId);
+            boolean shouldHide = body.tracks(viewer, javaPresentation(viewer));
+            if (!shouldHide) {
+                if (body.masked.contains(viewerId) && sendFlags(viewer, entity, false)) body.masked.remove(viewerId);
             } else if (body.masked.add(viewerId) && !sendFlags(viewer, entity, true)) {
                 body.masked.remove(viewerId);
             }
         }
+        body.masked.retainAll(trackedIds);
+        if (legacyViewers.isEmpty() && body.legacy != null) {
+            body.legacy.remove();
+            body.legacy = null;
+        }
+        if (rigViewers.isEmpty()) body.removeRig();
+    }
+
+    private void updateLegacy(Body body, Location target, Motion motion, long tick) {
+        BodyPose pose = motion.poseAt(tick);
+        BodyItems items = bodyItems.get(pose);
+        if (body.legacy == null) {
+            body.legacy = spawn(target, items.get(body.restoreTint != null), false);
+            body.legacy.setGlowColorOverride(body.invulnerable ? Color.YELLOW : null);
+        } else if (body.pose != pose) {
+            body.legacy.setItemStack(items.get(body.restoreTint != null));
+        }
+        body.pose = pose;
+        move(body.legacy, target, POSE_TICKS);
+        float wave = (float) Math.sin(tick * (motion == Motion.MOVE ? 0.30D : 0.15D));
+        float lean = motion == Motion.MOVE ? 0.16F : 0.0F;
+        interpolate(body.legacy, POSE_TICKS, new Transformation(
+            new Vector3f(0.0F, 0.16F + wave * 0.13F, 0.0F), new Quaternionf().rotateX(lean + wave * 0.06F),
+            new Vector3f(1.0F), new Quaternionf()));
+    }
+
+    private void createRig(Body body, Location target, long tick) {
+        try {
+            for (SunbirdDisplayRig.Part part : SunbirdDisplayRig.Part.values()) {
+                ItemDisplay display = spawn(target, rigItems.get(part).get(body.restoreTint != null), false);
+                body.rig.put(part, display);
+                display.setGlowColorOverride(body.invulnerable ? Color.YELLOW : null);
+            }
+            animateRig(body, tick, 0);
+        } catch (RuntimeException exception) {
+            body.removeRig();
+            Logger.log(LogId.E_6513, exception);
+        }
+    }
+
+    private void animateRig(Body body, long tick, int duration) {
+        if (body.rig.isEmpty() || !body.source.isValid() || body.world != body.source.getWorld()
+                || body.rig.values().stream().anyMatch(part -> !part.isValid())) return;
+        SunbirdDisplayRig.Frame frame = body.rigMotion.sample(body.motion.id, tick,
+            body.motion == Motion.STRIKE ? duration : 0);
+        Location position = body.source.getLocation();
+        position.setPitch(0.0F);
+        for (Map.Entry<SunbirdDisplayRig.Part, ItemDisplay> part : body.rig.entrySet()) {
+            move(part.getValue(), position, RIG_STEP_TICKS);
+            interpolate(part.getValue(), duration, frame.transform(part.getKey()));
+        }
+    }
+
+    private void syncViewers(Set<Player> current, Set<Player> eligible,
+                             Collection<ItemDisplay> displays) {
+        current.removeIf(viewer -> {
+            if (eligible.contains(viewer) && !displays.isEmpty()) return false;
+            for (ItemDisplay display : displays) viewer.hideEntity(plugin, display);
+            return true;
+        });
+        if (displays.isEmpty()) return;
+        for (Player viewer : eligible) {
+            if (current.add(viewer)) {
+                for (ItemDisplay display : displays) viewer.showEntity(plugin, display);
+            }
+        }
+    }
+
+    private static void move(ItemDisplay display, Location target, int ticks) {
+        Location previous = display.getLocation();
+        if (previous.equals(target)) return;
+        display.setTeleportDuration(previous.distanceSquared(target) > 9.0D ? 0 : ticks);
+        display.teleport(target);
+    }
+
+    private static void interpolate(ItemDisplay display, int ticks, Transformation transform) {
+        // Paper の補間開始を同じ 0 に再設定すると再生時刻が更新される。
+        display.setInterpolationDelay(0);
+        display.setInterpolationDuration(ticks);
+        display.setTransformation(transform);
+    }
+
+    private Presentation javaPresentation(Player viewer) {
+        UUID id = viewer.getUniqueId();
+        if (isBedrock(viewer) || !packs.hasSunbirdPresentation(id)) return Presentation.NONE;
+        return packs.hasSunbirdPresentationV2(id) ? Presentation.SMOOTH : Presentation.LEGACY;
     }
 
     /**
@@ -248,12 +336,13 @@ final class SunbirdPackDisplay implements Listener {
         nextHurtTick.put(bossId, tick + HURT_COOLDOWN_TICKS);
         Body body = bodies.get(bossId);
         try {
-            if (body != null && body.source == source && body.model.isValid() && !body.model.getTrackedBy().isEmpty()) {
+            if (body != null && body.source == source
+                    && body.displays().stream().anyMatch(display -> !display.getTrackedBy().isEmpty())) {
                 body.restoreTint = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                     body.restoreTint = null;
-                    if (body.model.isValid()) body.model.setItemStack(bodyItems.get(body.pose).normal());
+                    tintBody(body, false);
                 }, HURT_TINT_TICKS);
-                body.model.setItemStack(bodyItems.get(body.pose).hurt());
+                tintBody(body, true);
             }
         } catch (RuntimeException exception) {
             Logger.log(LogId.E_6513, exception);
@@ -263,6 +352,13 @@ final class SunbirdPackDisplay implements Listener {
         } catch (RuntimeException exception) {
             Logger.log(LogId.E_6513, exception);
         }
+    }
+
+    private void tintBody(Body body, boolean hurt) {
+        if (body.legacy != null && body.legacy.isValid()) body.legacy.setItemStack(bodyItems.get(body.pose).get(hurt));
+        body.rig.forEach((part, display) -> {
+            if (display.isValid()) display.setItemStack(rigItems.get(part).get(hurt));
+        });
     }
 
     /** 統合版で実体を追跡している閲覧者へ、同じ被弾パケットを使って通知します。 */
@@ -280,11 +376,39 @@ final class SunbirdPackDisplay implements Listener {
     /** 発動時点から短時間だけ専用の攻撃姿勢を選びます。 */
     void strike(UUID bossId, long tick) {
         strikeUntil.put(bossId, tick + STRIKE_TICKS);
+        Body body = bodies.get(bossId);
+        if (body == null) return;
+        body.rigWasStriking = true;
+        body.motion = Motion.STRIKE;
+        try {
+            // 発動フックで最初の補間を開始し、次の 2 tick を目標にする。
+            animateRig(body, tick, RIG_STEP_TICKS);
+        } catch (RuntimeException exception) {
+            Logger.log(LogId.E_6513, exception);
+        }
     }
 
     /** 表示中の演出だけを進め、フレームが変わるときにモデルを更新します。 */
     void animate(long tick) {
         animationTick = tick;
+        for (Map.Entry<UUID, Body> entry : bodies.entrySet()) {
+            Body body = entry.getValue();
+            if (tick < strikeUntil.getOrDefault(entry.getKey(), 0L)) {
+                body.rigWasStriking = true;
+                body.motion = Motion.STRIKE;
+            } else if (body.rigWasStriking) {
+                body.rigWasStriking = false;
+                body.motion = body.resumeMotion;
+            }
+            if (tick % RIG_STEP_TICKS == 0L) {
+                try {
+                    animateRig(body, tick, RIG_STEP_TICKS);
+                } catch (RuntimeException exception) {
+                    // 一個体の表示障害でボス処理全体を止めない。
+                    Logger.log(LogId.E_6513, exception);
+                }
+            }
+        }
         Iterator<Effect> iterator = animatedEffects.iterator();
         while (iterator.hasNext()) {
             Effect effect = iterator.next();
@@ -382,7 +506,7 @@ final class SunbirdPackDisplay implements Listener {
         int entityId = body.source.getEntityId();
         trackedBosses.remove(entityId);
         maskedViewers.remove(entityId);
-        body.model.remove();
+        body.displays().forEach(ItemDisplay::remove);
         if (body.source.isValid()) {
             for (Player viewer : body.source.getTrackedBy()) {
                 if (body.masked.contains(viewer.getUniqueId())) sendFlags(viewer, body.source, false);
@@ -512,6 +636,15 @@ final class SunbirdPackDisplay implements Listener {
         return item;
     }
 
+    private static ItemStack withHurtTint(ItemStack item) {
+        var meta = item.getItemMeta();
+        var data = meta.getCustomModelDataComponent();
+        data.setColors(List.of(HURT_TINT));
+        meta.setCustomModelDataComponent(data);
+        item.setItemMeta(meta);
+        return item;
+    }
+
     /** 演出ごとのフレームを最初の使用時に構築して使い回します。 */
     private static List<ItemStack> createEffectFrames(Style style) {
         List<ItemStack> frames = new ArrayList<>(FX_FRAMES);
@@ -592,7 +725,9 @@ final class SunbirdPackDisplay implements Listener {
         private int frame;
         private final Map<UUID, Player> bedrockViewers = new HashMap<>();
         private final Set<Player> javaViewers = new HashSet<>();
+        private final Set<Player> smoothViewers = new HashSet<>();
         private ItemDisplay model;
+        private ItemDisplay smoothModel;
         private PacketContainer bedrockSpawn;
         private PacketContainer bedrockRemove;
 
@@ -607,56 +742,82 @@ final class SunbirdPackDisplay implements Listener {
             if (world == null || !world.isChunkLoaded(shape.location().getBlockX() >> 4,
                     shape.location().getBlockZ() >> 4)) return;
             Set<Player> viewers = new HashSet<>(world.getNearbyPlayers(shape.location(), VIEW_DISTANCE));
-            javaViewers.removeIf(viewer -> {
-                if (viewers.contains(viewer) && packs.hasSunbirdPresentation(viewer.getUniqueId())
-                        && model != null && model.isValid()) return false;
-                if (model != null) viewer.hideEntity(plugin, model);
-                return true;
-            });
+            Set<Player> legacy = new HashSet<>();
+            Set<Player> smooth = new HashSet<>();
             bedrockViewers.values().removeIf(viewer -> {
                 if (viewers.contains(viewer)) return false;
                 if (viewer.isOnline()) send(viewer, bedrockRemove);
                 return true;
             });
             for (Player viewer : viewers) {
-                if (packs.hasSunbirdPresentation(viewer.getUniqueId())) {
-                    if (model == null || !model.isValid()) spawnJava();
-                    if (javaViewers.add(viewer)) {
-                        advance();
-                        viewer.showEntity(plugin, model);
+                switch (javaPresentation(viewer)) {
+                    case LEGACY -> legacy.add(viewer);
+                    case SMOOTH -> smooth.add(viewer);
+                    default -> {
+                        if (isBedrock(viewer) && bedrockViewers.putIfAbsent(viewer.getUniqueId(), viewer) == null) {
+                            if (bedrockSpawn == null) prepareBedrock();
+                            send(viewer, bedrockSpawn);
+                        }
                     }
-                } else if (isBedrock(viewer) && bedrockViewers.putIfAbsent(viewer.getUniqueId(), viewer) == null) {
-                    if (bedrockSpawn == null) prepareBedrock();
-                    send(viewer, bedrockSpawn);
                 }
+            }
+            if (!legacy.isEmpty() && (model == null || !model.isValid())) {
+                javaViewers.clear();
+                spawnJava();
+            }
+            if (!smooth.isEmpty() && (smoothModel == null || !smoothModel.isValid())) {
+                smoothViewers.clear();
+                spawnSmooth();
+            }
+            syncViewers(javaViewers, legacy, model == null ? List.of() : List.of(model));
+            syncViewers(smoothViewers, smooth, smoothModel == null ? List.of() : List.of(smoothModel));
+            if (legacy.isEmpty() && model != null) {
+                model.remove();
+                model = null;
+            }
+            if (smooth.isEmpty() && smoothModel != null) {
+                smoothModel.remove();
+                smoothModel = null;
             }
         }
 
         /** モデルの追跡が始まった Java 閲覧者だけ粒子の重複送信を省きます。 */
         boolean visibleTo(Player viewer) {
-            return model != null && model.isValid() && packs.hasSunbirdPresentation(viewer.getUniqueId())
-                && model.getTrackedBy().contains(viewer);
+            ItemDisplay visible = switch (javaPresentation(viewer)) {
+                case LEGACY -> model;
+                case SMOOTH -> smoothModel;
+                default -> null;
+            };
+            return visible != null && visible.isValid() && visible.getTrackedBy().contains(viewer);
         }
 
         /** Java と統合版の表示を両方回収します。 */
         void remove() {
             animatedEffects.remove(this);
             if (model != null) model.remove();
+            if (smoothModel != null) smoothModel.remove();
             for (Player viewer : bedrockViewers.values()) {
                 if (viewer.isOnline() && bedrockRemove != null) send(viewer, bedrockRemove);
             }
             bedrockViewers.clear();
             javaViewers.clear();
+            smoothViewers.clear();
         }
 
-        /** 表示寸法を固定し、エフェクト内部の形状だけを時間で切り替えます。 */
         private void spawnJava() {
             frame = frameAt(animationTick);
             model = spawn(shape.location(), effectFrames.computeIfAbsent(shape.style(),
                 SunbirdPackDisplay::createEffectFrames).get(frame), true);
-            model.setTransformation(new Transformation(new Vector3f(), new Quaternionf(),
-                new Vector3f(shape.width(), shape.height(), shape.length()), new Quaternionf()));
+            model.setTransformation(effectTransform(shape, false, 0));
             animatedEffects.add(this);
+        }
+
+        /** V2 の予兆境界は固定し、着弾だけをネイティブ補間で描きます。 */
+        private void spawnSmooth() {
+            smoothModel = spawn(shape.location(), smoothEffects.computeIfAbsent(shape.style(),
+                style -> modelItem(style.model + "_v2")), true);
+            smoothModel.setTransformation(effectTransform(shape, burst, animationTick - startedAt));
+            if (burst) animatedEffects.add(this);
         }
 
         private void advance() {
@@ -664,6 +825,11 @@ final class SunbirdPackDisplay implements Listener {
             if (model != null && model.isValid() && !javaViewers.isEmpty() && next != frame) {
                 model.setItemStack(effectFrames.get(shape.style()).get(next));
                 frame = next;
+            }
+            long age = animationTick - startedAt;
+            if (burst && age > 0 && age <= 8 && age % RIG_STEP_TICKS == 0 && smoothModel != null
+                    && smoothModel.isValid() && !smoothViewers.isEmpty()) {
+                interpolate(smoothModel, RIG_STEP_TICKS, effectTransform(shape, true, age));
             }
         }
 
@@ -693,19 +859,65 @@ final class SunbirdPackDisplay implements Listener {
         }
     }
 
+    static Transformation effectTransform(Shape shape, boolean burst, long age) {
+        float t = Math.clamp(age / 8.0F, 0.0F, 1.0F);
+        float side = 1.0F;
+        float height = 1.0F;
+        float offset = 0.0F;
+        if (burst && shape.style() == Style.IMPACT) {
+            // 着弾の内側の絵柄だけを膨らませる。予兆の寸法と命中範囲には触れない。
+            side = 0.55F + 1.10F * (1.0F - (1.0F - t) * (1.0F - t));
+            height = 0.75F + 0.60F * (float) Math.sin(Math.PI * t) - 0.30F * t;
+        } else if (burst && shape.style() == Style.IMPACT_LINE) {
+            // エンティティの向きに従うローカル座標。線の長さは変えない。
+            offset = -0.69F * shape.length() * t;
+        }
+        return new Transformation(new Vector3f(0, 0, offset), new Quaternionf(),
+            new Vector3f(shape.width() * side, shape.height() * height, shape.length() * side), new Quaternionf());
+    }
+
+    private enum Presentation { NONE, LEGACY, SMOOTH }
+
     private static final class Body {
         private final Entity source;
-        private final ItemDisplay model;
-        private final Set<Player> viewers = new HashSet<>();
+        private final World world;
+        private ItemDisplay legacy;
+        private final Map<SunbirdDisplayRig.Part, ItemDisplay> rig = new EnumMap<>(SunbirdDisplayRig.Part.class);
+        private final SunbirdDisplayRig rigMotion = new SunbirdDisplayRig();
+        private final Set<Player> javaLegacyViewers = new HashSet<>();
+        private final Set<Player> javaRigViewers = new HashSet<>();
         private final Set<UUID> masked = ConcurrentHashMap.newKeySet();
         private BukkitTask restoreTint;
         private BodyPose pose;
+        private Motion motion = Motion.IDLE;
+        private Motion resumeMotion = Motion.IDLE;
+        private boolean rigWasStriking;
         private boolean invulnerable;
 
-        private Body(Entity source, ItemDisplay model, BodyPose pose) {
+        private Body(Entity source) {
             this.source = source;
-            this.model = model;
-            this.pose = pose;
+            world = source.getWorld();
+        }
+
+        private List<ItemDisplay> displays() {
+            List<ItemDisplay> parts = new ArrayList<>(rig.values());
+            if (legacy != null) parts.add(legacy);
+            return parts;
+        }
+
+        private boolean tracks(Player viewer, Presentation presentation) {
+            return switch (presentation) {
+                case LEGACY -> legacy != null && legacy.isValid() && legacy.getTrackedBy().contains(viewer);
+                case SMOOTH -> rig.size() == SunbirdDisplayRig.Part.values().length
+                    && rig.values().stream().allMatch(part -> part.isValid() && part.getTrackedBy().contains(viewer));
+                default -> false;
+            };
+        }
+
+        private void removeRig() {
+            rig.values().forEach(ItemDisplay::remove);
+            rig.clear();
+            javaRigViewers.clear();
         }
     }
 
@@ -755,7 +967,11 @@ final class SunbirdPackDisplay implements Listener {
         }
     }
 
-    private record BodyItems(ItemStack normal, ItemStack hurt) {}
+    private record BodyItems(ItemStack normal, ItemStack hurt) {
+        ItemStack get(boolean tinted) {
+            return tinted ? hurt : normal;
+        }
+    }
 
     private record TimedEffect(Effect effect, long endTick) {}
 }

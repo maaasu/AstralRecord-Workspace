@@ -23,10 +23,12 @@
       "scripts": {
         "pre_animation": [
           "variable.style = query.property('astralrecord:style');",
-          "variable.pulse = math.mod(query.life_time, 0.6) / 0.6;",
-          "variable.travel = math.clamp(query.life_time / 0.32, 0.0, 1.0);",
-          "variable.spark_radius = variable.style == 3 ? math.lerp(0.18, 1.16, variable.travel) : (variable.style == 2 ? 1.0 : (variable.style == 4 ? math.lerp(1.0, 0.46, variable.pulse) : math.lerp(0.36, 1.03, variable.pulse)));",
-          "variable.spark_height = variable.style == 3 ? 0.45 + 0.95 * math.sin(variable.travel * 180.0) : 0.55 + 0.85 * math.sin(variable.pulse * 180.0);"
+          "variable.pulse_angle = math.mod(query.life_time * 300.0, 360.0);",
+          "variable.pulse = 0.5 - 0.5 * math.cos(variable.pulse_angle);",
+          "variable.travel = math.clamp(query.life_time / 0.34, 0.0, 1.0);",
+          "variable.pulse_eased = variable.travel * variable.travel * (3.0 - 2.0 * variable.travel);",
+          "variable.spark_radius = variable.style == 3 ? math.lerp(0.22, 1.13, variable.pulse_eased) : (variable.style == 2 ? 1.0 : (variable.style == 4 ? math.lerp(0.96, 0.58, variable.pulse) : math.lerp(0.64, 1.0, variable.pulse)));",
+          "variable.spark_height = variable.style == 3 ? 0.28 + 0.98 * math.sin(variable.travel * 180.0) : 0.58 + 0.47 * variable.pulse;"
         ],
         "animate": [
           "shape"
