@@ -27,6 +27,8 @@ _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _TICKET_ID = re.compile(r"^[a-z0-9][a-z0-9-]{7,79}$")
 _EDITABLE_STATES = {"CREATED", "READY", "ROLLED_BACK"}
 _MIN_OPERATION_VISIT_BUDGET = 5_000_000
+MAX_OPERATIONS = 100_000
+MAX_OPERATION_BYTES = 16 * 1024 * 1024
 
 
 @dataclass(frozen=True, slots=True)
@@ -731,21 +733,41 @@ def _expect(states: list[str], index: int, expected: object, label: str, point: 
         )
 
 
-def simulate_operations(ticket: Ticket, operations: list[object]) -> tuple[list[str], int, int]:
-    """Return proposed states, touched count, and actual change count without writing."""
+@dataclass(slots=True)
+class ProposedOperations:
+    """Validated result of applying an operation batch to a block array."""
 
+    states: list[str]
+    touched_count: int
+    changed_indices: list[int]
+    visits: int
+
+
+def require_editable_ticket(ticket: Ticket) -> None:
     state = ticket.metadata.get("state")
     if state not in _EDITABLE_STATES:
         raise TicketError(f"ticket state {state!r} is not editable")
+
+
+def simulate_operations(
+    ticket: Ticket,
+    operations: list[object],
+    *,
+    base_states: list[str] | None = None,
+    previous_visits: int = 0,
+) -> ProposedOperations:
+    """Use the same validation for a file edit, static preview or live draft."""
+
+    require_editable_ticket(ticket)
     if not operations:
         raise TicketError("operations list is empty")
-    if len(operations) > 100_000:
+    if len(operations) > MAX_OPERATIONS:
         raise TicketError("too many operations")
 
-    original_states = ticket.candidate.states()
+    original_states = ticket.candidate.states() if base_states is None else base_states
     states = original_states.copy()
     touched: set[int] = set()
-    visited = 0
+    visited = previous_visits
     visit_budget = max(ticket.bounds.volume, _MIN_OPERATION_VISIT_BUDGET)
     for operation_index, raw_operation in enumerate(operations):
         label = f"operations[{operation_index}]"
@@ -753,6 +775,8 @@ def simulate_operations(ticket: Ticket, operations: list[object]) -> tuple[list[
             raise TicketError(f"{label} must be an object")
         operation: dict[str, object] = raw_operation
         kind = operation.get("op")
+        if not isinstance(kind, str):
+            raise TicketError(f"{label}.op must be set, fill, replace, or line")
         if kind == "set":
             _reject_unknown_operation_keys(
                 operation, {"op", "x", "y", "z", "block", "expect"}, label
@@ -818,19 +842,21 @@ def simulate_operations(ticket: Ticket, operations: list[object]) -> tuple[list[
             states[index] = block
             touched.add(index)
 
-    changed_count = sum(original_states[index] != states[index] for index in touched)
-    return states, len(touched), changed_count
+    changed_indices = [index for index in touched if original_states[index] != states[index]]
+    return ProposedOperations(states, len(touched), changed_indices, visited)
 
 
 def apply_operations(ticket: Ticket, operations: list[object]) -> dict[str, object]:
     """Apply validated operations in memory and atomically replace candidate.schem."""
 
-    states, touched_count, changed_count = simulate_operations(ticket, operations)
+    plan = simulate_operations(ticket, operations)
+    states = plan.states
+    changed_count = len(plan.changed_indices)
     unused_palette_states = ticket.candidate.palette.keys() - set(states)
     if not changed_count and not unused_palette_states:
         return {
             "written": False,
-            "touchedBlockCount": touched_count,
+            "touchedBlockCount": plan.touched_count,
             "changedBlockCount": 0,
             "candidateSha256": ticket.candidate_hash,
         }
@@ -873,7 +899,7 @@ def apply_operations(ticket: Ticket, operations: list[object]) -> dict[str, obje
 
     return {
         "written": True,
-        "touchedBlockCount": touched_count,
+        "touchedBlockCount": plan.touched_count,
         "changedBlockCount": changed_count,
         "candidateSha256": sha256_file(ticket.candidate_path),
     }

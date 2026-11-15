@@ -15,13 +15,19 @@ python ticket_cli.py preview <absolute-ticket-directory> --ops <absolute-operati
 python ticket_cli.py apply-ops <absolute-ticket-directory> --ops <absolute-operations.json>
 ```
 
-`--help`表示を除き、成功時も失敗時もstdoutへJSONを1件出力します。失敗時は非0の終了コードです。
+`--help`表示を除き、成功時も失敗時もstdoutへJSONを1件出力します。失敗時は非0の終了コードです。`live` は起動時にJSONを出力し、停止するまで稼働します。
 
 ## 3Dプレビュー
 
 `preview` は候補をローカルでPNGに描画します。`--source` は元データを読み、`--ops` は `apply-ops` と同じ操作をメモリ上で仮適用します。`--eye` と `--target` はワールド座標の XYZ、`--clip-y` は描画する最大ブロックYです。PNGはチケットデータ外の新しいパスに保存します。見た目は簡易描画で、ゲームのテクスチャ・光量・衝突や更新は再現しません。
 
 採用した操作と、プレビューの応答に含まれる `baseCandidateSha256` を `apply-ops --expect-candidate-sha256 <hash>` に渡すと、仮適用後に候補が更新された場合は反映前に拒否されます。
+
+## ライブ3Dビューアー
+
+`live <ticket> --session <new-absolute-session-json>` が返す URL を同じPCのWebGL 2対応ブラウザーで開きます。別端末から `live-ops <ticket> --session <session-json> --ops <absolute-operations-json>` を実行するたびに、検証済みの変更がブラウザーに届きます。ドラッグで周回、右ドラッグで平行移動、ホイールでズームできます。候補へ反映する操作は `live-export <ticket> --session <session-json> --output <new-absolute-operations-json>` で書き出し、返された候補ハッシュとともに `apply-ops` に渡します。
+
+HTTP は `127.0.0.1` の空きポートだけで待ち受け、Web画面は閲覧専用です。セッションファイルは作業者の手元に置いてください。停止は `live-stop <ticket> --session <session-json>` または起動端末で Ctrl+C です。
 
 ## 編集操作
 

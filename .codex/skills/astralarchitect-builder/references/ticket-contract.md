@@ -87,6 +87,7 @@ python scripts/invoke_ticket_cli.py --ticket <absolute-ticket-dir> -- <command> 
 - `surface`: X/Z 範囲内の見える/最上面の表面と高さの変化を要約する。
 - `diff`: 候補と不変のソースを比較する。
 - `preview`: ソース、候補または仮適用結果を指定視点からPNGへ描画する。
+- `live` / `live-ops` / `live-export` / `live-stop`: ライブ表示用の編集案を起動、更新、書き出し、停止する。
 - `apply-ops`: 宣言的な操作ファイルを候補に不可分に適用する。
 
 正確な引数は CLI コマンドの `--help` で確認し、編集操作には下記スキーマを使う。コマンドまたはフィールドが不明な場合に代替の復号処理を作らず、不足している機能を報告して停止する。
@@ -121,6 +122,23 @@ CLI にはワールドへブロックを適用する権限、ワールドを巻�
 - `--clip-y Y` は指定したワールド Y より上のブロックを隠す。屋根の直下で切って室内を見るか、室内にカメラを置く。`--width` と `--height` の既定は 720×540、各辺の上限は 1024。描画量が上限を超えた場合は解像度を下げるか、上側を切る。
 - `--output` は AstralArchitect のチケットデータ外にある、既存ディレクトリ内の新しい絶対 `.png` パス。コマンドは JSON で画像パス、カメラ、画像 SHA-256、描画の基点になった候補の `baseCandidateSha256` を返す。
 - 画像は形状と配色の確認に使う。ゲームのテクスチャ・光量・衝突やブロック更新は再現せず、一部の形状は近似表示する。通路・支持・保存空間はデータと照合する。採用する操作を `apply-ops --expect-candidate-sha256 <baseCandidateSha256>` で反映した後、証拠画像は最終候補から生成する。
+
+## ライブ3Dビューアー
+
+同じ PC 上で起動し、返された `url` をブラウザーで開く。起動コマンドは別端末・バックグラウンドのターミナルで稼働させ、作業側の端末から編集操作を送る。セッションファイルには編集用の認証情報が入るため、PC の自分用一時フォルダーに新しいファイル名を選び、観察者には URL だけを共有する。
+
+```text
+python scripts/invoke_ticket_cli.py --ticket <absolute-ticket-dir> -- live --session <new-absolute-session-json>
+python scripts/invoke_ticket_cli.py --ticket <absolute-ticket-dir> -- live-ops --session <absolute-session-json> --ops <absolute-step-ops>
+python scripts/invoke_ticket_cli.py --ticket <absolute-ticket-dir> -- live-export --session <absolute-session-json> --output <new-absolute-operations-json>
+python scripts/invoke_ticket_cli.py --ticket <absolute-ticket-dir> -- live-stop --session <absolute-session-json>
+```
+
+- `live` は起動時の候補を読み込む。AI は実際の配置・修正ごとに `live-ops` を実行する。検証に通った呼び出しごとに画面へ差分が届く。範囲、`expect`、ブロックエンティティなどの検査は `apply-ops` と共通で、失敗した操作一式は表示に反映されない。
+- ブラウザーではドラッグで周回、右ドラッグで平行移動、ホイールでズームできる。画面にフォーカスして W/A/S/D で前後左右、Q/E で上下に移動できる。視点を維持したまま差分が反映される。
+- `live-export` は起動から採用した変更の全操作を順に書き出す。候補へ反映する際は、その応答の `baseCandidateSha256` と書き出したファイルを `apply-ops` に渡す。ライブ画面に表示した案を静止画で確認する場合は、書き出した操作を `preview --ops` に渡せる。
+- セッションは起動プロセスのメモリ内にある。必要な操作を書き出してから `live-stop` または起動端末で Ctrl+C で終了する。再開には新規セッションファイルを使う。
+- ライブ画面には WebGL 2 対応ブラウザーが必要。選択体積の上限は 1,048,576 セル。利用する形状・材質は `preview` と同じ近似モデルで、ゲーム内の光量、当たり判定、ブロック更新は再現しない。
 
 ## 完了時の引き継ぎ
 
