@@ -13,6 +13,17 @@ export const editorPages = [
 ] as const
 
 export type EditorPage = (typeof editorPages)[number]['id']
+export const editorPageGroups: { label: string; pages: readonly EditorPage[] }[] = [
+  { label: 'データ・配置編集', pages: ['master', 'skilltree', 'spawner'] },
+  { label: '設計・分析', pages: ['design', 'analytics'] },
+]
+export const editorPageDescriptions: Record<EditorPage, string> = {
+  master: 'アイテム・モブ・ダンジョンなどのマスター定義を編集',
+  skilltree: '職業のスキルノード・接続・習得条件を図で編集',
+  spawner: 'ワールド上のスポナー・NPC・受付地点を地図で編集',
+  design: 'ビルドの装備・スキルを設計し、アイテムの入手経路を確認',
+  analytics: '保存済みマスターの性能比較・レベル成長を確認',
+}
 export type Page = EditorPage | ToolPage
 export type DockPanelId = Page | 'navigation' | 'master-folders' | 'master-files' | 'master-validation'
 
