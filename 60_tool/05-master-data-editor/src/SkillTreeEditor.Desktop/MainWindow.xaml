@@ -12,7 +12,35 @@
       <TextBlock Text="AstralRecord" FontSize="28" FontWeight="SemiBold" Margin="0,0,0,18" />
       <TextBlock x:Name="StatusText" Text="マスタデータエディタを起動しています…" FontSize="16" TextWrapping="Wrap" />
       <Button x:Name="SelectWorkspaceButton" Content="ワークスペースを選ぶ" Click="SelectWorkspace_Click"
-              Background="#404754" Foreground="#cdd3de" Padding="20,10" Margin="0,24,0,0" Visibility="Collapsed" />
+              Background="#3e4145" Foreground="#d9dadd" BorderBrush="#5e6268" BorderThickness="1"
+              Padding="20,10" Margin="0,24,0,0" Visibility="Collapsed">
+        <Button.Template>
+          <ControlTemplate TargetType="{x:Type Button}">
+            <Border x:Name="ButtonFrame" CornerRadius="7" SnapsToDevicePixels="True"
+                    Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+              <ContentPresenter x:Name="ButtonContent" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                RecognizesAccessKey="True" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="ButtonFrame" Property="Background" Value="#4a4d52" />
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="ButtonFrame" Property="Background" Value="#35383c" />
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="ButtonFrame" Property="BorderBrush" Value="#a1a7b0" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="ButtonFrame" Property="Background" Value="#34363a" />
+                <Setter TargetName="ButtonFrame" Property="BorderBrush" Value="#4a4d51" />
+                <Setter TargetName="ButtonContent" Property="Opacity" Value="0.60" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Button.Template>
+      </Button>
     </StackPanel>
   </Grid>
 </Window>
