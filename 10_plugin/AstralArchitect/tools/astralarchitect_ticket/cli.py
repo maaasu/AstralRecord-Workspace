@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import sys
 from typing import Sequence
 
+from .preview import render_preview
 from .schematic import (
     Point,
     Ticket,
@@ -20,6 +22,7 @@ from .schematic import (
     point_to_index,
     reject_reparse_chain,
     run_length_encode,
+    simulate_operations,
 )
 
 _MAX_INSPECTION_CELLS = 16_384
@@ -68,8 +71,20 @@ def _parser() -> JsonArgumentParser:
     diff.add_argument("--limit", type=int, default=1000, help="maximum detailed changes to return")
     diff.add_argument("--offset", type=int, default=0, help="skip this many changed blocks")
 
+    preview = command("preview", "capture a 3D PNG of a ticket or proposed operations")
+    scene = preview.add_mutually_exclusive_group()
+    scene.add_argument("--source", action="store_true", help="render source.schem instead")
+    scene.add_argument("--ops", help="simulate a JSON/NDJSON file, or - for stdin")
+    preview.add_argument("--eye", type=float, nargs=3, required=True, metavar=("X", "Y", "Z"))
+    preview.add_argument("--target", type=float, nargs=3, required=True, metavar=("X", "Y", "Z"))
+    preview.add_argument("--width", type=int, default=720, help="output width in pixels")
+    preview.add_argument("--height", type=int, default=540, help="output height in pixels")
+    preview.add_argument("--clip-y", type=int, help="hide blocks above this world Y")
+    preview.add_argument("--output", required=True, help="absolute path for a new PNG outside ticket data")
+
     apply_ops = command("apply-ops", "atomically apply JSON/NDJSON operations to candidate.schem")
     apply_ops.add_argument("--ops", required=True, help="absolute JSON/NDJSON file path, or - for stdin")
+    apply_ops.add_argument("--expect-candidate-sha256", help="candidate hash from preview")
     return parser
 
 
@@ -351,7 +366,8 @@ def _read_operations(value: str) -> list[object]:
         if not resolved.is_file():
             raise TicketError("operations path must be a regular non-link file")
         try:
-            raw = resolved.read_bytes()
+            with resolved.open("rb") as stream:
+                raw = stream.read(16 * 1024 * 1024 + 1)
         except OSError as exc:
             raise TicketError("cannot read operations file") from exc
     if len(raw) > 16 * 1024 * 1024:
@@ -388,6 +404,70 @@ def _read_operations(value: str) -> list[object]:
     raise TicketError("operations JSON must be an array, an operations object, one operation, or NDJSON")
 
 
+def _preview_output_path(raw: str, ticket: Ticket) -> Path:
+    path = Path(raw)
+    if (
+        not path.is_absolute() or ".." in path.parts
+        or path.suffix.casefold() != ".png" or ":" in path.name
+    ):
+        raise TicketError("--output must be an absolute path for a standalone PNG without '..'")
+    reject_reparse_chain(path.parent, "preview output parent")
+    parent = path.parent.resolve(strict=True)
+    parts = tuple(part.casefold() for part in parent.parts)
+    plugin_data = ticket.directory.parent.parent
+    if parent.is_relative_to(plugin_data) or any(
+        first == "astralarchitect" and second in {"tickets", "trash", ".locks"}
+        for first, second in zip(parts, parts[1:])
+    ):
+        raise TicketError("preview output must be outside AstralArchitect ticket data")
+    output = parent / path.name
+    if output.exists() or output.is_symlink():
+        raise TicketError("preview output already exists; choose a new PNG path")
+    return output
+
+
+def _preview(ticket: Ticket, args: argparse.Namespace) -> dict[str, object]:
+    _preview_output_path(args.output, ticket)
+    result = _base(ticket, "preview")
+    result.update({
+        "scene": "source" if args.source else "candidate",
+        "sourceSha256": ticket.source_hash,
+        "baseCandidateSha256": ticket.candidate_hash,
+        "eye": args.eye,
+        "target": args.target,
+        "width": args.width,
+        "height": args.height,
+        "clipY": args.clip_y,
+    })
+    if args.ops is None:
+        states = _schematic(ticket, args.source).states()
+    else:
+        states, touched_count, changed_count = simulate_operations(
+            ticket, _read_operations(args.ops)
+        )
+        result.update({
+            "scene": "proposed",
+            "touchedBlockCount": touched_count,
+            "changedBlockCount": changed_count,
+        })
+    png = render_preview(
+        ticket, states, eye=tuple(args.eye), target=tuple(args.target),
+        width=args.width, height=args.height, clip_y=args.clip_y,
+    )
+    # Rendering can take several seconds, so validate the destination again.
+    output = _preview_output_path(args.output, ticket)
+    stream = output.open("xb")
+    try:
+        with stream:
+            stream.write(png)
+    except OSError:
+        output.unlink(missing_ok=True)
+        raise
+    result["output"] = str(output)
+    result["imageSha256"] = hashlib.sha256(png).hexdigest()
+    return result
+
+
 def execute(args: argparse.Namespace) -> dict[str, object]:
     if args.command == "apply-ops":
         preflight = load_ticket(args.ticket)
@@ -395,12 +475,16 @@ def execute(args: argparse.Namespace) -> dict[str, object]:
             ticket = load_ticket(preflight.directory)
             if ticket.candidate_hash != preflight.candidate_hash:
                 raise TicketError("candidate.schem changed while waiting for the edit lock")
+            if args.expect_candidate_sha256 is not None and ticket.candidate_hash != args.expect_candidate_sha256:
+                raise TicketError("candidate.schem differs from the preview base; preview again before applying")
             result = _base(ticket, "apply-ops")
             result.update(apply_operations(ticket, _read_operations(args.ops)))
             result["requiresMinecraftValidation"] = True
             return result
 
     ticket = load_ticket(args.ticket)
+    if args.command == "preview":
+        return _preview(ticket, args)
     if args.command == "info":
         return _info(ticket)
     if args.command == "palette":
@@ -444,7 +528,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     except (OSError, ValueError) as exc:
         output = {"ok": False, "error": str(exc), "errorType": type(exc).__name__}
         exit_code = 3
-    print(json.dumps(output, ensure_ascii=False, separators=(",", ":")))
+    print(json.dumps(output, separators=(",", ":")))
     return exit_code
 
 

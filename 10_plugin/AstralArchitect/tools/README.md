@@ -11,10 +11,17 @@ python ticket_cli.py get-block <absolute-ticket-directory> 100 64 200
 python ticket_cli.py slice <absolute-ticket-directory> --y 64 --x-min 96 --x-max 127 --z-min 192 --z-max 223
 python ticket_cli.py surface <absolute-ticket-directory> --x-min 96 --x-max 127 --z-min 192 --z-max 223
 python ticket_cli.py diff <absolute-ticket-directory> --limit 1000
+python ticket_cli.py preview <absolute-ticket-directory> --ops <absolute-operations.json> --eye 128 88 160 --target 112 68 195 --output <absolute-new-png>
 python ticket_cli.py apply-ops <absolute-ticket-directory> --ops <absolute-operations.json>
 ```
 
 `--help`表示を除き、成功時も失敗時もstdoutへJSONを1件出力します。失敗時は非0の終了コードです。
+
+## 3Dプレビュー
+
+`preview` は候補をローカルでPNGに描画します。`--source` は元データを読み、`--ops` は `apply-ops` と同じ操作をメモリ上で仮適用します。`--eye` と `--target` はワールド座標の XYZ、`--clip-y` は描画する最大ブロックYです。PNGはチケットデータ外の新しいパスに保存します。見た目は簡易描画で、ゲームのテクスチャ・光量・衝突や更新は再現しません。
+
+採用した操作と、プレビューの応答に含まれる `baseCandidateSha256` を `apply-ops --expect-candidate-sha256 <hash>` に渡すと、仮適用後に候補が更新された場合は反映前に拒否されます。
 
 ## 編集操作
 

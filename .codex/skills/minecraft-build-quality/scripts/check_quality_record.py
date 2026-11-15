@@ -9,7 +9,7 @@ import hashlib
 import json
 from pathlib import Path
 
-VERSION = "1.0.0"
+SUPPORTED_VERSIONS = ("1.0.0", "1.0.1")
 WEIGHTS = {"silhouette": 20, "roof": 15, "facade": 15, "all_elevations": 15,
            "interfaces": 10, "interior": 10, "material_details": 10, "site": 5}
 GATES = {"requirements", "preservation", "envelope", "supports", "routes",
@@ -43,7 +43,7 @@ def evaluate(record, root):
             return
         require(actual == item.get("sha256"), f"{label}: SHA-256 missing or mismatched")
 
-    require(record.get("standard") == "MC-BUILD-Q1" and record.get("version") == VERSION,
+    require(record.get("standard") == "MC-BUILD-Q1" and record.get("version") in SUPPORTED_VERSIONS,
             "Unsupported standard/version")
     scope = record.get("scope", {})
     mode = scope.get("mode")

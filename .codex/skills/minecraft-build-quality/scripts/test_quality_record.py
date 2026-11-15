@@ -44,7 +44,10 @@ class QualityRecordTests(unittest.TestCase):
         self.assertEqual(self.outcome(), "NOT_COMPLETE")
 
     def test_complete_record_contract(self):
-        self.assertEqual(self.outcome(), "RECORD_COMPLETE")
+        for version in ("1.0.0", "1.0.1"):
+            with self.subTest(version=version):
+                self.record["version"] = version
+                self.assertEqual(self.outcome(), "RECORD_COMPLETE")
 
     def test_empty_template_is_not_complete(self):
         template = Path(__file__).resolve().parents[1] / "assets/quality-record.template.json"

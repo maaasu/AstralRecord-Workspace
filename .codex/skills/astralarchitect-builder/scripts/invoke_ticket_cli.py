@@ -14,7 +14,7 @@ from typing import Sequence
 
 
 ALLOWED_COMMANDS = frozenset(
-    {"info", "palette", "get-block", "slice", "surface", "diff", "apply-ops"}
+    {"info", "palette", "get-block", "slice", "surface", "diff", "preview", "apply-ops"}
 )
 EDITABLE_STATES = frozenset({"CREATED", "READY", "ROLLED_BACK"})
 TICKET_ID_PATTERN = re.compile(r"[a-z0-9][a-z0-9-]{7,79}\Z")

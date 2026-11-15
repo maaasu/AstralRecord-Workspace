@@ -731,8 +731,8 @@ def _expect(states: list[str], index: int, expected: object, label: str, point: 
         )
 
 
-def apply_operations(ticket: Ticket, operations: list[object]) -> dict[str, object]:
-    """Apply validated operations in memory and atomically replace candidate.schem."""
+def simulate_operations(ticket: Ticket, operations: list[object]) -> tuple[list[str], int, int]:
+    """Return proposed states, touched count, and actual change count without writing."""
 
     state = ticket.metadata.get("state")
     if state not in _EDITABLE_STATES:
@@ -742,8 +742,8 @@ def apply_operations(ticket: Ticket, operations: list[object]) -> dict[str, obje
     if len(operations) > 100_000:
         raise TicketError("too many operations")
 
-    states = ticket.candidate.states()
-    original_states = states.copy()
+    original_states = ticket.candidate.states()
+    states = original_states.copy()
     touched: set[int] = set()
     visited = 0
     visit_budget = max(ticket.bounds.volume, _MIN_OPERATION_VISIT_BUDGET)
@@ -818,12 +818,19 @@ def apply_operations(ticket: Ticket, operations: list[object]) -> dict[str, obje
             states[index] = block
             touched.add(index)
 
-    changed_indices = {index for index in touched if original_states[index] != states[index]}
+    changed_count = sum(original_states[index] != states[index] for index in touched)
+    return states, len(touched), changed_count
+
+
+def apply_operations(ticket: Ticket, operations: list[object]) -> dict[str, object]:
+    """Apply validated operations in memory and atomically replace candidate.schem."""
+
+    states, touched_count, changed_count = simulate_operations(ticket, operations)
     unused_palette_states = ticket.candidate.palette.keys() - set(states)
-    if not changed_indices and not unused_palette_states:
+    if not changed_count and not unused_palette_states:
         return {
             "written": False,
-            "touchedBlockCount": len(touched),
+            "touchedBlockCount": touched_count,
             "changedBlockCount": 0,
             "candidateSha256": ticket.candidate_hash,
         }
@@ -866,8 +873,8 @@ def apply_operations(ticket: Ticket, operations: list[object]) -> dict[str, obje
 
     return {
         "written": True,
-        "touchedBlockCount": len(touched),
-        "changedBlockCount": len(changed_indices),
+        "touchedBlockCount": touched_count,
+        "changedBlockCount": changed_count,
         "candidateSha256": sha256_file(ticket.candidate_path),
     }
 
