@@ -217,7 +217,7 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
 
     private static ProgressionDesignEnchant? ReadEquipmentEnchant(JsonObject data) =>
         Text(data["enchantMasterId"]) is { } master && Text(data["effectId"]) is { } effect
-        && ProgressionEquipmentEnchants.Value(data["value"]) is { } value ? new(master, effect, value) : null;
+        && Text(data["value"]) is { } value ? new(master, effect, value) : null;
 
     private static ProgressionDesignSkillAssignment[] ReadSkillAssignments(JsonNode? assignments, string pointer) =>
         Rows(assignments, pointer).Where(row => Integer(row.Data["slot"]) is not null && Id(row.Data["skill"]) is not null)

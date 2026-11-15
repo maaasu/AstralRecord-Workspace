@@ -21,7 +21,7 @@
 | `equipment[].enchants` | 付与するエンチャントの一覧。省略時は付与なし。記載順に付与枠を使用 |
 | `enchants[].enchantMasterId` | エンチャントオーブが参照する共通候補マスター。`enchant:<id>` で指定 |
 | `enchants[].effectId` | 装備区分に対応する候補の効果ID。同じ装備で重複不可 |
-| `enchants[].value` | 候補マスターの固定値または範囲内の確定値。小数4桁までを数値で指定 |
+| `enchants[].value` | 候補マスターの固定値または範囲内の確定値。絶対値100000000000以下、小数4桁までを文字列で指定（例 `value: "3.125"`） |
 | `skills[].skillLevel` / `passives[].skillLevel` | 適用するスキル個体のレベル。省略時は1。スキルマスターの最大レベルまで指定可能 |
 | `skills[].sigils` / `passives[].sigils` | 装着するシジルの一覧。各項目に1始まりの `slot` と `item:<id>` を値に持つ `item` を指定。省略時は装着なし |
 
