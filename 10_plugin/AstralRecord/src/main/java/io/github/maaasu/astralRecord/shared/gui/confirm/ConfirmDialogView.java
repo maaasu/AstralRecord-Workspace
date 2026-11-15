@@ -87,15 +87,30 @@ public final class ConfirmDialogView {
         @NotNull Component cancelName,
         @NotNull List<Component> confirmLore
     ) {
+        render(inventory, createItem(Material.PAPER, message, messageLore), confirmName, cancelName, confirmLore);
+    }
+
+    /**
+     * 専用アイコンに差し替えた見出しを持つ、共通確認ダイアログを描画します。
+     *
+     * @param inventory 確認ダイアログの描画先
+     * @param messageItem 作成済みの見出しアイテム
+     * @param confirmName 確定ボタン名
+     * @param cancelName キャンセルボタン名
+     * @param confirmLore 確定ボタンの説明行
+     */
+    public void render(
+        @NotNull Inventory inventory,
+        @NotNull ItemStack messageItem,
+        @NotNull Component confirmName,
+        @NotNull Component cancelName,
+        @NotNull List<Component> confirmLore
+    ) {
         ItemStack dummy = createItem(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of());
         for (int slot = 0; slot < SIZE; slot++) {
             inventory.setItem(slot, dummy);
         }
-        inventory.setItem(MESSAGE_SLOT, createItem(
-            Material.PAPER,
-            message,
-            messageLore
-        ));
+        inventory.setItem(MESSAGE_SLOT, messageItem);
         inventory.setItem(CONFIRM_SLOT, GuiResourcePackIcons.apply(createItem(
             Material.LIME_CONCRETE,
             confirmName,

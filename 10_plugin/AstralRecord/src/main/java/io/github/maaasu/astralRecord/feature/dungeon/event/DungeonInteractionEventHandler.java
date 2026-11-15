@@ -75,7 +75,9 @@ public final class DungeonInteractionEventHandler extends AbstractEventHandler
             return List.of(new PlayerInputCandidate(
                     "dungeon-entry", InteractionTier.WORLD_INTERACTION, hit.hitDistance(),
                     InteractionCandidateOrder.DUNGEON_ENTRY, hit.dungeonId(), InputClaimPolicy.CLAIM,
-                    () -> runSafely(() -> notifyEntryResult(snapshot.player(), service.requestEntry(snapshot.player(), hit.dungeonId())),
+                    () -> runSafely(() -> notifyEntryResult(snapshot.player(), service.requestEntry(
+                                    snapshot.player(), hit.dungeonId(),
+                                    result -> notifyEntryResult(snapshot.player(), result))),
                             LogId.E_7001, snapshot.player().getName(), "entry")
             ));
         }

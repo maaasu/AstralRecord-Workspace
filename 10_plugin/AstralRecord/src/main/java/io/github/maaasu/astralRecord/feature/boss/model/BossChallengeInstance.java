@@ -28,6 +28,7 @@ public final class BossChallengeInstance {
     private final BossChallengeConfig config;
     private List<UUID> expectedParticipantIds;
     private final Set<UUID> waitingAbsentParticipantIds = new LinkedHashSet<>();
+    private final Set<UUID> levelConfirmedParticipantIds = new LinkedHashSet<>();
     private final long createdAtMs;
     private final EncounterCombatStatistics combatStatistics = new EncounterCombatStatistics();
     private final Map<UUID, Integer> deathsByPlayerId = new ConcurrentHashMap<>();
@@ -98,6 +99,20 @@ public final class BossChallengeInstance {
     public void updateExpectedParticipantIds(@NotNull List<UUID> participantIds) {
         this.expectedParticipantIds = List.copyOf(participantIds);
         waitingAbsentParticipantIds.retainAll(this.expectedParticipantIds);
+        levelConfirmedParticipantIds.retainAll(this.expectedParticipantIds);
+    }
+
+    /** @param participantId この挑戦への続行を本人が承諾した参加者UUID */
+    public void confirmRecommendedLevel(@NotNull UUID participantId) {
+        levelConfirmedParticipantIds.add(participantId);
+    }
+
+    /**
+     * @param participantId 確認対象の参加者UUID
+     * @return この挑戦で推奨レベル未満の続行を承諾済みならtrue
+     */
+    public boolean hasConfirmedRecommendedLevel(@NotNull UUID participantId) {
+        return levelConfirmedParticipantIds.contains(participantId);
     }
 
     /**

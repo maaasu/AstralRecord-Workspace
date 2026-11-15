@@ -72,6 +72,7 @@ import io.github.maaasu.astralRecord.shared.challenge.ChallengeDeathPolicy;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeParticipationRegistry;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeStartCountdown;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeCountdownPresentation;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeLevelConfirmation;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingStatus;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingHubArrivalGuard;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueue;
@@ -189,6 +190,7 @@ public final class DungeonService {
     private final InstanceCreationQueue creationQueue;
     private final ChallengeParticipationRegistry challengeParticipationRegistry;
     private final ChallengeWaitingHubArrivalGuard arrivalGuard;
+    private final ChallengeLevelConfirmation levelConfirmation;
     private final String hubWorldId;
     private @Nullable InvulnerabilityVisualService invulnerabilityVisualService;
     private @Nullable StatusService statusService;
@@ -437,6 +439,7 @@ public final class DungeonService {
         this.creationQueue = creationQueue;
         this.challengeParticipationRegistry = challengeParticipationRegistry;
         this.arrivalGuard = arrivalGuard;
+        this.levelConfirmation = plugin.getChallengeLevelConfirmation();
         this.hubWorldId = hubWorldId;
     }
 
@@ -952,6 +955,20 @@ public final class DungeonService {
     }
 
     /**
+     * @param leader 受付操作をしたプレイヤー
+     * @param dungeonId 開始するダンジョンID
+     * @param onDeferredResult 確認後に確定した受付結果の受取先
+     * @return 確認待ちを含む即時受付結果
+     */
+    public @NotNull StartRequestResult requestStart(
+            @NotNull Player leader,
+            @NotNull String dungeonId,
+            @NotNull Consumer<StartRequestResult> onDeferredResult
+    ) {
+        return requestStart(leader, dungeonId, OptionalLong.empty(), false, onDeferredResult);
+    }
+
+    /**
      * プレイヤーを含む最寄り受付ゲートを副作用なしで返します。
      *
      * @param player 判定対象
@@ -979,20 +996,34 @@ public final class DungeonService {
      * @return 開始または再参加の即時結果
      */
     public @NotNull StartRequestResult requestEntry(@NotNull Player player, @NotNull String dungeonId) {
+        return requestEntry(player, dungeonId, ignored -> {});
+    }
+
+    /**
+     * @param player 受付ゲートを操作したプレイヤー
+     * @param dungeonId 受付対象ダンジョンID
+     * @param onDeferredResult 確認後に確定した受付結果の受取先
+     * @return 確認待ちを含む即時受付結果
+     */
+    public @NotNull StartRequestResult requestEntry(
+            @NotNull Player player,
+            @NotNull String dungeonId,
+            @NotNull Consumer<StartRequestResult> onDeferredResult
+    ) {
         requireMainThread();
         Party party = partyService.findParty(player.getUniqueId());
         String partyKey = partyKey(player.getUniqueId(), party);
         UUID activeSessionId = sessionIdByPartyKey.get(partyKey);
         Session active = activeSessionId == null ? null : sessionsById.get(activeSessionId);
         if (active == null) {
-            return requestStart(player, dungeonId);
+            return requestStart(player, dungeonId, onDeferredResult);
         }
         if (isWaitingForPartyMembers(active)) {
             if (!active.loaded.definition().id().equals(dungeonId)
                     || !isInsideEntry(player, active.loaded)) {
                 return StartRequestResult.alreadyInProgress(active.loaded.definition().displayName());
             }
-            return acceptWaitingParticipant(active, player);
+            return acceptWaitingParticipant(active, player, onDeferredResult);
         }
         if (!active.loaded.definition().id().equals(dungeonId)
                 || !canRejoinParticipant(
@@ -1010,6 +1041,17 @@ public final class DungeonService {
             @NotNull Player leader,
             @NotNull String dungeonId,
             @NotNull OptionalLong requestedSeed
+    ) {
+        return requestStart(leader, dungeonId, requestedSeed, false, ignored -> {});
+    }
+
+    /** 受付条件を検証し、対象が未確認の場合はセッション作成を保留します。 */
+    private @NotNull StartRequestResult requestStart(
+            @NotNull Player leader,
+            @NotNull String dungeonId,
+            @NotNull OptionalLong requestedSeed,
+            boolean levelConfirmed,
+            @NotNull Consumer<StartRequestResult> onDeferredResult
     ) {
         requireMainThread();
         if (stopping) {
@@ -1054,6 +1096,18 @@ public final class DungeonService {
         if (participantIds.stream().anyMatch(sessionIdByBusyParticipant::containsKey)) {
             return StartRequestResult.participantBusy(activeDungeonName(participantIds));
         }
+        if (!levelConfirmed && levelConfirmation.deferIfNeeded(
+                leaderAstPlayer, null, loaded.definition().displayName(), loaded.definition().recommendedLevel(),
+                () -> {
+                    Party current = partyService.findParty(leader.getUniqueId());
+                    if (loadedDefinitions.get(dungeonId) == loaded
+                            && partyKey.equals(partyKey(leader.getUniqueId(), current))) {
+                        onDeferredResult.accept(requestStart(leader, dungeonId, requestedSeed, true, onDeferredResult));
+                    }
+                },
+                () -> {})) {
+            return StartRequestResult.of(StartStatus.CONFIRMATION_PENDING);
+        }
 
         UUID sessionId = UUID.randomUUID();
         ChallengeParticipationRegistry.ReservationResult reservation = challengeParticipationRegistry.reserve(
@@ -1092,6 +1146,9 @@ public final class DungeonService {
                 returnLocations,
                 participantHistory
         );
+        if (levelConfirmed) {
+            session.levelConfirmedParticipants.add(leader.getUniqueId());
+        }
         sessionsById.put(sessionId, session);
         sessionIdByPartyKey.put(partyKey, sessionId);
         Logger.log(LogId.I_7001, sessionId.toString(), dungeonId, seed, participantCount);
@@ -1331,12 +1388,33 @@ public final class DungeonService {
 
     private @NotNull StartRequestResult acceptWaitingParticipant(
             @NotNull Session session,
-            @NotNull Player player
+            @NotNull Player player,
+            @NotNull Consumer<StartRequestResult> onDeferredResult
     ) {
+        UUID playerId = player.getUniqueId();
         Party party = currentParty(session);
         if (session.partyKey.startsWith("party:")
-                && (party == null || !party.contains(player.getUniqueId()))) {
+                && (party == null || !party.contains(playerId))) {
             return StartRequestResult.alreadyInProgress(session.loaded.definition().displayName());
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
+            return StartRequestResult.of(StartStatus.NOT_GAMEPLAY);
+        }
+        DungeonDefinition definition = session.loaded.definition();
+        if (!session.levelConfirmedParticipants.contains(playerId) && levelConfirmation.deferIfNeeded(
+                astPlayer, session.id, definition.displayName(), definition.recommendedLevel(),
+                () -> {
+                    Party current = partyService.findParty(playerId);
+                    if (isWaitingForPartyMembers(session) && sessionsById.get(session.id) == session
+                            && session.partyKey.equals(partyKey(playerId, current))
+                            && isInsideEntry(player, session.loaded)) {
+                        session.levelConfirmedParticipants.add(playerId);
+                        onDeferredResult.accept(acceptWaitingParticipant(session, player, onDeferredResult));
+                    }
+                },
+                () -> {})) {
+            return StartRequestResult.of(StartStatus.CONFIRMATION_PENDING);
         }
         LinkedHashSet<UUID> participantIds = new LinkedHashSet<>(session.participants);
         participantIds.add(player.getUniqueId());
@@ -1401,7 +1479,38 @@ public final class DungeonService {
         if (count < allowed.min() || count > allowed.max()) {
             return;
         }
+        if (!confirmWaitingPartyLevels(session)) {
+            cancelWaitingTicket(session);
+            return;
+        }
         enqueueInstanceCreation(session);
+    }
+
+    /** Hubに先着した参加者も、生成受付の前に本人から推奨レベル未満の続行を確認します。 */
+    private boolean confirmWaitingPartyLevels(@NotNull Session session) {
+        DungeonDefinition definition = session.loaded.definition();
+        boolean ready = true;
+        for (Player player : onlinePlayers(session.participants)) {
+            UUID playerId = player.getUniqueId();
+            if (session.levelConfirmedParticipants.contains(playerId)) {
+                continue;
+            }
+            if (levelConfirmation.deferIfNeeded(
+                    AstPlayerCache.get(player), session.id, definition.displayName(), definition.recommendedLevel(),
+                    () -> {
+                        if (session.participants.contains(playerId) && isInHub(player)) {
+                            session.levelConfirmedParticipants.add(playerId);
+                        }
+                    },
+                    () -> {
+                        if (isWaitingForPartyMembers(session) && session.id.equals(sessionIdByParticipant.get(playerId))) {
+                            leaveHubWaiting(player);
+                        }
+                    })) {
+                ready = false;
+            }
+        }
+        return ready;
     }
 
     /** 待機参加条件を再確認して生成を開始し、開始できた場合だけtrueを返します。 */
@@ -4364,6 +4473,7 @@ public final class DungeonService {
             clearQueueTitles(session.originalParticipants);
         }
         session.ending = true;
+        levelConfirmation.dismiss(session.id);
         recoverySessionByParticipant.values().removeIf(session.id::equals);
         session.roomBossBars.clear();
         cartographBindings.removeSession(session.id);
@@ -4967,6 +5077,8 @@ public final class DungeonService {
         sessionIdByParticipant.remove(participantId, session.id);
         sessionIdByBusyParticipant.remove(participantId, session.id);
         session.waitingAbsentParticipants.remove(participantId);
+        session.levelConfirmedParticipants.remove(participantId);
+        levelConfirmation.dismiss(session.id, participantId);
         Player player = Bukkit.getPlayer(participantId);
         if (player != null && player.isOnline() && isInHub(player)) {
             World entryWorld = worldService.resolveLoadedWorld(session.loaded.entryWorldData());
@@ -5091,11 +5203,15 @@ public final class DungeonService {
         World hubWorld = worldService.resolveLoadedWorld(hubData);
         for (UUID participantId : List.copyOf(session.participants)) {
             Player player = Bukkit.getPlayer(participantId);
+            AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
             boolean eligible = player != null
                     && player.isOnline()
                     && hubWorld != null
                     && player.getWorld().getUID().equals(hubWorld.getUID())
-                    && AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(player));
+                    && AccountModeGuard.isGameplayPlayer(astPlayer)
+                    && (session.levelConfirmedParticipants.contains(participantId)
+                        || !ChallengeLevelConfirmation.requiresConfirmation(
+                                astPlayer, session.loaded.definition().recommendedLevel()));
             if (eligible) {
                 continue;
             }
@@ -5411,6 +5527,7 @@ public final class DungeonService {
     /** 開始受付の状態です。 */
     public enum StartStatus {
         ACCEPTED,
+        CONFIRMATION_PENDING,
         REJOINED,
         ALREADY_IN_PROGRESS,
         UNAVAILABLE,
@@ -5488,6 +5605,7 @@ public final class DungeonService {
         private final LinkedHashSet<UUID> participants;
         private final Set<UUID> gateReturnEligible = new LinkedHashSet<>();
         private final Set<UUID> waitingAbsentParticipants = new LinkedHashSet<>();
+        private final Set<UUID> levelConfirmedParticipants = new HashSet<>();
         private final Map<UUID, Location> returnLocations;
         private final Map<UUID, ActivityPlayerSnapshot> participantHistory;
         private final Map<UUID, DungeonMovement> movementByParticipant = new HashMap<>();

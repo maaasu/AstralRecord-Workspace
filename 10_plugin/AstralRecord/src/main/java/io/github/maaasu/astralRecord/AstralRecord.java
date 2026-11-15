@@ -458,6 +458,8 @@ import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueue;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueueConfig;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeParticipationRegistry;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeLevelConfirmation;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeLevelConfirmationGui;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingHubArrivalGuard;
 import io.github.maaasu.astralRecord.shared.display.OverheadDisplayService;
 import io.github.maaasu.astralRecord.shared.display.PlayerTeleportDisplayEventHandler;
@@ -712,6 +714,7 @@ public final class AstralRecord extends JavaPlugin {
     private BossChallengeCancelGui bossChallengeCancelGui;
     private DungeonService dungeonService;
     private ChallengeWaitingHubArrivalGuard arrivalGuard;
+    private ChallengeLevelConfirmation challengeLevelConfirmation;
     private String joinSpawnWorldId;
     private final AtomicReference<CompletableFuture<MasterDataReloadResult>> masterDataReloadInFlight = new AtomicReference<>();
     private final AtomicLong masterDataReloadGeneration = new AtomicLong();
@@ -1106,6 +1109,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (seleneaFieldJumpService != null) {
             seleneaFieldJumpService.stop();
+        }
+        if (challengeLevelConfirmation != null) {
+            challengeLevelConfirmation.closeAll();
         }
         if (dungeonService != null) {
             dungeonService.stop();
@@ -1786,6 +1792,9 @@ public final class AstralRecord extends JavaPlugin {
                 InstanceCreationQueueConfig.from(getConfig());
         ChallengeParticipationRegistry challengeParticipationRegistry = new ChallengeParticipationRegistry();
         arrivalGuard = new ChallengeWaitingHubArrivalGuard();
+        var challengeLevelGui = new ChallengeLevelConfirmationGui(this);
+        challengeLevelConfirmation = new ChallengeLevelConfirmation(challengeLevelGui);
+        getServer().getPluginManager().registerEvents(challengeLevelGui, this);
         var receptionModelView = new ReceptionModelView(resourcePackService);
         getServer().getPluginManager().registerEvents(receptionModelView, this);
         bossChallengeService = new BossChallengeService(
@@ -4166,6 +4175,11 @@ public final class AstralRecord extends JavaPlugin {
 
     public DungeonService getDungeonService() {
         return dungeonService;
+    }
+
+    /** @return ダンジョンとボスで共有する推奨レベル確認サービス */
+    public ChallengeLevelConfirmation getChallengeLevelConfirmation() {
+        return challengeLevelConfirmation;
     }
 
     /** @return チャンネルの防衛戦サービス。初期化前はnullです */
