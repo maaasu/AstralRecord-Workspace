@@ -122,6 +122,7 @@ const OVERVIEW_ZOOM = 0.45
 const DEFAULT_MIN_ZOOM = 0.1
 const MAX_ZOOM = 2.5
 const VIEW_ANIMATION_MS = 220
+const DELETE_KEYS = ['Backspace', 'Delete']
 
 export function SkillTreeCanvas(props: SkillTreeCanvasProps) {
   return (
@@ -150,7 +151,7 @@ function CanvasInner({
   focusRequest = null,
   onFocusHandled,
 }: SkillTreeCanvasProps) {
-  const { screenToFlowPosition, setViewport, zoomIn, zoomOut, getZoom, getViewport, getNodes, getNodesBounds, viewportInitialized } = useReactFlow<SkillFlowNode>()
+  const { screenToFlowPosition, setViewport, zoomIn, zoomOut, getZoom, getViewport, getNodes, getNodesBounds, getEdges, deleteElements, viewportInitialized } = useReactFlow<SkillFlowNode>()
   const canvasRef = useRef<HTMLDivElement>(null)
   const pendingDragPositions = useRef(new Map<string, { x: number; z: number }>())
   const initializedView = useRef(false)
@@ -480,6 +481,16 @@ function CanvasInner({
     <div
       className={overview ? 'canvas overview' : 'canvas'}
       ref={canvasRef}
+      onKeyDown={(event) => {
+        if (!DELETE_KEYS.includes(event.key) || event.defaultPrevented) return
+        const target = event.target as Element
+        if (target.closest('input, textarea, select, [contenteditable]')) return
+        event.preventDefault()
+        void deleteElements({
+          nodes: getNodes().filter(node => node.selected),
+          edges: getEdges().filter(edge => edge.selected),
+        })
+      }}
       onDragOver={(event) => {
         event.preventDefault()
         event.dataTransfer.dropEffect = 'copy'
@@ -526,7 +537,8 @@ function CanvasInner({
         isValidConnection={validConnection}
         snapToGrid
         snapGrid={GRID}
-        deleteKeyCode={['Backspace', 'Delete']}
+        // The dock tab strip also uses these keys. Handle them within the canvas.
+        deleteKeyCode={null}
         selectionOnDrag={false}
         selectionKeyCode="Shift"
         multiSelectionKeyCode={['Control', 'Meta', 'Shift']}
