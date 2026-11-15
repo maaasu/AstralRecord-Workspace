@@ -585,7 +585,39 @@ function Publish-ResourcePacks {
             $reader = [IO.StreamReader]::new($sunbirdEntry.Open())
             try { $sunbirdPresentation = $reader.ReadToEnd() }
             finally { $reader.Dispose() }
-            if ($sunbirdPresentation -cne '1') { throw 'Unsupported Sunbird presentation version.' }
+            if ($sunbirdPresentation -cnotin @('1', '2')) { throw 'Unsupported Sunbird presentation version.' }
+            if ($sunbirdPresentation -ceq '2') {
+                foreach ($asset in @(
+                    'assets/astralrecord/items/sunbird_body_v2.json'
+                    'assets/astralrecord/items/sunbird_wing_left_v2.json'
+                    'assets/astralrecord/items/sunbird_wing_right_v2.json'
+                    'assets/astralrecord/items/sunbird_tip_left_v2.json'
+                    'assets/astralrecord/items/sunbird_tip_right_v2.json'
+                    'assets/astralrecord/items/sunbird_warning_circle_v2.json'
+                    'assets/astralrecord/items/sunbird_warning_line_v2.json'
+                    'assets/astralrecord/items/sunbird_warning_boundary_v2.json'
+                    'assets/astralrecord/items/sunbird_impact_v2.json'
+                    'assets/astralrecord/items/sunbird_warning_safe_v2.json'
+                    'assets/astralrecord/items/sunbird_impact_line_v2.json'
+                    'assets/astralrecord/models/item/sunbird_body_v2.json'
+                    'assets/astralrecord/models/item/sunbird_wing_left_v2.json'
+                    'assets/astralrecord/models/item/sunbird_wing_right_v2.json'
+                    'assets/astralrecord/models/item/sunbird_tip_left_v2.json'
+                    'assets/astralrecord/models/item/sunbird_tip_right_v2.json'
+                    'assets/astralrecord/models/item/sunbird_warning_circle_v2.json'
+                    'assets/astralrecord/models/item/sunbird_warning_line_v2.json'
+                    'assets/astralrecord/models/item/sunbird_warning_boundary_v2.json'
+                    'assets/astralrecord/models/item/sunbird_impact_v2.json'
+                    'assets/astralrecord/models/item/sunbird_warning_safe_v2.json'
+                    'assets/astralrecord/models/item/sunbird_impact_line_v2.json'
+                    'assets/astralrecord/textures/item/sunbird_v2.png'
+                    'assets/astralrecord/textures/item/sunbird_skill_v2.png'
+                    'assets/astralrecord/textures/item/sunbird_skill_v2.png.mcmeta'
+                )) {
+                    $entry = $archive.GetEntry($asset)
+                    if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing Sunbird V2 asset in Java pack: $asset" }
+                }
+            }
         }
         $questEntry = $archive.GetEntry('quest-tracking-hud-version.txt')
         if ($null -ne $questEntry) {

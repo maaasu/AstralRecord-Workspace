@@ -19,45 +19,45 @@
           ],
           "rotation": [
             0,
-            "variable.style == 4 ? -variable.pulse * 35.0 : variable.pulse * 40.0",
+            "(variable.style == 4 ? -1.0 : 1.0) * math.sin(variable.pulse_angle) * 16.0",
             0
           ]
         },
         "crown": {
           "scale": [
-            "math.lerp(0.75, 0.42, variable.travel)",
-            "0.45 + math.sin(variable.travel * 180.0) * 0.95",
-            "math.lerp(0.75, 0.42, variable.travel)"
+            "math.lerp(0.59, 0.38, variable.pulse_eased)",
+            "0.38 + math.sin(variable.travel * 180.0) * 0.91",
+            "math.lerp(0.59, 0.38, variable.pulse_eased)"
           ]
         },
         "sweep": {
           "position": [
             0,
             0,
-            "math.lerp(4.9, -4.9, variable.style == 5 ? variable.travel : variable.pulse)"
+            "math.lerp(4.9, -4.9, variable.style == 5 ? variable.pulse_eased : variable.pulse)"
           ]
         },
         "wake": {
           "scale": [
             1,
             1,
-            "math.lerp(0.36528497, 1.63471503, variable.travel)"
+            "math.lerp(0.36528497, 1.45, variable.pulse_eased)"
           ],
           "position": [
             0,
             0,
-            "math.lerp(4.9, -4.9, variable.travel)"
+            "math.lerp(4.9, -4.9, variable.pulse_eased)"
           ]
         },
         "rib_wave": {
           "scale": [
-            "math.lerp(0.31, 1.07, variable.travel)",
-            "0.52 + 0.53 * math.sin(variable.travel * 180.0)",
-            "math.lerp(0.31, 1.07, variable.travel)"
+            "math.lerp(0.25, 1.07, variable.pulse_eased)",
+            "0.40 + 0.59 * math.sin(variable.travel * 180.0)",
+            "math.lerp(0.25, 1.07, variable.pulse_eased)"
           ],
           "rotation": [
             0,
-            "variable.travel * 14.0",
+            "variable.pulse_eased * 11.0",
             0
           ]
         }
