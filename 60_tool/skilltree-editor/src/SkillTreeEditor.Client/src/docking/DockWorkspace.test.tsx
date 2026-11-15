@@ -54,6 +54,6 @@ it('restores the workspace layout and reports navigation changes through the nat
   expect(await screen.findByText('比較の結果')).toBeVisible()
   expect(screen.queryByText('画面一覧')).not.toBeInTheDocument()
   dispatchCommand('toggle-navigation')
-  expect(await screen.findByText('画面一覧')).toBeVisible()
-  expect(desktop.postMessage).toHaveBeenLastCalledWith({ type: 'workspace-state', navigationVisible: true })
+  await waitFor(() => expect(screen.getByText('画面一覧')).toBeVisible())
+  await waitFor(() => expect(desktop.postMessage).toHaveBeenLastCalledWith({ type: 'workspace-state', navigationVisible: true }))
 })
