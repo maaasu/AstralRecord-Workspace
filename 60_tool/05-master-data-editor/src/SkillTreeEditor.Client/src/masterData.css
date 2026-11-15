@@ -2,6 +2,8 @@
 .workspace-nav-item svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; flex-shrink: 0; }
 .master-app-sidebar { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; padding: 12px 8px; background: var(--surface-sidebar); }
 .master-app-sidebar nav { display: grid; gap: 4px; }
+.master-app-sidebar nav > [role="group"] { display: grid; gap: 4px; }
+.master-app-sidebar nav > [role="group"] + [role="group"] { margin-top: 14px; }
 .workspace-nav-label { color: var(--text-muted); font-size: 12px; font-weight: 600; padding: 0 10px 4px; }
 .workspace-nav-item { width: 100%; min-height: 37px; display: flex; align-items: center; gap: 8px; padding: 7px 9px; border: 1px solid transparent; border-radius: var(--radius-control); color: var(--text); background: transparent; text-align: left; cursor: pointer; font-size: 13px; }
 .workspace-nav-item:hover { background: var(--surface); }
