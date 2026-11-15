@@ -73,53 +73,22 @@ public sealed class ToolJobServiceTests
     {
         if (!OperatingSystem.IsWindows()) return;
         var root = Directory.CreateTempSubdirectory("editor-tool-start-");
-        var tools = Directory.CreateDirectory(Path.Combine(root.FullName, "60_tool"));
-        var adapter = Directory.CreateDirectory(Path.Combine(tools.FullName, "skilltree-editor"));
         var gate = Path.Combine(root.FullName, "finish");
         var config = Path.Combine(root.FullName, "fixture.json");
         var startedRun = (ToolJobRun?)null;
-        var service = new ToolJobService(new WorkspacePaths(root.FullName), new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["SkillTreeEditor:DesktopSessionToken"] = "fixture-token"
-            })
-            .Build());
+        var service = CreateService(root);
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(50));
         var cancellation = deadline.Token;
         try
         {
             File.WriteAllText(config, "{}");
-            File.WriteAllText(Path.Combine(adapter.FullName, "Invoke-EditorToolJob.ps1"), "");
-            File.WriteAllText(Path.Combine(tools.FullName, "invoke-powershell7.ps1"), """
-                param($Adapter, $Mode, $Job, $Workspace)
-                $ErrorActionPreference = 'Stop'
-                $utf8 = [Text.UTF8Encoding]::new($false)
-                function Save-Json($path, $value) {
-                    [IO.File]::WriteAllText($path, ($value | ConvertTo-Json -Depth 20 -Compress), $utf8)
-                }
-                if ($Mode -eq 'Plan') {
-                    Save-Json (Join-Path $Job 'plan.json') @{ canRun=$true; workspaceMismatch=$false;
-                        warnings=@(); summary=@(); paths=@(); confirmations=@(@{id='build';label='Build'});
-                        fingerprint=(Get-FileHash -LiteralPath (Join-Path $Workspace 'fixture.json')).Hash }
-                    exit 0
-                }
-                for ($i = 0; $i -lt 200 -and !(Test-Path -LiteralPath (Join-Path $Workspace 'finish')); $i++) {
-                    Start-Sleep -Milliseconds 100
-                }
-                $statePath = Join-Path $Job 'state.json'
-                $state = Get-Content -Raw -LiteralPath $statePath | ConvertFrom-Json
-                $state.status = 'succeeded'
-                $state.exitCode = 0
-                $state.finishedAtUtc = [DateTimeOffset]::UtcNow.ToString('o')
-                Save-Json "$statePath.swap" $state
-                Move-Item -LiteralPath "$statePath.swap" -Destination $statePath -Force
-                exit 0
-                """);
+            WriteBootstrap(root);
 
-            var options = new ToolJobPlanRequest("12");
+            var options = new ToolJobPlanRequest("16");
             var stale = await service.CreatePlanAsync(options, cancellation);
-            Assert.NotNull(await Record.ExceptionAsync(() => service.StartAsync(
-                new ToolJobStartRequest(stale.Id, []), cancellation)));
+            var unconfirmed = await Assert.ThrowsAsync<ToolJobException>(() => service.StartAsync(
+                new ToolJobStartRequest(stale.Id, []), cancellation));
+            Assert.Equal(409, unconfirmed.StatusCode);
             File.WriteAllText(config, "{\"changed\":true}");
             var changed = await Record.ExceptionAsync(() => service.StartAsync(
                 new ToolJobStartRequest(stale.Id, ["build"]), cancellation));
@@ -153,6 +122,140 @@ public sealed class ToolJobServiceTests
             }
             root.Delete(recursive: true);
         }
+    }
+
+    [Fact]
+    public async Task DirectExecutionUsesFreshSettingsAndPreventsConcurrentOrDuplicateLaunches()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var root = Directory.CreateTempSubdirectory("editor-tool-direct-");
+        var config = Path.Combine(root.FullName, "fixture.json");
+        var planGate = Path.Combine(root.FullName, "pause-plan");
+        var runGate = Path.Combine(root.FullName, "finish");
+        var service = CreateService(root);
+        Task<ToolJobRun>? starting = null;
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(50));
+        var token = deadline.Token;
+        try
+        {
+            WriteBootstrap(root);
+            var request = new ToolJobDirectStartRequest(Guid.NewGuid(),
+                new ToolJobPlanRequest("01", PluginTestMode: "Selected", PluginTests: "LatestTest"));
+
+            var maintenance = await Assert.ThrowsAsync<ToolJobException>(() => service.StartDirectAsync(
+                new ToolJobDirectStartRequest(Guid.NewGuid(), new ToolJobPlanRequest("16")), token));
+            Assert.Equal(400, maintenance.StatusCode);
+
+            File.WriteAllText(config, "{}");
+            var stale = await service.CreatePlanAsync(new ToolJobPlanRequest("01", PluginTestMode: "All"), token);
+            File.WriteAllText(config, "{\"blocked\":true}");
+            var blocked = await Assert.ThrowsAsync<ToolJobException>(() => service.StartDirectAsync(request, token));
+            Assert.Equal(409, blocked.StatusCode);
+            Assert.Contains("Fixture deployment is blocked.", blocked.Message);
+            Assert.Empty(service.GetRuns());
+
+            File.WriteAllText(config, "{\"fresh\":true}");
+            File.WriteAllText(planGate, "");
+            starting = service.StartDirectAsync(request, token);
+            var repeatedDuringPreparation = await Assert.ThrowsAsync<ToolJobException>(() => service.StartDirectAsync(request, token));
+            Assert.Equal(409, repeatedDuringPreparation.StatusCode);
+            var otherService = CreateService(root);
+            var otherRequest = new ToolJobDirectStartRequest(Guid.NewGuid(), new ToolJobPlanRequest("12"));
+            var competingDuringPreparation = await Assert.ThrowsAsync<ToolJobException>(() => otherService.StartDirectAsync(otherRequest, token));
+            Assert.Equal(409, competingDuringPreparation.StatusCode);
+            File.Delete(planGate);
+            var run = await starting;
+
+            Assert.Equal(request.RequestId, run.Id);
+            Assert.NotEqual(stale.Id, run.Plan.Id);
+            Assert.True(run.Plan.WorkspaceMismatch);
+            Assert.Single(run.Plan.Confirmations);
+            Assert.Equal(run.Id, otherService.GetCapabilities().ActiveRunId);
+            Assert.Equal(run.Id, (await otherService.StartDirectAsync(request, token)).Id);
+            var competing = await Assert.ThrowsAsync<ToolJobException>(() => otherService.StartDirectAsync(otherRequest, token));
+            Assert.Equal(409, competing.StatusCode);
+            Assert.Contains("実行中", competing.Message);
+
+            File.WriteAllText(runGate, "");
+            while (service.GetRun(run.Id).FinishedAtUtc is null)
+                await Task.Delay(100, token);
+            var failed = await otherService.StartDirectAsync(request, token);
+            Assert.Equal("failed", failed.Status);
+            Assert.Equal(7, failed.ExitCode);
+            Assert.Equal("Synthetic deployment failure.", Assert.Single(service.GetLogs(run.Id, 0).Lines).Text);
+            Assert.Single(service.GetRuns());
+
+            var otherSettings = request with { Settings = request.Settings with { PluginTests = "DifferentTest" } };
+            var changed = await Assert.ThrowsAsync<ToolJobException>(() => service.StartDirectAsync(otherSettings, token));
+            Assert.Equal(409, changed.StatusCode);
+            Assert.Single(service.GetRuns());
+        }
+        finally
+        {
+            File.Delete(planGate);
+            File.WriteAllText(runGate, "");
+            if (starting is not null)
+            {
+                await Record.ExceptionAsync(() => starting);
+                using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(22));
+                while (service.GetCapabilities().ActiveRunId is not null)
+                    await Task.Delay(100, cleanup.Token);
+            }
+            root.Delete(recursive: true);
+        }
+    }
+
+    private static ToolJobService CreateService(DirectoryInfo root)
+        => new(new WorkspacePaths(root.FullName), new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["SkillTreeEditor:DesktopSessionToken"] = "fixture-token"
+            })
+            .Build());
+
+    private static void WriteBootstrap(DirectoryInfo root)
+    {
+        var tools = Directory.CreateDirectory(Path.Combine(root.FullName, "60_tool"));
+        var adapter = Directory.CreateDirectory(Path.Combine(tools.FullName, "skilltree-editor"));
+        File.WriteAllText(Path.Combine(adapter.FullName, "Invoke-EditorToolJob.ps1"), "");
+        File.WriteAllText(Path.Combine(tools.FullName, "invoke-powershell7.ps1"), """
+            param($Adapter, $Mode, $Job, $Workspace)
+            $ErrorActionPreference = 'Stop'
+            $utf8 = [Text.UTF8Encoding]::new($false)
+            function Save-Json($path, $value) {
+                [IO.File]::WriteAllText($path, ($value | ConvertTo-Json -Depth 20 -Compress), $utf8)
+            }
+            if ($Mode -eq 'Plan') {
+                $preparing = Join-Path $Workspace 'pause-plan'
+                for ($i = 0; $i -lt 200 -and (Test-Path -LiteralPath $preparing); $i++) {
+                    Start-Sleep -Milliseconds 100
+                }
+                $configPath = Join-Path $Workspace 'fixture.json'
+                $settings = Get-Content -Raw -LiteralPath $configPath | ConvertFrom-Json
+                $warnings = @()
+                if ($settings.blocked) { $warnings = @('Fixture deployment is blocked.') }
+                Save-Json (Join-Path $Job 'plan.json') @{ canRun=!$settings.blocked; workspaceMismatch=$true;
+                    warnings=$warnings; summary=@('Fixture plan'); paths=@(); confirmations=@(@{id='build';label='Build'});
+                    fingerprint=(Get-FileHash -LiteralPath $configPath).Hash }
+                exit 0
+            }
+            for ($i = 0; $i -lt 200 -and !(Test-Path -LiteralPath (Join-Path $Workspace 'finish')); $i++) {
+                Start-Sleep -Milliseconds 100
+            }
+            $statePath = Join-Path $Job 'state.json'
+            $state = Get-Content -Raw -LiteralPath $statePath | ConvertFrom-Json
+            $request = Get-Content -Raw -LiteralPath (Join-Path $Job 'request.json') | ConvertFrom-Json
+            $failed = $request.options.pluginTestMode -eq 'Selected'
+            $state.status = if ($failed) { 'failed' } else { 'succeeded' }
+            $state.exitCode = if ($failed) { 7 } else { 0 }
+            $message = if ($failed) { 'Synthetic deployment failure.' } else { 'Completed.' }
+            $log = @{ sequence=1; stream=if ($failed) { 'error' } else { 'output' }; text=$message }
+            [IO.File]::WriteAllText((Join-Path $Job 'log.jsonl'), (($log | ConvertTo-Json -Compress) + "`n"), $utf8)
+            $state.finishedAtUtc = [DateTimeOffset]::UtcNow.ToString('o')
+            Save-Json "$statePath.swap" $state
+            Move-Item -LiteralPath "$statePath.swap" -Destination $statePath -Force
+            exit $state.exitCode
+            """);
     }
 
     private static void WriteRun(string jobs, ToolJobRun run, int pid, long startedAtTicks)

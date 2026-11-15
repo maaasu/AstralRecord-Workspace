@@ -18,6 +18,9 @@ public sealed record ToolJobPlanRequest(
 public sealed record ToolJobStartRequest(Guid PlanId, string[] Confirmations);
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record ToolJobDirectStartRequest(Guid RequestId, ToolJobPlanRequest Settings);
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record ToolJobInputRequest(Guid PromptId, string Value);
 
 public sealed record ToolJobCapabilities(
