@@ -13,6 +13,7 @@ interface Props {
   preset: DesignPreset
   checkpoint: DesignCheckpoint
   disabled: boolean
+  initiallyExpanded?: boolean
   renderNumber: (entry: DesignField, title: string, max?: number) => ReactNode
   edit: (path: string, transform: (content: JsonValue) => JsonValue) => Promise<boolean>
   onExploreItem: (id: string) => void
@@ -20,9 +21,9 @@ interface Props {
 
 const skillLabel = (list: AccountSkillList) => list === 'skills' ? 'アクションリング' : 'パッシブ'
 
-export function AccountProgressionPanel({ catalog, preset, checkpoint, disabled, renderNumber, edit, onExploreItem }: Props) {
+export function AccountProgressionPanel({ catalog, preset, checkpoint, disabled, initiallyExpanded = false, renderNumber, edit, onExploreItem }: Props) {
   const [picker, setPicker] = useState<PickTarget | null>(null)
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(initiallyExpanded)
   const skillsById = new Map((catalog.skills ?? []).map(skill => [skill.id, skill]))
   const nodesById = new Map((catalog.nodes ?? []).map(node => [node.id, node]))
   const itemsById = new Map(catalog.items.map(item => [item.id, item]))

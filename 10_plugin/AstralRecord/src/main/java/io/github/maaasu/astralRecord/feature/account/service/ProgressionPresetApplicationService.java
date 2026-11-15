@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentRequirementService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.item.service.PresetEquipmentEnchant;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
@@ -166,7 +167,19 @@ public final class ProgressionPresetApplicationService {
                 || !ItemService.supportsInitialEquipmentEnhancement(item, entry.enhanceLevel())) {
                 return Result.INVALID;
             }
-            gear.put(entry.slot(), new ProgressionPresetGear(item, entry.enhanceLevel()));
+            var enchantDefinition = item.getEquipment().getEnchant();
+            if (entry.enchants().size() > (enchantDefinition == null ? 0 : enchantDefinition.getMaxSlots())) {
+                return Result.INVALID;
+            }
+            List<PresetEquipmentEnchant> enchants = new ArrayList<>();
+            for (var configured : entry.enchants()) {
+                var master = items.findEnchantMasterById(configured.enchantMasterId().substring("enchant:".length()));
+                var enchant = PresetEquipmentEnchant.resolve(master, item.getEquipment().getSlot(),
+                    configured.effectId(), configured.value());
+                if (enchant == null) return Result.INVALID;
+                enchants.add(enchant);
+            }
+            gear.put(entry.slot(), new ProgressionPresetGear(item, entry.enhanceLevel(), List.copyOf(enchants)));
         }
 
         ProgressionPresetGear mainHand = gear.get("MAIN_HAND");
