@@ -590,7 +590,9 @@ function MasterDataEditorPane({ selected = true, workspace, tabId, initialPath, 
     const container = closestContainerPointer(draft.content, targetValue !== null && typeof targetValue === 'object' ? focusPath.path : parentPointer(focusPath.path))
     const controls = Array.from(editorElement.current?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('.master-node-editor input, .master-node-editor textarea, .master-node-editor select') ?? [])
     const findControl = (label: string) => controls.find((entry) => !entry.matches(':disabled') && entry.getAttribute('aria-label') === label)
-    const inlineTarget = findControl(focusPath.path || '/')
+    const anchors = Array.from(editorElement.current?.querySelectorAll<HTMLElement>('.master-node-editor [data-master-field-path]') ?? [])
+    const anchor = anchors.find(entry => !entry.matches(':disabled') && entry.dataset.masterFieldPath === focusPath.path)
+    const inlineTarget = anchor ?? findControl(focusPath.path || '/')
     if (!inlineTarget && container !== selectedFormPath) {
       if (Object.keys(invalidInputs).length) { setNotice('編集中の数値を修正してから別の項目へ移動してください。'); setFocusPath(null); return }
       setFormPath(container)
