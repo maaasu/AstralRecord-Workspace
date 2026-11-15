@@ -11,6 +11,7 @@ import { MinecraftIcon } from './MinecraftIcon'
 import { MinecraftText } from './MinecraftText'
 import { MasterRowActions } from './MasterRowActions'
 import { isPlacementEntryUnplaced, MasterGridPlacement } from './MasterGridPlacement'
+import { MasterEntityPicker } from './MasterEntityPicker'
 import './masterReferenceCollection.css'
 
 type Definition = NonNullable<ReturnType<typeof visualReferenceCollection>>
@@ -24,8 +25,8 @@ interface Props {
   references: MasterReference[]
   disabled?: boolean
   onChange: (values: JsonValue[]) => void
-  onNavigate: (path: string) => void
-  renderNumber: (path: string, value: number, kind: 'number' | 'integer', change: (value: JsonValue) => void) => ReactNode
+  onNavigate?: (path: string) => void
+  renderNumber: (path: string, value: number | null, kind: 'number' | 'integer', change: (value: JsonValue) => void, optional?: boolean) => ReactNode
 }
 
 export function MasterReferenceCollection({ path, definition, context, values, references, disabled, onChange, onNavigate, renderNumber }: Props) {
@@ -33,6 +34,7 @@ export function MasterReferenceCollection({ path, definition, context, values, r
   const [page, setPage] = useState(0)
   const [placing, setPlacing] = useState(false)
   const opener = useRef<HTMLElement>(null)
+  const addButton = useRef<HTMLButtonElement>(null)
   const titleId = useId()
   const { byId, choices } = useMemo(() => {
     const byId = new Map<string, MasterReference | null>()
@@ -44,9 +46,17 @@ export function MasterReferenceCollection({ path, definition, context, values, r
       if (!id) continue
       byId.set(id, byId.has(id) ? null : { ...entry, value: id })
     }
-    const choices = [...byId.values()].filter((entry) => entry !== null)
+    const choices = [...byId.values()].filter((entry): entry is MasterReference =>
+      entry !== null && (!definition.candidatePath || definition.candidatePath.test(entry.path)))
     return { byId, choices }
   }, [references, definition, context.files, context.referencePrefixes])
+  const dialogChoices = useMemo(() => definition.dialog ? choices.map(entry => {
+    const file = context.files.get(entry.path)
+    return {
+      id: entry.value, name: entry.label || file?.name || entry.value, icon: file?.icon,
+      customModelData: file?.customModelData, iconTexture: file?.iconTexture,
+    }
+  }) : [], [choices, context.files, definition.dialog])
   const openPicker = (next: number | 'add', element: HTMLElement) => {
     opener.current = element
     setTarget(next === 'add' ? next : { index: next, entry: values[next] })
@@ -64,7 +74,8 @@ export function MasterReferenceCollection({ path, definition, context, values, r
   const select = (id: string) => {
     const candidate = byId.get(id)
     const file = candidate ? context.files.get(candidate.path) : undefined
-    if (disabled || targetChanged || (id && !file)) return
+    if (disabled || target === null || addButton.current?.closest('fieldset:disabled') ||
+      targetChanged || (id && (!file || definition.candidatePath && !definition.candidatePath.test(file.path)))) return
     if (target === 'add') {
       onChange([...values, newCollectionEntry(definition, values, id, file)])
       setPage(Math.floor(values.length / pageSize))
@@ -89,12 +100,13 @@ export function MasterReferenceCollection({ path, definition, context, values, r
   const chanceTotal = definition.kind === 'fishing_fish' ? fishingChanceTotal(values) : null
   return <section className="master-reference-collection" aria-labelledby={titleId}>
     <header className="master-collection-header">
-      <h4 id={titleId}>{definition.title} <small>{values.length} 件</small></h4>
+      <h4 id={titleId} tabIndex={definition.dialog ? -1 : undefined} data-master-field-path={definition.dialog ? path : undefined}>{definition.title} <small>{values.length} 件</small></h4>
       <div className="master-collection-actions">
         {placement && <button type="button" className="button compact" disabled={arranging} onClick={() => setPlacing(!placing)}>
           {placing ? definition.noun + '一覧へ' : placement === 'shop' ? '売り場の配置' : '掲示板の配置'}
         </button>}
-        {!placing && <button type="button" className="button primary" disabled={arranging} onClick={(event) => openPicker('add', event.currentTarget)}>＋ {definition.noun}を追加</button>}
+        {!placing && <button ref={addButton} type="button" className="button primary" aria-haspopup={definition.dialog ? 'dialog' : undefined}
+          disabled={arranging} onClick={(event) => openPicker('add', event.currentTarget)}>＋ {definition.noun}を追加</button>}
       </div>
     </header>
     {placing && placement ? <MasterGridPlacement kind={placement} values={values} fileForEntry={fileForEntry} onChange={onChange} disabled={disabled} /> : <>
@@ -104,6 +116,9 @@ export function MasterReferenceCollection({ path, definition, context, values, r
     {target !== null && (targetChanged
       ? <div className="master-collection-picker master-collection-picker-header"><span role="status">行の内容が変わりました。変更する行を選び直してください。</span>
         <button type="button" className="button compact subtle" onClick={closePicker}>閉じる</button></div>
+      : definition.dialog ? <MasterEntityPicker title={definition.noun + (target === 'add' ? 'を追加' : 'を変更')} choices={dialogChoices}
+        value={target === 'add' ? null : referenceId(referenceText(referenceObject(target.entry)?.[definition.key]), definition.kind, context.referencePrefixes)}
+        onSelect={select} onClose={closePicker} />
       : <ReferenceCollectionPicker key={target === 'add' ? target : target.index} choices={choices} noun={definition.noun} kind={definition.kind} files={context.files}
         disabled={disabled} adding={target === 'add'} onSelect={select} onClose={closePicker} />)}
     {values.length === 0 && <p className="master-collection-empty">まだ{definition.noun}が設定されていません。</p>}
@@ -117,7 +132,12 @@ export function MasterReferenceCollection({ path, definition, context, values, r
         const label = candidate?.label || file?.name || raw || '未設定'
         const plain = stripMinecraftFormatting(label) || raw || '未設定'
         const rowPath = `${path}/${index}`
-        const update = (key: string, value: JsonValue) => { if (data) replace(index, { ...data, [key]: value }) }
+        const update = (key: string, value: JsonValue) => {
+          if (!data) return
+          const next = { ...data, [key]: value }
+          if (value === null && definition.fields.some(field => field.key === key && field.optional)) delete next[key]
+          replace(index, next)
+        }
         const identity = <><ReferenceIcon file={file} kind={definition.kind} /><span><strong><MinecraftText value={label} /></strong>
           {definition.dropFlags && data?.hidden === true && <small className="master-collection-status">非表示</small>}
           {definition.dropFlags && data?.luckAffected === false && <small className="master-collection-status">幸運補正なし</small>}
@@ -129,20 +149,20 @@ export function MasterReferenceCollection({ path, definition, context, values, r
             {identity}<span className="master-collection-arrow" aria-hidden="true">↗</span>
           </button> : <div className="master-collection-identity unresolved">{identity}{raw && <small>参照先が見つかりません</small>}</div>}
           {data && definition.fields.length > 0 && <div className="master-collection-values">
-            {definition.fields.map(({ key, label: fieldLabel, defaultValue, input }) => {
+            {definition.fields.map(({ key, label: fieldLabel, defaultValue, input, optional }) => {
               const value = data[key] ?? defaultValue
               const fieldPath = `${rowPath}/${key}`
               return <div className="master-collection-value" key={key}><span>{fieldLabel}</span>
                 {input === 'range' && (typeof value === 'string' || typeof value === 'number')
                   ? <input aria-label={fieldPath} value={value} placeholder="1 または 1~3" disabled={target !== null} onChange={(event) => update(key, event.target.value)} />
-                  : typeof value === 'number'
-                    ? <fieldset disabled={target !== null}>{renderNumber(fieldPath, value, input === 'integer' ? 'integer' : 'number', (next) => update(key, next))}</fieldset>
+                  : typeof value === 'number' || (value === undefined && optional)
+                    ? <fieldset disabled={target !== null}>{renderNumber(fieldPath, value ?? null, input === 'integer' ? 'integer' : 'number', (next) => update(key, next), optional)}</fieldset>
                     : <small>{value === undefined && key === 'level' ? '最小レベル' : '詳細で編集'}</small>}
               </div>
             })}
           </div>}
           <div className="master-collection-actions">
-            <button type="button" className="button compact subtle" aria-label={`${rowPath} を開く`} disabled={arranging} onClick={() => onNavigate(rowPath)}>編集</button>
+            {onNavigate && <button type="button" className="button compact subtle" aria-label={`${rowPath} を開く`} disabled={arranging} onClick={() => onNavigate(rowPath)}>編集</button>}
             <MasterRowActions path={rowPath} row={entry} disabled={arranging}
               onUp={!placement && index > 0 ? () => order.move(index, index - 1) : undefined}
               onDown={!placement && index < values.length - 1 ? () => order.move(index, index + 1) : undefined}
@@ -170,11 +190,13 @@ export function fishingChanceTotal(values: JsonValue[]) {
 }
 
 const referenceSymbols: Record<string, string> = {
-  class: '◇', skill: '✦', quest: '▤', loot_pool: '▦', loot_table: '▦', recipe: '⚒', tag: '#', status: '▥', fishing_fish: '🐟',
+  class: '◇', skill: '✦', quest: '▤', loot_pool: '▦', loot_table: '▦', recipe: '⚒', tag: '#', status: '▥', fishing_fish: '🐟', world: '◎',
 }
 
+export const referenceSymbol = (kind: string | undefined) => kind && Object.hasOwn(referenceSymbols, kind) ? referenceSymbols[kind] : undefined
+
 export function ReferenceIcon({ file, kind }: { file?: MasterFileSummary; kind?: string }) {
-  const symbol = kind && Object.hasOwn(referenceSymbols, kind) ? referenceSymbols[kind] : undefined
+  const symbol = referenceSymbol(kind)
   if (!file?.icon && symbol) return <span className="minecraft-icon master-reference-icon master-reference-symbol" aria-hidden="true">{symbol}</span>
   return <MinecraftIcon icon={file?.icon ?? null} customModelData={file?.customModelData} iconTexture={file?.iconTexture} className="master-reference-icon" />
 }

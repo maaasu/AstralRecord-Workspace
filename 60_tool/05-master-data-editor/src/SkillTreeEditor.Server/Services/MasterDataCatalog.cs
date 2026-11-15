@@ -316,7 +316,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
                     var leaf = segments.LastOrDefault(segment => segment != "*") ?? key;
                     var description = Cell("説明").Replace("\\|", "|", StringComparison.Ordinal);
                     var label = Labels.GetValueOrDefault(leaf) ?? leaf;
-                    var reference = FishingReferenceKind(pointer) ?? leaf switch { "itemId" => "item", "classId" or "class" => "class", "skillId" => "skill", "enchantMasterId" => "enchant", "status" => "status", "tag" or "tags" => "tag", _ => null };
+                    var reference = FishingReferenceKind(pointer) ?? DungeonReferenceKind(category, pointer) ?? leaf switch { "itemId" => "item", "classId" or "class" => "class", "skillId" => "skill", "enchantMasterId" => "enchant", "status" => "status", "tag" or "tags" => "tag", _ => null };
                     var enumValues = scopedKey switch
                     {
                         "orb.effect.rankBasis" => new JsonArray(JsonValue.Create("CURRENT"), JsonValue.Create("TARGET")),
@@ -350,6 +350,15 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         "caughtItemId" => "item", "lootTableId" => "loot_table", "worldId" => "world",
         "rulesId" => "fishing_rules", "fishId" => "fishing_fish", _ => null
     };
+
+    private static string? DungeonReferenceKind(string category, string path) =>
+        category.Equals("65.features.dungeon", MasterDataPaths.Comparison) ? path switch
+        {
+            "/entry/worldRef" => "world",
+            "/encounter/bossMobId" or "/encounter/normalMobPool/*/mobId" => "mob",
+            "/clearRewards/lootTable" => "loot_table",
+            _ => null,
+        } : null;
 
     private static Dictionary<string, string> ReadSnippetTypes(string raw)
     {

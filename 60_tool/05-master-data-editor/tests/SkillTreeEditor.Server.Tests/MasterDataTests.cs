@@ -335,6 +335,8 @@ public sealed class MasterDataTests : IDisposable
     [InlineData("05.features.mail/v1.welcome.yml", "id: welcome\ntitle: 初ログインの贈り物\n", "初ログインの贈り物")]
     [InlineData("09.features.guide/v1.guide.yml", "id: guide\ntitle: 初めてのダンジョン\n", "初めてのダンジョン")]
     [InlineData("40.features.mob/v1.npc.yml", "id: npc\nname: 錬金術師\ntitle: 植物調合\n", "錬金術師")]
+    [InlineData("80.shared.loot/table/v1.dungeon.yml", "# design:\r\n#   motif: \"冒険 / ダンジョン共通報酬\"\r\nid: dungeon\r\n", "冒険 / ダンジョン共通報酬")]
+    [InlineData("80.shared.loot/table/v1.named.yml", "# design:\n#   motif: \"分類 / 説明\"\nid: named\ndisplayName: 共通報酬\n", "共通報酬")]
     [InlineData("test/v1.blank.yml", "id: blank\ndisplayName: ' '\nname: 名称\n", "名称")]
     [InlineData("test/v1.invalid.yml", "id: invalid\ndisplayName: {value: x}\nname: ''\ntitle: 題名\n", "題名")]
     public async Task ListAndCandidatesResolveJapaneseDisplayNamesWithoutChangingIdentity(string path, string raw, string name)
