@@ -157,7 +157,7 @@ E:\AstralRecord-Workspace\60_tool\09-astralarchitect-build-deploy.bat -BuildOnly
 E:\AstralRecord-Workspace\60_tool\09-astralarchitect-build-deploy.bat -PluginsDirectory "D:\minecraft\plugins"
 ```
 
-既定の配置先は`60_tool/astralarchitect-deploy/astralarchitect-deploy.config.json`で管理します。配置するのは`AstralArchitect.jar`だけで、既存の`plugins/AstralArchitect`データフォルダ、チケット、trash、画像は変更しません。配置スクリプトはサーバーを停止・再起動しないため、更新したJARは次回のサーバー再起動時に読み込まれます。
+既定の配置先は`60_tool/09-astralarchitect-build-deploy/astralarchitect-deploy.config.json`で管理します。配置するのは`AstralArchitect.jar`だけで、既存の`plugins/AstralArchitect`データフォルダ、チケット、trash、画像は変更しません。配置スクリプトはサーバーを停止・再起動しないため、更新したJARは次回のサーバー再起動時に読み込まれます。
 
 ## 開発上の注意
 

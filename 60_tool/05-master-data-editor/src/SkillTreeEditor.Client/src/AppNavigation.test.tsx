@@ -1,0 +1,61 @@
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { afterEach, expect, it, vi } from 'vitest'
+import App from './App'
+import { toolJobApi } from './api/toolJobApi'
+import { DockPanelContent } from './docking/dockPanel'
+
+vi.mock('./components/MasterDataEditor', () => ({ MasterDataEditor: ({ onDirtyChange }: { onDirtyChange: (value: boolean) => void }) => <DockPanelContent id="master"><label>マスターの下書き<input onChange={() => onDirtyChange(true)} /></label></DockPanelContent> }))
+vi.mock('./components/SkillTreeWorkspace', () => ({ SkillTreeWorkspace: () => <label>ツリーの下書き<input /></label> }))
+vi.mock('./components/MasterAnalytics', () => ({ MasterAnalytics: () => <p>比較の作業領域</p> }))
+vi.mock('./components/SpawnerPlanningWorkspace', () => ({ SpawnerPlanningWorkspace: () => <p>配置の作業領域</p> }))
+vi.mock('./components/ProgressionDesignWorkspace', () => ({ ProgressionDesignWorkspace: ({ onDirtyChange }: { onDirtyChange: (value: boolean) => void }) => <label>装備設計の下書き<input onChange={() => onDirtyChange(true)} /></label> }))
+
+afterEach(() => vi.restoreAllMocks())
+
+it('warns about unsaved equipment design before master reflection', async () => {
+  vi.spyOn(window, 'confirm').mockReturnValue(true)
+  vi.spyOn(toolJobApi, 'capabilities').mockResolvedValue({ enabled: true, reason: null, workspaceRoot: 'C:/fixture', activeRunId: null })
+  vi.spyOn(toolJobApi, 'runs').mockResolvedValue([])
+  render(<App />)
+  fireEvent.click(await screen.findByRole('button', { name: '装備・入手経路' }))
+  fireEvent.change(await screen.findByLabelText('装備設計の下書き'), { target: { value: '編集中' } })
+  expect(window.astralEditorHasUnsavedChanges?.()).toBe(true)
+  fireEvent.click(screen.getByRole('button', { name: /03.*マスタ反映/ }))
+  expect(await screen.findByText('未保存のマスタ編集があります。実行には保存済みのファイルを使用します。')).toBeVisible()
+})
+
+it('shows the active workspace and retains edited inputs across navigation', async () => {
+  vi.spyOn(window, 'confirm').mockReturnValue(true)
+  render(<App />)
+  const nav = within(await screen.findByRole('navigation', { name: '開発ツール' }))
+  expect(nav.getAllByRole('button')).toHaveLength(5)
+  expect(nav.getByRole('button', { name: 'マスターデータ' })).toHaveAttribute('aria-current', 'page')
+  expect(window.astralEditorHasUnsavedChanges?.()).toBe(false)
+  const draft = await screen.findByLabelText('マスターの下書き')
+  fireEvent.change(draft, { target: { value: '編集中の値' } })
+  expect(nav.getByRole('button', { name: 'マスターデータ ●' })).toHaveAttribute('aria-pressed', 'true')
+  expect(window.astralEditorHasUnsavedChanges?.()).toBe(true)
+  fireEvent.click(nav.getByRole('button', { name: 'スキルツリー' }))
+  await screen.findByLabelText('ツリーの下書き')
+  expect(draft).not.toBeVisible()
+  expect(nav.getByRole('button', { name: 'スキルツリー' })).toHaveAttribute('aria-current', 'page')
+  expect(nav.getByRole('button', { name: 'マスターデータ ●' })).not.toHaveAttribute('aria-current')
+  fireEvent.click(nav.getByRole('button', { name: 'マスターデータ ●' }))
+  expect(screen.getByLabelText('マスターの下書き')).toBe(draft)
+  expect(draft).toHaveValue('編集中の値')
+  await waitFor(() => expect(draft).toBeVisible())
+  expect(window.astralEditorHasUnsavedChanges?.()).toBe(true)
+})
+
+it('hides and restores the editing navigation without changing the current page', async () => {
+  render(<App />)
+  const draft = await screen.findByLabelText('マスターの下書き')
+  const toggle = screen.getByRole('button', { name: '編集ナビゲーション' })
+  fireEvent.click(toggle)
+  expect(toggle).toHaveAttribute('aria-pressed', 'false')
+  expect(screen.queryByRole('navigation', { name: '開発ツール' })).not.toBeInTheDocument()
+  expect(draft).toBeVisible()
+  fireEvent.click(toggle)
+  expect(await screen.findByRole('navigation', { name: '開発ツール' })).toBeVisible()
+  expect(toggle).toHaveAttribute('aria-pressed', 'true')
+})

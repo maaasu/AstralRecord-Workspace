@@ -1,17 +1,17 @@
 # 60_tool — 開発・配布・運用ツール
 
-目的から入口を選び、環境を変更したときは [設定一覧と新環境の確認事項](CONFIGURATION.md) を確認してください。番号付きBATは公開入口、用途別ディレクトリは実装です。BATはどのカレントディレクトリからでも実行できます。
+目的から入口を選び、環境を変更したときは [設定一覧と新環境の確認事項](CONFIGURATION.md) を確認してください。BATと専用ディレクトリは同じ番号と名前で対応します。BATはどのカレントディレクトリからでも実行できます。
 
 ## 普段使う入口
 
 | 目的 | 入口 | 責務・手順 |
 |---|---|---|
-| マスタ編集と更新ツールをアプリで使う | `AstralRecordMasterEditor.exe` | ZIP 展開型の Windows アプリ。マスタ編集、03・01・12・16 の計画・実行・結果。[デスクトップ版](skilltree-editor/DESKTOP.md) |
-| Devを更新する | `01-deploy-debug.bat` | 有効なAPI/Web/Plugin/Filebaseのビルド・配置、seed、Dev起動待ち、パッチ公開。[Dev更新](deploy-debug/README.md) |
-| Pluginだけ更新する | `02-deploy-debug-plugin-only.bat` | 01の`-PluginOnly`。既定でPluginテストを省略。Filebase/seedは実行しない |
-| マスタだけ更新する | `03-master-data-reload.bat` | 01の`-MasterDataOnly`。Filebase同期・seed・再読込または起動待ち・パッチ公開 |
-| マスタを編集する | `05-master-data-editor.bat` | 独立したローカルアプリをビルド・起動。[エディタ](skilltree-editor/README.md) |
-| Dev/Buildから各サーバーへ配布する | `16-maintenance.bat` | JAR・配置データ・World等の配布、起動待ち、パッチ公開。[メンテナンス配布](maintenance/README.md) |
+| マスタ編集と更新ツールをアプリで使う | `AstralRecordMasterEditor.exe` | ZIP 展開型の Windows アプリ。マスタ編集、03・01・12・16 の計画・実行・結果。[デスクトップ版](05-master-data-editor/DESKTOP.md) |
+| Devを更新する | `01-deploy-debug.bat` | 有効なAPI/Web/Plugin/Filebaseのビルド・配置、seed、Dev起動待ち、パッチ公開。[Dev更新](01-deploy-debug/README.md) |
+| Pluginだけ更新する | `02-deploy-debug-plugin-only.bat` | 01の`-PluginOnly`。既定でPluginテストを省略。[Plugin更新](02-deploy-debug-plugin-only/README.md) |
+| マスタだけ更新する | `03-master-data-reload.bat` | 01の`-MasterDataOnly`。Filebase同期・seed・再読込または起動待ち・パッチ公開。[マスタ反映](03-master-data-reload/README.md) |
+| マスタを編集する | `05-master-data-editor.bat` | 独立したローカルアプリをビルド・起動。[エディタ](05-master-data-editor/README.md) |
+| Dev/Buildから各サーバーへ配布する | `16-maintenance.bat` | JAR・配置データ・World等の配布、起動待ち、パッチ公開。[メンテナンス配布](16-maintenance/README.md) |
 
 01/02のプロセス対象はDevだけです。01はBuild・Channelが稼働中でも実行でき、`devWorkflow.controlDevLifecycle.enabled=true`ならDevの正常停止・起動をControlで自動実行します。共有API・DB・Filebaseを更新する範囲は従来と同じです。入場制限は運用者が維持します。03の共有API構成は共有RPGの停止確認を維持し、Dev専用APIと自動再読込が有効なら稼働中Devも使用できます。16の停止・起動は運用者が行います。プレイヤーの更新は次回ログイン時です。
 
@@ -20,8 +20,8 @@
 | 目的 | 入口 | 責務・手順 |
 |---|---|---|
 | AstralArchitectを更新する | `09-astralarchitect-build-deploy.bat` | Mavenテスト・ビルド後、`AstralArchitect.jar`だけ配置。`-BuildOnly`で配置省略 |
-| API/Webだけ更新する | `10-release-management-deploy.bat` | Legacy運用のAPI/Web配布。01と同じ設定優先順位を使用。Managed運用では検査のみ。`-PreflightOnly`で検査 |
-| プレイヤーを一括更新する | `17-player-patch-migration.bat` | 大きな仕様変更・復旧時のPreview/Commit。[一括更新](player-patch-migration/README.md) |
+| API/Webだけ更新する | `10-release-management-deploy.bat` | Legacy運用のAPI/Web配布。`-PreflightOnly`で検査。[API/Web配布](10-release-management-deploy/README.md) |
+| プレイヤーを一括更新する | `17-player-patch-migration.bat` | 大きな仕様変更・復旧時のPreview/Commit。[一括更新](17-player-patch-migration/README.md) |
 
 17は日常更新とは独立した明示操作です。01/02/03/16から全員分の一括更新は行いません。
 
@@ -29,11 +29,11 @@
 
 | 目的 | 入口 | 対象・手順 |
 |---|---|---|
-| ゲームDBへmigrationを適用する | `13-db-migrate.bat` | AstralRecord。[migration](db-migrate/README.md) |
-| 管理DBへmigrationを適用する | `14-management-db-migrate.bat` | ManagementDB。[管理DB migration](management-db-migrate/README.md) |
-| 履歴DBへmigrationを適用する | `15-history-db-migrate.bat` | HistoryDB。13と同じrunner、異なるmanifest |
-| ゲーム用3DBを再構築する | `04-db-rebuild.bat` | **既存データを削除**して再構築・seed。[DB再構築](db-rebuild/README.md) |
-| リリースノートを保持して3DBを再作成する | `11-db-reset-except-release-notes.bat` | リリースノート送信情報を退避・復元し、他のゲームデータを初期化。[DBリセットと復旧](db-reset-except-release-notes/README.md) |
+| ゲームDBへmigrationを適用する | `13-db-migrate.bat` | AstralRecord。[migration](13-db-migrate/README.md) |
+| 管理DBへmigrationを適用する | `14-management-db-migrate.bat` | ManagementDB。[管理DB migration](14-management-db-migrate/README.md) |
+| 履歴DBへmigrationを適用する | `15-history-db-migrate.bat` | HistoryDB。[履歴DB migration](15-history-db-migrate/README.md) |
+| ゲーム用3DBを再構築する | `04-db-rebuild.bat` | **既存データを削除**して再構築・seed。[DB再構築](04-db-rebuild/README.md) |
+| リリースノートを保持して3DBを再作成する | `11-db-reset-except-release-notes.bat` | リリースノート送信情報を退避・復元し、他のゲームデータを初期化。[DBリセットと復旧](11-db-reset-except-release-notes/README.md) |
 
 13/14/15は登録済みの非破壊migrationの適用・スキーマ検査です。04/11は初期化操作なので日常更新の代わりには使いません。ManagementDBは長期保持対象で、ゲームDB再構築・リセットの対象外です。
 
@@ -45,10 +45,10 @@ APIを含む01/10では、配置前にゲーム・History・Managementのmigrati
 
 | 目的 | 入口 | 責務・手順 |
 |---|---|---|
-| エディタのフロントだけビルドする | `06-master-data-editor-build.bat` | [エディタ](skilltree-editor/README.md)の起動・配置前準備 |
-| 共有ステータスの型を生成する | `07-generate-status-types.bat` | Kotlin/C#/TypeScript生成。[ステータス生成](status-catalog-codegen/README.md) |
-| 共有タグの型を生成・検査する | `08-generate-tag-types.bat` | Java/C#/TypeScript生成とfilebaseの参照検査。[タグ生成](tag-catalog-codegen/README.md) |
-| ネットワーク用Pluginをビルドする | `12-build-network-plugins.bat` | Lobby/Proxy/Geyser ExtensionのJAR生成。[ネットワークPlugin](network-plugin-build/README.md) |
+| エディタのフロントだけビルドする | `06-master-data-editor-build.bat` | [エディタ](05-master-data-editor/README.md)の起動・配置前準備 |
+| 共有ステータスの型を生成する | `07-generate-status-types.bat` | Kotlin/C#/TypeScript生成。[ステータス生成](07-generate-status-types/README.md) |
+| 共有タグの型を生成・検査する | `08-generate-tag-types.bat` | Java/C#/TypeScript生成とfilebaseの参照検査。[タグ生成](08-generate-tag-types/README.md) |
+| ネットワーク用Pluginをビルドする | `12-build-network-plugins.bat` | Lobby/Proxy/Geyser ExtensionのJAR生成。[ネットワークPlugin](12-build-network-plugins/README.md) |
 
 07/08の`-Check`は生成漏れの検査です。12はローカルに成果物を生成し、配布は16の責務です。
 
@@ -69,22 +69,24 @@ APIを含む01/10では、配置前にゲーム・History・Managementのmigrati
 
 | ディレクトリ・ファイル | 担当すること | 呼び出し元 |
 |---|---|---|
-| `deploy-debug/dev-update.ps1` | Dev更新の案内・状態管理 | 01/02/03 |
-| `deploy-debug/deploy-debug.ps1` | ビルド、DB migration、ファイル配置、API/Web配置前検査 | Dev更新・10 |
-| `maintenance/` | ファイル配布、診断、復旧、起動確認、パッチ公開の共通処理 | 16、Dev更新、17 |
-| `player-patch-migration/` | プレイヤー一括移行のPreview/Commit | 17 |
-| `db-rebuild/` / `db-reset-except-release-notes/` | DB初期化と復旧 | 04/11 |
-| `db-migrate/` / `management-db-migrate/` | DBごとのmanifest検査・適用 | 13/14/15、API配布 |
-| `astralarchitect-deploy/` | AstralArchitectだけのビルド・配布 | 09 |
-| `network-plugin-build/` | ネットワークPluginのビルド | 12 |
-| `skilltree-editor/` | マスタ編集アプリ。実行ツール群から独立したWebアプリ | 05/06 |
-| `status-catalog-codegen/` / `tag-catalog-codegen/` | 共有カタログから型生成 | 07/08の直下PS1 |
+| `01-deploy-debug/dev-update.ps1` | Dev更新の案内・状態管理 | 01/02/03 |
+| `01-deploy-debug/deploy-debug.ps1` | ビルド、DB migration、ファイル配置、API/Web配置前検査 | Dev更新・10 |
+| `02-deploy-debug-plugin-only/runs/` / `03-master-data-reload/runs/` | Plugin更新・マスタ反映の実行記録 | 02/03 |
+| `10-release-management-deploy/` | API/Web配布の手順 | 10 |
+| `16-maintenance/` | ファイル配布、診断、復旧、起動確認、パッチ公開の共通処理 | 16、Dev更新、17 |
+| `17-player-patch-migration/` | プレイヤー一括移行のPreview/Commit | 17 |
+| `04-db-rebuild/` / `11-db-reset-except-release-notes/` | DB初期化と復旧 | 04/11 |
+| `13-db-migrate/` / `14-management-db-migrate/` / `15-history-db-migrate/` | DBごとのmanifest検査・適用。15は13のrunnerを共有 | 13/14/15、API配布 |
+| `09-astralarchitect-build-deploy/` | AstralArchitectだけのビルド・配布 | 09 |
+| `12-build-network-plugins/` | ネットワークPluginのビルド | 12 |
+| `05-master-data-editor/` | マスタ編集アプリ。06でビルドするフロントエンドと出力も格納 | 05/06 |
+| `07-generate-status-types/` / `08-generate-tag-types/` | 共有カタログから型生成 | 07/08 |
 | `control-deploy/` / `control-gate/` | Controlの導入・共通gate | 管理者手順・保守入口 |
-| `master-data-reload/` | **旧詳細操作**のFilebase同期・API seed。03は使用しない | PS1直接実行のみ |
+| `03-master-data-reload/legacy/` | **旧詳細操作**のFilebase同期・API seed。03は使用しない | PS1直接実行のみ |
 | `invoke-powershell7.ps1` | PowerShell 7の検出・起動とビルド環境の設定 | 01/02/03/09/10/12/16/17 |
 | `tests/` | 複数のDBツールにまたがる保護・移行検証 | 開発時 |
 
-公開BAT名・実装パスは、外部参照と既存runの復旧に対応しています。用途分類はこの表を正本とし、単なる整理のために移動・改名しません。
+Control・ワールド解析・環境切替などの補助ツールは、それぞれの用途名で参照できます。番号付け前のローカル設定や履歴を移す手順は [設定ガイド](CONFIGURATION.md#番号付きディレクトリへの移行) を参照してください。
 
 ## 実行環境と設定
 

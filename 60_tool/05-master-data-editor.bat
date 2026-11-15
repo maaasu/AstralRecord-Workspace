@@ -2,7 +2,7 @@
 setlocal EnableExtensions DisableDelayedExpansion
 set "ERRORLEVEL="
 
-set "TOOL_DIR=%~dp0skilltree-editor"
+set "TOOL_DIR=%~dp005-master-data-editor"
 set "BUILD_SCRIPT=%~dp006-master-data-editor-build.bat"
 
 pushd "%TOOL_DIR%"

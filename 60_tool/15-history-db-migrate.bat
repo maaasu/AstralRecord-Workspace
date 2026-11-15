@@ -1,10 +1,11 @@
 @echo off
 setlocal
 
-set "TOOL_DIR=%~dp0db-migrate"
+set "TOOL_DIR=%~dp015-history-db-migrate"
 set "CONFIG_PATH=%TOOL_DIR%\history-db-migrate.config.json"
+if exist "%~dp0db-migrate\history-db-migrate.local.json" set "CONFIG_PATH=%~dp0db-migrate\history-db-migrate.local.json"
 if exist "%TOOL_DIR%\history-db-migrate.local.json" set "CONFIG_PATH=%TOOL_DIR%\history-db-migrate.local.json"
-dotnet run --project "%TOOL_DIR%\DbMigrateTool.csproj" -- --config "%CONFIG_PATH%" %*
+dotnet run --project "%~dp013-db-migrate\DbMigrateTool.csproj" -- --config "%CONFIG_PATH%" %*
 set "EXIT_CODE=%ERRORLEVEL%"
 
 echo.

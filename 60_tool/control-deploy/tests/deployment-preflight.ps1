@@ -57,9 +57,9 @@ try {
     Set-MockRunnerSnapshot @{runnerEpoch=[Guid]::NewGuid().ToString();holds=@();servers=@(@{serverId=[Guid]::NewGuid().ToString();processState='Unmanaged';currentSessionId=$null})}
     Assert-Throws { Assert-ControlRunnerUpdateReady $mockCli 'AstralRecordControl.Runner.v1' }
     $toolRoot=Join-Path $temp 'tools'
-    $entries=@('control-gate\Control.Gate.psm1','deploy-debug\dev-update.ps1','deploy-debug\deploy-debug.ps1',
-        'maintenance\maintenance.ps1','maintenance\UpdateWorkflow.ps1','player-patch-migration\player-patch-migration.ps1',
-        'master-data-reload\master-data-reload.ps1')
+    $entries=@('control-gate\Control.Gate.psm1','01-deploy-debug\dev-update.ps1','01-deploy-debug\deploy-debug.ps1','01-deploy-debug\DevRunRoot.ps1',
+        '16-maintenance\maintenance.ps1','16-maintenance\UpdateWorkflow.ps1','16-maintenance\WorkflowRunRoot.ps1','17-player-patch-migration\player-patch-migration.ps1',
+        '03-master-data-reload\legacy\master-data-reload.ps1')
     foreach ($entry in $entries) {
         $path=Join-Path $toolRoot $entry
         New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($path)) -Force | Out-Null

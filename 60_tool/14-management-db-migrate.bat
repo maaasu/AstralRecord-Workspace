@@ -1,8 +1,9 @@
 @echo off
 setlocal
 
-set "TOOL_DIR=%~dp0management-db-migrate"
+set "TOOL_DIR=%~dp014-management-db-migrate"
 set "CONFIG_PATH=%TOOL_DIR%\management-db-migrate.config.json"
+if exist "%~dp0management-db-migrate\management-db-migrate.local.json" set "CONFIG_PATH=%~dp0management-db-migrate\management-db-migrate.local.json"
 if exist "%TOOL_DIR%\management-db-migrate.local.json" set "CONFIG_PATH=%TOOL_DIR%\management-db-migrate.local.json"
 dotnet run --project "%TOOL_DIR%\ManagementDbMigrateTool.csproj" -- --config "%CONFIG_PATH%" %*
 set "EXIT_CODE=%ERRORLEVEL%"

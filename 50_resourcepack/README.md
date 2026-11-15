@@ -333,7 +333,7 @@ Java 版の立体装備141点は、握りの中心と左右の一人称表示を
 ## サーバー配布
 
 1. 初回は [Geyser Extension の導入手順](../10_plugin/AstralRecordGeyserExtension/README.md) に従い、Velocity の拡張を更新します。起動時と以後60秒ごとにAPIのBedrockパックを確認し、新しい接続へ配布します。
-2. API・Web・Plugin を有効にした設定で [01-deploy-debug.bat](../60_tool/deploy-debug/README.md) を実行します。API の配置物に両パックと最新ハッシュを含めます。
+2. API・Web・Plugin を有効にした設定で [01-deploy-debug.bat](../60_tool/01-deploy-debug/README.md) を実行します。API の配置物に両パックと最新ハッシュを含めます。
 3. Java 版はゲームサーバーから公開WebのダウンロードURLを受け取ります。配布先を変える場合は RPG Plugin の `resourcePack.managed.publicBaseUrl` を設定します。統合版は Geyser の接続時にパックを受け取ります。更新したパックの適用は再接続時です。Java ZIP は公開 Web の受信上限 250 MiB 以内に収め、配置後に公開 URL から取得した ZIP の SHA-1 がマニフェストと一致することを確認します。
 
 アクションリングやスキル表示の更新時は、対応する両版パックを API へ公開してから RPG Plugin を更新します。統合版のアイテム登録に更新を反映するには Geyser プロキシを再起動し、クライアントを再接続します。旧パックでは新規のスキル表示用モデルが紙の見た目になります。

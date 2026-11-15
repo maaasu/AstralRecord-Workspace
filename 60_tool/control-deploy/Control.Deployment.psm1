@@ -115,9 +115,9 @@ function Set-ControlManagedMarkerAcl([string]$Path) {
 function Enable-ControlManagedOperations([string]$ToolRoot, [switch]$Renew, [string]$CliPath = '', [string]$PipeName = '') {
     if (!$IsWindows) { throw 'Managed operations attestation requires Windows.' }
     $root=Get-ControlAbsolutePath $ToolRoot
-    $files=@('control-gate\Control.Gate.psm1','deploy-debug\dev-update.ps1','deploy-debug\deploy-debug.ps1',
-        'maintenance\maintenance.ps1','maintenance\UpdateWorkflow.ps1','player-patch-migration\player-patch-migration.ps1',
-        'master-data-reload\master-data-reload.ps1')
+    $files=@('control-gate\Control.Gate.psm1','01-deploy-debug\dev-update.ps1','01-deploy-debug\deploy-debug.ps1','01-deploy-debug\DevRunRoot.ps1',
+        '16-maintenance\maintenance.ps1','16-maintenance\UpdateWorkflow.ps1','16-maintenance\WorkflowRunRoot.ps1','17-player-patch-migration\player-patch-migration.ps1',
+        '03-master-data-reload\legacy\master-data-reload.ps1')
     $hashes=[ordered]@{}
     foreach ($file in $files) {
         $path=Join-Path $root $file

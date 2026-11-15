@@ -1,0 +1,793 @@
+import { usePanelDocument } from '../docking/dockPanel'
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
+import {
+  Background,
+  BackgroundVariant,
+  applyNodeChanges,
+  getViewportForBounds,
+  Handle,
+  MiniMap,
+  Panel,
+  Position,
+  ReactFlow,
+  ReactFlowProvider,
+  useReactFlow,
+  useStore,
+  type Connection,
+  type Edge,
+  type EdgeChange,
+  type Node,
+  type NodeChange,
+  type NodeHandle,
+  type NodeProps,
+  type ReactFlowState,
+} from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
+import type { ClassMasterSummary, NodeMaster, SkillMasterSummary, StructureDocument } from '../types/editor'
+import { MinecraftIcon } from './MinecraftIcon'
+import { stripMinecraftFormatting } from '../utils/minecraft'
+import { describeNodeCost, describeNodeEffects, nodeTooltip, type NodeEffectPresentation } from '../data/nodeEffectPresentation'
+import { masterTagTooltip } from '../data/masterTagPresentation'
+
+/** 一覧からキャンバスへ渡す、1回分の移動要求。 */
+export interface CanvasFocusRequest {
+  nodeId: string
+}
+
+interface SkillTreeCanvasProps {
+  structure: StructureDocument
+  masters: NodeMaster[]
+  onRecord: (structure: StructureDocument) => boolean | void
+  onReplace: (structure: StructureDocument) => void
+  onBeginTransaction: () => void
+  onCommitTransaction: () => void
+  onSelectedNode: (nodeId: string | null) => boolean | void
+  onEditMaster: (node: NodeMaster) => void
+  onNotify: (message: string) => void
+  iconRevision?: number
+  visibleNodeIds?: ReadonlySet<string> | null
+  skillMasters?: readonly SkillMasterSummary[]
+  classMasters?: readonly ClassMasterSummary[]
+  nodeSize?: number
+  selectedNodeId?: string | null
+  focusRequest?: CanvasFocusRequest | null
+  onFocusHandled?: (request: CanvasFocusRequest) => void
+}
+
+/** マスター定義と一覧だけで決まる表示内容。配置や選択が変わっても作り直さない。 */
+interface NodePresentation {
+  label: string
+  icon: NodeMaster['icon']
+  effects: NodeEffectPresentation[]
+  costTitle: string
+  title: string
+}
+
+interface SkillNodeData extends Record<string, unknown> {
+  presentation: NodePresentation
+  nodeId: string
+  y: number
+  root: boolean
+  iconRevision: number
+  nodeSize: number
+}
+
+type SkillFlowNode = Node<SkillNodeData>
+
+interface NodeDescriptor {
+  id: string
+  x: number
+  y: number
+  level: number
+  root: boolean
+  presentation: NodePresentation
+}
+
+interface EdgeTopology {
+  id: string
+  first: string
+  second: string
+}
+
+interface CachedEdge {
+  firstX?: number
+  firstY?: number
+  secondX?: number
+  secondY?: number
+  selected: boolean
+  connected: boolean
+  edge: Edge
+}
+
+interface NodeContextMenuState {
+  nodeId: string
+  targetIds: string[]
+  x: number
+  y: number
+}
+
+const BLOCK_SCALE = 36
+const GRID: [number, number] = [BLOCK_SCALE / 10, BLOCK_SCALE / 10]
+const EMPTY_SKILL_MASTERS: readonly SkillMasterSummary[] = []
+const EMPTY_CLASS_MASTERS: readonly ClassMasterSummary[] = []
+/** styles.css の `.skill-node` の枠線幅。ハンドル位置を描画前に求めるために使う。 */
+const NODE_BORDER = 2
+const HANDLE_SIZE = 8
+const HANDLE_STYLE: CSSProperties = { width: HANDLE_SIZE, height: HANDLE_SIZE }
+/** この件数までは全体を収めて全ノードを描画する。超える構造は起点を中心に開き、画面外の描画を省く。 */
+const SMALL_TREE_NODE_LIMIT = 150
+const FOCUS_ZOOM = 0.9
+/** これより縮小した表示では文字と影を省き、全体の形を見やすくする。 */
+const OVERVIEW_ZOOM = 0.45
+const DEFAULT_MIN_ZOOM = 0.1
+const MAX_ZOOM = 2.5
+const VIEW_ANIMATION_MS = 220
+
+export function SkillTreeCanvas(props: SkillTreeCanvasProps) {
+  return (
+    <ReactFlowProvider>
+      <CanvasInner {...props} />
+    </ReactFlowProvider>
+  )
+}
+
+function CanvasInner({
+  structure,
+  masters,
+  onRecord,
+  onReplace,
+  onBeginTransaction,
+  onCommitTransaction,
+  onSelectedNode,
+  onEditMaster,
+  onNotify,
+  iconRevision = 0,
+  visibleNodeIds = null,
+  skillMasters = EMPTY_SKILL_MASTERS,
+  classMasters = EMPTY_CLASS_MASTERS,
+  nodeSize = 56,
+  selectedNodeId = null,
+  focusRequest = null,
+  onFocusHandled,
+}: SkillTreeCanvasProps) {
+  const { screenToFlowPosition, setViewport, zoomIn, zoomOut, getZoom, getViewport, getNodes, getNodesBounds, viewportInitialized } = useReactFlow<SkillFlowNode>()
+  const canvasRef = useRef<HTMLDivElement>(null)
+  const pendingDragPositions = useRef(new Map<string, { x: number; z: number }>())
+  const initializedView = useRef(false)
+  const appliedVisibility = useRef(visibleNodeIds)
+  const handledFocusRequest = useRef<CanvasFocusRequest | null>(null)
+  const acceptedSelection = useRef<{ nodes: string[]; edges: string[] }>({ nodes: [], edges: [] })
+  const [selectedEdgeIds, setSelectedEdgeIds] = useState<Set<string>>(() => new Set())
+  const [contextMenu, setContextMenu] = useState<NodeContextMenuState | null>(null)
+  const overview = useStore(isOverviewZoom)
+  const masterMap = useMemo(() => new Map(masters.map((node) => [node.nodeId, node])), [masters])
+  // スキル・職業の一覧が変わるまで、マスター1件につき説明文を1回だけ組み立てる。
+  const presentations = useMemo(() => {
+    const known = new WeakMap<NodeMaster, NodePresentation>()
+    const unknown = new Map<string, NodePresentation>()
+    return {
+      forNode(nodeId: string, master: NodeMaster | undefined): NodePresentation {
+        let presentation = master ? known.get(master) : unknown.get(nodeId)
+        if (presentation) return presentation
+        presentation = master ? describeMaster(master, skillMasters, classMasters) : describeUnknown(nodeId)
+        if (master) known.set(master, presentation)
+        else unknown.set(nodeId, presentation)
+        return presentation
+      },
+    }
+  }, [classMasters, skillMasters])
+  const descriptors = useMemo<NodeDescriptor[]>(() => structure.nodes
+    .filter((placement) => !visibleNodeIds || visibleNodeIds.has(placement.nodeId))
+    .map((placement) => ({
+      id: placement.nodeId,
+      x: placement.x * BLOCK_SCALE,
+      y: placement.z * BLOCK_SCALE,
+      level: placement.y,
+      root: placement.nodeId === structure.rootNodeId,
+      presentation: presentations.forNode(placement.nodeId, masterMap.get(placement.nodeId)),
+    })),
+    [masterMap, presentations, structure.nodes, structure.rootNodeId, visibleNodeIds],
+  )
+
+  // 変わったノードだけを新しいオブジェクトにする。選択・計測済みの寸法・ドラッグ中の状態は引き継ぐので、
+  // 1件の移動や選択で全ノードを描画し直さない。
+  const [flowNodes, setFlowNodes] = useState<SkillFlowNode[]>(() => reconcileNodes([], descriptors, nodeSize, iconRevision, selectedNodeId))
+  const [syncedInputs, setSyncedInputs] = useState({ descriptors, nodeSize, iconRevision })
+  if (syncedInputs.descriptors !== descriptors || syncedInputs.nodeSize !== nodeSize || syncedInputs.iconRevision !== iconRevision) {
+    setSyncedInputs({ descriptors, nodeSize, iconRevision })
+    setFlowNodes(reconcileNodes(flowNodes, descriptors, nodeSize, iconRevision, selectedNodeId))
+  }
+
+  const topology = useMemo<EdgeTopology[]>(() => structure.edges
+    .filter((edge) => !visibleNodeIds
+      || visibleNodeIds.has(edge.sourceNodeId) && visibleNodeIds.has(edge.targetNodeId))
+    .map((edge) => {
+      const first = edge.sourceNodeId
+      const second = edge.targetNodeId
+      return { id: edgeId(first, second), first, second }
+    }),
+    [structure.edges, visibleNodeIds],
+  )
+  // 前回の経路を覚えておき、端のノードが動いた接続と選択が変わった接続だけを作り直す。
+  const edgeCache = useMemo(() => new Map<string, CachedEdge>(), [])
+  const edges = useMemo<Edge[]>(() => {
+    const positions = new Map<string, { x: number; y: number }>()
+    const selectedNodes = new Set<string>()
+    for (const node of flowNodes) {
+      positions.set(node.id, node.position)
+      if (node.selected) selectedNodes.add(node.id)
+    }
+    const next = topology.map(({ id, first, second }) => {
+      const firstPosition = positions.get(first)
+      const secondPosition = positions.get(second)
+      const selected = selectedEdgeIds.has(id)
+      const connected = selectedNodes.has(first) || selectedNodes.has(second)
+      const cached = edgeCache.get(id)
+      if (cached && cached.selected === selected && cached.connected === connected
+        && cached.firstX === firstPosition?.x && cached.firstY === firstPosition?.y
+        && cached.secondX === secondPosition?.x && cached.secondY === secondPosition?.y) return cached.edge
+      const edge: Edge = {
+        id,
+        ...routeBetween(first, second, firstPosition, secondPosition),
+        type: 'straight',
+        className: connected ? 'skill-edge connected' : 'skill-edge',
+        selected,
+      }
+      edgeCache.set(id, {
+        firstX: firstPosition?.x, firstY: firstPosition?.y, secondX: secondPosition?.x, secondY: secondPosition?.y,
+        selected, connected, edge,
+      })
+      return edge
+    })
+    if (edgeCache.size > next.length) {
+      const live = new Set(next.map((edge) => edge.id))
+      for (const id of edgeCache.keys()) if (!live.has(id)) edgeCache.delete(id)
+    }
+    return next
+  }, [edgeCache, flowNodes, selectedEdgeIds, topology])
+
+  const largeTree = descriptors.length > SMALL_TREE_NODE_LIMIT
+  const visibleRoot = useMemo(() => descriptors.find((node) => node.root), [descriptors])
+  const [overviewMinZoom, setOverviewMinZoom] = useState(DEFAULT_MIN_ZOOM)
+
+  const onNodesChange = useCallback((changes: NodeChange<SkillFlowNode>[]) => {
+    for (const change of changes) {
+      if (change.type === 'position' && change.position) {
+        pendingDragPositions.current.set(change.id, {
+          x: toTenthBlock(change.position.x / BLOCK_SCALE),
+          z: toTenthBlock(change.position.y / BLOCK_SCALE),
+        })
+      }
+    }
+    // 削除は構造の更新が承認された場合にだけ、配置データの変更として反映する。
+    const localChanges = changes.filter((change) => change.type !== 'remove')
+    if (localChanges.length > 0) setFlowNodes((current) => applyNodeChanges(localChanges, current))
+  }, [])
+
+  const commitDraggedNodes = useCallback(() => {
+    const positions = pendingDragPositions.current
+    if (positions.size) {
+      pendingDragPositions.current = new Map()
+      onReplace({
+        ...structure,
+        nodes: structure.nodes.map((placement) => {
+          const position = positions.get(placement.nodeId)
+          return position ? { ...placement, ...position } : placement
+        }),
+      })
+    }
+    onCommitTransaction()
+  }, [onCommitTransaction, onReplace, structure])
+
+  const onEdgesChange = useCallback((changes: EdgeChange<Edge>[]) => {
+    setSelectedEdgeIds((current) => {
+      let next: Set<string> | null = null
+      for (const change of changes) {
+        if (change.type !== 'select') continue
+        const selected = (next ?? current).has(change.id)
+        if (selected === change.selected) continue
+        next ??= new Set(current)
+        if (change.selected) next.add(change.id)
+        else next.delete(change.id)
+      }
+      return next ?? current
+    })
+  }, [])
+
+  const connect = useCallback((connection: Connection) => {
+    if (!connection.source || !connection.target || connection.source === connection.target) return
+    const sourceNodeId = connection.source < connection.target ? connection.source : connection.target
+    const targetNodeId = connection.source < connection.target ? connection.target : connection.source
+    if (structure.edges.some((edge) => edgeId(edge.sourceNodeId, edge.targetNodeId) === edgeId(sourceNodeId, targetNodeId))) return
+    onRecord({
+      ...structure,
+      edges: [...structure.edges, { sourceNodeId, targetNodeId }],
+    })
+  }, [onRecord, structure])
+
+  const removeElements = useCallback((ids: Set<string>, edgeIds: Set<string> = new Set()) => {
+    if (!ids.size && !edgeIds.size) return
+    const nextEdges = structure.edges.filter((edge) => !ids.has(edge.sourceNodeId) && !ids.has(edge.targetNodeId)
+      && !edgeIds.has(edgeId(edge.sourceNodeId, edge.targetNodeId)))
+    if (onRecord({
+      ...structure,
+      rootNodeId: ids.has(structure.rootNodeId) ? '' : structure.rootNodeId,
+      nodes: ids.size ? structure.nodes.filter((node) => !ids.has(node.nodeId)) : structure.nodes,
+      edges: nextEdges,
+    }) === false) return
+
+    setSelectedEdgeIds((current) => {
+      if (!current.size) return current
+      const remaining = new Set(nextEdges.map((edge) => edgeId(edge.sourceNodeId, edge.targetNodeId)))
+      return new Set([...current].filter((id) => remaining.has(id)))
+    })
+  }, [onRecord, structure])
+
+  const selectionChanged = useCallback(({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) => {
+    const previous = acceptedSelection.current
+    const nodeIds = nodes.map((node) => node.id)
+    const edgeIds = edges.map((edge) => edge.id)
+    if (nodeIds[0] !== previous.nodes[0] && onSelectedNode(nodeIds[0] ?? null) === false) {
+      setFlowNodes((current) => selectNodes(current, new Set(previous.nodes)))
+      setSelectedEdgeIds(new Set(previous.edges))
+      return
+    }
+    acceptedSelection.current = { nodes: nodeIds, edges: edgeIds }
+  }, [onSelectedNode])
+
+  const validConnection = useCallback((connection: Edge | Connection) => Boolean(
+    connection.source
+    && connection.target
+    && connection.source !== connection.target
+    && !structure.edges.some((edge) => edgeId(edge.sourceNodeId, edge.targetNodeId) === edgeId(connection.source, connection.target)),
+  ), [structure.edges])
+
+  const window = usePanelDocument().defaultView!
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setContextMenu(null)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [window])
+
+  const openNodeContextMenu = useCallback((event: ReactMouseEvent, node: Node) => {
+    event.preventDefault()
+    const selected = getNodes().filter((entry) => entry.selected).map((entry) => entry.id)
+    const alreadySelected = selected.includes(node.id)
+    if (!alreadySelected) {
+      if (onSelectedNode(node.id) === false) return
+      setFlowNodes((current) => selectNodes(current, new Set([node.id])))
+    }
+    setSelectedEdgeIds((current) => current.size ? new Set() : current)
+
+    const bounds = canvasRef.current?.getBoundingClientRect()
+    const localX = event.clientX - (bounds?.left ?? 0)
+    const localY = event.clientY - (bounds?.top ?? 0)
+    const availableWidth = bounds?.width ?? 0
+    const availableHeight = bounds?.height ?? 0
+    setContextMenu({
+      nodeId: node.id,
+      targetIds: alreadySelected ? selected : [node.id],
+      x: clampMenuPosition(localX, availableWidth, 230),
+      y: clampMenuPosition(localY, availableHeight, 250),
+    })
+  }, [getNodes, onSelectedNode])
+
+  const deleteConnections = useCallback((nodeId: string) => {
+    onRecord({
+      ...structure,
+      edges: structure.edges.filter((edge) => edge.sourceNodeId !== nodeId && edge.targetNodeId !== nodeId),
+    })
+    setContextMenu(null)
+  }, [onRecord, structure])
+
+  const copyNodeId = useCallback(async (nodeId: string) => {
+    try {
+      await navigator.clipboard.writeText(nodeId)
+      onNotify(`nodeId '${nodeId}' をコピーしました。`)
+    } catch {
+      onNotify(`nodeId: ${nodeId}（クリップボードへコピーできませんでした）`)
+    } finally {
+      setContextMenu(null)
+    }
+  }, [onNotify])
+
+  const centerOnNode = useCallback((node: { x: number; y: number }, animate: boolean) => {
+    const bounds = canvasRef.current?.getBoundingClientRect()
+    if (!bounds?.width || !bounds.height) return false
+    const zoom = animate ? Math.max(getZoom(), FOCUS_ZOOM) : FOCUS_ZOOM
+    void setViewport(
+      { x: bounds.width / 2 - (node.x + nodeSize / 2) * zoom, y: bounds.height / 2 - (node.y + nodeSize / 2) * zoom, zoom },
+      { duration: animate ? VIEW_ANIMATION_MS : 0 },
+    )
+    return true
+  }, [getZoom, nodeSize, setViewport])
+
+  const showSelection = useCallback(() => {
+    const selected = getNodes().find((node) => node.selected)
+    if (selected) centerOnNode(selected.position, true)
+  }, [centerOnNode, getNodes])
+
+  const fitNodes = useCallback((rect: { width: number; height: number }, animate: boolean) => {
+    const nodes = getNodes()
+    if (!nodes.length || !rect.width || !rect.height) return
+    const viewport = getViewportForBounds(getNodesBounds(nodes), rect.width, rect.height, 0, MAX_ZOOM, 0.1)
+    setOverviewMinZoom((current) => Math.min(current, viewport.zoom))
+    // 大規模な構造では、中間倍率ごとに画面へ入るノードを描画する処理を省く。
+    void setViewport(viewport, { duration: animate && !largeTree ? VIEW_ANIMATION_MS : 0 })
+  }, [getNodes, getNodesBounds, largeTree, setViewport])
+
+  const showAll = useCallback(() => {
+    const bounds = canvasRef.current?.getBoundingClientRect()
+    if (bounds) fitNodes(bounds, true)
+  }, [fitNodes])
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!viewportInitialized || !canvas) return
+    if (!focusRequest && initializedView.current && appliedVisibility.current === visibleNodeIds) return
+
+    // 狭幅で他のペインを開いている間は、キャンバスに実際の幅が入るまで待つ。
+    const updateView = () => {
+      const bounds = canvas.getBoundingClientRect()
+      if (!bounds.width || !bounds.height) return false
+      if (focusRequest && handledFocusRequest.current !== focusRequest) {
+        const target = descriptors.find((node) => node.id === focusRequest.nodeId)
+        if (target) {
+          if (onSelectedNode(target.id) !== false) {
+            centerOnNode(target, initializedView.current)
+            initializedView.current = true
+            setContextMenu(null)
+            setFlowNodes((current) => selectNodes(current, new Set([target.id])))
+            setSelectedEdgeIds((current) => current.size ? new Set() : current)
+          }
+        } else {
+          onNotify(`ノード #${focusRequest.nodeId} は現在の表示条件ではキャンバスに表示されていません。`)
+        }
+        handledFocusRequest.current = focusRequest
+        onFocusHandled?.(focusRequest)
+      }
+      const filterChanged = appliedVisibility.current !== visibleNodeIds
+      appliedVisibility.current = visibleNodeIds
+      if (!descriptors.length) return true
+      const viewport = getViewport()
+      const entry = visibleRoot ?? descriptors[0]
+      if (!initializedView.current) {
+        initializedView.current = true
+        const selected = descriptors.find((node) => node.id === selectedNodeId)
+        if (largeTree) centerOnNode(selected ?? entry, false)
+        else fitNodes(bounds, false)
+      } else if (filterChanged && !descriptors.some((node) => isNodeInView(node, nodeSize, bounds, viewport))) {
+        if (largeTree) centerOnNode(entry, false)
+        else fitNodes(bounds, false)
+      }
+      return true
+    }
+    if (updateView()) return
+    const observer = new ResizeObserver(() => { if (updateView()) observer.disconnect() })
+    observer.observe(canvas)
+    return () => observer.disconnect()
+  }, [centerOnNode, descriptors, fitNodes, focusRequest, getViewport, largeTree, nodeSize, onFocusHandled, onNotify, onSelectedNode, selectedNodeId, viewportInitialized, visibleNodeIds, visibleRoot])
+
+  const contextMaster = contextMenu ? masterMap.get(contextMenu.nodeId) : undefined
+  const contextHasEdges = contextMenu
+    ? structure.edges.some((edge) => edge.sourceNodeId === contextMenu.nodeId || edge.targetNodeId === contextMenu.nodeId)
+    : false
+  const hasSelectedNode = useMemo(() => flowNodes.some((node) => node.selected), [flowNodes])
+
+  return (
+    <div
+      className={overview ? 'canvas overview' : 'canvas'}
+      ref={canvasRef}
+      onDragOver={(event) => {
+        event.preventDefault()
+        event.dataTransfer.dropEffect = 'copy'
+      }}
+      onDrop={(event) => {
+        event.preventDefault()
+        const nodeId = event.dataTransfer.getData('application/x-astral-node')
+        if (!nodeId || structure.nodes.some((node) => node.nodeId === nodeId)) return
+        const position = screenToFlowPosition({ x: event.clientX, y: event.clientY }, { snapToGrid: true })
+        onRecord({
+          ...structure,
+          rootNodeId: structure.rootNodeId || nodeId,
+          nodes: [...structure.nodes, {
+            nodeId,
+            x: toTenthBlock(position.x / BLOCK_SCALE),
+            y: 0,
+            z: toTenthBlock(position.y / BLOCK_SCALE),
+          }],
+        })
+      }}
+    >
+      <ReactFlow
+        nodes={flowNodes}
+        edges={edges}
+        nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onDelete={({ nodes, edges }) => removeElements(new Set(nodes.map((node) => node.id)), new Set(edges.map((edge) => edge.id)))}
+        onNodeDragStart={() => {
+          pendingDragPositions.current = new Map()
+          setContextMenu(null)
+          onBeginTransaction()
+        }}
+        onNodeDragStop={commitDraggedNodes}
+        onConnect={connect}
+        onSelectionChange={selectionChanged}
+        onNodeContextMenu={openNodeContextMenu}
+        onNodeDoubleClick={(_, node) => {
+          const master = masterMap.get(node.id)
+          if (master) onEditMaster(master)
+        }}
+        onPaneClick={() => setContextMenu(null)}
+        onMoveStart={() => setContextMenu(null)}
+        isValidConnection={validConnection}
+        snapToGrid
+        snapGrid={GRID}
+        deleteKeyCode={['Backspace', 'Delete']}
+        selectionOnDrag={false}
+        selectionKeyCode="Shift"
+        multiSelectionKeyCode={['Control', 'Meta', 'Shift']}
+        panOnDrag={[0, 1, 2]}
+        onlyRenderVisibleElements={largeTree}
+        minZoom={overviewMinZoom}
+        maxZoom={MAX_ZOOM}
+      >
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1.4} color="#3c4a61" />
+        <MiniMap pannable zoomable nodeColor={miniMapNodeColor} bgColor="#151e2b" maskColor="#080c13b8" maskStrokeColor="#78cfca" maskStrokeWidth={1.5} ariaLabel="構造全体のミニマップ" />
+        <Panel position="top-right" className="canvas-controls">
+          <div className="canvas-zoom" role="group" aria-label="表示倍率">
+            <button type="button" aria-label="縮小" title="縮小" onClick={() => void zoomOut({ duration: VIEW_ANIMATION_MS })}>−</button>
+            <ZoomLevel />
+            <button type="button" aria-label="拡大" title="拡大" onClick={() => void zoomIn({ duration: VIEW_ANIMATION_MS })}>＋</button>
+          </div>
+          <button type="button" title={visibleRoot ? '起点ノードを中央に表示' : '表示中の起点ノードがありません'} disabled={!visibleRoot} onClick={() => { if (visibleRoot) centerOnNode(visibleRoot, true) }}>起点へ</button>
+          <button type="button" title="選択中のノードを中央に表示" disabled={!hasSelectedNode} onClick={showSelection}>選択へ</button>
+          <button type="button" title="表示中のノード全体が収まるように表示" disabled={!flowNodes.length} onClick={showAll}>全体表示</button>
+        </Panel>
+      </ReactFlow>
+      {contextMenu && (
+        <div
+          className="node-context-menu"
+          role="menu"
+          aria-label={`ノード #${contextMenu.nodeId} の操作`}
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onContextMenu={(event) => event.preventDefault()}
+        >
+          <div className="context-menu-heading">
+            <strong>#{contextMenu.nodeId}</strong>
+            {contextMenu.targetIds.length > 1 && <span>{contextMenu.targetIds.length}件選択中</span>}
+          </div>
+          <button role="menuitem" disabled={!contextMaster} onClick={() => {
+            if (contextMaster) onEditMaster(contextMaster)
+            setContextMenu(null)
+          }}>マスター定義を編集</button>
+          <button role="menuitem" disabled={structure.rootNodeId === contextMenu.nodeId} onClick={() => {
+            onRecord({ ...structure, rootNodeId: contextMenu.nodeId })
+            setContextMenu(null)
+          }}>起点に設定</button>
+          <button role="menuitem" onClick={() => void copyNodeId(contextMenu.nodeId)}>nodeIdをコピー</button>
+          <button role="menuitem" disabled={!contextHasEdges} onClick={() => deleteConnections(contextMenu.nodeId)}>このノードの接続をすべて削除</button>
+          <button role="menuitem" className="danger" onClick={() => {
+            removeElements(new Set(contextMenu.targetIds))
+            setContextMenu(null)
+          }}>
+            {contextMenu.targetIds.length > 1 ? `選択中${contextMenu.targetIds.length}件を配置から削除` : '配置から削除'}
+          </button>
+        </div>
+      )}
+      <div className="canvas-hint">空白ドラッグで移動 · Shift＋空白ドラッグで範囲選択 · Ctrl/Cmdで追加選択 · ダブルクリックで編集 · 右クリックでノード操作</div>
+    </div>
+  )
+}
+
+/** 倍率の表示だけを分け、ズーム中にキャンバス全体を描画し直さない。 */
+function ZoomLevel() {
+  const percent = useStore(zoomPercent)
+  return <output className="canvas-zoom-level" aria-label="現在の表示倍率">{percent}%</output>
+}
+
+const SkillNode = memo(function SkillNode({ data, selected }: NodeProps<SkillFlowNode>) {
+  const { presentation } = data
+  const compact = data.nodeSize < 72
+  return (
+    <div
+      className={`skill-node ${selected ? 'selected' : ''} ${data.root ? 'root' : ''} ${compact ? 'compact' : ''}`}
+      style={{ '--skill-node-size': `${data.nodeSize}px` } as CSSProperties}
+      title={presentation.title}
+    >
+      <Handle type="target" position={Position.Left} id="left" style={HANDLE_STYLE} />
+      <Handle type="source" position={Position.Right} id="right" style={HANDLE_STYLE} />
+      <Handle type="source" position={Position.Bottom} id="bottom" style={HANDLE_STYLE} />
+      <Handle type="target" position={Position.Top} id="top" style={HANDLE_STYLE} />
+      <strong title={presentation.label}>{presentation.label}</strong>
+      <MinecraftIcon icon={presentation.icon} revision={data.iconRevision} className="canvas-node-icon" />
+      <span className="node-kicker">#{data.nodeId} · {presentation.costTitle} · Y {data.y}</span>
+      {presentation.effects.length > 0 && <span className="effect-count" aria-label={`効果 ${presentation.effects.length}件`}>{presentation.effects.length}</span>}
+      {data.root && <span className="root-label">起点</span>}
+    </div>
+  )
+})
+
+const nodeTypes = { skill: SkillNode }
+
+function describeMaster(
+  master: NodeMaster,
+  skillMasters: readonly SkillMasterSummary[],
+  classMasters: readonly ClassMasterSummary[],
+): NodePresentation {
+  const effects = describeNodeEffects(master, skillMasters)
+  const tags = master.tags ?? []
+  return {
+    label: stripMinecraftFormatting(master.name),
+    icon: master.icon ?? '',
+    effects,
+    costTitle: describeNodeCost(master, classMasters).title,
+    title: [
+      nodeTooltip(master, effects, classMasters),
+      ...(tags.length > 0 ? ['', 'タグ:', ...tags.map(masterTagTooltip)] : []),
+    ].join('\n'),
+  }
+}
+
+const describeUnknown = (nodeId: string): NodePresentation => ({
+  label: `Unknown ${nodeId}`,
+  icon: '',
+  effects: [],
+  costTitle: '0',
+  title: `Unknown ${nodeId}`,
+})
+
+/**
+ * 前回のノード配列を基に、入力が変わったノードだけを新しいオブジェクトへ置き換える。
+ * 何も変わらなければ同じ配列を返す。
+ */
+function reconcileNodes(
+  current: readonly SkillFlowNode[],
+  descriptors: readonly NodeDescriptor[],
+  nodeSize: number,
+  iconRevision: number,
+  selectedNodeId: string | null,
+): SkillFlowNode[] {
+  const previous = new Map(current.map((node) => [node.id, node]))
+  let changed = current.length !== descriptors.length
+  const next = descriptors.map((descriptor, index) => {
+    const existing = previous.get(descriptor.id)
+    let node: SkillFlowNode
+    if (!existing) {
+      node = {
+        id: descriptor.id,
+        type: 'skill',
+        selected: descriptor.id === selectedNodeId,
+        position: { x: descriptor.x, y: descriptor.y },
+        data: nodeData(descriptor, nodeSize, iconRevision),
+        ...initialGeometry(nodeSize),
+      }
+    } else {
+      const data = existing.data
+      const sameData = data.presentation === descriptor.presentation && data.y === descriptor.level
+        && data.root === descriptor.root && data.nodeSize === nodeSize && data.iconRevision === iconRevision
+      const samePosition = existing.position.x === descriptor.x && existing.position.y === descriptor.y
+      node = sameData && samePosition ? existing : {
+        ...existing,
+        position: samePosition ? existing.position : { x: descriptor.x, y: descriptor.y },
+        data: sameData ? data : nodeData(descriptor, nodeSize, iconRevision),
+        ...(data.nodeSize === nodeSize ? null : initialGeometry(nodeSize)),
+      }
+    }
+    if (current[index] !== node) changed = true
+    return node
+  })
+  return changed ? next : current as SkillFlowNode[]
+}
+
+const nodeData = (descriptor: NodeDescriptor, nodeSize: number, iconRevision: number): SkillNodeData => ({
+  presentation: descriptor.presentation,
+  nodeId: descriptor.id,
+  y: descriptor.level,
+  root: descriptor.root,
+  iconRevision,
+  nodeSize,
+})
+
+const handleCache = new Map<number, NodeHandle[]>()
+
+/**
+ * ノードは一辺 nodeSize の正方形で、ハンドルは枠線の内側の辺の中点に置かれる。
+ * 寸法とハンドル位置を先に渡すことで、画面外のノードを描画・計測しなくても接続線を引ける。
+ */
+function initialGeometry(nodeSize: number): Pick<SkillFlowNode, 'measured' | 'handles'> {
+  let handles = handleCache.get(nodeSize)
+  if (!handles) {
+    const half = HANDLE_SIZE / 2
+    const middle = nodeSize / 2 - half
+    const near = NODE_BORDER - half
+    const far = nodeSize - NODE_BORDER - half
+    const size = { width: HANDLE_SIZE, height: HANDLE_SIZE }
+    handles = [
+      { id: 'left', type: 'target', position: Position.Left, x: near, y: middle, ...size },
+      { id: 'right', type: 'source', position: Position.Right, x: far, y: middle, ...size },
+      { id: 'bottom', type: 'source', position: Position.Bottom, x: middle, y: far, ...size },
+      { id: 'top', type: 'target', position: Position.Top, x: middle, y: near, ...size },
+    ]
+    handleCache.set(nodeSize, handles)
+  }
+  return { measured: { width: nodeSize, height: nodeSize }, handles }
+}
+
+const selectNodes = (nodes: SkillFlowNode[], ids: ReadonlySet<string>) => {
+  let changed = false
+  const next = nodes.map((node) => {
+    const selected = ids.has(node.id)
+    if (Boolean(node.selected) === selected) return node
+    changed = true
+    return { ...node, selected }
+  })
+  return changed ? next : nodes
+}
+
+const isOverviewZoom = (state: ReactFlowState) => state.transform[2] < OVERVIEW_ZOOM
+const zoomPercent = (state: ReactFlowState) => state.transform[2] >= 0.1
+  ? Math.round(state.transform[2] * 100)
+  : Number((state.transform[2] * 100).toPrecision(2))
+
+function isNodeInView(
+  node: { x: number; y: number },
+  size: number,
+  bounds: { width: number; height: number },
+  viewport: { x: number; y: number; zoom: number },
+): boolean {
+  const x = viewport.x + node.x * viewport.zoom
+  const y = viewport.y + node.y * viewport.zoom
+  return x < bounds.width && y < bounds.height && x + size * viewport.zoom > 0 && y + size * viewport.zoom > 0
+}
+
+const edgeId = (source: string | null, target: string | null) => {
+  const first = (source ?? '') < (target ?? '') ? source : target
+  const second = (source ?? '') < (target ?? '') ? target : source
+  return `edge:${first ?? ''}:${second ?? ''}`
+}
+
+type RoutedEdge = Pick<Edge, 'source' | 'target' | 'sourceHandle' | 'targetHandle'>
+
+export const routeEdge = (
+  firstNodeId: string,
+  secondNodeId: string,
+  placements: ReadonlyMap<string, { x: number; z: number }>,
+): RoutedEdge => {
+  const first = placements.get(firstNodeId)
+  const second = placements.get(secondNodeId)
+  return routeBetween(firstNodeId, secondNodeId, first && { x: first.x, y: first.z }, second && { x: second.x, y: second.z })
+}
+
+function routeBetween(
+  firstNodeId: string,
+  secondNodeId: string,
+  first: { x: number; y: number } | undefined,
+  second: { x: number; y: number } | undefined,
+): RoutedEdge {
+  if (!first || !second) {
+    return { source: firstNodeId, target: secondNodeId, sourceHandle: 'right', targetHandle: 'left' }
+  }
+
+  const deltaX = second.x - first.x
+  const deltaY = second.y - first.y
+  if (Math.abs(deltaX) >= Math.abs(deltaY)) {
+    return deltaX >= 0
+      ? { source: firstNodeId, target: secondNodeId, sourceHandle: 'right', targetHandle: 'left' }
+      : { source: secondNodeId, target: firstNodeId, sourceHandle: 'right', targetHandle: 'left' }
+  }
+  return deltaY >= 0
+    ? { source: firstNodeId, target: secondNodeId, sourceHandle: 'bottom', targetHandle: 'top' }
+    : { source: secondNodeId, target: firstNodeId, sourceHandle: 'bottom', targetHandle: 'top' }
+}
+
+const miniMapNodeColor = (node: Node) => node.data.root ? '#e0b56a' : '#6d86ad'
+
+const toTenthBlock = (value: number) => Math.round(value * 10) / 10
+
+const clampMenuPosition = (position: number, available: number, menuSize: number) => (
+  Math.max(8, Math.min(position, Math.max(8, available - menuSize - 8)))
+)

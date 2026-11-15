@@ -41,13 +41,13 @@
 | `ManagementDB` | `ManagementDB/migrations/20261002_player_admin_edit.sql` | 管理者編集の長期保持監査を追加。ManagementDB専用手順でAPI配置前に適用 |
 | `HistoryDB` | `HistoryDB/migrations/20260921_player_activity.sql` | プレイヤー行動履歴8表を追加。HistoryDB用manifestでAPI配置前に適用 |
 
-AstralRecordの本番 migration は `60_tool/db-migrate/db-migrate.config.json`、HistoryDBの本番 migration は `60_tool/db-migrate/history-db-migrate.config.json` の manifest で管理する。`01-deploy-debug.bat` は API 配置前に両manifestとManagementDB専用manifestの適用・対象スキーマ検査を実行する。どれかが失敗した場合、API/Webの配置を開始しない。`04-db-rebuild.bat` は既存データを削除する再構築用であり、稼働中DBの差分適用には使用しない。
+AstralRecordの本番 migration は `60_tool/13-db-migrate/db-migrate.config.json`、HistoryDBの本番 migration は `60_tool/15-history-db-migrate/history-db-migrate.config.json` の manifest で管理する。`01-deploy-debug.bat` は API 配置前に両manifestとManagementDB専用manifestの適用・対象スキーマ検査を実行する。どれかが失敗した場合、API/Webの配置を開始しない。`04-db-rebuild.bat` は既存データを削除する再構築用であり、稼働中DBの差分適用には使用しない。
 
 開発中に使い終え、今後再実行しない旧migration SQLは保持しない。新規DBの定義は各DBの `init.sql` を正本とし、現在適用が必要な上記migrationだけを管理する。
 
 player-state snapshot は既存DB向け migration を持たない。新しい `init.sql` でDBを作成するか、`60_tool/11-db-reset-except-release-notes.bat` で Release Note 2表を退避し、3DBを最新 `init.sql` から再作成して導入する。
 
-`ManagementDB` はプレイヤー識別・Web管理権限・ネットワーク設定・BAN・Web固定認証・信頼済みブラウザを保持する独立DBです。既存3DB固定の `60_tool/db-migrate` と `60_tool/db-reset-except-release-notes` は対象外です。新規環境は `ManagementDB/init.sql`、既存環境は `ManagementDB/migrations/20260916_managed_network_and_bans.sql`、`20260917_web_credentials.sql`、`20260920_trusted_admin_browser.sql` をAPI配置前に別途適用します。適用コマンドと確認SQLは [ネットワーク運用](../../10_Plugin設計書/feature/33-network/33_5-例外・ログ・運用.md) を参照します。
+`ManagementDB` はプレイヤー識別・Web管理権限・ネットワーク設定・BAN・Web固定認証・信頼済みブラウザを保持する独立DBです。既存3DB固定の `60_tool/13-db-migrate` と `60_tool/11-db-reset-except-release-notes` は対象外です。新規環境は `ManagementDB/init.sql`、既存環境は `ManagementDB/migrations/20260916_managed_network_and_bans.sql`、`20260917_web_credentials.sql`、`20260920_trusted_admin_browser.sql` をAPI配置前に別途適用します。適用コマンドと確認SQLは [ネットワーク運用](../../10_Plugin設計書/feature/33-network/33_5-例外・ログ・運用.md) を参照します。
 
 ## AstralRecord
 
