@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { MasterFileBrowser } from './MasterFileBrowser'
 import type { MasterDataWorkspace } from '../state/masterDataWorkspace'
-import type { MasterFileSummary } from '../types/masterData'
+import type { MasterCategory, MasterFileSummary } from '../types/masterData'
 
 const files: MasterFileSummary[] = Array.from({ length: 55 }, (_, index) => ({
   path: `10.features.item/file-${String(index).padStart(2, '0')}.yml`,
@@ -12,14 +12,14 @@ const files: MasterFileSummary[] = Array.from({ length: 55 }, (_, index) => ({
   revision: 'a', size: 1, modifiedUtc: '',
 }))
 
-function Harness({ entries = files, busy = false, initialFormat = '', onOpen = vi.fn() }: { entries?: MasterFileSummary[]; busy?: boolean; initialFormat?: string; onOpen?: (path: string) => void }) {
+function Harness({ entries = files, categoryEntries, busy = false, initialFormat = '', onOpen = vi.fn() }: { entries?: MasterFileSummary[]; categoryEntries?: MasterCategory[]; busy?: boolean; initialFormat?: string; onOpen?: (path: string) => void }) {
   const [query, setQuery] = useState('')
   const [searchScope, setSearchScope] = useState<'folder' | 'all'>('folder')
   const [visibleCount, setVisibleCount] = useState(50)
   const [format, setFormat] = useState(initialFormat)
   const [expandedCategories, setExpandedCategories] = useState(new Set<string>())
   const workspace = {
-    catalog: { root: '', backups: '', categories: [{ id: 'item', label: 'アイテム', directory: '10.features.item', fileCount: entries.length, documents: [], fields: [], jsonSchemas: [], templates: [] }] },
+    catalog: { root: '', backups: '', categories: categoryEntries ?? [{ id: 'item', label: 'アイテム', directory: '10.features.item', fileCount: entries.length, documents: [], fields: [], jsonSchemas: [], templates: [] }] },
     files: entries, filterIndex: null, candidates: [], categoryId: 'item', setCategoryId: vi.fn(),
     query, setQuery, searchScope, setSearchScope, visibleCount, setVisibleCount,
     browserView: 'files', setBrowserView: vi.fn(), expandedCategories, setExpandedCategories,
@@ -95,5 +95,16 @@ describe('master file search keyboard navigation', () => {
     expect(results()[0]).toBeDisabled()
     fireEvent.click(results()[0])
     expect(onOpen).not.toHaveBeenCalled()
+  })
+
+  it('lists files from a virtual parent folder opened through its context menu', () => {
+    const categories: MasterCategory[] = ['pool', 'table'].map((part) => ({ id: part, label: `ルート / ${part}`, directory: `80.loot/${part}`, fileCount: 1, documents: [], fields: [], jsonSchemas: [], templates: [] }))
+    const entries = ['pool', 'table'].map((part) => ({ ...files[0], path: `80.loot/${part}/one.yml`, category: part }))
+    render(<Harness entries={entries} categoryEntries={categories} />)
+    fireEvent.contextMenu(screen.getByRole('treeitem', { name: '80 ルート (2)' }).querySelector('.master-category-row')!)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'フォルダ内を表示' }))
+    expect(screen.getByRole('heading', { name: 'ルート' })).toBeInTheDocument()
+    expect(screen.getByRole('treeitem', { name: '80 ルート (2)' })).toHaveAttribute('aria-selected', 'true')
+    expect(results()).toHaveLength(2)
   })
 })
