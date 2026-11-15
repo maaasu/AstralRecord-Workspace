@@ -1,0 +1,29 @@
+{
+  "id": "AR-NATURAL-ROAD-01",
+  "profile_version": "1.0",
+  "accepted_at": "2026-11-15",
+  "ticket_id": "20261115-124551-4a52c46d5f60",
+  "candidate_sha256": "5bd9df75fd279b77bea9813828d14ce4f37d287a80448f359fcfadb6b662d08f",
+  "changed_block_count": 1492,
+  "minecraft_version": "1.21.11",
+  "inspection_level": "Official CLI full-volume readback and static audit; multi-view preview and Java-model live visual review. In-game behavior unverified.",
+  "user_acceptance": "完璧です。これで保存してください。",
+  "default_policy_request": "この道をデフォルトの道建築としてほしい。建築スキルに道の作成が必要の場合これをベースに作るようにルールを作成してほしい",
+  "design_reference": "natural-road-default.md",
+  "image": {
+    "path": "images/natural-road-default.jpg",
+    "sha256": "7fff840f2b0d4d07f02e229ad2a1e2a8054986845bdfb82ca24b84be05ba9330",
+    "bytes": 192505,
+    "origin": "Unmodified screenshot of the accepted live scene, revision 12; uses Java 1.21.11 models and textures.",
+    "limitation": "Leaf litter tint is unsupported in this viewer and appears pale/white; static PNG renderer also approximates some plants and litter. Do not copy these display artifacts."
+  },
+  "example_geometry_not_requirements": {
+    "walking_width": 5,
+    "soft_shoulders_each_side": 1,
+    "curve_radius": 8,
+    "ascent_and_descent_blocks": 3,
+    "components": ["straight", "right_90_curve", "short_straight", "left_90_curve", "ascent", "landing", "descent"]
+  },
+  "reuse_scope": "User-authorized design reference for this user's building work. Recreate for surveyed site; no executable operations or schematic template distributed here. Minecraft assets retain their own rights.",
+  "limitations": ["No claim of in-game validation or world application", "No verification of support below the original ticket", "Original ticket/temporary live URL is not a dependency for future design"]
+}
