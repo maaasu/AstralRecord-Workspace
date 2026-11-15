@@ -5,6 +5,7 @@ import { masterDataApi } from '../api/masterDataApi'
 import type { JsonObject } from '../types/editor'
 import type { MasterFileSummary } from '../types/masterData'
 import { MasterDataEditor } from './MasterDataEditor'
+import { DungeonMaterialField } from './DungeonMaterialField'
 
 const category = '65.features.dungeon'
 const path = category + '/v1.ruins.yml'
@@ -70,10 +71,44 @@ it('presents one editable dungeon overview and scrolls to a section without drop
   expect(editor.getByRole('heading', { name: '入場地点' })).toBeVisible()
 
   const search = editor.getByRole('textbox', { name: 'フォーム内検索' })
+  fireEvent.change(search, { target: { value: '受付半径' } })
+  fireEvent.click(editor.getByRole('button', { name: '/entry/radius に移動' }))
+  const radius = editor.getByRole('textbox', { name: '/entry/radius' })
+  await waitFor(() => expect(radius).toHaveFocus())
+  expect(radius).toHaveValue('2')
+  expect(screen.getByRole('tab', { name: 'アルダ始まりの遺跡' })).toBeInTheDocument()
+
   fireEvent.change(search, { target: { value: 'bossMobId' } })
   fireEvent.click(editor.getByRole('button', { name: '/encounter/bossMobId に移動' }))
   await waitFor(() => expect(editor.getByRole('button', { name: 'ボスモブ（/encounter/bossMobId）を選択' })).toHaveFocus())
-})
+}, 15_000)
+
+it('offers solid theme blocks and preserves torch and stair candidates for their respective fields', async () => {
+  const onChange = vi.fn()
+  const { rerender } = render(<DungeonMaterialField path="/theme/floor" add value="" onChange={onChange} />)
+  fireEvent.click(screen.getByRole('button', { name: '＋ 素材を追加' }))
+  let search = await screen.findByRole('searchbox', { name: 'Materialを検索' }, { timeout: 10_000 })
+  fireEvent.change(search, { target: { value: 'TORCH' } })
+  expect(screen.queryByRole('button', { name: 'TORCH' })).not.toBeInTheDocument()
+  fireEvent.change(search, { target: { value: 'STONE_BRICKS' } })
+  fireEvent.click(screen.getByRole('button', { name: 'STONE_BRICKS' }))
+  expect(onChange).toHaveBeenLastCalledWith('STONE_BRICKS')
+
+  rerender(<DungeonMaterialField path="/theme/lightMaterial" value="TORCH" onChange={onChange} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Torch' }))
+  search = await screen.findByRole('searchbox', { name: 'Materialを検索' }, { timeout: 10_000 })
+  fireEvent.change(search, { target: { value: 'SOUL_TORCH' } })
+  fireEvent.click(screen.getByRole('button', { name: 'SOUL_TORCH' }))
+  expect(onChange).toHaveBeenLastCalledWith('SOUL_TORCH')
+
+  rerender(<DungeonMaterialField path="/theme/pillar/stairMaterial" value="STONE_BRICK_STAIRS" onChange={onChange} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Stone Brick Stairs' }))
+  search = await screen.findByRole('searchbox', { name: 'Materialを検索' }, { timeout: 10_000 })
+  fireEvent.change(search, { target: { value: 'STONE_BRICK' } })
+  expect(screen.queryByRole('button', { name: 'STONE_BRICKS' })).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'STONE_BRICK_STAIRS' }))
+  expect(onChange).toHaveBeenLastCalledWith('STONE_BRICK_STAIRS')
+}, 15_000)
 
 it('adds a mob and a reward via searchable dialogs while preserving original values and omissions', async () => {
   const editor = within(await openDungeon())
@@ -104,4 +139,4 @@ it('adds a mob and a reward via searchable dialogs while preserving original val
     clearRewards: { lootTable: 'loot_table:common', items: [{ itemId: 'item:coin', amount: 2, note: '維持' }, { itemId: 'item:leaf', rate: 100, amount: '1~3' }] },
     generation: { roomSize: { min: 15, max: 27 }, bossRoomSize: { max: 33 } },
   }, expect.any(String)))
-})
+}, 15_000)
