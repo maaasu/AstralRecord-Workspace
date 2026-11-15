@@ -30,7 +30,7 @@ beforeEach(() => {
 
 async function openTree() {
   render(<App />)
-  fireEvent.click(screen.getByRole('button', { name: 'スキルツリー' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'スキルツリー' }))
   await screen.findByRole('button', { name: 'ノードを編集' })
 }
 

@@ -1,3 +1,4 @@
+import { usePanelDocument } from '../docking/dockPanel'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { createMasterNameMatcher } from '../data/masterDataFilters'
 import type { MasterFileTab } from '../state/masterDataTabs'
@@ -18,6 +19,7 @@ export function MasterTabSearch({ tabs, activeId, onSelect, onClose }: MasterTab
   const [query, setQuery] = useState('')
   const [dirtyOnly, setDirtyOnly] = useState(false)
   const [page, setPage] = useState(0)
+  const document = usePanelDocument()
   const search = useRef<HTMLInputElement>(null)
   const results = useRef<HTMLDivElement>(null)
   const buttons = useRef<(HTMLButtonElement | null)[]>([])

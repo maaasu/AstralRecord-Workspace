@@ -1,3 +1,4 @@
+import { usePanelDocument } from '../docking/dockPanel'
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
 import {
   Background,
@@ -341,13 +342,14 @@ function CanvasInner({
     && !structure.edges.some((edge) => edgeId(edge.sourceNodeId, edge.targetNodeId) === edgeId(connection.source, connection.target)),
   ), [structure.edges])
 
+  const window = usePanelDocument().defaultView!
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setContextMenu(null)
     }
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [])
+  }, [window])
 
   const openNodeContextMenu = useCallback((event: ReactMouseEvent, node: Node) => {
     event.preventDefault()

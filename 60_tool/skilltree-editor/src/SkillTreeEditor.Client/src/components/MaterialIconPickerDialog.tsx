@@ -1,3 +1,4 @@
+import { usePanelDocument, usePanelVisibility } from '../docking/dockPanel'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import minecraftMaterials from '../data/minecraft-materials.1.21.11.json'
 import { MinecraftIcon } from './MinecraftIcon'
@@ -46,8 +47,11 @@ export function MaterialIconPickerDialog({
   const currentPage = Math.min(page, pageCount - 1)
   const pageMaterials = filteredMaterials.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)
 
+  const document = usePanelDocument()
+  const visibleInLayout = usePanelVisibility()
   useEffect(() => {
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    if (!visibleInLayout) return
+    const previousFocus = document.activeElement as HTMLElement | null
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     searchRef.current?.focus()
@@ -85,7 +89,7 @@ export function MaterialIconPickerDialog({
       document.body.style.overflow = previousOverflow
       if (previousFocus?.isConnected) previousFocus.focus()
     }
-  }, [])
+  }, [document, visibleInLayout])
 
   return (
     <div

@@ -1,3 +1,4 @@
+import { usePanelDocument } from '../docking/dockPanel'
 import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent } from 'react'
 import type { JsonObject, JsonValue } from '../types/editor'
@@ -40,6 +41,8 @@ export function MasterDataSearch({ value, fields, schema, disabled, onSelect, on
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsRef = useRef<HTMLUListElement>(null)
   const focusAfterPageChange = useRef(false)
+  const document = usePanelDocument()
+  const window = document.defaultView!
   const resultsId = useId()
   const search = query.trim().toLocaleLowerCase()
   const searching = Boolean(search)
@@ -62,14 +65,14 @@ export function MasterDataSearch({ value, fields, schema, disabled, onSelect, on
       maxHeight: Math.max(0, Math.min(window.innerHeight * 0.45, openBelow ? below : above)),
     }
     setResultsStyle((current) => Object.entries(next).every(([key, value]) => current[key as keyof CSSProperties] === value) ? current : next)
-  }, [searching])
+  }, [searching, window])
   // Parent layout changes and restoring a hidden editor can move the anchor without scrolling.
   useLayoutEffect(positionResults)
   useEffect(() => {
     if (!searching) return
     const onScroll = (event: Event) => {
       // Scrolling the results themselves does not move their input anchor.
-      if (event.target instanceof Element && !event.target.contains(inputRef.current)) return
+      if ((event.target as Node | null)?.nodeType === 1 && !(event.target as Element).contains(inputRef.current)) return
       positionResults()
     }
     window.addEventListener('resize', positionResults)
@@ -78,7 +81,7 @@ export function MasterDataSearch({ value, fields, schema, disabled, onSelect, on
       window.removeEventListener('resize', positionResults)
       document.removeEventListener('scroll', onScroll, true)
     }
-  }, [searching, positionResults])
+  }, [searching, positionResults, document, window])
   const searchIndex = useMemo(() => {
     if (!searching) return []
     const found: { path: string; label: string; summary: string; container: boolean; terms: string[] }[] = []
