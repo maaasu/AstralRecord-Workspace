@@ -111,6 +111,9 @@ export function ToolRunDetails({ run, onRefresh, onOpenHistory }: {
       <div><h2>{running ? '実行ログ' : '実行結果'}</h2><p className="tool-muted">{toolSpecs[run.toolId].label} · {displayToolDate(run.startedAtUtc)}</p></div>
       <div role="status"><RunStatus status={run.status} /></div>
     </div>
+    {onOpenHistory && run.toolId !== '16' && run.plan.warnings.length > 0 && <ul className="tool-note warning">
+      {run.plan.warnings.map((warning, index) => <li key={index}>{warning}</li>)}
+    </ul>}
     {run.prompt && run.status === 'waitingForInput' && <section className="tool-note warning">
       <h3>操作が必要です</h3><p>{run.prompt.message}</p>
       <div className="tool-button-row">{run.prompt.choices.map(choice => <button key={choice.value} type="button" className="button"
