@@ -39,7 +39,7 @@ try {
     Assert ($env:PATH -ceq $before.path -and $env:JAVA_HOME -ceq $before.javaHome -and $env:DOTNET_ROOT -ceq $before.dotnetRoot) 'Parent environment changed.'
     # Exercise the other Maven BAT through a harmless replacement backend.
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../12-build-network-plugins.bat') -Destination $root
-    $networkDirectory=New-Item -ItemType Directory -Path (Join-Path $root 'network-plugin-build')
+    $networkDirectory=New-Item -ItemType Directory -Path (Join-Path $root '12-build-network-plugins')
     @'
 param([string]$Target,[switch]$SkipTests)
 if($PSVersionTable.PSVersion.Major -lt 7 -or $Target -cne 'Proxy' -or !$SkipTests -or !$env:JAVA_HOME -or !(Get-Command mvn -CommandType Application)){throw 'Network BAT bootstrap failed.'}

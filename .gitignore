@@ -28,8 +28,8 @@ node_modules/
 __pycache__/
 *.py[cod]
 dist/
-60_tool/skilltree-editor/.cache/
-60_tool/network-plugin-build/output/
+60_tool/05-master-data-editor/.cache/
+60_tool/12-build-network-plugins/output/
 10_plugin/AstralRecord/.dev-server/
 dependency-reduced-pom.xml
 
@@ -41,20 +41,46 @@ dependency-reduced-pom.xml
 local.settings.json
 appsettings.Development.json
 appsettings.Local.json
-60_tool/skilltree-editor/src/SkillTreeEditor.Server/appsettings.local.json
+60_tool/05-master-data-editor/src/SkillTreeEditor.Server/appsettings.local.json
 token.txt
-60_tool/maintenance/*.local.json
-60_tool/player-patch-migration/*.local.json
-60_tool/maintenance/runs/
-60_tool/deploy-debug/*.local.json
-60_tool/deploy-debug/runs/
+60_tool/16-maintenance/*.local.json
+60_tool/17-player-patch-migration/*.local.json
+60_tool/16-maintenance/runs/
+60_tool/01-deploy-debug/*.local.json
+60_tool/01-deploy-debug/runs/
+60_tool/01-deploy-debug/dev-workflow.lock
+60_tool/02-deploy-debug-plugin-only/runs/
+60_tool/03-master-data-reload/runs/
+60_tool/17-player-patch-migration/runs/
 60_tool/powershell7.local.json
 60_tool/build-tools.local.json
+60_tool/09-astralarchitect-build-deploy/*.local.json
+60_tool/04-db-rebuild/*.local.json
+60_tool/13-db-migrate/*.local.json
+60_tool/14-management-db-migrate/*.local.json
+60_tool/15-history-db-migrate/*.local.json
+60_tool/11-db-reset-except-release-notes/*.local.json
+60_tool/*/legacy-build/
+60_tool/*/legacy-runs/
+60_tool/*/legacy-settings/
+60_tool/*/*.local.json.*.tmp
+
+# Local data retained by checkouts that have not migrated the tool layout
+60_tool/deploy-debug/*.local.json
+60_tool/deploy-debug/runs/
+60_tool/maintenance/*.local.json
+60_tool/maintenance/runs/
+60_tool/player-patch-migration/*.local.json
+60_tool/player-patch-migration/runs/
+60_tool/network-plugin-build/output/
 60_tool/astralarchitect-deploy/*.local.json
 60_tool/db-rebuild/*.local.json
 60_tool/db-migrate/*.local.json
 60_tool/management-db-migrate/*.local.json
 60_tool/db-reset-except-release-notes/*.local.json
+60_tool/skilltree-editor/.cache/
+60_tool/skilltree-editor/.backups/
+60_tool/skilltree-editor/src/SkillTreeEditor.Server/appsettings.local.json
 
 # ASP.NET Web Deploy generated artifacts
 *.deploy.cmd

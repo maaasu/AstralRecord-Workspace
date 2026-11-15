@@ -1,0 +1,49 @@
+# DB Rebuild Tool
+
+`C:\AstralRecord-Workspace\60_tool\04-db-rebuild` contains a .NET console tool that drops and recreates `AstralRecord`, `MasterDataDB`, and `HistoryDB`.
+
+## Config
+
+- Default source config: `\\192.168.0.88\app-01\AstralRecordApi\appsettings.json`
+- Override file: [db-rebuild.config.json](db-rebuild.config.json). The BAT prefers `db-rebuild.local.json` when present; see [configuration](../CONFIGURATION.md).
+- Override keys: `connectionStrings.*`, `fileDatabase.rootPath`, `masterData.systemUserId`
+- When `seedMasterData` is `true`, the tool reuses the API `MasterDataSeeder` after recreating `MasterDataDB`
+- `fileDatabase.rootPath` is optional even when the source API settings point to a server-local path. If that path is not accessible from the machine running the tool, the tool falls back to the workspace `40_filebase` directory when it can discover it.
+
+## Run
+
+```powershell
+dotnet run --project C:\AstralRecord-Workspace\60_tool\04-db-rebuild\DbRebuildTool.csproj -- --yes
+```
+
+Batch file:
+
+```bat
+C:\AstralRecord-Workspace\60_tool\04-db-rebuild.bat
+```
+
+Run without confirmation:
+
+```bat
+C:\AstralRecord-Workspace\60_tool\04-db-rebuild.bat --yes
+```
+
+Use another config file:
+
+```powershell
+dotnet run --project C:\AstralRecord-Workspace\60_tool\04-db-rebuild\DbRebuildTool.csproj -- --config C:\path\to\db-rebuild.config.json --yes
+```
+
+Batch file with another config:
+
+```bat
+C:\AstralRecord-Workspace\60_tool\04-db-rebuild.bat --config C:\path\to\db-rebuild.config.json
+```
+
+## Notes
+
+- Without `--yes`, the tool asks for `REBUILD` confirmation.
+- Each database is recreated with `DbContext.Database.EnsureCreatedAsync()`.
+- Existing data is not preserved.
+- `ManagementDB` and legacy `WebSiteDB` are persistent management stores, never rebuild targets. The tool rejects either name in all three connections before deleting any database.
+- All three configured database names must match their slot exactly (`AstralRecord`, `MasterDataDB`, `HistoryDB`). Placement stores `WorldPlacementDevDB` / `WorldPlacementDB` and any other database are rejected before the first connection or deletion.
