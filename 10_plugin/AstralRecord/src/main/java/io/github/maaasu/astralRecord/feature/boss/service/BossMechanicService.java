@@ -398,6 +398,7 @@ public final class BossMechanicService {
         motionClockTicks++;
         sunbirdDisplay.animate(motionClockTicks);
         seleneaDisplay.animate(motionClockTicks);
+        mossZombieDisplay.animate(motionClockTicks);
         nyxeronDisplay.animate(motionClockTicks);
         nyxeronEncounterController.pulse(motionClockTicks);
         if (motionClockTicks % TICK_PERIOD == 0L) {

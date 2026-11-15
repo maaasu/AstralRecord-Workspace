@@ -71,8 +71,24 @@ public final class MossZombieMossQuakeMobSkillExecutor implements MobSkillExecut
         center.getWorld().playSound(center, Sound.ENTITY_ZOMBIE_VILLAGER_CONVERTED, 1.0F, 0.55F);
         support.warnThenImpact(context, center, points, WARNING_TICKS, MossZombieMotion.Pose.RAISE,
                 MossZombieMotion.Pose.SLAM, SharedParticleDefinitions.MOB_MOSS_ZOMBIE_WARNING,
-                () -> impact(context, center, points));
+                List.of(MossZombieMotion.Effect.circle(MossZombieMotion.EffectStyle.RING, center, RADIUS, 1.3D)),
+                impactEffects(center), () -> impact(context, center, points));
         return true;
+    }
+
+    /** 円の中心・内側6か所・外側10か所から苔の棘を伸ばします。 */
+    static @NotNull List<MossZombieMotion.Effect> impactEffects(@NotNull Location center) {
+        List<MossZombieMotion.Effect> effects = new ArrayList<>(17);
+        effects.add(MossZombieMotion.Effect.circle(MossZombieMotion.EffectStyle.SPIKES, center, 0.9D, 1.2D));
+        for (int index = 0; index < 6; index++) {
+            effects.add(MossZombieMotion.Effect.circle(MossZombieMotion.EffectStyle.SPIKES,
+                    MossZombieSkillSupport.offset(center, Math.PI * 2.0D * index / 6.0D, 2.0D), 0.9D, 1.2D));
+        }
+        for (int index = 0; index < 10; index++) {
+            effects.add(MossZombieMotion.Effect.circle(MossZombieMotion.EffectStyle.SPIKES,
+                    MossZombieSkillSupport.offset(center, Math.PI * 2.0D * (index + 0.5D) / 10.0D, 3.6D), 0.9D, 1.2D));
+        }
+        return effects;
     }
 
     /**

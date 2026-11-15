@@ -1,0 +1,64 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.astralrecord.midgard_moss_zombie_skill.shape": {
+      "loop": true,
+      "bones": {
+        "root": {
+          "scale": [
+            "query.property('astralrecord:width')",
+            "query.property('astralrecord:height')",
+            "query.property('astralrecord:length')"
+          ]
+        },
+        "creep": {
+          "scale": [
+            "0.72 + 0.28 * variable.breath",
+            1,
+            "0.72 + 0.28 * variable.breath"
+          ]
+        },
+        "tufts": {
+          "scale": [
+            1,
+            "0.8 + 0.4 * variable.breath",
+            1
+          ]
+        },
+        "float": {
+          "position": [
+            0,
+            "1.6 * variable.breath",
+            0
+          ]
+        },
+        "leaves": {
+          "scale": [
+            "0.75 + 0.3 * variable.breath",
+            "0.75 + 0.3 * variable.breath",
+            1
+          ]
+        },
+        "spikes": {
+          "scale": [
+            1,
+            "variable.spike",
+            1
+          ]
+        },
+        "burst": {
+          "scale": [
+            "variable.burst",
+            "variable.burst",
+            "variable.burst"
+          ],
+          "position": [
+            0,
+            "math.lerp(0.5, 4.4, variable.travel)",
+            0
+          ]
+        }
+      }
+    }
+  }
+}

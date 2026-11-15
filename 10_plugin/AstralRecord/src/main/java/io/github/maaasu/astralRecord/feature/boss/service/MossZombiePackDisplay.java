@@ -35,11 +35,13 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 遺跡ボスの実体と通常攻撃は維持し、対応パックにだけ外観を出します。
@@ -51,9 +53,14 @@ final class MossZombiePackDisplay implements Listener {
     private static final long BEDROCK_MARKER = 0x4153544D4F535331L;
     // ASTMOSM1。統合版の攻撃姿勢を Geyser 拡張へ渡す一時 TextDisplay の UUID 上位64bit。
     private static final long BEDROCK_MOTION = 0x4153544D4F534D31L;
+    // ASTMOSF1。技の演出を Geyser 拡張へ渡す TextDisplay の UUID 上位64bit。下位は形状・幅・長さ・高さ。
+    private static final long BEDROCK_EFFECT = 0x4153544D4F534631L;
     private static final int INVISIBLE = 0x20;
     private static final int GLOWING = 0x40;
     private static final int STEP_TICKS = 5;
+    private static final int EFFECT_FRAMES = 4;
+    private static final int MAX_EFFECTS = 48;
+    private static final double EFFECT_VIEW_DISTANCE = 64.0D;
     private final Plugin plugin;
     private final ResourcePackService packs;
     private final NamespacedKey templateKey;
@@ -62,8 +69,11 @@ final class MossZombiePackDisplay implements Listener {
     private final Map<UUID, Body> bodies = new HashMap<>();
     private final List<ItemStack> poses = List.of(item(null), item("walk_a"), item("walk_b"));
     private final Map<MossZombieMotion.Pose, ItemStack> attackPoses = attackItems();
+    private final Map<MossZombieMotion.EffectStyle, List<ItemStack>> effectItems = effectItems();
+    private final Map<UUID, List<Effect>> effects = new HashMap<>();
     private final PacketAdapter packets;
     private @Nullable MossZombieMotion motion;
+    private long clock;
 
     MossZombiePackDisplay(Plugin plugin, ResourcePackService packs) {
         this.plugin = plugin;
@@ -85,22 +95,85 @@ final class MossZombiePackDisplay implements Listener {
         };
     }
 
-    /** @param motion Mob スキルと共有する攻撃姿勢。null なら待機・歩行だけを表示します */
+    /** @param motion Mob スキルと共有する攻撃姿勢と演出。null なら待機・歩行だけを表示します */
     void setMotion(@Nullable MossZombieMotion motion) {
+        if (this.motion != null) this.motion.setEffectSink(null);
         this.motion = motion;
+        if (motion != null) motion.setEffectSink(this::showEffects);
     }
 
     void start() {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
         protocol.addPacketListener(packets);
+        if (motion != null) motion.setEffectSink(this::showEffects);
     }
 
     void stop() {
         for (UUID id : List.copyOf(bodies.keySet())) clear(id);
+        for (UUID id : List.copyOf(effects.keySet())) clearEffects(id);
         protocol.removePacketListener(packets);
         HandlerList.unregisterAll(this);
         tracking.clear();
-        if (motion != null) motion.clearAll();
+        if (motion != null) {
+            motion.setEffectSink(null);
+            motion.clearAll();
+        }
+    }
+
+    /**
+     * Mob スキルの演出を所有個体に関連付けます。危険範囲の正確な形は従来の床粒子も示します。
+     * @param bossId 所有個体 @param shapes 表示する演出 @param duration 表示tick数
+     * @return この呼び出しで作った演出だけを解除する処理
+     */
+    private Runnable showEffects(UUID bossId, List<MossZombieMotion.Effect> shapes, long duration) {
+        List<Effect> owned = effects.computeIfAbsent(bossId, ignored -> new ArrayList<>());
+        List<Effect> created = new ArrayList<>();
+        for (MossZombieMotion.Effect shape : shapes) {
+            if (owned.size() >= MAX_EFFECTS) break;
+            Effect effect = new Effect(shape, clock, clock + duration);
+            owned.add(effect);
+            created.add(effect);
+        }
+        syncEffects(owned, clock);
+        return () -> {
+            for (Effect effect : created) if (owned.remove(effect)) effect.remove();
+        };
+    }
+
+    /** @param tick 毎tickの共通時計。期限切れと閲覧者を確認し、Java版のフレームを進めます */
+    void animate(long tick) {
+        clock = tick;
+        effects.values().removeIf(owned -> {
+            syncEffects(owned, tick);
+            return owned.isEmpty();
+        });
+    }
+
+    /** @param bossId 破棄・帰還した個体の演出をすべて回収します */
+    private void clearEffects(UUID bossId) {
+        List<Effect> owned = effects.remove(bossId);
+        if (owned != null) for (Effect effect : owned) effect.remove();
+    }
+
+    /** @param owned 同じ個体の演出群 @param tick 現在tick */
+    private void syncEffects(List<Effect> owned, long tick) {
+        Iterator<Effect> iterator = owned.iterator();
+        while (iterator.hasNext()) {
+            Effect effect = iterator.next();
+            try {
+                if (tick >= effect.ends) {
+                    iterator.remove();
+                    effect.remove();
+                } else {
+                    if (effect.started == tick || tick % STEP_TICKS == 0) effect.syncViewers(tick);
+                    effect.animate(tick);
+                }
+            } catch (RuntimeException exception) {
+                iterator.remove();
+                effect.remove();
+                Logger.log(LogId.E_6515, exception);
+            }
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -210,11 +283,15 @@ final class MossZombiePackDisplay implements Listener {
         for (UUID id : List.copyOf(bodies.keySet())) {
             if (!active.contains(id)) clear(id);
         }
+        for (UUID id : List.copyOf(effects.keySet())) {
+            if (!active.contains(id)) clear(id);
+        }
         tracking.entrySet().removeIf(e -> plugin.getServer().getEntity(e.getValue().source) == null);
     }
 
     void clear(UUID bossId) {
         if (motion != null) motion.clear(bossId);
+        clearEffects(bossId);
         Body body = bodies.remove(bossId);
         if (body == null) return;
         tracking.remove(body.source.getEntityId(), body.tracking);
@@ -369,6 +446,151 @@ final class MossZombiePackDisplay implements Listener {
         }
         item.setItemMeta(meta);
         return item;
+    }
+
+    /** @return 形状ごとの4フレーム分の Java 版アイテム */
+    private static Map<MossZombieMotion.EffectStyle, List<ItemStack>> effectItems() {
+        Map<MossZombieMotion.EffectStyle, List<ItemStack>> result = new java.util.EnumMap<>(MossZombieMotion.EffectStyle.class);
+        for (MossZombieMotion.EffectStyle style : MossZombieMotion.EffectStyle.values()) {
+            List<ItemStack> frames = new ArrayList<>(EFFECT_FRAMES);
+            for (int frame = 0; frame < EFFECT_FRAMES; frame++) {
+                ItemStack item = ItemStack.of(Material.PAPER);
+                var meta = item.getItemMeta();
+                meta.setItemModel(new NamespacedKey("astralrecord", style.model()));
+                var data = meta.getCustomModelDataComponent();
+                data.setFloats(List.of((float) frame));
+                meta.setCustomModelDataComponent(data);
+                item.setItemMeta(meta);
+                frames.add(item);
+            }
+            result.put(style, List.copyOf(frames));
+        }
+        return result;
+    }
+
+    /** @param blocks 寸法のブロック数 @return 1/32ブロック単位の12ビット値（Geyser 拡張と共有） */
+    private static long dimension(float blocks) {
+        return Math.clamp(Math.round(blocks * 32), 1, 0xfff);
+    }
+
+    /** @param viewer 宛先 @param packet 作成済み通知 @return 送信成功 */
+    private boolean send(Player viewer, PacketContainer packet) {
+        try {
+            protocol.sendServerPacket(viewer, packet, false);
+            return true;
+        } catch (RuntimeException exception) {
+            Logger.log(LogId.E_6515, exception);
+            return false;
+        }
+    }
+
+    /** 技の演出1つの閲覧者・フレーム・寿命を所有します。 */
+    private final class Effect {
+        private final MossZombieMotion.Effect shape;
+        private final long started;
+        private final long ends;
+        private final Set<Player> java = new HashSet<>();
+        private final Set<Player> bedrock = new HashSet<>();
+        private ItemDisplay model;
+        private PacketContainer spawnPacket;
+        private PacketContainer removePacket;
+        private int frame = -1;
+
+        private Effect(MossZombieMotion.Effect shape, long started, long ends) {
+            this.shape = shape;
+            this.started = started;
+            this.ends = ends;
+        }
+
+        /** @param tick 追跡開始時に必要なフレームの時計 */
+        private void syncViewers(long tick) {
+            Location position = shape.origin();
+            if (position.getWorld() == null
+                || !position.getWorld().isChunkLoaded(position.getBlockX() >> 4, position.getBlockZ() >> 4)) return;
+            var nearby = position.getWorld().getNearbyPlayers(position, EFFECT_VIEW_DISTANCE);
+            if (model != null && !model.isValid()) {
+                model = null;
+                java.clear();
+            }
+            java.removeIf(viewer -> {
+                if (nearby.contains(viewer) && javaReady(viewer)) return false;
+                if (viewer.isOnline() && model != null) viewer.hideEntity(plugin, model);
+                return true;
+            });
+            bedrock.removeIf(viewer -> {
+                if (nearby.contains(viewer) && isBedrock(viewer)) return false;
+                if (viewer.isOnline() && removePacket != null) send(viewer, removePacket);
+                return true;
+            });
+            for (Player viewer : nearby) {
+                if (javaReady(viewer)) {
+                    if (model == null) {
+                        frame = frameAt(tick);
+                        model = spawnEffect(position, effectItems.get(shape.style()).get(frame));
+                    }
+                    if (java.add(viewer)) viewer.showEntity(plugin, model);
+                } else if (isBedrock(viewer) && !bedrock.contains(viewer)) {
+                    if (spawnPacket == null) {
+                        int entityId = PacketEntityIdAllocator.nextEntityId();
+                        long bits = (ThreadLocalRandom.current().nextLong() & ~0xfff_ffff_ffffL)
+                            | shape.style().id() | (dimension(shape.width()) << 8)
+                            | (dimension(shape.length()) << 20) | (dimension(shape.height()) << 32);
+                        spawnPacket = protocol.createPacket(PacketType.Play.Server.SPAWN_ENTITY);
+                        spawnPacket.getIntegers().write(0, entityId);
+                        spawnPacket.getUUIDs().write(0, new UUID(BEDROCK_EFFECT, bits));
+                        spawnPacket.getEntityTypeModifier().write(0, EntityType.TEXT_DISPLAY);
+                        spawnPacket.getDoubles().write(0, position.getX()).write(1, position.getY()).write(2, position.getZ());
+                        spawnPacket.getBytes().writeSafely(1, (byte) Math.round(position.getYaw() * 256.0F / 360.0F));
+                        removePacket = protocol.createPacket(PacketType.Play.Server.ENTITY_DESTROY);
+                        removePacket.getIntLists().writeSafely(0, List.of(entityId));
+                        removePacket.getIntegerArrays().writeSafely(0, new int[]{entityId});
+                    }
+                    if (send(viewer, spawnPacket)) bedrock.add(viewer);
+                }
+            }
+            if (java.isEmpty() && model != null) {
+                model.remove();
+                model = null;
+            }
+        }
+
+        /** @param tick 共通時計。フレームが変わった Java 表示だけを更新します */
+        private void animate(long tick) {
+            int next = frameAt(tick);
+            if (model == null || !model.isValid() || frame == next) return;
+            model.setItemStack(effectItems.get(shape.style()).get(next));
+            frame = next;
+        }
+
+        /** @param tick 共通時計 @return 予告は3tickごとに巡回、着弾は2tickごとに進めて最後のフレームで保持 */
+        private int frameAt(long tick) {
+            long age = Math.max(0L, tick - started);
+            return shape.style().impact() ? (int) Math.min(EFFECT_FRAMES - 1, age / 2) : (int) (age / 3 % EFFECT_FRAMES);
+        }
+
+        /** @param position 床上の中心と向き @param item 最初のフレーム @return 閲覧者限定の拡大表示 */
+        private ItemDisplay spawnEffect(Location position, ItemStack item) {
+            return position.getWorld().spawn(position, ItemDisplay.class, display -> {
+                display.setVisibleByDefault(false);
+                display.setPersistent(false);
+                display.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
+                display.setItemStack(item);
+                display.setViewRange(2.0F);
+                display.setBrightness(new org.bukkit.entity.Display.Brightness(15, 15));
+                display.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(),
+                    new org.joml.Quaternionf(), new org.joml.Vector3f(shape.width(), shape.height(), shape.length()),
+                    new org.joml.Quaternionf()));
+            });
+        }
+
+        /** 両エディションの表示を回収します。 */
+        private void remove() {
+            if (model != null) model.remove();
+            model = null;
+            for (Player viewer : bedrock) if (viewer.isOnline() && removePacket != null) send(viewer, removePacket);
+            java.clear();
+            bedrock.clear();
+        }
     }
 
     private static final class Tracking {
