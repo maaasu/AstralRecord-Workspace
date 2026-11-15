@@ -71,6 +71,10 @@ const dungeonMobs: ReferenceCollectionDefinition = {
   ...spawnMobs, title: '通常モブ', dialog: true, candidatePath: /^40\.features\.mob\/enemy\//,
   fields: [{ key: 'level', label: 'レベル', input: 'integer', optional: true }, weight],
 }
+export function dungeonReferenceCollection(path: string) {
+  if (path === '/clearRewards/items') return dungeonRewards
+  if (path === '/encounter/normalMobPool') return dungeonMobs
+}
 const quests: ReferenceCollectionDefinition = {
   kind: 'quest', key: 'questId', title: '掲示するクエスト', noun: 'クエスト', encoding: 'wrapped', fields: [], placement: 'quest_board',
 }
@@ -110,9 +114,7 @@ export function visualReferenceCollection(documentPath: string, path: string) {
       return documentPath.startsWith('80.shared.loot/table/') && path === '/pools' ? lootPools : undefined
     case '10.features.item':
       return documentPath.startsWith('10.features.item/50.bundle/') && path === '/bundle/items' ? bundleRewards : undefined
-    case '65.features.dungeon':
-      if (path === '/clearRewards/items') return dungeonRewards
-      return path === '/encounter/normalMobPool' ? dungeonMobs : undefined
+    case '65.features.dungeon': return dungeonReferenceCollection(path)
     case '46.features.fishing.area': return /^\/levelRanges\/\d+\/fish$/.test(path) ? fish : undefined
   }
   return undefined

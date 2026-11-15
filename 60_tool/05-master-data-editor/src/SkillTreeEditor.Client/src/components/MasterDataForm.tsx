@@ -17,7 +17,7 @@ import type { MasterVisualReferences } from '../state/masterVisualReferences'
 import { useMasterArrayOrder } from '../state/useMasterArrayOrder'
 import { fishingChanceTotal, MasterReferenceCollection, ReferenceIcon } from './MasterReferenceCollection'
 import { MasterRowActions } from './MasterRowActions'
-import { dungeonFieldDefault, dungeonFieldKeys, dungeonFieldLabel, dungeonRoomChoices, dungeonSection, dungeonSectionPaths, isDungeonMaster, isDungeonMaterialList, isDungeonWeightedList, isDungeonWeightedRow } from '../data/dungeonForm'
+import { dungeonFieldDefault, dungeonFieldDisplayValue, dungeonFieldKeys, dungeonFieldLabel, dungeonRoomChoices, dungeonSection, dungeonSectionPaths, isDungeonMaster, isDungeonMaterialList, isDungeonWeightedList, isDungeonWeightedRow } from '../data/dungeonForm'
 import { DungeonReferenceField, dungeonReferenceKind } from './DungeonReferenceField'
 import { DungeonMaterialField } from './DungeonMaterialField'
 import './masterDataForm.css'
@@ -202,7 +202,7 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
   if (dungeon && path === '/challenge/timeLimitSeconds' && (value === null || typeof value === 'number')) {
     return <div className="dungeon-time-limit">
       {typeof value === 'number' && <NumberEditor value={value} kind="integer" path={path} onChange={onChange} onInvalid={onInvalid} restoredText={invalidValues?.[path]} />}
-      <label><input type="checkbox" checked={value === null} onChange={event => {
+      <label><input type="checkbox" data-master-field-path={value === null ? path : undefined} checked={value === null} onChange={event => {
         onInvalid?.(path, null)
         onChange(event.target.checked ? null : 600)
       }} />時間制限なし</label>
@@ -299,7 +299,7 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
   return <div className={`master-object${dungeon ? ' dungeon-object' : ''}${weightedRow ? ' dungeon-weighted-row' : ''}`}>
     {orderedKeys.map(key => {
       const existing = Object.hasOwn(value, key)
-      const child = existing ? value[key] : presentedDefault(key)
+      const child = dungeon ? dungeonFieldDisplayValue(path, key, value, dungeonRoomSize) : value[key]
       if (child === undefined) return null
       const childPath = `${path}/${pointerKey(key)}`
       const field = fieldForPath(fields, childPath)
