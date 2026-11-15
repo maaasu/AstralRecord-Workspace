@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { masterDataApi } from '../api/masterDataApi'
 import { accountPermittedSkillIds } from '../data/progressionAccount'
 import { equipmentRestriction } from '../data/progressionDesign'
@@ -17,6 +17,7 @@ interface Props {
   selectedClass: DesignClass
   preset?: DesignPreset
   onClose: () => void
+  onDirtyChange?: (dirty: boolean) => void
   onEdit: (name: string, buildId: string) => Promise<boolean>
   onCommitted: (kind: 'created' | 'deleted', classId: string, presetId?: string) => void
 }
@@ -24,8 +25,9 @@ const plain = stripMinecraftFormatting
 const errorText = (reason: unknown) => reason instanceof Error ? reason.message : String(reason)
 type Prepared = { path: string; raw?: string; revision?: string; warnings: string[] }
 
-export function BuildManagementDialog({ action, catalog, selectedClass, preset, onClose, onEdit, onCommitted }: Props) {
+export function BuildManagementDialog({ action, catalog, selectedClass, preset, onClose, onDirtyChange, onEdit, onCommitted }: Props) {
   const [classId, setClassId] = useState(selectedClass.id)
+  const [classLevel, setClassLevel] = useState(1)
   const [name, setName] = useState(action === 'edit' ? preset?.name ?? '' : action === 'duplicate' ? `${plain(preset?.name ?? '')} のコピー` : '')
   const [buildId, setBuildId] = useState(action === 'edit' ? preset?.buildId ?? '' : action === 'duplicate' ? `${preset?.buildId ?? 'build'}_copy` : '')
   const [internalId, setInternalId] = useState('')
@@ -39,10 +41,10 @@ export function BuildManagementDialog({ action, catalog, selectedClass, preset, 
   const [prepared, setPrepared] = useState<Prepared | null>(null)
   const id = internalId || `${classId}_${buildId}`
   const path = action === 'edit' || action === 'delete' ? preset?.path ?? '' : presetPath(id)
-  const starter = useMemo(() => ({ id, name, path, classId, buildId, checkpoints: [{ level: 1, classLevel: 1, pointer: '/levels/0',
+  const starter = useMemo(() => ({ id, name, path, classId, buildId, checkpoints: [{ level: 1, classLevel, pointer: '/levels/0',
     equipment: [...(mainHandId ? [{ slot: 'MAIN_HAND', itemId: mainHandId, pointer: '/levels/0/equipment/0', enhanceLevel: 0 }] : []),
       ...(skillbookId ? [{ slot: 'SKILLBOOK', itemId: skillbookId, pointer: '/levels/0/equipment/1', enhanceLevel: 0 }] : [])],
-    nodes: nodeIds, skills: [], passives: [] }] } satisfies DesignPreset), [id, name, path, classId, buildId, mainHandId, skillbookId, nodeIds])
+    nodes: nodeIds, skills: [], passives: [] }] } satisfies DesignPreset), [id, name, path, classId, buildId, classLevel, mainHandId, skillbookId, nodeIds])
   const permittedSkills = accountPermittedSkillIds(catalog, starter, starter.checkpoints[0])
   const weaponChoices: MasterEntityPickerChoice[] = catalog.items.filter(item => item.compatibleSlots.includes('MAIN_HAND')).map(item => ({ ...item,
     category: 'メインハンド', description: `必要Lv.${item.requiredLevel}`,
@@ -69,12 +71,23 @@ export function BuildManagementDialog({ action, catalog, selectedClass, preset, 
     : selectedSkill.requiredLevel > 1 ? 'Lv.1の段階に設定できません'
       : permittedSkills && !permittedSkills.has(skillId) ? 'このスキルは現在の職業・習得ノード・スキルブックでは使用できません。対応するノードか本を設定してください' : '')
   const availableClasses = catalog.classes.filter(entry => entry.id !== 'administrator')
+  const currentClass = availableClasses.find(entry => entry.id === classId) ?? selectedClass
+  const maxClassLevel = Math.min(2147483647, currentClass.maxLevel ?? 2147483647)
+  const classLevelInvalid = !Number.isInteger(classLevel) || classLevel < 1 || classLevel > maxClassLevel
   const conflicting = catalog.presets.some(entry => entry.classId === classId && entry.buildId === buildId && entry.id !== (action === 'edit' ? preset?.id : undefined))
   const idConflict = catalog.presets.some(entry => entry.id === id && entry.id !== (action === 'edit' ? preset?.id : undefined))
-  const invalid = action !== 'delete' && (!name.trim() || !validPresetId(buildId) || conflicting || (action !== 'edit' && (!validPresetId(id) || idConflict || (action === 'create' && (!mainHandId || !skillId || starterItemInvalid || starterBookInvalid || !!starterSkillReason)))))
+  const invalid = action !== 'delete' && (!name.trim() || !validPresetId(buildId) || conflicting || (action !== 'edit' && (!validPresetId(id) || idConflict || (action === 'create' && (classLevelInvalid || !mainHandId || !skillId || starterItemInvalid || starterBookInvalid || !!starterSkillReason)))))
   const update = (setter: (value: string) => void, value: string) => { setter(value); setPrepared(null); setError('') }
-  const initialDraft = useRef(JSON.stringify({ classId, name, buildId, internalId, mainHandId, skillbookId, nodeIds, skillId }))
-  const dirty = JSON.stringify({ classId, name, buildId, internalId, mainHandId, skillbookId, nodeIds, skillId }) !== initialDraft.current
+  const initialDraft = useRef(JSON.stringify({ classId, classLevel, name, buildId, internalId, mainHandId, skillbookId, nodeIds, skillId }))
+  const dirty = JSON.stringify({ classId, classLevel, name, buildId, internalId, mainHandId, skillbookId, nodeIds, skillId }) !== initialDraft.current
+  useEffect(() => { onDirtyChange?.(dirty) }, [dirty, onDirtyChange])
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange])
+  useEffect(() => {
+    if (!dirty) return
+    const guard = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
+    window.addEventListener('beforeunload', guard)
+    return () => window.removeEventListener('beforeunload', guard)
+  }, [dirty])
   const close = () => {
     if (busy || picker || dirty && !window.confirm('入力中のビルド設定を破棄しますか？')) return
     onClose()
@@ -109,7 +122,7 @@ export function BuildManagementDialog({ action, catalog, selectedClass, preset, 
         const document = await masterDataApi.file(preset.path)
         if (catalog.revisions?.[preset.path] && catalog.revisions[preset.path] !== document.revision) throw new Error('複製元が別の場所で更新されました。再読込してください。')
         content = clonePreset(document.content, id, name, buildId)
-      } else content = createBlankPreset(id, name, classId, buildId, mainHandId, skillId, skillbookId, nodeIds)
+      } else content = createBlankPreset(id, name, classId, buildId, mainHandId, skillId, { classLevel, skillbookId, nodeIds })
       const rendered = await masterDataApi.render(path, content)
       const validation = await masterDataApi.validate(path, rendered.raw)
       if (!validation.isValid) throw new Error(validation.issues.map(issue => issue.message).join('\n') || 'マスター検証で問題が見つかりました。')
@@ -139,8 +152,8 @@ export function BuildManagementDialog({ action, catalog, selectedClass, preset, 
   return <>
     <Modal ariaLabel={title} className="design-build-dialog" onClose={close} closeDisabled={busy || !!picker}>
       <header className="modal-header"><h2>{title}</h2></header>
-      {action === 'delete' ? <p>「{plain(preset?.name ?? '')}」を削除します。登録するとファイルから削除されます。</p> : <>
-        {action === 'create' && <label className="design-dialog-label">職業<select value={classId} disabled={busy || !!prepared} onChange={event => { update(setClassId, event.target.value); setInternalId(''); setMainHandId(''); setSkillbookId(''); setNodeIds([]); setSkillId('') }}>{availableClasses.map(entry => <option key={entry.id} value={entry.id}>{plain(entry.name)}</option>)}</select></label>}
+      {action === 'delete' ? <p>「{plain(preset?.name ?? '')}」を削除します。確認後、保存先のファイルを削除します。</p> : <>
+        {action === 'create' && <label className="design-dialog-label">職業<select value={classId} disabled={busy || !!prepared} onChange={event => { update(setClassId, event.target.value); setClassLevel(1); setInternalId(''); setMainHandId(''); setSkillbookId(''); setNodeIds([]); setSkillId('') }}>{availableClasses.map(entry => <option key={entry.id} value={entry.id}>{plain(entry.name)}</option>)}</select></label>}
         {action === 'duplicate' && <p>「{plain(preset?.name ?? '')}」の全レベル構成を複製します。</p>}
         <label className="design-dialog-label">表示名<input value={name} disabled={busy || !!prepared} onChange={event => update(setName, event.target.value)} placeholder="例：剣士の標準構成" /></label>
         <label className="design-dialog-label">ビルドID<input value={buildId} disabled={busy || !!prepared} onChange={event => update(setBuildId, event.target.value)} placeholder="例：standard" spellCheck={false} /></label>
@@ -149,6 +162,8 @@ export function BuildManagementDialog({ action, catalog, selectedClass, preset, 
         {action === 'edit' && <p className="design-caption">保存用IDとファイルの場所は変わりません。変更は下書きに入り、画面上部から保存します。</p>}
         {action === 'create' && <div className="design-build-starters">
           <p>Lv.1の必須設定</p>
+          <label className="design-dialog-label">初期職業Lv.<input type="number" min={1} max={maxClassLevel} step={1} value={classLevel} disabled={busy || !!prepared} onChange={event => { setClassLevel(Number(event.target.value)); setPrepared(null); setError('') }} /></label>
+          {classLevelInvalid && <small role="alert" className="design-warning">初期職業Lv.は1〜{maxClassLevel}の整数で指定してください。</small>}
           <button className="button" disabled={busy || !!prepared} onClick={() => setPicker('weapon')}>{selectedItem ? <><MinecraftIcon icon={selectedItem.icon} customModelData={selectedItem.customModelData} iconTexture={selectedItem.iconTexture} />{plain(selectedItem.name)}</> : 'メインハンドを選択'}</button>
           <p>スキルの習得元（任意）</p>
           <button className="button" disabled={busy || !!prepared} onClick={() => setPicker('book')}>{selectedBook ? <><MinecraftIcon icon={selectedBook.icon} customModelData={selectedBook.customModelData} iconTexture={selectedBook.iconTexture} />{plain(selectedBook.name)}</> : 'スキルブックを選択'}</button>
@@ -159,7 +174,7 @@ export function BuildManagementDialog({ action, catalog, selectedClass, preset, 
           <button className="button" disabled={busy || !!prepared} onClick={() => setPicker('skill')}>{selectedSkill ? <><MinecraftIcon icon={selectedSkill.icon} customModelData={selectedSkill.customModelData} iconTexture={selectedSkill.iconTexture} />{plain(selectedSkill.name)}</> : '1番枠のスキルを選択'}</button>
           {starterBookInvalid && <small role="alert" className="design-warning">このスキルブックはLv.1の職業・装備条件を満たしません。</small>}
           {starterSkillReason && <small role="alert" className="design-warning">{starterSkillReason}</small>}
-          <small>武器とアクティブスキルを選んで登録します。必要なスキルブックやノードは先に追加してください。</small>
+          <small>初期職業Lv.と必要なノードを設定し、武器とアクティブスキルを選んで登録します。ノードの接続とポイント予算はゲーム適用時にも確認してください。</small>
         </div>}
       </>}
       {(conflicting || idConflict) && <p className="design-warning" role="alert">同じ職業のビルドID、または保存用IDが既にあります。</p>}
