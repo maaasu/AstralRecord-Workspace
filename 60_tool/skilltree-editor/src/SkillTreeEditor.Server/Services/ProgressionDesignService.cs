@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Security.Cryptography;
 using System.Text;
+using System.Globalization;
 using SkillTreeEditor.Server.Models;
 
 namespace SkillTreeEditor.Server.Services;
@@ -63,13 +64,21 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
             if (document.PathError is not null || document.DecodeError is not null || Kind(document.Path) is not { } kind)
                 continue;
             var data = overrides?.GetValueOrDefault(document.Path) ?? document.Content as JsonObject;
-            if (data is not null && Id(data["id"]) is { } id)
+            var masterId = kind == "node" ? NodeId(data?["nodeId"])?.ToString(CultureInfo.InvariantCulture) : Id(data?["id"]);
+            if (data is not null && masterId is { } id)
                 masters.Add(new(document.Path, data, id, MasterDataService.DisplayName(data) ?? id, kind));
         }
 
         var classes = masters.Where(master => master.Kind == "class").Select(ReadClass).ToArray();
         var presets = masters.Where(master => master.Kind == "preset").Select(ReadPreset).OfType<ProgressionDesignPreset>().ToArray();
         var items = masters.Where(master => master.Kind == "item").Select(ReadItem).ToArray();
+        var skills = masters.Where(master => master.Kind == "skill").Select(ReadSkill).ToArray();
+        var nodes = masters.Where(master => master.Kind == "node" && NodeId(master.Data["nodeId"]) is > 0)
+            .Select(master => new ProgressionDesignNode(NodeId(master.Data["nodeId"])!.Value, master.Name, master.Path,
+                Text(master.Data["icon"]), Text(master.Data["iconTexture"]), Integer(master.Data["customModelData"]),
+                Rows(master.Data["effects"], "/effects").Where(effect => Text(effect.Data["type"]) == "skill")
+                    .Select(effect => Id(effect.Data["skillId"])).OfType<string>().Distinct(StringComparer.Ordinal).ToArray()))
+            .OrderBy(node => node.Id).ToArray();
 
         var pools = Index(masters, "lootPool");
         var tables = Index(masters, "lootTable");
@@ -128,8 +137,13 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
                     source.ItemId, ingredient.Quantity));
         foreach (var preset in presets)
             foreach (var checkpoint in preset.Checkpoints)
+            {
                 foreach (var assignment in checkpoint.Equipment)
                     usages.Add(new(assignment.ItemId, "preset", preset.Name, preset.Path, assignment.Pointer, null, []));
+                foreach (var assignment in checkpoint.Skills.Concat(checkpoint.Passives))
+                    foreach (var sigil in assignment.Sigils)
+                        usages.Add(new(sigil.ItemId, "preset", preset.Name + "（装着シジル）", preset.Path, sigil.Pointer, null, []));
+            }
 
         var uniqueSources = sources.Select(source => source with
         {
@@ -141,7 +155,7 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
         }).DistinctBy(source => source.Id).ToArray();
         return new(classes, presets, items, uniqueSources, usages.DistinctBy(usage =>
             (usage.ItemId, usage.Kind, usage.Path, usage.Pointer, usage.OutputItemId)).ToArray(), targets,
-            snapshot.Documents.Where(document => Kind(document.Path) is not null).ToDictionary(document => document.Path, document => document.Revision));
+            snapshot.Documents.Where(document => Kind(document.Path) is not null).ToDictionary(document => document.Path, document => document.Revision), skills, nodes);
     }
 
     private static Dictionary<string, Master> Index(IEnumerable<Master> masters, string kind) =>
@@ -150,7 +164,9 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
 
     private static ProgressionDesignClass ReadClass(Master master) => new(master.Id, master.Name, master.Path,
         Rows(master.Data["unlockClassLevel"], "/unlockClassLevel")
-            .Select(row => Id(row.Data["class"] ?? row.Data["classId"])).OfType<string>().Distinct(StringComparer.Ordinal).ToArray());
+            .Select(row => Id(row.Data["class"] ?? row.Data["classId"])).OfType<string>().Distinct(StringComparer.Ordinal).ToArray(),
+        Integer(master.Data["maxLevel"]) ?? 0,
+        (master.Data["usableSkills"] as JsonArray ?? []).Select(Id).OfType<string>().Distinct(StringComparer.Ordinal).ToArray());
 
     private static ProgressionDesignPreset? ReadPreset(Master master)
     {
@@ -165,10 +181,32 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
             foreach (var (row, rowPointer) in Rows(checkpoint["equipment"], pointer + "/equipment"))
                 if (Text(row["slot"]) is { } slot && Id(row["item"]) is { } id)
                     equipment.Add(new(slot, id, rowPointer, Integer(row["enhanceLevel"]) ?? 0));
-            checkpoints.Add(new(level, classLevel, pointer, equipment));
+            var nodes = (checkpoint["nodes"] as JsonArray ?? []).Select(Integer).OfType<int>().ToArray();
+            checkpoints.Add(new(level, classLevel, pointer, equipment, nodes,
+                ReadSkillAssignments(checkpoint["skills"], pointer + "/skills"),
+                ReadSkillAssignments(checkpoint["passives"], pointer + "/passives")));
         }
         return new(master.Id, master.Name, master.Path, classId, buildId, checkpoints);
     }
+
+    private static ProgressionDesignSkillAssignment[] ReadSkillAssignments(JsonNode? assignments, string pointer) =>
+        Rows(assignments, pointer).Where(row => Integer(row.Data["slot"]) is not null && Id(row.Data["skill"]) is not null)
+            .Select(row => new ProgressionDesignSkillAssignment(Integer(row.Data["slot"])!.Value, Id(row.Data["skill"])!,
+                row.Pointer, Integer(row.Data["skillLevel"]) ?? 1,
+                Rows(row.Data["sigils"], row.Pointer + "/sigils")
+                    .Where(sigil => Integer(sigil.Data["slot"]) is not null && Id(sigil.Data["item"]) is not null)
+                    .Select(sigil => new ProgressionDesignSigilAssignment(Integer(sigil.Data["slot"])!.Value,
+                        Id(sigil.Data["item"])!, sigil.Pointer)).ToArray())).ToArray();
+
+    private static ProgressionDesignSkill ReadSkill(Master master) => new(master.Id, master.Name, master.Path,
+        Text(master.Data["icon"]), Text(master.Data["iconTexture"]), Integer(master.Data["customModelData"]),
+        master.Data["passive"] is JsonObject,
+        (master.Data["passive"] as JsonObject)?["bindRequired"]?.GetValueKind() != JsonValueKind.False,
+        Integer(master.Data["requiredLevel"]) ?? 1, Integer(master.Data["maxLevel"]) ?? 1,
+        Rows(master.Data["sigilSlotsByLevel"], "/sigilSlotsByLevel")
+            .Where(row => Integer(row.Data["level"]) is not null && Integer(row.Data["slots"]) is not null)
+            .Select(row => new ProgressionDesignSigilSlots(Integer(row.Data["level"])!.Value, Integer(row.Data["slots"])!.Value)).ToArray(),
+        (master.Data["allowedSigilIds"] as JsonArray ?? []).Select(Id).OfType<string>().ToArray());
 
     private static ProgressionDesignItem ReadItem(Master master)
     {
@@ -190,7 +228,8 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
             Text(data["iconTexture"]), MasterDataService.ReadModelData(data["customModelData"]), slot,
             Text(equipment?["handType"]) ?? (slot is "WEAPON" or "TOOL" ? "ONE" : null),
             Integer(equipment?["requiredLevel"]) ?? 0, classes, slots,
-            ProgressionPresetValidation.ReachableEnhanceLevel(equipment?["enhance"] as JsonObject));
+            ProgressionPresetValidation.ReachableEnhanceLevel(equipment?["enhance"] as JsonObject),
+            Text((data["sigil"] as JsonObject)?["equipGroupId"]));
     }
 
     private static void ReadRecipe(Master master, List<ProgressionDesignSource> sources)
@@ -408,7 +447,7 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
         var kind = MasterDataService.Kind(path);
         return kind switch
         {
-            "class" or "item" or "recipe" or "shop" or "gathering" or "dungeon" or "world" => kind,
+            "class" or "item" or "recipe" or "shop" or "gathering" or "dungeon" or "world" or "skill" or "node" => kind,
             "mob" => path.StartsWith("40.features.mob/npc/", MasterDataPaths.Comparison) ? "shopNpc" : "mob",
             "mob_spawner" => "mobSpawner",
             "gathering_spawner" => "gatheringSpawner",
@@ -438,6 +477,9 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
         JsonValueReader.String(node) is { } text && !string.IsNullOrWhiteSpace(text) ? text : null;
 
     private static int? Integer(JsonNode? node) => MasterDataService.ReadModelData(node);
+
+    private static int? NodeId(JsonNode? node) => Integer(node)
+        ?? (int.TryParse(Text(node), NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : null);
 
     private static string? Id(JsonNode? node) => Text(node is JsonObject reference ? reference["ref"] : node)
         ?.Trim().Split(':').Last();

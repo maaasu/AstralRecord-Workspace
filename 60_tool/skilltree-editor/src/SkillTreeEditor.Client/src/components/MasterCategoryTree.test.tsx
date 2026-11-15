@@ -1,19 +1,20 @@
 import { useState } from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MasterCategoryTree } from './MasterCategoryTree'
 import type { MasterCategory } from '../types/masterData'
 
 const category = (id: string, directory: string, label: string): MasterCategory => ({ id, directory, label, fileCount: 0, documents: [], fields: [], jsonSchemas: [], templates: [] })
 const categories = [category('item-id', '10.item', 'アイテム'), category('weapon-id', '10.item/20.weapon', 'アイテム / 武器'), category('pool-id', '80.loot/pool', 'ルート / プール'), category('table-id', '80.loot/table', 'ルート / テーブル')]
 
-function Harness({ onSelect = vi.fn(), entries = categories, initial = 'weapon-id' }: { onSelect?: (id: string) => void; entries?: MasterCategory[]; initial?: string }) {
+function Harness({ onSelect = vi.fn(), onBrowseFolder, entries = categories, initial = 'weapon-id' }: { onSelect?: (id: string) => void; onBrowseFolder?: (directory: string, label: string, categoryId?: string) => void; entries?: MasterCategory[]; initial?: string }) {
   const [expanded, setExpanded] = useState(new Set<string>())
   const [selected, setSelected] = useState(initial)
-  return <MasterCategoryTree categories={entries} files={[]} selectedId={selected} onSelect={(id) => { setSelected(id); onSelect(id) }} expanded={expanded} onExpandedChange={setExpanded} />
+  return <MasterCategoryTree categories={entries} files={[]} selectedId={selected} onSelect={(id) => { setSelected(id); onSelect(id) }} onBrowseFolder={onBrowseFolder} expanded={expanded} onExpandedChange={setExpanded} />
 }
 
 const node = (name: string) => screen.getByRole('treeitem', { name })
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
 describe('master category tree interaction', () => {
   it('reveals selection, keeps IDs and selection when a parent collapses, and separates chevron clicks', () => {
@@ -83,5 +84,86 @@ describe('master category tree interaction', () => {
     rerender(<Controlled id="pool-id" revision="b" />)
     expect(node('プール (1)')).toHaveAttribute('aria-selected', 'true')
     expect(node('80 ルート (1)')).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('uses aligned SVG chevrons and preserves tree arrow navigation', () => {
+    render(<Harness />)
+    const parent = node('10 アイテム (0)')
+    expect(parent.querySelector('.master-category-chevron svg path')).toHaveAttribute('d', 'M3.5 6 8 10.5 12.5 6')
+    fireEvent.click(parent.querySelector('.master-category-chevron')!)
+    expect(parent.querySelector('.master-category-chevron svg path')).toHaveAttribute('d', 'M6 3.5 10.5 8 6 12.5')
+    parent.focus()
+    fireEvent.keyDown(parent, { key: 'ArrowRight' })
+    expect(parent).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.keyDown(parent, { key: 'ArrowRight' })
+    expect(node('20 武器 (0)')).toHaveFocus()
+  })
+
+  it('opens on the right-clicked virtual folder and copies its repository-relative path and name', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { clipboard: { writeText } })
+    const onBrowseFolder = vi.fn()
+    const onSelect = vi.fn()
+    render(<Harness onBrowseFolder={onBrowseFolder} onSelect={onSelect} />)
+    fireEvent.contextMenu(node('80 ルート (0)').querySelector('.master-category-row')!, { clientX: 20, clientY: 40 })
+    const menu = screen.getByRole('menu', { name: 'フォルダの操作' })
+    expect(menu).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'フォルダ内を表示' })).toHaveFocus()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'フォルダ内を表示' }))
+    expect(onBrowseFolder).toHaveBeenCalledWith('80.loot', 'ルート', undefined)
+    expect(onSelect).not.toHaveBeenCalled()
+    fireEvent.click(node('80 ルート (0)').querySelector('.master-category-chevron')!)
+    fireEvent.contextMenu(node('プール (0)').querySelector('.master-category-row')!)
+    fireEvent.click(screen.getByRole('menuitem', { name: '相対パスをコピー' }))
+    expect(writeText).toHaveBeenCalledWith('40_filebase/80.loot/pool')
+    expect(await screen.findByRole('status')).toHaveTextContent('40_filebase/80.loot/pool')
+    fireEvent.contextMenu(node('80 ルート (0)').querySelector('.master-category-row')!)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'フォルダ名をコピー' }))
+    expect(writeText).toHaveBeenLastCalledWith('80.loot')
+  })
+
+  it('supports keyboard menu navigation, focus restoration, and subtree commands', () => {
+    render(<Harness onBrowseFolder={vi.fn()} />)
+    const parent = node('80 ルート (0)')
+    parent.focus()
+    fireEvent.keyDown(parent, { key: 'F10', shiftKey: true })
+    expect(screen.getByRole('menuitem', { name: 'フォルダ内を表示' })).toHaveFocus()
+    expect(screen.getByRole('menuitem', { name: 'サブフォルダをすべて折りたたむ' })).toBeDisabled()
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'End' })
+    expect(screen.getByRole('menuitem', { name: 'サブフォルダをすべて展開' })).toHaveFocus()
+    fireEvent.click(document.activeElement!)
+    expect(parent).toHaveAttribute('aria-expanded', 'true')
+    expect(node('プール (0)')).toBeInTheDocument()
+    fireEvent.keyDown(parent, { key: 'ContextMenu' })
+    fireEvent.click(screen.getByRole('menuitem', { name: 'サブフォルダをすべて折りたたむ' }))
+    expect(parent).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.keyDown(parent, { key: 'ContextMenu' })
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
+    expect(parent).toHaveFocus()
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+  })
+
+  it('reports clipboard failure with selectable fallback and closes on outside click', async () => {
+    vi.stubGlobal('navigator', { clipboard: { writeText: vi.fn().mockRejectedValue(new Error('denied')) } })
+    render(<Harness entries={[category('root', '.', 'Filebase 設定')]} initial="root" />)
+    const root = node('Filebase 設定 (0)')
+    fireEvent.contextMenu(root.querySelector('.master-category-row')!)
+    fireEvent.click(screen.getByRole('menuitem', { name: '相対パスをコピー' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('コピーできませんでした')
+    const fallback = screen.getByRole('textbox', { name: '手動コピー用のフォルダ' }) as HTMLInputElement
+    expect(fallback).toHaveValue('40_filebase')
+    fallback.focus()
+    expect(fallback.selectionStart).toBe(0)
+    expect(fallback.selectionEnd).toBe(fallback.value.length)
+    fireEvent.contextMenu(root.querySelector('.master-category-row')!)
+    fireEvent.pointerDown(document.body)
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+  })
+
+  it('keeps the menu inside the viewport when opened near an edge', () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 225, height: 180 } as DOMRect)
+    render(<Harness />)
+    fireEvent.contextMenu(node('80 ルート (0)').querySelector('.master-category-row')!, { clientX: window.innerWidth - 1, clientY: window.innerHeight - 1 })
+    expect(screen.getByRole('menu')).toHaveStyle({ left: `${window.innerWidth - 233}px`, top: `${window.innerHeight - 188}px` })
   })
 })

@@ -1,14 +1,22 @@
 export interface DesignField { path: string; pointer: string; value: number | string }
 export interface DesignLocation { path: string; pointer: string }
-export interface DesignClass { id: string; name: string; path: string; prerequisiteClassIds: string[] }
+export interface DesignClass { id: string; name: string; path: string; prerequisiteClassIds: string[]; maxLevel?: number; usableSkillIds?: string[] }
 export interface DesignEquipment { slot: string; itemId: string; pointer: string; enhanceLevel: number }
-export interface DesignCheckpoint { level: number; classLevel: number; pointer: string; equipment: DesignEquipment[] }
+export interface DesignSigilAssignment { slot: number; itemId: string; pointer: string }
+export interface DesignSkillAssignment { slot: number; skillId: string; pointer: string; skillLevel: number; sigils: DesignSigilAssignment[] }
+export interface DesignCheckpoint { level: number; classLevel: number; pointer: string; equipment: DesignEquipment[]; nodes?: number[]; skills?: DesignSkillAssignment[]; passives?: DesignSkillAssignment[] }
+export interface DesignSkill {
+  id: string; name: string; path: string; icon: string | null; customModelData: number | null; iconTexture: string | null
+  passive: boolean; bindRequired: boolean; requiredLevel: number; maxLevel: number
+  sigilSlotsByLevel: { level: number; slots: number }[]; allowedSigilIds: string[]
+}
+export interface DesignNode { id: number; name: string; path: string; icon: string | null; customModelData: number | null; iconTexture: string | null; skillIds?: string[] }
 export interface DesignPreset { id: string; name: string; path: string; classId: string; buildId: string; checkpoints: DesignCheckpoint[] }
 export interface DesignItem {
   id: string; name: string; path: string; category: string | null; rarity: string | null
   icon: string | null; customModelData: number | null; iconTexture: string | null
   slot: string | null; handType: string | null; requiredLevel: number; requiredClasses: string[]
-  compatibleSlots: string[]; maxEnhanceLevel: number
+  compatibleSlots: string[]; maxEnhanceLevel: number; sigilEquipGroupId?: string | null
 }
 export interface DesignIngredient extends DesignLocation { itemId: string; itemPointer: string; quantity: DesignField[] }
 export interface DesignContext extends DesignLocation { kind: string; id: string; name: string }
@@ -30,4 +38,5 @@ export interface ProgressionDesignCatalog {
   revisions?: Record<string, string>
   classes: DesignClass[]; presets: DesignPreset[]; items: DesignItem[]; sources: DesignSource[]
   usages: DesignUsage[]; addTargets: DesignAddTarget[]
+  skills?: DesignSkill[]; nodes?: DesignNode[]
 }

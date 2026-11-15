@@ -27,6 +27,7 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
   const [folderWidth, setFolderWidth] = usePanelSize('master-folders', 200, 150, 500)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [pathsOpen, setPathsOpen] = useState(false)
+  const [virtualFolder, setVirtualFolder] = useState<{ directory: string; label: string } | null>(null)
   const fileList = useRef<HTMLDivElement>(null)
   const searchInput = useRef<HTMLInputElement>(null)
   const pendingFocus = useRef<number | null>(null)
@@ -36,8 +37,8 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
   const selectedExists = useMemo(() => Boolean(selectedPath && w.files.some(file => file.path === selectedPath)), [selectedPath, w.files])
   const canReveal = active && !busy && !w.refreshing && selectedExists
   const category = w.catalog?.categories.find((entry) => entry.id === w.categoryId)
-  const directory = category?.directory ?? ''
-  const scopeLabel = w.searchScope === 'all' ? 'Filebase 全体' : category?.label ?? 'フォルダを選択'
+  const directory = virtualFolder?.directory ?? category?.directory ?? ''
+  const scopeLabel = w.searchScope === 'all' ? 'Filebase 全体' : virtualFolder?.label ?? category?.label ?? 'フォルダを選択'
   const files = useMemo(() => w.searchScope === 'all' ? w.files : w.files.filter((file) => directory && inCategory(file.path, directory)), [w.files, directory, w.searchScope])
   const filters = useMemo<MasterListFilters>(() => ({ format: w.format, sourceQuery: w.sourceQuery, dropSourcePath: w.dropSourcePath, skillTag: w.skillTag, dropItemQuery: w.dropItemQuery, dropItemId: w.dropItemId, dropPresence: w.dropPresence, facetFilters: w.facetFilters, fileStatus: w.fileStatus, numericFilters: w.numericFilters }), [w.format, w.sourceQuery, w.dropSourcePath, w.skillTag, w.dropItemQuery, w.dropItemId, w.dropPresence, w.facetFilters, w.fileStatus, w.numericFilters])
   const visibleFiles = useMemo(() => filterMasterFiles(files, w.filterIndex, filters, w.query), [files, w.filterIndex, filters, w.query])
@@ -49,12 +50,20 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
     w.setNumericFilters(Object.fromEntries(Object.entries(next.numericFilters).filter(([, range]) => range.min.trim() || range.max.trim())))
   }
   const changeCategory = (id: string) => {
+    setVirtualFolder(null)
     const nextDirectory = w.catalog?.categories.find((entry) => entry.id === id)?.directory ?? ''
     w.setCategoryId(id); w.setSearchScope('folder'); w.setBrowserView('files')
     if (!isItemDefinitionDirectory(nextDirectory)) { w.setSourceQuery(''); w.setDropSourcePath('') }
     if (!isSkillDirectory(nextDirectory)) w.setSkillTag('')
     if (w.format && !w.files.some((entry) => entry.format === w.format && inCategory(entry.path, nextDirectory))) w.setFormat('')
   }
+  const browseFolder = (nextDirectory: string, label: string, categoryId?: string) => {
+    if (categoryId) changeCategory(categoryId)
+    else setVirtualFolder({ directory: nextDirectory, label })
+    w.setSearchScope('folder'); w.setBrowserView('files')
+    w.setQuery(''); apply(emptyMasterListFilters())
+  }
+  useEffect(() => { setVirtualFolder(null) }, [w.categoryId])
   const requestMore = useCallback(() => {
     if (batchRequested.current) return
     batchRequested.current = true
@@ -62,6 +71,7 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
   }, [w.setVisibleCount, visibleFiles.length])
   const revealCurrent = () => {
     if (!canReveal || !selectedPath) return
+    setVirtualFolder(null)
     const targetCategory = w.catalog?.categories.filter(entry => inCategory(selectedPath, entry.directory))
       .sort((a, b) => b.directory.length - a.directory.length)[0]
     const scope = targetCategory ? 'folder' : 'all'
@@ -134,7 +144,7 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
     <div className="master-browser-switch" role="group" aria-label="ファイル一覧の表示"><button type="button" className="button" aria-pressed={w.browserView === 'folders'} onClick={() => w.setBrowserView('folders')}>フォルダ</button><button type="button" className="button" aria-pressed={w.browserView === 'files'} onClick={() => w.setBrowserView('files')}>ファイル・検索結果</button></div>
     <div className="master-current-file"><button type="button" className="button compact subtle" disabled={!canReveal} onClick={revealCurrent} title={selectedPath}>編集中のファイルを一覧に表示</button><small>{!selectedPath ? 'ファイルを開くと移動できます。' : !selectedExists ? 'このファイルは現在の一覧にありません。' : '検索・詳細条件を解除し、対象の行へ移動します。'}</small></div>
     <div className="master-browser-columns" style={{ '--folder-width': `${folderWidth}px` } as CSSProperties}>
-      <section className="master-folder-pane" aria-label="フォルダ一覧"><MasterCategoryTree categories={w.catalog?.categories ?? []} files={w.files} selectedId={w.categoryId} onSelect={changeCategory} expanded={w.expandedCategories} onExpandedChange={w.setExpandedCategories} /><footer><span>← → で開閉・Enterで選択</span><button type="button" className="text-button" onClick={() => setPathsOpen(true)}>読込先・バックアップ先</button></footer></section>
+      <section className="master-folder-pane" aria-label="フォルダ一覧"><MasterCategoryTree categories={w.catalog?.categories ?? []} files={w.files} selectedId={w.categoryId} selectedDirectory={virtualFolder?.directory} onSelect={changeCategory} onBrowseFolder={browseFolder} expanded={w.expandedCategories} onExpandedChange={w.setExpandedCategories} /><footer><span>← → で開閉・Enterで選択</span><button type="button" className="text-button" onClick={() => setPathsOpen(true)}>読込先・バックアップ先</button></footer></section>
       <ResizeHandle label="フォルダと検索結果の幅を変更" size={folderWidth} min={150} max={500} defaultSize={200} minRemaining={220} onResize={setFolderWidth} className="master-folder-resizer" />
       <section className="master-results-pane" aria-label="ファイル検索と結果">
         <header className="master-result-search"><label>ファイルを検索<div className="master-search-input"><span aria-hidden="true">⌕</span><input ref={searchInput} aria-label="マスター検索" value={w.query} onChange={(event) => w.setQuery(event.target.value)} onKeyDown={(event) => { if (!isComposing(event) && (event.key === 'ArrowDown' || event.key === 'Enter') && visibleFiles.length) { event.preventDefault(); focusResult(0) } }} placeholder="名前・ID・ファイル名" />{w.query && <button type="button" aria-label="ファイル検索をクリア" onClick={() => { w.setQuery(''); searchInput.current?.focus() }}>×</button>}</div></label><small>空白で複数語を区切ると、すべてに一致するファイルを表示します。</small><div className="master-search-scope"><label>検索範囲<select aria-label="検索範囲" value={w.searchScope} onChange={(event) => w.setSearchScope(event.target.value as 'folder' | 'all')}><option value="folder">選択フォルダ以下</option><option value="all">Filebase 全体</option></select></label><button type="button" className={'button master-open-filters' + (chips.length ? ' active' : '')} aria-haspopup="dialog" onClick={() => setFiltersOpen(true)}>詳細フィルター{chips.length > 0 && <b>{chips.length}</b>}</button></div></header>
