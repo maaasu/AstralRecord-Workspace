@@ -1,14 +1,12 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
-using System.Windows.Interop;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
@@ -40,12 +38,9 @@ public partial class MainWindow : Window
     {
         this.arguments = arguments;
         InitializeComponent();
-        TitleBar.SetWorkspace(null);
-        TitleBar.WorkspaceRequested += async () => await SelectWorkspaceAsync();
-        TitleBar.CommandRequested += async command => await SendDesktopCommandAsync(command);
+        NativeWindowFrame.Apply(this);
         Loaded += OnLoaded;
         Closing += OnClosing;
-        SourceInitialized += (_, _) => ApplyTitleBarColors();
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -112,7 +107,6 @@ public partial class MainWindow : Window
         origin = new Uri(addresses?.Addresses.Single() ?? throw new InvalidOperationException("アプリの起動先を取得できませんでした。"));
         workspace = selected;
         Title = $"AstralRecord マスタデータエディタ — {selected}";
-        TitleBar.SetWorkspace(selected);
         await InitializeBrowserAsync();
         await RestorePreferencesAsync(selected);
         acceptPopouts = true;
@@ -191,29 +185,13 @@ public partial class MainWindow : Window
                 return;
             }
             if (message.ValueKind != JsonValueKind.Object || !message.TryGetProperty("type", out var type)) return;
-            if (type.GetString() == "workspace-state" && message.TryGetProperty("navigationVisible", out var visible)
-                && visible.ValueKind is JsonValueKind.True or JsonValueKind.False)
-            {
-                TitleBar.NavigationVisible = visible.GetBoolean();
-                foreach (var child in popouts.Values) child.TitleBar.NavigationVisible = visible.GetBoolean();
-            }
-            else if (type.GetString() == "close-popout" && message.TryGetProperty("id", out var id)
+            if (type.ValueKind == JsonValueKind.String && type.GetString() == "close-popout"
+                && message.TryGetProperty("id", out var id)
                 && id.ValueKind == JsonValueKind.String && popouts.TryGetValue(id.GetString()!, out var popout))
                 popout.CloseFromBrowser();
         }
         catch (Exception error) when (error is JsonException or InvalidOperationException or ArgumentException)
         { App.RecordFailure(error); }
-    }
-
-    private async Task SendDesktopCommandAsync(string command)
-    {
-        if (changingWorkspace || checkingClose || Browser.CoreWebView2 is null) return;
-        try
-        {
-            await Browser.CoreWebView2.ExecuteScriptAsync(
-                $"window.dispatchEvent(new CustomEvent('astral-desktop-command',{{detail:{JsonSerializer.Serialize(command)}}}))");
-        }
-        catch (Exception error) { App.RecordFailure(error); }
     }
 
     private async void OnNewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
@@ -237,20 +215,19 @@ public partial class MainWindow : Window
         {
             var id = e.Name;
             if (string.IsNullOrEmpty(id) || popouts.ContainsKey(id)) return;
-            child = new DetachedEditorWindow(id, workspace, async window =>
+            var openedWorkspace = workspace;
+            child = new DetachedEditorWindow(Title, async window =>
             {
                 var result = await window.Browser.CoreWebView2.ExecuteScriptAsync(
                     "typeof window.opener?.astralEditorReturnPopout === 'function' ? (window.opener.astralEditorReturnPopout(window), true) : false");
                 if (result != "true") throw new InvalidOperationException("ビューを戻す処理が見つかりません。");
             });
-            child.TitleBar.NavigationVisible = TitleBar.NavigationVisible;
-            child.TitleBar.WorkspaceRequested += async () => await SelectWorkspaceAsync();
-            child.TitleBar.CommandRequested += async command => await SendDesktopCommandAsync(command);
             var features = e.WindowFeatures;
             if (features.HasSize)
             {
-                child.Width = Math.Clamp(features.Width, 360, SystemParameters.VirtualScreenWidth);
-                child.Height = Math.Clamp(features.Height + 32, 280, SystemParameters.VirtualScreenHeight);
+                var frame = SystemParameters.WindowNonClientFrameThickness;
+                child.Width = Math.Clamp(features.Width + frame.Left + frame.Right, child.MinWidth, SystemParameters.VirtualScreenWidth);
+                child.Height = Math.Clamp(features.Height + frame.Top + frame.Bottom, child.MinHeight, SystemParameters.VirtualScreenHeight);
             }
             if (features.HasPosition)
             {
@@ -267,8 +244,8 @@ public partial class MainWindow : Window
             ConfigureBrowser(core);
             core.DocumentTitleChanged += (_, _) =>
             {
-                current.Title = core.DocumentTitle + " — AstralRecord";
-                current.TitleBar.SetCaption(current.Title);
+                if (!string.IsNullOrWhiteSpace(core.DocumentTitle))
+                    current.Title = $"{core.DocumentTitle} — {openedWorkspace}";
             };
             core.WindowCloseRequested += (_, _) => current.CloseFromBrowser();
             e.NewWindow = core;
@@ -483,20 +460,6 @@ public partial class MainWindow : Window
         }
         if (changed) directory.SetAccessControl(permissions);
     }
-
-    private void ApplyTitleBarColors()
-    {
-        var handle = new WindowInteropHelper(this).Handle;
-        var darkMode = 1;
-        var background = 0x00342c28;
-        var foreground = 0x00ded3cd;
-        _ = DwmSetWindowAttribute(handle, 20, ref darkMode, sizeof(int));
-        _ = DwmSetWindowAttribute(handle, 35, ref background, sizeof(int));
-        _ = DwmSetWindowAttribute(handle, 36, ref foreground, sizeof(int));
-    }
-
-    [DllImport("dwmapi.dll")]
-    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 
     private sealed record DesktopSettings(string Workspace);
 }
