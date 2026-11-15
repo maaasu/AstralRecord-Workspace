@@ -532,6 +532,12 @@ describe('SkillTreeCanvas', () => {
     const node = await screen.findByTestId('rf__node-1001')
     fireEvent.click(node)
     await waitFor(() => expect(node).toHaveClass('selected'))
+    for (const key of ['Delete', 'Backspace']) {
+      for (const option of ['ctrlKey', 'metaKey', 'altKey', 'shiftKey', 'isComposing', 'repeat']) {
+        fireEvent.keyDown(node, { key, [option]: true })
+        expect(onRecord).not.toHaveBeenCalled()
+      }
+    }
     fireEvent.keyDown(node, { key: 'Delete', code: 'Delete' })
     await waitFor(() => expect(onRecord).toHaveBeenCalledOnce())
     expect(onRecord).toHaveBeenCalledWith({ ...structure, nodes: [structure.nodes[0]], edges: [] })

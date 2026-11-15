@@ -482,7 +482,8 @@ function CanvasInner({
       className={overview ? 'canvas overview' : 'canvas'}
       ref={canvasRef}
       onKeyDown={(event) => {
-        if (!DELETE_KEYS.includes(event.key) || event.defaultPrevented) return
+        if (!DELETE_KEYS.includes(event.key) || event.defaultPrevented || event.repeat
+          || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || event.nativeEvent.isComposing) return
         const target = event.target as Element
         if (target.closest('input, textarea, select, [contenteditable]')) return
         event.preventDefault()
