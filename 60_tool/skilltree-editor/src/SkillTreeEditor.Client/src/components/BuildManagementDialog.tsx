@@ -152,11 +152,14 @@ export function BuildManagementDialog({ action, catalog, selectedClass, preset, 
   return <>
     <Modal ariaLabel={title} className="design-build-dialog" onClose={close} closeDisabled={busy || !!picker}>
       <header className="modal-header"><h2>{title}</h2></header>
+      <div className="modal-body design-build-body">
       {action === 'delete' ? <p>「{plain(preset?.name ?? '')}」を削除します。確認後、保存先のファイルを削除します。</p> : <>
+        <div className="design-build-identity">
         {action === 'create' && <label className="design-dialog-label">職業<select value={classId} disabled={busy || !!prepared} onChange={event => { update(setClassId, event.target.value); setClassLevel(1); setInternalId(''); setMainHandId(''); setSkillbookId(''); setNodeIds([]); setSkillId('') }}>{availableClasses.map(entry => <option key={entry.id} value={entry.id}>{plain(entry.name)}</option>)}</select></label>}
         {action === 'duplicate' && <p>「{plain(preset?.name ?? '')}」の全レベル構成を複製します。</p>}
         <label className="design-dialog-label">表示名<input value={name} disabled={busy || !!prepared} onChange={event => update(setName, event.target.value)} placeholder="例：剣士の標準構成" /></label>
         <label className="design-dialog-label">ビルドID<input value={buildId} disabled={busy || !!prepared} onChange={event => update(setBuildId, event.target.value)} placeholder="例：standard" spellCheck={false} /></label>
+        </div>
         <small>小文字英数字とアンダースコアを使用します。表示名は日本語で入力できます。</small>
         {action !== 'edit' && <details className="design-build-advanced"><summary>保存用IDを確認・変更</summary><label className="design-dialog-label">保存用ID<input value={internalId || id} disabled={busy || !!prepared} onChange={event => update(setInternalId, event.target.value)} spellCheck={false} /></label><small>保存先: {path}</small></details>}
         {action === 'edit' && <p className="design-caption">保存用IDとファイルの場所は変わりません。変更は下書きに入り、画面上部から保存します。</p>}
@@ -180,6 +183,7 @@ export function BuildManagementDialog({ action, catalog, selectedClass, preset, 
       {(conflicting || idConflict) && <p className="design-warning" role="alert">同じ職業のビルドID、または保存用IDが既にあります。</p>}
       {error && <p className="design-warning" role="alert">{error}</p>}
       {prepared && <div className="design-build-review"><strong>{action === 'delete' ? '削除対象' : '登録内容を確認'}</strong><p>{plain(name || preset?.name || '')} · {prepared.path}</p>{prepared.warnings.map((warning, index) => <p className="design-warning" key={index}>{warning}</p>)}{prepared.raw && <details><summary>作成するファイルを表示</summary><pre>{prepared.raw}</pre></details>}<p>この操作は確認後、ファイルへすぐに反映されます。</p></div>}
+      </div>
       <footer className="modal-footer"><button className="button" disabled={busy} onClick={prepared ? () => setPrepared(null) : close}>{prepared ? '入力に戻る' : 'キャンセル'}</button><button className="button primary" disabled={busy || (!prepared && invalid)} onClick={() => void (prepared ? commit() : prepare())}>{busy ? '処理中…' : prepared ? action === 'delete' ? 'このビルドを削除' : 'このビルドを登録' : action === 'edit' ? '下書きに反映' : '内容を確認'}</button></footer>
     </Modal>
     {picker && <MasterEntityPicker title={picker === 'weapon' ? 'メインハンドを選択' : picker === 'book' ? 'スキルブックを選択' : picker === 'node' ? '習得ノードを追加' : '1番枠のスキルを選択'} choices={picker === 'weapon' ? weaponChoices : picker === 'book' ? bookChoices : picker === 'node' ? nodeChoices : skillChoices} value={picker === 'weapon' ? mainHandId : picker === 'book' ? skillbookId : picker === 'skill' ? skillId : undefined} onSelect={choose} onClose={() => setPicker(null)} />}

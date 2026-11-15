@@ -16,18 +16,29 @@
 .design-selectors label > span { color: var(--text-muted); font-size: 10px; letter-spacing: .04em; }
 .design-selectors select { min-width: 160px; min-height: 36px; font-size: 12px; }
 .design-direct-level input { min-height: 36px; width: 84px; }
+.design-selectors .design-direct-level { min-width: 84px; }
+.design-level-selectors { padding-top: 12px; border-top: 1px solid var(--line); }
 .design-selectors .design-build-select { min-width: 240px; }
 .design-selectors .text-button { min-height: 36px; }
 .design-equipment { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
 .design-additional-equipment { margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px 10px; }
 .design-additional-equipment > summary { cursor: pointer; padding: 10px 2px; color: var(--text-muted); font-size: 12px; }
 .design-additional-equipment[open] > summary { color: var(--text); }
-.design-build-dialog { max-width: min(620px, calc(100vw - 24px)); }
+.modal.design-build-dialog { width: min(720px, calc(100vw - 24px)); grid-template-rows: auto minmax(0, 1fr) auto; }
+.design-build-body { min-height: 0; font-size: 12px; }
+.design-build-identity { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 8px; }
+.design-build-identity > p { grid-column: 1 / -1; margin: 0; }
+.design-build-dialog .design-dialog-label { margin: 0; gap: 6px; }
+.design-build-dialog .modal-footer { justify-content: flex-end; }
 .design-build-dialog .design-dialog-label input, .design-build-dialog .design-dialog-label select { width: 100%; min-height: 36px; }
 .design-build-dialog small { color: var(--text-muted); }
 .design-build-advanced { margin: 12px 0; }
 .design-build-advanced summary { cursor: pointer; }
-.design-build-starters { display: grid; gap: 8px; margin: 16px 0; }
+.design-build-starters { display: grid; gap: 10px; margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
+.design-build-starters > p { margin: 4px 0 0; color: var(--accent); font-weight: 600; }
+.design-build-starters .design-dialog-label { grid-template-columns: auto 100px; justify-content: start; align-items: center; }
+.design-build-starters > small { line-height: 1.6; }
+.design-build-starters .design-account-nodes:empty { display: none; }
 .design-build-starters .button { display: flex; align-items: center; gap: 8px; justify-content: flex-start; }
 .design-build-starters .minecraft-icon { width: 24px; height: 24px; }
 .design-build-review { padding: 12px; margin: 14px 0; border: 1px solid var(--line); border-radius: 6px; }

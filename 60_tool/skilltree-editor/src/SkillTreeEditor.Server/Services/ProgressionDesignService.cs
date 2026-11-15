@@ -213,13 +213,7 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
         var data = master.Data;
         var equipment = data["equipment"] as JsonObject;
         var slot = Text(equipment?["slot"]);
-        string[] slots = slot switch
-        {
-            "WEAPON" => ["MAIN_HAND"],
-            "SUBWEAPON" => ["OFF_HAND"],
-            "HEAD" or "CHEST" or "LEGS" or "FEET" => [slot],
-            _ => []
-        };
+        var slots = ProgressionEquipmentSlots.Compatible(slot, Text(equipment?["tag"]));
         var classes = equipment?["requiredClasses"] is JsonArray requirements
             ? requirements.Select(value => Id(value is JsonObject row ? row["classId"] ?? row["class"] ?? value : value))
                 .OfType<string>().Distinct(StringComparer.Ordinal).ToArray()
@@ -229,7 +223,13 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
             Text(equipment?["handType"]) ?? (slot is "WEAPON" or "TOOL" ? "ONE" : null),
             Integer(equipment?["requiredLevel"]) ?? 0, classes, slots,
             ProgressionPresetValidation.ReachableEnhanceLevel(equipment?["enhance"] as JsonObject),
-            Text((data["sigil"] as JsonObject)?["equipGroupId"]));
+            Text((data["sigil"] as JsonObject)?["equipGroupId"]),
+            slot == "SKILLBOOK" ? (equipment?["usableSkills"] as JsonArray ?? []).Select(Id).OfType<string>()
+                .Distinct(StringComparer.Ordinal).ToArray() : [],
+            (equipment?["requiredClasses"] as JsonArray ?? []).OfType<JsonObject>()
+                .Where(row => Id(row["classId"] ?? row["class"]) is not null)
+                .Select(row => new ProgressionDesignClassRequirement(Id(row["classId"] ?? row["class"])!,
+                    Math.Max(1, Integer(row["level"]) ?? 1))).ToArray());
     }
 
     private static void ReadRecipe(Master master, List<ProgressionDesignSource> sources)

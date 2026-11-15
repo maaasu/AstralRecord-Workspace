@@ -16,7 +16,8 @@ export interface DesignItem {
   id: string; name: string; path: string; category: string | null; rarity: string | null
   icon: string | null; customModelData: number | null; iconTexture: string | null
   slot: string | null; handType: string | null; requiredLevel: number; requiredClasses: string[]
-  compatibleSlots: string[]; maxEnhanceLevel: number; sigilEquipGroupId?: string | null
+  compatibleSlots: string[]; maxEnhanceLevel: number; sigilEquipGroupId?: string | null; usableSkillIds?: string[]
+  requiredClassLevels?: { classId: string; level: number }[]
 }
 export interface DesignIngredient extends DesignLocation { itemId: string; itemPointer: string; quantity: DesignField[] }
 export interface DesignContext extends DesignLocation { kind: string; id: string; name: string }

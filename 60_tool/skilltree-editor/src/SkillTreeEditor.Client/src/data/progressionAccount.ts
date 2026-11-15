@@ -1,7 +1,7 @@
 import type { JsonValue } from '../types/editor'
 import type { DesignCheckpoint, DesignPreset, ProgressionDesignCatalog } from '../types/progressionDesign'
 import { valueAtPointer } from './masterDataNavigation'
-import { objectValue, setDesignValue } from './progressionDesign'
+import { equipmentRestriction, objectValue, setDesignValue } from './progressionDesign'
 
 export interface AccountCheckpointLocation { pointer: string; level: number }
 export type AccountSkillList = 'skills' | 'passives'
@@ -10,7 +10,10 @@ export function accountPermittedSkillIds(catalog: ProgressionDesignCatalog, pres
   const selectedClass = catalog.classes.find(entry => entry.id === preset.classId)
   if (!selectedClass?.usableSkillIds) return undefined
   const learned = new Set(checkpoint.nodes ?? [])
-  return new Set([...selectedClass.usableSkillIds, ...(catalog.nodes ?? []).filter(node => learned.has(node.id)).flatMap(node => node.skillIds ?? [])])
+  const bookId = checkpoint.equipment.find(entry => entry.slot === 'SKILLBOOK')?.itemId
+  const book = catalog.items.find(item => item.id === bookId && item.compatibleSlots.includes('SKILLBOOK'))
+  const bookSkills = book && !equipmentRestriction(book, 'SKILLBOOK', preset, checkpoint, catalog) ? book.usableSkillIds ?? [] : []
+  return new Set([...selectedClass.usableSkillIds, ...(catalog.nodes ?? []).filter(node => learned.has(node.id)).flatMap(node => node.skillIds ?? []), ...bookSkills])
 }
 
 /** Invalid large slot numbers must remain removable without allocating their preceding slots. */

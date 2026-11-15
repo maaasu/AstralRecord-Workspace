@@ -165,8 +165,9 @@ describe('ProgressionDesignWorkspace', () => {
     await waitFor(() => expect(progressionDesignApi.preview).toHaveBeenCalled())
     const draft = vi.mocked(progressionDesignApi.preview).mock.calls.at(-1)?.[0]
     expect(draft?.[0].path).toBe(buildPath)
-    expect((draft?.[0].content as typeof buildContent).levels.map(entry => entry.level)).toEqual([1, 10, 12])
-    expect((draft?.[0].content as typeof buildContent).levels[2].equipment).toEqual(buildContent.levels[1].equipment)
+    const updated = draft![0].content as typeof buildContent
+    expect(updated.levels.map(entry => entry.level)).toEqual([1, 10, 12])
+    expect(updated.levels[2].equipment).toEqual(buildContent.levels[1].equipment)
     expect(saveButton()).toBeEnabled()
   })
 

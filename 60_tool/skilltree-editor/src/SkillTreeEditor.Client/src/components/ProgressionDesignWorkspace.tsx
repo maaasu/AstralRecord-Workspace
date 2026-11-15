@@ -54,6 +54,7 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
   const [levelInput, setLevelInput] = useState('')
   const [directLevel, setDirectLevel] = useState('')
   const [buildAction, setBuildAction] = useState<BuildAction | null>(null)
+  const [buildDraftDirty, setBuildDraftDirty] = useState(false)
   const [operationNotice, setOperationNotice] = useState('')
   const [operationRefreshNeeded, setOperationRefreshNeeded] = useState(false)
   const [additionalOpen, setAdditionalOpen] = useState(false)
@@ -130,7 +131,7 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
     if (active && !previouslyActive.current && !documents.dirty && !documents.recovery) { documents.reset(); void refresh() }
     previouslyActive.current = active
   }, [active, documents, refresh])
-  useEffect(() => { onDirtyChange?.(documents.dirty || inputBlocked || Boolean(documents.recovery)) }, [documents.dirty, inputBlocked, documents.recovery, onDirtyChange])
+  useEffect(() => { onDirtyChange?.(documents.dirty || inputBlocked || Boolean(documents.recovery) || buildDraftDirty) }, [documents.dirty, inputBlocked, documents.recovery, buildDraftDirty, onDirtyChange])
   const chooseTarget = (action: () => void) => {
     if (inputBlocked) { documents.setError('入力中の数値を修正してから対象を切り替えてください。'); return }
     if (lock || documents.pending) return
@@ -328,13 +329,15 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
             <button className="button" disabled={fileOperationBlocked || !preset} title={fileOperationBlocked ? '未保存の変更を保存または破棄してから操作してください' : ''} onClick={() => setBuildAction('duplicate')}>複製</button>
             <button className="button" disabled={lock || inputBlocked || !preset} onClick={() => setBuildAction('edit')}>名前・IDを編集</button>
             <button className="button" disabled={fileOperationBlocked || !preset} title={fileOperationBlocked ? '未保存の変更を保存または破棄してから操作してください' : ''} onClick={() => setBuildAction('delete')}>削除</button>
+            {preset && <button className="text-button" disabled={documents.dirty || lock} onClick={() => openMaster(preset.path, checkpoint?.pointer)}>ビルドの詳細 ↗</button>}
+          </div>
+          <div className="design-selectors design-level-selectors" role="group" aria-label="レベル段階の管理">
             <label><span>03 適用開始レベル</span><select aria-label="適用開始レベル" disabled={lock || inputBlocked || !checkpoint} value={checkpoint?.level ?? ''} onChange={event => chooseTarget(() => { setLevel(Number(event.target.value)); setDirectLevel('') })}>{preset?.checkpoints.map(entry => <option value={entry.level} key={entry.pointer}>Lv.{entry.level}</option>)}</select></label>
             <label className="design-direct-level"><span>Lvを直接入力</span><input type="number" min="1" max="50" aria-label="レベルを直接入力" value={directLevel} disabled={lock || inputBlocked || !checkpoint} onChange={event => setDirectLevel(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') selectDirectLevel() }} /></label>
             <button className="button" disabled={lock || inputBlocked || !/^\d+$/.test(directLevel) || Number(directLevel) < 1 || Number(directLevel) > 50} onClick={selectDirectLevel}>移動・追加</button>
             <button className="button" disabled={lock || inputBlocked || !preset || !checkpoint || preset.checkpoints.length >= 50} onClick={() => startLevelAction('add', Math.min(50, (checkpoint?.level ?? 1) + 1))}>＋ 段階を複製</button>
             <button className="button" disabled={lock || inputBlocked || !checkpoint || checkpoint.level === 1} onClick={() => startLevelAction('change')}>Lvを変更</button>
             <button className="button" disabled={lock || inputBlocked || !checkpoint || checkpoint.level === 1} onClick={() => startLevelAction('delete')}>段階を削除</button>
-            {preset && <button className="text-button" disabled={documents.dirty || lock} onClick={() => openMaster(preset.path, checkpoint?.pointer)}>ビルドの詳細 ↗</button>}
           </div>
           <p className="design-caption">Lv.1は必須です。段階はLv.1〜50の間で重複なく登録します。新規登録・複製・削除はファイルへすぐ反映されます。</p>
           {documents.dirty && <p className="design-caption">ビルドの登録・複製・削除は、未保存の変更を保存または破棄してから行えます。</p>}
@@ -400,7 +403,7 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
       {levelAction.kind !== 'delete' && preset.checkpoints.some(entry => entry.level === Number(levelInput) && entry.level !== levelAction.sourceLevel) && <p className="design-warning">そのレベルは登録済みです。</p>}
       <footer className="modal-footer"><button className="button" disabled={!!documents.pending || structuralPending} onClick={() => setLevelAction(null)}>キャンセル</button><button className="button primary" disabled={!!documents.pending || structuralPending || levelAction.kind !== 'delete' && (!/^\d+$/.test(levelInput) || Number(levelInput) < 1 || Number(levelInput) > 50 || preset.checkpoints.some(entry => entry.level === Number(levelInput)))} onClick={() => void applyLevelAction()}>{levelAction.kind === 'delete' ? 'この段階を削除' : levelAction.kind === 'change' ? 'レベルを変更' : '段階を追加'}</button></footer>
     </Modal>}
-    {buildAction && classes.find(entry => entry.id === currentClass) && <BuildManagementDialog action={buildAction} catalog={available} selectedClass={classes.find(entry => entry.id === currentClass)!} preset={preset} onClose={() => setBuildAction(null)} onEdit={(name, nextBuildId) => preset ? editStructure(preset.path, content => changeBuildIdentity(content, name, nextBuildId)) : Promise.resolve(false)} onCommitted={committedBuild} />}
+    {buildAction && classes.find(entry => entry.id === currentClass) && <BuildManagementDialog action={buildAction} catalog={available} selectedClass={classes.find(entry => entry.id === currentClass)!} preset={preset} onDirtyChange={setBuildDraftDirty} onClose={() => setBuildAction(null)} onEdit={(name, nextBuildId) => preset ? editStructure(preset.path, content => changeBuildIdentity(content, name, nextBuildId)) : Promise.resolve(false)} onCommitted={committedBuild} />}
     {review && <Modal ariaLabel="装備・進行設計の変更を確認" className="design-save-dialog" onClose={() => setReview(null)} closeDisabled={documents.saving}>
       <header className="modal-header"><div><h2>変更を確認して保存</h2><p>{review.length}件のファイルを検証しました。ファイルごとに保存します。</p></div></header>
       <div className="design-save-list">{review.map(candidate => <article key={candidate.path}><strong>{candidate.path}</strong>{candidate.warnings.map((warning, index) => <p className="design-warning" key={index}>{warning}</p>)}<button className="button" disabled={documents.saving} onClick={() => setDiff(candidate)}>差分を確認</button></article>)}</div>

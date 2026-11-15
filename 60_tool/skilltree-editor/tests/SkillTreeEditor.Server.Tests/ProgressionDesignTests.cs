@@ -19,6 +19,29 @@ public sealed class ProgressionDesignTests : IDisposable
     }
 
     [Fact]
+    public async Task SkillbookAndAccessoryCandidatesUseTheRealSlotKindsAndExposeBookSkills()
+    {
+        Write("10.features.item/20.equipment/v1.book.yml", """
+            id: book
+            equipment:
+              slot: SKILLBOOK
+              usableSkills: ["skill:meteor", "skill:meteor"]
+              requiredClasses: [{ classId: mage, level: 3 }]
+            """);
+        Write("10.features.item/20.equipment/v1.charm.yml", "id: charm\nequipment: { slot: ACCESSORY, tag: CHARM }\n");
+        Write("10.features.item/20.equipment/v1.relic.yml", "id: relic\nequipment: { slot: ACCESSORY, tag: RELIC }\n");
+        Write("10.features.item/20.equipment/v1.invalid.yml", "id: invalid\nequipment: { slot: ACCESSORY, tag: UNKNOWN }\n");
+        var result = await _service.ReadAsync(default);
+        var book = result.Items.Single(item => item.Id == "book");
+        Assert.Equal(["SKILLBOOK"], book.CompatibleSlots);
+        Assert.Equal(["meteor"], book.UsableSkillIds);
+        Assert.Equal(new ProgressionDesignClassRequirement("mage", 3), Assert.Single(book.RequiredClassLevels!));
+        Assert.Equal(["CHARM_1", "CHARM_2", "CHARM_3"], result.Items.Single(item => item.Id == "charm").CompatibleSlots);
+        Assert.Equal(["RELIC_1", "RELIC_2"], result.Items.Single(item => item.Id == "relic").CompatibleSlots);
+        Assert.Empty(result.Items.Single(item => item.Id == "invalid").CompatibleSlots);
+    }
+
+    [Fact]
     public async Task ShopUsesOnlyShopRecipesAndKeepsEveryEditableCostLocation()
     {
         const string shopPath = "45.features.shop/v1.shop.yml";

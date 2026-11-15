@@ -4,6 +4,10 @@ import type { DesignCheckpoint, DesignItem, DesignPreset, ProgressionDesignCatal
 
 export const equipmentSlots = [
   ['MAIN_HAND', '武器'], ['OFF_HAND', 'オフハンド'], ['HEAD', '頭'], ['CHEST', '胴'], ['LEGS', '脚'], ['FEET', '足'],
+  ['SKILLBOOK', 'スキルブック'], ['AMULET', 'アミュレット'],
+  ['TALISMAN_1', 'タリスマン 1'], ['TALISMAN_2', 'タリスマン 2'],
+  ['CHARM_1', 'チャーム 1'], ['CHARM_2', 'チャーム 2'], ['CHARM_3', 'チャーム 3'],
+  ['CORE', 'コア'], ['RELIC_1', 'レリック 1'], ['RELIC_2', 'レリック 2'],
 ] as const
 export const sourceLabels: Record<string, string> = { shop: 'ショップ・交換', recipe: 'レシピ', mob: 'モブ', gathering: '採集', dungeon: 'ダンジョン', lootTable: '報酬テーブル', lootPool: '報酬プール', fishing: '釣り', world: 'ワールド', preset: 'ビルド装備' }
 export const objectValue = (value: JsonValue | undefined): JsonObject => value && typeof value === 'object' && !Array.isArray(value) ? value : {}
@@ -43,9 +47,13 @@ export function changeEquipment(content: JsonValue, checkpoint: DesignCheckpoint
 
 export function equipmentRestriction(item: DesignItem, slot: string, preset: DesignPreset, checkpoint: DesignCheckpoint, catalog: ProgressionDesignCatalog): string | undefined {
   if (!item.compatibleSlots.includes(slot)) return 'この装備枠には設定できません'
-  // Progression presets can intentionally grant advanced equipment at low checkpoints.
-  // Required player levels are shown as advice, while master validation is authoritative.
-  void preset; void checkpoint; void catalog
+  if (item.requiredLevel > checkpoint.level) return `必要プレイヤーLv.${item.requiredLevel}に達していません`
+  const classId = preset.classId.toLowerCase()
+  if (item.requiredClasses.length && !item.requiredClasses.some(id => id.toLowerCase() === classId)) return '選択中の職業では装備できません'
+  const requirements = (item.requiredClassLevels ?? []).filter(entry => entry.classId.toLowerCase() === classId)
+  const requiredClassLevel = requirements.length ? Math.min(...requirements.map(entry => Math.max(1, entry.level))) : 1
+  if (Math.max(1, checkpoint.classLevel) < requiredClassLevel) return `必要職業Lv.${requiredClassLevel}に達していません`
+  void catalog
   return undefined
 }
 
