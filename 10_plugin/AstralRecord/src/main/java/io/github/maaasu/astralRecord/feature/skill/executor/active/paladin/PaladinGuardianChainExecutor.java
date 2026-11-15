@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.paladin;
 
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
@@ -79,12 +80,14 @@ public final class PaladinGuardianChainExecutor extends PlayerActiveSkillExecuto
             context.services().tasks().cancel(player.getUniqueId(), ID);
             return;
         }
-        Location casterCenter = player.getLocation().clone().add(0.0D, 1.0D, 0.0D);
+        Location feet = player.getLocation();
+        Location casterCenter = feet.clone().add(0.0D, 1.0D, 0.0D);
+        Location chainEnd = feet.add(0.0D, 0.25D, 0.0D);
         for (AstEntity target : context.services().targeting().inRadius(
                 player, casterCenter, radius, radius, Integer.MAX_VALUE, false
         )) {
             Location targetCenter = target.location().clone().add(0.0D, 1.0D, 0.0D);
-            renderChain(context, targetCenter, casterCenter, curveHeight, curvePoints);
+            renderChain(context, targetCenter, chainEnd, curveHeight, curvePoints);
             Vector horizontal = casterCenter.toVector().subtract(targetCenter.toVector()).setY(0.0D);
             double distance = Math.min(radius, horizontal.length());
             if (horizontal.lengthSquared() <= 1.0E-8D) {
@@ -102,7 +105,7 @@ public final class PaladinGuardianChainExecutor extends PlayerActiveSkillExecuto
      *
      * @param context 発動者と演出サービス
      * @param start 鎖の開始位置
-     * @param end 鎖の終了位置
+     * @param end 発動者側の足元に置く鎖の終了位置
      * @param curveHeight 曲線頂点の高さ
      * @param curvePoints 標準密度での描画点数
      */
@@ -114,7 +117,8 @@ public final class PaladinGuardianChainExecutor extends PlayerActiveSkillExecuto
             int curvePoints
     ) {
         if (curvePoints == 1) {
-            context.services().effects().point(end, SharedParticleDefinitions.SKILL_PALADIN_GUARDIAN_CHAIN_LINE);
+            context.services().effects().pointForViewers(SkillEffectService.nearbyObservers(end, context.player()), end,
+                    SharedParticleDefinitions.SKILL_PALADIN_GUARDIAN_CHAIN_LINE);
             return;
         }
         Vector first = start.toVector();

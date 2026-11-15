@@ -25,7 +25,7 @@ final class WizardArcaneOverloadEffects {
 
     /**
      * 詠唱進捗に合わせ、発動者の周囲から三本の螺旋を魔力核へ収束させます。
-     * 4tickごとに最大132候補点を一括描画し、音は8tickごとに限定します。
+     * 4tickごとに最大132候補点を本人以外へ一括描画し、音は8tickごとに限定します。
      * 設置物や別タスクを持たないため、詠唱中断後に演出を継続しません。
      *
      * @param effects 共通演出サービス
@@ -58,9 +58,10 @@ final class WizardArcaneOverloadEffects {
             motes.add(upper);
             motes.add(upper.clone().add(0.0D, 0.06D, 0.0D));
         }
-        effects.points(core, ribbons, SharedParticleDefinitions.WIZARD_OVERLOAD_ARC);
-        effects.ring(core, 0.15D + progress * 0.18D, 6, SharedParticleDefinitions.WIZARD_OVERLOAD_CORE);
-        effects.points(core, motes, SharedParticleDefinitions.WIZARD_OVERLOAD_MOTE);
+        List<Player> observers = SkillEffectService.nearbyObservers(core, caster);
+        effects.pointsForViewers(observers, ribbons, SharedParticleDefinitions.WIZARD_OVERLOAD_ARC);
+        effects.ringForViewers(observers, core, 0.15D + progress * 0.18D, 6, SharedParticleDefinitions.WIZARD_OVERLOAD_CORE);
+        effects.pointsForViewers(observers, motes, SharedParticleDefinitions.WIZARD_OVERLOAD_MOTE);
         if (elapsedTicks == 0L) {
             effects.sound(core, Sound.BLOCK_BEACON_ACTIVATE, 0.55F, 1.2F);
         }

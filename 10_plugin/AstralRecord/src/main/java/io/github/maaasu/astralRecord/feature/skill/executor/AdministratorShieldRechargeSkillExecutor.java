@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skill.executor;
 
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillPackDisplay;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillStatusModifier;
@@ -16,6 +17,7 @@ import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -85,17 +87,21 @@ public final class AdministratorShieldRechargeSkillExecutor implements SkillExec
         statusService.configureShieldRecharge(context.player(), params.getDouble("rechargeDelaySeconds", StatusService.PLAYER_SHIELD_RECHARGE_SECONDS), params.getDouble("rechargePercentPerSecond", 0.0D));
     }
 
+    /** 再充填のスプライトと粒子を本人以外の同じ閲覧者へ表示します。 */
     private void renderRecharge(@NotNull PassiveSkillContext context) {
-        Location center = context.player().getBukkit().getLocation().clone().add(0.0D, 1.0D, 0.0D);
+        Player player = context.player().getBukkit();
+        Location center = player.getLocation().add(0.0D, 1.0D, 0.0D);
+        List<Player> observers = SkillEffectService.nearbyObservers(center, player);
+        if (observers.isEmpty()) return;
         List<Location> locations = new ArrayList<>(12);
         double phase = context.activeTicks() * 0.18D;
         for (int index = 0; index < 12; index++) {
             double angle = phase + Math.PI * 2.0D * index / 12.0D;
             locations.add(center.clone().add(Math.cos(angle) * 0.75D, Math.sin(angle) * 0.22D, Math.sin(angle) * 0.75D));
         }
-        var rendered = packDisplay.show(ID, SkillPackDisplay.Phase.AREA, center, 1.5F, context.player().getBukkit());
+        var rendered = packDisplay.showForViewers(ID, SkillPackDisplay.Phase.AREA, center, 1.5F, player, observers);
         particleDisplayService.spawnBudgetedForViewers(center.getWorld(), locations,
-                SharedParticleDefinitions.SHIELD_RECHARGE_DUST, null, viewer -> true,
+                SharedParticleDefinitions.SHIELD_RECHARGE_DUST, observers, viewer -> true,
                 ParticleDisplayService.EffectPoints.LOOP, viewer -> rendered.contains(viewer) ? 0 : 3);
     }
 

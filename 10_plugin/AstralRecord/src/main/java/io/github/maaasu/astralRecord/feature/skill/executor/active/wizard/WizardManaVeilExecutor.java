@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.buff.model.BuffModifier;
 import io.github.maaasu.astralRecord.feature.buff.model.BuffModifierType;
 import io.github.maaasu.astralRecord.feature.buff.model.BuffType;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
@@ -15,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Sound;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
@@ -103,9 +105,11 @@ public final class WizardManaVeilExecutor extends WizardSkillSupport {
         return statusService.getActiveBuffs(context.caster().player()).stream().anyMatch(buff -> buff == expected);
     }
 
-    /** 身体に追従する三段の魔力殻と、上昇する回復光を5tickごとに一括描画します。 */
+    /** 身体に追従する魔力殻と回復光を5tickごとに本人以外へ表示します。 */
     private static void drawVeil(PlayerActiveSkillContext context, int frame) {
         Location base = context.player().getLocation();
+        List<Player> observers = SkillEffectService.nearbyObservers(base, context.player());
+        if (observers.isEmpty()) return;
         List<Location> shell = new ArrayList<>(120);
         double rotation = frame * 0.16D;
         for (int band = 0; band < 3; band++) {
@@ -124,13 +128,13 @@ public final class WizardManaVeilExecutor extends WizardSkillSupport {
                         Math.sin(angle) * radius));
             }
         }
-        context.services().effects().points(base, shell, SharedParticleDefinitions.WIZARD_MANA_VEIL_SHELL);
+        context.services().effects().pointsForViewers(observers, shell, SharedParticleDefinitions.WIZARD_MANA_VEIL_SHELL);
         List<Location> lights = new ArrayList<>(16);
         for (int point = 0; point < 16; point++) {
             double angle = -rotation * 2.0D + Math.PI * 2.0D * point / 16;
             double height = ((frame + point * 1.5D) % 20) / 20.0D * 1.8D;
             lights.add(base.clone().add(Math.cos(angle) * 0.78D, height, Math.sin(angle) * 0.78D));
         }
-        context.services().effects().points(base, lights, SharedParticleDefinitions.WIZARD_MANA_VEIL_RECOVERY);
+        context.services().effects().pointsForViewers(observers, lights, SharedParticleDefinitions.WIZARD_MANA_VEIL_RECOVERY);
     }
 }

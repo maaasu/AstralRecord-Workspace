@@ -8,8 +8,10 @@ import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Sound;
+import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +22,7 @@ import java.util.List;
  */
 public final class PhantomArcherEffects {
     private static final double TAU = Math.PI * 2.0D;
+    private static final double VOLLEY_VISUAL_START_DISTANCE = 1.0D;
     private static final Vector WORLD_UP = new Vector(0.0D, 1.0D, 0.0D);
 
     private enum Profile { STITCH, PIERCE, VOLLEY, ECLIPSE, OTHER }
@@ -66,7 +69,7 @@ public final class PhantomArcherEffects {
 
     /**
      * スキルごとに針矢、貫通槍、双小弓、日蝕弓へ形を変え、
-     * 準備音とともに視線へ描画します。
+     * 準備音を鳴らします。詠唱と連射で反復する幻影弓は発動者以外へ表示します。
      *
      * @param context 発動者の演出サービスを含むコンテキスト
      * @param origin 弓の中心。world を持たない場合は描画しません
@@ -87,10 +90,12 @@ public final class PhantomArcherEffects {
             return;
         }
         if (profile == Profile.VOLLEY) {
-            drawVolleyBows(context, origin, basis, size);
+            drawVolleyBows(context, origin, basis, size, SkillEffectService.nearbyObservers(origin, context.player()));
             preparationSound(context, origin, profile);
             return;
         }
+        List<Player> audience = profile == Profile.ECLIPSE
+                ? SkillEffectService.nearbyObservers(origin, context.player()) : null;
         List<Location> bow = new ArrayList<>(49);
         List<Location> string = new ArrayList<>(37);
         List<Location> arrow = new ArrayList<>(43);
@@ -118,11 +123,11 @@ public final class PhantomArcherEffects {
                         side * progress * 0.085D * size, side * progress * 0.035D * size));
             }
         }
-        show(context, origin, bow, SharedParticleDefinitions.PHANTOM_ARCHER_BOW_VIOLET);
-        show(context, origin, string, SharedParticleDefinitions.PHANTOM_ARCHER_GHOST_PALE);
-        show(context, origin, arrow, SharedParticleDefinitions.PHANTOM_ARCHER_ARROW_CYAN);
+        show(context, origin, bow, SharedParticleDefinitions.PHANTOM_ARCHER_BOW_VIOLET, audience);
+        show(context, origin, string, SharedParticleDefinitions.PHANTOM_ARCHER_GHOST_PALE, audience);
+        show(context, origin, arrow, SharedParticleDefinitions.PHANTOM_ARCHER_ARROW_CYAN, audience);
         if (profile == Profile.PIERCE) drawPierceCharge(context, origin, basis, size);
-        if (profile == Profile.ECLIPSE) drawEclipseCharge(context, origin, basis, size);
+        if (audience != null) drawEclipseCharge(context, origin, basis, size, audience);
         preparationSound(context, origin, profile);
     }
 
@@ -440,7 +445,8 @@ public final class PhantomArcherEffects {
     }
 
     /** 連射の主弓の左右に、小さな幻影弓と短い矢を置きます。 */
-    private static void drawVolleyBows(PlayerActiveSkillContext context, Location origin, Basis basis, double size) {
+    private static void drawVolleyBows(PlayerActiveSkillContext context, Location origin, Basis basis, double size,
+                                       List<Player> observers) {
         List<Location> bows = new ArrayList<>(58);
         List<Location> arrows = new ArrayList<>(56);
         for (int side : new int[] {-1, 1}) {
@@ -454,8 +460,8 @@ public final class PhantomArcherEffects {
                         side * 0.65D * size, 0.0D));
             }
         }
-        show(context, origin, bows, SharedParticleDefinitions.PHANTOM_ARCHER_BOW_VIOLET);
-        show(context, origin, arrows, SharedParticleDefinitions.PHANTOM_ARCHER_ARROW_CYAN);
+        context.services().effects().pointsForViewers(observers, bows, SharedParticleDefinitions.PHANTOM_ARCHER_BOW_VIOLET);
+        context.services().effects().pointsForViewers(observers, arrows, SharedParticleDefinitions.PHANTOM_ARCHER_ARROW_CYAN);
     }
 
     /** 貫通矢の先端に霊気を巻き、槍の柄を延長します。 */
@@ -471,7 +477,8 @@ public final class PhantomArcherEffects {
     }
 
     /** 日蝕矢の張った二重弧、太い矢尻、影の暈を加えます。 */
-    private static void drawEclipseCharge(PlayerActiveSkillContext context, Location origin, Basis basis, double size) {
+    private static void drawEclipseCharge(PlayerActiveSkillContext context, Location origin, Basis basis, double size,
+                                          List<Player> observers) {
         List<Location> outer = new ArrayList<>(61);
         List<Location> head = new ArrayList<>(48);
         for (int i = 0; i <= 60; i++) {
@@ -486,8 +493,8 @@ public final class PhantomArcherEffects {
                         side * t * 0.26D * size, side * t * 0.08D * size));
             }
         }
-        show(context, origin, outer, SharedParticleDefinitions.PHANTOM_ARCHER_SHADOW);
-        show(context, origin, head, SharedParticleDefinitions.PHANTOM_ARCHER_ARROW_CYAN);
+        context.services().effects().pointsForViewers(observers, outer, SharedParticleDefinitions.PHANTOM_ARCHER_SHADOW);
+        context.services().effects().pointsForViewers(observers, head, SharedParticleDefinitions.PHANTOM_ARCHER_ARROW_CYAN);
     }
 
     /** 縫い矢の針軸と、それを追う二本の暗い糸を描きます。 */
@@ -509,21 +516,26 @@ public final class PhantomArcherEffects {
         show(context, origin, threads, SharedParticleDefinitions.PHANTOM_ARCHER_SHADOW);
     }
 
-    /** 連射ごとに短い中央矢と左右の残響を描きます。 */
+    /** 連射の矢と残響は目元から1m以上離れた地点に描きます。 */
     private static void launchEcho(PlayerActiveSkillContext context, Location origin, Basis basis) {
         List<Location> arrows = new ArrayList<>(78);
         List<Location> echoes = new ArrayList<>(40);
         for (int lane = -1; lane <= 1; lane++) {
             for (int i = 0; i < 26; i++) {
                 double t = i / 25.0D;
-                arrows.add(at(origin, basis, 0.3D + t * (lane == 0 ? 2.8D : 1.9D),
-                        lane * 0.34D, 0.0D));
+                double forward = 0.3D + t * (lane == 0 ? 2.8D : 1.9D);
+                if (forward >= VOLLEY_VISUAL_START_DISTANCE) {
+                    arrows.add(at(origin, basis, forward, lane * 0.34D, 0.0D));
+                }
             }
         }
         for (int i = 0; i < 40; i++) {
             double t = i / 39.0D;
-            echoes.add(at(origin, basis, 0.2D + t * 2.2D,
-                    Math.sin(t * TAU * 2.0D) * 0.22D, Math.cos(t * TAU * 2.0D) * 0.22D));
+            double forward = 0.2D + t * 2.2D;
+            if (forward >= VOLLEY_VISUAL_START_DISTANCE) {
+                echoes.add(at(origin, basis, forward,
+                        Math.sin(t * TAU * 2.0D) * 0.22D, Math.cos(t * TAU * 2.0D) * 0.22D));
+            }
         }
         show(context, origin, arrows, SharedParticleDefinitions.PHANTOM_ARCHER_ARROW_CYAN);
         show(context, origin, echoes, SharedParticleDefinitions.PHANTOM_ARCHER_GHOST_PALE);
@@ -669,6 +681,16 @@ public final class PhantomArcherEffects {
                              List<Location> points, SharedParticleDefinition definition) {
         if (center.getWorld() != null && !points.isEmpty()) {
             context.services().effects().points(center, points, definition);
+        }
+    }
+
+    /** 反復する弓の各形状を、同じ閲覧者へ表示します。 */
+    private static void show(PlayerActiveSkillContext context, Location center, List<Location> points,
+                             SharedParticleDefinition definition, @Nullable List<Player> audience) {
+        if (audience == null) {
+            show(context, center, points, definition);
+        } else {
+            context.services().effects().pointsForViewers(audience, points, definition);
         }
     }
 

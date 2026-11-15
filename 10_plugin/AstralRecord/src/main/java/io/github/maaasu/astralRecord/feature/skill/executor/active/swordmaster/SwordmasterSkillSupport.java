@@ -22,8 +22,10 @@ import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -159,6 +161,22 @@ abstract class SwordmasterSkillSupport extends PlayerActiveSkillExecutor {
     /** 斬撃の二重弧をまとめて描き、命中の向きと距離を示します。 */
     protected static void slash(PlayerActiveSkillContext context, Location center, Vector direction,
                                 double radius, SharedParticleDefinition color, boolean rising) {
+        slash(context, center, direction, radius, color, rising, null);
+    }
+
+    /**
+     * 斬撃を指定した閲覧者へ表示し、効果音を周辺に再生します。
+     * @param context 発動者と描画サービス
+     * @param center 斬撃の中心
+     * @param direction 斬撃の向き
+     * @param radius 弧の半径
+     * @param color パーティクルの共通定義
+     * @param rising 上昇する形状にする場合はtrue
+     * @param audience 表示先。nullなら通常の近傍表示
+     */
+    protected static void slash(PlayerActiveSkillContext context, Location center, Vector direction,
+                                double radius, SharedParticleDefinition color, boolean rising,
+                                @Nullable List<Player> audience) {
         Vector forward = direction.clone().setY(0.0D);
         if (forward.lengthSquared() < 1.0E-8D) {
             forward = new Vector(0.0D, 0.0D, 1.0D);
@@ -175,7 +193,11 @@ abstract class SwordmasterSkillSupport extends PlayerActiveSkillExecutor {
                         band * 0.14D + (rising ? Math.sin(angle) * 1.1D : 0.0D), 0.0D));
             }
         }
-        context.services().effects().points(center, points, color);
+        if (audience == null) {
+            context.services().effects().points(center, points, color);
+        } else {
+            context.services().effects().pointsForViewers(audience, points, color);
+        }
         context.services().effects().sound(center, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8F, rising ? 1.4F : 0.9F);
     }
 

@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skill.executor.active.wizard;
 
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
@@ -94,13 +95,14 @@ final class WizardSpellPresentation {
     }
 
     /**
-     * 実際にHPが回復した発動者を追従し、二重螺旋と上昇する輪を5段階で表示します。
+     * 実際にHPが回復した発動者を追従し、二重螺旋と上昇する輪を本人以外へ5段階で表示します。
      * @param context 回復した発動者と共有演出サービス
      */
     static void healingRise(PlayerActiveSkillContext context) {
         Location origin = context.player().getLocation();
         animate(context, origin, 5, frame -> {
             Location feet = context.player().getLocation();
+            var observers = SkillEffectService.nearbyObservers(feet, context.player());
             var points = new ArrayList<Location>(64);
             for (int strand = 0; strand < 2; strand++) {
                 for (int index = 0; index < 32; index++) {
@@ -110,9 +112,9 @@ final class WizardSpellPresentation {
                     points.add(feet.clone().add(Math.cos(angle) * radius, height, Math.sin(angle) * radius));
                 }
             }
-            context.services().effects().points(feet, points,
+            context.services().effects().pointsForViewers(observers, points,
                     SharedParticleDefinitions.MAGE_HEAL_AURA_RING.withCount(1).withOffsets(0.0D, 0.0D, 0.0D));
-            context.services().effects().ring(feet.clone().add(0.0D, frame * 0.35D, 0.0D),
+            context.services().effects().ringForViewers(observers, feet.clone().add(0.0D, frame * 0.35D, 0.0D),
                     0.70D - frame * 0.08D, 20, SharedParticleDefinitions.WIZARD_ELEMENTAL_BALL_RING);
             if (frame == 4) {
                 context.services().effects().sound(feet, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.45F, 1.45F);

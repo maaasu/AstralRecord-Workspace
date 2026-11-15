@@ -225,13 +225,16 @@ public final class BastionStrikeSkillRuntimeService {
             return;
         }
         Location pulseCenter = center.clone().add(0.0D, frame * 0.18D, 0.0D);
-        effectService.ring(
+        var observers = SkillEffectService.nearbyObservers(pulseCenter, player);
+        effectService.ringForViewers(
+                observers,
                 pulseCenter,
                 0.65D + frame * 0.28D,
                 24,
                 SharedParticleDefinitions.BASTION_STRIKE_SOUL_FIRE
         );
-        effectService.ring(
+        effectService.ringForViewers(
+                observers,
                 pulseCenter,
                 0.42D + frame * 0.20D,
                 16,

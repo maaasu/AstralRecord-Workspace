@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.wizard;
 
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
@@ -20,6 +21,7 @@ public final class WizardArcaneLanceExecutor extends WizardSkillSupport {
     private static final int FRAME_INTERVAL_TICKS = 2;
     private static final int FLIGHT_FRAMES = 6;
     private static final int AFTERGLOW_FRAMES = 3;
+    private static final double LAUNCH_VIEW_CLEARANCE = 1.0D;
     private static final double TRAIL_LENGTH = 5.0D;
     private static final double SAMPLE_INTERVAL = 0.18D;
     private static final double CROSSING_DISTANCE = 3.0D;
@@ -58,7 +60,7 @@ public final class WizardArcaneLanceExecutor extends WizardSkillSupport {
         String scope = ID + ":visual:" + UUID.randomUUID();
 
         drawRing(context, origin, right, up, Math.min(0.5D, distance), 0.48D, 0.0D,
-                SharedParticleDefinitions.WIZARD_ARCANE_LANCE_VIOLET);
+                SharedParticleDefinitions.WIZARD_ARCANE_LANCE_VIOLET, true);
         context.services().tasks().repeat(casterId, scope, 0L, FRAME_INTERVAL_TICKS,
                 FLIGHT_FRAMES + AFTERGLOW_FRAMES, frame -> {
                     if (!context.player().isOnline() || context.player().isDead()
@@ -72,15 +74,17 @@ public final class WizardArcaneLanceExecutor extends WizardSkillSupport {
                         if (frame < 2) {
                             drawRing(context, origin, right, up, Math.min(0.5D, distance),
                                     0.34D - frame * 0.12D, frame * 0.35D,
-                                    SharedParticleDefinitions.WIZARD_ARCANE_LANCE_AZURE);
+                                    SharedParticleDefinitions.WIZARD_ARCANE_LANCE_AZURE, true);
                         }
                     } else {
                         int glowFrame = frame - FLIGHT_FRAMES;
                         // 遮蔽面の手前へ残光を置き、斜めの壁では埋まる点を除外します。
-                        Location glow = end.clone().subtract(forward.clone().multiply(Math.min(0.12D, distance)));
+                        double glowOffset = Math.min(0.12D, distance);
+                        Location glow = end.clone().subtract(forward.clone().multiply(glowOffset));
                         drawRing(context, glow, right, up, 0.0D,
                                 0.24D + glowFrame * 0.18D, glowFrame * 0.3D,
-                                SharedParticleDefinitions.WIZARD_ARCANE_LANCE_WHITE);
+                                SharedParticleDefinitions.WIZARD_ARCANE_LANCE_WHITE,
+                                distance - glowOffset < LAUNCH_VIEW_CLEARANCE);
                         if (glowFrame == 0) {
                             drawBurst(context, glow, right, up);
                         }
@@ -88,11 +92,12 @@ public final class WizardArcaneLanceExecutor extends WizardSkillSupport {
                 });
     }
 
-    /** 三条を等位相で編み込み、一定距離ごとに射線上で交差させて先端へ収束します。 */
+    /** 目元から距離を取った射線上へ、三条と先端の火花を描きます。 */
     private static void drawFlight(@NotNull PlayerActiveSkillContext context, @NotNull Location origin,
                                    @NotNull Vector forward, @NotNull Vector right, @NotNull Vector up,
                                    double front, int frame) {
-        double start = Math.max(0.0D, front - TRAIL_LENGTH);
+        double start = Math.max(LAUNCH_VIEW_CLEARANCE, front - TRAIL_LENGTH);
+        if (front < start) return;
         int samples = Math.max(1, (int) Math.ceil((front - start) / (SAMPLE_INTERVAL / 2.0D)));
         for (int strand = 0; strand < STRANDS.length; strand++) {
             List<Location> points = new ArrayList<>(samples + 1);
@@ -117,14 +122,15 @@ public final class WizardArcaneLanceExecutor extends WizardSkillSupport {
         context.services().effects().points(origin, sparks, SharedParticleDefinitions.WIZARD_ARCANE_LANCE_SPARK);
         if (frame == FLIGHT_FRAMES - 1) {
             drawRing(context, origin, right, up, front, 0.16D, 0.0D,
-                    SharedParticleDefinitions.WIZARD_ARCANE_LANCE_WHITE);
+                    SharedParticleDefinitions.WIZARD_ARCANE_LANCE_WHITE, false);
         }
     }
 
-    /** 射線に垂直な48候補点の光輪を一括表示します。瞬間演出のため魔法陣には登録しません。 */
+    /** 射線に垂直な光輪を描き、目元に近い輪は本人を除きます。 */
     private static void drawRing(@NotNull PlayerActiveSkillContext context, @NotNull Location origin,
                                  @NotNull Vector right, @NotNull Vector up, double along,
-                                 double radius, double rotation, @NotNull SharedParticleDefinition particle) {
+                                 double radius, double rotation, @NotNull SharedParticleDefinition particle,
+                                 boolean observersOnly) {
         Vector forward = up.clone().crossProduct(right).normalize();
         Location center = origin.clone().add(forward.multiply(along));
         List<Location> points = new ArrayList<>(48);
@@ -133,7 +139,12 @@ public final class WizardArcaneLanceExecutor extends WizardSkillSupport {
             addVisible(points, center.clone().add(right.clone().multiply(Math.cos(angle) * radius))
                     .add(up.clone().multiply(Math.sin(angle) * radius)));
         }
-        context.services().effects().points(center, points, particle);
+        if (observersOnly) {
+            context.services().effects().pointsForViewers(
+                    SkillEffectService.nearbyObservers(center, context.player()), points, particle);
+        } else {
+            context.services().effects().points(center, points, particle);
+        }
     }
 
     /** 終端の白い火花を16候補方向へ配置し、地形とchunkを確認して一括表示します。 */

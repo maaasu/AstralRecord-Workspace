@@ -238,12 +238,15 @@ public final class MeditationSkillRuntimeService {
         );
     }
 
+    /** チャージ中の粒子を本人以外の近傍閲覧者へ送ります。 */
     private void renderCharging(@NotNull Player player) {
         Location base = player.getLocation();
         if (base == null) return;
         particleDisplayService.spawnForNearbyViewers(
             base.clone().add(0.0D, 1.0D, 0.0D),
-            SharedParticleDefinitions.ADVENTURER_MEDITATION_CHARGE
+            SharedParticleDefinitions.ADVENTURER_MEDITATION_CHARGE,
+            false,
+            viewer -> !viewer.equals(player) && viewer.canSee(player)
         );
     }
 
@@ -262,7 +265,7 @@ public final class MeditationSkillRuntimeService {
         world.playSound(base, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.55F, 1.15F);
     }
 
-    /** 標準密度の倍の候補点で、発動中の円形の光を一括描画します。 */
+    /** 発動中の円形の光を、本人以外の近傍閲覧者へ一括描画します。 */
     private void renderActive(@NotNull Player player, long activeTicks) {
         Location base = player.getLocation();
         if (base == null || base.getWorld() == null) return;
@@ -277,7 +280,8 @@ public final class MeditationSkillRuntimeService {
         particleDisplayService.spawnForNearbyViewers(
             center,
             locations,
-            SharedParticleDefinitions.ADVENTURER_MEDITATION_AURA
+            SharedParticleDefinitions.ADVENTURER_MEDITATION_AURA,
+            viewer -> !viewer.equals(player) && viewer.canSee(player)
         );
     }
 

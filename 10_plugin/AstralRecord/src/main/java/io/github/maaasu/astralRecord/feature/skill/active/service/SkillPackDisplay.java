@@ -125,6 +125,21 @@ public final class SkillPackDisplay {
     }
 
     /**
+     * 指定された閲覧者にだけ、対応する版のパックスプライトを送ります。
+     * @param skillId 演出を持つスキル ID
+     * @param phase 発動、軌跡、着弾、範囲の段階
+     * @param location 演出の実座標
+     * @param diameter スプライトの直径（ブロック）
+     * @param source 発動者の可視性確認に使うプレイヤー
+     * @param viewers 粒子の代替表示と共用する閲覧者
+     * @return パック演出で処理した閲覧者
+     */
+    public Set<Player> showForViewers(String skillId, Phase phase, Location location, float diameter, Player source,
+                                      List<Player> viewers) {
+        return show(skillId, phase, location, diameter, source, viewers, null);
+    }
+
+    /**
      * 解決済みの閲覧者がある場合は、その範囲内だけでスプライトを再生します。
      * @param skillId 演出を持つスキル ID
      * @param phase 発動、軌跡、着弾、範囲の段階
