@@ -20,7 +20,7 @@ export const isToolPage = (id: DockPanelId): id is ToolPage => id === 'history' 
 export const isPage = (id: DockPanelId): id is Page => editorPages.some(page => page.id === id) || isToolPage(id)
 
 export const dockPanels: Record<DockPanelId, string> = {
-  navigation: '編集ナビゲーション',
+  navigation: '編集ナビ',
   'master-folders': 'フォルダ',
   'master-files': 'ファイル・検索結果',
   master: 'マスターデータ',
