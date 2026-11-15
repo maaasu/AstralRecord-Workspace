@@ -272,6 +272,9 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
   const weightedPath = path.replace(/\/\d+$/, '')
   const weightedRow = dungeon && weightedPath !== path && isDungeonWeightedList(weightedPath)
   const dungeonFields = dungeon ? dungeonSection(path) : undefined
+  const sectionKey = textFieldName(path) ?? ''
+  const parentFields = dungeon && path ? dungeonSection(path.slice(0, path.lastIndexOf('/'))) : undefined
+  const sectionLabel = parentFields && Object.hasOwn(parentFields, sectionKey) ? parentFields[sectionKey].label : masterFieldLabel(sectionKey) || '基本情報'
   const orderedKeys = dungeonFields ? [...new Set([...Object.keys(dungeonFields), ...Object.keys(value)])] : weightedRow
     ? [...new Set([...Object.keys(value), 'weight'])] : Object.keys(value)
   const presentedDefault = (key: string): JsonValue | undefined => {
@@ -380,7 +383,7 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
       <div className="master-field-wide"><MasterDataForm fields={fields} references={references} path={createDrops ? '/drops/items' : path + '/items'} value={[]} rootSchema={rootSchema}
         onNavigate={onNavigate} navigationDisabled={navigationDisabled} onInvalid={onInvalid} invalidValues={invalidValues}
         onChange={(items) => onChange(createDrops ? { ...value, drops: { exp: 0, items } } : { ...value, items })} /></div>}
-    <details className="master-add-field"><summary>{masterFieldLabel(textFieldName(path) ?? '') || '基本情報'}に項目を追加</summary><div className="master-add-field-body">
+    <details className="master-add-field"><summary>{weightedRow ? '項目を追加' : sectionLabel + 'に項目を追加'}</summary><div className="master-add-field-body">
       {optionalKeys.length > 0 && <label>定義済みの項目を追加<select aria-label={`${path || '/'} 定義済みの項目を追加`} value="" onChange={(event) => { if (event.target.value) add(event.target.value) }}><option value="">項目を選択…</option>{optionalKeys.map((key) => {
         const field = fieldForPath(fields, `${path}/${pointerKey(key)}`)
         return <option key={key} value={key}>{masterFieldTitle(key, childSchema(key).title ?? field?.label)} · {key}{required.has(key) || field?.required ? '（必須）' : ''}</option>
