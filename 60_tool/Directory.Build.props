@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- 番号付きフォルダーへ移した旧生成物は、ソース・リソース・配布対象に含めない。 -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);**/legacy-build/**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>

@@ -36,6 +36,8 @@ pwsh -NoProfile -File .\60_tool\05-master-data-editor\Move-LocalEditorData.ps1
 
 スクリプトは移行先の競合や未完了の実行を検出すると停止します。標準の旧 `runs/` は01・16の `legacy-runs/` へ、12のJARは `12-build-network-plugins/output/` へ移します。既存履歴の内容は保存されます。記録に残る絶対パスは実行当時のパスです。
 
+旧.NETツールの `bin/`・`obj/` は番号付きディレクトリの `legacy-build/` に保全します。`60_tool/Directory.Build.props` は、この退避フォルダーをソース・リソースなどの自動収集対象から除外します。退避した生成コードによる属性の重複エラーを防ぐため、ツールを別のチェックアウトへコピーする場合もこの共通設定を含めてください。`tests/legacy-build-exclusion.tests.ps1 -DotNetPath <SDKのdotnet.exe>` は旧生成コード・リソースを残したままビルドでき、退避内容を変更しないことを一時fixtureで検証します。DBへの接続は行いません。
+
 エディタの旧 `skilltree-editor/` に残るローカル設定・バックアップ・キャッシュ・実行履歴・配布ZIPは、内容を保ったまま `05-master-data-editor/` の同じ相対位置へ移します。移行先に同名ファイルがあれば上書きせず停止します。新しいEXEは `05-master-data-editor/dist/desktop/` に出力します。
 
 ローカル設定のDBツール参照とネットワークPlugin出力参照を新しいパスへ更新した場合は、元の設定を `legacy-settings/` に保全します。移行対象はこのチェックアウトの `60_tool/` 配下です。外部に保存した実行記録や個別の17の記録は同じパスで引き続き使用します。
