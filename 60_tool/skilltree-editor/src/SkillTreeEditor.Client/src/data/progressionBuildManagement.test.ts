@@ -36,5 +36,10 @@ describe('progression build and level editing', () => {
     expect([copy.id, copy.name, copy.buildId, copy.levels]).toEqual(['warrior_copy', '複製', 'copy', source.levels])
     const blank = createBlankPreset('ranger_base', '弓使い', 'ranger', 'base', 'bow', 'shot')
     expect(blank.levels).toEqual([{ level: 1, classLevel: 1, nodes: [], equipment: [{ slot: 'MAIN_HAND', item: 'item:bow' }], skills: [{ slot: 1, skill: 'skill:shot' }], passives: [] }])
+    const withSources = createBlankPreset('ranger_book', '本とノード', 'ranger', 'book', 'bow', 'shot', 'archer_book', [10, 20])
+    expect(withSources.levels).toEqual([{ level: 1, classLevel: 1, nodes: [10, 20], equipment: [
+      { slot: 'MAIN_HAND', item: 'item:bow' }, { slot: 'SKILLBOOK', item: 'item:archer_book' },
+    ], skills: [{ slot: 1, skill: 'skill:shot' }], passives: [] }])
+    expect(() => createBlankPreset('ranger_book', '重複', 'ranger', 'book', 'bow', 'shot', '', [10, 10])).toThrow('重複')
   })
 })

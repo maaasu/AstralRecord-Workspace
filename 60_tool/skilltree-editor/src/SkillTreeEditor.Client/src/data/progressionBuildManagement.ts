@@ -52,11 +52,13 @@ export function changeBuildIdentity(content: JsonValue, name: string, buildId: s
   return setDesignValue(setDesignValue(content, '/name', name.trim()), '/buildId', buildId)
 }
 
-export function createBlankPreset(id: string, name: string, classId: string, buildId: string, itemId: string, skillId: string): JsonObject {
+export function createBlankPreset(id: string, name: string, classId: string, buildId: string, itemId: string, skillId: string, skillbookId = '', nodeIds: number[] = []): JsonObject {
   if (!validPresetId(id) || !validPresetId(classId) || !validPresetId(buildId)) throw new Error('IDは小文字英数字とアンダースコアで指定してください。')
   if (!name.trim() || !itemId || !skillId) throw new Error('表示名・武器・1番枠のスキルを指定してください。')
+  if (nodeIds.some(nodeId => !Number.isInteger(nodeId) || nodeId < 1 || nodeId > 2147483647) || new Set(nodeIds).size !== nodeIds.length) throw new Error('習得ノードに無効または重複するIDがあります。')
   return { schemaVersion: 1, type: 'PROGRESSION_PRESET', id, name: name.trim(), classId, buildId,
-    levels: [{ level: 1, classLevel: 1, nodes: [], equipment: [{ slot: 'MAIN_HAND', item: `item:${itemId}` }], skills: [{ slot: 1, skill: `skill:${skillId}` }], passives: [] }] }
+    levels: [{ level: 1, classLevel: 1, nodes: nodeIds, equipment: [{ slot: 'MAIN_HAND', item: `item:${itemId}` },
+      ...(skillbookId ? [{ slot: 'SKILLBOOK', item: `item:${skillbookId}` }] : [])], skills: [{ slot: 1, skill: `skill:${skillId}` }], passives: [] }] }
 }
 
 export function clonePreset(content: JsonValue, id: string, name: string, buildId: string): JsonValue {
