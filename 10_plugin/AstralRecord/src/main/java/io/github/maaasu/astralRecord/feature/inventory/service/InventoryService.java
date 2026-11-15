@@ -5412,22 +5412,30 @@ public class InventoryService {
             hotbarEntries.remove(hotbarOffHand);
         }
         if (mainHand != null) hotbarEntries.remove(mainHand);
-        Map<String, InventoryEntryModel> reused = new LinkedHashMap<>();
-        for (var entry : previous.entrySet()) {
-            ProgressionPresetGear desired = gear.get(entry.getKey());
-            if (matchesProgressionPresetGear(entry.getValue(), desired)) {
-                reused.put(entry.getKey(), entry.getValue());
-            } else {
-                returned.add(entry.getValue());
+        Map<String, InventoryEntryModel> reused = ProgressionPresetEquipmentMatcher.reuse(
+            previous, gear.keySet(),
+            (slot, entry) -> matchesProgressionPresetGear(entry, gear.get(slot)),
+            InventoryEntryModel::getInstanceId);
+        Set<UUID> claimedInstances = reused.values().stream()
+            .map(InventoryEntryModel::getInstanceId).collect(Collectors.toCollection(HashSet::new));
+        returned.removeIf(entry -> claimedInstances.contains(entry.getInstanceId()));
+        Set<UUID> returnedInstances = returned.stream()
+            .map(InventoryEntryModel::getInstanceId).collect(Collectors.toCollection(HashSet::new));
+        for (InventoryEntryModel entry : previous.values()) {
+            UUID instanceId = entry.getInstanceId();
+            if (!claimedInstances.contains(instanceId) && returnedInstances.add(instanceId)) {
+                returned.add(entry);
             }
         }
         Set<Integer> usedSlots = collectUsedSlots(state, bag);
         for (var target : gear.entrySet()) {
             if (reused.containsKey(target.getKey())) continue;
             InventoryEntryModel match = bagEntries.stream()
-                .filter(entry -> matchesProgressionPresetGear(entry, target.getValue())).findFirst().orElse(null);
+                .filter(entry -> !claimedInstances.contains(entry.getInstanceId())
+                    && matchesProgressionPresetGear(entry, target.getValue())).findFirst().orElse(null);
             if (match != null) {
                 reused.put(target.getKey(), match);
+                claimedInstances.add(match.getInstanceId());
                 usedSlots.remove(match.getSlotIndex());
                 bagEntries.remove(match);
             }
