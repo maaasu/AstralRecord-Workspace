@@ -62,6 +62,8 @@ public final class MossZombieSporePoolMobSkillExecutor implements MobSkillExecut
         center.getWorld().playSound(center, Sound.BLOCK_FUNGUS_PLACE, 0.9F, 0.65F);
         support.warnThenImpact(context, center, points, WARNING_TICKS, MossZombieMotion.Pose.ROAR,
                 MossZombieMotion.Pose.NONE, SharedParticleDefinitions.MOB_MOSS_ZOMBIE_SPORE_WARNING,
+                List.of(MossZombieMotion.Effect.circle(MossZombieMotion.EffectStyle.SPORE_RING, center, RADIUS, 1.0D)),
+                List.of(MossZombieMotion.Effect.circle(MossZombieMotion.EffectStyle.SPORE_BURST, center, RADIUS, 1.0D)),
                 () -> impact(context, center, points));
         return true;
     }

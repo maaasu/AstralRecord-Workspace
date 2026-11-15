@@ -71,7 +71,7 @@ public final class ResourcePackRepository {
                 boolean sunbirdPresentation = "1".equals(sunbirdVersion) || sunbirdPresentationV2;
                 JsonElement mossZombie = java.get("mossZombiePresentation");
                 boolean mossZombiePresentation = mossZombie != null && mossZombie.isJsonPrimitive()
-                    && mossZombie.getAsJsonPrimitive().isString() && "1".equals(mossZombie.getAsString());
+                    && mossZombie.getAsJsonPrimitive().isString() && "2".equals(mossZombie.getAsString());
                 JsonElement selenea = java.get("seleneaPresentation");
                 boolean seleneaPresentation = selenea != null && selenea.isJsonPrimitive()
                     && selenea.getAsJsonPrimitive().isString() && "1".equals(selenea.getAsString());

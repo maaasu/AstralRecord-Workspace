@@ -56,11 +56,15 @@ Java 版は配布マニフェストの `java.locationHud` が `4` または `5` 
 - Java版と互換版3の統合版では、表示内容に合わせて報酬枠を横へ広げ、品名・個数・確率を1行に表示します。複数ページの枠は同じ幅を使います。統合版で横幅の指定を反映するには Geyser 拡張 1.22.0 と AstralRecordProxy 1.6.5 以降が必要です。
 - パックを使えない接続は各版の通常テキストで読めます。更新は両パックを公開した後に RPG Plugin と Geyser 拡張へ反映し、クライアントを再接続します。
 
-### 苔むしたゾンビ
+### 苔骸の墓守 モルグラス（苔むしたゾンビ）
 
 ミドルアース遺跡の既存ボス枠 `all_things_el` を、苔むした成人ゾンビの近接ボスに置き換えました。氷球・突進・シールドは使いません。ボス枠とクリア報酬は従来どおりです。
 
-技は苔腕の叩きつけ・苔胞子だまり・苔むす地鳴り（HP50%以下）の3つで、予兆中は腕の振り上げ・両腕を広げる咆哮、発動時は振り下ろしの姿勢を表示します。Java は `custom_model_data` の `raise`・`slam`・`roar` で姿勢モデルを選び、統合版は `astralrecord:motion`（1～3）で同名のアニメーションを補間して重ねます。姿勢モデル、アイテム定義の分岐、統合版アニメーション、Blockbench の統合版編集元は `scripts/generate-moss-zombie-poses.py` が待機モデルとボーンの回転中心から生成します。`--check` で配布物との一致、`--preview <PNGパス>` で両版の待機・3姿勢を正面斜めと側面から描画できます（Pillow が必要。例: `uv run --no-project --python 3.12 --with pillow==13.0.0 python scripts/generate-moss-zombie-poses.py --check --preview out.png`）。Java の姿勢モデルは振り上げた腕を座標範囲に収めるため形状を0.75倍にし、表示倍率を同じ比で大きくしています。統合版の姿勢には Geyser 拡張 1.32.0 以降が必要で、古い拡張やパック非対応の接続でも予告粒子と攻撃判定は同じです。
+技は苔腕の叩きつけ・苔胞子だまり・苔むす地鳴り（HP50%以下）の3つで、予兆中は腕の振り上げ・両腕を広げる咆哮、発動時は振り下ろしの姿勢を表示します。Java は `custom_model_data` の `raise`・`slam`・`roar` で姿勢モデルを選び、統合版は `astralrecord:motion`（1～3）で同名のアニメーションを補間して重ねます。姿勢モデル、アイテム定義の分岐、統合版アニメーション、Blockbench の統合版編集元は `scripts/generate-moss-zombie-poses.py` が待機モデルとボーンの回転中心から生成します。`--check` で配布物との一致、`--preview <PNGパス>` で両版の待機・3姿勢を正面斜めと側面から描画できます（Pillow が必要。例: `uv run --no-project --python 3.12 --with pillow==13.0.0 python scripts/generate-moss-zombie-poses.py --check --preview out.png`）。Java の姿勢モデルは振り上げた腕を座標範囲に収めるため形状を0.75倍にし、表示倍率を同じ比で大きくしています。
+
+技の予告と着弾には専用演出を重ねます。地鳴りは琥珀色の縁と苔の房・遺跡の石を並べた予告輪、胞子だまりは胞子の舞う予告輪、叩きつけは扇形の左右の縁と弧を這う苔の帯でなぞります。着弾では地面から苔の棘（叩きつけは扇形の内側8か所、地鳴りは円内17か所）、胞子だまりでは胞子の破裂が伸び上がります。形状は `warning_ring`・`warning_spore`・`warning_vine`・`impact_spikes`・`impact_spores` の5種（統合版の `astralrecord:style` は0～4）で、すべて長さ方向に対称です。向きのある扇形はサーバーが複数の帯と棘を並べて表すため、両版で向きの扱いが変わりません。Java は4フレームの ItemDisplay を寸法に合わせて拡大し、統合版は `astralrecord:midgard_moss_zombie_skill` を Molang で補間します。両版の演出は `scripts/generate-moss-zombie-effects.py` が生成し、`--check --preview <PNGパス>` で全形状・全フレームを真上と低い横からの視点で描画できます。危険範囲の正確な形と攻撃判定は従来の床粒子と同じで、演出はパック対応の接続にだけ表示します。
+
+統合版の姿勢と演出には Geyser 拡張 1.33.0 以降が必要で、古い拡張やパック非対応の接続でも予告粒子と攻撃判定は同じです。
 
 Java はパック対応接続で待機・2つの歩行姿勢を持つ ItemDisplay を追従させ、追跡が揃ってから実体の描画だけを隠します。統合版は対応パック・Geyser 拡張がある接続だけ `astralrecord:midgard_moss_zombie` へ置換し、ボーンの歩行をクライアントで動かします。両版とも攻撃・当たり判定は通常ゾンビの実体を使い、パック非対応の場合はバニラの成人ゾンビが見えます。実クライアントでの描画は未確認です。
 

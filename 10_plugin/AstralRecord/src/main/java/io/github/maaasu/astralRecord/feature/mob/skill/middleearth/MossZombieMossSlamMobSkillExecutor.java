@@ -29,6 +29,10 @@ public final class MossZombieMossSlamMobSkillExecutor implements MobSkillExecuto
     static final long WARNING_TICKS = 30L;
     static final double DAMAGE_RATIO = 0.80D;
     static final double KNOCKBACK = 0.35D;
+    /** 扇形の縁を示す苔の帯の幅（ブロック）です。 */
+    static final double VINE_WIDTH = 0.6D;
+    /** 着弾時の苔の棘1群れの半径（ブロック）です。 */
+    static final double SPIKE_RADIUS = 0.6D;
     private final MossZombieSkillSupport support;
 
     /** @param support 苔むしたゾンビの共有処理 */
@@ -65,8 +69,41 @@ public final class MossZombieMossSlamMobSkillExecutor implements MobSkillExecuto
         center.getWorld().playSound(center, Sound.ENTITY_ZOMBIE_AMBIENT, 1.0F, 0.6F);
         support.warnThenImpact(context, center, points, WARNING_TICKS, MossZombieMotion.Pose.RAISE,
                 MossZombieMotion.Pose.SLAM, SharedParticleDefinitions.MOB_MOSS_ZOMBIE_WARNING,
+                warningEffects(center, facing), impactEffects(center, facing),
                 () -> impact(context, center, facing, points));
         return true;
+    }
+
+    /** 扇形の左右の縁と弧を、這う苔の帯でなぞります。 */
+    static @NotNull List<MossZombieMotion.Effect> warningEffects(@NotNull Location center, @NotNull Vector facing) {
+        double base = Math.atan2(facing.getZ(), facing.getX());
+        List<MossZombieMotion.Effect> effects = new ArrayList<>(8);
+        for (int sign : new int[]{-1, 1}) {
+            Location edge = MossZombieSkillSupport.offset(center, base + sign * HALF_ANGLE_RADIANS, RADIUS);
+            effects.add(MossZombieMotion.Effect.segment(MossZombieMotion.EffectStyle.VINE, center, edge, VINE_WIDTH, 1.0D));
+        }
+        int chords = 6;
+        for (int index = 0; index < chords; index++) {
+            double from = base - HALF_ANGLE_RADIANS + 2.0D * HALF_ANGLE_RADIANS * index / chords;
+            double to = base - HALF_ANGLE_RADIANS + 2.0D * HALF_ANGLE_RADIANS * (index + 1) / chords;
+            effects.add(MossZombieMotion.Effect.segment(MossZombieMotion.EffectStyle.VINE,
+                    MossZombieSkillSupport.offset(center, from, RADIUS), MossZombieSkillSupport.offset(center, to, RADIUS),
+                    VINE_WIDTH, 1.0D));
+        }
+        return effects;
+    }
+
+    /** 扇形の内側に、苔の棘の群れを8か所から伸ばします。各群れの外縁も扇形（45度・3.5m）の内側に収めます。 */
+    static @NotNull List<MossZombieMotion.Effect> impactEffects(@NotNull Location center, @NotNull Vector facing) {
+        double base = Math.atan2(facing.getZ(), facing.getX());
+        double[][] spots = {{0.9D, 0.0D}, {1.9D, -22.0D}, {1.9D, 0.0D}, {1.9D, 22.0D},
+            {2.8D, -31.0D}, {2.8D, -10.0D}, {2.8D, 10.0D}, {2.8D, 31.0D}};
+        List<MossZombieMotion.Effect> effects = new ArrayList<>(spots.length);
+        for (double[] spot : spots) {
+            Location at = MossZombieSkillSupport.offset(center, base + Math.toRadians(spot[1]), spot[0]);
+            effects.add(MossZombieMotion.Effect.circle(MossZombieMotion.EffectStyle.SPIKES, at, SPIKE_RADIUS, 1.0D));
+        }
+        return effects;
     }
 
     /** 扇形の弧と左右の縁、内部の弧を固定予告点として作ります。 */

@@ -476,6 +476,11 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'render_controllers/midgard_moss_zombie.render_controllers.json'
     'models/entity/midgard_moss_zombie.geo.json'
     'textures/entity/midgard_moss_zombie.png'
+    'entity/midgard_moss_zombie_skill.entity.json'
+    'animations/midgard_moss_zombie_skill.animation.json'
+    'render_controllers/midgard_moss_zombie_skill.render_controllers.json'
+    'models/entity/midgard_moss_zombie_skill.geo.json'
+    'textures/entity/midgard_moss_zombie_skill.png'
     'entity/sunbird.entity.json'
     'animations/sunbird.animation.json'
     'animation_controllers/sunbird.animation_controllers.json'
@@ -538,8 +543,18 @@ foreach ($style in $seleneaSkillStyles) {
     }
     Add-PackEntries $java $root $paths
 }
+# Moss zombie skill effects (scripts/generate-moss-zombie-effects.py): 4 frames per style.
+$mossZombieEffectPaths = @('assets/astralrecord/textures/item/midgard_moss_zombie_skill.png')
+foreach ($style in @('warning_ring', 'warning_spore', 'warning_vine', 'impact_spikes', 'impact_spores')) {
+    $name = "midgard_moss_zombie_$style"
+    $mossZombieEffectPaths += "assets/astralrecord/items/$name.json"
+    $mossZombieEffectPaths += "assets/astralrecord/models/item/$name.json"
+    $mossZombieEffectPaths += 1..3 | ForEach-Object { "assets/astralrecord/models/item/${name}_frame_$_.json" }
+}
+Add-PackEntries $java $root $mossZombieEffectPaths
 $mossZombieVersionMarker = 'midgard-moss-zombie-presentation-version.txt'
-if ($utf8.GetString($java[$mossZombieVersionMarker]) -cne '1') {
+# 2: attack poses and skill effects (1 was the body and walk poses only).
+if ($utf8.GetString($java[$mossZombieVersionMarker]) -cne '2') {
     throw 'Invalid Moss Zombie presentation version marker in resource pack.'
 }
 $bedrock.Add($mossZombieVersionMarker, $java[$mossZombieVersionMarker])

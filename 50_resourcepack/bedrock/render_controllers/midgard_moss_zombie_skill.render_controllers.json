@@ -1,0 +1,28 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.astralrecord.midgard_moss_zombie_skill": {
+      "arrays": {
+        "geometries": {
+          "Array.shapes": [
+            "Geometry.warning_ring",
+            "Geometry.warning_spore",
+            "Geometry.warning_vine",
+            "Geometry.impact_spikes",
+            "Geometry.impact_spores"
+          ]
+        }
+      },
+      "geometry": "Array.shapes[math.clamp(query.property('astralrecord:style'), 0, 4)]",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": [
+        "Texture.default"
+      ],
+      "ignore_lighting": true
+    }
+  }
+}

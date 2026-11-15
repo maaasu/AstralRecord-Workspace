@@ -1,0 +1,39 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "astralrecord:midgard_moss_zombie_skill",
+      "materials": {
+        "default": "entity_emissive_alpha"
+      },
+      "textures": {
+        "default": "textures/entity/midgard_moss_zombie_skill"
+      },
+      "geometry": {
+        "warning_ring": "geometry.astralrecord.midgard_moss_zombie_warning_ring",
+        "warning_spore": "geometry.astralrecord.midgard_moss_zombie_warning_spore",
+        "warning_vine": "geometry.astralrecord.midgard_moss_zombie_warning_vine",
+        "impact_spikes": "geometry.astralrecord.midgard_moss_zombie_impact_spikes",
+        "impact_spores": "geometry.astralrecord.midgard_moss_zombie_impact_spores"
+      },
+      "animations": {
+        "shape": "animation.astralrecord.midgard_moss_zombie_skill.shape"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.pulse = math.mod(query.life_time, 0.6) / 0.6;",
+          "variable.breath = math.sin(180.0 * variable.pulse);",
+          "variable.travel = math.clamp(query.life_time / 0.4, 0.0, 1.0);",
+          "variable.spike = variable.travel < 0.75 ? math.lerp(0.3, 1.15, variable.travel / 0.75) : math.lerp(1.15, 1.0, (variable.travel - 0.75) / 0.25);",
+          "variable.burst = math.lerp(0.45, 1.15, variable.travel);"
+        ],
+        "animate": [
+          "shape"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.astralrecord.midgard_moss_zombie_skill"
+      ]
+    }
+  }
+}

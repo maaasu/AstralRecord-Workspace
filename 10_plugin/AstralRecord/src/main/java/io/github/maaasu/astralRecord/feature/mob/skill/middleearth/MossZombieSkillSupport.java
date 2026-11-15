@@ -39,6 +39,8 @@ public final class MossZombieSkillSupport {
     static final long DRAW_PERIOD_TICKS = 5L;
     /** 発動姿勢を残す時間です。 */
     static final long IMPACT_POSE_TICKS = 10L;
+    /** 着弾演出（苔の棘・胞子の破裂）を残す時間です。 */
+    static final long IMPACT_EFFECT_TICKS = 16L;
     /** 範囲技の上下判定幅です。 */
     static final double VERTICAL_REACH = 1.25D;
 
@@ -123,16 +125,20 @@ public final class MossZombieSkillSupport {
      * @param warningPose 予告中の姿勢
      * @param impactPose 発動後の姿勢。不要なら {@link MossZombieMotion.Pose#NONE}
      * @param warning ボス以外で使う予告粒子
+     * @param warningEffects 予告中に出す専用パック演出。粒子の予告と同じ形状を示す
+     * @param impactEffects 発動時に出す専用パック演出
      * @param impact 期限で一度だけ実行する効果
      */
     void warnThenImpact(@NotNull MobSkillContext context, @NotNull Location center, @NotNull List<Location> points,
                         long warningTicks, @NotNull MossZombieMotion.Pose warningPose,
                         @NotNull MossZombieMotion.Pose impactPose, @NotNull SharedParticleDefinition warning,
-                        @NotNull Runnable impact) {
+                        @NotNull List<MossZombieMotion.Effect> warningEffects,
+                        @NotNull List<MossZombieMotion.Effect> impactEffects, @NotNull Runnable impact) {
         MobInstance mob = context.mob();
         mob.scriptedAction(true);
         mobService.stopPathfinding(mob);
         motion.set(mob.instanceId(), warningPose, warningTicks + DRAW_PERIOD_TICKS);
+        Runnable removeWarning = motion.showEffects(mob.instanceId(), warningEffects, warningTicks + DRAW_PERIOD_TICKS);
         SharedParticleDefinition definition = BossParticleEffect.attackWarning(mob, warning);
         particles.spawnForNearbyViewers(center, points, definition);
         new BukkitRunnable() {
@@ -142,6 +148,7 @@ public final class MossZombieSkillSupport {
             public void run() {
                 if (activeCaster(mob, center.getWorld()) == null) {
                     motion.clear(mob.instanceId());
+                    removeWarning.run();
                     finish();
                     return;
                 }
@@ -151,6 +158,8 @@ public final class MossZombieSkillSupport {
                     return;
                 }
                 motion.set(mob.instanceId(), impactPose, IMPACT_POSE_TICKS);
+                removeWarning.run();
+                motion.showEffects(mob.instanceId(), impactEffects, IMPACT_EFFECT_TICKS);
                 try {
                     impact.run();
                 } finally {
@@ -250,6 +259,16 @@ public final class MossZombieSkillSupport {
             double angle = Math.PI * 2.0D * index / count;
             out.add(center.clone().add(Math.cos(angle) * radius, 0.1D, Math.sin(angle) * radius));
         }
+    }
+
+    /**
+     * @param center 基準点
+     * @param radians 方位（x軸から z軸へ回る角度）
+     * @param distance 水平距離
+     * @return 基準点から方位と距離だけ離れた地点
+     */
+    static @NotNull Location offset(@NotNull Location center, double radians, double distance) {
+        return center.clone().add(Math.cos(radians) * distance, 0.0D, Math.sin(radians) * distance);
     }
 
     /** @return 二地点の水平距離の二乗 */

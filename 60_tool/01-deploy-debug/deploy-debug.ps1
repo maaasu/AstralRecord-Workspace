@@ -586,13 +586,22 @@ function Publish-ResourcePacks {
             $reader = [IO.StreamReader]::new($mossZombieEntry.Open())
             try { $mossZombiePresentation = $reader.ReadToEnd() }
             finally { $reader.Dispose() }
-            if ($mossZombiePresentation -cne '1') { throw 'Unsupported Moss Zombie presentation version.' }
+            if ($mossZombiePresentation -cne '2') { throw 'Unsupported Moss Zombie presentation version.' }
             foreach ($asset in @(
                 'assets/astralrecord/items/midgard_moss_zombie.json'
                 'assets/astralrecord/models/item/midgard_moss_zombie.json'
                 'assets/astralrecord/models/item/midgard_moss_zombie_walk_a.json'
                 'assets/astralrecord/models/item/midgard_moss_zombie_walk_b.json'
+                'assets/astralrecord/models/item/midgard_moss_zombie_raise.json'
+                'assets/astralrecord/models/item/midgard_moss_zombie_slam.json'
+                'assets/astralrecord/models/item/midgard_moss_zombie_roar.json'
                 'assets/astralrecord/textures/item/midgard_moss_zombie.png'
+                'assets/astralrecord/items/midgard_moss_zombie_warning_ring.json'
+                'assets/astralrecord/items/midgard_moss_zombie_warning_spore.json'
+                'assets/astralrecord/items/midgard_moss_zombie_warning_vine.json'
+                'assets/astralrecord/items/midgard_moss_zombie_impact_spikes.json'
+                'assets/astralrecord/items/midgard_moss_zombie_impact_spores.json'
+                'assets/astralrecord/textures/item/midgard_moss_zombie_skill.png'
             )) {
                 $entry = $archive.GetEntry($asset)
                 if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing Moss Zombie asset in Java pack: $asset" }

@@ -1,11 +1,11 @@
 # design:
-#   motif: "中つ国 / 苔をまとった遺跡のゾンビ"
+#   motif: "中つ国 / 苔をまとった遺跡の墓守ゾンビ"
 #   progression: 5
 schemaVersion: 1
 id: all_things_el
 type: MOB
 category: BOSS
-name: "&2&l苔むしたゾンビ"
+name: "&2&l苔骸の墓守 モルグラス"
 title: "&8-- ミドルアースの遺跡の番人 --"
 level: 5
 entityType: ZOMBIE

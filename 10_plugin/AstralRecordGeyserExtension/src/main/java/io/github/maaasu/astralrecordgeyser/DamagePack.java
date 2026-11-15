@@ -114,7 +114,12 @@ record DamagePack(
         "animations/midgard_moss_zombie.animation.json",
         "render_controllers/midgard_moss_zombie.render_controllers.json",
         "models/entity/midgard_moss_zombie.geo.json",
-        "textures/entity/midgard_moss_zombie.png"
+        "textures/entity/midgard_moss_zombie.png",
+        "entity/midgard_moss_zombie_skill.entity.json",
+        "animations/midgard_moss_zombie_skill.animation.json",
+        "render_controllers/midgard_moss_zombie_skill.render_controllers.json",
+        "models/entity/midgard_moss_zombie_skill.geo.json",
+        "textures/entity/midgard_moss_zombie_skill.png"
     );
     private static final List<String> SELENEA_ENTRIES = List.of(
         "entity/selenea.entity.json", "animations/selenea.animation.json",
@@ -233,7 +238,8 @@ record DamagePack(
                 sunbirdMotion = sunbird
                     && present(zip.getEntry("animation_controllers/sunbird.animation_controllers.json"))
                     && present(zip.getEntry("render_controllers/sunbird.render_controllers.json"));
-                mossZombie = hasVersionOne(zip, "midgard-moss-zombie-presentation-version.txt")
+                // 2: 攻撃姿勢と技の演出を含む版。1 の旧パックではバニラのゾンビへ戻す。
+                mossZombie = hasVersion(zip, "midgard-moss-zombie-presentation-version.txt", '2')
                     && MOSS_ZOMBIE_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
                 selenea = hasVersionOne(zip, "selenea-presentation-version.txt")
                     && SELENEA_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
