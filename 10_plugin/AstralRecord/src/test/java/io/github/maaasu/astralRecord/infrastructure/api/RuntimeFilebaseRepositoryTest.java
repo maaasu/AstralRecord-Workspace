@@ -78,6 +78,40 @@ class RuntimeFilebaseRepositoryTest {
         assertEquals("New", selected.getFirst().name());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
+     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### 戦闘検証用の進行プリセット
+     * 検証契約: 既存6枠入力と16枠拡張入力を読み、同じ枠の重複と未知枠を拒否する。
+     */
+    @Test
+    void progressionPresetAcceptsAllGearSlotsAndRejectsDuplicates() {
+        String path = "90.shared.progression_preset/v1.adventurer_magic.yml";
+        String slots = "MAIN_HAND, OFF_HAND, HEAD, CHEST, LEGS, FEET, SKILLBOOK, "
+            + "AMULET, TALISMAN_1, TALISMAN_2, CHARM_1, CHARM_2, CHARM_3, CORE, RELIC_1, RELIC_2";
+        String rows = java.util.Arrays.stream(slots.split(", "))
+            .map(slot -> "{ slot: " + slot + ", item: 'item:gear' }")
+            .collect(java.util.stream.Collectors.joining(", "));
+        String originalRows = java.util.Arrays.stream(slots.split(", ")).limit(6)
+            .map(slot -> "{ slot: " + slot + ", item: 'item:gear' }")
+            .collect(java.util.stream.Collectors.joining(", "));
+        String full = preset("Full").replace(
+            "equipment: [{ slot: MAIN_HAND, item: 'item:sword' }]", "equipment: [" + rows + "]");
+        var parsed = ProgressionPresetRepository.load(new RuntimeFilebaseSnapshot(List.of(
+            new RuntimeFilebaseSnapshot.Entry(path, full))));
+        assertEquals(16, parsed.getFirst().levels().getFirst().equipment().size());
+        String duplicate = full.replace("{ slot: RELIC_2, item: 'item:gear' }",
+            "{ slot: AMULET, item: 'item:gear' }");
+        assertThrows(IllegalArgumentException.class, () -> ProgressionPresetRepository.load(
+            new RuntimeFilebaseSnapshot(List.of(new RuntimeFilebaseSnapshot.Entry(path, duplicate)))));
+        String unknown = full.replace("{ slot: RELIC_2, item: 'item:gear' }",
+            "{ slot: UNKNOWN, item: 'item:gear' }");
+        assertThrows(IllegalArgumentException.class, () -> ProgressionPresetRepository.load(
+            new RuntimeFilebaseSnapshot(List.of(new RuntimeFilebaseSnapshot.Entry(path, unknown)))));
+        assertEquals(6, ProgressionPresetRepository.load(new RuntimeFilebaseSnapshot(List.of(
+            new RuntimeFilebaseSnapshot.Entry(path, full.replace(rows, originalRows)))))
+            .getFirst().levels().getFirst().equipment().size());
+    }
+
     private static String preset(String name) {
         return """
                 schemaVersion: 1

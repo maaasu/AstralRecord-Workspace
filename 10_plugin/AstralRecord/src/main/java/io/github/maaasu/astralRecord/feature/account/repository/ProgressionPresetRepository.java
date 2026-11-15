@@ -20,7 +20,10 @@ public final class ProgressionPresetRepository {
     private static final String DIRECTORY = "90.shared.progression_preset";
     private static final String LEGACY_DIRECTORY = "36.features.progression_preset";
     private static final Pattern ID = Pattern.compile("[a-z0-9]+(?:_[a-z0-9]+)*");
-    private static final Set<String> EQUIPMENT_SLOTS = Set.of("MAIN_HAND", "OFF_HAND", "HEAD", "CHEST", "LEGS", "FEET");
+    private static final Set<String> EQUIPMENT_SLOTS = Set.of(
+        "MAIN_HAND", "OFF_HAND", "HEAD", "CHEST", "LEGS", "FEET", "SKILLBOOK",
+        "AMULET", "TALISMAN_1", "TALISMAN_2", "CHARM_1", "CHARM_2", "CHARM_3",
+        "CORE", "RELIC_1", "RELIC_2");
 
     private ProgressionPresetRepository() { }
 

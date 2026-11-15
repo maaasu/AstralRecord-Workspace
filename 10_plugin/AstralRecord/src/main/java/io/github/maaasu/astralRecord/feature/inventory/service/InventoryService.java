@@ -5374,11 +5374,11 @@ public class InventoryService {
      * 戦闘検証用装備をアカウントのローカル保存ロック内で差し替えます。
      * 退避する装備はバッグに戻し、同じマスターと強化値の個体は再利用します。
      * @param accountId 対象アカウント
-     * @param gear 使用する装備マスター。空欄は装備解除
+     * @param gear プリセット枠名から使用する装備マスターへの対応。空欄は装備解除
      * @return バッグの空きと個体準備が揃い、更新できた場合 true
      */
     public boolean applyProgressionPresetEquipment(
-        @NotNull UUID accountId, @NotNull Map<EquipmentType, ProgressionPresetGear> gear
+        @NotNull UUID accountId, @NotNull Map<String, ProgressionPresetGear> gear
     ) {
         PlayerInventoryState state = getState(accountId);
         if (state == null) return false;
@@ -5391,31 +5391,28 @@ public class InventoryService {
             .filter(entry -> !entry.isDeleted()).toList());
         List<InventoryEntryModel> hotbarEntries = new ArrayList<>(state.snapshotEntries(hotbar.getInventoryId()).stream()
             .filter(entry -> !entry.isDeleted()).toList());
-        Map<EquipmentType, String> loadoutSlots = Map.of(
-            EquipmentType.HEAD, SLOT_TYPE_HEAD, EquipmentType.CHEST, SLOT_TYPE_CHEST,
-            EquipmentType.LEGS, SLOT_TYPE_LEGS, EquipmentType.FEET, SLOT_TYPE_FEET,
-            EquipmentType.OFF_HAND, SLOT_TYPE_ACCESSORY);
-        Map<EquipmentType, InventoryEntryModel> previous = new LinkedHashMap<>();
+        Map<String, ProgressionPresetLoadoutSlot> loadoutSlots = progressionPresetLoadoutSlots();
+        Map<String, InventoryEntryModel> previous = new LinkedHashMap<>();
         InventoryEntryModel mainHand = findHotbarEntryBySlot(state, HotbarLayout.DB_SLOT_START);
-        if (mainHand != null) previous.put(EquipmentType.MAIN_HAND, mainHand);
+        if (mainHand != null) previous.put("MAIN_HAND", mainHand);
         for (var target : loadoutSlots.entrySet()) {
             loadout.getSlots().stream()
-                .filter(slot -> !slot.isDeleted() && slot.getSlotIndex() == 0
-                    && target.getValue().equalsIgnoreCase(slot.getSlotType()))
+                .filter(slot -> !slot.isDeleted() && slot.getSlotIndex() == target.getValue().slotIndex()
+                    && target.getValue().slotType().equalsIgnoreCase(slot.getSlotType()))
                 .findFirst()
                 .ifPresent(slot -> previous.put(target.getKey(), toInventoryEntry(slot)));
         }
         List<InventoryEntryModel> returned = new ArrayList<>();
         InventoryEntryModel hotbarOffHand = findHotbarEntryBySlot(state, HotbarLayout.DB_SLOT_OFFHAND);
         if (hotbarOffHand != null) {
-            InventoryEntryModel offHand = previous.get(EquipmentType.OFF_HAND);
+            InventoryEntryModel offHand = previous.get("OFF_HAND");
             if (offHand == null || !java.util.Objects.equals(offHand.getInstanceId(), hotbarOffHand.getInstanceId())) {
                 returned.add(hotbarOffHand);
             }
             hotbarEntries.remove(hotbarOffHand);
         }
         if (mainHand != null) hotbarEntries.remove(mainHand);
-        Map<EquipmentType, InventoryEntryModel> reused = new LinkedHashMap<>();
+        Map<String, InventoryEntryModel> reused = new LinkedHashMap<>();
         for (var entry : previous.entrySet()) {
             ProgressionPresetGear desired = gear.get(entry.getKey());
             if (matchesProgressionPresetGear(entry.getValue(), desired)) {
@@ -5443,7 +5440,7 @@ public class InventoryService {
         }
 
         List<UUID> created = new ArrayList<>();
-        Map<EquipmentType, UUID> instanceIds = new LinkedHashMap<>();
+        Map<String, UUID> instanceIds = new LinkedHashMap<>();
         for (var target : gear.entrySet()) {
             InventoryEntryModel existing = reused.get(target.getKey());
             var desired = target.getValue();
@@ -5457,23 +5454,42 @@ public class InventoryService {
             if (existing == null) created.add(instanceId);
             instanceIds.put(target.getKey(), instanceId);
         }
-        if (instanceIds.containsKey(EquipmentType.MAIN_HAND)) {
-            var weapon = gear.get(EquipmentType.MAIN_HAND).model();
-            InventoryEntryModel weaponEntry = reused.get(EquipmentType.MAIN_HAND);
+        if (instanceIds.containsKey("MAIN_HAND")) {
+            var weapon = gear.get("MAIN_HAND").model();
+            InventoryEntryModel weaponEntry = reused.get("MAIN_HAND");
             hotbarEntries.add(weaponEntry == mainHand && mainHand != null
                 ? mainHand
                 : newEntry(hotbar.getInventoryId(), HotbarLayout.DB_SLOT_START, weapon.getCategory(),
                     weapon.getId(), InventoryInstanceType.EQUIPMENT.getCode(),
-                    instanceIds.get(EquipmentType.MAIN_HAND), 1L, null, accountId));
+                    instanceIds.get("MAIN_HAND"), 1L, null, accountId));
         }
         state.replaceEntries(bag.getInventoryId(), bagEntries);
         state.replaceEntries(hotbar.getInventoryId(), hotbarEntries);
         for (var target : loadoutSlots.entrySet()) {
-            state.upsertActiveLoadoutSlot(DEFAULT_PROFILE, target.getValue(), 0,
+            state.upsertActiveLoadoutSlot(DEFAULT_PROFILE, target.getValue().slotType(), target.getValue().slotIndex(),
                 instanceIds.get(target.getKey()), accountId);
         }
-        state.setSelectedHotbarSlot(instanceIds.containsKey(EquipmentType.MAIN_HAND) ? HotbarLayout.DB_SLOT_START : null);
+        state.setSelectedHotbarSlot(instanceIds.containsKey("MAIN_HAND") ? HotbarLayout.DB_SLOT_START : null);
         return true;
+    }
+
+    private record ProgressionPresetLoadoutSlot(String slotType, int slotIndex) { }
+
+    /** プリセット枠をアクティブな装備ロードアウトの保存枠へ対応付けます。 */
+    private static Map<String, ProgressionPresetLoadoutSlot> progressionPresetLoadoutSlots() {
+        Map<String, ProgressionPresetLoadoutSlot> slots = new LinkedHashMap<>();
+        slots.put("OFF_HAND", new ProgressionPresetLoadoutSlot(SLOT_TYPE_ACCESSORY, 0));
+        slots.put("HEAD", new ProgressionPresetLoadoutSlot(SLOT_TYPE_HEAD, 0));
+        slots.put("CHEST", new ProgressionPresetLoadoutSlot(SLOT_TYPE_CHEST, 0));
+        slots.put("LEGS", new ProgressionPresetLoadoutSlot(SLOT_TYPE_LEGS, 0));
+        slots.put("FEET", new ProgressionPresetLoadoutSlot(SLOT_TYPE_FEET, 0));
+        slots.put("SKILLBOOK", new ProgressionPresetLoadoutSlot(SLOT_TYPE_SKILLBOOK, 0));
+        for (AccessorySlotType type : AccessorySlotType.values()) {
+            if (type.isAccessory()) {
+                slots.put(type.name(), new ProgressionPresetLoadoutSlot(SLOT_TYPE_ACCESSORY, type.getSlotIndex() - 1));
+            }
+        }
+        return slots;
     }
 
     /** 検証済みの装備マスターと初期強化値です。 */

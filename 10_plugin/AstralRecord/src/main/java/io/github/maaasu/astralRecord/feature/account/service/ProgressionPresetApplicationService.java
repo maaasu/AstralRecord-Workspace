@@ -3,12 +3,14 @@ package io.github.maaasu.astralRecord.feature.account.service;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
+import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService.ProgressionPresetGear;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentRequirementService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -33,8 +35,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.EnumMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -134,21 +136,41 @@ public final class ProgressionPresetApplicationService {
             player, classId, level, classLevels, checkpoint.nodes());
         if (nodes == null) return Result.INVALID;
 
-        Map<EquipmentType, ProgressionPresetGear> gear = new EnumMap<>(EquipmentType.class);
+        Map<String, ProgressionPresetGear> gear = new LinkedHashMap<>();
         for (var entry : checkpoint.equipment()) {
-            EquipmentType type = EquipmentType.valueOf(entry.slot());
             ItemModel item = items.findLoadedById(itemId(entry.item()));
+            AccessorySlotType accessorySlot = null;
+            try {
+                accessorySlot = AccessorySlotType.valueOf(entry.slot());
+            } catch (IllegalArgumentException ignored) {
+                // 通常装備とスキルブックは EquipmentType で検証する。
+            }
+            boolean matchingSlot;
+            if (accessorySlot != null && accessorySlot.isAccessory()) {
+                matchingSlot = item != null && item.getEquipment() != null
+                    && item.getEquipment().getSlot() == ItemEquipmentSlot.ACCESSORY
+                    && accessorySlot.matchesEquipmentTag(item.getEquipment().getTag());
+            } else {
+                EquipmentType type;
+                try {
+                    type = EquipmentType.valueOf(entry.slot());
+                } catch (IllegalArgumentException invalid) {
+                    return Result.INVALID;
+                }
+                matchingSlot = item != null && item.getEquipment() != null
+                    && EquipmentType.fromItemEquipmentSlot(item.getEquipment().getSlot()) == type;
+            }
             if (item == null || item.getEquipment() == null
-                || EquipmentType.fromItemEquipmentSlot(item.getEquipment().getSlot()) != type
+                || !matchingSlot
                 || !EquipmentRequirementService.check(level, classId, checkpoint.classLevel(), item.getEquipment()).allowed()
                 || !ItemService.supportsInitialEquipmentEnhancement(item, entry.enhanceLevel())) {
                 return Result.INVALID;
             }
-            gear.put(type, new ProgressionPresetGear(item, entry.enhanceLevel()));
+            gear.put(entry.slot(), new ProgressionPresetGear(item, entry.enhanceLevel()));
         }
 
-        ProgressionPresetGear mainHand = gear.get(EquipmentType.MAIN_HAND);
-        if (mainHand == null || gear.containsKey(EquipmentType.OFF_HAND)
+        ProgressionPresetGear mainHand = gear.get("MAIN_HAND");
+        if (mainHand == null || gear.containsKey("OFF_HAND")
             && mainHand.model().getEquipment().getHandType() == ItemEquipmentHandType.TWO) {
             return Result.INVALID;
         }
@@ -157,6 +179,10 @@ public final class ProgressionPresetApplicationService {
         classes.progressionPresetUsableSkills(classId).forEach(skill -> permitted.add(skillId(skill)));
         for (var node : nodes) {
             tree.getNode(node.nodeId()).skillEffects().forEach(effect -> permitted.add(skillId(effect.skillId())));
+        }
+        ProgressionPresetGear skillbook = gear.get("SKILLBOOK");
+        if (skillbook != null) {
+            skillbook.model().getEquipment().getUsableSkills().forEach(skill -> permitted.add(skillId(skill)));
         }
         var active = prepareBindings(checkpoint.skills(), SkillKind.ACTIVE, permitted, level);
         var passive = prepareBindings(checkpoint.passives(), SkillKind.PASSIVE, permitted, level);
