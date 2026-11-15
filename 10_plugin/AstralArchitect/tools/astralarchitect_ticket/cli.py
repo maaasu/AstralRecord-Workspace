@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack
 import hashlib
 import json
 import os
@@ -87,6 +88,7 @@ def _parser() -> JsonArgumentParser:
 
     live = command("live", "start a local browser viewer for an editable draft")
     live.add_argument("--session", required=True, help="absolute path for a new session JSON file")
+    live.add_argument("--minecraft-jar", help="absolute path to the Minecraft Java 1.21.11 client JAR")
 
     live_ops = command("live-ops", "submit one operation batch to a running live viewer")
     live_ops.add_argument("--session", required=True, help="absolute path to the live session file")
@@ -489,10 +491,41 @@ def _write_new_file(output: Path, data: bytes, mode: int = 0o666) -> None:
         raise
 
 
+def _minecraft_client_jar(explicit: str | None) -> Path | None:
+    if explicit is not None:
+        jar = Path(explicit)
+        if not jar.is_absolute() or ".." in jar.parts or jar.suffix.casefold() != ".jar" or not jar.is_file():
+            raise TicketError("--minecraft-jar must be an absolute path to a Minecraft Java 1.21.11 client JAR")
+        reject_reparse_chain(jar, "Minecraft client JAR path")
+        return jar
+
+    minecraft = Path.home() / ".minecraft"
+    if sys.platform == "win32" and os.environ.get("APPDATA"):
+        minecraft = Path(os.environ["APPDATA"]) / ".minecraft"
+    elif sys.platform == "darwin":
+        minecraft = Path.home() / "Library" / "Application Support" / "minecraft"
+    locations = [minecraft / "versions" / "1.21.11" / "1.21.11.jar"]
+    if os.environ.get("LOCALAPPDATA"):
+        locations.append(Path(os.environ["LOCALAPPDATA"]) / "AstralArchitect" / "minecraft" / "1.21.11.jar")
+    for jar in locations:
+        if jar.is_file():
+            reject_reparse_chain(jar, "Minecraft client JAR path")
+            return jar
+    return None
+
+
 def _serve_live(args: argparse.Namespace) -> None:
     ticket = load_ticket(args.ticket)
     _output_path(args.session, ticket.directory, ".json", "--session")
-    with LiveServer(ticket) as server:
+    jar = _minecraft_client_jar(args.minecraft_jar)
+    with ExitStack() as stack:
+        assets = None
+        if jar is not None:
+            from .vanilla_assets import VanillaAssets
+
+            assets = VanillaAssets(jar)
+            stack.callback(assets.close)
+        server = stack.enter_context(LiveServer(ticket, assets))
         session = _output_path(args.session, ticket.directory, ".json", "--session")
         _write_new_file(session, json_bytes(server.credentials()), mode=0o600)
         result = _base(ticket, "live")
@@ -500,6 +533,7 @@ def _serve_live(args: argparse.Namespace) -> None:
             "url": server.url,
             "session": str(session),
             "baseCandidateSha256": ticket.candidate_hash,
+            "minecraftVersion": server.draft.minecraft_version,
         })
         print(json_bytes(result).decode("ascii"), flush=True)
         server.serve()

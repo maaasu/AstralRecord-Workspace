@@ -27,6 +27,8 @@ python ticket_cli.py apply-ops <absolute-ticket-directory> --ops <absolute-opera
 
 `live <ticket> --session <new-absolute-session-json>` が返す URL を同じPCのWebGL 2対応ブラウザーで開きます。別端末から `live-ops <ticket> --session <session-json> --ops <absolute-operations-json>` を実行するたびに、検証済みの変更がブラウザーに届きます。ドラッグで周回、右ドラッグで平行移動、ホイールでズームできます。候補へ反映する操作は `live-export <ticket> --session <session-json> --output <new-absolute-operations-json>` で書き出し、返された候補ハッシュとともに `apply-ops` に渡します。
 
+標準インストールや Windows の `%LOCALAPPDATA%/AstralArchitect/minecraft/1.21.11.jar` にある Minecraft Java 1.21.11 のクライアント JAR を検出すると、モデルとテクスチャを使います。別の配置先は `live` に `--minecraft-jar <クライアントJARの絶対パス>` を追加します。画面で `Java 1.21.11` と `簡易表示` を確認できます。
+
 HTTP は `127.0.0.1` の空きポートだけで待ち受け、Web画面は閲覧専用です。セッションファイルは作業者の手元に置いてください。停止は `live-stop <ticket> --session <session-json>` または起動端末で Ctrl+C です。
 
 ## 編集操作

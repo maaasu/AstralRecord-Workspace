@@ -8,18 +8,29 @@ const FACES = [
     {axis: 2, step: -1, shade: 0.85, vertices: [1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0]},
     {axis: 2, step:  1, shade: 0.94, vertices: [0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1]},
 ];
+const CULL_FACES = Object.fromEntries(
+    ["west", "east", "down", "up", "north", "south"].map((name, index) => [name, FACES[index]]),
+);
+const ATLAS_SIZE = 2048;
+// Vanilla 1.21.11 has 16- and 32-pixel-wide block sprites.
+const TEXTURE_SIZE = 32;
+const TILE = TEXTURE_SIZE + 2;
+const ATLAS_COLUMNS = Math.floor(ATLAS_SIZE / TILE);
 const MOVEMENT_KEYS = new Set(["w", "a", "s", "d", "q", "e"]);
 
 const vertexSource = `#version 300 es
 in vec3 aPosition;
 in vec4 aColor;
+in vec2 aUv;
 uniform mat4 uProjection;
 uniform mat4 uView;
 out vec3 vPosition;
 out vec4 vColor;
+out vec2 vUv;
 void main() {
     vPosition = aPosition;
     vColor = aColor;
+    vUv = aUv;
     gl_Position = uProjection * uView * vec4(aPosition, 1.0);
 }
 `;
@@ -28,8 +39,17 @@ const fragmentSource = `#version 300 es
 precision highp float;
 in vec3 vPosition;
 in vec4 vColor;
+in vec2 vUv;
+uniform sampler2D uAtlas;
+uniform float uAlphaCutoff;
 out vec4 outColor;
 void main() {
+    if (vUv.x >= 0.0) {
+        vec4 sampleColor = texture(uAtlas, vUv);
+        if (sampleColor.a < uAlphaCutoff) discard;
+        outColor = sampleColor * vColor;
+        return;
+    }
     vec3 normal = abs(cross(dFdx(vPosition), dFdy(vPosition)));
     vec2 plane = normal.x > max(normal.y, normal.z) ? vPosition.zy
         : (normal.y > normal.z ? vPosition.xz : vPosition.xy);
@@ -74,24 +94,169 @@ function createProgram(gl) {
         program,
         position: gl.getAttribLocation(program, "aPosition"),
         color: gl.getAttribLocation(program, "aColor"),
+        uv: gl.getAttribLocation(program, "aUv"),
+        atlas: gl.getUniformLocation(program, "uAtlas"),
+        alphaCutoff: gl.getUniformLocation(program, "uAlphaCutoff"),
         projection: gl.getUniformLocation(program, "uProjection"),
         view: gl.getUniformLocation(program, "uView"),
     };
 }
 
+function createTextureAtlas(gl, changed) {
+    const texture = gl.createTexture();
+    const images = new AbortController();
+    const loaded = new Set();
+    const tile = document.createElement("canvas");
+    tile.width = tile.height = TILE;
+    const context = tile.getContext("2d");
+    context.imageSmoothingEnabled = false;
+    let allocated = false;
+
+    function bind() {
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+    }
+
+    bind();
+    for (const parameter of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) {
+        gl.texParameteri(gl.TEXTURE_2D, parameter, gl.NEAREST);
+    }
+    for (const parameter of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T]) {
+        gl.texParameteri(gl.TEXTURE_2D, parameter, gl.CLAMP_TO_EDGE);
+    }
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+        Uint8Array.of(255, 255, 255, 255));
+
+    function upload(x, y) {
+        bind();
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, x, y, gl.RGBA, gl.UNSIGNED_BYTE, tile);
+    }
+
+    async function load(id, x, y) {
+        try {
+            const response = await fetch(`/api/textures/${id}.png`, {signal: images.signal});
+            if (!response.ok) return;
+            const image = await createImageBitmap(await response.blob());
+            try {
+                if (images.signal.aborted) return;
+                context.clearRect(0, 0, TILE, TILE);
+                // The first square in a vertically animated vanilla texture is its preview frame.
+                const frameHeight = Math.min(image.width, image.height);
+                context.drawImage(image, 0, 0, image.width, frameHeight, 1, 1, TEXTURE_SIZE, TEXTURE_SIZE);
+                // Repeat the last texel at each edge so UVs at 0 or 1 stay within this sprite.
+                context.drawImage(tile, 1, 1, TEXTURE_SIZE, 1, 1, 0, TEXTURE_SIZE, 1);
+                context.drawImage(tile, 1, TEXTURE_SIZE, TEXTURE_SIZE, 1, 1, TILE - 1, TEXTURE_SIZE, 1);
+                context.drawImage(tile, 1, 0, 1, TILE, 0, 0, 1, TILE);
+                context.drawImage(tile, TEXTURE_SIZE, 0, 1, TILE, TILE - 1, 0, 1, TILE);
+                upload(x, y);
+                changed();
+            } finally {
+                image.close();
+            }
+        } catch {
+            // An unreadable texture keeps its visible checkerboard tile.
+        }
+    }
+
+    function textureOrigin(id) {
+        if (!Number.isInteger(id) || id < 0 || id >= ATLAS_COLUMNS ** 2) return null;
+        const x = (id % ATLAS_COLUMNS) * TILE;
+        const y = Math.floor(id / ATLAS_COLUMNS) * TILE;
+        if (!loaded.has(id)) {
+            if (!allocated) {
+                bind();
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ATLAS_SIZE, ATLAS_SIZE, 0,
+                    gl.RGBA, gl.UNSIGNED_BYTE, null);
+                allocated = true;
+            }
+            context.fillStyle = "#a428a0";
+            context.fillRect(0, 0, TILE, TILE);
+            context.fillStyle = "#39273f";
+            context.fillRect(0, 0, TILE / 2, TILE / 2);
+            context.fillRect(TILE / 2, TILE / 2, TILE / 2, TILE / 2);
+            upload(x, y);
+            loaded.add(id);
+            void load(id, x, y);
+        }
+        return [x + 1, y + 1];
+    }
+
+    return {
+        bind,
+        textureOrigin,
+        dispose() {
+            images.abort();
+            gl.deleteTexture(texture);
+        },
+    };
+}
+
 function isFullCube(model) {
+    if (model.faces) {
+        return model.occludes || (
+            model.faces.length === 6 && model.faces.every(face =>
+                face.cull != null && face.vertices.every(vertex => vertex.every(value => value === 0 || value === 1)))
+        );
+    }
     if (model.boxes.length !== 1) return false;
     const [x0, y0, z0, x1, y1, z1] = model.boxes[0];
     return x0 === 0 && y0 === 0 && z0 === 0 && x1 === 1 && y1 === 1 && z1 === 1;
 }
 
+function faceLight(face) {
+    if (!face.shade) return 1;
+    const [a, b, c] = face.vertices;
+    const [ux, uy, uz] = b.map((value, axis) => value - a[axis]);
+    const [vx, vy, vz] = c.map((value, axis) => value - a[axis]);
+    const nx = uy * vz - uz * vy;
+    const ny = uz * vx - ux * vz;
+    const nz = ux * vy - uy * vx;
+    const size = nx * nx + ny * ny + nz * nz;
+    if (!size) return 1;
+    return (0.6 * nx * nx + (ny >= 0 ? 1 : 0.5) * ny * ny + 0.8 * nz * nz) / size;
+}
+
+function prepareModel(model, atlas) {
+    const fullCube = isFullCube(model);
+    if (!model.faces) {
+        return {
+            ...model,
+            fullCube,
+            occludes: fullCube && model.opacity === 1,
+            translucent: model.opacity < 1,
+            visible: model.boxes.length > 0,
+        };
+    }
+    return {
+        fullCube,
+        occludes: model.occludes,
+        translucent: model.layer === "translucent",
+        visible: model.faces.length > 0,
+        faces: model.faces.map(face => {
+            const origin = atlas.textureOrigin(face.texture);
+            const uvs = origin && face.uv.map(([u, v]) => [
+                (origin[0] + clamp(u, 0, 1) * TEXTURE_SIZE) / ATLAS_SIZE,
+                (origin[1] + clamp(v, 0, 1) * TEXTURE_SIZE) / ATLAS_SIZE,
+            ]);
+            const light = faceLight(face);
+            const tint = uvs ? face.tint ?? [255, 255, 255] : [165, 45, 145];
+            return {
+                vertices: face.vertices,
+                uvs,
+                direction: CULL_FACES[face.cull],
+                color: [...tint.map(channel => Math.round(channel * light)), 255],
+            };
+        }),
+    };
+}
+
 function newMesh() {
-    return {positions: [], colors: [], indices: []};
+    return {positions: [], colors: [], indices: [], uvs: null};
 }
 
 function appendFace(mesh, point, model, box, face) {
     const offset = mesh.positions.length / 3;
-    // Slight block-to-block variation keeps repeated materials distinguishable.
+    // Slight block-to-block variation keeps repeated fallback materials distinguishable.
     const tone = face.shade * (0.96 + ((point[0] * 7 + point[1] * 11 + point[2] * 13) % 13) / 200);
     const color = model.color.map(channel => Math.min(255, Math.round(channel * tone)));
     color.push(Math.round(model.opacity * 255));
@@ -100,6 +265,20 @@ function appendFace(mesh, point, model, box, face) {
             mesh.positions.push(point[axis] + box[axis + 3 * face.vertices[corner + axis]]);
         }
         mesh.colors.push(...color);
+        if (mesh.uvs) mesh.uvs.push(-1, -1);
+    }
+    mesh.indices.push(offset, offset + 1, offset + 2, offset, offset + 2, offset + 3);
+}
+
+function appendTexturedFace(mesh, point, face) {
+    const offset = mesh.positions.length / 3;
+    mesh.uvs ??= new Array(offset * 2).fill(-1);
+    for (let corner = 0; corner < 4; corner++) {
+        const [x, y, z] = face.vertices[corner];
+        mesh.positions.push(point[0] + x, point[1] + y, point[2] + z);
+        mesh.colors.push(...face.color);
+        const uv = face.uvs?.[corner];
+        mesh.uvs.push(uv?.[0] ?? -1, uv?.[1] ?? -1);
     }
     mesh.indices.push(offset, offset + 1, offset + 2, offset, offset + 2, offset + 3);
 }
@@ -117,6 +296,7 @@ function uploadMesh(gl, mesh) {
         positions: upload(gl, gl.ARRAY_BUFFER, new Float32Array(mesh.positions)),
         colors: upload(gl, gl.ARRAY_BUFFER, new Uint8Array(mesh.colors)),
         indices: upload(gl, gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(mesh.indices)),
+        uvs: mesh.uvs && upload(gl, gl.ARRAY_BUFFER, new Float32Array(mesh.uvs)),
         count: mesh.indices.length,
     };
 }
@@ -126,6 +306,7 @@ function deleteMesh(gl, mesh) {
     gl.deleteBuffer(mesh.positions);
     gl.deleteBuffer(mesh.colors);
     gl.deleteBuffer(mesh.indices);
+    gl.deleteBuffer(mesh.uvs);
 }
 
 function drawMesh(gl, program, mesh) {
@@ -134,11 +315,30 @@ function drawMesh(gl, program, mesh) {
     gl.vertexAttribPointer(program.position, 3, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, mesh.colors);
     gl.vertexAttribPointer(program.color, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+    if (mesh.uvs) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, mesh.uvs);
+        gl.vertexAttribPointer(program.uv, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(program.uv);
+    } else {
+        gl.disableVertexAttribArray(program.uv);
+        gl.vertexAttrib2f(program.uv, -1, -1);
+    }
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indices);
     gl.drawElements(gl.TRIANGLES, mesh.count, gl.UNSIGNED_INT, 0);
 }
 
-function meshSection(gl, scene, fullCubes, start) {
+function hiddenFace(scene, models, strides, index, id, point, face) {
+    const {axis, step} = face;
+    const neighbor = point[axis] + step;
+    if (neighbor < 0 || neighbor >= scene.size[axis]) return false;
+    const neighborId = scene.blocks[index + step * strides[axis]];
+    const neighborModel = models[neighborId];
+    return neighborModel && (neighborModel.occludes || (
+        neighborId === id && neighborModel.fullCube && neighborModel.translucent
+    ));
+}
+
+function meshSection(gl, scene, models, start) {
     const [width, height, length] = scene.size;
     const [startX, startY, startZ] = start;
     const [endX, endY, endZ] = start.map((coordinate, axis) => Math.min(scene.size[axis], coordinate + SECTION));
@@ -153,20 +353,20 @@ function meshSection(gl, scene, fullCubes, start) {
             for (let x = startX; x < endX; x++) {
                 const index = x + width * (z + length * y);
                 const id = scene.blocks[index];
-                const model = scene.palette[id];
-                if (!model || !model.boxes.length) continue;
+                const model = models[id];
+                if (!model?.visible) continue;
                 point[0] = x;
-                const mesh = model.opacity < 1 ? translucent : opaque;
+                const mesh = model.translucent ? translucent : opaque;
+                if (model.faces) {
+                    for (const face of model.faces) {
+                        if (face.direction && hiddenFace(scene, models, strides, index, id, point, face.direction)) continue;
+                        appendTexturedFace(mesh, point, face);
+                    }
+                    continue;
+                }
                 for (const face of FACES) {
                     const {axis, step} = face;
-                    const neighbor = point[axis] + step;
-                    let hidden = false;
-                    if (neighbor >= 0 && neighbor < scene.size[axis]) {
-                        const neighborId = scene.blocks[index + step * strides[axis]];
-                        hidden = fullCubes[neighborId] && (
-                            scene.palette[neighborId].opacity === 1 || neighborId === id
-                        );
-                    }
+                    const hidden = hiddenFace(scene, models, strides, index, id, point, face);
                     for (const box of model.boxes) {
                         if (hidden && box[axis + (step > 0 ? 3 : 0)] === (step > 0 ? 1 : 0)) continue;
                         appendFace(mesh, point, model, box, face);
@@ -182,9 +382,9 @@ function meshSection(gl, scene, fullCubes, start) {
     };
 }
 
-function occupiedBounds(scene) {
+function occupiedBounds(scene, models) {
     const [width, height, length] = scene.size;
-    const visible = scene.palette.map(model => model.boxes.length > 0);
+    const visible = models.map(model => model.visible);
     const min = scene.size.slice();
     const max = [0, 0, 0];
     for (let y = 0; y < height; y++) {
@@ -250,8 +450,9 @@ export function createRenderer(canvas) {
     if (!gl) throw new Error("このブラウザでは 3D表示に必要な WebGL 2 が利用できません。");
 
     let program = createProgram(gl);
+    let atlas = createTextureAtlas(gl, schedule);
     let scene;
-    let fullCubes = [];
+    let models = [];
     let sectionSize = [];
     let sceneSpan = 1;
     let target = [0, 0, 0];
@@ -304,7 +505,7 @@ export function createRenderer(canvas) {
             const z = plane % sectionSize[2];
             const y = Math.floor(plane / sectionSize[2]);
             forgetSection(sections.get(id));
-            const section = meshSection(gl, scene, fullCubes, [x * SECTION, y * SECTION, z * SECTION]);
+            const section = meshSection(gl, scene, models, [x * SECTION, y * SECTION, z * SECTION]);
             if (section.opaque || section.translucent) sections.set(id, section);
             else sections.delete(id);
         }
@@ -333,12 +534,17 @@ export function createRenderer(canvas) {
         const eye = target.map((coordinate, axis) => coordinate + back[axis] * distance);
         const far = Math.hypot(...eye) + sceneSpan * 2;
         gl.useProgram(program.program);
+        atlas.bind();
+        gl.uniform1i(program.atlas, 0);
+        gl.uniform1f(program.alphaCutoff, 0.5);
         gl.uniformMatrix4fv(program.projection, false, perspective(width / height, far));
         gl.uniformMatrix4fv(program.view, false, viewMatrix(eye, right, up, back));
         gl.enableVertexAttribArray(program.position);
         gl.enableVertexAttribArray(program.color);
         gl.enable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
+        // A vanilla grass side can have a tinted overlay on its base face.
+        gl.depthFunc(gl.LEQUAL);
         const transparent = [];
         for (const chunk of sections.values()) {
             drawMesh(gl, program, chunk.opaque);
@@ -350,6 +556,7 @@ export function createRenderer(canvas) {
         if (transparent.length) {
             transparent.sort((a, b) => a.depth - b.depth);
             gl.enable(gl.BLEND);
+            gl.uniform1f(program.alphaCutoff, 1 / 255);
             gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
             gl.depthMask(false);
             for (const entry of transparent) drawMesh(gl, program, entry.mesh);
@@ -360,8 +567,8 @@ export function createRenderer(canvas) {
     }
 
     function resetView() {
-        if (!scene) return;
-        const {min, max} = occupiedBounds(scene);
+        if (!scene || lost) return;
+        const {min, max} = occupiedBounds(scene, models);
         target = min.map((coordinate, axis) => (coordinate + max[axis]) / 2);
         yaw = 2.39;
         pitch = 0.49;
@@ -389,7 +596,8 @@ export function createRenderer(canvas) {
         scene = next;
         sceneSpan = Math.hypot(...scene.size);
         sectionSize = scene.size.map(size => Math.ceil(size / SECTION));
-        fullCubes = scene.palette.map(isFullCube);
+        if (lost) return;
+        models = scene.palette.map(model => prepareModel(model, atlas));
         for (const section of sections.values()) forgetSection(section);
         sections.clear();
         dirty.clear();
@@ -400,9 +608,9 @@ export function createRenderer(canvas) {
     }
 
     function update(indices) {
-        if (!scene) return;
-        for (let id = fullCubes.length; id < scene.palette.length; id++) {
-            fullCubes.push(isFullCube(scene.palette[id]));
+        if (!scene || lost) return;
+        for (let id = models.length; id < scene.palette.length; id++) {
+            models.push(prepareModel(scene.palette[id], atlas));
         }
         const [width, height, length] = scene.size;
         for (const index of indices) {
@@ -475,9 +683,11 @@ export function createRenderer(canvas) {
     listen("webglcontextlost", event => {
         event.preventDefault();
         lost = true;
+        atlas.dispose();
     });
     listen("webglcontextrestored", () => {
         program = createProgram(gl);
+        atlas = createTextureAtlas(gl, schedule);
         sections.clear();
         lost = false;
         if (scene) setScene(scene);
@@ -496,6 +706,7 @@ export function createRenderer(canvas) {
             resize.disconnect();
             events.abort();
             for (const section of sections.values()) forgetSection(section);
+            atlas.dispose();
             gl.deleteProgram(program.program);
         },
     };

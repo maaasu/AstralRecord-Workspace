@@ -28,7 +28,8 @@ function showMessage(message) {
 }
 
 function showProgress(scene) {
-  ticketId.textContent = scene.ticketId;
+  const materials = scene.minecraftVersion ? `Java ${scene.minecraftVersion}` : "簡易表示";
+  ticketId.textContent = `${scene.ticketId} · ${materials}`;
   ticketId.hidden = false;
   status.dataset.revision = String(scene.revision);
   revision.textContent = numberFormat.format(scene.revision);
@@ -65,7 +66,10 @@ function decodeScene(data) {
   if (start !== volume) {
     throw new Error("Incomplete live scene");
   }
-  return { ticketId: data.ticketId, revision: sequence, changedBlockCount, size, origin, palette, blocks };
+  return {
+    ticketId: data.ticketId, minecraftVersion: data.minecraftVersion,
+    revision: sequence, changedBlockCount, size, origin, palette, blocks,
+  };
 }
 
 function applyUpdates(scene, response) {

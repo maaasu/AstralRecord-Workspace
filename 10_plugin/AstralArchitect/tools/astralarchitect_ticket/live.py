@@ -12,6 +12,7 @@ from pathlib import Path
 import re
 import secrets
 from threading import Condition, Thread
+from typing import TYPE_CHECKING
 from urllib.parse import parse_qs
 
 from .preview import block_model
@@ -26,7 +27,11 @@ from .schematic import (
     simulate_operations,
 )
 
+if TYPE_CHECKING:
+    from .vanilla_assets import VanillaAssets
+
 _LOCAL_ADDRESS = "127.0.0.1"
+_TEXTURE_ROUTE = re.compile(r"/api/textures/([0-9]{1,5})\.png")
 _MAX_PATCH_CELLS = 32_768
 _PATCH_HISTORY = 16
 _VIEW_ROOT = Path(__file__).with_name("live_view")
@@ -45,11 +50,13 @@ def json_bytes(value: object) -> bytes:
 class LiveDraft:
     """One editable in-memory snapshot and its accepted operations."""
 
-    def __init__(self, ticket: Ticket) -> None:
+    def __init__(self, ticket: Ticket, assets: VanillaAssets | None = None) -> None:
         require_editable_ticket(ticket)
         if ticket.bounds.volume > MAX_TICKET_VOLUME:
             raise TicketError(f"live viewer supports at most {MAX_TICKET_VOLUME} ticket cells")
         self.ticket = ticket
+        self.assets = assets
+        self.minecraft_version = "1.21.11" if assets is not None else None
         self.condition = Condition()
         self.closing = False
         self.initial = ticket.candidate.states()
@@ -64,19 +71,25 @@ class LiveDraft:
         self.operation_bytes = 2  # The JSON array brackets
         self.visits = 0
 
+    def _palette_model(self, state: str) -> dict:
+        model = self.assets.model(state) if self.assets is not None else None
+        if model is None:
+            approximate = block_model(state)
+            model = {
+                "state": state,
+                "color": approximate.color if approximate else (0, 0, 0),
+                "opacity": approximate.opacity if approximate else 0,
+                "boxes": approximate.boxes if approximate else (),
+            }
+        return model
+
     def _palette_id(self, state: str) -> int:
         existing = self.palette_ids.get(state)
         if existing is not None:
             return existing
-        model = block_model(state)
         index = len(self.palette)
+        self.palette.append(self._palette_model(state))
         self.palette_ids[state] = index
-        self.palette.append({
-            "state": state,
-            "color": model.color if model else (0, 0, 0),
-            "opacity": model.opacity if model else 0,
-            "boxes": model.boxes if model else (),
-        })
         return index
 
     def snapshot(self) -> dict:
@@ -89,6 +102,7 @@ class LiveDraft:
                 "size": (bounds.width, bounds.height, bounds.length),
                 "revision": self.revision,
                 "changedBlockCount": self.changed_count,
+                "minecraftVersion": self.minecraft_version,
                 "palette": self.palette.copy(),
                 "runs": [(block_id, sum(1 for _ in run)) for block_id, run in groupby(self.blocks)],
             }
@@ -123,13 +137,21 @@ class LiveDraft:
             plan = simulate_operations(
                 self.ticket, operations, base_states=self.states, previous_visits=self.visits
             )
+            # Bake every new model before publishing any block or revision change.
+            new_states = dict.fromkeys(
+                plan.states[index] for index in plan.changed_indices
+                if plan.states[index] not in self.palette_ids
+            )
+            new_models = [self._palette_model(state) for state in new_states]
             new_palette_start = len(self.palette)
+            self.palette.extend(new_models)
+            self.palette_ids.update((state, new_palette_start + offset) for offset, state in enumerate(new_states))
             patch = [] if len(plan.changed_indices) <= _MAX_PATCH_CELLS else None
             for index in plan.changed_indices:
                 was_changed = self.states[index] != self.initial[index]
                 is_changed = plan.states[index] != self.initial[index]
                 self.changed_count += is_changed - was_changed
-                block_id = self._palette_id(plan.states[index])
+                block_id = self.palette_ids[plan.states[index]]
                 self.blocks[index] = block_id
                 if patch is not None:
                     patch.append((index, block_id))
@@ -176,8 +198,8 @@ class LiveDraft:
 class LiveServer(ThreadingHTTPServer):
     """Serve a browser viewer and a separately authenticated CLI channel."""
 
-    def __init__(self, ticket: Ticket) -> None:
-        self.draft = LiveDraft(ticket)
+    def __init__(self, ticket: Ticket, assets: VanillaAssets | None = None) -> None:
+        self.draft = LiveDraft(ticket, assets)
         self.token = secrets.token_urlsafe(32)
         self.assets = {
             route: ((_VIEW_ROOT / name).read_bytes(), content_type)
@@ -263,7 +285,14 @@ class _LiveHandler(BaseHTTPRequestHandler):
         if not self._check_host():
             return
         path, _, query = self.path.partition("?")
-        if path in self.server.assets:
+        if texture_match := _TEXTURE_ROUTE.fullmatch(path):
+            assets = self.server.draft.assets
+            data = assets.texture(int(texture_match[1])) if assets is not None else None
+            if data is None:
+                self._failure(404, "unknown Minecraft texture")
+            else:
+                self._send(200, data, "image/png")
+        elif path in self.server.assets:
             data, content_type = self.server.assets[path]
             self._send(200, data, content_type)
         elif path == "/api/state":
