@@ -72,6 +72,7 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
         var classes = masters.Where(master => master.Kind == "class").Select(ReadClass).ToArray();
         var presets = masters.Where(master => master.Kind == "preset").Select(ReadPreset).OfType<ProgressionDesignPreset>().ToArray();
         var items = masters.Where(master => master.Kind == "item").Select(ReadItem).ToArray();
+        var enchantChoices = ReadEnchantChoices(masters, snapshot);
         var skills = masters.Where(master => master.Kind == "skill").Select(ReadSkill).ToArray();
         var nodes = masters.Where(master => master.Kind == "node" && NodeId(master.Data["nodeId"]) is > 0)
             .Select(master => new ProgressionDesignNode(NodeId(master.Data["nodeId"])!.Value, master.Name, master.Path,
@@ -155,7 +156,30 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
         }).DistinctBy(source => source.Id).ToArray();
         return new(classes, presets, items, uniqueSources, usages.DistinctBy(usage =>
             (usage.ItemId, usage.Kind, usage.Path, usage.Pointer, usage.OutputItemId)).ToArray(), targets,
-            snapshot.Documents.Where(document => Kind(document.Path) is not null).ToDictionary(document => document.Path, document => document.Revision), skills, nodes);
+            snapshot.Documents.Where(document => Kind(document.Path) is not null).ToDictionary(document => document.Path, document => document.Revision), skills, nodes, enchantChoices);
+    }
+
+    private static ProgressionDesignEnchantChoice[] ReadEnchantChoices(List<Master> masters, FilebaseSnapshot snapshot)
+    {
+        var sources = masters.Where(master => master.Kind == "item")
+            .Select(master => (Master: master, Orb: ProgressionEquipmentEnchants.OrbSource(master.Data)))
+            .Where(entry => entry.Orb is not null).OrderBy(entry => entry.Orb!.Value.Priority)
+            .GroupBy(entry => entry.Orb!.Value.MasterId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First().Master.Id, StringComparer.OrdinalIgnoreCase);
+        var statusDocument = snapshot.Documents.FirstOrDefault(document =>
+            document.Path == "75.shared.status/v1.status_types.yml" && document.DecodeError is null)?.Content as JsonObject;
+        var statuses = Rows(statusDocument?["statuses"], "/statuses")
+            .Where(entry => Text(entry.Data["id"]) is not null && Text(entry.Data["displayName"]) is not null)
+            .GroupBy(entry => Text(entry.Data["id"])!, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => Text(group.First().Data["displayName"])!, StringComparer.OrdinalIgnoreCase);
+
+        return masters.Where(master => master.Kind == "enchant").SelectMany(master => ProgressionEquipmentEnchants.Read(master.Data))
+            .Where(effect => sources.ContainsKey(effect.MasterId))
+            .GroupBy(effect => (effect.MasterId.ToUpperInvariant(), effect.EquipmentType, effect.EffectId.ToUpperInvariant()))
+            .Where(group => group.Count() == 1).Select(group => group.Single())
+            .Select(effect => new ProgressionDesignEnchantChoice(effect.MasterId, effect.EquipmentType, effect.EffectId,
+                statuses.GetValueOrDefault(effect.Status) ?? effect.Status, effect.Type, effect.Min, effect.Max,
+                sources[effect.MasterId])).ToArray();
     }
 
     private static Dictionary<string, Master> Index(IEnumerable<Master> masters, string kind) =>
@@ -180,7 +204,9 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
             var equipment = new List<ProgressionDesignEquipment>();
             foreach (var (row, rowPointer) in Rows(checkpoint["equipment"], pointer + "/equipment"))
                 if (Text(row["slot"]) is { } slot && Id(row["item"]) is { } id)
-                    equipment.Add(new(slot, id, rowPointer, Integer(row["enhanceLevel"]) ?? 0));
+                    equipment.Add(new(slot, id, rowPointer, Integer(row["enhanceLevel"]) ?? 0,
+                        Rows(row["enchants"], rowPointer + "/enchants")
+                            .Select(enchant => ReadEquipmentEnchant(enchant.Data)).OfType<ProgressionDesignEnchant>().ToArray()));
             var nodes = (checkpoint["nodes"] as JsonArray ?? []).Select(Integer).OfType<int>().ToArray();
             checkpoints.Add(new(level, classLevel, pointer, equipment, nodes,
                 ReadSkillAssignments(checkpoint["skills"], pointer + "/skills"),
@@ -188,6 +214,10 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
         }
         return new(master.Id, master.Name, master.Path, classId, buildId, checkpoints);
     }
+
+    private static ProgressionDesignEnchant? ReadEquipmentEnchant(JsonObject data) =>
+        Text(data["enchantMasterId"]) is { } master && Text(data["effectId"]) is { } effect
+        && ProgressionEquipmentEnchants.Value(data["value"]) is { } value ? new(master, effect, value) : null;
 
     private static ProgressionDesignSkillAssignment[] ReadSkillAssignments(JsonNode? assignments, string pointer) =>
         Rows(assignments, pointer).Where(row => Integer(row.Data["slot"]) is not null && Id(row.Data["skill"]) is not null)
@@ -229,7 +259,8 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
             (equipment?["requiredClasses"] as JsonArray ?? []).OfType<JsonObject>()
                 .Where(row => Id(row["classId"] ?? row["class"]) is not null)
                 .Select(row => new ProgressionDesignClassRequirement(Id(row["classId"] ?? row["class"])!,
-                    Math.Max(1, Integer(row["level"]) ?? 1))).ToArray());
+                    Math.Max(1, Integer(row["level"]) ?? 1))).ToArray(),
+            ProgressionEquipmentEnchants.MaxSlots(equipment), ProgressionEquipmentEnchants.EquipmentType(slot));
     }
 
     private static void ReadRecipe(Master master, List<ProgressionDesignSource> sources)
@@ -447,7 +478,7 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
         var kind = MasterDataService.Kind(path);
         return kind switch
         {
-            "class" or "item" or "recipe" or "shop" or "gathering" or "dungeon" or "world" or "skill" or "node" => kind,
+            "class" or "item" or "recipe" or "shop" or "gathering" or "dungeon" or "world" or "skill" or "node" or "enchant" => kind,
             "mob" => path.StartsWith("40.features.mob/npc/", MasterDataPaths.Comparison) ? "shopNpc" : "mob",
             "mob_spawner" => "mobSpawner",
             "gathering_spawner" => "gatheringSpawner",
