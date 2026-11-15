@@ -72,17 +72,18 @@ export function compatibleEnchantChoices(item: DesignItem, catalog: ProgressionD
   return (item.maxEnchantSlots ?? 0) > 0 ? (catalog.enchantChoices ?? []).filter(choice => choice.equipmentType === item.enchantEquipmentType) : []
 }
 
-export function enchantAmount(text: string, choice: DesignEnchantChoice): number | undefined {
+export function enchantAmount(text: string, choice: DesignEnchantChoice): string | undefined {
   if (!/^-?(?:\d+(?:\.\d{0,4})?|\.\d{1,4})$/.test(text.trim())) return undefined
   const value = Number(text)
-  return Number.isFinite(value) && value >= choice.min && value <= choice.max && Math.abs(value) < 1e14 ? value : undefined
+  return Number.isFinite(value) && value >= choice.min && value <= choice.max && Math.abs(value) <= 100_000_000_000
+    ? String(value) : undefined
 }
 
 export function retainEquipmentEnchants(enchants: DesignEquipmentEnchant[], item: DesignItem, catalog: ProgressionDesignCatalog) {
   const choices = new Map(compatibleEnchantChoices(item, catalog).map(choice => [enchantChoiceKey(choice), choice]))
   return enchants.filter(entry => {
     const choice = choices.get(enchantChoiceKey(entry))
-    return choice && enchantAmount(String(entry.value), choice) !== undefined
+    return choice && enchantAmount(entry.value, choice) !== undefined
   }).slice(0, item.maxEnchantSlots ?? 0)
 }
 

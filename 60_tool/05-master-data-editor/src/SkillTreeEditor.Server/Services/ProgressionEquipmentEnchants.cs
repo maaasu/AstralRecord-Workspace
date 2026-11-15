@@ -1,11 +1,15 @@
 using System.Globalization;
-using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 namespace SkillTreeEditor.Server.Services;
 
 internal static class ProgressionEquipmentEnchants
 {
+    private const decimal MaxValue = 100_000_000_000m;
+    private const decimal Resolution = 10_000m; // 付与値は小数4桁
+    private static readonly Regex ValuePattern = new(@"\A-?(0|[1-9][0-9]{0,11})([.][0-9]{1,4})?\z", RegexOptions.CultureInvariant);
+
     internal sealed record Effect(string MasterId, string EquipmentType, string EffectId, string Status, string Type,
         decimal Min, decimal Max);
 
@@ -55,17 +59,17 @@ internal static class ProgressionEquipmentEnchants
                     || MasterDataService.ReadModelData(entry["weight"]) is not > 0
                     || !TryRange(entry["value"], out var min, out var max))
                     continue;
+                min = decimal.Ceiling(Math.Max(min, -MaxValue) * Resolution) / Resolution;
+                max = decimal.Floor(Math.Min(max, MaxValue) * Resolution) / Resolution;
+                if (min > max) continue;
                 yield return new("enchant:" + id, equipment, effectId, status,
                     MasterDataValidation.Text(entry["type"])!.Trim().ToUpperInvariant(), min, max);
             }
         }
     }
 
-    internal static decimal? Value(JsonNode? node) => node?.GetValueKind() == JsonValueKind.Number
-        && TryDecimal(node.ToJsonString(), out var value) ? value : null;
-
-    internal static bool CanStore(decimal value) => value is >= -99_999_999_999_999.9999m and <= 99_999_999_999_999.9999m
-        && decimal.Round(value, 4) == value;
+    internal static decimal? Value(JsonNode? node) => JsonValueReader.String(node) is { } text
+        && ValuePattern.IsMatch(text) && TryDecimal(text, out var value) && Math.Abs(value) <= MaxValue ? value : null;
 
     private static bool TryRange(JsonNode? node, out decimal min, out decimal max)
     {
@@ -75,7 +79,7 @@ internal static class ProgressionEquipmentEnchants
             || !TryDecimal(endpoints[^1], out var last)) return false;
         min = Math.Min(first, last);
         max = Math.Max(first, last);
-        return true;
+        return min <= MaxValue && max >= -MaxValue;
     }
 
     private static bool TryDecimal(string text, out decimal value)
