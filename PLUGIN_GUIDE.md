@@ -101,6 +101,7 @@ Plugin 設定の `database.sqlserver`、`database.file`、`database.pool` と SQ
 
 ## パーティクル表示共通ルール
 
+- スキルで発動者の身体や目元に繰り返し出す装飾演出は、Java 版・統合版とも本人を送信先から外し、周囲の閲覧者へ表示する。パーティクル、パックのテクスチャ、代替表示すべてに適用する。攻撃範囲・危険箇所・味方との接続などプレイに必要な手掛かりは、本人も一人称の視界を遮らずに読み取れる位置で示す。
 - Plugin production source のパーティクル表示は `io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService` を経由し、同 service 以外から `World#spawnParticle(...)` / `Player#spawnParticle(...)` を直接呼び出さない。
 - `Particle.valueOf(...)` による直接解決は行わず、共有 resolver を使う。
 - 固定の `Particle.*` 定数、共通の別名、既定値は `io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions` だけに定義する。

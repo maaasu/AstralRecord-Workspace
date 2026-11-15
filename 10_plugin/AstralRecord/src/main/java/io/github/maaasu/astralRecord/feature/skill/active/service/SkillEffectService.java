@@ -134,30 +134,49 @@ public final class SkillEffectService {
      * @param diameter スプライトの直径（ブロック）
      */
     public void point(Location location, SharedParticleDefinition definition, Phase phase, float diameter) {
-        Set<Player> handled = pointPack(phase, location, diameter);
+        point(location, definition, phase, diameter, null);
+    }
+
+    /**
+     * 解決済みの閲覧者にだけ、パック演出と一地点の代替粒子を送ります。
+     * @param viewers 同一フレームの閲覧者
+     * @param location 描画する座標
+     * @param definition 代替粒子
+     */
+    public void pointForViewers(@NotNull List<Player> viewers, @NotNull Location location,
+                                @NotNull SharedParticleDefinition definition) {
+        List<Player> audience = List.copyOf(viewers.subList(0, Math.min(MAX_FRAME_VIEWERS, viewers.size())));
+        point(location, definition, Phase.IMPACT, 1.15F, audience);
+    }
+
+    /** パックと代替粒子で同じ閲覧者を使用します。 */
+    private void point(Location location, SharedParticleDefinition definition, Phase phase, float diameter,
+                       @Nullable List<Player> audience) {
         World world = location.getWorld();
-        if (world == null) return;
-        particleDisplayService.spawnBudgetedForViewers(world, List.of(location), definition, null,
+        if (world == null || (audience != null && audience.isEmpty())) return;
+        Set<Player> handled = pointPack(phase, location, diameter, audience);
+        particleDisplayService.spawnBudgetedForViewers(world, List.of(location), definition, audience,
                 viewer -> !handled.contains(viewer), EffectPoints.BURSTS, viewer -> handled.contains(viewer) ? 0 : 1);
     }
 
-    /** 同一点の複数の粒子層を、同じtick内では一つのパックスプライトで表現します。 */
-    private Set<Player> pointPack(Phase phase, Location location, float diameter) {
+    /** 同じ地点と閲覧者の粒子層を、同じtick内では一つのパックスプライトで表現します。 */
+    private Set<Player> pointPack(Phase phase, Location location, float diameter, @Nullable List<Player> audience) {
         if (skillId == null || location.getWorld() == null) return Set.of();
         int tick = Bukkit.getCurrentTick();
         if (pointCueTick != tick) {
             pointCues.clear();
             pointCueTick = tick;
         }
-        PointCue cue = new PointCue(location.getWorld(), location.getX(), location.getY(), location.getZ(), phase);
-        return pointCues.computeIfAbsent(cue, ignored -> pack(phase, location, diameter));
+        PointCue cue = new PointCue(location.getWorld(), location.getX(), location.getY(), location.getZ(), phase,
+                audience);
+        return pointCues.computeIfAbsent(cue, ignored -> pack(phase, location, diameter, audience));
     }
 
-    private record PointCue(World world, double x, double y, double z, Phase phase) {}
+    private record PointCue(World world, double x, double y, double z, Phase phase, @Nullable List<Player> audience) {}
 
     /** 飛翔体とスキル固有の着弾が同じ地点なら、同じ着弾スプライトを共有します。 */
     void projectileImpact(Location location, float diameter) {
-        pointPack(Phase.IMPACT, location, diameter);
+        pointPack(Phase.IMPACT, location, diameter, null);
     }
 
     /** 専用軌跡がある飛翔体の補助スプライトを区間の終点に置きます。 */
@@ -208,6 +227,22 @@ public final class SkillEffectService {
      * @return 同一worldの64m球内にいるオンライン閲覧者の不変スナップショット
      */
     public @NotNull List<Player> nearbyViewers(@NotNull Location center, @Nullable Player preferred, int limit) {
+        return nearbyViewers(center, preferred, limit, null);
+    }
+
+    /**
+     * 自己演出の対象者を除き、そのプレイヤーが見える近傍の閲覧者を選びます。
+     * @param center 演出の中心
+     * @param subject 身体の周囲に演出が出るプレイヤー
+     * @return 粒子とパック演出に共用する最大32人の閲覧者
+     */
+    public static @NotNull List<Player> nearbyObservers(@NotNull Location center, @NotNull Player subject) {
+        return nearbyViewers(center, null, MAX_FRAME_VIEWERS, subject);
+    }
+
+    /** 近傍の候補から一フレームの閲覧者を解決します。 */
+    private static @NotNull List<Player> nearbyViewers(Location center, @Nullable Player preferred, int limit,
+                                                       @Nullable Player subject) {
         World world = center.getWorld();
         if (world == null) { return List.of(); }
         int safeLimit = Math.max(1, Math.min(MAX_FRAME_VIEWERS, limit));
@@ -221,7 +256,8 @@ public final class SkillEffectService {
         for (Player viewer : world.getNearbyPlayers(center, VIEWER_DISTANCE)) {
             if (viewers.size() >= safeLimit || checked++ >= MAX_VIEWER_CANDIDATES) { break; }
             if (viewer != preferred && viewer.isOnline() && viewer.getWorld() == world
-                    && viewer.getLocation().distanceSquared(center) <= rangeSquared) {
+                    && viewer.getLocation().distanceSquared(center) <= rangeSquared
+                    && (subject == null || (!viewer.equals(subject) && viewer.canSee(subject)))) {
                 viewers.add(viewer);
             }
         }
@@ -402,14 +438,34 @@ public final class SkillEffectService {
             int points,
             @NotNull SharedParticleDefinition definition
     ) {
+        ring(center, radius, points, definition, null);
+    }
+
+    /**
+     * 解決済みの閲覧者にだけ、水平リングのパック演出と粒子を送ります。
+     * @param viewers 同一フレームの閲覧者
+     * @param center リングの中心
+     * @param radius 水平半径
+     * @param points 標準密度での地点数
+     * @param definition 粒子の共通定義
+     */
+    public void ringForViewers(@NotNull List<Player> viewers, @NotNull Location center, double radius, int points,
+                               @NotNull SharedParticleDefinition definition) {
+        ring(center, radius, points, definition, viewers.subList(0, Math.min(MAX_FRAME_VIEWERS, viewers.size())));
+    }
+
+    /** 同じ形状を、指定された閲覧者または近傍の閲覧者に描画します。 */
+    private void ring(Location center, double radius, int points, SharedParticleDefinition definition,
+                      @Nullable List<Player> audience) {
+        if (audience != null && audience.isEmpty()) return;
         int safePoints = Math.min(2048, Math.max(4, points)) * 2;
         List<Location> locations = new ArrayList<>(safePoints);
         for (int index = 0; index < safePoints; index++) {
             double angle = Math.PI * 2.0D * index / safePoints;
             locations.add(center.clone().add(Math.cos(angle) * radius, 0.08D, Math.sin(angle) * radius));
         }
-        Set<Player> rendered = accent(locations, Phase.AREA, 0.7F, 4, null);
-        particles(center, locations, definition, null, EffectPoints.LOOP, rendered, 4, 8);
+        Set<Player> rendered = accent(locations, Phase.AREA, 0.7F, 4, audience);
+        particles(center, locations, definition, audience, EffectPoints.LOOP, rendered, 4, 8);
     }
 
     /**

@@ -1,12 +1,16 @@
 package io.github.maaasu.astralRecord.feature.skill.executor.active.swordmaster;
 
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Sound;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
 
 /** 被ダメージ増加と引き換えに短時間の攻撃を強化します。 */
 public final class SwordmasterOverdriveExecutor extends SwordmasterSkillSupport {
@@ -33,10 +37,11 @@ public final class SwordmasterOverdriveExecutor extends SwordmasterSkillSupport 
         int pulses = (duration + VISUAL_INTERVAL_TICKS - 1) / VISUAL_INTERVAL_TICKS;
         sequence(context, pulses, VISUAL_INTERVAL_TICKS, frame -> {
             Location current = context.player().getLocation().add(0.0D, 0.35D, 0.0D);
-            context.services().effects().ring(current, 0.75D, 24, SharedParticleDefinitions.SWORDMASTER_FIRE);
+            List<Player> observers = SkillEffectService.nearbyObservers(current, context.player());
+            context.services().effects().ringForViewers(observers, current, 0.75D, 24, SharedParticleDefinitions.SWORDMASTER_FIRE);
             slash(context, current.clone().add(0.0D, 0.5D, 0.0D),
                     context.direction().rotateAroundY(frame * Math.PI / 2.0D),
-                    1.0D, SharedParticleDefinitions.SWORDMASTER_GOLD, true);
+                    1.0D, SharedParticleDefinitions.SWORDMASTER_GOLD, true, observers);
         });
         return context.success();
     }

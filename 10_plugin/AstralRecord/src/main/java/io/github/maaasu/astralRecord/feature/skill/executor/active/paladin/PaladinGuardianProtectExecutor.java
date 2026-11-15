@@ -98,6 +98,7 @@ public final class PaladinGuardianProtectExecutor extends PlayerActiveSkillExecu
         return context.success();
     }
 
+    /** 保護の接続先を、両者の目元から離れた足元の線で示します。 */
     private void renderLink(
             @NotNull PlayerActiveSkillContext context,
             @NotNull Player caster,
@@ -114,7 +115,8 @@ public final class PaladinGuardianProtectExecutor extends PlayerActiveSkillExecu
             return;
         }
         context.services().effects().line(
-                caster.getEyeLocation(), target.getEyeLocation(), 0.35D,
+                caster.getLocation().add(0.0D, 0.25D, 0.0D),
+                target.getLocation().add(0.0D, 0.25D, 0.0D), 0.35D,
                 SharedParticleDefinitions.SKILL_PALADIN_GUARDIAN_PROTECT_END_ROD
         );
     }

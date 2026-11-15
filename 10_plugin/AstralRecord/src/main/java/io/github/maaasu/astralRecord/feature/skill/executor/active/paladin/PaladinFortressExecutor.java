@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.paladin;
 
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
@@ -85,7 +86,8 @@ public final class PaladinFortressExecutor extends PlayerActiveSkillExecutor {
             return;
         }
         Location center = player.getLocation().clone().add(0.0D, 1.0D, 0.0D);
-        context.services().effects().point(center, SharedParticleDefinitions.CHALLENGING_ROAR_WARPED_SPORE);
+        context.services().effects().pointForViewers(SkillEffectService.nearbyObservers(center, player), center,
+                SharedParticleDefinitions.CHALLENGING_ROAR_WARPED_SPORE);
         if (frame % tauntEveryFrames != 0) {
             return;
         }

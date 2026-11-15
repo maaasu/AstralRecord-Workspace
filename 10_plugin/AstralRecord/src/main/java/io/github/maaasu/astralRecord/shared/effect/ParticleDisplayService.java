@@ -832,6 +832,7 @@ public class ParticleDisplayService {
 
     /**
      * 元のJava演出を送り、統合版の粒子は指定された地点数に制限します。
+     * 閲覧者を指定した場合も、両版で各地点から64m以内へ送ります。
      * @param world 描画するワールド
      * @param locations 順序付けられた地点
      * @param definition 粒子の共通定義
@@ -865,9 +866,9 @@ public class ParticleDisplayService {
             if (bedrock) {
                 spawnBoundedBedrock(viewer, points, definition, density, limit, mode);
             } else if (mode == EffectPoints.BURSTS) {
-                spawnBurstBatch(viewer, points, definition, density, false, audience == null);
+                spawnBurstBatch(viewer, points, definition, density, false, true);
             } else {
-                spawnBatch(viewer, points, definition, density, false, audience == null);
+                spawnBatch(viewer, points, definition, density, false, true);
             }
         }
     }

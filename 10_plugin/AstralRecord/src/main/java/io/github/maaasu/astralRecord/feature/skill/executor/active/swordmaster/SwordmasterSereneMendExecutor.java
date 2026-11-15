@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.swordmaster;
 
 
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
@@ -47,7 +48,9 @@ public final class SwordmasterSereneMendExecutor extends SwordmasterSkillSupport
         int gained = counter.addRiposte(context.caster().player(), (int) value(context, "riposteGain"));
         Location center = context.player().getLocation().add(0.0D, 0.3D, 0.0D);
         sequence(context, 4, 3, frame -> {
-            context.services().effects().ring(center.clone().add(0.0D, frame * 0.35D, 0.0D),
+            Location ringCenter = center.clone().add(0.0D, frame * 0.35D, 0.0D);
+            context.services().effects().ringForViewers(
+                    SkillEffectService.nearbyObservers(ringCenter, context.player()), ringCenter,
                     1.2D - frame * 0.18D, 28, gained > 0 && frame == 3 ? SharedParticleDefinitions.SWORDMASTER_GOLD
                             : SharedParticleDefinitions.SWORDMASTER_JADE);
         });
