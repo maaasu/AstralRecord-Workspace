@@ -401,6 +401,7 @@ dotnet run --project .\src\SkillTreeEditor.Server -- --SkillTreeEditor:Workspace
 - 両方の取得先へ接続できない、またはMaterialに対応する画像がない場合も編集は継続でき、画面には `?` を表示します。取得済みの画像はローカルキャッシュから表示できます。接続を復旧してから「画像を再読込」を押してください。
 - 主取得元は `appsettings.json` の `SkillTreeEditor:MinecraftIconsBaseUrl`、代替取得元は `SkillTreeEditor:MinecraftIconsFallbackBaseUrl` で設定します。主取得元は `download/{id}/thumb`、代替取得元は大文字の `{MATERIAL}.png` とPNG応答が必要です。代替URLを空にすると代替取得を無効化します。
 - PaperのMaterial候補を更新するときは、代替画像の固定コミットも同じMinecraft版へ合わせて更新し、追加候補の画像を確認してください。ブロック素材欄の候補 `minecraft-block-materials.<版>.json` は、同じ版の Paper API で `javap org.bukkit.block.BlockType` に表示される `public static final BlockType.Typed` の定数名を、既存のアイテム候補と照合してアイテム候補の順序で抽出した一覧です。
+- ダンジョンの床・壁・門などの候補 `minecraft-solid-block-materials.<版>.json` は、同じ版の展開済みPaperサーバーJARとAPI・ライブラリをクラスパスに入れ、`SharedConstants.tryDetectVersion()`、`Bootstrap.bootStrap()`、`CraftRegistry.setMinecraftRegistry(RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY))` の順で登録を初期化して抽出します。`Material.values()` のうち `!isLegacy() && isBlock() && !isAir() && isSolid()` を満たす名前を昇順で出力してください。照明欄は通常のブロック候補から空気を除いた一覧、柱の階段欄は固体候補のうち名前が `_STAIRS` で終わる一覧を使います。
 - 完全に取り直す場合はEditorを停止し、`.cache/minecraft-icons/` 内の対象PNGを削除してから再起動します。ノードマスターや構造JSONには影響しません。
 
 ## デプロイとリロード
