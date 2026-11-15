@@ -20,7 +20,7 @@ python 60_tool/spawner-planner/refresh_world_map.py capture `
 python 60_tool/spawner-planner/refresh_world_map.py publish `
   --world-id eriva_supercontinent `
   --snapshot-root C:/server/MapSnapshots/eriva-20261107 `
-  --cache-root 60_tool/skilltree-editor/.cache/spawner-planning
+  --cache-root 60_tool/05-master-data-editor/.cache/spawner-planning
 ```
 
 `--world-id` は Filebase のワールド ID です。両コマンドは既定でリポジトリ内の `40_filebase` を読み、`--filebase` で参照先を指定できます。`capture` はワールド定義の `baseWorldPath` を Dev ルートから解決します。別の配置を使う場合は Dev 内のフォルダーを `--source-world` で指定してください。コピー先にはワールドごと・取得ごとに新しいディレクトリを指定します。コピー中は元ワールドの `session.lock` を排他的に保持します。Dev の停止・再起動は運用者が行います。
@@ -33,7 +33,7 @@ python 60_tool/spawner-planner/refresh_world_map.py publish `
 
 ## 初回の対象
 
-全大陸の確認は、[マスタデータエディタのワールド配置計画](../skilltree-editor/docs/SPAWNER_PLANNING.md) を使います。[全大陸モード](docs/CONTINENT.md) は16m区画の全列計測と、地域・実レベルに応じた再配置案を出力します。以下は初回に作成した768m四方の詳細解析と従来の単独Webの手順です。全大陸モードとは区画粒度・接続判定・出力契約が異なります。
+全大陸の確認は、[マスタデータエディタのワールド配置計画](../05-master-data-editor/docs/SPAWNER_PLANNING.md) を使います。[全大陸モード](docs/CONTINENT.md) は16m区画の全列計測と、地域・実レベルに応じた再配置案を出力します。以下は初回に作成した768m四方の詳細解析と従来の単独Webの手順です。全大陸モードとは区画粒度・接続判定・出力契約が異なります。
 
 `eriva_supercontinent`（エリヴァ超大陸）の南西、X `[-1536,-768)` / Z `[1088,1856)` の768m四方。開始地点と最低レベルはworldマスタから取得します。現在はLv.15の草原・森林マスタを選定し、地形・バイオームのルールで振り分けます。LLMへの外部送信や常時AI呼出しは行いません。
 

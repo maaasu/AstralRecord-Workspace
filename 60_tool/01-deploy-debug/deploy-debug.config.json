@@ -1,0 +1,107 @@
+{
+  "devWorkflow": {
+    "runRoot": "",
+    "startupTimeoutSeconds": 900,
+    "pollIntervalSeconds": 5,
+    "seedMasterData": true,
+    "controlDevLifecycle": {
+      "enabled": false,
+      "stopTimeoutSeconds": 120,
+      "startTimeoutSeconds": 900,
+      "pollIntervalSeconds": 2
+    },
+    "migration": {
+      "enabled": true,
+      "baseUrl": "https://app-01:444",
+      "allowPrivateApiInsecureTls": false,
+      "apiKeyEnvironmentVariable": "ASTRALRECORD_API_KEY",
+      "migrationKeyEnvironmentVariable": "ASTRALRECORD_SKILLTREE_MIGRATION_KEY",
+      "apiSettingsPath": "\\\\192.168.0.88\\app-01\\AstralRecordApi\\appsettings.json",
+      "serverIds": ["Dev"]
+    }
+  },
+  "iis": {
+    "enabled": false,
+    "host": "192.168.0.88",
+    "executablePath": ""
+  },
+  "api": {
+    "enabled": true,
+    "tokenFileName": "token.txt",
+    "projectPath": "C:\\AstralRecord-Workspace\\20_api\\AstralRecordApi\\AstralRecordApi\\AstralRecordApi.csproj",
+    "buildOutputPath": "C:\\AstralRecord-Workspace\\20_api\\AstralRecordApi\\AstralRecordApi\\bin\\Release\\net10.0\\publish",
+    "deployPath": "\\\\192.168.0.88\\app-01\\AstralRecordApi",
+    "preserveDirectories": [
+      "logs"
+    ],
+    "preserveFilePatterns": [
+      "appsettings*.json",
+      "web.config",
+      "token.txt"
+    ],
+    "backup": {
+      "enabled": true,
+      "folderName": "bak",
+      "excludeFilePatterns": [
+        "token.txt"
+      ]
+    }
+  },
+  "databaseMigrations": {
+    "enabled": true,
+    "projectPath": "C:\\AstralRecord-Workspace\\60_tool\\13-db-migrate\\DbMigrateTool.csproj",
+    "configPath": "C:\\AstralRecord-Workspace\\60_tool\\13-db-migrate\\db-migrate.config.json"
+  },
+  "historyDatabaseMigrations": {
+    "enabled": true,
+    "projectPath": "C:\\AstralRecord-Workspace\\60_tool\\13-db-migrate\\DbMigrateTool.csproj",
+    "configPath": "C:\\AstralRecord-Workspace\\60_tool\\15-history-db-migrate\\history-db-migrate.config.json"
+  },
+  "managementDatabaseMigrations": {
+    "enabled": true,
+    "projectPath": "C:\\AstralRecord-Workspace\\60_tool\\14-management-db-migrate\\ManagementDbMigrateTool.csproj",
+    "configPath": "C:\\AstralRecord-Workspace\\60_tool\\14-management-db-migrate\\management-db-migrate.config.json"
+  },
+  "web": {
+    "enabled": true,
+    "expectedApiBaseUrl": "https://app-01:444",
+    "projectPath": "C:\\AstralRecord-Workspace\\30_web\\AstralRecordWeb\\AstralRecordWeb\\AstralRecordWeb.csproj",
+    "buildOutputPath": "C:\\AstralRecord-Workspace\\30_web\\AstralRecordWeb\\AstralRecordWeb\\bin\\Release\\net10.0\\publish",
+    "deployPath": "\\\\192.168.0.88\\app-01\\AstralRecordWeb",
+    "preserveDirectories": [
+      "logs"
+    ],
+    "preserveFilePatterns": [
+      "appsettings*.json"
+    ],
+    "backup": {
+      "enabled": true,
+      "folderName": "bak"
+    }
+  },
+  "plugin": {
+    "enabled": true,
+    "projectPath": "C:\\AstralRecord-Workspace\\10_plugin\\AstralRecord",
+    "buildOutputPath": "C:\\AstralRecord-Workspace\\10_plugin\\AstralRecord\\dist",
+    "deployPath": "C:\\server\\AstralRecord-Dev\\10_Dev\\plugins",
+    "artifactPattern": "AstralRecord-*.jar",
+    "deployFileName": "AstralRecord.jar",
+    "cleanupPatterns": [
+      "AstralRecord.jar",
+      "AstralRecord-*.jar"
+    ]
+  },
+  "fileDatabase": {
+    "enabled": true,
+    "sourcePath": "C:\\AstralRecord-Workspace\\40_filebase",
+    "deployPath": "\\\\192.168.0.88\\app-01\\workspace\\40_filebase",
+    "preserveFilePatterns": [],
+    "preserveDirectories": [
+      "99.work"
+    ],
+    "backup": {
+      "enabled": false,
+      "folderName": "bak"
+    }
+  }
+}

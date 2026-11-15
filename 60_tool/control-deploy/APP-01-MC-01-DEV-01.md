@@ -35,7 +35,7 @@ PurpurのJARは`purpur-1.21.11-2560.jar`。既存起動BATには`E:\PurpurServer
 
 ## Tool設定
 
-01/02/03は`deploy-debug/deploy-debug.config.json`を使用する。新Devの`plugins`、新API/Web、APP-01上のFilebaseへ配置する。API接続先は配置済みWeb設定の`https://app-01:444`と一致させ、認証キーは新APIの`appsettings.json`から参照する。DBツールも同じ配置先設定を参照し、DB接続文字列をリポジトリへ複製しない。ゲーム/マスタ/履歴/管理DBの既存接続先はAPP-01を参照していることを確認済み。
+01/02/03は`01-deploy-debug/deploy-debug.config.json`を使用する。新Devの`plugins`、新API/Web、APP-01上のFilebaseへ配置する。API接続先は配置済みWeb設定の`https://app-01:444`と一致させ、認証キーは新APIの`appsettings.json`から参照する。DBツールも同じ配置先設定を参照し、DB接続文字列をリポジトリへ複製しない。ゲーム/マスタ/履歴/管理DBの既存接続先はAPP-01を参照していることを確認済み。
 
 16/17はGit管理外の`maintenance.local.json` / `player-patch-migration.local.json`を使用する。上表のrootと実際のruntime serverIdを対応させる。配布対象・公開対象は今回の更新範囲から決め、サンプルの小文字`channel1`/`channel2`をそのまま採用しない。ControlのHost/Server/Environment GUIDはWebで発行後に`controlGate`へ設定する。GUID未発行の状態でManaged設定や管理運用markerを作成しない。
 

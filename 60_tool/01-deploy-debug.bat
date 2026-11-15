@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-set "SCRIPT_DIR=%~dp0deploy-debug"
+set "SCRIPT_DIR=%~dp001-deploy-debug"
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0invoke-powershell7.ps1" "%SCRIPT_DIR%\dev-update.ps1" %*
 set "EXIT_CODE=%ERRORLEVEL%"
 

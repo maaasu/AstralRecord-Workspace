@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0generate-tag-types.ps1" %*
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp008-generate-tag-types\generate-tag-types.ps1" %*
 set "GENERATOR_EXIT_CODE=%ERRORLEVEL%"
 
 if not "%GENERATOR_EXIT_CODE%"=="0" (

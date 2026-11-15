@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0generate-status-types.ps1" %*
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp007-generate-status-types\generate-status-types.ps1" %*
 set "GENERATOR_EXIT_CODE=%ERRORLEVEL%"
 
 if not "%GENERATOR_EXIT_CODE%"=="0" (

@@ -1,8 +1,9 @@
 @echo off
 setlocal
 
-set "TOOL_DIR=%~dp0db-reset-except-release-notes"
+set "TOOL_DIR=%~dp011-db-reset-except-release-notes"
 set "CONFIG_PATH=%TOOL_DIR%\db-reset-except-release-notes.config.json"
+if exist "%~dp0db-reset-except-release-notes\db-reset-except-release-notes.local.json" set "CONFIG_PATH=%~dp0db-reset-except-release-notes\db-reset-except-release-notes.local.json"
 if exist "%TOOL_DIR%\db-reset-except-release-notes.local.json" set "CONFIG_PATH=%TOOL_DIR%\db-reset-except-release-notes.local.json"
 dotnet run --project "%TOOL_DIR%\DbResetExceptReleaseNotesTool.csproj" -- --config "%CONFIG_PATH%" %*
 set "EXIT_CODE=%ERRORLEVEL%"

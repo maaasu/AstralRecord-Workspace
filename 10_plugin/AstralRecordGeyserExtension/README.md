@@ -22,7 +22,7 @@ iconTexture: "<texturesプロパティのBase64値>"
 ## ビルド・導入
 
 1. ワークスペースの `60_tool/12-build-network-plugins.bat` を実行する。Extension単体は `-Target Extension`。
-2. `60_tool/network-plugin-build/output/AstralRecordGeyserExtension.jar` をVelocityの `plugins/Geyser-Velocity/extensions/` へ配置する。
+2. `60_tool/12-build-network-plugins/output/AstralRecordGeyserExtension.jar` をVelocityの `plugins/Geyser-Velocity/extensions/` へ配置する。
 3. Geyserの `gameplay.enable-custom-content: true` と `gameplay.force-resource-packs: true` を設定する。
 4. 初回起動でExtensionデータフォルダに作成される `config.yml` の `api.baseUrl` と認証を設定する。フォルダは通常 `plugins/Geyser-Velocity/extensions/astralrecordgeyser/`。事前に配置してもよい。
 5. `api.apiKey` を設定するか、既定の `ASTRALRECORD_API_KEY` 環境変数をVelocityプロセスへ渡す。キーはGitへコミットしない。通常はTLS証明書をJVMから信頼できるものにする。APIが信頼できるローカル・閉域環境からのみ到達可能な開発環境では、`api.allowInsecureTls: true` により証明書とホスト名の検証を無効化できる。本番では必ず `false` にする。

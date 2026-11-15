@@ -98,11 +98,22 @@ function Get-ControlToolsPlan([string]$Package, [string]$Root, [string]$Expected
         $relative = $item.FullName.Substring($sourceRoot.Length + 1)
         if (!$seen.Contains($relative)) { throw 'UnlistedToolPackageFile' }
     }
-    $required = @('control-gate\Control.Gate.psm1','deploy-debug\dev-update.ps1','deploy-debug\deploy-debug.ps1',
-        'maintenance\maintenance.ps1','maintenance\UpdateWorkflow.ps1','player-patch-migration\player-patch-migration.ps1',
-        'master-data-reload\master-data-reload.ps1')
+    $required = @('control-gate\Control.Gate.psm1','01-deploy-debug\dev-update.ps1','01-deploy-debug\deploy-debug.ps1','01-deploy-debug\DevRunRoot.ps1',
+        '16-maintenance\maintenance.ps1','16-maintenance\UpdateWorkflow.ps1','16-maintenance\WorkflowRunRoot.ps1','17-player-patch-migration\player-patch-migration.ps1',
+        '03-master-data-reload\legacy\master-data-reload.ps1')
+    $missingTarget = @($required | Where-Object { !(Test-Path -LiteralPath (Join-Path $toolRoot $_) -PathType Leaf) })
+    if ($missingTarget.Count) {
+        # The numbered release can update a complete installation of the previous layout.
+        $legacyRequired = @('control-gate\Control.Gate.psm1','deploy-debug\dev-update.ps1','deploy-debug\deploy-debug.ps1',
+            'maintenance\maintenance.ps1','maintenance\UpdateWorkflow.ps1','player-patch-migration\player-patch-migration.ps1',
+            'master-data-reload\master-data-reload.ps1')
+        foreach ($file in $legacyRequired) {
+            $target = Assert-LocalToolsPath (Join-Path $toolRoot $file)
+            if (!(Test-Path -LiteralPath $target -PathType Leaf)) { throw 'ManagedEntryMissing' }
+        }
+    }
     foreach ($file in $required) {
-        if (!$seen.Contains($file) -or !(Test-Path -LiteralPath (Join-Path $toolRoot $file) -PathType Leaf)) { throw 'ManagedEntryMissing' }
+        if (!$seen.Contains($file)) { throw 'ManagedEntryMissing' }
         $errors = $null
         [Management.Automation.Language.Parser]::ParseFile((Join-Path $sourceRoot $file), [ref]$null, [ref]$errors) | Out-Null
         if ($errors.Count) { throw 'ManagedEntrySyntaxError' }
