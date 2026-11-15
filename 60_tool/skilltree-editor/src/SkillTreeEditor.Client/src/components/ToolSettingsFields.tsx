@@ -7,6 +7,8 @@ export const defaultToolSettings: { [Id in ToolId]: Extract<ToolSettings, { tool
   '16': { toolId: '16', worldCopy: 'Skip', networkPlugins: 'Skip', recovery: 'Auto' },
 }
 
+const deployReadiness = '配布設定で必要な入場制限、自動書き込み処理の停止、対象サーバーの準備を済ませてから実行してください。'
+
 const pluginTestModes = {
   All: 'すべて実行',
   Selected: '対象を指定',
@@ -60,7 +62,7 @@ export function ToolSettingsFields({ value, onChange }: { value: ToolSettings; o
           choices={{ stopped: '配布設定の停止・起動手順を使用', running: 'Dev を稼働したまま反映' }}
           onChange={state => onChange({ ...value, serverAlreadyRunning: state === 'running', recovery: state === 'running' ? 'Auto' : value.recovery })} />
         {!value.serverAlreadyRunning && <RestartChoice value={value.recovery} onChange={recovery => onChange({ ...value, recovery })} />}
-        <p className="tool-muted">API 構成、同期元と反映先、停止・稼働条件は既存設定から実行計画を取得して確認できます。</p>
+        <p className="tool-muted">{deployReadiness}</p>
       </>
     case '01':
       return <>
@@ -71,6 +73,7 @@ export function ToolSettingsFields({ value, onChange }: { value: ToolSettings; o
           <small>テストクラス名またはメソッドをカンマ区切りで指定します。* と ? も使えます。</small>
         </label>}
         <RestartChoice value={value.recovery} onChange={recovery => onChange({ ...value, recovery })} />
+        <p className="tool-muted">{deployReadiness}</p>
       </>
     case '12':
       return <>

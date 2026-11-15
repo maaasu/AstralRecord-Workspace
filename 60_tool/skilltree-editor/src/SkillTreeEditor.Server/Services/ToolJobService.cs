@@ -46,23 +46,15 @@ public sealed class ToolJobService(WorkspacePaths workspace, IConfiguration conf
         var now = DateTimeOffset.UtcNow;
         foreach (var entry in plans.Where(entry => entry.Value.Plan.ExpiresAtUtc <= now))
             plans.TryRemove(entry.Key, out _);
-        var plan = new ToolJobPlan(Guid.NewGuid(), options.ToolId, workspace.WorkspaceRoot,
-            details.ConfigurationPath, details.FilebaseSource, details.WorkspaceMismatch, details.CanRun, details.Warnings,
-            details.Summary, details.Paths, details.Confirmations, now + PlanLifetime);
-        plans[plan.Id] = new PreparedPlan(plan, options, details.Fingerprint);
-        return plan;
+        var prepared = PreparePlan(options, details, now);
+        plans[prepared.Plan.Id] = prepared;
+        return prepared.Plan;
     }
 
-    public async Task<ToolJobRun> StartAsync(ToolJobStartRequest request, CancellationToken token)
-    {
-        RequireEnabled();
-        await startGate.WaitAsync(token);
-        try
+    public Task<ToolJobRun> StartAsync(ToolJobStartRequest request, CancellationToken token)
+        => WithLaunchLockAsync(async () =>
         {
-            EnsureStorage();
-            using var launch = AcquireLaunchLock();
-            if (GetRuns().Any(IsActive))
-                throw Conflict("このワークスペースの運用ツールが実行中です。完了後に実行してください。");
+            RequireNoActiveRun();
 
             if (!plans.TryGetValue(request.PlanId, out var prepared) || prepared.Plan.ExpiresAtUtc <= DateTimeOffset.UtcNow)
                 throw Conflict("計画の有効期限が切れました。計画を作り直してください。");
@@ -79,45 +71,102 @@ public sealed class ToolJobService(WorkspacePaths workspace, IConfiguration conf
                 throw Conflict("実行計画または設定が変わりました。新しい計画を確認してください。");
             }
 
-            token.ThrowIfCancellationRequested();
-            var run = new ToolJobRun(Guid.NewGuid(), prepared.Plan.ToolId, prepared.Plan,
-                "starting", DateTimeOffset.UtcNow);
-            var directory = RunDirectory(run.Id);
-            run = run with { LogPath = Path.Combine(directory, "log.jsonl") };
-            Directory.CreateDirectory(directory);
-            WriteJson(Path.Combine(directory, "request.json"), new ExecutionRequest(prepared.Request, prepared.Fingerprint));
-            WriteState(run);
-            plans.TryRemove(request.PlanId, out _);
+            return Launch(prepared, token);
+        }, token);
 
-            Process process;
-            try
+    public Task<ToolJobRun> StartDirectAsync(ToolJobDirectStartRequest request, CancellationToken token)
+        => WithLaunchLockAsync(async () =>
+        {
+            if (request.RequestId == Guid.Empty || request.Settings is null)
+                throw new ToolJobException(400, "実行するツールと設定を指定してください。");
+            if (request.Settings.ToolId is not ("01" or "03" or "12"))
+                throw new ToolJobException(400, "直接実行できるツールを指定してください。メンテナンス配布は実行計画の確認が必要です。");
+
+            var options = Normalize(request.Settings);
+            if (ReadRun(request.RequestId) is { } existing)
             {
-                process = Process.Start(StartInfo("Run", directory, redirect: false))
-                    ?? throw new InvalidOperationException("PowerShell launch did not return a process.");
-            }
-            catch (Exception error) when (error is System.ComponentModel.Win32Exception or InvalidOperationException)
-            {
-                CompleteWithoutWorker(run, null);
-                return GetRun(run.Id);
+                var recordedRequest = ReadJson<ExecutionRequest>(Path.Combine(RunDirectory(existing.Id), "request.json"));
+                if (recordedRequest is { Direct: true } && recordedRequest.Options == options)
+                    return existing;
+                throw Conflict("同じ実行 ID に異なる実行設定が登録されています。");
             }
 
-            // PowerShell owns the durable status and log once it starts. This task only covers bootstrap failures.
-            _ = ObserveBootstrapAsync(process, run);
-            try
-            {
-                WriteJson(Path.Combine(directory, "launcher.json"), new ProcessIdentity(
-                    process.Id, process.StartTime.ToUniversalTime().Ticks));
-            }
-            catch (Exception error) when (error is InvalidOperationException or System.ComponentModel.Win32Exception or IOException)
-            {
-                // A fast exit can occur before StartTime is available. The observer still captures its exit code.
-            }
-            return GetRun(run.Id);
+            RequireNoActiveRun();
+            var details = await ReadPlanAsync(options, token);
+            if (!details.CanRun)
+                throw Conflict(string.Join(" ", details.Warnings.Prepend("実行条件を満たしていません。")));
+
+            return Launch(PreparePlan(options, details, DateTimeOffset.UtcNow), token, request.RequestId);
+        }, token);
+
+    private PreparedPlan PreparePlan(ToolJobPlanRequest options, ToolJobPlanDetails details, DateTimeOffset now)
+    {
+        var plan = new ToolJobPlan(Guid.NewGuid(), options.ToolId, workspace.WorkspaceRoot,
+            details.ConfigurationPath, details.FilebaseSource, details.WorkspaceMismatch, details.CanRun, details.Warnings,
+            details.Summary, details.Paths, details.Confirmations, now + PlanLifetime);
+        return new PreparedPlan(plan, options, details.Fingerprint);
+    }
+
+    private async Task<ToolJobRun> WithLaunchLockAsync(Func<Task<ToolJobRun>> start, CancellationToken token)
+    {
+        RequireEnabled();
+        if (!await startGate.WaitAsync(0, token))
+            throw Conflict("運用ツールの実行を準備中です。");
+        try
+        {
+            EnsureStorage();
+            using var launch = AcquireLaunchLock();
+            return await start();
         }
         finally
         {
             startGate.Release();
         }
+    }
+
+    private void RequireNoActiveRun()
+    {
+        if (GetRuns().Any(IsActive))
+            throw Conflict("このワークスペースの運用ツールが実行中です。完了後に実行してください。");
+    }
+
+    private ToolJobRun Launch(PreparedPlan prepared, CancellationToken token, Guid? directRequestId = null)
+    {
+        token.ThrowIfCancellationRequested();
+        var run = new ToolJobRun(directRequestId ?? Guid.NewGuid(), prepared.Plan.ToolId, prepared.Plan,
+            "starting", DateTimeOffset.UtcNow);
+        var directory = RunDirectory(run.Id);
+        run = run with { LogPath = Path.Combine(directory, "log.jsonl") };
+        Directory.CreateDirectory(directory);
+        WriteJson(Path.Combine(directory, "request.json"), new ExecutionRequest(prepared.Request, prepared.Fingerprint,
+            Direct: directRequestId.HasValue));
+        WriteState(run);
+        if (directRequestId is null) plans.TryRemove(prepared.Plan.Id, out _);
+
+        Process process;
+        try
+        {
+            process = Process.Start(StartInfo("Run", directory, redirect: false))
+                ?? throw new InvalidOperationException("PowerShell launch did not return a process.");
+        }
+        catch (Exception error) when (error is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            CompleteWithoutWorker(run, null);
+            return GetRun(run.Id);
+        }
+
+        // PowerShell owns the durable status and log once it starts. This task only covers bootstrap failures.
+        try
+        {
+            WriteJson(Path.Combine(directory, "launcher.json"), new ProcessIdentity(
+                process.Id, process.StartTime.ToUniversalTime().Ticks));
+        }
+        catch (Exception error) when (error is InvalidOperationException or System.ComponentModel.Win32Exception or IOException)
+        {
+            // A fast exit can occur before StartTime is available. The observer still captures its exit code.
+        }
+        _ = ObserveBootstrapAsync(process, run);
+        return GetRun(run.Id);
     }
 
     public ToolJobRun[] GetRuns()
@@ -435,7 +484,7 @@ public sealed class ToolJobService(WorkspacePaths workspace, IConfiguration conf
     private static bool IsActive(ToolJobRun run) => run.Status is "starting" or "running" or "waitingForInput";
     private static ToolJobException Conflict(string message) => new(409, message);
     private sealed record PreparedPlan(ToolJobPlan Plan, ToolJobPlanRequest Request, string Fingerprint);
-    private sealed record ExecutionRequest(ToolJobPlanRequest Options, string? Fingerprint);
+    private sealed record ExecutionRequest(ToolJobPlanRequest Options, string? Fingerprint, bool Direct = false);
     private sealed record PlanningFailure(string Message);
     private sealed record ProcessIdentity(int Pid, long StartedAtTicks);
 }
