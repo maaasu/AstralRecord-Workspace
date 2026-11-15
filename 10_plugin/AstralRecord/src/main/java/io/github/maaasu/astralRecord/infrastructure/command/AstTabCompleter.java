@@ -211,10 +211,31 @@ public abstract class AstTabCompleter implements TabCompleter {
             return completions;
         }
 
-        String currentInput = args[args.length - 1].toLowerCase(Locale.ROOT);
+        String prefix = getCompletionPrefix(args).toLowerCase(Locale.ROOT);
         return completions.stream()
-                .filter(completion -> completion.toLowerCase(Locale.ROOT).startsWith(currentInput))
+                .filter(completion -> completion.toLowerCase(Locale.ROOT).startsWith(prefix))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 補完で照合・置換する入力の開始引数を返します。既定では末尾の引数を補完します。
+     *
+     * @param args コマンド引数
+     * @return 補完対象の開始引数インデックス
+     */
+    protected int getCompletionStartIndex(@NotNull String[] args) {
+        return Math.max(0, args.length - 1);
+    }
+
+    /**
+     * 補完候補と前方一致で照合する文字列を返します。
+     *
+     * @param args 一つ以上のコマンド引数
+     * @return 補完対象の入力文字列
+     */
+    protected @NotNull String getCompletionPrefix(@NotNull String[] args) {
+        int startIndex = getCompletionStartIndex(args);
+        return String.join(" ", Arrays.asList(args).subList(startIndex, args.length));
     }
 
     /**

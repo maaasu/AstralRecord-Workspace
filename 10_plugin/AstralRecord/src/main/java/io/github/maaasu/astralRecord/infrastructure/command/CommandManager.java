@@ -152,7 +152,12 @@ public class CommandManager {
                     return tabCompleter.onTabCompleteAsync(
                             ctx.getSource().getSender(), null, commandName, args
                     ).thenApply(suggestions -> {
-                        int currentArgumentStart = input.lastIndexOf(' ') + 1;
+                        int startIndex = tabCompleter.getCompletionStartIndex(args);
+                        int currentArgumentStart = allParts[0].length() + 1;
+                        for (int index = 0; index < startIndex; index++) {
+                            currentArgumentStart += args[index].length() + 1;
+                        }
+                        currentArgumentStart = Math.min(currentArgumentStart, input.length());
                         var suggestionBuilder = builder.createOffset(currentArgumentStart);
 
                         suggestions.forEach(suggestionBuilder::suggest);

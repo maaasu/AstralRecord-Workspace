@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.textdisplay.model;
 
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -28,6 +29,15 @@ public record TextDisplayPlacement(
         float yaw,
         float pitch
 ) {
+
+    /**
+     * ワールドの表示と管理コマンドに共通する、色変換済みの本文を返します。
+     *
+     * @return 表示に使用するレガシーカラー形式の本文
+     */
+    public @NotNull String displayText() {
+        return ColorCodeUtil.toLegacyText(text, id);
+    }
 
     /**
      * Bukkit Location に変換します。
