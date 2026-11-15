@@ -5,12 +5,15 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import sys
 from typing import Sequence
 
+from .live import LiveServer, json_bytes, request_live
 from .preview import render_preview
 from .schematic import (
+    MAX_OPERATION_BYTES,
     Point,
     Ticket,
     TicketError,
@@ -81,6 +84,20 @@ def _parser() -> JsonArgumentParser:
     preview.add_argument("--height", type=int, default=540, help="output height in pixels")
     preview.add_argument("--clip-y", type=int, help="hide blocks above this world Y")
     preview.add_argument("--output", required=True, help="absolute path for a new PNG outside ticket data")
+
+    live = command("live", "start a local browser viewer for an editable draft")
+    live.add_argument("--session", required=True, help="absolute path for a new session JSON file")
+
+    live_ops = command("live-ops", "submit one operation batch to a running live viewer")
+    live_ops.add_argument("--session", required=True, help="absolute path to the live session file")
+    live_ops.add_argument("--ops", required=True, help="absolute JSON/NDJSON file path, or - for stdin")
+
+    live_export = command("live-export", "export the current live draft's ordered operations")
+    live_export.add_argument("--session", required=True, help="absolute path to the live session file")
+    live_export.add_argument("--output", required=True, help="absolute path for a new operations JSON")
+
+    live_stop = command("live-stop", "stop the live viewer")
+    live_stop.add_argument("--session", required=True, help="absolute path to the live session file")
 
     apply_ops = command("apply-ops", "atomically apply JSON/NDJSON operations to candidate.schem")
     apply_ops.add_argument("--ops", required=True, help="absolute JSON/NDJSON file path, or - for stdin")
@@ -353,7 +370,7 @@ def _diff(ticket: Ticket, limit: int, offset: int) -> dict[str, object]:
 
 def _read_operations(value: str) -> list[object]:
     if value == "-":
-        raw = sys.stdin.buffer.read(16 * 1024 * 1024 + 1)
+        raw = sys.stdin.buffer.read(MAX_OPERATION_BYTES + 1)
     else:
         path = Path(value).expanduser()
         if not path.is_absolute():
@@ -367,10 +384,10 @@ def _read_operations(value: str) -> list[object]:
             raise TicketError("operations path must be a regular non-link file")
         try:
             with resolved.open("rb") as stream:
-                raw = stream.read(16 * 1024 * 1024 + 1)
+                raw = stream.read(MAX_OPERATION_BYTES + 1)
         except OSError as exc:
             raise TicketError("cannot read operations file") from exc
-    if len(raw) > 16 * 1024 * 1024:
+    if len(raw) > MAX_OPERATION_BYTES:
         raise TicketError("operations input exceeds 16 MiB")
     try:
         text = raw.decode("utf-8")
@@ -404,30 +421,30 @@ def _read_operations(value: str) -> list[object]:
     raise TicketError("operations JSON must be an array, an operations object, one operation, or NDJSON")
 
 
-def _preview_output_path(raw: str, ticket: Ticket) -> Path:
+def _output_path(raw: str, ticket_dir: Path, suffix: str, label: str) -> Path:
     path = Path(raw)
     if (
         not path.is_absolute() or ".." in path.parts
-        or path.suffix.casefold() != ".png" or ":" in path.name
+        or path.suffix.casefold() != suffix or ":" in path.name
     ):
-        raise TicketError("--output must be an absolute path for a standalone PNG without '..'")
-    reject_reparse_chain(path.parent, "preview output parent")
+        raise TicketError(f"{label} must be an absolute path for a standalone {suffix[1:].upper()} without '..'")
+    reject_reparse_chain(path.parent, f"{label} parent")
     parent = path.parent.resolve(strict=True)
     parts = tuple(part.casefold() for part in parent.parts)
-    plugin_data = ticket.directory.parent.parent
+    plugin_data = ticket_dir.parent.parent
     if parent.is_relative_to(plugin_data) or any(
         first == "astralarchitect" and second in {"tickets", "trash", ".locks"}
         for first, second in zip(parts, parts[1:])
     ):
-        raise TicketError("preview output must be outside AstralArchitect ticket data")
+        raise TicketError(f"{label} must be outside AstralArchitect ticket data")
     output = parent / path.name
     if output.exists() or output.is_symlink():
-        raise TicketError("preview output already exists; choose a new PNG path")
+        raise TicketError(f"{label} already exists; choose a new path")
     return output
 
 
 def _preview(ticket: Ticket, args: argparse.Namespace) -> dict[str, object]:
-    _preview_output_path(args.output, ticket)
+    _output_path(args.output, ticket.directory, ".png", "--output")
     result = _base(ticket, "preview")
     result.update({
         "scene": "source" if args.source else "candidate",
@@ -442,33 +459,80 @@ def _preview(ticket: Ticket, args: argparse.Namespace) -> dict[str, object]:
     if args.ops is None:
         states = _schematic(ticket, args.source).states()
     else:
-        states, touched_count, changed_count = simulate_operations(
-            ticket, _read_operations(args.ops)
-        )
+        plan = simulate_operations(ticket, _read_operations(args.ops))
+        states = plan.states
         result.update({
             "scene": "proposed",
-            "touchedBlockCount": touched_count,
-            "changedBlockCount": changed_count,
+            "touchedBlockCount": plan.touched_count,
+            "changedBlockCount": len(plan.changed_indices),
         })
     png = render_preview(
         ticket, states, eye=tuple(args.eye), target=tuple(args.target),
         width=args.width, height=args.height, clip_y=args.clip_y,
     )
     # Rendering can take several seconds, so validate the destination again.
-    output = _preview_output_path(args.output, ticket)
-    stream = output.open("xb")
-    try:
-        with stream:
-            stream.write(png)
-    except OSError:
-        output.unlink(missing_ok=True)
-        raise
+    output = _output_path(args.output, ticket.directory, ".png", "--output")
+    _write_new_file(output, png)
     result["output"] = str(output)
     result["imageSha256"] = hashlib.sha256(png).hexdigest()
     return result
 
 
-def execute(args: argparse.Namespace) -> dict[str, object]:
+def _write_new_file(output: Path, data: bytes, mode: int = 0o666) -> None:
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
+    descriptor = os.open(output, flags, mode)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(data)
+    except OSError:
+        output.unlink(missing_ok=True)
+        raise
+
+
+def _serve_live(args: argparse.Namespace) -> None:
+    ticket = load_ticket(args.ticket)
+    _output_path(args.session, ticket.directory, ".json", "--session")
+    with LiveServer(ticket) as server:
+        session = _output_path(args.session, ticket.directory, ".json", "--session")
+        _write_new_file(session, json_bytes(server.credentials()), mode=0o600)
+        result = _base(ticket, "live")
+        result.update({
+            "url": server.url,
+            "session": str(session),
+            "baseCandidateSha256": ticket.candidate_hash,
+        })
+        print(json_bytes(result).decode("ascii"), flush=True)
+        server.serve()
+
+
+def _live_command(args: argparse.Namespace) -> dict[str, object]:
+    ticket = Path(args.ticket)
+    if not ticket.is_absolute() or ".." in ticket.parts:
+        raise TicketError("ticket path must be absolute and must not contain '..'")
+    if args.command == "live-stop":
+        # Match the original path in the credentials without reading ticket data.
+        result = request_live(ticket, args.session, "POST", "/api/stop")
+        return {"command": args.command, "ticketId": ticket.name, **result}
+    reject_reparse_chain(ticket, "ticket path")
+    ticket = ticket.resolve(strict=True)
+    if args.command == "live-ops":
+        operations = json_bytes(_read_operations(args.ops))
+        result = request_live(ticket, args.session, "POST", "/api/ops", operations)
+    else:
+        _output_path(args.output, ticket, ".json", "--output")
+        result = request_live(ticket, args.session, "GET", "/api/export")
+        output = _output_path(args.output, ticket, ".json", "--output")
+        _write_new_file(output, json_bytes(result.pop("operations")))
+        result["output"] = str(output)
+    return {"command": args.command, "ticketId": ticket.name, **result}
+
+
+def execute(args: argparse.Namespace) -> dict[str, object] | None:
+    if args.command == "live":
+        _serve_live(args)
+        return None
+    if args.command in {"live-ops", "live-export", "live-stop"}:
+        return _live_command(args)
     if args.command == "apply-ops":
         preflight = load_ticket(args.ticket)
         with candidate_lock(preflight.directory):
@@ -528,7 +592,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     except (OSError, ValueError) as exc:
         output = {"ok": False, "error": str(exc), "errorType": type(exc).__name__}
         exit_code = 3
-    print(json.dumps(output, separators=(",", ":")))
+    if output is not None:
+        print(json_bytes(output).decode("ascii"))
     return exit_code
 
 

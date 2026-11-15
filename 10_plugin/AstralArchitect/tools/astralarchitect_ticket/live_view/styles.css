@@ -1,0 +1,255 @@
+:root {
+  color-scheme: dark;
+  font-family: "Inter", "Segoe UI", "Yu Gothic UI", "Meiryo", sans-serif;
+  line-height: 1.5;
+  color: #edf3ee;
+  background: #121918;
+  --muted: #a8b9af;
+  --surface: #1a2421;
+  --border: #354742;
+  --accent: #77e2b2;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0 clamp(0.75rem, 2.3vw, 2rem) 1.25rem;
+}
+
+.page-header,
+.workbench {
+  max-width: 110rem;
+  margin-inline: auto;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  min-height: 5.25rem;
+  padding-block: 0.65rem;
+}
+
+h1,
+.product-name {
+  margin: 0;
+}
+
+.product-name {
+  color: var(--muted);
+  font-size: 0.77rem;
+  font-weight: 600;
+}
+
+h1 {
+  font-size: clamp(1.3rem, 3vw, 1.85rem);
+  line-height: 1.2;
+  font-weight: 650;
+}
+
+.session-info,
+.toolbar,
+.scene-stats,
+.scene-stats div {
+  display: flex;
+  align-items: center;
+}
+
+.session-info {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem 1rem;
+  min-width: 0;
+}
+
+.ticket-id {
+  max-width: min(40vw, 22rem);
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  background: var(--surface);
+  color: var(--muted);
+  white-space: nowrap;
+  font-size: 0.78rem;
+}
+
+.status::before {
+  width: 0.44rem;
+  height: 0.44rem;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.status[data-connection="connected"] {
+  color: var(--accent);
+}
+
+.status[data-connection="reconnecting"],
+.status[data-connection="error"] {
+  color: #ffd898;
+}
+
+.workbench {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  background: var(--surface);
+}
+
+.toolbar {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  min-height: 3.25rem;
+  padding: 0.6rem 0.9rem;
+}
+
+.scene-stats {
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+  margin: 0;
+}
+
+.scene-stats div {
+  gap: 0.45rem;
+}
+
+.scene-stats dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.scene-stats dd {
+  min-width: 1ch;
+  margin: 0;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+button {
+  padding: 0.38rem 0.72rem;
+  border: 1px solid #537368;
+  border-radius: 0.4rem;
+  color: #eefbf5;
+  background: #263932;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: #2c4439;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.viewport {
+  position: relative;
+  display: grid;
+  min-height: clamp(18rem, calc(100dvh - 13.1rem), 84rem);
+  background: #9cb0ba;
+}
+
+canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+
+canvas:active {
+  cursor: grabbing;
+}
+
+button:focus-visible,
+canvas:focus-visible {
+  outline: 2px solid var(--accent);
+}
+
+canvas:focus-visible {
+  outline-offset: -4px;
+}
+
+.view-message {
+  align-self: center;
+  justify-self: center;
+  z-index: 1;
+  max-width: calc(100% - 2rem);
+  margin: 0;
+  padding: 0.7rem 1rem;
+  border-radius: 0.4rem;
+  color: #eff8f2;
+  background: #263732;
+  font-size: 0.9rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+.camera-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.15rem;
+  margin: 0;
+  padding: 0.65rem 0.9rem;
+  list-style: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.camera-controls span {
+  margin-inline-end: 0.25rem;
+  color: #eef6f1;
+  font-weight: 600;
+}
+
+kbd {
+  padding: 0.02rem 0.24rem;
+  border: 1px solid #506961;
+  border-radius: 0.22rem;
+  font: 0.73rem "IBM Plex Mono", "Consolas", monospace;
+  color: #eef6f1;
+}
+
+@media (max-width: 36rem) {
+  .page-header {
+    align-items: flex-start;
+    min-height: 4.75rem;
+  }
+
+  .ticket-id {
+    display: none;
+  }
+
+  .toolbar,
+  .camera-controls {
+    padding-inline: 0.65rem;
+  }
+
+  .scene-stats {
+    gap: 0.35rem 0.55rem;
+  }
+
+  .viewport {
+    min-height: clamp(18rem, calc(100dvh - 16rem), 55rem);
+  }
+}

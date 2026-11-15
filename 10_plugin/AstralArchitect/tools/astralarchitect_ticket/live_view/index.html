@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>ライブ建築 | AstralArchitect</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header class="page-header">
+    <div>
+      <p class="product-name">AstralArchitect</p>
+      <h1>ライブ建築</h1>
+    </div>
+    <div class="session-info">
+      <span id="ticket-id" class="ticket-id" hidden></span>
+      <span id="status" class="status" role="status" data-connection="loading" data-revision="-1">接続中</span>
+    </div>
+  </header>
+
+  <main class="workbench">
+    <div class="toolbar">
+      <dl class="scene-stats">
+        <div><dt>更新</dt><dd id="revision">–</dd></div>
+        <div><dt>変更ブロック</dt><dd id="changed-count">–</dd></div>
+      </dl>
+      <button id="reset-view" type="button" disabled>視点をリセット</button>
+    </div>
+
+    <div class="viewport">
+      <canvas id="scene" tabindex="0" aria-label="建設中の3Dモデル" aria-describedby="camera-controls"></canvas>
+      <p id="view-message" class="view-message">建築データを取得しています</p>
+    </div>
+
+    <ul id="camera-controls" class="camera-controls" aria-label="カメラ操作">
+      <li><span>回転</span> 左ドラッグ／タッチドラッグ</li>
+      <li><span>平行移動</span> 右ドラッグ</li>
+      <li><span>拡大・縮小</span> ホイール</li>
+      <li><span>移動</span> <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></li>
+      <li><span>下降・上昇</span> <kbd>Q</kbd> <kbd>E</kbd></li>
+    </ul>
+  </main>
+</body>
+</html>

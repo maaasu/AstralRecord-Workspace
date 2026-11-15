@@ -118,6 +118,8 @@ python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- pr
 
 `preview --ops <操作ファイルの絶対パス>` で編集をメモリ内で仮適用し、候補を書き換えずに確認できます。屋内の確認には `--clip-y` で屋根を非表示にするか、屋内にカメラを置きます。
 
+作業中の変更を見る場合は `live` を起動してローカル URL を開き、AI が `live-ops` で送った操作を3D画面で確認できます。カメラを操作している間も作業結果が反映されます。詳しくは[ライブ3Dビューアーの手順](../../.codex/skills/astralarchitect-builder/references/ticket-contract.md#ライブ3dビューアー)を参照してください。
+
 編集は`set`、`fill`、`line`、`replace`操作をJSON/NDJSONで指定します。詳細は`tools/README.md`と`$astralarchitect-builder`を参照してください。CLIにはワールド適用、ロールバック、チケット削除機能を持たせていません。
 
 `slice`と`surface`はCodexへ巨大なJSONを返さないよう、1回につきX/Z平面で16,384セルまでです。広い範囲は座標窓を分けて順番に読みます。編集操作も全操作を合計した展開数に上限があり、異常に大きい操作ファイルは書込み前に拒否します。

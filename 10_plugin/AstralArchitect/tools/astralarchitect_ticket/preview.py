@@ -214,7 +214,8 @@ def _material(name: str) -> tuple[Color, str]:
 
 
 @lru_cache(maxsize=4096)
-def _model(state: str) -> BlockModel | None:
+def block_model(state: str) -> BlockModel | None:
+    """Return geometry and material shared by still and live previews."""
     if is_air(state):
         return None
     identifier, _, properties_text = state.removesuffix("]").partition("[")
@@ -364,7 +365,7 @@ def _trace(
     while entered < far - _EPSILON / 2:
         visited += 1
         state = scene[x + width * z + plane * y]
-        block = _model(state)
+        block = block_model(state)
         leaves = min(tx, ty, tz)
         hit = None
         if block is not None and leaves - entered > _EPSILON / 2:

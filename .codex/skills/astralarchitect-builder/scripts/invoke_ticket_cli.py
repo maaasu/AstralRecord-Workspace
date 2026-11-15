@@ -14,7 +14,10 @@ from typing import Sequence
 
 
 ALLOWED_COMMANDS = frozenset(
-    {"info", "palette", "get-block", "slice", "surface", "diff", "preview", "apply-ops"}
+    {
+        "info", "palette", "get-block", "slice", "surface", "diff", "preview", "apply-ops",
+        "live", "live-ops", "live-export", "live-stop",
+    }
 )
 EDITABLE_STATES = frozenset({"CREATED", "READY", "ROLLED_BACK"})
 TICKET_ID_PATTERN = re.compile(r"[a-z0-9][a-z0-9-]{7,79}\Z")
@@ -73,11 +76,7 @@ def _assert_regular_file(path: Path, label: str) -> None:
         raise SafetyError(f"{label} must be a regular non-reparse file: {path}")
 
 
-def validate_ticket_path(raw: str) -> tuple[Path, dict[str, object]]:
-    """Validate and return an active AstralArchitect ticket directory."""
-    ticket = _resolve_absolute_existing(raw, "Ticket")
-    if not ticket.is_dir():
-        raise SafetyError(f"Ticket path must be a directory: {ticket}")
+def _assert_ticket_location(ticket: Path) -> None:
     if any(part.casefold() == "trash" for part in ticket.parts):
         raise SafetyError("Tickets under trash are never accessible through this skill")
     if ticket.parent.name.casefold() != "tickets":
@@ -86,6 +85,15 @@ def validate_ticket_path(raw: str) -> tuple[Path, dict[str, object]]:
         raise SafetyError("Ticket must belong to an AstralArchitect plugin data directory")
     if not TICKET_ID_PATTERN.fullmatch(ticket.name):
         raise SafetyError(f"Invalid AstralArchitect ticket ID: {ticket.name}")
+
+
+
+def validate_ticket_path(raw: str) -> tuple[Path, dict[str, object]]:
+    """Validate and return an active AstralArchitect ticket directory."""
+    ticket = _resolve_absolute_existing(raw, "Ticket")
+    if not ticket.is_dir():
+        raise SafetyError(f"Ticket path must be a directory: {ticket}")
+    _assert_ticket_location(ticket)
 
     for filename in REQUIRED_TICKET_FILES:
         _assert_regular_file(ticket / filename, filename)
@@ -151,16 +159,23 @@ def build_invocation(argv: Sequence[str]) -> list[str]:
     parser.add_argument("cli_args", nargs=argparse.REMAINDER, help="Arguments after --")
     options = parser.parse_args(list(argv))
 
-    ticket, metadata = validate_ticket_path(options.ticket)
-    cli_args = _normalize_cli_args(options.cli_args)
-    if cli_args[0] == "apply-ops":
-        state = str(metadata.get("state", "")).upper()
-        if state not in EDITABLE_STATES:
-            raise SafetyError(
-                f"candidate.schem cannot be edited while the ticket state is {state or 'UNKNOWN'}"
-            )
+    command, *command_args = _normalize_cli_args(options.cli_args)
+    if command == "live-stop":
+        # Stopping an in-memory session is authorized by its credentials.
+        # The directory may have been moved since the session was started.
+        ticket = Path(options.ticket)
+        if not ticket.is_absolute() or _has_parent_reference(options.ticket):
+            raise SafetyError("Ticket path must be absolute and must not contain '..'")
+        _assert_ticket_location(ticket)
+    else:
+        ticket, metadata = validate_ticket_path(options.ticket)
+        if command in {"apply-ops", "live"}:
+            state = str(metadata.get("state", "")).upper()
+            if state not in EDITABLE_STATES:
+                raise SafetyError(
+                    f"candidate.schem cannot be edited while the ticket state is {state or 'UNKNOWN'}"
+                )
     tool = resolve_tool_path(ticket)
-    command, *command_args = cli_args
     return [sys.executable, str(tool), command, str(ticket), *command_args]
 
 
