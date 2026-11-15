@@ -2,15 +2,18 @@ package io.github.maaasu.astralRecord.feature.account.repository;
 
 import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset;
 import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset.Checkpoint;
+import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset.Enchant;
 import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset.Equipment;
 import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset.Sigil;
 import io.github.maaasu.astralRecord.feature.account.model.ProgressionPreset.SkillBinding;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.infrastructure.api.RuntimeFilebaseSnapshot;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -20,6 +23,8 @@ public final class ProgressionPresetRepository {
     private static final String DIRECTORY = "90.shared.progression_preset";
     private static final String LEGACY_DIRECTORY = "36.features.progression_preset";
     private static final Pattern ID = Pattern.compile("[a-z0-9]+(?:_[a-z0-9]+)*");
+    private static final Pattern ENCHANT_VALUE = Pattern.compile("-?(0|[1-9][0-9]{0,11})([.][0-9]{1,4})?");
+    private static final BigDecimal MAX_ENCHANT_VALUE = new BigDecimal("100000000000");
     private static final Set<String> EQUIPMENT_SLOTS = Set.of(
         "MAIN_HAND", "OFF_HAND", "HEAD", "CHEST", "LEGS", "FEET", "SKILLBOOK",
         "AMULET", "TALISMAN_1", "TALISMAN_2", "CHARM_1", "CHARM_2", "CHARM_3",
@@ -89,12 +94,13 @@ public final class ProgressionPresetRepository {
         List<Equipment> equipment = new ArrayList<>();
         for (Object value : list(row.get("equipment"), "equipment")) {
             Map<?, ?> entry = map(value, "equipment");
-            fields(entry, Set.of("slot", "item"), Set.of("enhanceLevel"));
+            fields(entry, Set.of("slot", "item"), Set.of("enhanceLevel", "enchants"));
             String slot = string(entry.get("slot"), "equipment.slot");
             require(EQUIPMENT_SLOTS.contains(slot) && equipmentSlots.add(slot), "invalid or duplicate equipment slot: " + slot);
             int enhanceLevel = entry.containsKey("enhanceLevel")
                 ? integer(entry.get("enhanceLevel"), "equipment.enhanceLevel", 0) : 0;
-            equipment.add(new Equipment(slot, reference(entry, "item"), enhanceLevel));
+            List<Enchant> enchants = entry.containsKey("enchants") ? enchants(entry.get("enchants")) : List.of();
+            equipment.add(new Equipment(slot, reference(entry, "item"), enhanceLevel, enchants));
         }
         require(equipmentSlots.contains("MAIN_HAND"), "MAIN_HAND equipment is required");
         List<SkillBinding> skills = bindings(row.get("skills"), "skills", SkillBindPreset.ACTION_RING_SLOT_COUNT);
@@ -102,6 +108,27 @@ public final class ProgressionPresetRepository {
         List<SkillBinding> passives = row.containsKey("passives")
             ? bindings(row.get("passives"), "passives", SkillBindPreset.PASSIVE_SLOT_COUNT) : List.of();
         return new Checkpoint(level, classLevel, nodes, equipment, skills, passives);
+    }
+
+    /** 付与効果の参照と、個体の永続化で丸めずに保存できる確定値を読み込みます。 */
+    private static List<Enchant> enchants(Object value) {
+        Set<String> effects = new HashSet<>();
+        List<Enchant> result = new ArrayList<>();
+        for (Object element : list(value, "equipment.enchants")) {
+            Map<?, ?> row = map(element, "equipment.enchants");
+            fields(row, Set.of("enchantMasterId", "effectId", "value"), Set.of());
+            String master = string(row.get("enchantMasterId"), "equipment.enchants.enchantMasterId");
+            require(master.matches("enchant:[A-Za-z0-9_-]+"), "invalid enchant master reference");
+            String effect = string(row.get("effectId"), "equipment.enchants.effectId");
+            require(effect.length() <= 100 && effects.add(effect.trim().toLowerCase(Locale.ROOT)),
+                "invalid or duplicate enchant effect");
+            String text = string(row.get("value"), "equipment.enchants.value");
+            require(ENCHANT_VALUE.matcher(text).matches(), "equipment.enchants.value must be a decimal string with up to 4 fractional digits");
+            BigDecimal amount = new BigDecimal(text);
+            require(amount.abs().compareTo(MAX_ENCHANT_VALUE) <= 0, "equipment.enchants.value exceeds the supported range");
+            result.add(new Enchant(master, effect, amount));
+        }
+        return result;
     }
 
     private static List<SkillBinding> bindings(Object value, String key, int max) {

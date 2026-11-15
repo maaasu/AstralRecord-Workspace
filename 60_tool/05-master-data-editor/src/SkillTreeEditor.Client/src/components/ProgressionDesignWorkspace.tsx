@@ -2,7 +2,7 @@ import { useDocking, usePanelDocument } from '../docking/dockPanel'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { masterDataApi } from '../api/masterDataApi'
 import { progressionDesignApi } from '../api/progressionDesignApi'
-import { appendDesignEntry, changeEquipment, equipmentRestriction, equipmentSlots, numericDesignValue, setDesignValue, sourceLabels } from '../data/progressionDesign'
+import { appendDesignEntry, changeEquipment, equipmentRestriction, equipmentSlots, numericDesignValue, retainEquipmentEnchants, setDesignValue, setEquipmentOptions, sourceLabels } from '../data/progressionDesign'
 import { setAccountClassLevel } from '../data/progressionAccount'
 import { addLevelStage, changeBuildIdentity, changeLevelStage, removeLevelStage } from '../data/progressionBuildManagement'
 import { parentPointer, valueAtPointer } from '../data/masterDataNavigation'
@@ -12,6 +12,7 @@ import { stripMinecraftFormatting } from '../utils/minecraft'
 import { AcquisitionGraph } from './AcquisitionGraph'
 import { AccountProgressionPanel } from './AccountProgressionPanel'
 import { BuildManagementDialog, type BuildAction } from './BuildManagementDialog'
+import { BuildEquipmentOptionsDialog } from './BuildEquipmentOptionsDialog'
 import { MasterEntityPicker, type MasterEntityPickerChoice } from './MasterEntityPicker'
 import { MasterDataDiff } from './MasterDataDiff'
 import { MinecraftIcon } from './MinecraftIcon'
@@ -25,6 +26,10 @@ interface Props { active?: boolean; onDirtyChange?: (dirty: boolean) => void; on
 const label = (value: string) => stripMinecraftFormatting(value)
 const message = (reason: unknown) => reason instanceof Error ? reason.message : String(reason)
 const emptyCatalog: ProgressionDesignCatalog = { classes: [], presets: [], items: [], sources: [], usages: [], addTargets: [] }
+const SETUP_DEFAULT = 300
+const SETUP_MIN = 200
+const SETUP_MAX = 640
+const GRAPH_MIN = 320
 const INSPECTOR_DEFAULT = 350
 const INSPECTOR_MIN = 290
 const INSPECTOR_MAX = 680
@@ -42,7 +47,10 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
   const [loadError, setLoadError] = useState('')
   const [previewError, setPreviewError] = useState('')
   const [previewing, setPreviewing] = useState(false)
-  const [mode, setMode] = useState<'build' | 'item'>('build')
+  const [setupView, setSetupView] = useState<'build' | 'item' | 'account'>('build')
+  const [setupCollapsed, setSetupCollapsed] = useState(false)
+  const [gearOptionsSlot, setGearOptionsSlot] = useState<string | null>(null)
+  const mode = setupView === 'item' ? 'item' : 'build'
   const [classId, setClassId] = useState('')
   const [presetId, setPresetId] = useState('')
   const [level, setLevel] = useState(1)
@@ -60,12 +68,14 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
   const [directLevel, setDirectLevel] = useState('')
   const [buildAction, setBuildAction] = useState<BuildAction | null>(null)
   const [buildDraftDirty, setBuildDraftDirty] = useState(false)
+  const [gearDraftDirty, setGearDraftDirty] = useState(false)
   const [operationNotice, setOperationNotice] = useState('')
   const [operationRefreshNeeded, setOperationRefreshNeeded] = useState(false)
   const [additionalOpen, setAdditionalOpen] = useState(false)
   const [usagePage, setUsagePage] = useState(0)
   const [previewRetry, setPreviewRetry] = useState(0)
   const [structuralPending, setStructuralPending] = useState(false)
+  const [setupHeight, setSetupHeight] = usePanelSize('progression-setup', SETUP_DEFAULT, SETUP_MIN, SETUP_MAX)
   const [inspectorWidth, setInspectorWidth] = usePanelSize('progression-inspector', INSPECTOR_DEFAULT, INSPECTOR_MIN, INSPECTOR_MAX)
   const documents = useDesignDocuments(workspaceRoot, catalog?.revisions)
   const reloadSequence = useRef(0)
@@ -79,6 +89,8 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
   const preset = presets.find(entry => entry.id === presetId) ?? presets[0]
   const checkpoint = preset?.checkpoints.find(entry => entry.level === level) ?? preset?.checkpoints[0]
   const equipment = checkpoint?.equipment.find(entry => entry.slot === slot)
+  const gearOptions = checkpoint?.equipment.find(entry => entry.slot === gearOptionsSlot)
+  const gearOptionsItem = gearOptions && itemsById.get(gearOptions.itemId)
   const rootItemId = mode === 'item' ? browsedItemId : equipment?.itemId ?? ''
   const itemId = focusedItemId || rootItemId
   const item = itemsById.get(itemId)
@@ -136,7 +148,7 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
     if (active && !previouslyActive.current && !documents.dirty && !documents.recovery) { documents.reset(); void refresh() }
     previouslyActive.current = active
   }, [active, documents, refresh])
-  useEffect(() => { onDirtyChange?.(documents.dirty || inputBlocked || Boolean(documents.recovery) || buildDraftDirty) }, [documents.dirty, inputBlocked, documents.recovery, buildDraftDirty, onDirtyChange])
+  useEffect(() => { onDirtyChange?.(documents.dirty || inputBlocked || Boolean(documents.recovery) || buildDraftDirty || gearDraftDirty) }, [documents.dirty, inputBlocked, documents.recovery, buildDraftDirty, gearDraftDirty, onDirtyChange])
   const chooseTarget = (action: () => void) => {
     if (inputBlocked) { documents.setError('入力中の数値を修正してから対象を切り替えてください。'); return }
     if (lock || documents.pending) return
@@ -158,8 +170,8 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
     documents[direction]()
     setPreviewRetry(value => value + 1)
   }
-  const shortcuts = useRef({ prepareSave, undo: () => moveHistory('undo'), redo: () => moveHistory('redo'), blocked: lock || inputBlocked || Boolean(picker) || levelAction !== null || buildAction !== null })
-  shortcuts.current = { prepareSave, undo: () => moveHistory('undo'), redo: () => moveHistory('redo'), blocked: lock || inputBlocked || Boolean(picker) || levelAction !== null || buildAction !== null }
+  const shortcuts = useRef({ prepareSave, undo: () => moveHistory('undo'), redo: () => moveHistory('redo'), blocked: lock || inputBlocked || Boolean(picker) || gearOptionsSlot !== null || levelAction !== null || buildAction !== null })
+  shortcuts.current = { prepareSave, undo: () => moveHistory('undo'), redo: () => moveHistory('redo'), blocked: lock || inputBlocked || Boolean(picker) || gearOptionsSlot !== null || levelAction !== null || buildAction !== null }
   useEffect(() => {
     if (!active) return
     const keydown = (event: KeyboardEvent) => {
@@ -190,12 +202,14 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
   const pick = async (id: string) => {
     if (!picker || lock) return
     const target = picker
-    if (target.kind === 'browse') { chooseTarget(() => { setMode('item'); setBrowsedItemId(id) }); setPicker(null); return }
+    if (target.kind === 'browse') { chooseTarget(() => { setSetupView('item'); setBrowsedItemId(id) }); setPicker(null); return }
     let success = false
     if (target.kind === 'equipment' && preset && checkpoint) {
       const selected = itemsById.get(id)
       if (!selected || equipmentRestriction(selected, target.slot, preset, checkpoint, available)) return
-      success = await editStructure(preset.path, content => changeEquipment(content, checkpoint, target.slot, id, selected.maxEnhanceLevel))
+      const previous = checkpoint.equipment.find(entry => entry.slot === target.slot)
+      const enchants = retainEquipmentEnchants(previous?.enchants ?? [], selected, available)
+      success = await editStructure(preset.path, content => changeEquipment(content, checkpoint, target.slot, id, selected.maxEnhanceLevel, enchants))
       if (success) { setSlot(target.slot); setFocusedItemId(''); setSourceId('') }
     } else if (target.kind === 'material') {
       const selected = itemsById.get(id)
@@ -286,7 +300,7 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
   const committedBuild = (kind: 'created' | 'deleted', targetClass: string, targetId?: string) => {
     setBuildAction(null)
     documents.reset()
-    setClassId(targetClass); setPresetId(targetId ?? ''); setLevel(1)
+    setClassId(targetClass); setPresetId(targetId ?? ''); setLevel(1); setSetupView('build')
     setOperationNotice(kind === 'created' ? 'ビルドを登録しました。' : 'ビルドを削除しました。')
     setOperationRefreshNeeded(true)
     void refresh(true)
@@ -299,9 +313,12 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
         <span className="design-slot-label">{name}{assigned && assigned.enhanceLevel > 0 && <b>+{assigned.enhanceLevel}</b>}</span>
         {gear ? <MinecraftIcon icon={gear.icon} customModelData={gear.customModelData} iconTexture={gear.iconTexture} /> : <span className="design-slot-placeholder">＋</span>}
         <strong>{gear ? <MinecraftText value={gear.name} /> : assigned ? assigned.itemId : '未設定'}</strong>
-        <small>{gear ? `必要Lv.${gear.requiredLevel}` : '一覧から装備を選択'}</small>
+        <small>{gear ? `必要Lv.${gear.requiredLevel}` : '一覧から装備を選択'}{(assigned?.enchants?.length ?? 0) > 0 && ` · 付与${assigned?.enchants?.length}件`}</small>
       </button>
-      <button className="design-equipment-change" disabled={lock || inputBlocked || !checkpoint} onClick={() => setPicker({ kind: 'equipment', slot: id })}>{assigned ? '装備を変更' : '装備を設定'} <span>▦</span></button>
+      <div className="design-equipment-actions">
+        <button className="design-equipment-change" disabled={lock || inputBlocked || !checkpoint} onClick={() => setPicker({ kind: 'equipment', slot: id })}>{assigned ? '装備を変更' : '装備を設定'}</button>
+        {gear && <button className="design-equipment-change" aria-label={name + 'の強化・付与を編集'} disabled={lock || inputBlocked} onClick={() => setGearOptionsSlot(id)}>強化・付与</button>}
+      </div>
     </article>
   }
 
@@ -325,9 +342,18 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
     {documents.notice && <div className="design-message" role="status">{documents.notice}</div>}
     {documents.recovery && <div className="design-message"><span>前回の未保存の下書きがあります。</span><button className="button primary" onClick={() => { setStructuralPending(true); documents.restore(); setPreviewRetry(value => value + 1) }}>下書きを復元</button><button className="button" onClick={documents.discardRecovery}>下書きを破棄</button></div>}
     {loading ? <div className="design-empty">装備・ビルド・入手経路を読み込んでいます…</div> : <>
-      <section className="design-setup">
-        <div className="design-mode" role="group" aria-label="設計の入口"><button className={mode === 'build' ? 'active' : ''} aria-pressed={mode === 'build'} onClick={() => chooseTarget(() => setMode('build'))}>ビルドの装備</button><button className={mode === 'item' ? 'active' : ''} aria-pressed={mode === 'item'} onClick={() => chooseTarget(() => setMode('item'))}>アイテムから探す</button></div>
-        {mode === 'build' ? <>
+      <div className="design-panes" data-setup-collapsed={setupCollapsed}>
+      <section className="design-setup" aria-label="設計対象の設定" style={setupCollapsed ? undefined : { flexBasis: setupHeight }}>
+        <div className="design-setup-bar">
+          <div className="design-mode" role="group" aria-label="設計の入口">
+            <button className={setupView === 'build' ? 'active' : ''} aria-pressed={setupView === 'build'} onClick={() => chooseTarget(() => { setSetupView('build'); setSetupCollapsed(false) })}>ビルドの装備</button>
+            <button className={setupView === 'item' ? 'active' : ''} aria-pressed={setupView === 'item'} onClick={() => chooseTarget(() => { setSetupView('item'); setSetupCollapsed(false) })}>アイテムから探す</button>
+            <button className={setupView === 'account' ? 'active' : ''} aria-pressed={setupView === 'account'} disabled={!checkpoint} onClick={() => chooseTarget(() => { setSetupView('account'); setSetupCollapsed(false) })}>アカウント進行</button>
+          </div>
+          <button className="text-button design-setup-collapse" aria-expanded={!setupCollapsed} onClick={() => setSetupCollapsed(collapsed => !collapsed)}>{setupCollapsed ? '上部を表示' : '上部を折りたたむ'}</button>
+        </div>
+        <div className="design-setup-content" hidden={setupCollapsed}>
+        {setupView === 'build' ? <>
           <div className="design-selectors">
             <label><span>01 職業</span><select aria-label="職業" disabled={lock || inputBlocked} value={currentClass} onChange={event => chooseTarget(() => { setClassId(event.target.value); setPresetId('') })}>{classes.map(entry => <option value={entry.id} key={entry.id}>{label(entry.name)}</option>)}</select></label>
             <label className="design-build-select"><span>02 ビルド</span><select aria-label="ビルド" disabled={lock || inputBlocked || !preset} value={preset?.id ?? ''} onChange={event => chooseTarget(() => setPresetId(event.target.value))}>{presets.length ? presets.map(entry => <option value={entry.id} key={entry.id}>{label(entry.name)}</option>) : <option value="">ビルド未登録</option>}</select></label>
@@ -350,9 +376,11 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
           <div className="design-equipment" role="group" aria-label="部位別の装備">{equipmentSlots.slice(0, 6).map(gearCard)}</div>
           {equipmentSlots.length > 6 && <details className="design-additional-equipment" open={additionalOpen} onToggle={event => setAdditionalOpen(event.currentTarget.open)}><summary>スキルブック・アクセサリ {checkpoint?.equipment.filter(entry => equipmentSlots.slice(6).some(([id]) => id === entry.slot)).length ?? 0}/{equipmentSlots.length - 6}件設定済み</summary><div className="design-equipment" role="group" aria-label="スキルブック・アクセサリ">{equipmentSlots.slice(6).map(gearCard)}</div></details>}
           <p className="design-caption">進行プリセットの装備を編集します。必要レベルは装備条件、適用開始レベルは構成の切替時点です。</p>
-        </> : <div className="design-item-entry"><div><strong>{itemsById.get(browsedItemId)?.name ? label(itemsById.get(browsedItemId)!.name) : '調べたいアイテムを選択'}</strong><p>装備・素材・ダンジョン報酬の入手先と使い道を確認できます。</p></div><button className="button primary" disabled={lock || inputBlocked} onClick={() => setPicker({ kind: 'browse' })}>▦ アイコン付き一覧から選択</button></div>}
+        </> : setupView === 'item' ? <div className="design-item-entry"><div><strong>{itemsById.get(browsedItemId)?.name ? label(itemsById.get(browsedItemId)!.name) : '調べたいアイテムを選択'}</strong><p>装備・素材・ダンジョン報酬の入手先と使い道を確認できます。</p></div><button className="button primary" disabled={lock || inputBlocked} onClick={() => setPicker({ kind: 'browse' })}>▦ アイコン付き一覧から選択</button></div>
+          : preset && checkpoint && <AccountProgressionPanel catalog={available} preset={preset} checkpoint={checkpoint} initiallyExpanded disabled={lock || inputBlocked} renderNumber={field} edit={editStructure} onExploreItem={id => chooseTarget(() => setFocusedItemId(id))} />}
+        </div>
       </section>
-      {mode === 'build' && preset && checkpoint && <AccountProgressionPanel catalog={available} preset={preset} checkpoint={checkpoint} disabled={lock || inputBlocked} renderNumber={field} edit={editStructure} onExploreItem={id => chooseTarget(() => setFocusedItemId(id))} />}
+      {!setupCollapsed && <ResizeHandle label="上部設定と入手経路の高さを変更" size={setupHeight} min={SETUP_MIN} max={SETUP_MAX} defaultSize={SETUP_DEFAULT} minRemaining={GRAPH_MIN} orientation="horizontal" className="design-setup-resizer" onResize={setSetupHeight} />}
       <div className="design-body">
         <section className="design-canvas-panel" aria-label="入手経路の図">
           <div className="design-preview-status" role="status">{previewing || documents.pending ? '下書きを図に反映中…' : 'カードを選んで、右の詳細で編集できます'}</div>
@@ -363,10 +391,11 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
         <aside className="design-inspector" aria-label="選択した項目の詳細" style={{ flexBasis: inspectorWidth }}>
           {item ? <>
             <header className="design-item-heading"><MinecraftIcon icon={item.icon} customModelData={item.customModelData} iconTexture={item.iconTexture} /><div><small>{focusedItemId && focusedItemId !== rootItemId ? '選択した素材・アイテム' : '設計対象のアイテム'}</small><h2><MinecraftText value={item.name} /></h2><code>{item.id}</code></div></header>
-            {focusedItemId && focusedItemId !== rootItemId && <div className="design-item-actions"><button className="text-button" onClick={() => chooseTarget(() => {})}>← 装備の詳細に戻る</button><button className="button" disabled={lock || inputBlocked} onClick={() => chooseTarget(() => { setMode('item'); setBrowsedItemId(itemId) })}>この素材を起点に図を見る</button></div>}
+            {focusedItemId && focusedItemId !== rootItemId && <div className="design-item-actions"><button className="text-button" onClick={() => chooseTarget(() => {})}>← 装備の詳細に戻る</button><button className="button" disabled={lock || inputBlocked} onClick={() => chooseTarget(() => { setSetupView('item'); setBrowsedItemId(itemId) })}>この素材を起点に図を見る</button></div>}
             <div className="design-item-actions"><button className="button" disabled={lock || documents.dirty || inputBlocked} onClick={() => openMaster(item.path)}>性能・定義を編集 ↗</button><button className="button" disabled={lock || inputBlocked} onClick={() => setPicker({ kind: 'source', itemId })}>＋ 入手先を設定</button></div>
             {mode === 'build' && itemId === rootItemId && equipment && checkpoint && preset && <div className="design-equipment-settings">
-              {field({ path: preset.path, pointer: `${equipment.pointer}/enhanceLevel`, value: equipment.enhanceLevel }, '強化値')}
+              <button className="button compact" disabled={lock || inputBlocked} onClick={() => setGearOptionsSlot(slot)}>強化・エンチャントを編集</button>
+              <p className="design-caption">強化 +{equipment.enhanceLevel} · 付与 {equipment.enchants?.length ?? 0}件</p>
               {item.requiredLevel > checkpoint.level && <p className="design-warning">装備の必要Lv.{item.requiredLevel}が、この構成のLv.{checkpoint.level}を上回っています。</p>}
               {slot !== 'MAIN_HAND' && <button className="text-button" disabled={lock || inputBlocked} onClick={() => { void editStructure(preset.path, content => changeEquipment(content, checkpoint, slot, null)) }}>この枠を空にする</button>}
             </div>}
@@ -393,12 +422,16 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
             </section>}
             <div className="design-section-heading"><h3>このアイテムの使い道</h3><span>{usages.length}件</span></div>
             {!usages.length && <p className="design-caption">関連する素材消費・装備設定が見つかりません。</p>}
-            <ul className="design-usages">{usages.slice(usagePage * 8, usagePage * 8 + 8).map((usage, index) => <li key={index}><small>{sourceLabels[usage.kind] ?? usage.kind}</small><button className="text-button" disabled={lock || inputBlocked || (!usage.outputItemId && documents.dirty)} onClick={() => usage.outputItemId ? chooseTarget(() => { setMode('item'); setBrowsedItemId(usage.outputItemId!) }) : openMaster(usage.path, usage.pointer)}>{label(usage.name)} {usage.outputItemId ? '→' : '↗'}</button></li>)}</ul>
+            <ul className="design-usages">{usages.slice(usagePage * 8, usagePage * 8 + 8).map((usage, index) => <li key={index}><small>{sourceLabels[usage.kind] ?? usage.kind}</small><button className="text-button" disabled={lock || inputBlocked || (!usage.outputItemId && documents.dirty)} onClick={() => usage.outputItemId ? chooseTarget(() => { setSetupView('item'); setBrowsedItemId(usage.outputItemId!) }) : openMaster(usage.path, usage.pointer)}>{label(usage.name)} {usage.outputItemId ? '→' : '↗'}</button></li>)}</ul>
             {usages.length > 8 && <div className="design-item-actions"><button className="button" disabled={usagePage === 0} onClick={() => setUsagePage(page => page - 1)}>前へ</button><span className="design-caption">{usagePage + 1} / {Math.ceil(usages.length / 8)}</span><button className="button" disabled={(usagePage + 1) * 8 >= usages.length} onClick={() => setUsagePage(page => page + 1)}>次へ</button></div>}
           </> : <div className="design-empty"><strong>設計対象を選んでください</strong><p>装備枠かアイテムを選択すると、入手経路と使い道が表示されます。</p></div>}
         </aside>
       </div>
+      </div>
     </>}
+    {gearOptions && gearOptionsItem && preset && checkpoint && <BuildEquipmentOptionsDialog
+      item={gearOptionsItem} equipment={gearOptions} catalog={available} onDirtyChange={setGearDraftDirty} onClose={() => setGearOptionsSlot(null)}
+      onApply={(enhanceLevel, enchants) => editStructure(preset.path, content => setEquipmentOptions(content, checkpoint, gearOptions, enhanceLevel, enchants))} />}
     {picker && <MasterEntityPicker title={picker.kind === 'equipment' ? `${equipmentSlots.find(([id]) => id === picker.slot)?.[1]}を選択` : picker.kind === 'source' ? '入手先を選択' : picker.kind === 'material' ? '必要素材を選択' : 'アイテムを選択'}
       choices={picker.kind === 'source' ? sourceChoices : itemChoices} value={picker.kind === 'equipment' ? checkpoint?.equipment.find(entry => entry.slot === picker.slot)?.itemId : picker.kind === 'material' ? picker.ingredient?.itemId : browsedItemId}
       loading={!!documents.pending} error={documents.error} onSelect={id => void pick(id)} onClose={() => { if (!documents.pending) setPicker(null) }} />}

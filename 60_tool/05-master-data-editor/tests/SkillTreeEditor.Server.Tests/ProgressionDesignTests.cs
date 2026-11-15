@@ -437,6 +437,136 @@ public sealed class ProgressionDesignTests : IDisposable
         Assert.Equal(4, Assert.Single(reloaded.Presets[0].Checkpoints[1].Skills).SkillLevel);
     }
 
+    [Fact]
+    public async Task EnchantRoundTripResolvesJapaneseNameAndOrbAndValidatesRuntimeConstraints()
+    {
+        const string presetPath = "90.shared.progression_preset/v1.fighter.yml";
+        const string equipmentPath = "10.features.item/20.equipment/v1.sword.yml";
+        const string orbPath = "10.features.item/40.orb/v1.orb.yml";
+        Write(equipmentPath, """
+            id: sword
+            equipment:
+              slot: WEAPON
+              enchant: { maxSlots: 1 }
+              enhance: { maxLevel: 2, levels: [{ level: 1 }, { level: 2 }] }
+            """);
+        Write(orbPath, """
+            id: orb
+            name: 付与のオーブ
+            icon: NETHER_STAR
+            orb:
+              effect: { type: ENCHANT, enchantOperation: FILL_ONE_EMPTY, enchantMasterId: "enchant:basic" }
+            """);
+        Write("12.features.enchant/v1.basic.yml", """
+            id: basic
+            targets:
+              - equipmentType: WEAPON
+                entries: [{ effectId: attack, status: ATTACK, type: FLAT, value: "1.000000000000000000000000000001~4", weight: 1 }]
+              - equipmentType: ARMOR
+                entries: [{ effectId: guard, status: GUARD, type: SCALAR, value: "1.2", weight: 1 }]
+            """);
+        Write("75.shared.status/v1.status_types.yml", "statuses: [{ id: ATTACK, displayName: 攻撃力 }]\n");
+        Write("20.features.class/v1.fighter.yml", "id: fighter\nusableSkills: [strike]\n");
+        Write("30.features.skill/v1.strike.yml", "id: strike\n");
+        Write(presetPath, """
+            schemaVersion: 1
+            type: PROGRESSION_PRESET
+            id: fighter
+            name: 戦闘型
+            classId: fighter
+            buildId: default
+            levels:
+              - level: 1
+                classLevel: 1
+                nodes: []
+                equipment:
+                  - slot: MAIN_HAND
+                    item: "item:sword"
+                    enhanceLevel: 2
+                    enchants: [{ enchantMasterId: "enchant:basic", effectId: attack, value: "2.125" }]
+                skills: [{ slot: 1, skill: "skill:strike" }]
+            """);
+
+        var catalog = await _service.ReadAsync(default);
+        Assert.Equal(1, catalog.Items.Single(item => item.Id == "sword").MaxEnchantSlots);
+        Assert.Contains(catalog.EnchantChoices, choice => choice is
+            { EquipmentType: "WEAPON", Name: "攻撃力", SourceItemId: "orb", Min: 1.0001m, Max: 4 });
+        var gear = Assert.Single(Assert.Single(Assert.Single(catalog.Presets).Checkpoints).Equipment);
+        Assert.Equal(new ProgressionDesignEnchant("enchant:basic", "attack", "2.125"), Assert.Single(gear.Enchants));
+
+        var paths = new MasterDataPaths(new WorkspacePaths(_root));
+        var codec = new MasterDataCodec();
+        var preset = codec.Parse(presetPath, File.ReadAllText(Path.Combine(_root, "40_filebase", presetPath))).Content!.AsObject();
+        var issues = new List<MasterDataIssue>();
+        await ProgressionPresetValidation.ValidateAsync(paths, codec, presetPath, preset, issues, default);
+        Assert.DoesNotContain(issues, issue => issue.Severity == "error");
+        var enchants = preset["levels"]![0]!["equipment"]![0]!["enchants"]!.AsArray();
+        enchants[0]!["value"] = "1";
+        await ProgressionPresetValidation.ValidateAsync(paths, codec, presetPath, preset, issues, default);
+        Assert.Contains(issues, issue => issue.Code == "PROGRESSION_PRESET_ENCHANT_VALUE");
+        issues.Clear();
+
+        enchants[0]!["value"] = "2.12501";
+        enchants.Add(enchants[0]!.DeepClone());
+        enchants.Add(JsonNode.Parse("""{ "enchantMasterId": "enchant:basic", "effectId": "guard", "value": "1.2" }"""));
+        var preview = await _service.PreviewAsync(new([new(presetPath, preset)]), default);
+        Assert.Equal(3, Assert.Single(Assert.Single(Assert.Single(preview.Presets).Checkpoints).Equipment).Enchants.Count);
+
+        await ProgressionPresetValidation.ValidateAsync(paths, codec, presetPath, preset, issues, default);
+        Assert.Contains(issues, issue => issue.Code == "PROGRESSION_PRESET_ENCHANT_SLOTS");
+        Assert.Contains(issues, issue => issue.Code == "PROGRESSION_PRESET_DUPLICATE_ENCHANT");
+        Assert.Contains(issues, issue => issue.Code == "PROGRESSION_PRESET_ENCHANT_VALUE");
+        Assert.Contains(issues, issue => issue.Code == "PROGRESSION_PRESET_ENCHANT_EFFECT");
+        var reload = await _service.ReadAsync(default, reload: true);
+        Assert.Equal("2.125", Assert.Single(Assert.Single(Assert.Single(Assert.Single(reload.Presets).Checkpoints).Equipment).Enchants).Value);
+    }
+
+    [Fact]
+    public void EnchantValueRejectsOriginalPrecisionAndOverflowBeforeNumericConversion()
+    {
+        static decimal? Read(string value) => ProgressionEquipmentEnchants.Value(JsonValue.Create(value));
+        Assert.Equal(99_999_999_999.9999m, Read("99999999999.9999"));
+        Assert.Equal(-100_000_000_000m, Read("-100000000000"));
+        Assert.Null(Read("100000000000.0001"));
+        Assert.Null(Read("1.000000000000000000000000000001"));
+        Assert.Null(Read("1e-4"));
+        Assert.Null(ProgressionEquipmentEnchants.Value(JsonValue.Create(1.25)));
+    }
+
+    [Theory]
+    [InlineData("-1.000000000000000000000000000001~-2", -20000L, -10001L)]
+    [InlineData(" 1.2300e+1 ", 123000L, 123000L)]
+    [InlineData("\t1.25 \r\n~2", 12500L, 20000L)]
+    [InlineData("\u30001\u3000~2", null, null)]
+    [InlineData("\u00a01\u00a0~2", null, null)]
+    [InlineData("1e-2147483647~0.002", 1L, 20L)]
+    [InlineData("-1e-2147483647~0", 0L, 0L)]
+    [InlineData("1e+2147483647~99999999999.9998", 999999999999998L, 1000000000000000L)]
+    [InlineData("-1e+100~-99999999999.9998", -1000000000000000L, -999999999999998L)]
+    [InlineData("100000000000.0000000000000000000001~1e+100", null, null)]
+    [InlineData("1.000000000000000000000000000001", null, null)]
+    [InlineData("1.00001~1.00009", null, null)]
+    [InlineData("1e+2147483648~0", null, null)]
+    public void EnchantChoicesKeepOnlyRepresentableValuesWithinTheExactMasterRange(string range, long? min, long? max)
+    {
+        var master = JsonNode.Parse("""
+            { "id": "basic", "targets": [{ "equipmentType": "WEAPON", "entries": [
+                { "effectId": "attack", "status": "ATTACK", "type": "FLAT", "weight": 1 }
+            ] }] }
+            """)!.AsObject();
+        master["targets"]![0]!["entries"]![0]!["value"] = range;
+        var effects = ProgressionEquipmentEnchants.Read(master);
+
+        if (min is null)
+        {
+            Assert.Empty(effects);
+            return;
+        }
+        var effect = Assert.Single(effects);
+        Assert.Equal(min / 10000m, effect.Min);
+        Assert.Equal(max / 10000m, effect.Max);
+    }
+
     private void Write(string path, string content)
     {
         var fullPath = Path.Combine(_root, "40_filebase", path);

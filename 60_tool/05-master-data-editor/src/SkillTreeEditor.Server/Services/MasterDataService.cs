@@ -26,8 +26,8 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
             var document = source.RequireReadable();
             var obj = document.Content as JsonObject;
             var id = MasterDataValidation.Text(obj?["id"] ?? obj?["nodeId"] ?? obj?["structureId"]);
-            var name = DisplayName(obj);
             var kind = Kind(document.Path);
+            var name = ReferenceDisplayName(obj, document.Raw, kind);
             if (kind == "mob_spawner" && obj?["spawnMobs"] is JsonArray spawns)
             {
                 mobNames ??= ReadMobNames(wholeFilebase ? snapshot : await _snapshots.GetAsync(token, "40.features.mob", reload));
@@ -369,7 +369,7 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
             {
                 var key = root.ContainsKey("id") ? "id" : root.ContainsKey("nodeId") ? "nodeId" : "structureId";
                 if (MasterDataValidation.Text(root[key]) is { } id)
-                    result.Add(new(path, "/" + key, id, DisplayName(root), Kind(path)));
+                    result.Add(new(path, "/" + key, id, ReferenceDisplayName(root, document.Raw, Kind(path)), Kind(path)));
                 if (Kind(path) is "tag" or "status")
                 {
                     var keyPath = Kind(path) == "tag" ? "tags" : "statuses";
@@ -398,6 +398,15 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
             if (obj?[key] is JsonValue value && value.TryGetValue<string>(out var name) && !string.IsNullOrWhiteSpace(name))
                 return name;
         return null;
+    }
+
+    private static string? ReferenceDisplayName(JsonObject? content, string raw, string kind)
+    {
+        var name = DisplayName(content);
+        if (name is not null || kind != "loot_table") return name;
+        // Loot tables can omit a display name. Use their checked-in design motif when present.
+        var motif = Regex.Match(raw, """(?m)^# design:\r?\n#[ \t]+motif:[ \t]*"([^"\r\n]+)"[ \t]*\r?$""");
+        return motif.Success ? motif.Groups[1].Value : null;
     }
 
     private static bool IsReferenceKey(string key, string kind) => kind switch

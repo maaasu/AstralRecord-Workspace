@@ -71,6 +71,26 @@
                   "default": 0,
                   "minimum": 0,
                   "maximum": 2147483647
+                },
+                "enchants": {
+                  "title": "付与エンチャント",
+                  "description": "状態変化前の装備の付与枠に順番に設定します。省略時は付与なし。",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["enchantMasterId", "effectId", "value"],
+                    "properties": {
+                      "enchantMasterId": { "title": "エンチャント候補マスター", "type": "string", "pattern": "^enchant:[A-Za-z0-9_-]+$" },
+                      "effectId": { "title": "付与効果ID", "type": "string", "pattern": "\\S", "maxLength": 100 },
+                      "value": {
+                        "title": "付与値",
+                        "description": "候補マスターの範囲内かつ絶対値100000000000以下の確定値を、小数4桁以内の文字列で指定します。",
+                        "type": "string",
+                        "pattern": "^-?(0|[1-9][0-9]{0,11})([.][0-9]{1,4})?$"
+                      }
+                    }
+                  }
                 }
               }
             }

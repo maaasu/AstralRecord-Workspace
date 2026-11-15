@@ -12,6 +12,7 @@ import { stripMinecraftFormatting } from '../utils/minecraft'
 import { masterFieldTitle } from '../data/masterDataPresentation'
 import { masterValueLabel } from '../data/masterValuePresentation'
 import { categorizedItemRow, referenceId, referenceObject, setCollectionReference, visualReferenceCollection } from '../data/masterReferenceCollection'
+import { dungeonFieldDisplayValue, dungeonFieldKeys, dungeonFieldLabel, dungeonSection, dungeonSectionPaths, isDungeonMaster } from '../data/dungeonForm'
 
 const structured = (value: JsonValue | undefined): value is JsonObject | JsonValue[] => value !== null && typeof value === 'object'
 const decode = (key: string) => key.replaceAll('~1', '/').replaceAll('~0', '~')
@@ -34,9 +35,10 @@ interface SearchProps {
   disabled?: boolean
   onSelect: (path: string) => void
   onFocus: (path: string) => void
+  dungeon?: boolean
 }
 
-export function MasterDataSearch({ value, fields, schema, disabled, onSelect, onFocus }: SearchProps) {
+export function MasterDataSearch({ value, fields, schema, disabled, onSelect, onFocus, dungeon }: SearchProps) {
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsRef = useRef<HTMLUListElement>(null)
@@ -85,19 +87,28 @@ export function MasterDataSearch({ value, fields, schema, disabled, onSelect, on
   const searchIndex = useMemo(() => {
     if (!searching) return []
     const found: { path: string; label: string; summary: string; container: boolean; terms: string[] }[] = []
+    const roomSize = dungeon ? valueAtPointer(value, '/generation/roomSize') : undefined
     function visit(current: JsonValue, path: string) {
       if (path) {
-        const label = nodeLabel(value, schema, fields, path)
+        const key = decode(path.split('/').at(-1) ?? '')
+        const label = (dungeon && dungeonFieldLabel(parentPointer(path), key)) || nodeLabel(value, schema, fields, path)
         const presentation = typeof current === 'string' ? masterValueLabel(path, current) : current
         const summary = summarizeMasterValue(presentation)
         const searchableValue = typeof current === 'string' ? `${current} ${presentation}` : summary
         found.push({ path, label, summary, container: structured(current), terms: [path, label, searchableValue, stripMinecraftFormatting(searchableValue)].map((text) => text.toLocaleLowerCase()) })
       }
-      children(current, path).forEach((child) => visit(child.value, child.path))
+      if (dungeon && structured(current) && !Array.isArray(current)) {
+        for (const key of dungeonFieldKeys(path, current)) {
+          const child = dungeonFieldDisplayValue(path, key, current, roomSize)
+          if (child !== undefined) visit(child, path + '/' + pointerKey(key))
+        }
+      } else {
+        children(current, path).forEach(child => visit(child.value, child.path))
+      }
     }
     visit(value, '')
     return found
-  }, [value, fields, schema, searching])
+  }, [value, fields, schema, searching, dungeon])
   const matches = useMemo(() => searchIndex.filter((entry) => entry.terms.some((text) => text.includes(search))), [searchIndex, search])
   const [pagination, setPagination] = useState({ matches, page: 0 })
   // A changed query or document must not leave the user on an unrelated later page.
@@ -176,10 +187,15 @@ export function MasterDataDetails({ value, path, fields, references, schema, dis
     onFocus(nextPath)
   }
   const currentPath = closestContainerPointer(value, path)
+  const dungeon = isDungeonMaster(visualReferences?.documentPath)
+  const overview = dungeon && !currentPath && value !== null && typeof value === 'object' && !Array.isArray(value)
   const current = valueAtPointer(value, currentPath)
   const crumbs = currentPath ? currentPath.split('/').slice(1).map((_, index, segments) => '/' + segments.slice(0, index + 1).join('/')) : []
-  const sections = children(value, '').filter((child) => structured(child.value))
+  const sections = overview
+    ? dungeonSectionPaths.map(path => ({ path, key: path.slice(1), value: valueAtPointer(value, path) }))
+    : children(value, '').filter((child) => structured(child.value))
   const sectionLabel = (pointer: string) => (visualReferences && visualReferenceCollection(visualReferences.documentPath, pointer)?.title)
+    || (overview && dungeonSectionPaths.includes(pointer) && dungeonSection('')?.[pointer.slice(1)]?.label)
     || nodeLabel(value, schema, fields, pointer)
   const formReferences: MasterVisualReferences | null = visualReferences ? {
     ...visualReferences,
@@ -197,19 +213,20 @@ export function MasterDataDetails({ value, path, fields, references, schema, dis
   return <section className="master-node-editor" aria-label="マスター項目の編集">
     <div className="master-form-navigation">
       <nav className="master-section-links" aria-label="編集セクション">
-        <button type="button" className={'button compact ' + (!currentPath ? 'active' : '')} aria-current={!currentPath ? 'page' : undefined} disabled={navigationDisabled} onClick={() => selectAndFocus('')}>基本情報</button>
-        {sections.map((section) => <button type="button" key={section.path} className={'button compact ' + (currentPath === section.path || currentPath.startsWith(section.path + '/') ? 'active' : '')} aria-current={currentPath === section.path || currentPath.startsWith(section.path + '/') ? 'page' : undefined} disabled={navigationDisabled} title={section.key} onClick={() => selectAndFocus(section.path)}>{sectionLabel(section.path)}{Array.isArray(section.value) && <small>{section.value.length} 件</small>}</button>)}
+        <button type="button" className={'button compact ' + (!currentPath && !overview ? 'active' : '')} aria-current={!currentPath && !overview ? 'page' : undefined} disabled={navigationDisabled} onClick={() => selectAndFocus('')}>基本情報</button>
+        {sections.map((section) => <button type="button" key={section.path} className={'button compact ' + (currentPath === section.path || currentPath.startsWith(section.path + '/') ? 'active' : '')} aria-current={currentPath === section.path || currentPath.startsWith(section.path + '/') ? 'page' : undefined} disabled={navigationDisabled} title={section.key} onClick={() => overview ? onFocus(section.path) : selectAndFocus(section.path)}>{sectionLabel(section.path)}{Array.isArray(section.value) && <small>{section.value.length} 件</small>}</button>)}
       </nav>
-      <MasterDataSearch value={value} fields={fields} schema={schema} disabled={navigationDisabled} onSelect={onSelect} onFocus={onFocus} />
+      <MasterDataSearch value={value} fields={fields} schema={schema} disabled={navigationDisabled} onSelect={overview ? () => {} : onSelect} onFocus={onFocus} dungeon={dungeon} />
     </div>
     {currentPath && <nav className="master-breadcrumbs" aria-label="現在の階層">
       <button type="button" className="text-button" disabled={navigationDisabled} onClick={() => selectAndFocus('')}>基本情報</button>
       {crumbs.map((crumb) => <Fragment key={crumb}><span aria-hidden="true">›</span><button type="button" className="text-button" disabled={navigationDisabled} aria-current={crumb === currentPath ? 'page' : undefined} onClick={() => selectAndFocus(crumb)}>{sectionLabel(crumb)}</button></Fragment>)}
     </nav>}
-    <div className="master-node-heading"><h3 tabIndex={-1} data-node-heading title={currentPath || undefined}>{sectionLabel(currentPath)}</h3>{!visualReferences && currentPath && <code>{currentPath}</code>}</div>
+    <div className="master-node-heading"><h3 tabIndex={-1} data-node-heading data-master-field-path={overview ? '' : undefined} title={currentPath || undefined}>{sectionLabel(currentPath)}</h3>{!visualReferences && currentPath && <code>{currentPath}</code>}</div>
     <fieldset className="master-form-lock" disabled={disabled}>
       <MasterVisualReferencesContext.Provider value={formReferences}>
         <MasterDataForm key={currentPath} value={current === undefined ? value : current} path={currentPath} fields={fields} references={references} schema={schemaAtPointer(schema, currentPath, value)} rootSchema={schema}
+          dungeonRoomSize={dungeon ? valueAtPointer(value, '/generation/roomSize') : undefined}
           onInvalid={onInvalid} invalidValues={invalidValues} onNavigate={selectAndFocus} navigationDisabled={navigationDisabled} onChange={(next) => onChange(replaceAtPointer(value, currentPath, next))} />
       </MasterVisualReferencesContext.Provider>
     </fieldset>

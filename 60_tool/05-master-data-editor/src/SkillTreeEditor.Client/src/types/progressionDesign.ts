@@ -1,7 +1,12 @@
 export interface DesignField { path: string; pointer: string; value: number | string }
 export interface DesignLocation { path: string; pointer: string }
 export interface DesignClass { id: string; name: string; path: string; prerequisiteClassIds: string[]; maxLevel?: number; usableSkillIds?: string[] }
-export interface DesignEquipment { slot: string; itemId: string; pointer: string; enhanceLevel: number }
+export interface DesignEquipment { slot: string; itemId: string; pointer: string; enhanceLevel: number; enchants?: DesignEquipmentEnchant[] }
+export interface DesignEquipmentEnchant { enchantMasterId: string; effectId: string; value: string }
+export interface DesignEnchantChoice {
+  enchantMasterId: string; equipmentType: string; effectId: string; name: string; type: string
+  min: number; max: number; sourceItemId: string
+}
 export interface DesignSigilAssignment { slot: number; itemId: string; pointer: string }
 export interface DesignSkillAssignment { slot: number; skillId: string; pointer: string; skillLevel: number; sigils: DesignSigilAssignment[] }
 export interface DesignCheckpoint { level: number; classLevel: number; pointer: string; equipment: DesignEquipment[]; nodes?: number[]; skills?: DesignSkillAssignment[]; passives?: DesignSkillAssignment[] }
@@ -18,6 +23,7 @@ export interface DesignItem {
   slot: string | null; handType: string | null; requiredLevel: number; requiredClasses: string[]
   compatibleSlots: string[]; maxEnhanceLevel: number; sigilEquipGroupId?: string | null; usableSkillIds?: string[]
   requiredClassLevels?: { classId: string; level: number }[]
+  maxEnchantSlots?: number; enchantEquipmentType?: string | null
 }
 export interface DesignIngredient extends DesignLocation { itemId: string; itemPointer: string; quantity: DesignField[] }
 export interface DesignContext extends DesignLocation { kind: string; id: string; name: string }
@@ -39,5 +45,5 @@ export interface ProgressionDesignCatalog {
   revisions?: Record<string, string>
   classes: DesignClass[]; presets: DesignPreset[]; items: DesignItem[]; sources: DesignSource[]
   usages: DesignUsage[]; addTargets: DesignAddTarget[]
-  skills?: DesignSkill[]; nodes?: DesignNode[]
+  skills?: DesignSkill[]; nodes?: DesignNode[]; enchantChoices?: DesignEnchantChoice[]
 }

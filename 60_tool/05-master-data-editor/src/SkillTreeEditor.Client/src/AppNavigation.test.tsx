@@ -34,6 +34,8 @@ it('shows the active workspace and retains edited inputs across navigation', asy
   render(<App />)
   const nav = within(await screen.findByRole('navigation', { name: '開発ツール' }))
   expect(nav.getAllByRole('button')).toHaveLength(5)
+  expect(within(nav.getByRole('group', { name: 'データ・配置編集' })).getAllByRole('button').map(button => button.textContent)).toEqual(['マスターデータ', 'スキルツリー', 'ワールド配置・編集'])
+  expect(within(nav.getByRole('group', { name: '設計・分析' })).getAllByRole('button').map(button => button.textContent)).toEqual(['装備・入手経路', '比較・成長グラフ'])
   expect(nav.getByRole('button', { name: 'マスターデータ' })).toHaveAttribute('aria-current', 'page')
   expect(window.astralEditorHasUnsavedChanges?.()).toBe(false)
   const draft = await screen.findByLabelText('マスターの下書き')
@@ -110,7 +112,7 @@ it('opens desktop panels from the keyboard and keeps workspace and popout comman
   expect(screen.queryByRole('menu')).not.toBeInTheDocument()
 
   trigger.focus()
-  await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{Enter}')
+  await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{Enter}')
   expect(await screen.findByText('比較の作業領域')).toBeVisible()
   expect(trigger).toHaveFocus()
   await user.click(popout)

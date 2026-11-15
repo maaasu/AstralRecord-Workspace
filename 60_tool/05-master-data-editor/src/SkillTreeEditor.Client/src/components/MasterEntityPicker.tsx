@@ -14,6 +14,7 @@ export interface MasterEntityPickerChoice {
   icon?: string | null
   customModelData?: number | null
   iconTexture?: string | null
+  symbol?: string
   disabledReason?: string
 }
 
@@ -239,7 +240,9 @@ export function MasterEntityPicker({
                 }}
               >
                 <span aria-hidden="true" className="master-entity-picker-art">
-                  <MinecraftIcon icon={choice.icon ?? null} customModelData={choice.customModelData} iconTexture={choice.iconTexture} />
+                  {choice.symbol && !choice.icon
+                    ? <span className="minecraft-icon master-reference-symbol">{choice.symbol}</span>
+                    : <MinecraftIcon icon={choice.icon ?? null} customModelData={choice.customModelData} iconTexture={choice.iconTexture} />}
                 </span>
                 <span className="master-entity-picker-details">
                   <span className="master-entity-picker-name">

@@ -6,7 +6,7 @@ import { toolIds, toolSpecs } from './data/desktopTools'
 import { DockCommandMenu } from './docking/DockCommandMenu'
 import { DockIcon } from './docking/DockIcon'
 import { DockWindowButton, DockWorkspace, getDesktopBridge, workspaceLayoutKey, type DesktopBridge } from './docking/DockWorkspace'
-import { DockPanelContent, dockPanels, editorPages, isPage, isToolPage, useDocking, type DockPanelId, type EditorPage, type Page } from './docking/dockPanel'
+import { DockPanelContent, dockPanels, editorPages, editorPageGroups, editorPageDescriptions, isPage, isToolPage, useDocking, type DockPanelId, type EditorPage, type Page } from './docking/dockPanel'
 import './docking/editorCommandBar.css'
 import './masterData.css'
 
@@ -20,7 +20,7 @@ function AppIcon({ path }: { path: string }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d={path} /></svg>
 }
 
-const editPanelIds = [...editorPages.map(item => item.id), 'master-folders', 'master-files', 'master-validation'] as const
+const filePanelIds = ['master-folders', 'master-files', 'master-validation'] as const
 const toolPanelIds = [...toolIds, 'history'] as const
 
 function EditorCommandBar({ desktop, workspaceRoot, branch, page, selectPage }: {
@@ -46,7 +46,8 @@ function EditorCommandBar({ desktop, workspaceRoot, branch, page, selectPage }: 
           <DockIcon name="sidebar" /><span>編集ナビ</span>
         </button>
         <DockCommandMenu label="パネル" className="editor-command-button editor-command-panel" align="start" groups={[
-          { label: '編集・ファイル', commands: editPanelIds.map(panelCommand) },
+          ...editorPageGroups.map(group => ({ label: group.label, commands: group.pages.map(panelCommand) })),
+          { label: 'マスターの一覧・検証', commands: filePanelIds.map(panelCommand) },
           { label: 'ビルド・反映', commands: toolPanelIds.map(panelCommand) },
           { commands: [{ label: 'レイアウトを初期化', run: reset }] },
         ]}><span>パネル</span><DockIcon name="chevron" /></DockCommandMenu>
@@ -134,9 +135,15 @@ function WorkspaceViews({ workspaceRoot, desktop }: { workspaceRoot: string; des
     <DockPanelContent id="navigation">
       <div id="workspace-navigation" className="master-app-sidebar">
         <nav aria-label="開発ツール">
-          {editorPages.map(item => <button key={item.id} type="button" className="workspace-nav-item" aria-label={`${item.label}${dirtyByPage[item.id] ? ' ●' : ''}`} aria-pressed={page === item.id} aria-current={page === item.id ? 'page' : undefined} onClick={event => selectPage(item.id, event.currentTarget.ownerDocument)}>
-            <AppIcon path={item.icon} /><span>{item.label}</span>{dirtyByPage[item.id] && <b className="workspace-nav-dirty" aria-hidden="true">●</b>}
-          </button>)}
+          {editorPageGroups.map(group => <div key={group.label} role="group" aria-label={group.label}>
+            <span className="workspace-nav-label">{group.label}</span>
+            {group.pages.map(id => {
+              const item = editorPages.find(item => item.id === id)!
+              return <button key={id} type="button" className="workspace-nav-item" title={editorPageDescriptions[id]} aria-label={`${item.label}${dirtyByPage[id] ? ' ●' : ''}`} aria-pressed={page === id} aria-current={page === id ? 'page' : undefined} onClick={event => selectPage(id, event.currentTarget.ownerDocument)}>
+                <AppIcon path={item.icon} /><span>{item.label}</span>{dirtyByPage[id] && <b className="workspace-nav-dirty" aria-hidden="true">●</b>}
+              </button>
+            })}
+          </div>)}
         </nav>
         <nav aria-label="ビルド・反映">
           <span className="workspace-nav-label">ビルド・反映</span>

@@ -1,6 +1,8 @@
 import { StrictMode, useCallback, useState, type ComponentProps } from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { DockWorkspace } from '../docking/DockWorkspace'
+import { DockPanelContent, useDocking } from '../docking/dockPanel'
 import { routeEdge, SkillTreeCanvas } from './SkillTreeCanvas'
 import type { NodeMaster, StructureDocument } from '../types/editor'
 import * as nodePresentation from '../data/nodeEffectPresentation'
@@ -351,13 +353,53 @@ describe('SkillTreeCanvas', () => {
     fireEvent.click(edge)
     await waitFor(() => expect(screen.getByTestId('rf__edge-edge:1000:1001')).toHaveClass('selected'))
 
-    fireEvent.keyDown(document, { key: 'Delete', code: 'Delete' })
-    fireEvent.keyUp(document, { key: 'Delete', code: 'Delete' })
+    fireEvent.keyDown(edge, { key: 'Delete', code: 'Delete' })
 
     await waitFor(() => expect(onRecord).toHaveBeenCalledWith({
       ...structure,
       edges: [],
     }))
+  })
+
+  it('hides the docked canvas and keeps its selection when switching tabs', async () => {
+    const onRecord = vi.fn()
+    function Views() {
+      const dock = useDocking()!
+      return <>
+        <DockPanelContent id="master"><p>マスター編集画面</p></DockPanelContent>
+        {dock.visited.has('skilltree') && <DockPanelContent id="skilltree">
+          <div style={{ width: 800, height: 600 }}>
+            <SkillTreeCanvas structure={structure} masters={masters} onRecord={onRecord} onReplace={vi.fn()}
+              onBeginTransaction={vi.fn()} onCommitTransaction={vi.fn()} onSelectedNode={vi.fn()}
+              onEditMaster={vi.fn()} onNotify={vi.fn()} />
+          </div>
+        </DockPanelContent>}
+        <button type="button" onClick={() => dock.show('skilltree')}>スキルツリーを開く</button>
+      </>
+    }
+    render(<DockWorkspace><Views /></DockWorkspace>)
+    fireEvent.click(screen.getByRole('button', { name: 'スキルツリーを開く' }))
+    const node = await screen.findByTestId('rf__node-1001')
+    fireEvent.click(node)
+    await waitFor(() => expect(node).toHaveClass('selected'))
+    expect(node).toHaveStyle({ visibility: 'visible' })
+    const viewport = node.closest('.react-flow__viewport') as HTMLElement
+    const transform = viewport.style.transform
+
+    const masterTab = screen.getByRole('tab', { name: 'マスターデータ' })
+    fireEvent.pointerDown(masterTab, { button: 0 })
+    await waitFor(() => expect(screen.getByText('マスター編集画面')).toBeVisible())
+    expect(node.closest('.dock-panel-slot')).toHaveAttribute('hidden')
+    expect(node).toBeInTheDocument()
+    await act(async () => { fireEvent.keyDown(masterTab, { key: 'Delete', code: 'Delete' }) })
+    expect(masterTab).not.toBeInTheDocument()
+    await waitFor(() => expect(node).toBeVisible())
+    expect(screen.getByTestId('rf__node-1001')).toBe(node)
+    expect(node).toHaveClass('selected')
+    expect(viewport.style.transform).toBe(transform)
+    expect(onRecord).not.toHaveBeenCalled()
+    fireEvent.keyDown(node, { key: 'Delete', code: 'Delete' })
+    await waitFor(() => expect(onRecord).toHaveBeenCalledWith({ ...structure, nodes: [structure.nodes[0]], edges: [] }))
   })
 
   it('opens node operations on right click and removes all connections for the node', async () => {
@@ -490,12 +532,14 @@ describe('SkillTreeCanvas', () => {
     const node = await screen.findByTestId('rf__node-1001')
     fireEvent.click(node)
     await waitFor(() => expect(node).toHaveClass('selected'))
-    fireEvent.keyDown(document, { key: 'Delete', code: 'Delete' })
-    try {
-      await waitFor(() => expect(onRecord).toHaveBeenCalledOnce())
-    } finally {
-      fireEvent.keyUp(document, { key: 'Delete', code: 'Delete' })
+    for (const key of ['Delete', 'Backspace']) {
+      for (const option of ['ctrlKey', 'metaKey', 'altKey', 'shiftKey', 'isComposing', 'repeat']) {
+        fireEvent.keyDown(node, { key, [option]: true })
+        expect(onRecord).not.toHaveBeenCalled()
+      }
     }
+    fireEvent.keyDown(node, { key: 'Delete', code: 'Delete' })
+    await waitFor(() => expect(onRecord).toHaveBeenCalledOnce())
     expect(onRecord).toHaveBeenCalledWith({ ...structure, nodes: [structure.nodes[0]], edges: [] })
     expect(node).toHaveClass('selected')
     expect(screen.getByTestId('rf__edge-edge:1000:1001')).toBeInTheDocument()

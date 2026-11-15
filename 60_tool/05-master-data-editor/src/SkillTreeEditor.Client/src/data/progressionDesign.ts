@@ -1,6 +1,6 @@
 import { replaceAtPointer, valueAtPointer } from './masterDataNavigation'
 import type { JsonObject, JsonValue } from '../types/editor'
-import type { DesignCheckpoint, DesignItem, DesignPreset, ProgressionDesignCatalog } from '../types/progressionDesign'
+import type { DesignCheckpoint, DesignEnchantChoice, DesignEquipment, DesignEquipmentEnchant, DesignItem, DesignPreset, ProgressionDesignCatalog } from '../types/progressionDesign'
 
 export const equipmentSlots = [
   ['MAIN_HAND', '武器'], ['OFF_HAND', 'オフハンド'], ['HEAD', '頭'], ['CHEST', '胴'], ['LEGS', '脚'], ['FEET', '足'],
@@ -31,7 +31,8 @@ export function appendDesignEntry(content: JsonValue, pointer: string, entry: Js
   return setDesignValue(content, pointer, [...(current ?? []), entry])
 }
 
-export function changeEquipment(content: JsonValue, checkpoint: DesignCheckpoint, slot: string, itemId: string | null, maxEnhanceLevel = 0): JsonValue {
+export function changeEquipment(content: JsonValue, checkpoint: DesignCheckpoint, slot: string, itemId: string | null,
+  maxEnhanceLevel = 0, compatibleEnchants: DesignEquipmentEnchant[] = []): JsonValue {
   const path = `${checkpoint.pointer}/equipment`
   const value = valueAtPointer(content, path)
   if (!Array.isArray(value)) throw new Error('装備一覧が見つかりません。再読込してください。')
@@ -42,7 +43,48 @@ export function changeEquipment(content: JsonValue, checkpoint: DesignCheckpoint
   }
   const previous = index < 0 ? {} : objectValue(value[index])
   const replacement = { ...previous, slot, item: `item:${itemId}`, enhanceLevel: Math.min(Number(previous.enhanceLevel ?? 0), maxEnhanceLevel) }
+  if (previous.item !== replacement.item) {
+    if (compatibleEnchants.length) Object.assign(replacement, { enchants: compatibleEnchants.map(enchant => ({ ...enchant })) })
+    else delete (replacement as JsonObject).enchants
+  }
   return setDesignValue(content, path, index < 0 ? [...value, replacement] : value.map((entry, i) => i === index ? replacement : entry))
+}
+
+/** Apply the customization as one undoable edit, checking the row that was opened. */
+export function setEquipmentOptions(content: JsonValue, checkpoint: DesignCheckpoint, equipment: DesignEquipment,
+  enhanceLevel: number, enchants: DesignEquipmentEnchant[]): JsonValue {
+  const row = objectValue(valueAtPointer(content, equipment.pointer))
+  if (row.slot !== equipment.slot || row.item !== `item:${equipment.itemId}` || valueAtPointer(content, `${checkpoint.pointer}/level`) !== checkpoint.level)
+    throw new Error('装備またはレベル段階が変更されています。図の更新を待って選び直してください。')
+  if (row.enchants !== undefined && (!Array.isArray(row.enchants) || row.enchants.length !== (equipment.enchants?.length ?? 0)))
+    throw new Error('読み取れない付与設定があります。ビルドの詳細で原稿を確認してください。')
+  const next = { ...row, enhanceLevel }
+  if (enchants.length) Object.assign(next, { enchants: enchants.map(enchant => ({ ...enchant })) })
+  else delete (next as JsonObject).enchants
+  return setDesignValue(content, equipment.pointer, next)
+}
+
+export const enchantEffectKey = (effectId: string) => effectId.trim().toLowerCase()
+export const enchantChoiceKey = (entry: Pick<DesignEquipmentEnchant, 'enchantMasterId' | 'effectId'>) =>
+  `${entry.enchantMasterId.toLowerCase()}/${enchantEffectKey(entry.effectId)}`
+
+export function compatibleEnchantChoices(item: DesignItem, catalog: ProgressionDesignCatalog) {
+  return (item.maxEnchantSlots ?? 0) > 0 ? (catalog.enchantChoices ?? []).filter(choice => choice.equipmentType === item.enchantEquipmentType) : []
+}
+
+export function enchantAmount(text: string, choice: DesignEnchantChoice): string | undefined {
+  if (!/^-?(?:\d+(?:\.\d{0,4})?|\.\d{1,4})$/.test(text.trim())) return undefined
+  const value = Number(text)
+  return Number.isFinite(value) && value >= choice.min && value <= choice.max && Math.abs(value) <= 100_000_000_000
+    ? String(value) : undefined
+}
+
+export function retainEquipmentEnchants(enchants: DesignEquipmentEnchant[], item: DesignItem, catalog: ProgressionDesignCatalog) {
+  const choices = new Map(compatibleEnchantChoices(item, catalog).map(choice => [enchantChoiceKey(choice), choice]))
+  return enchants.filter(entry => {
+    const choice = choices.get(enchantChoiceKey(entry))
+    return choice && enchantAmount(entry.value, choice) !== undefined
+  }).slice(0, item.maxEnchantSlots ?? 0)
 }
 
 export function equipmentRestriction(item: DesignItem, slot: string, preset: DesignPreset, checkpoint: DesignCheckpoint, catalog: ProgressionDesignCatalog): string | undefined {

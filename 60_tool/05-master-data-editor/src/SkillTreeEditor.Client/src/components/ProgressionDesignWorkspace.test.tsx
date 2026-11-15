@@ -236,6 +236,74 @@ describe('ProgressionDesignWorkspace', () => {
     await waitFor(() => expect(masterDataApi.save).toHaveBeenCalledExactlyOnceWith(buildPath, raw(expected), 'original'))
   })
 
+  it('saves the selected equipment enhancement and compatible enchant together and reads both back', async () => {
+    const enchant = { enchantMasterId: 'enchant:basic', effectId: 'weapon_attack', value: '3.125' }
+    const choice = { ...enchant, equipmentType: 'WEAPON', name: '攻撃力', type: 'FLAT', min: 1, max: 5, sourceItemId: 'orb' }
+    const enchantCatalog: ProgressionDesignCatalog = {
+      ...fixture,
+      items: [{ ...fixture.items[0], maxEnchantSlots: 1, enchantEquipmentType: 'WEAPON' }, fixture.items[1],
+        { ...sword('orb', '付与のオーブ', 0), icon: 'NETHER_STAR', category: 'orb' }],
+      enchantChoices: [choice, { ...choice, equipmentType: 'ARMOR', name: '防御力', effectId: 'armor_defence' }],
+    }
+    const savedCatalog: ProgressionDesignCatalog = {
+      ...enchantCatalog,
+      presets: enchantCatalog.presets.map(preset => preset.id !== knight.id ? preset : {
+        ...preset, checkpoints: preset.checkpoints.map(checkpoint => checkpoint.level !== 10 ? checkpoint : {
+          ...checkpoint, equipment: checkpoint.equipment.map(gear => ({ ...gear, enhanceLevel: 5, enchants: [enchant] })),
+        }),
+      }),
+    }
+    let saved = false
+    vi.mocked(progressionDesignApi.catalog).mockImplementation(async () => saved ? savedCatalog : enchantCatalog)
+    vi.mocked(progressionDesignApi.preview).mockResolvedValue(savedCatalog)
+    vi.mocked(masterDataApi.save).mockImplementation(async (path, content) => {
+      saved = true
+      return savedDocument(path, JSON.parse(content), 'written')
+    })
+
+    const user = await loadWorkspace()
+    const edit = () => screen.getByRole('button', { name: '武器の強化・付与を編集' })
+    await user.click(edit())
+    const dialog = () => within(screen.getByRole('dialog', { name: '装備の強化・エンチャント' }))
+    await user.selectOptions(dialog().getByRole('combobox', { name: '強化値' }), '5')
+    const add = () => dialog().getByRole('button', { name: /エンチャントを選択/ })
+    await user.click(add())
+    const choices = within(screen.getByRole('dialog', { name: '付与エンチャントを選択' }))
+    expect(choices.queryByRole('button', { name: /防御力/ })).not.toBeInTheDocument()
+    await user.click(choices.getByRole('button', { name: /攻撃力（加算）.*付与のオーブ/ }))
+    expect(add()).toBeDisabled()
+
+    const amount = dialog().getByRole('textbox', { name: '付与値 1' })
+    fireEvent.change(amount, { target: { value: '6' } })
+    expect(dialog().getByRole('button', { name: '下書きに反映' })).toBeDisabled()
+    fireEvent.change(amount, { target: { value: '3.125' } })
+    await user.click(dialog().getByRole('button', { name: '下書きに反映' }))
+    await waitFor(() => expect(saveButton()).toBeEnabled())
+    await user.click(saveButton())
+    await user.click(within(await screen.findByRole('dialog', { name: '装備・進行設計の変更を確認' })).getByRole('button', { name: '1件を保存' }))
+    await waitFor(() => expect(masterDataApi.save).toHaveBeenCalledWith(buildPath, raw({ levels: [
+      buildContent.levels[0],
+      { level: 10, equipment: [{ slot: 'MAIN_HAND', item: 'item:old_sword', enhanceLevel: 5, enchants: [enchant] }] },
+    ] }), 'original'))
+    await waitFor(() => expect(edit()).toBeEnabled())
+    await user.click(edit())
+    expect(dialog().getByRole('combobox', { name: '強化値' })).toHaveValue('5')
+    expect(dialog().getByRole('textbox', { name: '付与値 1' })).toHaveValue('3.125')
+  })
+
+  it('collapses the upper controls while leaving the route graph visible', async () => {
+    const user = await loadWorkspace()
+    const separator = screen.getByRole('separator', { name: '上部設定と入手経路の高さを変更' })
+    expect(separator).toHaveAttribute('aria-orientation', 'horizontal')
+    fireEvent.keyDown(separator, { key: 'Home' })
+    expect(separator).toHaveAttribute('aria-valuenow', '200')
+    await user.click(screen.getByRole('button', { name: '上部を折りたたむ' }))
+    expect(screen.queryByRole('combobox', { name: '職業' })).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: '入手経路の図' })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: '上部を表示' }))
+    expect(screen.getByRole('combobox', { name: '職業' })).toBeVisible()
+  })
+
   it('edits the selected duplicate item route and presents shared rolls and pick as count fields', async () => {
     const user = await loadWorkspace()
     await user.click(inspector().getByRole('button', { name: /市場の店/ }))
@@ -415,8 +483,8 @@ describe('ProgressionDesignWorkspace', () => {
       }) }
     })
     const user = await loadWorkspace()
+    await user.click(screen.getByRole('button', { name: 'アカウント進行' }))
     const account = screen.getByText('アカウント進行設定').closest('details')!
-    await user.click(screen.getByText('アカウント進行設定'))
     const section = within(account)
     const classLevel = section.getByRole('textbox', { name: '職業レベル /levels/1/classLevel' })
     fireEvent.change(classLevel, { target: { value: '41' } })
