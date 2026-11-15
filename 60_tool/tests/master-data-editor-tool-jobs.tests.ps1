@@ -70,16 +70,18 @@ try {
         plugin=@{enabled=$false;deployPath=(Join-Path $dev 'plugins')}
         api=@{enabled=$false};web=@{enabled=$false}
         fileDatabase=@{enabled=$true;sourcePath=(Join-Path $workspace 'source-filebase');deployPath=(Join-Path $dev 'filebase')}
-        devWorkflow=@{runRoot='';seedMasterData=$true;migration=$migration}
+        devWorkflow=@{seedMasterData=$true;migration=$migration}
     }
     Write-TestJson $deploy $config
 
     $plan03 = Invoke-TestPlan @{toolId='03';recovery='Auto'}
     Assert-JobTest ($plan03.canRun -and $plan03.workspaceMismatch) '03 must disclose the effective source mismatch.'
     Assert-JobTest ($plan03.paths[0].source -eq $deploy.fileDatabase.sourcePath) '03 must show the configured source.'
+    Assert-JobTest (($plan03.summary -join ' ').Contains((Join-Path $testTool '03-master-data-reload/runs'))) 'An omitted runRoot must resolve to the 03 output directory.'
     Assert-JobTest ('workspaceMismatch' -in $plan03.confirmations.id) '03 must require a separate mismatch confirmation.'
     $plan01 = Invoke-TestPlan @{toolId='01';pluginTestMode='All';recovery='Auto'}
     Assert-JobTest ($plan01.canRun -and $plan01.paths[0].destination -eq $deploy.fileDatabase.deployPath) '01 plan should use its actual destination.'
+    Assert-JobTest (($plan01.summary -join ' ').Contains((Join-Path $testTool '01-deploy-debug/runs'))) '01 and 03 must use separate output directories.'
     $deploy.plugin = @{
         enabled=$true;deployPath=(Join-Path $dev 'plugins');projectPath=(Join-Path $workspace 'missing-plugin')
         buildOutputPath=(Join-Path $workspace 'missing-plugin/dist');artifactPattern='AstralRecord-*.jar'
@@ -96,13 +98,14 @@ try {
 
     Set-Content -LiteralPath (Join-Path $dev 'plugins/Fixture.jar') -Value 'fixture'
     $maintenance = @{
-        schemaVersion=1;workflow=@{runRoot='';seedMasterData=$false};migration=$migration
+        schemaVersion=1;workflow=@{seedMasterData=$false};migration=$migration
         servers=@(@{id='Dev';enabled=$true;rootPath=$dev},@{id='Channel';enabled=$true;rootPath=$channel})
         distributions=@(@{enabled=$true;kind='Jar';source='Dev';relativePath='plugins/Fixture.jar';targets=@('Channel')})
     }
     Write-TestJson $maintenance (Join-Path $testTool '16-maintenance/maintenance.local.json')
     $plan16 = Invoke-TestPlan @{toolId='16';worldCopy='Skip';networkPlugins='Skip';recovery='Auto'}
     Assert-JobTest ($plan16.canRun -and $plan16.paths[0].destination -eq (Join-Path $channel 'plugins/Fixture.jar')) '16 preview must use existing selection and distribution paths.'
+    Assert-JobTest (($plan16.summary -join ' ').Contains((Join-Path $testTool '16-maintenance/runs'))) 'An omitted runRoot must resolve to the 16 output directory.'
     Assert-JobTest (!(Test-Path -LiteralPath (Join-Path $channel 'plugins/Fixture.jar'))) '16 plan must not copy the artifact.'
 
     Set-Content -LiteralPath (Join-Path $workspace '10_plugin/AstralRecordLobby/pom.xml') -Value '<project/>'
