@@ -4,7 +4,7 @@
 .material-icon-input-controls { flex: 1; min-width: 0; display: grid; gap: 6px; }
 .material-icon-input-actions { display: flex; flex-wrap: wrap; gap: 5px; }
 .material-picker-loading { position: fixed; inset: 0; z-index: 400; display: grid; place-items: center; color: var(--text); background: #05070bd9; }
-.material-picker-loading-panel { padding: 24px; background: #141c29; border: 1px solid var(--line-bright); border-radius: 8px; }
+.material-picker-loading-panel { padding: 24px; background: var(--surface); border: 1px solid var(--line-bright); border-radius: 8px; }
 .material-node-form-lock { margin: 0; padding: 0; border: 0; min-width: 0; }
 .master-file-identity { align-items: center; gap: 9px !important; }
 .master-file-identity .master-list-icon { width: 34px; height: 34px; padding: 3px; }

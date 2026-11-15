@@ -1,8 +1,8 @@
 .master-reference-collection {
-  border: 1px solid #3b4c67;
+  border: 1px solid var(--line);
   border-radius: 10px;
   padding: 12px;
-  background: #141e2b;
+  background: var(--surface);
 }
 .master-collection-header, .master-collection-picker-header, .master-collection-picker-footer {
   display: flex;
@@ -11,9 +11,9 @@
   justify-content: space-between;
   gap: 8px 14px;
 }
-.master-collection-header h4 { margin: 0; color: #edf4fc; font-size: 1rem; }
-.master-collection-header h4 small { margin-left: 6px; color: #b0bfd4; font-size: .8rem; }
-.master-collection-empty { padding: 12px; margin: 10px 0 0; color: #c5d2e3; border: 1px dashed #43536b; border-radius: 7px; }
+.master-collection-header h4 { margin: 0; color: var(--text); font-size: 1rem; }
+.master-collection-header h4 small { margin-left: 6px; color: var(--text-muted); font-size: .8rem; }
+.master-collection-empty { padding: 12px; margin: 10px 0 0; color: var(--text-muted); border: 1px dashed var(--line-bright); border-radius: 7px; }
 .master-collection-rows { display: grid; gap: 7px; list-style: none; padding: 0; margin: 8px 0 0; }
 .master-collection-rows:empty { margin: 0; }
 .master-collection-row {
@@ -22,9 +22,9 @@
   align-items: center;
   gap: 6px 12px;
   padding: 7px;
-  border: 1px solid #32445d;
+  border: 1px solid var(--line);
   border-radius: 8px;
-  background: #1c293b;
+  background: var(--surface-raised);
 }
 .master-collection-identity, .master-collection-option {
   display: flex;
@@ -44,9 +44,9 @@
 .master-collection-identity.unresolved { flex-wrap: wrap; }
 .master-collection-identity.unresolved small { color: #eac27e; }
 .master-collection-identity > span:not(.minecraft-icon), .master-collection-option > span:not(.minecraft-icon) { min-width: 0; }
-.master-collection-identity code, .master-collection-option code { display: block; overflow-wrap: anywhere; color: #b0bfd4; font-size: .75rem; }
+.master-collection-identity code, .master-collection-option code { display: block; overflow-wrap: anywhere; color: var(--text-muted); font-size: .75rem; }
 .master-reference-icon { width: 38px; height: 38px; }
-.master-collection-arrow { margin-inline-start: auto; color: #a9cbff; }
+.master-collection-arrow { margin-inline-start: auto; color: var(--accent); }
 .master-collection-values, .master-collection-actions {
   display: flex;
   flex-wrap: wrap;
@@ -54,17 +54,17 @@
   gap: 4px;
 }
 .master-collection-values { align-items: start; gap: 7px; }
-.master-collection-value { display: grid; align-content: start; gap: 2px; width: 84px; font-size: .72rem; color: #c6d4e8; }
+.master-collection-value { display: grid; align-content: start; gap: 2px; width: 84px; font-size: .72rem; color: var(--text-muted); }
 .master-collection-values fieldset { min-width: 0; padding: 0; border: 0; margin: 0; }
 .master-collection-values input { min-width: 0; width: 100%; }
-.master-collection-status { margin-left: 6px; color: #b0bfd4; font-size: .72rem; }
+.master-collection-status { margin-left: 6px; color: var(--text-muted); font-size: .72rem; }
 .master-reference-symbol { color: var(--accent); }
-.master-collection-picker { margin-top: 8px; padding: 10px; background: #111a28; border: 1px solid #465d7e; border-radius: 8px; }
+.master-collection-picker { margin-top: 8px; padding: 10px; background: var(--surface-sidebar); border: 1px solid var(--line-bright); border-radius: 8px; }
 .master-collection-picker-header label { flex: 1; min-width: min(220px, 100%); }
 .master-collection-picker-header input { width: 100%; margin-top: 3px; }
 .master-collection-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: 5px; }
-.master-collection-option { border: 1px solid #374f6d; background: #1c293b; border-radius: 6px; cursor: pointer; }
-button.master-collection-identity:not(:disabled):hover, .master-collection-option:not(:disabled):hover { background: #2c405a; border-color: #5877a1; cursor: pointer; }
+.master-collection-option { border: 1px solid var(--line); background: var(--surface-raised); border-radius: 6px; cursor: pointer; }
+button.master-collection-identity:not(:disabled):hover, .master-collection-option:not(:disabled):hover { background: var(--accent-soft); border-color: var(--accent); cursor: pointer; }
 .master-collection-picker-footer { margin-top: 8px; }
 .master-reference-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px; }
 .master-reference-selection { display: flex; align-items: center; gap: 8px; min-width: 0; grid-column: 1 / -1; overflow-wrap: anywhere; }

@@ -5,14 +5,14 @@
 .master-category-tree { overflow: auto; min-height: 0; padding: 3px 0 6px; }
 .master-category-tree li { outline: none; }
 .master-category-row { position: relative; display: flex; align-items: center; gap: 4px; min-height: 34px; padding: 4px 7px 4px calc(4px + var(--category-depth) * 16px); cursor: pointer; color: var(--text); font-size: 12px; border-left: 2px solid transparent; }
-.master-category-row:hover { background: #263249; }
-.master-category-row.selected { background: var(--accent-soft); border-left-color: var(--accent); color: #e3fbf5; }
+.master-category-row:hover { background: var(--surface-soft); }
+.master-category-row.selected { background: var(--accent-soft); border-left-color: var(--accent); color: var(--accent); }
 .master-category-tree li:focus > .master-category-row { outline: 2px solid var(--accent); outline-offset: -2px; }
 .master-category-guides { position: absolute; inset: 0 auto 0 4px; display: flex; pointer-events: none; }
 .master-category-guides i { display: block; width: 16px; border-right: 1px solid #334157; }
 .master-category-chevron { display: flex; align-items: center; justify-content: center; width: 20px; height: 24px; flex: 0 0 20px; border-radius: 3px; color: #aab7cb; }
 .master-category-chevron svg { display: block; width: 14px; height: 14px; }
-.master-category-chevron.expandable:hover { background: #496182; color: white; }
+.master-category-chevron.expandable:hover { background: var(--surface-soft); color: var(--accent); }
 .master-category-icon { width: 16px; height: 17px; flex: 0 0 16px; color: #d4b677; }
 .master-category-number { color: #99aac1; font-size: 10px; font-variant-numeric: tabular-nums; }
 .master-category-name { overflow-wrap: anywhere; min-width: 0; flex: 1; }
