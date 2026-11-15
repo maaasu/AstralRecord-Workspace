@@ -461,7 +461,7 @@ public sealed class ProgressionDesignTests : IDisposable
             id: basic
             targets:
               - equipmentType: WEAPON
-                entries: [{ effectId: attack, status: ATTACK, type: FLAT, value: "1~4", weight: 1 }]
+                entries: [{ effectId: attack, status: ATTACK, type: FLAT, value: "1.000000000000000000000000000001~4", weight: 1 }]
               - equipmentType: ARMOR
                 entries: [{ effectId: guard, status: GUARD, type: SCALAR, value: "1.2", weight: 1 }]
             """);
@@ -490,7 +490,7 @@ public sealed class ProgressionDesignTests : IDisposable
         var catalog = await _service.ReadAsync(default);
         Assert.Equal(1, catalog.Items.Single(item => item.Id == "sword").MaxEnchantSlots);
         Assert.Contains(catalog.EnchantChoices, choice => choice is
-            { EquipmentType: "WEAPON", Name: "攻撃力", SourceItemId: "orb", Min: 1, Max: 4 });
+            { EquipmentType: "WEAPON", Name: "攻撃力", SourceItemId: "orb", Min: 1.0001m, Max: 4 });
         var gear = Assert.Single(Assert.Single(Assert.Single(catalog.Presets).Checkpoints).Equipment);
         Assert.Equal(new ProgressionDesignEnchant("enchant:basic", "attack", "2.125"), Assert.Single(gear.Enchants));
 
@@ -501,6 +501,11 @@ public sealed class ProgressionDesignTests : IDisposable
         await ProgressionPresetValidation.ValidateAsync(paths, codec, presetPath, preset, issues, default);
         Assert.DoesNotContain(issues, issue => issue.Severity == "error");
         var enchants = preset["levels"]![0]!["equipment"]![0]!["enchants"]!.AsArray();
+        enchants[0]!["value"] = "1";
+        await ProgressionPresetValidation.ValidateAsync(paths, codec, presetPath, preset, issues, default);
+        Assert.Contains(issues, issue => issue.Code == "PROGRESSION_PRESET_ENCHANT_VALUE");
+        issues.Clear();
+
         enchants[0]!["value"] = "2.12501";
         enchants.Add(enchants[0]!.DeepClone());
         enchants.Add(JsonNode.Parse("""{ "enchantMasterId": "enchant:basic", "effectId": "guard", "value": "1.2" }"""));
@@ -526,6 +531,37 @@ public sealed class ProgressionDesignTests : IDisposable
         Assert.Null(Read("1.000000000000000000000000000001"));
         Assert.Null(Read("1e-4"));
         Assert.Null(ProgressionEquipmentEnchants.Value(JsonValue.Create(1.25)));
+    }
+
+    [Theory]
+    [InlineData("-1.000000000000000000000000000001~-2", -20000L, -10001L)]
+    [InlineData(" 1.2300e+1 ", 123000L, 123000L)]
+    [InlineData("1e-2147483647~0.002", 1L, 20L)]
+    [InlineData("-1e-2147483647~0", 0L, 0L)]
+    [InlineData("1e+2147483647~99999999999.9998", 999999999999998L, 1000000000000000L)]
+    [InlineData("-1e+100~-99999999999.9998", -1000000000000000L, -999999999999998L)]
+    [InlineData("100000000000.0000000000000000000001~1e+100", null, null)]
+    [InlineData("1.000000000000000000000000000001", null, null)]
+    [InlineData("1.00001~1.00009", null, null)]
+    [InlineData("1e+2147483648~0", null, null)]
+    public void EnchantChoicesKeepOnlyRepresentableValuesWithinTheExactMasterRange(string range, long? min, long? max)
+    {
+        var master = JsonNode.Parse("""
+            { "id": "basic", "targets": [{ "equipmentType": "WEAPON", "entries": [
+                { "effectId": "attack", "status": "ATTACK", "type": "FLAT", "weight": 1 }
+            ] }] }
+            """)!.AsObject();
+        master["targets"]![0]!["entries"]![0]!["value"] = range;
+        var effects = ProgressionEquipmentEnchants.Read(master);
+
+        if (min is null)
+        {
+            Assert.Empty(effects);
+            return;
+        }
+        var effect = Assert.Single(effects);
+        Assert.Equal(min / 10000m, effect.Min);
+        Assert.Equal(max / 10000m, effect.Max);
     }
 
     private void Write(string path, string content)
