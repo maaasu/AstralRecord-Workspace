@@ -8,6 +8,19 @@ const original = { levels: [
 const checkpoint = { pointer: '/levels/1', level: 10 }
 
 describe('account progression edits', () => {
+  it('removes invalid existing values without permitting them for new assignments', () => {
+    const broken = { levels: [{ ...original.levels[1], nodes: [0, 10], skills: [
+      { slot: 1, skill: 'skill:slash', sigils: [{ slot: 0, item: 'item:red' }] }, { slot: 9, skill: 'skill:burst' },
+    ] }] }
+    const at = { pointer: '/levels/0', level: 10 }
+    const repaired = setAccountSkill(setAccountSigil(setAccountNode(broken, at, 0, false), at, 'skills', 1, 0, null), at, 'skills', 9, null) as typeof broken
+    expect(repaired.levels[0].nodes).toEqual([10])
+    expect(repaired.levels[0].skills).toEqual([{ slot: 1, skill: 'skill:slash', sigils: [] }])
+    expect(repaired.levels[0].equipment).toEqual(broken.levels[0].equipment)
+    expect(() => setAccountNode(broken, at, 0, true)).toThrow('有効なノード')
+    expect(() => setAccountSkill(broken, at, 'skills', 9, 'slash')).toThrow('有効なスキル枠')
+    expect(() => setAccountSigil(broken, at, 'skills', 1, 0, 'red')).toThrow('有効なシジル枠')
+  })
   it('targets only the selected checkpoint and keeps equipment and other level rows', () => {
     const next = setAccountNode(setAccountClassLevel(original, checkpoint, 25), checkpoint, 12, true) as typeof original
     expect(next.levels[0]).toEqual(original.levels[0])

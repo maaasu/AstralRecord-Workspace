@@ -297,6 +297,123 @@ public sealed class ProgressionDesignTests : IDisposable
         Assert.Empty(usage.Quantity);
     }
 
+    [Fact]
+    public async Task AccountCatalogIncludesNodeIdsAndSkillBindingRules()
+    {
+        Write("20.features.class/v1.swordsman.yml", """
+            id: swordsman
+            maxLevel: 75
+            usableSkills: ["skill:slash"]
+            """);
+        Write("35.features.skilltree/nodes/1047.json", """
+            {"nodeId":"1047","name":"Meditation node","icon":"CAMPFIRE","customModelData":42,"effects":[{"type":"skill","skillId":"meditation"},{"type":"status","status":"MAX_HEALTH","value":5}]}
+            """);
+        Write("35.features.skilltree/nodes/1048.json", """
+            {"nodeId":1048,"name":"Health node","icon":"APPLE"}
+            """);
+        Write("30.features.skill/v1.meditation.yml", """
+            id: meditation
+            name: Meditation
+            icon: CAMPFIRE
+            requiredLevel: 3
+            maxLevel: 5
+            passive: { bindRequired: false }
+            sigilSlotsByLevel:
+              - { level: 1, slots: 1 }
+              - { level: 4, slots: 2 }
+            allowedSigilIds: [sigil_a]
+            """);
+        Write("30.features.skill/v1.slash.yml", """
+            id: slash
+            name: Slash
+            icon: IRON_SWORD
+            """);
+        Write("10.features.item/70.sigil/v1.sigil_a.yml", """
+            id: sigil_a
+            name: Sigil A
+            category: sigil
+            sigil: { equipGroupId: cooldown }
+            """);
+
+        var catalog = await _service.ReadAsync(default);
+        Assert.Equal(75, Assert.Single(catalog.Classes).MaxLevel);
+        Assert.Equal(["slash"], Assert.Single(catalog.Classes).UsableSkillIds);
+        Assert.Equal([1047, 1048], catalog.Nodes.Select(node => node.Id));
+        var node = catalog.Nodes[0];
+        Assert.Equal("Meditation node", node.Name);
+        Assert.Equal("CAMPFIRE", node.Icon);
+        Assert.Equal(42, node.CustomModelData);
+        Assert.Equal("35.features.skilltree/nodes/1047.json", node.Path);
+        Assert.Equal(["meditation"], node.SkillIds);
+        var passive = Assert.Single(catalog.Skills, skill => skill.Passive);
+        Assert.False(passive.BindRequired);
+        Assert.Equal(3, passive.RequiredLevel);
+        Assert.Equal(5, passive.MaxLevel);
+        Assert.Equal([1, 2], passive.SigilSlotsByLevel.Select(entry => entry.Slots));
+        Assert.Equal(["sigil_a"], passive.AllowedSigilIds);
+        var active = Assert.Single(catalog.Skills, skill => !skill.Passive);
+        Assert.True(active.BindRequired);
+        Assert.Equal(1, active.MaxLevel);
+        Assert.Equal("cooldown", Assert.Single(catalog.Items).SigilEquipGroupId);
+        Assert.Contains(node.Path, catalog.Revisions.Keys);
+    }
+
+    [Fact]
+    public async Task PreviewCarriesAccountAssignmentsAndLocationsWithoutChangingOtherCheckpoints()
+    {
+        const string path = "36.features.progression_preset/v1.build.yml";
+        Write(path, """
+            id: build
+            classId: swordsman
+            buildId: sword
+            levels:
+              - level: 1
+                classLevel: 1
+                nodes: [1047]
+                equipment: [{ slot: MAIN_HAND, item: "item:sword" }]
+                skills: [{ slot: 1, skill: "skill:slash" }]
+              - level: 20
+                classLevel: 16
+                nodes: [1047, 1048]
+                equipment: [{ slot: MAIN_HAND, item: "item:advanced", enhanceLevel: 2 }]
+                skills:
+                  - slot: 2
+                    skill: skill:slash
+                    skillLevel: 4
+                    sigils: [{ slot: 1, item: "item:sigil_a" }]
+                passives: [{ slot: 1, skill: "skill:meditation" }]
+            """);
+        var initial = await _service.ReadAsync(default);
+        var level = Assert.Single(initial.Presets).Checkpoints[1];
+        Assert.Equal([1047, 1048], level.Nodes);
+        var assignment = Assert.Single(level.Skills);
+        Assert.Equal("slash", assignment.SkillId);
+        Assert.Equal("/levels/1/skills/0", assignment.Pointer);
+        Assert.Equal(4, assignment.SkillLevel);
+        var sigil = Assert.Single(assignment.Sigils);
+        Assert.Equal("sigil_a", sigil.ItemId);
+        Assert.Equal("/levels/1/skills/0/sigils/0", sigil.Pointer);
+        Assert.Contains(initial.Usages, usage => usage.ItemId == "sigil_a"
+            && usage.Pointer == sigil.Pointer && usage.Path == path && usage.Name.Contains("装着シジル"));
+        Assert.Equal(1, Assert.Single(level.Passives).SkillLevel);
+        Assert.Empty(initial.Presets[0].Checkpoints[0].Passives);
+
+        var content = new MasterDataCodec().Parse(path, File.ReadAllText(Path.Combine(_root, "40_filebase", path))).Content!.AsObject();
+        content["levels"]![1]!["classLevel"] = 19;
+        content["levels"]![1]!["nodes"] = new JsonArray(1047);
+        content["levels"]![1]!["skills"]![0]!["skillLevel"] = 3;
+        var preview = await _service.PreviewAsync(new([new(path, content, initial.Revisions[path])]), default);
+        var changed = preview.Presets[0].Checkpoints[1];
+        Assert.Equal(19, changed.ClassLevel);
+        Assert.Equal([1047], changed.Nodes);
+        Assert.Equal(3, Assert.Single(changed.Skills).SkillLevel);
+        Assert.Equal(level.Equipment, changed.Equipment);
+        Assert.Equal("sword", Assert.Single(preview.Presets[0].Checkpoints[0].Equipment).ItemId);
+        var reloaded = await _service.ReadAsync(default, reload: true);
+        Assert.Equal(16, reloaded.Presets[0].Checkpoints[1].ClassLevel);
+        Assert.Equal(4, Assert.Single(reloaded.Presets[0].Checkpoints[1].Skills).SkillLevel);
+    }
+
     private void Write(string path, string content)
     {
         var fullPath = Path.Combine(_root, "40_filebase", path);

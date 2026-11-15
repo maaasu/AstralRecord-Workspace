@@ -9,21 +9,36 @@ public sealed record ProgressionDesignCatalog(
     IReadOnlyList<ProgressionDesignSource> Sources,
     IReadOnlyList<ProgressionDesignUsage> Usages,
     IReadOnlyList<ProgressionDesignAddTarget> AddTargets,
-    IReadOnlyDictionary<string, string> Revisions);
+    IReadOnlyDictionary<string, string> Revisions,
+    IReadOnlyList<ProgressionDesignSkill> Skills,
+    IReadOnlyList<ProgressionDesignNode> Nodes);
 
-public sealed record ProgressionDesignClass(string Id, string Name, string Path, IReadOnlyList<string> PrerequisiteClassIds);
+public sealed record ProgressionDesignClass(string Id, string Name, string Path, IReadOnlyList<string> PrerequisiteClassIds,
+    int MaxLevel = 0, IReadOnlyList<string>? UsableSkillIds = null);
 
 public sealed record ProgressionDesignPreset(string Id, string Name, string Path, string ClassId, string BuildId,
     IReadOnlyList<ProgressionDesignCheckpoint> Checkpoints);
 
 public sealed record ProgressionDesignCheckpoint(int Level, int ClassLevel, string Pointer,
-    IReadOnlyList<ProgressionDesignEquipment> Equipment);
+    IReadOnlyList<ProgressionDesignEquipment> Equipment, IReadOnlyList<int> Nodes,
+    IReadOnlyList<ProgressionDesignSkillAssignment> Skills, IReadOnlyList<ProgressionDesignSkillAssignment> Passives);
+
+public sealed record ProgressionDesignSkillAssignment(int Slot, string SkillId, string Pointer, int SkillLevel,
+    IReadOnlyList<ProgressionDesignSigilAssignment> Sigils);
+public sealed record ProgressionDesignSigilAssignment(int Slot, string ItemId, string Pointer);
+public sealed record ProgressionDesignSigilSlots(int Level, int Slots);
+public sealed record ProgressionDesignSkill(string Id, string Name, string Path, string? Icon, string? IconTexture,
+    int? CustomModelData, bool Passive, bool BindRequired, int RequiredLevel, int MaxLevel,
+    IReadOnlyList<ProgressionDesignSigilSlots> SigilSlotsByLevel, IReadOnlyList<string> AllowedSigilIds);
+public sealed record ProgressionDesignNode(int Id, string Name, string Path, string? Icon, string? IconTexture,
+    int? CustomModelData, IReadOnlyList<string> SkillIds);
 
 public sealed record ProgressionDesignEquipment(string Slot, string ItemId, string Pointer, int EnhanceLevel);
 
 public sealed record ProgressionDesignItem(string Id, string Name, string Path, string? Category, string? Rarity, string? Icon,
     string? IconTexture, int? CustomModelData, string? Slot, string? HandType, int RequiredLevel,
-    IReadOnlyList<string> RequiredClasses, IReadOnlyList<string> CompatibleSlots, int MaxEnhanceLevel);
+    IReadOnlyList<string> RequiredClasses, IReadOnlyList<string> CompatibleSlots, int MaxEnhanceLevel,
+    string? SigilEquipGroupId = null);
 
 public sealed record ProgressionDesignLocation(string Path, string Pointer);
 public sealed record ProgressionDesignField(string Path, string Pointer, JsonNode Value);

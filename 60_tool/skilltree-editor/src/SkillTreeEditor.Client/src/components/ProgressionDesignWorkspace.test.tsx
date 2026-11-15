@@ -321,6 +321,7 @@ describe('ProgressionDesignWorkspace', () => {
     })
     const user = await loadWorkspace()
     const account = screen.getByText('アカウント進行設定').closest('details')!
+    await user.click(screen.getByText('アカウント進行設定'))
     const section = within(account)
     const classLevel = section.getByRole('textbox', { name: '職業レベル /levels/1/classLevel' })
     fireEvent.change(classLevel, { target: { value: '41' } })
