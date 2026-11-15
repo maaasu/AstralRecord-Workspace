@@ -35,7 +35,7 @@ export function AccountProgressionPanel({ catalog, preset, checkpoint, disabled,
   })) : picker?.kind === 'skill' ? (catalog.skills ?? []).filter(skill => skill.passive === (picker.list === 'passives')).map(skill => ({
     ...skill, category: skill.passive ? 'パッシブ' : 'アクティブ',
     description: `必要プレイヤーLv.${skill.requiredLevel} · 最大スキルLv.${skill.maxLevel}`,
-    disabledReason: permittedSkills && !permittedSkills.has(skill.id) ? 'この職業・習得ノードでは使用できません。対応するノードを先に設定してください'
+    disabledReason: permittedSkills && !permittedSkills.has(skill.id) ? 'この職業・習得ノード・スキルブックでは使用できません。対応するノードか本を先に設定してください'
       : skill.requiredLevel > checkpoint.level ? `この段階のLv.${checkpoint.level}では習得できません`
       : (checkpoint[picker.list] ?? []).some(entry => entry.slot !== picker.slot && entry.skillId === skill.id) ? '別の枠に設定済みです' : undefined,
   })) : picker?.kind === 'sigil' ? (() => {
@@ -79,7 +79,7 @@ export function AccountProgressionPanel({ catalog, preset, checkpoint, disabled,
           <div className="design-account-actions"><button className="button compact" disabled={disabled || !validSlot} onClick={() => setPicker({ kind: 'skill', list, slot: entry.slot })}>変更</button>{!(list === 'skills' && entry.slot === 1) && <button className="text-button" disabled={disabled} onClick={() => remove(content => setAccountSkill(content, checkpoint, list, entry.slot, null))}>外す</button>}</div>
           {!validSlot && <p role="alert" className="design-caption">この枠番号は無効です。外してから有効な枠に設定してください。</p>}
           {renderNumber({ path: preset.path, pointer: `${entry.pointer}/skillLevel`, value: entry.skillLevel }, `スキルLv.（${skillLabel(list)}${entry.slot}番枠）`, skill?.passive && !skill.bindRequired ? 1 : skill?.maxLevel)}
-          {permittedSkills && !permittedSkills.has(entry.skillId) && <p role="alert" className="design-caption">このスキルは現在の職業・習得ノードでは使用できません。対応するノードかスキルを設定してください。</p>}
+          {permittedSkills && !permittedSkills.has(entry.skillId) && <p role="alert" className="design-caption">このスキルは現在の職業・習得ノード・スキルブックでは使用できません。対応するノード・本かスキルを設定してください。</p>}
           {bindFree && <p className="design-caption">バインド不要のパッシブはスキルLv.1固定で、シジルは装着できません。</p>}
           {visibleSigils.limited && <p className="design-caption">解放枠は先頭24枠まで表示します。設定済みの枠はすべて表示しています。</p>}
           {visibleSigils.slots.length > 0 && <div className="design-account-sigils" role="group" aria-label={`${skillLabel(list)} ${entry.slot}番枠のシジル`}>{visibleSigils.slots.map(sigilSlot => {

@@ -38,7 +38,9 @@ public sealed record ProgressionDesignEquipment(string Slot, string ItemId, stri
 public sealed record ProgressionDesignItem(string Id, string Name, string Path, string? Category, string? Rarity, string? Icon,
     string? IconTexture, int? CustomModelData, string? Slot, string? HandType, int RequiredLevel,
     IReadOnlyList<string> RequiredClasses, IReadOnlyList<string> CompatibleSlots, int MaxEnhanceLevel,
-    string? SigilEquipGroupId = null);
+    string? SigilEquipGroupId = null, IReadOnlyList<string>? UsableSkillIds = null,
+    IReadOnlyList<ProgressionDesignClassRequirement>? RequiredClassLevels = null);
+public sealed record ProgressionDesignClassRequirement(string ClassId, int Level);
 
 public sealed record ProgressionDesignLocation(string Path, string Pointer);
 public sealed record ProgressionDesignField(string Path, string Pointer, JsonNode Value);

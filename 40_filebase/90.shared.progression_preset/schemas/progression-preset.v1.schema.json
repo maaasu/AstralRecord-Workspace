@@ -47,10 +47,10 @@
           },
           "equipment": {
             "title": "装備",
-            "description": "武器は必須です。各枠に対応する装備を一つずつ指定します。",
+            "description": "武器は必須です。通常装備、スキルブック、種類別アクセサリを各枠に一つずつ指定します。省略した枠は適用時に外します。",
             "type": "array",
             "minItems": 1,
-            "maxItems": 6,
+            "maxItems": 16,
             "contains": { "properties": { "slot": { "const": "MAIN_HAND" } }, "required": ["slot"] },
             "items": {
               "title": "装備するアイテム",
@@ -61,7 +61,7 @@
                 "slot": {
                   "title": "装備枠",
                   "type": "string",
-                  "enum": ["MAIN_HAND", "OFF_HAND", "HEAD", "CHEST", "LEGS", "FEET"]
+                  "enum": ["MAIN_HAND", "OFF_HAND", "HEAD", "CHEST", "LEGS", "FEET", "SKILLBOOK", "AMULET", "TALISMAN_1", "TALISMAN_2", "CHARM_1", "CHARM_2", "CHARM_3", "CORE", "RELIC_1", "RELIC_2"]
                 },
                 "item": { "title": "装備アイテム", "type": "string", "pattern": "^item:[a-z0-9]+(?:_[a-z0-9]+)*$" },
                 "enhanceLevel": {

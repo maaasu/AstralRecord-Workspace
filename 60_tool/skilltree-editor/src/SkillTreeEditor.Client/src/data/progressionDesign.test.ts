@@ -55,10 +55,15 @@ describe('progression design master updates', () => {
     expect(() => changeEquipment(content, checkpoint, 'MAIN_HAND', null)).toThrow('武器は必須')
   })
 
-  it('checks slots while leaving class and level requirements advisory at a preset checkpoint', () => {
-    expect(equipmentRestriction(item, 'MAIN_HAND', preset, checkpoint, catalog)).toBeUndefined()
+  it('checks the current class and both levels without accepting prerequisite classes as equipped classes', () => {
+    expect(equipmentRestriction(item, 'MAIN_HAND', preset, checkpoint, catalog)).toContain('必要プレイヤー')
     expect(equipmentRestriction(item, 'OFF_HAND', preset, checkpoint, catalog)).toContain('装備枠')
-    expect(equipmentRestriction({ ...item, requiredClasses: ['MAGE'] }, 'MAIN_HAND', preset, checkpoint, catalog)).toBeUndefined()
+    const lowLevel = { ...item, requiredLevel: 1 }
+    expect(equipmentRestriction(lowLevel, 'MAIN_HAND', preset, checkpoint, catalog)).toContain('職業')
+    const matching = { ...lowLevel, requiredClasses: ['warrior'], requiredClassLevels: [{ classId: 'warrior', level: 3 }] }
+    expect(equipmentRestriction(matching, 'MAIN_HAND', preset, checkpoint, catalog)).toContain('必要職業Lv.3')
+    expect(equipmentRestriction(matching, 'MAIN_HAND', preset, { ...checkpoint, classLevel: 3 }, catalog)).toBeUndefined()
+    expect(equipmentRestriction({ ...lowLevel, requiredClasses: [] }, 'MAIN_HAND', preset, checkpoint, catalog)).toBeUndefined()
   })
 
   it('adds escaped keys and missing lists through an existing array item without changing its siblings', () => {

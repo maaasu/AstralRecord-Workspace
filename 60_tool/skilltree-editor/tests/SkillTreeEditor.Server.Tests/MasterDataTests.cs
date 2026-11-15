@@ -30,6 +30,65 @@ public sealed class MasterDataTests : IDisposable
     }
 
     [Fact]
+    public async Task ProgressionEquipmentValidatesAccessoryTagsAndBothLevelRequirementsBeforeSaving()
+    {
+        const string path = "90.shared.progression_preset/v1.test.yml";
+        Write("90.shared.progression_preset/schemas/progression-preset.v1.schema.json", """{"type":"object"}""");
+        Write("20.features.class/v1.mage.yml", "id: mage\nusableSkills: [\"skill:slash\"]\n");
+        Write("10.features.item/20.equipment/v1.sword.yml", "id: sword\nequipment: { slot: WEAPON }\n");
+        Write("10.features.item/20.equipment/v1.charm.yml", "id: charm\nequipment: { slot: ACCESSORY, tag: CHARM }\n");
+        Write("10.features.item/20.equipment/v1.book.yml", """
+            id: book
+            equipment:
+              slot: SKILLBOOK
+              requiredLevel: 10
+              requiredClasses: [{ classId: mage, level: 3 }]
+              usableSkills: ["skill:meteor"]
+            """);
+        Write("30.features.skill/v1.slash.yml", "id: slash\nrequiredLevel: 1\nmaxLevel: 1\n");
+        Write("30.features.skill/v1.meteor.yml", "id: meteor\nrequiredLevel: 1\nmaxLevel: 1\n");
+        var raw = """
+            schemaVersion: 1
+            type: PROGRESSION_PRESET
+            id: test
+            name: Test
+            classId: mage
+            buildId: magic
+            levels:
+              - level: 1
+                classLevel: 1
+                nodes: []
+                equipment: [{ slot: MAIN_HAND, item: 'item:sword' }]
+                skills: [{ slot: 1, skill: 'skill:slash' }]
+              - level: 10
+                classLevel: 3
+                nodes: []
+                equipment:
+                  - { slot: MAIN_HAND, item: 'item:sword' }
+                  - { slot: SKILLBOOK, item: 'item:book' }
+                  - { slot: CHARM_2, item: 'item:charm' }
+                skills: [{ slot: 1, skill: 'skill:meteor' }]
+            """;
+        var valid = await _validation.ValidateAsync(path, raw, default);
+        Assert.True(valid.IsValid, string.Join(" / ", valid.Issues.Select(issue => issue.Message)));
+        var wrongSlot = await _validation.ValidateAsync(path, raw.Replace("slot: CHARM_2", "slot: RELIC_1"), default);
+        Assert.Contains(wrongSlot.Issues, issue => issue.Code == "PROGRESSION_PRESET_EQUIPMENT_SLOT");
+        var lowLevel = await _validation.ValidateAsync(path, raw.Replace("level: 10", "level: 9"), default);
+        Assert.Contains(lowLevel.Issues, issue => issue.Code == "PROGRESSION_PRESET_EQUIPMENT_LEVEL");
+        var lowClass = await _validation.ValidateAsync(path, raw.Replace("classLevel: 3", "classLevel: 2"), default);
+        Assert.Contains(lowClass.Issues, issue => issue.Code == "PROGRESSION_PRESET_EQUIPMENT_CLASS_LEVEL");
+        var withoutBook = raw.Replace("      - { slot: SKILLBOOK, item: 'item:book' }", "");
+        var forbidden = await _validation.ValidateAsync(path, withoutBook, default);
+        Assert.Contains(forbidden.Issues, issue => issue.Code == "PROGRESSION_PRESET_SKILL_PERMISSION");
+        Write("35.features.skilltree/nodes/1.json", """{"nodeId":"1","effects":[{"type":"skill","skillId":"meteor"}]}""");
+        var fromNode = await _validation.ValidateAsync(path, withoutBook.Replace("nodes: []", "nodes: [1]"), default);
+        Assert.DoesNotContain(fromNode.Issues, issue => issue.Code == "PROGRESSION_PRESET_SKILL_PERMISSION");
+        await _service.CreateAsync(new(path, raw), default);
+        Assert.Contains("SKILLBOOK", (await _service.ReadAsync(path, default)).Raw);
+        Assert.Contains("CHARM_2", (await _service.ReadAsync(path, default)).Raw);
+    }
+
+    [Fact]
     public async Task GatheringSpawnersUseTheSavedBukkitPathAndReadCurrentCoordinates()
     {
         const string file = "gathering_spawners.yml";

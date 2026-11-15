@@ -22,9 +22,9 @@ internal static class ProgressionPresetValidation
 
         var classId = MasterDataValidation.Text(preset["classId"]);
         var buildId = MasterDataValidation.Text(preset["buildId"]);
+        var classes = await ReadMastersAsync(paths, codec, "20.features.class", token);
         if (!string.IsNullOrWhiteSpace(classId))
         {
-            var classes = await ReadMastersAsync(paths, codec, "20.features.class", token);
             if (classId == "administrator" || !classes.Any(entry => MasterDataValidation.Text(entry.Content["id"]) == classId))
                 issues.Add(new("error", "REFERENCE_NOT_FOUND", "/classId", $"クラス '{classId}' はプリセットに指定できません。"));
         }
@@ -66,6 +66,22 @@ internal static class ProgressionPresetValidation
                         issues.Add(new("error", "REFERENCE_NOT_FOUND", $"{pointer}/nodes/{nodeIndex}", $"ノード '{nodeId}' がありません。"));
                 }
 
+            var permitted = new HashSet<string>(StringComparer.Ordinal);
+            var selectedClass = classes.FirstOrDefault(entry => MasterDataValidation.Text(entry.Content["id"]) == classId).Content;
+            AddSkills(permitted, selectedClass?["usableSkills"]);
+            var learned = (snapshot["nodes"] as JsonArray ?? []).Select(value => ReadInteger(value)).ToHashSet();
+            foreach (var node in nodes.Where(entry => learned.Contains(ParseInteger(MasterDataValidation.Text(entry.Content["nodeId"]) ?? "", -1))))
+                foreach (var effect in (node.Content["effects"] as JsonArray ?? []).OfType<JsonObject>())
+                    if (MasterDataValidation.Text(effect["type"]) == "skill" && SkillReference(effect["skillId"]) is { } nodeSkill)
+                        permitted.Add(nodeSkill);
+            foreach (var book in (snapshot["equipment"] as JsonArray ?? []).OfType<JsonObject>()
+                         .Where(row => MasterDataValidation.Text(row["slot"]) == "SKILLBOOK"))
+                if (MasterDataValidation.Text(book["item"]) is { } bookReference
+                    && equipment.TryGetValue(bookReference, out var bookItem)
+                    && bookItem["equipment"] is JsonObject bookDefinition
+                    && MasterDataValidation.Text(bookDefinition["slot"]) == "SKILLBOOK")
+                    AddSkills(permitted, bookDefinition["usableSkills"]);
+
             foreach (var key in new[] { "equipment", "skills", "passives" })
             {
                 if (snapshot[key] is not JsonArray assignments) continue;
@@ -83,21 +99,36 @@ internal static class ProgressionPresetValidation
                             $"スロット '{slot}' が重複しています。"));
                     if (key == "equipment")
                     {
-                        ValidateEquipment(assignment, equipment, assignmentPath, issues);
+                        ValidateEquipment(assignment, equipment, assignmentPath, level, classId,
+                            ReadInteger(snapshot["classLevel"], 1), issues);
                         continue;
                     }
                     if (MasterDataValidation.Text(assignment["skill"]) is not { } skill) continue;
                     if (!skillIds.Add(skill))
                         issues.Add(new("error", "PROGRESSION_PRESET_DUPLICATE_SKILL", assignmentPath + "/skill",
                             $"スキル '{skill}' が重複しています。"));
+                    if (!permitted.Contains(skill))
+                        issues.Add(new("error", "PROGRESSION_PRESET_SKILL_PERMISSION", assignmentPath + "/skill",
+                            "この段階の職業・習得ノード・スキルブックでは使用できないスキルです。"));
                     ValidateSkill(assignment, skill, skills, sigils, key == "passives", level, assignmentPath, issues);
                 }
             }
         }
     }
 
+    private static void AddSkills(HashSet<string> permitted, JsonNode? values)
+    {
+        foreach (var value in values as JsonArray ?? [])
+            if (SkillReference(value) is { } reference) permitted.Add(reference);
+    }
+
+    private static string? SkillReference(JsonNode? value)
+        => MasterDataValidation.Text(value)?.Trim() is { Length: > 0 } id
+            ? id.StartsWith("skill:", StringComparison.Ordinal) ? id : "skill:" + id
+            : null;
+
     private static void ValidateEquipment(JsonObject assignment, IReadOnlyDictionary<string, JsonObject> equipment,
-        string pointer, List<MasterDataIssue> issues)
+        string pointer, int playerLevel, string? classId, int classLevel, List<MasterDataIssue> issues)
     {
         if (MasterDataValidation.Text(assignment["item"]) is not { } reference) return;
         if (!equipment.TryGetValue(reference, out var item))
@@ -105,16 +136,32 @@ internal static class ProgressionPresetValidation
             issues.Add(new("error", "REFERENCE_NOT_FOUND", pointer + "/item", $"装備 '{reference}' がありません。"));
             return;
         }
-        var expected = MasterDataValidation.Text(assignment["slot"]) switch
-        {
-            "MAIN_HAND" => "WEAPON",
-            "OFF_HAND" => "SUBWEAPON",
-            var slot => slot
-        };
-        if (item["equipment"] is not JsonObject definition || MasterDataValidation.Text(definition["slot"]) != expected)
+        if (item["equipment"] is not JsonObject definition
+            || !ProgressionEquipmentSlots.Matches(MasterDataValidation.Text(assignment["slot"]),
+                MasterDataValidation.Text(definition["slot"]), MasterDataValidation.Text(definition["tag"])))
         {
             issues.Add(new("error", "PROGRESSION_PRESET_EQUIPMENT_SLOT", pointer + "/item", "指定した装備枠に対応するアイテムを選んでください。"));
             return;
+        }
+
+        var requiredLevel = ReadInteger(definition["requiredLevel"]);
+        if (playerLevel < requiredLevel)
+            issues.Add(new("error", "PROGRESSION_PRESET_EQUIPMENT_LEVEL", pointer + "/item",
+                $"この装備にはプレイヤーLv.{requiredLevel}が必要です。"));
+        if (definition["requiredClasses"] is JsonArray { Count: > 0 } requiredClasses)
+        {
+            var matches = requiredClasses.OfType<JsonObject>().Where(row =>
+                string.Equals(MasterDataValidation.Text(row["classId"])?.Replace("class:", "", StringComparison.Ordinal),
+                    classId, StringComparison.OrdinalIgnoreCase)).ToArray();
+            if (matches.Length == 0)
+                issues.Add(new("error", "PROGRESSION_PRESET_EQUIPMENT_CLASS", pointer + "/item", "選択中の職業ではこの装備を使用できません。"));
+            else
+            {
+                var requiredClassLevel = matches.Min(row => Math.Max(1, ReadInteger(row["level"], 1)));
+                if (Math.Max(1, classLevel) < requiredClassLevel)
+                    issues.Add(new("error", "PROGRESSION_PRESET_EQUIPMENT_CLASS_LEVEL", pointer + "/item",
+                        $"この装備には職業Lv.{requiredClassLevel}が必要です。"));
+            }
         }
 
         var enhanceLevel = ReadInteger(assignment["enhanceLevel"]);
