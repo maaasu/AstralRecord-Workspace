@@ -1,0 +1,118 @@
+using Microsoft.Extensions.Options;
+using SkillTreeEditor.Server.Models;
+using SkillTreeEditor.Server.Options;
+
+namespace SkillTreeEditor.Server.Services;
+
+public sealed class WorkspacePaths
+{
+    public WorkspacePaths(IOptions<EditorOptions> options, IWebHostEnvironment environment)
+        : this(ResolveWorkspaceRoot(options.Value.WorkspaceRoot, environment.ContentRootPath))
+    {
+    }
+
+    public WorkspacePaths(string workspaceRoot)
+    {
+        WorkspaceRoot = Path.GetFullPath(workspaceRoot);
+        SkillTreeRoot = Path.Combine(WorkspaceRoot, "40_filebase", "35.features.skilltree");
+        Classes = Path.Combine(WorkspaceRoot, "40_filebase", "20.features.class");
+        Skills = Path.Combine(WorkspaceRoot, "40_filebase", "30.features.skill");
+        StatusCatalog = Path.Combine(WorkspaceRoot, "40_filebase", "75.shared.status", "v1.status_types.yml");
+        TagCatalog = Path.Combine(WorkspaceRoot, "40_filebase", "76.shared.tag", "v1.tags.yml");
+        Nodes = Path.Combine(SkillTreeRoot, "nodes");
+        Structures = Path.Combine(SkillTreeRoot, "structures");
+        Schemas = Path.Combine(SkillTreeRoot, "schemas");
+        NodeIdSequence = Path.Combine(SkillTreeRoot, "node-id-sequence.json");
+        PluginConfig = Path.Combine(
+            WorkspaceRoot,
+            "10_plugin",
+            "AstralRecord",
+            "src",
+            "main",
+            "resources",
+            "config.yml");
+        Backups = Path.Combine(WorkspaceRoot, "60_tool", "05-master-data-editor", ".backups");
+        MinecraftIconCache = Path.Combine(WorkspaceRoot, "60_tool", "05-master-data-editor", ".cache", "minecraft-icons");
+        WorkspaceMutationLock = Path.Combine(Backups, ".locks", "workspace-mutation.lock");
+        NodeIdSequenceLock = Path.Combine(Backups, ".locks", "node-id-sequence.lock");
+    }
+
+    public string WorkspaceRoot { get; }
+    public string SkillTreeRoot { get; }
+    public string Classes { get; }
+    public string Skills { get; }
+    public string StatusCatalog { get; }
+    public string TagCatalog { get; }
+    public string Nodes { get; }
+    public string Structures { get; }
+    public string Schemas { get; }
+    public string NodeIdSequence { get; }
+    public string PluginConfig { get; }
+    public string Backups { get; }
+    public string MinecraftIconCache { get; }
+    public string WorkspaceMutationLock { get; }
+    public string NodeIdSequenceLock { get; }
+
+    public EditorMetadata ToMetadata() => new(
+        WorkspaceRoot,
+        Nodes,
+        Structures,
+        Schemas,
+        NodeIdSequence,
+        Skills,
+        StatusCatalog,
+        TagCatalog,
+        PluginConfig,
+        Backups,
+        MinecraftIconCache);
+
+    public static string ResolveWorkspaceRoot(string? configuredRoot, params string[] startPaths)
+    {
+        var candidates = new List<string?>
+        {
+            configuredRoot,
+            Environment.GetEnvironmentVariable("ASTRALRECORD_WORKSPACE")
+        };
+        candidates.AddRange(startPaths);
+        candidates.Add(Directory.GetCurrentDirectory());
+        candidates.Add(AppContext.BaseDirectory);
+
+        foreach (var candidate in candidates.Where(value => !string.IsNullOrWhiteSpace(value)))
+        {
+            var resolved = TryFindWorkspace(candidate!);
+            if (resolved is not null)
+                return resolved;
+        }
+
+        throw new DirectoryNotFoundException(
+            "AstralRecord ワークスペースが見つかりません。SkillTreeEditor:WorkspaceRoot または ASTRALRECORD_WORKSPACE を設定してください。");
+    }
+
+    private static string? TryFindWorkspace(string startPath)
+    {
+        DirectoryInfo? directory;
+        try
+        {
+            var fullPath = Path.GetFullPath(Environment.ExpandEnvironmentVariables(startPath));
+            directory = Directory.Exists(fullPath)
+                ? new DirectoryInfo(fullPath)
+                : new FileInfo(fullPath).Directory;
+        }
+        catch
+        {
+            return null;
+        }
+
+        while (directory is not null)
+        {
+            if (Directory.Exists(Path.Combine(directory.FullName, "40_filebase"))
+                && Directory.Exists(Path.Combine(directory.FullName, "10_plugin"))
+                && Directory.Exists(Path.Combine(directory.FullName, "60_tool")))
+                return directory.FullName;
+
+            directory = directory.Parent;
+        }
+
+        return null;
+    }
+}

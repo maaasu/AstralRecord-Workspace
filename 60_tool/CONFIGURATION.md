@@ -25,14 +25,18 @@ DBツールのEXE/`dotnet run`を直接使う場合は、`--config`を指定し�
 
 ## 番号付きディレクトリへの移行
 
-番号付け前のチェックアウトを更新した場合は、01/02/03/16の実行を完了し、Controlの予約が解放された状態で既存のローカル設定と成果物を移行できます。移行を終えるまでツールの実行は待ってください。以下はリポジトリルートから実行します。
+番号付け前のチェックアウトを更新した場合は、アプリとBATを終了し、01/02/03/16の処理が完了してControlの予約が解放された状態で既存のローカル設定と成果物を移行できます。移行中はアプリ・BATを起動しないでください。以下はリポジトリルートから実行します。
 
 ```powershell
 pwsh -NoProfile -File .\60_tool\Move-LocalToolLayout.ps1 -WhatIf
+pwsh -NoProfile -File .\60_tool\05-master-data-editor\Move-LocalEditorData.ps1 -WhatIf
 pwsh -NoProfile -File .\60_tool\Move-LocalToolLayout.ps1
+pwsh -NoProfile -File .\60_tool\05-master-data-editor\Move-LocalEditorData.ps1
 ```
 
 スクリプトは移行先の競合や未完了の実行を検出すると停止します。標準の旧 `runs/` は01・16の `legacy-runs/` へ、12のJARは `12-build-network-plugins/output/` へ移します。既存履歴の内容は保存されます。記録に残る絶対パスは実行当時のパスです。
+
+エディタの旧 `skilltree-editor/` に残るローカル設定・バックアップ・キャッシュ・実行履歴・配布ZIPは、内容を保ったまま `05-master-data-editor/` の同じ相対位置へ移します。移行先に同名ファイルがあれば上書きせず停止します。新しいEXEは `05-master-data-editor/dist/desktop/` に出力します。
 
 ローカル設定のDBツール参照とネットワークPlugin出力参照を新しいパスへ更新した場合は、元の設定を `legacy-settings/` に保全します。移行対象はこのチェックアウトの `60_tool/` 配下です。外部に保存した実行記録や個別の17の記録は同じパスで引き続き使用します。
 
