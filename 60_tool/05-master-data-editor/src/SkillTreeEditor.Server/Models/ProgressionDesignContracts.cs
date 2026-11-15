@@ -36,7 +36,7 @@ public sealed record ProgressionDesignNode(int Id, string Name, string Path, str
 
 public sealed record ProgressionDesignEquipment(string Slot, string ItemId, string Pointer, int EnhanceLevel,
     IReadOnlyList<ProgressionDesignEnchant> Enchants);
-public sealed record ProgressionDesignEnchant(string EnchantMasterId, string EffectId, decimal Value);
+public sealed record ProgressionDesignEnchant(string EnchantMasterId, string EffectId, string Value);
 public sealed record ProgressionDesignEnchantChoice(string EnchantMasterId, string EquipmentType, string EffectId,
     string Name, string Type, decimal Min, decimal Max, string SourceItemId);
 

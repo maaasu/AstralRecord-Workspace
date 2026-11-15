@@ -205,9 +205,9 @@ internal static class ProgressionPresetValidation
                 issues.Add(new("error", "PROGRESSION_PRESET_ENCHANT_EFFECT", path + "/effectId",
                     "指定した候補マスターに、この装備区分へ付与できる効果がありません。"));
             else if (ProgressionEquipmentEnchants.Value(enchant["value"]) is not { } value
-                || !ProgressionEquipmentEnchants.CanStore(value) || value < matches[0].Min || value > matches[0].Max)
+                || value < matches[0].Min || value > matches[0].Max)
                 issues.Add(new("error", "PROGRESSION_PRESET_ENCHANT_VALUE", path + "/value",
-                    FormattableString.Invariant($"付与値を {matches[0].Min}〜{matches[0].Max} の範囲で小数4桁以内にしてください。")));
+                    FormattableString.Invariant($"付与値を {matches[0].Min}〜{matches[0].Max} の範囲で、小数4桁以内の文字列として指定してください。")));
         }
     }
 

@@ -237,7 +237,7 @@ describe('ProgressionDesignWorkspace', () => {
   })
 
   it('saves the selected equipment enhancement and compatible enchant together and reads both back', async () => {
-    const enchant = { enchantMasterId: 'enchant:basic', effectId: 'weapon_attack', value: 3.125 }
+    const enchant = { enchantMasterId: 'enchant:basic', effectId: 'weapon_attack', value: '3.125' }
     const choice = { ...enchant, equipmentType: 'WEAPON', name: '攻撃力', type: 'FLAT', min: 1, max: 5, sourceItemId: 'orb' }
     const enchantCatalog: ProgressionDesignCatalog = {
       ...fixture,
@@ -483,7 +483,7 @@ describe('ProgressionDesignWorkspace', () => {
       }) }
     })
     const user = await loadWorkspace()
-    await user.click(screen.getByRole('button', { name: 'アカウント進行', exact: true }))
+    await user.click(screen.getByRole('button', { name: 'アカウント進行' }))
     const account = screen.getByText('アカウント進行設定').closest('details')!
     const section = within(account)
     const classLevel = section.getByRole('textbox', { name: '職業レベル /levels/1/classLevel' })
