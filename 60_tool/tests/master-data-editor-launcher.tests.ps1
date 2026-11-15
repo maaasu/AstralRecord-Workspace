@@ -14,7 +14,7 @@ $ToolRoot = (Resolve-Path -LiteralPath $ToolRoot).Path
 $CompatibleSdkHome = (Resolve-Path -LiteralPath $CompatibleSdkHome).Path
 $IncompatibleSdkHome = (Resolve-Path -LiteralPath $IncompatibleSdkHome).Path
 $resolver = Join-Path $ToolRoot '06-master-data-editor-build.bat'
-$editor = Join-Path $ToolRoot 'skilltree-editor'
+$editor = Join-Path $ToolRoot '05-master-data-editor'
 foreach ($path in @($resolver, (Join-Path $editor 'global.json'),
         (Join-Path $CompatibleSdkHome 'dotnet.exe'), (Join-Path $IncompatibleSdkHome 'dotnet.exe'))) {
     Assert (Test-Path -LiteralPath $path -PathType Leaf) "Required real launcher/SDK file is missing: $path"
@@ -145,7 +145,7 @@ try {
 
     $result = Invoke-Resolver 'no-compatible-sdk' '0' $IncompatibleSdkHome
     Assert ($result.ExitCode -eq 1 -and $result.Output.Contains('TEST_RESOLVER_FAILED')) ('Missing SDK incorrectly succeeded: ' + $result.Output)
-    Assert ($result.Output.Contains('No .NET SDK compatible with skilltree-editor\global.json was found.')) 'Missing actionable SDK error.'
+    Assert ($result.Output.Contains('No .NET SDK compatible with 05-master-data-editor\global.json was found.')) 'Missing actionable SDK error.'
     Assert ($result.Output -notmatch '(?m)^\d+\.\d+\.\d+[\w.\-]*\r?$') 'Failure diagnostics escaped global.json and printed a successful SDK version.'
     $match = [regex]::Match($result.Output, 'SDK diagnostics: "([^"]+)"')
     Assert $match.Success ('Failure did not identify its diagnostic log: ' + $result.Output)
@@ -163,7 +163,7 @@ try {
     $passed++
     $result = Invoke-Resolver 'invalid-temp-no-compatible' '-1' $IncompatibleSdkHome -InvalidTemp
     Assert ($result.ExitCode -eq 1 -and $result.Output.Contains('TEST_RESOLVER_FAILED')) ('Unwritable TEMP made the incompatible SDK succeed: ' + $result.Output)
-    Assert ($result.Output.Contains('No .NET SDK compatible with skilltree-editor\global.json was found.') -and $result.Output.Contains('SDK diagnostics could not be written to TEMP.')) 'Unwritable TEMP did not retain actionable failure diagnostics.'
+    Assert ($result.Output.Contains('No .NET SDK compatible with 05-master-data-editor\global.json was found.') -and $result.Output.Contains('SDK diagnostics could not be written to TEMP.')) 'Unwritable TEMP did not retain actionable failure diagnostics.'
     Assert ($result.Output -notmatch '(?m)^\d+\.\d+\.\d+[\w.\-]*\r?$') 'Invalid TEMP failure diagnostics lost the global.json SDK constraint.'
     Assert ((Get-FileHash -Algorithm SHA256 -LiteralPath $globalJson).Hash -ceq $globalHash) 'The TEMP fixture changed the real global.json file.'
     $passed++

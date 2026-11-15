@@ -32,11 +32,11 @@ try {
     $env:PATH = $fakeBin + ';' + $env:PATH
     $env:AR_TOOL_CONFIG_CAPTURE = Join-Path $root 'captured.txt'
     foreach ($entry in @(
-        @('04-db-rebuild.bat', 'db-rebuild', 'db-rebuild'),
-        @('11-db-reset-except-release-notes.bat', 'db-reset-except-release-notes', 'db-reset-except-release-notes'),
-        @('13-db-migrate.bat', 'db-migrate', 'db-migrate'),
-        @('14-management-db-migrate.bat', 'management-db-migrate', 'management-db-migrate'),
-        @('15-history-db-migrate.bat', 'db-migrate', 'history-db-migrate')
+        @('04-db-rebuild.bat', '04-db-rebuild', 'db-rebuild', 'db-rebuild'),
+        @('11-db-reset-except-release-notes.bat', '11-db-reset-except-release-notes', 'db-reset-except-release-notes', 'db-reset-except-release-notes'),
+        @('13-db-migrate.bat', '13-db-migrate', 'db-migrate', 'db-migrate'),
+        @('14-management-db-migrate.bat', '14-management-db-migrate', 'management-db-migrate', 'management-db-migrate'),
+        @('15-history-db-migrate.bat', '15-history-db-migrate', 'history-db-migrate', 'db-migrate')
     )) {
         $bat = Join-Path $root $entry[0]
         Copy-Item -LiteralPath (Join-Path $toolRoot $entry[0]) -Destination $bat
@@ -47,6 +47,15 @@ try {
         [IO.File]::WriteAllText($config, '{}')
         $arguments = Invoke-TestBat $bat
         Assert ($arguments.Contains('--config "' + $config + '"')) 'Default config was not selected.'
+        if ($entry[0] -eq '15-history-db-migrate.bat') {
+            Assert ($arguments.Contains('13-db-migrate\DbMigrateTool.csproj')) '15 must use the shared runner from 13.'
+        }
+        $legacyDirectory = Join-Path $root $entry[3]
+        New-Item -ItemType Directory -Path $legacyDirectory -Force | Out-Null
+        $legacy = Join-Path $legacyDirectory ($entry[2] + '.local.json')
+        [IO.File]::WriteAllText($legacy, '{}')
+        $arguments = Invoke-TestBat $bat
+        Assert ($arguments.Contains('--config "' + $legacy + '"')) 'Legacy local config was not selected.'
         [IO.File]::WriteAllText($local, '{}')
         $arguments = Invoke-TestBat $bat
         Assert ($arguments.Contains('--config "' + $local + '"')) 'Local config was not selected.'
@@ -58,7 +67,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $toolRoot '10-release-management-deploy.bat') -Destination $releaseBat
     $arguments = Invoke-TestBat $releaseBat '-PreflightOnly'
     Assert ($arguments.Contains('invoke-powershell7.ps1"') -and $arguments.Contains('deploy-debug.ps1" -ReleaseManagementOnly') -and $arguments.Contains('-PreflightOnly')) '10 must run the backend on PowerShell 7.'
-    $localRelease = Join-Path $root 'deploy-debug/deploy-debug.local.json'
+    $localRelease = Join-Path $root '01-deploy-debug/deploy-debug.local.json'
     New-Item -ItemType Directory -Path (Split-Path $localRelease) -Force | Out-Null
     [IO.File]::WriteAllText($localRelease, '{}')
     $arguments = Invoke-TestBat $releaseBat '-PreflightOnly'
@@ -69,12 +78,12 @@ try {
     $env:PATH = $previousPath
 
     # Exercise real AstralArchitect config selection, failing path validation before Maven/build.
-    $fixtureTools = Join-Path $root 'workspace/60_tool/astralarchitect-deploy'
+    $fixtureTools = Join-Path $root 'workspace/60_tool/09-astralarchitect-build-deploy'
     $project = Join-Path $root 'workspace/10_plugin/AstralArchitect'
     New-Item -ItemType Directory -Path $fixtureTools, $project -Force | Out-Null
     [IO.File]::WriteAllText((Join-Path $project 'pom.xml'), '<project/>')
     $script = Join-Path $fixtureTools 'astralarchitect-deploy.ps1'
-    Copy-Item -LiteralPath (Join-Path $toolRoot 'astralarchitect-deploy/astralarchitect-deploy.ps1') -Destination $script
+    Copy-Item -LiteralPath (Join-Path $toolRoot '09-astralarchitect-build-deploy/astralarchitect-deploy.ps1') -Destination $script
     [IO.File]::WriteAllText((Join-Path $fixtureTools 'astralarchitect-deploy.config.json'), '{"pluginsDirectory":"default-relative/plugins"}')
     foreach ($case in @(
         @{Arguments=@();Expected='default-relative'},

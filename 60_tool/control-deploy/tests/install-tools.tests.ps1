@@ -38,9 +38,9 @@ try {
     [IO.Directory]::CreateDirectory($source) | Out-Null
     [IO.Directory]::CreateDirectory($root) | Out-Null
     $marker = Join-Path $env:ProgramData 'AstralRecordControl\managed-operations.enabled'
-    $required = @('control-gate\Control.Gate.psm1','deploy-debug\dev-update.ps1','deploy-debug\deploy-debug.ps1',
-        'maintenance\maintenance.ps1','maintenance\UpdateWorkflow.ps1','player-patch-migration\player-patch-migration.ps1',
-        'master-data-reload\master-data-reload.ps1')
+    $required = @('control-gate\Control.Gate.psm1','01-deploy-debug\dev-update.ps1','01-deploy-debug\deploy-debug.ps1','01-deploy-debug\DevRunRoot.ps1',
+        '16-maintenance\maintenance.ps1','16-maintenance\UpdateWorkflow.ps1','16-maintenance\WorkflowRunRoot.ps1','17-player-patch-migration\player-patch-migration.ps1',
+        '03-master-data-reload\legacy\master-data-reload.ps1')
     foreach ($file in $required) {
         Write-Text (Join-Path $source $file) "Write-Output 'new $file'"
         Write-Text (Join-Path $root $file) "Write-Output 'old $file'"
@@ -60,6 +60,16 @@ try {
     }
     # The installer runs elevated. This fixture runs as a standard user and keeps its backup readable for assertions/cleanup.
     function Protect-ToolsBackup([string]$Path) { $null = $Path }
+    $legacyRoot = Join-Path $fixture 'legacy\Tools\60_tool'
+    foreach ($file in @('control-gate\Control.Gate.psm1','deploy-debug\dev-update.ps1','deploy-debug\deploy-debug.ps1',
+        'maintenance\maintenance.ps1','maintenance\UpdateWorkflow.ps1','player-patch-migration\player-patch-migration.ps1',
+        'master-data-reload\master-data-reload.ps1')) {
+        Write-Text (Join-Path $legacyRoot $file) "Write-Output 'old $file'"
+    }
+    $legacyMarker = Join-Path $fixture 'legacy-marker.json'
+    Write-Text $legacyMarker (@{schemaVersion=1;toolRoot=$legacyRoot} | ConvertTo-Json)
+    $legacyResult = Invoke-ControlToolsInstall (Get-ControlToolsPlan $package $legacyRoot $manifestHash $legacyMarker)
+    if ($legacyResult.Status -cne 'Installed' -or !(Test-Path -LiteralPath (Join-Path $legacyRoot $required[1]) -PathType Leaf)) { throw 'Numbered paths could not be installed alongside the legacy layout.' }
     Assert-Throws { Get-ControlToolsPlan $package $root ('0'*64) $marker } 'ReleaseManifestHashMismatch'
     Assert-Throws { Get-ControlToolsPlan $package $source $manifestHash $marker } 'PackageAndToolRootOverlap'
     Assert-Throws { Assert-LocalToolsPath 'C:\' } 'DriveRootRefused'

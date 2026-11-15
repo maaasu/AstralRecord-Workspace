@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-set "SCRIPT_DIR=%~dp0astralarchitect-deploy"
+set "SCRIPT_DIR=%~dp009-astralarchitect-build-deploy"
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0invoke-powershell7.ps1" "%SCRIPT_DIR%\astralarchitect-deploy.ps1" %*
 set "EXIT_CODE=%ERRORLEVEL%"
 
