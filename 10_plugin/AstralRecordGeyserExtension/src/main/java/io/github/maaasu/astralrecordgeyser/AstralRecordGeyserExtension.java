@@ -32,8 +32,10 @@ public final class AstralRecordGeyserExtension implements Extension {
     private static final Identifier DROPPED_ITEM = Identifier.of("minecraft", "item");
     private static final Identifier PARROT = Identifier.of("minecraft", "parrot");
     private static final Identifier ZOMBIE = Identifier.of("minecraft", "zombie");
-    // Matches MossZombiePackDisplay. This is the body only, with no boss-skill properties.
+    // Matches MossZombiePackDisplay: ASTMOSS1 marks the body, ASTMOSM1 carries the attack pose (0-3).
     private static final long MOSS_ZOMBIE_MARKER = 0x4153544D4F535331L;
+    private static final long MOSS_ZOMBIE_MOTION_MARKER = 0x4153544D4F534D31L;
+    private static final int MOSS_ZOMBIE_MAX_MOTION = 3;
     private static final CustomEntityDefinition MOSS_ZOMBIE =
         CustomEntityDefinition.of(Identifier.of("astralrecord", "midgard_moss_zombie"));
     private static final long ARCHMAGE_PHOENIX_MARKER = 0x415250484F454E58L;
@@ -79,6 +81,7 @@ public final class AstralRecordGeyserExtension implements Extension {
         0x4153544e59584231L, 0x4153544e59584631L, 0x4153544e59584d31L, 23, 4,
         DamagePack::nyxeron, DamagePack::nyxeron, true);
     private WorldDisplayEntity worldDisplays;
+    private BossMotion mossZombieMotion;
     private CustomEntityDefinition receptionDisplayDefinition;
     private ReceptionDisplayEntity receptionDisplays;
     private HeldWeaponModelDisplay heldWeaponModels;
@@ -136,6 +139,7 @@ public final class AstralRecordGeyserExtension implements Extension {
             weaponAttackProperties = WeaponAttackEntity.registerProperties(event);
         }
         sunbird.registerProperties(event);
+        mossZombieMotion = BossMotion.registerProperties(event, MOSS_ZOMBIE.identifier(), MOSS_ZOMBIE_MAX_MOTION);
         selenea.registerProperties(event);
         nyxeron.registerProperties(event);
         if (skillEffectDefinition != null) {
@@ -376,6 +380,16 @@ public final class AstralRecordGeyserExtension implements Extension {
         if (event.entityType().is(ZOMBIE) && event.uuid().getMostSignificantBits() == MOSS_ZOMBIE_MARKER
                 && damagePacks.bossReady(event.connection(), DamagePack::mossZombie)) {
             event.definition(MOSS_ZOMBIE);
+            return;
+        }
+        if (event.entityType().is(TEXT_DISPLAY) && event.uuid().getMostSignificantBits() == MOSS_ZOMBIE_MOTION_MARKER) {
+            event.setCancelled(true);
+            var frame = BossMotion.decode(event.uuid(), MOSS_ZOMBIE_MOTION_MARKER, MOSS_ZOMBIE_MAX_MOTION);
+            if (frame != null && mossZombieMotion != null
+                    && damagePacks.bossReady(event.connection(), DamagePack::mossZombie)) {
+                GeyserEntity target = event.connection().entities().byJavaId(frame.targetId());
+                if (target != null && MOSS_ZOMBIE.equals(target.definition())) mossZombieMotion.apply(target, frame);
+            }
             return;
         }
         if (sunbird.onSpawn(event, damagePacks) || selenea.onSpawn(event, damagePacks)

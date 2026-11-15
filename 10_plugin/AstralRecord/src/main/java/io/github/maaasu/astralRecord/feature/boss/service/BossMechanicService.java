@@ -312,6 +312,14 @@ public final class BossMechanicService {
     }
 
     /**
+     * 苔むしたゾンビの Mob スキルが要求する攻撃姿勢を、外観表示へ渡します。
+     * @param motion Mob スキルと共有する姿勢。null の場合は待機・歩行だけを表示します
+     */
+    public void setMossZombieMotion(@Nullable io.github.maaasu.astralRecord.feature.mob.skill.middleearth.MossZombieMotion motion) {
+        mossZombieDisplay.setMotion(motion);
+    }
+
+    /**
      * 取消されていないプレイヤー転送の際、通常波が瞬間移動を歩行経路として補間するのを防ぎます。
      * @param playerId 転送参加者。命中・回避の通過済み記録は維持します
      */
@@ -524,7 +532,7 @@ public final class BossMechanicService {
         Set<UUID> activeNyxerons = new HashSet<>();
         Set<UUID> activeMossZombies = new HashSet<>();
         for (MobInstance boss : List.copyOf(mobService.getInstances())) {
-            // このボスにはギミックを登録せず、通常の Mob AI で戦います。
+            // 技は Mob スキル（mob_moss_zombie_*）が担当し、ここでは外観と攻撃姿勢だけを同期します。
             if (MossZombiePackDisplay.BOSS_ID.equals(boss.template().id())) {
                 Entity entity = mobService.entityController().getEntity(boss);
                 if (boss.currentHealth() > 0.0D && entity != null && entity.isValid() && !entity.isDead()) {

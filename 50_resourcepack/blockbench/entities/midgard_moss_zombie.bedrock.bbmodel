@@ -11485,6 +11485,231 @@
           ]
         }
       }
+    },
+    {
+      "name": "animation.astralrecord.midgard_moss_zombie.raise",
+      "uuid": "98190e7f-a860-538f-9db3-90db382193dc",
+      "loop": "loop",
+      "override": false,
+      "length": 0,
+      "snapping": 100,
+      "selected": false,
+      "anim_time_update": "",
+      "blend_weight": "",
+      "start_delay": "",
+      "loop_delay": "",
+      "animators": {
+        "f0380abc-31ef-5f05-bbe9-d459ff2cbc8f": {
+          "name": "body",
+          "type": "bone",
+          "keyframes": [
+            {
+              "channel": "rotation",
+              "data_points": [
+                {
+                  "x": "22.5",
+                  "y": "-0.0",
+                  "z": "0"
+                }
+              ],
+              "uuid": "7a7bcd96-1d5b-5521-b909-2b810fd95e6b",
+              "time": 0.0,
+              "interpolation": "linear",
+              "color": -1
+            }
+          ]
+        },
+        "d0cf380a-0ed5-5dea-bb99-dc19a481668e": {
+          "name": "left_arm",
+          "type": "bone",
+          "keyframes": [
+            {
+              "channel": "rotation",
+              "data_points": [
+                {
+                  "x": "180",
+                  "y": "-0.0",
+                  "z": "0"
+                }
+              ],
+              "uuid": "153d88fe-4469-5fa2-8608-6fce8503978b",
+              "time": 0.0,
+              "interpolation": "linear",
+              "color": -1
+            }
+          ]
+        },
+        "90e822dc-4f23-5700-aac0-011d5375c065": {
+          "name": "right_arm",
+          "type": "bone",
+          "keyframes": [
+            {
+              "channel": "rotation",
+              "data_points": [
+                {
+                  "x": "180",
+                  "y": "-0.0",
+                  "z": "0"
+                }
+              ],
+              "uuid": "77dedbec-cb05-5414-83e9-c5d5f75f20fe",
+              "time": 0.0,
+              "interpolation": "linear",
+              "color": -1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "animation.astralrecord.midgard_moss_zombie.slam",
+      "uuid": "4bfcc2b7-86ee-5af3-9b82-f94bdaa02189",
+      "loop": "loop",
+      "override": false,
+      "length": 0,
+      "snapping": 100,
+      "selected": false,
+      "anim_time_update": "",
+      "blend_weight": "",
+      "start_delay": "",
+      "loop_delay": "",
+      "animators": {
+        "f0380abc-31ef-5f05-bbe9-d459ff2cbc8f": {
+          "name": "body",
+          "type": "bone",
+          "keyframes": [
+            {
+              "channel": "rotation",
+              "data_points": [
+                {
+                  "x": "-22.5",
+                  "y": "-0.0",
+                  "z": "0"
+                }
+              ],
+              "uuid": "8834136b-a31e-5575-a00d-92890e1d0f4e",
+              "time": 0.0,
+              "interpolation": "linear",
+              "color": -1
+            }
+          ]
+        },
+        "d0cf380a-0ed5-5dea-bb99-dc19a481668e": {
+          "name": "left_arm",
+          "type": "bone",
+          "keyframes": [
+            {
+              "channel": "rotation",
+              "data_points": [
+                {
+                  "x": "67.5",
+                  "y": "-0.0",
+                  "z": "0"
+                }
+              ],
+              "uuid": "e63dbbcd-9cea-5802-af47-dd52f424ecab",
+              "time": 0.0,
+              "interpolation": "linear",
+              "color": -1
+            }
+          ]
+        },
+        "90e822dc-4f23-5700-aac0-011d5375c065": {
+          "name": "right_arm",
+          "type": "bone",
+          "keyframes": [
+            {
+              "channel": "rotation",
+              "data_points": [
+                {
+                  "x": "67.5",
+                  "y": "-0.0",
+                  "z": "0"
+                }
+              ],
+              "uuid": "c619aa2e-5a57-5354-a601-b8793ac525ab",
+              "time": 0.0,
+              "interpolation": "linear",
+              "color": -1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "animation.astralrecord.midgard_moss_zombie.roar",
+      "uuid": "ae686136-9cd5-5e70-839f-caabf277dfd5",
+      "loop": "loop",
+      "override": false,
+      "length": 0,
+      "snapping": 100,
+      "selected": false,
+      "anim_time_update": "",
+      "blend_weight": "",
+      "start_delay": "",
+      "loop_delay": "",
+      "animators": {
+        "f0380abc-31ef-5f05-bbe9-d459ff2cbc8f": {
+          "name": "body",
+          "type": "bone",
+          "keyframes": [
+            {
+              "channel": "rotation",
+              "data_points": [
+                {
+                  "x": "22.5",
+                  "y": "-0.0",
+                  "z": "0"
+                }
+              ],
+              "uuid": "b832bb24-513c-57bf-9a60-5cf911d6eab8",
+              "time": 0.0,
+              "interpolation": "linear",
+              "color": -1
+            }
+          ]
+        },
+        "d0cf380a-0ed5-5dea-bb99-dc19a481668e": {
+          "name": "left_arm",
+          "type": "bone",
+          "keyframes": [
+            {
+              "channel": "rotation",
+              "data_points": [
+                {
+                  "x": "-0.0",
+                  "y": "-0.0",
+                  "z": "-112.5"
+                }
+              ],
+              "uuid": "4e80c0fd-d50b-529d-a319-ddfbc26dc345",
+              "time": 0.0,
+              "interpolation": "linear",
+              "color": -1
+            }
+          ]
+        },
+        "90e822dc-4f23-5700-aac0-011d5375c065": {
+          "name": "right_arm",
+          "type": "bone",
+          "keyframes": [
+            {
+              "channel": "rotation",
+              "data_points": [
+                {
+                  "x": "-0.0",
+                  "y": "-0.0",
+                  "z": "112.5"
+                }
+              ],
+              "uuid": "a0b0b896-53c4-5035-a6a7-1ec6922c8509",
+              "time": 0.0,
+              "interpolation": "linear",
+              "color": -1
+            }
+          ]
+        }
+      }
     }
   ]
 }

@@ -598,6 +598,84 @@
           }
         }
       }
+    },
+    "animation.astralrecord.midgard_moss_zombie.raise": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "rotation": [
+            -22.5,
+            0.0,
+            0.0
+          ]
+        },
+        "left_arm": {
+          "rotation": [
+            -180.0,
+            0.0,
+            0.0
+          ]
+        },
+        "right_arm": {
+          "rotation": [
+            -180.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    "animation.astralrecord.midgard_moss_zombie.slam": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "rotation": [
+            22.5,
+            0.0,
+            0.0
+          ]
+        },
+        "left_arm": {
+          "rotation": [
+            -67.5,
+            0.0,
+            0.0
+          ]
+        },
+        "right_arm": {
+          "rotation": [
+            -67.5,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    "animation.astralrecord.midgard_moss_zombie.roar": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "rotation": [
+            -22.5,
+            0.0,
+            0.0
+          ]
+        },
+        "left_arm": {
+          "rotation": [
+            0.0,
+            0.0,
+            -112.5
+          ]
+        },
+        "right_arm": {
+          "rotation": [
+            0.0,
+            0.0,
+            112.5
+          ]
+        }
+      }
     }
   }
 }

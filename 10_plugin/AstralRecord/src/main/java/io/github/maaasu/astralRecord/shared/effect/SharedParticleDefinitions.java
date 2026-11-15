@@ -681,6 +681,24 @@ public final class SharedParticleDefinitions {
     public static final SharedParticleDefinition MOB_ERIVA_SPORE_CLOUD =
         new SharedParticleDefinition("mob_eriva_spore_cloud", Particle.WARPED_SPORE, 30,
             1.4D, 0.7D, 1.4D, 0.0D);
+    /** 苔むしたゾンビの叩きつけ・地鳴りの予告です。ボスでは共通の攻撃予告へ置き換わります。 */
+    public static final SharedParticleDefinition MOB_MOSS_ZOMBIE_WARNING =
+        new SharedParticleDefinition("mob_moss_zombie_warning", Particle.DUST, 1,
+            0.02D, 0.02D, 0.02D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(96, 140, 58), 1.15F));
+    /** 苔むしたゾンビの胞子だまりの予告です。ボスでは共通の攻撃予告へ置き換わります。 */
+    public static final SharedParticleDefinition MOB_MOSS_ZOMBIE_SPORE_WARNING =
+        new SharedParticleDefinition("mob_moss_zombie_spore_warning", Particle.DUST, 1,
+            0.02D, 0.02D, 0.02D, 0.0D,
+            new Particle.DustOptions(Color.fromRGB(158, 196, 82), 1.1F));
+    /** 苔むしたゾンビの叩きつけ・地鳴りで飛び散る苔片です。 */
+    public static final SharedParticleDefinition MOB_MOSS_ZOMBIE_IMPACT =
+        new SharedParticleDefinition("mob_moss_zombie_impact", Particle.BLOCK, 3,
+            0.10D, 0.30D, 0.10D, 0.04D, Material.MOSS_BLOCK.createBlockData());
+    /** 苔むしたゾンビの胞子だまりが破裂した時の胞子雲です。 */
+    public static final SharedParticleDefinition MOB_MOSS_ZOMBIE_SPORE_CLOUD =
+        new SharedParticleDefinition("mob_moss_zombie_spore_cloud", Particle.SPORE_BLOSSOM_AIR, 24,
+            1.0D, 0.6D, 1.0D, 0.0D);
     /** 森陰の魔女が放つ黄緑の呪灯弾です。 */
     public static final SharedParticleDefinition MOB_WITCH_FOREST_HEX_BOLT =
         new SharedParticleDefinition("mob_witch_forest_hex_bolt", Particle.DUST, 4,
