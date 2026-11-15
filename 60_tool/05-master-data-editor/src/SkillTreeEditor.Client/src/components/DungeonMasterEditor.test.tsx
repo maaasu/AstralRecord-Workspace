@@ -76,6 +76,24 @@ it('presents one editable dungeon overview and scrolls to a section without drop
   const radius = editor.getByRole('textbox', { name: '/entry/radius' })
   await waitFor(() => expect(radius).toHaveFocus())
   expect(radius).toHaveValue('2')
+
+  for (const [fieldPath, label, defaultValue] of [
+    ['/encounter/normalMobPool/0/weight', '抽選重み', '1'],
+    ['/clearRewards/items/0/rate', '確率 (%)', '100'],
+  ]) {
+    fireEvent.change(search, { target: { value: fieldPath } })
+    const match = editor.getByRole('button', { name: fieldPath + ' に移動' })
+    expect(within(match).getByText(label)).toBeVisible()
+    fireEvent.click(match)
+    const input = editor.getByRole('textbox', { name: fieldPath })
+    await waitFor(() => expect(input).toHaveFocus())
+    expect(input).toHaveValue(defaultValue)
+  }
+
+  fireEvent.change(search, { target: { value: '/challenge/timeLimitSeconds' } })
+  fireEvent.click(editor.getByRole('button', { name: '/challenge/timeLimitSeconds に移動' }))
+  await waitFor(() => expect(editor.getByRole('checkbox', { name: '時間制限なし' })).toHaveFocus())
+  expect(editor.getByRole('heading', { name: '入場地点' })).toBeVisible()
   expect(screen.getByRole('tab', { name: 'アルダ始まりの遺跡' })).toBeInTheDocument()
 
   fireEvent.change(search, { target: { value: 'bossMobId' } })
