@@ -106,6 +106,100 @@ describe('ProgressionDesignWorkspace', () => {
     localStorage.clear()
   })
 
+  it('registers a first build for a class after reviewing its required level-one choices', async () => {
+    const emptyClassCatalog: ProgressionDesignCatalog = { ...fixture,
+      classes: [...fixture.classes, { id: 'ranger', name: '弓使い', path: 'classes/ranger.yml', prerequisiteClassIds: [], usableSkillIds: ['shot'] }],
+      skills: [{ id: 'shot', name: '射撃', path: 'skills/shot.yml', icon: 'BOW', customModelData: null, iconTexture: null, passive: false, bindRequired: true, requiredLevel: 1, maxLevel: 10, sigilSlotsByLevel: [], allowedSigilIds: [] }],
+    }
+    vi.mocked(progressionDesignApi.catalog).mockResolvedValue(emptyClassCatalog)
+    vi.mocked(progressionDesignApi.preview).mockResolvedValue(emptyClassCatalog)
+    vi.spyOn(masterDataApi, 'create').mockImplementation(async draft => savedDocument(draft.path, JSON.parse(draft.raw)))
+    const user = userEvent.setup()
+    render(<ProgressionDesignWorkspace onOpenMaster={vi.fn()} />)
+    await waitFor(() => expect(screen.getByRole('combobox', { name: '職業' })).toBeEnabled())
+    await waitFor(() => expect(progressionDesignApi.catalog).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.getByRole('button', { name: '＋ 新規ビルド' })).toBeEnabled())
+    await user.selectOptions(screen.getByRole('combobox', { name: '職業' }), 'ranger')
+    expect(screen.getByRole('combobox', { name: '職業' })).toHaveValue('ranger')
+    expect(screen.getByRole('combobox', { name: 'ビルド' })).toHaveValue('')
+    await user.click(screen.getByRole('button', { name: '＋ 新規ビルド' }))
+    const dialog = within(screen.getByRole('dialog', { name: '新しいビルドを登録' }))
+    await user.type(dialog.getByRole('textbox', { name: '表示名' }), '弓の基本')
+    await user.type(dialog.getByRole('textbox', { name: 'ビルドID' }), 'basic')
+    await user.click(dialog.getByRole('button', { name: 'メインハンドを選択' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'メインハンドを選択' })).getByRole('button', { name: /鉄の剣/ }))
+    await user.click(dialog.getByRole('button', { name: '1番枠のスキルを選択' }))
+    await user.click(within(screen.getByRole('dialog', { name: '1番枠のスキルを選択' })).getByRole('button', { name: /射撃/ }))
+    await user.click(dialog.getByRole('button', { name: '内容を確認' }))
+    await waitFor(() => expect(masterDataApi.validate).toHaveBeenCalled())
+    expect(masterDataApi.create).not.toHaveBeenCalled()
+    await user.click(dialog.getByRole('button', { name: 'このビルドを登録' }))
+    await waitFor(() => expect(masterDataApi.create).toHaveBeenCalledWith(expect.objectContaining({ path: '90.shared.progression_preset/v1.ranger_basic.yml', raw: expect.stringContaining('"classId":"ranger"') })))
+    expect(screen.getByText('ビルドを登録しました。')).toBeInTheDocument()
+  })
+
+  it('requires deletion review and does not repeat deletion when list refresh fails', async () => {
+    const user = await loadWorkspace()
+    vi.spyOn(masterDataApi, 'delete').mockResolvedValue(undefined)
+    await user.click(screen.getByRole('button', { name: '削除' }))
+    const dialog = within(screen.getByRole('dialog', { name: 'ビルドを削除' }))
+    expect(dialog.getByText(/防御型/)).toBeInTheDocument()
+    await user.click(dialog.getByRole('button', { name: '内容を確認' }))
+    expect(masterDataApi.delete).not.toHaveBeenCalled()
+    vi.mocked(progressionDesignApi.catalog).mockRejectedValueOnce(new Error('一覧に接続できません'))
+    await user.click(dialog.getByRole('button', { name: 'このビルドを削除' }))
+    await waitFor(() => expect(masterDataApi.delete).toHaveBeenCalledExactlyOnceWith(buildPath, 'original'))
+    expect(await screen.findByText(/ビルドを削除しました/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '一覧を再取得' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: '＋ 新規ビルド' })).toBeEnabled())
+    expect(masterDataApi.delete).toHaveBeenCalledTimes(1)
+  })
+
+  it('adds a directly entered level by copying the currently selected checkpoint into the shared draft', async () => {
+    const user = await loadWorkspace()
+    await user.type(screen.getByRole('spinbutton', { name: 'レベルを直接入力' }), '12')
+    await user.click(screen.getByRole('button', { name: '移動・追加' }))
+    const dialog = within(screen.getByRole('dialog', { name: 'レベル段階を追加' }))
+    expect(dialog.getByRole('spinbutton', { name: '適用開始レベル' })).toHaveValue(12)
+    await user.click(dialog.getByRole('button', { name: '段階を追加' }))
+    await waitFor(() => expect(progressionDesignApi.preview).toHaveBeenCalled())
+    const draft = vi.mocked(progressionDesignApi.preview).mock.calls.at(-1)?.[0]
+    expect(draft?.[0].path).toBe(buildPath)
+    expect((draft?.[0].content as typeof buildContent).levels.map(entry => entry.level)).toEqual([1, 10, 12])
+    expect((draft?.[0].content as typeof buildContent).levels[2].equipment).toEqual(buildContent.levels[1].equipment)
+    expect(saveButton()).toBeEnabled()
+  })
+
+  it('keeps build name and build ID edits in the shared undoable draft and blocks file operations while dirty', async () => {
+    const user = await loadWorkspace()
+    await user.click(screen.getByRole('button', { name: '名前・IDを編集' }))
+    const dialog = within(screen.getByRole('dialog', { name: 'ビルド名とIDを編集' }))
+    await user.clear(dialog.getByRole('textbox', { name: '表示名' }))
+    await user.type(dialog.getByRole('textbox', { name: '表示名' }), '新しい名前')
+    await user.clear(dialog.getByRole('textbox', { name: 'ビルドID' }))
+    await user.type(dialog.getByRole('textbox', { name: 'ビルドID' }), 'new_build')
+    await user.click(dialog.getByRole('button', { name: '下書きに反映' }))
+    await waitFor(() => expect(saveButton()).toBeEnabled())
+    expect(screen.getByRole('button', { name: '＋ 新規ビルド' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '削除' })).toBeDisabled()
+    const draft = vi.mocked(progressionDesignApi.preview).mock.calls.at(-1)?.[0]
+    expect(draft?.[0].content).toEqual({ ...buildContent, name: '新しい名前', buildId: 'new_build' })
+    await user.click(screen.getByRole('button', { name: '元に戻す' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: '＋ 新規ビルド' })).toBeEnabled())
+  })
+
+  it('duplicates the selected build only after a reviewed source revision check', async () => {
+    const user = await loadWorkspace()
+    vi.spyOn(masterDataApi, 'create').mockImplementation(async draft => savedDocument(draft.path, JSON.parse(draft.raw)))
+    await user.click(screen.getByRole('button', { name: '複製' }))
+    const dialog = within(screen.getByRole('dialog', { name: 'ビルドを複製' }))
+    await user.click(dialog.getByRole('button', { name: '内容を確認' }))
+    await waitFor(() => expect(masterDataApi.file).toHaveBeenCalledWith(buildPath))
+    expect(masterDataApi.create).not.toHaveBeenCalled()
+    await user.click(dialog.getByRole('button', { name: 'このビルドを登録' }))
+    await waitFor(() => expect(masterDataApi.create).toHaveBeenCalledWith(expect.objectContaining({ path: '90.shared.progression_preset/v1.warrior_knight_copy.yml' })))
+  })
+
   it('keeps canceled equipment unchanged and saves a replacement only after explicit confirmation', async () => {
     const user = await loadWorkspace()
     vi.mocked(progressionDesignApi.preview).mockResolvedValueOnce({ ...fixture, presets: fixture.presets.map(preset => preset.id !== knight.id ? preset : {

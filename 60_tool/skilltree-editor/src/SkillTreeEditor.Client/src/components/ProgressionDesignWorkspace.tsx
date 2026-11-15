@@ -3,12 +3,14 @@ import { masterDataApi } from '../api/masterDataApi'
 import { progressionDesignApi } from '../api/progressionDesignApi'
 import { appendDesignEntry, changeEquipment, equipmentRestriction, equipmentSlots, numericDesignValue, setDesignValue, sourceLabels } from '../data/progressionDesign'
 import { setAccountClassLevel } from '../data/progressionAccount'
+import { addLevelStage, changeBuildIdentity, changeLevelStage, removeLevelStage } from '../data/progressionBuildManagement'
 import { parentPointer, valueAtPointer } from '../data/masterDataNavigation'
 import { useDesignDocuments, type DesignSaveCandidate } from '../state/useDesignDocuments'
 import type { DesignField, DesignIngredient, DesignItem, DesignSource, ProgressionDesignCatalog } from '../types/progressionDesign'
 import { stripMinecraftFormatting } from '../utils/minecraft'
 import { AcquisitionGraph } from './AcquisitionGraph'
 import { AccountProgressionPanel } from './AccountProgressionPanel'
+import { BuildManagementDialog, type BuildAction } from './BuildManagementDialog'
 import { MasterEntityPicker, type MasterEntityPickerChoice } from './MasterEntityPicker'
 import { MasterDataDiff } from './MasterDataDiff'
 import { MinecraftIcon } from './MinecraftIcon'
@@ -25,6 +27,7 @@ const emptyCatalog: ProgressionDesignCatalog = { classes: [], presets: [], items
 const INSPECTOR_DEFAULT = 350
 const INSPECTOR_MIN = 290
 const INSPECTOR_MAX = 680
+type LevelAction = { kind: 'add' | 'change' | 'delete'; pointer: string; sourceLevel: number }
 
 export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpenMaster }: Props) {
   const [workspaceRoot, setWorkspaceRoot] = useState('')
@@ -47,7 +50,13 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
   const [review, setReview] = useState<DesignSaveCandidate[] | null>(null)
   const [diff, setDiff] = useState<DesignSaveCandidate | null>(null)
   const [reviewedPaths, setReviewedPaths] = useState<Set<string>>(new Set())
-  const [newLevel, setNewLevel] = useState<string | null>(null)
+  const [levelAction, setLevelAction] = useState<LevelAction | null>(null)
+  const [levelInput, setLevelInput] = useState('')
+  const [directLevel, setDirectLevel] = useState('')
+  const [buildAction, setBuildAction] = useState<BuildAction | null>(null)
+  const [operationNotice, setOperationNotice] = useState('')
+  const [operationRefreshNeeded, setOperationRefreshNeeded] = useState(false)
+  const [additionalOpen, setAdditionalOpen] = useState(false)
   const [usagePage, setUsagePage] = useState(0)
   const [previewRetry, setPreviewRetry] = useState(0)
   const [structuralPending, setStructuralPending] = useState(false)
@@ -58,7 +67,7 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
   const previewAbort = useRef<AbortController | null>(null)
   const available = catalog ?? emptyCatalog
   const itemsById = useMemo(() => new Map(available.items.map(item => [item.id, item])), [available.items])
-  const classes = available.classes.filter(entry => available.presets.some(preset => preset.classId === entry.id))
+  const classes = available.classes.filter(entry => entry.id !== 'administrator')
   const currentClass = classes.some(entry => entry.id === classId) ? classId : classes[0]?.id ?? ''
   const presets = available.presets.filter(entry => entry.classId === currentClass)
   const preset = presets.find(entry => entry.id === presetId) ?? presets[0]
@@ -70,9 +79,10 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
   const sources = available.sources.filter(source => source.itemId === itemId)
   const selectedSource = available.sources.find(source => source.id === sourceId)
   const usages = available.usages.filter(usage => usage.itemId === itemId)
-  const baseLock = loading || refreshing || documents.saving || Boolean(documents.recovery) || Boolean(review)
+  const baseLock = loading || refreshing || documents.saving || Boolean(documents.recovery) || Boolean(review) || operationRefreshNeeded
   const lock = baseLock || previewing || structuralPending || !!documents.pending || !!previewError
   const inputBlocked = invalid.size > 0
+  const fileOperationBlocked = lock || inputBlocked || documents.dirty
   const editStructure: typeof documents.edit = async (path, transform) => {
     if (lock) return false
     setStructuralPending(true)
@@ -88,9 +98,11 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
     setRefreshing(true); setLoadError(''); setPreviewError('')
     try {
       const [next, metadata] = await Promise.all([progressionDesignApi.catalog(reload), masterDataApi.catalog()])
-      if (sequence !== reloadSequence.current) return
+      if (sequence !== reloadSequence.current) return false
       setWorkspaceRoot(metadata.root); setCatalog(next)
-    } catch (reason) { if (sequence === reloadSequence.current) setLoadError(message(reason)) }
+      setOperationRefreshNeeded(false)
+      return true
+    } catch (reason) { if (sequence === reloadSequence.current) setLoadError(message(reason)); return false }
     finally { if (sequence === reloadSequence.current) { setLoading(false); setRefreshing(false) } }
   }, [])
   useEffect(() => { void refresh(); return () => { reloadSequence.current++; previewAbort.current?.abort() } }, [refresh])
@@ -140,8 +152,8 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
     documents[direction]()
     setPreviewRetry(value => value + 1)
   }
-  const shortcuts = useRef({ prepareSave, undo: () => moveHistory('undo'), redo: () => moveHistory('redo'), blocked: lock || inputBlocked || Boolean(picker) || newLevel !== null })
-  shortcuts.current = { prepareSave, undo: () => moveHistory('undo'), redo: () => moveHistory('redo'), blocked: lock || inputBlocked || Boolean(picker) || newLevel !== null }
+  const shortcuts = useRef({ prepareSave, undo: () => moveHistory('undo'), redo: () => moveHistory('redo'), blocked: lock || inputBlocked || Boolean(picker) || levelAction !== null || buildAction !== null })
+  shortcuts.current = { prepareSave, undo: () => moveHistory('undo'), redo: () => moveHistory('redo'), blocked: lock || inputBlocked || Boolean(picker) || levelAction !== null || buildAction !== null }
   useEffect(() => {
     if (!active) return
     const keydown = (event: KeyboardEvent) => {
@@ -238,6 +250,53 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
     if (!source) return
     chooseTarget(() => { setFocusedItemId(source.itemId); setSourceId(id) })
   }
+  const startLevelAction = (kind: LevelAction['kind'], initial = checkpoint?.level ?? 1) => {
+    if (!preset || !checkpoint || lock || inputBlocked) return
+    setLevelAction({ kind, pointer: checkpoint.pointer, sourceLevel: checkpoint.level })
+    setLevelInput(kind === 'add' ? String(initial) : String(checkpoint.level))
+  }
+  const applyLevelAction = async () => {
+    if (!preset || !levelAction) return
+    const next = Number(levelInput)
+    const result = await editStructure(preset.path, content => levelAction.kind === 'add'
+      ? addLevelStage(content, levelAction.pointer, levelAction.sourceLevel, next)
+      : levelAction.kind === 'change'
+        ? changeLevelStage(content, levelAction.pointer, levelAction.sourceLevel, next)
+        : removeLevelStage(content, levelAction.pointer, levelAction.sourceLevel))
+    if (result) {
+      setLevel(levelAction.kind === 'delete' ? 1 : next)
+      setDirectLevel('')
+      setLevelAction(null)
+    }
+  }
+  const selectDirectLevel = () => {
+    if (!/^\d+$/.test(directLevel)) return
+    const next = Number(directLevel)
+    if (next < 1 || next > 50) return
+    if (preset?.checkpoints.some(entry => entry.level === next)) chooseTarget(() => { setLevel(next); setDirectLevel('') })
+    else startLevelAction('add', next)
+  }
+  const committedBuild = (kind: 'created' | 'deleted', targetClass: string, targetId?: string) => {
+    setBuildAction(null)
+    documents.reset()
+    setClassId(targetClass); setPresetId(targetId ?? ''); setLevel(1)
+    setOperationNotice(kind === 'created' ? 'ビルドを登録しました。' : 'ビルドを削除しました。')
+    setOperationRefreshNeeded(true)
+    void refresh(true)
+  }
+  const gearCard = ([id, name]: readonly [string, string]) => {
+    const assigned = checkpoint?.equipment.find(entry => entry.slot === id)
+    const gear = assigned && itemsById.get(assigned.itemId)
+    return <article className={`design-equipment-card ${slot === id ? 'selected' : ''}`} key={id}>
+      <button className="design-equipment-view" aria-pressed={slot === id} onClick={() => chooseTarget(() => setSlot(id))} disabled={lock}>
+        <span className="design-slot-label">{name}{assigned && assigned.enhanceLevel > 0 && <b>+{assigned.enhanceLevel}</b>}</span>
+        {gear ? <MinecraftIcon icon={gear.icon} customModelData={gear.customModelData} iconTexture={gear.iconTexture} /> : <span className="design-slot-placeholder">＋</span>}
+        <strong>{gear ? <MinecraftText value={gear.name} /> : assigned ? assigned.itemId : '未設定'}</strong>
+        <small>{gear ? `必要Lv.${gear.requiredLevel}` : '一覧から装備を選択'}</small>
+      </button>
+      <button className="design-equipment-change" disabled={lock || inputBlocked || !checkpoint} onClick={() => setPicker({ kind: 'equipment', slot: id })}>{assigned ? '装備を変更' : '装備を設定'} <span>▦</span></button>
+    </article>
+  }
 
   return <section className="progression-design" aria-label="装備・入手経路の設計">
     <header className="design-header">
@@ -255,6 +314,7 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
       </div>
     </header>
     {(loadError || documents.error || previewError) && <div className="design-message error" role="alert"><span>{loadError || documents.error || `図を更新できませんでした。${previewError}`}</span>{loadError ? <button className="button" onClick={() => void refresh()}>再試行</button> : <button className="button" disabled={baseLock} onClick={() => { documents.setError(''); setPreviewRetry(value => value + 1) }}>下書きを保持して図を再取得</button>}{documents.dirty && <button className="button" onClick={exportDrafts}>下書きを書き出す</button>}</div>}
+    {operationNotice && <div className="design-message" role="status"><span>{operationNotice}{operationRefreshNeeded && ' 一覧を更新してから編集を再開できます。'}</span>{operationRefreshNeeded && <button className="button" disabled={refreshing} onClick={() => void refresh(true)}>一覧を再取得</button>}</div>}
     {documents.notice && <div className="design-message" role="status">{documents.notice}</div>}
     {documents.recovery && <div className="design-message"><span>前回の未保存の下書きがあります。</span><button className="button primary" onClick={() => { setStructuralPending(true); documents.restore(); setPreviewRetry(value => value + 1) }}>下書きを復元</button><button className="button" onClick={documents.discardRecovery}>下書きを破棄</button></div>}
     {loading ? <div className="design-empty">装備・ビルド・入手経路を読み込んでいます…</div> : <>
@@ -263,26 +323,23 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
         {mode === 'build' ? <>
           <div className="design-selectors">
             <label><span>01 職業</span><select aria-label="職業" disabled={lock || inputBlocked} value={currentClass} onChange={event => chooseTarget(() => { setClassId(event.target.value); setPresetId('') })}>{classes.map(entry => <option value={entry.id} key={entry.id}>{label(entry.name)}</option>)}</select></label>
-            <label className="design-build-select"><span>02 ビルド</span><select aria-label="ビルド" disabled={lock || inputBlocked} value={preset?.id ?? ''} onChange={event => chooseTarget(() => setPresetId(event.target.value))}>{presets.map(entry => <option value={entry.id} key={entry.id}>{label(entry.name)}</option>)}</select></label>
-            <label><span>03 適用開始レベル</span><select aria-label="適用開始レベル" disabled={lock || inputBlocked} value={checkpoint?.level ?? ''} onChange={event => chooseTarget(() => setLevel(Number(event.target.value)))}>{preset?.checkpoints.map(entry => <option value={entry.level} key={entry.pointer}>Lv.{entry.level}</option>)}</select></label>
-            <button className="button" disabled={lock || inputBlocked || !preset || !checkpoint} onClick={() => setNewLevel(String(Math.min(50, (checkpoint?.level ?? 1) + 1)))}>＋ レベル段階</button>
+            <label className="design-build-select"><span>02 ビルド</span><select aria-label="ビルド" disabled={lock || inputBlocked || !preset} value={preset?.id ?? ''} onChange={event => chooseTarget(() => setPresetId(event.target.value))}>{presets.length ? presets.map(entry => <option value={entry.id} key={entry.id}>{label(entry.name)}</option>) : <option value="">ビルド未登録</option>}</select></label>
+            <button className="button" disabled={fileOperationBlocked || !currentClass} title={fileOperationBlocked ? '未保存の変更を保存または破棄してから操作してください' : ''} onClick={() => setBuildAction('create')}>＋ 新規ビルド</button>
+            <button className="button" disabled={fileOperationBlocked || !preset} title={fileOperationBlocked ? '未保存の変更を保存または破棄してから操作してください' : ''} onClick={() => setBuildAction('duplicate')}>複製</button>
+            <button className="button" disabled={lock || inputBlocked || !preset} onClick={() => setBuildAction('edit')}>名前・IDを編集</button>
+            <button className="button" disabled={fileOperationBlocked || !preset} title={fileOperationBlocked ? '未保存の変更を保存または破棄してから操作してください' : ''} onClick={() => setBuildAction('delete')}>削除</button>
+            <label><span>03 適用開始レベル</span><select aria-label="適用開始レベル" disabled={lock || inputBlocked || !checkpoint} value={checkpoint?.level ?? ''} onChange={event => chooseTarget(() => { setLevel(Number(event.target.value)); setDirectLevel('') })}>{preset?.checkpoints.map(entry => <option value={entry.level} key={entry.pointer}>Lv.{entry.level}</option>)}</select></label>
+            <label className="design-direct-level"><span>Lvを直接入力</span><input type="number" min="1" max="50" aria-label="レベルを直接入力" value={directLevel} disabled={lock || inputBlocked || !checkpoint} onChange={event => setDirectLevel(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') selectDirectLevel() }} /></label>
+            <button className="button" disabled={lock || inputBlocked || !/^\d+$/.test(directLevel) || Number(directLevel) < 1 || Number(directLevel) > 50} onClick={selectDirectLevel}>移動・追加</button>
+            <button className="button" disabled={lock || inputBlocked || !preset || !checkpoint || preset.checkpoints.length >= 50} onClick={() => startLevelAction('add', Math.min(50, (checkpoint?.level ?? 1) + 1))}>＋ 段階を複製</button>
+            <button className="button" disabled={lock || inputBlocked || !checkpoint || checkpoint.level === 1} onClick={() => startLevelAction('change')}>Lvを変更</button>
+            <button className="button" disabled={lock || inputBlocked || !checkpoint || checkpoint.level === 1} onClick={() => startLevelAction('delete')}>段階を削除</button>
             {preset && <button className="text-button" disabled={documents.dirty || lock} onClick={() => openMaster(preset.path, checkpoint?.pointer)}>ビルドの詳細 ↗</button>}
           </div>
-          <div className="design-equipment" role="group" aria-label="部位別の装備">
-            {equipmentSlots.map(([id, name]) => {
-              const assigned = checkpoint?.equipment.find(entry => entry.slot === id)
-              const gear = assigned && itemsById.get(assigned.itemId)
-              return <article className={`design-equipment-card ${slot === id ? 'selected' : ''}`} key={id}>
-                <button className="design-equipment-view" aria-pressed={slot === id} onClick={() => chooseTarget(() => setSlot(id))} disabled={lock}>
-                  <span className="design-slot-label">{name}{assigned && assigned.enhanceLevel > 0 && <b>+{assigned.enhanceLevel}</b>}</span>
-                  {gear ? <MinecraftIcon icon={gear.icon} customModelData={gear.customModelData} iconTexture={gear.iconTexture} /> : <span className="design-slot-placeholder">＋</span>}
-                  <strong>{gear ? <MinecraftText value={gear.name} /> : assigned ? assigned.itemId : '未設定'}</strong>
-                  <small>{gear ? `必要Lv.${gear.requiredLevel}` : '一覧から装備を選択'}</small>
-                </button>
-                <button className="design-equipment-change" disabled={lock || inputBlocked || !checkpoint} onClick={() => setPicker({ kind: 'equipment', slot: id })}>{assigned ? '装備を変更' : '装備を設定'} <span>▦</span></button>
-              </article>
-            })}
-          </div>
+          <p className="design-caption">Lv.1は必須です。段階はLv.1〜50の間で重複なく登録します。新規登録・複製・削除はファイルへすぐ反映されます。</p>
+          {documents.dirty && <p className="design-caption">ビルドの登録・複製・削除は、未保存の変更を保存または破棄してから行えます。</p>}
+          <div className="design-equipment" role="group" aria-label="部位別の装備">{equipmentSlots.slice(0, 6).map(gearCard)}</div>
+          {equipmentSlots.length > 6 && <details className="design-additional-equipment" open={additionalOpen} onToggle={event => setAdditionalOpen(event.currentTarget.open)}><summary>スキルブック・アクセサリ {checkpoint?.equipment.filter(entry => equipmentSlots.slice(6).some(([id]) => id === entry.slot)).length ?? 0}/{equipmentSlots.length - 6}件設定済み</summary><div className="design-equipment" role="group" aria-label="スキルブック・アクセサリ">{equipmentSlots.slice(6).map(gearCard)}</div></details>}
           <p className="design-caption">進行プリセットの装備を編集します。必要レベルは装備条件、適用開始レベルは構成の切替時点です。</p>
         </> : <div className="design-item-entry"><div><strong>{itemsById.get(browsedItemId)?.name ? label(itemsById.get(browsedItemId)!.name) : '調べたいアイテムを選択'}</strong><p>装備・素材・ダンジョン報酬の入手先と使い道を確認できます。</p></div><button className="button primary" disabled={lock || inputBlocked} onClick={() => setPicker({ kind: 'browse' })}>▦ アイコン付き一覧から選択</button></div>}
       </section>
@@ -336,15 +393,14 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
     {picker && <MasterEntityPicker title={picker.kind === 'equipment' ? `${equipmentSlots.find(([id]) => id === picker.slot)?.[1]}を選択` : picker.kind === 'source' ? '入手先を選択' : picker.kind === 'material' ? '必要素材を選択' : 'アイテムを選択'}
       choices={picker.kind === 'source' ? sourceChoices : itemChoices} value={picker.kind === 'equipment' ? checkpoint?.equipment.find(entry => entry.slot === picker.slot)?.itemId : picker.kind === 'material' ? picker.ingredient?.itemId : browsedItemId}
       loading={!!documents.pending} error={documents.error} onSelect={id => void pick(id)} onClose={() => { if (!documents.pending) setPicker(null) }} />}
-    {newLevel !== null && preset && checkpoint && <Modal ariaLabel="レベル段階を追加" onClose={() => setNewLevel(null)}><header className="modal-header"><h2>レベル段階を追加</h2></header><p>現在のLv.{checkpoint.level}の構成を複製します。装備以外のスキル・ノードも引き継ぎます。</p><label className="design-dialog-label">適用開始レベル<input type="number" min="1" max="50" value={newLevel} onChange={event => setNewLevel(event.target.value)} /></label><footer className="modal-footer"><button className="button" onClick={() => setNewLevel(null)}>キャンセル</button><button className="button primary" disabled={!!documents.pending || !/^\d+$/.test(newLevel) || Number(newLevel) < 1 || Number(newLevel) > 50 || preset.checkpoints.some(entry => entry.level === Number(newLevel))} onClick={async () => {
-      const nextLevel = Number(newLevel)
-      const result = await editStructure(preset.path, content => {
-        const stages = valueAtPointer(content, '/levels')
-        const current = valueAtPointer(content, checkpoint.pointer)
-        if (!Array.isArray(stages) || !current || typeof current !== 'object' || Array.isArray(current)) throw new Error('レベル構成を取得できません。')
-        return setDesignValue(content, '/levels', [...stages, { ...current, level: nextLevel }].sort((a, b) => Number((a as { level: number }).level) - Number((b as { level: number }).level)))
-      }); if (result) { setLevel(nextLevel); setNewLevel(null) }
-    }}>追加する</button></footer></Modal>}
+    {levelAction && preset && <Modal ariaLabel={levelAction.kind === 'add' ? 'レベル段階を追加' : levelAction.kind === 'change' ? 'レベル段階を変更' : 'レベル段階を削除'} onClose={() => setLevelAction(null)} closeDisabled={!!documents.pending || structuralPending}>
+      <header className="modal-header"><h2>{levelAction.kind === 'add' ? 'レベル段階を追加' : levelAction.kind === 'change' ? 'レベル段階の数値を変更' : 'レベル段階を削除'}</h2></header>
+      <p>{levelAction.kind === 'add' ? `Lv.${levelAction.sourceLevel}の装備・スキル・ノードを複製します。` : levelAction.kind === 'change' ? `Lv.${levelAction.sourceLevel}の構成を別の適用開始レベルへ移します。` : `「${label(preset.name)}」のLv.${levelAction.sourceLevel}の段階を削除します。保存前なら元に戻せます。`}</p>
+      {levelAction.kind !== 'delete' && <label className="design-dialog-label">適用開始レベル<input type="number" min="1" max="50" value={levelInput} onChange={event => setLevelInput(event.target.value)} /></label>}
+      {levelAction.kind !== 'delete' && preset.checkpoints.some(entry => entry.level === Number(levelInput) && entry.level !== levelAction.sourceLevel) && <p className="design-warning">そのレベルは登録済みです。</p>}
+      <footer className="modal-footer"><button className="button" disabled={!!documents.pending || structuralPending} onClick={() => setLevelAction(null)}>キャンセル</button><button className="button primary" disabled={!!documents.pending || structuralPending || levelAction.kind !== 'delete' && (!/^\d+$/.test(levelInput) || Number(levelInput) < 1 || Number(levelInput) > 50 || preset.checkpoints.some(entry => entry.level === Number(levelInput)))} onClick={() => void applyLevelAction()}>{levelAction.kind === 'delete' ? 'この段階を削除' : levelAction.kind === 'change' ? 'レベルを変更' : '段階を追加'}</button></footer>
+    </Modal>}
+    {buildAction && classes.find(entry => entry.id === currentClass) && <BuildManagementDialog action={buildAction} catalog={available} selectedClass={classes.find(entry => entry.id === currentClass)!} preset={preset} onClose={() => setBuildAction(null)} onEdit={(name, nextBuildId) => preset ? editStructure(preset.path, content => changeBuildIdentity(content, name, nextBuildId)) : Promise.resolve(false)} onCommitted={committedBuild} />}
     {review && <Modal ariaLabel="装備・進行設計の変更を確認" className="design-save-dialog" onClose={() => setReview(null)} closeDisabled={documents.saving}>
       <header className="modal-header"><div><h2>変更を確認して保存</h2><p>{review.length}件のファイルを検証しました。ファイルごとに保存します。</p></div></header>
       <div className="design-save-list">{review.map(candidate => <article key={candidate.path}><strong>{candidate.path}</strong>{candidate.warnings.map((warning, index) => <p className="design-warning" key={index}>{warning}</p>)}<button className="button" disabled={documents.saving} onClick={() => setDiff(candidate)}>差分を確認</button></article>)}</div>
