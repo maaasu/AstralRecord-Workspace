@@ -10,6 +10,7 @@ import subprocess
 import sys
 from threading import Barrier, Thread
 import unittest
+from unittest.mock import Mock
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -19,7 +20,8 @@ if str(TOOLS_ROOT) not in sys.path:
     sys.path.insert(0, str(TOOLS_ROOT))
 
 from tests import test_ticket_cli as fixtures  # noqa: E402
-from astralarchitect_ticket.schematic import Bounds, Point, read_schematic  # noqa: E402
+from astralarchitect_ticket.live import LiveDraft  # noqa: E402
+from astralarchitect_ticket.schematic import Bounds, Point, Ticket, TicketError, read_schematic  # noqa: E402
 
 
 def states(snapshot: dict) -> list[str]:
@@ -35,6 +37,28 @@ def set_top(state: str, expected: str | None = None) -> dict[str, object]:
     if expected is not None:
         operation["expect"] = expected
     return operation
+
+
+class LiveDraftVolumeTest(unittest.TestCase):
+    def test_volume_limit_matches_cli(self) -> None:
+        origin = Point(0, 0, 0)
+        ticket = Mock(spec=Ticket, metadata={"state": "CREATED"})
+
+        # Stop at state materialization so this boundary test needs no large schematic.
+        class StatesRequested(Exception):
+            pass
+
+        ticket.candidate.states.side_effect = StatesRequested
+        ticket.bounds = Bounds(origin, Point(399, 124, 399))
+        with self.assertRaises(StatesRequested):
+            LiveDraft(ticket)
+        ticket.candidate.states.assert_called_once_with()
+        ticket.candidate.states.reset_mock()
+
+        ticket.bounds = Bounds(origin, Point(400, 124, 399))
+        with self.assertRaisesRegex(TicketError, "supports at most 20000000 ticket cells"):
+            LiveDraft(ticket)
+        ticket.candidate.states.assert_not_called()
 
 
 class LiveCliTest(unittest.TestCase):

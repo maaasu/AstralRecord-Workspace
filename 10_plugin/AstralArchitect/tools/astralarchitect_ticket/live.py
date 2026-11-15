@@ -18,6 +18,7 @@ from .preview import block_model
 from .schematic import (
     MAX_OPERATION_BYTES,
     MAX_OPERATIONS,
+    MAX_TICKET_VOLUME,
     Ticket,
     TicketError,
     reject_reparse_chain,
@@ -26,7 +27,6 @@ from .schematic import (
 )
 
 _LOCAL_ADDRESS = "127.0.0.1"
-_MAX_VOLUME = 1_048_576
 _MAX_PATCH_CELLS = 32_768
 _PATCH_HISTORY = 16
 _VIEW_ROOT = Path(__file__).with_name("live_view")
@@ -47,8 +47,8 @@ class LiveDraft:
 
     def __init__(self, ticket: Ticket) -> None:
         require_editable_ticket(ticket)
-        if ticket.bounds.volume > _MAX_VOLUME:
-            raise TicketError(f"live viewer supports at most {_MAX_VOLUME} ticket cells")
+        if ticket.bounds.volume > MAX_TICKET_VOLUME:
+            raise TicketError(f"live viewer supports at most {MAX_TICKET_VOLUME} ticket cells")
         self.ticket = ticket
         self.condition = Condition()
         self.closing = False
