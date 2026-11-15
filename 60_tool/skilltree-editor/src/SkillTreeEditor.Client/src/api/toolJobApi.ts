@@ -12,6 +12,8 @@ export type ToolSettings =
   | { toolId: '12'; networkTarget: NetworkTarget; skipTests: boolean }
   | { toolId: '16'; worldCopy: IncludeMode; networkPlugins: IncludeMode; recovery: RecoveryMode }
 
+export type DirectToolSettings = Exclude<ToolSettings, { toolId: '16' }>
+
 export interface ToolCapabilities {
   enabled: boolean
   reason: string | null
@@ -68,6 +70,8 @@ export const toolJobApi = {
   capabilities: () => request<ToolCapabilities>(`${base}/capabilities`),
   plan: (settings: ToolSettings) => request<ToolPlan>(`${base}/plans`, post(settings)),
   start: (planId: string, confirmations: string[]) => request<ToolRun>(`${base}/runs`, post({ planId, confirmations })),
+  startDirect: (requestId: string, settings: DirectToolSettings) =>
+    request<ToolRun>(`${base}/runs/direct`, post({ requestId, settings })),
   runs: () => request<ToolRun[]>(`${base}/runs`),
   logs: (id: string, after: number) => request<{ lines: ToolLogLine[]; next: number }>(`${runUrl(id)}/logs?after=${after}`),
   input: (id: string, promptId: string, value: string) => request<void>(`${runUrl(id)}/input`, post({ promptId, value })),

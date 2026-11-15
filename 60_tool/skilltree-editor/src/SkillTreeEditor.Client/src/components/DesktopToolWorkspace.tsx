@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { isRunning, toolJobApi, type ToolCapabilities, type ToolId, type ToolPage, type ToolPlan, type ToolRun, type ToolSettings } from '../api/toolJobApi'
 import { toolIds, toolSpecs } from '../data/desktopTools'
 import { displayToolDate, RunStatus, ToolPlanDetails, ToolRunDetails, toolError } from './ToolRunDetails'
@@ -38,6 +38,13 @@ function useRunHistory(enabled: boolean, visible: boolean) {
   } }
 }
 
+const RunHistoryContext = createContext<ReturnType<typeof useRunHistory> | undefined>(undefined)
+
+export function DesktopToolRunHistoryProvider({ enabled, children }: { enabled: boolean; children: ReactNode }) {
+  const history = useRunHistory(enabled, true)
+  return <RunHistoryContext.Provider value={history}>{children}</RunHistoryContext.Provider>
+}
+
 interface DesktopToolWorkspaceProps {
   page: ToolPage
   visible: boolean
@@ -45,12 +52,15 @@ interface DesktopToolWorkspaceProps {
   capabilitiesError?: string
   onRetryCapabilities: () => void
   hasUnsavedSource: boolean
-  onOpenHistory: () => void
+  onOpenHistory: (id: string) => void
+  historyRunId?: string
 }
 
-export function DesktopToolWorkspace({ page, visible, capabilities, capabilitiesError, onRetryCapabilities, hasUnsavedSource, onOpenHistory }: DesktopToolWorkspaceProps) {
-  const history = useRunHistory(capabilities?.enabled === true, visible)
-  const [selectedHistory, setSelectedHistory] = useState('')
+export function DesktopToolWorkspace({ page, visible, capabilities, capabilitiesError, onRetryCapabilities, hasUnsavedSource, onOpenHistory, historyRunId }: DesktopToolWorkspaceProps) {
+  const sharedHistory = useContext(RunHistoryContext)
+  const localHistory = useRunHistory(!sharedHistory && capabilities?.enabled === true, visible)
+  const history = sharedHistory ?? localHistory
+  const [selectedHistory, setSelectedHistory] = useState(historyRunId ?? '')
   const workspace = useRef<HTMLElement>(null)
   const historyDetails = useRef<HTMLDivElement>(null)
   const [visitedPages, setVisitedPages] = useState<ToolId[]>(page === 'history' ? [] : [page])
@@ -63,7 +73,11 @@ export function DesktopToolWorkspace({ page, visible, capabilities, capabilities
   useEffect(() => {
     if (visible && page === 'history' && selectedHistory) historyDetails.current?.scrollIntoView?.({ block: 'start' })
   }, [page, selectedHistory, visible])
-  const showHistory = (id: string) => { setSelectedHistory(id); onOpenHistory() }
+  useEffect(() => {
+    if (historyRunId) setSelectedHistory(historyRunId)
+  }, [historyRunId])
+
+  const showHistory = (id: string) => { setSelectedHistory(id); onOpenHistory(id) }
 
   if (!capabilities?.enabled) return <main ref={workspace} className="tool-workspace">
     <h1>{page === 'history' ? '実行履歴' : toolSpecs[page].label}</h1>
@@ -114,17 +128,20 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRun, visi
   const [pending, setPending] = useState<'plan' | 'start'>()
   const [error, setError] = useState('')
   const [expiredId, setExpiredId] = useState('')
+  const inFlight = useRef(false)
+  const directRequestId = useRef<string>(undefined)
+  const requiresReview = id === '16'
   const spec = toolSpecs[id]
-  const expired = plan && (plan.id === expiredId || Date.parse(plan.expiresAtUtc) <= Date.now())
+  const expired = requiresReview && plan && (plan.id === expiredId || Date.parse(plan.expiresAtUtc) <= Date.now())
   const runActive = activeRun?.toolId === id
   const disabled = !ready || Boolean(activeRun) || Boolean(pending)
   const missingTests = settings.toolId === '01' && settings.pluginTestMode === 'Selected' && !settings.pluginTests?.trim()
 
   useEffect(() => {
-    if (!plan) return
+    if (!requiresReview || !plan) return
     const timeout = setTimeout(() => setExpiredId(plan.id), Math.max(0, Date.parse(plan.expiresAtUtc) - Date.now()))
     return () => clearTimeout(timeout)
-  }, [plan])
+  }, [plan, requiresReview])
 
   const clearPlan = () => {
     setPlan(undefined)
@@ -132,38 +149,53 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRun, visi
     setReviewed(false)
   }
   const updateSettings = (next: ToolSettings) => {
+    directRequestId.current = undefined
     setSettings(next)
     clearPlan()
     setError('')
   }
+  const request = settings.toolId === '01'
+    ? { ...settings, pluginTests: settings.pluginTestMode === 'Selected' ? settings.pluginTests?.trim() : undefined }
+    : settings
   const requestPlan = async () => {
+    if (disabled || missingTests || inFlight.current) return
+    inFlight.current = true
     clearPlan()
     setPending('plan')
     setError('')
     try {
-      const request = settings.toolId === '01'
-        ? { ...settings, pluginTests: settings.pluginTestMode === 'Selected' ? settings.pluginTests?.trim() : undefined }
-        : settings
       setPlan(await toolJobApi.plan(request))
     } catch (reason) {
       setError(toolError(reason))
     } finally {
+      inFlight.current = false
       setPending(undefined)
     }
   }
 
-  const confirmed = plan && plan.canRun !== false && (plan.confirmations.length ? plan.confirmations.every(item => checked.includes(item.id)) : reviewed)
+  const confirmed = plan?.canRun && (plan.confirmations.length ? plan.confirmations.every(item => checked.includes(item.id)) : reviewed)
+  const canStart = !disabled && !missingTests && (!requiresReview || (confirmed && !expired))
   const start = async () => {
-    if (!plan || expired || !confirmed || disabled) return
+    if (!canStart || inFlight.current) return
+    inFlight.current = true
     setPending('start')
     setError('')
+    clearPlan()
     try {
-      onStarted(await toolJobApi.start(plan.id, checked))
+      if (request.toolId === '16') {
+        if (plan) onStarted(await toolJobApi.start(plan.id, checked))
+      } else {
+        // Reuse the request ID when the result of a previous start is unknown.
+        directRequestId.current ??= crypto.randomUUID()
+        const run = await toolJobApi.startDirect(directRequestId.current, request)
+        directRequestId.current = undefined
+        onStarted(run)
+      }
     } catch (reason) {
       setError(toolError(reason))
       onRefresh()
     } finally {
-      clearPlan()
+      inFlight.current = false
       setPending(undefined)
     }
   }
@@ -171,7 +203,7 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRun, visi
   return <>
     <div className="tool-heading">
       <div><h1>{spec.label}</h1><p className="tool-muted">{spec.description}</p></div>
-      {runActive ? <RunStatus status={activeRun.status} /> : plan && !expired && <span className="tool-badge">{plan.canRun === false ? '実行条件を確認' : '計画を確認'}</span>}
+      {runActive ? <RunStatus status={activeRun.status} /> : requiresReview && plan && !expired && <span className="tool-badge">{plan.canRun === false ? '実行条件を確認' : '計画を確認'}</span>}
     </div>
     <div className="tool-settings-grid">
       <section className="tool-panel">
@@ -186,7 +218,7 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRun, visi
     {plan && <ToolPlanDetails plan={plan} />}
     {hasUnsavedSource && (id === '03' || id === '01') && <p className="tool-note warning">未保存のマスタ編集があります。実行には保存済みのファイルを使用します。</p>}
     {activeRun && !runActive && <div className="tool-note"><p>{toolSpecs[activeRun.toolId].label}が実行中です。</p><button type="button" className="button" onClick={() => onOpenHistory(activeRun.id)}>実行中の処理を表示</button></div>}
-    {plan && plan.canRun !== false && !expired && <fieldset className="tool-confirmations" disabled={disabled}>
+    {requiresReview && plan?.canRun && !expired && <fieldset className="tool-confirmations" disabled={disabled}>
       <legend>実行前の確認</legend>
       {plan.confirmations.length ? plan.confirmations.map(confirmation => <label key={confirmation.id}>
         <input type="checkbox" checked={checked.includes(confirmation.id)} onChange={event => {
@@ -195,16 +227,16 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRun, visi
         }} /><span>{confirmation.label}</span>
       </label>) : <label><input type="checkbox" checked={reviewed} onChange={event => setReviewed(event.target.checked)} /><span>実行計画を確認しました</span></label>}
     </fieldset>}
-    {plan?.canRun === false && <p className="tool-note warning" role="status">この計画は実行条件を満たしていません。</p>}
+    {requiresReview && plan?.canRun === false && <p className="tool-note warning" role="status">この計画は実行条件を満たしていません。</p>}
     {expired && <p className="tool-note warning" role="status">計画の有効期限が切れました。設定を確認して計画を更新してください。</p>}
     {error && <p className="tool-note error" role="alert">{error}</p>}
     <div className="tool-actions">
-      <span className="tool-muted">{plan && !expired && `有効期限 ${displayToolDate(plan.expiresAtUtc)}`}</span>
+      <span className="tool-muted">{requiresReview && plan && !expired && `有効期限 ${displayToolDate(plan.expiresAtUtc)}`}</span>
       <div className="tool-button-row">
         <button type="button" className="button" disabled={disabled || missingTests} onClick={() => void requestPlan()}>
-          {pending === 'plan' ? '計画を取得中…' : plan ? '計画を更新' : '実行計画を確認'}
+          {pending === 'plan' ? '計画を取得中…' : plan ? '計画を更新' : requiresReview ? '実行計画を確認' : '実行計画を表示'}
         </button>
-        <button type="button" className="button primary" disabled={disabled || !confirmed || expired} onClick={() => void start()}>
+        <button type="button" className="button primary" disabled={!canStart} onClick={() => void start()}>
           {pending === 'start' ? '実行を開始中…' : spec.action}
         </button>
       </div>

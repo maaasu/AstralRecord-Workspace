@@ -37,6 +37,11 @@ public static class ToolJobEndpoints
             var run = await jobs.StartAsync(request, token);
             return Results.Accepted($"/api/tool-jobs/runs/{run.Id}", run);
         });
+        api.MapPost("/runs/direct", async (ToolJobDirectStartRequest request, ToolJobService jobs, CancellationToken token) =>
+        {
+            var run = await jobs.StartDirectAsync(request, token);
+            return Results.Accepted($"/api/tool-jobs/runs/{run.Id}", run);
+        });
         api.MapGet("/runs/{id:guid}/logs", (Guid id, long? after, ToolJobService jobs)
             => Results.Ok(jobs.GetLogs(id, after ?? 0)));
         api.MapPost("/runs/{id:guid}/input", (Guid id, ToolJobInputRequest request, ToolJobService jobs) =>

@@ -4,19 +4,19 @@ export const toolSpecs = {
   '03': {
     label: 'マスタ反映',
     description: '保存済みの Filebase を同期し、マスタを再読込してパッチを公開します。',
-    action: 'マスタを反映',
+    action: '実行',
     steps: ['対象環境と停止・稼働条件を確認', 'Filebase の同期とマスタ投入', '再読込または Dev 起動・新世代確認', 'パッチ公開'],
   },
   '01': {
     label: 'Dev更新',
     description: '配布設定に従って API・Web・Plugin・Filebase を更新します。',
-    action: 'Dev を更新',
+    action: '実行',
     steps: ['配布設定と Dev の状態を確認', 'ビルドと検証', '設定された成果物の配布・データ更新', 'Dev 起動確認とパッチ公開'],
   },
   '12': {
     label: 'ネットワークビルド',
     description: 'Lobby・Velocity Proxy・Geyser Extension の JAR をビルドします。',
-    action: 'ビルドを開始',
+    action: '実行',
     steps: ['対象とビルド環境を確認', 'Maven で対象 Plugin をビルド', 'JAR を出力先へコピー'],
   },
   '16': {
