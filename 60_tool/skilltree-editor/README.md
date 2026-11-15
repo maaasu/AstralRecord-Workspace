@@ -6,6 +6,8 @@ Filebase の YAML / JSON マスターと、スキルツリーのノード・配�
 
 PowerShell 7 から `./Publish-Desktop.ps1` を実行すると、フロントエンドと self-contained の Windows x64 EXE をビルドし、`dist/desktop/` に ZIP・SHA256・ビルドログを出力します。ビルドには Node.js 24 と global.json に適合する .NET 10 SDK が必要です。`-DotnetPath`・`-NpmPath`・`-OutputDirectory` で場所を指定できます。配布物にワークスペースのマスターやローカル接続設定を含めません。
 
+追加インストール不要の配布物は、Microsoft 公式の WebView2 Fixed Version Runtime x64 を展開し、`-WebView2RuntimeDirectory <msedgewebview2.exe のあるフォルダー>` を指定します。ランタイム全体を `webview2/` に同梱し、ホストはそのフォルダーを優先します。省略時はPCの Evergreen Runtime を利用します。Fixed Runtime は自己更新しないため、配布更新時に公式の安定版へ更新してください。[公式の配布手順](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution#the-fixed-version-runtime-distribution-mode)に従い、Windows 10 のパッケージ読み取り権限はホストが同梱フォルダーへ設定します。
+
 EXE は同一プロセス内でエディタを起動します。デスクトップモードは固定ポート設定にかかわらず動的な loopback ポートへ限定し、ネイティブホストが付ける一時トークンを要求します。WebView2 の外部画面遷移・権限要求は制限します。ツール実行 API はデスクトップモード専用です。配置 API などの設定は選択ワークスペースの `src/SkillTreeEditor.Server/appsettings.local.json` を読み込み、配布フォルダーの同名設定、環境変数、起動引数の順で上書きできます。実行中のワーカーは独立して動き、アプリ再起動後も履歴から追跡できます。
 
 ## 画面共通の操作

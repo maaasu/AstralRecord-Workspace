@@ -184,7 +184,7 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRun, visi
       </section>
     </div>
     {plan && <ToolPlanDetails plan={plan} />}
-    {hasUnsavedSource && (id === '03' || id === '01') && <p className="tool-note warning">未保存のマスタまたはスキルツリーがあります。実行には保存済みのファイルを使用します。</p>}
+    {hasUnsavedSource && (id === '03' || id === '01') && <p className="tool-note warning">未保存のマスタ編集があります。実行には保存済みのファイルを使用します。</p>}
     {activeRun && !runActive && <div className="tool-note"><p>{toolSpecs[activeRun.toolId].label}が実行中です。</p><button type="button" className="button" onClick={() => onOpenHistory(activeRun.id)}>実行中の処理を表示</button></div>}
     {plan && plan.canRun !== false && !expired && <fieldset className="tool-confirmations" disabled={disabled}>
       <legend>実行前の確認</legend>

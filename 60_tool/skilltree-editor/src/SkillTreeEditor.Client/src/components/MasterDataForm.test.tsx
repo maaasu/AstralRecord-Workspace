@@ -24,6 +24,19 @@ function openAdd(path: string) {
 }
 
 describe('master form', () => {
+  it('keeps the same editor and focus when adding or removing the first title color code', () => {
+    render(<Editable initial={{ title: '案内' }} metadata={[]} />)
+    const input = screen.getByRole('textbox', { name: '/title' })
+    input.focus()
+    fireEvent.change(input, { target: { value: '&a案内' } })
+    expect(screen.getByRole('textbox', { name: '/title' })).toBe(input)
+    expect(input).toHaveFocus()
+    expect(input).toBeVisible()
+    fireEvent.change(input, { target: { value: '案内' } })
+    expect(screen.getByRole('textbox', { name: '/title' })).toBe(input)
+    expect(input).toHaveFocus()
+  })
+
   it('keeps focus in the text field when replacing a color code', () => {
     render(<MasterVisualReferencesContext.Provider value={{ documentPath: 'item.yml', files: new Map(), openFile: vi.fn() }}>
       <Editable initial={{ color: '#112233' }} metadata={[]} />

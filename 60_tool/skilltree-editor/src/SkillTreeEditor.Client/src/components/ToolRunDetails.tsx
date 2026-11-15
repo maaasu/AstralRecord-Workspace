@@ -119,6 +119,7 @@ export function ToolRunDetails({ run, onRefresh, onOpenHistory }: {
     {error && <p className="tool-note error" role="alert">{error}</p>}
     {run.status === 'running' && <progress className="tool-progress" aria-label="現在実行中" />}
     <RunLog run={run} />
+    {run.logPath && <p className="tool-muted">ログ保存先: <code>{run.logPath}</code></p>}
     <div className="tool-actions">
       <span className="tool-muted">{run.finishedAtUtc && `終了 ${displayToolDate(run.finishedAtUtc)}`}{run.exitCode !== null && ` · 終了コード ${run.exitCode}`}</span>
       {onOpenHistory && <button className="text-button" type="button" onClick={onOpenHistory}>実行履歴を見る</button>}

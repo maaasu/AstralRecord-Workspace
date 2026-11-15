@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
@@ -117,7 +119,11 @@ public partial class MainWindow : Window
     {
         if (Browser.CoreWebView2 is not null) return;
         Directory.CreateDirectory(App.StateDirectory);
+        var bundledRuntime = Path.Combine(AppContext.BaseDirectory, "webview2");
+        var browserDirectory = File.Exists(Path.Combine(bundledRuntime, "msedgewebview2.exe")) ? bundledRuntime : null;
+        if (browserDirectory is not null) GrantWindows10RuntimeReadAccess(browserDirectory);
         var environment = await CoreWebView2Environment.CreateAsync(
+            browserExecutableFolder: browserDirectory,
             userDataFolder: Path.Combine(App.StateDirectory, "WebView2"));
         await Browser.EnsureCoreWebView2Async(environment);
         var core = Browser.CoreWebView2 ?? throw new InvalidOperationException("WebView2 の初期化に失敗しました。");
@@ -321,6 +327,30 @@ public partial class MainWindow : Window
         if (!IsWorkspace(fullPath))
             throw new DirectoryNotFoundException("選んだフォルダーに 40_filebase・10_plugin・60_tool がありません。");
         return fullPath;
+    }
+
+    private static void GrantWindows10RuntimeReadAccess(string runtimeDirectory)
+    {
+        // Microsoft requires these read-only package permissions for unpackaged Fixed Runtime on Windows 10.
+        // Windows 11 does not require this adjustment. Only the app's bundled runtime directory is affected.
+        if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000)) return;
+        var directory = new DirectoryInfo(runtimeDirectory);
+        var permissions = directory.GetAccessControl();
+        var inheritance = InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit;
+        var changed = false;
+        foreach (var sid in new[] { "S-1-15-2-1", "S-1-15-2-2" })
+        {
+            var identity = new SecurityIdentifier(sid);
+            var exists = permissions.GetAccessRules(true, true, typeof(SecurityIdentifier)).OfType<FileSystemAccessRule>()
+                .Any(rule => rule.IdentityReference.Equals(identity) && rule.AccessControlType == AccessControlType.Allow
+                    && (rule.FileSystemRights & FileSystemRights.ReadAndExecute) == FileSystemRights.ReadAndExecute
+                    && (rule.InheritanceFlags & inheritance) == inheritance);
+            if (exists) continue;
+            permissions.AddAccessRule(new FileSystemAccessRule(identity, FileSystemRights.ReadAndExecute,
+                inheritance, PropagationFlags.None, AccessControlType.Allow));
+            changed = true;
+        }
+        if (changed) directory.SetAccessControl(permissions);
     }
 
     private void ApplyTitleBarColors()

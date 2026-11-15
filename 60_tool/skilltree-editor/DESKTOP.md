@@ -10,8 +10,9 @@
 EXE と同じフォルダーの DLL・`wwwroot`・`tool-host` も必要です。EXE だけを移動しないでください。
 ZIP にマスターデータや接続先設定は含まれていません。選んだワークスペース内のファイルを編集します。
 
-Windows x64 向けで、.NET は同梱しています。マスタ編集のために Node.js や .NET SDK を入れる必要はありません。
-Microsoft Edge WebView2 Runtime が未導入の場合は、[Microsoft の配布ページ](https://developer.microsoft.com/microsoft-edge/webview2/)から Evergreen Runtime を導入してください。
+Windows x64 向けで、.NET は同梱しています。`webview2` フォルダーのある配布物は画面用ランタイムも同梱し、アプリ起動のための追加インストールは不要です。Node.js や .NET SDK もマスタ編集には不要です。ローカルディスクへ展開してください。
+`webview2` を省いた軽量ビルドは、PC に Microsoft Edge WebView2 Runtime が必要です。未導入の場合は [Microsoft の配布ページ](https://developer.microsoft.com/microsoft-edge/webview2/)を参照してください。
+同梱ランタイムは ZIP の更新時に更新します。Windows 10 では起動時に同梱ランタイムのフォルダーへ、Microsoft が要求するアプリパッケージ向け読み取り権限を設定します。
 
 ## マスタ編集
 
@@ -49,3 +50,8 @@ Microsoft Edge WebView2 Runtime が未導入の場合は、[Microsoft の配布�
 - ワークスペースを選び直して起動: `AstralRecordMasterEditor.exe --select-workspace`
 
 アプリ削除は展開フォルダーを削除します。ワークスペースのマスターデータ・バックアップ・実行履歴は別に保持されます。
+
+## 同梱ソフトウェア
+
+WebView2 のライセンス・通知は `licenses/` と同梱ランタイム内の通知を参照してください。[Microsoft の WebView2 配布条件](https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download)が適用されます。
+WebView2 は SmartScreen 等の機能に伴い Microsoft へ診断・セキュリティ情報を送信することがあります。詳細は [WebView2 のデータとプライバシー](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/data-privacy)を参照してください。

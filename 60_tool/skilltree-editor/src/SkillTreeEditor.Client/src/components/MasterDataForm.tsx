@@ -325,12 +325,12 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
   </div>
 }
 
-function FormattedField({ path, editor, display, multiline = false, initiallyEditing = false }: {
-  path: string; editor: ReactNode; display: ReactNode; multiline?: boolean; initiallyEditing?: boolean
+function FormattedField({ path, editor, display, multiline = false, initiallyEditing = false, toggleable = true }: {
+  path: string; editor: ReactNode; display: ReactNode; multiline?: boolean; initiallyEditing?: boolean; toggleable?: boolean
 }) {
   const [editing, setEditing] = useState(initiallyEditing)
-  return <details className="master-formatted-field" open={editing} onToggle={event => setEditing(event.currentTarget.open)}>
-    <summary aria-label={`${path || '/'} ${editing ? '色付き表示' : 'コードを編集'}`}>
+  return <details className="master-formatted-field" open={!toggleable || editing} onToggle={event => { if (toggleable) setEditing(event.currentTarget.open) }}>
+    <summary style={toggleable ? undefined : { display: 'none' }} aria-label={`${path || '/'} ${editing ? '色付き表示' : 'コードを編集'}`}>
       <span className="master-format-mode">{editing ? '色付き表示' : 'コードを編集'}</span>
       <span className={`master-formatted-value${multiline ? ' multiline' : ''}`}>{display}</span>
     </summary>
@@ -531,8 +531,8 @@ function StringEditor({ value, path, label, onChange, references, referenceKind,
       : <div className="master-reference-selection" title={value}>{selection}</div>)}
     {!compact && (colorField
       ? <div className="master-color-input">{hexColor && <span aria-hidden="true" className="master-color-swatch" style={{ backgroundColor: value }} />}{input}</div>
-      : styledText
-        ? <FormattedField path={path} multiline={multiline} initiallyEditing={!formatted && !description} display={<MinecraftText value={preview || ' '} />}
+      : !referenceKind
+        ? <FormattedField path={path} multiline={multiline} toggleable={styledText} initiallyEditing={!formatted && !description} display={<MinecraftText value={preview || ' '} />}
           editor={<>{input}{description && !visualReferences && <small className="master-line-guide">この欄は 1 つの文字列として保存します。詳細を行ごとに分ける場合は lore を使います。</small>}</>} />
         : input)}
     {!compact && !styledText && !colorField && preview !== value && <div className="master-value-label" aria-label={`${path || '/'} 選択中の名前`}>{preview}</div>}

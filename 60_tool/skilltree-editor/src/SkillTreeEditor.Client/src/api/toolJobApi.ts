@@ -45,6 +45,7 @@ export interface ToolRun {
   startedAtUtc: string
   finishedAtUtc: string | null
   exitCode: number | null
+  logPath?: string | null
   prompt: { id: string; message: string; choices: { value: string; label: string }[] } | null
 }
 

@@ -3,7 +3,8 @@
 param(
     [string]$OutputDirectory = (Join-Path $PSScriptRoot 'dist/desktop'),
     [string]$DotnetPath,
-    [string]$NpmPath
+    [string]$NpmPath,
+    [string]$WebView2RuntimeDirectory
 )
 
 Set-StrictMode -Version Latest
@@ -42,8 +43,16 @@ if (-not $NpmPath) {
     if ($npm) { $NpmPath = $npm.Source }
 }
 if (-not $NpmPath) { throw 'Node.js と npm が必要です。-NpmPath で npm.cmd を指定してください。' }
-$nodeDirectory = Split-Path -Parent (Resolve-Path -LiteralPath $NpmPath).Path
+$DotnetPath = (Resolve-Path -LiteralPath $DotnetPath).Path
+$NpmPath = (Resolve-Path -LiteralPath $NpmPath).Path
+$nodeDirectory = Split-Path -Parent $NpmPath
 if (-not (Test-Path -LiteralPath (Join-Path $nodeDirectory 'node.exe'))) { throw 'npm.cmd と同じフォルダーに node.exe が必要です。' }
+if ($WebView2RuntimeDirectory) {
+    $WebView2RuntimeDirectory = (Resolve-Path -LiteralPath $WebView2RuntimeDirectory).Path
+    if (-not (Test-Path -LiteralPath (Join-Path $WebView2RuntimeDirectory 'msedgewebview2.exe'))) {
+        throw 'WebView2RuntimeDirectory は Fixed Version Runtime x64 の msedgewebview2.exe があるフォルダーを指定してください。'
+    }
+}
 
 $outputRoot = [IO.Path]::GetFullPath($OutputDirectory)
 [IO.Directory]::CreateDirectory($outputRoot) | Out-Null
@@ -74,6 +83,9 @@ try {
 
     if (-not (Test-Path -LiteralPath (Join-Path $publishDirectory 'AstralRecordMasterEditor.exe'))) { throw 'EXE が生成されませんでした。' }
     if (-not (Test-Path -LiteralPath (Join-Path $publishDirectory 'wwwroot/index.html'))) { throw '画面が同梱されませんでした。' }
+    if ($WebView2RuntimeDirectory) {
+        Copy-Item -LiteralPath $WebView2RuntimeDirectory -Destination (Join-Path $publishDirectory 'webview2') -Recurse
+    }
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'DESKTOP.md') -Destination (Join-Path $publishDirectory 'README.md')
     # Local configuration is never part of the portable distribution.
     Get-ChildItem -LiteralPath $publishDirectory -Filter 'appsettings.*.json' -File | Remove-Item

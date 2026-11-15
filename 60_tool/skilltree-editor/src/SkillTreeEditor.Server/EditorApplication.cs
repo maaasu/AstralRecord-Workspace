@@ -32,6 +32,7 @@ public static class EditorApplication
         builder.Services.AddSingleton<BalanceLabCatalog>();
         builder.Services.AddSingleton<BalanceLabJobs>();
         builder.Services.AddSingleton<WorkspacePaths>();
+        builder.Services.AddSingleton<ToolJobService>();
         builder.Services.AddSingleton<BackupService>();
         builder.Services.AddSingleton<FilebaseRepository>();
         builder.Services.AddSingleton<SchemaCatalog>();
@@ -68,6 +69,7 @@ public static class EditorApplication
         app.MapSpawnerPlanningEndpoints();
         app.MapWorldPlacementEndpoints();
         app.MapBalanceLabEndpoints();
+        app.MapToolJobEndpoints();
 
         app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
         {
