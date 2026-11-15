@@ -1,7 +1,6 @@
 package io.github.maaasu.astralRecord.feature.textdisplay.command;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
-import io.github.maaasu.astralRecord.feature.textdisplay.model.TextDisplayPlacement;
 import io.github.maaasu.astralRecord.feature.textdisplay.service.TextDisplayPlacementService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstTabCompleter;
 import org.jetbrains.annotations.NotNull;
@@ -30,11 +29,26 @@ public final class TextDisplayTabCompleter extends AstTabCompleter {
         if (args.length == 1) {
             return List.of("place", "remove", "list", "reload");
         }
-        if (args.length == 2 && "remove".equalsIgnoreCase(args[0])) {
+        if (isRemovalTarget(args)) {
             return placementService.getPlacements().stream()
-                    .map(TextDisplayPlacement::id)
+                    .map(TextDisplayCommand::removalTarget)
                     .toList();
         }
         return List.of();
+    }
+
+    @Override
+    protected int getCompletionStartIndex(@NotNull String[] args) {
+        return isRemovalTarget(args) ? 1 : super.getCompletionStartIndex(args);
+    }
+
+    @Override
+    protected @NotNull String getCompletionPrefix(@NotNull String[] args) {
+        String prefix = super.getCompletionPrefix(args);
+        return isRemovalTarget(args) ? TextDisplayCommand.normalizeRemovalInput(prefix) : prefix;
+    }
+
+    private boolean isRemovalTarget(@NotNull String[] args) {
+        return args.length >= 2 && "remove".equalsIgnoreCase(args[0]);
     }
 }
