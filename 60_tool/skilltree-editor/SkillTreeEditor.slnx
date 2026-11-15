@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="src/SkillTreeEditor.Server/SkillTreeEditor.Server.csproj" />
+  <Project Path="src/SkillTreeEditor.Desktop/SkillTreeEditor.Desktop.csproj" />
   <Project Path="tests/SkillTreeEditor.Server.Tests/SkillTreeEditor.Server.Tests.csproj" />
 </Solution>

@@ -22,7 +22,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(url: string, init?: RequestInit, onResponse?: (response: Response) => void): Promise<T> {
+export async function request<T>(url: string, init?: RequestInit, onResponse?: (response: Response) => void): Promise<T> {
   let response: Response
   try {
     response = await fetch(url, {
@@ -46,9 +46,11 @@ async function request<T>(url: string, init?: RequestInit, onResponse?: (respons
   if (!response.ok) {
     const message = typeof payload === 'object' && payload && 'message' in payload
       ? String((payload as { message: unknown }).message)
-      : typeof payload === 'object' && payload && 'title' in payload
-        ? String((payload as { title: unknown }).title)
-        : `処理に失敗しました（${response.status}）`
+      : typeof payload === 'object' && payload && 'detail' in payload && typeof payload.detail === 'string'
+        ? payload.detail
+        : typeof payload === 'object' && payload && 'title' in payload
+          ? String((payload as { title: unknown }).title)
+          : `処理に失敗しました（${response.status}）`
     throw new ApiError(message, response.status, payload)
   }
   onResponse?.(response)

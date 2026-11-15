@@ -103,50 +103,41 @@
 }
 .master-switch input[type=checkbox]:checked { background: var(--accent-soft); border-color: var(--accent); }
 .master-switch input[type=checkbox]:checked::after { left: 19px; background: var(--accent); }
-.master-color-input { display: flex; gap: 6px; }
-.master-color-input input[type=color] { width: 38px; min-width: 38px; height: auto; padding: 2px; cursor: pointer; }
-
-.master-line-preview,
-.master-scalar-preview {
+.master-formatted-field > summary {
   display: grid;
   gap: 5px;
+  margin-bottom: 5px;
+  cursor: pointer;
+  list-style: none;
+}
+.master-formatted-field > summary::-webkit-details-marker { display: none; }
+.master-format-mode { justify-self: end; color: var(--accent); font-size: 11px; }
+.master-formatted-value {
+  display: block;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-bright);
+  border-radius: 5px;
+  background: var(--surface-raised);
+  font-size: 14px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.master-formatted-value.multiline { min-height: 74px; }
+.master-formatted-line { display: block; min-height: 1.5em; }
+.master-formatted-field[open] .master-formatted-value { display: none; }
+.master-formatted-field:not([open]) > :not(summary) { display: none; }
 
-.master-line-preview > strong,
-.master-scalar-preview > strong {
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.master-line-preview-row {
-  display: grid;
-  grid-template-columns: 2.5em minmax(0, 1fr);
-  gap: 8px;
-  min-height: 1.5em;
-}
-
-.master-line-preview-row > code {
-  color: var(--text-muted);
-  text-align: right;
-}
-
-.master-color-preview {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 7px;
-  color: var(--text-muted);
-  font-size: 11px;
-}
-
+.master-color-input { position: relative; }
+.master-color-input:has(.master-color-swatch) input { padding-left: 36px; }
 .master-color-swatch {
-  display: inline-block;
-  width: 28px;
-  height: 20px;
-  border: 1px solid #ffffff66;
+  position: absolute;
+  top: 50%;
+  left: 9px;
+  width: 18px;
+  height: 18px;
+  transform: translateY(-50%);
+  border: 1px solid var(--text-muted);
   border-radius: 3px;
-  box-shadow: 0 0 0 1px #0006;
+  pointer-events: none;
 }

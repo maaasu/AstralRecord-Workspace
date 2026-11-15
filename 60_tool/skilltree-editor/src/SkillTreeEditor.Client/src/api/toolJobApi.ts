@@ -1,0 +1,74 @@
+import { request } from './editorApi'
+
+export type ToolId = '03' | '01' | '12' | '16'
+export type ToolPage = ToolId | 'history'
+export type PluginTestMode = 'All' | 'Selected' | 'Skip'
+export type NetworkTarget = 'All' | 'Lobby' | 'Proxy' | 'Extension'
+export type IncludeMode = 'Include' | 'Skip'
+export type RecoveryMode = 'Auto' | 'Restart' | 'Restore'
+export type ToolSettings =
+  | { toolId: '03'; serverAlreadyRunning: boolean; recovery: Exclude<RecoveryMode, 'Restore'> }
+  | { toolId: '01'; pluginTestMode: PluginTestMode; pluginTests?: string; recovery: Exclude<RecoveryMode, 'Restore'> }
+  | { toolId: '12'; networkTarget: NetworkTarget; skipTests: boolean }
+  | { toolId: '16'; worldCopy: IncludeMode; networkPlugins: IncludeMode; recovery: RecoveryMode }
+
+export interface ToolCapabilities {
+  enabled: boolean
+  reason: string | null
+  workspaceRoot: string
+  workspaceBranch?: string | null
+  activeRunId: string | null
+}
+
+export interface ToolPlan {
+  id: string
+  toolId: ToolId
+  workspaceRoot: string
+  configurationPath: string | null
+  filebaseSource: string | null
+  workspaceMismatch: boolean
+  canRun: boolean
+  warnings: string[]
+  summary: string[]
+  paths: { label: string; source: string; destination: string }[]
+  confirmations: { id: string; label: string }[]
+  expiresAtUtc: string
+}
+
+export type ToolRunStatus = 'starting' | 'running' | 'waitingForInput' | 'succeeded' | 'failed' | 'interrupted'
+
+export interface ToolRun {
+  id: string
+  toolId: ToolId
+  plan: ToolPlan
+  status: ToolRunStatus
+  startedAtUtc: string
+  finishedAtUtc: string | null
+  exitCode: number | null
+  logPath?: string | null
+  prompt: { id: string; message: string; choices: { value: string; label: string }[] } | null
+}
+
+export interface ToolLogLine {
+  sequence: number
+  stream: 'output' | 'error'
+  text: string
+}
+
+export const isRunning = (run: ToolRun) => run.status === 'starting' || run.status === 'running' || run.status === 'waitingForInput'
+
+const base = '/api/tool-jobs'
+const runUrl = (id: string) => `${base}/runs/${encodeURIComponent(id)}`
+const post = (body: unknown): RequestInit => ({
+  method: 'POST',
+  body: JSON.stringify(body),
+})
+
+export const toolJobApi = {
+  capabilities: () => request<ToolCapabilities>(`${base}/capabilities`),
+  plan: (settings: ToolSettings) => request<ToolPlan>(`${base}/plans`, post(settings)),
+  start: (planId: string, confirmations: string[]) => request<ToolRun>(`${base}/runs`, post({ planId, confirmations })),
+  runs: () => request<ToolRun[]>(`${base}/runs`),
+  logs: (id: string, after: number) => request<{ lines: ToolLogLine[]; next: number }>(`${runUrl(id)}/logs?after=${after}`),
+  input: (id: string, promptId: string, value: string) => request<void>(`${runUrl(id)}/input`, post({ promptId, value })),
+}
