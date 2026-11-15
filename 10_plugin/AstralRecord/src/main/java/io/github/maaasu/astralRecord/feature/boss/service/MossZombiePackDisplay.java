@@ -95,11 +95,13 @@ final class MossZombiePackDisplay implements Listener {
         };
     }
 
-    /** @param motion Mob スキルと共有する攻撃姿勢と演出。null なら待機・歩行だけを表示します */
+    /**
+     * @param motion Mob スキルと共有する攻撃姿勢と演出。null なら待機・歩行だけを表示します。
+     *               演出の受け口は {@link #start()} で接続し、期限切れを回収できる間だけ受け付けます
+     */
     void setMotion(@Nullable MossZombieMotion motion) {
         if (this.motion != null) this.motion.setEffectSink(null);
         this.motion = motion;
-        if (motion != null) motion.setEffectSink(this::showEffects);
     }
 
     void start() {
