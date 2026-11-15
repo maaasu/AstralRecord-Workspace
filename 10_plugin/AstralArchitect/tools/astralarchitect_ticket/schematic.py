@@ -27,6 +27,7 @@ _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _TICKET_ID = re.compile(r"^[a-z0-9][a-z0-9-]{7,79}$")
 _EDITABLE_STATES = {"CREATED", "READY", "ROLLED_BACK"}
 _MIN_OPERATION_VISIT_BUDGET = 5_000_000
+MAX_TICKET_VOLUME = 20_000_000
 MAX_OPERATIONS = 100_000
 MAX_OPERATION_BYTES = 16 * 1024 * 1024
 
@@ -294,7 +295,7 @@ def _metadata_bounds(metadata: dict[str, object]) -> Bounds:
     bounds = Bounds(_point(raw_bounds.get("min"), "bounds.min"), _point(raw_bounds.get("max"), "bounds.max"))
     if bounds.width <= 0 or bounds.height <= 0 or bounds.length <= 0:
         raise TicketError("ticket bounds are inverted")
-    if bounds.volume > 20_000_000:
+    if bounds.volume > MAX_TICKET_VOLUME:
         raise TicketError("ticket volume exceeds CLI safety limit")
     if _json_int(metadata.get("blockCount"), "blockCount") != bounds.volume:
         raise TicketError("ticket blockCount does not match bounds")
