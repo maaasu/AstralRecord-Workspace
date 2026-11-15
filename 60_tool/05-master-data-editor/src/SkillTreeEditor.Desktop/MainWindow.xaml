@@ -2,19 +2,13 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
-        xmlns:local="clr-namespace:SkillTreeEditor.Desktop"
-        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="AstralRecord マスタデータエディタ" Width="1500" Height="940"
         MinWidth="1000" MinHeight="680" WindowStartupLocation="CenterScreen"
+        WindowStyle="SingleBorderWindow" ResizeMode="CanResize"
         Icon="Assets/AppIcon.ico" Background="#282c34" Foreground="#cdd3de">
-  <shell:WindowChrome.WindowChrome>
-    <shell:WindowChrome CaptionHeight="32" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
-  </shell:WindowChrome.WindowChrome>
   <Grid>
-    <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-    <local:EditorTitleBar x:Name="TitleBar"/>
-    <wv2:WebView2 x:Name="Browser" Grid.Row="1" Visibility="Hidden" DefaultBackgroundColor="#282c34" />
-    <StackPanel x:Name="LoadingPanel" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="640" Margin="36">
+    <wv2:WebView2 x:Name="Browser" Visibility="Hidden" DefaultBackgroundColor="#282c34" />
+    <StackPanel x:Name="LoadingPanel" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="640" Margin="36">
       <TextBlock Text="AstralRecord" FontSize="28" FontWeight="SemiBold" Margin="0,0,0,18" />
       <TextBlock x:Name="StatusText" Text="マスタデータエディタを起動しています…" FontSize="16" TextWrapping="Wrap" />
       <Button x:Name="SelectWorkspaceButton" Content="ワークスペースを選ぶ" Click="SelectWorkspace_Click"

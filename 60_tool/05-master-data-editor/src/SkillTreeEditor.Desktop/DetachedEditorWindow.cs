@@ -1,9 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Shell;
 using Microsoft.Web.WebView2.Wpf;
 
 namespace SkillTreeEditor.Desktop;
@@ -13,16 +11,13 @@ namespace SkillTreeEditor.Desktop;
 internal sealed class DetachedEditorWindow : Window
 {
     internal WebView2 Browser { get; } = new() { DefaultBackgroundColor = System.Drawing.Color.FromArgb(40, 44, 52) };
-    internal EditorTitleBar TitleBar { get; } = new();
-    internal string PopoutId { get; }
     private bool approved;
     private bool returning;
     private bool closed;
 
-    internal DetachedEditorWindow(string id, string? workspace, Func<DetachedEditorWindow, Task> returnPanels)
+    internal DetachedEditorWindow(string title, Func<DetachedEditorWindow, Task> returnPanels)
     {
-        PopoutId = id;
-        Title = "AstralRecord マスタデータエディタ";
+        Title = title;
         Icon = new BitmapImage(new Uri("pack://application:,,,/Assets/AppIcon.ico"));
         Background = new SolidColorBrush(Color.FromRgb(40, 44, 52));
         Foreground = new SolidColorBrush(Color.FromRgb(205, 211, 222));
@@ -30,19 +25,10 @@ internal sealed class DetachedEditorWindow : Window
         Height = 700;
         MinWidth = 360;
         MinHeight = 280;
-        WindowChrome.SetWindowChrome(this, new WindowChrome
-        {
-            CaptionHeight = 32, ResizeBorderThickness = new Thickness(6), GlassFrameThickness = new Thickness(0),
-            CornerRadius = new CornerRadius(0), UseAeroCaptionButtons = false
-        });
-        TitleBar.SetWorkspace(workspace);
-        var grid = new Grid();
-        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
-        grid.RowDefinitions.Add(new RowDefinition());
-        grid.Children.Add(TitleBar);
-        Grid.SetRow(Browser, 1);
-        grid.Children.Add(Browser);
-        Content = grid;
+        WindowStyle = WindowStyle.SingleBorderWindow;
+        ResizeMode = ResizeMode.CanResize;
+        Content = Browser;
+        NativeWindowFrame.Apply(this);
         Closing += OnClosing;
         Closed += (_, _) => { closed = true; Browser.Dispose(); };
 
