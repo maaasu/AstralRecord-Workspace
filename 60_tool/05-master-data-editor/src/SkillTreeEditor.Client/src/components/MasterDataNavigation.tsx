@@ -12,7 +12,7 @@ import { stripMinecraftFormatting } from '../utils/minecraft'
 import { masterFieldTitle } from '../data/masterDataPresentation'
 import { masterValueLabel } from '../data/masterValuePresentation'
 import { categorizedItemRow, referenceId, referenceObject, setCollectionReference, visualReferenceCollection } from '../data/masterReferenceCollection'
-import { dungeonFieldDefault, dungeonFieldKeys, dungeonFieldLabel, dungeonSection, dungeonSectionPaths, isDungeonMaster } from '../data/dungeonForm'
+import { dungeonFieldDisplayValue, dungeonFieldKeys, dungeonFieldLabel, dungeonSection, dungeonSectionPaths, isDungeonMaster } from '../data/dungeonForm'
 
 const structured = (value: JsonValue | undefined): value is JsonObject | JsonValue[] => value !== null && typeof value === 'object'
 const decode = (key: string) => key.replaceAll('~1', '/').replaceAll('~0', '~')
@@ -99,7 +99,7 @@ export function MasterDataSearch({ value, fields, schema, disabled, onSelect, on
       }
       if (dungeon && structured(current) && !Array.isArray(current)) {
         for (const key of dungeonFieldKeys(path, current)) {
-          const child = Object.hasOwn(current, key) ? current[key] : dungeonFieldDefault(path, key, roomSize)
+          const child = dungeonFieldDisplayValue(path, key, current, roomSize)
           if (child !== undefined) visit(child, path + '/' + pointerKey(key))
         }
       } else {
