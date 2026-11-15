@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import App from './App'
 import { toolJobApi } from './api/toolJobApi'
+import { DockPanelContent } from './docking/dockPanel'
 
-vi.mock('./components/MasterDataEditor', () => ({ MasterDataEditor: ({ onDirtyChange }: { onDirtyChange: (value: boolean) => void }) => <label>マスターの下書き<input onChange={() => onDirtyChange(true)} /></label> }))
+vi.mock('./components/MasterDataEditor', () => ({ MasterDataEditor: ({ onDirtyChange }: { onDirtyChange: (value: boolean) => void }) => <DockPanelContent id="master"><label>マスターの下書き<input onChange={() => onDirtyChange(true)} /></label></DockPanelContent> }))
 vi.mock('./components/SkillTreeWorkspace', () => ({ SkillTreeWorkspace: () => <label>ツリーの下書き<input /></label> }))
 vi.mock('./components/MasterAnalytics', () => ({ MasterAnalytics: () => <p>比較の作業領域</p> }))
 vi.mock('./components/SpawnerPlanningWorkspace', () => ({ SpawnerPlanningWorkspace: () => <p>配置の作業領域</p> }))
@@ -16,7 +17,7 @@ it('warns about unsaved equipment design before master reflection', async () => 
   vi.spyOn(toolJobApi, 'capabilities').mockResolvedValue({ enabled: true, reason: null, workspaceRoot: 'C:/fixture', activeRunId: null })
   vi.spyOn(toolJobApi, 'runs').mockResolvedValue([])
   render(<App />)
-  fireEvent.click(screen.getByRole('button', { name: '装備・入手経路' }))
+  fireEvent.click(await screen.findByRole('button', { name: '装備・入手経路' }))
   fireEvent.change(await screen.findByLabelText('装備設計の下書き'), { target: { value: '編集中' } })
   expect(window.astralEditorHasUnsavedChanges?.()).toBe(true)
   fireEvent.click(screen.getByRole('button', { name: /03.*マスタ反映/ }))
@@ -26,7 +27,7 @@ it('warns about unsaved equipment design before master reflection', async () => 
 it('shows the active workspace and retains edited inputs across navigation', async () => {
   vi.spyOn(window, 'confirm').mockReturnValue(true)
   render(<App />)
-  const nav = within(screen.getByRole('navigation', { name: '開発ツール' }))
+  const nav = within(await screen.findByRole('navigation', { name: '開発ツール' }))
   expect(nav.getAllByRole('button')).toHaveLength(5)
   expect(nav.getByRole('button', { name: 'マスターデータ' })).toHaveAttribute('aria-current', 'page')
   expect(window.astralEditorHasUnsavedChanges?.()).toBe(false)
@@ -42,25 +43,19 @@ it('shows the active workspace and retains edited inputs across navigation', asy
   fireEvent.click(nav.getByRole('button', { name: 'マスターデータ ●' }))
   expect(screen.getByLabelText('マスターの下書き')).toBe(draft)
   expect(draft).toHaveValue('編集中の値')
-  expect(draft).toBeVisible()
+  await waitFor(() => expect(draft).toBeVisible())
   expect(window.astralEditorHasUnsavedChanges?.()).toBe(true)
 })
 
-it('closes workspace navigation with Escape, outside clicks and selection while returning focus', async () => {
+it('hides and restores the editing navigation without changing the current page', async () => {
   render(<App />)
-  await screen.findByLabelText('マスターの下書き')
-  const toggle = screen.getByRole('button', { name: '画面切替メニュー' })
+  const draft = await screen.findByLabelText('マスターの下書き')
+  const toggle = screen.getByRole('button', { name: '編集ナビゲーション' })
   fireEvent.click(toggle)
-  expect(toggle).toHaveAttribute('aria-expanded', 'true')
-  fireEvent.keyDown(toggle, { key: 'Escape' })
-  expect(toggle).toHaveAttribute('aria-expanded', 'false')
-  expect(toggle).toHaveFocus()
+  expect(toggle).toHaveAttribute('aria-pressed', 'false')
+  expect(screen.queryByRole('navigation', { name: '開発ツール' })).not.toBeInTheDocument()
+  expect(draft).toBeVisible()
   fireEvent.click(toggle)
-  fireEvent.pointerDown(document.body)
-  expect(toggle).toHaveAttribute('aria-expanded', 'false')
-  fireEvent.click(toggle)
-  fireEvent.click(screen.getByRole('button', { name: 'スキルツリー' }))
-  await screen.findByLabelText('ツリーの下書き')
-  expect(toggle).toHaveAttribute('aria-expanded', 'false')
-  expect(toggle).toHaveFocus()
+  expect(await screen.findByRole('navigation', { name: '開発ツール' })).toBeVisible()
+  expect(toggle).toHaveAttribute('aria-pressed', 'true')
 })

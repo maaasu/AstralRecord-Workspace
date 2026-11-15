@@ -1,4 +1,5 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useDocking, usePanelDocument } from '../docking/dockPanel'
 import { ApiError, editorApi } from '../api/editorApi'
 import { NodeSidebar } from './NodeSidebar'
 import { NodePlacementDialog } from './NodePlacementDialog'
@@ -62,6 +63,10 @@ function initialNodeSize(): number {
 }
 
 export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean; onDirtyChange: (dirty: boolean) => void }) {
+  const workspaceElement = useRef<HTMLElement>(null)
+  const panelDocument = usePanelDocument()
+  const panelWindow = panelDocument.defaultView!
+  const isDocked = Boolean(useDocking())
   const [nodeDocuments, setNodeDocuments] = useState<StoredDocument<NodeMaster>[]>([])
   const [structureDocuments, setStructureDocuments] = useState<StoredDocument<StructureDocument>[]>([])
   const [schemas, setSchemas] = useState<SchemaSummary[]>([])
@@ -214,25 +219,26 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
       if (!active || saving || !inspectorInputValid) return
+      if (isDocked && !workspaceElement.current?.contains(panelDocument.activeElement)) return
       const target = event.target as HTMLElement | null
       if (target?.matches('input, textarea, select') || nodeEditor || settingsOpen || placementNode) return
       if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === 'z') {
         event.preventDefault()
-        if (inspectorDirty && !window.confirm('インスペクターの未保存の入力を破棄して履歴を操作しますか？')) return
+        if (inspectorDirty && !panelWindow.confirm('インスペクターの未保存の入力を破棄して履歴を操作しますか？')) return
         if (inspectorDirty) setSelectedNodeId(null)
         if (event.shiftKey) history.redo()
         else history.undo()
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === 'y') {
         event.preventDefault()
-        if (inspectorDirty && !window.confirm('インスペクターの未保存の入力を破棄して履歴を操作しますか？')) return
+        if (inspectorDirty && !panelWindow.confirm('インスペクターの未保存の入力を破棄して履歴を操作しますか？')) return
         if (inspectorDirty) setSelectedNodeId(null)
         history.redo()
       }
     }
-    window.addEventListener('keydown', keyboard)
-    return () => window.removeEventListener('keydown', keyboard)
-  }, [active, history, nodeEditor, settingsOpen, placementNode, saving, inspectorDirty, inspectorInputValid])
+    panelWindow.addEventListener('keydown', keyboard)
+    return () => panelWindow.removeEventListener('keydown', keyboard)
+  }, [active, history, nodeEditor, settingsOpen, placementNode, saving, inspectorDirty, inspectorInputValid, isDocked, panelDocument, panelWindow])
 
   const selectNode = useCallback((nodeId: string | null) => {
     if (nodeId === selectedNodeId) return true
@@ -497,7 +503,7 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
   }
 
   return (
-    <main className="app-shell skilltree-workspace">
+    <main ref={workspaceElement} className="app-shell skilltree-workspace">
       <header className="topbar skilltree-header">
         <div className="workspace-heading">
           <div><span className="eyebrow">設計ワークスペース</span><h1>スキルツリーエディタ</h1><p>一覧からノードを配置し、つながりとゲーム内の表示を確認します。</p></div>

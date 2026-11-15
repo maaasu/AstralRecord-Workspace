@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { usePanelDocument, usePanelVisibility } from '../docking/dockPanel'
 
 interface ModalProps {
   children: ReactNode
@@ -10,13 +11,15 @@ interface ModalProps {
 
 /** Keep modal keyboard operations and focus inside the active dialog. */
 export function Modal({ children, ariaLabel, className = '', onClose, closeDisabled = false }: ModalProps) {
+  const document = usePanelDocument()
+  const visible = usePanelVisibility()
   const dialogRef = useRef<HTMLElement>(null)
   const closeRef = useRef({ onClose, closeDisabled })
   closeRef.current = { onClose, closeDisabled }
   useEffect(() => {
     const dialog = dialogRef.current
-    if (!dialog) return
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    if (!dialog || !visible) return
+    const previousFocus = document.activeElement as HTMLElement | null
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     const focusable = () => Array.from(dialog.querySelectorAll<HTMLElement>(
@@ -33,13 +36,13 @@ export function Modal({ children, ariaLabel, className = '', onClose, closeDisab
     firstFocus()
     const containFocus = (event: FocusEvent) => {
       // A nested modal (for example the material picker) manages its own focus.
-      if (event.target instanceof HTMLElement && event.target.closest('[role="dialog"]') !== dialog) {
-        if (event.target.closest('[role="dialog"]')) return
-        firstFocus()
-      }
+      const element = event.target as Element | null
+      if (element?.nodeType === 1 && !element.closest('[role="dialog"]')) firstFocus()
     }
     const keyboard = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLElement && event.target.closest('[role="dialog"]') !== dialog && event.target.closest('[role="dialog"]')) return
+      const element = event.target as Element | null
+      const targetDialog = element?.nodeType === 1 ? element.closest('[role="dialog"]') : null
+      if (targetDialog && targetDialog !== dialog) return
       if (event.key === 'Escape') {
         event.preventDefault(); event.stopImmediatePropagation()
         if (!closeRef.current.closeDisabled) closeRef.current.onClose()
@@ -61,7 +64,7 @@ export function Modal({ children, ariaLabel, className = '', onClose, closeDisab
       document.body.style.overflow = previousOverflow
       if (previousFocus?.isConnected) previousFocus.focus()
     }
-  }, [])
+  }, [document, visible])
   return <div className="modal-backdrop" role="presentation" onKeyDown={event => event.stopPropagation()}>
     <section ref={dialogRef} className={`modal ${className}`} role="dialog" aria-modal="true" aria-label={ariaLabel} tabIndex={-1}>
       {children}

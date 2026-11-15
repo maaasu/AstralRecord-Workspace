@@ -1,3 +1,4 @@
+import { useDocking, usePanelDocument } from '../docking/dockPanel'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { masterDataApi } from '../api/masterDataApi'
 import { progressionDesignApi } from '../api/progressionDesignApi'
@@ -30,6 +31,10 @@ const INSPECTOR_MAX = 680
 type LevelAction = { kind: 'add' | 'change' | 'delete'; pointer: string; sourceLevel: number }
 
 export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpenMaster }: Props) {
+  const workspaceElement = useRef<HTMLElement>(null)
+  const panelDocument = usePanelDocument()
+  const panelWindow = panelDocument.defaultView!
+  const docking = useDocking()
   const [workspaceRoot, setWorkspaceRoot] = useState('')
   const [catalog, setCatalog] = useState<ProgressionDesignCatalog | null>(null)
   const [loading, setLoading] = useState(true)
@@ -158,17 +163,18 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
   useEffect(() => {
     if (!active) return
     const keydown = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || event.isComposing || event.target instanceof HTMLElement && event.target.closest('[role="dialog"]')) return
+      if (docking && !workspaceElement.current?.contains(panelDocument.activeElement)) return
+      if (!(event.ctrlKey || event.metaKey) || event.isComposing || (event.target as Node | null)?.nodeType === 1 && (event.target as HTMLElement).closest('[role="dialog"]')) return
       const key = event.key.toLowerCase()
       if (key === 's') { event.preventDefault(); if (!shortcuts.current.blocked) void shortcuts.current.prepareSave() }
-      if (event.target instanceof HTMLElement && event.target.matches('input,textarea,select,[contenteditable="true"]')) return
+      if ((event.target as Node | null)?.nodeType === 1 && (event.target as HTMLElement).matches('input,textarea,select,[contenteditable="true"]')) return
       if (shortcuts.current.blocked) return
       if (key === 'z') { event.preventDefault(); (event.shiftKey ? shortcuts.current.redo : shortcuts.current.undo)() }
       if (key === 'y') { event.preventDefault(); shortcuts.current.redo() }
     }
-    window.addEventListener('keydown', keydown)
-    return () => window.removeEventListener('keydown', keydown)
-  }, [active])
+    panelWindow.addEventListener('keydown', keydown)
+    return () => panelWindow.removeEventListener('keydown', keydown)
+  }, [Boolean(docking), panelDocument, panelWindow, active])
   const fieldInvalid = useCallback((key: string, bad: boolean) => setInvalid(previous => {
     if (previous.has(key) === bad) return previous
     const next = new Set(previous); if (bad) next.add(key); else next.delete(key); return next
@@ -299,7 +305,7 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
     </article>
   }
 
-  return <section className="progression-design" aria-label="装備・入手経路の設計">
+  return <section ref={workspaceElement} className="progression-design" aria-label="装備・入手経路の設計">
     <header className="design-header">
       <div><span className="design-eyebrow">BUILD & REWARDS</span><h1>装備・入手経路</h1><p>ビルドの装備とアカウント進行、素材と入手先をまとめて設計</p></div>
       <div className="design-toolbar">

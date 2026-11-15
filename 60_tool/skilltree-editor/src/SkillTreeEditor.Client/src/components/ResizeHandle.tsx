@@ -62,6 +62,8 @@ export function ResizeHandle({ label, size, min, max, defaultSize, direction = 1
     const startSize = (vertical ? rect?.width : rect?.height) || value
     if (!resizePane) event.currentTarget.focus({ preventScroll: true })
     const pointerId = event.pointerId
+    const document = event.currentTarget.ownerDocument
+    const window = document.defaultView!
     document.body.classList.add('resizing-panels')
     if (!vertical) document.body.classList.add('resizing-rows')
     const move = (next: PointerEvent) => {

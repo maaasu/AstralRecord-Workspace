@@ -1,3 +1,4 @@
+import { usePanelDocument } from '../docking/dockPanel'
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { cellAtWorld, levelColor, reasonColor, terrainColor, planningRoad } from '../data/spawnerPlanning'
 import type { PlanningPlan, PlanningSnapshot } from '../data/spawnerPlanning'
@@ -284,10 +285,11 @@ export function SpawnerPlanningMap(props: Props) {
     const content = tooltipContent.current
     setTooltipClipped(!!content && content.scrollHeight > content.clientHeight)
   }, [tooltipText, size])
+  const panelWindow = usePanelDocument().defaultView!
   useEffect(() => {
-    window.addEventListener('blur', endPointer)
-    return () => window.removeEventListener('blur', endPointer)
-  }, [endPointer])
+    panelWindow.addEventListener('blur', endPointer)
+    return () => panelWindow.removeEventListener('blur', endPointer)
+  }, [endPointer, panelWindow])
   const visibleMasters = useMemo(() => [...new Set(placements.filter(item => item.kind === 'spawner').map(item => item.templateId))]
     .sort((a, b) => (masterNumbers.get(a ?? '') ?? Infinity) - (masterNumbers.get(b ?? '') ?? Infinity)), [placements, masterNumbers])
   const selected = placements.find(item => item.placementId === props.selectedPlacement)
@@ -303,7 +305,7 @@ export function SpawnerPlanningMap(props: Props) {
     const element = canvas.current?.parentElement
     if (!element || !active) return
     const resize = () => {
-      setPixelRatio(window.devicePixelRatio || 1)
+      setPixelRatio(panelWindow.devicePixelRatio || 1)
       const rect = element.getBoundingClientRect()
       if (rect.width && rect.height && (!measured.current || rect.width !== sizeRef.current.width || rect.height !== sizeRef.current.height)) {
         const previous = sizeRef.current
@@ -323,9 +325,9 @@ export function SpawnerPlanningMap(props: Props) {
     resize()
     const observer = new ResizeObserver(resize)
     observer.observe(element)
-    window.addEventListener('resize', resize)
-    return () => { observer.disconnect(); window.removeEventListener('resize', resize) }
-  }, [active, bounds, discardPointerFrame, flushPointerFrame, updateView])
+    panelWindow.addEventListener('resize', resize)
+    return () => { observer.disconnect(); panelWindow.removeEventListener('resize', resize) }
+  }, [active, bounds, discardPointerFrame, flushPointerFrame, updateView, panelWindow])
   useEffect(() => {
     if (!focus) return
     discardPointerFrame()

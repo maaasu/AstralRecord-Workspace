@@ -1,0 +1,51 @@
+.dock-layout { position: relative; flex: 1; min-height: 0; min-width: 0; }
+.dock-layout > .dv-dockview { width: 100%; height: 100%; }
+.dockview-theme-astral {
+  --dv-background-color: var(--surface);
+  --dv-group-view-background-color: var(--surface);
+  --dv-tabs-and-actions-container-background-color: var(--surface-sidebar);
+  --dv-activegroup-visiblepanel-tab-background-color: var(--surface);
+  --dv-activegroup-hiddenpanel-tab-background-color: var(--surface-sidebar);
+  --dv-inactivegroup-visiblepanel-tab-background-color: var(--surface-raised);
+  --dv-inactivegroup-hiddenpanel-tab-background-color: var(--surface-sidebar);
+  --dv-activegroup-visiblepanel-tab-color: var(--text);
+  --dv-activegroup-hiddenpanel-tab-color: var(--text-muted);
+  --dv-inactivegroup-visiblepanel-tab-color: var(--text);
+  --dv-inactivegroup-hiddenpanel-tab-color: var(--text-muted);
+  --dv-tab-divider-color: var(--line);
+  --dv-separator-border: var(--line-bright);
+  --dv-active-sash-color: var(--accent);
+  --dv-drag-over-background-color: var(--accent-soft);
+  --dv-drag-over-border: 2px solid var(--accent);
+  --dv-tabs-and-actions-container-height: 31px;
+  --dv-tab-font-size: 12px;
+  --dv-overlay-z-index: 20;
+}
+.dockview-theme-astral .dv-tab { min-width: 0; }
+.dockview-theme-astral .dv-default-tab { min-width: 0; }
+.dockview-theme-astral .dv-active-group .dv-active-tab { box-shadow: inset 0 2px var(--accent); }
+.dock-panel-slot, .dock-panel-content, .dock-panel-content > .master-app-content { height: 100%; min-width: 0; min-height: 0; }
+.dock-panel-slot { overflow: hidden; }
+.dock-panel-content > .master-app-sidebar { height: 100%; }
+.dock-group-actions { display: flex; align-items: center; gap: 2px; padding: 2px 4px; }
+.dock-header-button { display: grid; place-items: center; width: 25px; height: 25px; padding: 0; border: 1px solid transparent; background: transparent; color: var(--text-muted); border-radius: 3px; cursor: pointer; font-size: 15px; }
+.dock-header-button:hover, .dock-header-button[aria-expanded="true"] { background: var(--surface-soft); color: var(--text); }
+.dock-header-button:focus-visible { outline-offset: -2px; }
+.dock-menu { position: fixed; z-index: 2200; display: grid; min-width: 210px; max-height: min(75vh, 510px); overflow: auto; padding: 5px; background: var(--surface-sidebar); color: var(--text); border: 1px solid var(--line-bright); border-radius: 4px; box-shadow: 0 8px 22px #0008; }
+.dock-menu button { border: 0; background: transparent; color: inherit; text-align: left; padding: 5px 9px; cursor: pointer; font-size: 12px; }
+.dock-menu button:hover { background: var(--surface-soft); }
+.dock-menu button:focus-visible { outline-offset: -2px; }
+.dock-menu button:disabled { color: var(--text-muted); opacity: .6; cursor: default; }
+.dock-menu hr { width: 100%; margin: 3px 0; border: 0; border-top: 1px solid var(--line); }
+.dock-empty { display: grid; height: 100%; place-content: center; }
+.dock-error { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 10px; background: var(--surface-sidebar); color: var(--danger); font-size: 12px; }
+.dock-error button { background: transparent; border: 0; cursor: pointer; }
+.dock-master-folders, .dock-master-files { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--surface-sidebar); }
+.dock-master-folders .master-folder-pane, .dock-master-files .master-results-pane { flex: 1; min-height: 0; }
+.dock-master-files .master-browser-heading { justify-content: flex-start; }
+.dock-master-validation { height: 100%; min-height: 0; overflow: auto; }
+.dock-validation-empty { margin: 10px; font-size: 12px; }
+.master-entity-picker-backdrop[hidden], .master-folder-context-menu[hidden], .master-tab-context-menu[hidden] { display: none; }
+.dock-master-validation .master-validation { height: 100%; max-height: none; border-top: 0; padding: 10px; }
+.dock-master-editor > .master-document-area { flex: 1; }
+.dock-master-editor .master-document-header { padding: 8px 12px; }
