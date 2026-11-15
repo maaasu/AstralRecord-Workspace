@@ -8,7 +8,7 @@
 .design-toolbar .button { min-height: 34px; font-size: 12px; }
 .design-save-state { font-size: 11px; color: var(--text-muted); padding: 6px 10px; }
 .design-save-state.dirty { color: var(--gold); background: #49382055; border-radius: 20px; }
-.design-panes { --design-graph-min: 320px; --design-setup-min: 94px; display: flex; flex: 1 0 0; flex-direction: column; min-height: calc(var(--design-graph-min) + var(--design-setup-min) + 7px); min-width: 0; container: progression-design / inline-size; }
+.design-panes { --design-graph-min: 320px; --design-setup-min: 200px; display: flex; flex: 1 0 0; flex-direction: column; min-height: calc(var(--design-graph-min) + var(--design-setup-min) + 7px); min-width: 0; container: progression-design / inline-size; }
 .design-panes[data-setup-collapsed="true"] { min-height: calc(var(--design-graph-min) + 40px); }
 .design-setup { display: flex; flex: 0 1 auto; flex-direction: column; min-height: var(--design-setup-min); background: var(--surface-sidebar); border-bottom: 1px solid var(--line); }
 .design-panes[data-setup-collapsed="true"] .design-setup { flex-shrink: 0; min-height: 40px; }

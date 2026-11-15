@@ -27,7 +27,7 @@ const label = (value: string) => stripMinecraftFormatting(value)
 const message = (reason: unknown) => reason instanceof Error ? reason.message : String(reason)
 const emptyCatalog: ProgressionDesignCatalog = { classes: [], presets: [], items: [], sources: [], usages: [], addTargets: [] }
 const SETUP_DEFAULT = 300
-const SETUP_MIN = 94
+const SETUP_MIN = 200
 const SETUP_MAX = 640
 const GRAPH_MIN = 320
 const INSPECTOR_DEFAULT = 350
