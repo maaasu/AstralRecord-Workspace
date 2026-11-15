@@ -141,6 +141,132 @@ try {
         Assert (!(Test-Path -LiteralPath (Join-Path $fixture.Run.Path 'build-retries'))) "Blocked retry archived records: $case"
     }
 
+    function New-FailedDatabaseFixture {
+        $fixture=New-FailedBuildFixture
+        $fixture.Progress.stage='Database'
+        Write-MaintenanceJson $fixture.Progress (Join-Path $fixture.Run.Path 'dev-deployment-progress.json')
+        $arguments=$fixture.Arguments
+        $gate=Get-Content -Raw -Encoding UTF8 -LiteralPath $leaseFile | ConvertFrom-Json
+        $arguments.GateContext.Owner=$true
+        $arguments.GateContext.AdapterId='01'
+        $arguments.GateContext.WorkflowId=$gate.workflowId
+        $arguments.GateContext.ReservationId=$gate.reservationId
+        $arguments.Recovery='Restart';$arguments.RecoveryChecked=$true;$arguments.ServersStopped=$true
+        $arguments.StopDevAction={param($RunDirectory)
+            $script:events.Add('confirm-retry-stop')
+            if ($script:denyRetryStop) { throw 'fixture Control stop status is no longer terminal' }
+        }
+        Write-MaintenanceJson @{schemaVersion=1;kind='Stop';status='Succeeded';operationId=[Guid]::NewGuid().ToString('D');
+            workflowId=$gate.workflowId;reservationId=$gate.reservationId} (Join-Path $fixture.Run.Path 'control-dev-stop.json')
+        return $fixture
+    }
+    $script:denyRetryStop=$false
+    foreach ($boundary in @('Failed','ProgressRemains','ProgressRemoved')) {
+        $fixture=New-FailedDatabaseFixture;$retryArguments=$fixture.Arguments
+        $statePath=Join-Path $fixture.Run.Path 'workflow-state.json'
+        $progressPath=Join-Path $fixture.Run.Path 'dev-deployment-progress.json'
+        $hashes=@{};foreach ($name in @('workflow-state.json','dev-deployment-progress.json','dev-deploy.log')) { $hashes[$name]=(Get-FileHash -LiteralPath (Join-Path $fixture.Run.Path $name)).Hash }
+        if ($boundary -cne 'Failed') {
+            $prepared=Restart-UpdateWorkflowFailedDevDeployment $fixture.Run.Path ('c'*64) $retryArguments.GateContext `
+                -CheckedDatabase -ConfirmStoppedAction $retryArguments.StopDevAction
+            if ($boundary -ceq 'ProgressRemains') {
+                Copy-Item -LiteralPath (Join-Path $fixture.Run.Path ("database-retries/$($prepared.databaseRecoveryAttempt)/dev-deployment-progress.json")) -Destination $progressPath
+            }
+        }
+        $script:events.Clear()
+        $retryResult=Invoke-UpdateWorkflow @retryArguments
+        Assert ($retryResult.Status -ceq 'COMPLETED' -and $retryResult.RunDirectory -ceq $fixture.Run.Path) "Database recovery must resume the same run: $boundary"
+        $order=@($script:events)
+        Assert (@($order | Where-Object { $_ -ceq 'retry-deploy' }).Count -eq 1 -and
+            [array]::IndexOf($order,'confirm-retry-stop') -ge 0 -and
+            [array]::IndexOf($order,'retry-deploy') -gt [array]::IndexOf($order,'confirm-retry-stop')) "Database recovery must recheck the stopped Dev before deploying once: $boundary"
+        $attempts=@(Get-ChildItem -LiteralPath (Join-Path $fixture.Run.Path 'database-retries') -Directory)
+        Assert ($attempts.Count -eq 1 -and (Get-FileHash -LiteralPath $leaseFile).Hash -ceq $leaseHash) "Database recovery must preserve the lease and one archive: $boundary"
+        foreach ($name in $hashes.Keys) { Assert ((Get-FileHash -LiteralPath (Join-Path $attempts[0].FullName $name)).Hash -ceq $hashes[$name]) "Database recovery lost the original record: $name" }
+    }
+
+    $fixture=New-FailedDatabaseFixture;$retryArguments=$fixture.Arguments
+    $deploy=$retryArguments.DeployAction
+    $retryArguments.DeployAction={param($RunDirectory)
+        Write-MaintenanceJson @{schemaVersion=1;configurationFingerprint=('c'*64);stage='Build';status='Failed';buildIsolated=$true} `
+            (Join-Path $RunDirectory 'dev-deployment-progress.json')
+        throw 'next attempt failed during Build'
+    }
+    $failed=$false
+    try { Invoke-UpdateWorkflow @retryArguments | Out-Null } catch { $failed=$_.Exception.Message -match 'action failed \(Build\)' }
+    Assert $failed 'Fixture must fail again at Build, after the Database recovery was accepted.'
+    $state=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $fixture.Run.Path 'workflow-state.json') | ConvertFrom-Json -AsHashtable
+    Assert (!$state.Contains('databaseRecoveryAttempt')) 'Entering deployment must consume the Database recovery intent.'
+    $retryArguments.Recovery='Auto';$retryArguments.RecoveryChecked=$false;$retryArguments.DeployAction=$deploy
+    $null=Restart-UpdateWorkflowFailedDevDeployment $fixture.Run.Path ('c'*64) $retryArguments.GateContext
+    $retryResult=Invoke-UpdateWorkflow @retryArguments
+    Assert ($retryResult.Status -ceq 'COMPLETED' -and $retryResult.RunDirectory -ceq $fixture.Run.Path) 'An interrupted Auto Build retry must resume after a previous Database recovery.'
+    Assert (@(Get-ChildItem -LiteralPath (Join-Path $fixture.Run.Path 'database-retries') -Directory).Count -eq 1) 'Consuming the Database intent must retain the archive.'
+
+    foreach ($case in @('Auto','NotChecked','NotStopped','AdmissionOpen','Files','DatabaseRunning','Seeded','Published','StartRequested',
+            'WrongReservation','WrongRun','GateRejected','MissingStop','NonterminalStop','ChangedStopResult','StoppedCondition',
+            'MissingActiveRun','CompletedActiveRun','ChangedArchive','ArchivedStateSeeded','ArchiveWrongRun','StartRequestedAfterPreparation')) {
+        $fixture=New-FailedDatabaseFixture;$retryArguments=$fixture.Arguments
+        $runPath=$fixture.Run.Path
+        $activePath=Join-Path $retryArguments.WorkflowConfig.runRoot 'active-run.json'
+        $statePath=Join-Path $runPath 'workflow-state.json'
+        $progressPath=Join-Path $runPath 'dev-deployment-progress.json'
+        $stopPath=Join-Path $runPath 'control-dev-stop.json'
+        switch ($case) {
+            'Auto' { $retryArguments.Recovery='Auto' }
+            'NotChecked' { $retryArguments.RecoveryChecked=$false }
+            'NotStopped' { $retryArguments.ServersStopped=$false }
+            'AdmissionOpen' { $retryArguments.AdmissionClosed=$false }
+            'Files' { $fixture.Progress.stage='Files'; Write-MaintenanceJson $fixture.Progress $progressPath }
+            'DatabaseRunning' { $fixture.Progress.status='Running'; Write-MaintenanceJson $fixture.Progress $progressPath }
+            'Seeded' { $fixture.State.seedStatus='SUCCEEDED'; Write-MaintenanceJson $fixture.State $statePath }
+            'Published' { Write-MaintenanceJson @{} (Join-Path $runPath 'patch-publication-result.json') }
+            'StartRequested' { $fixture.State.devStartRequestedAtUtc=[DateTime]::UtcNow.ToString('o'); Write-MaintenanceJson $fixture.State $statePath }
+            'WrongReservation' { $retryArguments.GateContext.ReservationId=[guid]::NewGuid().ToString('D') }
+            'WrongRun' { $retryArguments.GateContext.RunReference=Join-Path $temp 'wrong-run' }
+            'GateRejected' { $retryArguments.GateContext.RemoteStatus='Released' }
+            'MissingStop' { Remove-Item -LiteralPath $stopPath }
+            'NonterminalStop' {
+                $stop=Get-Content -Raw -Encoding UTF8 -LiteralPath $stopPath | ConvertFrom-Json -AsHashtable
+                $stop.status='Running'; Write-MaintenanceJson $stop $stopPath
+            }
+            'ChangedStopResult' { $script:denyRetryStop=$true }
+            'StoppedCondition' { $script:denyDeploy=$true }
+            'MissingActiveRun' { Remove-Item -LiteralPath $activePath }
+            'CompletedActiveRun' {
+                $active=Get-Content -Raw -Encoding UTF8 -LiteralPath $activePath | ConvertFrom-Json -AsHashtable
+                $active.status='Completed'; Write-MaintenanceJson $active $activePath
+            }
+            { $_ -cin @('ChangedArchive','ArchivedStateSeeded','ArchiveWrongRun','StartRequestedAfterPreparation') } {
+                $prepared=Restart-UpdateWorkflowFailedDevDeployment $runPath ('c'*64) $retryArguments.GateContext `
+                    -CheckedDatabase -ConfirmStoppedAction $retryArguments.StopDevAction
+                $archive=Join-Path $runPath ("database-retries/$($prepared.databaseRecoveryAttempt)")
+                if ($case -ceq 'ChangedArchive') {
+                    $archivedProgress=Join-Path $archive 'dev-deployment-progress.json'
+                    $fixture.Progress.stage='Files'; Write-MaintenanceJson $fixture.Progress $archivedProgress
+                } elseif ($case -cin @('ArchivedStateSeeded','ArchiveWrongRun')) {
+                    $receiptPath=Join-Path $archive 'retry.json'
+                    $receipt=Get-Content -Raw -Encoding UTF8 -LiteralPath $receiptPath | ConvertFrom-Json -AsHashtable
+                    if ($case -ceq 'ArchivedStateSeeded') {
+                        $archivedState=Join-Path $archive 'workflow-state.json'
+                        $fixture.State.seedStatus='SUCCEEDED'; Write-MaintenanceJson $fixture.State $archivedState
+                        $receipt.hashes['workflow-state.json']=(Get-FileHash -LiteralPath $archivedState).Hash
+                    } else { $receipt.runReference=Join-Path $temp 'other-run' }
+                    Write-MaintenanceJson $receipt $receiptPath
+                } else {
+                    $prepared.devStartRequestedAtUtc=[DateTime]::UtcNow.ToString('o'); Write-MaintenanceJson $prepared $statePath
+                }
+            }
+        }
+        $stateHash=(Get-FileHash -LiteralPath $statePath).Hash
+        $script:events.Clear()
+        $message=''
+        try { Invoke-UpdateWorkflow @retryArguments | Out-Null } catch { $message=$_.Exception.Message }
+        finally { $script:denyRetryStop=$false;$script:denyDeploy=$false }
+        Assert ($message -and !$script:events.Contains('retry-deploy') -and !$script:events.Contains('start') -and !$script:events.Contains('seed')) "Unsafe Database recovery reached deployment: $case"
+        Assert ((Get-FileHash -LiteralPath $statePath).Hash -ceq $stateHash) "Blocked Database recovery changed state: $case"
+    }
+
     # A 404 baseline followed by a late old heartbeat must not qualify as a new boot.
     $migration=ConvertTo-SkillTreeRuntimeConfig $parameters.MigrationConfig
     $instant=[DateTimeOffset]::UtcNow

@@ -178,11 +178,21 @@ $global:LASTEXITCODE=0
     }
     $devKeys=@(('environment:'+$environmentId),('server:'+$devServerId))
     foreach ($binding in $config.controlGate.bindings.paths) { $devKeys+=('directory:'+$binding.hostId+':'+$binding.managedRootId+':'+$binding.relativePath) }
-    $devRun=Write-CompletedGateRun "$fixture/dev-runs" '01' $devKeys 'dev'
     Remove-Item -LiteralPath "$fixture/backend-result.json" -ErrorAction SilentlyContinue
+    function Assert-ManagedRestartNeedsUnfinishedRun {
+        $count=if (Test-Path -LiteralPath $env:MOCK_GATE_LOG) { @(Get-Content -Encoding UTF8 -LiteralPath $env:MOCK_GATE_LOG).Count } else { 0 }
+        $reply=@(& pwsh -NoProfile -File $entry -ConfigPath $configPath -Recovery Restart -RecoveryChecked -ServersStopped -AdmissionClosed 2>&1)
+        Assert ($LASTEXITCODE -ne 0 -and ($reply -join "`n") -match '予約の残っている未完了の実行が必要') 'Managed Restart must reject a missing or completed run explicitly.'
+        $after=if (Test-Path -LiteralPath $env:MOCK_GATE_LOG) { @(Get-Content -Encoding UTF8 -LiteralPath $env:MOCK_GATE_LOG).Count } else { 0 }
+        Assert ($after -eq $count -and !(Test-Path "$fixture/backend-result.json")) 'Managed Restart without an incomplete run must not contact Control or run deployment.'
+    }
+    Assert-ManagedRestartNeedsUnfinishedRun
+    $devRun=Write-CompletedGateRun "$fixture/dev-runs" '01' $devKeys 'dev'
+    Assert-ManagedRestartNeedsUnfinishedRun
     & pwsh -NoProfile -File $entry -ConfigPath $configPath -ServersStopped -AdmissionClosed
     Assert ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath (Join-Path $devRun 'control-gate-released.json'))) '01 completed release was not recovered.'
     Assert (!(Test-Path "$fixture/backend-result.json")) '01 legacy release recovery launched deployment.'
+    Assert-ManagedRestartNeedsUnfinishedRun
     $channelConfig.controlGate=@{mode='Managed';cliPath=$mockCli;serverUrl='https://control.example.test';environmentId=$environmentId;bindings=@{
         servers=@(@{runtimeServerId='dev';serverId=$devServerId},@{runtimeServerId='channel';serverId=$channelServerId})
     }}

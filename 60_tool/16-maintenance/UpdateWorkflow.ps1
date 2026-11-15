@@ -413,7 +413,11 @@ function Invoke-UpdateWorkflow {
         $rootLock = [IO.File]::Open((Join-Path $validated.RunRoot 'workflow.lock'), 'OpenOrCreate', 'ReadWrite', 'None')
         $activePath = Join-Path $validated.RunRoot 'active-run.json'
         $active = if (Test-Path -LiteralPath $activePath -PathType Leaf) { Get-Content -Raw -Encoding UTF8 -LiteralPath $activePath | ConvertFrom-Json -AsHashtable } else { $null }
-        $managedBuildRetry=$false
+        if ($GateContext -and $GateContext.Mode -ceq 'Managed' -and $Recovery -ne 'Auto' -and (!$active -or $active.status -ceq 'Completed')) {
+            throw 'Control管理下の明示復旧には、予約の残っている未完了の実行が必要です。'
+        }
+        $managedRetry=$false
+        $managedDatabaseRetry=$false
         if ($active -and $active.status -ne 'Completed') {
             $runDirectory = Get-UpdateWorkflowRunDirectory $validated.RunRoot $active.relativeRunDirectory
             if (!(Test-Path -LiteralPath $runDirectory -PathType Container)) { throw 'The active workflow run directory is missing.' }
@@ -428,16 +432,22 @@ function Invoke-UpdateWorkflow {
             }
             $configurationChanged=$active.configurationFingerprint -cne $ConfigurationFingerprint
             if ($GateContext -and $GateContext.Mode -eq 'Managed') {
-                $managedBuildRetry=(!$configurationChanged -and !$restored -and $Recovery -ceq 'Auto' -and $Label -ceq 'Dev' -and
+                $samePreparedDevRun=(!$configurationChanged -and !$restored -and $Label -ceq 'Dev' -and
                     (Get-UpdateWorkflowValue $GateContext 'RemoteStatus') -ceq 'Prepared' -and $PreferredRunDirectory -and
                     [IO.Path]::GetFullPath($runDirectory) -ieq [IO.Path]::GetFullPath($PreferredRunDirectory) -and
                     (Get-UpdateWorkflowValue $GateContext 'RunReference') -ceq $PreferredRunDirectory -and
-                    (Test-Path -LiteralPath (Join-Path $runDirectory 'control-gate-run.json') -PathType Leaf) -and
-                    (Test-UpdateWorkflowFailedBuildRetry $prior $runDirectory $ConfigurationFingerprint))
+                    (Test-Path -LiteralPath (Join-Path $runDirectory 'control-gate-run.json') -PathType Leaf))
+                $managedDatabaseRetry=($samePreparedDevRun -and $automaticDev -and
+                    (Get-UpdateWorkflowValue $GateContext 'Owner') -eq $true -and (Get-UpdateWorkflowValue $GateContext 'AdapterId') -ceq '01' -and
+                    $Recovery -ceq 'Restart' -and $RecoveryChecked -and $ServersStopped -and $AdmissionClosed -and
+                    (Test-UpdateWorkflowFailedDevRetry $prior $runDirectory $ConfigurationFingerprint -CheckedDatabase))
+                $managedRetry=$managedDatabaseRetry -or ($samePreparedDevRun -and $Recovery -ceq 'Auto' -and
+                    (Test-UpdateWorkflowFailedDevRetry $prior $runDirectory $ConfigurationFingerprint))
                 $unverifiedDeployment=$prior -and ($prior.status -in @('Deploying','DeploymentFailed') -or
-                    ($prior.status -ceq 'ReadyToDeploy' -and (Test-Path -LiteralPath (Join-Path $runDirectory 'dev-deployment-progress.json'))))
-                if ($configurationChanged -or $restored -or $Recovery -ne 'Auto' -or
-                    ($unverifiedDeployment -and !$managedBuildRetry -and !(Test-UpdateWorkflowDeploymentEvidence $runDirectory $Label))) {
+                    ($prior.status -ceq 'ReadyToDeploy' -and ($prior.Contains('databaseRecoveryAttempt') -or
+                        (Test-Path -LiteralPath (Join-Path $runDirectory 'dev-deployment-progress.json')))))
+                if ($configurationChanged -or $restored -or ($Recovery -ne 'Auto' -and !$managedDatabaseRetry) -or
+                    ($unverifiedDeployment -and !$managedRetry -and !(Test-UpdateWorkflowDeploymentEvidence $runDirectory $Label))) {
                     throw 'Control-managed recovery requires inspection of the existing reservation and run before starting a new run.'
                 }
             }
@@ -451,7 +461,7 @@ function Invoke-UpdateWorkflow {
                     -Fingerprint $active.configurationFingerprint -Recovery $Recovery -RecoveryChecked:$RecoveryChecked `
                     -ServersStopped:$ServersStopped -AdmissionClosed:$AdmissionClosed -ConfigurationChanged
                 if ($archived) { $active=$null }
-            } elseif (!$managedBuildRetry -and (($prior -and $prior.status -in @('Deploying','DeploymentFailed')) -or $restored -or (!$prior -and $Recovery -ne 'Auto'))) {
+            } elseif (!$managedRetry -and (($prior -and $prior.status -in @('Deploying','DeploymentFailed')) -or $restored -or (!$prior -and $Recovery -ne 'Auto'))) {
                 if ($Recovery -ne 'Auto' -or !(Test-UpdateWorkflowDeploymentEvidence $runDirectory $Label)) {
                     $archived=Invoke-UpdateWorkflowRecovery -RunDirectory $runDirectory -ActivePath $activePath -Label $Label `
                         -Fingerprint $active.configurationFingerprint -Recovery $Recovery -RecoveryChecked:$RecoveryChecked `
@@ -459,7 +469,7 @@ function Invoke-UpdateWorkflow {
                         -ConfigurationChanged:($active.configurationFingerprint -cne $ConfigurationFingerprint)
                     if ($archived) { $active=$null }
                 }
-            } elseif ($Recovery -ne 'Auto' -and !$configurationChanged) { throw 'この実行は配布失敗状態ではありません。記録を破棄せず、通常の再開を使用してください。' }
+            } elseif ($Recovery -ne 'Auto' -and !$configurationChanged -and !$managedRetry) { throw 'この実行は配布失敗状態ではありません。記録を破棄せず、通常の再開を使用してください。' }
             if ($active -and $configurationChanged) {
                 Stop-UpdateWorkflowConfigurationChange $active $prior $runDirectory $ConfigurationFingerprint $Label
             }
@@ -495,7 +505,10 @@ function Invoke-UpdateWorkflow {
         $statePath = Join-Path $runDirectory 'workflow-state.json'
         $state = if (Test-Path -LiteralPath $statePath -PathType Leaf) { Get-Content -Raw -Encoding UTF8 -LiteralPath $statePath | ConvertFrom-Json -AsHashtable } else { $null }
         if ($state -and ($state.schemaVersion -ne 1 -or $state.configurationFingerprint -ne $ConfigurationFingerprint -or $state.label -cne $Label)) { throw 'Configuration or workflow label changed within this run.' }
-        if ($managedBuildRetry) { $state=Restart-UpdateWorkflowFailedBuild $runDirectory $ConfigurationFingerprint $GateContext }
+        if ($managedRetry) {
+            $state=Restart-UpdateWorkflowFailedDevDeployment $runDirectory $ConfigurationFingerprint $GateContext `
+                -CheckedDatabase:$managedDatabaseRetry -ConfirmStoppedAction $StopDevAction
+        }
         # Optional entry-specific choices are fixed under the root lock, before any API/deployment action.
         $preparedFingerprint=$null
         if ($PrepareRunAction) {
@@ -568,9 +581,13 @@ function Invoke-UpdateWorkflow {
             $state.status='ReadyToDeploy'; Save-UpdateWorkflowJson $state $statePath
         }
         if ($state.status -eq 'ReadyToDeploy') {
+            if ($managedDatabaseRetry) {
+                Assert-ControlGateStep $GateContext 'Deploy'
+                $state.Remove('databaseRecoveryAttempt')
+            }
             $state.status='Deploying'; Save-UpdateWorkflowJson $state $statePath
             try {
-                if ($GateContext) { Assert-ControlGateStep $GateContext 'Deploy' }
+                if ($GateContext -and !$managedDatabaseRetry) { Assert-ControlGateStep $GateContext 'Deploy' }
                 Write-MaintenanceDiagnostic 'deployment.action.begin'
                 & $DeployAction $runDirectory
                 Write-MaintenanceDiagnostic 'deployment.action.end'

@@ -117,7 +117,11 @@ try {
         exit 0
     }
     Import-Module (Join-Path $PSScriptRoot '../control-gate/Control.Gate.psm1') -Force
-    $resume=if ((Get-ControlGateMode $config) -eq 'Managed') { Get-ControlGateResumeIdentity $workflow.runRoot } else { $null }
+    $managed=(Get-ControlGateMode $config) -eq 'Managed'
+    $resume=if ($managed) { Get-ControlGateResumeIdentity $workflow.runRoot } else { $null }
+    if ($managed -and $Recovery -ne 'Auto' -and (!$resume -or $resume.Completed)) {
+        throw 'Control管理下の明示復旧には、予約の残っている未完了の実行が必要です。'
+    }
     $adapterId=if ($PluginOnly) { '02' } elseif ($MasterDataOnly) { '03' } else { '01' }
     $affected=@()
     if ($config.plugin.enabled -and !$MasterDataOnly) { $affected += Get-MaintenanceAbsolutePath $config.plugin.deployPath }
@@ -126,7 +130,7 @@ try {
     }
     if ($config.fileDatabase.enabled -and !$PluginOnly) { $affected += Get-MaintenanceAbsolutePath $config.fileDatabase.sourcePath }
     $requiredState=if ($MasterDataOnly -and $ServerAlreadyRunning) { 'Running' } else { 'Stopped' }
-    $resumeReference=if ($resume) { $resume.RunReference } elseif ((Get-ControlGateMode $config) -eq 'Managed') { New-ControlGateRunReference $workflow.runRoot } else { '' }
+    $resumeReference=if ($resume) { $resume.RunReference } elseif ($managed) { New-ControlGateRunReference $workflow.runRoot } else { '' }
     $resumeWorkflowId=if ($resume) { $resume.WorkflowId } else { '' }
     if ($gateServerIds.Count -gt $normalized.ServerIds.Count) {
         if ($devLifecycle) { Write-Host 'Shared API maintenance: Dev以外の共有サーバーは実行中ずっと停止してください。自動停止・起動はDevだけです。' }

@@ -137,6 +137,8 @@ Control管理markerがあるPCの10はManaged設定と`-PreflightOnly`を使用�
 
 Control管理下で、同じ設定・予約・runのまま外部処理前の隔離Build失敗を確認できる場合は、新しい予約を取得せず同じrunでビルドを再試行します。停止条件と排他ロックを再確認し、旧状態・進行記録・ログをrun内の `build-retries/attempt-<ID>` へハッシュ照合して保全します。再試行準備中に中断しても同じrunで再開できます。Database/Files段階、実行中のまま中断、設定や予約の不一致、seed・公開・移行・起動の証拠がある状態は自動再試行しません。
 
+ControlでDevを自動停止・起動する01が `Database / Failed` で終了した場合は、DB・配置先の状態と必要な復旧、前回の子プロセス終了、Dev停止、入場制限を確認した後に、同じ設定とテスト条件で `01-deploy-debug.bat -Recovery Restart -RecoveryChecked -ServersStopped -AdmissionClosed` を実行できます。元のControl予約が `Prepared` で同じrunを保護し、Dev停止を現在の状態と保存済み停止操作から確認できる場合に、同じ予約とrunで配布をやり直します。旧状態・進行記録・ログは `database-retries/attempt-<ID>` にハッシュ照合して保全します。保全後、配布の再開前に中断した場合は同じコマンドで再開できます。配布を開始した可能性があり失敗段階を確認できない場合は、改めて実行記録と外部状態を確認してください。完了済みや復旧対象が存在しない場合、明示復旧は新しい予約や配布を開始しません。
+
 同じバッチ・設定・モードで再実行すると、未完了の実行記録を再利用します。配置成功後なら再ビルド・再コピーをせず、seed/起動待ち/パッチ公開から再開します。起動待ち中はDevを起動してください。公開要求の結果が不明でも、同じ設定世代への再送では同じパッチ番号を使います。
 
 配布失敗時も01自身が復旧を案内します。新形式の `dev-deployment-progress.json` は子backendが `run.lock` を保持してBuild/Database/Files/Completedの境界を副作用の前に保存します。Legacyで隔離Build段階の失敗をbackendが記録済みなら旧runを自動保全して新規実行、Database/Files・実行中のまま中断・旧形式の記録なら確認メニューを表示します。強制終了では外部ビルド子プロセスが残る可能性があるため、Running記録だけで自動再ビルドしません。DB・配置先の整合と必要な外部復旧を確認済みの場合だけ `1` と `RECOVERY-CHECKED` を入力してください。この操作はDBや配置先のロールバックではありません。非対話では `-Recovery Restart -RecoveryChecked -ServersStopped -AdmissionClosed` を使用します。世代移行記録のあるrunは破棄できません。詳細は [失敗時の自己復旧](../16-maintenance/README.md#失敗時の自己復旧) を参照してください。
