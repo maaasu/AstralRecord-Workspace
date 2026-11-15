@@ -192,6 +192,7 @@ public final class BossMechanicService {
 
     private final SunbirdPackDisplay sunbirdDisplay;
     private final SeleneaPackDisplay seleneaDisplay;
+    private final MossZombiePackDisplay mossZombieDisplay;
     private final NyxeronPackDisplay nyxeronDisplay;
     private final Map<PendingMechanic, List<Effect>> sunbirdWarnings = new HashMap<>();
 
@@ -233,6 +234,7 @@ public final class BossMechanicService {
         this.particleDisplayService = particleDisplayService;
         this.sunbirdDisplay = new SunbirdPackDisplay(plugin, resourcePackService);
         this.seleneaDisplay = new SeleneaPackDisplay(plugin, resourcePackService);
+        this.mossZombieDisplay = new MossZombiePackDisplay(plugin, resourcePackService);
         this.nyxeronDisplay = new NyxeronPackDisplay(plugin, resourcePackService);
         this.charonRitualController = new CharonRitualController(
             mobService,
@@ -376,6 +378,7 @@ public final class BossMechanicService {
         }
         sunbirdDisplay.start();
         seleneaDisplay.start();
+        mossZombieDisplay.start();
         nyxeronDisplay.start();
         clockTicks = 0L;
         motionClockTicks = TICK_PERIOD - 1L;
@@ -412,6 +415,7 @@ public final class BossMechanicService {
         }
         sunbirdDisplay.clear(bossInstanceId);
         seleneaDisplay.clear(bossInstanceId);
+        mossZombieDisplay.clear(bossInstanceId);
         finishBirdMeteorCharge(bossInstanceId);
         removePendingForBoss(bossInstanceId);
         charonRitualController.clear(bossInstanceId);
@@ -493,6 +497,7 @@ public final class BossMechanicService {
         seleneaRangeNoticeUntil.clear();
         sunbirdDisplay.stop();
         seleneaDisplay.stop();
+        mossZombieDisplay.stop();
         nyxeronDisplay.stop();
     }
 
@@ -517,7 +522,21 @@ public final class BossMechanicService {
         Set<UUID> activeAstraioses = new HashSet<>();
         Set<UUID> activeHorologiums = new HashSet<>();
         Set<UUID> activeNyxerons = new HashSet<>();
+        Set<UUID> activeMossZombies = new HashSet<>();
         for (MobInstance boss : List.copyOf(mobService.getInstances())) {
+            // このボスにはギミックを登録せず、通常の Mob AI で戦います。
+            if (MossZombiePackDisplay.BOSS_ID.equals(boss.template().id())) {
+                Entity entity = mobService.entityController().getEntity(boss);
+                if (boss.currentHealth() > 0.0D && entity != null && entity.isValid() && !entity.isDead()) {
+                    activeMossZombies.add(boss.instanceId());
+                    try {
+                        mossZombieDisplay.update(boss.instanceId(), entity, clockTicks);
+                    } catch (RuntimeException exception) {
+                        Logger.log(LogId.E_6515, exception);
+                    }
+                }
+                continue;
+            }
             BossMechanicProfile profile = BossMechanicProfile.find(boss.template().id());
             boolean empusa = BossMechanicProfile.EMPUSA_WITCH.equals(boss.template().id());
             boolean vesperala = VesperalaEncounterController.BOSS_ID.equals(boss.template().id());
@@ -797,6 +816,7 @@ public final class BossMechanicService {
             }
         }
         sunbirdDisplay.retain(activeSunbirds, clockTicks);
+        mossZombieDisplay.retain(activeMossZombies);
         empusaSpellController.retain(activeEmpusas);
         vesperalaEncounterController.retain(activeVesperalas);
         ventosEncounterController.retain(activeVentoses);

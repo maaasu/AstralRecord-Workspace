@@ -31,6 +31,11 @@ public final class AstralRecordGeyserExtension implements Extension {
     private static final Identifier TEXT_DISPLAY = Identifier.of("minecraft", "text_display");
     private static final Identifier DROPPED_ITEM = Identifier.of("minecraft", "item");
     private static final Identifier PARROT = Identifier.of("minecraft", "parrot");
+    private static final Identifier ZOMBIE = Identifier.of("minecraft", "zombie");
+    // Matches MossZombiePackDisplay. This is the body only, with no boss-skill properties.
+    private static final long MOSS_ZOMBIE_MARKER = 0x4153544D4F535331L;
+    private static final CustomEntityDefinition MOSS_ZOMBIE =
+        CustomEntityDefinition.of(Identifier.of("astralrecord", "midgard_moss_zombie"));
     private static final long ARCHMAGE_PHOENIX_MARKER = 0x415250484F454E58L;
     private static final long COMBAT_RESULT_TAG = 0xa57ac2e570000001L;
     private static final CustomEntityDefinition COMBAT_RESULT =
@@ -104,6 +109,7 @@ public final class AstralRecordGeyserExtension implements Extension {
         event.register(COMBAT_RESULT);
         event.register(CombatRewardPlaqueEntity.DEFINITION);
         sunbird.register(event);
+        event.register(MOSS_ZOMBIE);
         event.register(WorldDisplayEntity.DEFINITION);
         var receptionDefinition = ReceptionDisplayEntity.definition();
         event.register(receptionDefinition);
@@ -366,6 +372,11 @@ public final class AstralRecordGeyserExtension implements Extension {
         if (worldDisplays != null) {
             worldDisplays.onSpawn(event, damagePacks);
             if (event.isCancelled()) return;
+        }
+        if (event.entityType().is(ZOMBIE) && event.uuid().getMostSignificantBits() == MOSS_ZOMBIE_MARKER
+                && damagePacks.bossReady(event.connection(), DamagePack::mossZombie)) {
+            event.definition(MOSS_ZOMBIE);
+            return;
         }
         if (sunbird.onSpawn(event, damagePacks) || selenea.onSpawn(event, damagePacks)
             || nyxeron.onSpawn(event, damagePacks)) return;

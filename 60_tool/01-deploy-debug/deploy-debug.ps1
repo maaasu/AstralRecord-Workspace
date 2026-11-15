@@ -416,6 +416,7 @@ function Publish-ResourcePacks {
     $sha256 = (Get-FileHash -LiteralPath $bedrock -Algorithm SHA256).Hash.ToLowerInvariant()
     $uuid = ([guid]::Parse($bedrockManifest.header.uuid)).ToString()
     $sunbirdPresentation = $null
+    $mossZombiePresentation = $null
     $seleneaPresentation = $null
     $archmagePhoenixPresentation = $null
     $nyxeronPresentation = $null
@@ -579,6 +580,24 @@ function Publish-ResourcePacks {
             }
         }
 
+        $mossZombieEntry = $archive.GetEntry('midgard-moss-zombie-presentation-version.txt')
+        if ($null -ne $mossZombieEntry) {
+            if ($mossZombieEntry.Length -ne 1) { throw 'Invalid Moss Zombie version marker.' }
+            $reader = [IO.StreamReader]::new($mossZombieEntry.Open())
+            try { $mossZombiePresentation = $reader.ReadToEnd() }
+            finally { $reader.Dispose() }
+            if ($mossZombiePresentation -cne '1') { throw 'Unsupported Moss Zombie presentation version.' }
+            foreach ($asset in @(
+                'assets/astralrecord/items/midgard_moss_zombie.json'
+                'assets/astralrecord/models/item/midgard_moss_zombie.json'
+                'assets/astralrecord/models/item/midgard_moss_zombie_walk_a.json'
+                'assets/astralrecord/models/item/midgard_moss_zombie_walk_b.json'
+                'assets/astralrecord/textures/item/midgard_moss_zombie.png'
+            )) {
+                $entry = $archive.GetEntry($asset)
+                if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing Moss Zombie asset in Java pack: $asset" }
+            }
+        }
         $sunbirdEntry = $archive.GetEntry('sunbird-presentation-version.txt')
         if ($null -ne $sunbirdEntry) {
             if ($sunbirdEntry.Length -ne 1) { throw 'Invalid Sunbird presentation version marker.' }
@@ -913,6 +932,9 @@ function Publish-ResourcePacks {
     }
     if ($null -ne $nyxeronPresentation) {
         $javaManifest.nyxeronPresentation = $nyxeronPresentation
+    }
+    if ($null -ne $mossZombiePresentation) {
+        $javaManifest.mossZombiePresentation = $mossZombiePresentation
     }
     if ($null -ne $sunbirdPresentation) {
         $javaManifest.sunbirdPresentation = $sunbirdPresentation
