@@ -7,7 +7,7 @@ namespace SkillTreeEditor.Server.Services;
 
 internal static class ProgressionPresetValidation
 {
-    internal const string Category = "36.features.progression_preset";
+    internal const string Category = "90.shared.progression_preset";
     internal const string SchemaPath = Category + "/schemas/progression-preset.v1.schema.json";
 
     internal static bool IsPreset(string path) => path.StartsWith(Category + "/", MasterDataPaths.Comparison)

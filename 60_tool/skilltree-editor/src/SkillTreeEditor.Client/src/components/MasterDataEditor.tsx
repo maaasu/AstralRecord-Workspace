@@ -668,7 +668,7 @@ function MasterCreateDialog({ mode, category, categories, files, source, importe
   const [debug, setDebug] = useState(false)
   const [templateIndex, setTemplateIndex] = useState(0)
   const [raw, setRaw] = useState(mode === 'import' ? importedRaw : mode === 'copy' ? source?.raw ?? '' : selected?.templates[0]?.raw ?? '')
-  const progressionCategory = '36.features.progression_preset'
+  const progressionCategory = '90.shared.progression_preset'
   const categoryFormat = (entry?: MasterCategory): 'json' | 'yaml' => entry?.templates.length
     ? entry.templates[0].path.toLowerCase().endsWith('.json') ? 'json' : 'yaml'
     : entry?.jsonSchemas.length && entry.directory !== progressionCategory ? 'json' : 'yaml'
