@@ -2070,13 +2070,13 @@
         "table": "account_mob_record",
         "primaryKey": "PK_account_mob_record",
         "columns": [
-          { "name": "mob_id", "sqlType": "nvarchar", "maxLengthBytes": 200, "isNullable": false },
+          { "name": "mob_id", "sqlType": "nvarchar", "isNullable": false },
           { "name": "defeat_count", "sqlType": "bigint", "maxLengthBytes": 8, "isNullable": false }
         ],
-        "checkConstraints": [ "CK_account_mob_record_category", "CK_account_mob_record_defeat_count" ],
+        "checkConstraints": [],
         "indexes": [ "UX_account_mob_record_account_mob" ],
         "indexDefinitions": [
-          { "name": "UX_account_mob_record_account_mob", "columns": [ "account_id", "mob_id" ], "isUnique": true }
+          { "name": "UX_account_mob_record_account_mob", "columns": [ "account_id", "mob_id" ] }
         ]
       }
     }
