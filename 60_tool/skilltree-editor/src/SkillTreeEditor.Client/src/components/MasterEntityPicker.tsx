@@ -1,3 +1,4 @@
+import { usePanelDocument, usePanelVisibility } from '../docking/dockPanel'
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { plainMasterFilterName } from '../data/masterDataPresentation'
@@ -82,19 +83,21 @@ export function MasterEntityPicker({
   const firstAvailable = visibleSelectable[0]
   const tabEntry = visible.find(({ choice }) => choice.id === focusedId && !choice.disabledReason) ?? firstAvailable
 
+  const document = usePanelDocument()
+  const visibleInLayout = usePanelVisibility()
   useEffect(() => {
     const section = dialog.current
-    if (!section) return
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    if (!section || !visibleInLayout) return
+    const opener = document.activeElement as HTMLElement | null
     const overflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     search.current?.focus()
 
     const keepFocus = (event: FocusEvent) => {
-      if (event.target instanceof HTMLElement && !event.target.closest('[role="dialog"]')) search.current?.focus()
+      if ((event.target as Node | null)?.nodeType === 1 && !(event.target as HTMLElement).closest('[role="dialog"]')) search.current?.focus()
     }
     const handleKey = (event: globalThis.KeyboardEvent) => {
-      if (event.target instanceof HTMLElement && event.target.closest('[role="dialog"]') !== section) return
+      if ((event.target as Node | null)?.nodeType === 1 && (event.target as HTMLElement).closest('[role="dialog"]') !== section) return
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
         event.preventDefault()
         event.stopImmediatePropagation()
@@ -122,7 +125,7 @@ export function MasterEntityPicker({
       document.body.style.overflow = overflow
       if (opener?.isConnected) opener.focus()
     }
-  }, [])
+  }, [document, visibleInLayout])
 
   useEffect(() => {
     if (results.current) results.current.scrollTop = 0
@@ -130,7 +133,7 @@ export function MasterEntityPicker({
     pendingFocus.current = null
     if (target) (buttons.current.get(target) ?? search.current)?.focus()
     else if (document.activeElement === document.body) search.current?.focus()
-  }, [currentPage, entries])
+  }, [currentPage, entries, document])
 
   const focusChoice = (id: string | undefined) => {
     if (!id) return
@@ -152,7 +155,7 @@ export function MasterEntityPicker({
   }
 
   return createPortal(
-    <div className="modal-backdrop master-entity-picker-backdrop"
+    <div hidden={!visibleInLayout} className="modal-backdrop master-entity-picker-backdrop"
       onKeyDown={event => event.stopPropagation()}
       onClick={event => {
         event.stopPropagation()

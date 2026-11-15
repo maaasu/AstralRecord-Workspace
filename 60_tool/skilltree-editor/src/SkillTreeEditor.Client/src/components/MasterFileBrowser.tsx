@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent } from 'react'
 import { ResizeHandle, usePanelSize } from './ResizeHandle'
+import { DockPanelContent, useDocking } from '../docking/dockPanel'
 import type { MasterDataWorkspace } from '../state/masterDataWorkspace'
 import { MasterCategoryTree } from './MasterCategoryTree'
 import { MasterFilterDialog, masterFacetValueLabel } from './MasterFilterDialog'
@@ -24,6 +25,7 @@ interface MasterFileBrowserProps {
 }
 
 export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, onOpen, onNew, onImport, onDialogChange }: MasterFileBrowserProps) {
+  const docking = useDocking()
   const [folderWidth, setFolderWidth] = usePanelSize('master-folders', 200, 150, 500)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [pathsOpen, setPathsOpen] = useState(false)
@@ -53,6 +55,7 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
     setVirtualFolder(null)
     const nextDirectory = w.catalog?.categories.find((entry) => entry.id === id)?.directory ?? ''
     w.setCategoryId(id); w.setSearchScope('folder'); w.setBrowserView('files')
+    if (docking && !docking.visible.has('master-files')) docking.show('master-files')
     if (!isItemDefinitionDirectory(nextDirectory)) { w.setSourceQuery(''); w.setDropSourcePath('') }
     if (!isSkillDirectory(nextDirectory)) w.setSkillTag('')
     if (w.format && !w.files.some((entry) => entry.format === w.format && inCategory(entry.path, nextDirectory))) w.setFormat('')
@@ -62,6 +65,7 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
     else setVirtualFolder({ directory: nextDirectory, label })
     w.setSearchScope('folder'); w.setBrowserView('files')
     w.setQuery(''); apply(emptyMasterListFilters())
+    if (docking && !docking.visible.has('master-files')) docking.show('master-files')
   }
   useEffect(() => { setVirtualFolder(null) }, [w.categoryId])
   const requestMore = useCallback(() => {
@@ -139,14 +143,10 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
   if (filters.dropPresence) chips.push({ key: 'dropPresence', label: `ドロップ品: ${filters.dropPresence === 'has' ? 'あり' : 'なし'}`, clear: () => w.setDropPresence('') })
   for (const [key, value] of Object.entries(filters.facetFilters)) chips.push({ key: `facet:${key}`, label: `${facetLabels[key] ?? key}: ${masterFacetValueLabel(key, value, w.filterIndex, w.candidates)}`, clear: () => w.setFacetFilters((current) => { const next = { ...current }; delete next[key]; return next }) })
   for (const [key, range] of Object.entries(filters.numericFilters)) if (range.min.trim() || range.max.trim()) chips.push({ key: `number:${key}`, label: `${numericFilterLabels[key] ?? key}: ${range.min || '下限なし'}〜${range.max || '上限なし'}`, clear: () => w.setNumericFilters((current) => { const next = { ...current }; delete next[key]; return next }) })
-  return <><aside className="master-sidebar master-browser" hidden={w.sidebarCollapsed} data-browser-view={w.browserView} aria-label="マスターファイルを探す">
-    <header className="master-browser-heading"><h2>マスターファイル</h2><div><button type="button" className="button compact subtle" disabled={busy} onClick={onNew}>＋ 新規</button><button type="button" className="button compact subtle" disabled={busy} onClick={onImport}>原稿を読込</button><button type="button" className="button compact subtle" disabled={w.refreshing} aria-label="一覧と定義を再読込" title="一覧と定義メタデータを再読込" onClick={() => void w.refresh(true).catch((reason) => w.setError(reason instanceof Error ? reason.message : String(reason)))}>↻</button><button type="button" className="button compact subtle" aria-label="ナビを閉じる" onClick={() => w.setSidebarCollapsed(true)}>×</button></div></header>
-    <div className="master-browser-switch" role="group" aria-label="ファイル一覧の表示"><button type="button" className="button" aria-pressed={w.browserView === 'folders'} onClick={() => w.setBrowserView('folders')}>フォルダ</button><button type="button" className="button" aria-pressed={w.browserView === 'files'} onClick={() => w.setBrowserView('files')}>ファイル・検索結果</button></div>
-    <div className="master-current-file"><button type="button" className="button compact subtle" disabled={!canReveal} onClick={revealCurrent} title={selectedPath}>編集中のファイルを一覧に表示</button><small>{!selectedPath ? 'ファイルを開くと移動できます。' : !selectedExists ? 'このファイルは現在の一覧にありません。' : '検索・詳細条件を解除し、対象の行へ移動します。'}</small></div>
-    <div className="master-browser-columns" style={{ '--folder-width': `${folderWidth}px` } as CSSProperties}>
-      <section className="master-folder-pane" aria-label="フォルダ一覧"><MasterCategoryTree categories={w.catalog?.categories ?? []} files={w.files} selectedId={w.categoryId} selectedDirectory={virtualFolder?.directory} onSelect={changeCategory} onBrowseFolder={browseFolder} expanded={w.expandedCategories} onExpandedChange={w.setExpandedCategories} /><footer><span>← → で開閉・Enterで選択</span><button type="button" className="text-button" onClick={() => setPathsOpen(true)}>読込先・バックアップ先</button></footer></section>
-      <ResizeHandle label="フォルダと検索結果の幅を変更" size={folderWidth} min={150} max={500} defaultSize={200} minRemaining={220} onResize={setFolderWidth} className="master-folder-resizer" />
-      <section className="master-results-pane" aria-label="ファイル検索と結果">
+  const heading = <header className="master-browser-heading">{!docking && <h2>マスターファイル</h2>}<div><button type="button" className="button compact subtle" disabled={busy} onClick={onNew}>＋ 新規</button><button type="button" className="button compact subtle" disabled={busy} onClick={onImport}>原稿を読込</button><button type="button" className="button compact subtle" disabled={w.refreshing} aria-label="一覧と定義を再読込" title="一覧と定義メタデータを再読込" onClick={() => void w.refresh(true).catch((reason) => w.setError(reason instanceof Error ? reason.message : String(reason)))}>↻</button>{!docking && <button type="button" className="button compact subtle" aria-label="ナビを閉じる" onClick={() => w.setSidebarCollapsed(true)}>×</button>}</div></header>
+  const revealControl = <div className="master-current-file"><button type="button" className="button compact subtle" disabled={!canReveal} onClick={revealCurrent} title={selectedPath}>編集中のファイルを一覧に表示</button><small>{!selectedPath ? 'ファイルを開くと移動できます。' : !selectedExists ? 'このファイルは現在の一覧にありません。' : '検索・詳細条件を解除し、対象の行へ移動します。'}</small></div>
+  const folders = <section className="master-folder-pane" aria-label="フォルダ一覧"><MasterCategoryTree categories={w.catalog?.categories ?? []} files={w.files} selectedId={w.categoryId} selectedDirectory={virtualFolder?.directory} onSelect={changeCategory} onBrowseFolder={browseFolder} expanded={w.expandedCategories} onExpandedChange={w.setExpandedCategories} /><footer><span>← → で開閉・Enterで選択</span><button type="button" className="text-button" onClick={() => setPathsOpen(true)}>読込先・バックアップ先</button></footer></section>
+  const results = <section className="master-results-pane" aria-label="ファイル検索と結果">
         <header className="master-result-search"><label>ファイルを検索<div className="master-search-input"><span aria-hidden="true">⌕</span><input ref={searchInput} aria-label="マスター検索" value={w.query} onChange={(event) => w.setQuery(event.target.value)} onKeyDown={(event) => { if (!isComposing(event) && (event.key === 'ArrowDown' || event.key === 'Enter') && visibleFiles.length) { event.preventDefault(); focusResult(0) } }} placeholder="名前・ID・ファイル名" />{w.query && <button type="button" aria-label="ファイル検索をクリア" onClick={() => { w.setQuery(''); searchInput.current?.focus() }}>×</button>}</div></label><small>空白で複数語を区切ると、すべてに一致するファイルを表示します。</small><div className="master-search-scope"><label>検索範囲<select aria-label="検索範囲" value={w.searchScope} onChange={(event) => w.setSearchScope(event.target.value as 'folder' | 'all')}><option value="folder">選択フォルダ以下</option><option value="all">Filebase 全体</option></select></label><button type="button" className={'button master-open-filters' + (chips.length ? ' active' : '')} aria-haspopup="dialog" onClick={() => setFiltersOpen(true)}>詳細フィルター{chips.length > 0 && <b>{chips.length}</b>}</button></div></header>
         <div className="master-results-heading"><div><span className="master-result-eyebrow">{w.query.trim() || chips.length ? '検索結果' : 'フォルダのファイル'}</span><h3 title={w.searchScope === 'all' ? 'Filebase 全体' : `${scopeLabel}\n${directory}`}>{scopeLabel}</h3></div><strong aria-label="検索結果の件数">{visibleFiles.length}<small> / {files.length} 件</small></strong></div>
         {chips.length > 0 && <div className="master-applied-filters"><div aria-label="適用中のフィルター">{chips.map((chip) => <button type="button" key={chip.key} className="master-filter-chip" title={chip.label} aria-label={`${chip.label} を解除`} onClick={chip.clear}><span>{chip.label}</span><b aria-hidden="true">×</b></button>)}</div><button type="button" className="text-button" onClick={() => apply(emptyMasterListFilters())}>すべて解除</button></div>}
@@ -167,10 +167,23 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
         })}{!visibleFiles.length && <div className="master-no-results"><strong>一致するファイルがありません</strong><p>検索文字やフィルターの範囲を変えてください。</p>{w.searchScope === 'folder' && w.query.trim() && <button type="button" className="button" onClick={() => w.setSearchScope('all')}>同じ検索条件でFilebase全体を検索</button>}<button type="button" className="button" onClick={() => { w.setQuery(''); apply(emptyMasterListFilters()) }}>検索・条件を解除</button></div>}{w.visibleCount < visibleFiles.length && <div ref={more} className="master-load-more"><button type="button" className="button" onClick={requestMore}>さらに表示 ({Math.min(w.visibleCount, visibleFiles.length)} / {visibleFiles.length})</button><small>下までスクロールすると続きを表示します</small></div>}</div>
         <footer className="master-results-footer">保存済みファイルを検索 · 名前を選択して編集</footer>
       </section>
+  const filterDialog = active && filtersOpen && <MasterFilterDialog value={filters} files={files} allFiles={w.files} index={w.filterIndex} candidates={w.candidates} query={w.query} scopeLabel={scopeLabel} itemScope={w.searchScope === 'all' || isItemDefinitionDirectory(directory)} dropScope={w.searchScope === 'all' || isDropSourceDirectory(directory)} skillScope={w.searchScope === 'all' || isSkillDirectory(directory)} onCancel={() => setFiltersOpen(false)} onApply={(next) => { apply(next); setFiltersOpen(false) }} />
+  const pathsDialog = active && pathsOpen && <div className="master-paths-dialog"><MasterPaths root={w.catalog?.root ?? ''} backups={w.catalog?.backups ?? ''} onClose={() => setPathsOpen(false)} /></div>
+  if (docking) return <>
+    <DockPanelContent id="master-folders"><div className="dock-master-folders">{folders}{pathsDialog}</div></DockPanelContent>
+    <DockPanelContent id="master-files"><div className="dock-master-files">{heading}{revealControl}{results}{filterDialog}</div></DockPanelContent>
+  </>
+  return <><aside className="master-sidebar master-browser" hidden={w.sidebarCollapsed} data-browser-view={w.browserView} aria-label="マスターファイルを探す">
+    {heading}
+    <div className="master-browser-switch" role="group" aria-label="ファイル一覧の表示"><button type="button" className="button" aria-pressed={w.browserView === 'folders'} onClick={() => w.setBrowserView('folders')}>フォルダ</button><button type="button" className="button" aria-pressed={w.browserView === 'files'} onClick={() => w.setBrowserView('files')}>ファイル・検索結果</button></div>
+    {revealControl}
+    <div className="master-browser-columns" style={{ '--folder-width': `${folderWidth}px` } as CSSProperties}>
+      {folders}
+      <ResizeHandle label="フォルダと検索結果の幅を変更" size={folderWidth} min={150} max={500} defaultSize={200} minRemaining={220} onResize={setFolderWidth} className="master-folder-resizer" />
+      {results}
     </div>
   </aside>
-    {active && filtersOpen && <MasterFilterDialog value={filters} files={files} allFiles={w.files} index={w.filterIndex} candidates={w.candidates} query={w.query} scopeLabel={scopeLabel} itemScope={w.searchScope === 'all' || isItemDefinitionDirectory(directory)} dropScope={w.searchScope === 'all' || isDropSourceDirectory(directory)} skillScope={w.searchScope === 'all' || isSkillDirectory(directory)} onCancel={() => setFiltersOpen(false)} onApply={(next) => { apply(next); setFiltersOpen(false) }} />}
-    {active && pathsOpen && <div className="master-paths-dialog"><MasterPaths root={w.catalog?.root ?? ''} backups={w.catalog?.backups ?? ''} onClose={() => setPathsOpen(false)} /></div>}
+    {filterDialog}{pathsDialog}
   </>
 }
 

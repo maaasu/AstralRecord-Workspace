@@ -1,9 +1,13 @@
+import { usePanelDocument, usePanelVisibility } from '../docking/dockPanel'
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
 export interface MasterTabCommand { label: string; disabled: boolean; run: () => void }
 
 export function MasterTabContextMenu({ x, y, commands, onDismiss }: { x: number; y: number; commands: MasterTabCommand[]; onDismiss: (restoreFocus?: boolean) => void }) {
+  const document = usePanelDocument()
+  const visibleInLayout = usePanelVisibility()
+  const window = document.defaultView!
   const menu = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
     const element = menu.current
@@ -15,6 +19,7 @@ export function MasterTabContextMenu({ x, y, commands, onDismiss }: { x: number;
     focusTarget.focus()
   }, [x, y])
   useEffect(() => {
+    if (!visibleInLayout) return
     const outside = (event: Event) => { if (!menu.current?.contains(event.target as Node)) onDismiss() }
     const dismiss = () => onDismiss()
     document.addEventListener('pointerdown', outside)
@@ -28,8 +33,8 @@ export function MasterTabContextMenu({ x, y, commands, onDismiss }: { x: number;
       window.removeEventListener('resize', dismiss)
       document.removeEventListener('scroll', dismiss, true)
     }
-  }, [onDismiss])
-  return createPortal(<div ref={menu} className="master-tab-context-menu" role="menu" tabIndex={-1} aria-label="タブの操作" style={{ left: x, top: y }} onKeyDown={(event) => {
+  }, [onDismiss, document, window, visibleInLayout])
+  return createPortal(<div hidden={!visibleInLayout} ref={menu} className="master-tab-context-menu" role="menu" tabIndex={-1} aria-label="タブの操作" style={{ left: x, top: y }} onKeyDown={(event) => {
     if (event.key === 'Escape' || event.key === 'Tab') { event.preventDefault(); onDismiss(true); return }
     const buttons = Array.from(menu.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])
     const index = buttons.indexOf(document.activeElement as HTMLButtonElement)

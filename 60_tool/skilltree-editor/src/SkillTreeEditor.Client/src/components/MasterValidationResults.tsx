@@ -1,3 +1,4 @@
+import { usePanelDocument } from '../docking/dockPanel'
 import { useEffect, useId, useMemo, useRef, useState, type Ref } from 'react'
 import { createMasterNameMatcher } from '../data/masterDataFilters'
 import type { ValidationReport } from '../types/editor'
@@ -30,6 +31,7 @@ export function MasterValidationResults({ report, invalidInputs, headingRef, act
   const page = Math.min(current.page, pages - 1)
   const visible = matches.slice(page * pageSize, (page + 1) * pageSize)
   const contentId = useId()
+  const document = usePanelDocument()
   const search = useRef<HTMLInputElement>(null)
   const list = useRef<HTMLUListElement>(null)
   const buttons = useRef<(HTMLButtonElement | null)[]>([])
@@ -42,7 +44,7 @@ export function MasterValidationResults({ report, invalidInputs, headingRef, act
       ;(buttons.current[0] ?? search.current)?.focus()
       focusAfterPage.current = false
     } else if (focusedResult.current && !focusedResult.current.isConnected && document.activeElement === document.body) search.current?.focus()
-  }, [page, entries, active])
+  }, [page, entries, active, document])
   const changePage = (next: number) => { focusAfterPage.current = true; setView({ ...current, page: next }) }
   return <section className="master-validation" aria-label="検証結果">
     <h3 className="master-validation-heading"><button type="button" className="text-button" ref={headingRef} aria-expanded={current.expanded} aria-controls={contentId} onClick={() => setView({ ...current, expanded: !current.expanded })}>

@@ -1,3 +1,4 @@
+import { usePanelDocument, usePanelVisibility } from '../docking/dockPanel'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { WorldPlacement } from '../api/worldPlacementApi'
@@ -18,7 +19,9 @@ export function PlacementBulkConfirmation({ action, items, matchingIds, catalog,
   const outsideCount = items.filter(item => !matchingIds.has(item.placementId)).length
   const listed = outsideOnly ? items.filter(item => !matchingIds.has(item.placementId)) : items
   const pages = Math.max(1, Math.ceil(listed.length / 50))
-  return createPortal(<Modal ariaLabel={titles[action]} className="wp-bulk-confirmation" onClose={onCancel}>
+  const document = usePanelDocument()
+  const visibleInLayout = usePanelVisibility()
+  return createPortal(<div hidden={!visibleInLayout}><Modal ariaLabel={titles[action]} className="wp-bulk-confirmation" onClose={onCancel}>
     <header><h2>{titles[action]}</h2><button type="button" className="button" onClick={onCancel}>キャンセル</button></header>
     <div className="wp-bulk-confirmation-body">
     <p className="wp-bulk-scope">合計 {items.length} 件 · 現在の表示条件内 {items.length - outsideCount} 件 · 表示条件外 {outsideCount} 件</p>
@@ -40,5 +43,5 @@ export function PlacementBulkConfirmation({ action, items, matchingIds, catalog,
     <div className="wp-actions"><span>対象一覧 {listed.length ? page * 50 + 1 : 0}〜{Math.min((page + 1) * 50, listed.length)} / {listed.length} 件 · {page + 1} / {pages} ページ</span><button type="button" className="button" disabled={page === 0} onClick={() => setPage(value => value - 1)}>前の50件</button><button type="button" className="button" disabled={page + 1 >= pages} onClick={() => setPage(value => value + 1)}>次の50件</button></div>
     </div>
     <footer className="wp-actions"><button type="button" className="button" onClick={onCancel}>戻って確認する</button><button type="button" className="button" disabled={stale} onClick={onConfirm}>{items.length} 件を{actions[action]}</button></footer>
-  </Modal>, document.body)
+  </Modal></div>, document.body)
 }
