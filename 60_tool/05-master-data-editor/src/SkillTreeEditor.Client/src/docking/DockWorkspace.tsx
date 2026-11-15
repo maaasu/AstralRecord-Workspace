@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
 import { DockviewReact, themeVisualStudio, type AddPanelOptions, type DockviewApi, type DockviewReadyEvent, type IDockviewHeaderActionsProps, type IDockviewPanelProps, type SerializedDockview } from 'dockview-react'
 import 'dockview-react/dist/styles/dockview.css'
+import { DockCommandMenu, type DockCommand } from './DockCommandMenu'
+import { DockIcon } from './DockIcon'
 import { DockingContext, dockPanelIds, dockPanels, isDockPanelId, isPage, useDocking, type DockPanelId, type DockingState } from './dockPanel'
 import './dockWorkspace.css'
 
-const theme = { ...themeVisualStudio, name: 'astral', className: 'dockview-theme-astral' }
+const theme = { ...themeVisualStudio, name: 'astral', className: 'dockview-theme-astral', gap: 4, dndTabIndicator: 'line' as const }
 const component = 'workspace-panel'
 const storagePrefix = 'astral-editor:docking:v1:'
 const navigation = 'navigation'
@@ -159,20 +160,12 @@ export function DockWorkspace({ desktop, layoutKey, children }: { desktop?: Desk
         return { open, visible, documents, activeId, visited: new Set([...previous.visited, ...open]) }
       })
     }
-    let lastNavigation: boolean | undefined
-    const sendNavigation = () => {
-      const visible = api.getPanel(navigation)?.api.isVisible === true
-      if (desktop && visible !== lastNavigation) {
-        desktop.postMessage({ type: 'workspace-state', navigationVisible: visible })
-        lastNavigation = visible
-      }
-    }
     const save = () => {
       if (!layoutKey || persistencePaused.current || closing.current) return
       try { window.localStorage.setItem(layoutKey, JSON.stringify(api.toJSON())) } catch { /* Storage can be unavailable in a browser session. */ }
     }
     const listeners = [
-      api.onDidLayoutChange(() => { publish(); sendNavigation(); save() }),
+      api.onDidLayoutChange(() => { publish(); save() }),
       api.onDidActivePanelChange(publish),
       api.onDidAddPanel(publish),
       api.onDidRemovePanel(publish),
@@ -213,26 +206,12 @@ export function DockWorkspace({ desktop, layoutKey, children }: { desktop?: Desk
           persistencePaused.current = false
           setSuspended(false)
           publish()
-          sendNavigation()
           save()
         })
       } else {
         if (api.totalPanels === 0) defaultLayout(api)
         persistencePaused.current = false
         save()
-      }
-    }
-    const command = (event: Event) => {
-      const detail: unknown = (event as CustomEvent<unknown>).detail
-      if (typeof detail !== 'string') return
-      if (detail === 'toggle-navigation') {
-        const panel = api.getPanel(navigation)
-        if (panel?.api.isVisible) panel.api.close()
-        else focusPanel(api, navigation, Boolean(panel))
-      } else if (detail === 'reset-layout') defaultLayout(api)
-      else if (detail.startsWith('show-')) {
-        const id = detail.slice(5)
-        if (isDockPanelId(id)) focusPanel(api, id, true)
       }
     }
     const returnPopout = (child?: Window) => {
@@ -243,14 +222,11 @@ export function DockWorkspace({ desktop, layoutKey, children }: { desktop?: Desk
       returnPopouts(api, child)
     }
     window.astralEditorReturnPopout = returnPopout
-    window.addEventListener('astral-desktop-command', command)
     publish()
-    sendNavigation()
     return () => {
       live = false
       listeners.forEach(listener => listener.dispose())
       stylesheetObservers.forEach(observer => observer.disconnect())
-      window.removeEventListener('astral-desktop-command', command)
       if (window.astralEditorReturnPopout === returnPopout) delete window.astralEditorReturnPopout
     }
   }, [api, desktop, layoutKey])
@@ -262,83 +238,65 @@ export function DockWorkspace({ desktop, layoutKey, children }: { desktop?: Desk
     reset: () => { if (api) defaultLayout(api) },
   }
   return <DockingContext.Provider value={stateWithActions}>
+    {children}
     {error && <div className="dock-error" role="alert">{error}<button type="button" onClick={() => setError('')} aria-label="通知を閉じる">×</button></div>}
     <div className="dock-layout" aria-busy={suspended}>
       <DockviewReact onReady={onReady} components={components} rightHeaderActionsComponent={GroupActions}
         watermarkComponent={EmptyWorkspace} theme={theme} messages={messages}
         defaultRenderer="always" proportionalLayout={false} popoutUrl="/popout.html" />
     </div>
-    {children}
   </DockingContext.Provider>
 }
 
 export const workspaceLayoutKey = (workspaceRoot?: string) => workspaceRoot ? `${storagePrefix}${workspaceRoot}` : undefined
 
 function EmptyWorkspace() {
-  return <div className="dock-empty"><DockMenu /></div>
+  return <div className="dock-empty">「パネル」メニューから開く画面を選べます。</div>
 }
 
-function GroupActions({ activePanel, location, containerApi }: IDockviewHeaderActionsProps) {
-  const panel = activePanel
-  return <div className="dock-group-actions">
-    {panel && location?.type === 'popout' && <button type="button" className="dock-header-button" title="メインウィンドウに戻す" aria-label="メインウィンドウに戻す" onClick={() => returnPopouts(containerApi, panel.api.getWindow())}>↙</button>}
-    {panel && (location?.type === 'grid' || location?.type === 'floating') && <button type="button" className="dock-header-button" title="別ウィンドウで開く" aria-label="別ウィンドウで開く" onClick={() => {
-      const window = panel.api.getWindow()
-      void containerApi.addPopoutGroup(panel, {
-        position: { left: window.screenX + 65, top: window.screenY + 65, width: Math.max(420, panel.api.width), height: Math.max(340, panel.api.height) },
-      })
-    }}>↗</button>}
-    <DockMenu panel={panel} />
-  </div>
+type DockPanel = NonNullable<IDockviewHeaderActionsProps['activePanel']>
+
+function openInNewWindow(api: DockviewApi, panel: DockPanel) {
+  const { screenX, screenY } = panel.api.getWindow()
+  void api.addPopoutGroup(panel, {
+    position: { left: screenX + 65, top: screenY + 65, width: Math.max(420, panel.api.width), height: Math.max(340, panel.api.height) },
+  })
 }
 
-export function DockMenu({ panel, label = 'パネルの操作' }: {
-  panel?: IDockviewHeaderActionsProps['activePanel']
-  label?: string
+const returnToMainLabel = 'メインウィンドウに戻す'
+
+export function DockWindowButton({ api, panel, compact = false }: {
+  api?: DockviewApi
+  panel?: DockPanel
+  compact?: boolean
 }) {
-  const docking = useDocking()
-  const opener = useRef<HTMLButtonElement>(null)
-  const menu = useRef<HTMLDivElement>(null)
-  const [position, setPosition] = useState<{ top: number; right: number; document: Document }>()
-  useEffect(() => {
-    if (!position) return
-    const doc = position.document
-    const dismiss = (event: PointerEvent) => {
-      const target = event.target as Node
-      if (!opener.current?.contains(target) && !menu.current?.contains(target)) setPosition(undefined)
-    }
-    const escape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return
-      setPosition(undefined)
-      opener.current?.focus()
-    }
-    doc.addEventListener('pointerdown', dismiss)
-    doc.addEventListener('keydown', escape)
-    menu.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus()
-    return () => {
-      doc.removeEventListener('pointerdown', dismiss)
-      doc.removeEventListener('keydown', escape)
-    }
-  }, [position])
-  const run = (action: () => void) => { setPosition(undefined); action() }
-  return <>
-    <button type="button" ref={opener} className="dock-header-button" title={label} aria-label={label} aria-expanded={Boolean(position)} onClick={event => {
-      const doc = event.currentTarget.ownerDocument
-      const rect = event.currentTarget.getBoundingClientRect()
-      setPosition(previous => previous ? undefined : { top: rect.bottom + 2, right: Math.max(4, doc.documentElement.clientWidth - rect.right), document: doc })
-    }}>⋯</button>
-    {position && createPortal(<div className="dock-menu" ref={menu} style={{ top: position.top, right: position.right }} aria-label={label}>
-      {panel && <>
-        <button type="button" onClick={() => run(() => panel.api.moveTo({ group: panel.group, position: 'right' }))} disabled={panel.group.size < 2}>右に分割</button>
-        <button type="button" onClick={() => run(() => panel.api.moveTo({ group: panel.group, position: 'bottom' }))} disabled={panel.group.size < 2}>下に分割</button>
-        {panel.api.location.type === 'grid' && <button type="button" onClick={() => run(() => docking?.api?.addFloatingGroup(panel))}>画面内にフロート</button>}
-        {panel.api.location.type === 'floating' && <button type="button" onClick={() => run(() => panel.api.moveTo({ position: 'right' }))}>画面内にドッキング</button>}
-        <button type="button" onClick={() => run(() => panel.api.close())}>パネルを閉じる</button>
-        <hr />
-      </>}
-      {dockPanelIds.map(id => <button key={id} type="button" onClick={() => run(() => docking?.show(id))}>{dockPanels[id]}を表示</button>)}
-      <hr />
-      <button type="button" onClick={() => run(() => docking?.reset())}>レイアウトを初期化</button>
-    </div>, position.document.body)}
-  </>
+  const poppedOut = panel?.api.location.type === 'popout'
+  const label = poppedOut ? returnToMainLabel : '別ウィンドウで開く'
+  return <button type="button" className={compact ? 'dock-header-button' : 'editor-command-button editor-command-window'} title={label}
+    aria-label={label} disabled={!api || !panel} onClick={() => {
+      if (!api || !panel) return
+      if (poppedOut) returnPopouts(api, panel.api.getWindow())
+      else openInNewWindow(api, panel)
+    }}>
+    <DockIcon name="windows" />{!compact && <span>{label}</span>}
+  </button>
+}
+
+function GroupActions({ activePanel: panel, location, containerApi }: IDockviewHeaderActionsProps) {
+  if (!panel) return null
+  const splitDisabled = panel.group.size < 2
+  const commands: DockCommand[] = [
+    { label: '右に分割', run: () => panel.api.moveTo({ group: panel.group, position: 'right' }), disabled: splitDisabled },
+    { label: '下に分割', run: () => panel.api.moveTo({ group: panel.group, position: 'bottom' }), disabled: splitDisabled },
+  ]
+  if (location?.type === 'grid') commands.push({ label: '画面内にフロート', run: () => containerApi.addFloatingGroup(panel) })
+  if (location?.type === 'floating') commands.push({ label: '画面内にドッキング', run: () => panel.api.moveTo({ position: 'right' }) })
+  if (location?.type === 'popout') commands.push({ label: returnToMainLabel, run: () => returnPopouts(containerApi, panel.api.getWindow()) })
+  return <div className="dock-group-actions">
+    <DockWindowButton api={containerApi} panel={panel} compact />
+    <DockCommandMenu label="パネルの操作" className="dock-header-button" groups={[
+      { commands },
+      { commands: [{ label: 'パネルを閉じる', run: () => panel.api.close() }] },
+    ]}><DockIcon name="more" /></DockCommandMenu>
+  </div>
 }
