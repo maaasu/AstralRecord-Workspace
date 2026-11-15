@@ -58,7 +58,7 @@ public final class EnchantRollRangeResolver {
     }
 
     /** 付与経路と同じ装備グループへ変換します。 */
-    private static @Nullable EnchantEquipmentType equipmentType(@Nullable ItemEquipmentSlot slot) {
+    static @Nullable EnchantEquipmentType equipmentType(@Nullable ItemEquipmentSlot slot) {
         if (slot == null) return null;
         return switch (slot) {
             case WEAPON, SUBWEAPON -> EnchantEquipmentType.WEAPON;

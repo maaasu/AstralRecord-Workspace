@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffectType;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentStatRoll;
 import io.github.maaasu.astralRecord.feature.item.model.EnchantMaster;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentEnchant;
 import io.github.maaasu.astralRecord.feature.item.model.SetEffect;
 import io.github.maaasu.astralRecord.feature.item.repository.ItemRepository;
 import io.github.maaasu.astralRecord.feature.item.repository.SetEffectRepository;
@@ -572,9 +573,26 @@ public class ItemService {
         @NotNull UUID accountId,
         int enhanceLevel
     ) {
+        return createLocalEquipmentInstance(model, accountId, enhanceLevel, List.of());
+    }
+
+    /**
+     * ランク0の装備を指定強化値と照合済みの付与効果で生成し、次の player-state snapshot で同時作成します。
+     * @param model 装備マスター
+     * @param accountId 所有アカウント
+     * @param enhanceLevel 初期強化値
+     * @param enchants 装備種別、値、重複を呼び出し元で確認した付与効果。先頭から順に装着
+     * @return ローカル確定した装備。強化値や枠数が不正、または個体生成に失敗した場合は null
+     */
+    public @Nullable EquipmentInstance createLocalEquipmentInstance(
+        @NotNull ItemModel model, @NotNull UUID accountId, int enhanceLevel,
+        @NotNull List<PresetEquipmentEnchant> enchants
+    ) {
         try {
             var equipment = model.getEquipment();
-            if (!supportsInitialEquipmentEnhancement(model, enhanceLevel)) {
+            if (!supportsInitialEquipmentEnhancement(model, enhanceLevel)
+                || (!enchants.isEmpty() && (equipment.getEnchant() == null
+                    || enchants.size() > equipment.getEnchant().getMaxSlots()))) {
                 return null;
             }
 
@@ -603,6 +621,10 @@ public class ItemService {
                 ));
             }
             String now = Instant.now().toString();
+            var attachments = new ArrayList<EquipmentEnchant>();
+            for (int index = 0; index < enchants.size(); index++) {
+                attachments.add(enchants.get(index).attach(instanceId, index));
+            }
             EquipmentInstance instance = new EquipmentInstance(
                 instanceId,
                 accountId.toString(),
@@ -615,7 +637,7 @@ public class ItemService {
                 now,
                 now,
                 List.copyOf(statRolls),
-                List.of(),
+                List.copyOf(attachments),
                 List.of()
             );
             if (enhanceLevel > 0) {
