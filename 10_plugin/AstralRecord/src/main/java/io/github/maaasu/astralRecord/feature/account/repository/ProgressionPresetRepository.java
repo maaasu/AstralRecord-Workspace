@@ -17,7 +17,8 @@ import java.util.regex.Pattern;
 
 /** 戦闘検証用プリセットを実行用 Filebase から読み込みます。 */
 public final class ProgressionPresetRepository {
-    private static final String DIRECTORY = "36.features.progression_preset";
+    private static final String DIRECTORY = "90.shared.progression_preset";
+    private static final String LEGACY_DIRECTORY = "36.features.progression_preset";
     private static final Pattern ID = Pattern.compile("[a-z0-9]+(?:_[a-z0-9]+)*");
     private static final Set<String> EQUIPMENT_SLOTS = Set.of("MAIN_HAND", "OFF_HAND", "HEAD", "CHEST", "LEGS", "FEET");
 
@@ -33,7 +34,10 @@ public final class ProgressionPresetRepository {
         List<ProgressionPreset> presets = new ArrayList<>();
         Set<String> ids = new HashSet<>();
         Set<String> builds = new HashSet<>();
-        for (var entry : snapshot.files(DIRECTORY)) {
+        // 新旧APIが並行して返す場合も新カテゴリだけを採用し、重複適用しない。
+        var entries = snapshot.files(DIRECTORY);
+        if (entries.isEmpty()) entries = snapshot.files(LEGACY_DIRECTORY);
+        for (var entry : entries) {
             try {
                 ProgressionPreset preset = parse(entry.yaml().getValues(false));
                 require(entry.name().equals("v1." + preset.id() + ".yml"), "file name does not match id");

@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.infrastructure.api;
 
+import io.github.maaasu.astralRecord.feature.account.repository.ProgressionPresetRepository;
 import org.junit.jupiter.api.Test;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
@@ -38,14 +39,60 @@ class RuntimeFilebaseRepositoryTest {
     void acceptsProgressionPresetYamlFromApi() {
         var snapshot = RuntimeFilebaseRepository.parseSnapshot("""
                 {"schemaVersion":1,"files":[
-                  {"path":"36.features.progression_preset/v1.adventurer_magic.yml","content":"id: adventurer_magic"}
+                  {"path":"90.shared.progression_preset/v1.adventurer_magic.yml","content":"id: adventurer_magic"}
                 ]}
                 """);
 
-        var entries = snapshot.files("36.features.progression_preset");
+        var entries = snapshot.files("90.shared.progression_preset");
         assertEquals(1, entries.size());
         assertEquals("v1.adventurer_magic.yml", entries.getFirst().name());
         assertEquals("id: adventurer_magic", entries.getFirst().content());
+    }
+
+    /**
+     * 設計入力: PLUGIN_GUIDE.md
+     * 章・見出し: # AstralRecord Plugin > ## 共通基盤の設定スナップショットと入力正規化 > ### APIマスタ原稿スナップショット
+     * 検証契約: 新Pluginは旧APIの進行プリセットパスを受け付け、新パスがあれば新カテゴリだけを読み込む。
+     */
+    @Test
+    void progressionPresetUsesNewDirectoryBeforeLegacyInput() {
+        String oldPath = "36.features.progression_preset/v1.adventurer_magic.yml";
+        String newPath = "90.shared.progression_preset/v1.adventurer_magic.yml";
+        String oldContent = preset("Old");
+        String newContent = preset("New");
+        var legacy = RuntimeFilebaseRepository.parseSnapshot("""
+                {"schemaVersion":1,"files":[
+                  {"path":"36.features.progression_preset/v1.adventurer_magic.yml","content":"id: legacy"}
+                ]}
+                """);
+        assertEquals(1, legacy.files("36.features.progression_preset").size());
+        var oldOnly = new RuntimeFilebaseSnapshot(List.of(new RuntimeFilebaseSnapshot.Entry(oldPath, oldContent)));
+        assertEquals("Old", ProgressionPresetRepository.load(oldOnly).getFirst().name());
+        var newOnly = new RuntimeFilebaseSnapshot(List.of(new RuntimeFilebaseSnapshot.Entry(newPath, newContent)));
+        assertEquals("New", ProgressionPresetRepository.load(newOnly).getFirst().name());
+        var both = new RuntimeFilebaseSnapshot(List.of(
+                new RuntimeFilebaseSnapshot.Entry(oldPath, oldContent),
+                new RuntimeFilebaseSnapshot.Entry(newPath, newContent)));
+        var selected = ProgressionPresetRepository.load(both);
+        assertEquals(1, selected.size());
+        assertEquals("New", selected.getFirst().name());
+    }
+
+    private static String preset(String name) {
+        return """
+                schemaVersion: 1
+                type: PROGRESSION_PRESET
+                id: adventurer_magic
+                name: %s
+                classId: adventurer
+                buildId: magic
+                levels:
+                  - level: 1
+                    classLevel: 1
+                    nodes: []
+                    equipment: [{ slot: MAIN_HAND, item: 'item:sword' }]
+                    skills: [{ slot: 1, skill: 'skill:slash' }]
+                """.formatted(name);
     }
 
     /**
