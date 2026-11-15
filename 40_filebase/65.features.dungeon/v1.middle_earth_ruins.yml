@@ -144,4 +144,4 @@ encounter:
     - mobId: mob:middle_earth_ruins_piglin_charger
       weight: 2
   firstCombatRoomMaxMobLevel: 5
-  bossMobId: mob:all_things_el
+  bossMobId: mob:morgras

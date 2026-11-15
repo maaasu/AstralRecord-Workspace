@@ -76,6 +76,8 @@ CREATE NONCLUSTERED INDEX [IX_account_mob_record_is_deleted]
 
 ## 運用メモ
 
+- モルグラスへのマスタID変更では `migrations/20261115_rename_morgras_mob_id.sql` で `all_things_el` の討伐記録を `morgras` へ移行する。記録ID・討伐数・討伐日時・論理削除状態を保持し、同一アカウントの移行先IDとの衝突は変更前に拒否する。
+
 - Plugin の討伐イベントはメモリで account・Mob 単位に集約し、player-state snapshot の `adventureRecords.mobDefeatDeltas` で加算します。
 - 加算は player-state の account transaction 内で行い、同じ `snapshot_id` の再送は完成台帳により二重加算しません。
 - 冒険記録 GUI の初期読込は Adventure Record API の GET を使用します。
