@@ -4,24 +4,39 @@
 
 環境固有値を変更するときは、対応する`*.config.json`を同じディレクトリの`*.local.json`へコピーして編集します。localは**全体の置換**であり、差分だけをマージする方式ではありません。localファイルはGit管理外です。
 
-番号付きBATでは、明示の`-ConfigPath <path>`（DBは`--config <path>`）を最優先にし、未指定ならlocal、localがなければconfigを使用します。16/17はlocalの作成が必須です。
+番号付きBATでは、明示の`-ConfigPath <path>`（DBは`--config <path>`）を最優先にし、未指定なら番号付きディレクトリのlocal、旧ディレクトリのlocal、configの順に検索します。16/17はlocalを作成するか設定ファイルを指定します。
 
 | 入口 | 設定ファイル（`60_tool/`からの相対パス） | 補足 |
 |---|---|---|
-| 01/02/03/10 | `deploy-debug/deploy-debug.local.json` → `deploy-debug.config.json` | 10のBATも同じ設定優先順位を使用 |
-| 04 | `db-rebuild/db-rebuild.local.json` → `db-rebuild.config.json` | BATがsource側の設定を指定する |
-| 09 | `astralarchitect-deploy/astralarchitect-deploy.local.json` → `astralarchitect-deploy.config.json` | `-PluginsDirectory`が配置先を優先上書き |
-| 11 | `db-reset-except-release-notes/db-reset-except-release-notes.local.json` → `db-reset-except-release-notes.config.json` | BATがsource側の設定を指定する |
-| 13 | `db-migrate/db-migrate.local.json` → `db-migrate.config.json` | ゲームDBのmanifestを含む |
-| 14 | `management-db-migrate/management-db-migrate.local.json` → `management-db-migrate.config.json` | 管理DBのmanifestを含む |
-| 15 | `db-migrate/history-db-migrate.local.json` → `history-db-migrate.config.json` | 履歴DBのmanifestを含む |
-| 16 | `maintenance/maintenance.local.json` | `maintenance.example.json`をコピー |
-| 17 | `player-patch-migration/player-patch-migration.local.json` | `player-patch-migration.example.json`をコピー |
+| 01/02/03/10 | `01-deploy-debug/deploy-debug.local.json` → `deploy-debug.config.json` | 10のBATも同じ設定優先順位を使用 |
+| 04 | `04-db-rebuild/db-rebuild.local.json` → `db-rebuild.config.json` | BATがsource側の設定を指定する |
+| 09 | `09-astralarchitect-build-deploy/astralarchitect-deploy.local.json` → `astralarchitect-deploy.config.json` | `-PluginsDirectory`が配置先を優先上書き |
+| 11 | `11-db-reset-except-release-notes/db-reset-except-release-notes.local.json` → `db-reset-except-release-notes.config.json` | BATがsource側の設定を指定する |
+| 13 | `13-db-migrate/db-migrate.local.json` → `db-migrate.config.json` | ゲームDBのmanifestを含む |
+| 14 | `14-management-db-migrate/management-db-migrate.local.json` → `management-db-migrate.config.json` | 管理DBのmanifestを含む |
+| 15 | `15-history-db-migrate/history-db-migrate.local.json` → `history-db-migrate.config.json` | 履歴DBのmanifestを含む |
+| 16 | `16-maintenance/maintenance.local.json` | `maintenance.example.json`をコピー |
+| 17 | `17-player-patch-migration/player-patch-migration.local.json` | `player-patch-migration.example.json`をコピー |
 | 05/06/07/08/12 | 各引数・プロジェクト設定 | 配布環境向けの共通configは使用しない |
 
 DBツールのEXE/`dotnet run`を直接使う場合は、`--config`を指定してください。BATのlocal選択とは別です。01/10が実行するDB migrationの設定は、選択されたdeploy-debug設定の`databaseMigrations` / `historyDatabaseMigrations` / `managementDatabaseMigrations`の`configPath`が正本です。個別BAT用localへ切り替えるなら、この3項目も更新します。
 
-旧`master-data-reload/master-data-reload.ps1`は固定の`master-data-reload.config.json`を読みます。03の設定変更先ではありません。新規の運用手順には03を使用します。
+旧手順の`03-master-data-reload/legacy/master-data-reload.ps1`は同じディレクトリの固定設定を読みます。03のBATは01の設定を使用します。
+
+## 番号付きディレクトリへの移行
+
+番号付け前のチェックアウトを更新した場合は、01/02/03/16の実行を完了し、Controlの予約が解放された状態で既存のローカル設定と成果物を移行できます。移行を終えるまでツールの実行は待ってください。以下はリポジトリルートから実行します。
+
+```powershell
+pwsh -NoProfile -File .\60_tool\Move-LocalToolLayout.ps1 -WhatIf
+pwsh -NoProfile -File .\60_tool\Move-LocalToolLayout.ps1
+```
+
+スクリプトは移行先の競合や未完了の実行を検出すると停止します。標準の旧 `runs/` は01・16の `legacy-runs/` へ、12のJARは `12-build-network-plugins/output/` へ移します。既存履歴の内容は保存されます。記録に残る絶対パスは実行当時のパスです。
+
+ローカル設定のDBツール参照とネットワークPlugin出力参照を新しいパスへ更新した場合は、元の設定を `legacy-settings/` に保全します。移行対象はこのチェックアウトの `60_tool/` 配下です。外部に保存した実行記録や個別の17の記録は同じパスで引き続き使用します。
+
+16の旧localで `workflow.runRoot` とネットワークPluginの配布先を指定し、JARの取得元を自動選択にしている場合、新規Workflowを始める前にlocalを移行するか `networkPlugins.sourceDirectory` を明示します。旧Workflowの再開時は当時の設定と取得元を使用します。
 
 ## 配置先の正本
 

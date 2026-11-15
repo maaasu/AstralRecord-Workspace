@@ -46,7 +46,7 @@
 ## 既存契約との接続
 
 - [60_toolの入口一覧](../../../60_tool/README.md): 01/02/03/16/17の役割を維持する。
-- [Dev更新](../../../60_tool/deploy-debug/README.md)、[メンテナンス配布](../../../60_tool/maintenance/README.md)、[プレイヤー一括更新](../../../60_tool/player-patch-migration/README.md): 既存run/journal・ready・公開の正本。
+- [Dev更新](../../../60_tool/01-deploy-debug/README.md)、[メンテナンス配布](../../../60_tool/16-maintenance/README.md)、[プレイヤー一括更新](../../../60_tool/17-player-patch-migration/README.md): 既存run/journal・ready・公開の正本。
 - [スキルツリーの運用契約](../../20_API設計書/feature/20-skilltree/20_5.00-安全編集の導入と検証.md): boot・世代・公開・一括更新を同じ意味で使う。
 - [公開Webの認証](../feature/01-web-auth/01_README.md): 既存認証の説明資料であり、Controlのログイン処理には再利用しない。
 

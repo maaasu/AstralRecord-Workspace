@@ -6,7 +6,7 @@
 
 - マスタ: `v1.status_types.yml`
 - JSON Schema: `schemas/status-types.v1.schema.json`
-- 生成入口: `E:\AstralRecord-Workspace\60_tool\generate-status-types.ps1`
+- 生成入口: `E:\AstralRecord-Workspace\60_tool\07-generate-status-types.bat`
 - BAT入口: `E:\AstralRecord-Workspace\60_tool\07-generate-status-types.bat`
 
 各プラットフォームの型は生成物であり、直接編集しません。YAMLを変更した後に生成スクリプトを実行し、生成物も同じcommitへ含めます。
@@ -39,12 +39,12 @@ IDは既存filebaseが使用する`MAX_HEALTH`などを維持します。表示�
 | --- | --- |
 | Kotlin / Plugin | `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/status/model/StatusType.kt` |
 | C# / API | `20_api/AstralRecordApi/AstralRecordApi/Models/StatusType.generated.cs` |
-| TypeScript / Skill Tree Editor | `60_tool/skilltree-editor/src/SkillTreeEditor.Client/src/data/statusTypes.generated.ts` |
+| TypeScript / Skill Tree Editor | `60_tool/05-master-data-editor/src/SkillTreeEditor.Client/src/data/statusTypes.generated.ts` |
 
 通常生成:
 
 ```powershell
-.\60_tool\generate-status-types.ps1
+.\60_tool\07-generate-status-types.bat
 ```
 
 または`60_tool\07-generate-status-types.bat`を実行します。
@@ -52,5 +52,5 @@ IDは既存filebaseが使用する`MAX_HEALTH`などを維持します。表示�
 生成漏れ検査:
 
 ```powershell
-.\60_tool\generate-status-types.ps1 -Check
+.\60_tool\07-generate-status-types.bat -Check
 ```

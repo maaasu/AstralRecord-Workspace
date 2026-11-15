@@ -433,13 +433,13 @@ class Check:
   changed=self.git("diff","--name-only",BASE,"HEAD").splitlines()
   dirty_all=self.git("diff","--name-only","HEAD").splitlines()+self.git("ls-files","--others","--exclude-standard").splitlines()
   prefixes=("10_plugin/AstralRecord/src/main/","20_api/AstralRecordApi/",
-            "60_tool/skilltree-editor/src/","60_tool/skilltree-editor/tests/")
+            "60_tool/05-master-data-editor/src/","60_tool/05-master-data-editor/tests/")
   exact={"10_plugin/AstralRecord/pom.xml",
          "00_docs/50_Filebase設計書/feature/16-equipment.md",
          "40_filebase/10.features.item/20.equipment/docs.equipment.YAMLスキーマ定義.md",
          "40_filebase/10.features.item/20.equipment/set_effect/docs.set_effect.YAMLスキーマ定義.md"}
   def relevant(path):
-   return path in exact or path.startswith(prefixes) or (path.startswith("60_tool/skilltree-editor/") and path.endswith((".csproj",".sln",".props",".targets")))
+   return path in exact or path.startswith(prefixes) or (path.startswith("60_tool/05-master-data-editor/") and path.endswith((".csproj",".sln",".props",".targets")))
   base=[x for x in changed if relevant(x)]
   dirty=[x for x in dirty_all if relevant(x)]
   # The real Editor acceptance found a metadata-only mismatch for the already
@@ -447,7 +447,7 @@ class Check:
   # blobs; any runtime change, later edit, or uncommitted change still fails.
   reviewed={
    "40_filebase/10.features.item/20.equipment/docs.equipment.YAMLスキーマ定義.md":"5408b5b0b870150fb95d34154bf97297203d3db3",
-   "60_tool/skilltree-editor/tests/SkillTreeEditor.Server.Tests/MasterDataTests.cs":"a043c4938bdda070c67be96567152984658f6158"}
+   "60_tool/05-master-data-editor/tests/SkillTreeEditor.Server.Tests/MasterDataTests.cs":"a043c4938bdda070c67be96567152984658f6158"}
   accepted=[]; unexpected=[]
   for path in base:
    expected_blob=reviewed.get(path)

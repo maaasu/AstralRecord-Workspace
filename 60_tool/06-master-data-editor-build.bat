@@ -4,7 +4,7 @@ set "ERRORLEVEL="
 
 if /i "%~1"=="--resolve-dotnet" goto resolve_dotnet
 
-set "CLIENT_DIR=%~dp0skilltree-editor\src\SkillTreeEditor.Client"
+set "CLIENT_DIR=%~dp005-master-data-editor\src\SkillTreeEditor.Client"
 set "NPM_COMMAND="
 set "NODEJS_DIR="
 
@@ -97,7 +97,7 @@ set "EDITOR_DOTNET_DIR="
 set "EDITOR_DOTNET_LOG=%TEMP%\AstralRecord-editor-sdk-%RANDOM%-%RANDOM%.log"
 set "EDITOR_DOTNET_LOG_READY="
 set "EDITOR_DOTNET_LAST="
-pushd "%~dp0skilltree-editor"
+pushd "%~dp005-master-data-editor"
 if errorlevel 1 (
     echo ERROR: Master Data Editor directory could not be opened for SDK resolution.
     exit /b 1
@@ -119,12 +119,12 @@ if defined USERPROFILE call :try_dotnet "%USERPROFILE%\.astralrecord\tools\dotne
 if defined LOCALAPPDATA call :try_dotnet "%LOCALAPPDATA%\Programs\dotnet"
 if defined LOCALAPPDATA call :try_dotnet "%LOCALAPPDATA%\AstralRecord\tools\dotnet"
 if not defined EDITOR_DOTNET_EXE (
-    echo ERROR: No .NET SDK compatible with skilltree-editor\global.json was found.
+    echo ERROR: No .NET SDK compatible with 05-master-data-editor\global.json was found.
     echo A runtime-only installation or an older .NET 10 SDK cannot build the editor.
     echo Set ASTRALRECORD_DOTNET_HOME or DOTNET_ROOT to a directory containing dotnet.exe and a compatible SDK,
     echo or extract the SDK into "%LOCALAPPDATA%\AstralRecord\tools\dotnet".
     echo A portable SDK can also be placed in "%USERPROFILE%\.astralrecord\tools\dotnet".
-    echo Verify dotnet --version from the skilltree-editor directory.
+    echo Verify dotnet --version from the 05-master-data-editor directory.
     if defined EDITOR_DOTNET_LOG_READY (
         echo SDK diagnostics: "%EDITOR_DOTNET_LOG%"
         type "%EDITOR_DOTNET_LOG%"

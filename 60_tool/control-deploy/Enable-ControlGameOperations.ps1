@@ -95,9 +95,9 @@ function Get-ControlGameMarkerAction([string]$MarkerPath, [string]$Root) {
     if (!(Test-Path -LiteralPath $MarkerPath -PathType Leaf) -or ((Get-Item -LiteralPath $MarkerPath -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'InvalidMarker' }
     try { $marker = Get-Content -Raw -Encoding UTF8 -LiteralPath $MarkerPath | ConvertFrom-Json -AsHashtable } catch { throw 'InvalidMarker' }
     if ($marker.schemaVersion -ne 1 -or !$marker.toolRoot -or (Get-ControlAbsolutePath ([string]$marker.toolRoot)) -ine $Root) { throw 'MarkerRootMismatch' }
-    $files = @('control-gate\Control.Gate.psm1','deploy-debug\dev-update.ps1','deploy-debug\deploy-debug.ps1',
-        'maintenance\maintenance.ps1','maintenance\UpdateWorkflow.ps1','player-patch-migration\player-patch-migration.ps1',
-        'master-data-reload\master-data-reload.ps1')
+    $files = @('control-gate\Control.Gate.psm1','01-deploy-debug\dev-update.ps1','01-deploy-debug\deploy-debug.ps1','01-deploy-debug\DevRunRoot.ps1',
+        '16-maintenance\maintenance.ps1','16-maintenance\UpdateWorkflow.ps1','16-maintenance\WorkflowRunRoot.ps1','17-player-patch-migration\player-patch-migration.ps1',
+        '03-master-data-reload\legacy\master-data-reload.ps1')
     foreach ($file in $files) {
         $path = Join-Path $Root $file
         if (!(Test-Path -LiteralPath $path -PathType Leaf) -or ((Get-Item -LiteralPath $path -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'ManagedToolMissing' }

@@ -1,0 +1,193 @@
+#requires -Version 7.0
+[CmdletBinding()]
+param(
+    [string]$ConfigPath,
+    [switch]$PluginOnly,
+    [switch]$MasterDataOnly,
+    [switch]$ReleaseManagementOnly,
+    [switch]$PreflightOnly,
+    [switch]$Plan,
+    [ValidateSet('All','Selected','Skip')][string]$TestMode,
+    [string]$Tests,
+    [ValidateSet('Auto','Restart','Restore')][string]$Recovery='Auto',
+    [switch]$RecoveryChecked,
+    [switch]$ServersStopped,
+    [switch]$ServerAlreadyRunning,
+    [switch]$AutomaticWritersStopped,
+    [switch]$AdmissionClosed
+)
+$ErrorActionPreference='Stop'
+Set-StrictMode -Version Latest
+$gateContext=$null
+$devWorkflowLock=$null
+try {
+    # Keep child backends on the same PowerShell 7 runtime as this entry point.
+    $backendPowerShell=Join-Path $PSHOME 'pwsh.exe'
+    . (Join-Path $PSScriptRoot 'PluginTestSelection.ps1')
+    $testSelection=Resolve-PluginTestSelection -TestMode $TestMode -Tests $Tests -PluginOnly:$PluginOnly `
+        -TestsSpecified:($PSBoundParameters.ContainsKey('Tests')) `
+        -NoPlugin:($MasterDataOnly -or $ReleaseManagementOnly -or $PreflightOnly)
+    if (!$ConfigPath) {
+        $localPath=Join-Path $PSScriptRoot 'deploy-debug.local.json'
+        $legacyPath=Join-Path $PSScriptRoot '../deploy-debug/deploy-debug.local.json'
+        $ConfigPath=if (Test-Path -LiteralPath $localPath -PathType Leaf) { $localPath }
+            elseif (Test-Path -LiteralPath $legacyPath -PathType Leaf) { $legacyPath }
+            else { Join-Path $PSScriptRoot 'deploy-debug.config.json' }
+    }
+    $ConfigPath=(Resolve-Path -LiteralPath $ConfigPath).Path
+    $backend=Join-Path $PSScriptRoot 'deploy-debug.ps1'
+    if ($ReleaseManagementOnly -or $PreflightOnly) {
+        if ($MasterDataOnly -or $Plan -or $ServersStopped -or $ServerAlreadyRunning -or $AutomaticWritersStopped -or $AdmissionClosed -or $Recovery -ne 'Auto' -or $RecoveryChecked) { throw 'Release management uses its existing preflight/deployment workflow.' }
+        $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$backend,'-ConfigPath',$ConfigPath)
+        if ($ReleaseManagementOnly) { $arguments+='-ReleaseManagementOnly' }
+        if ($PreflightOnly) { $arguments+='-PreflightOnly' }
+        if ($PluginOnly) { $arguments+='-PluginOnly' }
+        & $backendPowerShell @arguments
+        exit $LASTEXITCODE
+    }
+    if ($PluginOnly -and $MasterDataOnly) { throw 'Choose PluginOnly or MasterDataOnly, not both.' }
+    if ($ServerAlreadyRunning -and !$MasterDataOnly) { throw '-ServerAlreadyRunning is only supported with -MasterDataOnly.' }
+    if ($ServerAlreadyRunning -and $ServersStopped) { throw 'Choose -ServersStopped or -ServerAlreadyRunning, not both.' }
+    if ($ServerAlreadyRunning -and $Recovery -ne 'Auto') { throw '-ServerAlreadyRunning cannot be combined with an explicit recovery action.' }
+    if ($Recovery -eq 'Restore') { throw 'DevのDB・ファイル自動復元には対応していません。外部状態確認後に-Recovery Restartを使用してください。' }
+    . (Join-Path $PSScriptRoot '../16-maintenance/Distribution.ps1')
+    . (Join-Path $PSScriptRoot '../16-maintenance/SkillTreeMigration.ps1')
+    . (Join-Path $PSScriptRoot '../16-maintenance/UpdateWorkflow.ps1')
+    . (Join-Path $PSScriptRoot '../16-maintenance/WorkflowRunRoot.ps1')
+    . (Join-Path $PSScriptRoot 'DevRunRoot.ps1')
+    $config=Get-Content -Raw -Encoding UTF8 -LiteralPath $ConfigPath | ConvertFrom-Json -AsHashtable
+    Import-Module (Join-Path $PSScriptRoot '../control-gate/Control.Gate.psm1') -Force
+    if (!$config.plugin.enabled -and ($TestMode -or $PSBoundParameters.ContainsKey('Tests'))) { throw 'TestMode/Tests require plugin.enabled=true.' }
+    if (!$config.ContainsKey('devWorkflow')) { throw 'Add devWorkflow to the deployment config. See 01-deploy-debug/README.md for one-time setup.' }
+    $workflow=$config.devWorkflow
+    $migration=$workflow.migration
+    $normalized=ConvertTo-SkillTreeRuntimeConfig $migration
+    if (!$normalized.Enabled -or $normalized.ServerIds.Count -ne 1) {
+        throw 'Dev workflow requires enabled patch publication and one Dev serverId in devWorkflow.migration.'
+    }
+    $mode=if ($PluginOnly) { 'PluginOnly' } elseif ($MasterDataOnly) { 'MasterDataOnly' } else { 'Full' }
+    if ($MasterDataOnly -and !$config.fileDatabase.enabled) { throw 'MasterDataOnly requires fileDatabase.enabled=true.' }
+    $gateServerIds=@(Get-DeploymentGateRuntimeServerIds -Configuration $config -RuntimeServerIds @($normalized.ServerIds) `
+        -PluginOnly:$PluginOnly -MasterDataOnly:$MasterDataOnly -ServerAlreadyRunning:$ServerAlreadyRunning)
+    $devLifecycle=Get-ControlDevLifecycleConfiguration -Configuration $config -RuntimeServerIds @($normalized.ServerIds) -ServerAlreadyRunning:$ServerAlreadyRunning
+    if ($ServerAlreadyRunning -and !$workflow.seedMasterData) { throw 'A running Dev requires devWorkflow.seedMasterData=true so its automatic master reload can be confirmed.' }
+    if ($PluginOnly -and !$config.plugin.enabled) { throw 'PluginOnly requires plugin.enabled=true.' }
+    if ($mode -eq 'Full' -and !$config.plugin.enabled -and !$config.fileDatabase.enabled -and !$config.api.enabled -and !$config.web.enabled) { throw 'No enabled deployment component.' }
+    if (!$Plan) {
+        # The three output roots still share one Dev deployment boundary.
+        $lockPath=Get-MaintenanceAbsolutePath (Join-Path $PSScriptRoot 'dev-workflow.lock')
+        $devWorkflowLock=[IO.File]::Open($lockPath,'OpenOrCreate','ReadWrite','None')
+    }
+    $workflow['runRoot']=Resolve-DevRunRoot -ToolRoot (Split-Path -Parent $PSScriptRoot) -ConfigPath $ConfigPath -ConfiguredRunRoot $workflow['runRoot'] -Mode $mode
+    # A pure JAR deployment does not reseed unchanged master data.
+    if ($PluginOnly -or !$config.fileDatabase.enabled) { $workflow.seedMasterData=$false }
+    $roots=@([IO.Path]::GetDirectoryName((Get-MaintenanceAbsolutePath $config.plugin.deployPath)))
+    foreach ($name in @('api','web','fileDatabase')) {
+        if ($config[$name].enabled) { $roots+=Get-MaintenanceAbsolutePath $config[$name].deployPath }
+    }
+    if (Test-Path -LiteralPath $config.fileDatabase.sourcePath) { $roots+=Get-MaintenanceAbsolutePath $config.fileDatabase.sourcePath }
+    foreach ($root in $roots) { if (Test-MaintenanceOverlap $workflow.runRoot $root) { throw 'Workflow runRoot overlaps deployment/source data.' } }
+    if ($Plan) {
+        Write-Host "Dev update mode: $mode"
+        Write-Host "Run records root: $($workflow.runRoot)"
+        if ($config.plugin.enabled -and !$MasterDataOnly) {
+            Write-Host "Plugin tests: $($testSelection.Mode); build: clean package"
+            if ($testSelection.Tests) { Write-Host "Selected tests: $($testSelection.Tests)" }
+        }
+        Write-Host "Target runtime: $($normalized.ServerIds[0]); register the current patch after startup. Player data is updated at login."
+        if ($mode -ceq 'Full' -and $gateServerIds.Count -eq 1 -and $gateServerIds[0] -ceq 'Dev') {
+            Write-Host '01: Devだけを停止・起動の対象とします。他サーバーの稼働中も実行できます。Environmentと配布先の予約は維持します。'
+        }
+        if ($gateServerIds.Count -gt $normalized.ServerIds.Count) {
+            if ($devLifecycle) { Write-Host "Shared API: other servers [$(@($gateServerIds | Where-Object { $_ -cne 'Dev' }) -join ', ')] must remain stopped throughout this run. Only Dev receives Stop/Start." }
+            else { Write-Host "Shared API: stop all of [$($gateServerIds -join ', ')], then start all of them before patch publication. Runtime readiness/publication target remains $($normalized.ServerIds[0])." }
+        }
+        Write-Host "API endpoint: $($normalized.BaseUrl)"
+        Write-Host "Private-IP-only TLS verification bypass: $($normalized.AllowPrivateApiInsecureTls)"
+        if ($normalized.ApiSettingsPath) { Write-Host "Authentication source: API settings file $($normalized.ApiSettingsPath)" }
+        else { Write-Host "Authentication source: environment variables $($normalized.ApiKeyEnvironmentVariable), $($normalized.MigrationKeyEnvironmentVariable)" }
+        if ($devLifecycle) {
+            Write-Host 'Reserve all affected resources -> Control normal Stop Dev -> build/copy -> optional seed -> Control Start Dev -> wait for new ready runtime -> publish patch -> release.'
+        } elseif ($MasterDataOnly -and $workflow.seedMasterData) {
+            Write-Host 'Stopped Dev or running Dev with admission closed -> sync Filebase -> seed -> wait for a new session or completed hot reload -> publish patch -> complete.'
+        } else {
+            Write-Host 'Stopped Dev -> build/copy -> optional seed -> prompt to start Dev -> wait for new runtime -> publish patch -> complete.'
+        }
+        Write-Host 'No builds, copies, or API requests performed.'
+        exit 0
+    }
+    Import-Module (Join-Path $PSScriptRoot '../control-gate/Control.Gate.psm1') -Force
+    $resume=if ((Get-ControlGateMode $config) -eq 'Managed') { Get-ControlGateResumeIdentity $workflow.runRoot } else { $null }
+    $adapterId=if ($PluginOnly) { '02' } elseif ($MasterDataOnly) { '03' } else { '01' }
+    $affected=@()
+    if ($config.plugin.enabled -and !$MasterDataOnly) { $affected += Get-MaintenanceAbsolutePath $config.plugin.deployPath }
+    foreach ($name in @('api','web','fileDatabase')) {
+        if ($config[$name].enabled -and !$PluginOnly) { $affected += Get-MaintenanceAbsolutePath $config[$name].deployPath }
+    }
+    if ($config.fileDatabase.enabled -and !$PluginOnly) { $affected += Get-MaintenanceAbsolutePath $config.fileDatabase.sourcePath }
+    $requiredState=if ($MasterDataOnly -and $ServerAlreadyRunning) { 'Running' } else { 'Stopped' }
+    $resumeReference=if ($resume) { $resume.RunReference } elseif ((Get-ControlGateMode $config) -eq 'Managed') { New-ControlGateRunReference $workflow.runRoot } else { '' }
+    $resumeWorkflowId=if ($resume) { $resume.WorkflowId } else { '' }
+    if ($gateServerIds.Count -gt $normalized.ServerIds.Count) {
+        if ($devLifecycle) { Write-Host 'Shared API maintenance: Dev以外の共有サーバーは実行中ずっと停止してください。自動停止・起動はDevだけです。' }
+        else { Write-Host "Shared API maintenance: stop all of [$($gateServerIds -join ', ')]; start all of them in the startup phase before Dev patch publication." }
+    }
+    $gateContext=Enter-ControlGate -Configuration $config -Operation $adapterId -RuntimeServerIds $gateServerIds `
+        -AffectedPaths $affected -RequiredState $requiredState -RunReference $resumeReference -WorkflowId $resumeWorkflowId `
+        -ReservationId $(if ($resume) { $resume.ReservationId } else { '' }) -CompletedRun:([bool]($resume -and $resume.Completed)) `
+        -InitialStep $(if ($resume) { 'Resume' } elseif ($devLifecycle) { 'StopForDeploy' } else { 'Deploy' }) `
+        -DevLifecycleServerId $(if ($devLifecycle) { $devLifecycle.ServerId } else { '' })
+    if ($resume -and $resume.Completed) {
+        $confirmed=Get-ControlGateResumeIdentity $workflow.runRoot
+        if (!$confirmed -or !$confirmed.Completed -or $confirmed.WorkflowId -cne $resume.WorkflowId -or
+            $confirmed.ReservationId -cne $resume.ReservationId -or $confirmed.RunReference -cne $resume.RunReference) {
+            throw 'Completed Control run changed during release recovery.'
+        }
+        Complete-ControlGate $gateContext $resume.RunReference
+        Write-Host "Control release confirmed for completed run: $($resume.RunReference)"
+        exit 0
+    }
+    Write-Host "設定ファイル: $ConfigPath"
+    Write-Host "更新モード: $mode"
+    if ($config.plugin.enabled -and !$MasterDataOnly) {
+        Write-Host "Pluginテスト条件: $($testSelection.Mode)"
+        if ($testSelection.Tests) { Write-Host "対象テスト: $($testSelection.Tests)" }
+    }
+    $fingerprint=Get-DevDeploymentFingerprint -ConfigPath $ConfigPath -Mode $mode -TestSelection $testSelection
+    $deployAction={
+        param($RunDirectory)
+        Assert-ControlGateStep $gateContext 'Deploy'
+        $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$backend,'-ConfigPath',$ConfigPath)
+        $arguments+=@('-WorkflowRunDirectory',$RunDirectory,'-WorkflowFingerprint',$fingerprint)
+        if ($PluginOnly) { $arguments+='-PluginOnly' }
+        if ($MasterDataOnly) { $arguments+='-MasterDataOnly' }
+        if ($config.plugin.enabled -and !$MasterDataOnly) {
+            $arguments+=@('-TestMode',$testSelection.Mode)
+            if ($testSelection.Tests) { $arguments+=@('-Tests',$testSelection.Tests) }
+        }
+        $log=Join-Path $RunDirectory 'dev-deploy.log'
+        & $backendPowerShell @arguments 2>&1 | Tee-Object -FilePath $log | Out-Host
+        if ($LASTEXITCODE -ne 0) {
+            $recoveryInstruction = if ($MasterDataOnly) { 'Keep player admission closed.' } else { 'Keep Dev stopped.' }
+            throw "Dev deployment failed. $recoveryInstruction See $log"
+        }
+        Write-MaintenanceJson @{ completedAtUtc=[DateTime]::UtcNow.ToString('o') } (Join-Path $RunDirectory 'deploy-action-success.json')
+    }
+    $lifecycleActions=@{}
+    if ($devLifecycle) {
+        $lifecycleActions.StopDevAction={param($RunDirectory) Invoke-ControlDevLifecycle -Context $gateContext -Settings $devLifecycle -RunDirectory $RunDirectory -Kind Stop}
+        $lifecycleActions.StartDevAction={param($RunDirectory) Invoke-ControlDevLifecycle -Context $gateContext -Settings $devLifecycle -RunDirectory $RunDirectory -Kind Start}
+    }
+    $workflowResult=Invoke-UpdateWorkflow @lifecycleActions -WorkflowConfig $workflow -MigrationConfig $migration -ConfigurationFingerprint $fingerprint `
+        -ServerRoots $roots -DeployAction $deployAction -ServersStopped:$ServersStopped -AdmissionClosed:$AdmissionClosed -Label 'Dev' `
+        -ServerAlreadyRunning:$ServerAlreadyRunning -AutomaticWritersStopped:$AutomaticWritersStopped `
+        -AllowSameSessionPublication:($MasterDataOnly -and $workflow.seedMasterData) `
+        -Recovery $Recovery -RecoveryChecked:$RecoveryChecked -GateContext $gateContext -PreferredRunDirectory $resumeReference
+    if ($workflowResult.Status -cne 'COMPLETED') { throw 'Control gate retained: workflow did not reach completion.' }
+    Complete-ControlGate $gateContext $workflowResult.RunDirectory
+} catch {
+    Write-Error $_.Exception.Message -ErrorAction Continue
+    exit 1
+} finally {
+    if ($devWorkflowLock) { $devWorkflowLock.Dispose() }
+}
