@@ -2,16 +2,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { masterDataApi } from '../api/masterDataApi'
 import { progressionDesignApi } from '../api/progressionDesignApi'
 import { appendDesignEntry, changeEquipment, equipmentRestriction, equipmentSlots, numericDesignValue, setDesignValue, sourceLabels } from '../data/progressionDesign'
+import { setAccountClassLevel } from '../data/progressionAccount'
 import { parentPointer, valueAtPointer } from '../data/masterDataNavigation'
 import { useDesignDocuments, type DesignSaveCandidate } from '../state/useDesignDocuments'
 import type { DesignField, DesignIngredient, DesignItem, DesignSource, ProgressionDesignCatalog } from '../types/progressionDesign'
 import { stripMinecraftFormatting } from '../utils/minecraft'
 import { AcquisitionGraph } from './AcquisitionGraph'
+import { AccountProgressionPanel } from './AccountProgressionPanel'
 import { MasterEntityPicker, type MasterEntityPickerChoice } from './MasterEntityPicker'
 import { MasterDataDiff } from './MasterDataDiff'
 import { MinecraftIcon } from './MinecraftIcon'
 import { MinecraftText } from './MinecraftText'
 import { Modal } from './Modal'
+import { ResizeHandle, usePanelSize } from './ResizeHandle'
 import './progressionDesign.css'
 
 type Picker = { kind: 'equipment'; slot: string } | { kind: 'browse' } | { kind: 'material'; source: DesignSource; ingredient?: DesignIngredient } | { kind: 'source'; itemId: string }
@@ -19,6 +22,9 @@ interface Props { active?: boolean; onDirtyChange?: (dirty: boolean) => void; on
 const label = (value: string) => stripMinecraftFormatting(value)
 const message = (reason: unknown) => reason instanceof Error ? reason.message : String(reason)
 const emptyCatalog: ProgressionDesignCatalog = { classes: [], presets: [], items: [], sources: [], usages: [], addTargets: [] }
+const INSPECTOR_DEFAULT = 350
+const INSPECTOR_MIN = 290
+const INSPECTOR_MAX = 680
 
 export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpenMaster }: Props) {
   const [workspaceRoot, setWorkspaceRoot] = useState('')
@@ -45,6 +51,7 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
   const [usagePage, setUsagePage] = useState(0)
   const [previewRetry, setPreviewRetry] = useState(0)
   const [structuralPending, setStructuralPending] = useState(false)
+  const [inspectorWidth, setInspectorWidth] = usePanelSize('progression-inspector', INSPECTOR_DEFAULT, INSPECTOR_MIN, INSPECTOR_MAX)
   const documents = useDesignDocuments(workspaceRoot, catalog?.revisions)
   const reloadSequence = useRef(0)
   const previewSequence = useRef(0)
@@ -153,8 +160,8 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
     if (previous.has(key) === bad) return previous
     const next = new Set(previous); if (bad) next.add(key); else next.delete(key); return next
   }), [])
-  const field = (entry: DesignField, title: string) => <DesignNumber key={`${entry.path}:${entry.pointer}`} field={entry} title={title} disabled={baseLock || structuralPending || !!previewError}
-    onInvalid={fieldInvalid} onChange={value => documents.edit(entry.path, content => setDesignValue(content, entry.pointer, value))} />
+  const field = (entry: DesignField, title: string, max?: number) => <DesignNumber key={`${entry.path}:${entry.pointer}`} field={entry} title={title} max={max} disabled={baseLock || structuralPending || !!previewError}
+    onInvalid={fieldInvalid} onChange={value => documents.edit(entry.path, content => checkpoint && entry.pointer === `${checkpoint.pointer}/classLevel` && typeof value === 'number' ? setAccountClassLevel(content, checkpoint, value) : setDesignValue(content, entry.pointer, value))} />
   const sourceChoices: MasterEntityPickerChoice[] = available.addTargets.map(target => ({ ...target, id: `${target.path}#${target.pointer}`, name: `${target.name}${target.kind === 'mob' ? target.pointer.startsWith('/levels/') ? ` · Lv.${target.level}` : ' · 基本ドロップ' : ''}`, category: sourceLabels[target.kind], description: target.path }))
   const categoryNames: Record<string, string> = { material: '素材', equipment: '装備・アクセサリー', consumable: '消耗品', currency: '通貨', orb: '強化素材', sigil: 'シジル', rune: 'ルーン', pet: 'ペット', pet_egg: 'ペットの卵', bundle: '詰め合わせ' }
   const itemChoices: MasterEntityPickerChoice[] = available.items.filter(entry => picker?.kind !== 'equipment' || entry.category === 'equipment' || entry.compatibleSlots.length > 0).map(entry => ({ ...entry, category: entry.slot ? equipmentSlots.find(([value]) => entry.compatibleSlots.includes(value))?.[1] ?? categoryNames[entry.category ?? ''] ?? 'アイテム' : categoryNames[entry.category ?? ''] ?? 'アイテム',
@@ -234,7 +241,7 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
 
   return <section className="progression-design" aria-label="装備・入手経路の設計">
     <header className="design-header">
-      <div><span className="design-eyebrow">EQUIPMENT & REWARDS</span><h1>装備・入手経路</h1><p>ビルドの装備から、素材と入手先をつなげて設計</p></div>
+      <div><span className="design-eyebrow">BUILD & REWARDS</span><h1>装備・入手経路</h1><p>ビルドの装備とアカウント進行、素材と入手先をまとめて設計</p></div>
       <div className="design-toolbar">
         <span className={`design-save-state ${documents.dirty ? 'dirty' : ''}`}>{documents.dirty ? `${documents.dirtyEntries.length}ファイル 未保存` : '保存済み'}</span>
         <button className="button" disabled={lock || inputBlocked || !documents.canUndo || !!documents.pending} onClick={() => moveHistory('undo')} title="Ctrl+Z">元に戻す</button>
@@ -279,13 +286,15 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
           <p className="design-caption">進行プリセットの装備を編集します。必要レベルは装備条件、適用開始レベルは構成の切替時点です。</p>
         </> : <div className="design-item-entry"><div><strong>{itemsById.get(browsedItemId)?.name ? label(itemsById.get(browsedItemId)!.name) : '調べたいアイテムを選択'}</strong><p>装備・素材・ダンジョン報酬の入手先と使い道を確認できます。</p></div><button className="button primary" disabled={lock || inputBlocked} onClick={() => setPicker({ kind: 'browse' })}>▦ アイコン付き一覧から選択</button></div>}
       </section>
+      {mode === 'build' && preset && checkpoint && <AccountProgressionPanel catalog={available} preset={preset} checkpoint={checkpoint} disabled={lock || inputBlocked} renderNumber={field} edit={editStructure} onExploreItem={id => chooseTarget(() => setFocusedItemId(id))} />}
       <div className="design-body">
         <section className="design-canvas-panel" aria-label="入手経路の図">
           <div className="design-preview-status" role="status">{previewing || documents.pending ? '下書きを図に反映中…' : 'カードを選んで、右の詳細で編集できます'}</div>
           <AcquisitionGraph catalog={catalog} itemId={rootItemId} selectedSourceId={sourceId} loading={loading} onSelectItem={inspectItem} onSelectSource={selectSource} />
           <p className="design-graph-note">線はマスター上の関係です。実ワールドへの配置状況は「ワールド配置・編集」で確認できます。</p>
         </section>
-        <aside className="design-inspector" aria-label="選択した項目の詳細">
+        <ResizeHandle label="入手経路の詳細の幅を変更" size={inspectorWidth} min={INSPECTOR_MIN} max={INSPECTOR_MAX} defaultSize={INSPECTOR_DEFAULT} minRemaining={320} direction={-1} className="design-body-resizer" onResize={setInspectorWidth} />
+        <aside className="design-inspector" aria-label="選択した項目の詳細" style={{ flexBasis: inspectorWidth }}>
           {item ? <>
             <header className="design-item-heading"><MinecraftIcon icon={item.icon} customModelData={item.customModelData} iconTexture={item.iconTexture} /><div><small>{focusedItemId && focusedItemId !== rootItemId ? '選択した素材・アイテム' : '設計対象のアイテム'}</small><h2><MinecraftText value={item.name} /></h2><code>{item.id}</code></div></header>
             {focusedItemId && focusedItemId !== rootItemId && <div className="design-item-actions"><button className="text-button" onClick={() => chooseTarget(() => {})}>← 装備の詳細に戻る</button><button className="button" disabled={lock || inputBlocked} onClick={() => chooseTarget(() => { setMode('item'); setBrowsedItemId(itemId) })}>この素材を起点に図を見る</button></div>}
@@ -336,7 +345,7 @@ export function ProgressionDesignWorkspace({ active = true, onDirtyChange, onOpe
         return setDesignValue(content, '/levels', [...stages, { ...current, level: nextLevel }].sort((a, b) => Number((a as { level: number }).level) - Number((b as { level: number }).level)))
       }); if (result) { setLevel(nextLevel); setNewLevel(null) }
     }}>追加する</button></footer></Modal>}
-    {review && <Modal ariaLabel="装備設計の変更を確認" className="design-save-dialog" onClose={() => setReview(null)} closeDisabled={documents.saving}>
+    {review && <Modal ariaLabel="装備・進行設計の変更を確認" className="design-save-dialog" onClose={() => setReview(null)} closeDisabled={documents.saving}>
       <header className="modal-header"><div><h2>変更を確認して保存</h2><p>{review.length}件のファイルを検証しました。ファイルごとに保存します。</p></div></header>
       <div className="design-save-list">{review.map(candidate => <article key={candidate.path}><strong>{candidate.path}</strong>{candidate.warnings.map((warning, index) => <p className="design-warning" key={index}>{warning}</p>)}<button className="button" disabled={documents.saving} onClick={() => setDiff(candidate)}>差分を確認</button></article>)}</div>
       {documents.error && <p className="design-warning" role="alert">{documents.error}</p>}
@@ -351,17 +360,18 @@ function ItemIdentity({ item, fallback }: { item?: DesignItem; fallback: string 
   return <>{item && <MinecraftIcon icon={item.icon} customModelData={item.customModelData} iconTexture={item.iconTexture} />}<span><strong>{item ? <MinecraftText value={item.name} /> : fallback}</strong><small>{item?.id ?? fallback}</small></span></>
 }
 
-function DesignNumber({ field, title, disabled, onChange, onInvalid }: { field: DesignField; title: string; disabled: boolean; onChange: (value: number | string) => Promise<boolean>; onInvalid: (key: string, bad: boolean) => void }) {
+function DesignNumber({ field, title, max, disabled, onChange, onInvalid }: { field: DesignField; title: string; max?: number; disabled: boolean; onChange: (value: number | string) => Promise<boolean>; onInvalid: (key: string, bad: boolean) => void }) {
   const [text, setText] = useState(String(field.value))
   const [failed, setFailed] = useState(false)
   const editSequence = useRef(0)
   const focused = useRef(false)
   const name = field.pointer.split('/').at(-1) ?? ''
   const key = `${field.path}:${field.pointer}`
-  const value = numericDesignValue(text, name, field)
+  const parsed = numericDesignValue(text, name, field)
+  const value = max && typeof parsed === 'number' && parsed > max ? undefined : parsed
   useEffect(() => { if (!focused.current) setText(String(field.value)) }, [field.value])
   useEffect(() => { onInvalid(key, value === undefined || failed); return () => onInvalid(key, false) }, [key, value, failed, onInvalid])
-  return <label className="design-number"><span>{title}</span><input inputMode="decimal" value={text} disabled={disabled} aria-label={`${title} ${field.pointer}`} aria-invalid={value === undefined || failed} title={field.path}
+  return <label className="design-number"><span>{title}</span><input inputMode="decimal" value={text} disabled={disabled} aria-label={`${title} ${field.pointer}`} aria-invalid={value === undefined || failed} title={field.path} max={max}
     onFocus={() => { focused.current = true }} onBlur={() => { focused.current = false }} onKeyDown={event => { if (event.key === 'Escape') { editSequence.current++; setText(String(field.value)); setFailed(false) } }}
-    onChange={event => { const next = event.target.value; setText(next); setFailed(false); const sequence = ++editSequence.current; const parsed = numericDesignValue(next, name, field); if (parsed !== undefined) void onChange(parsed).then(success => { if (sequence === editSequence.current) setFailed(!success) }) }} />{value === undefined && <small>有効な数値を入力してください（Escで戻す）</small>}{failed && <small>反映できませんでした。再入力するかEscで戻してください。</small>}</label>
+    onChange={event => { const next = event.target.value; setText(next); setFailed(false); const sequence = ++editSequence.current; const candidate = numericDesignValue(next, name, field); if (candidate !== undefined && (!max || typeof candidate !== 'number' || candidate <= max)) void onChange(candidate).then(success => { if (sequence === editSequence.current) setFailed(!success) }) }} />{value === undefined && <small>{max ? `1〜${max}の整数を入力してください（Escで戻す）` : '有効な数値を入力してください（Escで戻す）'}</small>}{failed && <small>反映できませんでした。再入力するかEscで戻してください。</small>}</label>
 }

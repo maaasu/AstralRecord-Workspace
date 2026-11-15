@@ -30,8 +30,8 @@
 .design-equipment-change { display: flex; justify-content: space-between; color: #c0d2e6; width: 100%; background: #111c2b66; border: 0; border-top: 1px solid #ffffff0c; padding: 6px 12px; font-size: 10px; cursor: pointer; }
 .design-equipment-change:hover { color: var(--accent); background: #28434d; }
 .design-caption { font-size: 10px; line-height: 1.7; color: var(--text-muted); margin: 9px 0 0; }
-.design-body { min-height: 430px; flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 350px; }
-.design-canvas-panel { min-width: 0; min-height: 430px; display: flex; flex-direction: column; }
+.design-body { min-height: 430px; min-width: 0; flex: 1; display: flex; }
+.design-canvas-panel { flex: 1 1 320px; min-width: 320px; min-height: 430px; display: flex; flex-direction: column; }
 .design-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 20px 10px; }
 .design-panel-heading h2 { font-size: 14px; margin: 0 0 3px; }
 .design-panel-heading > span { font-size: 10px; color: var(--accent); white-space: nowrap; }
@@ -40,7 +40,37 @@
 .design-preview-status { font-size: 11px; color: var(--text-muted); padding: 12px 20px; }
 .design-canvas-panel .acquisition-footnote { display: none; }
 .design-remove-source { margin-top: 16px; color: var(--danger); }
-.design-inspector { min-width: 0; overflow: auto; border-left: 1px solid var(--line); background: #172231; padding: 18px; scrollbar-gutter: stable; }
+.design-inspector { flex: 0 1 350px; min-width: 290px; overflow: auto; background: #172231; padding: 18px; scrollbar-gutter: stable; }
+.design-account { flex-shrink: 0; border-bottom: 1px solid var(--line); background: #131e2c; }
+.design-account > summary { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 18px; padding: 12px 22px; cursor: pointer; color: var(--accent); font-size: 13px; font-weight: 650; }
+.design-account > summary span { color: var(--text-muted); font-size: 11px; font-weight: 400; }
+.design-account-content { display: grid; gap: 14px; padding: 0 22px 18px; }
+.design-account-content > .design-caption { margin: 0; }
+.design-account-level { max-width: 170px; }
+.design-account-group { min-width: 0; }
+.design-account-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.design-account-heading h3 { margin: 0; font-size: 12px; }
+.design-account-heading span { font-size: 10px; color: var(--text-muted); }
+.design-account-nodes { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px; max-height: 150px; overflow: auto; margin-bottom: 8px; }
+.design-account-node { display: inline-flex; align-items: center; gap: 6px; max-width: 250px; min-width: 0; padding: 4px 6px; border: 1px solid #34465e; border-radius: 5px; background: #1b2a3a; font-size: 11px; }
+.design-account-node .minecraft-icon { flex: 0 0 22px; width: 22px; height: 22px; }
+.design-account-node > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.design-account-skill-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.design-account-skills { display: grid; gap: 8px; max-height: 340px; overflow: auto; margin-bottom: 8px; }
+.design-account-add-slots { display: flex; flex-wrap: wrap; gap: 6px; }
+.design-account-skill { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 9px; background: #1b2a3a; border: 1px solid #34465e; border-radius: 6px; }
+.design-account-skill-main { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.design-account-skill-main .minecraft-icon { flex: 0 0 30px; width: 30px; height: 30px; }
+.design-account-skill-main > div { min-width: 0; }
+.design-account-skill-main strong { display: block; overflow-wrap: anywhere; font-size: 11px; }
+.design-account-skill-main small { display: block; color: var(--text-muted); font-size: 10px; }
+.design-account-slot { display: grid; place-items: center; flex: 0 0 20px; height: 20px; border-radius: 50%; background: #2c4858; color: var(--accent); font-size: 10px; }
+.design-account-actions { display: flex; gap: 6px; }
+.design-account-skill > .design-number { grid-column: 1 / -1; max-width: 160px; }
+.design-account-sigils { grid-column: 1 / -1; display: grid; gap: 5px; }
+.design-account-sigil { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 10px; }
+.design-account-identity { display: inline-flex; align-items: center; gap: 5px; min-width: 0; overflow-wrap: anywhere; }
+.design-account-identity .minecraft-icon { width: 22px; height: 22px; flex-shrink: 0; }
 .design-item-heading { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; }
 .design-item-heading > .minecraft-icon { width: 48px; height: 48px; padding: 5px; background: #26384e; border: 1px solid #425670; border-radius: 9px; flex-shrink: 0; }
 .design-item-heading h2 { font-size: 16px; margin: 4px 0; line-height: 1.5; overflow-wrap: anywhere; }
@@ -93,6 +123,6 @@
 .design-dialog-label { display: grid; gap: 8px; margin: 16px 0; }
 .progression-design button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .progression-design button:disabled { cursor: default; opacity: .45; }
-@media (max-width: 1400px) { .design-header { padding: 12px 16px; } .design-setup { padding: 10px 16px; } .design-equipment { gap: 7px; } .design-equipment-view { grid-template-columns: 30px minmax(0, 1fr); padding: 9px; gap: 3px 6px; } .design-equipment-view .minecraft-icon { width: 28px; height: 28px; } .design-equipment-view strong { font-size: 11px; } .design-body { grid-template-columns: minmax(0, 1fr) 320px; } }
+@media (max-width: 1400px) { .design-header { padding: 12px 16px; } .design-setup { padding: 10px 16px; } .design-equipment { gap: 7px; } .design-equipment-view { grid-template-columns: 30px minmax(0, 1fr); padding: 9px; gap: 3px 6px; } .design-equipment-view .minecraft-icon { width: 28px; height: 28px; } .design-equipment-view strong { font-size: 11px; } }
 @media (max-width: 1100px) { .design-header { align-items: flex-start; } .design-header h1 { font-size: 18px; } .design-header p { display: none; } .design-toolbar { max-width: 65%; } .design-equipment { grid-template-columns: repeat(3, minmax(0, 1fr)); } .design-inspector { padding: 13px; } .design-caption { font-size: 10px; } }
-@media (max-width: 760px) { .design-header { flex-direction: column; gap: 12px; } .design-toolbar { max-width: none; justify-content: flex-start; } .design-selectors label, .design-selectors .design-build-select { min-width: 0; flex: 1 1 140px; } .design-selectors select { min-width: 0; width: 100%; } .design-body { display: flex; flex-direction: column; } .design-inspector { overflow: visible; border-left: 0; border-top: 1px solid var(--line); } .design-canvas-panel { min-height: 450px; } .design-item-entry { flex-wrap: wrap; } .design-equipment { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .design-header { flex-direction: column; gap: 12px; } .design-toolbar { max-width: none; justify-content: flex-start; } .design-selectors label, .design-selectors .design-build-select { min-width: 0; flex: 1 1 140px; } .design-selectors select { min-width: 0; width: 100%; } .design-body { flex-direction: column; } .design-body-resizer { display: none; } .design-inspector { flex-basis: auto !important; min-width: 0; overflow: visible; border-top: 1px solid var(--line); } .design-canvas-panel { flex-basis: auto; min-width: 0; min-height: 450px; } .design-item-entry { flex-wrap: wrap; } .design-equipment { grid-template-columns: repeat(2, minmax(0, 1fr)); } .design-account-content { padding: 0 16px 16px; } .design-account-skill-groups { grid-template-columns: minmax(0, 1fr); } }

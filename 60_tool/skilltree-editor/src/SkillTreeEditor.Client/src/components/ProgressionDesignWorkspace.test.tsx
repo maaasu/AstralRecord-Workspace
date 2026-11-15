@@ -90,6 +90,7 @@ async function loadWorkspace() {
 describe('ProgressionDesignWorkspace', () => {
   beforeEach(() => {
     sessionStorage.clear()
+    localStorage.clear()
     vi.spyOn(progressionDesignApi, 'catalog').mockResolvedValue(fixture)
     vi.spyOn(progressionDesignApi, 'preview').mockResolvedValue(fixture)
     vi.spyOn(masterDataApi, 'catalog').mockResolvedValue({ root: 'integration-workspace', backups: '', categories: [] })
@@ -102,6 +103,7 @@ describe('ProgressionDesignWorkspace', () => {
   afterEach(() => {
     vi.restoreAllMocks()
     sessionStorage.clear()
+    localStorage.clear()
   })
 
   it('keeps canceled equipment unchanged and saves a replacement only after explicit confirmation', async () => {
@@ -132,7 +134,7 @@ describe('ProgressionDesignWorkspace', () => {
     expect(await inspector().findByRole('heading', { name: '鋼の剣' })).toBeInTheDocument()
     await waitFor(() => expect(saveButton()).toBeEnabled())
     await user.click(saveButton())
-    const confirm = within(await screen.findByRole('dialog', { name: '装備設計の変更を確認' }))
+    const confirm = within(await screen.findByRole('dialog', { name: '装備・進行設計の変更を確認' }))
     expect(confirm.getByText(buildPath)).toBeInTheDocument()
     expect(masterDataApi.save).not.toHaveBeenCalled()
     await user.click(confirm.getByRole('button', { name: '1件を保存' }))
@@ -283,5 +285,92 @@ describe('ProgressionDesignWorkspace', () => {
     expect(vi.mocked(progressionDesignApi.preview).mock.calls[0][0]).toEqual([
       { path: poolPath, revision: 'original', content: { ...poolContent, amount: '1~0' } },
     ])
+  })
+
+  it('edits account progression at the selected checkpoint and saves it with equipment intact', async () => {
+    const accountContent = { levels: [
+      { ...buildContent.levels[0], classLevel: 1, nodes: [10], skills: [{ slot: 1, skill: 'skill:slash', skillLevel: 1 }], passives: [] },
+      { ...buildContent.levels[1], classLevel: 20, nodes: [10], skills: [{ slot: 1, skill: 'skill:slash', skillLevel: 1 }], passives: [] },
+    ] }
+    const accountFixture: ProgressionDesignCatalog = {
+      ...fixture,
+      classes: fixture.classes.map(entry => entry.id === 'warrior' ? { ...entry, maxLevel: 40 } : entry),
+      nodes: [{ id: 10, name: '基礎', path: 'nodes/10.json', icon: 'STONE', iconTexture: null, customModelData: null }, { id: 12, name: '鉄壁', path: 'nodes/12.json', icon: 'SHIELD', iconTexture: null, customModelData: null }],
+      skills: [{ id: 'slash', name: '斬撃', path: 'skills/slash.yml', icon: 'IRON_SWORD', iconTexture: null, customModelData: null, passive: false, bindRequired: true, requiredLevel: 1, maxLevel: 3, sigilSlotsByLevel: [{ level: 1, slots: 1 }], allowedSigilIds: [] },
+        { id: 'burst', name: '連撃', path: 'skills/burst.yml', icon: 'DIAMOND_SWORD', iconTexture: null, customModelData: null, passive: false, bindRequired: true, requiredLevel: 1, maxLevel: 3, sigilSlotsByLevel: [{ level: 1, slots: 1 }], allowedSigilIds: ['sigil_red'] },
+        { id: 'guard', name: '防御術', path: 'skills/guard.yml', icon: 'SHIELD', iconTexture: null, customModelData: null, passive: true, bindRequired: true, requiredLevel: 1, maxLevel: 2, sigilSlotsByLevel: [], allowedSigilIds: [] }],
+      items: [...fixture.items, { ...sword('sigil_red', '赤のシジル', 0), category: 'sigil', sigilEquipGroupId: 'red' }],
+      presets: fixture.presets.map(entry => entry.id !== 'knight' ? entry : { ...entry, checkpoints: entry.checkpoints.map(checkpoint => checkpoint.level !== 10 ? checkpoint : {
+        ...checkpoint, classLevel: 20, nodes: [10], skills: [{ slot: 1, skillId: 'slash', pointer: '/levels/1/skills/0', skillLevel: 1, sigils: [] }], passives: [],
+      }) }),
+    }
+    vi.mocked(progressionDesignApi.catalog).mockResolvedValue(accountFixture)
+    vi.mocked(masterDataApi.file).mockImplementation(async path => savedDocument(path, path === buildPath ? accountContent : documents[path]))
+    vi.mocked(progressionDesignApi.preview).mockImplementation(async entries => {
+      const content = entries.find(entry => entry.path === buildPath)?.content as { levels: { classLevel: number; nodes: number[]; skills: { slot: number; skill: string; skillLevel: number; sigils?: { slot: number; item: string }[] }[]; passives: { slot: number; skill: string; skillLevel: number }[] }[] } | undefined
+      if (!content) return accountFixture
+      const row = content.levels[1]
+      return { ...accountFixture, presets: accountFixture.presets.map(entry => entry.id !== 'knight' ? entry : {
+        ...entry, checkpoints: entry.checkpoints.map(checkpoint => checkpoint.level !== 10 ? checkpoint : {
+          ...checkpoint, classLevel: row.classLevel, nodes: row.nodes,
+          skills: row.skills.map((skill, index) => ({ slot: skill.slot, skillId: skill.skill.replace(/^skill:/, ''), skillLevel: skill.skillLevel, pointer: `/levels/1/skills/${index}`,
+            sigils: (skill.sigils ?? []).map((sigil, sigilIndex) => ({ slot: sigil.slot, itemId: sigil.item.replace(/^item:/, ''), pointer: `/levels/1/skills/${index}/sigils/${sigilIndex}` })) })),
+          passives: row.passives.map((skill, index) => ({ slot: skill.slot, skillId: skill.skill.replace(/^skill:/, ''), skillLevel: skill.skillLevel, pointer: `/levels/1/passives/${index}`, sigils: [] })),
+        }),
+      }) }
+    })
+    const user = await loadWorkspace()
+    const account = screen.getByText('アカウント進行設定').closest('details')!
+    const section = within(account)
+    const classLevel = section.getByRole('textbox', { name: '職業レベル /levels/1/classLevel' })
+    fireEvent.change(classLevel, { target: { value: '41' } })
+    expect(classLevel).toHaveAttribute('aria-invalid', 'true')
+    expect(saveButton()).toBeDisabled()
+    fireEvent.keyDown(classLevel, { key: 'Escape' })
+    fireEvent.change(classLevel, { target: { value: '25' } })
+    await waitFor(() => expect(progressionDesignApi.preview).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.getByRole('button', { name: '元に戻す' })).toBeEnabled())
+    await user.click(screen.getByRole('button', { name: '元に戻す' }))
+    await waitFor(() => expect(classLevel).toHaveValue('20'))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'やり直す' })).toBeEnabled())
+    await user.click(screen.getByRole('button', { name: 'やり直す' }))
+    await waitFor(() => expect(classLevel).toHaveValue('25'))
+    await waitFor(() => expect(section.getByRole('button', { name: /ノードを追加/ })).toBeEnabled())
+    await user.click(section.getByRole('button', { name: /ノードを追加/ }))
+    await user.click(within(screen.getByRole('dialog', { name: '習得ノードを追加' })).getByRole('button', { name: /鉄壁/ }))
+    await waitFor(() => expect(section.getByText('鉄壁')).toBeInTheDocument())
+    await user.click(within(section.getByRole('article', { name: 'アクションリング 1番枠' })).getByRole('button', { name: '変更' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'アクションリング 1番枠のスキル' })).getByRole('button', { name: /連撃/ }))
+    await waitFor(() => expect(section.getByText('連撃')).toBeInTheDocument())
+    await user.click(within(section.getByRole('group', { name: 'アクションリング 1番枠のシジル' })).getByRole('button', { name: '設定' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'シジル 1番枠を選択' })).getByRole('button', { name: /赤のシジル/ }))
+    await waitFor(() => expect(section.getByText('赤のシジル')).toBeInTheDocument())
+    await user.click(section.getByRole('button', { name: /パッシブ 1番枠/ }))
+    await user.click(within(screen.getByRole('dialog', { name: 'パッシブ 1番枠のスキル' })).getByRole('button', { name: /防御術/ }))
+    await waitFor(() => expect(section.getByText('防御術')).toBeInTheDocument())
+    await waitFor(() => expect(saveButton()).toBeEnabled())
+    await user.click(saveButton())
+    await user.click(within(await screen.findByRole('dialog', { name: '装備・進行設計の変更を確認' })).getByRole('button', { name: '1件を保存' }))
+    await waitFor(() => expect(masterDataApi.save).toHaveBeenCalledOnce())
+    const saved = JSON.parse(vi.mocked(masterDataApi.save).mock.calls[0][1]) as typeof accountContent
+    expect(saved.levels[0]).toEqual(accountContent.levels[0])
+    expect(saved.levels[1]).toEqual({ ...accountContent.levels[1], classLevel: 25, nodes: [10, 12], skills: [{ slot: 1, skill: 'skill:burst', skillLevel: 1, sigils: [{ slot: 1, item: 'item:sigil_red' }] }], passives: [{ slot: 1, skill: 'skill:guard', skillLevel: 1 }] })
+  })
+
+  it('resizes the graph inspector by keyboard and persists its preferred width', async () => {
+    const first = render(<ProgressionDesignWorkspace onOpenMaster={vi.fn()} />)
+    const divider = await screen.findByRole('separator', { name: '入手経路の詳細の幅を変更' })
+    expect(divider).toHaveAttribute('aria-valuenow', '350')
+    fireEvent.keyDown(divider, { key: 'ArrowLeft' })
+    expect(divider).toHaveAttribute('aria-valuenow', '366')
+    expect(localStorage.getItem('astralrecord.layout.progression-inspector')).toBe('366')
+    first.unmount()
+    render(<ProgressionDesignWorkspace onOpenMaster={vi.fn()} />)
+    const restored = await screen.findByRole('separator', { name: '入手経路の詳細の幅を変更' })
+    expect(restored).toHaveAttribute('aria-valuenow', '366')
+    fireEvent.keyDown(restored, { key: 'Home' })
+    expect(restored).toHaveAttribute('aria-valuenow', '290')
+    fireEvent.doubleClick(restored)
+    expect(restored).toHaveAttribute('aria-valuenow', '350')
   })
 })
