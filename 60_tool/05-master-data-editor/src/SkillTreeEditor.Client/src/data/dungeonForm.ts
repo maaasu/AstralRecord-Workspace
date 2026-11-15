@@ -1,4 +1,5 @@
 import type { JsonObject, JsonValue } from '../types/editor'
+import { dungeonReferenceCollection } from './masterReferenceCollection'
 
 export const isDungeonMaster = (path: string | undefined) => path?.startsWith('65.features.dungeon/') === true
 
@@ -76,10 +77,17 @@ export const isDungeonMaterialList = (path: string) => /^\/theme\/(?:floor|wall|
 export const isDungeonWeightedList = (path: string) => isDungeonMaterialList(path) || /^\/generation\/room(?:Shapes|Types)$/.test(path)
 export const isDungeonWeightedRow = (path: string) => /\/\d+$/.test(path) && isDungeonWeightedList(path.replace(/\/\d+$/, ''))
 
+function dungeonReferenceRowFields(path: string) {
+  const parent = path.replace(/\/\d+$/, '')
+  return parent !== path ? dungeonReferenceCollection(parent)?.fields : undefined
+}
+
 export function dungeonFieldKeys(path: string, value: JsonObject) {
   const fields = dungeonSection(path)
   const keys = Object.keys(value)
   if (fields) return [...new Set([...Object.keys(fields), ...keys])]
+  const referenceFields = dungeonReferenceRowFields(path)
+  if (referenceFields) return [...new Set([...keys, ...referenceFields.map(field => field.key)])]
   return isDungeonWeightedRow(path) && !Object.hasOwn(value, 'weight') ? [...keys, 'weight'] : keys
 }
 
@@ -89,13 +97,26 @@ export function dungeonFieldDefault(path: string, key: string, roomSize: JsonVal
     return typeof configured === 'number' ? configured : key === 'min' ? 11 : 23
   }
   if (key === 'weight' && isDungeonWeightedRow(path)) return 1
+  const referenceField = dungeonReferenceRowFields(path)?.find(field => field.key === key)
+  if (referenceField) return referenceField.defaultValue ?? (referenceField.optional ? null : undefined)
   const fields = dungeonSection(path)
   return fields && Object.hasOwn(fields, key) ? fields[key].defaultValue : undefined
+}
+
+export function dungeonFieldDisplayValue(path: string, key: string, value: JsonObject, roomSize: JsonValue | undefined) {
+  const stored = Object.hasOwn(value, key) ? value[key] : undefined
+  // Reference collection inputs display their own fallback for null as well as omitted values.
+  if (stored === undefined || stored === null && dungeonReferenceRowFields(path)?.some(field => field.key === key)) {
+    return dungeonFieldDefault(path, key, roomSize)
+  }
+  return stored
 }
 
 export function dungeonFieldLabel(path: string, key: string): string | undefined {
   const fields = dungeonSection(path)
   if (fields && Object.hasOwn(fields, key)) return fields[key].label
+  const referenceField = dungeonReferenceRowFields(path)?.find(field => field.key === key)
+  if (referenceField) return referenceField.label
   if (!isDungeonWeightedRow(path)) return undefined
   if (key === 'weight') return '抽選重み'
   if (key === 'material') return '素材'
