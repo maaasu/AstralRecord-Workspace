@@ -483,7 +483,7 @@ public sealed class ProgressionDesignTests : IDisposable
                   - slot: MAIN_HAND
                     item: "item:sword"
                     enhanceLevel: 2
-                    enchants: [{ enchantMasterId: "enchant:basic", effectId: attack, value: 2.125 }]
+                    enchants: [{ enchantMasterId: "enchant:basic", effectId: attack, value: "2.125" }]
                 skills: [{ slot: 1, skill: "skill:strike" }]
             """);
 
@@ -492,7 +492,7 @@ public sealed class ProgressionDesignTests : IDisposable
         Assert.Contains(catalog.EnchantChoices, choice => choice is
             { EquipmentType: "WEAPON", Name: "攻撃力", SourceItemId: "orb", Min: 1, Max: 4 });
         var gear = Assert.Single(Assert.Single(Assert.Single(catalog.Presets).Checkpoints).Equipment);
-        Assert.Equal(new ProgressionDesignEnchant("enchant:basic", "attack", 2.125m), Assert.Single(gear.Enchants));
+        Assert.Equal(new ProgressionDesignEnchant("enchant:basic", "attack", "2.125"), Assert.Single(gear.Enchants));
 
         var paths = new MasterDataPaths(new WorkspacePaths(_root));
         var codec = new MasterDataCodec();
@@ -501,9 +501,9 @@ public sealed class ProgressionDesignTests : IDisposable
         await ProgressionPresetValidation.ValidateAsync(paths, codec, presetPath, preset, issues, default);
         Assert.DoesNotContain(issues, issue => issue.Severity == "error");
         var enchants = preset["levels"]![0]!["equipment"]![0]!["enchants"]!.AsArray();
-        enchants[0]!["value"] = 2.12501m;
+        enchants[0]!["value"] = "2.12501";
         enchants.Add(enchants[0]!.DeepClone());
-        enchants.Add(JsonNode.Parse("""{ "enchantMasterId": "enchant:basic", "effectId": "guard", "value": 1.2 }"""));
+        enchants.Add(JsonNode.Parse("""{ "enchantMasterId": "enchant:basic", "effectId": "guard", "value": "1.2" }"""));
         var preview = await _service.PreviewAsync(new([new(presetPath, preset)]), default);
         Assert.Equal(3, Assert.Single(Assert.Single(Assert.Single(preview.Presets).Checkpoints).Equipment).Enchants.Count);
 
@@ -513,7 +513,19 @@ public sealed class ProgressionDesignTests : IDisposable
         Assert.Contains(issues, issue => issue.Code == "PROGRESSION_PRESET_ENCHANT_VALUE");
         Assert.Contains(issues, issue => issue.Code == "PROGRESSION_PRESET_ENCHANT_EFFECT");
         var reload = await _service.ReadAsync(default, reload: true);
-        Assert.Equal(2.125m, Assert.Single(Assert.Single(Assert.Single(Assert.Single(reload.Presets).Checkpoints).Equipment).Enchants).Value);
+        Assert.Equal("2.125", Assert.Single(Assert.Single(Assert.Single(Assert.Single(reload.Presets).Checkpoints).Equipment).Enchants).Value);
+    }
+
+    [Fact]
+    public void EnchantValueRejectsOriginalPrecisionAndOverflowBeforeNumericConversion()
+    {
+        static decimal? Read(string value) => ProgressionEquipmentEnchants.Value(JsonValue.Create(value));
+        Assert.Equal(99_999_999_999.9999m, Read("99999999999.9999"));
+        Assert.Equal(-100_000_000_000m, Read("-100000000000"));
+        Assert.Null(Read("100000000000.0001"));
+        Assert.Null(Read("1.000000000000000000000000000001"));
+        Assert.Null(Read("1e-4"));
+        Assert.Null(ProgressionEquipmentEnchants.Value(JsonValue.Create(1.25)));
     }
 
     private void Write(string path, string content)

@@ -21,7 +21,7 @@ type Draft = Omit<DesignEquipmentEnchant, 'value'> & { amount: string }
 export function BuildEquipmentOptionsDialog({ item, equipment, catalog, onClose, onDirtyChange, onApply }: Props) {
   const maxSlots = item.maxEnchantSlots ?? 0
   const [enhanceLevel, setEnhanceLevel] = useState(equipment.enhanceLevel)
-  const [enchants, setEnchants] = useState<Draft[]>(() => (equipment.enchants ?? []).map(({ value, ...entry }) => ({ ...entry, amount: String(value) })))
+  const [enchants, setEnchants] = useState<Draft[]>(() => (equipment.enchants ?? []).map(({ value, ...entry }) => ({ ...entry, amount: value })))
   const [picking, setPicking] = useState<number | null>(null)
   const [applying, setApplying] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -37,7 +37,7 @@ export function BuildEquipmentOptionsDialog({ item, equipment, catalog, onClose,
     && enchants.length <= maxSlots && usedEffects.size === enchants.length && amounts.every(value => value !== undefined)
   const initialEnchants = equipment.enchants ?? []
   const dirty = enhanceLevel !== equipment.enhanceLevel || initialEnchants.length !== enchants.length
-    || enchants.some((entry, index) => enchantChoiceKey(entry) !== enchantChoiceKey(initialEnchants[index]) || amounts[index] !== initialEnchants[index].value)
+    || enchants.some((entry, index) => enchantChoiceKey(entry) !== enchantChoiceKey(initialEnchants[index]) || entry.amount !== initialEnchants[index].value)
   useEffect(() => { onDirtyChange(dirty) }, [dirty, onDirtyChange])
   useEffect(() => () => onDirtyChange(false), [onDirtyChange])
   const canAdd = enchants.length < maxSlots && choices.some(choice => !usedEffects.has(enchantEffectKey(choice.effectId)))
@@ -63,7 +63,7 @@ export function BuildEquipmentOptionsDialog({ item, equipment, catalog, onClose,
       <header className="modal-header">
         <div><h2>装備の強化・エンチャント</h2><p><MinecraftText value={item.name} /></p></div>
       </header>
-      <div className="design-build-body design-gear-options">
+      <div className="modal-body design-build-body design-gear-options">
         <label className="design-dialog-label"><span>強化値</span>
           <select aria-label="強化値" value={enhanceLevel} disabled={applying || item.maxEnhanceLevel === 0 && enhanceLevel === 0} onChange={event => setEnhanceLevel(Number(event.target.value))}>
             {enhanceLevel > item.maxEnhanceLevel && <option value={enhanceLevel}>+{enhanceLevel}（範囲外）</option>}
@@ -108,11 +108,9 @@ export function BuildEquipmentOptionsDialog({ item, equipment, catalog, onClose,
       value={enchants[picking] && enchantChoiceKey(enchants[picking])} onClose={() => setPicking(null)} onSelect={id => {
         const choice = byKey.get(id)
         if (!choice) return
-        const { enchantMasterId, effectId, min, max } = choice
+        const { enchantMasterId, effectId, min } = choice
         if (!enchants[picking] || enchantChoiceKey(enchants[picking]) !== id) {
-          const first = enchantAmount(String(min), choice) ?? Math.ceil(min * 10000) / 10000
-          const amount = first <= max ? String(first) : ''
-          const entry = { enchantMasterId, effectId, amount }
+          const entry = { enchantMasterId, effectId, amount: String(min) }
           setEnchants(picking === enchants.length ? [...enchants, entry] : enchants.map((other, index) => index === picking ? entry : other))
         }
         setPicking(null)
