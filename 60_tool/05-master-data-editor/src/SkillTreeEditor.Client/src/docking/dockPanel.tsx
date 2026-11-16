@@ -52,6 +52,7 @@ export const isDockPanelId = (id: string): id is DockPanelId => Object.hasOwn(do
 
 export interface DockingState {
   api: DockviewApi | undefined
+  editorGroupId: string
   targets: ReadonlyMap<DockPanelId, HTMLElement>
   visible: ReadonlySet<DockPanelId>
   open: ReadonlySet<DockPanelId>
