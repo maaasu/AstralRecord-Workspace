@@ -8,6 +8,7 @@ import { useHistory } from '../state/history'
 import { useMasterDataWorkspace, type MasterDataWorkspace } from '../state/masterDataWorkspace'
 import { useMasterReferences } from '../state/masterReferences'
 import { filterMasterReferences, indexMasterReferences } from '../data/masterReferenceSearch'
+import { currentReferenceFile, referenceId } from '../data/masterReferenceCollection'
 import { emptyMasterTabs, masterTabsReducer, type MasterTabStatus, type MasterReferenceTarget } from '../state/masterDataTabs'
 import { listMasterDrafts, readMasterDraft, removeMasterDraft, writeMasterDraft, type MasterDraftState, type RecoverableMasterDraft } from '../state/masterDataRecovery'
 import type { JsonObject, JsonValue, ValidationIssue, ValidationReport } from '../types/editor'
@@ -244,7 +245,7 @@ function MasterDataEditorPane({ selected = true, workspace, tabId, initialPath, 
   const panelDocument = usePanelDocument()
   const panelWindow = panelDocument.defaultView ?? window
   const isDocked = Boolean(docking)
-  const { catalog, files, filesByPath, candidates, refresh, rememberedPaths, categoryId, setCategoryId, sidebarCollapsed, setSidebarCollapsed, referenceVersion, invalidateReferences } = workspace
+  const { catalog, files, filesByPath, candidates, refresh, rememberedPaths, categoryId, setCategoryId, sidebarCollapsed, setSidebarCollapsed, referenceVersion } = workspace
   const [document, setDocument] = useState<MasterDocument | null>(null)
   const [documentVersion, setDocumentVersion] = useState(0)
   const [busy, setBusy] = useState(false)
@@ -365,6 +366,8 @@ function MasterDataEditorPane({ selected = true, workspace, tabId, initialPath, 
     setReport({ isValid: !loaded.issues.some((entry) => entry.severity === 'error'), issues: loaded.issues }); setRenderWarnings([])
     latestRenderWarnings.current = []; reviewedRaw.current = ''; setReferencePage(0)
   }, [history.reset, isDocked, setSidebarCollapsed, rememberedPaths, catalog?.root])
+  const latestReferences = useRef({ filesByPath, candidates, referencePrefixes })
+  latestReferences.current = { filesByPath, candidates, referencePrefixes }
   useEffect(() => {
     if (!initialPath) return
     const requestId = ++operationId.current
@@ -374,11 +377,23 @@ function MasterDataEditorPane({ selected = true, workspace, tabId, initialPath, 
         const loaded = initialDocument ?? await masterDataApi.file(initialPath)
         if (requestId !== operationId.current) return
         acceptDocument(loaded)
+        if (!initialDocument) {
+          const { filesByPath, candidates, referencePrefixes } = latestReferences.current
+          const summary = filesByPath.get(loaded.path)
+          const boss = loaded.path.startsWith('65.features.dungeon/')
+            ? asObject(asObject(loaded.content)?.encounter)?.bossMobId : undefined
+          const bossId = typeof boss === 'string' ? referenceId(boss.trim(), 'mob', referencePrefixes) : ''
+          const missingBoss = bossId && !candidates.some(entry => entry.kind === 'mob'
+            && entry.path.startsWith('40.features.mob/boss/')
+            && referenceId(entry.value, 'mob', referencePrefixes) === bossId
+            && currentReferenceFile(entry, filesByPath, referencePrefixes))
+          if (summary && summary.revision !== loaded.revision || missingBoss) await refresh()
+        }
       } catch (reason) { if (requestId === operationId.current) showError(reason) }
       finally { if (requestId === operationId.current) setBusy(false) }
     })()
     return () => { operationId.current++ }
-  }, [initialPath, initialDocument, acceptDocument, showError])
+  }, [initialPath, initialDocument, acceptDocument, showError, refresh])
   const loadDocument = async (path: string) => {
     if (busy || !allowDiscard()) return
     const requestId = ++operationId.current
@@ -388,7 +403,7 @@ function MasterDataEditorPane({ selected = true, workspace, tabId, initialPath, 
       if (requestId !== operationId.current) return
       if (document && catalog) removeMasterDraft(catalog.root, path)
       acceptDocument(loaded, !document)
-      invalidateReferences()
+      await refresh(true)
     } catch (reason) { if (requestId === operationId.current) showError(reason) } finally { if (requestId === operationId.current) setBusy(false) }
   }
   const currentRaw = async () => {

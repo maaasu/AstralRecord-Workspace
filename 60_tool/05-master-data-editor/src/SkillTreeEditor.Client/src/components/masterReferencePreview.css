@@ -1,0 +1,40 @@
+.master-reference-preview {
+  position: fixed;
+  z-index: 550;
+  box-sizing: border-box;
+  width: max-content;
+  min-width: min(220px, calc(100vw - 16px));
+  max-width: min(360px, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-bright);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  color: var(--text);
+  box-shadow: 0 5px 18px #0007;
+  overflow-wrap: anywhere;
+  font-size: .85rem;
+}
+
+.master-reference-preview code, .master-reference-preview small {
+  color: var(--text-muted);
+}
+
+.master-reference-preview-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.master-reference-preview-facts:empty { display: none; }
+
+.master-reference-preview-description {
+  margin-top: 3px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+  white-space: pre-line;
+}

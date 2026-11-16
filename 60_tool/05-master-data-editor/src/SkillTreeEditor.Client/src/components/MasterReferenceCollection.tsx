@@ -12,6 +12,7 @@ import { MinecraftText } from './MinecraftText'
 import { MasterRowActions } from './MasterRowActions'
 import { isPlacementEntryUnplaced, MasterGridPlacement } from './MasterGridPlacement'
 import { MasterEntityPicker } from './MasterEntityPicker'
+import { MasterReferenceButton } from './MasterReferenceButton'
 import './masterReferenceCollection.css'
 
 type Definition = NonNullable<ReturnType<typeof visualReferenceCollection>>
@@ -52,11 +53,13 @@ export function MasterReferenceCollection({ path, definition, context, values, r
   }, [references, definition, context.files, context.referencePrefixes])
   const dialogChoices = useMemo(() => definition.dialog ? choices.map(entry => {
     const file = context.files.get(entry.path)
+    const name = entry.label || file?.name || entry.value
     return {
-      id: entry.value, name: entry.label || file?.name || entry.value, icon: file?.icon,
+      id: entry.value, name, icon: file?.icon,
       customModelData: file?.customModelData, iconTexture: file?.iconTexture,
+      preview: { file, kind: definition.kind, label: name, reference: entry.value },
     }
-  }) : [], [choices, context.files, definition.dialog])
+  }) : [], [choices, context.files, definition.dialog, definition.kind])
   const openPicker = (next: number | 'add', element: HTMLElement) => {
     opener.current = element
     setTarget(next === 'add' ? next : { index: next, entry: values[next] })
@@ -145,9 +148,10 @@ export function MasterReferenceCollection({ path, definition, context, values, r
         return <li key={index} className="master-collection-row" {...order.destination(index)}>
           {!placement && values.length > 1 && <button type="button" className="master-order-handle" aria-label={rowPath + ' を並べ替え'}
             title="ドラッグまたは上下キーで移動" {...order.handle(index)}>⠿</button>}
-          {file ? <button type="button" className="master-collection-identity" title={raw} aria-label={`${plain} の定義を開く`} disabled={arranging} onClick={() => context.openFile(file.path)}>
+          {file ? <MasterReferenceButton type="button" className="master-collection-identity"
+            preview={{ file, kind: definition.kind, label, reference: raw }} aria-label={`${plain} の定義を開く`} disabled={arranging} onClick={() => context.openFile(file.path)}>
             {identity}<span className="master-collection-arrow" aria-hidden="true">↗</span>
-          </button> : <div className="master-collection-identity unresolved">{identity}{raw && <small>参照先が見つかりません</small>}</div>}
+          </MasterReferenceButton> : <div className="master-collection-identity unresolved">{identity}{raw && <small>参照先が見つかりません</small>}</div>}
           {data && definition.fields.length > 0 && <div className="master-collection-values">
             {definition.fields.map(({ key, label: fieldLabel, defaultValue, input, optional }) => {
               const value = data[key] ?? defaultValue
@@ -228,9 +232,10 @@ function ReferenceCollectionPicker({ choices, noun, kind, files, disabled, addin
     </div>
     <p className="master-muted" role="status">{matches.length} 件{matches.length === 0 && ' · 一致する候補がありません'}</p>
     <div className="master-collection-options">{matches.slice(current * pageSize, (current + 1) * pageSize).map((entry, i) => (
-      <button key={entry.value} ref={i === 0 ? firstResult : undefined} type="button" className="master-collection-option" disabled={disabled} onClick={() => onSelect(entry.value)}>
+      <MasterReferenceButton key={entry.value} ref={i === 0 ? firstResult : undefined} type="button" className="master-collection-option"
+        preview={{ file: files.get(entry.path), kind, label: entry.label ?? entry.value, reference: entry.value }} disabled={disabled} onClick={() => onSelect(entry.value)}>
         <ReferenceIcon file={files.get(entry.path)} kind={kind} /><span><strong><MinecraftText value={entry.label ?? entry.value} /></strong><code>{entry.value}</code></span>
-      </button>
+      </MasterReferenceButton>
     ))}</div>
     <footer className="master-collection-picker-footer">
       {adding && <button type="button" className="button compact subtle" disabled={disabled} onClick={() => onSelect('')}>手入力用の行を追加</button>}

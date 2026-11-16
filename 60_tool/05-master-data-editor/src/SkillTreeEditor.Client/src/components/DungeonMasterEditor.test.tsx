@@ -50,6 +50,62 @@ async function openDungeon() {
   return screen.findByRole('region', { name: 'マスター項目の編集' })
 }
 
+it('refreshes the boss catalog when the dungeon file is reloaded after an external rename', async () => {
+  await openDungeon()
+  const boss = '40.features.mob/boss/v1.morgras.yml'
+  const originalFiles = await masterDataApi.files()
+  const originalCandidates = await masterDataApi.candidates()
+  vi.mocked(masterDataApi.files).mockResolvedValue([
+    ...originalFiles.filter(file => file.id !== 'guardian'),
+    { ...originalFiles.find(file => file.id === 'guardian')!, path: boss, id: 'morgras', name: 'モルグラス' },
+  ])
+  vi.mocked(masterDataApi.candidates).mockResolvedValue([
+    ...originalCandidates.filter(entry => entry.value !== 'guardian'),
+    { path: boss, value: 'morgras', label: 'モルグラス', kind: 'mob', pointer: '/id' },
+  ])
+  const updated = { ...content, encounter: { bossMobId: 'mob:morgras' } }
+  vi.mocked(masterDataApi.file).mockResolvedValue({
+    path, content: updated, raw: JSON.stringify(updated), revision: 'new', format: 'yaml', issues: [],
+  })
+  const reload = screen.getByRole('button', { name: 'ファイルを再読込' })
+  await waitFor(() => expect(reload).toBeEnabled())
+  vi.mocked(masterDataApi.file).mockClear()
+  fireEvent.click(reload)
+  expect(masterDataApi.file).toHaveBeenCalledWith(path)
+  await waitFor(() => expect(screen.getByRole('button', { name: '/encounter/bossMobId の定義を開く' })).toHaveTextContent('モルグラス'))
+  expect(screen.queryByText('参照先が見つかりません')).not.toBeInTheDocument()
+  expect(masterDataApi.files).toHaveBeenLastCalledWith('', '', true)
+})
+
+it('shows the boss and reward definitions on hover and removes the preview without opening a tab', async () => {
+  const editor = within(await openDungeon())
+  const dungeon = await masterDataApi.file(path)
+  vi.mocked(masterDataApi.file).mockImplementation(async filePath => {
+    if (filePath === path) return dungeon
+    const details = filePath.includes('/boss/')
+      ? { lore: ['&7遺跡を守る。'], entityType: 'HUSK', level: 5, baseStats: [{ status: 'MAX_HEALTH', value: 3200 }] }
+      : { lore: ['古い交換通貨。'], rarity: 'RARE' }
+    return { ...dungeon, path: filePath, content: details }
+  })
+  const boss = editor.getByRole('button', { name: '/encounter/bossMobId の定義を開く' })
+  const user = userEvent.setup()
+  await user.hover(boss)
+  expect(await screen.findByText('遺跡を守る。')).toBeVisible()
+  expect(screen.getByRole('tooltip')).toHaveTextContent('mob:guardian')
+  expect(screen.getByRole('tooltip')).toHaveTextContent('3200')
+  const tooltip = screen.getByRole('tooltip')
+  await user.hover(tooltip)
+  await waitFor(() => expect(tooltip).toBeVisible())
+  await user.unhover(tooltip)
+  await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument())
+
+  const reward = editor.getByRole('button', { name: '古銭 の定義を開く' })
+  await user.hover(reward)
+  expect(await screen.findByText('古い交換通貨。')).toBeVisible()
+  expect(screen.getByRole('tooltip')).toHaveTextContent('レアリティ レア')
+  expect(screen.getAllByRole('tab')).toHaveLength(1)
+})
+
 it('presents one editable dungeon overview and scrolls to a section without dropping the others', async () => {
   const editor = within(await openDungeon())
   for (const name of ['入場地点', 'パーティー', '挑戦ルール', 'モブの出現設定', 'クリア報酬', '生成設定', '外観テーマ']) {
