@@ -7,11 +7,13 @@ interface ModalProps {
   className?: string
   onClose: () => void
   closeDisabled?: boolean
+  ownerDocument?: Document
 }
 
 /** Keep modal keyboard operations and focus inside the active dialog. */
-export function Modal({ children, ariaLabel, className = '', onClose, closeDisabled = false }: ModalProps) {
-  const document = usePanelDocument()
+export function Modal({ children, ariaLabel, className = '', onClose, closeDisabled = false, ownerDocument }: ModalProps) {
+  const panelDocument = usePanelDocument()
+  const document = ownerDocument ?? panelDocument
   const visible = usePanelVisibility()
   const dialogRef = useRef<HTMLElement>(null)
   const closeRef = useRef({ onClose, closeDisabled })

@@ -124,8 +124,7 @@ function WorkspaceViews({ workspaceRoot, desktop }: { workspaceRoot: string; des
     return () => { live = false }
   }, [capabilitiesRequest])
 
-  const selectPage = (next: Page, ownerDocument: Document = document) => {
-    if (next !== page && !isToolPage(page) && dirtyByPage[page] && !ownerDocument.defaultView?.confirm('未保存の編集があります。画面を切り替えますか？（編集内容は保持されます）')) return
+  const selectPage = (next: Page, _ownerDocument: Document = document) => {
     show(next)
   }
   const retryCapabilities = () => { setCapabilitiesError(''); setCapabilitiesRequest(value => value + 1) }

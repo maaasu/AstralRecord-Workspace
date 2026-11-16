@@ -111,15 +111,13 @@ describe('master form', () => {
     expect(onChange).toHaveBeenLastCalledWith({ ...experience, growthRateMin: .4 })
     expect(masterDefault(petSchema.properties.experience.properties.combatGain)).toEqual({ base: 50, perLevel: 25 })
   })
-  it('shows names and multiline lore in color and switches the same field to source editing', () => {
+  it('shows names and multiline lore in color beside always-visible source editing', () => {
     render(<Editable initial={{ name: '&6&l利用券', lore: ['§a説明\n&r通常'] }} />)
     expect(screen.getByText('利用券')).toHaveStyle({ color: '#ffaa00', fontWeight: '700' })
     expect(screen.getByText('説明')).toHaveStyle({ color: '#55ff55' })
     expect(screen.getByText('説明')).toBeVisible()
-    expect(screen.getByLabelText('/lore', { selector: 'textarea' })).not.toBeVisible()
-    fireEvent.click(screen.getByLabelText('/name コードを編集'))
+    expect(screen.getByLabelText('/lore', { selector: 'textarea' })).toBeVisible()
     expect(screen.getByRole('textbox', { name: '/name' })).toHaveValue('&6&l利用券')
-    fireEvent.click(screen.getByLabelText('/lore コードを編集'))
     expect(screen.getByRole('textbox', { name: '/lore' })).toHaveValue('§a説明\n&r通常')
     expect(JSON.parse(screen.getByTestId('value').textContent!).lore).toEqual(['§a説明\n&r通常'])
     fireEvent.change(screen.getByRole('textbox', { name: '/name' }), { target: { value: '&#12abef新名' } })
@@ -131,7 +129,6 @@ describe('master form', () => {
     render(<Editable initial={{ lore: ['&7最初の行', '&a次の行'], description: '&6短い概要' }} />)
     expect(screen.getByText('最初の行')).toHaveStyle({ color: '#aaaaaa' })
     expect(screen.getByText('次の行')).toHaveStyle({ color: '#55ff55' })
-    fireEvent.click(screen.getByLabelText('/lore コードを編集'))
     const lore = screen.getByRole('textbox', { name: '/lore' })
     expect(lore).toHaveValue('&7最初の行\n&a次の行')
     expect(screen.getByText('1 行が YAML の配列 1 要素になります。', { exact: false })).toBeVisible()
@@ -140,19 +137,17 @@ describe('master form', () => {
     fireEvent.change(lore, { target: { value: '' } })
     expect(JSON.parse(screen.getByTestId('value').textContent!).lore).toEqual([])
     expect(screen.getByText('短い概要')).toHaveStyle({ color: '#ffaa00' })
-    fireEvent.click(screen.getByLabelText('/description コードを編集'))
     expect(screen.getByRole('textbox', { name: '/description' })).toHaveValue('&6短い概要')
     expect(screen.getByRole('textbox', { name: '/description' }).closest('.master-field-wide')).toBeInTheDocument()
     fireEvent.change(screen.getByRole('textbox', { name: '/description' }), { target: { value: '&6短い概要\n追記' } })
     expect(JSON.parse(screen.getByTestId('value').textContent!).description).toBe('&6短い概要\n追記')
   })
 
-  it('keeps lore inline when other structured fields use navigation', () => {
+  it('keeps lore and nested values editable without opening a section', () => {
     render(<MasterDataForm value={{ lore: ['&f表示行'], detail: { key: 'value' } }} fields={[]} onNavigate={vi.fn()} onChange={vi.fn()} />)
     expect(screen.getByText('表示行')).toBeVisible()
-    fireEvent.click(screen.getByLabelText('/lore コードを編集'))
     expect(screen.getByRole('textbox', { name: '/lore' })).toHaveValue('&f表示行')
-    expect(screen.getByRole('button', { name: '/detail を開く' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '/detail/key' })).toHaveValue('value')
   })
 
   it('previews hex colors as they change', () => {

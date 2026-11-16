@@ -21,6 +21,7 @@ import { MasterRowActions } from './MasterRowActions'
 import { dungeonFieldDefault, dungeonFieldDisplayValue, dungeonFieldKeys, dungeonFieldLabel, dungeonRoomChoices, dungeonSection, dungeonSectionPaths, isDungeonMaster, isDungeonMaterialList, isDungeonWeightedList, isDungeonWeightedRow } from '../data/dungeonForm'
 import { DungeonReferenceField, dungeonReferenceKind } from './DungeonReferenceField'
 import { DungeonMaterialField } from './DungeonMaterialField'
+import { useConfirmationDialog } from './ConfirmationDialog'
 import './masterDataForm.css'
 
 type ValueType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array' | 'null'
@@ -268,6 +269,7 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
 }
 
 function ObjectEditor({ value, onChange, fields, references, schema, rootSchema, path, onInvalid, invalidValues, onNavigate, navigationDisabled, dungeonRoomSize }: Omit<MasterDataFormProps, 'value'> & { value: JsonObject; schema: JsonObject; rootSchema: JsonObject; path: string }) {
+  const { confirm, dialog } = useConfirmationDialog()
   const visualReferences = useContext(MasterVisualReferencesContext)
   const dungeon = isDungeonMaster(visualReferences?.documentPath)
   const weightedRow = dungeon && isDungeonWeightedRow(path)
@@ -298,6 +300,7 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
     setNewKey(''); setAddError('')
   }
   return <div className={`master-object${dungeon ? ' dungeon-object' : ''}${weightedRow ? ' dungeon-weighted-row' : ''}`}>
+    {dialog}
     {orderedKeys.map(key => {
       const existing = Object.hasOwn(value, key)
       const child = dungeon ? dungeonFieldDisplayValue(path, key, value, dungeonRoomSize) : value[key]
@@ -309,8 +312,7 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
       const structured = Array.isArray(child) || objectOf(child)
       const textLines = isTextLineArray(childPath, child)
       const collection = visualReferences && Array.isArray(child) ? visualReferenceCollection(visualReferences.documentPath, childPath) : undefined
-      const inlineCollection = Boolean((onNavigate || dungeon) && collection && Array.isArray(child) && canShowReferenceCollection(collection, child)
-        && (path !== '' || collection.kind === 'mob' || collection.kind === 'gathering'))
+      const inlineCollection = Boolean((onNavigate || dungeon) && collection && Array.isArray(child) && canShowReferenceCollection(collection, child))
       const weightedList = dungeon && isDungeonWeightedList(childPath)
       const inlineDungeon = dungeon && structured && (dungeonSection(childPath) || weightedList)
       const mainSection = dungeon && path === '' && dungeonSectionPaths.includes(childPath)
@@ -324,13 +326,13 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
       const currentType = valueType(child, declaredType ? { ...definition, type: declaredType } : definition, field)
       const canChangeType = !declaredType || declaredType !== currentType
       const actions = <div className="master-field-inline-actions" role="group" aria-label={`${label}（${key}）の操作`}>
-          {canChangeType && <select disabled={navigationDisabled} className="master-type-select" aria-label={`${childPath} の型`} value={valueType(child)} onChange={(event) => {
+          {canChangeType && <select disabled={navigationDisabled} className="master-type-select" aria-label={`${childPath} の型`} value={valueType(child)} onChange={async (event) => {
             const nextType = event.target.value as ValueType
-            if ((structured || typeof child === 'string' && child) && !window.confirm(`「${key}」の型を変更して現在の値を置き換えますか？`)) return
+            if ((structured || typeof child === 'string' && child) && !(await confirm(`「${label}」の型を変更して現在の値を置き換えますか？`, { title: '項目の型を変更', confirmLabel: '置き換え' }))) return
             onChange({ ...value, [key]: masterDefault({}, nextType) })
           }}>{types.map((type) => <option value={type} key={type}>{typeLabels[type]}</option>)}</select>}
-          {existing && <button disabled={navigationDisabled} type="button" className="button subtle danger compact" aria-label={`${childPath} を削除`} onClick={() => {
-            if (isRequired && !window.confirm(`「${key}」は必須項目です。削除しますか？（保存前の検証で確認されます）`)) return
+          {existing && <button disabled={navigationDisabled} type="button" className="button subtle danger compact" aria-label={`${childPath} を削除`} onClick={async () => {
+            if (isRequired && !(await confirm(`「${label}」は必須項目です。削除しますか？（保存前の検証で確認されます）`, { title: '必須項目を削除', confirmLabel: '削除' }))) return
             onChange(Object.fromEntries(Object.entries(value).filter(([entry]) => entry !== key)))
           }}>項目を削除</button>}</div>
       const metadata = <><code>{key}</code><span className="master-type">{typeLabels[currentType]}</span></>
@@ -343,10 +345,11 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
       const content = <>
         <div className="master-field-heading">
           {mainSection ? <h4 tabIndex={-1} data-master-field-path={childPath}>{label}</h4>
-            : (!inlineCollection || !dungeon) && <strong tabIndex={inlineDungeon ? -1 : undefined} data-master-field-path={inlineDungeon ? childPath : undefined}>{label}</strong>}
+            : (!inlineCollection || !dungeon) && <strong tabIndex={structured ? -1 : undefined} data-master-field-path={structured ? childPath : undefined}>{label}</strong>}
           {!visualReferences && metadata}
           {isRequired && (!inlineCollection || !dungeon) && <b className="master-required">必須</b>}
           <span className="master-spacer" />
+          {structured && onNavigate && !textLines && !inlineCollection && !inlineDungeon && <button type="button" className="button subtle compact master-isolate-field" aria-label={childPath + ' を開く'} disabled={navigationDisabled} onClick={() => onNavigate(childPath)}>個別表示</button>}
           {visualReferences ? <details className="master-field-inspector">
             <summary aria-label={`${childPath} の項目情報`} title="説明と項目の設定">⋯</summary>
             <div className="master-field-inspector-body">
@@ -363,14 +366,9 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
         {inlineRef && typeof refValue === 'string'
           ? <MasterDataForm {...form} schema={objectOf(objectOf(resolveSchema(definition, rootSchema).properties)?.ref) ?? {}} value={refValue} path={refPath}
             onChange={next => onChange({ ...value, [key]: { ref: next } })} />
-          : structured && onNavigate && !textLines && !inlineCollection && !inlineDungeon
-            ? <button type="button" className="master-node-link" aria-label={childPath + ' を開く'} disabled={navigationDisabled} onClick={() => onNavigate(childPath)}>
-              <span><MinecraftText value={summarizeMasterValue(child)} /></span><b>{visualReferences ? '開く →' : label + 'を編集 →'}</b>
-            </button>
-            : <MasterDataForm {...form} schema={definition} value={child} path={childPath} onChange={change} />}
+          : <MasterDataForm {...form} schema={definition} value={child} path={childPath} onChange={change} />}
       </>
-      return structured && !onNavigate && !inlineDungeon && !inlineCollection ? <details open key={key} className="master-field master-field-wide"><summary>{label} <code>{key}</code> <small>{Array.isArray(child) ? child.length + ' 件' : Object.keys(objectOf(child) ?? {}).length + ' 項目'}</small></summary>{content}</details>
-        : <div key={key} className={'master-field ' + (inlineCollection || inlineDungeon || mainSection || textLines || !visualReferences && structured || !structured && isDescriptionField(childPath) || typeof child === 'string' && child.includes('\n') || materialFieldKind(childPath, visualReferences?.documentPath) ? 'master-field-wide' : 'master-field-scalar') + (mainSection ? ' dungeon-section' : inlineDungeon ? ' dungeon-group' : '')}>{content}</div>
+      return <div key={key} className={'master-field ' + (structured || !structured && isDescriptionField(childPath) || typeof child === 'string' && child.includes('\n') || materialFieldKind(childPath, visualReferences?.documentPath) ? 'master-field-wide' : 'master-field-scalar') + (mainSection ? ' dungeon-section' : inlineDungeon ? ' dungeon-group' : structured && !textLines && !inlineRef ? ' master-inline-section' : '')}>{content}</div>
     })}
     {onNavigate && (createDrops || emptyDrops) &&
       <div className="master-field-wide"><MasterDataForm fields={fields} references={references} path={createDrops ? '/drops/items' : path + '/items'} value={[]} rootSchema={rootSchema}
@@ -387,17 +385,13 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
   </div>
 }
 
-function FormattedField({ path, editor, display, multiline = false, initiallyEditing = false, toggleable = true }: {
-  path: string; editor: ReactNode; display: ReactNode; multiline?: boolean; initiallyEditing?: boolean; toggleable?: boolean
+function FormattedField({ path, editor, display, multiline = false, preview = true }: {
+  path: string; editor: ReactNode; display: ReactNode; multiline?: boolean; preview?: boolean
 }) {
-  const [editing, setEditing] = useState(initiallyEditing)
-  return <details className="master-formatted-field" open={!toggleable || editing} onToggle={event => { if (toggleable) setEditing(event.currentTarget.open) }}>
-    <summary style={toggleable ? undefined : { display: 'none' }} aria-label={`${path || '/'} ${editing ? '色付き表示' : 'コードを編集'}`}>
-      <span className="master-format-mode">{editing ? '色付き表示' : 'コードを編集'}</span>
-      <span className={`master-formatted-value${multiline ? ' multiline' : ''}`}>{display}</span>
-    </summary>
+  return <div className="master-formatted-field">
     {editor}
-  </details>
+    {preview && <div className={`master-formatted-value${multiline ? ' multiline' : ''}`} aria-label={`${path || '/'} 表示プレビュー`}>{display}</div>}
+  </div>
 }
 
 function TextLineArrayEditor({ values, path, onChange }: { values: string[]; path: string; onChange: (value: JsonValue) => void }) {
@@ -444,17 +438,17 @@ function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<
       {values.length > 1 && <button type="button" className="master-order-handle" aria-label={rowPath + ' を並べ替え'}
         title="ドラッグまたは上下キーで移動" {...order.handle(index)}>⠿</button>}
       <div className="master-array-compact-content">
-        {structured && !weighted ? <button type="button" className="master-node-link" aria-label={rowPath + ' を開く'} disabled={inherited.navigationDisabled}
+        {structured && !weighted && <button type="button" className="master-node-link" aria-label={rowPath + ' を開く'} disabled={inherited.navigationDisabled}
           onClick={() => inherited.onNavigate?.(rowPath)}>
-          <span><MinecraftText value={summarizeMasterValue(entry)} /></span><b>編集 →</b>
-        </button> : edit}
+          <span><MinecraftText value={summarizeMasterValue(entry)} /></span><b>個別表示</b>
+        </button>}{edit}
       </div>
       <MasterRowActions path={rowPath} row={entry} disabled={inherited.navigationDisabled} onUp={index > 0 ? () => order.move(index, index - 1) : undefined}
         onDown={index + 1 < values.length ? () => order.move(index, index + 1) : undefined} onDuplicate={duplicate} onDelete={remove} />
     </div>
     return <div className={'master-array-entry ' + (paged && structured ? 'master-array-summary-row' : '')} key={index}>
     <div className="master-array-actions"><code>[{index}]</code><button type="button" className="button compact" aria-label={rowPath + ' 上へ'} disabled={index === 0 || inherited.navigationDisabled} onClick={() => order.move(index, index - 1)}>↑</button><button type="button" className="button compact" aria-label={rowPath + ' 下へ'} disabled={index === values.length - 1 || inherited.navigationDisabled} onClick={() => order.move(index, index + 1)}>↓</button><button type="button" className="button compact" disabled={inherited.navigationDisabled} onClick={duplicate}>複製</button><button type="button" disabled={inherited.navigationDisabled} className="button compact danger subtle" aria-label={rowPath + ' を削除'} onClick={remove}>削除</button></div>
-    {structured && inherited.onNavigate ? <div className="master-node-link"><span><MinecraftText value={summarizeMasterValue(entry)} /></span><button type="button" className="button compact" aria-label={rowPath + ' を開く'} disabled={inherited.navigationDisabled} onClick={() => inherited.onNavigate?.(rowPath)}>編集 →</button></div> : edit}
+    {structured && inherited.onNavigate && <div className="master-node-link"><span><MinecraftText value={summarizeMasterValue(entry)} /></span><button type="button" className="button compact" aria-label={rowPath + ' を開く'} disabled={inherited.navigationDisabled} onClick={() => inherited.onNavigate?.(rowPath)}>個別表示</button></div>}{edit}
   </div>})}
     {paged && pageCount > 1 && <div className="master-pagination"><button type="button" className="button compact" disabled={currentPage === 0 || inherited.navigationDisabled} onClick={() => setPage(currentPage - 1)}>前の要素</button><span>{offset + 1}–{Math.min(offset + pageSize, values.length)} / {values.length}件</span><button type="button" className="button compact" disabled={currentPage + 1 >= pageCount || inherited.navigationDisabled} onClick={() => setPage(currentPage + 1)}>次の要素</button></div>}
     {weighted && isDungeonMaterialList(path)
@@ -605,7 +599,7 @@ function StringEditor({ value, path, label, onChange, references, referenceKind,
     {!compact && (colorField
       ? <div className="master-color-input">{hexColor && <span aria-hidden="true" className="master-color-swatch" style={{ backgroundColor: value }} />}{input}</div>
       : !referenceKind
-        ? <FormattedField path={path} multiline={multiline} toggleable={styledText} initiallyEditing={!formatted && !description} display={<MinecraftText value={preview || ' '} />}
+        ? <FormattedField path={path} multiline={multiline} preview={formatted} display={<MinecraftText value={preview || ' '} />}
           editor={<>{input}{description && !visualReferences && <small className="master-line-guide">この欄は 1 つの文字列として保存します。詳細を行ごとに分ける場合は lore を使います。</small>}</>} />
         : input)}
     {!compact && !styledText && !colorField && preview !== value && <div className="master-value-label" aria-label={`${path || '/'} 選択中の名前`}>{preview}</div>}

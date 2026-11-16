@@ -1,3 +1,4 @@
+import { respondToConfirmation } from '../test/confirmation'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/editorApi'
@@ -82,11 +83,11 @@ describe('draft recovery and connection recovery', () => {
     render(<MasterDataEditor />)
     fireEvent.click(await screen.findByRole('button', { name: '下書き' }))
     const discard = await screen.findByRole('button', { name: '下書きを破棄' })
-    vi.mocked(window.confirm).mockReturnValue(false)
     fireEvent.click(discard)
+    await respondToConfirmation(false)
     expect(readMasterDraft(catalog.root, document.path)).not.toBeNull()
-    vi.mocked(window.confirm).mockReturnValue(true)
     fireEvent.click(discard)
+    await respondToConfirmation(true)
     expect(readMasterDraft(catalog.root, document.path)).toBeNull()
     expect(screen.getByRole('textbox', { name: '/name' })).toHaveValue('元クラス')
   })
@@ -128,6 +129,7 @@ describe('draft recovery and connection recovery', () => {
     await open()
     fireEvent.change(screen.getByRole('textbox', { name: '/name' }), { target: { value: '下書き' } })
     fireEvent.click(screen.getByRole('button', { name: /v1.old.yml のタブを閉じる/ }))
+    await respondToConfirmation(true)
     expect(readMasterDraft(catalog.root, document.path)).toBeNull()
   })
 
