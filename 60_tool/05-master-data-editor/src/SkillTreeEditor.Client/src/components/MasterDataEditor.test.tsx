@@ -418,6 +418,16 @@ describe('master editor workflow', () => {
     await waitFor(() => expect(save).toHaveBeenCalledWith(original.path, `id: new\nname: '${name}'\n`, original.revision))
   })
 
+  it('updates the header and icon field from an unsaved mob head model', async () => {
+    vi.mocked(masterDataApi.file).mockResolvedValue({ ...original, content: { id: 'old', icon: 'WOLF_SPAWN_EGG', iconModel: 'mob_head_wolf' } })
+    await openFile()
+    const header = screen.getByRole('img', { name: '編集中のアイコン: WOLF_SPAWN_EGG' })
+    expect(header.querySelector('img')).toHaveAttribute('src', '/api/minecraft-mob-heads/mob_head_wolf?revision=0')
+    fireEvent.change(screen.getByRole('textbox', { name: '/iconModel' }), { target: { value: 'mob_head_fox' } })
+    expect(header.querySelector('img')).toHaveAttribute('src', '/api/minecraft-mob-heads/mob_head_fox?revision=0')
+    expect(screen.getByRole('img', { name: '素材アイコン: WOLF_SPAWN_EGG' }).querySelector('img')).toHaveAttribute('src', '/api/minecraft-mob-heads/mob_head_fox?revision=0')
+  })
+
   it('validates first and saves using the original optimistic revision', async () => {
     const save = vi.spyOn(masterDataApi, 'save').mockResolvedValue({ ...original, content: { id: 'new', name: '元クラス' }, raw: 'id: new\nname: 元クラス\n', revision: 'new-revision' })
     await openFile()

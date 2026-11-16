@@ -307,11 +307,11 @@ function MasterDataEditorPane({ selected = true, workspace, tabId, initialPath, 
   const displayedContent = asObject(displayedValue)
   const displayedIcon = displayedContent?.icon ?? (document?.path.startsWith('42.features.gathering/') ? displayedContent?.displayBlock
     : /^(41\.features\.mob\.spawner|43\.features\.gathering\.spawner)\//.test(document?.path ?? '') ? displayedContent?.itemMaterial : undefined)
-  const { customModelData, iconTexture } = displayedContent ?? {}
+  const { customModelData, iconTexture, iconModel } = displayedContent ?? {}
   const referencePrefixes = catalog?.referencePrefixes
   const visualReferences = useMemo(() => ({
-    documentPath: document?.path ?? '', files: filesByPath, openFile: onOpenFile, referencePrefixes, customModelData, iconTexture,
-  }), [document?.path, filesByPath, onOpenFile, referencePrefixes, customModelData, iconTexture])
+    documentPath: document?.path ?? '', files: filesByPath, openFile: onOpenFile, referencePrefixes, customModelData, iconTexture, iconModel,
+  }), [document?.path, filesByPath, onOpenFile, referencePrefixes, customModelData, iconTexture, iconModel])
   const displayedName = masterDisplayName(displayedValue)
   const readOnly = files.find((entry) => entry.path === document?.path)?.readOnly === true
   const nodeDocument = Boolean(document?.path.includes('/nodes/'))
@@ -638,7 +638,7 @@ function MasterDataEditorPane({ selected = true, workspace, tabId, initialPath, 
   return <main ref={editorElement} className="master-editor master-document-only">{dialog}
     <input hidden ref={importInput} type="file" accept=".yml,.yaml,.json,text/yaml,application/json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void replaceRaw(file); event.target.value = '' }} />
     <section className="master-workspace">
-      <header className="master-document-header">{sidebarCollapsed && <button type="button" className="button compact subtle" aria-expanded={false} onClick={() => setSidebarCollapsed(false)}>ナビを表示</button>}{typeof displayedIcon === 'string' && <span role="img" aria-label={`${draft.source === 'form' ? '編集中' : '保存済み'}のアイコン: ${displayedIcon}`}><MinecraftIcon icon={displayedIcon} customModelData={customModelData} iconTexture={iconTexture} className="master-header-icon" /></span>}<div><h2>{displayedName ? <MinecraftText value={displayedName} /> : document ? baseName(document.path) : 'ファイルを選択してください'}</h2><code>{document?.path ?? 'YAML / JSONをフォームまたは原稿で編集できます。'}</code></div>{document && <span className={`save-state ${dirty ? 'dirty' : ''}`}>{readOnly ? '閲覧のみ' : dirty ? '未保存' : '保存済み'}</span>}</header>
+      <header className="master-document-header">{sidebarCollapsed && <button type="button" className="button compact subtle" aria-expanded={false} onClick={() => setSidebarCollapsed(false)}>ナビを表示</button>}{typeof displayedIcon === 'string' && <span role="img" aria-label={`${draft.source === 'form' ? '編集中' : '保存済み'}のアイコン: ${displayedIcon}`}><MinecraftIcon icon={displayedIcon} customModelData={customModelData} iconTexture={iconTexture} iconModel={iconModel} className="master-header-icon" /></span>}<div><h2>{displayedName ? <MinecraftText value={displayedName} /> : document ? baseName(document.path) : 'ファイルを選択してください'}</h2><code>{document?.path ?? 'YAML / JSONをフォームまたは原稿で編集できます。'}</code></div>{document && <span className={`save-state ${dirty ? 'dirty' : ''}`}>{readOnly ? '閲覧のみ' : dirty ? '未保存' : '保存済み'}</span>}</header>
       {recovery && document && <section className="master-recovery-panel" aria-label="未保存の下書きの復元"><strong>再読込前の下書きがあります</strong><p>{recovery.document.revision === document.revision && !recovery.requiresDiffReview ? '下書きを復元して編集を続けられます。ファイルへは明示保存するまで反映しません。' : '保存済みファイルは下書き作成後に変更されています。復元後の保存には最新原稿との差分確認が必要です。'}</p><div className="button-row"><button type="button" className="button primary" disabled={readOnly} onClick={() => {
         history.reset(recovery.draft); setInvalidValues(recovery.invalidValues); setInvalidInputs({})
         setFormPath(closestContainerPointer(recovery.draft.content, recovery.formPath))

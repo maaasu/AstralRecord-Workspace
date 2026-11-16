@@ -185,7 +185,13 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
     </div>
   }
   if (kind === 'object') {
-    return <ObjectEditor {...inherited} path={path} schema={resolved} value={objectOf(value) ?? {}} onChange={onChange} />
+    const object = objectOf(value) ?? {}
+    const editor = <ObjectEditor {...inherited} path={path} schema={resolved} value={object} onChange={onChange} />
+    if (visualReferences?.documentPath.startsWith('40.features.mob/') && /^\/levels\/\d+$/.test(path)) {
+      const iconValue = (key: 'iconTexture' | 'iconModel') => Object.hasOwn(object, key) ? object[key] : visualReferences[key]
+      return <MasterVisualReferencesContext.Provider value={{ ...visualReferences, iconTexture: iconValue('iconTexture'), iconModel: iconValue('iconModel') }}>{editor}</MasterVisualReferencesContext.Provider>
+    }
+    return editor
   }
   if (kind === 'array') {
     const values = Array.isArray(value) ? value : []
@@ -247,10 +253,12 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
   if (kind === 'number' || kind === 'integer') return <NumberEditor value={typeof value === 'number' ? value : 0} kind={kind} path={path} onChange={onChange} onInvalid={onInvalid} restoredText={invalidValues?.[path]}
     candidates={/^\/levels\/\d+\/nodes\/\d+$/.test(path) ? references.filter((entry) => entry.kind === 'node') : undefined} />
   const materialKind = materialFieldKind(path, visualReferences?.documentPath)
+  const mobIcon = visualReferences?.documentPath.startsWith('40.features.mob/') && /^\/levels\/\d+\/icon$/.test(path)
   if (materialKind) return <MaterialIconInput value={typeof value === 'string' ? value : ''} onChange={onChange} ariaLabel={path}
     suggestions={materialKind === 'block' ? minecraftBlockMaterials : undefined}
     customModelData={path === '/icon' ? visualReferences?.customModelData : undefined}
-    iconTexture={path === '/icon' ? visualReferences?.iconTexture : undefined} />
+    iconTexture={path === '/icon' || mobIcon ? visualReferences?.iconTexture : undefined}
+    iconModel={path === '/icon' || mobIcon ? visualReferences?.iconModel : undefined} />
   if (kind === 'null') return <span className="master-muted">null（値なし）</span>
   const text = typeof value === 'string' ? value : String(value ?? '')
   const progressionSigilReference = /^\/levels\/\d+\/(skills|passives)\/\d+\/sigils\/\d+\/item$/.test(path)

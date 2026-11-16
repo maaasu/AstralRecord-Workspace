@@ -58,7 +58,8 @@ export function useConfirmationDialog() {
       setPending(request)
     })
   }, [panelDocument])
-  const dialog = pending && createPortal(
+  const body = pending?.document.body
+  const dialog = pending && body && createPortal(
     <Modal ariaLabel={pending.title} className="confirmation-dialog" ownerDocument={pending.document} onClose={() => finish(false)}>
       <header className="modal-header"><h2>{pending.title}</h2></header>
       <div className="modal-body"><p>{pending.message}</p></div>
@@ -66,7 +67,7 @@ export function useConfirmationDialog() {
         <button type="button" className="button" onClick={() => finish(false)}>キャンセル</button>
         <button type="button" className="button danger" onClick={() => finish(true)}>{pending.confirmLabel}</button>
       </footer>
-    </Modal>, pending.document.body,
+    </Modal>, body,
   )
   return { confirm, dialog }
 }

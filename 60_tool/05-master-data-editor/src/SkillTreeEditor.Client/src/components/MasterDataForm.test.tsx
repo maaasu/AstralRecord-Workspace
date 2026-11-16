@@ -293,6 +293,15 @@ describe('master form', () => {
     expect(screen.getByTestId('value')).toHaveTextContent('{"levels":[{"icon":"FOX_SPAWN_EGG"}],"iconTexture":"texture-id"}')
   })
 
+  it('previews inherited, overridden and explicitly cleared mob level heads inline', () => {
+    render(<MasterVisualReferencesContext.Provider value={{ documentPath: '40.features.mob/wolf.yml', files: new Map(), openFile: vi.fn(), iconModel: 'mob_head_wolf' }}>
+      <Editable initial={{ levels: [{ icon: 'WOLF_SPAWN_EGG' }, { icon: 'FOX_SPAWN_EGG', iconModel: 'mob_head_fox' }, { icon: 'ZOMBIE_HEAD', iconModel: null }] }} metadata={[]} />
+    </MasterVisualReferencesContext.Provider>)
+    expect(screen.getByRole('img', { name: '素材アイコン: WOLF_SPAWN_EGG' }).querySelector('img')).toHaveAttribute('src', '/api/minecraft-mob-heads/mob_head_wolf?revision=0')
+    expect(screen.getByRole('img', { name: '素材アイコン: FOX_SPAWN_EGG' }).querySelector('img')).toHaveAttribute('src', '/api/minecraft-mob-heads/mob_head_fox?revision=0')
+    expect(screen.getByRole('img', { name: '素材アイコン: ZOMBIE_HEAD' }).querySelector('img')).toHaveAttribute('src', '/api/minecraft-icons/ZOMBIE_HEAD?revision=0')
+  })
+
   it('offers only blocks in the display block picker', async () => {
     render(<Editable initial={{ displayBlock: 'STONE' }} metadata={[]} />)
     fireEvent.click(screen.getByRole('button', { name: '画像一覧から選択' }))
