@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.hud.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.hud.model.QuestHudLayout;
+import io.github.maaasu.astralRecord.feature.skill.model.ActionRingCooldownEntry;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCooldownHudEntry;
 import io.github.maaasu.astralRecord.feature.hud.view.PlayerHudView;
 import io.github.maaasu.astralRecord.feature.hud.view.QuestHudGlyphs;
@@ -22,6 +23,7 @@ import io.github.maaasu.astralRecord.feature.condition.model.ActiveCondition;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.combat.service.CombatDpsTrackerService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
+import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.paladin.PaladinGuardRuntimeService;
@@ -47,6 +49,11 @@ import java.util.function.Predicate;
 
 public class PlayerHudService {
     private static final long DPS_SAMPLE_WINDOW_MS = 10_000L;
+    private static final int ACTION_RING_SNAPSHOT_TICKS = 4;
+    private final Map<UUID, RingCooldownSnapshot> ringCooldownSnapshots = new HashMap<>();
+
+    private record RingCooldownSnapshot(int sampledTick, List<ActionRingCooldownEntry> entries) {
+    }
     private final StatusService statusService;
     private final PlayerClassService playerClassService;
     private final AccountService accountService;
@@ -68,6 +75,30 @@ public class PlayerHudService {
     /** @param provider メインスレッドで現在装備とCTを返す、通信を伴わない参照先 */
     public void setSkillCooldownProvider(@NotNull Function<AstPlayer, List<SkillCooldownHudEntry>> provider) {
         skillCooldownProvider = provider;
+    }
+
+    public void setActionRingCooldownProvider(@NotNull Function<AstPlayer, List<ActionRingCooldownEntry>> provider) {
+        playerHudView.setActionRingCooldownProvider(connection -> {
+            UUID connectionId = connection.getUniqueId();
+            if (!resourcePackService.hasJavaActionRingCooldownHud(connectionId)) {
+                ringCooldownSnapshots.remove(connectionId);
+                return List.of();
+            }
+            AstPlayer player = AstPlayerCache.get(connection);
+            if (player == null || player.isBedrock() || !connection.isOnline() || connection.isDead()
+                    || !player.getAccount().getMode().shouldProcessGameplay()
+                    || !isHudEnabled(player, PlayerSettingKey.ACTION_RING_COOLDOWN_DISPLAY)) {
+                ringCooldownSnapshots.remove(connectionId);
+                return List.of();
+            }
+            int tick = Bukkit.getCurrentTick();
+            RingCooldownSnapshot snapshot = ringCooldownSnapshots.get(connectionId);
+            if (snapshot == null || Integer.compareUnsigned(tick - snapshot.sampledTick(), ACTION_RING_SNAPSHOT_TICKS) >= 0) {
+                snapshot = new RingCooldownSnapshot(tick, provider.apply(player));
+                ringCooldownSnapshots.put(connectionId, snapshot);
+            }
+            return snapshot.entries();
+        });
     }
 
     private java.util.function.BiPredicate<Player, String> bedrockQuestHudSender = (player, text) -> false;
@@ -247,10 +278,12 @@ public class PlayerHudService {
         }
         actionBarOverrideTasks.clear();
         playerHudView.setQuestHudRenderer(ignored -> Component.empty());
+        playerHudView.setActionRingCooldownProvider(ignored -> List.of());
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (bedrockQuestTexts.containsKey(player.getUniqueId())) bedrockQuestHudSender.test(player, " ");
         }
         javaQuestHuds.clear();
+        ringCooldownSnapshots.clear();
         bedrockQuestTexts.clear();
         bedrockQuestSentAt.clear();
         sidebarAccounts.clear();
@@ -377,6 +410,30 @@ public class PlayerHudService {
         }
     }
 
+    /** Reapplies screen-display settings from the main thread after a successful save. */
+    public void refreshScreenHud(@NotNull AstPlayer player) {
+        Player connection = player.getBukkit();
+        if (!connection.isOnline()) return;
+        ringCooldownSnapshots.remove(connection.getUniqueId());
+        if (player.isBedrock()) updateBedrockQuestHud(connection, player);
+        double mspt = Bukkit.getServer().getAverageTickTime();
+        if (player.getAccount().getMode().shouldProcessGameplay()) {
+            renderHudInfo(player, mspt);
+            refreshActionBar(player);
+        }
+        if (!proxyOwnsTabHeader) renderLocalTab(player, mspt);
+    }
+
+    private boolean isHudEnabled(AstPlayer player, PlayerSettingKey setting) {
+        return playerSettingService.isHudDisplayEnabled(player.getUser().getUuid(), setting);
+    }
+
+    private void renderLocalTab(AstPlayer player, double mspt) {
+        playerHudView.renderTabList(player.getBukkit(), mspt,
+                isHudEnabled(player, PlayerSettingKey.MSPT_DISPLAY),
+                isHudEnabled(player, PlayerSettingKey.PING_DISPLAY));
+    }
+
     private void updateAll() {
         double mspt = Bukkit.getServer().getAverageTickTime();
         for (Player player : Bukkit.getOnlinePlayers()) {
@@ -414,11 +471,7 @@ public class PlayerHudService {
             );
             if (!proxyOwnsTabHeader) {
                 playerClassService.updatePlayerListName(astPlayer);
-                playerHudView.renderTabList(
-                    player,
-                    mspt,
-                    playerSettingService.isPerformanceInfoDisplayEnabled(astPlayer.getUser().getUuid())
-                );
+                renderLocalTab(astPlayer, mspt);
             }
         }
     }
@@ -435,9 +488,8 @@ public class PlayerHudService {
         int playerLevel = astPlayer.getAccount().getLevel();
         String className = playerClassService.getDisplayName(astPlayer.getClassId());
         double classExperienceProgress = playerClassService.classExperienceProgress(astPlayer);
-        boolean showPerformanceInfo = playerSettingService.isPerformanceInfoDisplayEnabled(
-            astPlayer.getUser().getUuid()
-        );
+        boolean showMspt = isHudEnabled(astPlayer, PlayerSettingKey.MSPT_DISPLAY);
+        boolean showPing = isHudEnabled(astPlayer, PlayerSettingKey.PING_DISPLAY);
         boolean showBuffInfo = playerSettingService.isBuffSidebarDisplayEnabled(
             astPlayer.getUser().getUuid()
         );
@@ -461,6 +513,7 @@ public class PlayerHudService {
                     ? player.getWorld().getName()
                     : worldType.getRegionDisplayName();
         }
+        if (!isHudEnabled(astPlayer, PlayerSettingKey.AREA_NAME_DISPLAY)) regionName = null;
         int classLevel = astPlayer.getClassLevel();
         boolean classLevelMax = playerClassService.isMaxClassLevel(astPlayer);
         long goldAmount = currencyService.getGoldAmount(astPlayer.getAccount().getUuid());
@@ -469,13 +522,15 @@ public class PlayerHudService {
                 astPlayer, playerLevel, originalLevel, goldAmount, className, classLevel, classLevelMax,
                 classExperienceProgress, isSkillTreeWorld, availableClassPoints, availablePassivePoints
         );
-        String worldName = worldService.resolveDisplayName(player.getWorld());
+        String worldName = isHudEnabled(astPlayer, PlayerSettingKey.WORLD_NAME_DISPLAY)
+                ? worldService.resolveDisplayName(player.getWorld()) : null;
         int regionLevel = resolveRegionLevel(astPlayer, worldType, bossInfo);
         var activeBuffs = statusService.getActiveBuffs(astPlayer);
         if (overlay && resourcePackService.hasJavaLocationHud(player.getUniqueId())) {
-            playerHudView.renderJavaLocationHud(player, worldName, regionName, regionLevel, showPerformanceInfo,
+            playerHudView.renderJavaLocationHud(player, worldName, regionName, regionLevel, showMspt, showPing,
                     mspt, bossInfo, dungeonInfo, showBuffInfo, activeBuffs,
                     resourcePackService.hasJavaSkillCooldownHud(player.getUniqueId())
+                            && isHudEnabled(astPlayer, PlayerSettingKey.EQUIPPED_SKILL_COOLDOWN_DISPLAY)
                             ? skillCooldownProvider.apply(astPlayer) : List.of());
             return true;
         }
@@ -498,7 +553,8 @@ public class PlayerHudService {
             worldName,
             regionName,
             regionLevel,
-            showPerformanceInfo,
+            showMspt,
+            showPing,
             bossInfo,
             dungeonInfo,
             showBuffInfo,
@@ -603,6 +659,7 @@ public class PlayerHudService {
     public void clearSidebarBuffPage(@NotNull UUID playerId) {
         sidebarAccounts.remove(playerId);
         javaQuestHuds.remove(playerId);
+        ringCooldownSnapshots.remove(playerId);
         bedrockQuestTexts.remove(playerId);
         bedrockQuestSentAt.remove(playerId);
         playerHudView.clearBuffPage(playerId);

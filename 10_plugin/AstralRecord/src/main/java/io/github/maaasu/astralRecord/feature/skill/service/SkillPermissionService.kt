@@ -43,6 +43,10 @@ class SkillPermissionService(
         return permittedSkillIds(player).contains(normalized)
     }
 
+    /** Checks another slot against one already-resolved permission snapshot. */
+    fun isPermittedIn(permissions: Set<String>, skillId: String): Boolean =
+        normalize(skillId)?.let(permissions::contains) == true
+
     private fun normalize(raw: String?): String? = raw
         ?.trim()
         ?.let { if (it.startsWith(SKILL_REFERENCE_PREFIX, ignoreCase = true)) it.substring(SKILL_REFERENCE_PREFIX.length) else it }

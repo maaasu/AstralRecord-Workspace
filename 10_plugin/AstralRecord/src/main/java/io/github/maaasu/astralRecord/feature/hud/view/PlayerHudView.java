@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.hud.view;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.hud.HudMsgId;
+import io.github.maaasu.astralRecord.feature.skill.model.ActionRingCooldownEntry;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCooldownHudEntry;
 import io.github.maaasu.astralRecord.feature.hud.model.SidebarBuffPageState;
 import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeSidebarInfo;
@@ -52,6 +53,16 @@ import java.util.HashMap;
 
 public class PlayerHudView {
     private java.util.function.Function<Player, Component> questHudRenderer = ignored -> Component.empty();
+    private java.util.function.Function<Player, List<ActionRingCooldownEntry>> ringCooldownProvider = ignored -> List.of();
+    private final Map<UUID, RenderedRingCooldown> ringCooldowns = new HashMap<>();
+
+    private record RenderedRingCooldown(List<ActionRingCooldownEntry> entries, Component glyphs) {
+    }
+
+    public void setActionRingCooldownProvider(java.util.function.Function<Player, List<ActionRingCooldownEntry>> provider) {
+        ringCooldownProvider = provider;
+        ringCooldowns.clear();
+    }
 
     /** @param renderer 現在のクエスト進捗を幅ゼロ字形へ変換するメインスレッド処理 */
     public void setQuestHudRenderer(java.util.function.Function<Player, Component> renderer) {
@@ -68,7 +79,22 @@ public class PlayerHudView {
         JavaLocationHud location = javaLocations.get(playerId);
         Component overlay = location != null && resourcePackService.hasJavaLocationHud(playerId)
                 ? location.component() : Component.empty();
-        player.sendActionBar(text.append(questHudRenderer.apply(player)).append(overlay));
+        player.sendActionBar(text.append(questHudRenderer.apply(player)).append(overlay)
+                .append(actionRingCooldown(player, playerId)));
+    }
+
+    private Component actionRingCooldown(Player player, UUID playerId) {
+        List<ActionRingCooldownEntry> entries = ringCooldownProvider.apply(player);
+        if (entries.isEmpty()) {
+            ringCooldowns.remove(playerId);
+            return Component.empty();
+        }
+        RenderedRingCooldown previous = ringCooldowns.get(playerId);
+        if (previous == null || !previous.entries().equals(entries)) {
+            previous = new RenderedRingCooldown(entries, ActionRingCooldownGlyphs.render(entries));
+            ringCooldowns.put(playerId, previous);
+        }
+        return previous.glyphs();
     }
 
     private static final TextColor HEALTH_METER = TextColor.color(0xE35F73);
@@ -81,10 +107,8 @@ public class PlayerHudView {
     private static final int COMPACT_TRANSIENT_BAR_LENGTH = 10;
     private static final int SIDEBAR_BAR_LENGTH = 10;
     private static final int SIDEBAR_LINE_LIMIT = 15;
-    private static final int SIDEBAR_BASE_LINE_COUNT = 3;
     private static final int SIDEBAR_PROFILE_LINE_COUNT = 5;
     private static final int SKILL_TREE_POINT_LINE_COUNT = 1;
-    private static final int PERFORMANCE_LINE_COUNT = 2;
     private static final int BUFF_DISPLAY_LIMIT = 5;
     private static final String PARTICIPANT_CONTINUATION_PREFIX = "     ";
     private static final String SIDEBAR_BAR_CHAR = "▰";
@@ -116,11 +140,13 @@ public class PlayerHudView {
      */
     public void clearBuffPage(UUID playerId) {
         buffPages.remove(playerId);
+        ringCooldowns.remove(playerId);
     }
 
     /** プラグイン停止時にすべての効果ページ状態を破棄します。 */
     public void clearBuffPages() {
         buffPages.clear();
+        ringCooldowns.clear();
     }
 
     /**
@@ -143,7 +169,8 @@ public class PlayerHudView {
      * @param worldName 現在のワールド名
      * @param areaName 現在のエリア名
      * @param areaLevel 現在のエリアレベル
-     * @param showPerformanceInfo 性能表示設定が有効ならtrue
+     * @param showMspt whether to show MSPT
+     * @param showPing whether to show ping
      * @param mspt サーバーの平均ティック時間
      * @param bossInfo 挑戦中のボス情報
      * @param dungeonInfo 挑戦中のダンジョン情報
@@ -151,14 +178,15 @@ public class PlayerHudView {
      * @param activeBuffs 現在有効な効果
      * @param equippedSkills 現在装備している発動スキルのCT一覧
      */
-    public void renderJavaLocationHud(Player player, String worldName, String areaName, int areaLevel,
-            boolean showPerformanceInfo, double mspt, @Nullable BossChallengeSidebarInfo bossInfo,
+    public void renderJavaLocationHud(Player player, @Nullable String worldName, @Nullable String areaName, int areaLevel,
+            boolean showMspt, boolean showPing, double mspt, @Nullable BossChallengeSidebarInfo bossInfo,
             @Nullable DungeonSidebarInfo dungeonInfo, boolean showBuffInfo, List<ActiveBuff> activeBuffs,
             List<SkillCooldownHudEntry> equippedSkills) {
         UUID playerId = player.getUniqueId();
-        int ping = showPerformanceInfo ? player.getPing() : 0;
-        var performance = showPerformanceInfo
-                ? new LocationHudGlyphs.Performance(mspt, ping, msptTextColor(mspt), pingTextColor(ping)) : null;
+        int ping = showPing ? player.getPing() : 0;
+        var performance = showMspt || showPing
+                ? new LocationHudGlyphs.Performance(mspt, ping, msptTextColor(mspt), pingTextColor(ping), showMspt, showPing)
+                : null;
         var page = buffPages.computeIfAbsent(playerId, ignored -> new SidebarBuffPageState());
         boolean expanded = resourcePackService.hasJavaSkillCooldownHud(playerId);
         var rows = LocationHudGlyphs.layout(worldName, areaName, areaLevel, performance, bossInfo, dungeonInfo,
@@ -604,7 +632,8 @@ public class PlayerHudView {
      * @param worldName 現在のワールド表示名
      * @param regionName 現在の地域表示名
      * @param regionLevel 現在の地域レベル
-     * @param showPerformanceInfo MSPT・Ping を表示するか
+     * @param showMspt whether to show MSPT
+     * @param showPing whether to show ping
      * @param bossInfo 挑戦中ボス情報。挑戦していない場合は null
      * @param dungeonInfo 挑戦中ダンジョン情報。挑戦していない場合は null
      * @param showBuffInfo バフ情報を表示するか
@@ -625,43 +654,29 @@ public class PlayerHudView {
         @Nullable String skillTreeClassPointLabel,
         int availableClassPoints,
         int availablePassivePoints,
-        String worldName,
-        String regionName,
+        @Nullable String worldName,
+        @Nullable String regionName,
         int regionLevel,
-        boolean showPerformanceInfo,
+        boolean showMspt,
+        boolean showPing,
         BossChallengeSidebarInfo bossInfo,
         DungeonSidebarInfo dungeonInfo,
         boolean showBuffInfo,
         List<ActiveBuff> activeBuffs,
         @Nullable Integer rebirthOriginalLevel
     ) {
-        Scoreboard scoreboard = player.getScoreboard();
-        if (scoreboard == Bukkit.getScoreboardManager().getMainScoreboard()) {
-            scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
-            player.setScoreboard(scoreboard);
-        }
-
-        Objective objective = scoreboard.getObjective(OBJECTIVE_NAME);
-        if (objective == null) {
-            objective = scoreboard.registerNewObjective(
-                OBJECTIVE_NAME,
-                Criteria.DUMMY,
-                Component.text("ASTRAL RECORD", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD)
-            );
-            objective.setDisplaySlot(DisplaySlot.SIDEBAR);
-        }
-
-        int ping = player.getPing();
+        int ping = showPing ? player.getPing() : 0;
         int requiredChallengeLineCount = bossInfo != null
                 ? bossInfo.requiredSidebarLineCount()
                 : dungeonInfo != null ? dungeonInfo.requiredSidebarLineCount() : 0;
         boolean showSkillTreePoints = showPlayerDetails && skillTreeClassPointLabel != null;
-        int baseLineCount = SIDEBAR_BASE_LINE_COUNT + (showOnlineCount ? 1 : 0)
+        int baseLineCount = (worldName == null ? 0 : 1) + (regionName == null ? 0 : 2) + (showOnlineCount ? 1 : 0)
                 + (showPlayerDetails ? SIDEBAR_PROFILE_LINE_COUNT : 0)
                 + (showSkillTreePoints ? SKILL_TREE_POINT_LINE_COUNT : 0);
-        boolean reservePerformanceLines = showPerformanceInfo && !showPlayerDetails;
+        int performanceLineCount = (showMspt ? 1 : 0) + (showPing ? 1 : 0);
+        boolean reservePerformanceLines = performanceLineCount > 0 && !showPlayerDetails;
         if (reservePerformanceLines) {
-            baseLineCount += PERFORMANCE_LINE_COUNT;
+            baseLineCount += performanceLineCount;
         }
         boolean hasDebuff = showPlayerDetails && activeBuffs.stream().anyMatch(buff -> buff.getType().isDebuff());
         int linesToReserve = hasDebuff
@@ -683,12 +698,16 @@ public class PlayerHudView {
             lines.add(ColorCodeUtil.AQUA + "オンライン" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
                     + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers());
         }
-        lines.add(ColorCodeUtil.BLUE + "ワールド" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.toLegacyText(worldName, "不明"));
-        lines.add(ColorCodeUtil.GREEN + "エリア" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.toLegacyText(regionName, "不明"));
-        lines.add(ColorCodeUtil.GOLD + "エリアレベル" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.GOLD + "Lv." + Math.max(0, regionLevel));
+        if (worldName != null) {
+            lines.add(ColorCodeUtil.BLUE + "ワールド" + ColorCodeUtil.GRAY + ": "
+                    + ColorCodeUtil.toLegacyText(worldName, "不明"));
+        }
+        if (regionName != null) {
+            lines.add(ColorCodeUtil.GREEN + "エリア" + ColorCodeUtil.GRAY + ": "
+                    + ColorCodeUtil.toLegacyText(regionName, "不明"));
+            lines.add(ColorCodeUtil.GOLD + "エリアレベル" + ColorCodeUtil.GRAY + ": "
+                    + ColorCodeUtil.GOLD + "Lv." + Math.max(0, regionLevel));
+        }
         if (showPlayerDetails) {
             lines.add(buildSeparator("player"));
             String playerLevelLine = ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv."
@@ -718,7 +737,7 @@ public class PlayerHudView {
         }
 
         if (reservePerformanceLines) {
-            addPerformanceLines(lines, showOnlineCount ? 1 : 0, mspt, ping);
+            addPerformanceLines(lines, showOnlineCount ? 1 : 0, mspt, ping, showMspt, showPing);
         }
         lines.addAll(buffLines);
         if (bossInfo != null) {
@@ -727,8 +746,28 @@ public class PlayerHudView {
             appendDungeonInfo(lines, dungeonInfo);
         }
 
-        if (showPlayerDetails && showPerformanceInfo && SIDEBAR_LINE_LIMIT - lines.size() >= PERFORMANCE_LINE_COUNT) {
-            addPerformanceLines(lines, showOnlineCount ? 1 : 0, mspt, ping);
+        if (showPlayerDetails && performanceLineCount > 0 && SIDEBAR_LINE_LIMIT - lines.size() >= performanceLineCount) {
+            addPerformanceLines(lines, showOnlineCount ? 1 : 0, mspt, ping, showMspt, showPing);
+        }
+
+        if (lines.isEmpty()) {
+            removeSidebar(player);
+            return;
+        }
+        Scoreboard scoreboard = player.getScoreboard();
+        if (scoreboard == Bukkit.getScoreboardManager().getMainScoreboard()) {
+            scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
+            player.setScoreboard(scoreboard);
+        }
+
+        Objective objective = scoreboard.getObjective(OBJECTIVE_NAME);
+        if (objective == null) {
+            objective = scoreboard.registerNewObjective(
+                OBJECTIVE_NAME,
+                Criteria.DUMMY,
+                Component.text("ASTRAL RECORD", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD)
+            );
+            objective.setDisplaySlot(DisplaySlot.SIDEBAR);
         }
 
         updateSidebarLines(objective, lines);
@@ -741,12 +780,17 @@ public class PlayerHudView {
      * @param mspt 現在のMSPT
      * @param ping 現在の通信遅延
      */
-    private void addPerformanceLines(List<String> lines, int start, double mspt, int ping) {
+    private void addPerformanceLines(List<String> lines, int start, double mspt, int ping,
+            boolean showMspt, boolean showPing) {
         var serializer = LegacyComponentSerializer.legacySection();
-        lines.add(start, ColorCodeUtil.GRAY + "MSPT: " + serializer.serialize(
-                Component.text(String.format(Locale.ROOT, "%.1f", mspt), msptTextColor(mspt))));
-        lines.add(start + 1, ColorCodeUtil.GRAY + "PING: " + serializer.serialize(
-                Component.text(ping + "ms", pingTextColor(ping))));
+        if (showMspt) {
+            lines.add(start++, ColorCodeUtil.GRAY + "MSPT: " + serializer.serialize(
+                    Component.text(String.format(Locale.ROOT, "%.1f", mspt), msptTextColor(mspt))));
+        }
+        if (showPing) {
+            lines.add(start, ColorCodeUtil.GRAY + "PING: " + serializer.serialize(
+                    Component.text(ping + "ms", pingTextColor(ping))));
+        }
     }
 
     /**
@@ -755,13 +799,13 @@ public class PlayerHudView {
      *
      * @param player 対象プレイヤー
      * @param mspt 現在のMSPT（平均値）
-     * @param showPerformanceInfo MSPTとpingを表示するか
+     * @param showMspt whether to show MSPT
+     * @param showPing whether to show ping
      */
-    public void renderTabList(Player player, double mspt, boolean showPerformanceInfo) {
-        int ping = player.getPing();
+    public void renderTabList(Player player, double mspt, boolean showMspt, boolean showPing) {
         Component header = Component.text()
             .append(Component.text("ASTRAL RECORD", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD))
-            .append(showPerformanceInfo
+            .append(showMspt
                 ? Component.newline().append(Component.text("[ MSPT: ", NamedTextColor.GRAY))
                     .append(Component.text(String.format("%.1f", mspt), msptTextColor(mspt)))
                     .append(Component.text(" ]", NamedTextColor.GRAY))
@@ -775,7 +819,8 @@ public class PlayerHudView {
             footer = Component.text("✦ ACTIVE BOOSTS ✦", NamedTextColor.GOLD);
             for (Component row : boostRows) footer = footer.append(Component.newline()).append(row);
         }
-        if (showPerformanceInfo) {
+        if (showPing) {
+            int ping = player.getPing();
             if (!boostRows.isEmpty()) footer = footer.append(Component.newline())
                 .append(Component.text("━━━━━━━━━━━━━━━━━━━━", NamedTextColor.DARK_GRAY))
                 .append(Component.newline());

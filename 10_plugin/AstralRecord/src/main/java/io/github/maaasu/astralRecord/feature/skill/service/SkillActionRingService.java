@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
+import io.github.maaasu.astralRecord.feature.skill.model.ActionRingCooldownEntry;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
@@ -808,6 +809,46 @@ public final class SkillActionRingService {
         if (player.isOnline()) {
             player.updateInventory();
         }
+    }
+
+    /**
+     * Projects the selected ring without invoking cast prechecks or starting cooldowns.
+     * Empty positions stay empty; a now-invalid binding keeps its original position.
+     */
+    public @NotNull List<ActionRingCooldownEntry> cooldownHudSnapshot(@NotNull AstPlayer player) {
+        List<String> bindings = ringBindings(player);
+        if (bindings.isEmpty()) return List.of();
+        PlayerSkillCaster caster = new PlayerSkillCaster(player);
+        List<ActionRingCooldownEntry> result = new ArrayList<>(bindings.size());
+        Set<String> permitted = null;
+        for (int index = 0; index < bindings.size(); index++) {
+            String skillId = bindings.get(index);
+            if (skillId == null || skillId.isBlank()) continue;
+            if (SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(skillId)) {
+                String weaponSkill = itemWeaponAttackService == null ? null
+                        : itemWeaponAttackService.currentLeftClickSkillId(player);
+                boolean available = weaponSkill != null && skillService.registry().getDefinition(weaponSkill) != null;
+                long remaining = available ? itemWeaponAttackService.getRemainingAttackCooldownTicks(player) : 0L;
+                long duration = available
+                        ? skillService.getCooldownDurationTicks(caster, SkillService.WEAPON_NORMAL_ATTACK_COOLDOWN_ID)
+                        : 0L;
+                result.add(new ActionRingCooldownEntry(index, skillId, remaining, Math.max(remaining, duration), available));
+                continue;
+            }
+            LearnedSkillInstance learned = ownershipService.findInstance(player, skillId);
+            if (learned != null && permitted == null) permitted = permissionService.permittedSkillIds(player);
+            ResolvedLearnedSkill resolved = learned == null || !permissionService.isPermittedIn(permitted, learned.getSkillId())
+                    ? null : skillService.resolveLearnedSkill(learned);
+            if (resolved == null || resolved.definition().getKind() != SkillKind.ACTIVE) {
+                result.add(new ActionRingCooldownEntry(index, skillId, 0L, 0L, false));
+                continue;
+            }
+            String cooldownId = skillService.resolveCooldownId(resolved.definition().getId());
+            long remaining = skillService.getRemainingCooldownTicks(caster, cooldownId);
+            long duration = skillService.getCooldownDurationTicks(caster, cooldownId);
+            result.add(new ActionRingCooldownEntry(index, skillId, remaining, Math.max(remaining, duration), true));
+        }
+        return List.copyOf(result);
     }
 
     private @NotNull List<SlotView> resolveSlots(

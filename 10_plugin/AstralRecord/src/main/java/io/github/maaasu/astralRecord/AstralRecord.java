@@ -2660,6 +2660,7 @@ public final class AstralRecord extends JavaPlugin {
         var skillCooldownHudService = new io.github.maaasu.astralRecord.feature.skill.service.SkillCooldownHudService(
                 skillBindPresetService, skillService, skillOwnershipService, skillPermissionService, itemWeaponAttackService);
         playerHudService.setSkillCooldownProvider(skillCooldownHudService::snapshot);
+        playerHudService.setActionRingCooldownProvider(skillActionRingService::cooldownHudSnapshot);
         skillActionRingHoldService = new SkillActionRingHoldService(
             this,
             skillActionRingService,
@@ -3682,6 +3683,11 @@ public final class AstralRecord extends JavaPlugin {
      *
      * @param player 設定が更新されたプレイヤー
      */
+    /** Repaints the screen controls without replacing unrelated HUD channels. */
+    public void refreshScreenHud(AstPlayer player) {
+        playerHudService.refreshScreenHud(player);
+    }
+
     public void refreshQuestHud(AstPlayer player) {
         playerHudService.refreshQuestHud(player);
     }
