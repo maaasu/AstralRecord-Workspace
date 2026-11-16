@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { plainMasterFilterName } from '../data/masterDataPresentation'
 import { stripMinecraftFormatting } from '../utils/minecraft'
 import { MinecraftIcon } from './MinecraftIcon'
+import { MasterReferenceButton, type ReferencePreview } from './MasterReferenceButton'
 import './masterEntityPicker.css'
 
 export interface MasterEntityPickerChoice {
@@ -16,6 +17,7 @@ export interface MasterEntityPickerChoice {
   iconTexture?: string | null
   symbol?: string
   disabledReason?: string
+  preview?: ReferencePreview
 }
 
 interface MasterEntityPickerProps {
@@ -213,7 +215,7 @@ export function MasterEntityPicker({
         <div ref={results} className="master-entity-picker-results" aria-busy={loading || undefined}>
           {canShowResults && (visible.length > 0 ? <ul aria-label="選択候補">
             {visible.map(({ choice, name, category, description }) => <li key={choice.id}>
-              <button type="button" className="master-entity-picker-choice"
+              <MasterReferenceButton type="button" className="master-entity-picker-choice" preview={choice.preview}
                 ref={element => {
                   if (element) buttons.current.set(choice.id, element)
                   else buttons.current.delete(choice.id)
@@ -256,7 +258,7 @@ export function MasterEntityPicker({
                   {description && <span className="master-entity-picker-description">{description}</span>}
                   {choice.disabledReason && <span className="master-entity-picker-reason">{choice.disabledReason}</span>}
                 </span>
-              </button>
+              </MasterReferenceButton>
             </li>)}
           </ul> : <p className="master-entity-picker-empty">条件に一致する候補がありません。</p>)}
           {!loading && error && <div className="master-entity-picker-empty">

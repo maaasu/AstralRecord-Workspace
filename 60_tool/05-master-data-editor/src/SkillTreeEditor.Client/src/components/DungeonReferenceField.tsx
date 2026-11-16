@@ -4,6 +4,7 @@ import type { MasterVisualReferences } from '../state/masterVisualReferences'
 import type { MasterReference } from '../types/masterData'
 import { MasterEntityPicker } from './MasterEntityPicker'
 import { ReferenceIcon, referenceSymbol } from './MasterReferenceCollection'
+import { MasterReferenceButton } from './MasterReferenceButton'
 import { MinecraftText } from './MinecraftText'
 
 export function dungeonReferenceKind(path: string) {
@@ -47,6 +48,7 @@ export function DungeonReferenceField({ path, label, kind, value, references, co
       return [{
         id, name: entry.label || file?.name || id, icon: file?.icon, customModelData: file?.customModelData,
         iconTexture: file?.iconTexture, symbol: referenceSymbol(kind),
+        preview: { file, kind, label: entry.label || file?.name || id, reference: kind + ':' + id },
       }]
     })
     return { byId, choices }
@@ -54,7 +56,8 @@ export function DungeonReferenceField({ path, label, kind, value, references, co
   const id = referenceId(value, kind, referencePrefixes)
   const candidate = catalog.byId.get(id)
   const file = candidate ? files.get(candidate.path) : undefined
-  const selection = <><ReferenceIcon file={file} kind={kind} /><MinecraftText value={candidate?.label || file?.name || value || '未設定'} /></>
+  const name = candidate?.label || file?.name || value || '未設定'
+  const selection = <><ReferenceIcon file={file} kind={kind} /><MinecraftText value={name} /></>
   const select = (nextId: string) => {
     if (!disabled && opener.current && !opener.current.matches(':disabled') && catalog.choices.some(choice => choice.id === nextId) && nextId !== id) {
       const prefix = id === value ? kind + ':' : value.slice(0, value.indexOf(':') + 1)
@@ -63,8 +66,9 @@ export function DungeonReferenceField({ path, label, kind, value, references, co
     setOpen(false)
   }
   return <div className="master-reference-field dungeon-reference-field">
-    {file ? <button type="button" className="master-reference-selection master-reference-link" title={value}
-      aria-label={path + ' の定義を開く'} disabled={disabled} onClick={() => openFile(file.path)}>{selection}<span aria-hidden="true">↗</span></button>
+    {file ? <MasterReferenceButton type="button" className="master-reference-selection master-reference-link"
+      preview={{ file, kind, label: name, reference: value }}
+      aria-label={path + ' の定義を開く'} disabled={disabled} onClick={() => openFile(file.path)}>{selection}<span aria-hidden="true">↗</span></MasterReferenceButton>
       : <div className="master-reference-selection" title={value}>{selection}{value && <small>参照先が見つかりません</small>}</div>}
     <button ref={opener} type="button" className="button compact" aria-haspopup="dialog" aria-label={`${label}（${path}）を選択`}
       data-master-field-path={path} disabled={disabled} onClick={() => setOpen(true)}>{value ? '変更' : '候補を選ぶ'}</button>

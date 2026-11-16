@@ -13,6 +13,7 @@ import { stripMinecraftFormatting } from '../utils/minecraft'
 import { createMasterCandidateSearch } from '../data/masterCandidateSearch'
 import { canShowReferenceCollection, categorizedItemRow, currentReferenceFile, isVisualDropContainer, referenceId, referencedItemCategory, visualReferenceCollection } from '../data/masterReferenceCollection'
 import { MasterVisualReferencesContext } from '../state/masterVisualReferences'
+import { MasterReferenceButton } from './MasterReferenceButton'
 import type { MasterVisualReferences } from '../state/masterVisualReferences'
 import { useMasterArrayOrder } from '../state/useMasterArrayOrder'
 import { fishingChanceTotal, MasterReferenceCollection, ReferenceIcon } from './MasterReferenceCollection'
@@ -597,8 +598,9 @@ function StringEditor({ value, path, label, onChange, references, referenceKind,
   const selection = <><ReferenceIcon file={selectedFile || undefined} kind={referenceKind} /><MinecraftText value={preview || '未設定'} /></>
   return <div className={compact ? 'master-reference-field' : undefined}>
     {compact && (selectedFile && visualReferences
-      ? <button type="button" className="master-reference-selection master-reference-link" aria-label={`${path || '/'} の定義を開く`}
-        title={value} onClick={() => visualReferences.openFile(selectedFile.path)}>{selection}<span aria-hidden="true">↗</span></button>
+      ? <MasterReferenceButton type="button" className="master-reference-selection master-reference-link" aria-label={`${path || '/'} の定義を開く`}
+        preview={{ file: selectedFile, kind: referenceKind, label: preview, reference: value }}
+        onClick={() => visualReferences.openFile(selectedFile.path)}>{selection}<span aria-hidden="true">↗</span></MasterReferenceButton>
       : <div className="master-reference-selection" title={value}>{selection}</div>)}
     {!compact && (colorField
       ? <div className="master-color-input">{hexColor && <span aria-hidden="true" className="master-color-swatch" style={{ backgroundColor: value }} />}{input}</div>
@@ -616,14 +618,16 @@ function StringEditor({ value, path, label, onChange, references, referenceKind,
         <p className="master-candidate-count" role="status">{matchingCandidates.length} 件 / 全 {candidates.length} 件{matchingCandidates.length > 0 && ` · ${currentCandidatePage + 1} / ${lastCandidatePage + 1} ページ`}</p>
         <div ref={candidateList} className="master-candidate-list">{candidatePageEntries.map((entry, index) => {
           const file = visualReferences && currentReferenceFile(entry, visualReferences.files, visualReferences.referencePrefixes)
-          return <button type="button" className="master-candidate" key={entry.value} aria-current={entry.value === value ? 'true' : undefined} onKeyDown={(event) => onCandidateKey(event, index, candidatePageEntries.length)} onClick={(event) => {
+          return <MasterReferenceButton type="button" className="master-candidate" key={entry.value} aria-current={entry.value === value ? 'true' : undefined}
+            preview={{ file: file || undefined, kind: referenceKind, label: entry.label ?? entry.value, reference: entry.value }}
+            onKeyDown={(event) => onCandidateKey(event, index, candidatePageEntries.length)} onClick={(event) => {
             if (event.currentTarget.matches(':disabled')) return
             if (categorizedItem && file) visualReferences?.selectCategorizedItem?.(path, entry.value, file)
             else onChange(entry.value)
             if (compact) { setCandidatesOpen(false); candidateSummary.current?.focus() }
           }}>
             <span className="master-candidate-identity">{compact && <ReferenceIcon file={file || undefined} kind={referenceKind} />}<MinecraftText value={entry.label ?? entry.value} /></span><code>{entry.value}</code>
-          </button>
+          </MasterReferenceButton>
         })}{!matchingCandidates.length && <p className="master-muted">一致する候補がありません。</p>}</div>
         {lastCandidatePage > 0 && <div className="master-candidate-pages"><button type="button" className="button" disabled={currentCandidatePage === 0} onClick={(event) => { if (!event.currentTarget.matches(':disabled')) changeCandidatePage(currentCandidatePage - 1) }}>前へ</button><span>{currentCandidatePage + 1} / {lastCandidatePage + 1} ページ</span><button type="button" className="button" disabled={currentCandidatePage === lastCandidatePage} onClick={(event) => { if (!event.currentTarget.matches(':disabled')) changeCandidatePage(currentCandidatePage + 1) }}>次へ</button></div>}
       </div>}</details>

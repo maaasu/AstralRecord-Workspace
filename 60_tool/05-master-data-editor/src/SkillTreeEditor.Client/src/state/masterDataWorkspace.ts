@@ -44,38 +44,39 @@ export function useMasterDataWorkspace() {
     let nextCatalog: MasterCatalog
     let nextFiles: MasterFileSummary[]
     let nextFilterIndex: MasterFilterIndex | null
+    let nextCandidates: MasterReference[] | null
     try {
       // 明示的な再読込では、索引と候補の取得前に一覧用の文書をファイルから読み直す。
       const fileList = reload ? masterDataApi.files('', '', true) : masterDataApi.files()
       const filterIndex = reload ? fileList.then(() => masterDataApi.filterIndex()) : masterDataApi.filterIndex()
+      const referenceCandidates = fileList.then(() => masterDataApi.candidates())
       const result = await Promise.all([
         reload ? masterDataApi.catalog(true) : masterDataApi.catalog(),
         fileList,
         filterIndex.catch(() => null),
+        referenceCandidates.catch(() => null),
       ])
       nextCatalog = result[0]
       nextFiles = result[1]
       nextFilterIndex = result[2]
+      nextCandidates = result[3]
     } catch (reason) { if (requestId === refreshId.current) { setRefreshing(false); throw reason }; return }
     if (requestId !== refreshId.current) return
     if (reload) invalidateReferences()
     setRefreshing(false); setError('')
     setCatalog(nextCatalog); setFiles(nextFiles); setFilterIndex(nextFilterIndex)
+    setCandidates(nextCandidates ?? [])
     setCategoryId((current) => nextCatalog.categories.some((entry) => entry.id === current) ? current
       : nextCatalog.categories.find((entry) => entry.directory === '10.features.item')?.id
       ?? nextCatalog.categories.find((entry) => entry.directory === '10.features.item/10.material')?.id
       ?? nextCatalog.categories[0]?.id ?? '')
-    void masterDataApi.candidates().then((next) => { if (requestId === refreshId.current) setCandidates(next) }).catch(() => {
-      if (requestId !== refreshId.current) return
-      setCandidates([])
-      setNotice('参照候補を取得できませんでした。IDの直接入力は利用できます。接続を確認して再読込してください。')
-    })
     if (!nextFilterIndex) {
       setDropSourcePath(''); setSourceQuery(''); setSkillTag('')
       setDropItemId(''); setDropItemQuery(''); setDropPresence(''); setFacetFilters({})
       setNumericFilters({})
       setNotice('ドロップ元とタグなどの絞り込み情報を取得できませんでした。絞り込みを解除しました。再読込してください。')
     }
+    if (!nextCandidates) setNotice('参照候補を取得できませんでした。IDの直接入力は利用できます。接続を確認して再読込してください。')
   }, [invalidateReferences])
   useEffect(() => {
     void refresh().catch((reason) => setError(reason instanceof Error ? reason.message : String(reason))).finally(() => setLoading(false))
@@ -114,7 +115,7 @@ export function useMasterDataWorkspace() {
   useEffect(() => { setVisibleCount(50) }, [categoryId, query, searchScope, format, dropSourcePath, skillTag, dropItemId, dropPresence, facetFilters, fileStatus, numericFilters])
 
   return {
-    catalog, files, filesByPath, filterIndex, candidates, loading, refreshing, error, notice, setError, setNotice, refresh, rememberedPaths, referenceVersion, invalidateReferences,
+    catalog, files, filesByPath, filterIndex, candidates, loading, refreshing, error, notice, setError, setNotice, refresh, rememberedPaths, referenceVersion,
     categoryId, setCategoryId, query, setQuery, searchScope, setSearchScope, browserView, setBrowserView, expandedCategories, setExpandedCategories, numericFilters, setNumericFilters, format, setFormat, sourceQuery, setSourceQuery,
     dropSourcePath, setDropSourcePath, skillTag, setSkillTag, visibleCount, setVisibleCount,
     dropItemQuery, setDropItemQuery, dropItemId, setDropItemId, dropPresence, setDropPresence,
