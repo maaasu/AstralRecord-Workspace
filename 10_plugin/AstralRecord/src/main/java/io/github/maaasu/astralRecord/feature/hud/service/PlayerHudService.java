@@ -106,7 +106,9 @@ public class PlayerHudService {
     }
 
     private List<QuestHudLayout.Row> visibleQuestRows(@Nullable AstPlayer player) {
-        if (questService == null || player == null || !player.getAccount().getMode().shouldProcessGameplay()
+        if (questService == null || player == null
+            || !playerSettingService.isQuestHudDisplayEnabled(player.getUser().getUuid())
+            || !player.getAccount().getMode().shouldProcessGameplay()
             || bossChallengeService.isPlayerInActiveChallenge(player.getBukkit().getUniqueId())
             || (dungeonService != null && dungeonService.isDungeonWorld(player.getBukkit().getWorld()))) return List.of();
         return QuestHudLayout.rows(questService.hudQuests(player));
@@ -358,6 +360,21 @@ public class PlayerHudService {
             return;
         }
         renderPrimaryActionBar(astPlayer, statusService.getStatus(astPlayer));
+    }
+
+    /**
+     * 保存した追跡HUD設定をメインスレッドで反映します。
+     * Java版は戦闘・現在地表示を維持してActionBarを再合成し、統合版は専用TIPだけを更新します。
+     *
+     * @param player 設定を保存したオンラインプレイヤー
+     */
+    public void refreshQuestHud(@NotNull AstPlayer player) {
+        Player connection = player.getBukkit();
+        if (player.isBedrock()) {
+            updateBedrockQuestHud(connection, player);
+        } else if (resourcePackService.hasJavaQuestHud(connection.getUniqueId())) {
+            refreshActionBar(player);
+        }
     }
 
     private void updateAll() {

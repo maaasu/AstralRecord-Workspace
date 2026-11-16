@@ -58,6 +58,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     public static final int DROP_LOG_SLOT = 38;
     public static final int AUTO_SAVE_MESSAGE_SLOT = 39;
     public static final int BUFF_SIDEBAR_DISPLAY_SLOT = 24;
+    public static final int QUEST_HUD_DISPLAY_SLOT = 25;
     public static final int ARMOR_DISPLAY_SLOT = 30;
     public static final int ACTION_RING_HOLD_SELECT_SLOT = 42;
     public static final int SKILL_TREE_COMPACT_DISPLAY_SLOT = 32;
@@ -104,7 +105,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     }
 
     /**
-     * 現在の設定と接続に対応するフォームを作成します。アクションリング長押し選択は統合版では表示しません。
+     * 現在の設定と接続に対応するフォームを作成します。クエスト追跡HUDは利用可能な接続に限ります。
      * @param player フォームを開くプレイヤー
      * @param astPlayer フォーム送信時に照合するプレイヤー状態
      * @return 現在値を選択済みにした統合版フォーム
@@ -117,7 +118,8 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
         List<DialogInput> inputs = new ArrayList<>();
         for (int slot = 0; slot < SIZE; slot++) {
             PlayerSettingKey key = getKeyAtSlot(slot);
-            if (key == null || key == PlayerSettingKey.ACTION_RING_HOLD_SELECT) {
+            if (key == null || key == PlayerSettingKey.ACTION_RING_HOLD_SELECT
+                || (key == PlayerSettingKey.QUEST_HUD_DISPLAY && !guiSaveService.hasBedrockQuestHud(player))) {
                 continue;
             }
             var entry = snapshot.getEntry(key);
@@ -217,6 +219,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             case DROP_LOG_SLOT -> PlayerSettingKey.DROP_LOG_DISPLAY;
             case AUTO_SAVE_MESSAGE_SLOT -> PlayerSettingKey.AUTO_SAVE_MESSAGE;
             case BUFF_SIDEBAR_DISPLAY_SLOT -> PlayerSettingKey.BUFF_SIDEBAR_DISPLAY;
+            case QUEST_HUD_DISPLAY_SLOT -> PlayerSettingKey.QUEST_HUD_DISPLAY;
             case ARMOR_DISPLAY_SLOT -> PlayerSettingKey.ARMOR_DISPLAY;
             case ACTION_RING_HOLD_SELECT_SLOT -> PlayerSettingKey.ACTION_RING_HOLD_SELECT;
             case SKILL_TREE_COMPACT_DISPLAY_SLOT -> PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY;
@@ -356,6 +359,12 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             "guide",
             PlayerSettingKey.GUIDE_REMINDER,
             (Boolean) resolveValue(userId, PlayerSettingKey.GUIDE_REMINDER, draftValues)
+        ));
+        inventory.setItem(QUEST_HUD_DISPLAY_SLOT, createBooleanItem(
+            Material.MAP,
+            "quest",
+            PlayerSettingKey.QUEST_HUD_DISPLAY,
+            (Boolean) resolveValue(userId, PlayerSettingKey.QUEST_HUD_DISPLAY, draftValues)
         ));
         markDraftValues(inventory, userId, draftValues);
     }

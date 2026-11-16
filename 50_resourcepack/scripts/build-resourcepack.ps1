@@ -90,6 +90,7 @@ $java = Read-PackEntries $root @(
     'assets/astralrecord/font/quest_hud.json'
     'assets/astralrecord/font/quest_hud_space.json'
     'assets/astralrecord/textures/font/quest_hud_pixel.png'
+    'assets/astralrecord/textures/font/quest_hud_text_hd.png'
     $hudTextShaders
     'assets/minecraft/textures/gui/container/inventory.png'
     'assets/minecraft/textures/gui/sprites/hud/hotbar.png'

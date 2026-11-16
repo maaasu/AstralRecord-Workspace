@@ -29,11 +29,11 @@ Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメー�
 
 ### クエスト追跡HUD
 
-対応パックの接続では、受注中の依頼名と条件ごとの進捗を左上に自動表示します。内側は透明で、半透明の外枠が表示領域を示します。受注順に最大3件・計10行を使い、収まらない依頼や条件は種類別に件数を表示します。Javaは既存compact DotGothic16字形を再利用し、専用フォントの大きな負ascent、GUI判定、RGB座標マーカーを同時に満たした頂点だけを再配置します。各字形の字送りは直後の負spaceで相殺し、通常ActionBarの中央寄せ幅を変えません。低い画面では既存の個人情報HUDを避けるため、クエスト欄の位置と倍率を調整します。75.0、84.0、88.0、97.1の描画経路に対応するoverlayを持ちます。コアシェーダー上書きはMojangの非サポート機能なので、新版追加時は公式資産との差分とコンパイルを再検証します。
+対応パックの接続では、受注中の依頼名と条件ごとの進捗を左上に自動表示します。Java版は背景の描画を暗色・不透明度約52%とし、依頼名の帯、真鍮色の枠、進捗アイコンを重ねます。統合版は従来の透明な内側と半透明の外枠を維持します。受注順に最大3件・計10行を使い、収まらない依頼や条件は種類別に件数を表示します。Javaは独立した4倍解像度のクエスト専用ビットマップ字形を使い、専用フォントの大きな負ascent、GUI判定、RGB座標マーカーを同時に満たした頂点だけを再配置します。各字形の字送りは直後の負spaceで相殺し、通常ActionBarの中央寄せ幅を変えません。低い画面では既存の個人情報HUDを避けるため、クエスト欄の位置と倍率を調整します。75.0、84.0、88.0、97.1の描画経路に対応するoverlayを持ちます。コアシェーダー上書きはMojangの非サポート機能なので、新版追加時は公式資産との差分とコンパイルを再検証します。
 
-統合版は `geyseropt:astralrecord_quest_hud:` のTIPキーだけをJSON UIで保持し、chat_stack内の座標・ペーパードール余白の後、チャットの前に表示します。本文の行数に応じて枠の高さが変わります。通常TIP、ActionBar、Title、Sidebarを上書きしません。両版とも `quest-tracking-hud-version.txt` の互換版2を使用し、Javaは配布manifestの `java.questTrackingHud` と適用成功、統合版は接続時の資産検証とログイン後のProxy通知を必要とします。表示対象なし・バックエンド切替・更新途絶は専用値で消去します。
+統合版は `geyseropt:astralrecord_quest_hud:` のTIPキーだけをJSON UIで保持し、chat_stack内の座標・ペーパードール余白の後、チャットの前に表示します。本文の行数に応じて枠の高さが変わります。通常TIP、ActionBar、Title、Sidebarを上書きしません。両版とも `quest-tracking-hud-version.txt` の互換版2を使用し、Javaは配布manifestの `java.questTrackingHud` と適用成功、統合版は接続時の資産検証とログイン後のProxy通知を必要とします。表示対象なし・設定OFF・バックエンド切替・更新途絶は専用値で消去します。対応接続では「プレイヤー設定 → クエスト追跡HUD表示」で変更できます（初期値ON）。
 
-`python scripts/generate-quest-hud-java.py --check --preview <PNGパス>` と `python scripts/preview-quest-hud-bedrock.py --preview <PNGパス>`（プレビューはPillowが必要）で配布字形・描画定義から静的画像を生成します。統合版の画像はネイティブ書体をJavaパック字形で代用した配置図です。実クライアントでの描画確認とは分けて扱います。
+`python scripts/generate-quest-hud-java.py --check --preview <PNGパス>` と `python scripts/preview-quest-hud-bedrock.py --preview <PNGパス>`（プレビューはPillowが必要）で配布字形・描画定義から静的画像を生成します。Java版の追加字形は [Noto Sans CJK JP Bold (Sans2.004)](https://github.com/notofonts/noto-cjk/tree/Sans2.004) を元にした改変ビットマップです。OFLの著作権表記とライセンスは `licenses/OFL-NotoSansJP.txt` を同梱します。対象4版の正規クライアントJARと Pillow 13.0.0／FreeType 2.14.3 を用い、同スクリプトに `--clients-dir <JARのフォルダ> --raster-font <NotoSansCJK-Bold.ttc>` を渡して再生成できます。統合版の画像はネイティブ書体をJavaパック字形で代用した配置図です。実クライアントでの描画確認とは分けて扱います。
 
 ### 現在地HUD
 

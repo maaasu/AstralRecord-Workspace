@@ -670,6 +670,15 @@ function Publish-ResourcePacks {
             if ($questTrackingHud -ceq '2') {
                 $questAssets += 'assets/astralrecord/textures/font/quest_hud_pixel.png'
             }
+            $questFont = $archive.GetEntry('assets/astralrecord/font/quest_hud.json')
+            if ($null -ne $questFont) {
+                $reader = [IO.StreamReader]::new($questFont.Open())
+                try { $questFontData = $reader.ReadToEnd() | ConvertFrom-Json }
+                finally { $reader.Dispose() }
+                if ($questFontData.providers.file -ccontains 'astralrecord:font/quest_hud_text_hd.png') {
+                    $questAssets += 'assets/astralrecord/textures/font/quest_hud_text_hd.png'
+                }
+            }
             foreach ($asset in $questAssets) {
                 $entry = $archive.GetEntry($asset)
                 if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing quest tracking HUD asset in Java pack: $asset" }

@@ -71,34 +71,44 @@ void main() {
         if (questText) {
             int palette = (questType - 180) & 3;
             origin = vec2(left + float(questCode.g - 8), rowY);
-            // Minecraft bakes the entire 18x74 cell, including transparent margins.
-            size = vec2(9.0, 37.0);
-            tint = palette == 0 ? vec3(1.00000000, 0.84313725, 0.54901961) : palette == 1 ? vec3(0.94901961, 0.95686275, 0.96470588)
-                : palette == 2 ? vec3(0.65490196, 0.93333333, 0.86274510) : vec3(0.72549020, 0.75686275, 0.78823529);
+            // The dedicated 36x36 atlas retains the original 9x9 logical ink cell.
+            size = vec2(9.0, 9.0);
+            tint = palette == 0 ? vec3(0.97647059, 0.82352941, 0.52156863) : palette == 1 ? vec3(0.96078431, 0.92549020, 0.84705882)
+                : palette == 2 ? vec3(0.69411765, 0.89411765, 0.79215686) : vec3(0.74509804, 0.66666667, 0.54509804);
         } else if (questFrame) {
-            // Snap only the frame inside the scaled panel, preserving one pixel strokes.
+            // The existing eight frame quads supply the backing, four brass rails,
+            // two glints and the first heading band without a new server marker.
             vec2 first = ceil(vec2(left, top) - 0.0001);
             vec2 last = floor(vec2(left + 172.0 * scale, top + panelHeight * scale) + 0.0001);
+            vec2 span = last - first;
             int edge = questCode.b;
-            if (edge < 2) {
-                origin = vec2(first.x + 2.0, edge == 0 ? first.y : last.y - 1.0);
-                size = vec2(last.x - first.x - 4.0, 1.0);
-            } else if (edge < 4) {
-                origin = vec2(edge == 2 ? first.x : last.x - 1.0, first.y + 2.0);
-                size = vec2(1.0, last.y - first.y - 4.0);
+            tint = vec3(0.71764706, 0.56862745, 0.32941176);
+            if (edge == 0) {
+                origin = first + vec2(1.0, 1.0);
+                size = span - vec2(2.0);
+                tint = vec3(0.11372549, 0.09411765, 0.07058824);
+            } else if (edge < 3) {
+                origin = vec2(first.x + 1.0, edge == 1 ? first.y : last.y - 1.0);
+                size = vec2(span.x - 2.0, 1.0);
+            } else if (edge < 5) {
+                origin = vec2(edge == 3 ? first.x : last.x - 1.0, first.y + 1.0);
+                size = vec2(1.0, span.y - 2.0);
+            } else if (edge < 7) {
+                origin = vec2(edge == 5 ? first.x + 2.0 : last.x - 9.0, first.y + 1.0);
+                size = vec2(7.0, 1.0);
+                tint = vec3(0.94901961, 0.79215686, 0.50196078);
             } else {
-                origin = vec2((edge & 1) == 0 ? first.x + 1.0 : last.x - 2.0,
-                    edge < 6 ? first.y + 1.0 : last.y - 2.0);
-                size = vec2(1.0);
+                origin = first + vec2(2.0, 2.0);
+                size = vec2(span.x - 4.0, max(1.0, floor(13.0 * scale) - 1.0));
+                tint = vec3(0.28235294, 0.20000000, 0.12156863);
             }
-            if (any(lessThan(last - first, vec2(5.0)))) {
+            if (any(lessThan(span, vec2(20.0, 5.0)))) {
                 size = vec2(0.0);
             }
-            tint = vec3(0.59215686, 0.55686275, 0.46274510);
         } else if (questType == 221) {
-            origin = vec2(left + 5.0, rowY - 1.0);
-            size = vec2(162.0, 1.0);
-            tint = vec3(0.39215686, 0.41176471, 0.42745098);
+            origin = vec2(left + 2.0, rowY - 1.0);
+            size = vec2(168.0, 12.0);
+            tint = vec3(0.28235294, 0.20000000, 0.12156863);
         } else if (questType == 224) {
             origin = vec2(left + 6.0, rowY + 1.0);
             size = vec2(6.0, 9.0);
@@ -108,8 +118,8 @@ void main() {
             float shift = float(questCode.b >> 5) * 2.0;
             bool remaining = questType == 222;
             origin = vec2(left + 122.0 + shift + (remaining ? filled : 0.0), rowY + 6.0);
-            size = vec2(remaining ? 18.0 - filled : filled, 1.0);
-            tint = remaining ? vec3(0.45098039, 0.47843137, 0.51764706) : questType == 225 ? vec3(0.65490196, 0.93333333, 0.86274510) : vec3(1.00000000, 0.87843137, 0.65882353);
+            size = vec2(remaining ? 18.0 - filled : filled, 2.0);
+            tint = remaining ? vec3(0.36862745, 0.29411765, 0.20784314) : questType == 225 ? vec3(0.63137255, 0.89019608, 0.67450980) : vec3(0.92549020, 0.72941176, 0.38823529);
         }
         vec2 questPixel = origin + size * vec2(questCorner >= 2 ? 1.0 : 0.0,
             questCorner == 1 || questCorner == 2 ? 1.0 : 0.0);
@@ -118,7 +128,10 @@ void main() {
             questPixel = panelOrigin + (questPixel - panelOrigin) * scale;
         }
         gl_Position.xy = (vec2(-1.0, 1.0) + questPixel / questSize * vec2(2.0, -2.0)) * gl_Position.w;
-        float opacity = questFrame ? (questCode.b < 4 ? 104.0 : 164.0) / 255.0 : 1.0;
+        float opacity = questFrame ? (questCode.b == 0 ? 132.0
+            : questCode.b <= 4 ? 236.0
+            : questCode.b <= 6 ? 255.0 : 112.0) / 255.0
+            : questType == 221 ? 112.0 / 255.0 : 1.0;
         vertexColor = vec4(tint, Color.a * opacity);
         sphericalVertexDistance = 0.0;
         cylindricalVertexDistance = 0.0;

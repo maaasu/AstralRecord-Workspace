@@ -14,19 +14,35 @@ import org.jetbrains.annotations.NotNull;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 /** インベントリ GUI と統合版フォームの設定変更を適用します。 */
 public final class PlayerSettingGuiSaveService {
     private final AstralRecord plugin;
     private final PlayerSettingService settings;
+    private final Predicate<UUID> bedrockQuestHudSupported;
 
     /**
      * @param plugin 表示に関わる設定効果の同期に使用するプラグイン
      * @param settings プレイヤー設定サービス
+     * @param bedrockQuestHudSupported 統合版の接続単位の追跡HUD可否を判定する処理
      */
-    public PlayerSettingGuiSaveService(@NotNull AstralRecord plugin, @NotNull PlayerSettingService settings) {
+    public PlayerSettingGuiSaveService(
+        @NotNull AstralRecord plugin,
+        @NotNull PlayerSettingService settings,
+        @NotNull Predicate<UUID> bedrockQuestHudSupported
+    ) {
         this.plugin = plugin;
         this.settings = settings;
+        this.bedrockQuestHudSupported = bedrockQuestHudSupported;
+    }
+
+    /**
+     * @param player 設定フォームの表示対象
+     * @return 現在の統合版接続が専用TIP表示に対応している場合はtrue
+     */
+    public boolean hasBedrockQuestHud(@NotNull Player player) {
+        return bedrockQuestHudSupported.test(player.getUniqueId());
     }
 
     /**
@@ -50,6 +66,10 @@ public final class PlayerSettingGuiSaveService {
         for (var change : changes.entrySet()) {
             PlayerSettingKey key = change.getKey();
             if (key == PlayerSettingKey.ADVENTURE_RECORD_SUPER_MODE && !astPlayer.hasAdminPermission()) {
+                continue;
+            }
+            if (key == PlayerSettingKey.QUEST_HUD_DISPLAY && astPlayer.isBedrock()
+                && !hasBedrockQuestHud(player)) {
                 continue;
             }
             Object value = change.getValue();
@@ -79,6 +99,9 @@ public final class PlayerSettingGuiSaveService {
         }
         if (updated.containsKey(PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY)) {
             plugin.getSkillTreeService().markViewerContextDirty(player);
+        }
+        if (updated.containsKey(PlayerSettingKey.QUEST_HUD_DISPLAY)) {
+            plugin.refreshQuestHud(astPlayer);
         }
         if (updated.containsKey(PlayerSettingKey.NIGHT_VISION)) {
             plugin.getPlayerSettingEffectService().synchronizeNightVision(player);
