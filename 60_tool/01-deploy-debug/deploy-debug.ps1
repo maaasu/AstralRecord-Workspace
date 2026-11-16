@@ -429,6 +429,7 @@ function Publish-ResourcePacks {
     $dungeonClearSound = $null
     $profileHud = $null
     $questTrackingHud = $null
+    $actionRingCooldownHud = $null
     $locationHud = $null
     $fishingRodTip = $null
     $wideCombatMeter = $null
@@ -697,6 +698,35 @@ function Publish-ResourcePacks {
                     ($_.max_format -join ',') -ceq $overlaySpec.max
                 })
                 if ($matches.Count -ne 1) { throw "Missing quest tracking HUD shader overlay: $($overlaySpec.directory)" }
+            }
+        }
+        $ringHudEntry = $archive.GetEntry('action-ring-cooldown-hud-version.txt')
+        if ($null -ne $ringHudEntry) {
+            $reader = [IO.StreamReader]::new($ringHudEntry.Open())
+            try { $actionRingCooldownHud = $reader.ReadToEnd() }
+            finally { $reader.Dispose() }
+            if ($actionRingCooldownHud -cne '1') { throw 'Invalid action ring cooldown HUD version marker.' }
+            foreach ($asset in @(
+                'assets/astralrecord/font/action_ring_cooldown.json'
+                'assets/astralrecord/textures/font/action_ring_cooldown.png'
+            )) {
+                $entry = $archive.GetEntry($asset)
+                if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing action ring cooldown HUD asset: $asset" }
+            }
+            foreach ($asset in @(
+                'assets/minecraft/shaders/core/rendertype_text.vsh'
+                'quest_hud_84/assets/minecraft/shaders/core/rendertype_text.vsh'
+                'quest_hud_88/assets/minecraft/shaders/core/text.vsh'
+                'quest_hud_97/assets/minecraft/shaders/core/text.vsh'
+            )) {
+                $entry = $archive.GetEntry($asset)
+                if ($null -eq $entry) { throw "Missing action ring cooldown HUD shader: $asset" }
+                $reader = [IO.StreamReader]::new($entry.Open())
+                try { $shader = $reader.ReadToEnd() }
+                finally { $reader.Dispose() }
+                if (!$shader.Contains('// BEGIN ASTRALRECORD ACTION RING COOLDOWN HUD')) {
+                    throw "Missing action ring cooldown HUD shader block: $asset"
+                }
             }
         }
         $locationEntry = $archive.GetEntry('location-hud-version.txt')
@@ -971,6 +1001,9 @@ function Publish-ResourcePacks {
     }
     if ($null -ne $locationHud) {
         $javaManifest.locationHud = $locationHud
+    }
+    if ($null -ne $actionRingCooldownHud) {
+        $javaManifest.actionRingCooldownHud = $actionRingCooldownHud
     }
     if ($null -ne $fishingRodTip) {
         $javaManifest.fishingRodTip = $fishingRodTip

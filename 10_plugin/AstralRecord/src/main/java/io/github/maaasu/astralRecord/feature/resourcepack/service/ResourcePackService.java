@@ -75,6 +75,7 @@ public class ResourcePackService {
     private final Set<UUID> requestedJavaSkillCooldownHud = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaFishingRodTip = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaQuestHud = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> requestedJavaActionRingCooldownHud = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockQuestHud = ConcurrentHashMap.newKeySet();
     private final Map<UUID, String> bedrockActionRingHudRevisions = new ConcurrentHashMap<>();
     private final Map<UUID, Player> pendingViewers = new LinkedHashMap<>();
@@ -175,6 +176,7 @@ public class ResourcePackService {
                     requestedJavaSkillCooldownHud.remove(viewer);
                     requestedJavaFishingRodTip.remove(viewer);
                     requestedJavaQuestHud.remove(viewer);
+                    requestedJavaActionRingCooldownHud.remove(viewer);
                     if (hadWornHelmetModels) {
                         refreshWornHelmetView.accept(player);
                     } else if (hadItemTooltips) {
@@ -189,6 +191,7 @@ public class ResourcePackService {
                     if (pack.skillCooldownHud()) requestedJavaSkillCooldownHud.add(viewer);
                     if (pack.fishingRodTip()) requestedJavaFishingRodTip.add(viewer);
                     if (pack.questTrackingHud()) requestedJavaQuestHud.add(viewer);
+                    if (pack.actionRingCooldownHud()) requestedJavaActionRingCooldownHud.add(viewer);
                     if (pack.actionRingPanel() != null) {
                         requestedActionRingPanels.put(viewer, pack.actionRingPanel());
                     }
@@ -500,6 +503,11 @@ public class ResourcePackService {
      */
     public boolean hasJavaQuestHud(UUID playerId) {
         return hasManagedJavaPack(playerId) && requestedJavaQuestHud.contains(playerId);
+    }
+
+    /** @param playerId 閲覧者UUID @return リングCTを描画できる管理パックの適用成功後のみtrue */
+    public boolean hasJavaActionRingCooldownHud(UUID playerId) {
+        return hasManagedJavaPack(playerId) && requestedJavaActionRingCooldownHud.contains(playerId);
     }
 
     /**
@@ -919,6 +927,7 @@ public class ResourcePackService {
         requestedJavaSkillCooldownHud.remove(playerId);
         requestedJavaFishingRodTip.remove(playerId);
         requestedJavaQuestHud.remove(playerId);
+        requestedJavaActionRingCooldownHud.remove(playerId);
         readyBedrockQuestHud.remove(playerId);
         bedrockActionRingHudRevisions.remove(playerId);
     }

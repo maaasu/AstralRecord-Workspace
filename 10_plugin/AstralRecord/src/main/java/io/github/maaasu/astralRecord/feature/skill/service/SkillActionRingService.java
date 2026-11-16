@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
+import io.github.maaasu.astralRecord.feature.skill.model.ActionRingCooldownEntry;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
@@ -808,6 +809,15 @@ public final class SkillActionRingService {
         if (player.isOnline()) {
             player.updateInventory();
         }
+    }
+
+    /**
+     * Projects the selected ring without invoking cast prechecks or starting cooldowns.
+     * Empty positions stay empty; a now-invalid binding keeps its original position.
+     */
+    public @NotNull List<ActionRingCooldownEntry> cooldownHudSnapshot(@NotNull AstPlayer player) {
+        return ActionRingCooldownSnapshot.read(player, ringBindings(player), skillService, ownershipService,
+                permissionService, itemWeaponAttackService);
     }
 
     private @NotNull List<SlotView> resolveSlots(

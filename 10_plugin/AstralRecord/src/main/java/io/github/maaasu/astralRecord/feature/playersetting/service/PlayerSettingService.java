@@ -23,6 +23,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -37,6 +38,8 @@ import java.util.function.Supplier;
 /** 初期 GET、cache 参照、player-state section の作成を扱う設定サービスです。 */
 public final class PlayerSettingService {
     private static final long NO_ACTIVE_SESSION = 0L;
+    private static final List<PlayerSettingKey> PERFORMANCE_DISPLAY_KEYS =
+        List.of(PlayerSettingKey.MSPT_DISPLAY, PlayerSettingKey.PING_DISPLAY);
     private static final String SECTION_NAME = "playerSettings";
     private final PlayerSettingRepository repository;
     private final PlayerSettingDefaults defaults;
@@ -72,7 +75,7 @@ public final class PlayerSettingService {
     }
 
     private @NotNull PlayerSettingSnapshot loadPlayerSettingsLocked(@NotNull UUID userId, long token) {
-        Map<PlayerSettingKey, PlayerSettingEntry> entries = createDefaultEntries();
+        Map<PlayerSettingKey, PlayerSettingEntry> entries = new EnumMap<>(PlayerSettingKey.class);
         try {
             for (PlayerSettingModel model : repository.findByUserId(userId)) {
                 PlayerSettingKey key = PlayerSettingKey.fromInput(model.getSettingKey());
@@ -87,7 +90,13 @@ public final class PlayerSettingService {
             Logger.log(LogId.W_5310, userId,
                 exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage());
         }
-        PlayerSettingSnapshot snapshot = overlayPending(new PlayerSettingSnapshot(userId, entries));
+        var legacyPerformance = entries.get(PlayerSettingKey.PERFORMANCE_INFO_DISPLAY);
+        if (legacyPerformance != null) {
+            for (PlayerSettingKey split : PERFORMANCE_DISPLAY_KEYS) {
+                entries.putIfAbsent(split, new PlayerSettingEntry(null, split, legacyPerformance.getValue(), null));
+            }
+        }
+        PlayerSettingSnapshot snapshot = overlayPending(ensureComplete(new PlayerSettingSnapshot(userId, entries)));
         publishIfActive(snapshot, token);
         return snapshot;
     }
@@ -286,22 +295,39 @@ public final class PlayerSettingService {
         return cachedBooleanSetting(userId, PlayerSettingKey.RANDOM_STATUS_RANGE_DISPLAY, false);
     }
 
-    /** Bukkit 操作時は cache と dirty state だけを即時更新する。 */
+    /**
+     * 画面UI設定の現在値をキャッシュだけから参照します。描画処理からAPIを呼びません。
+     * @param userId 設定を所有するユーザーUUID
+     * @param key 画面UI表示ON/OFFの設定
+     * @return 有効なら true。未読込・型不正はキーの既定値、それ以外のキーは false
+     */
+    public boolean isHudDisplayEnabled(@NotNull UUID userId, @NotNull PlayerSettingKey key) {
+        return key.isHudDisplaySetting() && cachedBooleanSetting(userId, key, Boolean.TRUE.equals(key.getDefaultValue()));
+    }
+
+    /** Bukkit 操作時は cache と dirty state だけを即時更新する。旧MSPT・Pingコマンドは新2項目も同時に更新する。 */
     public @NotNull UpdateResult updatePlayerSetting(@NotNull PlayerSettingChangeRequest request, long token) {
         UUID accountId = rememberOnlineAccount(request.userId());
         UpdateResult result = withLock(request.userId(), () -> {
             if (!isActive(request.userId(), token)) return UpdateResult.staleSession(request.settingKey());
             PlayerSettingSnapshot snapshot = cache.find(request.userId());
             if (snapshot == null) snapshot = new PlayerSettingSnapshot(request.userId(), createDefaultEntries());
-            PlayerSettingEntry old = snapshot.getEntry(request.settingKey());
-            if (old == null) old = defaultEntry(request.settingKey());
-            cache.put(snapshot.withEntry(new PlayerSettingEntry(old.getUserSettingId(), request.settingKey(),
-                request.newValue(), old.getVersion())));
-            PendingSetting pending = new PendingSetting(request.settingKey(), revisionSequence.incrementAndGet());
+            PlayerSettingKey requestedKey = request.settingKey();
+            List<PlayerSettingKey> updatedKeys = requestedKey == PlayerSettingKey.PERFORMANCE_INFO_DISPLAY
+                ? List.of(requestedKey, PlayerSettingKey.MSPT_DISPLAY, PlayerSettingKey.PING_DISPLAY)
+                : List.of(requestedKey);
+            for (PlayerSettingKey key : updatedKeys) {
+                PlayerSettingEntry old = snapshot.getEntry(key);
+                if (old == null) old = defaultEntry(key);
+                snapshot = snapshot.withEntry(new PlayerSettingEntry(old.getUserSettingId(), key,
+                    request.newValue(), old.getVersion()));
+            }
+            cache.put(snapshot);
+            long revision = revisionSequence.incrementAndGet();
             pendingSettings.compute(request.userId(), (ignored, previous) -> {
                 EnumMap<PlayerSettingKey, PendingSetting> next = previous == null
                     ? new EnumMap<>(PlayerSettingKey.class) : new EnumMap<>(previous);
-                next.put(request.settingKey(), pending);
+                updatedKeys.forEach(key -> next.put(key, new PendingSetting(key, revision)));
                 return next;
             });
             return UpdateResult.success(request.settingKey(), request.newValue());

@@ -26,6 +26,7 @@ import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.EnumMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -41,7 +42,7 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
     private final PlayerSettingGuiSaveService guiSaveService;
     private final InventoryService inventoryService;
     private final ConcurrentHashMap<UUID, Integer> secretClickCounts = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<UUID, EnumMap<PlayerSettingKey, Object>> draftValues = new ConcurrentHashMap<>();
+    private final Map<Inventory, EnumMap<PlayerSettingKey, Object>> draftValues = new IdentityHashMap<>();
 
     /**
      * プレイヤー設定 GUI の操作と保存後表示同期を行うハンドラを初期化します。
@@ -77,7 +78,7 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             event.setCancelled(true);
-            handleClick(player, event.getRawSlot());
+            handleClick(player, event.getView().getTopInventory(), event.getRawSlot());
         }, LogId.E_5313, event.getWhoClicked().getName());
     }
 
@@ -103,9 +104,8 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
             if (!(event.getPlayer() instanceof Player player)) {
                 return;
             }
-            persistDraftChanges(player);
+            persistDraftChanges(player, event.getInventory(), draftValues.remove(event.getInventory()));
             secretClickCounts.remove(player.getUniqueId());
-            draftValues.remove(player.getUniqueId());
         }, LogId.E_5313, event.getPlayer().getName());
     }
 
@@ -113,38 +113,63 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
         return HotbarShortcutClickSupport.handle(event, player, inventoryService);
     }
 
-    private void handleClick(@NotNull Player player, int rawSlot) {
+    /**
+     * 設定の変更を実行する前に、画面の所有者と接続セッションを照合します。
+     * @param player 操作中のプレイヤー
+     * @param inventory 操作対象の設定画面
+     * @param rawSlot 操作されたスロット
+     */
+    private void handleClick(@NotNull Player player, @NotNull Inventory inventory, int rawSlot) {
+        UUID userId = gui.getUserId(inventory);
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        long sessionToken = gui.getSessionToken(inventory);
+        if (astPlayer == null || !astPlayer.getUser().getUuid().equals(userId) || sessionToken == 0L
+            || playerSettingService.captureSessionToken(userId) != sessionToken) {
+            return;
+        }
+        boolean screenHud = gui.isScreenHudInventory(inventory);
         if (rawSlot == PlayerSettingGui.BACK_TO_MENU_SLOT) {
             secretClickCounts.remove(player.getUniqueId());
             GuiSound.SELECT.play(player);
-            AstralRecord.getInstance().getGuiNavigationService().openPrevious(player);
+            AstralRecord.getInstance().getGuiNavigationService().openPrevious(player, () -> refreshInventory(player));
             return;
         }
-        if (rawSlot == PlayerSettingGui.SUPER_MODE_SECRET_SLOT) {
-            handleSuperModeSecretClick(player);
+        if (!screenHud && rawSlot == PlayerSettingGui.SCREEN_HUD_SETTINGS_SLOT) {
+            secretClickCounts.remove(player.getUniqueId());
+            GuiSound.SELECT.play(player);
+            gui.openScreenHud(player);
             return;
         }
-        PlayerSettingKey key = gui.getKeyAtSlot(rawSlot);
-        if (key == null) {
+        if (!screenHud && rawSlot == PlayerSettingGui.SUPER_MODE_SECRET_SLOT) {
+            handleSuperModeSecretClick(player, inventory, userId);
+            return;
+        }
+        PlayerSettingKey key = gui.getKeyAtSlot(inventory, rawSlot);
+        if (key == null || !gui.canEdit(astPlayer, key)) {
             secretClickCounts.remove(player.getUniqueId());
             GuiSound.DENY.play(player);
             return;
         }
 
-        Object currentValue = currentValue(player, key);
+        Object currentValue = currentValue(inventory, userId, key);
         Object nextValue = nextValue(key, currentValue);
         draftValues
-            .computeIfAbsent(player.getUniqueId(), ignored -> new EnumMap<>(PlayerSettingKey.class))
+            .computeIfAbsent(inventory, ignored -> new EnumMap<>(PlayerSettingKey.class))
             .put(key, nextValue);
         GuiSound.TOGGLE.play(player);
         refreshInventory(player);
     }
 
-    private void handleSuperModeSecretClick(@NotNull Player player) {
+    /**
+     * @param player 操作中のプレイヤー
+     * @param inventory 秘密スロットのある通常の設定画面
+     * @param userId 設定の所有者
+     */
+    private void handleSuperModeSecretClick(@NotNull Player player, @NotNull Inventory inventory, @NotNull UUID userId) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || !astPlayer.hasAdminPermission()) {
             secretClickCounts.remove(player.getUniqueId());
-            Map<PlayerSettingKey, Object> draft = draftValues.get(player.getUniqueId());
+            Map<PlayerSettingKey, Object> draft = draftValues.get(inventory);
             if (draft != null) {
                 draft.remove(PlayerSettingKey.ADVENTURE_RECORD_SUPER_MODE);
             }
@@ -160,21 +185,27 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
 
         secretClickCounts.remove(player.getUniqueId());
         PlayerSettingKey key = PlayerSettingKey.ADVENTURE_RECORD_SUPER_MODE;
-        Object currentValue = currentValue(player, key);
+        Object currentValue = currentValue(inventory, userId, key);
         Object nextValue = !(currentValue instanceof Boolean enabled && enabled);
         draftValues
-            .computeIfAbsent(player.getUniqueId(), ignored -> new EnumMap<>(PlayerSettingKey.class))
+            .computeIfAbsent(inventory, ignored -> new EnumMap<>(PlayerSettingKey.class))
             .put(key, nextValue);
         GuiSound.TOGGLE.play(player);
         refreshInventory(player);
     }
 
-    private @NotNull Object currentValue(@NotNull Player player, @NotNull PlayerSettingKey key) {
-        Map<PlayerSettingKey, Object> values = draftValues.get(player.getUniqueId());
+    /**
+     * @param inventory 対象の設定画面
+     * @param userId 設定の所有者
+     * @param key 参照する設定
+     * @return 下書きがあればその値、なければ保存済みの値
+     */
+    private @NotNull Object currentValue(@NotNull Inventory inventory, @NotNull UUID userId, @NotNull PlayerSettingKey key) {
+        Map<PlayerSettingKey, Object> values = draftValues.get(inventory);
         if (values != null && values.containsKey(key)) {
             return values.get(key);
         }
-        return playerSettingService.getPlayerSetting(player.getUniqueId(), key);
+        return playerSettingService.getPlayerSetting(userId, key);
     }
 
     private void refreshInventory(@NotNull Player player) {
@@ -183,21 +214,23 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
         if (userId == null) {
             return;
         }
-        gui.refresh(inventory, userId, draftValues.get(player.getUniqueId()));
+        gui.refresh(inventory, userId, draftValues.get(inventory));
         player.updateInventory();
     }
 
-    private void persistDraftChanges(@NotNull Player player) {
-        Map<PlayerSettingKey, Object> pending = draftValues.get(player.getUniqueId());
-        if (pending == null || pending.isEmpty()) {
-            return;
+    /**
+     * 画面を開いた時点のユーザーとセッションに対してだけ下書きを保存します。
+     * @param player 設定画面を閉じたプレイヤー
+     * @param inventory 閉じた設定画面
+     * @param pending その画面から取り出した変更候補
+     */
+    private void persistDraftChanges(
+        @NotNull Player player, @NotNull Inventory inventory, Map<PlayerSettingKey, Object> pending
+    ) {
+        UUID userId = gui.getUserId(inventory);
+        if (userId != null && pending != null && !pending.isEmpty()) {
+            guiSaveService.save(player, userId, gui.getSessionToken(inventory), pending);
         }
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
-            return;
-        }
-        UUID userId = astPlayer.getUser().getUuid();
-        guiSaveService.save(player, userId, playerSettingService.captureSessionToken(userId), new EnumMap<>(pending));
     }
 
     /**

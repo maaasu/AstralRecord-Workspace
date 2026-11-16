@@ -81,6 +81,9 @@ $hudTextShaders = @(
 $java = Read-PackEntries $root @(
     'pack.mcmeta'
     'quest-tracking-hud-version.txt'
+    'action-ring-cooldown-hud-version.txt'
+    'assets/astralrecord/font/action_ring_cooldown.json'
+    'assets/astralrecord/textures/font/action_ring_cooldown.png'
     'location-hud-version.txt'
     'location-hud-atlas.sha256'
     'assets/astralrecord/font/location_hud_icons.json'

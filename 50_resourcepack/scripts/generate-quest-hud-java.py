@@ -29,6 +29,20 @@ START = '    // BEGIN ASTRALRECORD QUEST HUD\n'
 END = '    // END ASTRALRECORD QUEST HUD\n'
 LOCATION_START = '    // BEGIN ASTRALRECORD LOCATION HUD V5\n'
 LOCATION_END = '    // END ASTRALRECORD LOCATION HUD V5\n'
+RING_START = '    // BEGIN ASTRALRECORD ACTION RING COOLDOWN HUD\n'
+RING_END = '    // END ASTRALRECORD ACTION RING COOLDOWN HUD\n'
+RING_MARKER = 226
+RING_RADIUS = 21
+RING_SLOT = 14
+RING_SIZE = RING_RADIUS * 2 + RING_SLOT
+RING_HOTBAR_HALF = 91
+RING_OFFHAND_WIDTH = 30
+RING_LEFT_MARGIN = 4
+RING_HUD_GAP = 8
+RING_COMPACT_SIZE = 32
+RING_WIDE_CENTER_FROM_BOTTOM = 48
+RING_SLOT_OFFSETS = ((0, -1), (2**-.5, -2**-.5), (1, 0), (2**-.5, 2**-.5),
+                     (0, 1), (-2**-.5, 2**-.5), (-1, 0), (-2**-.5, -2**-.5))
 WIDTH = 172
 ROW_HEIGHT = 13
 PADDING = 3
@@ -237,6 +251,114 @@ def location_injection(version):
 ''' + LOCATION_END
 
 
+def ring_injection(version):
+    guard = '#if defined(IS_GUI)' if version in ('26.2', '26.3') else '#if 1'
+    vertex = 'gl_VertexIndex' if version == '26.3' else 'gl_VertexID'
+    fog = '' if version in ('26.2', '26.3') else '        sphericalVertexDistance = 0.0;\n        cylindricalVertexDistance = 0.0;\n'
+    offsets = ', '.join(f'vec2({x:.8f}, {y:.8f})' for x, y in RING_SLOT_OFFSETS)
+    return RING_START + f'''{guard}
+    // Red=ring, green=actual slot, blue=plate or numeral column.
+    // Keep the marker separate from Quest, Location and ordinary text.
+    if (questProjection && questType == {RING_MARKER} && questCode.g >= 0 && questCode.g <= 8
+            && questCode.b >= 0 && (questCode.g == 8 ? questCode.b == 0 : questCode.b <= 5)
+            && questScreen.y > questHeight + 4000.0 && questScreen.y < questHeight + 4120.0) {{
+        vec2 viewportSize = vec2(2.0 / abs(ProjMat[0][0]), questHeight);
+        float hotbarLeft = viewportSize.x * 0.5 - {RING_HOTBAR_HALF}.0;
+        float combatLeft = viewportSize.x * 0.5 - {PROFILE_HALF_WIDTH}.0 - {RING_HUD_GAP}.0;
+        bool wide = combatLeft >= {RING_LEFT_MARGIN + RING_SIZE}.0;
+        // On a small screen move below the combat row and reserve the offhand.
+        float right = wide ? combatLeft : hotbarLeft - {RING_OFFHAND_WIDTH + 3}.0;
+        float width = wide ? {RING_SIZE}.0 : clamp(right - {RING_LEFT_MARGIN}.0, 0.0, {RING_COMPACT_SIZE}.0);
+        float scale = width / {RING_SIZE}.0;
+        vec2 center = vec2(right - width * 0.5,
+            questHeight - (wide ? {RING_WIDE_CENTER_FROM_BOTTOM}.0 : width * 0.5 + 4.0));
+        float questRight = clamp(viewportSize.x - {WIDTH}.0, 0.0, {LEFT}.0) + {WIDTH}.0;
+        float questBottom = min({TOP + PADDING * 2 + ROW_HEIGHT * MAX_ROWS}.0, questHeight -
+            (viewportSize.x * 0.5 - {PROFILE_HALF_WIDTH}.0 < questRight ? {PROFILE_BOTTOM_BAND}.0 : {EDGE_MARGIN}.0));
+        float ringTop = center.y - width * 0.5;
+        bool fits = width >= 28.0 && ringTop >= 4.0 &&
+            (right - width >= questRight || ringTop >= questBottom + 4.0);
+        const vec2 offsets[8] = vec2[8]({offsets});
+        float size = (questCode.g == 8 ? {RING_SIZE}.0 : {RING_SLOT}.0) * scale;
+        if (questCode.g < 8) {{
+            center += offsets[questCode.g] * {RING_RADIUS}.0 * scale;
+            float column = questCode.b == 2 ? -2.5 : questCode.b == 3 ? 2.5
+                : questCode.b == 4 ? -4.0 : questCode.b == 5 ? 4.0 : 0.0;
+            center.x += column * scale;
+        }}
+        if (!fits) {{
+            size = 0.0; // Preserve the zero-advance protocol but never obscure existing HUDs.
+        }}
+        int corner = {vertex} & 3;
+        vec2 position = center + size * vec2(corner >= 2 ? 0.5 : -0.5,
+            corner == 1 || corner == 2 ? 0.5 : -0.5);
+        gl_Position.xy = (vec2(-1.0, 1.0) + position / viewportSize * vec2(2.0, -2.0)) * gl_Position.w;
+        vertexColor = vec4(1.0, 1.0, 1.0, Color.a);
+{fog}    }}
+#endif
+''' + RING_END
+
+
+def ring_geometry(marker, width, height):
+    red, slot, layer = marker
+    if red != RING_MARKER or not 0 <= slot <= 8 or not 0 <= layer <= (0 if slot == 8 else 5):
+        return None
+    combat_left = width * .5 - PROFILE_HALF_WIDTH - RING_HUD_GAP
+    wide = combat_left >= RING_LEFT_MARGIN + RING_SIZE
+    right = combat_left if wide else width * .5 - RING_HOTBAR_HALF - RING_OFFHAND_WIDTH - 3
+    size = RING_SIZE if wide else max(0, min(right - RING_LEFT_MARGIN, RING_COMPACT_SIZE))
+    scale = size / RING_SIZE
+    cx, cy = right - size * .5, height - (RING_WIDE_CENTER_FROM_BOTTOM if wide else size * .5 + 4)
+    quest_right = min(LEFT, max(0, width - WIDTH)) + WIDTH
+    quest_bottom = min(TOP + PADDING * 2 + ROW_HEIGHT * MAX_ROWS,
+        height - (PROFILE_BOTTOM_BAND if width * .5 - PROFILE_HALF_WIDTH < quest_right else EDGE_MARGIN))
+    ring_top = cy - size * .5
+    fits = size >= 28 and ring_top >= 4 and (right - size >= quest_right or ring_top >= quest_bottom + 4)
+    if slot != 8:
+        dx, dy = RING_SLOT_OFFSETS[slot]
+        cx += (dx * RING_RADIUS + (0, 0, -2.5, 2.5, -4, 4)[layer]) * scale
+        cy += dy * RING_RADIUS * scale
+        size = RING_SLOT * scale
+    if not fits:
+        size = 0
+    return (cx - size * .5, cy - size * .5, size, size), (255, 255, 255, 255)
+
+
+def verify_ring_geometry():
+    for width, height in GUI_SIZES + ((390, 220), (443, 250), (444, 250)):
+        ring, _ = ring_geometry((RING_MARKER, 8, 0), width, height)
+        left, top, size, _ = ring
+        combat_left = width * .5 - PROFILE_HALF_WIDTH - RING_HUD_GAP
+        wide = combat_left >= RING_LEFT_MARGIN + RING_SIZE
+        assert left >= RING_LEFT_MARGIN and top >= 0 and size > 0
+        assert left + size <= width * .5 - RING_HOTBAR_HALF
+        if wide:
+            assert left + size == combat_left and math.isclose(size, RING_SIZE)
+        else:
+            assert left + size <= width * .5 - RING_HOTBAR_HALF - RING_OFFHAND_WIDTH
+            assert top >= height - RING_COMPACT_SIZE - 4
+        for rows in range(1, MAX_ROWS + 1):
+            qx, qy, qscale = panel_placement(width, height, rows)
+            assert left >= qx + WIDTH * qscale or top >= qy + (PADDING * 2 + ROW_HEIGHT * rows) * qscale
+        for slot in range(8):
+            base, _ = ring_geometry((RING_MARKER, slot, 0), width, height)
+            digit_l, _ = ring_geometry((RING_MARKER, slot, 2), width, height)
+            digit_r, _ = ring_geometry((RING_MARKER, slot, 3), width, height)
+            triple_l, _ = ring_geometry((RING_MARKER, slot, 4), width, height)
+            triple_r, _ = ring_geometry((RING_MARKER, slot, 5), width, height)
+            assert triple_l[0] < digit_l[0] < base[0] < digit_r[0] < triple_r[0]
+            assert triple_l[1] == digit_l[1] == base[1] == digit_r[1] == triple_r[1]
+            # Three 3px digit faces occupy 11px of a 14px plate before scaling.
+            scale = base[2] / RING_SLOT
+            assert math.isclose(triple_r[0] - triple_l[0], 8 * scale)
+            assert 8 + 3 < RING_SLOT
+    for width, height in ((300, 180), (720, 180), (640, 60)):
+        assert ring_geometry((RING_MARKER, 8, 0), width, height)[0][2] == 0
+    assert ring_geometry((RING_MARKER, 8, 1), 640, 360) is None
+    assert ring_geometry((RING_MARKER, 9, 0), 640, 360) is None
+    print('Action ring: viewport fit, offhand clearance, text offsets and Quest separation passed.')
+
+
 def generated_fonts():
     font = json.loads((PACK / 'assets/astralrecord/font/profile_hud_class_name_compact.json').read_text())
     for provider in font['providers']:
@@ -345,7 +467,7 @@ def assets(clients, check):
     for version, jar_sha, shader_sha, directory, stem in VARIANTS:
         relative = f'assets/minecraft/shaders/core/{stem}.vsh'
         path = PACK / directory / relative
-        block = injection(version) + location_injection(version)
+        block = injection(version) + location_injection(version) + ring_injection(version)
         if clients:
             data = (clients / (version + '.jar')).read_bytes()
             assert hashlib.sha1(data).hexdigest() == jar_sha, version + ' client SHA-1 mismatch'
@@ -739,6 +861,9 @@ def gpu_check(clients):
                            (0, 10, 0), (0, 10, 16), (0, 10, 17), (0, 172, 0),
                            (65, 84, 24), (66, 10, 24), (67, 150, 24), (68, 84, 24), (69, 25, 24),
                            (126, 156, 159), (126, 156, 191), (120, 156, 223), (120, 156, 255), (127, 10, 159), (127, 10, 191),
+                           (RING_MARKER, 0, 0), (RING_MARKER, 1, 1), (RING_MARKER, 2, 2),
+                           (RING_MARKER, 3, 3), (RING_MARKER, 4, 4), (RING_MARKER, 5, 5),
+                           (RING_MARKER, 8, 0), (RING_MARKER, 8, 1), (RING_MARKER, 9, 0),
                            (64, 150, 32), (65, 150, 40), (66, 150, 56), (122, 156, 63),
                            (123, 10, 32), (120, 10, 64),
                            (128, 3, 9), (143, 3, 9), (145, 30, 9), (146, 10, 0), (161, 156, 15)]
@@ -748,13 +873,16 @@ def gpu_check(clients):
                         geometry = None
                         if mode == 'quest':
                             quest = marker_geometry(marker, width, height)
-                            geometry = (quest[0], (*quest[1], marker_alpha(marker))) if quest else location_geometry(marker, width, height)
+                            geometry = ((quest[0], (*quest[1], marker_alpha(marker))) if quest
+                                else location_geometry(marker, width, height) or ring_geometry(marker, width, height))
                         if marker[0] < 128 and marker[0] % 8 == 7:
                             quad_width, quad_height = 10, 79
                         elif marker[0] < 128:
                             quad_width, quad_height = LOCATION_TEXT_WIDTH, LOCATION_TEXT_HEIGHT
                         elif 180 <= marker[0] < 220:
                             quad_width, quad_height = 9, 9
+                        elif marker[0] == RING_MARKER:
+                            quad_width = quad_height = RING_SLOT
                         else:
                             quad_width, quad_height = 6, 9
                         y = 40 if mode == 'normal_y' else height + (5000 if mode == 'wrong_ascent' else 4031)
@@ -816,6 +944,7 @@ def main():
     verify_font_geometry()
     verify_geometry()
     verify_location_geometry()
+    verify_ring_geometry()
     if args.compile_with:
         compile_shaders(args.clients_dir, args.compile_with)
     if args.gpu_check:

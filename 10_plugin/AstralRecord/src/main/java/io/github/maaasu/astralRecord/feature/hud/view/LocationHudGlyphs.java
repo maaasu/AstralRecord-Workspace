@@ -46,14 +46,14 @@ final class LocationHudGlyphs {
     }
 
     /** 現在地と該当する挑戦を整形し、空き行数に合わせて効果を一度だけ選びます。 */
-    static List<Row> layout(String world, String area, int level, @Nullable Performance performance,
+    static List<Row> layout(@Nullable String world, @Nullable String area, int level, @Nullable Performance performance,
                              @Nullable BossChallengeSidebarInfo boss, @Nullable DungeonSidebarInfo dungeon,
                              SidebarBuffPageState pageState, List<ActiveBuff> activeBuffs, boolean showBuffs,
                              BuffHudIcons icons, LocalDateTime now,
                              List<SkillCooldownHudEntry> equippedSkills, boolean expanded) {
         List<Row> rows = locationRows(world, area, level, performance);
         if (expanded && !equippedSkills.isEmpty()) {
-            rows.add(new Row(List.of(), 0));
+            if (!rows.isEmpty()) rows.add(new Row(List.of(), 0));
             rows.add(new Row(left(message(HudMsgId.P_5676), LEFT, RIGHT, Palette.GOLD),
                     right(message(HudMsgId.P_5678), RIGHT - 20, RIGHT, Palette.GRAY)));
             for (SkillCooldownHudEntry skill : equippedSkills.stream().limit(SkillCooldownHudEntry.MAX_ENTRIES).toList()) {
@@ -102,21 +102,25 @@ final class LocationHudGlyphs {
     }
 
     /** ワールド名、エリア・金色のLv、任意の性能情報を右端に揃えます。 */
-    private static List<Row> locationRows(String world, String area, int level, @Nullable Performance performance) {
+    private static List<Row> locationRows(@Nullable String world, @Nullable String area, int level,
+            @Nullable Performance performance) {
         String unknown = message(HudMsgId.P_5673);
-        String worldName = ColorCodeUtil.toPlainText(world, unknown).strip();
-        String areaName = ColorCodeUtil.toPlainText(area, unknown).strip();
         List<Row> rows = new ArrayList<>(4);
-        int split = TEXT.prefixEnd(worldName, RIGHT - LEFT);
-        rows.add(new Row(right(worldName.substring(0, split).stripTrailing(), LEFT, RIGHT, Palette.WHITE)));
-        if (split < worldName.length()) {
-            rows.add(new Row(right(worldName.substring(split).stripLeading(), LEFT, RIGHT, Palette.WHITE)));
+        if (world != null) {
+            String worldName = ColorCodeUtil.toPlainText(world, unknown).strip();
+            int split = TEXT.prefixEnd(worldName, RIGHT - LEFT);
+            rows.add(new Row(right(worldName.substring(0, split).stripTrailing(), LEFT, RIGHT, Palette.WHITE)));
+            if (split < worldName.length()) {
+                rows.add(new Row(right(worldName.substring(split).stripLeading(), LEFT, RIGHT, Palette.WHITE)));
+            }
         }
-
-        String levelText = "Lv." + Math.max(0, level);
-        int levelLeft = RIGHT - textWidth(levelText);
-        rows.add(new Row(right(areaName, LEFT, levelLeft - 6, Palette.SECONDARY),
-                right(levelText, levelLeft, RIGHT, Palette.GOLD)));
+        if (area != null) {
+            String areaName = ColorCodeUtil.toPlainText(area, unknown).strip();
+            String levelText = "Lv." + Math.max(0, level);
+            int levelLeft = RIGHT - textWidth(levelText);
+            rows.add(new Row(right(areaName, LEFT, levelLeft - 6, Palette.SECONDARY),
+                    right(levelText, levelLeft, RIGHT, Palette.GOLD)));
+        }
 
         if (performance != null) {
             rows.add(performanceRow(performance));
@@ -130,6 +134,15 @@ final class LocationHudGlyphs {
         String msptValue = String.format(Locale.ROOT, "%.1f", performance.mspt());
         String pingLabel = message(HudMsgId.P_5675);
         String pingValue = performance.ping() + "ms";
+        if (!performance.showMspt() || !performance.showPing()) {
+            boolean mspt = performance.showMspt();
+            String label = mspt ? msptLabel : pingLabel;
+            String value = mspt ? msptValue : pingValue;
+            var status = mspt ? performance.msptStatus() : performance.pingStatus();
+            int valueLeft = RIGHT - textWidth(value);
+            return new Row(right(label, LEFT, valueLeft - 3, Palette.GRAY),
+                    right(value, valueLeft, RIGHT, Palette.performanceColor(status)));
+        }
         int pingValueLeft = RIGHT - textWidth(pingValue);
         int pingLeft = pingValueLeft - 3 - textWidth(pingLabel);
         int msptRight = pingLeft - 9;
@@ -326,7 +339,11 @@ final class LocationHudGlyphs {
         }
     }
 
-    record Performance(double mspt, int ping, NamedTextColor msptStatus, NamedTextColor pingStatus) {
+    record Performance(double mspt, int ping, NamedTextColor msptStatus, NamedTextColor pingStatus,
+            boolean showMspt, boolean showPing) {
+        Performance(double mspt, int ping, NamedTextColor msptStatus, NamedTextColor pingStatus) {
+            this(mspt, ping, msptStatus, pingStatus, true, true);
+        }
     }
 
     record Row(List<Label> labels, int icon) {
