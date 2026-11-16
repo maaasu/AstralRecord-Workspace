@@ -99,6 +99,9 @@ public final class PlayerSettingCommand extends AstCommand {
         if (result.staleSession()) {
             return;
         }
+        if (key == PlayerSettingKey.QUEST_HUD_DISPLAY && result.success()) {
+            plugin.refreshQuestHud(player);
+        }
         if (key == PlayerSettingKey.NIGHT_VISION && result.success()) {
             plugin.getPlayerSettingEffectService().synchronizeNightVision(player.getBukkit());
         }

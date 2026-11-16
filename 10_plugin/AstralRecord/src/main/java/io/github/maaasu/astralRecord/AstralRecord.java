@@ -2013,7 +2013,8 @@ public final class AstralRecord extends JavaPlugin {
         gatheringService.setEquipmentDurabilityService(equipmentDurabilityService);
         playerListGui = new PlayerListGui(worldService);
         playerDetailGui = new PlayerDetailGui(worldService);
-        playerSettingGuiSaveService = new PlayerSettingGuiSaveService(this, playerSettingService);
+        playerSettingGuiSaveService = new PlayerSettingGuiSaveService(
+            this, playerSettingService, resourcePackService::hasBedrockQuestHud);
         playerSettingGui = new PlayerSettingGui(playerSettingService, playerSettingGuiSaveService);
         adventureRecordGuiEventHandler = new AdventureRecordGuiEventHandler(
             new AdventureRecordGui(itemService, lootService),
@@ -3674,6 +3675,15 @@ public final class AstralRecord extends JavaPlugin {
 
     public PlayerSettingGui getPlayerSettingGui() {
         return playerSettingGui;
+    }
+
+    /**
+     * クエスト追跡HUDだけにプレイヤーの新しい表示設定を反映します。メインスレッド専用です。
+     *
+     * @param player 設定が更新されたプレイヤー
+     */
+    public void refreshQuestHud(AstPlayer player) {
+        playerHudService.refreshQuestHud(player);
     }
 
     /**

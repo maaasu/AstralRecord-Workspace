@@ -2,11 +2,13 @@
 """Generate/check the Java quest and location HUDs from pinned vanilla shaders.
 
 Generation: --clients-dir DIR containing SHA-1-verified 1.21.11/26.1/26.2/26.3.jar.
-Checking and the static preview need only the committed pack assets (Pillow for preview).
+Checking and the static preview need the committed pack assets and Pillow.
 This is a resource-pack preview, never a Minecraft client screenshot.
 """
 import argparse
 import hashlib
+import io
+import io
 import json
 import math
 from pathlib import Path
@@ -14,7 +16,6 @@ import re
 import struct
 import sys
 import zipfile
-import zlib
 
 PACK = Path(__file__).resolve().parents[1]
 ROOT = PACK.parent
@@ -37,13 +38,17 @@ TOP = 48
 EDGE_MARGIN = 4
 PROFILE_HALF_WIDTH = 154
 PROFILE_BOTTOM_BAND = 134
-FRAME_ALPHA = 104
-FRAME_CORNER_ALPHA = 164
+PANEL_ALPHA = 132
+BRASS_ALPHA = 236
+HEADING_ALPHA = 112
+ACCENT_ALPHA = 255
 GUI_SIZES = ((320, 180), (320, 240), (426, 240), (640, 360), (960, 540), (1920, 1080))
 BAR_WIDTH = 18
 BAR_LEFT = LEFT + 122
-TEXT_COLORS = ((255, 215, 140), (242, 244, 246), (167, 238, 220), (185, 193, 201))
-SHAPE_COLORS = ((151, 142, 118), (100, 105, 109), (115, 122, 132), (255, 224, 168), (167, 238, 220))
+TEXT_COLORS = ((249, 210, 133), (245, 236, 216), (177, 228, 202), (190, 170, 139))
+SHAPE_COLORS = ((183, 145, 84), (72, 51, 31), (94, 75, 53), (236, 186, 99), (161, 227, 172))
+PANEL_COLOR = (29, 24, 18)
+ACCENT_COLOR = (242, 202, 128)
 # Keep these indices aligned with LocationHudGlyphs.Palette.
 LOCATION_TEXT_COLORS = ((242, 244, 246), (178, 183, 181), (246, 216, 160), (216, 219, 217),
                         (251, 174, 179), (215, 198, 248), (249, 230, 149), (255, 255, 255),
@@ -53,7 +58,12 @@ LOCATION_ROW_HEIGHT = 12
 LOCATION_TEXT_WIDTH = 9
 LOCATION_TEXT_HEIGHT = 11
 HUD_GAP = 8
-PIXEL_TEXTURE = PACK / 'assets/astralrecord/textures/font/quest_hud_pixel.png'
+ASSETS = PACK / 'assets/astralrecord'
+PIXEL_TEXTURE = ASSETS / 'textures/font/quest_hud_pixel.png'
+HD_TEXTURE = ASSETS / 'textures/font/quest_hud_text_hd.png'
+HD_FONT_SHA256 = 'faa5f3656a78b2e2d450d27fe8382c778bc2b6bb5ea29c986664a6a435056ceb'
+HD_PIXEL_SHA256 = 'e0aac050153cc047448708e1999627c3299b8c1f8fbadcf6234c39b75cb01893'
+HD_ICONS_PIXEL_SHA256 = 'a3eaba80a30dfd2a3b6f2a99b6c2a31b4b9588d45c2f93143cdbb0b8017b9868'
 
 
 def shader_color(color):
@@ -112,33 +122,43 @@ def injection(version):
         if (questText) {{
             int palette = (questType - 180) & 3;
             origin = vec2(left + float(questCode.g - {LEFT}), rowY);
-            // Minecraft bakes the entire 18x74 cell, including transparent margins.
-            size = vec2(9.0, 37.0);
+            // The dedicated 36x36 atlas retains the original 9x9 logical ink cell.
+            size = vec2(9.0, 9.0);
             tint = palette == 0 ? {title} : palette == 1 ? {objective}
                 : palette == 2 ? {complete} : {overflow};
         }} else if (questFrame) {{
-            // Snap only the frame inside the scaled panel, preserving one pixel strokes.
+            // The existing eight frame quads supply the backing, four brass rails,
+            // two glints and the first heading band without a new server marker.
             vec2 first = ceil(vec2(left, top) - 0.0001);
             vec2 last = floor(vec2(left + {WIDTH}.0 * scale, top + panelHeight * scale) + 0.0001);
+            vec2 span = last - first;
             int edge = questCode.b;
-            if (edge < 2) {{
-                origin = vec2(first.x + 2.0, edge == 0 ? first.y : last.y - 1.0);
-                size = vec2(last.x - first.x - 4.0, 1.0);
-            }} else if (edge < 4) {{
-                origin = vec2(edge == 2 ? first.x : last.x - 1.0, first.y + 2.0);
-                size = vec2(1.0, last.y - first.y - 4.0);
+            tint = {frame};
+            if (edge == 0) {{
+                origin = first + vec2(1.0, 1.0);
+                size = span - vec2(2.0);
+                tint = {shader_color(PANEL_COLOR)};
+            }} else if (edge < 3) {{
+                origin = vec2(first.x + 1.0, edge == 1 ? first.y : last.y - 1.0);
+                size = vec2(span.x - 2.0, 1.0);
+            }} else if (edge < 5) {{
+                origin = vec2(edge == 3 ? first.x : last.x - 1.0, first.y + 1.0);
+                size = vec2(1.0, span.y - 2.0);
+            }} else if (edge < 7) {{
+                origin = vec2(edge == 5 ? first.x + 2.0 : last.x - 9.0, first.y + 1.0);
+                size = vec2(7.0, 1.0);
+                tint = {shader_color(ACCENT_COLOR)};
             }} else {{
-                origin = vec2((edge & 1) == 0 ? first.x + 1.0 : last.x - 2.0,
-                    edge < 6 ? first.y + 1.0 : last.y - 2.0);
-                size = vec2(1.0);
+                origin = first + vec2(2.0, 2.0);
+                size = vec2(span.x - 4.0, max(1.0, floor({ROW_HEIGHT}.0 * scale) - 1.0));
+                tint = {divider};
             }}
-            if (any(lessThan(last - first, vec2(5.0)))) {{
+            if (any(lessThan(span, vec2(20.0, 5.0)))) {{
                 size = vec2(0.0);
             }}
-            tint = {frame};
         }} else if (questType == 221) {{
-            origin = vec2(left + 5.0, rowY - 1.0);
-            size = vec2({WIDTH - 10}.0, 1.0);
+            origin = vec2(left + 2.0, rowY - 1.0);
+            size = vec2({WIDTH - 4}.0, {ROW_HEIGHT - 1}.0);
             tint = {divider};
         }} else if (questType == 224) {{
             origin = vec2(left + 6.0, rowY + 1.0);
@@ -149,7 +169,7 @@ def injection(version):
             float shift = float(questCode.b >> 5) * 2.0;
             bool remaining = questType == 222;
             origin = vec2(left + {BAR_LEFT - LEFT}.0 + shift + (remaining ? filled : 0.0), rowY + 6.0);
-            size = vec2(remaining ? {BAR_WIDTH}.0 - filled : filled, 1.0);
+            size = vec2(remaining ? {BAR_WIDTH}.0 - filled : filled, 2.0);
             tint = remaining ? {track} : questType == 225 ? {complete_fill} : {fill};
         }}
         vec2 questPixel = origin + size * vec2(questCorner >= 2 ? 1.0 : 0.0,
@@ -159,7 +179,10 @@ def injection(version):
             questPixel = panelOrigin + (questPixel - panelOrigin) * scale;
         }}
         gl_Position.xy = (vec2(-1.0, 1.0) + questPixel / questSize * vec2(2.0, -2.0)) * gl_Position.w;
-        float opacity = questFrame ? (questCode.b < 4 ? {FRAME_ALPHA}.0 : {FRAME_CORNER_ALPHA}.0) / 255.0 : 1.0;
+        float opacity = questFrame ? (questCode.b == 0 ? {PANEL_ALPHA}.0
+            : questCode.b <= 4 ? {BRASS_ALPHA}.0
+            : questCode.b <= 6 ? {ACCENT_ALPHA}.0 : {HEADING_ALPHA}.0) / 255.0
+            : questType == 221 ? {HEADING_ALPHA}.0 / 255.0 : 1.0;
         vertexColor = vec4(tint, Color.a * opacity);
 {fog}    }}
 #endif
@@ -218,7 +241,7 @@ def generated_fonts():
     font = json.loads((PACK / 'assets/astralrecord/font/profile_hud_class_name_compact.json').read_text())
     for provider in font['providers']:
         if provider['type'] == 'bitmap':
-            provider['ascent'] = -4096
+            provider.update(file='astralrecord:font/quest_hud_text_hd.png', height=9, ascent=-4096)
     solid = {'type': 'bitmap', 'file': 'astralrecord:font/quest_hud_pixel.png',
              'height': 9, 'ascent': -4096, 'chars': ['\ue010\ue011\ue012\ue013']}
     font['providers'].append(solid)
@@ -231,24 +254,80 @@ def generated_fonts():
 
 
 def pixel_texture():
-    # A solid white cell for rectangles, then the three HUD markers.
-    icons = [
-        ['######'] * 9,
-        ['.mmmm.', 'mwwwwm', 'mwrrwm', 'mwrrwm', 'mwrrwm', 'mwrrwm', 'mwrwwm', 'mww..m', 'mm...m'],
-        ['......', '......', '..gg..', '.g..g.', 'g....g', 'g....g', '.g..g.', '..gg..', '......'],
-        ['......', '......', '..tt..', '.tttt.', 'tttttt', 'tttttt', '.tttt.', '..tt..', '......'],
-    ]
-    colors = {'.': (0, 0, 0, 0), '#': (255, 255, 255, 255), 'm': (63, 37, 42, 255),
-              'w': (249, 212, 186, 255), 'r': (191, 95, 81, 255),
-              'g': (182, 197, 204, 255), 't': (167, 238, 220, 255)}
-    pixels = b''.join(b'\0' + bytes(value for icon in icons for key in icon[row] for value in colors[key])
-                      for row in range(9))
+    from PIL import Image
+    retina=Image.new('RGBA',(48,18))
+    patterns=[
+     ['    bbbb    ','  bbbbbbbb  ',' bbPPPPPPbb ','bbPppppppPbb','bPPPPPPPPPPb','bPpmmmmmmPPb','bPPPPPPPPPPb','bPpmmmmmmPPb','bPPPPPPPPPPb','bPpmmmmmmPPb','bPPPPPPPPPPb','bPpmmmmPPPPb','bPPPPPPPPPPb','bbPPPPPPPPbb',' bbbbbbbbbb ','  bbbbbb    ','   bbbbb    ','    bbb     '],
+     ['            ','            ','     hh     ','    hHHh    ','   hHllHh   ','  hHh  hHh  ',' hHh    hHh ','hHh      hHh','Hh        hH','Hh        hH','hHh      hHh',' hHh    hHh ','  hHh  hHh  ','   hHllHh   ','    hHHh    ','     hh     ','            ','            '],
+     ['            ','            ','     gg     ','    gGGg    ','   gGGGGg   ','  gGGGGGGg  ',' gGccGGGGGg ','gGGGccGGcGGg','GGGGGcccGGGG','GGGGGGcGGGGG','gGGGGGGGGGGg',' gGGGGGGGGg ','  gGGGGGGg  ','   gGGGGg   ','    gGGg    ','     gg     ','            ','            ']]
+    pal={'b':'#7a5025','P':'#fadea1','p':'#d2a76a','m':'#a76533','h':'#8d6e3b','H':'#e1ae5a','l':'#fbe2a0','g':'#52785d','G':'#81bb8e','c':'#e0f5d0'}
+    retina.paste((255,255,255,255),(0,0,12,18))
+    rgb=lambda s:tuple(bytes.fromhex(s[1:]))+(255,)
+    for i,pat in enumerate(patterns,1):
+     assert len(pat)==18 and all(len(v)==12 for v in pat)
+     for y,line in enumerate(pat):
+      for x,c in enumerate(line):
+       if c in pal:retina.putpixel((i*12+x,y),rgb(pal[c]))
+    assert hashlib.sha256(retina.tobytes()).hexdigest() == HD_ICONS_PIXEL_SHA256
+    output = io.BytesIO()
+    retina.save(output, format='PNG', optimize=True)
+    return output.getvalue()
 
-    def chunk(name, value):
-        return struct.pack('>I', len(value)) + name + value + struct.pack('>I', zlib.crc32(name + value))
 
-    return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', 24, 9, 8, 6, 0, 0, 0)) \
-        + chunk(b'IDAT', zlib.compress(pixels)) + chunk(b'IEND', b'')
+def rasterize_hd(font_path):
+    """Reproduce the quest-only bitmap from the pinned upstream JP bold font."""
+    from PIL import Image, ImageDraw, ImageFont
+    assert hashlib.sha256(font_path.read_bytes()).hexdigest() == HD_FONT_SHA256, 'Unexpected font source'
+    data = json.loads((ASSETS / 'font/profile_hud_class_name_compact.json').read_text())
+    g = next(provider for provider in data['providers'] if provider['type'] == 'bitmap')
+    fn=font_path
+    font=ImageFont.truetype(str(fn),52,index=0)
+    src=Image.open(ASSETS/'textures/font/profile_hud_class_name_compact.png').convert('RGBA')
+    out=Image.new('RGBA',(src.width*2,len(g['chars'])*36))
+    n=0; fallback=0
+    for row,line in enumerate(g['chars']):
+     for col,c in enumerate(line):
+      if c=='\0': continue
+      old=src.crop((col*18,row*74,(col+1)*18,row*74+18)).getchannel('A')
+      b=old.getbbox()
+      if not b:continue
+      x0,y0,x1,y1=b
+      w=(x1-x0)*2;h=(y1-y0)*2
+      if c not in ['…','・','。','、','.','/','-','−','—','＿','_']:
+       raw=Image.new('L',(100,100))
+       ImageDraw.Draw(raw).text((14,0),c,font=font,fill=255)
+       bb=raw.getbbox()
+       if bb:
+        cv=raw.crop(bb).resize((w,h),Image.Resampling.LANCZOS)
+        # Preserve the legacy bitmap provider's rounding and measured right edge.
+        if cv.getbbox()[2]!=w:cv.putpixel((w-1,h//2),1)
+        n+=1
+       else:cv=old.crop(b).resize((w,h),Image.Resampling.NEAREST);fallback+=1
+      else:
+       cv=old.crop(b).resize((w,h),Image.Resampling.NEAREST);fallback+=1
+      assert cv.getbbox()[2]==w
+      tile=Image.new('RGBA',(w,h),'white');tile.putalpha(cv)
+      out.paste(tile,(col*36+x0*2,row*36+y0*2))
+    tex=ASSETS/'textures/font/quest_hud_text_hd.png';out.save(tex,optimize=True)
+    assert hashlib.sha256(out.tobytes()).hexdigest() == HD_PIXEL_SHA256, 'Use Pillow 13.0.0 / FreeType 2.14.3'
+
+
+def verify_font_geometry():
+    from PIL import Image
+    old = Image.open(ASSETS / 'textures/font/profile_hud_class_name_compact.png').convert('RGBA').getchannel('A')
+    new = Image.open(HD_TEXTURE).convert('RGBA')
+    assert new.size == (2304, 1872)
+    assert hashlib.sha256(new.tobytes()).hexdigest() == HD_PIXEL_SHA256
+    new = new.getchannel('A')
+    provider = next(p for p in generated_fonts()['quest_hud']['providers'] if p['type'] == 'bitmap')
+    for row, chars in enumerate(provider['chars']):
+        for col, char in enumerate(chars):
+            if char == '\0':
+                continue
+            before = old.crop((col * 18, row * 74, col * 18 + 18, row * 74 + 74)).getbbox()
+            after = new.crop((col * 36, row * 36, col * 36 + 36, row * 36 + 36)).getbbox()
+            assert (after[2] if after else 0) == 2 * (before[2] if before else 0), char
+    print('Quest font asset pixels and legacy glyph advances verified.')
 
 
 def assets(clients, check):
@@ -310,39 +389,47 @@ def marker_geometry(marker, width, height):
         return (x + left * scale, y + top * scale, width * scale, height * scale), tint
 
     if text and row < rows and LEFT <= green < LEFT + WIDTH:
-        return quad(green - LEFT, row_y, 9, 37, TEXT_COLORS[(red - 180) % 4])
+        return quad(green - LEFT, row_y, 9, 9, TEXT_COLORS[(red - 180) % 4])
     if red == 220 and blue < 8:
         first_x, first_y = math.ceil(x - 0.0001), math.ceil(y - 0.0001)
         last_x = math.floor(x + WIDTH * scale + 0.0001)
         last_y = math.floor(y + panel_height * scale + 0.0001)
-        if blue < 2:
-            rect = (first_x + 2, first_y if blue == 0 else last_y - 1, last_x - first_x - 4, 1)
-        elif blue < 4:
-            rect = (first_x if blue == 2 else last_x - 1, first_y + 2, 1, last_y - first_y - 4)
+        w, h = last_x - first_x, last_y - first_y
+        tint = SHAPE_COLORS[0]
+        if blue == 0:
+            rect = (first_x + 1, first_y + 1, w - 2, h - 2)
+            tint = PANEL_COLOR
+        elif blue < 3:
+            rect = (first_x + 1, first_y if blue == 1 else last_y - 1, w - 2, 1)
+        elif blue < 5:
+            rect = (first_x if blue == 3 else last_x - 1, first_y + 1, 1, h - 2)
+        elif blue < 7:
+            rect = (first_x + 2 if blue == 5 else last_x - 9, first_y + 1, 7, 1)
+            tint = ACCENT_COLOR
         else:
-            rect = (first_x + 1 if blue % 2 == 0 else last_x - 2,
-                    first_y + 1 if blue < 6 else last_y - 2, 1, 1)
-        if min(last_x - first_x, last_y - first_y) < 5:
+            rect = (first_x + 2, first_y + 2, w - 4, max(1, math.floor(ROW_HEIGHT * scale) - 1))
+            tint = SHAPE_COLORS[1]
+        if w < 20 or h < 5:
             rect = (*rect[:2], 0, 0)
-        return rect, SHAPE_COLORS[0]
+        return rect, tint
     if row >= rows:
         return None
     if red == 221 and blue == 0:
-        return quad(5, row_y - 1, WIDTH - 10, 1, SHAPE_COLORS[1])
+        return quad(2, row_y - 1, WIDTH - 4, ROW_HEIGHT - 1, SHAPE_COLORS[1])
     if red == 224 and blue < 3:
         return quad(6, row_y + 1, 6, 9, (255, 255, 255))
     fill, shift = blue % 32, blue // 32 * 2
     if red in (222, 223, 225) and fill <= BAR_WIDTH:
         bar_x = BAR_LEFT - LEFT + shift
         if red == 222:
-            return quad(bar_x + fill, row_y + 6, BAR_WIDTH - fill, 1, SHAPE_COLORS[2])
-        return quad(bar_x, row_y + 6, fill, 1, SHAPE_COLORS[3 if red == 223 else 4])
+            return quad(bar_x + fill, row_y + 6, BAR_WIDTH - fill, 2, SHAPE_COLORS[2])
+        return quad(bar_x, row_y + 6, fill, 2, SHAPE_COLORS[3 if red == 223 else 4])
     return None
 
 
 def marker_alpha(marker):
     red, _, blue = marker
-    return (FRAME_ALPHA if blue < 4 else FRAME_CORNER_ALPHA) if red == 220 else 255
+    return (PANEL_ALPHA if blue == 0 else BRASS_ALPHA if blue <= 4 else ACCENT_ALPHA if blue <= 6 else HEADING_ALPHA) if red == 220 else HEADING_ALPHA if red == 221 else 255
 
 
 def location_placement(width, height, rows):
@@ -426,7 +513,7 @@ def verify_geometry():
     for width, height in GUI_SIZES:
         for actionbar_y in (height - 68, height - 72):
             assert actionbar_y + 7 + 4096 > height + 4000
-            assert actionbar_y + 7 + 4096 + 37 < height + 4120
+            assert actionbar_y + 7 + 4096 + 9 < height + 4120
         for rows in range(1, MAX_ROWS + 1):
             height_px = PADDING * 2 + ROW_HEIGHT * rows
             left, top, scale = panel_placement(width, height, rows)
@@ -438,8 +525,8 @@ def verify_geometry():
             for edge in range(8):
                 (x, y, w, h), _ = marker_geometry((220, rows, edge), width, height)
                 assert left <= x < x + w <= right + 1e-8 and top <= y < y + h <= bottom + 1e-8
-                assert (x, y, w, h) == tuple(map(int, (x, y, w, h))) and min(w, h) == 1
-                assert marker_alpha((220, rows, edge)) == (104 if edge < 4 else 164)
+                assert (x, y, w, h) == tuple(map(int, (x, y, w, h))) and (min(w, h) == 1 if 1 <= edge <= 6 else min(w, h) > 1)
+                assert marker_alpha((220, rows, edge)) == (PANEL_ALPHA if edge == 0 else BRASS_ALPHA if edge <= 4 else ACCENT_ALPHA if edge <= 6 else HEADING_ALPHA)
                 count += 4
             for row in range(rows):
                 for style in range(4):
@@ -459,7 +546,7 @@ def verify_geometry():
                         (tx, ty, tw, th), _ = marker_geometry((222, shape_row, variant), width, height)
                         assert (x, y, w, h) == (left + (BAR_LEFT - LEFT + shift * 2) * scale,
                                                 top + (PADDING + row * ROW_HEIGHT + 6) * scale,
-                                                fill * scale, scale)
+                                                fill * scale, 2 * scale)
                         assert math.isclose(tx, x + w) and (ty, tw, th) == (y, (BAR_WIDTH - fill) * scale, h)
                         count += 8
     assert panel_placement(640, 360, 10) == (LEFT, TOP, 1)
@@ -475,7 +562,7 @@ def preview(path):
     from PIL import Image, ImageChops, ImageDraw
     font = json.loads((PACK / 'assets/astralrecord/font/quest_hud.json').read_text(encoding='utf-8'))
     provider = next(p for p in font['providers'] if p['type'] == 'bitmap')
-    atlas = Image.open(PACK / 'assets/astralrecord/textures/font/profile_hud_class_name_compact.png').convert('RGBA')
+    atlas = Image.open(HD_TEXTURE).convert('RGBA')
     rows = provider['chars']
     cell_width = atlas.width // len(rows[0])
     cell_height = atlas.height // len(rows)
@@ -521,7 +608,7 @@ def preview(path):
     draw = ImageDraw.Draw(image)
     draw.text((16, 12), 'JAVA RESOURCE-PACK ASSET PREVIEW / GUI SCALE 2', fill='white')
     icons = Image.open(PIXEL_TEXTURE).convert('RGBA')
-    solid = icons.crop((0, 0, 6, 9))
+    solid = icons.crop((0, 0, 12, 18))
     for sample_index, sample in enumerate(samples):
         panel_offset = sample_index * 380
 
@@ -551,8 +638,8 @@ def preview(path):
             if kind == 0 and row > 0:
                 draw_marker((221, shape_row, 0), solid)
             if kind < 3:
-                icon_x = (kind + 1) * 6
-                draw_marker((224, shape_row, kind), icons.crop((icon_x, 0, icon_x + 6, 9)))
+                icon_x = (kind + 1) * 12
+                draw_marker((224, shape_row, kind), icons.crop((icon_x, 0, icon_x + 12, 18)))
             else:
                 draw_text('…', LEFT + 5, row, text_marker)
             text_right = LEFT + WIDTH - 5
@@ -667,7 +754,7 @@ def gpu_check(clients):
                         elif marker[0] < 128:
                             quad_width, quad_height = LOCATION_TEXT_WIDTH, LOCATION_TEXT_HEIGHT
                         elif 180 <= marker[0] < 220:
-                            quad_width, quad_height = 9, 37
+                            quad_width, quad_height = 9, 9
                         else:
                             quad_width, quad_height = 6, 9
                         y = 40 if mode == 'normal_y' else height + (5000 if mode == 'wrong_ascent' else 4031)
@@ -718,9 +805,15 @@ def main():
     parser.add_argument('--check', action='store_true')
     parser.add_argument('--preview', type=Path)
     parser.add_argument('--compile-with', type=Path, help='Optional glslangValidator executable')
+    parser.add_argument('--raster-font', type=Path, help='Rerasterize the quest-only atlas from the pinned Noto Sans CJK JP Bold font')
     parser.add_argument('--gpu-check', action='store_true', help='Optional moderngl OpenGL transform feedback')
     args = parser.parse_args()
+    if args.raster_font:
+        if args.check:
+            parser.error('--raster-font cannot be used with --check')
+        rasterize_hd(args.raster_font)
     assets(args.clients_dir, args.check)
+    verify_font_geometry()
     verify_geometry()
     verify_location_geometry()
     if args.compile_with:

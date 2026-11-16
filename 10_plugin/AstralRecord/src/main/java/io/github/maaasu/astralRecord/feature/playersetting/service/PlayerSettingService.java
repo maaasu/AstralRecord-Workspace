@@ -217,6 +217,16 @@ public final class PlayerSettingService {
     public boolean isCombatDpsDisplayEnabled(@NotNull UUID userId) {
         return cachedBooleanSetting(userId, PlayerSettingKey.COMBAT_DPS_DISPLAY, true);
     }
+    /**
+     * クエスト追跡HUDの表示設定をロード済みキャッシュから取得します。API通信は行いません。
+     *
+     * @param userId 設定を所有するユーザーUUID
+     * @return 表示する場合はtrue。未読込または型不正時もtrue
+     */
+    public boolean isQuestHudDisplayEnabled(@NotNull UUID userId) {
+        return cachedBooleanSetting(userId, PlayerSettingKey.QUEST_HUD_DISPLAY, true);
+    }
+
     public boolean isBuffSidebarDisplayEnabled(@NotNull UUID userId) { return booleanSetting(userId, PlayerSettingKey.BUFF_SIDEBAR_DISPLAY, false); }
     public boolean isDropLogDisplayEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.DROP_LOG_DISPLAY, true); }
     public boolean isAutoSaveMessageEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.AUTO_SAVE_MESSAGE, false); }

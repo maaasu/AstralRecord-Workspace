@@ -9,8 +9,8 @@
     },
     {
       "type": "bitmap",
-      "file": "astralrecord:font/profile_hud_class_name_compact.png",
-      "height": 37,
+      "file": "astralrecord:font/quest_hud_text_hd.png",
+      "height": 9,
       "ascent": -4096,
       "chars": [
         "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`",

@@ -107,4 +107,45 @@ class PlayerSettingServiceEnumValueTest {
                 .getAsJsonObject().get("value").getAsString());
         }
     }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
+     * 章・見出し: # 11_3-サービス > ## 5. 設定更新と完成状態保存
+     * 検証契約: クエストHUDの既定はON。取得通信なしでキャッシュのOFFを読み、既存の真偽値形式で保存する。
+     */
+    @Test
+    void questHudUsesCachedBooleanAndPersistsAnExplicitOptOut() {
+        UUID userId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        PlayerSettingRepository repository = mock(PlayerSettingRepository.class);
+        when(repository.findByUserId(userId)).thenReturn(List.of());
+        PlayerSettingService service = new PlayerSettingService(repository, new PlayerSettingDefaults(), new PlayerSettingCache());
+        assertTrue(service.isQuestHudDisplayEnabled(userId));
+        verifyNoInteractions(repository);
+        long token = service.beginSession(userId);
+        service.warmup(userId, token);
+        assertTrue(service.isQuestHudDisplayEnabled(userId));
+
+        AstPlayer player = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        UserModel user = mock(UserModel.class);
+        when(player.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+        when(player.getUser()).thenReturn(user);
+        when(user.getUuid()).thenReturn(userId);
+        try (var cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(AstPlayerCache::getAll).thenReturn(List.of(player));
+            assertTrue(service.updatePlayerSetting(new PlayerSettingChangeRequest(
+                userId, PlayerSettingKey.QUEST_HUD_DISPLAY, false, userId), token).success());
+            assertFalse(service.isQuestHudDisplayEnabled(userId));
+            var saved = service.snapshotPlayerState(accountId).payload().getAsJsonObject()
+                .getAsJsonArray("settings").asList().stream().map(value -> value.getAsJsonObject())
+                .filter(value -> value.get("settingKey").getAsString().equals(PlayerSettingKey.QUEST_HUD_DISPLAY.getCode()))
+                .findFirst().orElseThrow();
+            var flag = JsonParser.parseString(saved.get("settingValueJson").getAsString())
+                .getAsJsonObject().get("enabled").getAsJsonPrimitive();
+            assertTrue(flag.isBoolean());
+            assertFalse(flag.getAsBoolean());
+        }
+    }
 }
