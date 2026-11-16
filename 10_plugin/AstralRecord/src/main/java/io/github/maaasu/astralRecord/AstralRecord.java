@@ -485,7 +485,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class AstralRecord extends JavaPlugin {
-    private volatile boolean startupMastersReady;
+    private enum StartupState { STARTING, READY, FAILED }
+
+    private final AtomicReference<StartupState> startupState = new AtomicReference<>(StartupState.STARTING);
 
     private static AstralRecord instance;
 
@@ -816,56 +818,70 @@ public final class AstralRecord extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        startupMastersReady = false;
+        startupState.set(StartupState.STARTING);
         initialMastersPublished = false;
-        // AuditLogger を初期化
-        AuditLogger.initDefault();
-
-        // すべての LogEntry 実装クラスを走査し、AuditLogger を登録する
-        AuditLoggerRegistry.init("io.github.maaasu.astralRecord");
-
-        if (!setupInfrastructure()) {
-            getServer().getPluginManager().disablePlugin(this);
-            return;
+        try {
+            getServer().getPluginManager().registerEvents(
+                    new io.github.maaasu.astralRecord.feature.player.event.MasterDataStartupEventHandler(
+                            () -> startupState.get() == StartupState.READY), this);
+            AuditLogger.initDefault();
+            AuditLoggerRegistry.init("io.github.maaasu.astralRecord");
+            setupInfrastructure();
+            getServer().getScheduler().runTaskAsynchronously(this, this::loadStartupMasters);
+        } catch (RuntimeException failure) {
+            failStartup(LogId.E_900, failure);
         }
+    }
 
-        getServer().getPluginManager().registerEvents(
-                new io.github.maaasu.astralRecord.feature.player.event.MasterDataStartupEventHandler(
-                        () -> startupMastersReady), this);
-
-        // API取得中は機能を開始せず、メインスレッドを通信待ちさせない。
-        getServer().getScheduler().runTaskAsynchronously(this, () -> {
-            try {
-                LocalMasterOverlay.Snapshot localSnapshot = localMasterOverlay.loadSnapshot();
-                RuntimeFilebaseSnapshot snapshot = RuntimeFilebaseRepository.getInstance().loadSnapshot();
-                List<ProgressionPreset> presets = isProgressionPresetEnabled()
-                    ? ProgressionPresetRepository.load(snapshot) : List.of();
-                getServer().getScheduler().runTask(this, () -> {
-                    if (!isEnabled()) return;
+    /** 起動用マスタを非同期で取得し、メインスレッドで公開して機能を初期化します。 */
+    private void loadStartupMasters() {
+        try {
+            LocalMasterOverlay.Snapshot localSnapshot = localMasterOverlay.loadSnapshot();
+            RuntimeFilebaseSnapshot snapshot = RuntimeFilebaseRepository.getInstance().loadSnapshot();
+            List<ProgressionPreset> presets = isProgressionPresetEnabled()
+                ? ProgressionPresetRepository.load(snapshot) : List.of();
+            getServer().getScheduler().runTask(this, () -> {
+                if (!isEnabled() || startupState.get() == StartupState.FAILED) return;
+                try {
                     localMasterOverlay.replaceSnapshot(localSnapshot);
                     RuntimeFilebaseRepository.getInstance().replaceSnapshot(snapshot);
                     progressionPresets = presets;
-                    try {
-                        enableFeatures();
-                    } catch (RuntimeException failure) {
-                        failMasterStartup(failure);
-                    }
-                });
-            } catch (RuntimeException failure) {
-                Logger.log(LogId.E_901, failure);
-                if (isEnabled()) {
-                    getServer().getScheduler().runTask(this, () -> getServer().getPluginManager().disablePlugin(this));
+                    enableFeatures();
+                } catch (RuntimeException failure) {
+                    failStartup(LogId.E_902, failure);
                 }
-            }
-        });
+            });
+        } catch (RuntimeException failure) {
+            failStartup(LogId.E_901, failure);
+        }
     }
 
-    /** 起動時のマスタ解析・公開失敗を記録し、メインスレッドで機能を停止します。 */
-    private void failMasterStartup(RuntimeException failure) {
-        startupMastersReady = false;
-        Logger.log(LogId.E_902, failure);
-        if (isEnabled()) getServer().getScheduler().runTask(this,
-                () -> getServer().getPluginManager().disablePlugin(this));
+    /**
+     * 起動失敗をサーバーログへ記録し、参加拒否を維持したまま正常終了を予約します。
+     *
+     * @param logId 失敗した起動工程のログID
+     * @param failure 起動に失敗した例外
+     */
+    private void failStartup(LogId logId, RuntimeException failure) {
+        if (startupState.getAndSet(StartupState.FAILED) == StartupState.FAILED) {
+            return;
+        }
+        try {
+            Logger.logStartupFailure(getLogger(), logId, failure);
+        } finally {
+            if (isEnabled()) {
+                // プラグイン単体を無効化すると参加拒否リスナーも解除される。
+                getServer().getScheduler().runTask(this, getServer()::shutdown);
+            }
+        }
+    }
+
+    /** 起動処理が成功した場合にだけ、メインスレッドで自動再読込監視を開始し参加を許可します。 */
+    private void finishStartup() {
+        if (startupState.get() == StartupState.STARTING) {
+            startMasterDataAutoReload();
+            startupState.compareAndSet(StartupState.STARTING, StartupState.READY);
+        }
     }
 
     /** 初期マスタの公開完了後にだけ自動再読込監視を開始します。メインスレッド専用です。 */
@@ -1337,26 +1353,15 @@ public final class AstralRecord extends JavaPlugin {
     /**
      * 設定ファイルとAPI通信に必要な基盤サービスを初期化します。
      *
-     * @return 成功した場合は true
+     * @throws RuntimeException 基盤サービスを初期化できなかった場合
      */
-    private boolean setupInfrastructure() {
-        try {
-            // 設定ファイルを初期化
-            ConfigManager.getInstance().initialize();
-            playerCapacityService = new PlayerCapacityService();
-            if (!ConfigProperties.getInstance().isNetworkEnabled()) {
-                playerCapacityService.applyConfiguredMaximum(getServer());
-            }
-
-
-            // AstralRecord API 疎通確認を非同期で開始
-            ApiHealthChecker.checkAsync();
-
-            return true;
-        }catch (Exception e) {
-            Logger.log(LogId.E_900, e);
-            return false;
+    private void setupInfrastructure() {
+        ConfigManager.getInstance().initialize();
+        playerCapacityService = new PlayerCapacityService();
+        if (!ConfigProperties.getInstance().isNetworkEnabled()) {
+            playerCapacityService.applyConfiguredMaximum(getServer());
         }
+        ApiHealthChecker.checkAsync();
     }
 
     /**
@@ -2690,6 +2695,7 @@ public final class AstralRecord extends JavaPlugin {
                 guideService.loadAll();
                 shopService.warmCaches();
                 getServer().getScheduler().runTask(this, () -> {
+                    if (startupState.get() == StartupState.FAILED) return;
                     try {
                         skillService.replaceDefinitions(skillDefinitions);
                         skillTreeService.replaceMasterDataSnapshot(skillTreeSnapshot);
@@ -2698,15 +2704,14 @@ public final class AstralRecord extends JavaPlugin {
                         if (worldPlacementRepository.isApiMode()) {
                             reloadWorldPlacements();
                         } else {
-                            startupMastersReady = true;
-                            startMasterDataAutoReload();
+                            finishStartup();
                         }
                     } catch (RuntimeException failure) {
-                        failMasterStartup(failure);
+                        failStartup(LogId.E_902, failure);
                     }
                 });
             } catch (RuntimeException failure) {
-                failMasterStartup(failure);
+                failStartup(LogId.E_902, failure);
             }
         });
 
@@ -3806,9 +3811,8 @@ public final class AstralRecord extends JavaPlugin {
                         teleporterService.replaceDefinitionSnapshot(snapshot.waystones());
                         npcPlacementService.activatePlacementSnapshot();
                         teleporterService.syncAllViews();
-                        if (initialMastersPublished && !startupMastersReady) {
-                            startupMastersReady = true;
-                            startMasterDataAutoReload();
+                        if (initialMastersPublished) {
+                            finishStartup();
                         }
                         Logger.log(LogId.I_6410, snapshot.revision(),
                             snapshot.spawners().size(), snapshot.npcs().size(), snapshot.waystones().size());
@@ -3861,7 +3865,7 @@ public final class AstralRecord extends JavaPlugin {
      * @return 開始結果と、公開件数・反映失敗対象を返す完了 future
      */
     public @org.jetbrains.annotations.NotNull MasterDataReloadStart reloadMasterData() {
-        if (!startupMastersReady) {
+        if (startupState.get() != StartupState.READY) {
             return new MasterDataReloadStart(false, CompletableFuture.failedFuture(
                     new IllegalStateException("Startup masters are not ready")));
         }
