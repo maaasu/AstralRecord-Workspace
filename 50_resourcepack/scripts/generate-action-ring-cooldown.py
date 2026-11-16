@@ -61,8 +61,8 @@ def glyphs():
         if number < 10:
             number_ink(tile, number, 56, 8)
         else:
-            for digit, center in zip((9, 9, 10), (23, 56, 89)):
-                number_ink(tile, digit, center, 8)
+            for digit, center in zip((9, 9, 9, 10), (23, 45, 67, 89)):
+                number_ink(tile, digit, center, 6)
         paste(atlas, tile, 13 + number)
     # Every BitmapProvider advance is 15. This alpha=1 sentinel measures the
     # right edge but vanilla text fragments discard it at normal opacity.
@@ -115,13 +115,13 @@ def preview(path):
     out = Image.new('RGBA', (252, 252), '#18222b')
     out.alpha_composite(tile(12).resize((224,224), Image.Resampling.LANCZOS), (14,14))
     for i, (base, nums) in enumerate(((4,(3,)), (11,()), (7,(7,)), (0,()),
-                                      (8,(1,2)), (11,()), (3,(2,)), (11,()))):
+                                      (8,(3,0,0)), (11,()), (3,(2,)), (11,()))):
         angle = math.tau * i / 8
         x = round(126 + 84 * math.sin(angle) - 28)
         y = round(126 - 84 * math.cos(angle) - 28)
         out.alpha_composite(tile(base).resize((56,56), Image.Resampling.LANCZOS), (x,y))
         for column, digit in enumerate(nums):
-            shift = (10 if column else -10) if len(nums) == 2 else 0
+            shift = (10 if column else -10) if len(nums) == 2 else (column - 1) * 16 if len(nums) == 3 else 0
             out.alpha_composite(tile(13 + digit).resize((56,56), Image.Resampling.LANCZOS), (x+shift,y))
     path.parent.mkdir(parents=True, exist_ok=True)
     out.convert('RGB').save(path)

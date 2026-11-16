@@ -260,7 +260,7 @@ def ring_injection(version):
     // Red=ring, green=actual slot, blue=plate or numeral column.
     // Keep the marker separate from Quest, Location and ordinary text.
     if (questProjection && questType == {RING_MARKER} && questCode.g >= 0 && questCode.g <= 8
-            && questCode.b >= 0 && (questCode.g == 8 ? questCode.b == 0 : questCode.b <= 3)
+            && questCode.b >= 0 && (questCode.g == 8 ? questCode.b == 0 : questCode.b <= 5)
             && questScreen.y > questHeight + 4000.0 && questScreen.y < questHeight + 4120.0) {{
         vec2 viewportSize = vec2(2.0 / abs(ProjMat[0][0]), questHeight);
         float hotbarLeft = viewportSize.x * 0.5 - {RING_HOTBAR_HALF}.0;
@@ -282,7 +282,9 @@ def ring_injection(version):
         float size = (questCode.g == 8 ? {RING_SIZE}.0 : {RING_SLOT}.0) * scale;
         if (questCode.g < 8) {{
             center += offsets[questCode.g] * {RING_RADIUS}.0 * scale;
-            center.x += (questCode.b == 2 ? -2.5 : questCode.b == 3 ? 2.5 : 0.0) * scale;
+            float column = questCode.b == 2 ? -2.5 : questCode.b == 3 ? 2.5
+                : questCode.b == 4 ? -4.0 : questCode.b == 5 ? 4.0 : 0.0;
+            center.x += column * scale;
         }}
         if (!fits) {{
             size = 0.0; // Preserve the zero-advance protocol but never obscure existing HUDs.
@@ -299,7 +301,7 @@ def ring_injection(version):
 
 def ring_geometry(marker, width, height):
     red, slot, layer = marker
-    if red != RING_MARKER or not 0 <= slot <= 8 or not 0 <= layer <= (0 if slot == 8 else 3):
+    if red != RING_MARKER or not 0 <= slot <= 8 or not 0 <= layer <= (0 if slot == 8 else 5):
         return None
     combat_left = width * .5 - PROFILE_HALF_WIDTH - RING_HUD_GAP
     wide = combat_left >= RING_LEFT_MARGIN + RING_SIZE
@@ -314,7 +316,7 @@ def ring_geometry(marker, width, height):
     fits = size >= 28 and ring_top >= 4 and (right - size >= quest_right or ring_top >= quest_bottom + 4)
     if slot != 8:
         dx, dy = RING_SLOT_OFFSETS[slot]
-        cx += (dx * RING_RADIUS + (-2.5 if layer == 2 else 2.5 if layer == 3 else 0)) * scale
+        cx += (dx * RING_RADIUS + (0, 0, -2.5, 2.5, -4, 4)[layer]) * scale
         cy += dy * RING_RADIUS * scale
         size = RING_SLOT * scale
     if not fits:
@@ -342,7 +344,14 @@ def verify_ring_geometry():
             base, _ = ring_geometry((RING_MARKER, slot, 0), width, height)
             digit_l, _ = ring_geometry((RING_MARKER, slot, 2), width, height)
             digit_r, _ = ring_geometry((RING_MARKER, slot, 3), width, height)
-            assert digit_l[0] < base[0] < digit_r[0] and digit_l[1] == digit_r[1] == base[1]
+            triple_l, _ = ring_geometry((RING_MARKER, slot, 4), width, height)
+            triple_r, _ = ring_geometry((RING_MARKER, slot, 5), width, height)
+            assert triple_l[0] < digit_l[0] < base[0] < digit_r[0] < triple_r[0]
+            assert triple_l[1] == digit_l[1] == base[1] == digit_r[1] == triple_r[1]
+            # Three 3px digit faces occupy 11px of a 14px plate before scaling.
+            scale = base[2] / RING_SLOT
+            assert math.isclose(triple_r[0] - triple_l[0], 8 * scale)
+            assert 8 + 3 < RING_SLOT
     for width, height in ((300, 180), (720, 180), (640, 60)):
         assert ring_geometry((RING_MARKER, 8, 0), width, height)[0][2] == 0
     assert ring_geometry((RING_MARKER, 8, 1), 640, 360) is None
@@ -853,7 +862,8 @@ def gpu_check(clients):
                            (65, 84, 24), (66, 10, 24), (67, 150, 24), (68, 84, 24), (69, 25, 24),
                            (126, 156, 159), (126, 156, 191), (120, 156, 223), (120, 156, 255), (127, 10, 159), (127, 10, 191),
                            (RING_MARKER, 0, 0), (RING_MARKER, 1, 1), (RING_MARKER, 2, 2),
-                           (RING_MARKER, 3, 3), (RING_MARKER, 8, 0), (RING_MARKER, 8, 1), (RING_MARKER, 9, 0),
+                           (RING_MARKER, 3, 3), (RING_MARKER, 4, 4), (RING_MARKER, 5, 5),
+                           (RING_MARKER, 8, 0), (RING_MARKER, 8, 1), (RING_MARKER, 9, 0),
                            (64, 150, 32), (65, 150, 40), (66, 150, 56), (122, 156, 63),
                            (123, 10, 32), (120, 10, 64),
                            (128, 3, 9), (143, 3, 9), (145, 30, 9), (146, 10, 0), (161, 156, 15)]

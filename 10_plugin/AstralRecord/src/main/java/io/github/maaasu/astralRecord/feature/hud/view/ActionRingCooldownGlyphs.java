@@ -54,8 +54,12 @@ public final class ActionRingCooldownGlyphs {
                 1, FRACTION_STEPS);
             append(result, step, slot, 0);
             long seconds = 1 + (entry.remainingTicks() - 1) / 20;
-            if (seconds >= 100) {
+            if (seconds >= 1_000) {
                 append(result, MANY_SECONDS, slot, 1);
+            } else if (seconds >= 100) {
+                append(result, FIRST_DIGIT + (int) (seconds / 100), slot, 4);
+                append(result, FIRST_DIGIT + (int) (seconds / 10 % 10), slot, 1);
+                append(result, FIRST_DIGIT + (int) (seconds % 10), slot, 5);
             } else if (seconds >= 10) {
                 append(result, FIRST_DIGIT + (int) (seconds / 10), slot, 2);
                 append(result, FIRST_DIGIT + (int) (seconds % 10), slot, 3);

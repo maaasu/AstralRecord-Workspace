@@ -205,7 +205,7 @@ void main() {
     // Red=ring, green=actual slot, blue=plate or numeral column.
     // Keep the marker separate from Quest, Location and ordinary text.
     if (questProjection && questType == 226 && questCode.g >= 0 && questCode.g <= 8
-            && questCode.b >= 0 && (questCode.g == 8 ? questCode.b == 0 : questCode.b <= 3)
+            && questCode.b >= 0 && (questCode.g == 8 ? questCode.b == 0 : questCode.b <= 5)
             && questScreen.y > questHeight + 4000.0 && questScreen.y < questHeight + 4120.0) {
         vec2 viewportSize = vec2(2.0 / abs(ProjMat[0][0]), questHeight);
         float hotbarLeft = viewportSize.x * 0.5 - 91.0;
@@ -227,7 +227,9 @@ void main() {
         float size = (questCode.g == 8 ? 56.0 : 14.0) * scale;
         if (questCode.g < 8) {
             center += offsets[questCode.g] * 21.0 * scale;
-            center.x += (questCode.b == 2 ? -2.5 : questCode.b == 3 ? 2.5 : 0.0) * scale;
+            float column = questCode.b == 2 ? -2.5 : questCode.b == 3 ? 2.5
+                : questCode.b == 4 ? -4.0 : questCode.b == 5 ? 4.0 : 0.0;
+            center.x += column * scale;
         }
         if (!fits) {
             size = 0.0; // Preserve the zero-advance protocol but never obscure existing HUDs.
