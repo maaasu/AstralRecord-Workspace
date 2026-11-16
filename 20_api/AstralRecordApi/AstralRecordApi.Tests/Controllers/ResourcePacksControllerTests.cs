@@ -47,6 +47,23 @@ public sealed class ResourcePacksControllerTests : IDisposable
             response.RootElement.GetProperty("java").GetProperty("mossZombiePresentation").ValueKind);
     }
 
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("null", null)]
+    [InlineData("\"1\"", "1")]
+    [InlineData("\"99\"", "99")]
+    public async Task ManifestRoundTripsOptionalActionRingCooldownHudCapability(string? capabilityJson, string? expected)
+    {
+        var option = capabilityJson is null ? "" : ",\"actionRingCooldownHud\":" + capabilityJson;
+        await WriteManifest("{\"sha1\":\"0123456789abcdef0123456789abcdef01234567\"" + option + "}");
+
+        var result = await Controller().GetManifest(CancellationToken.None);
+        Assert.NotNull(result.Value);
+        using var response = JsonDocument.Parse(JsonSerializer.Serialize(result.Value, WebJson));
+        Assert.Equal(expected, response.RootElement.GetProperty("java").GetProperty("actionRingCooldownHud").GetString());
+        Assert.False(response.RootElement.GetProperty("bedrock").TryGetProperty("actionRingCooldownHud", out _));
+    }
+
     private async Task WriteManifest(string java)
     {
         var directory = Path.Combine(root, "resource-packs");
