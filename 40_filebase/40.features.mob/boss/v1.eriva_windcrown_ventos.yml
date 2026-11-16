@@ -13,6 +13,7 @@ variant:
   age: ADULT
   scale: 1.1
 icon: RAVAGER_SPAWN_EGG
+iconModel: mob_head_ravager
 nameVisible: true
 lore:
   - "&7立石を巡る風を従えた、草原の巨大な角獣。"

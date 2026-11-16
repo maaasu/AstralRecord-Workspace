@@ -9,6 +9,7 @@ name: "&5紅銅の呪糸蜘蛛"
 level: 25
 entityType: SPIDER
 icon: SPIDER_SPAWN_EGG
+iconModel: mob_head_spider
 lore:
   - "&7呪われた糸を扇状に広げ、獲物の力を削ぐ蜘蛛。"
   - "&7三方向の糸は隙間へ。命中すると衰弱することがある。"

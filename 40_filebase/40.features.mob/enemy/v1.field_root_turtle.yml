@@ -11,6 +11,7 @@ entityType: TURTLE
 variant:
   age: ADULT
 icon: TURTLE_SPAWN_EGG
+iconModel: mob_head_turtle
 lore:
   - "&7根の絡んだ甲羅を背負う、ゆっくり歩く亀。"
   - "&7足元に根の輪を描く。輪から出れば足止めを避けられる。"

@@ -9,6 +9,7 @@ name: "&5アイヌリンダレ"
 level: 8
 entityType: EVOKER
 icon: EVOKER_SPAWN_EGG
+iconModel: mob_head_evoker
 lore:
   - "&7三方向へ広がる地走りの魔法で侵入者を追い詰める。"
 tags:

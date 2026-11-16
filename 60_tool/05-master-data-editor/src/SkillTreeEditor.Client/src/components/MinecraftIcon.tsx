@@ -1,25 +1,28 @@
 import { useState } from 'react'
 import type { JsonValue } from '../types/editor'
-import { minecraftHeadTextureUrl, minecraftIconName, minecraftIconUrl, minecraftItemTextureUrl } from '../utils/minecraft'
+import { minecraftHeadTextureUrl, minecraftIconName, minecraftIconUrl, minecraftItemTextureUrl, minecraftMobHeadUrl } from '../utils/minecraft'
 
 interface MinecraftIconProps {
   icon: JsonValue
   customModelData?: JsonValue
   iconTexture?: JsonValue
+  iconModel?: JsonValue
   revision?: number
   className?: string
 }
 
 interface IconSource { url: string; head: boolean }
 
-export function MinecraftIcon({ icon, customModelData, iconTexture, revision = 0, className = '' }: MinecraftIconProps) {
+export function MinecraftIcon({ icon, customModelData, iconTexture, iconModel, revision = 0, className = '' }: MinecraftIconProps) {
   const name = minecraftIconName(icon)
   const sources: IconSource[] = []
   const custom = minecraftItemTextureUrl(icon, customModelData, revision)
   const head = minecraftHeadTextureUrl(icon, iconTexture)
+  const mobHead = minecraftMobHeadUrl(iconModel, revision)
   const vanilla = minecraftIconUrl(icon, revision)
   if (custom) sources.push({ url: custom, head: false })
   if (head) sources.push({ url: head, head: true })
+  if (mobHead) sources.push({ url: mobHead, head: false })
   if (vanilla) sources.push({ url: vanilla, head: false })
   return <IconPreview key={JSON.stringify(sources)} sources={sources} name={name} className={className} />
 }

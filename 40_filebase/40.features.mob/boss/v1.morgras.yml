@@ -12,7 +12,7 @@ entityType: ZOMBIE
 variant:
   age: ADULT
   scale: 1.2
-icon: ZOMBIE_SPAWN_EGG
+icon: ZOMBIE_HEAD
 nameVisible: true
 lore:
   - "&7苔と石片をまとい、遺跡の奥で侵入者を待ち構える。"

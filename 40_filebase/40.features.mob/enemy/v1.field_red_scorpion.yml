@@ -12,6 +12,7 @@ variant:
   age: ADULT
   scale: 0.7
 icon: SPIDER_SPAWN_EGG
+iconModel: mob_head_spider
 lore:
 - '&7砂地を歩く、毒針を備えた蠍。'
 - '&7細い直線を示してから毒針を突き出す。'

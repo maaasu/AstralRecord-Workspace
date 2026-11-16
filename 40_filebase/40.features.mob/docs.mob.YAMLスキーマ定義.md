@@ -32,7 +32,8 @@ AI（行動ロジック）もプラグイン独自実装であり、本スキー
 | `skin`          | Map          | ×  | Null      | エンティティの外見設定（後述。entityType が `PLAYER` の場合に主に使用）          |
 | `variant`       | Map          | ×  | `age: ADULT` | 同一マスタから生まれる実体 Mob の見た目差分を固定する設定 |
 | `nameVisible`   | Boolean      | ×  | true      | ネームタグ表示の有無                                              |
-| `icon`          | String       | ×  | Null      | UI/図鑑表示用アイコン（Bukkit Material名）                          |
+| `icon`          | String       | ×  | Null      | バニラの頭または代替素材（Bukkit Material 名） |
+| `iconModel`     | String       | ×  | Null      | `ENEMY` / `BOSS` の配布パック頭モデル。GUI 台帳の `mob_head_*` 役割名 |
 | `iconTexture`   | String       | ×  | Null      | `icon: PLAYER_HEAD` 時だけ適用する Base64 の `textures` 値。復号JSONの`textures.SKIN.url`は公式 texture URL に限定し、`levels[]`でも上書き可能 |
 | `lore`          | List<String> | ×  | emptyList | 説明文（§ または & の色コード利用可能）                                  |
 | `tags`          | List<String> | ×  | emptyList | 共有タグカタログの`MOB`対象ID（例: `undead`, `humanoid`, `fire`）  |
@@ -41,11 +42,10 @@ AI（行動ロジック）もプラグイン独自実装であり、本スキー
 
 ### icon（作成時の指定方針）
 
-`ENEMY` / `BOSS` は、モデルの `entityType` に対応するスポーンエッグの Material 名を `icon` に指定します。
-例: `entityType: PIG` なら `icon: PIG_SPAWN_EGG`。`levels[].icon` を上書きする場合も同じスポーンエッグに揃えます。
-新規作成・更新時は利用中の Paper にその Material が存在することを確認します。
-`NPC` の機能・用途を示すアイコンはこの統一の対象外です。詳細は [Mob 設計のアイコン方針](../../00_docs/50_Filebase設計書/feature/40-mob.md#アイコンの指定) を参照してください。
-フィールドの型・任意性・未指定時の読込互換は変更しません。
+`ENEMY` / `BOSS` は討伐記録で使う頭を指定します。バニラの頭は `icon: SKELETON_SKULL` のように指定します。
+配布パックの頭は [GUI 台帳](../../50_resourcepack/gui-icons.json) に `minecraft:paper` で登録された役割名を `iconModel` に指定します。
+例えばブタの頭は `iconModel: mob_head_pig` を使用し、`icon: PIG_SPAWN_EGG` はエディターで PNG を取得できない場合の代替素材になります。
+`NPC` のアイコンは機能・用途に合った素材を指定します。詳細は [Mob 設計のアイコン方針](../../00_docs/50_Filebase設計書/feature/40-mob.md#アイコンの指定) を参照してください。
 
 ### levels（レベルプロファイル）
 
@@ -63,7 +63,9 @@ AI（行動ロジック）もプラグイン独自実装であり、本スキー
 | `levels[].name` | String | × | レベル別表示名。未指定時は親の `name` |
 | `levels[].title` | String | × | レベル別称号 |
 | `levels[].nameVisible` | Boolean | × | レベル別ネームタグ表示 |
-| `levels[].icon` | String | × | レベル別アイコン |
+| `levels[].icon` | String | × | レベル別の頭素材または代替素材 |
+| `levels[].iconModel` | String | × | レベル別の頭モデル。未指定なら共通定義から継承し、明示的な `null` で解除 |
+| `levels[].iconTexture` | String | × | レベル別のプレイヤーヘッドテクスチャ |
 | `levels[].lore` / `tags` | List | × | レベル別説明・タグ |
 | `levels[].skin` / `variant` / `equipment` | Map | × | レベル別外見・装備 |
 | `levels[].baseStats` / `shield` | Map/List | × | レベル別ステータス・シールド |
@@ -177,6 +179,7 @@ name: "&aミズガルズ・グラスボア"
 level: 2
 entityType: PIG
 icon: PIG_SPAWN_EGG
+iconModel: mob_head_pig
 lore:
   - "&7風待ち草原の外れをうろつく流れ者。"
 tags:

@@ -9,6 +9,7 @@ name: "&6クレイガード"
 level: 3
 entityType: HUSK
 icon: HUSK_SPAWN_EGG
+iconModel: mob_head_husk
 lore:
   - "&7粘土と石片で組み上げられた小さな守護像。"
   - "&7高く跳び、狙った地面へ重い一撃を落とす。"

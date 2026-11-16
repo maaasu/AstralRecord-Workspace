@@ -9,6 +9,7 @@ name: "&6茨灯の案山子 Lv.20"
 level: 20
 entityType: HUSK
 icon: HUSK_SPAWN_EGG
+iconModel: mob_head_husk
 lore:
   - "&7朽ちた畑から歩き出した、茨をまとった案山子。"
   - "&7前方に三つの茨輪を並べ、予兆の後に一度だけ突き上げる。"

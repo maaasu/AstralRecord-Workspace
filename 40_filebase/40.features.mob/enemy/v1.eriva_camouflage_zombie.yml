@@ -10,7 +10,7 @@ level: 18
 entityType: ZOMBIE
 variant:
   age: ADULT
-icon: ZOMBIE_SPAWN_EGG
+icon: ZOMBIE_HEAD
 lore:
   - "&7草葉と苔をまとい、平原に紛れるゾンビ。"
   - "&7近づいた獲物を追い、近接攻撃を仕掛ける。"

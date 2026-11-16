@@ -12,6 +12,7 @@ variant:
   age: ADULT
   color: WHITE
 icon: SHEEP_SPAWN_EGG
+iconModel: mob_head_sheep
 lore:
   - "&7噛みつくたびに間合いを詰める、聖域の獣。"
 tags:

@@ -13,6 +13,7 @@ variant:
   age: BABY
   scale: 1.0
 icon: HUSK_SPAWN_EGG
+iconModel: mob_head_husk
 nameVisible: true
 lore:
   - "&7古い坑道で鐘を鳴らし、落盤を呼ぶ小さな坑夫。"

@@ -11,6 +11,7 @@ entityType: IRON_GOLEM
 variant:
   scale: 0.8
 icon: IRON_GOLEM_SPAWN_EGG
+iconModel: mob_head_iron_golem
 lore:
   - "&7樹皮をまとい、太い根の間を守る衛兵。"
   - "&7根枝を扇状に払い、続けて正面へ根を走らせる。"

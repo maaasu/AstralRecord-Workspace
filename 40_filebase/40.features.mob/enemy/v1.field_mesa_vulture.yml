@@ -13,6 +13,7 @@ variant:
   kind: GRAY
   scale: 1.3
 icon: PARROT_SPAWN_EGG
+iconModel: mob_head_parrot_gray
 lore:
 - '&7石をくわえ、砂岩の地表を歩く大きな鳥。'
 - '&7足元の円を示してから石を落とす。'

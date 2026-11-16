@@ -9,6 +9,7 @@ name: "&2ミッドガルズ・モスシェル"
 level: 2
 entityType: TURTLE
 icon: TURTLE_SPAWN_EGG
+iconModel: mob_head_turtle
 lore:
   - "&7苔むした甲羅を背負う小型の甲殻獣。"
   - "&7攻撃を受けるまで静かに草原を歩く。"

@@ -14,6 +14,7 @@ variant:
   color: WHITE
   scale: 1.25
 icon: SHEEP_SPAWN_EGG
+iconModel: mob_head_sheep
 nameVisible: true
 lore:
   - "&7白樺の樹皮を思わせる羊毛で身を守り、花影に紛れて攻撃をかわす。"

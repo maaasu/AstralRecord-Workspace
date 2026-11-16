@@ -10,6 +10,7 @@ title: "&3―― 棘と灯の女主人 ――"
 level: 20
 entityType: WITCH
 icon: WITCH_SPAWN_EGG
+iconModel: mob_head_witch
 nameVisible: true
 variant:
   age: ADULT

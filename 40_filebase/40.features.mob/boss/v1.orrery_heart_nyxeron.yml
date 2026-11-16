@@ -12,6 +12,7 @@ entityType: IRON_GOLEM
 variant:
   scale: 1.2
 icon: IRON_GOLEM_SPAWN_EGG
+iconModel: mob_head_nyxeron
 nameVisible: true
 lore:
   - "&7影輪の天球儀の中心で脈打つ、星蝕の心臓。"

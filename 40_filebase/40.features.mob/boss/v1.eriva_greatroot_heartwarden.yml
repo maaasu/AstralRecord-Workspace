@@ -12,6 +12,7 @@ entityType: IRON_GOLEM
 variant:
   scale: 1.15
 icon: IRON_GOLEM_SPAWN_EGG
+iconModel: mob_head_iron_golem
 nameVisible: true
 lore:
   - "&7大樹の奥で根脈を束ね、命の巡りを守る心守。"

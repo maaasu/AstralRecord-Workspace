@@ -6,16 +6,20 @@ using SkillTreeEditor.Server.Models;
 
 namespace SkillTreeEditor.Server.Services;
 
-public sealed partial class MasterDataCatalog(MasterDataPaths paths)
+public sealed partial class MasterDataCatalog(MasterDataPaths paths, WorkspaceItemTextures? textures = null)
 {
-    // Filebase と Buff HUD アイコン登録が変わらない間は、前回組み立てたカタログをそのまま返す。
+    // Filebase とアイコン登録が変わらない間は、前回組み立てたカタログをそのまま返す。
     private volatile Latest? _latest;
+    private readonly WorkspaceItemTextures _textures = textures ?? new(paths);
 
-    private sealed record Latest(MasterDataEntry[] Entries, BuffHudStamp BuffHud, string Backups, MasterDataCatalogResult Result);
+    private sealed record Latest(MasterDataEntry[] Entries, BuffHudStamp BuffHud, IReadOnlyList<string>? MobHeadRoles,
+        string Backups, MasterDataCatalogResult Result);
     private readonly record struct BuffHudStamp(bool Exists, long Length, DateTime LastWriteTimeUtc);
 
     internal const string BuffCategory = "70.shared.buff";
     internal const string BuffHudIconFieldPath = "/hudIconTexture";
+    internal const string MobHeadIconFieldPath = "/iconModel";
+    internal const string MobLevelHeadIconFieldPath = "/levels/*/iconModel";
 
     private static readonly Dictionary<string, string> Labels = new(StringComparer.Ordinal)
     {
@@ -28,6 +32,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         ["entry"] = "入場地点", ["party"] = "パーティー", ["challenge"] = "挑戦ルール",
         ["clearRewards"] = "クリア報酬", ["generation"] = "生成設定", ["theme"] = "外観テーマ", ["encounter"] = "モブの出現設定",
         ["category"] = "カテゴリ", ["icon"] = "アイコン素材", ["iconTexture"] = "頭アイコンのテクスチャ",
+        ["iconModel"] = "モブの頭アイコン",
         ["hudIconTexture"] = "Java版HUDのアイコン",
         ["customModelData"] = "カスタムモデルID",
         ["equipmentAsset"] = "着用防具の外観アセット",
@@ -82,15 +87,17 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
     {
         var entries = paths.EnumerateEntries().ToArray();
         var buffHud = ReadBuffHudStamp();
+        var mobHeadRoles = _textures.GetMobHeadRoles();
         var readAt = DateTime.UtcNow;
         var settled = (!buffHud.Exists || readAt - buffHud.LastWriteTimeUtc > FilebaseSnapshotCache.RecentWriteWindow)
             && entries.All(entry => readAt - entry.LastWriteTimeUtc > FilebaseSnapshotCache.RecentWriteWindow);
         if (!reload && settled && _latest is { } latest && latest.BuffHud == buffHud
+            && ReferenceEquals(latest.MobHeadRoles, mobHeadRoles)
             && latest.Backups == backups && latest.Entries.AsSpan().SequenceEqual(entries))
             return latest.Result;
         var result = await BuildAsync(entries.Select(entry => entry.FullPath).ToArray(), backups, token);
         // 書き換え直後の登録ファイルは属性だけでは区別できないことがあるため、落ち着くまで再利用しない。
-        if (settled) _latest = new(entries, buffHud, backups, result);
+        if (settled) _latest = new(entries, buffHud, mobHeadRoles, backups, result);
         return result;
     }
 
@@ -148,6 +155,18 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths)
         if (category.Equals(BuffCategory, MasterDataPaths.Comparison)
             && fields.TryGetValue(BuffHudIconFieldPath, out var buffHudIcon))
             fields[BuffHudIconFieldPath] = buffHudIcon with { Enum = await ReadBuffHudIconsAsync(token) };
+        if (category is "40.features.mob/enemy" or "40.features.mob/boss")
+        {
+            if (_textures.GetMobHeadRoles() is { } roles)
+                foreach (var fieldPath in new[] { MobHeadIconFieldPath, MobLevelHeadIconFieldPath })
+                    if (fields.TryGetValue(fieldPath, out var mobHead))
+                        fields[fieldPath] = mobHead with { Enum = new JsonArray(roles.Select(role => (JsonNode?)JsonValue.Create(role)).ToArray()) };
+        }
+        else
+        {
+            fields.Remove(MobHeadIconFieldPath);
+            fields.Remove(MobLevelHeadIconFieldPath);
+        }
         var schemas = new List<MasterDataSchema>();
         var schemaDirectories = new HashSet<string>(MasterDataPaths.Comparer) { directory, Path.Combine(directory, "schemas") };
         if (category.StartsWith("35.features.skilltree/", MasterDataPaths.Comparison))

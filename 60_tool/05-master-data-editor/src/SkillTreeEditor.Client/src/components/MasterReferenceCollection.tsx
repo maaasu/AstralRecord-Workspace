@@ -56,7 +56,7 @@ export function MasterReferenceCollection({ path, definition, context, values, r
     const name = entry.label || file?.name || entry.value
     return {
       id: entry.value, name, icon: file?.icon,
-      customModelData: file?.customModelData, iconTexture: file?.iconTexture,
+      customModelData: file?.customModelData, iconTexture: file?.iconTexture, iconModel: file?.iconModel,
       preview: { file, kind: definition.kind, label: name, reference: entry.value },
     }
   }) : [], [choices, context.files, definition.dialog, definition.kind])
@@ -201,8 +201,8 @@ export const referenceSymbol = (kind: string | undefined) => kind && Object.hasO
 
 export function ReferenceIcon({ file, kind }: { file?: MasterFileSummary; kind?: string }) {
   const symbol = referenceSymbol(kind)
-  if (!file?.icon && symbol) return <span className="minecraft-icon master-reference-icon master-reference-symbol" aria-hidden="true">{symbol}</span>
-  return <MinecraftIcon icon={file?.icon ?? null} customModelData={file?.customModelData} iconTexture={file?.iconTexture} className="master-reference-icon" />
+  if (!file?.icon && !file?.iconModel && symbol) return <span className="minecraft-icon master-reference-icon master-reference-symbol" aria-hidden="true">{symbol}</span>
+  return <MinecraftIcon icon={file?.icon ?? null} customModelData={file?.customModelData} iconTexture={file?.iconTexture} iconModel={file?.iconModel} className="master-reference-icon" />
 }
 
 function ReferenceCollectionPicker({ choices, noun, kind, files, disabled, adding, onSelect, onClose }: {

@@ -12,6 +12,7 @@ variant:
   age: ADULT
   scale: 1.35
 icon: TURTLE_SPAWN_EGG
+iconModel: mob_head_turtle
 lore:
   - "&7古木の根元で苔をまとい、重い甲羅で身を守る獣。"
   - "&7ゆっくり近づき、甲羅をぶつけて攻撃する。"

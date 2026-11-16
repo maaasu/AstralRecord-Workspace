@@ -11,6 +11,7 @@ entityType: MOOSHROOM
 variant:
   kind: BROWN
 icon: MOOSHROOM_SPAWN_EGG
+iconModel: mob_head_mooshroom_brown
 lore:
   - "&7根に寄り添う茸から、胞子の種を飛ばす。"
   - "&7印を離れれば開花を避けられる。残る胞子にも気を配ろう。"

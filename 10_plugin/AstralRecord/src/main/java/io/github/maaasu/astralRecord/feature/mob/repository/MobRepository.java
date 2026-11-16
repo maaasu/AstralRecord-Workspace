@@ -79,7 +79,7 @@ public class MobRepository {
 
     /** レベルプロファイルで上書きを許可する共通 Mob 項目です。 */
     private static final Set<String> LEVEL_PROFILE_FIELDS = Set.of(
-            "name", "title", "nameVisible", "icon", "iconTexture", "lore", "tags", "skin", "variant",
+            "name", "title", "nameVisible", "icon", "iconTexture", "iconModel", "lore", "tags", "skin", "variant",
             "equipment", "baseStats", "shield", "ai", "damageImmune", "interactions",
             "drops", "challenge"
     );
@@ -208,11 +208,12 @@ public class MobRepository {
             @Nullable String entityTypeName,
             @Nullable Material blockMaterial
     ) {
+        String name = optionalString(obj, "name", id);
         return new MobTemplate(
                 obj.has("schemaVersion") ? obj.get("schemaVersion").getAsInt() : 1,
                 id,
                 category,
-                optionalString(obj, "name", id),
+                name,
                 optionalString(obj, "title"),
                 obj.has("level") ? obj.get("level").getAsInt() : 1,
                 entityType,
@@ -235,12 +236,15 @@ public class MobRepository {
                 category == MobCategory.NPC ? null : parseDrops(getObject(obj, "drops")),
                 category == MobCategory.BOSS ? parseChallenge(getObject(obj, "challenge")) : null,
                 List.of(),
-                optionalString(obj, "iconTexture")
-        ).withDefenseEligible(category == MobCategory.ENEMY
-                && obj.has("defenseEligible")
-                && obj.get("defenseEligible").isJsonPrimitive()
-                && obj.get("defenseEligible").getAsJsonPrimitive().isBoolean()
-                && obj.get("defenseEligible").getAsBoolean());
+                optionalString(obj, "iconTexture"),
+                name,
+                category == MobCategory.ENEMY
+                        && obj.has("defenseEligible")
+                        && obj.get("defenseEligible").isJsonPrimitive()
+                        && obj.get("defenseEligible").getAsJsonPrimitive().isBoolean()
+                        && obj.get("defenseEligible").getAsBoolean(),
+                category == MobCategory.NPC ? null : optionalString(obj, "iconModel")
+        );
     }
 
     private @NotNull List<MobLevelProfile> parseLevelProfiles(

@@ -9,6 +9,7 @@ name: '&aハラノヒツジ'
 level: 28
 entityType: SHEEP
 icon: SHEEP_SPAWN_EGG
+iconModel: mob_head_sheep
 variant:
   age: ADULT
   color: WHITE
