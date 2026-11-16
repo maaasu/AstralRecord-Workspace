@@ -7,29 +7,267 @@
       {
         "when": "walk_a",
         "model": {
-          "type": "minecraft:model",
-          "model": "astralrecord:item/midgard_moss_zombie_walk_a",
-          "tints": [
+          "type": "minecraft:range_dispatch",
+          "property": "minecraft:custom_model_data",
+          "index": 0,
+          "entries": [
             {
-              "type": "minecraft:custom_model_data",
-              "index": 0,
-              "default": 16777215
+              "threshold": 1,
+              "model": {
+                "type": "minecraft:model",
+                "model": "astralrecord:item/midgard_moss_zombie_walk_a_01",
+                "tints": [
+                  {
+                    "type": "minecraft:custom_model_data",
+                    "index": 0,
+                    "default": 16777215
+                  }
+                ]
+              }
+            },
+            {
+              "threshold": 2,
+              "model": {
+                "type": "minecraft:model",
+                "model": "astralrecord:item/midgard_moss_zombie_walk_a_02",
+                "tints": [
+                  {
+                    "type": "minecraft:custom_model_data",
+                    "index": 0,
+                    "default": 16777215
+                  }
+                ]
+              }
+            },
+            {
+              "threshold": 3,
+              "model": {
+                "type": "minecraft:model",
+                "model": "astralrecord:item/midgard_moss_zombie_walk_a_03",
+                "tints": [
+                  {
+                    "type": "minecraft:custom_model_data",
+                    "index": 0,
+                    "default": 16777215
+                  }
+                ]
+              }
+            },
+            {
+              "threshold": 4,
+              "model": {
+                "type": "minecraft:model",
+                "model": "astralrecord:item/midgard_moss_zombie_walk_a_04",
+                "tints": [
+                  {
+                    "type": "minecraft:custom_model_data",
+                    "index": 0,
+                    "default": 16777215
+                  }
+                ]
+              }
+            },
+            {
+              "threshold": 5,
+              "model": {
+                "type": "minecraft:model",
+                "model": "astralrecord:item/midgard_moss_zombie_walk_a_05",
+                "tints": [
+                  {
+                    "type": "minecraft:custom_model_data",
+                    "index": 0,
+                    "default": 16777215
+                  }
+                ]
+              }
+            },
+            {
+              "threshold": 6,
+              "model": {
+                "type": "minecraft:model",
+                "model": "astralrecord:item/midgard_moss_zombie_walk_a_06",
+                "tints": [
+                  {
+                    "type": "minecraft:custom_model_data",
+                    "index": 0,
+                    "default": 16777215
+                  }
+                ]
+              }
+            },
+            {
+              "threshold": 7,
+              "model": {
+                "type": "minecraft:model",
+                "model": "astralrecord:item/midgard_moss_zombie_walk_a_07",
+                "tints": [
+                  {
+                    "type": "minecraft:custom_model_data",
+                    "index": 0,
+                    "default": 16777215
+                  }
+                ]
+              }
+            },
+            {
+              "threshold": 8,
+              "model": {
+                "type": "minecraft:model",
+                "model": "astralrecord:item/midgard_moss_zombie_walk_a",
+                "tints": [
+                  {
+                    "type": "minecraft:custom_model_data",
+                    "index": 0,
+                    "default": 16777215
+                  }
+                ]
+              }
             }
-          ]
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "astralrecord:item/midgard_moss_zombie_walk_a",
+            "tints": [
+              {
+                "type": "minecraft:custom_model_data",
+                "index": 0,
+                "default": 16777215
+              }
+            ]
+          }
         }
       },
       {
         "when": "walk_b",
         "model": {
-          "type": "minecraft:model",
-          "model": "astralrecord:item/midgard_moss_zombie_walk_b",
-          "tints": [
+          "type": "minecraft:range_dispatch",
+          "property": "minecraft:custom_model_data",
+          "index": 0,
+          "entries": [
             {
-              "type": "minecraft:custom_model_data",
-              "index": 0,
-              "default": 16777215
+              "threshold": 1,
+              "model": {
+                "type": "minecraft:model",
+                "model": "astralrecord:item/midgard_moss_zombie_walk_b_01",
+                "tints": [
+                  {
+                    "type": "minecraft:custom_model_data",
+                    "index": 0,
+                    "default": 16777215
+                  }
+                ]
+              }
+            },
+            {
+              "threshold": 2,
+              "model": {
+                "type": "minecraft:model",
+                "model": "astralrecord:item/midgard_moss_zombie_walk_b_02",
+                "tints": [
+                  {
+                    "type": "minecraft:custom_model_data",
+                    "index": 0,
+                    "default": 16777215
+                  }
+                ]
+              }
+            },
+            {
+              "threshold": 3,
+              "model": {
+                "type": "minecraft:model",
+                "model": "astralrecord:item/midgard_moss_zombie_walk_b_03",
+                "tints": [
+                  {
+                    "type": "minecraft:custom_model_data",
+                    "index": 0,
+                    "default": 16777215
+                  }
+                ]
+              }
+            },
+            {
+              "threshold": 4,
+              "model": {
+                "type": "minecraft:model",
+                "model": "astralrecord:item/midgard_moss_zombie_walk_b_04",
+                "tints": [
+                  {
+                    "type": "minecraft:custom_model_data",
+                    "index": 0,
+                    "default": 16777215
+                  }
+                ]
+              }
+            },
+            {
+              "threshold": 5,
+              "model": {
+                "type": "minecraft:model",
+                "model": "astralrecord:item/midgard_moss_zombie_walk_b_05",
+                "tints": [
+                  {
+                    "type": "minecraft:custom_model_data",
+                    "index": 0,
+                    "default": 16777215
+                  }
+                ]
+              }
+            },
+            {
+              "threshold": 6,
+              "model": {
+                "type": "minecraft:model",
+                "model": "astralrecord:item/midgard_moss_zombie_walk_b_06",
+                "tints": [
+                  {
+                    "type": "minecraft:custom_model_data",
+                    "index": 0,
+                    "default": 16777215
+                  }
+                ]
+              }
+            },
+            {
+              "threshold": 7,
+              "model": {
+                "type": "minecraft:model",
+                "model": "astralrecord:item/midgard_moss_zombie_walk_b_07",
+                "tints": [
+                  {
+                    "type": "minecraft:custom_model_data",
+                    "index": 0,
+                    "default": 16777215
+                  }
+                ]
+              }
+            },
+            {
+              "threshold": 8,
+              "model": {
+                "type": "minecraft:model",
+                "model": "astralrecord:item/midgard_moss_zombie_walk_b",
+                "tints": [
+                  {
+                    "type": "minecraft:custom_model_data",
+                    "index": 0,
+                    "default": 16777215
+                  }
+                ]
+              }
             }
-          ]
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "astralrecord:item/midgard_moss_zombie_walk_b",
+            "tints": [
+              {
+                "type": "minecraft:custom_model_data",
+                "index": 0,
+                "default": 16777215
+              }
+            ]
+          }
         }
       },
       {
