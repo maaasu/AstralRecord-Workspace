@@ -9,6 +9,7 @@ name: "&d紅銅の呪灯魔女"
 level: 25
 entityType: WITCH
 icon: WITCH_SPAWN_EGG
+iconModel: mob_head_witch
 lore:
   - "&7紅銅の灯を掲げ、木陰から鋭い魔弾を放つ魔女。"
   - "&7呪灯弾は詠唱を見て横へ避けるか、壁を盾にせよ。"

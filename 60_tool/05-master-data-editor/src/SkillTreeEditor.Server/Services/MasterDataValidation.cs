@@ -268,6 +268,10 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
             }
             if (!MatchesType(current, field))
                 issues.Add(new("error", "FIELD_TYPE", pointer, $"{field.Label} ({field.Key}) は {field.Type} で記載してください。"));
+            else if (field.Path is MasterDataCatalog.MobHeadIconFieldPath or MasterDataCatalog.MobLevelHeadIconFieldPath
+                     && (JsonValueReader.String(current) is not { } model || !WorkspaceItemTextures.IsMobHeadRole(model)
+                         || (field.Enum is { } roles && !roles.Any(role => JsonNode.DeepEquals(role, current)))))
+                issues.Add(new("error", "MOB_HEAD_ICON_MODEL", pointer, "モブの頭アイコンは登録済みのモデルから選んでください。"));
             return;
         }
         var segment = segments[index];

@@ -9,6 +9,7 @@ name: "&2茨冠の祭苑番兵"
 level: 25
 entityType: HUSK
 icon: HUSK_SPAWN_EGG
+iconModel: mob_head_husk
 lore:
   - "&7茨をまとい、魔女たちの前に立ちはだかる番兵。"
   - "&7前方へ連なる茨の円は、列の横へ退避せよ。"

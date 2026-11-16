@@ -14,6 +14,7 @@ variant:
   kind: RED
   scale: 3.0
 icon: PARROT_SPAWN_EGG
+iconModel: mob_head_sunbird
 nameVisible: true
 lore:
   - "&7灼光を翼に宿し、太陽の儀式を操る鳥。"

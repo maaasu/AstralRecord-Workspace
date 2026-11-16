@@ -12,6 +12,7 @@ variant:
   age: ADULT
   scale: 0.9
 icon: ARMADILLO_SPAWN_EGG
+iconModel: mob_head_armadillo
 lore:
   - "&7木陰で身を丸め、背の硬い針で身を守る小獣。"
   - "&7針の輪を1.5秒予告する間だけ防御が高まる。"

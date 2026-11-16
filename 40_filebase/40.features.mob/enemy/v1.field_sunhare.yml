@@ -13,6 +13,7 @@ variant:
   kind: BROWN
   scale: 1.25
 icon: RABBIT_SPAWN_EGG
+iconModel: mob_head_rabbit_brown
 lore:
   - "&7日なたを好む、耳の長い野ウサギ。"
   - "&7身を低く構えて跳び蹴りを放つ。横へ避けよう。"

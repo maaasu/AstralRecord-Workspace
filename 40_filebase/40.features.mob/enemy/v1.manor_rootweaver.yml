@@ -9,6 +9,7 @@ name: "&2根絡みの織り手"
 level: 20
 entityType: SPIDER
 icon: SPIDER_SPAWN_EGG
+iconModel: mob_head_spider
 variant:
   age: ADULT
   scale: 1.15

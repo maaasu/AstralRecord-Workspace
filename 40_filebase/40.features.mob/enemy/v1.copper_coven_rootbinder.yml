@@ -9,6 +9,7 @@ name: "&a翠呪の根糸術師"
 level: 25
 entityType: EVOKER
 icon: EVOKER_SPAWN_EGG
+iconModel: mob_head_evoker
 lore:
   - "&7森の根を呼び、魔女の祭苑へ踏み入る者を鈍らせる。"
   - "&7根糸の円は現れた地点から動かない。円の外へ退避せよ。"

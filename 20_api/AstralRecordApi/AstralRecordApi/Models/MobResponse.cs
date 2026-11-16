@@ -51,6 +51,9 @@ public class MobResponse
 
     public string? Icon { get; init; }
 
+    /// <summary>配布パックの頭アイコンの役割名。</summary>
+    public string? IconModel { get; init; }
+
     /// <summary>アイコンが <c>PLAYER_HEAD</c> の場合に使用する Base64 テクスチャ。NPC 外見用の <see cref="Skin"/> とは別用途です。</summary>
     public string? IconTexture { get; init; }
 
@@ -93,6 +96,9 @@ public class MobSummaryResponse
     public required string EntityType { get; init; }
 
     public string? Icon { get; init; }
+
+    /// <summary>配布パックの頭アイコンの役割名。</summary>
+    public string? IconModel { get; init; }
 
     /// <summary>PLAYER_HEAD アイコン用の Base64 テクスチャ。</summary>
     public string? IconTexture { get; init; }

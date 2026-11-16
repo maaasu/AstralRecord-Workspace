@@ -13,6 +13,7 @@ variant:
   age: ADULT
   scale: 1.25
 icon: SNIFFER_SPAWN_EGG
+iconModel: mob_head_sniffer
 nameVisible: true
 lore:
   - "&7古代の種から目覚め、花咲く古木の根を守る大きな獣。"

@@ -9,6 +9,7 @@ name: "&aクサハウンド Lv.22"
 level: 22
 entityType: WOLF
 icon: WOLF_SPAWN_EGG
+iconModel: mob_head_wolf
 lore:
   - "&7草色の毛並みを持ち、平原を走り回る猟犬。"
   - "&7低く構えたら直線へ突進する。横に避けよう。"

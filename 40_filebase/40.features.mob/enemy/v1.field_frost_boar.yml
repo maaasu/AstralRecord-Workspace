@@ -12,6 +12,7 @@ variant:
   age: ADULT
   scale: 1.4
 icon: PIG_SPAWN_EGG
+iconModel: mob_head_pig
 lore:
 - '&7霜をまとった、頑丈な猪。'
 - '&7霜の梯子を地面に示してから、その方向へ重く踏み込む。'

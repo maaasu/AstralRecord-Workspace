@@ -9,6 +9,7 @@ name: "&a棘牙の森狼 Lv.17"
 level: 17
 entityType: WOLF
 icon: WOLF_SPAWN_EGG
+iconModel: mob_head_wolf
 lore:
   - "&7茂みを縫って駆ける、鋭い牙を持つ森の狼。"
   - "&7身を低く構え、狙った方向へ一気に飛び掛かる。"

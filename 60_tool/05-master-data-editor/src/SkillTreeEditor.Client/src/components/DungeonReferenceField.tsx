@@ -47,7 +47,7 @@ export function DungeonReferenceField({ path, label, kind, value, references, co
       const file = files.get(entry.path)
       return [{
         id, name: entry.label || file?.name || id, icon: file?.icon, customModelData: file?.customModelData,
-        iconTexture: file?.iconTexture, symbol: referenceSymbol(kind),
+        iconTexture: file?.iconTexture, iconModel: file?.iconModel, symbol: referenceSymbol(kind),
         preview: { file, kind, label: entry.label || file?.name || id, reference: kind + ':' + id },
       }]
     })

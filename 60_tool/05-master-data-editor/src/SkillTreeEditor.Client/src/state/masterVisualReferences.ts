@@ -10,6 +10,7 @@ export interface MasterVisualReferences {
   selectCategorizedItem?: (path: string, reference: string, file: MasterFileSummary) => void
   customModelData?: JsonValue
   iconTexture?: JsonValue
+  iconModel?: JsonValue
 }
 
 export const MasterVisualReferencesContext = createContext<MasterVisualReferences | null>(null)

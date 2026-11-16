@@ -8,7 +8,7 @@ category: ENEMY
 name: "&c烈怒の写本守"
 level: 30
 entityType: WITHER_SKELETON
-icon: WITHER_SKELETON_SPAWN_EGG
+icon: WITHER_SKELETON_SKULL
 nameVisible: true
 lore:
   - "&7魔女の攻撃を強める烈怒の頁。"

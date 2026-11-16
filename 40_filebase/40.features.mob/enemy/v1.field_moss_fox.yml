@@ -9,6 +9,7 @@ name: '&aコケギツネ Lv.24'
 level: 24
 entityType: FOX
 icon: FOX_SPAWN_EGG
+iconModel: mob_head_fox
 variant:
   age: ADULT
   scale: 1.0

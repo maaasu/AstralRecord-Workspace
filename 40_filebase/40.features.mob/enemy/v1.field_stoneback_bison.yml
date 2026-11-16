@@ -9,6 +9,7 @@ name: イワセバイソン Lv.42
 level: 42
 entityType: COW
 icon: COW_SPAWN_EGG
+iconModel: mob_head_cow
 variant:
   age: ADULT
   scale: 1.15

@@ -11,6 +11,7 @@ entityType: RAVAGER
 variant:
   scale: 0.65
 icon: RAVAGER_SPAWN_EGG
+iconModel: mob_head_ravager
 lore:
 - '&7熱い灰を吐く、頑丈な小型の地竜。'
 - '&7通常の獣より手強く、正面へ灰火の息を吐く。'

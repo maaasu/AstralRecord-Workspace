@@ -37,8 +37,10 @@ import java.util.Objects;
  * @param drops         ドロップ設定（NPC では {@code null}）
  * @param challenge     ボス挑戦設定（BOSS 以外では {@code null}）
  * @param levelProfiles 同一マスタ内のレベル別プロファイル
+ * @param iconTexture プレイヤーヘッドアイコンのテクスチャ
  * @param commonDisplayName レベルプロファイルを適用しない共通表示名
  * @param defenseEligible 防衛戦への参加を許可するか。Mob 単位で指定する
+ * @param iconModel 頭アイコンの GUI モデル役割名
  */
 public record MobTemplate(
         int schemaVersion,
@@ -69,7 +71,8 @@ public record MobTemplate(
         @NotNull List<MobLevelProfile> levelProfiles,
         @Nullable String iconTexture,
         @NotNull String commonDisplayName,
-        boolean defenseEligible
+        boolean defenseEligible,
+        @Nullable String iconModel
 ) {
 
     /**
@@ -120,7 +123,7 @@ public record MobTemplate(
         this(schemaVersion, id, category, displayName, title, level, entityType, requestedEntityType,
                 blockMaterial, nameVisible, icon, lore, tags, skin, variant, equipment, baseStats, shield,
                 idle, damageImmune, interactions, targeting, combat, drops, challenge, levelProfiles,
-                iconTexture, displayName, false);
+                iconTexture, displayName, false, null);
     }
 
     /** iconTexture 導入前の完全コンストラクタ互換。 */
@@ -318,6 +321,7 @@ public record MobTemplate(
                 .sorted(Comparator.comparingInt(MobLevelProfile::level))
                 .toList();
         iconTexture = iconTexture == null || iconTexture.isBlank() ? null : iconTexture.trim();
+        iconModel = iconModel == null || iconModel.isBlank() ? null : iconModel.trim();
         commonDisplayName = commonDisplayName == null || commonDisplayName.isBlank()
                 ? displayName
                 : commonDisplayName;
@@ -335,7 +339,7 @@ public record MobTemplate(
                 requestedEntityType, blockMaterial, nameVisible, icon, lore, tags, skin,
                 variant, equipment, baseStats, shield, idle, damageImmune, interactions,
                 targeting, combat, drops, challenge, levelProfiles, iconTexture,
-                commonDisplayName, eligible
+                commonDisplayName, eligible, iconModel
         );
     }
 
@@ -391,7 +395,7 @@ public record MobTemplate(
             requestedEntityType, blockMaterial, nameVisible, icon, lore, tags, skin,
             variant, equipment, baseStats, shield, idle, damageImmune, interactions,
             targeting, combat, drops, challenge, profiles, iconTexture, commonDisplayName,
-            defenseEligible
+            defenseEligible, iconModel
         );
     }
 
@@ -403,7 +407,7 @@ public record MobTemplate(
             profile.baseStats(), profile.shield(), profile.idle(), profile.damageImmune(),
             profile.interactions(), profile.targeting(), profile.combat(), profile.drops(),
             profile.challenge(), levelProfiles, profile.iconTexture(), commonDisplayName,
-            defenseEligible
+            defenseEligible, profile.iconModel()
         );
     }
 }

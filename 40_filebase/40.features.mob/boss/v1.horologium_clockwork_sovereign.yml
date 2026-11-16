@@ -12,6 +12,7 @@ entityType: IRON_GOLEM
 variant:
   scale: 1.25
 icon: IRON_GOLEM_SPAWN_EGG
+iconModel: mob_head_iron_golem
 nameVisible: true
 lore:
   - "&7時計盤の侵入者を針で狙い、足跡を過去へ刻む機工王。"

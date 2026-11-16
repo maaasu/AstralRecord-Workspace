@@ -9,6 +9,7 @@ name: "&2下草の狩人 Lv.15"
 level: 15
 entityType: SPIDER
 icon: SPIDER_SPAWN_EGG
+iconModel: mob_head_spider
 lore:
   - "&7深い下草に巣を張る、エリヴァ大森林の捕食者。"
   - "&7糸弾で獲物を衰弱させ、距離を取りながら追い詰める。"

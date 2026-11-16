@@ -11,6 +11,7 @@ entityType: SLIME
 variant:
   scale: 0.75
 icon: SLIME_SPAWN_EGG
+iconModel: mob_head_slime
 lore:
   - "&7心守と根脈をつなぐ小さな芽。"
   - "&7芽をすべて倒すと根の守りが解け、反撃の機会が生まれる。"

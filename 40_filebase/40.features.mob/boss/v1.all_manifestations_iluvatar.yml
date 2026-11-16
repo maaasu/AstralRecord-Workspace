@@ -12,6 +12,7 @@ entityType: BLAZE
 variant:
   scale: 1.8
 icon: BLAZE_SPAWN_EGG
+iconModel: mob_head_blaze
 nameVisible: true
 lore:
   - "&7反射する火球と炎の連続突進で聖域を満たす主。"

@@ -9,6 +9,7 @@ name: "&5紅銅の結界魔女"
 level: 25
 entityType: WITCH
 icon: WITCH_SPAWN_EGG
+iconModel: mob_head_witch
 nameVisible: true
 lore:
   - "&7エンプーサへ魔力を送り、防御結界を維持する魔女。"

@@ -13,6 +13,30 @@ namespace AstralRecordApi.Tests.Repositories;
 public class MobRepositoryPayloadTests
 {
     [Fact]
+    public async Task MobPayloadExposesTheMasterHeadModelAndItsLevelOverride()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<MasterDataDbContext>().UseSqlite(connection).Options;
+        await using var dbContext = new MasterDataDbContext(options);
+        await MasterDataTestSeed.CreateSchemaAsync(dbContext);
+        await MasterDataTestSeed.SeedInlinePayloadAsync(dbContext, """
+            {
+              "schemaVersion": 1, "id": "wolf", "type": "MOB", "category": "ENEMY",
+              "name": "Wolf", "entityType": "WOLF", "icon": "WOLF_SPAWN_EGG",
+              "iconModel": "mob_head_wolf",
+              "levels": [{ "level": 1 }, { "level": 2, "iconModel": "mob_head_fox" }]
+            }
+            """, "mob.enemy", "ENEMY");
+
+        var repository = new MobRepository(dbContext);
+        var detail = Assert.IsType<MobResponse>(repository.GetById("wolf"));
+        Assert.Equal("mob_head_wolf", detail.IconModel);
+        Assert.Equal("mob_head_fox", detail.Levels[1].GetProperty("iconModel").GetString());
+        Assert.Equal("mob_head_wolf", Assert.Single(repository.GetAllSummaries()).IconModel);
+    }
+
+    [Fact]
     public async Task GetById_FromInlineAinurindalePayload_PreservesFangWaveAndRareCharms()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");

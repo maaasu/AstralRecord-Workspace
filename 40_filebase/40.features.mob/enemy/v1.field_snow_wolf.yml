@@ -11,6 +11,7 @@ entityType: WOLF
 variant:
   age: ADULT
 icon: WOLF_SPAWN_EGG
+iconModel: mob_head_wolf
 lore:
   - "&7雪色の毛を持つ、すばやい狼。"
   - "&7低く構えて氷の進路を示し、その方向へ一気に駆ける。"

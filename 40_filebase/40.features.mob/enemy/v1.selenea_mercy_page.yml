@@ -8,7 +8,7 @@ category: ENEMY
 name: "&a慈癒の写本守"
 level: 30
 entityType: WITHER_SKELETON
-icon: WITHER_SKELETON_SPAWN_EGG
+icon: WITHER_SKELETON_SKULL
 nameVisible: true
 lore:
   - "&7弧を描く慈癒の玉で他の写本守を癒やす頁。"

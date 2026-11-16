@@ -9,6 +9,7 @@ name: '&aキノカブト Lv.24'
 level: 24
 entityType: SILVERFISH
 icon: SILVERFISH_SPAWN_EGG
+iconModel: mob_head_silverfish
 variant:
   age: ADULT
   scale: 1.8

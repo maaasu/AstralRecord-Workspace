@@ -9,6 +9,7 @@ name: アラシラプター Lv.42
 level: 42
 entityType: CHICKEN
 icon: CHICKEN_SPAWN_EGG
+iconModel: mob_head_chicken
 variant:
   age: ADULT
   scale: 1.5
