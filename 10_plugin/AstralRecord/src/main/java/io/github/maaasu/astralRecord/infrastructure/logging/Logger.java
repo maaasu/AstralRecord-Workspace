@@ -75,6 +75,17 @@ public final class Logger {
         log(Level.SEVERE, ERROR_PREFIX + LogMessageProvider.format(logId.getId(), args), t);
     }
 
+    /**
+     * 設定・監査ログの初期化状態に依存せず、起動失敗をサーバーログへ記録します。
+     *
+     * @param serverLogger サーバーログへ書き込む Bukkit プラグインのロガー
+     * @param logId 失敗した起動工程のログID
+     * @param failure 起動に失敗した例外
+     */
+    public static void logStartupFailure(java.util.logging.Logger serverLogger, LogId logId, Throwable failure) {
+        serverLogger.log(Level.SEVERE, ERROR_PREFIX + LogMessageProvider.format(logId.getId()), failure);
+    }
+
     public static void debug(LogId logId, Object... args) {
         if (ConfigProperties.getInstance().isPluginDebugMode()) {
             log(Level.INFO, DEBUG_PREFIX + LogMessageProvider.format(logId.getId(), args), null);
