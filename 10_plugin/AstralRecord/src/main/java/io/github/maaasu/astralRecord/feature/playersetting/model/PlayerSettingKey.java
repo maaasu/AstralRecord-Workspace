@@ -21,6 +21,12 @@ public enum PlayerSettingKey {
     TEMP_DROP_DISPLAY("TEMP_DROP_DISPLAY", "Temp ドロップ表示", true),
     TEMP_BLOCK_DISPLAY("TEMP_BLOCK_DISPLAY", "Temp BlockDisplay 表示", true),
     PERFORMANCE_INFO_DISPLAY("PERFORMANCE_INFO_DISPLAY", "MSPT・Ping表示", false),
+    MSPT_DISPLAY("MSPT_DISPLAY", "MSPT表示", false),
+    PING_DISPLAY("PING_DISPLAY", "Ping表示", false),
+    WORLD_NAME_DISPLAY("WORLD_NAME_DISPLAY", "ワールド名表示", true),
+    AREA_NAME_DISPLAY("AREA_NAME_DISPLAY", "エリア名表示", true),
+    ACTION_RING_COOLDOWN_DISPLAY("ACTION_RING_COOLDOWN_DISPLAY", "アクションリングのクールタイム", true),
+    EQUIPPED_SKILL_COOLDOWN_DISPLAY("EQUIPPED_SKILL_COOLDOWN_DISPLAY", "装備スキルのクールタイム", true),
     QUEST_HUD_DISPLAY("QUEST_HUD_DISPLAY", "クエスト追跡HUD表示", true),
     COMBAT_DPS_DISPLAY("COMBAT_DPS_DISPLAY", "戦闘DPS表示", true),
     AUTO_SAVE_MESSAGE("AUTO_SAVE_MESSAGE", "オートセーブメッセージ", false),
@@ -54,6 +60,28 @@ public enum PlayerSettingKey {
 
     public @NotNull Object getDefaultValue() {
         return defaultValue;
+    }
+
+    /** @return 画面UI設定で独立に切り替える表示項目の場合は true */
+    public boolean isHudDisplaySetting() {
+        return switch (this) {
+            case QUEST_HUD_DISPLAY, ACTION_RING_COOLDOWN_DISPLAY, EQUIPPED_SKILL_COOLDOWN_DISPLAY,
+                MSPT_DISPLAY, PING_DISPLAY, WORLD_NAME_DISPLAY, AREA_NAME_DISPLAY, COMBAT_DPS_DISPLAY -> true;
+            default -> false;
+        };
+    }
+
+    /**
+     * 統合版の画面UIで編集できる設定を判定します。
+     * @param questHudSupported 現在の接続でクエスト専用TIPに対応する場合は true
+     * @return 現行の統合版表示が対応する設定の場合は true
+     */
+    public boolean isAvailableOnBedrock(boolean questHudSupported) {
+        return switch (this) {
+            case ACTION_RING_COOLDOWN_DISPLAY, EQUIPPED_SKILL_COOLDOWN_DISPLAY -> false;
+            case QUEST_HUD_DISPLAY -> questHudSupported;
+            default -> true;
+        };
     }
 
     public boolean isBooleanValue() {

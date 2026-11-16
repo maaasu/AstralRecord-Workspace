@@ -568,6 +568,12 @@ public enum PlayerMsgId {
     P_5396(5396),
     P_5397(5397),
     P_5398(5398),
+    P_6810(6810),
+    P_6811(6811),
+    P_6812(6812),
+    P_6813(6813),
+    P_6814(6814),
+    P_6815(6815),
     // endregion
 
     // region /feature/account/command 5330-5349

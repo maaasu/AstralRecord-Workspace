@@ -10,9 +10,6 @@ import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingCh
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
-import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
-import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
-import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -77,6 +74,13 @@ public final class PlayerSettingCommand extends AstCommand {
             return;
         }
 
+        var plugin = AstralRecord.getInstance();
+        var settingsGui = plugin.getPlayerSettingGui();
+        if (key.isHudDisplaySetting() && player.isBedrock() && (settingsGui == null || !settingsGui.canEdit(player, key))) {
+            sendError(player.getBukkit(), PlayerMsgResource.format(PlayerSettingMsgId.P_6812.getId(), key.getDisplayNameJa()));
+            return;
+        }
+
         Object parsedValue = key.parseInputValue(args[1]);
         if (parsedValue == null) {
             sendError(player.getBukkit(), io.github.maaasu.astralRecord.feature.player.PlayerMsgResource.format(
@@ -87,7 +91,6 @@ public final class PlayerSettingCommand extends AstCommand {
             return;
         }
 
-        var plugin = AstralRecord.getInstance();
         var request = new PlayerSettingChangeRequest(
             player.getUser().getUuid(),
             key,
@@ -99,8 +102,8 @@ public final class PlayerSettingCommand extends AstCommand {
         if (result.staleSession()) {
             return;
         }
-        if (key == PlayerSettingKey.QUEST_HUD_DISPLAY && result.success()) {
-            plugin.refreshQuestHud(player);
+        if ((key.isHudDisplaySetting() || key == PlayerSettingKey.PERFORMANCE_INFO_DISPLAY) && result.success()) {
+            plugin.refreshScreenHud(player);
         }
         if (key == PlayerSettingKey.NIGHT_VISION && result.success()) {
             plugin.getPlayerSettingEffectService().synchronizeNightVision(player.getBukkit());
@@ -127,11 +130,16 @@ public final class PlayerSettingCommand extends AstCommand {
 
     private void showCurrentSettings(@NotNull AstPlayer player, @NotNull PlayerSettingService service) {
         for (PlayerSettingKey key : PlayerSettingKey.values()) {
-            if (key == PlayerSettingKey.ADVENTURE_RECORD_SUPER_MODE) {
+            if (key == PlayerSettingKey.ADVENTURE_RECORD_SUPER_MODE || key == PlayerSettingKey.PERFORMANCE_INFO_DISPLAY) {
                 continue;
             }
             if (key == PlayerSettingKey.SPAWNER_VISUAL_MODE
                 && player.getAccount().getMode() != AccountMode.ADMIN) {
+                continue;
+            }
+            var gui = AstralRecord.getInstance().getPlayerSettingGui();
+            if (key.isHudDisplaySetting() && player.isBedrock() && (gui == null || !gui.canEdit(player, key))) {
+                sendInfo(player.getBukkit(), PlayerMsgResource.format(PlayerSettingMsgId.P_6812.getId(), key.getDisplayNameJa()));
                 continue;
             }
             Object value = service.getPlayerSetting(player.getUser().getUuid(), key);

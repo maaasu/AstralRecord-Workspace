@@ -38,11 +38,14 @@ public final class PlayerSettingGuiSaveService {
     }
 
     /**
-     * @param player 設定フォームの表示対象
-     * @return 現在の統合版接続が専用TIP表示に対応している場合はtrue
+     * GUI・フォームの表示と変更受付で同じ対応判定を使います。
+     * @param player 設定を表示または変更するプレイヤー
+     * @param key 設定項目
+     * @return 現在のクライアントで切り替えられる場合は true
      */
-    public boolean hasBedrockQuestHud(@NotNull Player player) {
-        return bedrockQuestHudSupported.test(player.getUniqueId());
+    public boolean canEdit(@NotNull AstPlayer player, @NotNull PlayerSettingKey key) {
+        return !player.isBedrock() || key.isAvailableOnBedrock(key == PlayerSettingKey.QUEST_HUD_DISPLAY
+            && bedrockQuestHudSupported.test(player.getBukkit().getUniqueId()));
     }
 
     /**
@@ -59,7 +62,8 @@ public final class PlayerSettingGuiSaveService {
         @NotNull Map<PlayerSettingKey, Object> changes
     ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null || !astPlayer.getUser().getUuid().equals(userId)) {
+        if (astPlayer == null || !astPlayer.getUser().getUuid().equals(userId) || sessionToken == 0L
+            || settings.captureSessionToken(userId) != sessionToken) {
             return;
         }
         Map<PlayerSettingKey, Object> updated = new EnumMap<>(PlayerSettingKey.class);
@@ -68,8 +72,7 @@ public final class PlayerSettingGuiSaveService {
             if (key == PlayerSettingKey.ADVENTURE_RECORD_SUPER_MODE && !astPlayer.hasAdminPermission()) {
                 continue;
             }
-            if (key == PlayerSettingKey.QUEST_HUD_DISPLAY && astPlayer.isBedrock()
-                && !hasBedrockQuestHud(player)) {
+            if (!canEdit(astPlayer, key)) {
                 continue;
             }
             Object value = change.getValue();
@@ -100,8 +103,8 @@ public final class PlayerSettingGuiSaveService {
         if (updated.containsKey(PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY)) {
             plugin.getSkillTreeService().markViewerContextDirty(player);
         }
-        if (updated.containsKey(PlayerSettingKey.QUEST_HUD_DISPLAY)) {
-            plugin.refreshQuestHud(astPlayer);
+        if (updated.keySet().stream().anyMatch(PlayerSettingKey::isHudDisplaySetting)) {
+            plugin.refreshScreenHud(astPlayer);
         }
         if (updated.containsKey(PlayerSettingKey.NIGHT_VISION)) {
             plugin.getPlayerSettingEffectService().synchronizeNightVision(player);
