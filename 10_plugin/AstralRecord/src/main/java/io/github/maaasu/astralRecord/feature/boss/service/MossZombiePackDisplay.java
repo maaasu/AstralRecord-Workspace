@@ -67,7 +67,7 @@ final class MossZombiePackDisplay implements Listener {
     private final ProtocolManager protocol = ProtocolLibrary.getProtocolManager();
     private final Map<Integer, Tracking> tracking = new ConcurrentHashMap<>();
     private final Map<UUID, Body> bodies = new HashMap<>();
-    private final List<ItemStack> poses = List.of(item(null), item("walk_a"), item("walk_b"));
+    private final List<ItemStack> gaitItems = gaitItems();
     private final Map<MossZombieMotion.Pose, ItemStack> attackPoses = attackItems();
     private final Map<MossZombieMotion.EffectStyle, List<ItemStack>> effectItems = effectItems();
     private final Map<UUID, List<Effect>> effects = new HashMap<>();
@@ -145,6 +145,15 @@ final class MossZombiePackDisplay implements Listener {
     /** @param tick 毎tickの共通時計。期限切れと閲覧者を確認し、Java版のフレームを進めます */
     void animate(long tick) {
         clock = tick;
+        for (Body body : bodies.values()) {
+            if (body.model == null || !body.model.isValid() || !body.source.isValid() || body.source.isDead()
+                    || body.world != body.source.getWorld()) continue;
+            try {
+                advanceBody(body);
+            } catch (RuntimeException exception) {
+                Logger.log(LogId.E_6515, exception);
+            }
+        }
         effects.values().removeIf(owned -> {
             syncEffects(owned, tick);
             return owned.isEmpty();
@@ -213,38 +222,28 @@ final class MossZombiePackDisplay implements Listener {
         if (body.model != null && !body.model.isValid()) {
             body.viewers.clear();
             body.model = null;
+            body.gait.advance(0.0D, true);
         }
         Location now = source.getLocation();
         now.setPitch(0.0F);
-        Location last = body.position;
-        body.position = now;
-        boolean moving = last != null && last.distanceSquared(now) > 0.008D || source.getVelocity().lengthSquared() > 0.014D;
         MossZombieMotion.Pose attack = motion == null ? MossZombieMotion.Pose.NONE : motion.current(bossId);
-        // 0～2は待機・歩行、3以降は攻撃姿勢。攻撃姿勢中は歩行の足踏みより優先する。
-        int pose = attack != MossZombieMotion.Pose.NONE ? 2 + attack.bedrock()
-            : moving ? 1 + (int) (tick / STEP_TICKS % 2L) : 0;
+        body.attack = attack;
+        ItemStack item = bodyItem(body);
         if (body.model == null && !suitable.isEmpty()) {
             body.model = source.getWorld().spawn(now, ItemDisplay.class, display -> {
                 display.setVisibleByDefault(false);
                 display.setPersistent(false);
                 display.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
-                display.setItemStack(item(pose));
+                display.setItemStack(item);
                 display.setViewRange(2.0F);
             });
-            body.pose = pose;
+            body.position = now;
+            body.rendered = item;
         }
         if (body.model != null) {
             ItemDisplay display = body.model;
-            if (body.pose != pose) {
-                display.setItemStack(item(pose));
-                body.pose = pose;
-            }
+            applyBodyItem(body, item);
             if (display.isGlowing() != source.isGlowing()) display.setGlowing(source.isGlowing());
-            Location previous = display.getLocation();
-            if (!previous.equals(now)) {
-                display.setTeleportDuration(previous.distanceSquared(now) > 9.0D ? 0 : STEP_TICKS);
-                display.teleport(now);
-            }
             body.viewers.removeIf(viewer -> {
                 if (suitable.contains(viewer)) return false;
                 if (viewer.isOnline()) viewer.hideEntity(plugin, display);
@@ -278,6 +277,7 @@ final class MossZombiePackDisplay implements Listener {
         if (suitable.isEmpty() && body.model != null) {
             body.model.remove();
             body.model = null;
+            body.gait.advance(0.0D, true);
         }
     }
 
@@ -419,13 +419,42 @@ final class MossZombiePackDisplay implements Listener {
         return !isBedrock(viewer) && packs.hasJavaMossZombiePresentation(viewer.getUniqueId());
     }
 
-    /** @param pose 0～2は待機・歩行、3以降は {@link MossZombieMotion.Pose#bedrock()} + 2 @return 表示アイテム */
-    private ItemStack item(int pose) {
-        if (pose < poses.size()) return poses.get(pose);
-        for (var entry : attackPoses.entrySet()) {
-            if (entry.getKey().bedrock() + 2 == pose) return entry.getValue();
+    private void advanceBody(Body body) {
+        Location now = body.source.getLocation();
+        now.setPitch(0.0F);
+        // 脚の位相は水平方向の歩みで決める。跳躍や視線だけでは脚を動かさない。
+        Location previous = body.position;
+        body.position = now;
+        boolean teleport = previous == null || previous.distanceSquared(now) > 9.0D;
+        double travel = teleport ? 0.0D : Math.hypot(now.getX() - previous.getX(), now.getZ() - previous.getZ());
+        body.gait.advance(travel, teleport);
+        applyBodyItem(body, bodyItem(body));
+        if (!body.model.getLocation().equals(now)) {
+            body.model.setTeleportDuration(teleport ? 0 : 1);
+            body.model.teleport(now);
         }
-        return poses.getFirst();
+    }
+
+    private ItemStack bodyItem(Body body) {
+        // 技のモデルと切替時刻は従来の5tick同期が決める。
+        return attackPoses.getOrDefault(body.attack, gaitItems.get(body.gait.frame() + MossZombieGait.LEVELS));
+    }
+
+    private static void applyBodyItem(Body body, ItemStack next) {
+        if (body.rendered != next) {
+            body.model.setItemStack(next);
+            body.rendered = next;
+        }
+    }
+
+    private static List<ItemStack> gaitItems() {
+        int half = MossZombieGait.LEVELS;
+        List<ItemStack> frames = new ArrayList<>(half * 2 + 1);
+        for (int i = -half; i <= half; i++) {
+            // 旧パックは既存の walk_a/walk_b を表示し、追加の数値を無視する。
+            frames.add(i == 0 ? item(null) : item(i > 0 ? "walk_a" : "walk_b", Math.abs(i)));
+        }
+        return List.copyOf(frames);
     }
 
     /** @return 攻撃姿勢ごとの Java 版モデル */
@@ -438,12 +467,17 @@ final class MossZombiePackDisplay implements Listener {
     }
 
     private static ItemStack item(String pose) {
+        return item(pose, 0);
+    }
+
+    private static ItemStack item(String pose, int gaitLevel) {
         ItemStack item = ItemStack.of(Material.PAPER);
         var meta = item.getItemMeta();
         meta.setItemModel(new NamespacedKey("astralrecord", "midgard_moss_zombie"));
         if (pose != null) {
             var data = meta.getCustomModelDataComponent();
             data.setStrings(List.of(pose));
+            if (gaitLevel > 0) data.setFloats(List.of((float) gaitLevel));
             meta.setCustomModelDataComponent(data);
         }
         item.setItemMeta(meta);
@@ -611,9 +645,11 @@ final class MossZombiePackDisplay implements Listener {
         private final org.bukkit.World world;
         private final Tracking tracking;
         private final Set<Player> viewers = new HashSet<>();
+        private final MossZombieGait gait = new MossZombieGait();
         private Location position;
         private ItemDisplay model;
-        private int pose;
+        private ItemStack rendered;
+        private MossZombieMotion.Pose attack = MossZombieMotion.Pose.NONE;
 
         private Body(Entity source, Tracking tracking) {
             this.source = source;
