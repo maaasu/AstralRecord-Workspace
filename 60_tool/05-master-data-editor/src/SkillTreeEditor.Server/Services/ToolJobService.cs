@@ -12,7 +12,6 @@ public sealed class ToolJobService(WorkspacePaths workspace, IConfiguration conf
     private static readonly TimeSpan PlanLifetime = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan BootstrapGrace = TimeSpan.FromSeconds(20);
     private readonly ConcurrentDictionary<Guid, PreparedPlan> plans = new();
-    private readonly SemaphoreSlim startGate = new(1, 1);
 
     private string ToolRoot => Path.Combine(workspace.WorkspaceRoot, "60_tool");
     private string Bootstrap => Path.Combine(ToolRoot, "invoke-powershell7.ps1");
@@ -51,53 +50,71 @@ public sealed class ToolJobService(WorkspacePaths workspace, IConfiguration conf
         return prepared.Plan;
     }
 
-    public Task<ToolJobRun> StartAsync(ToolJobStartRequest request, CancellationToken token)
-        => WithLaunchLockAsync(async () =>
+    public async Task<ToolJobRun> StartAsync(ToolJobStartRequest request, CancellationToken token)
+    {
+        RequireEnabled();
+        token.ThrowIfCancellationRequested();
+        var expiredMessage = "計画の有効期限が切れました。計画を作り直してください。";
+        if (!plans.TryGetValue(request.PlanId, out var prepared))
+            throw Conflict(expiredMessage);
+
+        using var launch = AcquireToolLaunchLock(prepared.Plan.ToolId);
+        if (!plans.ContainsKey(request.PlanId) || prepared.Plan.ExpiresAtUtc <= DateTimeOffset.UtcNow)
+            throw Conflict(expiredMessage);
+        RequireNoActiveRun(prepared.Plan.ToolId);
+        if (!prepared.Plan.CanRun) throw Conflict("計画に表示された実行条件を解決し、新しい計画を確認してください。");
+        var required = prepared.Plan.Confirmations.Select(item => item.Id).ToHashSet(StringComparer.Ordinal);
+        if (request.Confirmations is null || request.Confirmations.Length != required.Count
+            || !required.SetEquals(request.Confirmations))
+            throw Conflict("現在の計画に表示されたすべての条件を確認してください。");
+
+        var current = await ReadPlanAsync(prepared.Request, token);
+        if (!current.CanRun || current.Fingerprint != prepared.Fingerprint || prepared.Plan.ExpiresAtUtc <= DateTimeOffset.UtcNow)
         {
-            RequireNoActiveRun();
+            plans.TryRemove(request.PlanId, out _);
+            throw Conflict("実行計画または設定が変わりました。新しい計画を確認してください。");
+        }
 
-            if (!plans.TryGetValue(request.PlanId, out var prepared) || prepared.Plan.ExpiresAtUtc <= DateTimeOffset.UtcNow)
-                throw Conflict("計画の有効期限が切れました。計画を作り直してください。");
-            if (!prepared.Plan.CanRun) throw Conflict("計画に表示された実行条件を解決し、新しい計画を確認してください。");
-            var required = prepared.Plan.Confirmations.Select(item => item.Id).ToHashSet(StringComparer.Ordinal);
-            if (request.Confirmations is null || request.Confirmations.Length != required.Count
-                || !required.SetEquals(request.Confirmations))
-                throw Conflict("現在の計画に表示されたすべての条件を確認してください。");
+        return Launch(prepared, token);
+    }
 
-            var current = await ReadPlanAsync(prepared.Request, token);
-            if (!current.CanRun || current.Fingerprint != prepared.Fingerprint || prepared.Plan.ExpiresAtUtc <= DateTimeOffset.UtcNow)
-            {
-                plans.TryRemove(request.PlanId, out _);
-                throw Conflict("実行計画または設定が変わりました。新しい計画を確認してください。");
-            }
+    public async Task<ToolJobRun> StartDirectAsync(ToolJobDirectStartRequest request, CancellationToken token)
+    {
+        RequireEnabled();
+        token.ThrowIfCancellationRequested();
+        if (request.RequestId == Guid.Empty || request.Settings is null)
+            throw new ToolJobException(400, "実行するツールと設定を指定してください。");
+        if (request.Settings.ToolId is not ("01" or "03" or "12"))
+            throw new ToolJobException(400, "直接実行できるツールを指定してください。メンテナンス配布は実行計画の確認が必要です。");
 
-            return Launch(prepared, token);
-        }, token);
+        var options = Normalize(request.Settings);
+        using var launch = AcquireToolLaunchLock(options.ToolId);
+        if (ReadDirectRun(request.RequestId, options) is { } existing)
+            return existing;
 
-    public Task<ToolJobRun> StartDirectAsync(ToolJobDirectStartRequest request, CancellationToken token)
-        => WithLaunchLockAsync(async () =>
-        {
-            if (request.RequestId == Guid.Empty || request.Settings is null)
-                throw new ToolJobException(400, "実行するツールと設定を指定してください。");
-            if (request.Settings.ToolId is not ("01" or "03" or "12"))
-                throw new ToolJobException(400, "直接実行できるツールを指定してください。メンテナンス配布は実行計画の確認が必要です。");
+        RequireNoActiveRun(options.ToolId);
+        var details = await ReadPlanAsync(options, token);
+        if (!details.CanRun)
+            throw Conflict(string.Join(" ", details.Warnings.Prepend("実行条件を満たしていません。")));
 
-            var options = Normalize(request.Settings);
-            if (ReadRun(request.RequestId) is { } existing)
-            {
-                var recordedRequest = ReadJson<ExecutionRequest>(Path.Combine(RunDirectory(existing.Id), "request.json"));
-                if (recordedRequest is { Direct: true } && recordedRequest.Options == options)
-                    return existing;
-                throw Conflict("同じ実行 ID に異なる実行設定が登録されています。");
-            }
+        token.ThrowIfCancellationRequested();
+        var directory = RunDirectory(request.RequestId);
+        new MasterDataPaths(workspace).RequireNoLinks(directory);
+        Directory.CreateDirectory(directory);
+        // A request ID is shared across tool types. Only its owner can publish a run.
+        using var requestLock = AcquireLock(Path.Combine(directory, "launch.lock"), "同じ実行 ID の処理を準備中です。");
+        return ReadDirectRun(request.RequestId, options)
+            ?? Launch(PreparePlan(options, details, DateTimeOffset.UtcNow), token, request.RequestId);
+    }
 
-            RequireNoActiveRun();
-            var details = await ReadPlanAsync(options, token);
-            if (!details.CanRun)
-                throw Conflict(string.Join(" ", details.Warnings.Prepend("実行条件を満たしていません。")));
-
-            return Launch(PreparePlan(options, details, DateTimeOffset.UtcNow), token, request.RequestId);
-        }, token);
+    private ToolJobRun? ReadDirectRun(Guid id, ToolJobPlanRequest options)
+    {
+        if (ReadRun(id) is not { } existing) return null;
+        var recordedRequest = ReadJson<ExecutionRequest>(Path.Combine(RunDirectory(id), "request.json"));
+        if (recordedRequest is { Direct: true } && recordedRequest.Options == options)
+            return existing;
+        throw Conflict("同じ実行 ID に異なる実行設定が登録されています。");
+    }
 
     private PreparedPlan PreparePlan(ToolJobPlanRequest options, ToolJobPlanDetails details, DateTimeOffset now)
     {
@@ -107,27 +124,16 @@ public sealed class ToolJobService(WorkspacePaths workspace, IConfiguration conf
         return new PreparedPlan(plan, options, details.Fingerprint);
     }
 
-    private async Task<ToolJobRun> WithLaunchLockAsync(Func<Task<ToolJobRun>> start, CancellationToken token)
+    private FileStream AcquireToolLaunchLock(string toolId)
     {
-        RequireEnabled();
-        if (!await startGate.WaitAsync(0, token))
-            throw Conflict("運用ツールの実行を準備中です。");
-        try
-        {
-            EnsureStorage();
-            using var launch = AcquireLaunchLock();
-            return await start();
-        }
-        finally
-        {
-            startGate.Release();
-        }
+        EnsureStorage();
+        return AcquireLock(Path.Combine(StateRoot, $"launch-{toolId}.lock"), $"{toolId} の実行を準備中です。");
     }
 
-    private void RequireNoActiveRun()
+    private void RequireNoActiveRun(string toolId)
     {
-        if (GetRuns().Any(IsActive))
-            throw Conflict("このワークスペースの運用ツールが実行中です。完了後に実行してください。");
+        if (GetRuns().Any(run => run.ToolId == toolId && IsActive(run)))
+            throw Conflict($"{toolId} は実行中です。完了後に再実行してください。");
     }
 
     private ToolJobRun Launch(PreparedPlan prepared, CancellationToken token, Guid? directRequestId = null)
@@ -189,7 +195,8 @@ public sealed class ToolJobService(WorkspacePaths workspace, IConfiguration conf
 
     public ToolJobLogs GetLogs(Guid id, long after)
     {
-        _ = GetRun(id);
+        RequireEnabled();
+        if (ReadState(id) is null) throw new ToolJobException(404, "実行記録が見つかりません。");
         if (after < 0) throw new ToolJobException(400, "ログの取得位置が無効です。");
         var path = Path.Combine(RunDirectory(id), "log.jsonl");
         new MasterDataPaths(workspace).RequireNoLinks(path);
@@ -463,12 +470,11 @@ public sealed class ToolJobService(WorkspacePaths workspace, IConfiguration conf
         }
     }
 
-    private FileStream AcquireLaunchLock()
+    private FileStream AcquireLock(string lockPath, string conflictMessage)
     {
-        var lockPath = Path.Combine(StateRoot, "launch.lock");
         new MasterDataPaths(workspace).RequireNoLinks(lockPath);
         try { return File.Open(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None); }
-        catch (IOException) { throw Conflict("別のデスクトップ画面で実行を準備中です。"); }
+        catch (IOException error) when ((error.HResult & 0xffff) is 32 or 33) { throw Conflict(conflictMessage); }
     }
 
     private void EnsureStorage()

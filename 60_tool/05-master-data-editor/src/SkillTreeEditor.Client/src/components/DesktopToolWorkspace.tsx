@@ -8,31 +8,35 @@ import './desktopTools.css'
 function useRunHistory(enabled: boolean, visible: boolean) {
   const [runs, setRuns] = useState<ToolRun[]>()
   const [error, setError] = useState('')
+  const [selectedRunId, selectRun] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
-  const refresh = () => setRefreshKey(value => value + 1)
+  const generation = useRef(0)
+  const refresh = () => setRefreshKey(++generation.current)
 
   useEffect(() => {
     if (!enabled) return
-    let live = true
+    const controller = new AbortController()
+    const isCurrent = () => !controller.signal.aborted && generation.current === refreshKey
     let retry: ReturnType<typeof setTimeout> | undefined
     const update = async () => {
+      if (!isCurrent()) return
       try {
-        const result = await toolJobApi.runs()
-        if (!live) return
+        const result = await toolJobApi.runs(controller.signal)
+        if (!isCurrent()) return
         setRuns(result)
         setError('')
         if (result.some(isRunning)) retry = setTimeout(() => void update(), 1100)
       } catch (reason) {
-        if (!live) return
+        if (!isCurrent()) return
         setError(toolError(reason))
         retry = setTimeout(() => void update(), 2500)
       }
     }
     void update()
-    return () => { live = false; clearTimeout(retry) }
+    return () => { controller.abort(); clearTimeout(retry) }
   }, [enabled, refreshKey, visible])
 
-  return { runs, error, refresh, onStarted: (run: ToolRun) => {
+  return { runs, error, selectedRunId, selectRun, refresh, onStarted: (run: ToolRun) => {
     setRuns(current => [run, ...(current ?? []).filter(entry => entry.id !== run.id)])
     refresh()
   } }
@@ -60,24 +64,32 @@ export function DesktopToolWorkspace({ page, visible, capabilities, capabilities
   const sharedHistory = useContext(RunHistoryContext)
   const localHistory = useRunHistory(!sharedHistory && capabilities?.enabled === true, visible)
   const history = sharedHistory ?? localHistory
-  const [selectedHistory, setSelectedHistory] = useState(historyRunId ?? '')
   const workspace = useRef<HTMLElement>(null)
   const historyDetails = useRef<HTMLDivElement>(null)
+  const runs = history.runs
+  const selectHistory = history.selectRun
+  const selected = runs?.find(run => run.id === history.selectedRunId)
+  const selectedId = selected?.id
   const [visitedPages, setVisitedPages] = useState<ToolId[]>(page === 'history' ? [] : [page])
   useEffect(() => {
     if (page !== 'history') setVisitedPages(current => current.includes(page) ? current : [...current, page])
   }, [page])
   useLayoutEffect(() => {
-    if (visible && workspace.current) workspace.current.scrollTop = 0
-  }, [page, visible])
+    if (workspace.current) workspace.current.scrollTop = 0
+  }, [page])
+  useLayoutEffect(() => {
+    if (!visible || page !== 'history' || !selectedId || !workspace.current || !historyDetails.current) return
+    const pane = workspace.current
+    const paneBounds = pane.getBoundingClientRect()
+    const detailsBounds = historyDetails.current.getBoundingClientRect()
+    if (detailsBounds.top < paneBounds.top || detailsBounds.top + 100 > paneBounds.bottom)
+      pane.scrollTop += detailsBounds.top - paneBounds.top
+  }, [page, selectedId, visible])
   useEffect(() => {
-    if (visible && page === 'history' && selectedHistory) historyDetails.current?.scrollIntoView?.({ block: 'start' })
-  }, [page, selectedHistory, visible])
-  useEffect(() => {
-    if (historyRunId) setSelectedHistory(historyRunId)
-  }, [historyRunId])
+    if (page === 'history' && historyRunId) selectHistory(historyRunId)
+  }, [historyRunId, page, selectHistory])
 
-  const showHistory = (id: string) => { setSelectedHistory(id); onOpenHistory(id) }
+  const showHistory = (id: string) => { selectHistory(id); onOpenHistory(id) }
 
   if (!capabilities?.enabled) return <main ref={workspace} className="tool-workspace">
     <h1>{page === 'history' ? '実行履歴' : toolSpecs[page].label}</h1>
@@ -85,27 +97,25 @@ export function DesktopToolWorkspace({ page, visible, capabilities, capabilities
       : <p className="tool-note">{capabilities ? capabilities.reason || '実行ツールはデスクトップアプリで利用できます。' : '実行ツールの利用可否を確認しています…'}</p>}
   </main>
 
-  const runs = history.runs ?? []
-  const activeRun = runs.find(isRunning)
-  const selected = runs.find(run => run.id === selectedHistory)
+  const activeRuns = runs?.filter(isRunning) ?? []
   return <main ref={workspace} className="tool-workspace">
     {history.error && <div className="tool-note error" role="alert"><p>実行状況を取得できませんでした。{history.error}</p><button type="button" className="button" onClick={history.refresh}>再取得</button></div>}
     {toolIds.filter(id => id === page || visitedPages.includes(id)).map(id => <div key={id} hidden={page !== id}>
       <ToolOperation id={id} ready={Boolean(history.runs) && !history.error} hasUnsavedSource={hasUnsavedSource}
-        latestRun={runs.find(run => run.toolId === id)} activeRun={activeRun} visible={visible && page === id}
+        latestRun={runs?.find(run => run.toolId === id)} activeRuns={activeRuns} visible={visible && page === id}
         onStarted={history.onStarted} onRefresh={history.refresh} onOpenHistory={showHistory} />
     </div>)}
     {page === 'history' && <>
       <div className="tool-heading"><div><h1>実行履歴</h1><p className="tool-muted">このワークスペースで実行した処理とログを確認します。</p></div><button type="button" className="button" onClick={history.refresh}>更新</button></div>
       <section className="tool-panel">
-        {runs.length ? <div className="tool-table-wrap"><table className="tool-table">
+        {runs?.length ? <div className="tool-table-wrap tool-history-list"><table className="tool-table">
           <thead><tr><th scope="col">開始日時</th><th scope="col">処理</th><th scope="col">結果</th><th scope="col">詳細</th></tr></thead>
           <tbody>{runs.map(run => <tr key={run.id}>
             <td><time dateTime={run.startedAtUtc}>{displayToolDate(run.startedAtUtc)}</time></td>
             <td>{run.toolId} {toolSpecs[run.toolId].label}</td>
             <td><RunStatus status={run.status} /></td>
             <td><button type="button" className="text-button" aria-expanded={selected?.id === run.id}
-              onClick={() => setSelectedHistory(current => current === run.id ? '' : run.id)}>{selected?.id === run.id ? '詳細を閉じる' : '詳細を表示'}</button></td>
+              onClick={() => selectHistory(current => current === run.id ? '' : run.id)}>{selected?.id === run.id ? '詳細を閉じる' : '詳細を表示'}</button></td>
           </tr>)}</tbody>
         </table></div> : <p className="tool-empty">{history.runs ? 'まだ実行履歴がありません。' : '実行履歴を読み込んでいます…'}</p>}
       </section>
@@ -117,8 +127,8 @@ export function DesktopToolWorkspace({ page, visible, capabilities, capabilities
   </main>
 }
 
-function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRun, visible, onStarted, onRefresh, onOpenHistory }: {
-  id: ToolId; ready: boolean; hasUnsavedSource: boolean; latestRun?: ToolRun; activeRun?: ToolRun; visible: boolean
+function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRuns, visible, onStarted, onRefresh, onOpenHistory }: {
+  id: ToolId; ready: boolean; hasUnsavedSource: boolean; latestRun?: ToolRun; activeRuns: ToolRun[]; visible: boolean
   onStarted: (run: ToolRun) => void; onRefresh: () => void; onOpenHistory: (id: string) => void
 }) {
   const [settings, setSettings] = useState<ToolSettings>(defaultToolSettings[id])
@@ -133,7 +143,9 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRun, visi
   const requiresReview = id === '16'
   const spec = toolSpecs[id]
   const expired = requiresReview && plan && (plan.id === expiredId || Date.parse(plan.expiresAtUtc) <= Date.now())
-  const runActive = activeRun?.toolId === id
+  const activeRun = activeRuns.find(run => run.toolId === id)
+  const otherRuns = activeRuns.filter(run => run.toolId !== id)
+  const displayedRun = activeRun ?? latestRun
   const disabled = !ready || Boolean(activeRun) || Boolean(pending)
   const missingTests = settings.toolId === '01' && settings.pluginTestMode === 'Selected' && !settings.pluginTests?.trim()
 
@@ -203,7 +215,7 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRun, visi
   return <>
     <div className="tool-heading">
       <div><h1>{spec.label}</h1><p className="tool-muted">{spec.description}</p></div>
-      {runActive ? <RunStatus status={activeRun.status} /> : requiresReview && plan && !expired && <span className="tool-badge">{plan.canRun === false ? '実行条件を確認' : '計画を確認'}</span>}
+      {activeRun ? <RunStatus status={activeRun.status} /> : requiresReview && plan && !expired && <span className="tool-badge">{plan.canRun === false ? '実行条件を確認' : '計画を確認'}</span>}
     </div>
     <div className="tool-settings-grid">
       <section className="tool-panel">
@@ -217,7 +229,12 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRun, visi
     </div>
     {plan && <ToolPlanDetails plan={plan} />}
     {hasUnsavedSource && (id === '03' || id === '01') && <p className="tool-note warning">未保存のマスタ編集があります。実行には保存済みのファイルを使用します。</p>}
-    {activeRun && !runActive && <div className="tool-note"><p>{toolSpecs[activeRun.toolId].label}が実行中です。</p><button type="button" className="button" onClick={() => onOpenHistory(activeRun.id)}>実行中の処理を表示</button></div>}
+    {otherRuns.length > 0 && <ul className="tool-note tool-active-runs" aria-label="ほかの実行中の処理">
+      {otherRuns.map(run => <li key={run.id}>
+        <button type="button" className="text-button" onClick={() => onOpenHistory(run.id)}>{toolSpecs[run.toolId].label}の実行履歴を表示</button>
+        <RunStatus status={run.status} />
+      </li>)}
+    </ul>}
     {requiresReview && plan?.canRun && !expired && <fieldset className="tool-confirmations" disabled={disabled}>
       <legend>実行前の確認</legend>
       {plan.confirmations.length ? plan.confirmations.map(confirmation => <label key={confirmation.id}>
@@ -241,6 +258,6 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRun, visi
         </button>
       </div>
     </div>
-    {visible && latestRun && <ToolRunDetails key={latestRun.id} run={latestRun} onRefresh={onRefresh} onOpenHistory={() => onOpenHistory(latestRun.id)} />}
+    {visible && displayedRun && <ToolRunDetails key={displayedRun.id} run={displayedRun} onRefresh={onRefresh} onOpenHistory={() => onOpenHistory(displayedRun.id)} />}
   </>
 }

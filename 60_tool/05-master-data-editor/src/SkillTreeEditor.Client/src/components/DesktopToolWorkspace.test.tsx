@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-import { toolJobApi, type ToolCapabilities, type ToolPlan, type ToolRun } from '../api/toolJobApi'
+import { toolJobApi, type ToolCapabilities, type ToolLogLine, type ToolPlan, type ToolRun } from '../api/toolJobApi'
 import { DesktopToolRunHistoryProvider, DesktopToolWorkspace } from './DesktopToolWorkspace'
 
 const capabilities: ToolCapabilities = {
@@ -77,23 +77,31 @@ it('displays optional previews and sends updated settings, reusing the ID if a r
   expect(await screen.findByRole('alert')).toHaveTextContent('現在の設定が実行条件を満たしていません。')
 })
 
-it('passes a direct run between separately mounted tool and history panes', async () => {
+it('allows different tools to run together and reopen the correct run in a separate history pane', async () => {
   const run: ToolRun = {
     id: 'recent', toolId: '12', plan: availablePlan({ warnings: ['実行時の警告'] }), status: 'running',
     startedAtUtc: new Date().toISOString(), finishedAtUtc: null, exitCode: null, prompt: null,
   }
+  const deploy: ToolRun = {
+    ...run, id: 'deploy', toolId: '01', plan: availablePlan({ toolId: '01' }), status: 'waitingForInput',
+    prompt: { id: 'dev-prompt', message: 'Dev の確認', choices: [{ value: 'continue', label: '続行' }] },
+  }
   let currentRuns: ToolRun[] = []
   vi.spyOn(toolJobApi, 'runs').mockImplementation(async () => currentRuns)
   vi.spyOn(toolJobApi, 'logs').mockImplementation(async (_id, after) => ({ lines: [], next: after }))
-  vi.spyOn(toolJobApi, 'startDirect').mockImplementation(async () => { currentRuns = [run]; return run })
+  vi.spyOn(toolJobApi, 'startDirect').mockImplementation(async (_requestId, settings) => {
+    const started = settings.toolId === '12' ? run : deploy
+    currentRuns = [started, ...currentRuns]
+    return started
+  })
   const openHistory = vi.fn()
-  const panes = (historyRunId?: string) => <DesktopToolRunHistoryProvider enabled>
+  const panes = <DesktopToolRunHistoryProvider enabled>
     <section aria-label="ビルド画面"><DesktopToolWorkspace {...props} page="12" onOpenHistory={openHistory} /></section>
     <section aria-label="Dev 更新画面"><DesktopToolWorkspace {...props} page="01" onOpenHistory={openHistory} /></section>
-    <section aria-label="履歴画面"><DesktopToolWorkspace {...props} page="history" historyRunId={historyRunId} /></section>
+    <section aria-label="履歴画面"><DesktopToolWorkspace {...props} page="history" /></section>
   </DesktopToolRunHistoryProvider>
 
-  const view = render(panes())
+  render(panes)
   const build = within(screen.getByRole('region', { name: 'ビルド画面' }))
   const dev = within(screen.getByRole('region', { name: 'Dev 更新画面' }))
   const history = within(screen.getByRole('region', { name: '履歴画面' }))
@@ -101,12 +109,54 @@ it('passes a direct run between separately mounted tool and history panes', asyn
   await waitFor(() => expect(action).toBeEnabled())
   fireEvent.click(action)
   expect(await build.findByText('実行時の警告')).toBeVisible()
-  expect(dev.getByRole('button', { name: '実行' })).toBeDisabled()
-  fireEvent.click(dev.getByRole('button', { name: '実行中の処理を表示' }))
-  expect(openHistory).toHaveBeenCalledExactlyOnceWith('recent')
+  expect(action).toBeDisabled()
+  const deployAction = dev.getByRole('button', { name: '実行' })
+  expect(deployAction).toBeEnabled()
+  fireEvent.click(deployAction)
+  expect(await dev.findByText('Dev の確認')).toBeVisible()
+  expect(deployAction).toBeDisabled()
+  expect(build.queryByText('Dev の確認')).not.toBeInTheDocument()
 
-  view.rerender(panes('recent'))
+  const buildHistoryLink = dev.getByRole('button', { name: /ネットワーク.*の実行履歴を表示/ })
+  fireEvent.click(buildHistoryLink)
+  expect(openHistory).toHaveBeenLastCalledWith('recent')
   expect(await history.findByRole('heading', { name: '実行時の計画' })).toBeVisible()
+  expect(history.queryByText('Dev の確認')).not.toBeInTheDocument()
+  fireEvent.click(history.getByRole('button', { name: '詳細を閉じる' }))
+  expect(history.queryByRole('heading', { name: '実行時の計画' })).not.toBeInTheDocument()
+  fireEvent.click(buildHistoryLink)
+  expect(await history.findByRole('heading', { name: '実行時の計画' })).toBeVisible()
+  fireEvent.click(build.getByRole('button', { name: /Dev.*の実行履歴を表示/ }))
+  expect(openHistory).toHaveBeenLastCalledWith('deploy')
+  expect(await history.findByText('Dev の確認')).toBeVisible()
+})
+
+it('aborts the previous log read when switching to another run and ignores its late response', async () => {
+  const build: ToolRun = {
+    id: 'build', toolId: '12', plan: availablePlan(), status: 'running',
+    startedAtUtc: new Date().toISOString(), finishedAtUtc: null, exitCode: null, prompt: null,
+  }
+  const deploy: ToolRun = { ...build, id: 'deploy', toolId: '01', plan: availablePlan({ toolId: '01' }) }
+  vi.spyOn(toolJobApi, 'runs').mockResolvedValue([build, deploy])
+  let completeBuildLog: (result: { lines: ToolLogLine[]; next: number }) => void = () => {}
+  let buildSignal: AbortSignal | undefined
+  vi.spyOn(toolJobApi, 'logs').mockImplementation(async (id, after, signal) => {
+    if (id === 'build') {
+      buildSignal = signal
+      return new Promise(resolve => { completeBuildLog = resolve })
+    }
+    return { lines: after === 0 ? [{ sequence: 1, stream: 'output', text: '配布ログ' }] : [], next: 1 }
+  })
+  render(<DesktopToolWorkspace {...props} page="history" />)
+  const [buildButton, deployButton] = await screen.findAllByRole('button', { name: '詳細を表示' })
+  fireEvent.click(buildButton)
+  await waitFor(() => expect(buildSignal?.aborted).toBe(false))
+  fireEvent.click(deployButton)
+  expect(await screen.findByText('配布ログ')).toBeVisible()
+  expect(buildSignal?.aborted).toBe(true)
+  await act(async () => completeBuildLog({ lines: [{ sequence: 1, stream: 'output', text: 'ビルドログ' }], next: 1 }))
+  expect(screen.queryByText('ビルドログ')).not.toBeInTheDocument()
+  expect(screen.getByText('配布ログ')).toBeVisible()
 })
 
 it('sends the confirmed plan and typed response, and opens the completed run in history', async () => {
