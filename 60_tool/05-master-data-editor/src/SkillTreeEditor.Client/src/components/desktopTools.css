@@ -1,7 +1,11 @@
 .tool-workspace {
   height: 100%;
+  min-height: 0;
+  min-width: 0;
   padding: 24px;
   overflow: auto;
+  overscroll-behavior: contain;
+  container-type: inline-size;
   color: var(--text);
   background: var(--surface);
   font-size: 13px;
@@ -12,7 +16,7 @@
 .tool-workspace h2 { margin: 0; font-size: 16px; font-weight: 650; }
 .tool-workspace h3 { margin: 0; font-size: 14px; font-weight: 650; }
 .tool-workspace p { margin: 0; }
-.tool-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 18px; }
+.tool-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 18px; overflow-wrap: anywhere; }
 .tool-heading p { margin-top: 3px; }
 .tool-muted, .tool-field small { color: var(--text-muted); }
 .tool-badge {
@@ -67,6 +71,8 @@ ul.tool-note { padding-left: 31px; }
 .tool-note.warning { color: var(--gold); background: #3e3629; }
 .tool-note.error { color: var(--danger); background: #422e35; }
 .tool-note > p + button, .tool-note .tool-button-row { margin-top: 8px; }
+ul.tool-active-runs { display: grid; gap: 6px; padding-left: 13px; list-style: none; }
+.tool-active-runs li { display: flex; align-items: center; gap: 4px 8px; flex-wrap: wrap; }
 .tool-confirmations { display: grid; gap: 8px; min-width: 0; margin: 15px 0 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--radius-panel); }
 .tool-confirmations legend { padding: 0 5px; font-weight: 650; }
 .tool-confirmations label { display: flex; gap: 8px; align-items: flex-start; }
@@ -80,6 +86,7 @@ ul.tool-note { padding-left: 31px; }
   margin: 12px 0 0;
   padding: 12px;
   overflow: auto;
+  overscroll-behavior: contain;
   font: 12px / 1.65 "Cascadia Code", Consolas, "Yu Gothic UI", monospace;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -92,10 +99,14 @@ ul.tool-note { padding-left: 31px; }
 .tool-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
 .tool-table td, .tool-table th { padding: 9px 10px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
 .tool-table thead th { background: var(--surface-sidebar); color: var(--text-muted); font-weight: 600; }
+.tool-history-list { max-height: min(38vh, 320px); overflow: auto; overscroll-behavior: contain; }
+.tool-history-list thead th { position: sticky; top: 0; }
 .tool-empty { padding: 36px 12px; color: var(--text-muted); text-align: center; }
 .tool-workspace .text-button { font-size: 12px; }
 @media (max-width: 720px) {
   .tool-workspace { padding: 14px; }
+}
+@container (max-width: 670px) {
   .tool-settings-grid { grid-template-columns: minmax(0, 1fr); }
   .tool-panel { padding: 13px; }
 }
