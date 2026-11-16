@@ -35,6 +35,12 @@ Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメー�
 
 `python scripts/generate-quest-hud-java.py --check --preview <PNGパス>` と `python scripts/preview-quest-hud-bedrock.py --preview <PNGパス>`（プレビューはPillowが必要）で配布字形・描画定義から静的画像を生成します。Java版の追加字形は [Noto Sans CJK JP Bold (Sans2.004)](https://github.com/notofonts/noto-cjk/tree/Sans2.004) を元にした改変ビットマップです。OFLの著作権表記とライセンスは `licenses/OFL-NotoSansJP.txt` を同梱します。対象4版の正規クライアントJARと Pillow 13.0.0／FreeType 2.14.3 を用い、同スクリプトに `--clients-dir <JARのフォルダ> --raster-font <NotoSansCJK-Bold.ttc>` を渡して再生成できます。統合版の画像はネイティブ書体をJavaパック字形で代用した配置図です。実クライアントでの描画確認とは分けて扱います。
 
+### アクションリング CT HUD
+
+Java版の管理パックで `java.actionRingCooldownHud = "1"` の適用に成功した接続だけに表示します。ホットバー左側に、装備済みのリング枠だけを実際の角度（上から時計回り、最大8枠）に配置します。金色の弧は各枠の残り割合、数字は切り上げた残り秒数、青緑のひし形は使用可能、灰色の点はクールタイム以外の使用条件が未成立の状態です。空き枠は描画しません。広い画面では戦闘HUDの左に、狭い画面ではオフハンドより左へ縮小して配置します。表示寸法を確保できない場合は表示を省略します。統合版は変更しません。
+
+`python scripts/generate-action-ring-cooldown.py --check --preview <PNGパス>` で既存のカウントダウン素材を使う専用フォントとアトラスを検証できます。座標、既存HUDとの分離と4世代のシェーダーは `generate-quest-hud-java.py --check` で検証します。プレビューはゲーム内撮影ではありません。
+
 ### 現在地HUD
 
 Java 版は配布マニフェストの `java.locationHud` が `4` または `5` の管理パックを適用し、個人情報 HUD を描画できる状態で、現在地・挑戦状況・効果を右上に表示します。ワールド名、エリア名とレベル、任意の通信・性能情報は、背景枠を使わず影付きの文字で右端を揃えます。エリアLvは金色、MSPTとPingは値に応じて緑・黄・赤で表示します。日本語は Noto Sans JP の4倍解像度ビットマップ字形、収録済みの英数字・記号はアクションバーと同じ字形を使います。効果アイコンは既存のバフアイコンの絵柄を使います。専用 RGB マーカーと負の ascent を使って4世代のテキストシェーダーで描画し、画面が狭い場合は左上と下部の HUD との重なりを避けるため縮小します。ビルドと配布時は字形アトラスのSHA-256を照合します。`scripts/generate-location-hud-text.py --check` で字形と送り幅を、`scripts/generate-quest-hud-java.py --check` でシェーダーと配置を検証できます。
