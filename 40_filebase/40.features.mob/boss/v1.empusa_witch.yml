@@ -10,6 +10,7 @@ title: "&5-- 五彩の魔法を操る希少な怪異 --"
 level: 25
 entityType: WITCH
 icon: WITCH_SPAWN_EGG
+iconModel: mob_head_witch
 nameVisible: true
 lore:
   - "&7銅と炎の伝承を宿し、幾色もの魔法を織る魔女。"

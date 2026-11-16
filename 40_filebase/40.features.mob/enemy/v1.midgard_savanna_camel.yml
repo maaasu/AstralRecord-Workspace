@@ -9,6 +9,7 @@ name: "&eサバナガードキャメル"
 level: 7
 entityType: CAMEL
 icon: CAMEL_SPAWN_EGG
+iconModel: mob_head_camel
 lore:
   - "&7普段は穏やかに歩く、厚い外殻を持つラクダ。"
   - "&7攻撃を受けると大きく跳び、周囲を巻き込んで反撃する。"

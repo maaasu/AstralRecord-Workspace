@@ -48,6 +48,13 @@ public static class EditorEndpoints
 
         if (endpoints.ServiceProvider.GetService<WorkspaceItemTextures>() is not null)
         {
+            api.MapGet("/minecraft-mob-heads/{role}", (string role, WorkspaceItemTextures textures, HttpContext context) =>
+            {
+                context.Response.Headers.CacheControl = "no-cache";
+                var path = textures.FindMobHeadPath(role);
+                return path is null ? Results.NotFound()
+                    : Results.File(path, "image/png", lastModified: File.GetLastWriteTimeUtc(path));
+            });
             api.MapGet("/minecraft-item-textures/{material}/{modelData:int}",
                 (string material, int modelData, WorkspaceItemTextures textures, HttpContext context) =>
                 {

@@ -9,6 +9,7 @@ name: "&aフォレストウルフ"
 level: 6
 entityType: WOLF
 icon: WOLF_SPAWN_EGG
+iconModel: mob_head_wolf
 lore:
   - "&7森林を駆ける俊敏な野生のオオカミ。"
   - "&7近くのプレイヤーを見つけると群れずに襲い掛かる。"

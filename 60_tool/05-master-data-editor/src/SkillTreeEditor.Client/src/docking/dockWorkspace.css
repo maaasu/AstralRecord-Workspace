@@ -90,6 +90,22 @@
 .dock-menu button:hover:not(:disabled), .dock-menu button:focus-visible { background: var(--surface-soft); }
 .dock-menu button:focus-visible { outline-offset: -2px; }
 .dock-menu button:disabled { color: var(--text-muted); opacity: .6; cursor: default; }
+.dockview-theme-astral .dv-context-menu {
+  min-width: 164px;
+  padding: 5px;
+  border: 1px solid var(--line-bright);
+  border-radius: var(--radius-menu, 10px);
+  background: var(--surface-raised);
+  color: var(--text);
+  box-shadow: 0 8px 24px #0006;
+}
+.dockview-theme-astral .dv-context-menu-item {
+  min-height: 28px;
+  padding: 4px 9px;
+  border-radius: var(--radius-control, 7px);
+  font-size: 12px;
+}
+.dockview-theme-astral .dv-context-menu-item:hover { background: var(--surface-soft); }
 .dock-empty { display: grid; height: 100%; place-content: center; color: var(--text-muted); font-size: 13px; }
 .dock-error { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 10px; background: var(--surface-sidebar); color: var(--danger); font-size: 12px; }
 .dock-error button { background: transparent; border: 0; cursor: pointer; }

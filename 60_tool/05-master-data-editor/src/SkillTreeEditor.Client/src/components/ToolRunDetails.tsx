@@ -38,8 +38,19 @@ export function ToolPlanDetails({ plan, heading = '計画の詳細' }: { plan: T
   </section>
 }
 
+function groupLogLines(lines: ToolLogLine[]) {
+  const groups: ToolLogLine[] = []
+  for (const line of lines) {
+    const last = groups.at(-1)
+    const text = (line.text || ' ') + '\n'
+    if (last?.stream === line.stream) last.text += text
+    else groups.push({ ...line, text })
+  }
+  return groups
+}
+
 function RunLog({ run }: { run: ToolRun }) {
-  const [lines, setLines] = useState<ToolLogLine[]>([])
+  const [groups, setGroups] = useState<ToolLogLine[]>([])
   const [error, setError] = useState('')
   const [loaded, setLoaded] = useState(false)
   const [retry, setRetry] = useState(0)
@@ -49,39 +60,42 @@ function RunLog({ run }: { run: ToolRun }) {
   const running = isRunning(run)
 
   useEffect(() => {
-    let live = true
+    const controller = new AbortController()
     let timeout: ReturnType<typeof setTimeout> | undefined
     const load = async () => {
       try {
         const before = cursor.current
-        const batch = await toolJobApi.logs(run.id, before)
-        if (!live) return
+        const batch = await toolJobApi.logs(run.id, before, controller.signal)
+        if (controller.signal.aborted) return
         cursor.current = batch.next
         setLoaded(true)
         setError('')
-        if (batch.lines.length) setLines(current => [...current, ...batch.lines])
+        if (batch.lines.length) {
+          const next = groupLogLines(batch.lines)
+          setGroups(current => [...current, ...next])
+        }
         if (batch.next > before || running) timeout = setTimeout(() => void load(), batch.next > before ? 10 : 900)
       } catch (reason) {
-        if (!live) return
+        if (controller.signal.aborted) return
         setError(toolError(reason))
         if (running) timeout = setTimeout(() => void load(), 1500)
       }
     }
     void load()
-    return () => { live = false; clearTimeout(timeout) }
+    return () => { controller.abort(); clearTimeout(timeout) }
   }, [run.id, running, retry])
 
   useEffect(() => {
     if (follow.current && scrollBox.current) scrollBox.current.scrollTop = scrollBox.current.scrollHeight
-  }, [lines])
+  }, [groups])
 
   return <>
     {error && <div className="tool-note error" role="alert"><p>{error}</p><button type="button" className="button compact" onClick={() => setRetry(value => value + 1)}>ログを再取得</button></div>}
-    {lines.length > 0
+    {groups.length > 0
       ? <pre className="tool-log" aria-label="処理の出力" tabIndex={0} ref={scrollBox} onScroll={event => {
         const log = event.currentTarget
         follow.current = log.scrollHeight - log.scrollTop - log.clientHeight < 24
-      }}>{lines.map(line => <span key={line.sequence} className={line.stream === 'error' ? 'tool-log-stderr' : undefined}>{line.text || ' '}{'\n'}</span>)}</pre>
+      }}>{groups.map(group => <span key={group.sequence} className={group.stream === 'error' ? 'tool-log-stderr' : undefined}>{group.text}</span>)}</pre>
       : <p className="tool-muted">{loaded ? '出力されたログはありません。' : 'ログを読み込んでいます…'}</p>}
   </>
 }

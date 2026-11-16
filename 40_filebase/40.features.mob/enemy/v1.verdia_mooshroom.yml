@@ -12,6 +12,7 @@ variant:
   age: ADULT
   kind: RED
 icon: MOOSHROOM_SPAWN_EGG
+iconModel: mob_head_mooshroom
 lore:
   - '&7静かに草を食み、攻撃を受けても反撃しない。'
 tags:

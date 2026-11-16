@@ -11,6 +11,7 @@ entityType: BAT
 variant:
   age: ADULT
 icon: BAT_SPAWN_EGG
+iconModel: mob_head_bat
 lore:
 - '&7冷たい鱗粉をまとった蛾。'
 - '&7足元に六方の氷模様を残し、少し遅れて氷粉を降らせる。'

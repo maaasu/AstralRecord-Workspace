@@ -12,6 +12,7 @@ variant:
   age: ADULT
   scale: 1.15
 icon: GOAT_SPAWN_EGG
+iconModel: mob_head_goat
 lore:
 - '&7棘に覆われた角を持つシカ。'
 - '&7棘の筋で進路を示してから、一直線に突進する。'

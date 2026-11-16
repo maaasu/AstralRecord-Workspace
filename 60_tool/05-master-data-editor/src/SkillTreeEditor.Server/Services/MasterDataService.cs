@@ -44,7 +44,18 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
                 }).Distinct().ToArray();
                 if (labels.Length > 0) name = string.Join(" / ", labels);
             }
-            var icon = JsonValueReader.String(obj?["icon"]);
+            var isBattleMob = kind == "mob" && JsonValueReader.String(obj?["category"]) is "ENEMY" or "BOSS";
+            var iconLevel = isBattleMob && obj?["levels"] is JsonArray levels
+                ? levels.OfType<JsonObject>()
+                    .Select(level => (Data: level, Level: ReadModelData(level["level"])))
+                    .Where(profile => profile.Level is > 0)
+                    .OrderBy(profile => profile.Level).FirstOrDefault().Data
+                : null;
+
+            string? ReadIconField(string key) => JsonValueReader.String(
+                iconLevel is not null && iconLevel.TryGetPropertyValue(key, out var value) ? value : obj?[key]);
+
+            var icon = ReadIconField("icon");
             icon ??= kind switch
             {
                 "gathering" => JsonValueReader.String(obj?["displayBlock"]),
@@ -52,11 +63,12 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
                 _ => null,
             };
             var modelData = ReadModelData(obj?["customModelData"]);
-            var iconTexture = JsonValueReader.String(obj?["iconTexture"]);
+            var iconTexture = ReadIconField("iconTexture");
+            var iconModel = isBattleMob ? ReadIconField("iconModel") : null;
             if (!string.IsNullOrWhiteSpace(query) && !(document.Path + "\n" + id + "\n" + name + "\n" + document.Raw).Contains(query, StringComparison.OrdinalIgnoreCase)) continue;
             result.Add(new(document.Path, paths.Relative(Path.GetDirectoryName(document.FullPath)!), document.Format, id, name,
                 document.Length, document.LastWriteTimeUtc, document.Revision, document.Issues.FirstOrDefault()?.Message,
-                document.IsReadOnly, icon, icon is null ? null : modelData, iconTexture));
+                document.IsReadOnly, icon, icon is null ? null : modelData, iconTexture, iconModel));
         }
         return result;
     }

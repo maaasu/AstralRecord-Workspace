@@ -108,7 +108,7 @@ name: "&0&l暗黒竜ヴァルザード"
 title: "&8―― 深淵の支配者 ――"
 level: 80
 entityType: ENDER_DRAGON
-icon: ENDER_DRAGON_SPAWN_EGG
+icon: DRAGON_HEAD
 lore:
   - "&7古より封印されし暗黒竜。"
   - "&7強大な力を持ち、挑戦者を待ち受ける。"

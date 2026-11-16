@@ -42,6 +42,7 @@ public class MobRepository(MasterDataDbContext dbContext) : IMobRepository
                 DefenseEligible = mob.DefenseEligible,
                 EntityType = mob.EntityType,
                 Icon = mob.Icon,
+                IconModel = mob.IconModel,
                 IconTexture = mob.IconTexture,
                 Tags = mob.Tags,
             })

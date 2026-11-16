@@ -104,30 +104,35 @@
 }
 .master-switch input[type=checkbox]:checked { background: var(--accent-soft); border-color: var(--accent); }
 .master-switch input[type=checkbox]:checked::after { left: 19px; background: var(--accent); }
-.master-formatted-field > summary {
+.master-formatted-field {
   display: grid;
-  gap: 5px;
-  margin-bottom: 5px;
-  cursor: pointer;
-  list-style: none;
+  gap: 6px;
+  min-width: 0;
 }
-.master-formatted-field > summary::-webkit-details-marker { display: none; }
-.master-format-mode { justify-self: end; color: var(--accent); font-size: 11px; }
 .master-formatted-value {
   display: block;
-  min-height: 38px;
-  padding: 8px 10px;
-  border: 1px solid var(--line-bright);
-  border-radius: 5px;
-  background: var(--surface-raised);
-  font-size: 14px;
+  padding: 6px 10px;
+  border-left: 2px solid var(--line-bright);
+  font-size: 13px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.master-formatted-value.multiline { min-height: 74px; }
 .master-formatted-line { display: block; min-height: 1.5em; }
-.master-formatted-field[open] .master-formatted-value { display: none; }
-.master-formatted-field:not([open]) > :not(summary) { display: none; }
+.master-inline-section {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+}
+.master-inline-section .master-inline-section {
+  border-width: 0 0 0 2px;
+  border-radius: 0;
+  padding: 4px 0 4px 12px;
+}
+.master-isolate-field { color: var(--text-muted); }
+.master-array-compact:has(.master-object) { align-items: flex-start; }
+.master-array-compact-content > .master-node-link { margin-bottom: 8px; }
+.master-array-summary-row:has(.master-object) { display: block; }
 
 .master-color-input { position: relative; }
 .master-color-input:has(.master-color-swatch) input { padding-left: 36px; }

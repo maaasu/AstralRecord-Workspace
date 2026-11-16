@@ -12,6 +12,7 @@ variant:
   age: ADULT
   scale: 1.4
 icon: SILVERFISH_SPAWN_EGG
+iconModel: mob_head_silverfish
 lore:
 - '&7熱を帯びた粘液を吐く、ゆっくり動く軟体生物。'
 - '&7帯状の予告を示し、前方に4秒間の火の道を残す。'

@@ -8,7 +8,7 @@ category: ENEMY
 name: "&b封護の写本守"
 level: 30
 entityType: WITHER_SKELETON
-icon: WITHER_SKELETON_SPAWN_EGG
+icon: WITHER_SKELETON_SKULL
 nameVisible: true
 lore:
   - "&7魔女の防御を強める封護の頁。"

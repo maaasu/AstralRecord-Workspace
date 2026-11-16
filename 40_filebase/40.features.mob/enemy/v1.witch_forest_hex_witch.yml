@@ -9,6 +9,7 @@ name: "&5森陰の魔女 Lv.20"
 level: 20
 entityType: WITCH
 icon: WITCH_SPAWN_EGG
+iconModel: mob_head_witch
 lore:
   - "&7薄暗い森をさまよい、黄緑の呪灯を操る魔女。"
   - "&7詠唱後に放つ呪灯弾は、横へ動くと避けられる。"

@@ -1,3 +1,4 @@
+import { respondToConfirmation } from '../test/confirmation'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { masterDataApi } from '../api/masterDataApi'
@@ -152,7 +153,6 @@ describe('saving without losing the editing context', () => {
       .mockResolvedValue({ raw: commented, commentsPreserved: true, warnings: [] })
     vi.spyOn(masterDataApi, 'parse').mockResolvedValue({ content: original.content, issues: [] })
     vi.mocked(masterDataApi.save).mockResolvedValue({ ...original, raw: commented, revision: 'after' })
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
     await openFile()
     fireEvent.click(screen.getByRole('button', { name: '原稿 YAML' }))
     fireEvent.change(await screen.findByRole('textbox', { name: 'マスター原稿' }), { target: { value: commented } })
@@ -161,7 +161,7 @@ describe('saving without losing the editing context', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: '保存 (Ctrl+S)' })).toBeEnabled())
     expect(screen.getByRole('tab', { name: '検証クラス · 未保存' })).toBeVisible()
     fireEvent.click(screen.getByRole('button', { name: 'v1.sample.yml のタブを閉じる' }))
-    expect(confirm).toHaveBeenCalled()
+    await respondToConfirmation(false)
     expect(screen.getByRole('textbox', { name: '/name' })).toBeVisible()
     act(() => saveKey())
     await screen.findByText('v1.sample.yml を保存しました。')

@@ -9,6 +9,7 @@ name: "&6サバナハイエナ"
 level: 7
 entityType: WOLF
 icon: WOLF_SPAWN_EGG
+iconModel: mob_head_wolf
 lore:
   - "&7ミズガルズ・サバナを単独で徘徊する獰猛な獣。"
   - "&7近づく獲物へ素早く噛みつく。"

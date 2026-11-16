@@ -12,6 +12,7 @@ variant:
   age: ADULT
   scale: 1.2
 icon: SILVERFISH_SPAWN_EGG
+iconModel: mob_head_silverfish
 lore:
 - '&7乾いた砂をまとった、身軽なヤモリ。'
 - '&7前方の扇を示してから砂を払い、短い盲目を与える。'

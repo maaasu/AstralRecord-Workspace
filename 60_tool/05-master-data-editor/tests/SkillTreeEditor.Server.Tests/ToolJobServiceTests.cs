@@ -145,18 +145,19 @@ public sealed class ToolJobServiceTests
                 using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(22));
                 while (service.GetRun(startedRun.Id).Status is "starting" or "running")
                     await Task.Delay(100, cleanup.Token);
+                await WaitForLauncherExitAsync(startedRun, cleanup.Token);
             }
             root.Delete(recursive: true);
         }
     }
 
     [Fact]
-    public async Task DirectExecutionUsesFreshSettingsAndPreventsConcurrentOrDuplicateLaunches()
+    public async Task DifferentToolsCanPrepareAndRunTogetherWhileDuplicatesArePrevented()
     {
         if (!OperatingSystem.IsWindows()) return;
         var root = Directory.CreateTempSubdirectory("editor-tool-direct-");
         var config = Path.Combine(root.FullName, "fixture.json");
-        var planGate = Path.Combine(root.FullName, "pause-plan");
+        var planGate = Path.Combine(root.FullName, "pause-plan-01");
         var runGate = Path.Combine(root.FullName, "finish");
         var service = CreateService(root);
         Task<ToolJobRun>? starting = null;
@@ -186,9 +187,15 @@ public sealed class ToolJobServiceTests
             var repeatedDuringPreparation = await Assert.ThrowsAsync<ToolJobException>(() => service.StartDirectAsync(request, token));
             Assert.Equal(409, repeatedDuringPreparation.StatusCode);
             var otherService = CreateService(root);
-            var otherRequest = new ToolJobDirectStartRequest(Guid.NewGuid(), new ToolJobPlanRequest("12"));
-            var competingDuringPreparation = await Assert.ThrowsAsync<ToolJobException>(() => otherService.StartDirectAsync(otherRequest, token));
+            var competingRequest = request with { RequestId = Guid.NewGuid() };
+            var competingDuringPreparation = await Assert.ThrowsAsync<ToolJobException>(() => otherService.StartDirectAsync(competingRequest, token));
             Assert.Equal(409, competingDuringPreparation.StatusCode);
+            Assert.Contains("01", competingDuringPreparation.Message);
+            var buildRequest = new ToolJobDirectStartRequest(Guid.NewGuid(), new ToolJobPlanRequest("12"));
+            var build = await otherService.StartDirectAsync(buildRequest, token);
+            Assert.Equal(buildRequest.RequestId, build.Id);
+            Assert.False(starting.IsCompleted);
+
             File.Delete(planGate);
             var run = await starting;
 
@@ -198,23 +205,31 @@ public sealed class ToolJobServiceTests
             Assert.Single(run.Plan.Confirmations);
             Assert.Equal(run.Id, otherService.GetCapabilities().ActiveRunId);
             Assert.Equal(run.Id, (await otherService.StartDirectAsync(request, token)).Id);
-            var competing = await Assert.ThrowsAsync<ToolJobException>(() => otherService.StartDirectAsync(otherRequest, token));
+            var competing = await Assert.ThrowsAsync<ToolJobException>(() => otherService.StartDirectAsync(competingRequest, token));
             Assert.Equal(409, competing.StatusCode);
             Assert.Contains("実行中", competing.Message);
+            Assert.Equal(new[] { run.Id, build.Id }, service.GetRuns().Select(entry => entry.Id));
+            Assert.All(service.GetRuns(), entry => Assert.Null(entry.FinishedAtUtc));
+
+            var reusedId = buildRequest with { Settings = request.Settings };
+            var reused = await Assert.ThrowsAsync<ToolJobException>(() => service.StartDirectAsync(reusedId, token));
+            Assert.Equal(409, reused.StatusCode);
+            Assert.Contains("異なる実行設定", reused.Message);
 
             File.WriteAllText(runGate, "");
-            while (service.GetRun(run.Id).FinishedAtUtc is null)
+            while (service.GetRuns().Any(entry => entry.FinishedAtUtc is null))
                 await Task.Delay(100, token);
             var failed = await otherService.StartDirectAsync(request, token);
             Assert.Equal("failed", failed.Status);
             Assert.Equal(7, failed.ExitCode);
             Assert.Equal("Synthetic deployment failure.", Assert.Single(service.GetLogs(run.Id, 0).Lines).Text);
-            Assert.Single(service.GetRuns());
+            Assert.Equal("Completed.", Assert.Single(service.GetLogs(build.Id, 0).Lines).Text);
+            Assert.Equal(2, service.GetRuns().Length);
 
             var otherSettings = request with { Settings = request.Settings with { PluginTests = "DifferentTest" } };
             var changed = await Assert.ThrowsAsync<ToolJobException>(() => service.StartDirectAsync(otherSettings, token));
             Assert.Equal(409, changed.StatusCode);
-            Assert.Single(service.GetRuns());
+            Assert.Equal(2, service.GetRuns().Length);
         }
         finally
         {
@@ -226,9 +241,27 @@ public sealed class ToolJobServiceTests
                 using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(22));
                 while (service.GetCapabilities().ActiveRunId is not null)
                     await Task.Delay(100, cleanup.Token);
+                foreach (var run in service.GetRuns())
+                    await WaitForLauncherExitAsync(run, cleanup.Token);
             }
             root.Delete(recursive: true);
         }
+    }
+
+    private static async Task WaitForLauncherExitAsync(ToolJobRun run, CancellationToken token)
+    {
+        var launcherPath = Path.Combine(Path.GetDirectoryName(run.LogPath)!, "launcher.json");
+        if (!File.Exists(launcherPath)) return;
+        using var identity = JsonDocument.Parse(File.ReadAllText(launcherPath));
+        var record = identity.RootElement;
+        try
+        {
+            using var process = Process.GetProcessById(record.GetProperty("pid").GetInt32());
+            if (process.StartTime.ToUniversalTime().Ticks == record.GetProperty("startedAtTicks").GetInt64())
+                await process.WaitForExitAsync(token);
+        }
+        catch (ArgumentException) { } // The fixture process already exited.
+        catch (InvalidOperationException) { }
     }
 
     private static ToolJobService CreateService(DirectoryInfo root)
@@ -252,7 +285,8 @@ public sealed class ToolJobServiceTests
                 [IO.File]::WriteAllText($path, ($value | ConvertTo-Json -Depth 20 -Compress), $utf8)
             }
             if ($Mode -eq 'Plan') {
-                $preparing = Join-Path $Workspace 'pause-plan'
+                $request = Get-Content -Raw -LiteralPath (Join-Path $Job 'request.json') | ConvertFrom-Json
+                $preparing = Join-Path $Workspace ('pause-plan-' + $request.options.toolId)
                 for ($i = 0; $i -lt 200 -and (Test-Path -LiteralPath $preparing); $i++) {
                     Start-Sleep -Milliseconds 100
                 }

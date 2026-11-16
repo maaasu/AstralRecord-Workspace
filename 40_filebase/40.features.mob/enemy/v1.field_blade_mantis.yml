@@ -9,6 +9,7 @@ name: '&aカマキリソード'
 level: 42
 entityType: SILVERFISH
 icon: SILVERFISH_SPAWN_EGG
+iconModel: mob_head_silverfish
 variant:
   age: ADULT
   scale: 2.0

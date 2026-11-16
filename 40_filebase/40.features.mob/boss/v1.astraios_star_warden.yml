@@ -13,6 +13,7 @@ variant:
   age: ADULT
   scale: 1.5
 icon: STRAY_SPAWN_EGG
+iconModel: mob_head_stray
 nameVisible: true
 lore:
   - "&7観測台に星図を刻み、侵入者の足取りを読み取る番人。"

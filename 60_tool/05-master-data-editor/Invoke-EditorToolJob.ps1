@@ -19,7 +19,7 @@ $editorJobContext = @{
     Run = $null
     Log = $null
 }
-$activeLock = $null
+$toolLock = $null
 
 function Write-JobJson($Value, [string]$Path) {
     $temporary = "$Path.$([Guid]::NewGuid().ToString('N')).tmp"
@@ -486,14 +486,17 @@ try {
         $process = Get-Process -Id $PID
         Write-JobJson @{pid=$PID;startedAtTicks=$process.StartTime.ToUniversalTime().Ticks} (Join-Path $JobDirectory 'worker.json')
         $editorJobContext.Log = [IO.File]::Open((Join-Path $JobDirectory 'log.jsonl'), 'Append', 'Write', 'Read')
-        try { $activeLock = [IO.File]::Open((Join-Path $root 'active.lock'), 'OpenOrCreate', 'ReadWrite', 'None') }
-        catch [IO.IOException] { throw '別の運用ツールが実行中です。終了を待ってから計画を確認してください。' }
+        $toolId = $editorJobContext.Run.toolId
+        if ($toolId -cnotin @('01', '03', '12', '16')) { throw '対応する運用ツールを選択してください。' }
+        try { $toolLock = [IO.File]::Open((Join-Path $root "active-$toolId.lock"), 'OpenOrCreate', 'ReadWrite', 'None') }
+        catch [IO.IOException] { throw "$toolId は実行中です。完了後に再実行してください。" }
         $editorJobContext.Run.status = 'running'
         Write-JobJson $editorJobContext.Run $editorJobContext.StatePath
         Add-JobLog '計画と設定を再確認しています。'
     }
 
     $request = Read-JobJson (Join-Path $JobDirectory 'request.json')
+    if ($Mode -ceq 'Run' -and $toolId -cne $request.options.toolId) { throw '実行設定と記録のツールが一致しません。' }
     $plan = Get-RequiredJobPlan $request.options
     if ($Mode -ceq 'Plan') {
         if ($plan.Details.canRun) { Invoke-JobPlan $plan $request.options.toolId }
@@ -535,6 +538,7 @@ try {
     $result = 1
 } finally {
     try {
+        if ($toolLock) { $toolLock.Dispose() }
         if ($editorJobContext.Run) {
             $editorJobContext.Run.status = if ($result -eq 0) { 'succeeded' } else { 'failed' }
             $editorJobContext.Run.exitCode = $result
@@ -544,7 +548,6 @@ try {
         }
     } finally {
         if ($editorJobContext.Log) { $editorJobContext.Log.Dispose() }
-        if ($activeLock) { $activeLock.Dispose() }
     }
 }
 

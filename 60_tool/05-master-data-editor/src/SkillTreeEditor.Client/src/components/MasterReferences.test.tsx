@@ -1,3 +1,4 @@
+import { respondToConfirmation } from '../test/confirmation'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { masterDataApi } from '../api/masterDataApi'
@@ -180,7 +181,7 @@ describe('on-demand references', () => {
     fireEvent.click(screen.getByRole('tab', { name: '最初のクラス' })); toggleReferences()
     fireEvent.click(await panel().findByRole('button', { name: /の参照位置/ }))
     expect(screen.getByRole('textbox', { name: '/name' })).toBeDisabled()
-    expect(screen.queryByRole('textbox', { name: '/unlock/classId' })).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '/unlock/classId' })).not.toHaveFocus()
     await act(async () => pending.resolve({ ...target, revision: 'saved', content: { ...target.content, name: '保存した名前' } }))
     await waitFor(() => expect(screen.getByRole('textbox', { name: '/unlock/classId' })).toHaveFocus())
     expect(masterDataApi.file).toHaveBeenCalledTimes(2)
@@ -212,7 +213,7 @@ describe('on-demand references', () => {
     await screen.findByText(/入力中の数値を修正してから/)
     expect(screen.getByRole('textbox', { name: '/amount' })).toHaveValue('invalid')
     fireEvent.change(screen.getByRole('textbox', { name: '/amount' }), { target: { value: '3' } })
-    expect(screen.queryByRole('textbox', { name: '/unlock/classId' })).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '/unlock/classId' })).not.toHaveFocus()
   })
 
   it('keeps a raw draft and does not automatically parse or switch modes for a reference', async () => {
@@ -390,6 +391,7 @@ describe('on-demand references', () => {
     vi.spyOn(masterDataApi, 'delete').mockRejectedValue(new Error('参照されているため削除できません'))
     await openFirst()
     fireEvent.click(screen.getByRole('button', { name: '削除' }))
+    await respondToConfirmation(true, 'ファイルを削除', '削除')
     await screen.findByText('参照されているため削除できません')
     expect(masterDataApi.delete).toHaveBeenCalledWith(first.path, first.revision)
     expect(masterDataApi.references).not.toHaveBeenCalled()

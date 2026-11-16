@@ -9,6 +9,7 @@ name: "&8呪糸の森蜘蛛 Lv.20"
 level: 20
 entityType: SPIDER
 icon: SPIDER_SPAWN_EGG
+iconModel: mob_head_spider
 lore:
   - "&7木陰に潜み、獲物の足元へ呪われた糸を張る蜘蛛。"
   - "&7呪糸の輪に残ると傷を受け、冷気で動きを鈍らされることがある。"

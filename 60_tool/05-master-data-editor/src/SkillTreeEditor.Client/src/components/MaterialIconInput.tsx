@@ -20,10 +20,11 @@ interface MaterialIconInputProps {
   placeholder?: string
   customModelData?: JsonValue
   iconTexture?: JsonValue
+  iconModel?: JsonValue
 }
 
 /** Keep free text and the original saved value; selection supplies a canonical Material ID. */
-export function MaterialIconInput({ value, onChange, id, ariaLabel = id ? undefined : 'Minecraft Material', disabled = false, suggestions = minecraftMaterialSuggestions, revision = 0, placeholder, customModelData, iconTexture }: MaterialIconInputProps) {
+export function MaterialIconInput({ value, onChange, id, ariaLabel = id ? undefined : 'Minecraft Material', disabled = false, suggestions = minecraftMaterialSuggestions, revision = 0, placeholder, customModelData, iconTexture, iconModel }: MaterialIconInputProps) {
   const document = usePanelDocument()
   const visibleInLayout = usePanelVisibility()
   const [open, setOpen] = useState(false)
@@ -38,13 +39,13 @@ export function MaterialIconInput({ value, onChange, id, ariaLabel = id ? undefi
   }
   return <div className="material-icon-input">
     <span className="material-icon-input-preview" role="img" aria-label={value ? `素材アイコン: ${value}` : '素材アイコン未設定'}>
-      <MinecraftIcon icon={value} customModelData={customModelData} iconTexture={iconTexture} revision={revision + retry} className="material-field-icon" />
+      <MinecraftIcon icon={value} customModelData={customModelData} iconTexture={iconTexture} iconModel={iconModel} revision={revision + retry} className="material-field-icon" />
     </span>
     <div className="material-icon-input-controls">
       <SuggestionInput id={id} aria-label={ariaLabel} value={value} disabled={disabled} suggestions={suggestions} placeholder={placeholder} onChange={event => onChange(event.target.value)} />
       <div className="material-icon-input-actions">
         <button ref={opener} className="button subtle" type="button" disabled={disabled} aria-haspopup="dialog" onClick={() => setOpen(true)}>画像一覧から選択</button>
-        <button className="button subtle compact" type="button" disabled={disabled || !value.trim()} onClick={() => setRetry(current => current + 1)} title="取得に失敗したプレビューを再読込">画像を再読込</button>
+        <button className="button subtle compact" type="button" disabled={disabled || (!value.trim() && !iconModel)} onClick={() => setRetry(current => current + 1)} title="取得に失敗したプレビューを再読込">画像を再読込</button>
       </div>
     </div>
     {open && visibleInLayout && createPortal(<Suspense fallback={<MaterialPickerLoading onClose={() => setOpen(false)} />}>

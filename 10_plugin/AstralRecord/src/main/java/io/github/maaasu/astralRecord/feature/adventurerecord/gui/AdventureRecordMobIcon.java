@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.shared.gui.GuiResourcePackIcons;
 import io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
+import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -16,6 +17,14 @@ import java.util.Map;
 /** 冒険記録で一覧と詳細に共通する Mob の頭アイコンを構築します。 */
 final class AdventureRecordMobIcon {
     private static final String ROLE_PREFIX = "mob_head_";
+    private static final Map<EntityType, Material> VANILLA_HEADS = Map.of(
+        EntityType.ZOMBIE, Material.ZOMBIE_HEAD,
+        EntityType.SKELETON, Material.SKELETON_SKULL,
+        EntityType.WITHER_SKELETON, Material.WITHER_SKELETON_SKULL,
+        EntityType.CREEPER, Material.CREEPER_HEAD,
+        EntityType.ENDER_DRAGON, Material.DRAGON_HEAD,
+        EntityType.PIGLIN, Material.PIGLIN_HEAD
+    );
     private static final Map<String, String> BOSS_HEAD_ROLES = Map.of(
         "midgard_savanna_sunbird", "mob_head_sunbird",
         "selenea_eclipse_witch", "mob_head_selenea",
@@ -26,8 +35,8 @@ final class AdventureRecordMobIcon {
     }
 
     /**
-     * マスタ指定のテクスチャ、バニラの頭、パックの頭モデルの順でアイコンを構築します。
-     * パックの役割が未登録ならマスタの従来アイコンへ戻します。
+     * マスタ指定のプレイヤーヘッド、パックの頭モデル、バニラの頭を優先します。
+     * マスタに頭アイコンの指定がない場合は、従来どおり Mob の外見から頭を選びます。
      *
      * @param template 表示する有効レベルの Mob テンプレート
      * @param name GUI アイテムの表示名
@@ -39,22 +48,24 @@ final class AdventureRecordMobIcon {
         @NotNull Component name,
         @NotNull List<Component> lore
     ) {
-        Material configured = resolveMaterial(template.icon());
+        String icon = template.icon();
+        Material configured = icon == null || icon.isBlank() ? null : Material.matchMaterial(icon.trim());
         if (configured == Material.PLAYER_HEAD && HeadTextureItemStackSupport.isValid(template.iconTexture())) {
             ItemStack item = GuiItems.create(Material.PLAYER_HEAD, name, lore);
             HeadTextureItemStackSupport.apply(item, template.iconTexture());
             return item;
         }
 
-        Material vanillaHead = switch (template.entityType()) {
-            case ZOMBIE -> Material.ZOMBIE_HEAD;
-            case SKELETON -> Material.SKELETON_SKULL;
-            case WITHER_SKELETON -> Material.WITHER_SKELETON_SKULL;
-            case CREEPER -> Material.CREEPER_HEAD;
-            case ENDER_DRAGON -> Material.DRAGON_HEAD;
-            case PIGLIN -> Material.PIGLIN_HEAD;
-            default -> null;
-        };
+        String configuredRole = template.iconModel();
+        if (configuredRole != null && configuredRole.startsWith(ROLE_PREFIX)
+            && GuiResourcePackIcons.hasIcon(configuredRole, Material.PAPER)) {
+            return GuiResourcePackIcons.apply(GuiItems.create(Material.PAPER, name, lore), configuredRole);
+        }
+        if (configured != null && VANILLA_HEADS.containsValue(configured)) {
+            return GuiItems.create(configured, name, lore);
+        }
+
+        Material vanillaHead = VANILLA_HEADS.get(template.entityType());
         if (vanillaHead != null) {
             return GuiItems.create(vanillaHead, name, lore);
         }
@@ -73,7 +84,7 @@ final class AdventureRecordMobIcon {
         if (GuiResourcePackIcons.hasIcon(entityRole, Material.PAPER)) {
             return GuiResourcePackIcons.apply(GuiItems.create(Material.PAPER, name, lore), entityRole);
         }
-        return GuiItems.create(configured, name, lore);
+        return GuiItems.create(configured == null ? Material.ZOMBIE_HEAD : configured, name, lore);
     }
 
     /**
@@ -94,19 +105,5 @@ final class AdventureRecordMobIcon {
             case RABBIT -> "BROWN".equals(kind) ? ROLE_PREFIX + "rabbit_brown" : null;
             default -> null;
         };
-    }
-
-    /**
-     * マスタのアイコン Material を解決します。
-     *
-     * @param icon マスタのアイコン Material 名
-     * @return 有効な Material、未指定・未知の場合は従来のゾンビの頭
-     */
-    private static @NotNull Material resolveMaterial(String icon) {
-        if (icon == null || icon.isBlank()) {
-            return Material.ZOMBIE_HEAD;
-        }
-        Material resolved = Material.matchMaterial(icon.trim());
-        return resolved == null ? Material.ZOMBIE_HEAD : resolved;
     }
 }

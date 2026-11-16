@@ -11,6 +11,7 @@ entityType: SILVERFISH
 variant:
   scale: 1.5
 icon: SILVERFISH_SPAWN_EGG
+iconModel: mob_head_silverfish
 lore:
 - '&7赤熱した甲羅を持つカニ。'
 - '&7殻に熱を蓄え、周囲へ熱波を放つ。'

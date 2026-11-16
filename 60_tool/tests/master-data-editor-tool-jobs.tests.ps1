@@ -33,6 +33,39 @@ function Invoke-TestPlan($Options) {
     return Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $job 'plan.json') | ConvertFrom-Json
 }
 
+function Start-TestWorker([string]$Job) {
+    $launch = [Diagnostics.ProcessStartInfo]::new($windowsPowerShell)
+    $launch.CreateNoWindow = $true
+    $launch.UseShellExecute = $false
+    foreach ($argument in @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',$bootstrap,$adapter,'Run',$Job,$workspace)) {
+        $launch.ArgumentList.Add($argument)
+    }
+    $process = [Diagnostics.Process]::Start($launch)
+    $workers.Add($process)
+    return $process
+}
+
+function Read-TestState([string]$Job) {
+    $stream = [IO.File]::Open((Join-Path $Job 'state.json'), 'Open', 'Read', 'ReadWrite,Delete')
+    $reader = [IO.StreamReader]::new($stream)
+    try { return $reader.ReadToEnd() | ConvertFrom-Json }
+    finally { $reader.Dispose() }
+}
+
+function Wait-TestPrompt([string]$Job, [Diagnostics.Process]$Process) {
+    $deadline = [DateTime]::UtcNow.AddSeconds(20)
+    do {
+        Start-Sleep -Milliseconds 100
+        $state = Read-TestState $Job
+    } until ($state.status -eq 'waitingForInput' -or $Process.HasExited -or [DateTime]::UtcNow -gt $deadline)
+    if ($state.status -ne 'waitingForInput') {
+        $logPath = Join-Path $Job 'log.jsonl'
+        if (Test-Path -LiteralPath $logPath) { Get-Content -Encoding UTF8 -LiteralPath $logPath | Write-Host }
+        throw "Expected durable confirmation, got $($state.status)."
+    }
+    return $state.prompt
+}
+
 $source = Split-Path -Parent $PSScriptRoot
 $workspace = Join-Path ([IO.Path]::GetTempPath()) "Astral tool ジョブ $([Guid]::NewGuid().ToString('D'))"
 $jobRoot = Join-Path $workspace '60_tool/05-master-data-editor/.cache/tool-jobs'
@@ -42,7 +75,7 @@ $bootstrap = Join-Path $testTool 'invoke-powershell7.ps1'
 $windowsPowerShell = Join-Path ([Environment]::SystemDirectory) 'WindowsPowerShell/v1.0/powershell.exe'
 $oldProgramData = $env:ProgramData
 $oldKey = $env:ASTRAL_JOB_TEST_API_KEY
-$worker = $null
+$workers = [Collections.Generic.List[Diagnostics.Process]]::new()
 try {
     foreach ($folder in @($jobRoot, (Join-Path $testTool '12-build-network-plugins'), (Join-Path $workspace '40_filebase'),
         (Join-Path $workspace 'source-filebase'), (Join-Path $workspace '10_plugin/AstralRecordLobby'),
@@ -122,29 +155,39 @@ exit 7
     $plan12 = Invoke-TestPlan $options12
     Assert-JobTest ($plan12.canRun -and $plan12.paths.Count -eq 1 -and $plan12.paths[0].destination.EndsWith('AstralRecordLobby.jar')) '12 should plan only the selected artifact.'
     $job = New-TestJob $options12 $plan12.fingerprint
-    # Start only the isolated fixture worker; the real build and update paths are never executed.
-    $launch = [Diagnostics.ProcessStartInfo]::new($windowsPowerShell)
-    $launch.CreateNoWindow = $true
-    $launch.UseShellExecute = $false
-    foreach ($argument in @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',$bootstrap,$adapter,'Run',$job,$workspace)) {
-        $launch.ArgumentList.Add($argument)
-    }
-    $worker = [Diagnostics.Process]::Start($launch)
-    $statePath = Join-Path $job 'state.json'
-    $deadline = [DateTime]::UtcNow.AddSeconds(20)
-    do {
-        Start-Sleep -Milliseconds 100
-        $state = Get-Content -Raw -Encoding UTF8 -LiteralPath $statePath | ConvertFrom-Json
-    } until ($state.status -eq 'waitingForInput' -or $worker.HasExited -or [DateTime]::UtcNow -gt $deadline)
-    if ($state.status -ne 'waitingForInput') {
-        $logPath = Join-Path $job 'log.jsonl'
-        if (Test-Path -LiteralPath $logPath) { Get-Content -Encoding UTF8 -LiteralPath $logPath | Write-Host }
-        throw "Expected durable confirmation, got $($state.status)."
-    }
-    Assert-JobTest ($state.prompt.choices.value -contains '1') 'Only predefined values can be confirmed.'
-    Write-TestJson @{promptId=$state.prompt.id;value='1'} (Join-Path $job "input-$($state.prompt.id).json")
+    $worker = Start-TestWorker $job
+    $prompt = Wait-TestPrompt $job $worker
+    Assert-JobTest ($prompt.choices.value -contains '1') 'Only predefined values can be confirmed.'
+
+    $fakeMaintenance = Join-Path $testTool '16-maintenance/maintenance.ps1'
+    @'
+param($Phase, $ConfigPath, $WorldCopy, $NetworkPlugins, [switch]$ServersStopped, [switch]$AdmissionClosed)
+if ($Phase -eq 'Plan') { exit 0 }
+Write-Host 'Fixture maintenance'
+$answer = Read-Host 'Confirm fixture deployment. Type DEPLOY to continue'
+if ($answer -cne 'DEPLOY') { exit 2 }
+exit 0
+'@ | Set-Content -LiteralPath $fakeMaintenance -Encoding utf8
+    $options16 = @{toolId='16';worldCopy='Skip';networkPlugins='Skip';recovery='Auto'}
+    $fakePlan16 = Invoke-TestPlan $options16
+    $job16 = New-TestJob $options16 $fakePlan16.fingerprint
+    $worker16 = Start-TestWorker $job16
+    $prompt16 = Wait-TestPrompt $job16 $worker16
+    Assert-JobTest ($prompt16.id -ne $prompt.id) 'Parallel jobs have separate prompts.'
+
+    $duplicateJob = New-TestJob $options12 $plan12.fingerprint
+    $duplicate = Start-TestWorker $duplicateJob
+    Assert-JobTest ($duplicate.WaitForExit(10000) -and $duplicate.ExitCode -eq 1) 'A second worker for the same tool must be rejected.'
+    $duplicateLog = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $duplicateJob 'log.jsonl')
+    Assert-JobTest ($duplicateLog.Contains('12 は実行中') -and !$duplicateLog.Contains('開始 Lobby')) 'The duplicate guard must run before the build script.'
+
+    Write-TestJson @{promptId=$prompt16.id;value='DEPLOY'} (Join-Path $job16 "input-$($prompt16.id).json")
+    Assert-JobTest ($worker16.WaitForExit(10000) -and $worker16.ExitCode -eq 0) 'Maintenance can finish while the build waits.'
+    Assert-JobTest ((Read-TestState $job).prompt.id -eq $prompt.id) 'Answering a prompt must not affect the other run.'
+
+    Write-TestJson @{promptId=$prompt.id;value='1'} (Join-Path $job "input-$($prompt.id).json")
     Assert-JobTest ($worker.WaitForExit(10000) -and $worker.ExitCode -eq 7) 'The bootstrap must return the runner exit code.'
-    $state = Get-Content -Raw -Encoding UTF8 -LiteralPath $statePath | ConvertFrom-Json
+    $state = Read-TestState $job
     Assert-JobTest ($state.status -eq 'failed' -and $state.exitCode -eq 7 -and !$state.prompt) 'The durable status must capture failure and clear its prompt.'
     $log = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $job 'log.jsonl')
     Assert-JobTest ($log.Contains('開始 Lobby True') -and $log.Contains('スルーパス') -and !$log.Contains($env:ASTRAL_JOB_TEST_API_KEY)) 'Logs should contain UTF-8 output and redact known secrets.'
@@ -155,7 +198,7 @@ exit 7
     $staleLog = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $staleJob 'log.jsonl')
     Assert-JobTest ($LASTEXITCODE -ne 0 -and $staleLog.Contains('変わりました') -and !$staleLog.Contains('開始 Lobby')) 'Run must refuse a stale plan before it executes.'
 } finally {
-    if ($worker) {
+    foreach ($worker in $workers) {
         if (!$worker.HasExited) { $worker.Kill($true); $worker.WaitForExit() }
         $worker.Dispose()
     }
@@ -166,4 +209,4 @@ exit 7
         Remove-Item -LiteralPath $workspace -Recurse -Force
     }
 }
-Write-Host 'Desktop tool plan, settings fingerprint, worker input, exit code and log checks passed.'
+Write-Host 'Desktop tool plans, concurrent workers, duplicate prevention, isolated prompts and logs passed.'

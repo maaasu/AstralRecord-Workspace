@@ -1,0 +1,8 @@
+.modal.confirmation-dialog {
+  width: min(480px, calc(100vw - 32px));
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+.confirmation-dialog .modal-header h2 { margin: 0; font-size: 17px; }
+.confirmation-dialog .modal-body p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+.confirmation-dialog .modal-footer { justify-content: flex-end; gap: 8px; }
+.modal-backdrop:has(> .confirmation-dialog) { z-index: 600; }

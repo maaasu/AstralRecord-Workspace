@@ -17,6 +17,11 @@ export function minecraftItemTextureUrl(icon: JsonValue, modelData: JsonValue | 
   return `/api/minecraft-item-textures/${name}/${modelData}?revision=${revision}`
 }
 
+export function minecraftMobHeadUrl(model: JsonValue | undefined, revision = 0): string | null {
+  const role = typeof model === 'string' ? model.trim() : ''
+  return /^mob_head_[a-z0-9_]+$/.test(role) ? `/api/minecraft-mob-heads/${role}?revision=${revision}` : null
+}
+
 export function minecraftHeadTextureUrl(icon: JsonValue, texture: JsonValue | undefined): string | null {
   if (minecraftIconName(icon).toLowerCase().replace(/^minecraft:/, '') !== 'player_head'
     || typeof texture !== 'string' || !texture || texture.length > 16_384) return null

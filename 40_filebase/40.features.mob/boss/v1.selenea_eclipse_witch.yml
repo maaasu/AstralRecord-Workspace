@@ -10,6 +10,7 @@ title: "&8―― 黒い頁を織る魔女 ――"
 level: 30
 entityType: WITCH
 icon: WITCH_SPAWN_EGG
+iconModel: mob_head_selenea
 nameVisible: true
 lore:
   - "&7月蝕の夜を写本に綴り、黒い頁を操る魔女。"

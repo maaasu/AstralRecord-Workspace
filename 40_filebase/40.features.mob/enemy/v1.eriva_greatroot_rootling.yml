@@ -11,6 +11,7 @@ entityType: SILVERFISH
 variant:
   scale: 1.4
 icon: SILVERFISH_SPAWN_EGG
+iconModel: mob_head_silverfish
 lore:
   - "&7根の隙間から顔を出す、掘進の得意な小さな生き物。"
   - "&7地面の印へ掘り進む。追いかける前に横へ避けよう。"

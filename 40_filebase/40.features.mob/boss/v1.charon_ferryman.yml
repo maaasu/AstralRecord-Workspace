@@ -10,6 +10,7 @@ title: "&8-- 魂を運ぶ舟頭 --"
 level: 20
 entityType: BOGGED
 icon: BOGGED_SPAWN_EGG
+iconModel: mob_head_bogged
 nameVisible: true
 lore:
   - "&7魂灯を掲げ、渡し賃を求める冥河の舟頭。"

@@ -9,6 +9,7 @@ name: "&5サバナウィッチ"
 level: 7
 entityType: WITCH
 icon: WITCH_SPAWN_EGG
+iconModel: mob_head_witch
 lore:
   - "&7熱砂に住み、灼熱と冷気を混ぜた術を放つ魔女。"
   - "&7距離を保ちながら緩く追尾する魔弾を撃ち出す。"

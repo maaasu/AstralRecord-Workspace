@@ -188,14 +188,14 @@ export function MasterDataDetails({ value, path, fields, references, schema, dis
   }
   const currentPath = closestContainerPointer(value, path)
   const dungeon = isDungeonMaster(visualReferences?.documentPath)
-  const overview = dungeon && !currentPath && value !== null && typeof value === 'object' && !Array.isArray(value)
+  const overview = Boolean(visualReferences) && !currentPath && value !== null && typeof value === 'object' && !Array.isArray(value)
   const current = valueAtPointer(value, currentPath)
   const crumbs = currentPath ? currentPath.split('/').slice(1).map((_, index, segments) => '/' + segments.slice(0, index + 1).join('/')) : []
-  const sections = overview
+  const sections = overview && dungeon
     ? dungeonSectionPaths.map(path => ({ path, key: path.slice(1), value: valueAtPointer(value, path) }))
     : children(value, '').filter((child) => structured(child.value))
   const sectionLabel = (pointer: string) => (visualReferences && visualReferenceCollection(visualReferences.documentPath, pointer)?.title)
-    || (overview && dungeonSectionPaths.includes(pointer) && dungeonSection('')?.[pointer.slice(1)]?.label)
+    || (dungeon && overview && dungeonSectionPaths.includes(pointer) && dungeonSection('')?.[pointer.slice(1)]?.label)
     || nodeLabel(value, schema, fields, pointer)
   const formReferences: MasterVisualReferences | null = visualReferences ? {
     ...visualReferences,

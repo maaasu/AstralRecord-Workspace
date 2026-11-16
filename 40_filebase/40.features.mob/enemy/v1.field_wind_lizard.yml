@@ -11,6 +11,7 @@ entityType: SILVERFISH
 variant:
   scale: 2.0
 icon: SILVERFISH_SPAWN_EGG
+iconModel: mob_head_silverfish
 lore:
   - "&7草の間を低く這う、長い尾を持つトカゲ。"
   - "&7尾の風払いに注意。扇の横や後ろへ回り込もう。"

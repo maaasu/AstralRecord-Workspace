@@ -9,6 +9,7 @@ name: "&2ヤブガニ Lv.22"
 level: 22
 entityType: SILVERFISH
 icon: SILVERFISH_SPAWN_EGG
+iconModel: mob_head_silverfish
 lore:
   - "&7草むらに潜む、硬い甲羅の小さなカニ。"
   - "&7左右のはさみを開いたら、斜めの軌道から離れよう。"

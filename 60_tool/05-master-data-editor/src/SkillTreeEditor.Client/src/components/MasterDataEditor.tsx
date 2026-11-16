@@ -20,6 +20,7 @@ import { MasterTabContextMenu } from './MasterTabContextMenu'
 import { MasterTabSearch } from './MasterTabSearch'
 import { MasterValidationResults } from './MasterValidationResults'
 import { Modal } from './Modal'
+import { useConfirmationDialog } from './ConfirmationDialog'
 import { masterDisplayName } from '../data/masterDataPresentation'
 import { closestContainerPointer, parentPointer, valueAtPointer } from '../data/masterDataNavigation'
 import { inCategory } from '../data/masterDataFilters'
@@ -49,6 +50,7 @@ interface MasterDataEditorProps { active?: boolean; onDirtyChange?: (dirty: bool
 
 export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree, openRequest }: MasterDataEditorProps) {
   const workspace = useMasterDataWorkspace()
+  const { confirm, dialog } = useConfirmationDialog()
   const docking = useDocking()
   const latestDocking = useRef(docking)
   latestDocking.current = docking
@@ -79,8 +81,8 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   const referenceSequence = useRef(0)
   const referenceHandled = useCallback((id: string, requestId: number) => dispatch({ type: 'referenceHandled', id, requestId }), [])
   const dirty = welcomeDirty || tabsState.tabs.some((tab) => tab.dirty)
-  const openFile = useCallback((path: string, document?: MasterDocument, reference?: Omit<MasterReferenceTarget, 'requestId'>) => {
-    if (!document && latestWelcomeDirty.current && !editorWindow().confirm('未保存の新規原稿を破棄してファイルを開きますか？')) return
+  const openFile = useCallback(async (path: string, document?: MasterDocument, reference?: Omit<MasterReferenceTarget, 'requestId'>) => {
+    if (!document && latestWelcomeDirty.current && !(await confirm('未保存の新規原稿を破棄してファイルを開きますか？', { document: editorWindow().document }))) return
     latestWelcomeDirty.current = false
     setWelcomeDirty(false)
     dispatch({ type: 'open', path, document, referenceTarget: reference ? { ...reference, requestId: ++referenceSequence.current } : undefined })
@@ -90,7 +92,7 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
       workspace.setSidebarCollapsed(true)
       if (!reference) requestAnimationFrame(() => tabButtons.current.get(existing.id)?.focus())
     }
-  }, [workspace.setSidebarCollapsed])
+  }, [workspace.setSidebarCollapsed, confirm])
   const handledOpenRequest = useRef<number | null>(null)
   useEffect(() => {
     if (!active || !openRequest || handledOpenRequest.current === openRequest.requestId) return
@@ -102,20 +104,20 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     else dispatch({ type: 'status', id, status })
   }, [])
   const recoveryHandled = useCallback((path: string) => setRecoverableDrafts((current) => current.filter((entry) => entry.document.path !== path)), [])
-  const closeTab = (id: string, deleted = false) => {
+  const closeTab = async (id: string, deleted = false) => {
     const tab = latestTabs.current.tabs.find((entry) => entry.id === id)
-    if (!tab || !deleted && (tab.busy || tab.dirty && !editorWindow().confirm(`${tab.path}\n未保存の編集内容を破棄してタブを閉じますか？`))) return
+    if (!tab || !deleted && (tab.busy || tab.dirty && !(await confirm(`${tab.path}\n未保存の編集内容を破棄してタブを閉じますか？`, { document: editorWindow().document })))) return
     if (latestTabs.current.tabs.length === 1) workspace.setSidebarCollapsed(false)
     if (workspace.catalog) removeMasterDraft(workspace.catalog.root, tab.path)
     setRecoverableDrafts((current) => current.filter((entry) => entry.document.path !== tab.path))
     if (!deleted || latestTabs.current.activeId === id) focusAfterClose.current = true
     dispatch({ type: 'close', id })
   }
-  const closeTabs = (ids: string[]) => {
+  const closeTabs = async (ids: string[]) => {
     const targets = latestTabs.current.tabs.filter((tab) => ids.includes(tab.id))
     if (!targets.length || targets.some((tab) => tab.busy)) return
     const unsaved = targets.filter((tab) => tab.dirty)
-    if (unsaved.length && !editorWindow().confirm(`未保存の編集内容を破棄してタブを閉じますか？\n${unsaved.map((tab) => `${stripMinecraftFormatting(tab.name) || baseName(tab.path)} · ${tab.path}`).join('\n')}`)) return
+    if (unsaved.length && !(await confirm(`未保存の編集内容を破棄してタブを閉じますか？\n${unsaved.map((tab) => `${stripMinecraftFormatting(tab.name) || baseName(tab.path)} · ${tab.path}`).join('\n')}`, { document: editorWindow().document }))) return
     if (targets.length === latestTabs.current.tabs.length) workspace.setSidebarCollapsed(false)
     if (workspace.catalog) targets.forEach((tab) => removeMasterDraft(workspace.catalog!.root, tab.path))
     setRecoverableDrafts((current) => current.filter((entry) => !targets.some((tab) => tab.path === entry.document.path)))
@@ -202,14 +204,14 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     {workspace.error && !workspace.catalog && <div className="master-empty"><p>マスターを読み込めませんでした。接続を確認して再試行してください。</p><button type="button" className="button" disabled={workspace.refreshing} onClick={() => void workspace.refresh().catch((reason) => workspace.setError(reason instanceof Error ? reason.message : String(reason)))}>再試行</button></div>}
     {recoverableDrafts.length > 0 && <details className="master-recovery-list"><summary>復元できる未保存の下書き · {recoverableDrafts.length} 件</summary><p>同じブラウザタブの再読込前の編集です。ファイルを開いて復元または破棄できます。</p>{recoverableDrafts.map((entry) => <button type="button" className="button compact" key={entry.document.path} onClick={() => openFile(entry.document.path)}>{masterDisplayName(entry.draft.content) || baseName(entry.document.path)}</button>)}</details>}
   </>
-  if (docking) return <>
+  if (docking) return <>{dialog}
     {browser}
     <DockPanelContent id="master"><div ref={editorHost} className="master-tabbed-editor dock-master-editor">
       {workspaceNotices}
       {documentArea}
     </div></DockPanelContent>
   </>
-  return <div ref={editorHost} className="master-tabbed-editor">
+  return <div ref={editorHost} className="master-tabbed-editor">{dialog}
     <header className="workspace-heading master-workspace-heading"><div><span className="eyebrow">編集ワークスペース</span><h1>マスターデータ</h1><p>フォルダから探し、フォームで編集して、検証・保存します。</p></div><span className="workspace-count">{workspace.files.length.toLocaleString()} <small>ファイル</small>{tabsState.tabs.length > 0 && <small> · {tabsState.tabs.length} 件を編集中</small>}</span></header>
     {workspaceNotices}
     <div className={'master-workbench' + (workspace.sidebarCollapsed ? ' browser-hidden' : '')} style={{ '--browser-width': `${browserWidth}px` } as CSSProperties}>
@@ -243,6 +245,7 @@ interface MasterDataEditorPaneProps {
 function MasterDataEditorPane({ selected = true, workspace, tabId, initialPath, initialDocument, referenceTarget, onReferenceHandled, active, onOpenFile, onCloseTab, onTabStatus, onRegisterBrowserActions, browserDialogOpen, onRecoveryHandled, onOpenSkillTree }: MasterDataEditorPaneProps) {
   const docking = useDocking()
   const panelDocument = usePanelDocument()
+  const { confirm, dialog } = useConfirmationDialog()
   const panelWindow = panelDocument.defaultView ?? window
   const isDocked = Boolean(docking)
   const { catalog, files, filesByPath, candidates, refresh, rememberedPaths, categoryId, setCategoryId, sidebarCollapsed, setSidebarCollapsed, referenceVersion } = workspace
@@ -304,11 +307,11 @@ function MasterDataEditorPane({ selected = true, workspace, tabId, initialPath, 
   const displayedContent = asObject(displayedValue)
   const displayedIcon = displayedContent?.icon ?? (document?.path.startsWith('42.features.gathering/') ? displayedContent?.displayBlock
     : /^(41\.features\.mob\.spawner|43\.features\.gathering\.spawner)\//.test(document?.path ?? '') ? displayedContent?.itemMaterial : undefined)
-  const { customModelData, iconTexture } = displayedContent ?? {}
+  const { customModelData, iconTexture, iconModel } = displayedContent ?? {}
   const referencePrefixes = catalog?.referencePrefixes
   const visualReferences = useMemo(() => ({
-    documentPath: document?.path ?? '', files: filesByPath, openFile: onOpenFile, referencePrefixes, customModelData, iconTexture,
-  }), [document?.path, filesByPath, onOpenFile, referencePrefixes, customModelData, iconTexture])
+    documentPath: document?.path ?? '', files: filesByPath, openFile: onOpenFile, referencePrefixes, customModelData, iconTexture, iconModel,
+  }), [document?.path, filesByPath, onOpenFile, referencePrefixes, customModelData, iconTexture, iconModel])
   const displayedName = masterDisplayName(displayedValue)
   const readOnly = files.find((entry) => entry.path === document?.path)?.readOnly === true
   const nodeDocument = Boolean(document?.path.includes('/nodes/'))
@@ -354,7 +357,7 @@ function MasterDataEditorPane({ selected = true, workspace, tabId, initialPath, 
     if (!success && !storageFailed.current) setNotice('ブラウザへ一時下書きを保存できません。再読込する前に「現在の原稿を書出」で編集内容を保管してください。')
     storageFailed.current = !success
   }, [catalog, document, draft, dirty, recovery, readOnly, selectedFormPath, invalidValues, requiresDiffReview])
-  const allowDiscard = () => !dirty || window.confirm('未保存の編集内容を破棄して再読込しますか？')
+  const allowDiscard = () => confirm('未保存の編集内容を破棄して再読込しますか？')
   const acceptDocument = useCallback((loaded: MasterDocument, offerRecovery = true) => {
     setDocument(loaded); setInvalidInputs({}); setInvalidValues({}); history.reset({ raw: loaded.raw, content: loaded.content, source: loaded.content === null ? 'raw' : 'form' })
     setRecovery(offerRecovery && catalog ? readMasterDraft(catalog.root, loaded.path) : null)
@@ -395,7 +398,7 @@ function MasterDataEditorPane({ selected = true, workspace, tabId, initialPath, 
     return () => { operationId.current++ }
   }, [initialPath, initialDocument, acceptDocument, showError, refresh])
   const loadDocument = async (path: string) => {
-    if (busy || !allowDiscard()) return
+    if (busy || dirty && !(await allowDiscard())) return
     const requestId = ++operationId.current
     setBusy(true); setError(''); setNotice('')
     try {
@@ -502,7 +505,7 @@ function MasterDataEditorPane({ selected = true, workspace, tabId, initialPath, 
     try { setDiffRaw(await currentRaw()) } catch (reason) { showError(reason) } finally { setBusy(false) }
   }
   const deleteDocument = async () => {
-    if (!document || readOnly || busy || !panelWindow.confirm(`${document.path}\nこのファイルを削除しますか？${dirty ? '\n未保存の編集内容も破棄されます。' : ''}`)) return
+    if (!document || readOnly || busy || !(await confirm(`${document.path}\nこのファイルを削除しますか？${dirty ? '\n未保存の編集内容も破棄されます。' : ''}`, { title: 'ファイルを削除', confirmLabel: '削除' }))) return
     setBusy(true); setError('')
     try {
       await masterDataApi.delete(document.path, document.revision)
@@ -534,7 +537,7 @@ function MasterDataEditorPane({ selected = true, workspace, tabId, initialPath, 
     try {
       const raw = await file.text()
       if (document && !readOnly) {
-        if (!panelWindow.confirm(`読み込んだ原稿で ${baseName(document.path)} の編集内容を置き換えますか？（保存はまだ行いません）`)) return
+        if (!(await confirm(`読み込んだ原稿で ${baseName(document.path)} の編集内容を置き換えますか？`, { title: '原稿の置き換え', confirmLabel: '置き換え' }))) return
         history.record({ raw, content: null, source: 'raw' }); setInvalidInputs({}); setInvalidValues({}); setReport(null); setRenderWarnings([]); setNotice('原稿を読み込みました。検証してから保存してください。')
       } else { setImportText(raw); setCreateMode('import') }
     } catch (reason) { showError(reason) }
@@ -632,18 +635,18 @@ function MasterDataEditorPane({ selected = true, workspace, tabId, initialPath, 
   const validation = report || Object.keys(invalidInputs).length > 0
     ? <MasterValidationResults report={report} invalidInputs={invalidInputs} headingRef={validationHeading} active={active || Boolean(docking?.visible.has('master-validation'))} onSelect={path => { docking?.show('master'); focusIssue(path) }} />
     : null
-  return <main ref={editorElement} className="master-editor master-document-only">
+  return <main ref={editorElement} className="master-editor master-document-only">{dialog}
     <input hidden ref={importInput} type="file" accept=".yml,.yaml,.json,text/yaml,application/json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void replaceRaw(file); event.target.value = '' }} />
     <section className="master-workspace">
-      <header className="master-document-header">{sidebarCollapsed && <button type="button" className="button compact subtle" aria-expanded={false} onClick={() => setSidebarCollapsed(false)}>ナビを表示</button>}{typeof displayedIcon === 'string' && <span role="img" aria-label={`${draft.source === 'form' ? '編集中' : '保存済み'}のアイコン: ${displayedIcon}`}><MinecraftIcon icon={displayedIcon} customModelData={customModelData} iconTexture={iconTexture} className="master-header-icon" /></span>}<div><h2>{displayedName ? <MinecraftText value={displayedName} /> : document ? baseName(document.path) : 'ファイルを選択してください'}</h2><code>{document?.path ?? 'YAML / JSONをフォームまたは原稿で編集できます。'}</code></div>{document && <span className={`save-state ${dirty ? 'dirty' : ''}`}>{readOnly ? '閲覧のみ' : dirty ? '未保存' : '保存済み'}</span>}</header>
+      <header className="master-document-header">{sidebarCollapsed && <button type="button" className="button compact subtle" aria-expanded={false} onClick={() => setSidebarCollapsed(false)}>ナビを表示</button>}{typeof displayedIcon === 'string' && <span role="img" aria-label={`${draft.source === 'form' ? '編集中' : '保存済み'}のアイコン: ${displayedIcon}`}><MinecraftIcon icon={displayedIcon} customModelData={customModelData} iconTexture={iconTexture} iconModel={iconModel} className="master-header-icon" /></span>}<div><h2>{displayedName ? <MinecraftText value={displayedName} /> : document ? baseName(document.path) : 'ファイルを選択してください'}</h2><code>{document?.path ?? 'YAML / JSONをフォームまたは原稿で編集できます。'}</code></div>{document && <span className={`save-state ${dirty ? 'dirty' : ''}`}>{readOnly ? '閲覧のみ' : dirty ? '未保存' : '保存済み'}</span>}</header>
       {recovery && document && <section className="master-recovery-panel" aria-label="未保存の下書きの復元"><strong>再読込前の下書きがあります</strong><p>{recovery.document.revision === document.revision && !recovery.requiresDiffReview ? '下書きを復元して編集を続けられます。ファイルへは明示保存するまで反映しません。' : '保存済みファイルは下書き作成後に変更されています。復元後の保存には最新原稿との差分確認が必要です。'}</p><div className="button-row"><button type="button" className="button primary" disabled={readOnly} onClick={() => {
         history.reset(recovery.draft); setInvalidValues(recovery.invalidValues); setInvalidInputs({})
         setFormPath(closestContainerPointer(recovery.draft.content, recovery.formPath))
         setRequiresDiffReview(recovery.requiresDiffReview === true || recovery.document.revision !== document.revision)
         setDocumentVersion((version) => version + 1); setReport(null); setRecovery(null); onRecoveryHandled(document.path)
         setNotice('下書きを復元しました。内容を確認してから保存してください。')
-      }}>下書きを復元</button><button type="button" className="button" onClick={() => {
-        if (!window.confirm('再読込前の未保存の下書きを破棄しますか？')) return
+      }}>下書きを復元</button><button type="button" className="button" onClick={async () => {
+        if (!(await confirm('再読込前の未保存の下書きを破棄しますか？'))) return
         if (catalog) removeMasterDraft(catalog.root, document.path)
         setRecovery(null); onRecoveryHandled(document.path)
       }}>下書きを破棄</button></div></section>}
@@ -748,9 +751,10 @@ function MasterCreateDialog({ mode, category, categories, files, source, importe
     generationPending.current = false
     onDirtyChange(false)
   }, [onDirtyChange])
-  const allowReplace = () => raw === initialRaw.current || window.confirm('編集中の原稿を置き換えますか？')
-  const cancel = () => {
-    if (busy || submitting.current || dirty && !window.confirm('未保存の新規原稿を破棄しますか？')) return
+  const { confirm, dialog } = useConfirmationDialog()
+  const allowReplace = () => confirm('編集中の原稿を置き換えますか？', { title: '原稿の置き換え', confirmLabel: '置き換え' })
+  const cancel = async () => {
+    if (busy || submitting.current || dirty && !(await confirm('未保存の新規原稿を破棄しますか？'))) return
     generation.current += 1
     generationPending.current = false
     onCancel()
@@ -767,15 +771,15 @@ function MasterCreateDialog({ mode, category, categories, files, source, importe
   const stem = (isProgressionPreset ? slugOf(previewId) : slugOf(slug) || slugOf(previewId)) || 'new-master'
   const generatedPath = `${directory ? `${directory}/` : ''}${!jsonFormat && previewVersion && /^\d+$/.test(previewVersion) ? `v${previewVersion}.` : ''}${stem}.${jsonFormat ? 'json' : 'yml'}`
   const path = autoItemId && isItem || autoName ? directory : autoPath ? generatedPath : filePath
-  const selectCategory = (id: string) => {
-    if (generationPending.current || mode === 'new' && !allowReplace()) return
+  const selectCategory = async (id: string) => {
+    if (generationPending.current || mode === 'new' && raw !== initialRaw.current && !(await allowReplace())) return
     setCategoryId(id); setTemplateIndex(0)
     const next = categories.find((entry) => entry.id === id)
     setAutoItemId(Boolean(next?.itemCategoryCode)); setAutoName(Boolean(next?.directory.includes('features.class')))
     if (mode === 'new') { setRaw(next?.templates[0]?.raw ?? ''); setDraftFormat(categoryFormat(next)) }
   }
   const createFromSchema = async () => {
-    if (!selected?.jsonSchemas[0] || busy || generationPending.current || !allowReplace()) return
+    if (!selected?.jsonSchemas[0] || busy || generationPending.current || raw !== initialRaw.current && !(await allowReplace())) return
     const request = ++generation.current
     generationPending.current = true
     setGenerating(true); setError('')
@@ -788,7 +792,7 @@ function MasterCreateDialog({ mode, category, categories, files, source, importe
       if (request === generation.current) { generationPending.current = false; setGenerating(false) }
     }
   }
-  return <Modal className="master-create-dialog" ariaLabel="マスターファイル作成" onClose={cancel} closeDisabled={busy}><form className="master-create-form" onSubmit={(event) => {
+  return <>{dialog}<Modal className="master-create-dialog" ariaLabel="マスターファイル作成" onClose={cancel} closeDisabled={busy}><form className="master-create-form" onSubmit={(event) => {
     event.preventDefault(); setError('')
     if (busy || submitting.current || generationPending.current) return
     if (!path.trim() || !raw.trim()) { setError('保存先と原稿を入力してください。'); return }
@@ -804,10 +808,10 @@ function MasterCreateDialog({ mode, category, categories, files, source, importe
     {selected?.directory.includes('features.class') && <label className="master-checkbox"><input type="checkbox" checked={autoName} onChange={(event) => setAutoName(event.target.checked)} />schemaVersion / order / id からファイル名を生成</label>}
     {!autoItemId && !autoName && <label className="master-checkbox"><input type="checkbox" checked={autoPath} onChange={(event) => { setAutoPath(event.target.checked); if (!filePath) setFilePath(generatedPath) }} />{isProgressionPreset ? 'プリセットIDから保存先を自動提案' : 'slugから保存先を自動提案'}</label>}
     <label>保存先（Filebase内の相対パス）<input value={path} disabled={autoPath || autoItemId && isItem || autoName} onChange={(event) => setFilePath(event.target.value)} /><small>{autoItemId && isItem ? 'ID・グループの採番後、確定したファイル名を表示します。' : autoName ? '原稿の定義から確定したファイル名を表示します。' : 'サブフォルダや既存の命名規則も直接指定できます。'}</small></label>
-    {mode === 'new' && <div className="master-add-row">{selected?.templates.length ? <label>テンプレート<select value={templateIndex} onChange={(event) => { if (generationPending.current || !allowReplace()) return; const index = Number(event.target.value); setTemplateIndex(index); setRaw(selected.templates[index].raw); setDraftFormat(selected.templates[index].path.toLowerCase().endsWith('.json') ? 'json' : 'yaml') }}>{selected.templates.map((entry, index) => <option key={entry.path} value={index}>{files.find((file) => file.path === entry.path)?.name ? `${stripMinecraftFormatting(files.find((file) => file.path === entry.path)!.name!)} · ` : ''}{baseName(entry.path)}</option>)}</select></label> : null}{Boolean(selected?.jsonSchemas.length) && <button type="button" className="button" onClick={() => void createFromSchema()}>Schemaから必須項目を生成</button>}</div>}
+    {mode === 'new' && <div className="master-add-row">{selected?.templates.length ? <label>テンプレート<select value={templateIndex} onChange={async (event) => { const index = Number(event.target.value); if (generationPending.current || raw !== initialRaw.current && !(await allowReplace())) return; setTemplateIndex(index); setRaw(selected.templates[index].raw); setDraftFormat(selected.templates[index].path.toLowerCase().endsWith('.json') ? 'json' : 'yaml') }}>{selected.templates.map((entry, index) => <option key={entry.path} value={index}>{files.find((file) => file.path === entry.path)?.name ? `${stripMinecraftFormatting(files.find((file) => file.path === entry.path)!.name!)} · ` : ''}{baseName(entry.path)}</option>)}</select></label> : null}{Boolean(selected?.jsonSchemas.length) && <button type="button" className="button" onClick={() => void createFromSchema()}>Schemaから必須項目を生成</button>}</div>}
     <label>原稿<textarea className="master-raw" aria-label="新規マスター原稿" spellCheck={false} value={raw} onChange={(event) => setRaw(event.target.value)} /></label>
     {mode === 'copy' && <p className="master-muted">読み込んだ保存済み原稿から新しいファイルを作成します。アイテムの自動採番以外は、原稿のIDを新しい一意の値へ変更してください。</p>}
     {generating && <p role="status">Schemaから原稿を生成中です…</p>}
     {error && <p className="error-message" role="alert">{error}</p>}
-  </fieldset><footer className="modal-footer"><button type="button" className="button" disabled={busy} onClick={cancel}>キャンセル</button><span className="master-spacer" /><button type="submit" className="button primary" disabled={busy || generating}>{busy ? '作成中…' : '検証して作成'}</button></footer></form></Modal>
+  </fieldset><footer className="modal-footer"><button type="button" className="button" disabled={busy} onClick={cancel}>キャンセル</button><span className="master-spacer" /><button type="submit" className="button primary" disabled={busy || generating}>{busy ? '作成中…' : '検証して作成'}</button></footer></form></Modal></>
 }

@@ -89,6 +89,66 @@ public sealed class MasterDataTests : IDisposable
     }
 
     [Fact]
+    public async Task MobHeadModelIsEditableAtBothLevelsAndIncludedInFileSummaries()
+    {
+        const string category = "40.features.mob/enemy";
+        const string path = category + "/v1.wolf.yml";
+
+        Write("40.features.mob/docs.mob.YAMLスキーマ定義.md", """
+            # Mob
+            | キー | 型 | 必須 | 説明 |
+            |---|---|---|---|
+            | `iconModel` | String | × | 頭モデル |
+            | `levels[]` | List<Map> | × | レベル別設定 |
+
+            ### levels（レベルプロファイル）
+
+            | キー | 型 | 必須 | 説明 |
+            |---|---|---|---|
+            | `levels[].iconModel` | String | × | 頭モデルの上書き |
+            """);
+        var pack = Directory.CreateDirectory(Path.Combine(_root, "50_resourcepack"));
+        var registry = Path.Combine(pack.FullName, "gui-icons.json");
+        File.WriteAllText(registry, """
+            { "icons": [
+              { "role": "mob_head_wolf", "base_item": "minecraft:paper" },
+              { "role": "mob_head_fox", "base_item": "minecraft:paper" }
+            ] }
+            """);
+        var raw = """
+            id: wolf
+            category: ENEMY
+            icon: WOLF_SPAWN_EGG
+            iconModel: mob_head_wolf
+            levels:
+              - level: 3
+                iconModel: null
+              - level: 1
+                iconModel: mob_head_fox
+              - level: 2
+            """;
+        Write(path, raw);
+
+        var catalog = await _catalog.GetAsync(category, default);
+        var roleFields = catalog.Fields.Where(field => field.Path is "/iconModel" or "/levels/*/iconModel").ToArray();
+        Assert.Equal(2, roleFields.Length);
+        Assert.All(roleFields, field =>
+            Assert.Equal(new[] { "mob_head_fox", "mob_head_wolf" }, field.Enum!.Select(role => role!.GetValue<string>())));
+        Assert.True((await _validation.ValidateAsync(path, raw, default)).IsValid);
+        var invalid = await _validation.ValidateAsync(path, raw.Replace("mob_head_fox", "mob_head_missing"), default);
+        Assert.Contains(invalid.Issues, issue => issue is { Code: "MOB_HEAD_ICON_MODEL", Path: "/levels/1/iconModel" });
+
+        var file = Assert.Single(await _service.ListAsync(category, null, default));
+        Assert.Equal("WOLF_SPAWN_EGG", file.Icon);
+        Assert.Equal("mob_head_fox", file.IconModel);
+
+        File.Delete(registry);
+        Assert.True((await _validation.ValidateAsync(path, raw, default)).IsValid);
+        var malformedRole = await _validation.ValidateAsync(path, raw.Replace("mob_head_wolf", "unrelated"), default);
+        Assert.Contains(malformedRole.Issues, issue => issue is { Code: "MOB_HEAD_ICON_MODEL", Path: "/iconModel" });
+    }
+
+    [Fact]
     public async Task GatheringSpawnersUseTheSavedBukkitPathAndReadCurrentCoordinates()
     {
         const string file = "gathering_spawners.yml";
