@@ -1,0 +1,4 @@
+interface:
+  display_name: "AstralRecord ボス設計書作成"
+  short_description: "下位モデルが判断せずに実装できるボス設計書を作成"
+  default_prompt: "$astralrecord-boss-design-author を使い、Lv50ボスの設計書を 99_work/boss-design に作成してください。"

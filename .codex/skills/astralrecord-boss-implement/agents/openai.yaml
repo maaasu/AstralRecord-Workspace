@@ -1,0 +1,4 @@
+interface:
+  display_name: "AstralRecord ボス設計書の実装"
+  short_description: "ボス設計書どおりに実装し、完了後に設計書を削除"
+  default_prompt: "$astralrecord-boss-implement 99_work/boss-design/<boss_id>.md を実装してください。"

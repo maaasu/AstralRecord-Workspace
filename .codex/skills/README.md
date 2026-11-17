@@ -30,6 +30,8 @@
 |:--|:--|
 | 新規プレイヤー用アイテムと外観変更の Blockbench 制作・両版配布 | `$astralrecord-item-model-author` |
 | モブ・ボスの外観の Blockbench 制作、立体意匠、両版の描画検証 | `$astralrecord-mob-model-author` |
+| 下位モデルが判断せずに実装できるボス設計書の作成 | `$astralrecord-boss-design-author` |
+| ボス設計書どおりの実装と、完了後の設計書削除 | `$astralrecord-boss-implement` |
 | AstralArchitect の建築候補 | `$astralarchitect-builder` |
 | Minecraft建築の共通完成度基準（チケット外の建築データにも適用） | `$minecraft-build-quality` |
 | プラグインの恒久・診断・統合テスト | `$astralrecord-plugin-test` |
