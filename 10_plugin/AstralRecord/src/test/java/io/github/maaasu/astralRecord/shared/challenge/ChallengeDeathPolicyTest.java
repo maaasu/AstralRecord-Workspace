@@ -2,25 +2,24 @@ package io.github.maaasu.astralRecord.shared.challenge;
 
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ChallengeDeathPolicyTest {
     /**
-     * deathLimit=0は0回まで許容し、1回目の死亡で終了条件を満たす。
+     * 設定回数までは許容し、上限0を含めて次の死亡で終了する。
      */
     @Test
-    void zeroLimitEndsOnFirstDeath() {
-        assertFalse(ChallengeDeathPolicy.isExceeded(0, 0));
-        assertTrue(ChallengeDeathPolicy.isExceeded(1, 0));
+    void endsOnlyAfterTheDeathLimitIsExceeded() {
+        assertAll(
+            () -> assertDeathLimitBoundary(0),
+            () -> assertDeathLimitBoundary(2)
+        );
     }
 
-    /**
-     * 設定回数までは死亡可能であり、設定回数を超えた次の死亡だけが終了条件となる。
-     */
-    @Test
-    void configuredNumberOfDeathsIsAllowed() {
-        assertFalse(ChallengeDeathPolicy.isExceeded(2, 2));
-        assertTrue(ChallengeDeathPolicy.isExceeded(3, 2));
+    private static void assertDeathLimitBoundary(int limit) {
+        assertFalse(ChallengeDeathPolicy.isExceeded(limit, limit), () -> "死亡上限: " + limit);
+        assertTrue(ChallengeDeathPolicy.isExceeded(limit + 1, limit), () -> "死亡上限: " + limit);
     }
 }

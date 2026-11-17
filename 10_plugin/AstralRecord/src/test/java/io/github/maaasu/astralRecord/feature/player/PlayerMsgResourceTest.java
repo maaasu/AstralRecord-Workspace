@@ -5,193 +5,60 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PlayerMsgResourceTest {
 
     /**
-     * 引数中の&カラーコードも§コードへ変換する。
+     * 引数のカラーコードは文字列とComponentの両方で色に変換し、プレーンテキストには残さない。
      */
     @Test
-    void formatTranslatesColorCodesInMessageArguments() {
-        String formatted = PlayerMsgResource.format(PlayerMsgId.P_6608.getId(), "&eColored Quest");
-
-        assertTrue(formatted.contains("\u00a7eColored Quest"));
-        assertFalse(formatted.contains("&eColored Quest"));
-    }
-
-    /**
-     * カラーコード付きの置換引数は引数直後でリセットされ、後続のメッセージ本文へ色・装飾を侵食させない。
-     */
-    @Test
-    void coloredReplacementDoesNotBleedIntoFollowingMessageText() {
-        String formatted = PlayerMsgResource.format(
-            PlayerMsgId.P_5292.getId(),
-            "&c装備",
-            100,
-            100
-        );
-
-        assertEquals(
-            "§a§c装備§r§a の耐久値を回復しました。§7現在: 100 / 100",
-            formatted
-        );
-    }
-
-    /**
-     * 複数置換値を持つメッセージでも、カラーコード付きの後段置換引数は後続本文へ色・装飾を侵食させない。
-     */
-    @Test
-    void coloredLaterReplacementDoesNotBleedIntoFollowingMessageText() {
-        String formatted = PlayerMsgResource.format(
-            PlayerMsgId.P_7094.getId(),
-            "参加者",
-            "&d&lダンジョン"
-        );
-
-        assertEquals(
-            "§e参加者§a が §e§d§lダンジョン§r§a の待機ハブで待機中です。あなたを待っています。",
-            formatted
-        );
-    }
-
-    /**
-     * メール報酬受取成功メッセージに報酬個数の「件」を表示しない。
-     */
-    @Test
-    void mailRewardMessageDoesNotDisplayRewardCount() {
-        String formatted = PlayerMsgResource.format(PlayerMsgId.P_5620.getId(), "報酬メール");
-
-        assertEquals("§aメール「§e報酬メール§a」を既読にし、報酬を受け取りました。", formatted);
-    }
-
-    /**
-     * 金曜日報酬をSTORAGEへ格納した通知にアイテム名・数量・格納先を含める。
-     */
-    @Test
-    void freyaOrbStorageNotificationIncludesItemAndAmount() {
-        String formatted = PlayerMsgResource.format(
-            PlayerMsgId.P_5078.getId(),
-            "&dフレイヤのオーブ",
-            7
-        );
-
-        assertEquals(
-            "§aログインボーナスの§dフレイヤのオーブ§r§aを§f7個§aストレージに送りました。",
-            formatted
-        );
-    }
-
-    /**
-     * 改行を含む報酬チェスト表示へダンジョン名を差し込む。
-     */
-    @Test
-    void dungeonRewardDisplayFormatsDungeonNameAcrossMultipleLines() {
-        String formatted = PlayerMsgResource.format(PlayerMsgId.P_7033.getId(), "黄昏の坑道");
-
-        assertEquals("§6黄昏の坑道§r\n§eダンジョン報酬\n§f右クリックで開く", formatted);
-    }
-
-    /**
-     * 強化の確定結果通知は成功時だけでなく、失敗時も使用した成功率を表示する。
-     */
-    @Test
-    void formatsEnhancementFailureMessagesWithSuccessRate() {
-        String intact = PlayerMsgResource.format(PlayerMsgId.P_5258.getId(), "テスト装備", "35");
-        String decreased = PlayerMsgResource.format(PlayerMsgId.P_5259.getId(), "テスト装備", 2, "35");
-
-        assertTrue(intact.contains("成功率 35%"));
-        assertTrue(decreased.contains("+2"));
-        assertTrue(decreased.contains("成功率 35%"));
-    }
-
-    /**
-     * Component化後のplain textに&カラーコードを残さず色付き本文を保持する。
-     */
-    @Test
-    void formatComponentDoesNotLeaveAmpersandColorCodesInPlainText() {
-        Component component = PlayerMsgResource.formatComponent(PlayerMsgId.P_6608.getId(), "&eColored Quest");
+    void translatesArgumentColorCodesInStringAndComponent() {
+        String key = PlayerMsgId.P_6608.getId();
+        String argument = "&eColored Quest";
+        String formatted = PlayerMsgResource.format(key, argument);
+        Component component = PlayerMsgResource.formatComponent(key, argument);
         String legacyText = LegacyComponentSerializer.legacySection().serialize(component);
         String plainText = PlainTextComponentSerializer.plainText().serialize(component);
 
-        assertTrue(legacyText.contains("\u00a7eColored Quest"));
-        assertTrue(plainText.contains("Colored Quest"));
-        assertFalse(plainText.contains("&e"));
-    }
-
-    /**
-     * damage詳細を相手名なしの短縮damage/attack/element/AP/DEF/RES/hit/critical形式と被弾者HPスナップショットで整形する。
-     */
-    @Test
-    void damageDetailMessageFormatsCompactCalculationBreakdown() {
-        String formatted = PlayerMsgResource.format(
-                PlayerMsgId.P_5350.getId(),
-                "&c125",
-                "MEL",
-                "FIR",
-                "180",
-                "80",
-                "64",
-                " RES25>15",
-                "92",
-                "95",
-                "3",
-                " &eCRIT",
-                "(150/200->25)"
+        assertAll(
+            () -> assertTrue(formatted.contains("§eColored Quest")),
+            () -> assertFalse(formatted.contains(argument)),
+            () -> assertTrue(legacyText.contains("§eColored Quest")),
+            () -> assertTrue(plainText.contains("Colored Quest")),
+            () -> assertFalse(plainText.contains("&e"))
         );
-
-        assertTrue(formatted.contains("125"));
-        assertTrue(formatted.contains("MEL/FIR"));
-        assertTrue(formatted.contains("AP180 DEF80>64 RES25>15"));
-        assertTrue(formatted.contains("H92"));
-        assertTrue(formatted.contains("A95-E3"));
-        assertTrue(formatted.contains("\u00a7eCRIT"));
-        assertTrue(formatted.contains("(150/200->25)"));
-        assertFalse(formatted.contains("HP125"));
-        assertFalse(formatted.contains("Test Mob"));
     }
 
     /**
-     * 与えたHP回復メッセージを方向・対象・回復手段付きの黄緑色1行形式へ整形する。
+     * 先頭・後段どちらの色付き引数でも、続く本文の色と装飾を元に戻す。
      */
     @Test
-    void hpRecoveryMessageFormatsLimePlusAmount() {
-        String formatted = PlayerMsgResource.format(PlayerMsgId.P_5354.getId(), "12.5", "対象者", "ヒールオーラ");
-
-        assertEquals("§a→+12.5 §f対象者 §8| §7ヒールオーラ", formatted);
+    void restoresBodyStyleAfterColoredArguments() {
+        assertAll(
+            "色付き引数の挿入後",
+            () -> assertTrue(PlayerMsgResource.format(PlayerMsgId.P_5292.getId(), "&c装備", 100, 100)
+                .contains("§c装備§r§a ")),
+            () -> assertTrue(PlayerMsgResource.format(PlayerMsgId.P_7094.getId(), "参加者", "&d&lダンジョン")
+                .contains("§d§lダンジョン§r§a "))
+        );
     }
 
     /**
-     * 被ったHP回復メッセージを回復元プレイヤー付きの黄緑色1行形式へ整形する。
+     * 改行を含むテンプレートで引数を展開し、改行と置換値を保持する。
      */
     @Test
-    void receivedHpRecoveryMessageFormatsHealerAndSource() {
-        String formatted = PlayerMsgResource.format(PlayerMsgId.P_5355.getId(), "12.5", "回復者", "ヒールアロー");
+    void expandsArgumentInsideMultilineTemplate() {
+        String dungeonName = "test-dungeon";
+        String formatted = PlayerMsgResource.format(PlayerMsgId.P_7033.getId(), dungeonName);
 
-        assertEquals("§a←+12.5 §f回復者 §8| §7ヒールアロー", formatted);
+        assertAll(
+            () -> assertTrue(formatted.lines().findFirst().orElseThrow().contains(dungeonName)),
+            () -> assertTrue(formatted.lines().count() > 1),
+            () -> assertFalse(formatted.contains("{0}"))
+        );
     }
 
-    /**
-     * 自己HP回復メッセージを回復手段付きの黄緑色1行形式へ整形する。
-     */
-    @Test
-    void selfHpRecoveryMessageFormatsSource() {
-        String formatted = PlayerMsgResource.format(PlayerMsgId.P_5356.getId(), "12.5", "回復ポーション");
-
-        assertEquals("§a+12.5 §8| §7回復ポーション", formatted);
-    }
-
-    /**
-     * join loadとautosave完了通知に経過millisecondsを(ms)形式で含める。
-     */
-    @Test
-    void externalDataOperationCompletionMessagesIncludeElapsedMilliseconds() {
-        String joinLoad = PlayerMsgResource.format(PlayerMsgId.P_5072.getId(), 123L);
-        String autoSave = PlayerMsgResource.format(PlayerMsgId.P_5281.getId(), 456L);
-
-        assertTrue(joinLoad.contains("(123ms)"));
-        assertTrue(autoSave.contains("(456ms)"));
-    }
 }

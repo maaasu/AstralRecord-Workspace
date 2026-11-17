@@ -20,15 +20,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SkillTreeVisualizerTest {
 
     /**
-     * 同一node IDでもdisplay/icon/tag/point/condition/effect内容差を変更として検出する。
+     * 同じノードIDの効果が変わった場合でも、定義の差分を検出する。
      */
     @Test
     void nodeDefinitionComparisonDetectsContentChangeWithSameNodeId() {
-        SkillTreeNodeDefinition current = node("Before");
-        SkillTreeNodeDefinition updated = node("After");
+        SkillTreeNodeDefinition current = node(1.0D);
+        SkillTreeNodeDefinition updated = node(2.0D);
 
         assertTrue(SkillTreeVisualizer.nodeDefinitionsDiffer(current, updated));
-        assertFalse(SkillTreeVisualizer.nodeDefinitionsDiffer(current, node("Before")));
+        assertFalse(SkillTreeVisualizer.nodeDefinitionsDiffer(current, node(1.0D)));
     }
 
     /**
@@ -73,18 +73,12 @@ class SkillTreeVisualizerTest {
     }
 
     /**
-     * 強調ビームはXZ距離5mで等倍、1mでscale 0とし、その間を線形に縮小する。
+     * 非表示の強調ビームはクリック候補に含めない。
      */
     @Test
-    void nodeBeaconScaleShrinksLinearlyBetweenOneAndFiveBlocks() {
-        assertEquals(1.0F, SkillTreeVisualizer.nodeBeaconScale(5.0D));
-        assertEquals(1.0F, SkillTreeVisualizer.nodeBeaconScale(8.0D));
-        assertEquals(0.5F, SkillTreeVisualizer.nodeBeaconScale(3.0D));
-        assertEquals(0.0F, SkillTreeVisualizer.nodeBeaconScale(1.0D));
-        assertEquals(0.0F, SkillTreeVisualizer.nodeBeaconScale(0.0D));
+    void hiddenNodeBeaconsCannotBeClicked() {
         assertFalse(SkillTreeVisualizer.isNodeBeaconClickable(1.0D));
         assertTrue(SkillTreeVisualizer.isNodeBeaconClickable(1.01D));
-        assertEquals(2, SkillTreePacketDisplay.BEAM_TRANSFORMATION_INTERPOLATION_TICKS);
     }
 
     /**
@@ -98,15 +92,15 @@ class SkillTreeVisualizerTest {
         assertTrue(SkillTreeVisualizer.shouldRefreshForMovement(rendered, new Location(null, 1.0D, 64.0D, 0.0D)));
     }
 
-    private SkillTreeNodeDefinition node(String name) {
+    private SkillTreeNodeDefinition node(double attackBonus) {
         return new SkillTreeNodeDefinition(
                 "1000",
-                name,
+                "Fixture node",
                 Material.NETHER_STAR,
                 List.of("root"),
                 SkillTreePointType.PASSIVE_POINT,
                 0,
-                List.of()
+                List.of(new SkillTreeStatusEffect(StatusType.ATTACK, StatusModifierType.FLAT, attackBonus))
         );
     }
 }

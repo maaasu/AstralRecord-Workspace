@@ -17,7 +17,9 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.messaging.Messenger;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
+import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
@@ -27,11 +29,14 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -107,40 +112,29 @@ class NetworkBridgeServiceTest {
         }
     }
 
-    /**
-     * RPGの職業shortNameに定義された色・装飾コードをProxy Tab向けmetadataで保持する。
-     */
     @Test
-    void preservesShortNameStyleForProxyTabMetadata() {
-        assertEquals("§dMAG", NetworkBridgeService.tabClassName("&dMAG", "mage"));
-        assertEquals("§c§lADM", NetworkBridgeService.tabClassName("&c&lADM", "admin"));
+    void normalizesLegacyFormattingCodesInProxyMetadata() {
+        assertEquals("§c§lfixture", NetworkBridgeService.tabClassName("&c&lfixture", "fallback"));
     }
 
-    /**
-     * network有効時はRPG側のTab更新を停止し、停止時に更新を再有効化する。
-     */
-    @Test
-    void disablesRpgTabUpdatesWhileNetworkIsEnabledAndRestoresThemOnStop() {
-        Fixture fixture = new Fixture(true);
-
-        fixture.service.start();
-        verify(fixture.playerClassService).setPlayerListNameUpdatesEnabled(false);
-
-        fixture.service.stop();
-        verify(fixture.playerClassService).setPlayerListNameUpdatesEnabled(true);
+    @TestFactory
+    Stream<DynamicTest> managesLocalTabUpdatesAcrossNetworkLifecycle() {
+        return Stream.of(
+            dynamicTest("network enabled", () -> assertLocalTabUpdateLifecycle(true)),
+            dynamicTest("network disabled", () -> assertLocalTabUpdateLifecycle(false))
+        );
     }
 
-    /**
-     * network無効時はRPG側のTab更新を有効にしたままにする。
-     */
-    @Test
-    void keepsRpgTabUpdatesEnabledWhenNetworkIsDisabled() {
-        Fixture fixture = new Fixture(false);
+    private static void assertLocalTabUpdateLifecycle(boolean networkEnabled) {
+        Fixture fixture = new Fixture(networkEnabled);
+        var updates = inOrder(fixture.playerClassService);
 
         fixture.service.start();
-        fixture.service.stop();
+        updates.verify(fixture.playerClassService).setPlayerListNameUpdatesEnabled(!networkEnabled);
 
-        verify(fixture.playerClassService, times(2)).setPlayerListNameUpdatesEnabled(true);
+        fixture.service.stop();
+        updates.verify(fixture.playerClassService).setPlayerListNameUpdatesEnabled(true);
+        updates.verifyNoMoreInteractions();
     }
 
     /**

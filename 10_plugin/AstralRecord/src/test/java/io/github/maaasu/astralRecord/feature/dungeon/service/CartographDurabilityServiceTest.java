@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -21,42 +22,26 @@ import static org.mockito.Mockito.when;
 
 class CartographDurabilityServiceTest {
     /**
-     * 残耐久0のカルトグラフは、登録済み地図の再表示を含めて使用できない。
+     * 登録済み地図の表示は残耐久が正の場合だけ可能とする。
      */
     @Test
-    void rejectsUseWhenDurabilityIsZero() {
-        TestContext context = new TestContext(0);
-
-        assertFalse(context.service.hasRemainingDurability(context.reference));
+    void requiresPositiveDurabilityForUse() {
+        assertAll(
+            () -> assertFalse(hasRemainingDurability(0), "残耐久0"),
+            () -> assertTrue(hasRemainingDurability(1), "残耐久1")
+        );
     }
 
     /**
-     * 残耐久1以上のカルトグラフは使用可能と判定する。
+     * 新規登録では75を引いて残耐久を保存し、0になった場合も表示を更新する。
      */
     @Test
-    void allowsUseWhenDurabilityRemains() {
-        TestContext context = new TestContext(1);
-
-        assertTrue(context.service.hasRemainingDurability(context.reference));
-    }
-
-    /**
-     * 新規session登録時だけ固定75耐久を消費し、ちょうど75なら0へ更新して表示を再描画する。
-     */
-    @Test
-    void consumesExactlySeventyFiveAndAllowsZeroRemaining() {
-        TestContext context = new TestContext(75);
-        EquipmentInstance updated = context.instance(0);
-        when(context.itemService.updateEquipmentDurability(
-                context.instanceId, 0, context.accountId.toString())).thenReturn(updated);
-
-        CartographDurabilityService.Result result = context.service.consumeForNewRegistration(
-                context.player, context.reference);
-
-        assertEquals(CartographDurabilityService.Result.CONSUMED, result);
-        verify(context.itemService).updateEquipmentDurability(
-                context.instanceId, 0, context.accountId.toString());
-        verify(context.inventoryService).refreshEquipmentInstanceDisplay(context.player, updated);
+    void consumesFixedRegistrationCostIncludingWhenNoneRemains() {
+        assertAll(
+            "登録時の耐久消費",
+            () -> assertRegistrationConsumesDurability(75, 0),
+            () -> assertRegistrationConsumesDurability(300, 225)
+        );
     }
 
     /**
@@ -78,22 +63,23 @@ class CartographDurabilityServiceTest {
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 
-    /**
-     * 新規session登録時の消費量は現在値に比例せず常に75である。
-     */
-    @Test
-    void alwaysUsesTheFixedRegistrationCost() {
-        TestContext context = new TestContext(300);
-        EquipmentInstance updated = context.instance(225);
+    private static boolean hasRemainingDurability(int durability) {
+        TestContext context = new TestContext(durability);
+        return context.service.hasRemainingDurability(context.reference);
+    }
+
+    private static void assertRegistrationConsumesDurability(int initial, int remaining) {
+        TestContext context = new TestContext(initial);
+        EquipmentInstance updated = context.instance(remaining);
         when(context.itemService.updateEquipmentDurability(
-                context.instanceId, 225, context.accountId.toString())).thenReturn(updated);
+                context.instanceId, remaining, context.accountId.toString())).thenReturn(updated);
 
-        assertEquals(
-                CartographDurabilityService.Result.CONSUMED,
-                context.service.consumeForNewRegistration(context.player, context.reference));
-
+        assertEquals(CartographDurabilityService.Result.CONSUMED,
+                context.service.consumeForNewRegistration(context.player, context.reference),
+                () -> "登録前の残耐久: " + initial);
         verify(context.itemService).updateEquipmentDurability(
-                context.instanceId, 225, context.accountId.toString());
+                context.instanceId, remaining, context.accountId.toString());
+        verify(context.inventoryService).refreshEquipmentInstanceDisplay(context.player, updated);
     }
 
     private static final class TestContext {

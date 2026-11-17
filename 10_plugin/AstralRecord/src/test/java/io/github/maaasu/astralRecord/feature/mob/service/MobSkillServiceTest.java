@@ -1,13 +1,11 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
-import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillBinding;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillTiming;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillContext;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillRegistry;
-import io.github.maaasu.astralRecord.feature.mob.skill.skeletonarcher.SkeletonArcherBowShotMobSkillExecutor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -23,10 +21,10 @@ import static org.mockito.Mockito.when;
 class MobSkillServiceTest {
 
     /**
-     * 上下照準を許可するスケルトン・アーチャーの弓矢は、三次元距離が発動距離内なら高低差が1.25 blockを超えても発動距離内と判定する。
+     * 上下照準を許可するMobスキルは、三次元距離が発動距離内なら高低差が1.25 blockを超えても発動距離内と判定する。
      */
     @Test
-    void skeletonArcherBowShotUsesThreeDimensionalActivationRange() {
+    void verticalTargetingUsesThreeDimensionalActivationRange() {
         World world = mock(World.class);
         MobInstance instance = mock(MobInstance.class);
         Player target = mock(Player.class);
@@ -34,10 +32,10 @@ class MobSkillServiceTest {
         when(target.getLocation()).thenReturn(new Location(world, 10.0D, 68.0D, 0.0D));
 
         MobSkillRegistry registry = new MobSkillRegistry();
-        registry.register(new SkeletonArcherBowShotMobSkillExecutor(mock(DamageService.class), mock(MobProjectileService.class)));
+        registry.register(skillExecutor("mob_vertical_test", true));
         MobSkillService service = new MobSkillService(mock(MobService.class), registry);
         MobSkillBinding binding = new MobSkillBinding(
-                SkeletonArcherBowShotMobSkillExecutor.SKILL_ID,
+                "mob_vertical_test",
                 16.0D,
                 null,
                 null,
@@ -62,7 +60,7 @@ class MobSkillServiceTest {
         when(target.getLocation()).thenReturn(new Location(world, 10.0D, 64.0D, 0.0D));
 
         MobSkillRegistry registry = new MobSkillRegistry();
-        registry.register(groundSkillExecutor());
+        registry.register(skillExecutor("mob_ground_test", false));
         MobSkillService service = new MobSkillService(mock(MobService.class), registry);
         MobSkillBinding binding = new MobSkillBinding("mob_ground_test", 16.0D, null, null, Map.of());
 
@@ -72,21 +70,26 @@ class MobSkillServiceTest {
         assertFalse(service.isWithinActivationRange(instance, binding, target, 12.25D));
     }
 
-    private static MobSkillExecutor groundSkillExecutor() {
+    private static MobSkillExecutor skillExecutor(String id, boolean allowsVerticalTargeting) {
         return new MobSkillExecutor() {
             @Override
             public String id() {
-                return "mob_ground_test";
+                return id;
             }
 
             @Override
             public String displayName() {
-                return "地上テスト";
+                return "Fixture skill";
             }
 
             @Override
             public MobSkillTiming defaultTiming() {
                 return new MobSkillTiming(16.0D, 20L, 0L);
+            }
+
+            @Override
+            public boolean allowsVerticalTargeting() {
+                return allowsVerticalTargeting;
             }
 
             @Override

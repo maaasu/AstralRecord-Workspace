@@ -496,27 +496,6 @@ class MobAiServiceTest {
     }
 
     /**
-     * スポーン地点から上下に8ブロックを超えたMobは、水平距離がleashRange以内でもLEASHEDになる。
-     */
-    @Test
-    void verticalSpawnDistanceTriggersLeash() throws ReflectiveOperationException {
-        MobInstance instance = new MobInstance(
-                UUID.randomUUID(),
-                enemyTemplate(),
-                new Location(null, 0.0D, 64.0D, 0.0D)
-        );
-        instance.currentLocation(new Location(null, 0.0D, 73.0D, 0.0D));
-
-        MobAiService aiService = new MobAiService(
-                mock(MobService.class),
-                mock(MobCombatService.class),
-                mock(MobSkillService.class)
-        );
-
-        assertTrue(invokeIsLeashed(aiService, instance));
-    }
-
-    /**
      * 上下差8ブロックは許容し、9ブロックからLEASHEDとする。水平距離による従来のleash判定も維持する。
      */
     @Test
@@ -541,6 +520,8 @@ class MobAiServiceTest {
         horizontal.currentLocation(new Location(world, 101.0D, 64.0D, 0.0D));
 
         assertFalse(invokeIsLeashed(aiService, boundary));
+        boundary.currentLocation(new Location(world, 0.0D, 73.0D, 0.0D));
+        assertTrue(invokeIsLeashed(aiService, boundary));
         assertTrue(invokeIsLeashed(aiService, horizontal));
     }
 

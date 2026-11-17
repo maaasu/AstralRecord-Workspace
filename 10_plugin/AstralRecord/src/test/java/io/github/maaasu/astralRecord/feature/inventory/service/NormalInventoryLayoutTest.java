@@ -18,36 +18,40 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class NormalInventoryLayoutTest {
 
-    /**
-     * 3行24entryを右端control列17/26/35を避けて配置する。
-     */
     @Test
-    void mapsTwentyFourVisibleItemsAroundRightControlColumn() {
-        assertEquals(24, NormalInventoryLayout.VISIBLE_CAPACITY);
-        assertEquals(32, NormalInventoryLayout.DEFAULT_CAPACITY);
-        assertEquals(9, NormalInventoryLayout.toGuiSlotIndex(1, 0));
-        assertEquals(16, NormalInventoryLayout.toGuiSlotIndex(8, 0));
-        assertEquals(18, NormalInventoryLayout.toGuiSlotIndex(9, 0));
-        assertEquals(34, NormalInventoryLayout.toGuiSlotIndex(24, 0));
-        assertFalse(NormalInventoryLayout.isManagedGuiSlot(17));
-        assertFalse(NormalInventoryLayout.isManagedGuiSlot(26));
-        assertFalse(NormalInventoryLayout.isManagedGuiSlot(35));
-        assertEquals(1, NormalInventoryLayout.maxScrollRow(NormalInventoryLayout.DEFAULT_CAPACITY));
+    void visibleSlotsRoundTripWithoutOverlappingInventoryControls() {
+        Set<Integer> controls = Set.of(
+            NormalInventoryLayout.SCROLL_UP_GUI_SLOT,
+            NormalInventoryLayout.INFO_GUI_SLOT,
+            NormalInventoryLayout.SCROLL_DOWN_GUI_SLOT
+        );
+
+        for (int scrollRow : List.of(0, 1, 2)) {
+            int firstSlot = NormalInventoryLayout.DB_SLOT_START + scrollRow * NormalInventoryLayout.CONTENT_COLUMNS;
+            int endSlot = firstSlot + NormalInventoryLayout.VISIBLE_CAPACITY;
+            Set<Integer> mappedSlots = new HashSet<>();
+            for (int dbSlot = firstSlot; dbSlot < endSlot; dbSlot++) {
+                int guiSlot = NormalInventoryLayout.toGuiSlotIndex(dbSlot, scrollRow);
+                assertTrue(NormalInventoryLayout.isManagedGuiSlot(guiSlot));
+                assertFalse(controls.contains(guiSlot));
+                assertTrue(mappedSlots.add(guiSlot));
+                assertEquals(dbSlot, NormalInventoryLayout.toDbSlotIndex(guiSlot, scrollRow));
+            }
+            for (int control : controls) {
+                assertEquals(-1, NormalInventoryLayout.toDbSlotIndex(control, scrollRow));
+            }
+            assertEquals(-1, NormalInventoryLayout.toGuiSlotIndex(firstSlot - 1, scrollRow));
+            assertEquals(-1, NormalInventoryLayout.toGuiSlotIndex(endSlot, scrollRow));
+        }
     }
 
-    /**
-     * BAG scrollを1行8entry単位で移動する。
-     */
     @Test
-    void scrollsOneEightItemRowAtATime() {
-        assertEquals(9, NormalInventoryLayout.toGuiSlotIndex(9, 1));
-        assertEquals(34, NormalInventoryLayout.toGuiSlotIndex(32, 1));
-        assertEquals(9, NormalInventoryLayout.toGuiSlotIndex(17, 2));
-        assertEquals(34, NormalInventoryLayout.toGuiSlotIndex(40, 2));
-        assertEquals(17, NormalInventoryLayout.toDbSlotIndex(9, 2));
-        assertEquals(40, NormalInventoryLayout.toDbSlotIndex(34, 2));
-        assertEquals(2, NormalInventoryLayout.maxScrollRow(40));
-        assertEquals(268_435_456, NormalInventoryLayout.totalRows(Integer.MAX_VALUE));
+    void roundsUpRowCountWithoutOverflowingAtMaximumCapacity() {
+        int rows = NormalInventoryLayout.totalRows(Integer.MAX_VALUE);
+        int columns = NormalInventoryLayout.CONTENT_COLUMNS;
+
+        assertTrue((rows - 1L) * columns < Integer.MAX_VALUE);
+        assertTrue((long) rows * columns >= Integer.MAX_VALUE);
     }
 
     /**

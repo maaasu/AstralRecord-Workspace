@@ -5,7 +5,7 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
-import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanShieldActivateSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
@@ -32,6 +32,8 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 class PassiveSkillServiceTest {
+    private static final String SKILL_ID = "fixture_passive";
+
     private MockedStatic<AstPlayerCache> playerCache;
 
     @BeforeEach
@@ -101,35 +103,14 @@ class PassiveSkillServiceTest {
         LearnedSkillInstance learned = new LearnedSkillInstance(
             learnedSkillId,
             accountId,
-            SwordsmanShieldActivateSkillExecutor.ID,
+            SKILL_ID,
             1,
             List.of(),
             0,
             null,
             null
         );
-        SkillDefinition definition = new SkillDefinition(
-            SwordsmanShieldActivateSkillExecutor.ID,
-            SwordsmanShieldActivateSkillExecutor.ID,
-            "タンクシールドアクティベート",
-            null,
-            "SHIELD",
-            List.of(),
-            0L,
-            0.0D,
-            0L,
-            1,
-            null,
-            Map.of(),
-            List.of("passive", "defense"),
-            SkillKind.PASSIVE,
-            true,
-            SkillResourceType.MANA,
-            0.0D
-        );
-        SkillRegistry registry = new SkillRegistry();
-        registry.registerExecutor(new SwordsmanShieldActivateSkillExecutor());
-        registry.replaceDefinitions(Map.of(definition.getId(), definition));
+        SkillRegistry registry = registryWithPassive(true);
 
         SkillService skillService = mock(SkillService.class);
         SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
@@ -139,7 +120,7 @@ class PassiveSkillServiceTest {
         when(ownershipService.learnedSkills(player)).thenReturn(List.of(learned));
         when(presetService.selectedPresetIndex(accountId)).thenReturn(0);
         when(presetService.passiveSkillSlotCount(accountId, 10)).thenReturn(10);
-        when(permissionService.isPermitted(player, definition.getId())).thenReturn(true);
+        when(permissionService.isPermitted(player, SKILL_ID)).thenReturn(true);
         when(presetService.getPresets(accountId)).thenReturn(List.of(
             new SkillBindPreset(
                 null,
@@ -163,13 +144,13 @@ class PassiveSkillServiceTest {
             new LearnedSkillResolver(mock(ItemService.class))
         );
 
-        assertTrue(service.isPassiveSkillActive(player, SwordsmanShieldActivateSkillExecutor.ID));
+        assertTrue(service.isPassiveSkillActive(player, SKILL_ID));
 
         when(presetService.getPresets(accountId)).thenReturn(List.of(
             new SkillBindPreset(null, accountId, 0, List.of(), null, List.of(), true, true, 1)
         ));
         service.markDirty(player);
-        assertFalse(service.isPassiveSkillActive(player, SwordsmanShieldActivateSkillExecutor.ID));
+        assertFalse(service.isPassiveSkillActive(player, SKILL_ID));
 
         when(presetService.getPresets(accountId)).thenReturn(List.of(
             new SkillBindPreset(
@@ -184,13 +165,13 @@ class PassiveSkillServiceTest {
                 1
             )
         ));
-        when(permissionService.isPermitted(player, definition.getId())).thenReturn(false);
+        when(permissionService.isPermitted(player, SKILL_ID)).thenReturn(false);
         service.markDirty(player);
-        assertFalse(service.isPassiveSkillActive(player, SwordsmanShieldActivateSkillExecutor.ID));
+        assertFalse(service.isPassiveSkillActive(player, SKILL_ID));
     }
 
     /**
-     * bindRequired=false のタンクシールドアクティベートは、使用許可と習得済み個体があればパッシブスロット未設定でも有効になる。
+     * バインド不要のパッシブスキルは、使用許可と習得済み個体があればパッシブスロット未設定でも有効になる。
      */
     @Test
     void nonBindRequiredPassiveActivatesWithoutBoundInstance() {
@@ -198,7 +179,7 @@ class PassiveSkillServiceTest {
         LearnedSkillInstance learned = new LearnedSkillInstance(
             UUID.randomUUID(),
             accountId,
-            SwordsmanShieldActivateSkillExecutor.ID,
+            SKILL_ID,
             1,
             List.of(),
             0,
@@ -211,28 +192,7 @@ class PassiveSkillServiceTest {
         when(player.getAccount()).thenReturn(account);
         when(account.getUuid()).thenReturn(accountId);
 
-        SkillDefinition definition = new SkillDefinition(
-            SwordsmanShieldActivateSkillExecutor.ID,
-            SwordsmanShieldActivateSkillExecutor.ID,
-            "タンクシールドアクティベート",
-            null,
-            "SHIELD",
-            List.of(),
-            0L,
-            0.0D,
-            0L,
-            1,
-            null,
-            Map.of(),
-            List.of("passive", "defense"),
-            SkillKind.PASSIVE,
-            false,
-            SkillResourceType.MANA,
-            0.0D
-        );
-        SkillRegistry registry = new SkillRegistry();
-        registry.registerExecutor(new SwordsmanShieldActivateSkillExecutor());
-        registry.replaceDefinitions(Map.of(definition.getId(), definition));
+        SkillRegistry registry = registryWithPassive(false);
 
         SkillService skillService = mock(SkillService.class);
         SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
@@ -240,7 +200,7 @@ class PassiveSkillServiceTest {
         SkillBindPresetService presetService = mock(SkillBindPresetService.class);
         when(skillService.registry()).thenReturn(registry);
         when(ownershipService.learnedSkills(player)).thenReturn(List.of(learned));
-        when(permissionService.isPermitted(player, definition.getId())).thenReturn(true);
+        when(permissionService.isPermitted(player, SKILL_ID)).thenReturn(true);
         when(presetService.selectedPresetIndex(accountId)).thenReturn(0);
         when(presetService.getPresets(accountId)).thenReturn(List.of());
 
@@ -253,6 +213,35 @@ class PassiveSkillServiceTest {
             new LearnedSkillResolver(mock(ItemService.class))
         );
 
-        assertTrue(service.isPassiveSkillActive(player, SwordsmanShieldActivateSkillExecutor.ID));
+        assertTrue(service.isPassiveSkillActive(player, SKILL_ID));
+    }
+
+    private static SkillRegistry registryWithPassive(boolean bindRequired) {
+        SkillDefinition definition = new SkillDefinition(
+            SKILL_ID,
+            SKILL_ID,
+            "Fixture passive",
+            null,
+            "PAPER",
+            List.of(),
+            0L,
+            0.0D,
+            0L,
+            1,
+            null,
+            Map.of(),
+            List.of(),
+            SkillKind.PASSIVE,
+            bindRequired,
+            SkillResourceType.MANA,
+            0.0D
+        );
+        SkillRegistry registry = new SkillRegistry();
+        SkillExecutor executor = mock(SkillExecutor.class);
+        when(executor.implementationId()).thenReturn(SKILL_ID);
+        when(executor.kind()).thenReturn(SkillKind.PASSIVE);
+        registry.registerExecutor(executor);
+        registry.replaceDefinitions(Map.of(definition.getId(), definition));
+        return registry;
     }
 }

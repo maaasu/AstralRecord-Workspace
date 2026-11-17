@@ -18,10 +18,10 @@ class MobRepositoryVariantParsingTest {
         String json = """
             {
               "schemaVersion": 1,
-              "id": "midgard_savanna_sunbird",
+              "id": "fixture_parrot",
               "type": "MOB",
               "category": "BOSS",
-              "name": "sunbird",
+              "name": "Fixture Parrot",
               "level": 10,
               "entityType": "PARROT",
               "variant": { "age": "ADULT", "kind": "RED", "scale": 4.0 },
@@ -42,13 +42,13 @@ class MobRepositoryVariantParsingTest {
     void resolvesMobHeadModelFromEachLevelProfile() {
         String json = """
             {
-              "id": "midgard_savanna_sunbird",
+              "id": "fixture_parrot",
               "category": "BOSS",
-              "name": "sunbird",
+              "name": "Fixture Parrot",
               "entityType": "PARROT",
-              "iconModel": "mob_head_sunbird",
+              "iconModel": "fixture_head_default",
               "levels": [
-                { "level": 11, "iconModel": "mob_head_parrot_gray" },
+                { "level": 11, "iconModel": "fixture_head_override" },
                 { "level": 12, "iconModel": null },
                 { "level": 10 }
               ]
@@ -59,8 +59,8 @@ class MobRepositoryVariantParsingTest {
 
         assertNotNull(template);
         assertEquals(10, template.level());
-        assertEquals("mob_head_sunbird", template.iconModel());
-        assertEquals("mob_head_parrot_gray", template.resolveLevel(11).iconModel());
+        assertEquals("fixture_head_default", template.iconModel());
+        assertEquals("fixture_head_override", template.resolveLevel(11).iconModel());
         assertNull(template.resolveLevel(12).iconModel());
     }
 }

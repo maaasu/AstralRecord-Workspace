@@ -13,6 +13,8 @@ import org.mockito.MockedStatic;
 
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,24 +28,21 @@ import static org.mockito.Mockito.when;
 class ManagedChatEventHandlerTest {
 
     /**
-     * msg/tell/w/whisperをnamespace有無にかかわらず管理DMへ変換対象として認識する。
+     * 名前空間の有無にかかわらずバニラのチャットだけを管理対象として認識する。
      */
     @Test
-    void recognizesVanillaDirectMessageAliasesWithOrWithoutNamespace() {
-        assertTrue(ManagedChatEventHandler.isVanillaDirectMessageCommand("/msg player hello"));
-        assertTrue(ManagedChatEventHandler.isVanillaDirectMessageCommand("/minecraft:tell player hello"));
-        assertTrue(ManagedChatEventHandler.isVanillaDirectMessageCommand("/bukkit:w player hello"));
-        assertTrue(ManagedChatEventHandler.isVanillaDirectMessageCommand("/minecraft:whisper player hello"));
-    }
-
-    /**
-     * sayをnamespace有無にかかわらず管理全体チャットへ変換対象として認識する。
-     */
-    @Test
-    void recognizesVanillaGlobalMessageCommandWithOrWithoutNamespace() {
-        assertTrue(ManagedChatEventHandler.isVanillaGlobalMessageCommand("/say hello"));
-        assertTrue(ManagedChatEventHandler.isVanillaGlobalMessageCommand("/minecraft:say hello"));
-        assertFalse(ManagedChatEventHandler.isVanillaGlobalMessageCommand("/message player hello"));
+    void recognizesOnlyVanillaChatCommandsForConversion() {
+        assertAll(
+            () -> assertDirectMessageCommand("/msg player hello", true),
+            () -> assertDirectMessageCommand("/minecraft:tell player hello", true),
+            () -> assertDirectMessageCommand("/bukkit:w player hello", true),
+            () -> assertDirectMessageCommand("/minecraft:whisper player hello", true),
+            () -> assertDirectMessageCommand("/message player hello", false),
+            () -> assertDirectMessageCommand("/party message hello", false),
+            () -> assertTrue(ManagedChatEventHandler.isVanillaGlobalMessageCommand("/say hello")),
+            () -> assertTrue(ManagedChatEventHandler.isVanillaGlobalMessageCommand("/minecraft:say hello")),
+            () -> assertFalse(ManagedChatEventHandler.isVanillaGlobalMessageCommand("/message player hello"))
+        );
     }
 
     /**
@@ -55,15 +54,6 @@ class ManagedChatEventHandlerTest {
         assertTrue(ManagedChatEventHandler.isGuideHelpCommand("/minecraft:help"));
         assertFalse(ManagedChatEventHandler.isGuideHelpCommand("/help commands"));
         assertFalse(ManagedChatEventHandler.isGuideHelpCommand("/guide"));
-    }
-
-    /**
-     * AstralRecord管理のmessageコマンドはバニラ変換対象にしない。
-     */
-    @Test
-    void keepsManagedMessageCommandAvailable() {
-        assertFalse(ManagedChatEventHandler.isVanillaDirectMessageCommand("/message player hello"));
-        assertFalse(ManagedChatEventHandler.isVanillaDirectMessageCommand("/party message hello"));
     }
 
     /**
@@ -101,5 +91,8 @@ class ManagedChatEventHandlerTest {
         verify(event).setCancelled(true);
         verify(partyService).broadcastPartyChat(sender, "hello");
         verify(messageService, never()).broadcastGlobalChat(sender, "hello");
+    }
+    private static void assertDirectMessageCommand(String command, boolean expected) {
+        assertEquals(expected, ManagedChatEventHandler.isVanillaDirectMessageCommand(command), command);
     }
 }

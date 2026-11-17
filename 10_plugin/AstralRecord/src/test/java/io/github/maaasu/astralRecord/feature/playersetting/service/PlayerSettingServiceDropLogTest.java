@@ -7,181 +7,71 @@ import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingSn
 import io.github.maaasu.astralRecord.feature.playersetting.repository.PlayerSettingRepository;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.BiPredicate;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class PlayerSettingServiceDropLogTest {
 
+    private static final List<BooleanSetting> SETTINGS = List.of(
+        new BooleanSetting(PlayerSettingKey.DROP_LOG_DISPLAY, true,
+            PlayerSettingService::isDropLogDisplayEnabled),
+        new BooleanSetting(PlayerSettingKey.AUTO_SAVE_MESSAGE, false,
+            PlayerSettingService::isAutoSaveMessageEnabled),
+        new BooleanSetting(PlayerSettingKey.ARMOR_DISPLAY, true,
+            PlayerSettingService::isArmorDisplayEnabled),
+        new BooleanSetting(PlayerSettingKey.ACTION_RING_HOLD_SELECT, false,
+            PlayerSettingService::isActionRingHoldSelectEnabled),
+        new BooleanSetting(PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY, false,
+            PlayerSettingService::isSkillTreeCompactDisplayEnabled)
+    );
+
     /**
-     * DROP_LOG_DISPLAYをcache済みplayer選択値から返す。
+     * キャッシュがない場合は、各設定キーの既定値を返す。
      */
     @Test
-    void dropLogDisplayUsesCachedPlayerChoice() {
+    void usesDefaultsWithoutCachedSettings() {
+        assertAll(SETTINGS.stream().map(setting -> () -> {
+            PlayerSettingService service = newService(new PlayerSettingCache());
+            assertEquals(setting.defaultValue(), setting.read().test(service, UUID.randomUUID()),
+                setting.key().name());
+        }));
+    }
+
+    /**
+     * 保存済みの明示値は、各設定キーの既定値より優先される。
+     */
+    @Test
+    void usesExplicitCachedSettings() {
+        assertAll(SETTINGS.stream().map(setting -> () -> assertAll(
+            setting.key().name(),
+            () -> assertCachedValue(setting, false),
+            () -> assertCachedValue(setting, true)
+        )));
+    }
+
+    private static void assertCachedValue(BooleanSetting setting, boolean value) {
         UUID userId = UUID.randomUUID();
         PlayerSettingCache cache = new PlayerSettingCache();
         cache.put(new PlayerSettingSnapshot(userId, Map.of(
-            PlayerSettingKey.DROP_LOG_DISPLAY,
-            new PlayerSettingEntry(null, PlayerSettingKey.DROP_LOG_DISPLAY, false, null)
+            setting.key(), new PlayerSettingEntry(null, setting.key(), value, null)
         )));
-        PlayerSettingService service = new PlayerSettingService(
-            new PlayerSettingRepository(),
-            new PlayerSettingDefaults(),
-            cache
-        );
 
-        assertFalse(service.isDropLogDisplayEnabled(userId));
+        assertEquals(value, setting.read().test(newService(cache), userId), setting.key().name());
     }
 
-    /**
-     * cache miss時のDROP_LOG_DISPLAYを既定trueにする。
-     */
-    @Test
-    void dropLogDisplayDefaultsToEnabledWithoutCachedSnapshot() {
-        PlayerSettingService service = new PlayerSettingService(
-            new PlayerSettingRepository(),
-            new PlayerSettingDefaults(),
-            new PlayerSettingCache()
-        );
-
-        assertTrue(service.isDropLogDisplayEnabled(UUID.randomUUID()));
+    private static PlayerSettingService newService(PlayerSettingCache cache) {
+        return new PlayerSettingService(new PlayerSettingRepository(), new PlayerSettingDefaults(), cache);
     }
 
-    /**
-     * AUTO_SAVE_MESSAGEをcache済みplayer選択値から返す。
-     */
-    @Test
-    void autoSaveMessageUsesCachedPlayerChoice() {
-        UUID userId = UUID.randomUUID();
-        PlayerSettingCache cache = new PlayerSettingCache();
-        cache.put(new PlayerSettingSnapshot(userId, Map.of(
-            PlayerSettingKey.AUTO_SAVE_MESSAGE,
-            new PlayerSettingEntry(null, PlayerSettingKey.AUTO_SAVE_MESSAGE, false, null)
-        )));
-        PlayerSettingService service = new PlayerSettingService(
-            new PlayerSettingRepository(),
-            new PlayerSettingDefaults(),
-            cache
-        );
-
-        assertFalse(service.isAutoSaveMessageEnabled(userId));
-    }
-
-    /**
-     * cache miss時のAUTO_SAVE_MESSAGEを既定falseにする。
-     */
-    @Test
-    void autoSaveMessageDefaultsToDisabledWithoutCachedSnapshot() {
-        PlayerSettingService service = new PlayerSettingService(
-            new PlayerSettingRepository(),
-            new PlayerSettingDefaults(),
-            new PlayerSettingCache()
-        );
-
-        assertFalse(service.isAutoSaveMessageEnabled(UUID.randomUUID()));
-    }
-
-    /**
-     * ARMOR_DISPLAYをAPIなしでcache済みplayer選択値から返す。
-     */
-    @Test
-    void armorDisplayUsesCachedPlayerChoice() {
-        UUID userId = UUID.randomUUID();
-        PlayerSettingCache cache = new PlayerSettingCache();
-        cache.put(new PlayerSettingSnapshot(userId, Map.of(
-            PlayerSettingKey.ARMOR_DISPLAY,
-            new PlayerSettingEntry(null, PlayerSettingKey.ARMOR_DISPLAY, false, null)
-        )));
-        PlayerSettingService service = new PlayerSettingService(
-            new PlayerSettingRepository(),
-            new PlayerSettingDefaults(),
-            cache
-        );
-
-        assertFalse(service.isArmorDisplayEnabled(userId));
-    }
-
-    /**
-     * cache miss時のARMOR_DISPLAYをAPIなしで既定trueにする。
-     */
-    @Test
-    void armorDisplayDefaultsToEnabledWithoutCachedSnapshot() {
-        PlayerSettingService service = new PlayerSettingService(
-            new PlayerSettingRepository(),
-            new PlayerSettingDefaults(),
-            new PlayerSettingCache()
-        );
-
-        assertTrue(service.isArmorDisplayEnabled(UUID.randomUUID()));
-    }
-
-    /**
-     * ACTION_RING_HOLD_SELECTをAPIなしでcache済みplayer選択値から返す。
-     */
-    @Test
-    void actionRingHoldSelectUsesCachedPlayerChoice() {
-        UUID userId = UUID.randomUUID();
-        PlayerSettingCache cache = new PlayerSettingCache();
-        cache.put(new PlayerSettingSnapshot(userId, Map.of(
-            PlayerSettingKey.ACTION_RING_HOLD_SELECT,
-            new PlayerSettingEntry(null, PlayerSettingKey.ACTION_RING_HOLD_SELECT, true, null)
-        )));
-        PlayerSettingService service = new PlayerSettingService(
-            new PlayerSettingRepository(),
-            new PlayerSettingDefaults(),
-            cache
-        );
-
-        assertTrue(service.isActionRingHoldSelectEnabled(userId));
-    }
-
-    /**
-     * cache miss時のACTION_RING_HOLD_SELECTをAPIなしで既定falseにする。
-     */
-    @Test
-    void actionRingHoldSelectDefaultsToDisabledWithoutCachedSnapshot() {
-        PlayerSettingService service = new PlayerSettingService(
-            new PlayerSettingRepository(),
-            new PlayerSettingDefaults(),
-            new PlayerSettingCache()
-        );
-
-        assertFalse(service.isActionRingHoldSelectEnabled(UUID.randomUUID()));
-    }
-
-    /**
-     * SKILL_TREE_COMPACT_DISPLAYをAPIなしでcache済みplayer選択値から返す。
-     */
-    @Test
-    void skillTreeCompactDisplayUsesCachedPlayerChoice() {
-        UUID userId = UUID.randomUUID();
-        PlayerSettingCache cache = new PlayerSettingCache();
-        cache.put(new PlayerSettingSnapshot(userId, Map.of(
-            PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY,
-            new PlayerSettingEntry(null, PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY, true, null)
-        )));
-        PlayerSettingService service = new PlayerSettingService(
-            new PlayerSettingRepository(),
-            new PlayerSettingDefaults(),
-            cache
-        );
-
-        assertTrue(service.isSkillTreeCompactDisplayEnabled(userId));
-    }
-
-    /**
-     * cache miss時のSKILL_TREE_COMPACT_DISPLAYをAPIなしで既定falseにする。
-     */
-    @Test
-    void skillTreeCompactDisplayDefaultsToDisabledWithoutCachedSnapshot() {
-        PlayerSettingService service = new PlayerSettingService(
-            new PlayerSettingRepository(),
-            new PlayerSettingDefaults(),
-            new PlayerSettingCache()
-        );
-
-        assertFalse(service.isSkillTreeCompactDisplayEnabled(UUID.randomUUID()));
+    private record BooleanSetting(
+        PlayerSettingKey key,
+        boolean defaultValue,
+        BiPredicate<PlayerSettingService, UUID> read
+    ) {
     }
 }

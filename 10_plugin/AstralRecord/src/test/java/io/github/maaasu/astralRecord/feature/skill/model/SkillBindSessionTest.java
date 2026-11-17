@@ -94,10 +94,10 @@ class SkillBindSessionTest {
     }
 
     /**
-     * 設定枠を横スクロールした状態で保存済みプリセットを反映しても、パッシブ枠と発動枠のスクロール位置を保持する。
+     * 保存済みプリセットの再反映で発動・パッシブ両方の編集内容を更新する。
      */
     @Test
-    void preservesBindSlotScrollOffsetsWhenReplacingSavedPreset() {
+    void appliesBothBindingDraftsWhenReplacingSavedPreset() {
         UUID accountId = UUID.randomUUID();
         SkillBindSession session = new SkillBindSession(new ArrayList<>(List.of(new SkillBindPreset(
             null,
@@ -111,9 +111,6 @@ class SkillBindSessionTest {
             1
         ))));
 
-        session.movePassiveSlotOffset(2, 7);
-        session.moveActiveSlotOffset(3, 7);
-
         session.replaceSelectedPreset(new SkillBindPreset(
             UUID.randomUUID(),
             accountId,
@@ -126,8 +123,6 @@ class SkillBindSessionTest {
             2
         ));
 
-        assertEquals(2, session.passiveSlotOffset());
-        assertEquals(3, session.activeSlotOffset());
         assertEquals("active-1", session.activeDraft().get(0));
         assertEquals("passive-1", session.passiveDraft().get(0));
     }

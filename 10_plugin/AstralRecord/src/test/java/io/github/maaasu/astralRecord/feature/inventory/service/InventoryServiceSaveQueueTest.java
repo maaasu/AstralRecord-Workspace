@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -16,7 +17,9 @@ import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -25,34 +28,41 @@ import static org.mockito.Mockito.when;
 
 class InventoryServiceSaveQueueTest {
 
-    /**
-     * 即時保存要求をInventorySaveCoordinatorへ委譲し、そのfutureを返してInventoryPersistenceを直接呼ばない。
-     */
     @Test
-    void delegatesImmediateSaveToAccountQueueWithoutCallingPersistenceDirectly() {
+    void immediateSaveJoinsPendingSaveWithoutWritingOutsideTheAccountQueue() {
         UUID accountId = UUID.randomUUID();
-        InventoryRepository inventoryRepository = mock(InventoryRepository.class);
-        EquipmentLoadoutRepository loadoutRepository = mock(EquipmentLoadoutRepository.class);
-        ItemService itemService = mock(ItemService.class);
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(state);
         InventoryPersistence persistence = mock(InventoryPersistence.class);
-        InventorySaveCoordinator saveCoordinator = mock(InventorySaveCoordinator.class);
-        CompletableFuture<Boolean> expected = CompletableFuture.completedFuture(true);
-        when(saveCoordinator.saveNow(accountId)).thenReturn(expected);
+        when(persistence.saveNow(state)).thenReturn(true);
+        var queued = new ArrayDeque<Runnable>();
+        var coordinator = new InventorySaveCoordinator(persistence, registry, queued::addLast, 1_000L);
         InventoryService service = new InventoryService(
-            inventoryRepository,
-            loadoutRepository,
-            itemService,
+            mock(InventoryRepository.class),
+            mock(EquipmentLoadoutRepository.class),
+            mock(ItemService.class),
             mock(ItemStackFactory.class),
-            new PlayerInventoryStateRegistry(),
+            registry,
             persistence,
-            saveCoordinator
+            coordinator
         );
 
-        CompletableFuture<Boolean> actual = service.saveNow(accountId);
+        var first = coordinator.saveNow(accountId);
+        var second = service.saveNow(accountId);
 
-        assertSame(expected, actual);
-        verify(saveCoordinator).saveNow(accountId);
+        assertFalse(first.isDone());
+        assertFalse(second.isDone());
         verifyNoInteractions(persistence);
+        assertEquals(1, queued.size());
+
+        queued.removeFirst().run();
+
+        assertTrue(first.isDone());
+        assertTrue(second.isDone());
+        assertTrue(first.join());
+        assertTrue(second.join());
+        verify(persistence).saveNow(state);
     }
 
     /**

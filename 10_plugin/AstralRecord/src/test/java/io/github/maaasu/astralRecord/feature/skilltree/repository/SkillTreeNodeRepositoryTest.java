@@ -54,18 +54,26 @@ class SkillTreeNodeRepositoryTest {
     }
 
     /**
-     * 削除されたloreを未知のnode propertyとして拒否する。
+     * ノード直下と解放条件の階層で、スキーマ外の旧フィールドを拒否する。
      */
     @Test
-    void rejectsRemovedLore() {
-        writeNode("1000.json", nodeJson("1000", "[]").replace(
-                "  \"tags\": [\"root\"],",
-                "  \"lore\": [],\n  \"tags\": [\"root\"],"
+    void rejectsUnknownNodeAndUnlockConditionProperties() {
+        assertUnknownPropertyRejected("lore", "\"lore\": [],\n  \"effects\": []");
+        assertUnknownPropertyRejected("positionId", "\"positionId\": \"root\",\n  \"effects\": []");
+        assertUnknownPropertyRejected("classLevel",
+                "\"unlockCondition\": {\"classId\": \"hunter\", \"classLevel\": 25},\n  \"effects\": []");
+    }
+
+    private void assertUnknownPropertyRejected(String property, String fields) {
+        String json = nodeJson("1000", "[]").replace("\"effects\": []", fields);
+        var invalid = new RuntimeFilebaseSnapshot(List.of(
+                new RuntimeFilebaseSnapshot.Entry("35.features.skilltree/nodes/1000.json", json)
         ));
+        var repository = new SkillTreeNodeRepository(() -> invalid, material -> material != Material.AIR);
 
-        IllegalStateException error = assertThrows(IllegalStateException.class, () -> repository().findAll());
+        IllegalStateException error = assertThrows(IllegalStateException.class, repository::findAll);
 
-        assertTrue(error.getMessage().contains("lore"));
+        assertTrue(error.getMessage().contains(property), error.getMessage());
     }
 
     /**
@@ -123,24 +131,6 @@ class SkillTreeNodeRepositoryTest {
     }
 
     /**
-     * schema外legacy propertyと先頭0付きnode IDを拒否する。
-     */
-    @Test
-    void rejectsLegacyPropertiesAndLeadingZeroIds() {
-        writeNode("legacy.json", nodeJson("01000", "[]").replace(
-                "\"name\": \"Root\"",
-                "\"positionId\": \"root\",\n  \"name\": \"Root\""
-        ));
-
-        IllegalStateException error = assertThrows(
-                IllegalStateException.class,
-                () -> repository().findAll()
-        );
-
-        assertTrue(error.getMessage().contains("positionId"));
-    }
-
-    /**
      * 0単独を除く先頭0付き数字node IDを拒否する。
      */
     @Test
@@ -169,21 +159,6 @@ class SkillTreeNodeRepositoryTest {
 
         assertEquals("hunter", node.unlockCondition().classId());
         assertEquals(25, node.unlockCondition().playerLevel());
-    }
-
-    /**
-     * 現schemaにないclass level conditionを未知propertyとして拒否する。
-     */
-    @Test
-    void rejectsClassLevelAsNodeUnlockCondition() {
-        writeNode("1000.json", nodeJson("1000", "[]").replace(
-                "\"effects\": []",
-                "\"unlockCondition\": {\"classId\": \"hunter\", \"classLevel\": 25},\n  \"effects\": []"
-        ));
-
-        IllegalStateException error = assertThrows(IllegalStateException.class, () -> repository().findAll());
-
-        assertTrue(error.getMessage().contains("classLevel"));
     }
 
     private void writeNode(String fileName, String json) {

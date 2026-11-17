@@ -10,7 +10,9 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
+import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -19,11 +21,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -66,28 +70,6 @@ class PlayerInventoryStateSkillMutationTest {
     }
 
     /**
-     * 素材消費で対象UUIDを除去した場合、対象インベントリだけを既存の通常収納前詰め処理へ渡し、無関係entryを保持する。
-     */
-    @Test
-    void authoritativeReconciliationRemovesOnlyTheRequestedEntry() {
-        UUID accountId = UUID.randomUUID();
-        UUID inventoryId = UUID.randomUUID();
-        UUID targetId = UUID.randomUUID();
-        UUID unrelatedId = UUID.randomUUID();
-        PlayerInventoryState state = new PlayerInventoryState(accountId);
-        state.replaceEntriesFromLoad(inventoryId, List.of(
-            entry(targetId, inventoryId, 1, "skill_gem_raw", 1L, accountId),
-            entry(unrelatedId, inventoryId, 2, "new_drop", 1L, accountId)
-        ));
-
-        assertEquals(inventoryId, state.reconcileAuthoritativeEntry(targetId, null));
-
-        List<InventoryEntryModel> entries = state.snapshotEntries(inventoryId);
-        assertFalse(entries.stream().anyMatch(entry -> entry.getInventoryEntryId().equals(targetId)));
-        assertTrue(entries.stream().anyMatch(entry -> entry.getInventoryEntryId().equals(unrelatedId)));
-    }
-
-    /**
      * 合成で素材entryが消費された後、現在stateの無関係entryを保持したまま通常のBAG前詰め規則を適用する。
      */
     @Test
@@ -122,6 +104,7 @@ class PlayerInventoryStateSkillMutationTest {
 
         List<InventoryEntryModel> entries = state.snapshotEntries(bag.getInventoryId());
         assertEquals(2, entries.size());
+        assertFalse(entries.stream().anyMatch(entry -> entry.getInventoryEntryId().equals(targetId)));
         assertEquals(1, entryById(entries, followingId).getSlotIndex());
         assertEquals(2, entryById(entries, concurrentId).getSlotIndex());
         assertEquals(2L, entryById(entries, followingId).getQuantity());
@@ -162,48 +145,28 @@ class PlayerInventoryStateSkillMutationTest {
         assertEquals(2, entryById(state.snapshotEntries(bag.getInventoryId()), followingId).getSlotIndex());
     }
 
-    /**
-     * 必要数量と同量の単一素材entryを消費した場合、数量0のentryを残さずインベントリから除去する。
-     */
-    @Test
-    void criticalPaymentRemovesEntryWhenSingleMaterialIsFullyConsumed() {
-        UUID accountId = UUID.randomUUID();
-        UUID entryId = UUID.randomUUID();
-        UUID operationId = UUID.randomUUID();
-        PlayerInventoryState state = new PlayerInventoryState(accountId);
-        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG);
-        state.putInventory(bag);
-        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
-            entry(entryId, bag.getInventoryId(), 1, "skill_gem_raw", 1L, accountId)
-        ));
-        InventoryService service = inventoryService(state);
-
-        assertTrue(service.reserveLocalMutationPayment(accountId, operationId, Map.of(entryId, 1L)));
-        assertTrue(service.commitLocalOrbOperationPayment(accountId, operationId, () -> { }));
-
-        assertTrue(state.snapshotEntries(bag.getInventoryId()).isEmpty());
+    @TestFactory
+    Stream<DynamicTest> criticalPaymentRemovesFullyConsumedEntry() {
+        return Stream.of(InventoryType.BAG, InventoryType.HOTBAR)
+            .map(type -> dynamicTest(type.name(), () -> assertCriticalPaymentRemovesEntry(type)));
     }
 
-    /**
-     * HOTBARの必要数量と同量の単一素材entryを消費した場合、数量0のentryを残さず除去する。
-     */
-    @Test
-    void criticalPaymentRemovesHotbarEntryWhenSingleMaterialIsFullyConsumed() {
+    private static void assertCriticalPaymentRemovesEntry(InventoryType inventoryType) {
         UUID accountId = UUID.randomUUID();
         UUID entryId = UUID.randomUUID();
         UUID operationId = UUID.randomUUID();
         PlayerInventoryState state = new PlayerInventoryState(accountId);
-        InventoryModel hotbar = DesignTestFixtures.inventory(accountId, InventoryType.HOTBAR);
-        state.putInventory(hotbar);
-        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of(
-            entry(entryId, hotbar.getInventoryId(), 1, "skill_gem_raw", 1L, accountId)
+        InventoryModel inventory = DesignTestFixtures.inventory(accountId, inventoryType);
+        state.putInventory(inventory);
+        state.replaceEntriesFromLoad(inventory.getInventoryId(), List.of(
+            entry(entryId, inventory.getInventoryId(), 1, "skill_gem_raw", 1L, accountId)
         ));
         InventoryService service = inventoryService(state);
 
         assertTrue(service.reserveLocalMutationPayment(accountId, operationId, Map.of(entryId, 1L)));
         assertTrue(service.commitLocalOrbOperationPayment(accountId, operationId, () -> { }));
 
-        assertTrue(state.snapshotEntries(hotbar.getInventoryId()).isEmpty());
+        assertTrue(state.snapshotEntries(inventory.getInventoryId()).isEmpty());
     }
 
     /**
