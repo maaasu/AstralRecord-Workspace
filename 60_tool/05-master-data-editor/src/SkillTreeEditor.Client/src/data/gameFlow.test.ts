@@ -152,7 +152,7 @@ describe('game flow suggestions', () => {
 
   it('finds a free slot by alternating below and above', () => {
     const crowded = parseGameFlow({ id: 'f', name: 'f', nodes: [{ id: 'a', label: 'a', x: 0, y: 0 }, { id: 'b', label: 'b', x: 0, y: 110 }], edges: [] })
-    expect(freeSlot(crowded, 0, 0)).toEqual({ x: 0, y: -110 })
+    expect(freeSlot(crowded, 0, 0)).toEqual({ x: 0, y: -140 })
   })
 })
 

@@ -202,7 +202,7 @@ export function addShopPurchases(flow: GameFlow, shopNodeId: string, itemIds: re
     if (!target) {
       const added = addNode(next, {
         ref: 'item:' + itemId, classes: suggestedClasses(context, itemId),
-        x: shop.x + 300, y: shop.y + (existingTargets + row) * 110,
+        x: shop.x + 300, y: shop.y + (existingTargets + row) * rowSpacing,
       })
       next = added.flow
       target = added.id
@@ -278,6 +278,9 @@ export interface SuggestionPlacement {
   added: boolean
 }
 
+/** 自動配置の行の間隔。アイコン表示（名前・図形・職業）とカード表示のどちらの高さも収まる。 */
+export const rowSpacing = 140
+
 /** 1回の Tab で配置する候補の上限。 */
 export const suggestionBatchSize = 8
 
@@ -320,12 +323,12 @@ export function suggestFor(flow: GameFlow, nodeId: string, context: GameFlowCont
 }
 
 const occupied = (flow: GameFlow, x: number, y: number) =>
-  flow.nodes.some(node => Math.abs(node.x - x) < 240 && Math.abs(node.y - y) < 100)
+  flow.nodes.some(node => Math.abs(node.x - x) < 240 && Math.abs(node.y - y) < rowSpacing - 10)
 
 /** 基準の行から上下交互に、他のノードと重ならない位置を探す。 */
 export function freeSlot(flow: GameFlow, x: number, y: number) {
   for (let step = 0; step < 200; step++) {
-    const offset = step === 0 ? 0 : Math.ceil(step / 2) * 110 * (step % 2 ? 1 : -1)
+    const offset = step === 0 ? 0 : Math.ceil(step / 2) * rowSpacing * (step % 2 ? 1 : -1)
     if (!occupied(flow, x, y + offset)) return { x, y: y + offset }
   }
   return { x, y }
