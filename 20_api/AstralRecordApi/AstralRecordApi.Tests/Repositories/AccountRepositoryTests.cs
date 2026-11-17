@@ -420,6 +420,47 @@ public class AccountRepositoryTests
     }
 
     [Fact]
+    public async Task UpdateAsync_AppliesBedrockRenameRulesBasedOnTheAccountOwner()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(connection).Options;
+        await using var dbContext = new AstralRecordDbContext(options);
+        await dbContext.Database.EnsureCreatedAsync();
+
+        var bedrockUserId = Guid.NewGuid();
+        var javaUserId = Guid.NewGuid();
+        var targetId = Guid.NewGuid();
+        var javaAccountId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        var bedrockUser = CreateUser(bedrockUserId, targetId, now);
+        bedrockUser.Mcid = ".Bedrock";
+        dbContext.Users.AddRange(bedrockUser, CreateUser(javaUserId, javaAccountId, now));
+        var target = CreateAccount(targetId, bedrockUserId, 0, true, now);
+        target.AccountName = "Legacy_Name";
+        var takenName = CreateAccount(Guid.NewGuid(), bedrockUserId, 1, false, now);
+        takenName.AccountName = ".Reserved_Name";
+        var javaAccount = CreateAccount(javaAccountId, javaUserId, 0, true, now);
+        javaAccount.AccountName = "New_Name";
+        dbContext.Accounts.AddRange(target, takenName, javaAccount);
+        await dbContext.SaveChangesAsync();
+        var repository = new AccountRepository(dbContext);
+
+        Task<AccountResponse?> Rename(string name) => repository.UpdateAsync(targetId,
+            new AccountUpdateRequest { AccountName = name, UpdatedBy = javaUserId });
+
+        var renamed = await Rename("New_Name");
+        Assert.Equal(".New_Name", renamed!.AccountName);
+        await Assert.ThrowsAsync<AccountNameConflictException>(() => Rename("reserved_name"));
+        foreach (var invalid in new[] { ".New_Name", "New.Name", "New_1", "AB", "Ｎｅｗ", new string('A', 50) })
+            await Assert.ThrowsAsync<ArgumentException>(() => Rename(invalid));
+        Assert.Equal(".New_Name", (await repository.GetByUuidAsync(targetId))!.AccountName);
+
+        var maxLengthName = new string('A', 49);
+        Assert.Equal("." + maxLengthName, (await Rename(maxLengthName))!.AccountName);
+    }
+
+    [Fact]
     public async Task DeleteAsync_CommitResultUnknownReturnsCommittedDeleteResult()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");

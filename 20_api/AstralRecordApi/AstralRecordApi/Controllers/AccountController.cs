@@ -95,7 +95,7 @@ public class AccountController(IAccountRepository accountRepository) : Controlle
         }
     }
 
-    /// <summary>アカウント情報更新</summary>
+    /// <summary>アカウント情報を更新し、Bedrock の名前変更では先頭にピリオドを付けます。</summary>
     /// <param name="uuid">更新対象のアカウント UUID</param>
     /// <param name="request">更新内容</param>
     /// <response code="200">アカウント更新成功</response>
