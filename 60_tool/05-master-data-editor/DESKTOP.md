@@ -2,7 +2,7 @@
 
 ## 起動
 
-1. ZIP 全体を任意のフォルダーへ展開します。
+1. ZIP 内の `AstralRecordMasterEditor-win-x64` をワークスペースの `60_tool/05-master-data-editor/dist/desktop/` に展開します。更新時はエディタを閉じ、同じ場所のアプリフォルダーごと差し替えます。
 2. `AstralRecordMasterEditor.exe` を起動します。
 3. 初回は `40_filebase`・`10_plugin`・`60_tool` のある AstralRecord ワークスペースを選びます。
 

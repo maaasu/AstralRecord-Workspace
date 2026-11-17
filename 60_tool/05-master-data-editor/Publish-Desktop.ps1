@@ -58,15 +58,19 @@ $outputRoot = [IO.Path]::GetFullPath($OutputDirectory)
 [IO.Directory]::CreateDirectory($outputRoot) | Out-Null
 $buildId = '{0}-{1}' -f (Get-Date -Format 'yyyyMMdd-HHmmss'), ([Guid]::NewGuid().ToString('N').Substring(0, 6))
 $packageName = 'AstralRecordMasterEditor-win-x64'
-$stagingRoot = Join-Path $outputRoot $buildId
+$temporaryRoot = (Resolve-Path -LiteralPath ([IO.Path]::GetTempPath())).Path
+$stagingRoot = Join-Path $temporaryRoot "$packageName-$buildId"
 $publishDirectory = Join-Path $stagingRoot $packageName
 $zipPath = Join-Path $outputRoot "$packageName-$buildId.zip"
-[IO.Directory]::CreateDirectory($publishDirectory) | Out-Null
 $logPath = Join-Path $outputRoot "$packageName-$buildId.log"
 
-Start-Transcript -Path $logPath | Out-Null
 $previousPath = $env:PATH
+$transcribing = $false
+New-Item -ItemType Directory -Path $stagingRoot -ErrorAction Stop | Out-Null
 try {
+    Start-Transcript -Path $logPath | Out-Null
+    $transcribing = $true
+    [IO.Directory]::CreateDirectory($publishDirectory) | Out-Null
     $env:PATH = "$nodeDirectory;$previousPath"
     Push-Location (Join-Path $PSScriptRoot 'src/SkillTreeEditor.Client')
     try {
@@ -98,4 +102,15 @@ try {
     [IO.File]::WriteAllText("$zipPath.sha256", "$hash  $([IO.Path]::GetFileName($zipPath))`n")
     Write-Host "ZIP: $zipPath"
     Write-Host "SHA256: $hash"
-} finally { $env:PATH = $previousPath; Stop-Transcript | Out-Null }
+} finally {
+    $env:PATH = $previousPath
+    try {
+        if ($transcribing) { Stop-Transcript | Out-Null }
+    } finally {
+        $staging = Get-Item -LiteralPath $stagingRoot -Force
+        if ($staging.FullName -ne $stagingRoot -or ($staging.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+            throw "一時フォルダーの位置を確認できませんでした。 $stagingRoot"
+        }
+        Remove-Item -LiteralPath $stagingRoot -Recurse -Force
+    }
+}
