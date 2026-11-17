@@ -66,7 +66,7 @@ export function ProgressionSkillTreePicker({ context, values, disabled = false, 
   const toggle = useCallback((nodeId: string) => {
     if (disabled || !eligible || !visibleNodeIds.has(nodeId)) return
     const id = Number(nodeId)
-    if (!Number.isSafeInteger(id) || id < 1) return
+    if (!Number.isSafeInteger(id) || id < 1 || id > 2147483647) return
     setFocusedNodeId(nodeId)
     setSelection(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id])
   }, [disabled, eligible, visibleNodeIds])
