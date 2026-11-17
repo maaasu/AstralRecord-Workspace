@@ -4,9 +4,10 @@ import { DockviewApi } from 'dockview-react'
 import { afterEach, expect, it, vi } from 'vitest'
 import App from './App'
 import { toolJobApi } from './api/toolJobApi'
+import { masterDataApi } from './api/masterDataApi'
 import { DockPanelContent } from './docking/dockPanel'
 
-vi.mock('./components/MasterDataEditor', () => ({ MasterDataEditor: ({ onDirtyChange }: { onDirtyChange: (value: boolean) => void }) => <DockPanelContent id="master"><label>マスターの下書き<input onChange={() => onDirtyChange(true)} /></label></DockPanelContent> }))
+vi.mock('./components/MasterDataEditor', () => ({ MasterDataEditor: ({ onDirtyChange, openRequest }: { onDirtyChange: (value: boolean) => void; openRequest?: { path: string; requestId: number } }) => <DockPanelContent id="master"><label>マスターの下書き<input onChange={() => onDirtyChange(true)} /></label>{openRequest && <output aria-label="開いたマスター">{openRequest.path} · {openRequest.requestId}</output>}</DockPanelContent> }))
 vi.mock('./components/SkillTreeWorkspace', () => ({ SkillTreeWorkspace: () => <label>ツリーの下書き<input /></label> }))
 vi.mock('./components/MasterAnalytics', () => ({ MasterAnalytics: () => <p>比較の作業領域</p> }))
 vi.mock('./components/SpawnerPlanningWorkspace', () => ({ SpawnerPlanningWorkspace: () => <p>配置の作業領域</p> }))
@@ -15,6 +16,27 @@ vi.mock('./components/ProgressionDesignWorkspace', () => ({ ProgressionDesignWor
 afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
+})
+
+it('opens a master from the header while on another page and keeps the edited draft', async () => {
+  const user = userEvent.setup()
+  vi.spyOn(masterDataApi, 'files').mockResolvedValue([{ path: 'items/ice-sword.yml', name: '氷の剣', id: 'ice_sword', category: '', format: 'yaml', size: 1, modifiedUtc: '', revision: '1' }])
+  render(<App />)
+  const draft = await screen.findByLabelText('マスターの下書き')
+  fireEvent.change(draft, { target: { value: '保持する下書き' } })
+  fireEvent.click(screen.getByRole('button', { name: 'スキルツリー' }))
+  await screen.findByLabelText('ツリーの下書き')
+  const input = screen.getByRole('combobox', { name: 'マスターをクイック検索' })
+  await user.click(input)
+  await screen.findByRole('option')
+  await user.keyboard('ice{Enter}')
+  await waitFor(() => expect(draft).toBeVisible())
+  expect(draft).toHaveValue('保持する下書き')
+  expect(screen.getByLabelText('開いたマスター')).toHaveTextContent('items/ice-sword.yml · 1')
+  await user.click(input)
+  await screen.findByRole('option')
+  await user.keyboard('{Enter}')
+  expect(screen.getByLabelText('開いたマスター')).toHaveTextContent('items/ice-sword.yml · 2')
 })
 
 it('warns about unsaved equipment design before master reflection', async () => {

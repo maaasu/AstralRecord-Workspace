@@ -30,7 +30,7 @@
 }
 .editor-command-actions { flex: none; gap: 5px; }
 .editor-command-context { flex: 1; justify-content: space-between; gap: 12px; }
-.editor-command-workspace { max-width: 70%; gap: 8px; }
+.editor-command-workspace { flex: 0 1 auto; max-width: 38%; gap: 8px; }
 .editor-command-button {
   display: inline-flex;
   align-items: center;
@@ -61,12 +61,12 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.editor-command-view { border-left: 1px solid var(--line); padding-left: 12px; }
+.editor-command-view { flex: 0 1 auto; max-width: 160px; border-left: 1px solid var(--line); padding-left: 12px; }
 .editor-command-branch { flex: 0 1 auto; max-width: 140px; }
 
 @media (max-width: 760px) {
   .editor-command-row { flex-wrap: wrap; gap: 4px; }
-  .editor-command-context { flex-basis: 100%; padding-inline: 8px; }
+  .editor-command-context { flex-basis: 100%; flex-wrap: wrap; padding-inline: 8px; }
   .editor-command-view { border-left: 0; padding-left: 0; }
   .editor-command-workspace { max-width: 60%; }
   .editor-command-branch { display: none; }
