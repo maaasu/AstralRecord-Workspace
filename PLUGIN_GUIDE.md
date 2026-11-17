@@ -22,7 +22,7 @@
 
 - SQL Server 定義は `E:\AstralRecord-Workspace\00_docs\40_Database設計書` を参照する。
 - file 系マスタデータは `E:\AstralRecord-Workspace\40_filebase` を参照する。
-- APIのルートと利用側は [APIの探し方](00_docs/10_AIパーソナライズ/APIの探し方.md) から探す。
+- APIのルートと利用側は [APIの探し方](00_docs/10_AIパーソナライズ/API/README.md) から探す。
 
 移行対象の SkillTree node/structure、shop、recipe、quest/quest_board、gathering/gathering spawner、mob spawner、dungeon は API の `GET /api/master-data/runtime-filebase` から一括取得する。Plugin は起動時に非同期で取得し、マスタ再読込時にも取得し直す。元の YAML/JSON テキストをメモリ上で既存 parser に渡し、Plugin 側へマスタのファイルコピーを作らない。取得・解析・検証を終えた準備 snapshot だけを一括公開し、失敗時は旧 snapshot を維持する。Plugin 自身の `config.yml`、world/map、および `worldPlacements.mode: local` の未移行サーバーの管理者配置情報は引き続き Plugin が管理する。
 

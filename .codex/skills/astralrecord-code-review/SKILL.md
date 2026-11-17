@@ -7,7 +7,7 @@ description: AstralRecord の差分や機能を、依頼の確定条件と既存
 
 ## 確認する根拠
 
-対象の成果物は読み取り専用で扱う。作業ルートの `AGENTS.md` から対象プロジェクトのガイドと、今回の判断に関係するパーソナライズの要望・機能判断を確認する。プラグインと API の実装規約は [plugin-code.md](../astralrecord-code/references/plugin-code.md) と [api-code.md](../astralrecord-code/references/api-code.md) を参照する。ワークスペーススキルのレビューでは、対象スキルと該当する `$skill-creator` の規則を読む。
+対象の成果物は読み取り専用で扱う。作業ルートの `AGENTS.md` から対象プロジェクトのガイドを確認する。パーソナライズは、[索引](../../../00_docs/10_AIパーソナライズ/README.md) の読む場面から今回の対象・操作に合うメモだけを選んで読む。プラグインを扱うときは [plugin-code.md](../astralrecord-code/references/plugin-code.md)、APIを扱うときは [api-code.md](../astralrecord-code/references/api-code.md) を参照する。ワークスペーススキルのレビューでは、対象スキルと該当する `$skill-creator` の規則を読む。
 
 依頼と確定条件を起点に、影響するコードと呼び出し元、既存テスト、スキーマや設定を照合して期待する挙動を確かめる。API・Web の公開契約はルート定義、入出力、呼び出し元、テストで確かめる。DB・Filebase の定義や戦闘バランスに関わる変更では該当箇所を確認する。
 
