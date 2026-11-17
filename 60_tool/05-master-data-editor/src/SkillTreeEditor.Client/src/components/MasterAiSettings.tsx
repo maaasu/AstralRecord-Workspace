@@ -5,7 +5,7 @@ import type { AiSettings } from '../types/aiAssist'
 export function MasterAiSettings({ onSettings }: { onSettings: (settings: AiSettings) => void }) {
   const [settings, setSettings] = useState<AiSettings | null>(null)
   const [apiKey, setApiKey] = useState('')
-  const [model, setModel] = useState('gpt-5.6-terra')
+  const [model, setModel] = useState('gpt-6.1-terra')
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')

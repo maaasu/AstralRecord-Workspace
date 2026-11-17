@@ -14,7 +14,7 @@ ZIP にマスターデータや接続先設定は含まれていません。選�
 
 マスター編集の「AIアシスト」でOpenAI APIキーを設定すると、参考データからの作成、名前・説明欄のCtrl+Spaceによる入力補完、選択したファイルの一括編集を利用できます。補完はTabで採用、Escで閉じます。画面で入力したキーは起動中だけ保持します。生成時には対象の原稿と関連する定義をOpenAIへ送信します。提案を確認して下書きへ採用し、通常の検証・保存操作で反映します。
 
-再起動後もAI接続を使う場合は、起動環境の`OPENAI_API_KEY`、または選択ワークスペースの`60_tool/05-master-data-editor/src/SkillTreeEditor.Server/appsettings.local.json`に`SkillTreeEditor:Ai:ApiKey`を設定します。キーをGitへ登録しないでください。既定モデルは`gpt-5.6-terra`で、画面の設定または`SkillTreeEditor:Ai:Model`で変更できます。
+再起動後もAI接続を使う場合は、起動環境の`OPENAI_API_KEY`、または選択ワークスペースの`60_tool/05-master-data-editor/src/SkillTreeEditor.Server/appsettings.local.json`に`SkillTreeEditor:Ai:ApiKey`を設定します。キーをGitへ登録しないでください。既定モデルは`gpt-6.1-terra`で、画面の設定または`SkillTreeEditor:Ai:Model`で変更できます。
 
 Windows x64 向けで、.NET は同梱しています。`webview2` フォルダーのある配布物は画面用ランタイムも同梱し、アプリ起動のための追加インストールは不要です。Node.js や .NET SDK もマスタ編集には不要です。ローカルディスクへ展開してください。
 `webview2` を省いた軽量ビルドは、PC に Microsoft Edge WebView2 Runtime が必要です。未導入の場合は [Microsoft の配布ページ](https://developer.microsoft.com/microsoft-edge/webview2/)を参照してください。

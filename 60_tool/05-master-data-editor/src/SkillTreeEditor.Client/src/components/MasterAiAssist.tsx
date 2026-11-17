@@ -103,7 +103,12 @@ export function MasterAiAssist({ categories, files, categoryId: initialCategory,
           if (sourceGuard.current && sourcePane.current?.snapshot()?.token !== sourceGuard.current.token) throw new Error('参考原稿が生成中に変更されました。再生成してください。')
           const pane = current()
           if (!pane) throw new Error('編集画面を開き直してください。')
-          pane.create(proposal.raw, categoryId)
+          const targetCategory = categories.find(category => category.id === categoryForPath(proposal.path))
+          const selectedCategory = categories.find(category => category.id === categoryId)
+          if (!targetCategory || !selectedCategory || (targetCategory.id !== selectedCategory.id
+            && !targetCategory.directory.startsWith(`${selectedCategory.directory}/`)))
+            throw new Error('提案の作成先が選択カテゴリ内にありません。再生成してください。')
+          pane.create(proposal.raw, targetCategory.id)
           onClose()
           return
         }
@@ -127,6 +132,7 @@ export function MasterAiAssist({ categories, files, categoryId: initialCategory,
             <label>作成カテゴリ<select aria-label="AI作成カテゴリ" value={categoryId} onChange={event => { setCategoryId(event.target.value); setSourcePath(''); setResponse(null) }}>{categories.map(category => <option key={category.id} value={category.id}>{category.label}</option>)}</select></label>
             <label>参考にする既存マスター<select aria-label="AI参考ファイル" value={sourcePath} onChange={event => { const path = event.target.value; setSourcePath(path); if (path) setCategoryId(categoryForPath(path) ?? categoryId); setResponse(null) }}><option value="">参考なし</option>{eligibleFiles.filter(file => file.path === sourcePath || file.category === categoryId).map(file => <option key={file.path} value={file.path}>{stripMinecraftFormatting(file.name ?? '')} · {file.path}</option>)}</select></label>
             <p className="master-muted">1〜3案を生成します。参考ファイルを現在編集している場合、未保存の有効な原稿も使用します。採用後に通常の新規作成でslug・自動採番を確認します。</p>
+            {categories.find(category => category.id === categoryId)?.directory === '10.features.item' && <p className="master-muted">「アイテム共通」では、指示に合う素材・装備などの子カテゴリを作成先として提案します。</p>}
           </> : <>
             <label>一括編集するファイルを検索<input aria-label="AI対象検索" value={query} onChange={event => { setQuery(event.target.value); setPage(0) }} placeholder="名前 / ID / パス" /></label>
             <p>{paths.length} / 10件を選択 · 検索結果 {matches.length}件。未保存・読込中・復元待ちのファイルは対象にできません。</p>
@@ -143,6 +149,7 @@ export function MasterAiAssist({ categories, files, categoryId: initialCategory,
       {notice && <p role="status">{notice}</p>}
       {response && <section aria-label="AI生成候補" className="master-ai-proposals"><p className="master-muted">使用モデル: {response.model}</p>{response.warnings.map((warning, index) => <p className="master-message warning" key={index}>{warning}</p>)}{response.proposals.map((proposal, index) => <article className="master-ai-proposal" key={`${index}:${proposal.path}`}>
         <h3>{mode === 'create' ? `作成案 ${index + 1}` : proposal.path}</h3><p>{proposal.summary}</p>
+        {mode === 'create' && <p className="master-muted">作成先: {categories.find(category => category.id === categoryForPath(proposal.path))?.label ?? proposal.path}</p>}
         {proposal.issues.length > 0 && <ul>{proposal.issues.map((issue, issueIndex) => <li key={issueIndex} className={issue.severity === 'error' ? 'error-message' : 'master-muted'}>{issue.path} · {issue.message}</li>)}</ul>}
         <details onToggle={event => { if (event.currentTarget.open) setReviewed(value => value.includes(index) ? value : [...value, index]) }}><summary>原稿と差分を確認</summary><ProposalDiff proposal={proposal} /></details>
         {adopted.includes(index) ? <p role="status">下書きへ適用済み</p> : mode === 'create' ? <button type="button" className="button" disabled={!reviewed.includes(index) || applying || proposal.issues.some(issue => issue.severity === 'error')} onClick={() => void adopt([index])}>この案を原稿から新規作成へ</button> : <label className="master-checkbox"><input type="checkbox" checked={selected.includes(index)} disabled={!reviewed.includes(index) || applying || proposal.issues.some(issue => issue.severity === 'error')} onChange={event => setSelected(value => event.target.checked ? [...value, index] : value.filter(entry => entry !== index))} />この候補を採用する</label>}
