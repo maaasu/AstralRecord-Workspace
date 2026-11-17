@@ -1,0 +1,26 @@
+.progression-tree-dialog { width: min(1500px, 96vw); height: min(920px, 94vh); display: flex; flex-direction: column; }
+.progression-tree-dialog > .modal-header { flex-shrink: 0; }
+.progression-tree-dialog .modal-header p { margin: 5px 0 0; color: var(--text-muted); font-size: 12px; }
+.progression-tree-loading { flex: 1; display: grid; place-content: center; gap: 12px; text-align: center; padding: 24px; }
+.progression-tree-content { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 300px; }
+.progression-tree-canvas { min-height: 0; min-width: 0; }
+.progression-tree-canvas > .canvas { height: 100%; min-height: 300px; }
+.progression-tree-selection { display: flex; flex-direction: column; gap: 10px; min-height: 0; padding: 15px; border-left: 1px solid var(--line); }
+.progression-tree-selection h3, .progression-tree-selection p { margin: 0; }
+.progression-tree-selected-list { overflow-y: auto; min-height: 0; flex: 1; }
+.progression-tree-selected-node { display: flex; align-items: center; gap: 7px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+.progression-tree-selected-node > img, .progression-tree-selected-node > .minecraft-icon { width: 28px; height: 28px; flex-shrink: 0; }
+.progression-tree-selected-node > div { flex: 1; min-width: 0; }
+.progression-tree-selected-node small { display: block; color: var(--text-muted); margin-top: 3px; }
+.progression-tree-current { display: grid; grid-template-columns: 36px 1fr; align-items: center; gap: 5px 8px; padding: 10px; background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-control); }
+.progression-tree-current > img { width: 36px; height: 36px; grid-row: span 2; }
+.progression-tree-current > small { color: var(--text-muted); }
+.skill-node.learned { border-color: #68d49b; background: #18432f; box-shadow: 0 0 0 2px #68d49b66; }
+.skill-node.learned .learned-node-mark { position: absolute; right: -6px; top: -8px; display: grid; place-items: center; width: 21px; height: 21px; border-radius: 50%; background: #68d49b; color: #0b2819; font-size: 16px; font-weight: 800; }
+.canvas.overview .skill-node.learned { outline: 5px solid #68d49b; outline-offset: 2px; }
+.skill-node[role="checkbox"]:focus-visible { outline: 3px solid var(--blue); outline-offset: 5px; }
+.progression-node-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 10px; }
+.progression-node-summary { display: flex; flex-wrap: wrap; gap: 6px; max-height: 130px; overflow-y: auto; margin-bottom: 10px; }
+.progression-node-summary > span { padding: 4px 7px; background: var(--surface-sidebar); border: 1px solid var(--line); border-radius: var(--radius-control); font-size: 11px; }
+.progression-node-values > summary { color: var(--text-muted); cursor: pointer; font-size: 12px; margin-bottom: 8px; }
+@media (max-width: 800px) { .progression-tree-content { grid-template-columns: 1fr; grid-template-rows: minmax(260px, 1fr) 180px; } .progression-tree-selection { border-left: 0; border-top: 1px solid var(--line); padding: 10px; } }

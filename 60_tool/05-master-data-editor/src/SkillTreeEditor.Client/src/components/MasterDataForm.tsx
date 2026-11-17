@@ -22,6 +22,7 @@ import { dungeonFieldDefault, dungeonFieldDisplayValue, dungeonFieldKeys, dungeo
 import { DungeonReferenceField, dungeonReferenceKind } from './DungeonReferenceField'
 import { DungeonMaterialField } from './DungeonMaterialField'
 import { useConfirmationDialog } from './ConfirmationDialog'
+import { ProgressionSkillTreePicker } from './ProgressionSkillTreePicker'
 import './masterDataForm.css'
 
 type ValueType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array' | 'null'
@@ -426,6 +427,18 @@ function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<
   const progression = compact && visual?.documentPath.startsWith('90.shared.progression_preset/')
   const checkpointList = progression && path === '/levels'
   const nodeList = progression && /^\/levels\/\d+\/nodes$/.test(path)
+  const [treeOpen, setTreeOpen] = useState(false)
+  const [rawNodesOpen, setRawNodesOpen] = useState(false)
+  const root = objectOf(visual?.rootContent)
+  const checkpoint = Array.isArray(root?.levels) ? objectOf(root.levels[Number(path.split('/')[2])]) : null
+  const classId = typeof root?.classId === 'string' ? root.classId.trim() : ''
+  const treeContext = {
+    classId,
+    playerLevel: typeof checkpoint?.level === 'number' ? checkpoint.level : 1,
+    classLevel: typeof checkpoint?.classLevel === 'number' ? checkpoint.classLevel : 1,
+  }
+  const nodeNames = useMemo(() => nodeList ? new Map((inherited.references ?? []).filter(isNodeReference).map(entry => [entry.value, entry.label || entry.value])) : null,
+    [nodeList, inherited.references])
   const [newType, setNewType] = useState<ValueType>(() => normalizeMasterType(itemSchema.type)
     ?? (compact && values.length > 0 && values.every(objectOf) ? 'object' : 'string'))
   const [page, setPage] = useState(0)
@@ -451,7 +464,7 @@ function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<
   const order = useMasterArrayOrder(values, Boolean(inherited.navigationDisabled), onChange, index => {
     if (paged) setPage(Math.floor(index / pageSize))
   })
-  return <div className={`master-array${weighted ? ' dungeon-weighted-list' : ''}`}>{isFishDistribution && <p className={Math.abs(chanceTotal - 100) <= 0.000001 ? 'master-muted' : 'error-message'} role="status">出現確率の合計: {chanceTotal.toLocaleString('ja-JP', { maximumFractionDigits: 6 })}% / 100%</p>}{visible.map((entry, visibleIndex) => {
+  const editor = <div className={`master-array${weighted ? ' dungeon-weighted-list' : ''}`}>{isFishDistribution && <p className={Math.abs(chanceTotal - 100) <= 0.000001 ? 'master-muted' : 'error-message'} role="status">出現確率の合計: {chanceTotal.toLocaleString('ja-JP', { maximumFractionDigits: 6 })}% / 100%</p>}{visible.map((entry, visibleIndex) => {
     const index = offset + visibleIndex
     const structured = entry !== null && typeof entry === 'object'
     const rowPath = path + '/' + index
@@ -487,6 +500,16 @@ function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<
       onChange([...values, masterDefault(itemSchema, newType, inherited.rootSchema)])
       if (paged) setPage(Math.floor(values.length / pageSize))
     }}>＋ 要素を追加</button><span className="master-muted">{values.length} 件</span></div>}</div>
+  if (!nodeList || !root) return editor
+  const showRaw = rawNodesOpen || Boolean(inherited.focusRequest?.path.startsWith(path + '/'))
+    || Object.keys(inherited.invalidValues ?? {}).some(pointer => pointer.startsWith(path + '/'))
+  return <div className="progression-node-field">
+    <div className="progression-node-controls"><button type="button" className="button primary" disabled={inherited.navigationDisabled || !classId} data-master-field-path={path} onClick={() => setTreeOpen(true)}>スキルツリーで選択</button><span className="master-muted">習得 {values.length}件</span>{!classId && <small>先にプリセットの職業を設定してください。</small>}</div>
+    <div className="progression-node-summary">{values.map((value, index) => <span key={index}><MinecraftText value={nodeNames?.get(String(value)) ?? `ノード #${String(value)}`} /></span>)}</div>
+    <details className="progression-node-values" open={showRaw} onToggle={event => setRawNodesOpen(event.currentTarget.open)}><summary>ノードIDの詳細</summary>{editor}</details>
+    {treeOpen && <ProgressionSkillTreePicker key={`${classId}:${treeContext.playerLevel}:${treeContext.classLevel}`} context={treeContext} values={values} disabled={inherited.navigationDisabled}
+      onClose={() => setTreeOpen(false)} onApply={next => { onChange(next); setTreeOpen(false) }} />}
+  </div>
 }
 
 function numberInputError(text: string, kind: 'number' | 'integer', optional = false): string {

@@ -4,6 +4,7 @@ import type { MasterFileSummary } from '../types/masterData'
 
 export interface MasterVisualReferences {
   documentPath: string
+  rootContent?: JsonValue
   files: ReadonlyMap<string, MasterFileSummary>
   referencePrefixes?: Readonly<Record<string, string>> | null
   openFile: (path: string) => void

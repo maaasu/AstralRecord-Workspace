@@ -47,6 +47,15 @@ export function setAccountNode(content: JsonValue, checkpoint: AccountCheckpoint
   return setDesignValue(content, path, present ? current.includes(nodeId) ? current : [...current, nodeId] : current.filter(id => id !== nodeId))
 }
 
+export function setAccountNodes(content: JsonValue, checkpoint: AccountCheckpointLocation, values: JsonValue[]) {
+  const path = checkpointPath(content, checkpoint, 'nodes')
+  const current = list(content, path)
+  if (values.some(value => !current.includes(value) && (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1 || value > 2147483647))) {
+    throw new Error('有効なノードを選択してください。')
+  }
+  return setDesignValue(content, path, values)
+}
+
 export function setAccountSkill(content: JsonValue, checkpoint: AccountCheckpointLocation, listName: AccountSkillList, slot: number, skillId: string | null) {
   const max = listName === 'skills' ? 8 : 12
   if (!Number.isInteger(slot) || (skillId !== null && (slot < 1 || slot > max))) throw new Error('有効なスキル枠を選択してください。')
