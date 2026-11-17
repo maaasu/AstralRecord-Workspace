@@ -25,6 +25,7 @@ description: AstralRecord で差分を作る実装・設計書反映・本番 �
 - 本番向け `40_filebase` マスタ作成 → `$astralrecord-master-data-author`
 - 新しいプレイヤー用アイテムの外観、既存アイテムのモデル作成・変更 → `$astralrecord-item-model-author`。新規アイテムは原則マスターと両版のパックを同じ変更で作る。
 - モブ・ボスの外観モデルの制作や立体意匠の改修 → `$astralrecord-mob-model-author`。
+- 下位モデルへ渡すボス設計書の作成 → `$astralrecord-boss-design-author`。`99_work/boss-design/` の設計書に沿ったボス実装 → `$astralrecord-boss-implement`。
 - `.codex/skills` の定義・参照・スクリプト・`agents/openai.yaml` → `$skill-creator`
 - その他のプラグイン/API/Web/設計書に関連する実装 → `$astralrecord-code`
 
