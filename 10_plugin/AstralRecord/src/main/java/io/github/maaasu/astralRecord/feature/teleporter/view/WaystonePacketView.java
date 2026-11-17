@@ -214,7 +214,9 @@ public final class WaystonePacketView {
         WorldDisplayModel model = unlocked ? WorldDisplayModel.WAYSTONE_UNLOCKED : WorldDisplayModel.WAYSTONE_LOCKED;
         entities.add(packetDisplay.model(origin, model, bedrock));
         entities.add(packetDisplay.text(origin.clone().add(0.0D, 2.15D, 0.0D), label(definition, unlocked), 0.85F));
-        if (!bedrock) {
+        if (bedrock) {
+            entities.add(packetDisplay.bedrockFallback(origin, model));
+        } else {
             entities.add(packetDisplay.item(origin.clone().add(0.0D, 2.85D, 0.0D), new ItemStack(definition.displayIcon()), 0.65F));
         }
         return entities;

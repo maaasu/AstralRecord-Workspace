@@ -40,19 +40,23 @@ import java.util.UUID;
 public final class ReceptionModelView implements Listener {
     private static final long BEDROCK_MARKER = 0x4153545245435054L; // ASTRECPT
     private static final int ENTITY_NO_GRAVITY_INDEX = 5;
+    private static final int DROPPED_ITEM_STACK_INDEX = 8;
     private static final int DISPLAY_LEFT_ROTATION_INDEX = 13;
     private static final int ITEM_DISPLAY_ITEM_INDEX = 23;
     private static final int ITEM_DISPLAY_TRANSFORM_INDEX = 24;
 
     /** 受付の種別と、両エディションで使用するモデル識別子です。 */
     public enum Kind {
-        BOSS(0, "boss_reception_altar"),
-        DUNGEON(1, "dungeon_reception_gate");
+        BOSS(0, "boss_reception_altar", Material.IRON_SWORD),
+        DUNGEON(1, "dungeon_reception_gate", Material.OBSIDIAN);
 
         private final int bedrockStyle;
         private final NamespacedKey itemModel;
 
-        Kind(int bedrockStyle, String itemModel) {
+        private final Material bedrockFallback;
+
+        Kind(int bedrockStyle, String itemModel, Material bedrockFallback) {
+            this.bedrockFallback = bedrockFallback;
             this.bedrockStyle = bedrockStyle;
             this.itemModel = new NamespacedKey("astralrecord", itemModel);
         }
@@ -208,21 +212,35 @@ public final class ReceptionModelView implements Listener {
     }
 
     /** 統合版拡張へ渡す種別と向きを、空の TextDisplay のUUIDへ格納します。 */
-    private PacketContainer bedrockSpawn(int entityId, Kind kind, Location center, int yawTenths) {
-        long data = Integer.toUnsignedLong(entityId) | ((long) kind.bedrockStyle << 32) | ((long) yawTenths << 40);
-        var spawn = spawnPacket(entityId, new UUID(BEDROCK_MARKER, data), EntityType.TEXT_DISPLAY, center);
+    private PacketContainer bedrockSpawn(int entityId, int fallbackId, Kind kind, Location center, int yawTenths) {
+        long bits = ((long) kind.bedrockStyle << 32) | ((long) yawTenths << 40);
+        var model = spawnPacket(entityId, new UUID(BEDROCK_MARKER, bits | Integer.toUnsignedLong(entityId)),
+                EntityType.TEXT_DISPLAY, center);
+        var fallback = spawnPacket(fallbackId, new UUID(BEDROCK_MARKER, bits | Integer.toUnsignedLong(fallbackId)),
+                EntityType.ITEM, center.clone().add(0, 0.7, 0));
         var serializer = WrappedDataWatcher.Registry.get((Type) Boolean.class);
         var noGravity = new WrappedDataValue(ENTITY_NO_GRAVITY_INDEX, serializer, true);
-        return spawnWithMetadata(entityId, spawn, List.of(noGravity));
+        var item = WrappedDataValue.fromWrappedValue(DROPPED_ITEM_STACK_INDEX,
+                WrappedDataWatcher.Registry.getItemStackSerializer(false), new ItemStack(kind.bedrockFallback));
+        return bundle(List.of(model, metadataPacket(entityId, List.of(noGravity)),
+                fallback, metadataPacket(fallbackId, List.of(noGravity, item))));
     }
 
     /** 生成と初期メタデータを同じバンドルで送れるようにまとめます。 */
     private PacketContainer spawnWithMetadata(int entityId, PacketContainer spawn, List<WrappedDataValue> values) {
+        return bundle(List.of(spawn, metadataPacket(entityId, values)));
+    }
+
+    private PacketContainer metadataPacket(int entityId, List<WrappedDataValue> values) {
         var metadata = protocol.createPacket(PacketType.Play.Server.ENTITY_METADATA);
         metadata.getIntegers().write(0, entityId);
         metadata.getDataValueCollectionModifier().write(0, values);
+        return metadata;
+    }
+
+    private PacketContainer bundle(List<PacketContainer> packets) {
         var bundle = protocol.createPacket(PacketType.Play.Server.BUNDLE);
-        bundle.getPacketBundles().write(0, List.of(spawn, metadata));
+        bundle.getPacketBundles().write(0, packets);
         return bundle;
     }
 
@@ -232,6 +250,7 @@ public final class ReceptionModelView implements Listener {
 
     private final class Placement {
         private final int entityId = PacketEntityIdAllocator.nextEntityId();
+        private int fallbackId;
         private final Kind kind;
         private final Location center;
         private final Map<Player, Edition> viewers = new HashMap<>();
@@ -258,7 +277,11 @@ public final class ReceptionModelView implements Listener {
                     if (javaPacket == null) javaPacket = javaSpawn(entityId, kind, center, yawTenths);
                     protocol.sendServerPacket(viewer, javaPacket, false);
                 } else {
-                    if (bedrockPacket == null) bedrockPacket = bedrockSpawn(entityId, kind, center, yawTenths);
+                    if (bedrockPacket == null) {
+                        fallbackId = PacketEntityIdAllocator.nextEntityId();
+                        destroyPacket = null;
+                        bedrockPacket = bedrockSpawn(entityId, fallbackId, kind, center, yawTenths);
+                    }
                     protocol.sendServerPacket(viewer, bedrockPacket, false);
                 }
                 viewers.put(viewer, edition);
@@ -293,7 +316,7 @@ public final class ReceptionModelView implements Listener {
             try {
                 if (destroyPacket == null) {
                     destroyPacket = protocol.createPacket(PacketType.Play.Server.ENTITY_DESTROY);
-                    destroyPacket.getIntLists().write(0, List.of(entityId));
+                    destroyPacket.getIntLists().write(0, fallbackId == 0 ? List.of(entityId) : List.of(entityId, fallbackId));
                 }
                 protocol.sendServerPacket(viewer, destroyPacket, false);
             } catch (RuntimeException exception) {

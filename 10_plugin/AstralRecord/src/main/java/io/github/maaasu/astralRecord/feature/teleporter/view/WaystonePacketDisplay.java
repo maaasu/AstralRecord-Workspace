@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.shared.display.WorldDisplayModel;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
@@ -47,6 +48,7 @@ final class WaystonePacketDisplay {
     private static final int DISPLAY_VIEW_RANGE_INDEX = 17;
     private static final int DISPLAY_WIDTH_INDEX = 20;
     private static final int DISPLAY_HEIGHT_INDEX = 21;
+    private static final int DROPPED_ITEM_STACK_INDEX = 8;
     private static final int ITEM_DISPLAY_ITEM_INDEX = 23;
     private static final int ITEM_DISPLAY_TRANSFORM_INDEX = 24;
     private static final int TEXT_DISPLAY_TEXT_INDEX = 23;
@@ -72,6 +74,13 @@ final class WaystonePacketDisplay {
         }
         return item(origin.clone().add(0.0D, 0.5D, 0.0D), model.createItem(), 1.0F,
                 Display.Billboard.FIXED, ItemDisplay.ItemDisplayTransform.NONE);
+    }
+
+    PacketEntity bedrockFallback(@NotNull Location origin, @NotNull WorldDisplayModel model) {
+        return new PacketEntity(EntityType.ITEM, origin.clone().add(0, 0.55, 0), List.of(
+                value(NO_GRAVITY_INDEX, serializer(Boolean.class), true),
+                value(DROPPED_ITEM_STACK_INDEX, WrappedDataWatcher.Registry.getItemStackSerializer(false), new ItemStack(Material.LODESTONE))),
+                model, true);
     }
 
     PacketEntity text(@NotNull Location location, @NotNull Component text, float scale) {
@@ -212,10 +221,15 @@ final class WaystonePacketDisplay {
          * @param model UUID に載せる統合版モデルの種別。通常の表示では null
          */
         private PacketEntity(EntityType entityType, Location location, List<WrappedDataValue> metadata, WorldDisplayModel model) {
+            this(entityType, location, metadata, model, false);
+        }
+
+        private PacketEntity(EntityType entityType, Location location, List<WrappedDataValue> metadata,
+                             WorldDisplayModel model, boolean fallback) {
             this.entityType = entityType;
             this.location = location.clone();
             this.metadata = List.copyOf(metadata);
-            this.uuid = model == null ? UUID.randomUUID() : model.bedrockMarker(entityId, false);
+            this.uuid = model == null ? UUID.randomUUID() : model.bedrockMarker(entityId, fallback);
         }
 
         void spawn(@NotNull Player player) {

@@ -129,7 +129,7 @@ final class DamagePackDistribution {
             if (current == null) return;
             try {
                 event.register(current.pack(), PriorityOption.NORMAL);
-                sessions.put(event.connection(), new SessionPack(current, event, forced, false, false));
+                sessions.put(event.connection(), new SessionPack(current, event, forced, false, false, false));
             } catch (ResourcePackException exception) {
                 extension.logger().warning("Bedrock damage pack registration failed: " + exception.cause());
             }
@@ -146,7 +146,9 @@ final class DamagePackDistribution {
             // UUID が同じ別パックに差し替えられた場合はフェニックスを有効にしない。
             boolean phoenixReady = selection.forced() && selection.pack().archmagePhoenix()
                 && registeredPacks.stream().anyMatch(pack -> pack == selectedPack);
-            return new SessionPack(selection.pack(), null, selection.forced(), registered, phoenixReady);
+
+            boolean exactPack = registeredPacks.stream().anyMatch(pack -> pack == selectedPack);
+            return new SessionPack(selection.pack(), null, selection.forced(), registered, phoenixReady, exactPack);
         });
     }
 
@@ -259,9 +261,14 @@ final class DamagePackDistribution {
         return selection != null && selection.ready() && selection.pack().worldDisplay();
     }
 
+    boolean waystoneReady(GeyserConnection connection) {
+        SessionPack selection = sessions.get(connection);
+        return selection != null && selection.forced() && selection.exactPack() && selection.pack().worldDisplay();
+    }
+
     boolean receptionDisplayReady(GeyserConnection connection) {
         SessionPack selection = sessions.get(connection);
-        return selection != null && selection.ready() && selection.pack().receptionDisplay();
+        return selection != null && selection.forced() && selection.exactPack() && selection.pack().receptionDisplay();
     }
 
     void disconnect(GeyserConnection connection) {
@@ -269,5 +276,5 @@ final class DamagePackDistribution {
     }
 
     private record SessionPack(DamagePack pack, SessionLoadResourcePacksEvent event, boolean forced,
-                               boolean ready, boolean archmagePhoenixReady) {}
+                               boolean ready, boolean archmagePhoenixReady, boolean exactPack) {}
 }
