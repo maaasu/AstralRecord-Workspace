@@ -200,6 +200,7 @@ export function MasterDataDetails({ value, path, fields, references, schema, dis
     || nodeLabel(value, schema, fields, pointer)
   const formReferences: MasterVisualReferences | null = visualReferences ? {
     ...visualReferences,
+    rootContent: value,
     selectCategorizedItem: (pointer, reference, file) => {
       const target = categorizedItemRow(visualReferences.documentPath, pointer)
       if (!target || navigationDisabled) return

@@ -83,18 +83,19 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   const referenceSequence = useRef(0)
   const referenceHandled = useCallback((id: string, requestId: number) => dispatch({ type: 'referenceHandled', id, requestId }), [])
   const dirty = welcomeDirty || tabsState.tabs.some((tab) => tab.dirty)
-  const openFile = useCallback(async (path: string, document?: MasterDocument, reference?: Omit<MasterReferenceTarget, 'requestId'>) => {
+  const openFile = useCallback(async (path: string, document?: MasterDocument, reference?: Omit<MasterReferenceTarget, 'requestId'>, preview = false) => {
     if (!document && latestWelcomeDirty.current && !(await confirm('未保存の新規原稿を破棄してファイルを開きますか？', { document: editorWindow().document }))) return
     latestWelcomeDirty.current = false
     setWelcomeDirty(false)
-    dispatch({ type: 'open', path, document, referenceTarget: reference ? { ...reference, requestId: ++referenceSequence.current } : undefined })
+    dispatch({ type: 'open', path, document, preview, referenceTarget: reference ? { ...reference, requestId: ++referenceSequence.current } : undefined })
     latestDocking.current?.show('master')
     const existing = latestTabs.current.tabs.find((tab) => tab.path === path)
-    if (!latestDocking.current && existing && window.innerWidth <= 1100) {
+    if (!latestDocking.current && existing && (!preview || !existing.preview) && window.innerWidth <= 1100) {
       workspace.setSidebarCollapsed(true)
       if (!reference) requestAnimationFrame(() => tabButtons.current.get(existing.id)?.focus())
     }
   }, [workspace.setSidebarCollapsed, confirm])
+  const openBrowserFile = useCallback((path: string, preview: boolean) => openFile(path, undefined, undefined, preview), [openFile])
   const handledOpenRequest = useRef<number | null>(null)
   useEffect(() => {
     if (!active || !openRequest || handledOpenRequest.current === openRequest.requestId) return
@@ -146,13 +147,16 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   }, [tabsState.activeId, tabSearchOpen])
   const menuIndex = tabsState.tabs.findIndex((tab) => tab.id === tabMenu?.id)
   const tabCommands = menuIndex < 0 ? [] : [
-    { label: '閉じる', targets: [tabsState.tabs[menuIndex]] },
-    { label: 'すべてのタブを閉じる', targets: tabsState.tabs },
-    { label: 'このタブ以外を閉じる', targets: tabsState.tabs.filter((tab) => tab.id !== tabMenu?.id) },
-    { label: '右側のタブを閉じる', targets: tabsState.tabs.slice(menuIndex + 1) },
-    { label: '左側のタブを閉じる', targets: tabsState.tabs.slice(0, menuIndex) },
-    { label: '保存済みのタブを閉じる', targets: tabsState.tabs.filter((tab) => !tab.dirty) },
-  ].map(({ label, targets }) => ({ label, disabled: !targets.length || targets.some((tab) => tab.busy), run: () => closeTabs(targets.map((tab) => tab.id)) }))
+    { label: 'タブを保持', disabled: !tabsState.tabs[menuIndex].preview, run: () => dispatch({ type: 'pin', id: tabsState.tabs[menuIndex].id }) },
+    ...[
+      { label: '閉じる', targets: [tabsState.tabs[menuIndex]] },
+      { label: 'すべてのタブを閉じる', targets: tabsState.tabs },
+      { label: 'このタブ以外を閉じる', targets: tabsState.tabs.filter((tab) => tab.id !== tabMenu?.id) },
+      { label: '右側のタブを閉じる', targets: tabsState.tabs.slice(menuIndex + 1) },
+      { label: '左側のタブを閉じる', targets: tabsState.tabs.slice(0, menuIndex) },
+      { label: '保存済みのタブを閉じる', targets: tabsState.tabs.filter((tab) => !tab.dirty) },
+    ].map(({ label, targets }) => ({ label, disabled: !targets.length || targets.some((tab) => tab.busy), run: () => closeTabs(targets.map((tab) => tab.id)) })),
+  ]
   useEffect(() => { onDirtyChange?.(dirty) }, [dirty, onDirtyChange])
   useEffect(() => {
     if (!workspace.catalog || recoveryRoot.current === workspace.catalog.root) return
@@ -176,16 +180,16 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     browserActions.current.get(tabsState.activeId || 'welcome')?.[kind]()
   }
   const selectedTab = tabsState.tabs.find(tab => tab.id === tabsState.activeId)
-  const browser = <MasterFileBrowser workspace={workspace} selectedPath={selectedTab?.path} busy={selectedTab ? selectedTab.busy || selectedTab.loadState === 'loading' : welcomeBusy} active={docking ? docking.visible.has('master-files') || docking.visible.has('master-folders') : active} onOpen={openFile} onNew={() => runBrowserAction('create')} onImport={() => runBrowserAction('import')} onDialogChange={setBrowserDialogOpen} />
+  const browser = <MasterFileBrowser workspace={workspace} selectedPath={selectedTab?.path} busy={selectedTab ? selectedTab.busy || selectedTab.loadState === 'loading' : welcomeBusy} active={docking ? docking.visible.has('master-files') || docking.visible.has('master-folders') : active} onOpen={openBrowserFile} onNew={() => runBrowserAction('create')} onImport={() => runBrowserAction('import')} onDialogChange={setBrowserDialogOpen} />
   const documentArea = <section className="master-document-area" aria-label="マスターの編集領域">
     {tabsState.tabs.length > 0 && <div className="master-tab-bar"><div className="master-document-tabs" role="tablist" aria-label="開いているマスターファイル">{displayTabs.map((tab, index) => {
       const selected = tab.id === tabsState.activeId
       const name = tab.name
       const loadLabel = tab.loadState === 'loading' ? '読込中' : tab.loadState === 'error' ? '読込失敗' : ''
-      return <div className={'master-document-tab ' + (selected ? 'selected' : '')} key={tab.id} role="presentation" onContextMenu={(event) => { event.preventDefault(); setTabMenu({ id: tab.id, x: event.clientX, y: event.clientY }) }} onAuxClick={(event) => { if (event.button === 1) { event.preventDefault(); closeTab(tab.id) } }}>
-        <button type="button" role="tab" id={`${tabPrefix}-${tab.id}`} aria-controls={`${tabPrefix}-${tab.id}-panel`} aria-selected={selected} aria-label={[stripMinecraftFormatting(name), loadLabel, tab.dirty ? '未保存' : ''].filter(Boolean).join(' · ')} tabIndex={selected ? 0 : -1}
+      return <div className={'master-document-tab ' + (selected ? 'selected' : '') + (tab.preview ? ' preview' : '')} key={tab.id} role="presentation" onContextMenu={(event) => { event.preventDefault(); setTabMenu({ id: tab.id, x: event.clientX, y: event.clientY }) }} onAuxClick={(event) => { if (event.button === 1) { event.preventDefault(); closeTab(tab.id) } }}>
+        <button type="button" role="tab" id={`${tabPrefix}-${tab.id}`} aria-controls={`${tabPrefix}-${tab.id}-panel`} aria-selected={selected} aria-label={[stripMinecraftFormatting(name), loadLabel, tab.preview ? 'プレビュー' : '', tab.dirty ? '未保存' : ''].filter(Boolean).join(' · ')} tabIndex={selected ? 0 : -1}
           ref={(element) => { if (element) tabButtons.current.set(tab.id, element); else tabButtons.current.delete(tab.id) }}
-          title={tab.path} onClick={() => dispatch({ type: 'select', id: tab.id })} onKeyDown={(event) => {
+          title={tab.path} onClick={() => dispatch({ type: 'select', id: tab.id })} onDoubleClick={() => dispatch({ type: 'pin', id: tab.id })} onKeyDown={(event) => {
             if (event.key === 'ContextMenu' || event.shiftKey && event.key === 'F10') {
               event.preventDefault()
               const rect = event.currentTarget.getBoundingClientRect()
@@ -196,7 +200,7 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
             event.preventDefault()
             const nextId = tabsState.tabs[nextIndex].id
             dispatch({ type: 'select', id: nextId }); tabButtons.current.get(nextId)?.focus()
-          }}><span><MinecraftText value={name} />{tab.dirty && <b className="master-tab-dirty" aria-hidden="true">●</b>}</span><small>{loadLabel && <span className="master-tab-load-state" aria-hidden="true">{loadLabel} · </span>}{baseName(tab.path)}</small></button>
+          }}><span><MinecraftText value={name} />{tab.preview && <span className="master-tab-preview-label" aria-hidden="true">プレビュー</span>}{tab.dirty && <b className="master-tab-dirty" aria-hidden="true">●</b>}</span><small>{loadLabel && <span className="master-tab-load-state" aria-hidden="true">{loadLabel} · </span>}{baseName(tab.path)}</small></button>
         <button type="button" className="master-tab-close" aria-label={`${baseName(tab.path)} のタブを閉じる`} disabled={tab.busy} onClick={() => closeTab(tab.id)}>×</button>
       </div>
     })}</div><button type="button" className="button master-tab-search-trigger" aria-label="開いているファイルを検索" aria-haspopup="dialog" aria-expanded={tabSearchOpen} onClick={() => { setTabMenu(null); setTabSearchOpen(true) }}>タブを検索 ({tabsState.tabs.length})</button></div>}
@@ -208,7 +212,7 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     }} />}
     {active && tabMenu && tabCommands.length > 0 && <MasterTabContextMenu x={tabMenu.x} y={tabMenu.y} commands={tabCommands} onDismiss={dismissTabMenu} />}
     {tabsState.tabs.length ? tabsState.tabs.map((tab) => <div className="master-editor-panel" key={tab.id} id={`${tabPrefix}-${tab.id}-panel`} role="tabpanel" aria-labelledby={`${tabPrefix}-${tab.id}`} hidden={tab.id !== tabsState.activeId}>
-      <MasterDataEditorPane workspace={workspace} tabId={tab.id} initialPath={tab.path} initialDocument={tab.initialDocument} referenceTarget={tab.referenceTarget} onReferenceHandled={referenceHandled} selected={tab.id === tabsState.activeId} active={active && tab.id === tabsState.activeId} onOpenFile={openFile} onCloseTab={() => closeTab(tab.id, true)} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen || tabSearchOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} />
+      <MasterDataEditorPane workspace={workspace} tabId={tab.id} preview={tab.preview} initialPath={tab.path} initialDocument={tab.initialDocument} referenceTarget={tab.referenceTarget} onReferenceHandled={referenceHandled} selected={tab.id === tabsState.activeId} active={active && tab.id === tabsState.activeId} onOpenFile={openFile} onCloseTab={() => closeTab(tab.id, true)} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen || tabSearchOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} />
     </div>) : <div className="master-editor-panel"><MasterDataEditorPane workspace={workspace} tabId="welcome" active={active} onOpenFile={openFile} onCloseTab={() => {}} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} /></div>}
   </section>
   const workspaceNotices = <>
@@ -237,6 +241,7 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
 interface BrowserActions { create: () => void; import: () => void }
 
 interface MasterDataEditorPaneProps {
+  preview?: boolean
   selected?: boolean
   workspace: MasterDataWorkspace
   tabId: string
@@ -254,7 +259,7 @@ interface MasterDataEditorPaneProps {
   onOpenSkillTree?: () => void
 }
 
-function MasterDataEditorPane({ selected = true, workspace, tabId, initialPath, initialDocument, referenceTarget, onReferenceHandled, active, onOpenFile, onCloseTab, onTabStatus, onRegisterBrowserActions, browserDialogOpen, onRecoveryHandled, onOpenSkillTree }: MasterDataEditorPaneProps) {
+function MasterDataEditorPane({ selected = true, preview = false, workspace, tabId, initialPath, initialDocument, referenceTarget, onReferenceHandled, active, onOpenFile, onCloseTab, onTabStatus, onRegisterBrowserActions, browserDialogOpen, onRecoveryHandled, onOpenSkillTree }: MasterDataEditorPaneProps) {
   const docking = useDocking()
   const panelDocument = usePanelDocument()
   const { confirm, dialog } = useConfirmationDialog()
@@ -387,10 +392,10 @@ function MasterDataEditorPane({ selected = true, workspace, tabId, initialPath, 
     latestRenderWarnings.current = []; reviewedRaw.current = ''; setReferencePage(0)
   }, [history.reset, rememberedPaths, catalog?.root])
   useLayoutEffect(() => {
-    if (!document || initialLoadHandled.current) return
+    if (!document || preview || initialLoadHandled.current) return
     initialLoadHandled.current = true
     if (active && !isDocked && window.innerWidth <= 1100) setSidebarCollapsed(true)
-  }, [document, active, isDocked, setSidebarCollapsed])
+  }, [document, preview, active, isDocked, setSidebarCollapsed])
   const latestReferences = useRef({ filesByPath, candidates, referencePrefixes })
   latestReferences.current = { filesByPath, candidates, referencePrefixes }
   useEffect(() => {

@@ -74,7 +74,7 @@ export function MasterTabSearch({ tabs, activeId, onSelect, onClose }: MasterTab
         const next = event.key === 'ArrowDown' ? resultIndex + 1 : event.key === 'ArrowUp' ? resultIndex - 1 : event.key === 'Home' ? 0 : event.key === 'End' ? matches.length - 1 : -1
         if (next >= 0) { event.preventDefault(); focusResult(next) }
       }}>
-        <span className="master-tab-search-title"><MinecraftText value={tab.name} /><small>{tab.id === activeId && '表示中 · '}{tab.loadState === 'loading' ? '読込中' : tab.dirty ? '未保存' : tab.loadState === 'error' ? '読込失敗' : '保存済み'}{tab.busy && tab.loadState !== 'loading' && ' · 処理中'}</small></span>
+        <span className="master-tab-search-title"><MinecraftText value={tab.name} /><small>{tab.id === activeId && '表示中 · '}{tab.preview && 'プレビュー · '}{tab.loadState === 'loading' ? '読込中' : tab.dirty ? '未保存' : tab.loadState === 'error' ? '読込失敗' : '保存済み'}{tab.busy && tab.loadState !== 'loading' && ' · 処理中'}</small></span>
         <code>{tab.path}</code>
       </button>)}
       {!matches.length && <p className="master-muted">一致するタブはありません。検索語や「未保存のみ」を変更してください。</p>}

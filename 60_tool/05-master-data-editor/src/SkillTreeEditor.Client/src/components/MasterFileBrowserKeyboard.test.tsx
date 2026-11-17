@@ -12,7 +12,7 @@ const files: MasterFileSummary[] = Array.from({ length: 55 }, (_, index) => ({
   revision: 'a', size: 1, modifiedUtc: '',
 }))
 
-function Harness({ entries = files, categoryEntries, busy = false, initialFormat = '', onOpen = vi.fn() }: { entries?: MasterFileSummary[]; categoryEntries?: MasterCategory[]; busy?: boolean; initialFormat?: string; onOpen?: (path: string) => void }) {
+function Harness({ entries = files, categoryEntries, busy = false, initialFormat = '', onOpen = vi.fn() }: { entries?: MasterFileSummary[]; categoryEntries?: MasterCategory[]; busy?: boolean; initialFormat?: string; onOpen?: (path: string, preview: boolean) => void }) {
   const [query, setQuery] = useState('')
   const [searchScope, setSearchScope] = useState<'folder' | 'all'>('folder')
   const [visibleCount, setVisibleCount] = useState(50)
@@ -52,7 +52,7 @@ describe('master file search keyboard navigation', () => {
     fireEvent.keyDown(document.activeElement!, { key: 'ArrowUp' })
     expect(results()[0]).toHaveFocus()
     await user.keyboard('{Enter}')
-    expect(onOpen).toHaveBeenCalledWith(files[0].path)
+    expect(onOpen).toHaveBeenCalledWith(files[0].path, false)
     fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
     expect(search).toHaveFocus()
     fireEvent.keyDown(search, { key: 'Enter' })
@@ -94,9 +94,9 @@ describe('master file search keyboard navigation', () => {
     fireEvent.keyDown(search, { key: 'ArrowDown' })
     expect(results()[0]).toHaveFocus()
     await user.keyboard('{Enter}')
-    expect(onOpen).toHaveBeenCalledWith(files[0].path)
+    expect(onOpen).toHaveBeenCalledWith(files[0].path, false)
     await user.click(results()[1])
-    expect(onOpen).toHaveBeenCalledWith(files[1].path)
+    expect(onOpen).toHaveBeenCalledWith(files[1].path, true)
     expect(screen.getByRole('button', { name: '＋ 新規' })).toBeDisabled()
   })
 

@@ -52,6 +52,7 @@ interface SkillTreeCanvasProps {
   selectedNodeId?: string | null
   focusRequest?: CanvasFocusRequest | null
   onFocusHandled?: (request: CanvasFocusRequest) => void
+  learnedSelection?: { nodeIds: ReadonlySet<string>; disabled?: boolean; onToggle: (nodeId: string) => void }
 }
 
 /** マスター定義と一覧だけで決まる表示内容。配置や選択が変わっても作り直さない。 */
@@ -70,6 +71,9 @@ interface SkillNodeData extends Record<string, unknown> {
   root: boolean
   iconRevision: number
   nodeSize: number
+  learned?: boolean
+  selectionDisabled?: boolean
+  onToggleLearned?: (nodeId: string) => void
 }
 
 type SkillFlowNode = Node<SkillNodeData>
@@ -81,6 +85,9 @@ interface NodeDescriptor {
   level: number
   root: boolean
   presentation: NodePresentation
+  learned?: boolean
+  selectionDisabled?: boolean
+  onToggleLearned?: (nodeId: string) => void
 }
 
 interface EdgeTopology {
@@ -150,6 +157,7 @@ function CanvasInner({
   selectedNodeId = null,
   focusRequest = null,
   onFocusHandled,
+  learnedSelection,
 }: SkillTreeCanvasProps) {
   const { screenToFlowPosition, setViewport, zoomIn, zoomOut, getZoom, getViewport, getNodes, getNodesBounds, getEdges, deleteElements, viewportInitialized } = useReactFlow<SkillFlowNode>()
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -186,8 +194,11 @@ function CanvasInner({
       level: placement.y,
       root: placement.nodeId === structure.rootNodeId,
       presentation: presentations.forNode(placement.nodeId, masterMap.get(placement.nodeId)),
+      learned: learnedSelection ? learnedSelection.nodeIds.has(placement.nodeId) : undefined,
+      selectionDisabled: learnedSelection?.disabled,
+      onToggleLearned: learnedSelection?.onToggle,
     })),
-    [masterMap, presentations, structure.nodes, structure.rootNodeId, visibleNodeIds],
+    [masterMap, presentations, structure.nodes, structure.rootNodeId, visibleNodeIds, learnedSelection?.nodeIds, learnedSelection?.disabled, learnedSelection?.onToggle],
   )
 
   // 変わったノードだけを新しいオブジェクトにする。選択・計測済みの寸法・ドラッグ中の状態は引き継ぐので、
@@ -482,6 +493,7 @@ function CanvasInner({
       className={overview ? 'canvas overview' : 'canvas'}
       ref={canvasRef}
       onKeyDown={(event) => {
+        if (learnedSelection) return
         if (!DELETE_KEYS.includes(event.key) || event.defaultPrevented || event.repeat
           || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || event.nativeEvent.isComposing) return
         const target = event.target as Element
@@ -493,10 +505,12 @@ function CanvasInner({
         })
       }}
       onDragOver={(event) => {
+        if (learnedSelection) return
         event.preventDefault()
         event.dataTransfer.dropEffect = 'copy'
       }}
       onDrop={(event) => {
+        if (learnedSelection) return
         event.preventDefault()
         const nodeId = event.dataTransfer.getData('application/x-astral-node')
         if (!nodeId || structure.nodes.some((node) => node.nodeId === nodeId)) return
@@ -528,8 +542,15 @@ function CanvasInner({
         onNodeDragStop={commitDraggedNodes}
         onConnect={connect}
         onSelectionChange={selectionChanged}
-        onNodeContextMenu={openNodeContextMenu}
+        nodesDraggable={!learnedSelection}
+        nodesConnectable={!learnedSelection}
+        nodesFocusable={!learnedSelection}
+        edgesFocusable={!learnedSelection}
+        edgesReconnectable={!learnedSelection}
+        onNodeClick={learnedSelection ? (_, node) => { if (!learnedSelection.disabled) learnedSelection.onToggle(node.id) } : undefined}
+        onNodeContextMenu={learnedSelection ? event => event.preventDefault() : openNodeContextMenu}
         onNodeDoubleClick={(_, node) => {
+          if (learnedSelection) return
           const master = masterMap.get(node.id)
           if (master) onEditMaster(master)
         }}
@@ -591,7 +612,7 @@ function CanvasInner({
           </button>
         </div>
       )}
-      <div className="canvas-hint">空白ドラッグで移動 · Shift＋空白ドラッグで範囲選択 · Ctrl/Cmdで追加選択 · ダブルクリックで編集 · 右クリックでノード操作</div>
+      <div className="canvas-hint">{learnedSelection ? 'ノードをクリックで習得・解除 · Space / Enterで切替 · 空白ドラッグで移動' : '空白ドラッグで移動 · Shift＋空白ドラッグで範囲選択 · Ctrl/Cmdで追加選択 · ダブルクリックで編集 · 右クリックでノード操作'}</div>
     </div>
   )
 }
@@ -607,9 +628,19 @@ const SkillNode = memo(function SkillNode({ data, selected }: NodeProps<SkillFlo
   const compact = data.nodeSize < 72
   return (
     <div
-      className={`skill-node ${selected ? 'selected' : ''} ${data.root ? 'root' : ''} ${compact ? 'compact' : ''}`}
+      className={`skill-node ${selected ? 'selected' : ''} ${data.root ? 'root' : ''} ${compact ? 'compact' : ''} ${data.learned ? 'learned' : ''}`}
       style={{ '--skill-node-size': `${data.nodeSize}px` } as CSSProperties}
       title={presentation.title}
+      role={data.onToggleLearned ? 'checkbox' : undefined}
+      aria-label={data.onToggleLearned ? presentation.label : undefined}
+      aria-checked={data.onToggleLearned ? data.learned === true : undefined}
+      aria-disabled={data.onToggleLearned ? data.selectionDisabled === true : undefined}
+      tabIndex={data.onToggleLearned ? 0 : undefined}
+      onKeyDown={data.onToggleLearned ? event => {
+        if (event.key !== ' ' && event.key !== 'Enter') return
+        event.preventDefault(); event.stopPropagation()
+        if (!data.selectionDisabled && !event.repeat && !event.nativeEvent.isComposing) data.onToggleLearned?.(data.nodeId)
+      } : undefined}
     >
       <Handle type="target" position={Position.Left} id="left" style={HANDLE_STYLE} />
       <Handle type="source" position={Position.Right} id="right" style={HANDLE_STYLE} />
@@ -620,6 +651,7 @@ const SkillNode = memo(function SkillNode({ data, selected }: NodeProps<SkillFlo
       <span className="node-kicker">#{data.nodeId} · {presentation.costTitle} · Y {data.y}</span>
       {presentation.effects.length > 0 && <span className="effect-count" aria-label={`効果 ${presentation.effects.length}件`}>{presentation.effects.length}</span>}
       {data.root && <span className="root-label">起点</span>}
+      {data.learned && <span className="learned-node-mark" aria-hidden="true">✓</span>}
     </div>
   )
 })
@@ -682,6 +714,7 @@ function reconcileNodes(
       const data = existing.data
       const sameData = data.presentation === descriptor.presentation && data.y === descriptor.level
         && data.root === descriptor.root && data.nodeSize === nodeSize && data.iconRevision === iconRevision
+        && data.learned === descriptor.learned && data.selectionDisabled === descriptor.selectionDisabled && data.onToggleLearned === descriptor.onToggleLearned
       const samePosition = existing.position.x === descriptor.x && existing.position.y === descriptor.y
       node = sameData && samePosition ? existing : {
         ...existing,
@@ -703,6 +736,9 @@ const nodeData = (descriptor: NodeDescriptor, nodeSize: number, iconRevision: nu
   root: descriptor.root,
   iconRevision,
   nodeSize,
+  learned: descriptor.learned,
+  selectionDisabled: descriptor.selectionDisabled,
+  onToggleLearned: descriptor.onToggleLearned,
 })
 
 const handleCache = new Map<number, NodeHandle[]>()

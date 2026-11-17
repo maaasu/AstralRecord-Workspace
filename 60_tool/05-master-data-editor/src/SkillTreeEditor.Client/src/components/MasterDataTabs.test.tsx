@@ -30,7 +30,7 @@ beforeEach(() => {
 async function open(name: 'ファイルA' | 'ファイルB' | 'ファイルC') {
   const button = await screen.findByRole('button', { name: new RegExp(name) })
   await waitFor(() => expect(button).toBeEnabled())
-  await userEvent.click(button)
+  await userEvent.dblClick(button)
   await waitFor(() => expect(input('/name')).toHaveValue(name))
 }
 
@@ -43,11 +43,67 @@ function deferFile() {
 }
 
 describe('master file tabs', () => {
-  it('opens another file while a slow file is loading and keeps the selected tab when the slow file finishes', async () => {
+  it('replaces a single-click preview and cancels its pending read without applying a late response', async () => {
     const slowFile = deferFile()
     vi.mocked(masterDataApi.file).mockReturnValueOnce(slowFile.promise)
     render(<MasterDataEditor />)
     fireEvent.click(await screen.findByRole('button', { name: /ファイルA.*v1.a/ }))
+    const signal = vi.mocked(masterDataApi.file).mock.calls[0][1]
+    expect(screen.getByRole('tab', { name: 'ファイルA · 読込中 · プレビュー' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /ファイルB.*v1.b/ }))
+    await waitFor(() => expect(input('/name')).toHaveValue('ファイルB'))
+    expect(signal?.aborted).toBe(true)
+    expect(screen.getAllByRole('tab')).toHaveLength(1)
+    expect(screen.getByRole('tab', { name: 'ファイルB · プレビュー' }).closest('.master-document-tab')).toHaveClass('preview')
+    await act(async () => slowFile.resolve(a))
+    expect(input('/name')).toHaveValue('ファイルB')
+  })
+
+  it('retains a double-clicked file while opening another preview and pins a preview from its tab', async () => {
+    render(<MasterDataEditor />)
+    await open('ファイルA')
+    fireEvent.click(screen.getByRole('button', { name: /ファイルB.*v1.b/ }))
+    await waitFor(() => expect(input('/name')).toHaveValue('ファイルB'))
+    expect(screen.getAllByRole('tab')).toHaveLength(2)
+    expect(screen.getByRole('tab', { name: 'ファイルA' })).toBeInTheDocument()
+    fireEvent.doubleClick(screen.getByRole('tab', { name: 'ファイルB · プレビュー' }))
+    expect(screen.getByRole('tab', { name: 'ファイルB' }).closest('.master-document-tab')).not.toHaveClass('preview')
+    expect(masterDataApi.file).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps an edited preview through undo and another file selection', async () => {
+    render(<MasterDataEditor />)
+    fireEvent.click(await screen.findByRole('button', { name: /ファイルA.*v1.a/ }))
+    await screen.findByRole('textbox', { name: '/name' })
+    fireEvent.change(input('/name'), { target: { value: '編集A' } })
+    expect(screen.getByRole('tab', { name: '編集A · 未保存' })).toBeInTheDocument()
+    fireEvent.click(panel().getByRole('button', { name: '元に戻す Ctrl+Z' }))
+    expect(screen.getByRole('tab', { name: 'ファイルA' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /ファイルB.*v1.b/ }))
+    await waitFor(() => expect(input('/name')).toHaveValue('ファイルB'))
+    expect(screen.getAllByRole('tab')).toHaveLength(2)
+  })
+
+  it('retains a preview with invalid numeric input and exposes keep in its context menu', async () => {
+    render(<MasterDataEditor />)
+    fireEvent.click(await screen.findByRole('button', { name: /ファイルA.*v1.a/ }))
+    await screen.findByRole('textbox', { name: '/level' })
+    fireEvent.change(input('/level'), { target: { value: '-' } })
+    expect(screen.getByRole('tab', { name: 'ファイルA · 未保存' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /ファイルB.*v1.b/ }))
+    await waitFor(() => expect(input('/name')).toHaveValue('ファイルB'))
+    fireEvent.contextMenu(screen.getByRole('tab', { name: 'ファイルB · プレビュー' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'タブを保持' }))
+    expect(screen.getByRole('tab', { name: 'ファイルB' })).toBeInTheDocument()
+    select(/ファイルA/)
+    expect(input('/level')).toHaveValue('-')
+  })
+
+  it('opens another file while a slow file is loading and keeps the selected tab when the slow file finishes', async () => {
+    const slowFile = deferFile()
+    vi.mocked(masterDataApi.file).mockReturnValueOnce(slowFile.promise)
+    render(<MasterDataEditor />)
+    fireEvent.doubleClick(await screen.findByRole('button', { name: /ファイルA.*v1.a/ }))
     expect(screen.getByRole('tab', { name: 'ファイルA · 読込中' })).toHaveAttribute('aria-selected', 'true')
     expect(panel().getByRole('status')).toHaveTextContent('ファイルを読み込んでいます')
     await open('ファイルB')
@@ -192,7 +248,7 @@ describe('master file tabs', () => {
       expect(screen.getByRole('button', { name: 'ナビを表示' })).toBeVisible()
       fireEvent.change(input('/name'), { target: { value: '未保存のファイルA' } })
       fireEvent.click(screen.getByRole('button', { name: 'ナビを表示' }))
-      fireEvent.click(screen.getByRole('button', { name: /ファイルB/ }))
+      fireEvent.doubleClick(screen.getByRole('button', { name: /ファイルB/ }))
       await waitFor(() => expect(input('/name')).toHaveValue('ファイルB'))
       fireEvent.click(screen.getByRole('button', { name: 'ナビを表示' }))
       fireEvent.click(screen.getByRole('button', { name: /ファイルA/ }))

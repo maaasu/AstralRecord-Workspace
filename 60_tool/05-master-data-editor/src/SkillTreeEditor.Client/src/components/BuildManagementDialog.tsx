@@ -9,6 +9,7 @@ import { stripMinecraftFormatting } from '../utils/minecraft'
 import { MasterEntityPicker, type MasterEntityPickerChoice } from './MasterEntityPicker'
 import { MinecraftIcon } from './MinecraftIcon'
 import { Modal } from './Modal'
+import { ProgressionSkillTreePicker } from './ProgressionSkillTreePicker'
 
 export type BuildAction = 'create' | 'duplicate' | 'edit' | 'delete'
 interface Props {
@@ -35,7 +36,8 @@ export function BuildManagementDialog({ action, catalog, selectedClass, preset, 
   const [skillbookId, setSkillbookId] = useState('')
   const [nodeIds, setNodeIds] = useState<number[]>([])
   const [skillId, setSkillId] = useState('')
-  const [picker, setPicker] = useState<'weapon' | 'book' | 'node' | 'skill' | null>(null)
+  const [picker, setPicker] = useState<'weapon' | 'book' | 'skill' | null>(null)
+  const [treeOpen, setTreeOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [prepared, setPrepared] = useState<Prepared | null>(null)
@@ -53,9 +55,6 @@ export function BuildManagementDialog({ action, catalog, selectedClass, preset, 
   const bookChoices: MasterEntityPickerChoice[] = catalog.items.filter(item => item.compatibleSlots.includes('SKILLBOOK')).map(item => ({ ...item,
     category: 'スキルブック', description: `必要Lv.${item.requiredLevel}`,
     disabledReason: equipmentRestriction(item, 'SKILLBOOK', starter, starter.checkpoints[0], catalog),
-  }))
-  const nodeChoices: MasterEntityPickerChoice[] = (catalog.nodes ?? []).map(node => ({ ...node, id: String(node.id), category: '習得ノード',
-    disabledReason: nodeIds.includes(node.id) ? '選択済みです' : undefined,
   }))
   const skillChoices: MasterEntityPickerChoice[] = (catalog.skills ?? []).filter(skill => !skill.passive).map(skill => ({ ...skill,
     category: 'アクティブスキル', description: `必要Lv.${skill.requiredLevel}`,
@@ -89,15 +88,11 @@ export function BuildManagementDialog({ action, catalog, selectedClass, preset, 
     return () => window.removeEventListener('beforeunload', guard)
   }, [dirty])
   const close = () => {
-    if (busy || picker || dirty && !window.confirm('入力中のビルド設定を破棄しますか？')) return
+    if (busy || picker || treeOpen || dirty && !window.confirm('入力中のビルド設定を破棄しますか？')) return
     onClose()
   }
   const choose = (value: string) => {
-    if (picker === 'node') {
-      const nodeId = Number(value)
-      if (Number.isInteger(nodeId) && !nodeIds.includes(nodeId)) setNodeIds(current => [...current, nodeId])
-      setPrepared(null); setError('')
-    } else update(picker === 'weapon' ? setMainHandId : picker === 'book' ? setSkillbookId : setSkillId, value)
+    update(picker === 'weapon' ? setMainHandId : picker === 'book' ? setSkillbookId : setSkillId, value)
     setPicker(null)
   }
 
@@ -150,7 +145,7 @@ export function BuildManagementDialog({ action, catalog, selectedClass, preset, 
 
   const title = action === 'create' ? '新しいビルドを登録' : action === 'duplicate' ? 'ビルドを複製' : action === 'edit' ? 'ビルド名とIDを編集' : 'ビルドを削除'
   return <>
-    <Modal ariaLabel={title} className="design-build-dialog" onClose={close} closeDisabled={busy || !!picker}>
+    <Modal ariaLabel={title} className="design-build-dialog" onClose={close} closeDisabled={busy || !!picker || treeOpen}>
       <header className="modal-header"><h2>{title}</h2></header>
       <div className="modal-body design-build-body">
       {action === 'delete' ? <p>「{plain(preset?.name ?? '')}」を削除します。確認後、保存先のファイルを削除します。</p> : <>
@@ -172,7 +167,7 @@ export function BuildManagementDialog({ action, catalog, selectedClass, preset, 
           <button className="button" disabled={busy || !!prepared} onClick={() => setPicker('book')}>{selectedBook ? <><MinecraftIcon icon={selectedBook.icon} customModelData={selectedBook.customModelData} iconTexture={selectedBook.iconTexture} />{plain(selectedBook.name)}</> : 'スキルブックを選択'}</button>
           {skillbookId && <button className="text-button" disabled={busy || !!prepared} onClick={() => update(setSkillbookId, '')}>スキルブックを外す</button>}
           <div className="design-account-nodes">{nodeIds.map(nodeId => { const node = catalog.nodes?.find(entry => entry.id === nodeId); return <div className="design-account-node" key={nodeId}><MinecraftIcon icon={node?.icon ?? null} customModelData={node?.customModelData} iconTexture={node?.iconTexture} /><span>{node ? plain(node.name) : `ノード ${nodeId}`}</span><button className="text-button" aria-label={`${node ? plain(node.name) : `ノード ${nodeId}`}を外す`} disabled={busy || !!prepared} onClick={() => { setNodeIds(current => current.filter(id => id !== nodeId)); setPrepared(null); setError('') }}>外す</button></div> })}</div>
-          <button className="button" disabled={busy || !!prepared} onClick={() => setPicker('node')}>＋ 習得ノードを追加</button>
+          <button className="button" disabled={busy || !!prepared || classLevelInvalid} onClick={() => setTreeOpen(true)}>スキルツリーで選択</button>
           <p>1番枠のアクティブスキル</p>
           <button className="button" disabled={busy || !!prepared} onClick={() => setPicker('skill')}>{selectedSkill ? <><MinecraftIcon icon={selectedSkill.icon} customModelData={selectedSkill.customModelData} iconTexture={selectedSkill.iconTexture} />{plain(selectedSkill.name)}</> : '1番枠のスキルを選択'}</button>
           {starterBookInvalid && <small role="alert" className="design-warning">このスキルブックはLv.1の職業・装備条件を満たしません。</small>}
@@ -186,6 +181,11 @@ export function BuildManagementDialog({ action, catalog, selectedClass, preset, 
       </div>
       <footer className="modal-footer"><button className="button" disabled={busy} onClick={prepared ? () => setPrepared(null) : close}>{prepared ? '入力に戻る' : 'キャンセル'}</button><button className="button primary" disabled={busy || (!prepared && invalid)} onClick={() => void (prepared ? commit() : prepare())}>{busy ? '処理中…' : prepared ? action === 'delete' ? 'このビルドを削除' : 'このビルドを登録' : action === 'edit' ? '下書きに反映' : '内容を確認'}</button></footer>
     </Modal>
-    {picker && <MasterEntityPicker title={picker === 'weapon' ? 'メインハンドを選択' : picker === 'book' ? 'スキルブックを選択' : picker === 'node' ? '習得ノードを追加' : '1番枠のスキルを選択'} choices={picker === 'weapon' ? weaponChoices : picker === 'book' ? bookChoices : picker === 'node' ? nodeChoices : skillChoices} value={picker === 'weapon' ? mainHandId : picker === 'book' ? skillbookId : picker === 'skill' ? skillId : undefined} onSelect={choose} onClose={() => setPicker(null)} />}
+    {picker && <MasterEntityPicker title={picker === 'weapon' ? 'メインハンドを選択' : picker === 'book' ? 'スキルブックを選択' : '1番枠のスキルを選択'} choices={picker === 'weapon' ? weaponChoices : picker === 'book' ? bookChoices : skillChoices} value={picker === 'weapon' ? mainHandId : picker === 'book' ? skillbookId : skillId} onSelect={choose} onClose={() => setPicker(null)} />}
+    {treeOpen && <ProgressionSkillTreePicker key={`${classId}:${classLevel}`} context={{ classId, playerLevel: 1, classLevel }} values={nodeIds} disabled={busy || !!prepared}
+      onClose={() => setTreeOpen(false)} onApply={selected => {
+        setNodeIds(selected.filter((value): value is number => typeof value === 'number'))
+        setPrepared(null); setError(''); setTreeOpen(false)
+      }} />}
   </>
 }

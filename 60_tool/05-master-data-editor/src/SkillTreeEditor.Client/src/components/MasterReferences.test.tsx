@@ -32,7 +32,7 @@ beforeEach(() => {
 })
 async function openFirst() {
   const view = render(<MasterDataEditor />)
-  fireEvent.click(await screen.findByRole('button', { name: /最初のクラス.*v1.first/ }))
+  fireEvent.doubleClick(await screen.findByRole('button', { name: /最初のクラス.*v1.first/ }))
   await screen.findByRole('textbox', { name: '/name' })
   await waitFor(() => expect(screen.getByRole('button', { name: 'ファイルを再読込' })).toBeEnabled())
   return view

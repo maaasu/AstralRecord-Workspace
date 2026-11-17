@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { accountPermittedSkillIds, setAccountClassLevel, setAccountNode, setAccountSigil, setAccountSkill } from './progressionAccount'
+import { accountPermittedSkillIds, setAccountClassLevel, setAccountNode, setAccountNodes, setAccountSigil, setAccountSkill } from './progressionAccount'
 import type { DesignCheckpoint, DesignItem, DesignPreset, ProgressionDesignCatalog } from '../types/progressionDesign'
 
 const original = { levels: [
@@ -9,6 +9,13 @@ const original = { levels: [
 const checkpoint = { pointer: '/levels/1', level: 10 }
 
 describe('account progression edits', () => {
+  it('replaces one checkpoint selection atomically while retaining existing unknown values', () => {
+    const broken = { levels: [{ ...original.levels[1], nodes: [0, 999, 10] }, original.levels[0]] }
+    const at = { pointer: '/levels/0', level: 10 }
+    expect(setAccountNodes(broken, at, [0, 999, 11])).toEqual({ levels: [{ ...broken.levels[0], nodes: [0, 999, 11] }, original.levels[0]] })
+    expect(() => setAccountNodes(broken, at, [12, -1])).toThrow('有効なノード')
+    expect(() => setAccountNodes(broken, { pointer: '/levels/0', level: 1 }, [12])).toThrow('レベル段階が変わっています')
+  })
   it('grants skills from the selected checkpoint book only while its equipment requirements are satisfied', () => {
     const book: DesignItem = { id: 'book', name: '本', path: 'book.yml', category: 'equipment', rarity: null, icon: null, iconTexture: null, customModelData: null,
       slot: 'SKILLBOOK', handType: null, requiredLevel: 10, requiredClasses: ['mage'], requiredClassLevels: [{ classId: 'mage', level: 3 }], compatibleSlots: ['SKILLBOOK'], maxEnhanceLevel: 0, usableSkillIds: ['meteor'] }

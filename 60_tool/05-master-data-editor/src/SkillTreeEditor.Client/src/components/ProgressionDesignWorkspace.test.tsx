@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiError } from '../api/editorApi'
+import { ApiError, editorApi } from '../api/editorApi'
 import { masterDataApi } from '../api/masterDataApi'
 import { progressionDesignApi } from '../api/progressionDesignApi'
 import type { JsonValue } from '../types/editor'
@@ -468,6 +468,24 @@ describe('ProgressionDesignWorkspace', () => {
       }) }),
     }
     vi.mocked(progressionDesignApi.catalog).mockResolvedValue(accountFixture)
+    vi.spyOn(editorApi, 'listNodes').mockResolvedValue(accountFixture.nodes!.map(node => ({
+      fileName: String(node.id), revision: 'node',
+      content: { $schema: '', schemaVersion: 1, nodeId: String(node.id), name: node.name, icon: node.icon,
+        tags: [], effects: [], pointType: 'PP', pointCost: 1 },
+    })))
+    vi.spyOn(editorApi, 'listClasses').mockResolvedValue(accountFixture.classes.map(entry => ({
+      id: entry.id, name: entry.name, parentClassIds: entry.prerequisiteClassIds,
+    })))
+    vi.spyOn(editorApi, 'listSkills').mockResolvedValue([])
+    vi.spyOn(editorApi, 'getSettings').mockResolvedValue({
+      revision: 'settings', content: { structureId: 'account', worldName: 'world', centerX: 0, centerY: 0, centerZ: 0 },
+    })
+    vi.spyOn(editorApi, 'listStructures').mockResolvedValue([{
+      fileName: 'account.json', revision: 'tree',
+      content: { $schema: '', schemaVersion: 1, structureId: 'account', name: '進行ツリー', rootNodeId: '10',
+        nodes: [{ nodeId: '10', x: 0, y: 0, z: 0 }, { nodeId: '12', x: 6, y: 0, z: 0 }],
+        edges: [{ sourceNodeId: '10', targetNodeId: '12' }] },
+    }])
     vi.mocked(masterDataApi.file).mockImplementation(async path => savedDocument(path, path === buildPath ? accountContent : documents[path]))
     vi.mocked(progressionDesignApi.preview).mockImplementation(async entries => {
       const content = entries.find(entry => entry.path === buildPath)?.content as { levels: { classLevel: number; nodes: number[]; skills: { slot: number; skill: string; skillLevel: number; sigils?: { slot: number; item: string }[] }[]; passives: { slot: number; skill: string; skillLevel: number }[] }[] } | undefined
@@ -499,9 +517,11 @@ describe('ProgressionDesignWorkspace', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'やり直す' })).toBeEnabled())
     await user.click(screen.getByRole('button', { name: 'やり直す' }))
     await waitFor(() => expect(classLevel).toHaveValue('25'))
-    await waitFor(() => expect(section.getByRole('button', { name: /ノードを追加/ })).toBeEnabled())
-    await user.click(section.getByRole('button', { name: /ノードを追加/ }))
-    await user.click(within(screen.getByRole('dialog', { name: '習得ノードを追加' })).getByRole('button', { name: /鉄壁/ }))
+    await waitFor(() => expect(section.getByRole('button', { name: 'スキルツリーで選択' })).toBeEnabled())
+    await user.click(section.getByRole('button', { name: 'スキルツリーで選択' }))
+    const treePicker = within(screen.getByRole('dialog', { name: 'スキルツリーから習得ノードを選択' }))
+    fireEvent.click(await treePicker.findByRole('checkbox', { name: '鉄壁' }))
+    await user.click(treePicker.getByRole('button', { name: '選択を反映' }))
     await waitFor(() => expect(section.getByText('鉄壁')).toBeInTheDocument())
     await user.click(within(section.getByRole('article', { name: 'アクションリング 1番枠' })).getByRole('button', { name: '変更' }))
     await user.click(within(screen.getByRole('dialog', { name: 'アクションリング 1番枠のスキル' })).getByRole('button', { name: /連撃/ }))

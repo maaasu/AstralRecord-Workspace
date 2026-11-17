@@ -1,12 +1,13 @@
 import { useState, type ReactNode } from 'react'
-import { accountPermittedSkillIds, accountSigilSlots, setAccountNode, setAccountSigil, setAccountSkill, type AccountSkillList } from '../data/progressionAccount'
+import { accountPermittedSkillIds, accountSigilSlots, setAccountNode, setAccountNodes, setAccountSigil, setAccountSkill, type AccountSkillList } from '../data/progressionAccount'
 import type { JsonValue } from '../types/editor'
 import type { DesignCheckpoint, DesignField, DesignItem, DesignPreset, ProgressionDesignCatalog } from '../types/progressionDesign'
 import { MinecraftIcon } from './MinecraftIcon'
 import { MinecraftText } from './MinecraftText'
 import { MasterEntityPicker, type MasterEntityPickerChoice } from './MasterEntityPicker'
+import { ProgressionSkillTreePicker } from './ProgressionSkillTreePicker'
 
-type PickTarget = { kind: 'node' } | { kind: 'skill'; list: AccountSkillList; slot: number } | { kind: 'sigil'; list: AccountSkillList; slot: number; sigilSlot: number }
+type PickTarget = { kind: 'skill'; list: AccountSkillList; slot: number } | { kind: 'sigil'; list: AccountSkillList; slot: number; sigilSlot: number }
 
 interface Props {
   catalog: ProgressionDesignCatalog
@@ -24,6 +25,7 @@ const skillLabel = (list: AccountSkillList) => list === 'skills' ? 'アクショ
 export function AccountProgressionPanel({ catalog, preset, checkpoint, disabled, initiallyExpanded = false, renderNumber, edit, onExploreItem }: Props) {
   const [picker, setPicker] = useState<PickTarget | null>(null)
   const [expanded, setExpanded] = useState(initiallyExpanded)
+  const [treeOpen, setTreeOpen] = useState(false)
   const skillsById = new Map((catalog.skills ?? []).map(skill => [skill.id, skill]))
   const nodesById = new Map((catalog.nodes ?? []).map(node => [node.id, node]))
   const itemsById = new Map(catalog.items.map(item => [item.id, item]))
@@ -31,9 +33,7 @@ export function AccountProgressionPanel({ catalog, preset, checkpoint, disabled,
   const classMax = catalog.classes.find(entry => entry.id === preset.classId)?.maxLevel
   const permittedSkills = accountPermittedSkillIds(catalog, preset, checkpoint)
 
-  const choices: MasterEntityPickerChoice[] = picker?.kind === 'node' ? (catalog.nodes ?? []).map(node => ({
-    ...node, id: String(node.id), category: 'スキルツリー', disabledReason: nodes.includes(node.id) ? 'この段階で選択済みです' : undefined,
-  })) : picker?.kind === 'skill' ? (catalog.skills ?? []).filter(skill => skill.passive === (picker.list === 'passives')).map(skill => ({
+  const choices: MasterEntityPickerChoice[] = picker?.kind === 'skill' ? (catalog.skills ?? []).filter(skill => skill.passive === (picker.list === 'passives')).map(skill => ({
     ...skill, category: skill.passive ? 'パッシブ' : 'アクティブ',
     description: `必要プレイヤーLv.${skill.requiredLevel} · 最大スキルLv.${skill.maxLevel}`,
     disabledReason: permittedSkills && !permittedSkills.has(skill.id) ? 'この職業・習得ノード・スキルブックでは使用できません。対応するノードか本を先に設定してください'
@@ -52,12 +52,11 @@ export function AccountProgressionPanel({ catalog, preset, checkpoint, disabled,
   })() : []
   const pickerValue = picker?.kind === 'skill' ? (checkpoint[picker.list] ?? []).find(entry => entry.slot === picker.slot)?.skillId
     : picker?.kind === 'sigil' ? (checkpoint[picker.list] ?? []).find(entry => entry.slot === picker.slot)?.sigils.find(entry => entry.slot === picker.sigilSlot)?.itemId : undefined
-  const pickerTitle = picker?.kind === 'node' ? '習得ノードを追加' : picker?.kind === 'skill' ? `${skillLabel(picker.list)} ${picker.slot}番枠のスキル` : `シジル ${picker?.sigilSlot}番枠を選択`
+  const pickerTitle = picker?.kind === 'skill' ? `${skillLabel(picker.list)} ${picker.slot}番枠のスキル` : `シジル ${picker?.sigilSlot}番枠を選択`
   const select = async (id: string) => {
     if (!picker || disabled) return
     const target = picker
-    const success = await edit(preset.path, content => target.kind === 'node' ? setAccountNode(content, checkpoint, Number(id), true)
-      : target.kind === 'skill' ? setAccountSkill(content, checkpoint, target.list, target.slot, id)
+    const success = await edit(preset.path, content => target.kind === 'skill' ? setAccountSkill(content, checkpoint, target.list, target.slot, id)
         : setAccountSigil(content, checkpoint, target.list, target.slot, target.sigilSlot, id))
     if (success) setPicker(null)
   }
@@ -101,12 +100,14 @@ export function AccountProgressionPanel({ catalog, preset, checkpoint, disabled,
       <div className="design-account-level">{renderNumber({ path: preset.path, pointer: `${checkpoint.pointer}/classLevel`, value: checkpoint.classLevel }, '職業レベル', classMax)}</div>
       <section className="design-account-group" aria-label="習得ノード"><div className="design-account-heading"><h3>習得ノード</h3><span>{nodes.length}件</span></div>
         <div className="design-account-nodes">{nodes.map(id => { const node = nodesById.get(id); return <div className="design-account-node" key={id}><MinecraftIcon icon={node?.icon ?? null} customModelData={node?.customModelData} iconTexture={node?.iconTexture} /><span>{node ? <MinecraftText value={node.name} /> : `ノード ${id}`}</span><button className="text-button" aria-label={`${node?.name ?? `ノード ${id}`}を外す`} disabled={disabled} onClick={() => remove(content => setAccountNode(content, checkpoint, id, false))}>外す</button></div> })}</div>
-        <button className="button compact" disabled={disabled} onClick={() => setPicker({ kind: 'node' })}>＋ ノードを追加</button>
+        <button className="button compact" disabled={disabled} onClick={() => setTreeOpen(true)}>スキルツリーで選択</button>
         <p className="design-caption">ノードの接続・ポイント予算はゲーム適用時にも確認してください。</p>
       </section>
       <div className="design-account-skill-groups">{skillGroup('skills')}{skillGroup('passives')}</div>
       <p className="design-caption">スキルを変更すると、その枠のスキルレベルは1になり、装着シジルは解除されます。</p>
     </div>
     {picker && <MasterEntityPicker title={pickerTitle} choices={choices} value={pickerValue} loading={disabled} onSelect={id => { void select(id) }} onClose={() => { if (!disabled) setPicker(null) }} />}
+    {treeOpen && <ProgressionSkillTreePicker key={`${preset.path}:${preset.classId}:${checkpoint.pointer}:${checkpoint.level}:${checkpoint.classLevel}`} context={{ classId: preset.classId, playerLevel: checkpoint.level, classLevel: checkpoint.classLevel }} values={nodes} disabled={disabled}
+      onClose={() => setTreeOpen(false)} onApply={selected => { void edit(preset.path, content => setAccountNodes(content, checkpoint, selected)).then(success => { if (success) setTreeOpen(false) }) }} />}
   </details>
 }
