@@ -7,9 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class StorageCapacityTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
-     * 章・見出し: # 08_1-モデル定義 > ## 3. インベントリ種別
-     * 検証契約: ストレージは拡張トークン未所持時に5ページ、225 entryを上限とする。
+     * ストレージは拡張トークン未所持時に5ページ、225 entryを上限とする。
      */
     @Test
     void baseCapacityHasFivePagesAnd225Entries() {
@@ -18,9 +16,7 @@ class StorageCapacityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
-     * 章・見出し: # 08_2-ユースケース > ## 6. ストレージ収納・取り出し
-     * 検証契約: ストレージ拡張トークン1個につき最大ページ数とentry数を1ページ分加算する。
+     * ストレージ拡張トークン1個につき最大ページ数とentry数を1ページ分加算する。
      */
     @Test
     void eachExpansionTokenAddsOnePage() {
@@ -31,9 +27,7 @@ class StorageCapacityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
-     * 章・見出し: # 08_1-モデル定義 > ## 3. インベントリ種別
-     * 検証契約: 不正な負数の拡張トークン数で基礎容量を下回らない。
+     * 不正な負数の拡張トークン数で基礎容量を下回らない。
      */
     @Test
     void negativeTokenCountDoesNotReduceBaseCapacity() {
@@ -42,9 +36,7 @@ class StorageCapacityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
-     * 章・見出し: # 08_1-モデル定義 > ## 3. インベントリ種別
-     * 検証契約: 拡張トークン数が型上限に近くてもページ数とentry数の計算を負数へ反転させない。
+     * 拡張トークン数が型上限に近くてもページ数とentry数の計算を負数へ反転させない。
      */
     @Test
     void largeTokenCountSaturatesAtIntegerLimit() {

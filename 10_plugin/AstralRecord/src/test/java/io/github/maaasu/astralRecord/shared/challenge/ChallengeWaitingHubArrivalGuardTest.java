@@ -10,11 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ChallengeWaitingHubArrivalGuardTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_0-概要.md
-     * 章・見出し: # 32_0-概要 > ## 4. 主要境界と不変条件
-     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/26_0-概要.md
-     * 章・見出し: # 26_0-概要 > ## 2. 対象範囲
-     * 検証契約: 挑戦待機Hub到着直後の初期スポーン離脱入力は約2秒間だけ抑止し、境界到達後は再び許可する。
+     * 挑戦待機Hub到着直後の初期スポーン離脱入力は約2秒間だけ抑止し、境界到達後は再び許可する。
      */
     @Test
     void suppressesInitialSpawnLeaveForTwoSecondsAfterHubArrival() {

@@ -16,9 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PlayerSettingServiceDropLogTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
-     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
-     * 検証契約: DROP_LOG_DISPLAYをcache済みplayer選択値から返す。
+     * DROP_LOG_DISPLAYをcache済みplayer選択値から返す。
      */
     @Test
     void dropLogDisplayUsesCachedPlayerChoice() {
@@ -38,9 +36,7 @@ class PlayerSettingServiceDropLogTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
-     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
-     * 検証契約: cache miss時のDROP_LOG_DISPLAYを既定trueにする。
+     * cache miss時のDROP_LOG_DISPLAYを既定trueにする。
      */
     @Test
     void dropLogDisplayDefaultsToEnabledWithoutCachedSnapshot() {
@@ -54,9 +50,7 @@ class PlayerSettingServiceDropLogTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
-     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
-     * 検証契約: AUTO_SAVE_MESSAGEをcache済みplayer選択値から返す。
+     * AUTO_SAVE_MESSAGEをcache済みplayer選択値から返す。
      */
     @Test
     void autoSaveMessageUsesCachedPlayerChoice() {
@@ -76,9 +70,7 @@ class PlayerSettingServiceDropLogTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
-     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
-     * 検証契約: cache miss時のAUTO_SAVE_MESSAGEを既定falseにする。
+     * cache miss時のAUTO_SAVE_MESSAGEを既定falseにする。
      */
     @Test
     void autoSaveMessageDefaultsToDisabledWithoutCachedSnapshot() {
@@ -92,9 +84,7 @@ class PlayerSettingServiceDropLogTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
-     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
-     * 検証契約: ARMOR_DISPLAYをAPIなしでcache済みplayer選択値から返す。
+     * ARMOR_DISPLAYをAPIなしでcache済みplayer選択値から返す。
      */
     @Test
     void armorDisplayUsesCachedPlayerChoice() {
@@ -114,9 +104,7 @@ class PlayerSettingServiceDropLogTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
-     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
-     * 検証契約: cache miss時のARMOR_DISPLAYをAPIなしで既定trueにする。
+     * cache miss時のARMOR_DISPLAYをAPIなしで既定trueにする。
      */
     @Test
     void armorDisplayDefaultsToEnabledWithoutCachedSnapshot() {
@@ -130,9 +118,7 @@ class PlayerSettingServiceDropLogTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
-     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
-     * 検証契約: ACTION_RING_HOLD_SELECTをAPIなしでcache済みplayer選択値から返す。
+     * ACTION_RING_HOLD_SELECTをAPIなしでcache済みplayer選択値から返す。
      */
     @Test
     void actionRingHoldSelectUsesCachedPlayerChoice() {
@@ -152,9 +138,7 @@ class PlayerSettingServiceDropLogTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
-     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
-     * 検証契約: cache miss時のACTION_RING_HOLD_SELECTをAPIなしで既定falseにする。
+     * cache miss時のACTION_RING_HOLD_SELECTをAPIなしで既定falseにする。
      */
     @Test
     void actionRingHoldSelectDefaultsToDisabledWithoutCachedSnapshot() {
@@ -168,9 +152,7 @@ class PlayerSettingServiceDropLogTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
-     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
-     * 検証契約: SKILL_TREE_COMPACT_DISPLAYをAPIなしでcache済みplayer選択値から返す。
+     * SKILL_TREE_COMPACT_DISPLAYをAPIなしでcache済みplayer選択値から返す。
      */
     @Test
     void skillTreeCompactDisplayUsesCachedPlayerChoice() {
@@ -190,9 +172,7 @@ class PlayerSettingServiceDropLogTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
-     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
-     * 検証契約: cache miss時のSKILL_TREE_COMPACT_DISPLAYをAPIなしで既定falseにする。
+     * cache miss時のSKILL_TREE_COMPACT_DISPLAYをAPIなしで既定falseにする。
      */
     @Test
     void skillTreeCompactDisplayDefaultsToDisabledWithoutCachedSnapshot() {

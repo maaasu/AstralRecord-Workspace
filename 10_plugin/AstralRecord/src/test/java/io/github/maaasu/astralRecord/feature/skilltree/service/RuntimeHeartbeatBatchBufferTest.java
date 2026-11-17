@@ -8,9 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class RuntimeHeartbeatBatchBufferTest {
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## スキルツリー世代を含むmaster公開 > ### スキルツリーruntime同期
-     * 検証契約: master公開開始と停止を跨いだcaptureとACKは失効し、再起動後も古いepochを再利用しない。
+     * master公開開始と停止を跨いだcaptureとACKは失効し、再起動後も古いepochを再利用しない。
      */
     @Test
     void publicationAndStopFencePreviouslyCapturedRequestsAndAcknowledgements() {
@@ -31,9 +29,7 @@ class RuntimeHeartbeatBatchBufferTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## スキルツリー世代を含むmaster公開 > ### スキルツリーruntime同期
-     * 検証契約: 32件超の同期要求は各batchの上限を守って入力順に一度だけ排出され、周期末で残件を失わない。
+     * 32件超の同期要求は各batchの上限を守って入力順に一度だけ排出され、周期末で残件を失わない。
      */
     @Test
     void drainsAllAccountsExactlyOnceAcrossCapacityAndPeriodicFlushes() {
@@ -56,9 +52,7 @@ class RuntimeHeartbeatBatchBufferTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## スキルツリー世代を含むmaster公開 > ### スキルツリーruntime同期
-     * 検証契約: 停止時の排出は未送信accountだけを返し、停止後の再排出・次周期で重複送信しない。
+     * 停止時の排出は未送信accountだけを返し、停止後の再排出・次周期で重複送信しない。
      */
     @Test
     void stopDrainReturnsAllHeldAccountsAndAllowsCleanRestart() {

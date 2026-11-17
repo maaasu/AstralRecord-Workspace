@@ -55,9 +55,7 @@ import static org.mockito.Mockito.when;
 class MailServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
-     * 検証契約: ログイン通知用の件数取得はメール一覧を復元せず、専用の軽量repository呼出を使う。
+     * ログイン通知用の件数取得はメール一覧を復元せず、専用の軽量repository呼出を使う。
      */
     @Test
     void countUnreadUsesDedicatedRepositoryEndpoint() {
@@ -71,9 +69,7 @@ class MailServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md
-     * 章・見出し: # 18_4-統合フロー > ## 2. 未読メールの報酬受取
-     * 検証契約: 未読化と報酬entryはmailClaim sectionを含むcritical snapshotで確定し、旧markRead APIを呼ばない。
+     * 未読化と報酬entryはmailClaim sectionを含むcritical snapshotで確定し、旧markRead APIを呼ばない。
      */
     @Test
     void claimsRewardOnlyAfterCriticalSnapshotAcknowledgement() {
@@ -95,9 +91,7 @@ class MailServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md
-     * 章・見出し: # 18_4-統合フロー > ## 2. 未読メールの報酬受取
-     * 検証契約: critical snapshotが失敗した場合は成功通知・既読完了を返さず、旧別通信によるreconciliationを開始しない。
+     * critical snapshotが失敗した場合は成功通知・既読完了を返さず、旧別通信によるreconciliationを開始しない。
      */
     @Test
     void criticalSnapshotFailureReturnsFailureWithoutMarkReadReconciliation() {
@@ -117,9 +111,7 @@ class MailServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md
-     * 章・見出し: # 18_4-統合フロー > ## 2. 未読メールの報酬受取
-     * 検証契約: equipment instanceのUUIDと乱数はcritical mutation内でローカル生成し、先行API個体生成を行わない。
+     * equipment instanceのUUIDと乱数はcritical mutation内でローカル生成し、先行API個体生成を行わない。
      */
     @Test
     void equipmentRewardUsesLocalCreationInsideCriticalSnapshot() {
@@ -142,9 +134,7 @@ class MailServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md
-     * 章・見出し: # 18_4-統合フロー > ## 2. 未読メールの報酬受取
-     * 検証契約: マーケット購入装備は既存個体IDを再読込して使い、受取時に別個体を生成しない。
+     * マーケット購入装備は既存個体IDを再読込して使い、受取時に別個体を生成しない。
      */
     @Test
     void marketEquipmentMailReusesPurchasedInstance() {
@@ -178,9 +168,7 @@ class MailServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md
-     * 章・見出し: # 18_4-統合フロー > ## 2. 未読メールの報酬受取
-     * 検証契約: snapshotはaccountId・clientRevision・mailIdを送り、ACKのID照合後にだけ保留claimを解除する。
+     * snapshotはaccountId・clientRevision・mailIdを送り、ACKのID照合後にだけ保留claimを解除する。
      */
     @Test
     void mailClaimSectionRequiresMatchingAcknowledgement() {
@@ -207,9 +195,7 @@ class MailServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md
-     * 章・見出し: # 18_4-統合フロー > ## 2. 未読メールの報酬受取
-     * 検証契約: 表示中の古いメールではなくfresh API応答の通貨受取状態をclaim sectionへ送る。
+     * 表示中の古いメールではなくfresh API応答の通貨受取状態をclaim sectionへ送る。
      */
     @Test
     void webCurrencyClaimUsesFreshMailState() {
@@ -232,9 +218,7 @@ class MailServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_3-メソッド仕様.md
-     * 章・見出し: # 18_3-メソッド仕様 > ## メール削除
-     * 検証契約: 削除は個別PUTを使わずmailDelete sectionとして保存し、対応するSQL ACKで保留を解除する。
+     * 削除は個別PUTを使わずmailDelete sectionとして保存し、対応するSQL ACKで保留を解除する。
      */
     @Test
     void mailDeleteUsesCriticalSnapshotSection() {
@@ -261,9 +245,7 @@ class MailServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_3-メソッド仕様.md
-     * 章・見出し: # 18_3-メソッド仕様 > ## メール削除
-     * 検証契約: 未読かつ受取時付与の報酬付きメールは削除を拒否し、mailDelete mutationを作らない。
+     * 未読かつ受取時付与の報酬付きメールは削除を拒否し、mailDelete mutationを作らない。
      */
     @Test
     void unreadRewardMailCannotBeDeleted() {
@@ -278,9 +260,7 @@ class MailServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### 受取と保存境界
-     * 検証契約: 全達成メールの4行を数量そのままで保存処理へ渡し、同じメールを再度開いても重複付与しない。
+     * 全達成メールの4行を数量そのままで保存処理へ渡し、同じメールを再度開いても重複付与しない。
      */
     @Test
     void guideRewardMailPreservesFourAttachmentsAndDoesNotGrantTwice() {

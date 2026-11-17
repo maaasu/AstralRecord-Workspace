@@ -45,6 +45,13 @@ $run = Join-Path $PWD '60_tool/17-player-patch-migration/runs/player-patch-20260
 
 実行先には対象・要求ID・結果と診断ログが保存されます。既存の配置設定を使う場合、設定に記載された配置先サーバーや配布元と重なる場所は指定できません。専用設定には配置パスがないため、実行記録にはサーバー外の専用フォルダを指定してください。同時実行はrun単位で拒否します。旧配置runを再利用する場合は配置完了状態を要求し、Commit開始後はファイルだけを戻すRestoreを引き続き拒否します。
 
+## スキルツリー安全編集の初回導入
+
+1. DBをバックアップし、[ゲームDB migration](../13-db-migrate/README.md)で安全編集とログイン時移行の登録済みスキーマを適用します。
+2. APIに、Pluginのruntimeキー・共通APIキーと異なる `SkillTreeRuntime:MigrationKey` を設定し、API、Plugin、Webの順に導入します。各PluginのサーバーIDは一意にし、runtimeキーをAPIと揃えます。
+3. マスタを公開したら、各サーバーのready、boot、公開リビジョン、実ロード世代を確認します。通常の配備・再読込はパッチ定義の公開まで行います。保持のみの一括更新は、このガイドのPreviewとCommitを使います。
+4. 世代未設定の非空データやノード除去・消費元補完には、[SkillTreeEditorController](../../20_api/AstralRecordApi/AstralRecordApi/Controllers/SkillTreeEditorController.cs) の管理移行入口を確認します。対象をオフラインにして保存完了を確認し、同じ操作ID・状態版・移行条件でプレビューから確定へ進めます。
+
 ## 検証
 
 `tests/entry.tests.ps1` と `../16-maintenance/tests/migration.tests.ps1` は一時ファイルと偽のAPI応答だけを使います。実サーバーへ接続しません。

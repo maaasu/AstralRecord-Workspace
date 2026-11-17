@@ -16,8 +16,6 @@ import org.junit.jupiter.api.Test;
 
 class AstralRecordProxyDirectMessageTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 最高権限とプライベートチャット監視
      * 検証契約: 別backendのDMは送受信者へ一度ずつ配送し、Proxy最高権限ユーザーだけへ監視表示する。
      */
     @Test

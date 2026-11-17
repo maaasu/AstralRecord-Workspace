@@ -13,9 +13,7 @@ import org.junit.jupiter.api.Test
 class ClassRepositoryTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_0-概要.md
-     * 章・見出し: # 09_0-概要 > ## 2. 責務
-     * 検証契約: class master の classGui は未指定または null ならクラスGUIへ表示しない設定として読み込み、object以外の型は拒否する。
+     * class master の classGui は未指定または null ならクラスGUIへ表示しない設定として読み込み、object以外の型は拒否する。
      */
     @Test
     fun acceptsOptionalClassGuiFromDetailResponse() {

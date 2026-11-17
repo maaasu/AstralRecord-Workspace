@@ -28,9 +28,7 @@ import static org.mockito.Mockito.verify;
 
 class InventoryServiceTradeReservationTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md
-     * 章・見出し: # 22_3-メソッド仕様 > ## 送信画面の開始・終了
-     * 検証契約: 終了時の予約解除は表示障害に影響されず、別の予約残量を維持する。
+     * 終了時の予約解除は表示障害に影響されず、別の予約残量を維持する。
      */
     @Test
     void releaseAfterCancellationDoesNotDependOnRenderingOrClearOtherReservations() throws Exception {
@@ -42,9 +40,7 @@ class InventoryServiceTradeReservationTest {
         assertEquals(Map.of(context.entryId, 2, otherEntry, 4), context.reservations.get(context.accountId));
     }
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
-     * 章・見出し: # 22_4-統合フロー > ## 2. 提示
-     * 検証契約: 予約追加後のBukkit表示更新が失敗した場合、既存予約数量を維持する。
+     * 予約追加後のBukkit表示更新が失敗した場合、既存予約数量を維持する。
      */
     @Test
     void failedDisplayRefreshRollsBackOnlyNewReservation() throws Exception {
@@ -56,9 +52,7 @@ class InventoryServiceTradeReservationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
-     * 章・見出し: # 22_4-統合フロー > ## 2. 提示
-     * 検証契約: 全量取り下げ後のBukkit表示更新が失敗した場合、削除済み予約を元の数量で復元する。
+     * 全量取り下げ後のBukkit表示更新が失敗した場合、削除済み予約を元の数量で復元する。
      */
     @Test
     void failedDisplayRefreshRestoresFullyWithdrawnReservation() throws Exception {
@@ -70,9 +64,7 @@ class InventoryServiceTradeReservationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 4. 表示インベントリ GUI 反映
-     * 検証契約: ADMINで表示予約を解除した場合は予約を破棄し、通常インベントリの再描画で管理者の所持品へ書き込まない。
+     * ADMINで表示予約を解除した場合は予約を破棄し、通常インベントリの再描画で管理者の所持品へ書き込まない。
      */
     @Test
     void adminReleasesDisplayReservationWithoutRenderingPlayerInventory() throws Exception {

@@ -47,9 +47,7 @@ class PassiveSkillSessionLifecycleTest {
         cache.close();
     }
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 6. passive skill 同期
-     * 検証契約: 通常終了後のステータス再計算で旧セッションを再有効化せず、同一アカウントの新セッションと旧参照を分離する。
+     * 通常終了後のステータス再計算で旧セッションを再有効化せず、同一アカウントの新セッションと旧参照を分離する。
      */
     @Test
     void endedSessionCannotReactivateThroughStatusRefresh() {
@@ -57,9 +55,7 @@ class PassiveSkillSessionLifecycleTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 6. passive skill 同期
-     * 検証契約: 解除callbackが例外になっても旧セッションの終了状態を維持し、再同期・重複終了が新セッションを変更しない。
+     * 解除callbackが例外になっても旧セッションの終了状態を維持し、再同期・重複終了が新セッションを変更しない。
      */
     @Test
     void failedDeactivationStillClosesTheOldSession() {
@@ -67,9 +63,7 @@ class PassiveSkillSessionLifecycleTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 6. passive skill 同期
-     * 検証契約: 同一アカウントの新セッションを先に公開した場合も旧実行状態を引き継がず、旧セッションの遅れた終了が新状態を削除しない。
+     * 同一アカウントの新セッションを先に公開した場合も旧実行状態を引き継がず、旧セッションの遅れた終了が新状態を削除しない。
      */
     @Test
     void replacingTheSessionBeforeItsQuitNotificationKeepsTheNewState() {
@@ -77,9 +71,7 @@ class PassiveSkillSessionLifecycleTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 6. passive skill 同期
-     * 検証契約: 実行状態を持たない旧セッションから最初の終了通知が遅れて来ても、同一アカウントの新セッションを削除しない。
+     * 実行状態を持たない旧セッションから最初の終了通知が遅れて来ても、同一アカウントの新セッションを削除しない。
      */
     @Test
     void lateFirstQuitFromSessionWithoutStateDoesNotRemoveCurrentState() {

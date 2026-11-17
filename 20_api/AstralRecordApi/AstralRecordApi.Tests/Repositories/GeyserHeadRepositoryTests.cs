@@ -13,8 +13,6 @@ namespace AstralRecordApi.Tests.Repositories;
 public class GeyserHeadRepositoryTests
 {
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.01-取得系.md
-    /// 章・見出し: # 99_3.01-取得系 > ### Geyser ヘッド起動データ取得
     /// 検証契約: item/mail/class/skill/mob の PLAYER_HEAD iconTexture と、Mob level profile の有効上書きを重複なく返し、NPC skin.texture と論理削除ユーザーを除外する。
     /// </summary>
     [Fact]

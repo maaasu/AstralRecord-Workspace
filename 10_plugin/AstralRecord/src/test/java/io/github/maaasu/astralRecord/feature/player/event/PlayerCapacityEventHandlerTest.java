@@ -36,9 +36,7 @@ class PlayerCapacityEventHandlerTest {
     private static final PlainTextComponentSerializer PLAIN_TEXT = PlainTextComponentSerializer.plainText();
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### 権限別接続人数制限
-     * 検証契約: 旧権限5の通常枠が満杯の場合、接続前イベントを KICK_FULL と参加可能人数到達メッセージで拒否する。
+     * 旧権限5の通常枠が満杯の場合、接続前イベントを KICK_FULL と参加可能人数到達メッセージで拒否する。
      */
     @Test
     void rejectsConnectionWhenPermissionSpecificCapacityIsFull() {
@@ -64,9 +62,7 @@ class PlayerCapacityEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 最高権限とプライベートチャット監視
-     * 検証契約: Proxy最高権限UUIDの接続前人数判定には保存permissionではなく実効permission 99を使用する。
+     * Proxy最高権限UUIDの接続前人数判定には保存permissionではなく実効permission 99を使用する。
      */
     @Test
     void reservesAdminCapacityForProxyAuthority() {
@@ -90,9 +86,7 @@ class PlayerCapacityEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### 権限別接続人数制限
-     * 検証契約: ログイン段階で拒否された接続の予約を解放し、後続の接続が枠を再利用できる。
+     * ログイン段階で拒否された接続の予約を解放し、後続の接続が枠を再利用できる。
      */
     @SuppressWarnings("deprecation")
     @Test
@@ -112,9 +106,7 @@ class PlayerCapacityEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## サーバー選択
-     * 検証契約: Network APIで接続許可済みのプレイヤーは、backendのnative KICK_FULLだけを解除し、Proxyの人数制御へ委ねる。
+     * Network APIで接続許可済みのプレイヤーは、backendのnative KICK_FULLだけを解除し、Proxyの人数制御へ委ねる。
      */
     @SuppressWarnings("deprecation")
     @Test
@@ -141,9 +133,7 @@ class PlayerCapacityEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### 権限別接続人数制限
-     * 検証契約: 既に他の接続制御で拒否されたイベントには、ユーザー取得・人数枠予約を追加しない。
+     * 既に他の接続制御で拒否されたイベントには、ユーザー取得・人数枠予約を追加しない。
      */
     @Test
     void leavesAlreadyRejectedConnectionUndisturbed() {
@@ -159,9 +149,7 @@ class PlayerCapacityEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### 権限別接続人数制限
-     * 検証契約: 参加・退出時に接続前予約を解放し、次の接続が枠を利用できる状態に戻す。
+     * 参加・退出時に接続前予約を解放し、次の接続が枠を利用できる状態に戻す。
      */
     @Test
     void releasesReservationOnJoinAndQuit() {
@@ -184,9 +172,7 @@ class PlayerCapacityEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### 権限別接続人数制限
-     * 検証契約: ワールド参加前の接続切断でも接続前予約を解放する。
+     * ワールド参加前の接続切断でも接続前予約を解放する。
      */
     @Test
     void releasesReservationOnConnectionClose() {

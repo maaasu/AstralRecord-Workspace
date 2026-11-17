@@ -11,7 +11,6 @@ namespace AstralRecordApi.Tests.Repositories;
 public class InventoryRepositoryTests
 {
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.03-更新系.md
     /// 検証契約: 一括保存は既存entry UUIDを維持し、クライアント生成entry UUIDを初回登録後も正本にする。
     /// </summary>
     [Fact]
@@ -98,7 +97,6 @@ public class InventoryRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.03-更新系.md
     /// 検証契約: stable UUIDを維持した2アイテムのスロット交換は、active slot一意制約へ途中衝突しない。
     /// </summary>
     [Fact]
@@ -158,7 +156,6 @@ public class InventoryRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md
     /// 検証契約: 素材消費で論理削除されたentry UUIDは古い一括保存要求から復活できない。
     /// </summary>
     [Fact]
@@ -215,7 +212,6 @@ public class InventoryRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.03-更新系.md
     /// 検証契約: 素材mutation後の古い一括保存は更新版不一致で拒否し、消費後数量を上書きしない。
     /// </summary>
     [Fact]
@@ -269,7 +265,6 @@ public class InventoryRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.03-更新系.md
     /// 検証契約: 所有装備個体の itemId と一致する値だけを個体 entry に保存し、任意の itemId にすり替えられない。
     /// </summary>
     [Fact]
@@ -327,7 +322,6 @@ public class InventoryRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.03-更新系.md
     /// 検証契約: 既存データ補正は同一account所有、EQUIPMENT、数量1、空itemIdの entry だけを更新する。
     /// </summary>
     [Fact]

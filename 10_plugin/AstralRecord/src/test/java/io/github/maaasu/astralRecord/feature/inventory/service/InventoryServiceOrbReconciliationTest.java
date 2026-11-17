@@ -47,9 +47,7 @@ import static org.mockito.Mockito.when;
 class InventoryServiceOrbReconciliationTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/4-統合フロー/13_4-スキルバインドGUI.md
-     * 章・見出し: # 13_4-スキルバインドGUI > ## 3. スキルマネージャーによる習得・レベルアップ
-     * 検証契約: 遠隔権限なしのストレージ予約を拒否し、権限ありでも予約数量は二重利用させない。
+     * 遠隔権限なしのストレージ予約を拒否し、権限ありでも予約数量は二重利用させない。
      */
     @Test
     void storageMaterialReservationsRequireAccessAndProtectReservedQuantity() {
@@ -73,9 +71,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
-     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
-     * 検証契約: 応答snapshotが欠落、明示null、非object、不完全objectの場合は例外を出さずGET fallbackを選ぶ。
+     * 応答snapshotが欠落、明示null、非object、不完全objectの場合は例外を出さずGET fallbackを選ぶ。
      */
     @Test
     void optionalSnapshotParserAcceptsMissingNullAndMalformedResponses() {
@@ -88,9 +84,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
-     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
-     * 検証契約: 応答内の削除正本を追加GETなしで三者マージし、同時加算分だけを新IDで保持する。
+     * 応答内の削除正本を追加GETなしで三者マージし、同時加算分だけを新IDで保持する。
      */
     @Test
     void responseSnapshotAvoidsGetAndKeepsConcurrentAdditionAfterDeletion() {
@@ -114,9 +108,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
-     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
-     * 検証契約: 他accountの応答内正本は利用せず、所有者の正本GETへ戻す。
+     * 他accountの応答内正本は利用せず、所有者の正本GETへ戻す。
      */
     @Test
     void foreignSnapshotFallsBackToAuthoritativeGet() {
@@ -134,9 +126,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_0-概要.md
-     * 章・見出し: # 22_0-概要 > ## 責務
-     * 検証契約: 受取 capacity 判定の仮差引は全量送付 entry を除去し、部分送付 entry は残量だけを保持する。
+     * 受取 capacity 判定の仮差引は全量送付 entry を除去し、部分送付 entry は残量だけを保持する。
      */
     @Test
     void capacityCheckSubtractsFullAndPartialOutgoingReservationsFromAuthoritativeState() {
@@ -182,9 +172,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
-     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
-     * 検証契約: 保存済み1個をAPIが全消費する正本GET待機中に同stackへ1個追加しても、削除済みIDを復活させず残差1個を新IDで保持し、同時追加した無関係entryも失わない。
+     * 保存済み1個をAPIが全消費する正本GET待機中に同stackへ1個追加しても、削除済みIDを復活させず残差1個を新IDで保持し、同時追加した無関係entryも失わない。
      */
     @Test
     void tombstoneFetchLatchKeepsConcurrentStackAdditionAndUnrelatedNewEntry() throws Exception {
@@ -259,9 +247,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
-     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
-     * 検証契約: APIが素材5個から3個を消費した正本GET待機中に同stackを1個消費した場合、authoritative 2 + local差分 -1 = 1を一度だけ反映する。
+     * APIが素材5個から3個を消費した正本GET待機中に同stackを1個消費した場合、authoritative 2 + local差分 -1 = 1を一度だけ反映する。
      */
     @Test
     void authoritativeFetchLatchKeepsConcurrentSameStackConsumeExactlyOnce() throws Exception {
@@ -324,9 +310,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
-     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
-     * 検証契約: API正本gold取得待機中の加算30・消費10を額面行ではなく総価値差分+20として保持し、API残高60と合わせた80をcanonical額面へ再構成する。
+     * API正本gold取得待機中の加算30・消費10を額面行ではなく総価値差分+20として保持し、API残高60と合わせた80をcanonical額面へ再構成する。
      */
     @Test
     void currencyFetchLatchPreservesConcurrentGoldAddAndConsumeByTotalValue() throws Exception {
@@ -429,9 +413,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
-     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
-     * 検証契約: APIが1個消費を確定するまではローカル数量2を維持し、affected entryの正本照合後だけAPI数量1へ置き換える。
+     * APIが1個消費を確定するまではローカル数量2を維持し、affected entryの正本照合後だけAPI数量1へ置き換える。
      */
     @Test
     void authoritativeAffectedEntryIsTheOnlySourceOfOrbConsumption() {
@@ -459,9 +441,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 15.1. 重要操作と外部取引の保存lane
-     * 検証契約: BAG内entryの数量だけが減少した場合、疎なslot配置を前詰めしない。
+     * BAG内entryの数量だけが減少した場合、疎なslot配置を前詰めしない。
      */
     @Test
     void partialAffectedQuantityDecreasePreservesSparseBagSlots() {
@@ -493,9 +473,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_0-概要.md
-     * 章・見出し: # 22_0-概要 > ## 責務
-     * 検証契約: Trade API が未配置で返す通常 item・装備・ルーンの受取 BAG entry は、再同期後に重複しない有効 slot を持ち、後続保存で表示可能な state になる。
+     * Trade API が未配置で返す通常 item・装備・ルーンの受取 BAG entry は、再同期後に重複しない有効 slot を持ち、後続保存で表示可能な state になる。
      */
     @Test
     void tradeRecipientEntriesWithoutApiSlotsAreAssignedBagSlotsDuringReconciliation() {
@@ -570,9 +548,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
-     * 章・見出し: # 22_4-統合フロー > ## 3. Commit
-     * 検証契約: トレード受取 entry の state 再同期後、UI更新より前に装備個体 cache を API 正本へ置換する。
+     * トレード受取 entry の state 再同期後、UI更新より前に装備個体 cache を API 正本へ置換する。
      */
     @Test
     void tradeReconciliationReloadsAffectedEquipmentBeforeCompletion() {
@@ -602,9 +578,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-    * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 4. 購入 > ### 処理要点
-     * 検証契約: マーケット購入で取得した装備個体を state へ反映する前に API 正本から cache を再取得する。
+     * マーケット購入で取得した装備個体を state へ反映する前に API 正本から cache を再取得する。
      */
     @Test
     void ownedInventoryReconciliationReloadsAffectedEquipmentBeforeCompletion() {
@@ -637,9 +611,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
-     * 章・見出し: # 22_4-統合フロー > ## 3. Commit
-     * 検証契約: 装備個体の API 再取得が一時的に利用不能なら、trade 再同期を成功扱いにせず recovery 境界へ返す。
+     * 装備個体の API 再取得が一時的に利用不能なら、trade 再同期を成功扱いにせず recovery 境界へ返す。
      */
     @Test
     void tradeReconciliationFailsWhenEquipmentReloadIsUnavailable() {
@@ -666,9 +638,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
-     * 章・見出し: # 22_4-統合フロー > ## 3. Commit
-     * 検証契約: 装備個体が API で見つからない場合も成功扱いにせず、未解決の commit 境界を保持する。
+     * 装備個体が API で見つからない場合も成功扱いにせず、未解決の commit 境界を保持する。
      */
     @Test
     void tradeReconciliationKeepsCommitUnresolvedWhenEquipmentIsMissing() {
@@ -695,9 +665,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_0-概要.md
-     * 章・見出し: # 22_0-概要 > ## 責務
-     * 検証契約: 満杯 BAG の同種 full stack へトレード受取を加算して最大 stack 数を超えた場合、
+     * 満杯 BAG の同種 full stack へトレード受取を加算して最大 stack 数を超えた場合、
      * 超過分を容量外 slot の別 entry として保存・表示し、通常取得ではその slot を再利用しない。
      */
     @Test
@@ -780,9 +748,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
-     * 検証契約: HOTBAR出品元の元slotが再利用された取り下げで、APIがBAGへ返した未配置entryを有効なBAG slotへ再配置して可視な所持品にする。
+     * HOTBAR出品元の元slotが再利用された取り下げで、APIがBAGへ返した未配置entryを有効なBAG slotへ再配置して可視な所持品にする。
      */
     @Test
     void marketCancellationReconcilesConflictedHotbarSourceIntoVisibleBagSlot() {
@@ -849,9 +815,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
-     * 検証契約: HOTBAR stackの部分出品後はgeneric三者マージだけを行い、残数量と元slotを維持する。
+     * HOTBAR stackの部分出品後はgeneric三者マージだけを行い、残数量と元slotを維持する。
      */
     @Test
     void marketListingPartialHotbarSourceKeepsRemainingQuantityAndSlot() {
@@ -910,9 +874,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
-     * 検証契約: 取り下げでBAGへ復元された数量だけを共通付与処理で既存stackへ加算し、既存stackのIDと配置を保持する。
+     * 取り下げでBAGへ復元された数量だけを共通付与処理で既存stackへ加算し、既存stackのIDと配置を保持する。
      */
     @Test
     void marketCancellationAddsRestoredAmountToExistingBagStack() {
@@ -973,9 +935,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
-     * 検証契約: 容量外へ返された数量だけを同一itemの管理slot内stackへ加算し、既存stackのIDを保持する。
+     * 容量外へ返された数量だけを同一itemの管理slot内stackへ加算し、既存stackのIDを保持する。
      */
     @Test
     void marketCancellationAddsOverflowReturnToExistingManagedStack() {
@@ -1036,9 +996,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
-     * 検証契約: HOTBARへ復元された取り下げentryは個別配置を維持せず、共通所有インベントリ返却処理でBAGの同一stackへ統合する。
+     * HOTBARへ復元された取り下げentryは個別配置を維持せず、共通所有インベントリ返却処理でBAGの同一stackへ統合する。
      */
     @Test
     void marketCancellationMovesRestoredHotbarStackThroughSharedBagReturnPath() {
@@ -1109,9 +1067,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
-     * 検証契約: 購入APIが追加した数量だけを共通付与処理へ渡し、操作前から残る同一itemの各stackとIDを維持する。
+     * 購入APIが追加した数量だけを共通付与処理へ渡し、操作前から残る同一itemの各stackとIDを維持する。
      */
     @Test
     void marketPurchaseAddsOnlyApiDeltaWithoutRebuildingExistingStacks() {
@@ -1183,9 +1139,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 12.2 外部取引で受け取った所有アイテムの正規化
-     * 検証契約: maxStack=1の通常itemは同一item IDでもstack統合せず、API affected IDと既存IDを個別に維持する。
+     * maxStack=1の通常itemは同一item IDでもstack統合せず、API affected IDと既存IDを個別に維持する。
      */
     @Test
     void marketReconciliationDoesNotMergeMaxStackOneItems() {
@@ -1232,11 +1186,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 12.2 外部取引で受け取った所有アイテムの正規化
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
-     * 検証契約: itemIdを併記したequipment entryがHOTBARへ復元されてもinstanceIdを落とさず、共通返却処理でBAGへ移す。
+     * itemIdを併記したequipment entryがHOTBARへ復元されてもinstanceIdを落とさず、共通返却処理でBAGへ移す。
      */
     @Test
     void marketCancellationPreservesEquipmentInstanceWhenReturningHotbarEntryToBag() {
@@ -1307,9 +1257,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 12.2 外部取引で受け取った所有アイテムの正規化
-     * 検証契約: 共通返却処理が要求数の一部しか収容できない場合は失敗し、追加済みの一部stackもsnapshotへrollbackする。
+     * 共通返却処理が要求数の一部しか収容できない場合は失敗し、追加済みの一部stackもsnapshotへrollbackする。
      */
     @Test
     void sharedOwnedInventoryReturnRollsBackPartialStackAddition() {
@@ -1349,9 +1297,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
-     * 検証契約: 取り下げ前の容量判定は、容量外またはslot未指定のstack残量を空き容量へ算入しない。
+     * 取り下げ前の容量判定は、容量外またはslot未指定のstack残量を空き容量へ算入しない。
      */
     @Test
     void capacityCheckIgnoresRoomInOverflowStackWhenReturningMarketItem() {
@@ -1389,9 +1335,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 15.1. 重要操作と外部取引の保存lane
-     * 検証契約: HOTBARからentryが全削除されても固定slotを前詰めしない。
+     * HOTBARからentryが全削除されても固定slotを前詰めしない。
      */
     @Test
     void fullAffectedRemovalPreservesFixedHotbarSlots() {
@@ -1420,9 +1364,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 15.1. 重要操作と外部取引の保存lane
-     * 検証契約: ルーン脱着でAPIが既存stackへ1個返却した場合、三者マージ後も共通返却処理を通して同じitemIdを一つのstackへ統合する。
+     * ルーン脱着でAPIが既存stackへ1個返却した場合、三者マージ後も共通返却処理を通して同じitemIdを一つのstackへ統合する。
      */
     @Test
     void runeDetachReturnMergesIntoExistingStackThroughSharedReturnPath() {
@@ -1465,9 +1407,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 15.1. 重要操作と外部取引の保存lane
-     * 検証契約: ルーン脱着の新規未配置返却entryは、共通追加処理により有効なBAG slotへ配置する。
+     * ルーン脱着の新規未配置返却entryは、共通追加処理により有効なBAG slotへ配置する。
      */
     @Test
     void runeDetachReturnAssignsUnslottedNewStackToVisibleBagSlot() {
@@ -1503,9 +1443,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 15.1. 重要操作と外部取引の保存lane
-     * 検証契約: API返却分の共通追加に失敗して同じbaselineで再試行しても、返却数量を重複適用しない。
+     * API返却分の共通追加に失敗して同じbaselineで再試行しても、返却数量を重複適用しない。
      */
     @Test
     void runeDetachRetryAfterReturnNormalizationFailureDoesNotDuplicateRune() {
@@ -1555,9 +1493,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 15.1. 重要操作と外部取引の保存lane
-     * 検証契約: ルーン脱着で未配置の1個が返却されたとき、既存の同一ルーンfull stackを再構築せず、共通追加処理で次の空きslotへ1個だけ追加する。
+     * ルーン脱着で未配置の1個が返却されたとき、既存の同一ルーンfull stackを再構築せず、共通追加処理で次の空きslotへ1個だけ追加する。
      */
     @Test
     void runeDetachReturnKeepsTwoFullStacksAndAddsOnlyReturnedRuneToNextFreeSlot() {
@@ -1603,9 +1539,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 15.1. 重要操作と外部取引の保存lane
-     * 検証契約: BAG通常容量が満杯でも、API確定済みのルーン返却分は容量外slotへ保持する。
+     * BAG通常容量が満杯でも、API確定済みのルーン返却分は容量外slotへ保持する。
      */
     @Test
     void runeDetachReturnUsesOverflowSlotWhenBagIsFull() {
@@ -1644,9 +1578,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 15.1. 重要操作と外部取引の保存lane
-     * 検証契約: ルーン脱着の返却分はHOTBARだけにある同一stackへ統合せず、BAGへ追加する。
+     * ルーン脱着の返却分はHOTBARだけにある同一stackへ統合せず、BAGへ追加する。
      */
     @Test
     void runeDetachReturnDoesNotMergeWithHotbarOnlyStack() {
@@ -1697,9 +1629,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 15.1. 重要操作と外部取引の保存lane
-     * 検証契約: BAGからentryが全削除された場合だけ、残存entryを表示順で前詰めする。
+     * BAGからentryが全削除された場合だけ、残存entryを表示順で前詰めする。
      */
     @Test
     void fullAffectedRemovalCompactsBagInDisplayOrder() {
@@ -1728,9 +1658,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
-     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
-     * 検証契約: API正本でオーブentryが消滅した場合はそのentryだけを除去して後続slotを前詰めし、同時に存在する無関係entryを保持する。
+     * API正本でオーブentryが消滅した場合はそのentryだけを除去して後続slotを前詰めし、同時に存在する無関係entryを保持する。
      */
     @Test
     void authoritativeRemovalCompactsOnlyTheConsumedOrbEntry() {
@@ -1767,9 +1695,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
-     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
-     * 検証契約: affected entryがAPI上で別accountのinventoryへ移動した場合、旧所有者stateから参照を除去するだけとし、未所有inventoryや移動先entryを生成しない。
+     * affected entryがAPI上で別accountのinventoryへ移動した場合、旧所有者stateから参照を除去するだけとし、未所有inventoryや移動先entryを生成しない。
      */
     @Test
     void reconciliationCannotInjectEntryMovedToAnotherAccountInventory() {
@@ -1793,11 +1719,7 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 8. 装備・ホットバー・アクセサリのスナップショット保存
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: APIが削除・譲渡・membership不在を確定した装備はinventory entryとactive loadoutから同時に除去してdirty保存し、再起動相当の再load後も旧membershipを復活さず無関係装備を保持する。
+     * APIが削除・譲渡・membership不在を確定した装備はinventory entryとactive loadoutから同時に除去してdirty保存し、再起動相当の再load後も旧membershipを復活さず無関係装備を保持する。
      */
     @Test
     void unavailableEquipmentCleanupPersistsInventoryAndLoadoutTombstoneAcrossReload() {

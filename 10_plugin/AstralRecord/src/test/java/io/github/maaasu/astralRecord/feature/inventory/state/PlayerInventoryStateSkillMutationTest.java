@@ -32,9 +32,7 @@ import static org.mockito.Mockito.when;
 class PlayerInventoryStateSkillMutationTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: APIの素材消費は対象entryだけへ反映し、待機中に生じた無関係なインベントリ変更を置換しない。
+     * APIの素材消費は対象entryだけへ反映し、待機中に生じた無関係なインベントリ変更を置換しない。
      */
     @Test
     void authoritativeReconciliationUpdatesOnlyTheTargetEntry() {
@@ -68,9 +66,7 @@ class PlayerInventoryStateSkillMutationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 素材消費で対象UUIDを除去した場合、対象インベントリだけを既存の通常収納前詰め処理へ渡し、無関係entryを保持する。
+     * 素材消費で対象UUIDを除去した場合、対象インベントリだけを既存の通常収納前詰め処理へ渡し、無関係entryを保持する。
      */
     @Test
     void authoritativeReconciliationRemovesOnlyTheRequestedEntry() {
@@ -92,9 +88,7 @@ class PlayerInventoryStateSkillMutationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
-     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
-     * 検証契約: 合成で素材entryが消費された後、現在stateの無関係entryを保持したまま通常のBAG前詰め規則を適用する。
+     * 合成で素材entryが消費された後、現在stateの無関係entryを保持したまま通常のBAG前詰め規則を適用する。
      */
     @Test
     void authoritativeRemovalCompactsCurrentBagEntriesWithoutReplacingThem() {
@@ -135,9 +129,7 @@ class PlayerInventoryStateSkillMutationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
-     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
-     * 検証契約: 合成素材の選択は永続entryを削除せず一個だけを表示予約し、単品の予約で生じた隙間だけを画面上で前詰めする。
+     * 合成素材の選択は永続entryを削除せず一個だけを表示予約し、単品の予約で生じた隙間だけを画面上で前詰めする。
      */
     @Test
     void synthesisReservationHidesOnlyOneItemAndCompactsOnlyTheDisplay() throws ReflectiveOperationException {
@@ -171,9 +163,7 @@ class PlayerInventoryStateSkillMutationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 必要数量と同量の単一素材entryを消費した場合、数量0のentryを残さずインベントリから除去する。
+     * 必要数量と同量の単一素材entryを消費した場合、数量0のentryを残さずインベントリから除去する。
      */
     @Test
     void criticalPaymentRemovesEntryWhenSingleMaterialIsFullyConsumed() {
@@ -195,9 +185,7 @@ class PlayerInventoryStateSkillMutationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: HOTBARの必要数量と同量の単一素材entryを消費した場合、数量0のentryを残さず除去する。
+     * HOTBARの必要数量と同量の単一素材entryを消費した場合、数量0のentryを残さず除去する。
      */
     @Test
     void criticalPaymentRemovesHotbarEntryWhenSingleMaterialIsFullyConsumed() {
@@ -219,9 +207,7 @@ class PlayerInventoryStateSkillMutationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
-     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
-     * 検証契約: API消費成功後の再同期失敗でも、APIが返した消費数量をローカル表示へ反映して削除時は前詰めする。
+     * API消費成功後の再同期失敗でも、APIが返した消費数量をローカル表示へ反映して削除時は前詰めする。
      */
     @Test
     void authoritativeSuccessFallbackConsumesReportedMaterialAmountLocally() {
@@ -247,9 +233,7 @@ class PlayerInventoryStateSkillMutationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: 一括保存応答は待機中の並行変更を上書きせず、次回保存用に API が採番した版だけを反映する。
+     * 一括保存応答は待機中の並行変更を上書きせず、次回保存用に API が採番した版だけを反映する。
      */
     @Test
     void persistenceAcknowledgementPreservesConcurrentEntryChanges() {

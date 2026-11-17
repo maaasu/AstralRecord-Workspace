@@ -191,7 +191,7 @@ EXPポイント交換所で扱う基本シジルは、同じ習得済みスキ�
 ## 正本参照
 
 - YAML: `E:\AstralRecord-Workspace\40_filebase\30.features.skill\docs.skill.YAMLスキーマ定義.md`
-- Plugin 設計: `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\feature\13-skill`
+- [Pluginのスキル実装](../../../10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill)
 
 ## Tier2職のビルド用追加技能
 

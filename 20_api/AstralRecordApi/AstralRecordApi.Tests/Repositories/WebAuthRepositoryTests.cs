@@ -15,7 +15,6 @@ namespace AstralRecordApi.Tests.Repositories;
 public class WebAuthRepositoryTests
 {
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.03-消費系.md
     /// 検証契約: ハイフンなしの正規化コードは一度だけ消費でき、成功時にManagementDBへ既定権限のプレイヤーを記録する。
     /// </summary>
     [Fact]
@@ -65,7 +64,6 @@ public class WebAuthRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.03-消費系.md
     /// 検証契約: 信頼済みブラウザはコード認証で発行され、最終利用から7日間だけ更新されながら有効になる。
     /// </summary>
     [Fact]
@@ -149,7 +147,6 @@ public class WebAuthRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/24-web-auth/1-モデル定義/24_1.00-モデル定義.md
     /// 検証契約: ManagementDBへの再ログイン記録はMCIDと最終ログイン日時を更新しても、既存のWeb管理フラグを変更しない。
     /// </summary>
     [Fact]
@@ -201,7 +198,6 @@ public class WebAuthRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.02-登録系.md
     /// 検証契約: コンソール用MCID解決は完全一致で一意な登録だけを受け入れ、重複するMCIDを拒否する。
     /// </summary>
     [Fact]

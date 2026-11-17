@@ -10,11 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class StatusSnapshotTemporaryShieldTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-モデル操作.md
-     * 章・見出し: # 07_3-モデル操作 > ## 1. StatusSnapshot メソッド仕様 > ### 現在リソース更新
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-モデル操作.md
-     * 章・見出し: # 07_3-モデル操作 > ## 1. StatusSnapshot メソッド仕様 > ### 現在Shield更新
-     * 検証契約: 最大Shieldが0でも一時ShieldはHP/MP/ENG更新で維持し、通常Shield更新では上限を適用する。
+     * 最大Shieldが0でも一時ShieldはHP/MP/ENG更新で維持し、通常Shield更新では上限を適用する。
      */
     @Test
     void preservesTemporaryShieldAcrossResourceUpdatesWithoutChangingNormalShieldCap() {

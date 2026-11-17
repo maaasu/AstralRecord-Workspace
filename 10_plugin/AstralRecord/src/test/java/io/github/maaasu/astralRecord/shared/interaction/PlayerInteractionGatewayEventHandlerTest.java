@@ -62,9 +62,7 @@ class PlayerInteractionGatewayEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/28_4-統合フロー.md
-     * 章・見出し: # 28_4-統合フロー > ## 1. 同期クリック調停
-     * 検証契約: WORLD_INTERACTION勝者だけを実行し、元event・item use・block useを実行前に抑止する。
+     * WORLD_INTERACTION勝者だけを実行し、元event・item use・block useを実行前に抑止する。
      */
     @Test
     void executesOnlyHighestPriorityResolverAndCancelsBeforeExecution() {
@@ -98,9 +96,7 @@ class PlayerInteractionGatewayEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-イベント.md
-     * 章・見出し: # 28_3-イベント > ## 1. 右・左クリック受付
-     * 検証契約: 通常の初期cancel済みinteractはresolverもexecutorも呼ばずevent状態を維持する。
+     * 通常の初期cancel済みinteractはresolverもexecutorも呼ばずevent状態を維持する。
      */
     @Test
     void ignoresAlreadyCancelledEventWithoutResolvingOrExecuting() {
@@ -126,9 +122,7 @@ class PlayerInteractionGatewayEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 5. 入力token相関
-     * 検証契約: main/offhandの相関配送でexecutorを一回だけ実行し、cancel要求を両eventへ反映する。
+     * main/offhandの相関配送でexecutorを一回だけ実行し、cancel要求を両eventへ反映する。
      */
     @Test
     void mainAndOffHandDeliveriesExecuteOneWinner() {
@@ -152,9 +146,7 @@ class PlayerInteractionGatewayEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-イベント.md
-     * 章・見出し: # 28_3-イベント > ## 2. entity右クリック受付
-     * 検証契約: 汎用interactとentity interactを同一tokenへ相関し、勝者を一回だけ実行して後続eventへcancelを反映する。
+     * 汎用interactとentity interactを同一tokenへ相関し、勝者を一回だけ実行して後続eventへcancelを反映する。
      */
     @Test
     void genericAndEntityDeliveriesShareClaimAndExecuteOneWinner() {
@@ -183,9 +175,7 @@ class PlayerInteractionGatewayEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/28_0-概要.md
-     * 章・見出し: # 28_0-概要 > ## 4. claimとvanilla動作
-     * 検証契約: CLAIMのvanilla候補は重複executorを抑止するが相関する元eventをcancelしない。
+     * CLAIMのvanilla候補は重複executorを抑止するが相関する元eventをcancelしない。
      */
     @Test
     void claimedVanillaDeliveryDoesNotCancelCorrelatedEvent() {
@@ -211,9 +201,7 @@ class PlayerInteractionGatewayEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-イベント.md
-     * 章・見出し: # 28_3-イベント > ## 4. entity左クリック受付
-     * 検証契約: willAttack=false由来の初期cancel済みPrePlayerAttackでもcustom interaction候補を評価する。
+     * willAttack=false由来の初期cancel済みPrePlayerAttackでもcustom interaction候補を評価する。
      */
     @Test
     void evaluatesCustomInteractionWhenPreAttackIsInitiallyCancelled() {
@@ -240,9 +228,7 @@ class PlayerInteractionGatewayEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-イベント.md
-     * 章・見出し: # 28_3-イベント > ## 2. entity右クリック受付
-     * 検証契約: server-side Interaction entityへの初期cancel済み右clickでもcustom候補を評価する。
+     * server-side Interaction entityへの初期cancel済み右clickでもcustom候補を評価する。
      */
     @Test
     void evaluatesCustomInteractionWhenEntityRightClickIsInitiallyCancelled() {
@@ -269,9 +255,7 @@ class PlayerInteractionGatewayEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-イベント.md
-     * 章・見出し: # 28_3-イベント > ## 3. entity位置指定右クリック受付
-     * 検証契約: server-side Interaction entityへの初期cancel済み位置指定右clickでもcustom候補を評価する。
+     * server-side Interaction entityへの初期cancel済み位置指定右clickでもcustom候補を評価する。
      */
     @Test
     void evaluatesCustomInteractionWhenPositionRightClickIsInitiallyCancelled() {
@@ -298,9 +282,7 @@ class PlayerInteractionGatewayEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/28_4-統合フロー.md
-     * 章・見出し: # 28_4-統合フロー > ## 2. arm swing 遅延fallback
-     * 検証契約: arm swing受信tickでは実行・cancelせず、次tickでguard falseなら選択済みexecutorを見送る。
+     * arm swing受信tickでは実行・cancelせず、次tickでguard falseなら選択済みexecutorを見送る。
      */
     @Test
     void armSwingDefersAndSkipsInvalidatedWinnerWithoutEarlyCancel() {
@@ -327,9 +309,7 @@ class PlayerInteractionGatewayEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/28_4-統合フロー.md
-     * 章・見出し: # 28_4-統合フロー > ## 2. arm swing 遅延fallback
-     * 検証契約: 同tickのsemantic左clickを一回実行し、予約済みarm fallbackを抑止する。
+     * 同tickのsemantic左clickを一回実行し、予約済みarm fallbackを抑止する。
      */
     @Test
     void semanticLeftClickExecutesOnceAndSuppressesPendingArmFallback() {
@@ -356,9 +336,7 @@ class PlayerInteractionGatewayEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/28_4-統合フロー.md
-     * 章・見出し: # 28_4-統合フロー > ## 2. arm swing 遅延fallback
-     * 検証契約: 同tick・同handのblock place semantic観測後のarm swingをfallbackとして予約しない。
+     * 同tick・同handのblock place semantic観測後のarm swingをfallbackとして予約しない。
      */
     @Test
     void blockPlaceSemanticPreventsFollowingArmFallback() {
@@ -383,9 +361,7 @@ class PlayerInteractionGatewayEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/28_4-統合フロー.md
-     * 章・見出し: # 28_4-統合フロー > ## 2. arm swing 遅延fallback
-     * 検証契約: arm swing予約後に同tickのblock place semanticを観測した場合も次tickexecutorを抑止する。
+     * arm swing予約後に同tickのblock place semanticを観測した場合も次tickexecutorを抑止する。
      */
     @Test
     void blockPlaceSemanticSuppressesAlreadyPendingArmFallback() {

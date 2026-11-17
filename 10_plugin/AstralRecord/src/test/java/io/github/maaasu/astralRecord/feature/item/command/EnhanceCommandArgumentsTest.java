@@ -9,9 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 class EnhanceCommandArgumentsTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-コマンド.md
-     * 章・見出し: # 04_3-コマンド > ## 11. enhance コマンド
-     * 検証契約: 空白と現在強化値を含む装備指定を保持して、末尾の値指定を分離する。
+     * 空白と現在強化値を含む装備指定を保持して、末尾の値指定を分離する。
      */
     @Test
     void preservesMultiwordSelectionAndRelativeSign() {
@@ -22,9 +20,7 @@ class EnhanceCommandArgumentsTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-コマンド.md
-     * 章・見出し: # 04_3-コマンド > ## 11. enhance コマンド
-     * 検証契約: 末尾に対象プレイヤーを指定した場合は、その直前の整数を設定値として分離する。
+     * 末尾に対象プレイヤーを指定した場合は、その直前の整数を設定値として分離する。
      */
     @Test
     void separatesTrailingPlayerFromAbsoluteLevel() {
@@ -35,9 +31,7 @@ class EnhanceCommandArgumentsTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-コマンド.md
-     * 章・見出し: # 04_3-コマンド > ## 11. enhance コマンド
-     * 検証契約: 直前が強化値で末尾がオンライン名なら、数字だけの名前も対象指定として解釈する。
+     * 直前が強化値で末尾がオンライン名なら、数字だけの名前も対象指定として解釈する。
      */
     @Test
     void resolvesNumericOnlinePlayerNameAsTarget() {
@@ -51,9 +45,7 @@ class EnhanceCommandArgumentsTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-コマンド.md
-     * 章・見出し: # 04_3-コマンド > ## 11. enhance コマンド
-     * 検証契約: 数値の直前が強化値でない場合とオンライン名に一致しない場合は、その数値を設定値とする。
+     * 数値の直前が強化値でない場合とオンライン名に一致しない場合は、その数値を設定値とする。
      */
     @Test
     void keepsNumericLevelUnlessAValidTrailingTargetIsPresent() {
@@ -69,9 +61,7 @@ class EnhanceCommandArgumentsTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-コマンド.md
-     * 章・見出し: # 04_3-コマンド > ## 11. enhance コマンド
-     * 検証契約: 装備指定・値指定の不足、小数、符号だけ、不正な整数は解釈しない。
+     * 装備指定・値指定の不足、小数、符号だけ、不正な整数は解釈しない。
      */
     @Test
     void rejectsMissingOrMalformedArguments() {

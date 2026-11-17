@@ -20,9 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SkillTreeVisualizerTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 10. skill tree 設定・master snapshot
-     * 検証契約: 同一node IDでもdisplay/icon/tag/point/condition/effect内容差を変更として検出する。
+     * 同一node IDでもdisplay/icon/tag/point/condition/effect内容差を変更として検出する。
      */
     @Test
     void nodeDefinitionComparisonDetectsContentChangeWithSameNodeId() {
@@ -34,9 +32,7 @@ class SkillTreeVisualizerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
-     * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・軽量表示
-     * 検証契約: status絞り込みは補正の正負を問わず一致nodeを紫、複数条件の全一致nodeをマゼンタとして優先する。
+     * status絞り込みは補正の正負を問わず一致nodeを紫、複数条件の全一致nodeをマゼンタとして優先する。
      */
     @Test
     void statusFilterUsesAnyMatchAndAllMatchBeamStatesRegardlessOfModifierSign() {
@@ -77,9 +73,7 @@ class SkillTreeVisualizerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
-     * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・軽量表示
-     * 検証契約: 強調ビームはXZ距離5mで等倍、1mでscale 0とし、その間を線形に縮小する。
+     * 強調ビームはXZ距離5mで等倍、1mでscale 0とし、その間を線形に縮小する。
      */
     @Test
     void nodeBeaconScaleShrinksLinearlyBetweenOneAndFiveBlocks() {
@@ -94,9 +88,7 @@ class SkillTreeVisualizerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
-     * 章・見出し: # 13_3-GUI・View > ## 10. スキルツリーノードの強調・絞り込み・軽量表示
-     * 検証契約: 微小移動は描画を予約せず、前回描画地点からの累積1block移動で予約する。
+     * 微小移動は描画を予約せず、前回描画地点からの累積1block移動で予約する。
      */
     @Test
     void movementRefreshUsesDistanceFromLastRenderedPosition() {

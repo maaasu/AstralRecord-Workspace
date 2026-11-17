@@ -17,9 +17,7 @@ class LocalMasterOverlayReferenceTest {
     @TempDir Path pluginData;
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## 共通基盤の設定スナップショットと入力正規化 > ### Dev ローカルマスタオーバーレイ
-     * 検証契約: ローカルスポナーが存在しない Mob レベルを要求したら、既定レベルへの暗黙フォールバックを拒否する。
+     * ローカルスポナーが存在しない Mob レベルを要求したら、既定レベルへの暗黙フォールバックを拒否する。
      */
     @Test
     void localSpawnerRequiresExactMobLevel() {
@@ -36,9 +34,7 @@ class LocalMasterOverlayReferenceTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## 共通基盤の設定スナップショットと入力正規化 > ### Dev ローカルマスタオーバーレイ
-     * 検証契約: 遅延 Mob ID 検索はローカル原稿を先に解析し、共有 API への照会なしに返す。
+     * 遅延 Mob ID 検索はローカル原稿を先に解析し、共有 API への照会なしに返す。
      */
     @Test
     void localMobIdLookupUsesLocalYaml() {

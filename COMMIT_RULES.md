@@ -82,7 +82,7 @@ AstralRecord モノレポ全体のコミット運用ルールです。
 例:
 
 ```text
-docs: 設計書レビュー用skillを追加
+docs: AIパーソナライズの入口を追加
 chore: develop向けコミット手順を追加
 fix: プレイヤー退出時のキャッシュ削除順を修正
 ```

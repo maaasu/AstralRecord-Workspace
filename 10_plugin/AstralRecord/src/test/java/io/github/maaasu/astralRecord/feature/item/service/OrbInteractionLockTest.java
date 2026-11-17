@@ -9,9 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class OrbInteractionLockTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: API操作と正本照合中だけロックし、結果反映時にREADYへ戻して解除する。
+     * API操作と正本照合中だけロックし、結果反映時にREADYへ戻して解除する。
      */
     @Test
     void mutationStaysLockedUntilResultIsApplied() {
@@ -29,9 +27,7 @@ class OrbInteractionLockTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: close済みセッションは遅延した更新完了通知を受けてもCLOSEDを維持して再開しない。
+     * close済みセッションは遅延した更新完了通知を受けてもCLOSEDを維持して再開しない。
      */
     @Test
     void closedSessionCannotBeReactivatedByLateCompletion() {
@@ -46,9 +42,7 @@ class OrbInteractionLockTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 状態変化とルーン操作は残オーブの有無を問わず閉じ、それ以外は同種オーブが0個の場合だけ閉じる。
+     * 状態変化とルーン操作は残オーブの有無を問わず閉じ、それ以外は同種オーブが0個の場合だけ閉じる。
      */
     @Test
     void refreshClosesForTranscendenceOrWhenNoSameOrbRemains() {

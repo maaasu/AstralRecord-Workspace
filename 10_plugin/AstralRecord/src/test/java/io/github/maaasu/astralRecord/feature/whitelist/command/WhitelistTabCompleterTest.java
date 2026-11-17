@@ -14,9 +14,7 @@ import static org.mockito.Mockito.mock;
 class WhitelistTabCompleterTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-コマンド.md
-     * 章・見出し: # 03_3-コマンド > ## 6. whitelist メンテナンス切替
-     * 検証契約: whitelist の第1引数では enable と user を補完する。
+     * whitelist の第1引数では enable と user を補完する。
      */
     @Test
     void completesWhitelistSubcommands() {
@@ -29,9 +27,7 @@ class WhitelistTabCompleterTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-コマンド.md
-     * 章・見出し: # 03_3-コマンド > ## 7. whitelist ユーザー設定
-     * 検証契約: user の第2引数では add と remove を補完する。
+     * user の第2引数では add と remove を補完する。
      */
     @Test
     void completesWhitelistUserOperations() {
@@ -44,9 +40,7 @@ class WhitelistTabCompleterTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-コマンド.md
-     * 章・見出し: # 03_3-コマンド > ## 6. whitelist メンテナンス切替
-     * 検証契約: enable の第2引数では true と false を補完する。
+     * enable の第2引数では true と false を補完する。
      */
     @Test
     void completesWhitelistBooleanValues() {
@@ -59,9 +53,7 @@ class WhitelistTabCompleterTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-コマンド.md
-     * 章・見出し: # 03_3-コマンド > ## 7. whitelist ユーザー設定
-     * 検証契約: user add/remove の第3引数ではオンラインプレイヤー名を補完する。
+     * user add/remove の第3引数ではオンラインプレイヤー名を補完する。
      */
     @Test
     void completesOnlinePlayerNamesForWhitelistUser() {

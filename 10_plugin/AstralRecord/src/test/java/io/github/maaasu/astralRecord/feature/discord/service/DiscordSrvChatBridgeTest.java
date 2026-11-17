@@ -25,9 +25,7 @@ import static org.mockito.Mockito.when;
 class DiscordSrvChatBridgeTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_5-例外・ログ・運用.md
-     * 章・見出し: # 03_5-例外・ログ・運用 > ## 4. chat・ダイレクトメッセージ
-     * 検証契約: plugin.whitelistEnabled が有効な間は、DiscordSRV標準のMinecraft→Discord経路も中継しない。
+     * plugin.whitelistEnabled が有効な間は、DiscordSRV標準のMinecraft→Discord経路も中継しない。
      */
     @Test
     void maintenanceModeCancelsDiscordSrvAutomaticGameChat() throws Exception {
@@ -54,9 +52,7 @@ class DiscordSrvChatBridgeTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_5-例外・ログ・運用.md
-     * 章・見出し: # 03_5-例外・ログ・運用 > ## 4. chat・ダイレクトメッセージ
-     * 検証契約: whitelist 有効時は DiscordSRV のプレイヤー参加・初回参加・退出通知を抑制し、解除時に元の設定へ戻す。
+     * whitelist 有効時は DiscordSRV のプレイヤー参加・初回参加・退出通知を抑制し、解除時に元の設定へ戻す。
      */
     @Test
     void maintenanceModeSuppressesAndRestoresPlayerLifecycleMessages() {

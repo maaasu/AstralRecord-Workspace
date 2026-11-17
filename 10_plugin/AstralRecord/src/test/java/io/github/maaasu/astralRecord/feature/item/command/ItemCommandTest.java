@@ -25,9 +25,7 @@ import static org.mockito.Mockito.when;
 class ItemCommandTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-コマンド.md
-     * 章・見出し: # 04_3-コマンド > ## 4. ロード済みアイテム付与
-     * 検証契約: カテゴリータグ付きのGET指定は、タグのカテゴリーと表示名の組でロード済みアイテムを解決する。
+     * カテゴリータグ付きのGET指定は、タグのカテゴリーと表示名の組でロード済みアイテムを解決する。
      */
     @Test
     void resolvesGetByCategoryTaggedName() {
@@ -74,9 +72,7 @@ class ItemCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-コマンド.md
-     * 章・見出し: # 04_3-コマンド > ## 4. ロード済みアイテム付与
-     * 検証契約: 未知のカテゴリータグはカテゴリー検索へ誤変換せず、入力全体を通常のID・表示名検索へ渡す。
+     * 未知のカテゴリータグはカテゴリー検索へ誤変換せず、入力全体を通常のID・表示名検索へ渡す。
      */
     @Test
     void keepsUnknownCategoryTagInFallbackLookup() {

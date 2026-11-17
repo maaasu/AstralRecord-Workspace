@@ -21,9 +21,7 @@ import static org.mockito.Mockito.when;
 class MobKnockbackServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
-     * 章・見出し: # 12_3-戦闘 > ## 2. MobKnockbackService メソッド仕様 > ### ノックバック適用
-     * 検証契約: custom strengthへ(1-resistance/100)を乗算して水平knockbackを減衰する。
+     * custom strengthへ(1-resistance/100)を乗算して水平knockbackを減衰する。
      */
     @Test
     void customStrengthIsReducedByKnockbackResistance() {
@@ -54,9 +52,7 @@ class MobKnockbackServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
-     * 章・見出し: # 12_3-戦闘 > ## 2. MobKnockbackService メソッド仕様 > ### ノックバック適用
-     * 検証契約: knockback resistance 100%でcustom velocityを発生させない。
+     * knockback resistance 100%でcustom velocityを発生させない。
      */
     @Test
     void fullKnockbackResistancePreventsCustomVelocity() {
@@ -80,9 +76,7 @@ class MobKnockbackServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 24. メイジ フロストブリザードの実装契約 > ### 24.1 数値・移動・対象
-     * 検証契約: 任意方向velocityはノックバック耐性50で全成分が半減し、耐性100では適用されない。
+     * 任意方向velocityはノックバック耐性50で全成分が半減し、耐性100では適用されない。
      */
     @Test
     void arbitraryVelocityIsLinearlyReducedByKnockbackResistance() {
@@ -137,9 +131,7 @@ class MobKnockbackServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
-     * 章・見出し: # 12_3-戦闘 > ## 2. MobKnockbackService メソッド仕様 > ### ノックバック適用
-     * 検証契約: 追加multiplierでbase knockbackを比例scaleする。
+     * 追加multiplierでbase knockbackを比例scaleする。
      */
     @Test
     void additionalMultiplierScalesNormalKnockback() {
@@ -169,9 +161,7 @@ class MobKnockbackServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
-     * 章・見出し: # 12_3-戦闘 > ## 2. MobKnockbackService メソッド仕様 > ### ノックバック適用
-     * 検証契約: 同一対象へのノックバックは4 tickの受付クールダウンで抑制し、通常攻撃と指定強度の経路で共有する。
+     * 同一対象へのノックバックは4 tickの受付クールダウンで抑制し、通常攻撃と指定強度の経路で共有する。
      */
     @Test
     void sameTargetKnockbackIsSuppressedForCooldownTicks() {

@@ -1,6 +1,6 @@
 # AstralRecordControl
 
-最初に [README.md](README.md) と [設計書入口](../../00_docs/30_WEB設計書/AstralRecordControl/README.md) の対象段階を読む。既存AstralRecordWeb/APIの認証・DB・設定を共有しない。
+最初に [README.md](README.md) の対象機能と、実際の呼び出し元・テストを確認する。既存AstralRecordWeb/APIの認証・DB・設定を共有しない。
 
 - .NET 10、専用SQLite、Razor Pages、SignalR。ContractsにWeb/Windows依存を追加しない。
 - P1はJava/Velocityの基本運転・ログ・共通gateまで。VelocityはHostのP1.Velocity能力も必要。Control:EnableProcessControlとRunnerのEnableProcessControlは既定false。既存入口を改修し導入markerを確認するまで有効化しない。P2はAgentのファイル・停止バックアップ・journal復元を扱い、Web/Agent/RunnerのEnableFileControlは既定false。P3は同一Hostの予約実行・監視・Webhook通知を扱い、Web/AgentのEnableSchedulesは既定false。P4以降のPC横断/Environment Workflowや非対応kindは拒否する。

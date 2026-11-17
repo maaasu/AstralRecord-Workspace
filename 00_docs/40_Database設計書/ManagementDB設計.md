@@ -26,14 +26,14 @@
 
 `donation_grant`はアカウントUUIDと累計到達額ごとの配布指示。先にManagementDBへ確定し、固定メールIDでゲームDBへ配信してから配信済みにする。通信障害後も同じメールIDで再試行する。ゲームDBのみの初期化後は新規アカウントUUIDへ累計分を配信し、既存UUIDの復元では再配布しない。ManagementDBも初期化した場合は寄付情報が完全リセットとなる。
 
-`donation_notification`はユーザー本人への申請額・否認理由・配信完了通知、`donation_discord_link`は本人IDと公式サーバー参加の検証結果・暗号化OAuthトークンを保存する。詳細は[寄付API](../20_API設計書/feature/37-donations/37_README.md)と[テーブル定義](table-definitions/ManagementDB/dbo.donation.md)。
+`donation_notification`はユーザー本人への申請額・否認理由・配信完了通知、`donation_discord_link`は本人IDと公式サーバー参加の検証結果・暗号化OAuthトークンを保存する。詳細は[DonationController](../../20_api/AstralRecordApi/AstralRecordApi/Controllers/DonationController.cs)と[テーブル定義](table-definitions/ManagementDB/dbo.donation.md)。導入時は[寄付とDiscord連携の配置](../../60_tool/14-management-db-migrate/README.md#寄付とdiscord連携の配置)を参照する。
 
 ## 接続と移行
 
 - APIの`ConnectionStrings:Management`を優先。空なら既存`ConnectionStrings:SqlServer`から接続先DB名だけを`ManagementDB`に変更する。旧`ConnectionStrings:WebSite`は参照しない。
 - 新規環境では`table-definitions/ManagementDB/init.sql`を適用する。
 - 既存環境へ防衛戦を導入する場合は、API配置前に`table-definitions/ManagementDB/migrations/20261019_defense.sql`を適用する。開催中にManagementDBを初期化しない。
-- 既存環境へネットワーク管理を導入する場合は、API配置前に`table-definitions/ManagementDB/migrations/20260916_managed_network_and_bans.sql`を適用する。既存playerと権限を保持し、専用ロックと台帳で再適用を無処理とする。3DB用db-migrateの対象ではないため、[ネットワーク運用手順](../10_Plugin設計書/feature/33-network/33_5-例外・ログ・運用.md)の明示適用・スキーマ確認を必須とする。
+- 既存環境へネットワーク管理を導入する場合は、API配置前に`table-definitions/ManagementDB/migrations/20260916_managed_network_and_bans.sql`を適用する。既存playerと権限を保持し、専用ロックと台帳で再適用を無処理とする。3DB用db-migrateの対象ではないため、[ネットワーク運用手順](../../60_tool/14-management-db-migrate/README.md#ネットワーク管理の初回導入)の明示適用・スキーマ確認を必須とする。
 - 既存環境へWeb固定認証を導入する場合は、API配置前に`table-definitions/ManagementDB/migrations/20260917_web_credentials.sql`を適用する。認証情報は`dbo.player`から独立したUUID主キー表であり、ゲーム側テーブルへ外部キーを張らない。
 - 既存環境へ信頼済みブラウザを導入する場合は、API配置前に`table-definitions/ManagementDB/migrations/20260920_trusted_admin_browser.sql`を適用する。トークン本体は保存せず、認証情報のセッション世代と最後の管理画面利用日時を保存する。
 - 旧WebSiteDBから移行する場合は、APIの書込みを停止し、init適用後に`migrations/20260915-import-website.sql`を適用、件数・UUID・MCID・管理者フラグ・ログイン日時を照合してから新APIへ切り替える。

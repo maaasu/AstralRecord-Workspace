@@ -12,9 +12,7 @@ import static org.mockito.Mockito.mock;
 class GuiSessionTransitionServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI セッション遷移
-     * 検証契約: 別 GUI の open が成功した場合、遷移元の close 候補はセッション終了にならない。
+     * 別 GUI の open が成功した場合、遷移元の close 候補はセッション終了にならない。
      */
     @Test
     void successfulTransitionDoesNotEndTheSourceSession() {
@@ -31,9 +29,7 @@ class GuiSessionTransitionServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI セッション遷移
-     * 検証契約: 遷移先の open が cancel または失敗して新しいセッションが登録されない場合、遷移元を一度だけ終了する。
+     * 遷移先の open が cancel または失敗して新しいセッションが登録されない場合、遷移元を一度だけ終了する。
      */
     @Test
     void failedTransitionEndsTheSourceSessionExactlyOnce() {
@@ -49,9 +45,7 @@ class GuiSessionTransitionServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI セッション遷移
-     * 検証契約: close 後の共有継続遷移が予約されている間は、再表示先が開くまで source session を終了しない。
+     * close 後の共有継続遷移が予約されている間は、再表示先が開くまで source session を終了しない。
      */
     @Test
     void continuationKeepsTheSourceSessionAliveUntilTheTargetOpens() {
@@ -71,9 +65,7 @@ class GuiSessionTransitionServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI セッション遷移
-     * 検証契約: 継続遷移の target open が失敗した場合は source session だけを一度終了し、後続の close token は再終了しない。
+     * 継続遷移の target open が失敗した場合は source session だけを一度終了し、後続の close token は再終了しない。
      */
     @Test
     void failedContinuationEndsTheSourceSessionExactlyOnce() {
@@ -91,9 +83,7 @@ class GuiSessionTransitionServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI セッション遷移
-     * 検証契約: 連続遷移で古い close トークンを後から評価しても、後続 GUI セッションを終了しない。
+     * 連続遷移で古い close トークンを後から評価しても、後続 GUI セッションを終了しない。
      */
     @Test
     void consecutiveTransitionsDoNotLetOlderCloseTokensEndTheLatestSession() {
@@ -116,9 +106,7 @@ class GuiSessionTransitionServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI セッション遷移
-     * 検証契約: 手動 close は現在のセッションを一度だけ終了する。
+     * 手動 close は現在のセッションを一度だけ終了する。
      */
     @Test
     void manualCloseEndsTheCurrentSessionExactlyOnce() {
@@ -134,9 +122,7 @@ class GuiSessionTransitionServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI セッション遷移
-     * 検証契約: ログアウトは現在の session を音なし終了対象として一度だけ返し、予約済み close・継続 token による再終了を防ぐ。
+     * ログアウトは現在の session を音なし終了対象として一度だけ返し、予約済み close・継続 token による再終了を防ぐ。
      */
     @Test
     void silentLogoutEndsTheCurrentSessionAndConsumesPendingTokens() {

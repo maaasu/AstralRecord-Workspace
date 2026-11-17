@@ -89,9 +89,7 @@ class PlayerAdminDrainServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
-     * 章・見出し: # 40_player-admin-edit 概要 > ## runtime登録とカタログ準備
-     * 検証契約: いずれかのハッシュが空白ならAPI通信と遮断解除をせず、準備後は同じ起動IDで登録・取得を再開する。
+     * いずれかのハッシュが空白ならAPI通信と遮断解除をせず、準備後は同じ起動IDで登録・取得を再開する。
      */
     @Test
     void waitsForBothCatalogHashesAndResumesWithTheSameBootWithoutUnblocking() {
@@ -131,9 +129,7 @@ class PlayerAdminDrainServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
-     * 章・見出し: # 40_player-admin-edit 概要 > ## 編集開始と保存境界
-     * 検証契約: 編集対象と現在のプレイヤーアカウントが異なっても実際の稼働アカウントの保存を待つ。
+     * 編集対象と現在のプレイヤーアカウントが異なっても実際の稼働アカウントの保存を待つ。
      */
     @Test
     void waitsForActualActiveAccountCriticalOperationAndPreSaveBeforeKick() {
@@ -164,9 +160,7 @@ class PlayerAdminDrainServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
-     * 章・見出し: # 40_player-admin-edit 概要 > ## 編集開始と保存境界
-     * 検証契約: 事前保存に失敗した場合はキックも退避 ACK も行わない。
+     * 事前保存に失敗した場合はキックも退避 ACK も行わない。
      */
     @Test
     void failedPreSaveDoesNotKickOrAcknowledge() {
@@ -182,9 +176,7 @@ class PlayerAdminDrainServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
-     * 章・見出し: # 40_player-admin-edit 概要 > ## 編集開始と保存境界
-     * 検証契約: 非同期の退出保存と session close 完了前は ACK せず、再試行でも同じ ID と boot を使う。
+     * 非同期の退出保存と session close 完了前は ACK せず、再試行でも同じ ID と boot を使う。
      */
     @Test
     void pendingQuitSaveOrSessionClosePreventsAckAndRetryKeepsTheSameBoot() {
@@ -225,9 +217,7 @@ class PlayerAdminDrainServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
-     * 章・見出し: # 40_player-admin-edit 概要 > ## 編集開始と保存境界
-     * 検証契約: プレイヤーが見えなくても参加処理と未完了保存が残れば ACK しない。
+     * プレイヤーが見えなくても参加処理と未完了保存が残れば ACK しない。
      */
     @Test
     void noPlayerStillWaitsForJoinAndQueuedSave() {
@@ -250,9 +240,7 @@ class PlayerAdminDrainServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
-     * 章・見出し: # 40_player-admin-edit 概要 > ## 編集開始と保存境界
-     * 検証契約: 回復待ちへ移っても同じ起動セッションは保存・退出確認を続け、証拠前に ACK や解除をしない。
+     * 回復待ちへ移っても同じ起動セッションは保存・退出確認を続け、証拠前に ACK や解除をしない。
      */
     @Test
     void recoveryRequiredContinuesDrainWithoutUnlockingBeforeProof() {
@@ -292,9 +280,7 @@ class PlayerAdminDrainServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
-     * 章・見出し: # 40_player-admin-edit 概要 > ## 編集開始と保存境界
-     * 検証契約: 初回 poll 前の退出も実アカウントに紐付け、関連保存と session close の失敗中は ACK しない。
+     * 初回 poll 前の退出も実アカウントに紐付け、関連保存と session close の失敗中は ACK しない。
      */
     @Test
     void quitBeforeFirstPollRetainsActualAccountFutureAndRetriesClose() {
@@ -329,9 +315,7 @@ class PlayerAdminDrainServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
-     * 章・見出し: # 40_player-admin-edit 概要 > ## 冪等性と復旧
-     * 検証契約: 古い失敗は同じ実アカウントの後続完全保存で回復できるが、未完了保存は追い越さない。
+     * 古い失敗は同じ実アカウントの後続完全保存で回復できるが、未完了保存は追い越さない。
      */
     @Test
     void laterSuccessfulFullQuitSupersedesFailedButNotPendingSameAccount() {

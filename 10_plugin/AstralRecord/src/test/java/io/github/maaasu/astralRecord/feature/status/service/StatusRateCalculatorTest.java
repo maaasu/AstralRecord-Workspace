@@ -13,9 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class StatusRateCalculatorTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/07_1-モデル定義.md
-     * 章・見出し: # 07_1-モデル定義 > ## 4. ステータス種別 > ### 4.7 回復・ユーティリティ系 > #### 4.7.1 基準100%の率ステータス
-     * 検証契約: 200%のEXP獲得量増加率は50の基準EXPを100へ増やす。
+     * 200%のEXP獲得量増加率は50の基準EXPを100へ増やす。
      */
     @Test
     void doublesExperienceAtTwoHundredPercent() {
@@ -29,9 +27,7 @@ class StatusRateCalculatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/07_1-モデル定義.md
-     * 章・見出し: # 07_1-モデル定義 > ## 4. ステータス種別 > ### 4.7 回復・ユーティリティ系 > #### 4.7.1 基準100%の率ステータス
-     * 検証契約: ステータス値のないスナップショットでは100%を使い、基準量を維持する。
+     * ステータス値のないスナップショットでは100%を使い、基準量を維持する。
      */
     @Test
     void usesNeutralRateWhenSnapshotHasNoRateValue() {

@@ -12,17 +12,15 @@
 |:--|:--|
 | 作業ツリーの作成・完了処理・マージ | `$astralrecord-git-worktree-develop` |
 | ローカル作業ツリーでの実装・検証と develop への反映 | `$astralrecord-code-version-commit-develop` |
-| 新規実装・仕様反映の担当 | `$astralrecord-code` |
+| 実装、挙動・契約変更の担当 | `$astralrecord-code` |
 | Minecraft 内スキルの担当 | `$astralrecord-skill-author` |
 | 本番 ファイルベース 作成の担当 | `$astralrecord-master-data-author` |
 | 指定 ファイルベース の高速直接作成（単一ライターの例外経路） | `$astralrecord-master-data-create-direct` |
 | スキル定義・参照・スクリプト更新の担当 | `$skill-creator` |
 | 開始・終了コミットや指定されたお知らせ内容からリリースノートMDの下書きを作成 | `$astralrecord-release-note-author` |
 | 現在の作業差分だけをコミット | `$astralrecord-commit-current-diff` |
-| コード・ワークスペーススキルのレビュー | `$astralrecord-code-review` |
-| コードレビュー指摘の修正 | `$astralrecord-code-fix` |
-| 設計書レビュー | `$astralrecord-docs-review` |
-| 設計書レビュー指摘の修正 | `$astralrecord-docs-fix` |
+| コード・設定・資料・ワークスペーススキルのレビュー | `$astralrecord-code-review` |
+| レビュー指摘の修正 | `$astralrecord-code-fix` |
 | 複数の codex ブランチをマージ | `$astralrecord-merge-codex-branches-develop` |
 | マージ済み作業ツリーの監査・整理 | `$astralrecord-prune-codex-worktrees` |
 

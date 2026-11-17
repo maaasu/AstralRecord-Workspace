@@ -12,9 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 class FishingLevelSelectionTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 釣りマスタレベルの選択
-     * 検証契約: 単一の下位定義は上限を超える竿でも選択され、定義より低い竿へ上位を解放しない。
+     * 単一の下位定義は上限を超える竿でも選択され、定義より低い竿へ上位を解放しない。
      */
     @Test
     void singleDefinitionFallsBackWithoutUnlockingHigherLevel() {
@@ -26,9 +24,7 @@ class FishingLevelSelectionTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 釣りマスタレベルの選択
-     * 検証契約: 入力順と定義間の空白に依存せず、竿以下の最も高い開始レベルを適用する。
+     * 入力順と定義間の空白に依存せず、竿以下の最も高い開始レベルを適用する。
      */
     @Test
     void selectsHighestLowerDefinitionAcrossGapsAndInputOrder() {

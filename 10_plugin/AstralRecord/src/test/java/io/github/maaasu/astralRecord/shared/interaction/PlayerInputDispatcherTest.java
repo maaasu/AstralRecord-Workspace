@@ -21,9 +21,7 @@ class PlayerInputDispatcherTest {
     );
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 4. 勝者選択
-     * 検証契約: 距離が遠くても高tierのINPUT_LOCKを低tierの近距離候補より優先する。
+     * 距離が遠くても高tierのINPUT_LOCKを低tierの近距離候補より優先する。
      */
     @Test
     void higherTierWinsBeforeShorterDistance() {
@@ -55,9 +53,7 @@ class PlayerInputDispatcherTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 4. 勝者選択
-     * 検証契約: 同一tierではstableOrderより先に短いhitDistanceを優先する。
+     * 同一tierではstableOrderより先に短いhitDistanceを優先する。
      */
     @Test
     void nearerCandidateWinsWithinSameTier() {
@@ -88,9 +84,7 @@ class PlayerInputDispatcherTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 4. 勝者選択
-     * 検証契約: tier・距離同値ではstableOrder、targetKey、候補IDの順で決定的に一件を選ぶ。
+     * tier・距離同値ではstableOrder、targetKey、候補IDの順で決定的に一件を選ぶ。
      */
     @Test
     void fixedOrderTargetKeyAndIdBreakExactTiesDeterministically() {
@@ -135,9 +129,7 @@ class PlayerInputDispatcherTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/28_1-モデル定義.md
-     * 章・見出し: # 28_1-モデル定義 > ## 5. プレイヤー入力候補
-     * 検証契約: 負数・NaN・無限大のhitDistanceを候補生成時に拒否する。
+     * 負数・NaN・無限大のhitDistanceを候補生成時に拒否する。
      */
     @Test
     void rejectsInvalidHitDistance() {
@@ -168,9 +160,7 @@ class PlayerInputDispatcherTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 1. プレイヤー入力調停
-     * 検証契約: 候補なしではwinnerなし・PASS_THROUGH・claimなし・cancelなしを返す。
+     * 候補なしではwinnerなし・PASS_THROUGH・claimなし・cancelなしを返す。
      */
     @Test
     void noCandidateReturnsPassThroughWithoutExecution() {
@@ -187,9 +177,7 @@ class PlayerInputDispatcherTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 1. プレイヤー入力調停
-     * 検証契約: 選択した勝者executorだけを一回実行しCLAIM_AND_CANCEL結果を返す。
+     * 選択した勝者executorだけを一回実行しCLAIM_AND_CANCEL結果を返す。
      */
     @Test
     void executesOnlyOneWinnerExactlyOnce() {
@@ -220,9 +208,7 @@ class PlayerInputDispatcherTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 1. プレイヤー入力調停
-     * 検証契約: 勝者executorが例外になっても敗者fallbackを実行しない。
+     * 勝者executorが例外になっても敗者fallbackを実行しない。
      */
     @Test
     void winnerExceptionDoesNotExecuteFallback() {
@@ -255,9 +241,7 @@ class PlayerInputDispatcherTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 1. プレイヤー入力調停
-     * 検証契約: 勝者guardがfalseなら勝者executorも敗者fallbackも実行せず、選択済み勝者を結果へ残す。
+     * 勝者guardがfalseなら勝者executorも敗者fallbackも実行せず、選択済み勝者を結果へ残す。
      */
     @Test
     void invalidatedWinnerSkipsExecutionWithoutFallingBack() {

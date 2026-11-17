@@ -41,9 +41,7 @@ import static org.mockito.Mockito.when;
 class InventorySaveCoordinatorTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
-     * 章・見出し: # 40_player-admin-edit 概要 > ## 編集開始と保存境界
-     * 検証契約: 退避中は新規ローカル変更と外部操作を拒否し、編集終了後だけ通常受付へ戻す。
+     * 退避中は新規ローカル変更と外部操作を拒否し、編集終了後だけ通常受付へ戻す。
      */
     @Test
     void adminEditDrainFencesNewMutationsUntilReleased() {
@@ -66,9 +64,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
-     * 章・見出し: # 40_player-admin-edit 概要 > ## 編集開始と保存境界
-     * 検証契約: 退避開始前に取得済みの外部操作境界は同じ handle で確定でき、新規操作だけを止める。
+     * 退避開始前に取得済みの外部操作境界は同じ handle で確定でき、新規操作だけを止める。
      */
     @Test
     void preparedExternalOperationCanSettleAfterAdminDrainStarts() {
@@ -102,9 +98,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: 外部取引の反映後に保存がタイムアウトしても、再試行は保存だけを行い、受取Goldを再加算しない。
+     * 外部取引の反映後に保存がタイムアウトしても、再試行は保存だけを行い、受取Goldを再加算しない。
      */
     @Test
     void preparedRetryAfterSaveTimeoutDoesNotReapplyGoldDelta() {
@@ -147,9 +141,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: 外部結果の照合自体が失敗した場合は、同じ handle で照合を再試行できる。
+     * 外部結果の照合自体が失敗した場合は、同じ handle で照合を再試行できる。
      */
     @Test
     void preparedRetryRepeatsReconciliationThatDidNotComplete() {
@@ -188,9 +180,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## ローカル操作の即時応答
-     * 検証契約: 先行保存が未実行でも強化・回復のローカル結果を即時に返し、DB保存失敗で補償しない。
+     * 先行保存が未実行でも強化・回復のローカル結果を即時に返し、DB保存失敗で補償しない。
      */
     @Test
     void responsiveMutationCompletesWhileEarlierSaveIsQueued() {
@@ -217,9 +207,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## ローカル操作の即時応答
-     * 検証契約: 外部取引が保留中のアカウントでは即時操作も消費・計算を実行しない。
+     * 外部取引が保留中のアカウントでは即時操作も消費・計算を実行しない。
      */
     @Test
     void responsiveMutationRejectsPendingExternalBoundary() {
@@ -239,9 +227,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 重要操作のACKと補償
-     * 検証契約: 重要操作の結果不明では補償・再計算・排他解除を行わず、同一保存の確定後に成功する。
+     * 重要操作の結果不明では補償・再計算・排他解除を行わず、同一保存の確定後に成功する。
      */
     @Test
     void criticalUnknownOutcomeKeepsMutationAndBoundaryUntilAcknowledged() {
@@ -276,9 +262,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: 同一accountの未開始autosave/close save重複要求を1件へまとめる。
+     * 同一accountの未開始autosave/close save重複要求を1件へまとめる。
      */
     @Test
     void coalescesPendingStorageCloseSaves() {
@@ -306,9 +290,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: 200ms以内に到着した通常autosaveを1回のsnapshot保存へ集約する。
+     * 200ms以内に到着した通常autosaveを1回のsnapshot保存へ集約する。
      */
     @Test
     void coalescesAutosavesWithinDebounceWindow() throws Exception {
@@ -335,9 +317,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: チャンネル境界保存はsnapshot中に増えた差分も再保存し、未保存差分が消えたACK後だけ成功する。
+     * チャンネル境界保存はsnapshot中に増えた差分も再保存し、未保存差分が消えたACK後だけ成功する。
      */
     @Test
     void boundarySaveRetriesUntilNoPendingChangesRemain() {
@@ -360,9 +340,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: チャンネル境界のsnapshot保存が失敗した場合はstateを解放せず移動失敗を返す。
+     * チャンネル境界のsnapshot保存が失敗した場合はstateを解放せず移動失敗を返す。
      */
     @Test
     void boundarySaveFailureRetainsCurrentSessionState() {
@@ -386,9 +364,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: 重要操作の完成snapshotがSQL ACKを得られない場合は操作前状態へ補償して失敗確定する。
+     * 重要操作の完成snapshotがSQL ACKを得られない場合は操作前状態へ補償して失敗確定する。
      */
     @Test
     void criticalSaveFailureRollsBackBeforeFailureCompletes() {
@@ -417,9 +393,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: 完成snapshotのSQL確定をACKで判定できない場合は完成ローカル状態とblockを維持し、補償しない。
+     * 完成snapshotのSQL確定をACKで判定できない場合は完成ローカル状態とblockを維持し、補償しない。
      */
     @Test
     void criticalAcknowledgementFailureDoesNotRollBackCommittedState() {
@@ -450,9 +424,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: critical pre-saveのcapture中に通常変更が増えた場合は次便まで保存してから重要操作を開始する。
+     * critical pre-saveのcapture中に通常変更が増えた場合は次便まで保存してから重要操作を開始する。
      */
     @Test
     void criticalMutationRetriesPreSaveUntilParticipantChangesAreStable() {
@@ -480,9 +452,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: reconciliation境界を跨ぐsaveをcoalesceせず順序を維持する。
+     * reconciliation境界を跨ぐsaveをcoalesceせず順序を維持する。
      */
     @Test
     void doesNotCoalesceSaveAcrossReconciliationBoundary() {
@@ -516,9 +486,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: close save失敗後もlogout saveを実行し、retry成功後だけstateを解放する。
+     * close save失敗後もlogout saveを実行し、retry成功後だけstateを解放する。
      */
     @Test
     void runsLogoutAfterFailedCloseSaveAndReleasesStateOnlyAfterRetrySucceeds() {
@@ -559,9 +527,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_5-例外・ログ・運用.md
-     * 章・見出し: # 08_5-例外・ログ・運用 > ## 3. 例外・運用方針
-     * 検証契約: autosave失敗時にdirty stateをregistryへ保持しretry成功まで解放しない。
+     * autosave失敗時にdirty stateをregistryへ保持しretry成功まで解放しない。
      */
     @Test
     void keepsDirtyStateAttachedUntilAutosaveRetrySucceeds() {
@@ -595,9 +561,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: 即時再loginはlogout完了を待ち、失敗retained stateを取得してstale API dataをloadしない。
+     * 即時再loginはlogout完了を待ち、失敗retained stateを取得してstale API dataをloadしない。
      */
     @Test
     void quickRelogWaitsForLogoutAndClaimsFailedStateInsteadOfLoadingStaleData() {
@@ -635,9 +599,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: アカウント切替用バリアは先行logout保存の失敗を伝播し、切替処理を続行させない。
+     * アカウント切替用バリアは先行logout保存の失敗を伝播し、切替処理を続行させない。
      */
     @Test
     void accountSwitchBarrierPropagatesFailedPriorLogoutSave() {
@@ -663,9 +625,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: 同一accountのimmediate/autosave/logoutを単一laneで直列化する。
+     * 同一accountのimmediate/autosave/logoutを単一laneで直列化する。
      */
     @Test
     void serializesImmediateAutoAndLogoutSavesForSameAccount() throws Exception {
@@ -715,9 +675,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: reconciliation失敗後も現sessionのlogout保存を継続する。
+     * reconciliation失敗後も現sessionのlogout保存を継続する。
      */
     @Test
     void continuesLogoutSaveAfterReconciliationFailure() {
@@ -748,9 +706,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: pending write待機自身を保存laneへ登録せず自己待機しない。
+     * pending write待機自身を保存laneへ登録せず自己待機しない。
      */
     @Test
     void pendingWriteWaitDoesNotCreateOrFollowItsOwnLane() {
@@ -764,9 +720,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: closing drain後のlate saveを拒否しdirty flagを消さない。
+     * closing drain後のlate saveを拒否しdirty flagを消さない。
      */
     @Test
     void rejectsLateSaveAfterClosingDrainWithoutClearingDirtyState() {
@@ -791,9 +745,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: closing後に拒否された外部操作は未開始として例外完了し、未解決境界を残さない。
+     * closing後に拒否された外部操作は未開始として例外完了し、未解決境界を残さない。
      */
     @Test
     void rejectedLateExternalOperationDoesNotLeakUnresolvedBoundary() {
@@ -821,9 +773,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: オーブ操作jobは同一account laneで事前保存後にPOST・同一ID照会再送・影響entry照合を終え、その後で後続autosaveとlogout保存を開始する。
+     * オーブ操作jobは同一account laneで事前保存後にPOST・同一ID照会再送・影響entry照合を終え、その後で後続autosaveとlogout保存を開始する。
      */
     @Test
     void exclusiveOrbOperationCompletesReconciliationBeforeLaterSaveAndLogout() {
@@ -875,9 +825,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: オーブ操作前のinventory保存が失敗した場合は外部操作もローカル支払い変更も行わず、同じlaneの後続logout保存は継続する。
+     * オーブ操作前のinventory保存が失敗した場合は外部操作もローカル支払い変更も行わず、同じlaneの後続logout保存は継続する。
      */
     @Test
     void failedPreSavePreventsOrbOperationWithoutLocalAheadConsumption() {
@@ -913,9 +861,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: shutdown drain開始前に受理したオーブ操作はclosing後も同一lane内で最後まで実行し、影響entry照合を完了してからdrainを完了する。
+     * shutdown drain開始前に受理したオーブ操作はclosing後も同一lane内で最後まで実行し、影響entry照合を完了してからdrainを完了する。
      */
     @Test
     void shutdownDrainWaitsForAlreadyAcceptedOrbOperation() {
@@ -945,9 +891,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: 古い prepared handle の遅延破棄は、同一accountで後から開始した外部操作の境界を解除しない。
+     * 古い prepared handle の遅延破棄は、同一accountで後から開始した外部操作の境界を解除しない。
      */
     @Test
     void stalePreparedCleanupCannotReleaseNewExternalOperationBoundary() {
@@ -978,9 +922,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: 三者マージ後保存中に同account stateが再変更された場合は2回目の保存までunresolved境界を保持し、先行受理済みlogoutとshutdown drainをその後にだけ完了する。
+     * 三者マージ後保存中に同account stateが再変更された場合は2回目の保存までunresolved境界を保持し、先行受理済みlogoutとshutdown drainをその後にだけ完了する。
      */
     @Test
     void postMergeSaveLatchRetriesBeforeUnresolvedLogoutAndShutdownRelease() throws Exception {
@@ -1051,9 +993,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: terminal未確認の外部操作が例外終了した場合はunresolved境界を保持し、即時保存・autosave・logout・cleanupがstale stateを永続化または解放しない。
+     * terminal未確認の外部操作が例外終了した場合はunresolved境界を保持し、即時保存・autosave・logout・cleanupがstale stateを永続化または解放しない。
      */
     @Test
     void unresolvedExternalOperationBlocksEverySaveAndCleanupBoundary() {
@@ -1094,9 +1034,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: 外部操作後の正本保存が失敗し続けても、有限時間で future を失敗完了し、未解決境界を保持する。
+     * 外部操作後の正本保存が失敗し続けても、有限時間で future を失敗完了し、未解決境界を保持する。
      */
     @Test
     void timesOutPostExternalSaveWhileKeepingUnresolvedBoundary() {
@@ -1139,9 +1077,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 保存不能の診断と再ロード
-     * 検証契約: 復旧要求は開始済み保存の完了前に旧stateを破棄せず、完了後に一度だけ破棄する。
+     * 復旧要求は開始済み保存の完了前に旧stateを破棄せず、完了後に一度だけ破棄する。
      */
     @Test
     void recoveryDisposalWaitsForInFlightSaveBeforeDiscardingOldState() throws Exception {
@@ -1181,9 +1117,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 保存不能の診断と再ロード
-     * 検証契約: 復旧中に未開始だった旧保存は実行せず、再ロード後に新stateだけを保存受付へ戻す。
+     * 復旧中に未開始だった旧保存は実行せず、再ロード後に新stateだけを保存受付へ戻す。
      */
     @Test
     void recoveryCancelsQueuedOldSaveAndAcceptsOnlyReloadedStateAfterFinish() {
@@ -1216,9 +1150,7 @@ class InventorySaveCoordinatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 保存不能の診断と再ロード
-     * 検証契約: inventory破棄完了後もaccount runtime cleanupが終わるまで同accountの再ログイン読込を待機する。
+     * inventory破棄完了後もaccount runtime cleanupが終わるまで同accountの再ログイン読込を待機する。
      */
     @Test
     void recoveryJoinBarrierCompletesOnlyAfterAccountRecoveryFinishes() {

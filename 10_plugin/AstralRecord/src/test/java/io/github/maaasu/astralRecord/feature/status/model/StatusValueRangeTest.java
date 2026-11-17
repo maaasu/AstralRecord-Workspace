@@ -9,9 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class StatusValueRangeTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/07_1-モデル定義.md
-     * 章・見出し: # 07_1-モデル定義 > ## 3. ステータス値
-     * 検証契約: 上下限同値のstatusは単一値を返す。
+     * 上下限同値のstatusは単一値を返す。
      */
     @Test
     void fixedValueReturnsSingleTotal() {
@@ -23,9 +21,7 @@ class StatusValueRangeTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/07_1-モデル定義.md
-     * 章・見出し: # 07_1-モデル定義 > ## 3. ステータス値
-     * 検証契約: range statusのroll値を合計min/max閉区間内に収める。
+     * range statusのroll値を合計min/max閉区間内に収める。
      */
     @Test
     void rangeValueRollsWithinTotalBounds() {
@@ -40,9 +36,7 @@ class StatusValueRangeTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/07_1-モデル定義.md
-     * 章・見出し: # 07_1-モデル定義 > ## 3. ステータス値
-     * 検証契約: min=maxのrange表示を単一値へ畳み込む。
+     * min=maxのrange表示を単一値へ畳み込む。
      */
     @Test
     void statusFormattingCollapsesEqualRange() {
@@ -52,9 +46,7 @@ class StatusValueRangeTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/07_1-モデル定義.md
-     * 章・見出し: # 07_1-モデル定義 > ## 4. ステータス種別
-     * 検証契約: percentage statusを0〜1比率へ再換算せず保存済みpercentage pointで表示する。
+     * percentage statusを0〜1比率へ再換算せず保存済みpercentage pointで表示する。
      */
     @Test
     void percentageStatusFormattingUsesStoredPercentagePoints() {

@@ -1,4 +1,4 @@
 interface:
   display_name: "AstralRecord 実装"
-  short_description: "AstralRecord のコード変更を実装し、設計書と同期する"
-  default_prompt: "$astralrecord-code を使って、E:\\AstralRecord-Workspace\\<target-path> に対するコード変更を実装し、関連する設計書へ反映して結果を報告してください。"
+  short_description: "AstralRecord の変更依頼を既存の挙動と契約に照らして実装する"
+  default_prompt: "$astralrecord-code を使って、<target-path> の変更依頼と既存の契約を確認し、必要な変更を実装・検証してください。"

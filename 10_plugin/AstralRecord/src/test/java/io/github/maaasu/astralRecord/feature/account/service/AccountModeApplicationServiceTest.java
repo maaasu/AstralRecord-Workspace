@@ -32,9 +32,7 @@ import static org.mockito.Mockito.when;
 class AccountModeApplicationServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
-     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### アカウントモード更新
-     * 検証契約: 古いローカル確定世代の反映を拒否し、最新世代だけをオンラインへ反映する。
+     * 古いローカル確定世代の反映を拒否し、最新世代だけをオンラインへ反映する。
      */
     @Test
     void newerPersistedModeSupersedesDelayedOlderApplication() {
@@ -86,9 +84,7 @@ class AccountModeApplicationServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
-     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### アカウントモード更新
-     * 検証契約: 同一accountのモード確定を直列化し、先行mutation完了前に後続mutationを開始しない。
+     * 同一accountのモード確定を直列化し、先行mutation完了前に後続mutationを開始しない。
      */
     @Test
     void sameAccountPersistenceIsSerialized() throws Exception {
@@ -147,9 +143,7 @@ class AccountModeApplicationServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
-     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### offlineモードAPI保存
-     * 検証契約: offline保存後にログインした場合は、オンライン進行を保持したmode合成結果だけを反映して再保存しない。
+     * offline保存後にログインした場合は、オンライン進行を保持したmode合成結果だけを反映して再保存しない。
      */
     @Test
     void offlineModeSaveMergesOnlyModeWhenPlayerJoinsBeforeApplication() {
@@ -191,9 +185,7 @@ class AccountModeApplicationServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
-     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### offlineモードAPI保存
-     * 検証契約: API保存開始前に対象がオンライン化していた場合はoffline保存を拒否する。
+     * API保存開始前に対象がオンライン化していた場合はoffline保存を拒否する。
      */
     @Test
     void offlineModeSaveIsRejectedWhenAccountBecameOnline() {

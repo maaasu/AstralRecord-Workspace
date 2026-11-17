@@ -23,9 +23,7 @@ import static org.mockito.Mockito.when;
 class MobSkillServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
-     * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### AI スキル攻撃
-     * 検証契約: 上下照準を許可するスケルトン・アーチャーの弓矢は、三次元距離が発動距離内なら高低差が1.25 blockを超えても発動距離内と判定する。
+     * 上下照準を許可するスケルトン・アーチャーの弓矢は、三次元距離が発動距離内なら高低差が1.25 blockを超えても発動距離内と判定する。
      */
     @Test
     void skeletonArcherBowShotUsesThreeDimensionalActivationRange() {
@@ -53,9 +51,7 @@ class MobSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
-     * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### AI スキル攻撃
-     * 検証契約: 上下照準を許可しないスキルは、同じ高さでは水平射程で判定し、高低差が1.25 blockを超える対象を発動距離外と判定する。
+     * 上下照準を許可しないスキルは、同じ高さでは水平射程で判定し、高低差が1.25 blockを超える対象を発動距離外と判定する。
      */
     @Test
     void groundSkillRetainsVerticalTolerance() {

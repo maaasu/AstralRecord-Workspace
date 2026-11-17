@@ -15,9 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MarketListingEligibilityTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入
-     * 検証契約: 取引可能なBUNDLE、MATERIAL、ORB、CONSUMABLE、SIGILのstack itemは、固定カテゴリ列挙により出品候補から除外されない。
+     * 取引可能なBUNDLE、MATERIAL、ORB、CONSUMABLE、SIGILのstack itemは、固定カテゴリ列挙により出品候補から除外されない。
      */
     @Test
     void acceptsTradeableStackItemsAcrossSupportedNonCurrencyCategories() {
@@ -34,9 +32,7 @@ class MarketListingEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入
-     * 検証契約: stack itemのinstance typeが空白でも未指定として扱い、数量が正なら出品候補にできる。
+     * stack itemのinstance typeが空白でも未指定として扱い、数量が正なら出品候補にできる。
      */
     @Test
     void acceptsStackEntryWithBlankInstanceType() {
@@ -44,9 +40,7 @@ class MarketListingEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入
-     * 検証契約: Gold、取引不可item、不明カテゴリ、カテゴリと一致しない個体typeは出品候補にできない。
+     * Gold、取引不可item、不明カテゴリ、カテゴリと一致しない個体typeは出品候補にできない。
      */
     @Test
     void rejectsCurrencyUntradeableAndMalformedEntries() {
@@ -60,9 +54,7 @@ class MarketListingEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入
-     * 検証契約: 売却不可フラグと売値 0 はマーケット対象外ではなく、API の単価ガードで売値以下だけを拒否する。
+     * 売却不可フラグと売値 0 はマーケット対象外ではなく、API の単価ガードで売値以下だけを拒否する。
      */
     @Test
     void acceptsUnsellableAndZeroSellValueItemsForApiPriceGuard() {
@@ -73,9 +65,7 @@ class MarketListingEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入
-     * 検証契約: EQUIPMENT個体は出品候補にできるが、廃止済みのRUNE個体entryは拒否する。
+     * EQUIPMENT個体は出品候補にできるが、廃止済みのRUNE個体entryは拒否する。
      */
     @Test
     void acceptsEquipmentInstanceAndRejectsLegacyRuneInstance() {

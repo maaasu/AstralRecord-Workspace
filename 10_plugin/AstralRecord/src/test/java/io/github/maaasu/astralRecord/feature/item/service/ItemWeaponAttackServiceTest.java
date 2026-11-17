@@ -31,9 +31,7 @@ import static org.mockito.Mockito.when;
 class ItemWeaponAttackServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 武器左クリック処理
-     * 検証契約: 主手に weapon がない場合、スキル発動用の武器として扱わない。
+     * 主手に weapon がない場合、スキル発動用の武器として扱わない。
      */
     @Test
     void hasUsableMainHandWeaponRejectsMissingWeapon() {
@@ -45,9 +43,7 @@ class ItemWeaponAttackServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 武器左クリック処理
-     * 検証契約: 耐久値切れの主手 weapon はスキル発動用の武器として扱わない。
+     * 耐久値切れの主手 weapon はスキル発動用の武器として扱わない。
      */
     @Test
     void hasUsableMainHandWeaponRejectsBrokenWeapon() {
@@ -67,9 +63,7 @@ class ItemWeaponAttackServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 武器左クリック処理
-     * 検証契約: 必要プレイヤーレベル未満の主手 weapon はスキル発動用の武器として扱わない。
+     * 必要プレイヤーレベル未満の主手 weapon はスキル発動用の武器として扱わない。
      */
     @Test
     void hasUsableMainHandWeaponRejectsWeaponWhenPlayerLevelIsTooLow() {
@@ -87,9 +81,7 @@ class ItemWeaponAttackServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 武器左クリック処理
-     * 検証契約: 使用可能な主手 weapon はスキル発動用の武器として認める。
+     * 使用可能な主手 weapon はスキル発動用の武器として認める。
      */
     @Test
     void hasUsableMainHandWeaponAcceptsIntactWeapon() {
@@ -109,9 +101,7 @@ class ItemWeaponAttackServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 武器左クリック処理
-     * 検証契約: 通常攻撃は装備マスタの8武器タグから対応するシステムスキルを決定する。
+     * 通常攻撃は装備マスタの8武器タグから対応するシステムスキルを決定する。
      */
     @Test
     void currentLeftClickSkillIdResolvesSystemAttackFromWeaponTag() {
@@ -148,9 +138,7 @@ class ItemWeaponAttackServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 武器左クリック処理
-     * 検証契約: 8武器種は1つの通常攻撃cooldownを共有し、成功時は武器別の基本tickで開始する。
+     * 8武器種は1つの通常攻撃cooldownを共有し、成功時は武器別の基本tickで開始する。
      */
     @Test
     void normalAttacksShareCooldownAndUseWeaponSpecificBaseTicks() {
@@ -201,9 +189,7 @@ class ItemWeaponAttackServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 武器左クリック処理
-     * 検証契約: 通常攻撃の試行通知は、通常攻撃executorの成功・失敗にかかわらず呼び出される。
+     * 通常攻撃の試行通知は、通常攻撃executorの成功・失敗にかかわらず呼び出される。
      */
     @Test
     void attackAttemptListenerRunsForSuccessfulAndFailedNormalAttack() {

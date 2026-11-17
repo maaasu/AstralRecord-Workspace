@@ -38,9 +38,7 @@ import static org.mockito.Mockito.when;
 class PlayerModeEventHandlerTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 2. 候補解決
-     * 検証契約: プレイヤーモードでは vanilla のエンティティ操作・通常攻撃を遮断し、両者のPvP有効時だけプレイヤー攻撃を通す。
+     * プレイヤーモードでは vanilla のエンティティ操作・通常攻撃を遮断し、両者のPvP有効時だけプレイヤー攻撃を通す。
      */
     @Test
     void playerModeGuardsVanillaEntityInteractionAndDisallowedCombat() {
@@ -122,13 +120,7 @@ class PlayerModeEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤーモード操作制限
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
-     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### モードローカル確定
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
-     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### ローカルモードオンライン反映
-     * 検証契約: 管理者game mode要求はmain threadでlocal確定し、API応答を待たずBukkit反映する。
+     * 管理者game mode要求はmain threadでlocal確定し、API応答を待たずBukkit反映する。
      */
     @Test
     void adminGameModeRequestConfirmsLocallyThenAppliesOnMain() {

@@ -23,9 +23,7 @@ import static org.mockito.Mockito.when;
 class ItemServiceEquipmentPreloadTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 4. ガイド進行と通知
-     * 検証契約: 再ログイン時の破損補完は、読み込み済みの本人所有かつ最大耐久値がある装備だけを対象にする。
+     * 再ログイン時の破損補完は、読み込み済みの本人所有かつ最大耐久値がある装備だけを対象にする。
      */
     @Test
     void loadedBrokenEquipmentCheckUsesOwnerAndDurability() {
@@ -50,9 +48,7 @@ class ItemServiceEquipmentPreloadTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 候補収集用cache-only参照は未ロード装備で同期APIへfallbackせず、事前ロードが正規化重複を1回だけ取得した後は同じ参照から返す。
+     * 候補収集用cache-only参照は未ロード装備で同期APIへfallbackせず、事前ロードが正規化重複を1回だけ取得した後は同じ参照から返す。
      */
     @Test
     void cacheOnlyCandidateLookupNeverFallsBackAndPreloadDeduplicatesIo() {
@@ -81,9 +77,7 @@ class ItemServiceEquipmentPreloadTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
-     * 章・見出し: # 22_4-統合フロー > ## 3. Commit
-     * 検証契約: トレード後の owner 変更を反映するため、強制再読込は既存の送信側 cache を受取側の API 正本で置換する。
+     * トレード後の owner 変更を反映するため、強制再読込は既存の送信側 cache を受取側の API 正本で置換する。
      */
     @Test
     void forcedReloadReplacesTransferredEquipmentOwnerInCache() {
@@ -130,9 +124,7 @@ class ItemServiceEquipmentPreloadTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
-     * 章・見出し: # 22_4-統合フロー > ## 3. Commit
-     * 検証契約: API正本が既に dirty durability を含む場合、reload は未保存差分を二重適用しない。
+     * API正本が既に dirty durability を含む場合、reload は未保存差分を二重適用しない。
      */
     @Test
     void forcedReloadDoesNotDoubleApplyAlreadyPersistedDurability() {
@@ -168,9 +160,7 @@ class ItemServiceEquipmentPreloadTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
-     * 章・見出し: # 22_4-統合フロー > ## 3. Commit
-     * 検証契約: API耐久値が dirty の base/current と一致しない場合、推測で cache を置換せず recovery へ返す。
+     * API耐久値が dirty の base/current と一致しない場合、推測で cache を置換せず recovery へ返す。
      */
     @Test
     void forcedReloadRejectsUnmatchedDurabilityGeneration() {
@@ -208,9 +198,7 @@ class ItemServiceEquipmentPreloadTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
-     * 章・見出し: # 22_4-統合フロー > ## 3. Commit
-     * 検証契約: reload 中に cache が更新された場合、古い API 応答を公開せず recovery 結果を返す。
+     * reload 中に cache が更新された場合、古い API 応答を公開せず recovery 結果を返す。
      */
     @Test
     void forcedReloadRejectsResponseAfterCacheChangedDuringFetch() {

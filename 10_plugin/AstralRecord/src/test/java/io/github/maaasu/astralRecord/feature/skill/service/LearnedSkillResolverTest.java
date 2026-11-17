@@ -30,9 +30,7 @@ import static org.mockito.Mockito.when;
 class LearnedSkillResolverTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体の解決
-     * 検証契約: 各レベルの前レベル差分と有効シジルの補正を累積し、重複groupや不正slotを除外し、表示用テクスチャを保持する。
+     * 各レベルの前レベル差分と有効シジルの補正を累積し、重複groupや不正slotを除外し、表示用テクスチャを保持する。
      */
     @Test
     void resolveAccumulatesLevelDeltasAndOnlyEffectiveSigils() {
@@ -119,9 +117,7 @@ class LearnedSkillResolverTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体の解決
-     * 検証契約: 有効シジル0〜3個はレベル反映後の主消費と副MPへ1〜4倍を適用し、ゼロ消費と元定義を保持する。
+     * 有効シジル0〜3個はレベル反映後の主消費と副MPへ1〜4倍を適用し、ゼロ消費と元定義を保持する。
      */
     @Test
     void resolveCommonSigilResourceCost() {
@@ -179,9 +175,7 @@ class LearnedSkillResolverTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック > ### 6.1 アストラルエッジ変更契約
-     * 検証契約: アストラルエッジの最大ENG回復率はLv.1の5%へLv.2〜5の各2%を累積し、Lv.5で13%になる。
+     * アストラルエッジの最大ENG回復率はLv.1の5%へLv.2〜5の各2%を累積し、Lv.5で13%になる。
      */
     @Test
     void resolveAstralEdgeMaxLevelEnergyRecoveryRatio() {
@@ -231,9 +225,7 @@ class LearnedSkillResolverTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 26. メイジ フロストボールの実装契約 > ### 26.1 数値・対象・終端
-     * 検証契約: フロストボールの基礎40tickへLv.2〜5の各+40tickを累積すると、最大Lv.5の凍結設定値は200tick（10秒）になる。
+     * フロストボールの基礎40tickへLv.2〜5の各+40tickを累積すると、最大Lv.5の凍結設定値は200tick（10秒）になる。
      */
     @Test
     void resolveFrostBallMaxLevelFreezeDurationFromLevelDeltas() {

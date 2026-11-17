@@ -19,8 +19,6 @@ import static org.bukkit.persistence.PersistentDataType.BYTE;
 
 class ServerSelectorTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_0-概要.md
-     * 章・見出し: # 33_0-概要 > ## 不変条件
      * 検証契約: サーバー選択NPCの再生成・停止時は、ロード済み全ワールドの識別済みNPCをすべて除去する。
      */
     @Test

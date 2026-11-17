@@ -35,9 +35,7 @@ import static org.mockito.Mockito.when;
 
 class ItemEnhanceServiceTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 管理者強化値変更
-     * 検証契約: 選択候補があっても個体の所有者が異なる場合は変更せず保存へ登録しない。
+     * 選択候補があっても個体の所有者が異なる場合は変更せず保存へ登録しない。
      */
     @Test
     void rejectsForeignEquipmentAtMutationBoundary() {
@@ -50,9 +48,7 @@ class ItemEnhanceServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 管理者強化値変更
-     * 検証契約: 選択後に正本entryの個体が変わった場合は、元の個体と移動先の個体を変更しない。
+     * 選択後に正本entryの個体が変わった場合は、元の個体と移動先の個体を変更しない。
      */
     @Test
     void rejectsChangedInventoryIdentity() {
@@ -64,9 +60,7 @@ class ItemEnhanceServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 管理者強化値変更
-     * 検証契約: 所有者照合済みの減算変更は強化と耐久を一体反映し、非同期保存へ登録する。
+     * 所有者照合済みの減算変更は強化と耐久を一体反映し、非同期保存へ登録する。
      */
     @Test
     void commitsReducedLevelAndDurabilityThroughLocalSaveBoundary() {
@@ -81,9 +75,7 @@ class ItemEnhanceServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 管理者強化値変更
-     * 検証契約: 補正後の強化値が現在値と同じならdirty登録と保存登録を増やさない。
+     * 補正後の強化値が現在値と同じならdirty登録と保存登録を増やさない。
      */
     @Test
     void keepsUnchangedEquipmentClean() {
@@ -95,9 +87,7 @@ class ItemEnhanceServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 管理者強化値変更
-     * 検証契約: 外部所持品操作が未確定の場合は、強化値変更と保存登録の前に拒否する。
+     * 外部所持品操作が未確定の場合は、強化値変更と保存登録の前に拒否する。
      */
     @Test
     void refusesMutationWhileExternalOperationIsPending() {

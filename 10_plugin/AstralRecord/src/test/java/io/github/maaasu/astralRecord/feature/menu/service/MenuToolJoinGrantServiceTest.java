@@ -36,9 +36,7 @@ import static org.mockito.Mockito.doAnswer;
 class MenuToolJoinGrantServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 1. service メソッド仕様 > ### 参加時メニュー導線付与
-     * 検証契約: 通行証を所持しているアカウントへはメニューアイテムを追加しない。
+     * 通行証を所持しているアカウントへはメニューアイテムを追加しない。
      */
     @Test
     void existingPassSkipsAllInitialGrants() {
@@ -58,9 +56,7 @@ class MenuToolJoinGrantServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 1. service メソッド仕様 > ### 参加時メニュー導線付与
-     * 検証契約: 通行証未所持時はメニューアイテムを先に並べ、通行証を後に同一報酬更新へ渡す。
+     * 通行証未所持時はメニューアイテムを先に並べ、通行証を後に同一報酬更新へ渡す。
      */
     @Test
     void missingPassAddsMenuToolBeforePass() {
@@ -103,9 +99,7 @@ class MenuToolJoinGrantServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 1. service メソッド仕様 > ### 参加時メニュー導線付与
-     * 検証契約: 報酬更新に失敗した場合、呼び出し側が準備済み装備インスタンスを削除して未参照個体を残さない。
+     * 報酬更新に失敗した場合、呼び出し側が準備済み装備インスタンスを削除して未参照個体を残さない。
      */
     @Test
     void failedRewardUpdateDeletesPreparedEquipment() {

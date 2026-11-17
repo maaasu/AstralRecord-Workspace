@@ -30,9 +30,7 @@ import static org.mockito.Mockito.when;
 
 class MarketRepositoryTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_3-メソッド仕様.md
-     * 章・見出し: # 23_3-メソッド仕様 > ## 出品一覧・詳細
-     * 検証契約: 装備出品は購入前 tooltip に使う個体情報を MarketListing へ保持する。
+     * 装備出品は購入前 tooltip に使う個体情報を MarketListing へ保持する。
      */
     @Test
     void listingDetailParsesEquipmentInstanceForPurchasePreview() throws Exception {
@@ -80,9 +78,7 @@ class MarketRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 4. 購入
-     * 検証契約: 購入 receipt は1件以上の affected inventory entry IDを返す。
+     * 購入 receipt は1件以上の affected inventory entry IDを返す。
      */
     @Test
     void parseTransactionAcceptsRequiredAffectedInventoryEntryIds() {
@@ -98,9 +94,7 @@ class MarketRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 4. 購入
-     * 検証契約: affected inventory entry IDの欠落・空・不正値は購入成功として扱わない。
+     * affected inventory entry IDの欠落・空・不正値は購入成功として扱わない。
      */
     @Test
     void parseTransactionRejectsMissingEmptyAndInvalidAffectedInventoryEntryIds() {
@@ -117,9 +111,7 @@ class MarketRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_5-例外・ログ・運用.md
-     * 章・見出し: # 23_5-例外・ログ・運用 > ## 例外方針
-     * 検証契約: 取消の5xxは結果不明、確定4xxは拒否として区別する。
+     * 取消の5xxは結果不明、確定4xxは拒否として区別する。
      */
     @Test
     void cancelClassifiesOutcomeUnknownAndDeterministicHttpStatuses() throws Exception {
@@ -145,9 +137,7 @@ class MarketRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 3. 出品作成・cancel・売上受取
-     * 検証契約: 出品作成の4xxは確定拒否、5xxは結果不明として保存境界処理へ返す。
+     * 出品作成の4xxは確定拒否、5xxは結果不明として保存境界処理へ返す。
      */
     @Test
     void createListingClassifiesOutcomeUnknownAndDeterministicHttpStatuses() throws Exception {
@@ -174,9 +164,7 @@ class MarketRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 3. 出品作成・cancel・売上受取
-     * 検証契約: 出品APIの201成功本文が不正でも確定拒否にせず、同一操作の結果照会を要求する。
+     * 出品APIの201成功本文が不正でも確定拒否にせず、同一操作の結果照会を要求する。
      */
     @Test
     void malformedListingSuccessRemainsOutcomeUnknown() throws Exception {
@@ -193,9 +181,7 @@ class MarketRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_3-メソッド仕様.md
-     * 章・見出し: # 23_3-メソッド仕様 > ## Cancel
-     * 検証契約: 取消結果の404は未確定、200は厳密に検証したSQL receiptとして返す。
+     * 取消結果の404は未確定、200は厳密に検証したSQL receiptとして返す。
      */
     @Test
     void findCancelResultDistinguishesMissingAndCompletedReceipt() throws Exception {
@@ -219,9 +205,7 @@ class MarketRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_5-例外・ログ・運用.md
-     * 章・見出し: # 23_5-例外・ログ・運用 > ## 例外方針
-     * 検証契約: HTTP 200でも返却先entryを検証できない応答は結果不明として照会対象にする。
+     * HTTP 200でも返却先entryを検証できない応答は結果不明として照会対象にする。
      */
     @Test
     void cancelRejectsMalformedSuccessAsOutcomeUnknown() throws Exception {

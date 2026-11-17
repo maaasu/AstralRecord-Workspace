@@ -7,9 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ChallengeDeathPolicyTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/26_1-モデル定義.md
-     * 章・見出し: # 26_1-モデル定義 > ## 1. ボス挑戦設定
-     * 検証契約: deathLimit=0は0回まで許容し、1回目の死亡で終了条件を満たす。
+     * deathLimit=0は0回まで許容し、1回目の死亡で終了条件を満たす。
      */
     @Test
     void zeroLimitEndsOnFirstDeath() {
@@ -18,9 +16,7 @@ class ChallengeDeathPolicyTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md
-     * 章・見出し: # 32_1-モデル定義 > ## 1. DungeonDefinition
-     * 検証契約: 設定回数までは死亡可能であり、設定回数を超えた次の死亡だけが終了条件となる。
+     * 設定回数までは死亡可能であり、設定回数を超えた次の死亡だけが終了条件となる。
      */
     @Test
     void configuredNumberOfDeathsIsAllowed() {

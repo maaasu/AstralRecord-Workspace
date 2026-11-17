@@ -23,9 +23,7 @@ import static org.mockito.Mockito.*;
 
 class InventoryServiceGrantCapacityTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加 > ### 容量判定と個体報酬
-     * 検証契約: 通常stackの事前判定は既存stack残量と空き枠を数え、満杯BAGでも残量へ追加できる。
+     * 通常stackの事前判定は既存stack残量と空き枠を数え、満杯BAGでも残量へ追加できる。
      */
     @Test
     void stackCapacityMatchesAdditionWithAndWithoutFreeSlots() {
@@ -42,9 +40,7 @@ class InventoryServiceGrantCapacityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加 > ### 容量判定と個体報酬
-     * 検証契約: 未作成BAGのstack容量判定はmaxStackを使い、個体容量は定義のmaxStackに関係なく1個1枠で数える。
+     * 未作成BAGのstack容量判定はmaxStackを使い、個体容量は定義のmaxStackに関係なく1個1枠で数える。
      */
     @Test
     void missingBagSimulationDistinguishesStacksAndInstances() {
@@ -61,9 +57,7 @@ class InventoryServiceGrantCapacityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加 > ### 容量判定と個体報酬
-     * 検証契約: 準備済み個体報酬は個体IDと種別を数量1で保持し、2個目は空き枠不足なら追加しない。
+     * 準備済み個体報酬は個体IDと種別を数量1で保持し、2個目は空き枠不足なら追加しない。
      */
     @Test
     void preparedInstancesKeepTheirIdentityAndConsumeOneSlotEach() {
@@ -85,9 +79,7 @@ class InventoryServiceGrantCapacityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加 > ### 容量判定と個体報酬
-     * 検証契約: 個体不足・種別不一致・重複IDの報酬は先行したstack付与も戻し、個体なしentryを残さない。
+     * 個体不足・種別不一致・重複IDの報酬は先行したstack付与も戻し、個体なしentryを残さない。
      */
     @Test
     void invalidPreparedInstancesRollBackEarlierStackRewards() {
@@ -112,9 +104,7 @@ class InventoryServiceGrantCapacityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
-     * 検証契約: 非同期API個体生成の予約枠を他取得へ渡さず、三者マージでは今回の予約だけを消費して他の予約を保持する。
+     * 非同期API個体生成の予約枠を他取得へ渡さず、三者マージでは今回の予約だけを消費して他の予約を保持する。
      */
     @Test
     void reservedApiAdditionDoesNotOverflowOrConsumeAnotherReservation() {
@@ -151,9 +141,7 @@ class InventoryServiceGrantCapacityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
-     * 検証契約: 予約済みAPI個体は予約枠へ入り、既存容量外entryのID・数量・slotを維持する。
+     * 予約済みAPI個体は予約枠へ入り、既存容量外entryのID・数量・slotを維持する。
      */
     @Test
     void reservedApiAdditionPreservesExistingOverflowEntries() {
@@ -183,9 +171,7 @@ class InventoryServiceGrantCapacityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### 受取と保存境界
-     * 検証契約: 4添付の受取は3,000 Goldを通貨欄へ、シンドリとHP/MP薬各10個をバッグへ正確に追加する。
+     * 4添付の受取は3,000 Goldを通貨欄へ、シンドリとHP/MP薬各10個をバッグへ正確に追加する。
      */
     @Test
     void guideRewardKeepsExactGoldAndBagQuantities() {
@@ -205,9 +191,7 @@ class InventoryServiceGrantCapacityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### 受取と保存境界
-     * 検証契約: バッグに3品目分の枠がなければ、先に処理したGoldも含め4添付を全て戻し部分付与しない。
+     * バッグに3品目分の枠がなければ、先に処理したGoldも含め4添付を全て戻し部分付与しない。
      */
     @Test
     void guideRewardRollsBackGoldAndItemsWhenBagHasTooFewSlots() {

@@ -22,9 +22,7 @@ import static org.mockito.Mockito.mock;
 class ItemServiceDurabilityMergeTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 3. 所有インスタンス > ### ローカル装備状態の保存
-     * 検証契約: 古いcaptureのACKは後続の装備変更をdirtyに残しつつ、API確定updatedAtだけを現在個体へ反映する。
+     * 古いcaptureのACKは後続の装備変更をdirtyに残しつつ、API確定updatedAtだけを現在個体へ反映する。
      */
     @Test
     void staleEquipmentCaptureAckKeepsNewerDirtyStateAndUpdatesBaseTimestamp() {
@@ -50,9 +48,7 @@ class ItemServiceDurabilityMergeTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 3. 所有インスタンス > ### ローカル装備状態の保存
-     * 検証契約: 新規個体の初回保存中に後続の強化が確定しても、初回ACKは作成済み印だけを解除し、
+     * 新規個体の初回保存中に後続の強化が確定しても、初回ACKは作成済み印だけを解除し、
      * 後続のdirty状態を既存個体更新として次snapshotへ残す。
      */
     @Test
@@ -81,9 +77,7 @@ class ItemServiceDurabilityMergeTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 4. 装備耐久値 > ### 耐久値キャッシュ更新
-     * 検証契約: ローカル耐久更新は表示用の現在時刻をupdatedAtへ書かず、次のsnapshotがAPI expectedUpdatedAtに使うbase timestampを保持する。
+     * ローカル耐久更新は表示用の現在時刻をupdatedAtへ書かず、次のsnapshotがAPI expectedUpdatedAtに使うbase timestampを保持する。
      */
     @Test
     void localDurabilityUpdateKeepsApiBaseTimestampForSnapshotConflictControl() {

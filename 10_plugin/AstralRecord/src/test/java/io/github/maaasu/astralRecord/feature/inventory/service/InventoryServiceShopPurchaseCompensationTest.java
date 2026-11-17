@@ -28,9 +28,7 @@ import static org.mockito.Mockito.when;
 class InventoryServiceShopPurchaseCompensationTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_5-例外・ログ・運用.md
-     * 章・見出し: # 20_5-例外・ログ・運用 > ## 購入後スキル mutation
-     * 検証契約: API拒否時は今回購入entryだけを除去し、Gold・通貨・通常素材を全返却して無関係entryを維持する。
+     * API拒否時は今回購入entryだけを除去し、Gold・通貨・通常素材を全返却して無関係entryを維持する。
      */
     @Test
     void compensatesOnlyPurchasedItemAndPreservesConcurrentInventoryChanges() {

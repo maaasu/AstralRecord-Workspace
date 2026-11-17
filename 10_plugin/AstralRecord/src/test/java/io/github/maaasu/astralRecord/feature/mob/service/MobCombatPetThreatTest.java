@@ -30,9 +30,7 @@ import static org.mockito.Mockito.when;
 
 class MobCombatPetThreatTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
-     * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### ターゲット選定
-     * 検証契約: 反撃型の現在targetが空でも、被害を与えた有効な召喚ペットの脅威記録があればペットUUIDをtargetへ設定する。
+     * 反撃型の現在targetが空でも、被害を与えた有効な召喚ペットの脅威記録があればペットUUIDをtargetへ設定する。
      */
     @Test
     void retaliateOnlyMobSelectsPetThreatWithoutCurrentTarget() {

@@ -102,7 +102,6 @@ class BackendProtocolTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
      * 検証契約: Proxyの/server要求は保存準備メッセージとして接続先をRPG backendへ渡す。
      */
     @Test
@@ -227,8 +226,6 @@ class BackendProtocolTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
      * 検証契約: backendは最大クラスレベル到達状態をProxyへ送信する。
      */
     @Test
@@ -256,8 +253,6 @@ class BackendProtocolTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
      * 検証契約: ADMINアカウントはアカウント名だけを表示する状態をProxyへ送信する。
      */
     @Test
@@ -286,8 +281,6 @@ class BackendProtocolTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
      * 検証契約: PLVは末尾の独立したintから復元し、CLVと混同しない。不完全な追加値は拒否する。
      */
     @Test
@@ -375,8 +368,6 @@ class BackendProtocolTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 全体チャット
      * 検証契約: backendの全体チャットは原文と変換後本文を別フィールドでProxyへ渡す。
      */
     @Test
@@ -404,8 +395,6 @@ class BackendProtocolTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 最高権限とプライベートチャット監視
      * 検証契約: 別backend宛DMの送信者・宛先・変換前後本文をProxyが欠損なく復元する。
      */
     @Test

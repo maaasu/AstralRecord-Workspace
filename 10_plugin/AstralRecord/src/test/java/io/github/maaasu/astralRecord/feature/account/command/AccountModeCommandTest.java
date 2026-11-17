@@ -33,9 +33,7 @@ import static org.mockito.Mockito.when;
 class AccountModeCommandTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
-     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウントモード変更
-     * 検証契約: offline対象の成功通知は非同期API保存とメインスレッド反映の双方が完了した後だけ送信する。
+     * offline対象の成功通知は非同期API保存とメインスレッド反映の双方が完了した後だけ送信する。
      */
     @Test
     void offlineModeSuccessIsSentOnlyAfterRemotePersistenceCompletes() {

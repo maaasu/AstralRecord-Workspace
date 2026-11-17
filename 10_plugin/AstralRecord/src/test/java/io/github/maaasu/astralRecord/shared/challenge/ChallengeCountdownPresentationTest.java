@@ -15,9 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ChallengeCountdownPresentationTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 4. 開始・生成・転送
-     * 検証契約: 名称の既存色と制御文字を除去し、指定色を妨げず20コードポイントに制限する。
+     * 名称の既存色と制御文字を除去し、指定色を妨げず20コードポイントに制限する。
      */
     @Test
     void normalizesNameBeforeApplyingChallengeColor() {
@@ -27,9 +25,7 @@ class ChallengeCountdownPresentationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 4. 開始・生成・転送
-     * 検証契約: Java名前font未収録のコードポイントを安全に置換し、通常の日本語名と省略記号を保つ。
+     * Java名前font未収録のコードポイントを安全に置換し、通常の日本語名と省略記号を保つ。
      */
     @Test
     void replacesUnsupportedNameGlyphs() {
@@ -37,9 +33,7 @@ class ChallengeCountdownPresentationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 4. 開始・生成・転送
-     * 検証契約: 旧パックは専用文字と音を使わず、JE/BE対応時だけ専用表示と短音を送る。
+     * 旧パックは専用文字と音を使わず、JE/BE対応時だけ専用表示と短音を送る。
      */
     @Test
     void routesOnlySupportedConnectionsToCustomPresentation() {
@@ -69,9 +63,7 @@ class ChallengeCountdownPresentationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 4. 開始・生成・転送
-     * 検証契約: 中断は表示と全短音を一度回収し、開始音を予約したり二重clearしたりしない。
+     * 中断は表示と全短音を一度回収し、開始音を予約したり二重clearしたりしない。
      */
     @Test
     void cancelsPresentationWithoutSchedulingLateStartSound() {

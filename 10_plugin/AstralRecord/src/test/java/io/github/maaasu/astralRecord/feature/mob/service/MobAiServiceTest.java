@@ -57,9 +57,7 @@ import static org.mockito.Mockito.when;
 class MobAiServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
-     * 検証契約: 拘束中のCOMBAT Mobは専用行動中に通常攻撃せず、専用行動の解除後には通常攻撃を再開する。
+     * 拘束中のCOMBAT Mobは専用行動中に通常攻撃せず、専用行動の解除後には通常攻撃を再開する。
      */
     @Test
     void boundMobPausesNormalAttackDuringScriptedAction() {
@@ -89,9 +87,7 @@ class MobAiServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
-     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### アカウントモード変更・オンライン反映
-     * 検証契約: ADMIN モードのオンラインプレイヤーは Mob AI のターゲット候補に含めない。
+     * ADMIN モードのオンラインプレイヤーは Mob AI のターゲット候補に含めない。
      */
     @Test
     void ignoresAdministratorModePlayerAsMobTarget() throws ReflectiveOperationException {
@@ -128,9 +124,7 @@ class MobAiServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### 一時挑発と追跡対象解決
-     * 検証契約: 有効な挑発者はdeaggroRange外でも固定し、期限切れ後は通常のHIGHEST_THREAT対象へ戻る。
+     * 有効な挑発者はdeaggroRange外でも固定し、期限切れ後は通常のHIGHEST_THREAT対象へ戻る。
      */
     @Test
     void tauntOverridesDeaggroUntilExpiryThenReturnsToHighestThreat() throws ReflectiveOperationException {
@@ -189,9 +183,7 @@ class MobAiServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
-     * 検証契約: 表示中の疑似 Player NPC の transform は viewer 探索間隔に依存せず毎 tick 同期する。
+     * 表示中の疑似 Player NPC の transform は viewer 探索間隔に依存せず毎 tick 同期する。
      */
     @Test
     void playerSkinPacketTransformsAreSynchronizedEveryTick() {
@@ -210,9 +202,7 @@ class MobAiServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
-     * 検証契約: viewer 更新tickでは、viewer集合を更新してからcached viewerを使ったenemy破棄判定を実行する。
+     * viewer 更新tickでは、viewer集合を更新してからcached viewerを使ったenemy破棄判定を実行する。
      */
     @Test
     void viewerCleanupUsesCachedViewersImmediatelyAfterViewerRefresh() throws ReflectiveOperationException {
@@ -233,9 +223,7 @@ class MobAiServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
-     * 検証契約: targetなし・20ブロック以内のプレイヤーなし・戦闘活動なしのENEMYは、1,200サーバーtick後に破棄する。
+     * targetなし・20ブロック以内のプレイヤーなし・戦闘活動なしのENEMYは、1,200サーバーtick後に破棄する。
      */
     @Test
     void destroysIdleEnemyAfterOneMinuteWithoutNearbyPlayerOrCombatActivity()
@@ -272,9 +260,7 @@ class MobAiServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 1. MobService メソッド仕様 > ### 近接プレイヤー不在 Mob 破棄
-     * 検証契約: BOSSは対象となり、維持指定・ターゲット設定・近接プレイヤー復帰中のMobは破棄しない。
+     * BOSSは対象となり、維持指定・ターゲット設定・近接プレイヤー復帰中のMobは破棄しない。
      */
     @Test
     void destroysIdleBossButKeepsMobsWhenExclusionConditionReturns()
@@ -337,9 +323,7 @@ class MobAiServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 1. MobService メソッド仕様 > ### 近接プレイヤー不在 Mob 破棄
-     * 検証契約: 近接プレイヤー不在中の戦闘活動後は、その活動 tick を起点に1,200 tickを再計測する。
+     * 近接プレイヤー不在中の戦闘活動後は、その活動 tick を起点に1,200 tickを再計測する。
      */
     @Test
     void restartsIdleDespawnTimeoutAfterCombatActivity() throws ReflectiveOperationException {
@@ -379,9 +363,7 @@ class MobAiServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
-     * 検証契約: NPCのWANDERが30秒周期で配置アンカーへの経路を設定し、テレポートを実行しない。
+     * NPCのWANDERが30秒周期で配置アンカーへの経路を設定し、テレポートを実行しない。
      */
     @Test
     void wanderingNpcPeriodicallyRoutesToPlacementAnchorWithoutTeleporting() throws ReflectiveOperationException {
@@ -422,9 +404,7 @@ class MobAiServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
-     * 検証契約: WANDER目的地への水平移動が10秒間ないNPCを緊急テレポートで配置アンカーへ戻す。
+     * WANDER目的地への水平移動が10秒間ないNPCを緊急テレポートで配置アンカーへ戻す。
      */
     @Test
     void stalledWanderingNpcIsResetAfterNoHorizontalProgress() throws ReflectiveOperationException {
@@ -471,9 +451,7 @@ class MobAiServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
-     * 検証契約: 緊急テレポートから3分以内に再び10秒間停止しても、アンカーへの経路設定だけを行う。
+     * 緊急テレポートから3分以内に再び10秒間停止しても、アンカーへの経路設定だけを行う。
      */
     @Test
     void stalledWanderingNpcUsesAnchorRouteDuringTeleportCooldown() throws ReflectiveOperationException {
@@ -518,9 +496,7 @@ class MobAiServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
-     * 章・見出し: # 12_1-モデル定義 > ## 9. Mob ターゲット設定
-     * 検証契約: スポーン地点から上下に8ブロックを超えたMobは、水平距離がleashRange以内でもLEASHEDになる。
+     * スポーン地点から上下に8ブロックを超えたMobは、水平距離がleashRange以内でもLEASHEDになる。
      */
     @Test
     void verticalSpawnDistanceTriggersLeash() throws ReflectiveOperationException {
@@ -541,9 +517,7 @@ class MobAiServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
-     * 章・見出し: # 12_1-モデル定義 > ## 9. Mob ターゲット設定
-     * 検証契約: 上下差8ブロックは許容し、9ブロックからLEASHEDとする。水平距離による従来のleash判定も維持する。
+     * 上下差8ブロックは許容し、9ブロックからLEASHEDとする。水平距離による従来のleash判定も維持する。
      */
     @Test
     void verticalLeashBoundaryAndHorizontalLeashRemainStable() throws ReflectiveOperationException {
@@ -571,9 +545,7 @@ class MobAiServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
-     * 検証契約: 上下に大きく外れたLEASHEDのMobは、経路探索ではなくスポーン地点へ直接リセットする。
+     * 上下に大きく外れたLEASHEDのMobは、経路探索ではなくスポーン地点へ直接リセットする。
      */
     @Test
     void verticallyLeashedMobIsResetToSpawn() throws ReflectiveOperationException {
@@ -603,9 +575,7 @@ class MobAiServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
-     * 検証契約: 上下照準可能な次スキルが三次元射程内で高低差だけが1.25 blockを超える場合、COMBATのAIは追跡せず現在地でスキル発動を試みる。
+     * 上下照準可能な次スキルが三次元射程内で高低差だけが1.25 blockを超える場合、COMBATのAIは追跡せず現在地でスキル発動を試みる。
      */
     @Test
     void verticalTargetingSkillCastsFromCurrentPositionInsteadOfChasing() throws ReflectiveOperationException {
@@ -646,9 +616,7 @@ class MobAiServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
-     * 検証契約: 上下照準可能な次スキルが三次元射程内で高低差だけが1.25 blockを超える場合、AGGROのAIは追跡せずCOMBATへ遷移してPathfinderを停止する。
+     * 上下照準可能な次スキルが三次元射程内で高低差だけが1.25 blockを超える場合、AGGROのAIは追跡せずCOMBATへ遷移してPathfinderを停止する。
      */
     @Test
     void verticalTargetingSkillEntersCombatInsteadOfChasing() throws ReflectiveOperationException {
@@ -687,9 +655,7 @@ class MobAiServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
-     * 検証契約: 近接通常攻撃を持つMobはスキル射程内でも通常攻撃の射程外なら追跡を続ける。
+     * 近接通常攻撃を持つMobはスキル射程内でも通常攻撃の射程外なら追跡を続ける。
      */
     @Test
     void meleeMobPursuesInsideLongSkillRange() throws ReflectiveOperationException {
@@ -729,9 +695,7 @@ class MobAiServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
-     * 検証契約: 近接通常攻撃が届く距離では追跡を止め、スキル使用不可時に通常攻撃へ戻る。
+     * 近接通常攻撃が届く距離では追跡を止め、スキル使用不可時に通常攻撃へ戻る。
      */
     @Test
     void meleeMobStopsAndFallsBackToNormalAttackInReach() throws ReflectiveOperationException {

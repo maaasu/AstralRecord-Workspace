@@ -25,9 +25,7 @@ import static org.mockito.Mockito.when;
 class PlayerDeathServiceHookTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 4. 死亡サービス > ### 追加死亡処理・即時復帰通知の設定
-     * 検証契約: 追加死亡処理が受理した場合、通常死亡の状態・通知・能力変更を開始しない。
+     * 追加死亡処理が受理した場合、通常死亡の状態・通知・能力変更を開始しない。
      */
     @Test
     void acceptedAdditionalDeathHandlerSkipsDefaultDeathState() {

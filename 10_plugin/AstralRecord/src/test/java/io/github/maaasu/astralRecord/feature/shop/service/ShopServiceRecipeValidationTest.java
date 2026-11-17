@@ -31,9 +31,7 @@ import static org.mockito.Mockito.*;
 
 class ShopServiceRecipeValidationTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
-     * 章・見出し: # 20_3-メソッド仕様 > ## 購入 preview
-     * 検証契約: 未解決レシピは対価を省いた購入を許可せず、支払い・付与・保存へ進まない。
+     * 未解決レシピは対価を省いた購入を許可せず、支払い・付与・保存へ進まない。
      */
     @Test
     void missingRecipeRejectsPreviewAndPurchaseBeforeInventoryMutation() {
@@ -55,9 +53,7 @@ class ShopServiceRecipeValidationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
-     * 章・見出し: # 20_3-メソッド仕様 > ## 購入 preview
-     * 検証契約: レシピが有効でも、商品全量の収納先に空きがなければ購入を拒否する。
+     * レシピが有効でも、商品全量の収納先に空きがなければ購入を拒否する。
      */
     @Test
     void validRecipeStillRejectsInsufficientInventoryCapacity() {
@@ -74,9 +70,7 @@ class ShopServiceRecipeValidationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
-     * 章・見出し: # 20_3-メソッド仕様 > ## Cost 解決
-     * 検証契約: 有効なレシピの追加費用と、未指定・空白レシピの直接費用を維持する。
+     * 有効なレシピの追加費用と、未指定・空白レシピの直接費用を維持する。
      */
     @Test
     void validRecipeAddsCostsAndOptionalRecipeKeepsDirectCosts() {
@@ -94,9 +88,7 @@ class ShopServiceRecipeValidationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
-     * 章・見出し: # 20_3-メソッド仕様 > ## Cost 解決
-     * 検証契約: マスタ再公開でレシピ修正を反映し、警告の抑制を次の公開までに限定する。
+     * マスタ再公開でレシピ修正を反映し、警告の抑制を次の公開までに限定する。
      */
     @Test
     void publicationRecoversFixedRecipeAndResetsWarningSuppression() {
@@ -118,9 +110,7 @@ class ShopServiceRecipeValidationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
-     * 章・見出し: # 20_3-メソッド仕様 > ## 購入 preview
-     * 検証契約: preview途中でマスタが再公開されても、検証済みレシピのGoldと素材を省略しない。
+     * preview途中でマスタが再公開されても、検証済みレシピのGoldと素材を省略しない。
      */
     @Test
     void previewUsesOneResolvedRecipeForValidationGoldAndMaterials() {
@@ -139,9 +129,7 @@ class ShopServiceRecipeValidationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_4-統合フロー.md
-     * 章・見出し: # 20_4-統合フロー > ## 3. Preview・購入 > ### 処理要点
-     * 検証契約: 重要操作待機中にレシピが消えた場合も、lane内再検証で支払いと付与を拒否する。
+     * 重要操作待機中にレシピが消えた場合も、lane内再検証で支払いと付与を拒否する。
      */
     @Test
     void missingRecipeAtMutationBoundaryRejectsWithoutPaymentOrGrant() {

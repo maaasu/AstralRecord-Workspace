@@ -44,9 +44,7 @@ import static org.mockito.Mockito.when;
 class AccountServicePendingProgressTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
-     * 章・見出し: # 40_player-admin-edit 概要 > ## オフライン訂正と計算
-     * 検証契約: 管理編集APIとの共有ベクトルで、UUIDごとのレベル開始累計EXPと最高到達レベルを固定する。
+     * 管理編集APIとの共有ベクトルで、UUIDごとのレベル開始累計EXPと最高到達レベルを固定する。
      */
     @Test
     void adminLevelStartExperienceMatchesSharedVectors() {
@@ -73,9 +71,7 @@ class AccountServicePendingProgressTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/34-rebirth/3-メソッド仕様/34_3-サービス.md
-     * 章・見出し: # 34_3-サービス > ## AccountService 転生進行 > ### 転生開始
-     * 検証契約: レベル30の非転生アカウントは最高到達レベルを維持したままレベル1・EXP 0・端数0の転生状態へ遷移する。
+     * レベル30の非転生アカウントは最高到達レベルを維持したままレベル1・EXP 0・端数0の転生状態へ遷移する。
      */
     @Test
     void startsRebirthAtLevelOneAndKeepsHighestLevel() {
@@ -94,9 +90,7 @@ class AccountServicePendingProgressTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/34-rebirth/3-メソッド仕様/34_3-サービス.md
-     * 章・見出し: # 34_3-サービス > ## AccountService 転生進行 > ### 転生中EXP加算
-     * 検証契約: 転生中は通常必要EXPの3分の1を切り上げた量で元レベルへ戻り、100EXP単位のポイントと端数を算出する。
+     * 転生中は通常必要EXPの3分の1を切り上げた量で元レベルへ戻り、100EXP単位のポイントと端数を算出する。
      */
     @Test
     void usesOneThirdRequiredExperienceAndConvertsExpPoints() {
@@ -131,9 +125,7 @@ class AccountServicePendingProgressTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/34-rebirth/3-メソッド仕様/34_3-サービス.md
-     * 章・見出し: # 34_3-サービス > ## AccountService 転生進行 > ### 転生終了
-     * 検証契約: 転生の有償終了用進行操作は転生前レベルの通常開始EXPへ復帰し、転生状態と端数を解除する。
+     * 転生の有償終了用進行操作は転生前レベルの通常開始EXPへ復帰し、転生状態と端数を解除する。
      */
     @Test
     void endsRebirthAtOriginalLevelAndClearsRemainder() {
@@ -152,9 +144,7 @@ class AccountServicePendingProgressTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
-     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### 経験値加算
-     * 検証契約: クラス進行の未flush更新が併存しても、連続する経験値加算は最新の経験値キャッシュを基準にして同じレベルアップを再判定しない。
+     * クラス進行の未flush更新が併存しても、連続する経験値加算は最新の経験値キャッシュを基準にして同じレベルアップを再判定しない。
      */
     @Test
     void keepsLatestExperienceWhenClassProgressIsAlsoPending() {
@@ -180,9 +170,7 @@ class AccountServicePendingProgressTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
-     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### 経験値加算
-     * 検証契約: 経験値pendingだけがflush済みでも、残存するクラス進行pendingは呼び出し元の新しい経験値を巻き戻さず同じレベルアップを再判定しない。
+     * 経験値pendingだけがflush済みでも、残存するクラス進行pendingは呼び出し元の新しい経験値を巻き戻さず同じレベルアップを再判定しない。
      */
     @Test
     void keepsCallerExperienceWhenOnlyClassProgressRemainsPending() {
@@ -214,9 +202,7 @@ class AccountServicePendingProgressTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
-     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### accountProgress state section
-     * 検証契約: 古いsnapshot ACKは、後から確定したmodeのdirtyを解除もrollbackもしない。
+     * 古いsnapshot ACKは、後から確定したmodeのdirtyを解除もrollbackもしない。
      */
     @Test
     void oldSnapshotAcknowledgementKeepsNewerModeDirty() {
@@ -245,9 +231,7 @@ class AccountServicePendingProgressTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
-     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### accountProgress state section
-     * 検証契約: section ACKに必須metadataが欠ける場合は例外で保存失敗として扱い、dirtyを保持する。
+     * section ACKに必須metadataが欠ける場合は例外で保存失敗として扱い、dirtyを保持する。
      */
     @Test
     void invalidSnapshotAcknowledgementThrowsAndKeepsDirty() {
@@ -276,9 +260,7 @@ class AccountServicePendingProgressTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
-     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### offlineモードAPI保存
-     * 検証契約: offline mode保存はaccount取得と同じ進行ガードで直列化し、保存済み版をACK基準へ採用する。
+     * offline mode保存はaccount取得と同じ進行ガードで直列化し、保存済み版をACK基準へ採用する。
      */
     @Test
     void offlineModeSaveWaitsForAccountLoadAndAdvancesAcknowledgedVersion() throws Exception {
@@ -336,9 +318,7 @@ class AccountServicePendingProgressTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
-     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### offlineモードAPI保存
-     * 検証契約: offline API保存後の古い一覧応答には保存済みmodeだけを重ね、応答の進行値を維持する。
+     * offline API保存後の古い一覧応答には保存済みmodeだけを重ね、応答の進行値を維持する。
      */
     @Test
     void staleAccountListKeepsProgressAndOverlaysPersistedOfflineMode() {
@@ -362,9 +342,7 @@ class AccountServicePendingProgressTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
-     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### アカウント一覧取得
-     * 検証契約: 再ログイン時のAPI一覧が新しい進行版を返した場合、未ACKのmodeを保持しつつ次回snapshotの期待版を更新する。
+     * 再ログイン時のAPI一覧が新しい進行版を返した場合、未ACKのmodeを保持しつつ次回snapshotの期待版を更新する。
      */
     @Test
     void refreshedAccountListAdvancesSnapshotBaselineWithoutDroppingPendingMode() {
@@ -395,9 +373,7 @@ class AccountServicePendingProgressTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
-     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### アカウント一覧取得
-     * 検証契約: snapshot送信中のAPI再読込は再baseを新しいclientRevisionにし、旧ACKでpendingを孤立させない。
+     * snapshot送信中のAPI再読込は再baseを新しいclientRevisionにし、旧ACKでpendingを孤立させない。
      */
     @Test
     void refreshDuringSnapshotKeepsRebasedClassProgressUntilNewAcknowledgement() {
@@ -445,9 +421,7 @@ class AccountServicePendingProgressTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
-     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### offlineモードAPI保存
-     * 検証契約: 未ACK進行があるアカウントはoffline API mode保存を開始しない。
+     * 未ACK進行があるアカウントはoffline API mode保存を開始しない。
      */
     @Test
     void offlineModeSaveRejectsAccountWithPendingProgress() {
@@ -466,9 +440,7 @@ class AccountServicePendingProgressTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
-     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### offlineモードオンライン反映
-     * 検証契約: offline保存待機中に生じたオンライン進行pendingを保持し、保存済みmodeだけを合成する。
+     * offline保存待機中に生じたオンライン進行pendingを保持し、保存済みmodeだけを合成する。
      */
     @Test
     void mergingOfflineModePreservesProgressCreatedAfterRemoteSave() {
@@ -492,9 +464,7 @@ class AccountServicePendingProgressTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
-     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウントスロット切替
-     * 検証契約: アカウント一覧取得時に作成済みスロットだけを補完用キャッシュへ登録する。
+     * アカウント一覧取得時に作成済みスロットだけを補完用キャッシュへ登録する。
      */
     @Test
     void cachesCreatedSlotIndexesForTabCompletion() {

@@ -20,9 +20,7 @@ import static org.mockito.Mockito.when;
 class EquipmentDurabilityReminderTaskTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 4. 装備耐久値 > ### 装備中防具・アクセサリの破損通知
-     * 検証契約: 周期実行時は破損した防具・アクセサリがあるプレイヤーへ装備名をまとめて1通通知する。
+     * 周期実行時は破損した防具・アクセサリがあるプレイヤーへ装備名をまとめて1通通知する。
      */
     @Test
     void sendsOneSummaryMessageForEachPlayerWithBrokenEquipment() {
@@ -53,9 +51,7 @@ class EquipmentDurabilityReminderTaskTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 4. 装備耐久値 > ### 装備中防具・アクセサリの破損通知
-     * 検証契約: 破損した装備がない周期はプレイヤー向けメッセージを送信しない。
+     * 破損した装備がない周期はプレイヤー向けメッセージを送信しない。
      */
     @Test
     void doesNotSendWhenNoBrokenEquipmentExists() {
@@ -81,9 +77,7 @@ class EquipmentDurabilityReminderTaskTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 4. 装備耐久値 > ### 装備中防具・アクセサリの破損通知
-     * 検証契約: ADMINでは保持中のプレイヤー用装備を走査せず、破損通知も送信しない。
+     * ADMINでは保持中のプレイヤー用装備を走査せず、破損通知も送信しない。
      */
     @Test
     void adminModeDoesNotInspectRetainedPlayerEquipment() {

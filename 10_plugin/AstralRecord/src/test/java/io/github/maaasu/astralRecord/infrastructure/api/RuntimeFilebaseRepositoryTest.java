@@ -7,9 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class RuntimeFilebaseRepositoryTest {
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## 共通基盤の設定スナップショットと入力正規化 > ### APIマスタ原稿スナップショット
-     * 検証契約: 準備中のsnapshotは入れ子のaction内だけ優先し例外後も公開済みsnapshotを復元する。
+     * 準備中のsnapshotは入れ子のaction内だけ優先し例外後も公開済みsnapshotを復元する。
      */
     @Test
     void scopedPreparationRestoresPublishedSnapshotOnSuccessAndFailure() {
@@ -31,9 +29,7 @@ class RuntimeFilebaseRepositoryTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## 共通基盤の設定スナップショットと入力正規化 > ### APIマスタ原稿スナップショット
-     * 検証契約: APIが配信する進行プリセットのYAML原稿をスナップショットから取得できる。
+     * APIが配信する進行プリセットのYAML原稿をスナップショットから取得できる。
      */
     @Test
     void acceptsProgressionPresetYamlFromApi() {
@@ -50,9 +46,7 @@ class RuntimeFilebaseRepositoryTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## 共通基盤の設定スナップショットと入力正規化 > ### APIマスタ原稿スナップショット
-     * 検証契約: 新Pluginは旧APIの進行プリセットパスを受け付け、新パスがあれば新カテゴリだけを読み込む。
+     * 新Pluginは旧APIの進行プリセットパスを受け付け、新パスがあれば新カテゴリだけを読み込む。
      */
     @Test
     void progressionPresetUsesNewDirectoryBeforeLegacyInput() {
@@ -79,9 +73,7 @@ class RuntimeFilebaseRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
-     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### 戦闘検証用の進行プリセット
-     * 検証契約: 既存6枠入力と16枠拡張入力を読み、同じ枠の重複と未知枠を拒否する。
+     * 既存6枠入力と16枠拡張入力を読み、同じ枠の重複と未知枠を拒否する。
      */
     @Test
     void progressionPresetAcceptsAllGearSlotsAndRejectsDuplicates() {
@@ -130,9 +122,7 @@ class RuntimeFilebaseRepositoryTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## 共通基盤の設定スナップショットと入力正規化 > ### APIマスタ原稿スナップショット
-     * 検証契約: 未取得および不正API応答を空マスタとして公開せず共有snapshotを維持する。
+     * 未取得および不正API応答を空マスタとして公開せず共有snapshotを維持する。
      */
     @Test
     void invalidResponsesNeverReplacePublishedSnapshot() {
@@ -149,9 +139,7 @@ class RuntimeFilebaseRepositoryTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## 共通基盤の設定スナップショットと入力正規化 > ### APIマスタ原稿スナップショット
-     * 検証契約: APIマスタ原稿の相対パスは一意かつ安全で、必須原稿の欠落とYAML構文不正を拒否する。
+     * APIマスタ原稿の相対パスは一意かつ安全で、必須原稿の欠落とYAML構文不正を拒否する。
      */
     @Test
     void duplicateUnsafeMissingAndMalformedEntriesAreRejected() {

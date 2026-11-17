@@ -23,9 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class OrbInventoryThreeWayMergerTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
-     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
-     * 検証契約: APIがbaseline stackを全消費しても、待機中に同stackへ加算した差分は削除済みIDを復活させず新entryとして保持し、無関係な新entryも保持する。
+     * APIがbaseline stackを全消費しても、待機中に同stackへ加算した差分は削除済みIDを復活させず新entryとして保持し、無関係な新entryも保持する。
      */
     @Test
     void tombstoneKeepsPositiveLocalDeltaUnderNewEntryIdAndRetainsNewEntry() {
@@ -63,9 +61,7 @@ class OrbInventoryThreeWayMergerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
-     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
-     * 検証契約: transition素材はAPI消費後数量へ待機中のローカル消費差分を一度だけ適用し、待機中のinventory移動とslotを維持する。
+     * transition素材はAPI消費後数量へ待機中のローカル消費差分を一度だけ適用し、待機中のinventory移動とslotを維持する。
      */
     @Test
     void materialMergeAppliesConcurrentConsumeOnceAndKeepsLocalMove() {
@@ -98,9 +94,7 @@ class OrbInventoryThreeWayMergerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
-     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
-     * 検証契約: goldは額面entry単位で上書きせず、全正規額面とlegacyの総価値A+(C-B)を計算してcanonical額面へ再構成する。
+     * goldは額面entry単位で上書きせず、全正規額面とlegacyの総価値A+(C-B)を計算してcanonical額面へ再構成する。
      */
     @Test
     void goldMergePreservesConcurrentValueDeltaAndReconstructsCanonicalDenominations() {

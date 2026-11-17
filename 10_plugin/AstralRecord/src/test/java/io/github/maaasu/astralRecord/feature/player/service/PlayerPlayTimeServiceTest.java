@@ -21,9 +21,7 @@ import static org.mockito.Mockito.*;
 
 class PlayerPlayTimeServiceTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## プレイ時間の積算と保存
-     * 検証契約: offline ADMIN保存中にPLAYERで参加したセッションでは、mode合成時点からADMIN時間を加算しない。
+     * offline ADMIN保存中にPLAYERで参加したセッションでは、mode合成時点からADMIN時間を加算しない。
      */
     @Test
     void offlineAdminSaveStopsPlayTimeWhenPlayerJoinedDuringApiRequest() {
@@ -31,9 +29,7 @@ class PlayerPlayTimeServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## プレイ時間の積算と保存
-     * 検証契約: offline PLAYER保存中にADMINで参加したセッションでは、mode合成時点からPLAYER時間を加算する。
+     * offline PLAYER保存中にADMINで参加したセッションでは、mode合成時点からPLAYER時間を加算する。
      */
     @Test
     void offlinePlayerSaveStartsPlayTimeWhenPlayerJoinedDuringApiRequest() {
@@ -77,9 +73,7 @@ class PlayerPlayTimeServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## プレイ時間の積算と保存
-     * 検証契約: 各アカウントのPLAY秒数を独立保存し、古いACKは後続時間を消さない。
+     * 各アカウントのPLAY秒数を独立保存し、古いACKは後続時間を消さない。
      */
     @Test
     void isolatesAccountDeltasAndRetainsTimeAccruedDuringSnapshotSave() {
@@ -109,9 +103,7 @@ class PlayerPlayTimeServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## プレイ時間の積算と保存
-     * 検証契約: account不一致、欠落、負値、送信差分未満、非整数、64bit範囲外ACKは未保存差分を解除しない。
+     * account不一致、欠落、負値、送信差分未満、非整数、64bit範囲外ACKは未保存差分を解除しない。
      */
     @Test
     void rejectsInvalidAcknowledgementsWithoutClearingPendingTime() {
@@ -133,9 +125,7 @@ class PlayerPlayTimeServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## プレイ時間の積算と保存
-     * 検証契約: 保存不能破棄後に再参加したaccountへ、旧snapshotのACKを適用しない。
+     * 保存不能破棄後に再参加したaccountへ、旧snapshotのACKを適用しない。
      */
     @Test
     void discardedAccountAcknowledgementCannotClearNewSessionTime() {

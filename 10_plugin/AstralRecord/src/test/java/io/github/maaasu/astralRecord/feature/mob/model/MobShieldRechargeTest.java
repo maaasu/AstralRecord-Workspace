@@ -11,9 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class MobShieldRechargeTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
-     * 章・見出し: # 12_1-モデル定義 > ## 18. Mob インスタンス
-     * 検証契約: recovery amountがspawn値未満でも完了後はその値を満タン表示capacityとして扱う。
+     * recovery amountがspawn値未満でも完了後はその値を満タン表示capacityとして扱う。
      */
     @Test
     void rechargeAmountBelowSpawnShieldBecomesFullCycleCapacity() {
@@ -31,9 +29,7 @@ class MobShieldRechargeTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
-     * 章・見出し: # 12_1-モデル定義 > ## 18. Mob インスタンス
-     * 検証契約: recovery amountはspawn時shield値を超過でき、実際の吸収capacityにもなる。
+     * recovery amountはspawn時shield値を超過でき、実際の吸収capacityにもなる。
      */
     @Test
     void rechargeAmountAboveSpawnShieldIsNotCappedByTemplateMax() {
@@ -52,9 +48,7 @@ class MobShieldRechargeTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
-     * 章・見出し: # 12_1-モデル定義 > ## 18. Mob インスタンス
-     * 検証契約: Mob HP回復は最大HPを超えず、実際の増加量を返す。
+     * Mob HP回復は最大HPを超えず、実際の増加量を返す。
      */
     @Test
     void healthRecoveryIsCappedAtMaxHealthAndReturnsActualAmount() {

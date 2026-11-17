@@ -29,9 +29,7 @@ import static org.mockito.Mockito.when;
 class HookshotCostServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### フックショット
-     * 検証契約: 有効な発射だけが master 設定の耐久を1回消費し、装填素材はここで消費しない。
+     * 有効な発射だけが master 設定の耐久を1回消費し、装填素材はここで消費しない。
      */
     @Test
     void consumesConfiguredDurabilityOnlyWhenFiring() {
@@ -61,9 +59,7 @@ class HookshotCostServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### フックショット
-     * 検証契約: 発射直前の装填状態更新が失敗した場合、消費済み耐久だけを元値へ補償する。
+     * 発射直前の装填状態更新が失敗した場合、消費済み耐久だけを元値へ補償する。
      */
     @Test
     void restoresDurabilityWhenLoadedStateCannotBeCleared() {
@@ -104,9 +100,7 @@ class HookshotCostServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### フックショット
-     * 検証契約: 消費耐久未満のtoolは耐久・素材・表示を一切変更しない。
+     * 消費耐久未満のtoolは耐久・素材・表示を一切変更しない。
      */
     @Test
     void rejectsInsufficientDurabilityWithoutMutation() {

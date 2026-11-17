@@ -24,9 +24,7 @@ class AccountCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
-     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウントルート振分
-     * 検証契約: /account は ADMIN 権限のプレイヤーまたはコンソールだけが利用でき、一般プレイヤーは利用できない。
+     * /account は ADMIN 権限のプレイヤーまたはコンソールだけが利用でき、一般プレイヤーは利用できない。
      */
     @Test
     void requiresAdminPermissionForPlayersAndAllowsConsole() {
@@ -57,9 +55,7 @@ class AccountCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
-     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウント補完候補取得
-     * 検証契約: ADMIN 権限を持たないプレイヤーには /account の補完候補を返さない。
+     * ADMIN 権限を持たないプレイヤーには /account の補完候補を返さない。
      */
     @Test
     void refusesTabCompletionForNonAdminPlayer() {

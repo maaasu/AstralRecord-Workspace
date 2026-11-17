@@ -22,11 +22,11 @@
 
 - SQL Server 定義は `E:\AstralRecord-Workspace\00_docs\40_Database設計書` を参照する。
 - file 系マスタデータは `E:\AstralRecord-Workspace\40_filebase` を参照する。
-- API 仕様は [API_GUIDE.md](API_GUIDE.md) と `E:\AstralRecord-Workspace\00_docs\20_API設計書\feature\` を参照する。
+- APIのルートと利用側は [APIの探し方](00_docs/10_AIパーソナライズ/APIの探し方.md) から探す。
 
 移行対象の SkillTree node/structure、shop、recipe、quest/quest_board、gathering/gathering spawner、mob spawner、dungeon は API の `GET /api/master-data/runtime-filebase` から一括取得する。Plugin は起動時に非同期で取得し、マスタ再読込時にも取得し直す。元の YAML/JSON テキストをメモリ上で既存 parser に渡し、Plugin 側へマスタのファイルコピーを作らない。取得・解析・検証を終えた準備 snapshot だけを一括公開し、失敗時は旧 snapshot を維持する。Plugin 自身の `config.yml`、world/map、および `worldPlacements.mode: local` の未移行サーバーの管理者配置情報は引き続き Plugin が管理する。
 
-`worldPlacements.mode: api` の移行済みサーバーでは、スポナー・NPC・ウェイストーン配置の正本を専用の配置 API とする。`worldPlacements.baseUrl` と `worldPlacements.environment`（`dev` / `channels`）を設定し、起動時および `/worldplacements reload` の明示操作で全種別を非同期取得・検証して一括公開する。取得失敗時は公開済み配置を保持し、ローカル YAML にフォールバックしない。Dev で `worldPlacements.writeKey` を設定すると、管理者の `/teleporter set` でウェイストーンを登録し、最新の配置を一括公開する。その他の API 配置編集は World Placement Editor で行う。マスターデータの自動再読込は配置を自動更新しない。詳細は [[43_0-概要]] を参照する。
+`worldPlacements.mode: api` の移行済みサーバーでは、スポナー・NPC・ウェイストーン配置の正本を専用の配置 API とする。`worldPlacements.baseUrl` と `worldPlacements.environment`（`dev` / `channels`）を設定し、起動時および `/worldplacements reload` の明示操作で全種別を非同期取得・検証して一括公開する。取得失敗時は公開済み配置を保持し、ローカル YAML にフォールバックしない。Dev で `worldPlacements.writeKey` を設定すると、管理者の `/teleporter set` でウェイストーンを登録し、最新の配置を一括公開する。その他の API 配置編集は World Placement Editor で行う。マスターデータの自動再読込は配置を自動更新しない。運用は [ワールド配置の管理](60_tool/world-placement/README.md) を参照する。
 
 Plugin 設定の `database.sqlserver`、`database.file`、`database.pool` と SQL/File/YamlDb 接続基盤は使用しない。API 側の `FileDatabase:RootPath` は維持し、先に API と filebase を配置してから Plugin を展開する。各 Minecraft サーバーへ移行対象マスタを配布する必要はない。item/skill の既存 API と、Plugin が公開済み SkillTree runtime snapshot を API へ登録する世代運用は維持する。
 
@@ -73,7 +73,7 @@ Plugin 設定の `database.sqlserver`、`database.file`、`database.pool` と SQ
 - 通常の AstralRecord item tooltip では、共通 Lore のカテゴリ表示の右へ ` | <item ID>` を濃い灰色で表示する。それ以外の GUI 名・GUI lore・プレイヤー向けメッセージでは、item ID・master ID・status ID などの内部識別子を表示してはならない。マスタの表示名を使用し、解決不能時は ID を代替表示せず「未登録の素材」などの汎用表示と操作不可の案内を使う。管理者向け機能では必要に応じて内部 ID を表示できる。
 - GUI に共通のプレイヤーインベントリ挙動を追加・変更する場合は、個別 GUI の open/click/close に重複実装せず shared 側の holder / click support / service に寄せる。
 - ホットバーの閉じるアイコンとインベントリ切替を使う GUI は `io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder` を holder に実装し、クリック処理は `HotbarShortcutClickSupport` に委譲する。個別の判定リストや GUI ごとの手作業設定を増やさない。
-- 状態による操作制限は、対象操作と開始・解除条件を設計に記す。入力仲裁時と、GUI からも直接呼ばれる共通処理の実行直前に同じ判定を行う。各経路で制限中の状態維持と解除直後の復帰を確認する。詳細は[共通入力の設計](00_docs/10_Plugin設計書/feature/28-player-interaction/28_0-概要.md)に従う。
+- 状態による操作制限では、対象操作と開始・解除条件を確認する。入力仲裁時と、GUIからも直接呼ばれる共通処理の実行直前に同じ判定を行う。各経路で制限中の状態維持と解除直後の復帰を確認する。入力経路は [共通入力処理](10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/interaction) を参照する。
 
 ## コマンド引数規約
 
@@ -93,9 +93,9 @@ Plugin 設定の `database.sqlserver`、`database.file`、`database.pool` と SQ
 
 ## ステータスシステム
 
-ステータスの詳細仕様は本ガイドに重複記載せず、正本は `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\feature\07-status` とします。近接・間接・魔法の攻撃種別に応じたダメージ計算は、Plugin 内部で行います。
+ステータスの適用は [Pluginのステータス処理](10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/status)、攻撃種別ごとのダメージ計算は [DamageCalculator](10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/combat/service/DamageCalculator.java) を参照します。
 
-ステータスID・日本語表示名・カテゴリ・表示書式の正本は`E:\AstralRecord-Workspace\40_filebase\75.shared.status\v1.status_types.yml`です。Pluginの`StatusType.kt`は`.\60_tool\07-generate-status-types.bat`で生成し、直接編集しません。ダメージ計算などのPlugin固有ロジックは従来どおりPluginソースと本設計書で管理します。
+ステータスID・日本語表示名・カテゴリ・表示書式の正本は`E:\AstralRecord-Workspace\40_filebase\75.shared.status\v1.status_types.yml`です。Pluginの`StatusType.kt`は`.\60_tool\07-generate-status-types.bat`で生成し、直接編集しません。
 
 マスターデータタグのID・日本語表示名・適用対象の正本は`E:\AstralRecord-Workspace\40_filebase\76.shared.tag\v1.tags.yml`です。PluginでタグIDにより処理を分岐するときは`.\60_tool\08-generate-tag-types.bat`が生成する`MasterTagIds.java`の定数を使用し、文字列を直接記述しません。
 
@@ -106,11 +106,11 @@ Plugin 設定の `database.sqlserver`、`database.file`、`database.pool` と SQ
 - `Particle.valueOf(...)` による直接解決は行わず、共有 resolver を使う。
 - 固定の `Particle.*` 定数、共通の別名、既定値は `io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions` だけに定義する。
 - `SharedParticleDefinition.data` は `Particle#getDataType()` が `Void` の場合は `null`、それ以外では要求型の非 `null` instance とする。
-- 線・円・魔法陣などの点群は最大密度用の候補点を一括送信し、閲覧者の密度は地点数と点間隔へ反映する。形状順に点を並べ、同座標の重複を増やさない。密度契約は [プレイヤー設定モデル](00_docs/10_Plugin設計書/feature/11-player-setting/11_1-モデル定義.md) を参照する。
+- 線・円・魔法陣などの点群は最大密度用の候補点を一括送信し、閲覧者の密度は地点数と点間隔へ反映する。形状順に点を並べ、同座標の重複を増やさない。密度の段階は [ParticleDensity](10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/playersetting/model/ParticleDensity.java) を参照する。
 - パーティクルを追加・変更するときは、同じ攻撃判定・時刻・ダメージを使う Java 版と統合版の双方で、攻撃範囲、飛翔・移動軌道、安全箇所を読み取れるか確認する。Display Entity や大きな爆発粒子だけが手掛かりになる演出は、統合版閲覧者向けに `ParticleDisplayService` と共有定義を使った小型 `DUST` の代替表示を実装する。Java 版の既存演出と共有定義 ID は維持する。統合版へ送る共有パーティクルはすべて `DUST` に変換し、既存の `DUST` の色は維持してサイズを最大1とする。`ANGRY_VILLAGER` は橙、`HAPPY_VILLAGER` は緑、`EXPLOSION` / `FLASH` は赤、その他は淡色とする。
 - ボスだけでなく、プレイヤースキル、Mob スキル、その他の戦闘表示も変更時に統合版での表示を確認する。未対応の粒子や表示 Entity に依存して必要な情報が欠ける場合は、範囲・軌道・安全箇所のうち該当する形をダストで補い、判定ロジックから表示の成否を分離する。
 - プレイヤースキルの統合版表示は、接続で確認した専用パックを優先する。専用表示で発動・飛翔・命中を伝えられる地点に粒子を重ねず、正確な範囲を補う輪郭とパック非対応時の目印だけを `SkillEffectService` の上限付き経路で送る。作成時の版別確認、代替表示、負荷の計測は [スキル演出の品質基準](.codex/skills/astralrecord-skill-author/references/skill-effect-quality.md) に従う。
-- 代替表示も閲覧者の密度と64mの送信距離、共通の点群上限と各演出の地点数上限を守る。統合版は一括送信ごとに最大96地点・各地点1粒、単発散布は最大4粒とし、同一tick内の全演出を通算する上限で攻撃予告を欠落させない。低密度では輪郭・進行方向・安全箇所の形を残し、`OFF` では粒子を強制表示しない。表示の自動検証と設計確認だけで実機の視認性を検証済みとせず、Java 版・統合版の実クライアント確認が未実施なら明記する。
+- 代替表示も閲覧者の密度と64mの送信距離、共通の点群上限と各演出の地点数上限を守る。統合版は一括送信ごとに最大96地点・各地点1粒、単発散布は最大4粒とし、同一tick内の全演出を通算する上限で攻撃予告を欠落させない。低密度では輪郭・進行方向・安全箇所の形を残し、`OFF` では粒子を強制表示しない。Java版・統合版の視認性は実クライアントで確認し、未実施の環境は明記する。
 
 ## メッセージ管理共通ルール
 
@@ -122,7 +122,7 @@ Plugin 設定の `database.sqlserver`、`database.file`、`database.pool` と SQ
 
 ## テスト運用ルール
 
-- 恒久テストは、採用済み設計契約であることに加え、コンテンツ非依存の共通ロジックであり、疑似サーバーを起動せず決定的に検証でき、不具合時の影響が大きいものに限る。対象は、純粋な計算、入力正規化、共通の状態遷移・不変条件、冪等性、補償、データ保全、権限境界とする。
+- 恒久テストは、依頼や既存の利用条件から期待動作を定められる共通ロジックのうち、コンテンツ非依存で、疑似サーバーを起動せず決定的に検証でき、不具合時の影響が大きいものに限る。対象は、純粋な計算、入力正規化、共通の状態遷移・不変条件、冪等性、補償、データ保全、権限境界とする。
 - 個別スキル・個別Mobスキル・ボスギミック・アイテム・クエストなどのコンテンツ固有ロジックは、倍率、射程、対象数、クールダウン、個別params、ID一覧を含めて恒久テストにしない。表示文言、Lore、GUI配置、アイコン、particle、sound、演出、視認性も恒久テストの対象外とする。
 - 共通の文字列parser・正規化・プレースホルダー展開などは、表示コピーではなく変換ロジックの不変条件を検証する場合に限り恒久テストにできる。
 - 個別コンテンツの切り分けや疑似サーバーでの再現が必要な場合は、一時テストとして追加し、確認後に削除する。マスタ内容は専用 validator で確認する。実サーバー・実クライアントの確認と Blockbench の 3D 確認は、[統合入口の品質ゲート](.codex/skills/astralrecord-code-version-commit-develop/references/quality-gate.md#作業ツリーでの検証)に従う。
@@ -167,7 +167,7 @@ Plugin 設定の `database.sqlserver`、`database.file`、`database.pool` と SQ
 
 ## スキルツリー世代を含むmaster公開
 
-health監視からのauto reloadは継続する。スキルツリーのruntime登録はmaster公開完了後だけ行い、公開中は保留する。tree/class/参照skillの公開失敗は旧snapshotへ復元し、混在世代をWebへ配信しない。各serverの反映完了は個別runtimeで確認する。マスタ再読込処理の完了ごとに`publicationRevision`を進め、世代IDが同じ場合も新revisionをruntimeへ登録する。このrevisionは個別activationの成功までは保証しない。Seeder成功だけで全serverが更新済みとは判断しない。運用手順は`00_docs/20_API設計書/feature/20-skilltree/20_5.00-安全編集の導入と検証.md`を参照する。
+health監視からのauto reloadは継続する。スキルツリーのruntime登録はmaster公開完了後だけ行い、公開中は保留する。tree/class/参照skillの公開失敗は旧snapshotへ復元し、混在世代をWebへ配信しない。各serverの反映完了は個別runtimeで確認する。マスタ再読込処理の完了ごとに`publicationRevision`を進め、世代IDが同じ場合も新revisionをruntimeへ登録する。このrevisionは個別activationの成功までは保証しない。Seeder成功だけで全serverが更新済みとは判断しない。運用手順は [スキルツリーの初回導入と移行](60_tool/17-player-patch-migration/README.md#スキルツリー安全編集の初回導入) を参照する。
 
 ### スキルツリーruntime同期
 

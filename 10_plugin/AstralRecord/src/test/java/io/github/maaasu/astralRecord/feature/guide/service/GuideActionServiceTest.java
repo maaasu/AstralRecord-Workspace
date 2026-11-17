@@ -18,9 +18,7 @@ import static org.mockito.Mockito.when;
 class GuideActionServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 9. ガイド案内アクション
-     * 検証契約: OPEN_MENU(skill_bind) はスキルマネージャー GUI の open へ委譲する。
+     * OPEN_MENU(skill_bind) はスキルマネージャー GUI の open へ委譲する。
      */
     @Test
     void executeOpensSkillManagerMenu() {

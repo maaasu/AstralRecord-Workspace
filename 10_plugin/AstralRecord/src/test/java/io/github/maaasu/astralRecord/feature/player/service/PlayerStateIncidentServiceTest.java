@@ -22,9 +22,7 @@ class PlayerStateIncidentServiceTest {
     @TempDir Path directory;
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 保存不能の診断と再ロード
-     * 検証契約: 再ログイン前の退出清掃が後から実行されても、現セッションのUUIDと履歴を診断へ残す。
+     * 再ログイン前の退出清掃が後から実行されても、現セッションのUUIDと履歴を診断へ残す。
      */
     @Test
     void oldQuitCleanupCannotEraseRejoinedSessionEvidence() throws Exception {
@@ -60,9 +58,7 @@ class PlayerStateIncidentServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 保存不能の診断と再ロード
-     * 検証契約: 診断ファイルはUTF-8で元payloadと完全なHTTP拒否理由を保存し、同時刻の別snapshotと衝突しない。
+     * 診断ファイルはUTF-8で元payloadと完全なHTTP拒否理由を保存し、同時刻の別snapshotと衝突しない。
      */
     @Test
     void writesFullEvidenceWithoutOverwritingAnotherIncidentAtSameTimestamp() throws Exception {
@@ -87,9 +83,7 @@ class PlayerStateIncidentServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 保存不能の診断と再ロード
-     * 検証契約: 診断フォルダへ書き込めない場合もメインスレッドの復旧要求を登録する。
+     * 診断フォルダへ書き込めない場合もメインスレッドの復旧要求を登録する。
      */
     @Test
     void schedulesRecoveryEvenWhenDiagnosticDirectoryCannotBeCreated() throws Exception {

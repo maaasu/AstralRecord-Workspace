@@ -26,9 +26,7 @@ import static org.mockito.Mockito.when;
 class InventoryAuthoritativeCurrencySyncTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 12.1 外部取引後の通貨正本再同期
-     * 検証契約: 別アカウント取引で更新された通貨はローカル加算せず、API正本snapshotで置換する。
+     * 別アカウント取引で更新された通貨はローカル加算せず、API正本snapshotで置換する。
      */
     @Test
     void refreshAuthoritativeCurrencyEntriesReplacesSellerCurrencyWithoutDirtyingState() {
@@ -107,9 +105,7 @@ class InventoryAuthoritativeCurrencySyncTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 12.1 外部取引後の通貨正本再同期
-     * 検証契約: 正本取得中に通貨entryが変わった場合、再同期は未保存のローカル変更を上書きしない。
+     * 正本取得中に通貨entryが変わった場合、再同期は未保存のローカル変更を上書きしない。
      */
     @Test
     void refreshAuthoritativeCurrencyEntriesDoesNotOverwriteConcurrentLocalCurrencyChange() {

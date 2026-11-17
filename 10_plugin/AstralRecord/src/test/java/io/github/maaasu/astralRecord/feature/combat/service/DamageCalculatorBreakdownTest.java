@@ -25,9 +25,7 @@ import static org.mockito.Mockito.mock;
 class DamageCalculatorBreakdownTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_1-モデル定義.md
-     * 章・見出し: # 14_1-モデル定義 > ## 6. damage breakdown
-     * 検証契約: 同一hit計算で解決attack、貫通前後defense、属性raw/effective resistanceをsnapshot化する。
+     * 同一hit計算で解決attack、貫通前後defense、属性raw/effective resistanceをsnapshot化する。
      */
     @Test
     void calculationCapturesResolvedAttackDefenseAndElementResistance() {
@@ -54,9 +52,7 @@ class DamageCalculatorBreakdownTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_1-モデル定義.md
-     * 章・見出し: # 14_1-モデル定義 > ## 6. damage breakdown
-     * 検証契約: component ratio合計0でdamage 0でも解決attack/defense breakdownを保持する。
+     * component ratio合計0でdamage 0でも解決attack/defense breakdownを保持する。
      */
     @Test
     void zeroRatioResultStillKeepsAttackAndDefenseBreakdown() {
@@ -79,9 +75,7 @@ class DamageCalculatorBreakdownTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
-     * 検証契約: 無属性ダメージ増加と耐性は無属性成分だけへ適用し、火属性成分と独立した内訳を保持する。
+     * 無属性ダメージ増加と耐性は無属性成分だけへ適用し、火属性成分と独立した内訳を保持する。
      */
     @Test
     void neutralIncreaseAndResistanceAffectOnlyNeutralShare() {
@@ -109,9 +103,7 @@ class DamageCalculatorBreakdownTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
-     * 検証契約: Mobで耐性上限が未指定なら無属性50%、火属性75%を適用し、使用した値を内訳へ保存する。
+     * Mobで耐性上限が未指定なら無属性50%、火属性75%を適用し、使用した値を内訳へ保存する。
      */
     @Test
     void missingMobCapsLimitNeutralAndFireResistanceIndependently() {
@@ -128,9 +120,7 @@ class DamageCalculatorBreakdownTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
-     * 検証契約: Mobの無属性耐性上限は明示した0や基礎値を超える値を未指定fallbackで上書きしない。
+     * Mobの無属性耐性上限は明示した0や基礎値を超える値を未指定fallbackで上書きしない。
      */
     @Test
     void explicitMobNeutralCapsOverrideTheFallbackIncludingZero() {
@@ -145,9 +135,7 @@ class DamageCalculatorBreakdownTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
-     * 検証契約: プレイヤーの無属性耐性は最終statusの上限で制限し、負の耐性は弱点としてdamageへ反映する。
+     * プレイヤーの無属性耐性は最終statusの上限で制限し、負の耐性は弱点としてdamageへ反映する。
      */
     @Test
     void playerNeutralResistanceUsesFinalCapAndPreservesWeaknesses() {
@@ -165,9 +153,7 @@ class DamageCalculatorBreakdownTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
-     * 検証契約: 属性増加分の独立加算へ無属性増加・耐性を重ねず、当該属性の貫通後耐性だけを適用する。
+     * 属性増加分の独立加算へ無属性増加・耐性を重ねず、当該属性の貫通後耐性だけを適用する。
      */
     @Test
     void additiveElementShareDoesNotInheritNeutralIncreaseOrResistance() {
@@ -211,9 +197,7 @@ class DamageCalculatorBreakdownTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
-     * 検証契約: 一時回避率倍率は命中判定へ反映し、防御倍率とは独立して扱う。
+     * 一時回避率倍率は命中判定へ反映し、防御倍率とは独立して扱う。
      */
     @Test
     void temporaryEvasionMultiplierChangesHitChance() {

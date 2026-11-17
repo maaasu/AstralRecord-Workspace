@@ -21,9 +21,7 @@ import static org.mockito.Mockito.when;
 
 class EquipmentEnhanceCalculatorTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 管理者強化値変更
-     * 検証契約: 符号なしは設定値、正負の符号付きは現在値との差分として解釈する。
+     * 符号なしは設定値、正負の符号付きは現在値との差分として解釈する。
      */
     @Test
     void distinguishesAbsoluteAndRelativeLevels() {
@@ -36,9 +34,7 @@ class EquipmentEnhanceCalculatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 管理者強化値変更
-     * 検証契約: 設定値と差分の桁数に依存せず、結果を0から現在状態の上限へ補正する。
+     * 設定値と差分の桁数に依存せず、結果を0から現在状態の上限へ補正する。
      */
     @Test
     void clampsBeyondLongRangeWithoutOverflow() {
@@ -51,9 +47,7 @@ class EquipmentEnhanceCalculatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 管理者強化値変更
-     * 検証契約: 十進整数以外の入力では強化値を解釈せず拒否する。
+     * 十進整数以外の入力では強化値を解釈せず拒否する。
      */
     @Test
     void rejectsMalformedLevelInputs() {
@@ -63,9 +57,7 @@ class EquipmentEnhanceCalculatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 管理者強化値変更
-     * 検証契約: 超越の上限拡張があっても、連続した強化定義の欠損を超える値へ設定しない。
+     * 超越の上限拡張があっても、連続した強化定義の欠損を超える値へ設定しない。
      */
     @Test
     void limitsMaximumToContiguousDefinitions() {
@@ -75,9 +67,7 @@ class EquipmentEnhanceCalculatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 管理者強化値変更
-     * 検証契約: 現在ランクまでの超越上限をランク順で反映し、将来ランクの上限は適用しない。
+     * 現在ランクまでの超越上限をランク順で反映し、将来ランクの上限は適用しない。
      */
     @Test
     void appliesOnlyCurrentTranscendenceOverridesInRankOrder() {
@@ -89,9 +79,7 @@ class EquipmentEnhanceCalculatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 管理者強化値変更
-     * 検証契約: 強化の上下変更は累積耐久差分だけを適用し、個体の他データと入力個体を保持する。
+     * 強化の上下変更は累積耐久差分だけを適用し、個体の他データと入力個体を保持する。
      */
     @Test
     void adjustsDurabilityAndPreservesOtherInstanceState() {
@@ -111,9 +99,7 @@ class EquipmentEnhanceCalculatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 管理者強化値変更
-     * 検証契約: 強化減算で現在耐久が負になる場合は0へ補正し、最大耐久を超える現在耐久も補正する。
+     * 強化減算で現在耐久が負になる場合は0へ補正し、最大耐久を超える現在耐久も補正する。
      */
     @Test
     void clampsDurabilityAfterReducingEnhancement() {
@@ -125,9 +111,7 @@ class EquipmentEnhanceCalculatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 管理者強化値変更
-     * 検証契約: 最大耐久がint範囲を超える強化変更は、個体へ適用する前に拒否する。
+     * 最大耐久がint範囲を超える強化変更は、個体へ適用する前に拒否する。
      */
     @Test
     void rejectsDurabilityOverflowWithoutChangingCurrentInstance() {

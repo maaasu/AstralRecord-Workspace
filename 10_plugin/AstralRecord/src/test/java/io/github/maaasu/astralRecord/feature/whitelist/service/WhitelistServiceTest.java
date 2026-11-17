@@ -36,9 +36,7 @@ class WhitelistServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_2-ユースケース.md
-     * 章・見出し: # 03_2-ユースケース > ## 11. whitelist メンテナンス
-     * 検証契約: whitelist 有効化は設定を保存し、debugUsers / whitelistUsers のいずれにも含まれない接続中プレイヤーだけを遮断する。
+     * whitelist 有効化は設定を保存し、debugUsers / whitelistUsers のいずれにも含まれない接続中プレイヤーだけを遮断する。
      */
     @Test
     void enablingWhitelistPersistsStateAndKicksPlayersOutsideConfiguredUsers() {
@@ -90,9 +88,7 @@ class WhitelistServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_2-ユースケース.md
-     * 章・見出し: # 03_2-ユースケース > ## 11. whitelist メンテナンス
-     * 検証契約: ローカルdebugUsers/whitelistUsersに未登録でもProxy最高権限UUIDはwhitelist中の接続を許可する。
+     * ローカルdebugUsers/whitelistUsersに未登録でもProxy最高権限UUIDはwhitelist中の接続を許可する。
      */
     @Test
     void allowsProxyAuthorityDuringWhitelistMaintenance() {
@@ -112,9 +108,7 @@ class WhitelistServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-コマンド.md
-     * 章・見出し: # 03_3-コマンド > ## 7. whitelist ユーザー設定
-     * 検証契約: whitelist ユーザー追加はUUIDを設定ファイルへ保存し、実行中の設定にも反映する。
+     * whitelist ユーザー追加はUUIDを設定ファイルへ保存し、実行中の設定にも反映する。
      */
     @Test
     void addsWhitelistUserToConfigAndRuntimeState() {
@@ -140,9 +134,7 @@ class WhitelistServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-コマンド.md
-     * 章・見出し: # 03_3-コマンド > ## 7. whitelist ユーザー設定
-     * 検証契約: whitelist ユーザー削除は対象UUIDだけを設定ファイルから除去し、実行中の設定にも反映する。
+     * whitelist ユーザー削除は対象UUIDだけを設定ファイルから除去し、実行中の設定にも反映する。
      */
     @Test
     void removesWhitelistUserFromConfigAndRuntimeState() {

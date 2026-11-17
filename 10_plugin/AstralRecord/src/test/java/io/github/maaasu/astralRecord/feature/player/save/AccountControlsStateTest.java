@@ -5,9 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AccountControlsStateTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## アカウント操作状態の保存と復元
-     * 検証契約: 正規化した同じ操作はdirtyにせず、非有限値と範囲外slot/pitchは拒否する。
+     * 正規化した同じ操作はdirtyにせず、非有限値と範囲外slot/pitchは拒否する。
      */
     @Test
     void normalizesEquivalentYawAndRejectsInvalidControls() {
@@ -21,9 +19,7 @@ class AccountControlsStateTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## アカウント操作状態の保存と復元
-     * 検証契約: 捕捉済み分だけをACKし、通信中の操作と新旧ACKの冪等性を保つ。
+     * 捕捉済み分だけをACKし、通信中の操作と新旧ACKの冪等性を保つ。
      */
     @Test
     void oldAndDuplicateAcknowledgementsPreserveLaterDirtyState() {
@@ -46,9 +42,7 @@ class AccountControlsStateTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## アカウント操作状態の保存と復元
-     * 検証契約: 不正なACKで保存済み世代や保持中の操作を変更しない。
+     * 不正なACKで保存済み世代や保持中の操作を変更しない。
      */
     @Test
     void invalidAcknowledgementLeavesRetainedStatePending() {

@@ -50,9 +50,7 @@ import static org.mockito.Mockito.when;
 class HookshotInteractionEventHandlerTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-イベント.md
-     * 章・見出し: # 04_3-イベント > ## 1. クリック入力受付 > ### フックショット入力候補解決
-     * 検証契約: 未装填フックショットのmain hand右クリックは、発射ではなく装填候補を返す。
+     * 未装填フックショットのmain hand右クリックは、発射ではなく装填候補を返す。
      */
     @Test
     void resolvesRightClickAsChargeOnlyLoadingCandidate() {
@@ -77,9 +75,7 @@ class HookshotInteractionEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-イベント.md
-     * 章・見出し: # 04_3-イベント > ## 1. クリック入力受付 > ### フックショット入力候補解決
-     * 検証契約: 未装填フックショットのmain hand左クリックは、アンカー照準を必要とせず装填候補を返す。
+     * 未装填フックショットのmain hand左クリックは、アンカー照準を必要とせず装填候補を返す。
      */
     @Test
     void resolvesLeftClickAsLoadingCandidateWithoutAnchor() {
@@ -103,9 +99,7 @@ class HookshotInteractionEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-イベント.md
-     * 章・見出し: # 04_3-イベント > ## 1. クリック入力受付 > ### フックショット入力候補解決
-     * 検証契約: 左クリックは装填済みかつ発射可能な状態を再確認できる場合に発射候補を返す。
+     * 左クリックは装填済みかつ発射可能な状態を再確認できる場合に発射候補を返す。
      */
     @Test
     void doesNotResolveLeftClickWhenLoadedShotCannotFire() {
@@ -123,9 +117,7 @@ class HookshotInteractionEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-イベント.md
-     * 章・見出し: # 04_3-イベント > ## 1. クリック入力受付 > ### フックショット入力候補解決
-     * 検証契約: 装填済みフックショットは的がない場合も発射候補を返し、executorで不命中通知を表示する。
+     * 装填済みフックショットは的がない場合も発射候補を返し、executorで不命中通知を表示する。
      */
     @Test
     void resolvesLoadedLeftClickWithoutAnchorForMissFeedback() {
@@ -151,9 +143,7 @@ class HookshotInteractionEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-イベント.md
-     * 章・見出し: # 28_3-イベント > ## 1. 右・左クリック受付
-     * 検証契約: 未装填hookshotのRIGHT_CLICK_BLOCKは装填だけを開始し、入力をclaimしてvanilla操作を抑止する。
+     * 未装填hookshotのRIGHT_CLICK_BLOCKは装填だけを開始し、入力をclaimしてvanilla操作を抑止する。
      */
     @Test
     void gatewayStartsChargeOnlyLoadingOnRightClick() {
@@ -171,9 +161,7 @@ class HookshotInteractionEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-イベント.md
-     * 章・見出し: # 28_3-イベント > ## 1. 右・左クリック受付
-     * 検証契約: 装填済みhookshotの右クリックは発射せず、追加の装填も開始しない。
+     * 装填済みhookshotの右クリックは発射せず、追加の装填も開始しない。
      */
     @Test
     void gatewayDoesNotFireLoadedHookshotOnRightClick() {
@@ -191,9 +179,7 @@ class HookshotInteractionEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-イベント.md
-     * 章・見出し: # 28_3-イベント > ## 1. 右・左クリック受付
-     * 検証契約: 装填済みで有効アンカーを向くLEFT_CLICKは発射を一回だけ実行する。
+     * 装填済みで有効アンカーを向くLEFT_CLICKは発射を一回だけ実行する。
      */
     @Test
     void gatewayFiresLoadedHookshotOnLeftClick() {
@@ -212,9 +198,7 @@ class HookshotInteractionEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 3. family別候補契約
-     * 検証契約: 同距離の既存独自WORLD_INTERACTION候補はフックショット装填より先に実行される。
+     * 同距離の既存独自WORLD_INTERACTION候補はフックショット装填より先に実行される。
      */
     @Test
     void gatewayDefersLoadingToExistingWorldInteractionAtSameDistance() {

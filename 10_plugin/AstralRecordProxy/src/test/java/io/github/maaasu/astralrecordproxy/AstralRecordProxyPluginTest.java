@@ -25,7 +25,6 @@ class AstralRecordProxyPluginTest {
     Path dataDirectory;
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
      * 検証契約: RPG間の接続要求はProxy最高権限UUIDだけに許可する。
      */
     @Test
@@ -46,7 +45,6 @@ class AstralRecordProxyPluginTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
      * 検証契約: Proxy最高権限の/server候補も現在地を除くRPG channelだけに限定する。
      */
     @Test
@@ -62,7 +60,6 @@ class AstralRecordProxyPluginTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
      * 検証契約: 高速なRPG再接続は設定済み30秒クールタイムの残秒を返す。
      */
     @Test
@@ -73,7 +70,6 @@ class AstralRecordProxyPluginTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
      * 検証契約: RPG間転送準備は接続元・接続先・10秒の有効期限が一致する場合だけ利用できる。
      */
     @Test
@@ -90,7 +86,6 @@ class AstralRecordProxyPluginTest {
 
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
      * 検証契約: 除外backendのチャットもProxy内へ配信し、Discord中継用APIへは登録しない。
      */
     @Test
@@ -108,7 +103,6 @@ class AstralRecordProxyPluginTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
      * 検証契約: 除外されていないbackendのチャットはProxy内配信後にDiscord中継用APIへ登録する。
      */
     @Test
@@ -126,8 +120,6 @@ class AstralRecordProxyPluginTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## Discordサーバー接続通知
      * 検証契約: 初回Proxy接続と通常backend切替を別のDiscord通知文として生成する。
      */
     @Test
@@ -151,8 +143,6 @@ class AstralRecordProxyPluginTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## Discordサーバー接続通知
      * 検証契約: 切替元・切替先・切断元のいずれかが除外backendならライフサイクル通知を生成しない。
      */
     @Test
@@ -166,8 +156,6 @@ class AstralRecordProxyPluginTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 全体チャット
      * 検証契約: Proxy経由でも変換前本文と灰色の括弧、金色斜体の変換後本文を維持する。
      */
     @Test

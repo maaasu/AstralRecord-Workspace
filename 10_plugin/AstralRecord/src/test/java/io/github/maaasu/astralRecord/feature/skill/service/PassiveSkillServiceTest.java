@@ -51,9 +51,7 @@ class PassiveSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## パッシブスロット
-     * 検証契約: 基本5枠へPASSIVE_SKILL_SLOTSを1値1枠で加え、負数を無視し保存上限に制限する。
+     * 基本5枠へPASSIVE_SKILL_SLOTSを1値1枠で加え、負数を無視し保存上限に制限する。
      */
     @Test
     void activePassiveSlotCountUsesBaseFiveAndCapsAtTwelve() {
@@ -85,9 +83,7 @@ class PassiveSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 6. passive skill 同期
-     * 検証契約: bind-required パッシブは、習得個体・使用許可・有効パッシブ枠のバインドがすべて揃った場合だけ有効になり、いずれかが外れると無効になる。
+     * bind-required パッシブは、習得個体・使用許可・有効パッシブ枠のバインドがすべて揃った場合だけ有効になり、いずれかが外れると無効になる。
      */
     @Test
     void passiveActivationRequiresPermissionAndBoundInstance() {
@@ -194,9 +190,7 @@ class PassiveSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## タンクシールドアクティベートの実装契約
-     * 検証契約: bindRequired=false のタンクシールドアクティベートは、使用許可と習得済み個体があればパッシブスロット未設定でも有効になる。
+     * bindRequired=false のタンクシールドアクティベートは、使用許可と習得済み個体があればパッシブスロット未設定でも有効になる。
      */
     @Test
     void nonBindRequiredPassiveActivatesWithoutBoundInstance() {

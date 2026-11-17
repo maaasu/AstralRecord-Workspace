@@ -9,9 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GatheringServiceStatusTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 7. GatheringService メソッド仕様 > ### 採集開始・継続
-     * 検証契約: MINING_SPEED未設定/0でも最低1 damageを与える。
+     * MINING_SPEED未設定/0でも最低1 damageを与える。
      */
     @Test
     void missingMiningSpeedUsesMinimumDamage() {
@@ -19,9 +17,7 @@ class GatheringServiceStatusTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 7. GatheringService メソッド仕様 > ### 採集開始・継続
-     * 検証契約: 固定MINING_SPEEDを四捨五入して採集damageへ使う。
+     * 固定MINING_SPEEDを四捨五入して採集damageへ使う。
      */
     @Test
     void fixedMiningSpeedBecomesGatheringDamage() {
@@ -29,9 +25,7 @@ class GatheringServiceStatusTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 7. GatheringService メソッド仕様 > ### 採集開始・継続
-     * 検証契約: tool由来MINING_SPEEDを重複加算せず1回分damageとして使う。
+     * tool由来MINING_SPEEDを重複加算せず1回分damageとして使う。
      */
     @Test
     void toolMiningSpeedIsUsedAsSingleGatheringDamage() {
@@ -39,9 +33,7 @@ class GatheringServiceStatusTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
-     * 章・見出し: # 12_1-モデル定義 > ## 26. 採集定義
-     * 検証契約: range MINING_SPEEDのroll値を上下限内の採集damageにする。
+     * range MINING_SPEEDのroll値を上下限内の採集damageにする。
      */
     @Test
     void rangedMiningSpeedRollsDamageWithinBounds() {
@@ -54,9 +46,7 @@ class GatheringServiceStatusTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 7. GatheringService メソッド仕様 > ### 採集開始・継続
-     * 検証契約: GATHERING_LEVEL未定義時はアクセス判定値を0とする。
+     * GATHERING_LEVEL未定義時はアクセス判定値を0とする。
      */
     @Test
     void missingGatheringLevelDoesNotGrantAccessLevel() {
@@ -64,9 +54,7 @@ class GatheringServiceStatusTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 7. GatheringService メソッド仕様 > ### 採集開始・継続
-     * 検証契約: 装備由来GATHERING_LEVELは整数部分をアクセス判定値とする。
+     * 装備由来GATHERING_LEVELは整数部分をアクセス判定値とする。
      */
     @Test
     void gatheringLevelUsesDefinedWholeLevel() {

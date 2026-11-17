@@ -78,8 +78,6 @@ class NetworkApiClientTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 全体チャット
      * 検証契約: Minecraft発言はDiscordスキン解決用のUUIDとMCIDをNetwork APIへ登録する。
      */
     @Test
@@ -99,7 +97,6 @@ class NetworkApiClientTest {
     }
 
     /**
-     * 設計入力: 00_docs/20_API設計書/feature/33-network/1-モデル定義/33_1.00-モデル定義.md
      * 検証契約: Lifecycle通知はプレイヤー識別情報とアクション種別をNetwork APIへ登録する。
      */
     @Test

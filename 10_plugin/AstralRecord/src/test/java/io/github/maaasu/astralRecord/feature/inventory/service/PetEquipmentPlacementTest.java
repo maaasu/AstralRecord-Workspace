@@ -15,9 +15,7 @@ import static org.mockito.Mockito.*;
 
 class PetEquipmentPlacementTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/37-pet/37_0-概要.md
-     * 章・見出し: # 37_0-概要 > ## 装備と施設
-     * 検証契約: BAG満杯で返却先のない解除は拒否し、装備とBAGの個体を変更しない。
+     * BAG満杯で返却先のない解除は拒否し、装備とBAGの個体を変更しない。
      */
     @Test void refusesUnequipWhenBagHasNoReturnSlot() {
         Fixture fixture=new Fixture();
@@ -29,9 +27,7 @@ class PetEquipmentPlacementTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/37-pet/37_0-概要.md
-     * 章・見出し: # 37_0-概要 > ## 装備と施設
-     * 検証契約: 満杯のBAGから装備を交換するとき、新個体の元slotを旧個体の返却先として予約する。
+     * 満杯のBAGから装備を交換するとき、新個体の元slotを旧個体の返却先として予約する。
      */
     @Test void reusesIncomingSlotForExchangeInFullBag() {
         Fixture fixture=new Fixture();fixture.fillBag();
@@ -45,9 +41,7 @@ class PetEquipmentPlacementTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/37-pet/37_0-概要.md
-     * 章・見出し: # 37_0-概要 > ## 装備と施設
-     * 検証契約: 同じ装備選択の確定は返却個体や返却予約を作らず、既存の装備個体を維持する。
+     * 同じ装備選択の確定は返却個体や返却予約を作らず、既存の装備個体を維持する。
      */
     @Test void unchangedSelectionNeedsNoReturnEntryOrSlot() {
         Fixture fixture=new Fixture();
@@ -61,9 +55,7 @@ class PetEquipmentPlacementTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/37-pet/37_0-概要.md
-     * 章・見出し: # 37_0-概要 > ## 装備と施設
-     * 検証契約: 装備交換の同一entry移動を一度だけ反映し、通信中の無関係なBAG報酬加算を保持する。
+     * 装備交換の同一entry移動を一度だけ反映し、通信中の無関係なBAG報酬加算を保持する。
      */
     @Test void exchangeKeepsBothInstancesAndConcurrentMaterialGain() {
         Fixture fixture=new Fixture();fixture.fillBag();

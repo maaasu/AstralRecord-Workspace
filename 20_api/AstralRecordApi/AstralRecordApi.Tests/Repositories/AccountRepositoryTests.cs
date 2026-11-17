@@ -190,7 +190,6 @@ public class AccountRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/02-account/1-モデル定義/02_1.00-モデル定義.md
     /// 検証契約: 自動作成名は先頭のピリオドと ASCII 英数字・アンダースコアを保持し、大小文字を区別せず重複を避け、括弧付きの連番を返す。
     /// </summary>
     [Theory]
@@ -248,7 +247,6 @@ public class AccountRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/02-account/1-モデル定義/02_1.00-モデル定義.md
     /// 検証契約: 入力の先頭のピリオドだけを保持し、本文の許可文字・最小長の規則は維持する。
     /// </summary>
     [Theory]
@@ -280,7 +278,6 @@ public class AccountRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/02-account/1-モデル定義/02_1.00-モデル定義.md
     /// 検証契約: 括弧付き番号を含めて50文字以内に収め、応答不明後の再試行では同じ登録を返す。
     /// </summary>
     [Theory]
@@ -330,7 +327,6 @@ public class AccountRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/02-account/1-モデル定義/02_1.00-モデル定義.md
     /// 検証契約: ピリオド付き名と通常名を別名として照合し、既存のピリオドなし名・UUID・選択状態・MCIDを変更しない。
     /// </summary>
     [Fact]
@@ -370,7 +366,6 @@ public class AccountRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/02-account/3-エンドポイント仕様/02_3.03-更新系.md
     /// 検証契約: 手動変更名は ASCII 英数字またはアンダースコアを含む3〜50文字を受理し、許可外文字と既存名との大小無視重複は拒否する。
     /// </summary>
     [Fact]
@@ -499,7 +494,6 @@ public class AccountRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/02-account/3-エンドポイント仕様/02_3.04-削除系.md
     /// 検証契約: 削除確定後に選択先が変わっても、commit結果不明の再送は初回削除の確定応答を返す。
     /// </summary>
     [Fact]

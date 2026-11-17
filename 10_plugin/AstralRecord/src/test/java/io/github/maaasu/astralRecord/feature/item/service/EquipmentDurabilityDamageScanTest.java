@@ -29,9 +29,7 @@ import static org.mockito.Mockito.times;
 class EquipmentDurabilityDamageScanTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 4. 装備耐久値 > ### 装備中防具・アクセサリの破損通知
-     * 検証契約: 防具・アクセサリの現在耐久値が0以下なら対象とし、満タン・部分消耗・武器・重複個体は除外する。
+     * 防具・アクセサリの現在耐久値が0以下なら対象とし、満タン・部分消耗・武器・重複個体は除外する。
      */
     @Test
     void findsBrokenArmorAndAccessoryOnlyOnce() {
@@ -93,9 +91,7 @@ class EquipmentDurabilityDamageScanTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 4. ガイド進行と通知
-     * 検証契約: 採集ツールが耐久値 1 から 0 になった時だけ初回破損条件を伝え、既に壊れた装備では重複記録しない。
+     * 採集ツールが耐久値 1 から 0 になった時だけ初回破損条件を伝え、既に壊れた装備では重複記録しない。
      */
     @Test
     void gatheringToolEmitsBreakConditionOnlyOnPositiveToZeroTransition() {

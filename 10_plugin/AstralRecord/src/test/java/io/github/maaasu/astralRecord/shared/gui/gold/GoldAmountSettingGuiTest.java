@@ -9,9 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class GoldAmountSettingGuiTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 6. 共通 gold 金額入力
-     * 検証契約: 1 goldおよび10進桁stepで金額を増減し0..maxへclampする。
+     * 1 goldおよび10進桁stepで金額を増減し0..maxへclampする。
      */
     @Test
     void supportsOneGoldAndDecimalStepAdjustment() {
@@ -27,9 +25,7 @@ class GoldAmountSettingGuiTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 6. 共通 gold 金額入力
-     * 検証契約: 巨大step×回数でもlong overflowせず0または上限へ安全に丸める。
+     * 巨大step×回数でもlong overflowせず0または上限へ安全に丸める。
      */
     @Test
     void clampsLargeAdjustmentsWithoutLongOverflow() {

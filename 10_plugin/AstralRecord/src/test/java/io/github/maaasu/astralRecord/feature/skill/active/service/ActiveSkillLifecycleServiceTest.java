@@ -13,9 +13,7 @@ import static org.mockito.Mockito.verify;
 class ActiveSkillLifecycleServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
-     * 章・見出し: # 13_3-イベント > ## 4. active skill lifecycle
-     * 検証契約: world変更でcast/task/temporary effectを消しcooldownは保持する。
+     * world変更でcast/task/temporary effectを消しcooldownは保持する。
      */
     @Test
     void worldChangeClearsTransientStateAndPreservesCooldowns() {
@@ -41,9 +39,7 @@ class ActiveSkillLifecycleServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
-     * 章・見出し: # 13_3-イベント > ## 4. active skill lifecycle
-     * 検証契約: death/quitでcooldownを含む全一時skill stateを消す。
+     * death/quitでcooldownを含む全一時skill stateを消す。
      */
     @Test
     void deathOrQuitClearsCooldownsAndAllTransientState() {

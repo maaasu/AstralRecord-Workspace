@@ -11,9 +11,7 @@ import static org.mockito.Mockito.mock;
 class MovementCancelableWaitServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/07_1-モデル定義.md
-     * 章・見出し: # 07_1-モデル定義 > ## 4. ステータス種別 > ### 4.7 回復・ユーティリティ系
-     * 検証契約: 消耗品使用時移動許容距離は開始地点からの距離で判定し、境界値と同じ距離ではキャンセルしない。
+     * 消耗品使用時移動許容距離は開始地点からの距離で判定し、境界値と同じ距離ではキャンセルしない。
      */
     @Test
     void movementAllowanceUsesTheFixedStartLocationAndAllowsItsBoundary() {
@@ -27,9 +25,7 @@ class MovementCancelableWaitServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/07_1-モデル定義.md
-     * 章・見出し: # 07_1-モデル定義 > ## 4. ステータス種別 > ### 4.7 回復・ユーティリティ系
-     * 検証契約: 許容距離が0の場合の従来境界は0.2ブロックであり、0.2ブロックちょうどではキャンセルしない。
+     * 許容距離が0の場合の従来境界は0.2ブロックであり、0.2ブロックちょうどではキャンセルしない。
      */
     @Test
     void legacyMovementAllowanceAllowsExactlyPointTwoBlocks() {

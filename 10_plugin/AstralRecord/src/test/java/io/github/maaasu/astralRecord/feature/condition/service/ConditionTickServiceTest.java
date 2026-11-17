@@ -17,9 +17,7 @@ import static org.mockito.Mockito.when;
 class ConditionTickServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
-     * 章・見出し: # 27_3-サービス > ## 5. `ConditionTickService.tickCondition`
-     * 検証契約: 燃焼は付与時に固定したsnapshot 2だけを与え、対象HPを参照せず20tick後へ次回時刻を進める。
+     * 燃焼は付与時に固定したsnapshot 2だけを与え、対象HPを参照せず20tick後へ次回時刻を進める。
      */
     @Test
     void burningUsesFixedSnapshotWithoutTargetHealthRate() {
@@ -39,9 +37,7 @@ class ConditionTickServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
-     * 章・見出し: # 27_3-サービス > ## 5. `ConditionTickService.tickCondition`
-     * 検証契約: 毒は対象HPに依存せず、付与時に固定したsnapshotをそのまま算出する。
+     * 毒は対象HPに依存せず、付与時に固定したsnapshotをそのまま算出する。
      */
     @Test
     void poisonUsesFixedSnapshotWithoutTargetHealthRate() {
@@ -58,9 +54,7 @@ class ConditionTickServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
-     * 章・見出し: # 27_3-サービス > ## 5. `ConditionTickService.tickCondition`
-     * 検証契約: 感電制御時に6tickの移動禁止を設定し、次回制御を16〜32tick後へ置く。
+     * 感電制御時に6tickの移動禁止を設定し、次回制御を16〜32tick後へ置く。
      */
     @Test
     void shockedStartsSixTickMovementBlockAtRandomInterval() {

@@ -25,9 +25,7 @@ import static org.mockito.Mockito.*;
 
 class AccountCreateCommandTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
-     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウント作成
-     * 検証契約: 同一ユーザーへの先行作成が未完了の間は後続のAPI作成を拒否し、完了後は次の明示要求を許可する。
+     * 同一ユーザーへの先行作成が未完了の間は後続のAPI作成を拒否し、完了後は次の明示要求を許可する。
      */
     @Test
     void concurrentRequestsCreateOnlyOnceUntilTheFirstRequestCompletes() throws Exception {

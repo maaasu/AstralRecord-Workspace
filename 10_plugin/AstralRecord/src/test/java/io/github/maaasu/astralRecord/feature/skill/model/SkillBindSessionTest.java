@@ -16,9 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SkillBindSessionTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/4-統合フロー/13_4-スキルバインドGUI.md
-     * 章・見出し: # 13_4-スキルバインドGUI > ## 2. バインド
-     * 検証契約: 発動スロット全枠が設定済みで左クリックバインドが空の場合、未選択の発動スキルは左クリックバインドへ設定される。
+     * 発動スロット全枠が設定済みで左クリックバインドが空の場合、未選択の発動スキルは左クリックバインドへ設定される。
      */
     @Test
     void assignsActiveSkillToUnassignedLeftClickAfterActionRingIsFull() {
@@ -44,9 +42,7 @@ class SkillBindSessionTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/4-統合フロー/13_4-スキルバインドGUI.md
-     * 章・見出し: # 13_4-スキルバインドGUI > ## 2. バインド
-     * 検証契約: 未選択のパッシブスキルは有効なパッシブ空き枠だけへ自動設定し、無効枠には設定しない。
+     * 未選択のパッシブスキルは有効なパッシブ空き枠だけへ自動設定し、無効枠には設定しない。
      */
     @Test
     void assignsPassiveSkillOnlyToAnEnabledPassiveSlot() {
@@ -69,9 +65,7 @@ class SkillBindSessionTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/4-統合フロー/13_4-スキルバインドGUI.md
-     * 章・見出し: # 13_4-スキルバインドGUI > ## 2. バインド
-     * 検証契約: バインド不要パッシブと、同一プリセットのパッシブ枠へ設定済みの個体は、パッシブ枠へ自動設定しない。
+     * バインド不要パッシブと、同一プリセットのパッシブ枠へ設定済みの個体は、パッシブ枠へ自動設定しない。
      */
     @Test
     void rejectsUnrequiredOrAlreadyBoundPassiveSkill() {
@@ -100,9 +94,7 @@ class SkillBindSessionTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/4-統合フロー/13_4-スキルバインドGUI.md
-     * 章・見出し: # 13_4-スキルバインドGUI > ## 2. バインド
-     * 検証契約: 設定枠を横スクロールした状態で保存済みプリセットを反映しても、パッシブ枠と発動枠のスクロール位置を保持する。
+     * 設定枠を横スクロールした状態で保存済みプリセットを反映しても、パッシブ枠と発動枠のスクロール位置を保持する。
      */
     @Test
     void preservesBindSlotScrollOffsetsWhenReplacingSavedPreset() {

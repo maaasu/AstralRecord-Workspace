@@ -8,9 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class PlayTimeAccumulatorTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## プレイ時間の積算と保存
-     * 検証契約: PLAYだけを秒単位で積算し、端数をモード境界と同じaccountの再接続へ持ち越す。
+     * PLAYだけを秒単位で積算し、端数をモード境界と同じaccountの再接続へ持ち越す。
      */
     @Test
     void countsOnlyPlayAndCarriesFractionAcrossModeAndSessionBoundaries() {
@@ -34,9 +32,7 @@ class PlayTimeAccumulatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## プレイ時間の積算と保存
-     * 検証契約: ADMINからPLAYを経てADMINへ戻っても、その間のPLAY差分を破棄しない。
+     * ADMINからPLAYを経てADMINへ戻っても、その間のPLAY差分を破棄しない。
      */
     @Test
     void retainsPlayIntervalWhenBothSaveBoundaryModesAreAdmin() {
@@ -54,9 +50,7 @@ class PlayTimeAccumulatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## プレイ時間の積算と保存
-     * 検証契約: ACKは捕捉分だけを保存済みにし、通信中の後続時間を残して重複ACKを冪等に扱う。
+     * ACKは捕捉分だけを保存済みにし、通信中の後続時間を残して重複ACKを冪等に扱う。
      */
     @Test
     void acknowledgesOnlyCapturedTimeAndIgnoresDuplicateAcknowledgement() {
@@ -77,9 +71,7 @@ class PlayTimeAccumulatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## プレイ時間の積算と保存
-     * 検証契約: 再接続後に届く旧セッションの終了とモード通知は現セッションへ影響しない。
+     * 再接続後に届く旧セッションの終了とモード通知は現セッションへ影響しない。
      */
     @Test
     void oldSessionCallbacksCannotStopNewSession() {
@@ -100,9 +92,7 @@ class PlayTimeAccumulatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## プレイ時間の積算と保存
-     * 検証契約: snapshotとdirty照会で時計を進めず、停止したセッションの時間は加算しない。
+     * snapshotとdirty照会で時計を進めず、停止したセッションの時間は加算しない。
      */
     @Test
     void captureDoesNotAccumulateTimeAndStopRecordsFinalTimeOnce() {
@@ -121,9 +111,7 @@ class PlayTimeAccumulatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## プレイ時間の積算と保存
-     * 検証契約: 単調時計の非正差分は加算せず、nanoTimeの符号境界でも正しい経過分を保持する。
+     * 単調時計の非正差分は加算せず、nanoTimeの符号境界でも正しい経過分を保持する。
      */
     @Test
     void handlesNonpositiveDifferencesAndNanoTimeSignedRollover() {

@@ -38,9 +38,7 @@ import static org.mockito.Mockito.when;
 class PlayerMessageServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### システムメッセージ送信
-     * 検証契約: 共通タグ直後に半角空白1文字を置く。
+     * 共通タグ直後に半角空白1文字を置く。
      */
     @Test
     void systemMessagePlacesSpaceAfterCommonTag() {
@@ -58,9 +56,7 @@ class PlayerMessageServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### クリック可能メッセージ送信
-     * 検証契約: GUI導線messageに指定slash commandのrunCommand click eventを保持する。
+     * GUI導線messageに指定slash commandのrunCommand click eventを保持する。
      */
     @Test
     void clickableMessageKeepsGuiCommand() {
@@ -76,11 +72,7 @@ class PlayerMessageServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー退出イベント受付
-     * 検証契約: 参加・退出メッセージを RPG 表現で整形し、プレイヤー名から情報 GUI のコマンド導線を保持する。
+     * 参加・退出メッセージを RPG 表現で整形し、プレイヤー名から情報 GUI のコマンド導線を保持する。
      */
     @Test
     void playerPresenceMessageMakesPlayerNameOpenInfo() {
@@ -102,9 +94,7 @@ class PlayerMessageServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
-     * 章・見出し: # 19_3-メソッド仕様 > ## 作成・招待
-     * 検証契約: クリック可能メッセージの置換引数にプレイヤー名が含まれても、指定コマンド以外のクリック操作を付与しない。
+     * クリック可能メッセージの置換引数にプレイヤー名が含まれても、指定コマンド以外のクリック操作を付与しない。
      */
     @Test
     void clickableMessageDoesNotReplaceCommandWithPlayerInfo() {
@@ -125,9 +115,7 @@ class PlayerMessageServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### システムメッセージ送信
-     * 検証契約: 整形済みメッセージに含まれるオンラインプレイヤー名を、アカウント名とスロット番号で表示する。
+     * 整形済みメッセージに含まれるオンラインプレイヤー名を、アカウント名とスロット番号で表示する。
      */
     @Test
     void rawMessageReplacesOnlinePlayerNameWithAccountDisplay() {
@@ -157,9 +145,7 @@ class PlayerMessageServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### 全体チャット配信
-     * 検証契約: クラスruntime不在時にも全体chatのアカウント名とslotを表示する。
+     * クラスruntime不在時にも全体chatのアカウント名とslotを表示する。
      */
     @Test
     void globalChatUsesAccountNameWhenClassRuntimeUnavailable() {
@@ -189,9 +175,7 @@ class PlayerMessageServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### ローマ字チャット変換
-     * 検証契約: 全体・party・DMは共通変換結果を表示とProxy中継へ使い、本文を金色斜体で表示する。
+     * 全体・party・DMは共通変換結果を表示とProxy中継へ使い、本文を金色斜体で表示する。
      */
     @Test
     void managedChatsUseConvertedBodyForEveryChannelAndBridge() {
@@ -262,9 +246,7 @@ class PlayerMessageServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### ローマ字チャット変換
-     * 検証契約: 同一送信者の連続発言は、先行するかな漢字変換と配信の完了後に次の変換を開始し、発言順を維持する。
+     * 同一送信者の連続発言は、先行するかな漢字変換と配信の完了後に次の変換を開始し、発言順を維持する。
      */
     @Test
     void serializesConvertedChatsPerSenderInSubmissionOrder() {
@@ -299,9 +281,7 @@ class PlayerMessageServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### ローマ字チャット変換
-     * 検証契約: 同期完了する変換でも、送信者単位の直列化キューに完了済みFutureを残さない。
+     * 同期完了する変換でも、送信者単位の直列化キューに完了済みFutureを残さない。
      */
     @Test
     void removesCompletedSenderQueueEntryAfterSynchronousConversion() throws ReflectiveOperationException {
@@ -320,9 +300,7 @@ class PlayerMessageServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### パーティーチャット配信
-     * 検証契約: クラスruntime不在時にもパーティーチャットのアカウント名とslotを表示する。
+     * クラスruntime不在時にもパーティーチャットのアカウント名とslotを表示する。
      */
     @Test
     void partyChatUsesAccountNameWhenClassRuntimeUnavailable() {
@@ -352,9 +330,7 @@ class PlayerMessageServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### ダイレクトメッセージ配信
-     * 検証契約: クラスruntime不在時にもDMの送受信者のアカウント名とslotを表示する。
+     * クラスruntime不在時にもDMの送受信者のアカウント名とslotを表示する。
      */
     @Test
     void directMessageUsesAccountNamesWhenClassRuntimeUnavailable() {
@@ -399,9 +375,7 @@ class PlayerMessageServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 最高権限とプライベートチャット監視
-     * 検証契約: DM監視には送信者・受信者、party監視にはparty識別名をProxyへ渡す。
+     * DM監視には送信者・受信者、party監視にはparty識別名をProxyへ渡す。
      */
     @Test
     void privateChatsPublishIdentifiableMonitorMessages() {
@@ -435,9 +409,7 @@ class PlayerMessageServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### 全体チャット配信
-     * 検証契約: 全体チャット本文の {@code &c} をカラーコードとして解釈せず、Discord中継にも同じ本文を渡す。
+     * 全体チャット本文の {@code &c} をカラーコードとして解釈せず、Discord中継にも同じ本文を渡す。
      */
     @Test
     void globalChatKeepsAmpersandColorCodeLiteralAndPublishesIt() {
@@ -461,9 +433,7 @@ class PlayerMessageServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### Discord全体チャット配信
-     * 検証契約: Discord本文の {@code &c} もカラーコードとして解釈せず、Discordタグ付きで配信する。
+     * Discord本文の {@code &c} もカラーコードとして解釈せず、Discordタグ付きで配信する。
      */
     @Test
     void discordGlobalChatKeepsAmpersandColorCodeLiteral() {
@@ -483,9 +453,7 @@ class PlayerMessageServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-コマンド.md
-     * 章・見出し: # 04_3-コマンド > ## 9. showitem コマンド
-     * 検証契約: 全体チャットのアイテム名全体に COPY_TO_CLIPBOARD を設定し、表示名をそのままコピーする。
+     * 全体チャットのアイテム名全体に COPY_TO_CLIPBOARD を設定し、表示名をそのままコピーする。
      */
     @Test
     void globalItemChatMakesWholeItemNameCopyable() {

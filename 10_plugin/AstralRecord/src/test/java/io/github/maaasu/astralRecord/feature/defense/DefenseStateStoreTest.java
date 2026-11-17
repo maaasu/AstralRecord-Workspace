@@ -15,9 +15,7 @@ class DefenseStateStoreTest {
     @TempDir Path directory;
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/42-defense/42_3-サービス.md
-     * 章・見出し: # 42_3-サービス > ## 報酬・永続化 > ### 状態ファイルの読込・置換保存
-     * 検証契約: 初回は空として読み込み、UTF8のJSONを新しいスナップショットで置換保存する。
+     * 初回は空として読み込み、UTF8のJSONを新しいスナップショットで置換保存する。
      */
     @Test
     void replacesSnapshotWithoutRetainingRemovedKeys() throws IOException {
@@ -35,9 +33,7 @@ class DefenseStateStoreTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/42-defense/42_3-サービス.md
-     * 章・見出し: # 42_3-サービス > ## 報酬・永続化 > ### 状態ファイルの読込・置換保存
-     * 検証契約: 破損JSONを読み込んだ場合は例外とし、元ファイルの内容を保持する。
+     * 破損JSONを読み込んだ場合は例外とし、元ファイルの内容を保持する。
      */
     @Test
     void preservesCorruptJournalInsteadOfTreatingItAsEmpty() throws IOException {

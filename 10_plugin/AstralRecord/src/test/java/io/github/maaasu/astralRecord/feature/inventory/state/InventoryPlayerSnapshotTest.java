@@ -47,9 +47,7 @@ class InventoryPlayerSnapshotTest {
     private final LocalDateTime originalTime = LocalDateTime.of(2026, 9, 6, 1, 0);
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 通常変更の統合スナップショット
-     * 検証契約: 保存権限の登録だけではdirtyにならず、送信payloadには捕捉時の権限が固定される。
+     * 保存権限の登録だけではdirtyにならず、送信payloadには捕捉時の権限が固定される。
      */
     @Test
     void runtimeAuthorityDoesNotDirtyStateAndIsCapturedWithPayload() {
@@ -78,9 +76,7 @@ class InventoryPlayerSnapshotTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 通常変更の統合スナップショット
-     * 検証契約: API待機中のローカル消費をACKで巻き戻さず、次便は更新済み版と最新数量を送る。
+     * API待機中のローカル消費をACKで巻き戻さず、次便は更新済み版と最新数量を送る。
      */
     @Test
     void acknowledgesVersionsWithoutRollingBackNewerQuantity() {
@@ -120,14 +116,10 @@ class InventoryPlayerSnapshotTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 通常変更の統合スナップショット
-     * 検証契約: 捕捉後の削除は初回payloadへ混ぜず、次便の明示削除とbaselineで保存する。
+     * 捕捉後の削除は初回payloadへ混ぜず、次便の明示削除とbaselineで保存する。
      */
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
-     * 章・見出し: # 08_1-モデル定義 > ## 9. 完成状態スナップショット
-     * 検証契約: 未保存の装備作成を完成スナップショットへ直列化する。
+     * 未保存の装備作成を完成スナップショットへ直列化する。
      */
     @Test
     void freezesPayloadAndCarriesDeletionBaselineToNextSnapshot() {
@@ -153,9 +145,7 @@ class InventoryPlayerSnapshotTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
-     * 検証契約: ACKの行が欠落または余分な応答では保存済みと判定しない。
+     * ACKの行が欠落または余分な応答では保存済みと判定しない。
      */
     @Test
     void rejectsNonExactAcknowledgementBeforeUpdatingLocalVersions() {
@@ -182,9 +172,7 @@ class InventoryPlayerSnapshotTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 通常変更の統合スナップショット
-     * 検証契約: metadataと装備配置のローカル編集はAPI競合判定用の最終受領版を変更しない。
+     * metadataと装備配置のローカル編集はAPI競合判定用の最終受領版を変更しない。
      */
     @Test
     void preservesApiBaseTimesWhenEditingMetadataAndLoadout() {
@@ -207,9 +195,7 @@ class InventoryPlayerSnapshotTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
-     * 章・見出し: # 08_1-モデル定義 > ## 9. 完成状態スナップショット
-     * 検証契約: 未保存の装備作成を完成スナップショットへ直列化する。
+     * 未保存の装備作成を完成スナップショットへ直列化する。
      */
     @Test
     void serializesPendingEquipmentCreationForAtomicSnapshotInsert() {
@@ -237,9 +223,7 @@ class InventoryPlayerSnapshotTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
-     * 章・見出し: # 08_1-モデル定義 > ## 9. 完成状態スナップショット
-     * 検証契約: 未保存のinventory/loadoutは作成属性とisNewを含み、期待更新時刻なしで同一snapshotへ載せる。
+     * 未保存のinventory/loadoutは作成属性とisNewを含み、期待更新時刻なしで同一snapshotへ載せる。
      */
     @Test
     void serializesLocallyCreatedInventoryAndLoadoutForAtomicInsert() {
@@ -271,9 +255,7 @@ class InventoryPlayerSnapshotTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
-     * 検証契約: 全sectionの欠落・旧revision・不完全明細ACKを拒否し、完全ACKだけを受領する。
+     * 全sectionの欠落・旧revision・不完全明細ACKを拒否し、完全ACKだけを受領する。
      */
     @Test
     void validatesAllSectionAcknowledgementsFromFrozenPayload() {
@@ -380,9 +362,7 @@ class InventoryPlayerSnapshotTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
-     * 検証契約: 不正な200 ACKは対象snapshotをブロックし、自動再送し続けない。
+     * 不正な200 ACKは対象snapshotをブロックし、自動再送し続けない。
      */
     @Test
     void invalidAcknowledgementBlocksFurtherMutations() {
@@ -400,9 +380,7 @@ class InventoryPlayerSnapshotTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
-     * 検証契約: POSTの200 ACKを検証できない場合は固定ACKを照会し、完全なら保存成功として確定する。
+     * POSTの200 ACKを検証できない場合は固定ACKを照会し、完全なら保存成功として確定する。
      */
     @Test
     void recoversInvalidPostAcknowledgementFromCompletedSnapshotLookup() {
@@ -426,9 +404,7 @@ class InventoryPlayerSnapshotTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
-     * 検証契約: section固有のACK適用失敗を保存成功にせず、対象snapshotをブロックして再送しない。
+     * section固有のACK適用失敗を保存成功にせず、対象snapshotをブロックして再送しない。
      */
     @Test
     void participantAcknowledgementFailureBlocksSnapshot() {
@@ -456,9 +432,7 @@ class InventoryPlayerSnapshotTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 重要操作のACKと補償
-     * 検証契約: 重要操作の保存失敗本文は後送せず、補償後の次回snapshotを新規要求として送れる。
+     * 重要操作の保存失敗本文は後送せず、補償後の次回snapshotを新規要求として送れる。
      */
     @Test
     void discardsFailedCriticalSnapshotBeforeNextSave() {
@@ -480,9 +454,7 @@ class InventoryPlayerSnapshotTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 重要操作のACKと補償
-     * 検証契約: 重要操作の保存済み結果をACKで確定できない場合はsnapshotを保持し、ローカル補償を許可しない。
+     * 重要操作の保存済み結果をACKで確定できない場合はsnapshotを保持し、ローカル補償を許可しない。
      */
     @Test
     void keepsCriticalSnapshotBlockedWhenAcknowledgementCannotBeResolved() {
@@ -500,9 +472,7 @@ class InventoryPlayerSnapshotTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
-     * 検証契約: waystone ACKの順序・重複・余分・非文字列を拒否する。
+     * waystone ACKの順序・重複・余分・非文字列を拒否する。
      */
     @Test
     void rejectsNonExactWaystoneAcknowledgements() {
@@ -529,9 +499,7 @@ class InventoryPlayerSnapshotTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
-     * 検証契約: 課金を伴う確定と無変更の拒否の両方で、操作IDまたは最終状態が異なるACKを成功扱いしない。
+     * 課金を伴う確定と無変更の拒否の両方で、操作IDまたは最終状態が異なるACKを成功扱いしない。
      */
     @Test
     void requiresMatchingOperationIdentityAndTerminalStatus() {

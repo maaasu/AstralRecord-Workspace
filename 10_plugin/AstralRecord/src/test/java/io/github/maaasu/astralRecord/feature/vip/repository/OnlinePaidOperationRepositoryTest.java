@@ -10,9 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OnlinePaidOperationRepositoryTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
-     * 章・見出し: # 40_player-admin-edit 概要 > ## 編集開始と保存境界
-     * 検証契約: 先行する有償操作の Process 再送に元の account session 証拠を添付できる。
+     * 先行する有償操作の Process 再送に元の account session 証拠を添付できる。
      */
     @Test
     void preparedProcessCarriesCapturedAccountSessionProof() {

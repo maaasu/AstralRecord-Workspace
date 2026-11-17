@@ -26,9 +26,7 @@ import static org.mockito.Mockito.when;
 class ManagedChatEventHandlerTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### バニラメッセージコマンド変換
-     * 検証契約: msg/tell/w/whisperをnamespace有無にかかわらず管理DMへ変換対象として認識する。
+     * msg/tell/w/whisperをnamespace有無にかかわらず管理DMへ変換対象として認識する。
      */
     @Test
     void recognizesVanillaDirectMessageAliasesWithOrWithoutNamespace() {
@@ -39,9 +37,7 @@ class ManagedChatEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### バニラメッセージコマンド変換
-     * 検証契約: sayをnamespace有無にかかわらず管理全体チャットへ変換対象として認識する。
+     * sayをnamespace有無にかかわらず管理全体チャットへ変換対象として認識する。
      */
     @Test
     void recognizesVanillaGlobalMessageCommandWithOrWithoutNamespace() {
@@ -51,9 +47,7 @@ class ManagedChatEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### バニラメッセージコマンド変換
-     * 検証契約: 引数なしのhelpだけをguide変換対象とし、helpのサブコマンドは残す。
+     * 引数なしのhelpだけをguide変換対象とし、helpのサブコマンドは残す。
      */
     @Test
     void recognizesOnlyArgumentlessHelpAsGuideShortcut() {
@@ -64,9 +58,7 @@ class ManagedChatEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### バニラメッセージコマンド変換
-     * 検証契約: AstralRecord管理のmessageコマンドはバニラ変換対象にしない。
+     * AstralRecord管理のmessageコマンドはバニラ変換対象にしない。
      */
     @Test
     void keepsManagedMessageCommandAvailable() {
@@ -75,9 +67,7 @@ class ManagedChatEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### 全体チャット受付
-     * 検証契約: パーティーチャット mode 有効中の通常チャットは party 配信へ切り替え、全体配信しない。
+     * パーティーチャット mode 有効中の通常チャットは party 配信へ切り替え、全体配信しない。
      */
     @Test
     void routesNormalChatToEnabledPartyChatMode() {

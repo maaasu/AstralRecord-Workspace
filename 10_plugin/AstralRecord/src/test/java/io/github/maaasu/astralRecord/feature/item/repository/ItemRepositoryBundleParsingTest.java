@@ -10,9 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ItemRepositoryBundleParsingTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
-     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.1 `ItemBundle`
-     * 検証契約: bundle の開封時間をAPI payloadから保持し、省略時は20 tickへ補完する。
+     * bundle の開封時間をAPI payloadから保持し、省略時は20 tickへ補完する。
      */
     @Test
     void bundleOpenTimeTicksUsesConfiguredValueAndDefault() throws Exception {

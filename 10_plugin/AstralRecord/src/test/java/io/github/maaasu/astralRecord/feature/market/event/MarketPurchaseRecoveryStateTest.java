@@ -28,9 +28,7 @@ import static org.mockito.Mockito.when;
 
 class MarketPurchaseRecoveryStateTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 4. 購入 > ### 処理要点
-     * 検証契約: 初回購入の確定拒否はAPI未成立としてprepared境界を解除できる。
+     * 初回購入の確定拒否はAPI未成立としてprepared境界を解除できる。
      */
     @Test
     void firstRejectedPurchaseAllowsPreparedBoundaryAbandon() {
@@ -56,9 +54,7 @@ class MarketPurchaseRecoveryStateTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
-     * 章・見出し: # 23_4-統合フロー > ## 4. 購入 > ### 処理要点
-     * 検証契約: 通信結果不明後は同一購入receiptとbaselineを保持し、再同期失敗と後保存失敗を再試行しても購入・反映を重複させない。
+     * 通信結果不明後は同一購入receiptとbaselineを保持し、再同期失敗と後保存失敗を再試行しても購入・反映を重複させない。
      */
     @Test
     void unknownPurchaseRetainsBoundaryAndReceiptThroughReconcileAndPostSaveRetries() {

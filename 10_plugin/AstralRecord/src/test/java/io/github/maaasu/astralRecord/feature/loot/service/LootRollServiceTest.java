@@ -18,9 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class LootRollServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-サービス.md
-     * 章・見出し: # 06_3-サービス > ## 2. LootRollService > ### ルートテーブル抽選
-     * 検証契約: 0〜100へclampした独立確率判定でmissを許し100%を必ず採用する。
+     * 0〜100へclampした独立確率判定でmissを許し100%を必ず採用する。
      */
     @Test
     void rollAllowsMissesAndAlwaysAcceptsHundredPercent() {
@@ -44,9 +42,7 @@ class LootRollServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-サービス.md
-     * 章・見出し: # 06_3-サービス > ## 2. LootRollService > ### ルートテーブル抽選
-     * 検証契約: 独立成功候補をpick上限まで無作為に絞る。
+     * 独立成功候補をpick上限まで無作為に絞る。
      */
     @Test
     void rollUsesPickAsMaximumAfterIndependentSuccesses() {
@@ -69,9 +65,7 @@ class LootRollServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-サービス.md
-     * 章・見出し: # 06_3-サービス > ## 2. LootRollService > ### ルートテーブル抽選
-     * 検証契約: 当選結果へclamp済み設定rateを保持する。
+     * 当選結果へclamp済み設定rateを保持する。
      */
     @Test
     void rollPreservesConfiguredDropRateForSuccessfulResult() {
@@ -90,9 +84,7 @@ class LootRollServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-サービス.md
-     * 章・見出し: # 06_3-サービス > ## 2. LootRollService > ### ルートテーブル抽選
-     * 検証契約: 設定率20%はDROP_RATE_INCREASE=200%により40%となり、40未満の乱数で当選する。
+     * 設定率20%はDROP_RATE_INCREASE=200%により40%となり、40未満の乱数で当選する。
      */
     @Test
     void rollAppliesPlayerDropRateIncreaseToConfiguredRate() {
@@ -113,9 +105,7 @@ class LootRollServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-サービス.md
-     * 章・見出し: # 06_3-サービス > ## 2. LootRollService > ### ルートテーブル抽選
-     * 検証契約: 範囲のDROP_RATE_INCREASEを各contentの独立確率判定ごとに再ロールする。
+     * 範囲のDROP_RATE_INCREASEを各contentの独立確率判定ごとに再ロールする。
      */
     @Test
     void rollResolvesDropRateSeparatelyForEachContentChance() {
@@ -140,9 +130,7 @@ class LootRollServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-サービス.md
-     * 章・見出し: # 06_3-サービス > ## 2. LootRollService > ### ルートテーブル抽選
-     * 検証契約: roll/pick回数を閉区間から抽選し常に上限値を使わない。
+     * roll/pick回数を閉区間から抽選し常に上限値を使わない。
      */
     @Test
     void rollSamplesRollAndPickRangesInsteadOfUsingTheirUpperBounds() {
@@ -172,9 +160,7 @@ class LootRollServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-サービス.md
-     * 章・見出し: # 06_3-サービス > ## 2. LootRollService > ### ルートテーブル抽選
-     * 検証契約: pickが0に解決したpoolから結果を生成しない。
+     * pickが0に解決したpoolから結果を生成しない。
      */
     @Test
     void rollReturnsNoResultsWhenPickRangeResolvesToZero() {

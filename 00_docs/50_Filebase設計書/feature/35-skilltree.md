@@ -321,8 +321,8 @@ AI または作成者がスキルツリーノードを追加・変更すると�
 - JSON 契約: `E:\AstralRecord-Workspace\40_filebase\35.features.skilltree\docs.skilltree.JSONスキーマ定義.md`
 - JSON Schema: `E:\AstralRecord-Workspace\40_filebase\35.features.skilltree\schemas\`
 - タグカタログ: `E:\AstralRecord-Workspace\40_filebase\76.shared.tag\v1.tags.yml`
-- Plugin 設計: `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\feature\13-skill`
-- API 設計: `E:\AstralRecord-Workspace\00_docs\20_API設計書\feature\20-skilltree`
+- [Pluginのスキルツリー実装](../../../10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skilltree/service/SkillTreeService.java)
+- [APIのスキルツリー編集](../../../20_api/AstralRecordApi/AstralRecordApi/Controllers/SkillTreeEditorController.cs)
 
 ## Tier2ビルド拡充の習得導線
 

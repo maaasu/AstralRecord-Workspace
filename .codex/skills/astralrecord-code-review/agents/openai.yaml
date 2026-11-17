@@ -1,4 +1,4 @@
 interface:
   display_name: "AstralRecord コードレビュー"
-  short_description: "コードをレビューし指摘がある場合のみ記録する"
-  default_prompt: "$astralrecord-code-review を使って、E:\\AstralRecord-Workspace\\10_plugin\\AstralRecord のコードをレビューし、指摘がある場合のみ専用の作業ツリーに固定書式のレビュー記録を保存・検証して結果を報告してください。"
+  short_description: "差分を依頼の確定条件と既存の挙動・契約に照らしてレビューする"
+  default_prompt: "$astralrecord-code-review を使って、対象差分を依頼の確定条件と既存の挙動に照らし、指摘と質問を報告してください。"

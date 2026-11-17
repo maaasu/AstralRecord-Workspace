@@ -10,9 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class RuntimeAccountAuthorityTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
-     * 章・見出し: # 40_player-admin-edit 概要 > ## 編集開始と保存境界
-     * 検証契約: ペットと既存有償操作は同じ起動・account session 証拠を送り、秘密値をログ表現に含めない。
+     * ペットと既存有償操作は同じ起動・account session 証拠を送り、秘密値をログ表現に含めない。
      */
     @Test
     void writesExactRuntimeEnvelopeWithoutExposingTokenInDiagnostics() {

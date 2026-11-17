@@ -14,9 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class EnchantRollRangeResolverTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 付与済み抽選範囲の照合
-     * 検証契約: 対象グループ内の一意な同一効果を正規化照合し、逆順端点の有限範囲を返す。
+     * 対象グループ内の一意な同一効果を正規化照合し、逆順端点の有限範囲を返す。
      */
     @Test
     void resolvesOnlyMatchingEffectWithinEquipmentGroup() {
@@ -29,9 +27,7 @@ class EnchantRollRangeResolverTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 付与済み抽選範囲の照合
-     * 検証契約: 旧ID、型変更、status変更、範囲外保存値、未知型、非有限値を推測で補完しない。
+     * 旧ID、型変更、status変更、範囲外保存値、未知型、非有限値を推測で補完しない。
      */
     @Test
     void rejectsUnresolvedOrInconsistentSavedEffects() {
@@ -50,9 +46,7 @@ class EnchantRollRangeResolverTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 付与済み抽選範囲の照合
-     * 検証契約: 固定値、同値端点、不正範囲、重複候補、対象外グループに架空範囲を返さない。
+     * 固定値、同値端点、不正範囲、重複候補、対象外グループに架空範囲を返さない。
      */
     @Test
     void rejectsFixedMalformedAndAmbiguousRanges() {
@@ -67,9 +61,7 @@ class EnchantRollRangeResolverTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 付与済み抽選範囲の照合
-     * 検証契約: 同じIDで新masterが公開されても古い範囲をキャッシュせず、削除効果は解決しない。
+     * 同じIDで新masterが公開されても古い範囲をキャッシュせず、削除効果は解決しない。
      */
     @Test
     void eachCallUsesProvidedMasterGeneration() {

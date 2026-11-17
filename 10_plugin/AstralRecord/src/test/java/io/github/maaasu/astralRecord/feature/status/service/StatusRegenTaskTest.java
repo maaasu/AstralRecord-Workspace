@@ -20,9 +20,7 @@ import static org.mockito.Mockito.when;
 class StatusRegenTaskTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-タスク.md
-     * 章・見出し: # 07_3-タスク > ## 1. StatusRegenTask メソッド仕様 > ### 単体回復処理
-     * 検証契約: HP/MP/ENG自然回復は対象本人のSUPPORT_POWERを共通回復処理で適用する。
+     * HP/MP/ENG自然回復は対象本人のSUPPORT_POWERを共通回復処理で適用する。
      */
     @Test
     void naturalRecoveryUsesPlayerSupportPowerForEveryResource() {

@@ -13,9 +13,7 @@ class SkillMagicCircleRegistryTest {
     private static final UUID SECOND_CASTER = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## スキル魔法陣の共有状態
-     * 検証契約: 同じ発動者による複数登録は異なる個体IDを返し、登録した個体数だけを数える。
+     * 同じ発動者による複数登録は異なる個体IDを返し、登録した個体数だけを数える。
      */
     @Test
     void countsEachRegisteredCircleForOneCaster() {
@@ -29,9 +27,7 @@ class SkillMagicCircleRegistryTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## スキル魔法陣の共有状態
-     * 検証契約: 一人の魔法陣を解除しても、別の発動者の個体数は変わらない。
+     * 一人の魔法陣を解除しても、別の発動者の個体数は変わらない。
      */
     @Test
     void isolatesCasterCounts() {
@@ -46,9 +42,7 @@ class SkillMagicCircleRegistryTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## スキル魔法陣の共有状態
-     * 検証契約: 同じ魔法陣UUIDを複数回解除しても、他の魔法陣の個数を減らさない。
+     * 同じ魔法陣UUIDを複数回解除しても、他の魔法陣の個数を減らさない。
      */
     @Test
     void ignoresRepeatedRemoval() {
@@ -63,9 +57,7 @@ class SkillMagicCircleRegistryTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## スキル魔法陣の共有状態
-     * 検証契約: 全消去後は、それまで登録されていたすべての発動者の個体数が0になる。
+     * 全消去後は、それまで登録されていたすべての発動者の個体数が0になる。
      */
     @Test
     void clearsAllCasterCounts() {

@@ -43,9 +43,7 @@ class LocalMasterOverlayTest {
             """;
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## 共通基盤の設定スナップショットと入力正規化 > ### Dev ローカルマスタオーバーレイ
-     * 検証契約: 明示的に無効な場合、ローカルフォルダがなくても API マスタ経路への影響を作らない。
+     * 明示的に無効な場合、ローカルフォルダがなくても API マスタ経路への影響を作らない。
      */
     @Test
     void disabledOverlayNeedsNoFiles() {
@@ -57,9 +55,7 @@ class LocalMasterOverlayTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## 共通基盤の設定スナップショットと入力正規化 > ### Dev ローカルマスタオーバーレイ
-     * 検証契約: manifest に列挙した原稿だけを SHA-256 検証して読み、同じ ID はローカル原稿を優先する。
+     * manifest に列挙した原稿だけを SHA-256 検証して読み、同じ ID はローカル原稿を優先する。
      */
     @Test
     void declaredFilesLoadAndLocalIdWins() throws Exception {
@@ -77,9 +73,7 @@ class LocalMasterOverlayTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## 共通基盤の設定スナップショットと入力正規化 > ### Dev ローカルマスタオーバーレイ
-     * 検証契約: 再読込時の改変・不正パス・不正 YAML を拒否し、公開済み snapshot を保持する。
+     * 再読込時の改変・不正パス・不正 YAML を拒否し、公開済み snapshot を保持する。
      */
     @Test
     void invalidManifestOrContentKeepsPublishedSnapshot() throws Exception {
@@ -116,9 +110,7 @@ class LocalMasterOverlayTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## 共通基盤の設定スナップショットと入力正規化 > ### Dev ローカルマスタオーバーレイ
-     * 検証契約: ローカル Mob の item・loot table・Mob スキル依存を、読込済み定義へ照合する。
+     * ローカル Mob の item・loot table・Mob スキル依存を、読込済み定義へ照合する。
      */
     @Test
     void localMobDependenciesMustExist() throws Exception {

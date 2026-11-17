@@ -7,9 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class EquipmentStatRandomTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
-     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.3 `ItemEquipment` > #### 生成時一回のステータス乱数
-     * 検証契約: 0分岐は指定確率の未満だけで選ばれ、通常分岐は両端を含む離散候補になる。
+     * 0分岐は指定確率の未満だけで選ばれ、通常分岐は両端を含む離散候補になる。
      */
     @Test
     void zeroBranchAndDiscreteEndpointsAreExact() {
@@ -26,9 +24,7 @@ class EquipmentStatRandomTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
-     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.3 `ItemEquipment` > #### 生成時一回のステータス乱数
-     * 検証契約: 非有限・精度超過・逆転・不正な刻み・確率・候補数を生成前に拒否する。
+     * 非有限・精度超過・逆転・不正な刻み・確率・候補数を生成前に拒否する。
      */
     @Test
     void malformedDefinitionsAreRejected() {
@@ -47,9 +43,7 @@ class EquipmentStatRandomTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
-     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.3 `ItemEquipment` > #### 生成時一回のステータス乱数
-     * 検証契約: 基準値の有限性・保存精度・加算後の有限性と0分岐の区間独立性を検証する。
+     * 基準値の有限性・保存精度・加算後の有限性と0分岐の区間独立性を検証する。
      */
     @Test
     void baseValidationIncludesAdditionAndZeroOverlap() {

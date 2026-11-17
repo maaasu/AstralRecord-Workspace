@@ -26,9 +26,7 @@ class ProgressionPresetEnchantTest {
     private static final String ITEM_ID = "00000000-0000-0000-0000-000000000001";
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
-     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### 戦闘検証用の進行プリセット
-     * 検証契約: 付与値の元の精度を保持し、許容外の桁数・範囲・重複する効果IDを拒否する。
+     * 付与値の元の精度を保持し、許容外の桁数・範囲・重複する効果IDを拒否する。
      */
     @Test
     void readsDecimalValuesWithoutRoundingAndRejectsInvalidPresetRows() {
@@ -46,9 +44,7 @@ class ProgressionPresetEnchantTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
-     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### 戦闘検証用の進行プリセット
-     * 検証契約: マスターの装備区分と値を照合し、値や枠が違う個体は変更せず、一致する既存個体の固定状態を保持する。
+     * マスターの装備区分と値を照合し、値や枠が違う個体は変更せず、一致する既存個体の固定状態を保持する。
      */
     @Test
     void resolvesTargetAndRangeAndPreservesMatchingLockedEquipment() {

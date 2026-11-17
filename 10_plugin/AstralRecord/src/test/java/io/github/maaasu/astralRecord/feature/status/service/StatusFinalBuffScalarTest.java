@@ -23,9 +23,7 @@ import static org.mockito.Mockito.when;
 class StatusFinalBuffScalarTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/05-buff/3-メソッド仕様/05_3-サービス.md
-     * 章・見出し: # 05_3-サービス > ## 1. BuffService メソッド仕様 > ### 最終倍率取得
-     * 検証契約: 正の倍率バフと派生防御値があっても FINAL_SCALAR -1.0 は最終防御値を0にする。
+     * 正の倍率バフと派生防御値があっても FINAL_SCALAR -1.0 は最終防御値を0にする。
      */
     @Test
     void finalReductionRemovesOtherBuffAndDerivedDefense() {

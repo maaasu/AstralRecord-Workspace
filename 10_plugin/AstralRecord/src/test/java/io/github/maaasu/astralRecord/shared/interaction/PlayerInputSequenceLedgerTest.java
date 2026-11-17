@@ -15,9 +15,7 @@ class PlayerInputSequenceLedgerTest {
     private static final UUID OTHER_PLAYER_ID = UUID.fromString("00000000-0000-0000-0000-000000000102");
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 5. 入力token相関
-     * 検証契約: 同tickの汎用interactとentity interactを同じRIGHT_CLICK token・sequenceへ相関する。
+     * 同tickの汎用interactとentity interactを同じRIGHT_CLICK token・sequenceへ相関する。
      */
     @Test
     void sameTickDeliveriesCorrelateAndKeepOneSequence() {
@@ -48,9 +46,7 @@ class PlayerInputSequenceLedgerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 5. 入力token相関
-     * 検証契約: 同tick・同hand・同entityのEntity/AtEntity sourceを同じtokenへ相関する。
+     * 同tick・同hand・同entityのEntity/AtEntity sourceを同じtokenへ相関する。
      */
     @Test
     void differentEntitySourcesCorrelateForSameDirectTarget() {
@@ -77,9 +73,7 @@ class PlayerInputSequenceLedgerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 5. 入力token相関
-     * 検証契約: 同tickでも直接対象entityが異なる配送は別sequenceにする。
+     * 同tickでも直接対象entityが異なる配送は別sequenceにする。
      */
     @Test
     void differentEntitySourcesDoNotCorrelateDifferentDirectTargets() {
@@ -106,9 +100,7 @@ class PlayerInputSequenceLedgerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 5. 入力token相関
-     * 検証契約: 同tick・同source・同targetのmain/offhand重複配送を同じtokenへ相関する。
+     * 同tick・同source・同targetのmain/offhand重複配送を同じtokenへ相関する。
      */
     @Test
     void mainAndOffHandDuplicatesFromSameSourceCorrelate() {
@@ -135,9 +127,7 @@ class PlayerInputSequenceLedgerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 5. 入力token相関
-     * 検証契約: 次tickの入力は前tickのclaim済みtokenと異なるsequenceを持ち未claimで開始する。
+     * 次tickの入力は前tickのclaim済みtokenと異なるsequenceを持ち未claimで開始する。
      */
     @Test
     void nextTickCreatesIndependentInput() {
@@ -170,9 +160,7 @@ class PlayerInputSequenceLedgerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 5. 入力token相関
-     * 検証契約: 相関配送間でclaim/cancel要求を共有し、player clear後は旧状態を破棄して新tokenを発行する。
+     * 相関配送間でclaim/cancel要求を共有し、player clear後は旧状態を破棄して新tokenを発行する。
      */
     @Test
     void claimIsSharedByCorrelatedDeliveriesAndClearRemovesState() {
@@ -220,9 +208,7 @@ class PlayerInputSequenceLedgerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 5. 入力token相関
-     * 検証契約: semantic観測を同tick全体でなく正確なplayer・sequenceへ限定しclearで破棄する。
+     * semantic観測を同tick全体でなく正確なplayer・sequenceへ限定しclearで破棄する。
      */
     @Test
     void semanticObservationIsScopedToExactInputSequence() {
@@ -266,9 +252,7 @@ class PlayerInputSequenceLedgerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 5. 入力token相関
-     * 検証契約: 前ticksemantic状態を次tickfallback参照まで保持し、2tick後の相関時に破棄する。
+     * 前ticksemantic状態を次tickfallback参照まで保持し、2tick後の相関時に破棄する。
      */
     @Test
     void previousTickStateSurvivesCurrentTickInputForDeferredFallback() {
@@ -307,9 +291,7 @@ class PlayerInputSequenceLedgerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/28_4-統合フロー.md
-     * 章・見出し: # 28_4-統合フロー > ## 2. arm swing 遅延fallback
-     * 検証契約: 同player・tick・handのsemantic ingressをfamily横断で検出し、別hand・tick・playerには波及させない。
+     * 同player・tick・handのsemantic ingressをfamily横断で検出し、別hand・tick・playerには波及させない。
      */
     @Test
     void semanticObservationCanBeQueriedAcrossFamiliesByPlayerTickAndHand() {

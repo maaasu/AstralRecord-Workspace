@@ -24,9 +24,7 @@ class DungeonLayoutPlannerTest {
     private final DungeonLayoutPlanner planner = new DungeonLayoutPlanner();
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 1. BSP 配置生成
-     * 検証契約: 同じDungeonDefinitionとseedは部屋、接続、開始・ボス役割を含む同じDungeonLayoutを返す。
+     * 同じDungeonDefinitionとseedは部屋、接続、開始・ボス役割を含む同じDungeonLayoutを返す。
      */
     @Test
     void reproducesExactlyTheSameLayoutForTheSameSeed() {
@@ -39,9 +37,7 @@ class DungeonLayoutPlannerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 1. BSP 配置生成
-     * 検証契約: seedごとの部屋数はroomCount範囲内で変化し、葉区画へ置いた部屋同士は重ならない。
+     * seedごとの部屋数はroomCount範囲内で変化し、葉区画へ置いた部屋同士は重ならない。
      */
     @Test
     void choosesVariableRoomCountWithinRangeWithoutRoomOverlap() {
@@ -65,9 +61,7 @@ class DungeonLayoutPlannerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 1. BSP 配置生成
-     * 検証契約: 接続は全室へ到達できる部屋数マイナス一辺の木を構成する。
+     * 接続は全室へ到達できる部屋数マイナス一辺の木を構成する。
      */
     @Test
     void createsAConnectedTreeAcrossAllRooms() {
@@ -91,9 +85,7 @@ class DungeonLayoutPlannerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md
-     * 章・見出し: # 32_1-モデル定義 > ## 2. DungeonLayout
-     * 検証契約: STARTは予約BOSS部屋を除いた部屋矩形のminX、minZ、IDの昇順で一意に決定する。
+     * STARTは予約BOSS部屋を除いた部屋矩形のminX、minZ、IDの昇順で一意に決定する。
      */
     @Test
     void selectsTheStartRoomByMinimumBoundsCoordinates() {
@@ -116,9 +108,7 @@ class DungeonLayoutPlannerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 1. BSP 配置生成
-     * 検証契約: 各通路中心線は接続元・接続先以外の部屋を通過せず、部屋外で別通路の中心線と交差しない。
+     * 各通路中心線は接続元・接続先以外の部屋を通過せず、部屋外で別通路の中心線と交差しない。
      */
     @Test
     void routesCorridorsWithoutCrossingUnrelatedRoomsOrCorridors() {
@@ -155,9 +145,7 @@ class DungeonLayoutPlannerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 1. BSP 配置生成
-     * 検証契約: BOSS役割は予約した葉区画の一室だけに付き、設定した最小の幅と奥行きを満たす。
+     * BOSS役割は予約した葉区画の一室だけに付き、設定した最小の幅と奥行きを満たす。
      */
     @Test
     void reservesTheOnlyBossRoomAtTheConfiguredMinimumSize() {
@@ -182,9 +170,7 @@ class DungeonLayoutPlannerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 1. BSP 配置生成
-     * 検証契約: roomTypesの正の相対weightを用い、同じdefinitionとseedでは各roomへ同じtypeを決定的に割り当てる。
+     * roomTypesの正の相対weightを用い、同じdefinitionとseedでは各roomへ同じtypeを決定的に割り当てる。
      */
     @Test
     void assignsWeightedRoomTypesDeterministically() {

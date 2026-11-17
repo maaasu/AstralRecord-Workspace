@@ -14,9 +14,7 @@ import static org.mockito.Mockito.*;
 
 class AccountSelectionPolicyTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/02_1-モデル定義.md
-     * 章・見出し: # 02_1-モデル定義 > ## 2. アカウントモデル > ### 2.1 項目 > #### 2.1.1 識別情報
-     * 検証契約: 1～2桁のASCII数字をスロット、3桁以上を名称として扱い、整数上限を超える数字名も解決する。
+     * 1～2桁のASCII数字をスロット、3桁以上を名称として扱い、整数上限を超える数字名も解決する。
      */
     @Test
     void numericNamesAreNeverParsedAsSlots() {
@@ -34,9 +32,7 @@ class AccountSelectionPolicyTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/02_1-モデル定義.md
-     * 章・見出し: # 02_1-モデル定義 > ## 2. アカウントモデル > ### 2.1 項目 > #### 2.1.1 識別情報
-     * 検証契約: Pluginが明示スロットで作成する場合、0～99の範囲外はAPI通信の前に拒否する。
+     * Pluginが明示スロットで作成する場合、0～99の範囲外はAPI通信の前に拒否する。
      */
     @Test
     void outOfRangeCreationIsRejectedBeforeAnyRepositoryCall() {
@@ -49,9 +45,7 @@ class AccountSelectionPolicyTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
-     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウント名変更
-     * 検証契約: リネーム成功後は同じUUIDの旧名称だけを置換し、別アカウント名の補完を保持する。
+     * リネーム成功後は同じUUIDの旧名称だけを置換し、別アカウント名の補完を保持する。
      */
     @Test
     void renameRefreshesOnlyTheRenamedAccountSuggestion() {

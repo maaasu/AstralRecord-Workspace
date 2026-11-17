@@ -10,9 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class DungeonArchiveMergeTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ
-     * 検証契約: 非同期保存の応答順が前後しても、踏破回数を古い永続化結果で減らさない。
+     * 非同期保存の応答順が前後しても、踏破回数を古い永続化結果で減らさない。
      */
     @Test
     void keepsNewerPersistedClearWhenResponsesArriveOutOfOrder() {

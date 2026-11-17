@@ -15,9 +15,7 @@ import org.mockito.Mockito.`when`
 class SkillPermissionServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 使用許可
-     * 検証契約: 現在クラス、現在有効なスキルツリーノード、装備中のスキルブックのいずれかにあれば使用を許可する。
+     * 現在クラス、現在有効なスキルツリーノード、装備中のスキルブックのいずれかにあれば使用を許可する。
      */
     @Test
     fun permitsUnionOfCurrentClassAndEffectiveSkillTreeNodes() {

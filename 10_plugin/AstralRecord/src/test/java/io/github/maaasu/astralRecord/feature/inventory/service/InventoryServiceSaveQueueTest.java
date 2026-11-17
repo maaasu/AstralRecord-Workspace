@@ -26,9 +26,7 @@ import static org.mockito.Mockito.when;
 class InventoryServiceSaveQueueTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 12. 即時保存
-     * 検証契約: 即時保存要求をInventorySaveCoordinatorへ委譲し、そのfutureを返してInventoryPersistenceを直接呼ばない。
+     * 即時保存要求をInventorySaveCoordinatorへ委譲し、そのfutureを返してInventoryPersistenceを直接呼ばない。
      */
     @Test
     void delegatesImmediateSaveToAccountQueueWithoutCallingPersistenceDirectly() {
@@ -58,9 +56,7 @@ class InventoryServiceSaveQueueTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: prepared外部操作が例外終了した場合は境界を明示的に破棄し、次回保存・操作を恒久的に塞がない。
+     * prepared外部操作が例外終了した場合は境界を明示的に破棄し、次回保存・操作を恒久的に塞がない。
      */
     @Test
     void abandonsPreparedExternalBoundaryWhenMutationFails() {

@@ -28,9 +28,7 @@ import static org.mockito.Mockito.when;
 class PlayerStateRepositoryTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
-     * 検証契約: 同じPOSTの再送後も照会が404の場合は、確定拒否と区別して結果不明を返す。
+     * 同じPOSTの再送後も照会が404の場合は、確定拒否と区別して結果不明を返す。
      */
     @Test
     void preservesUnknownOutcomeAfterBothPostsAndLookupsFail() throws Exception {
@@ -49,9 +47,7 @@ class PlayerStateRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## player-state snapshot
-     * 検証契約: POSTが結果不明のHTTP応答になった場合は同じsnapshotIdを照会し、COMPLETEDのACKを成功として返す。
+     * POSTが結果不明のHTTP応答になった場合は同じsnapshotIdを照会し、COMPLETEDのACKを成功として返す。
      */
     @Test
     void recoversCompletedSnapshotAfterAmbiguousHttpResponse() throws Exception {
@@ -75,9 +71,7 @@ class PlayerStateRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## player-state snapshot
-     * 検証契約: 結果照会の404は失敗確定ではないため、同一payloadとsnapshotIdを再送してACKを確定する。
+     * 結果照会の404は失敗確定ではないため、同一payloadとsnapshotIdを再送してACKを確定する。
      */
     @Test
     void retriesIdenticalSnapshotWhenFirstResultLookupIsNotFound() throws Exception {
@@ -109,9 +103,7 @@ class PlayerStateRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## player-state snapshot
-     * 検証契約: POSTのI/O例外でも失敗確定前に結果照会し、SQL確定済みACKがあれば重複操作せず成功扱いにする。
+     * POSTのI/O例外でも失敗確定前に結果照会し、SQL確定済みACKがあれば重複操作せず成功扱いにする。
      */
     @Test
     void recoversCompletedSnapshotAfterPostIoFailure() throws Exception {
@@ -134,9 +126,7 @@ class PlayerStateRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
-     * 検証契約: 結果照会の不正なHTTP 200は元の425へ戻さず、ACK契約不一致として上位へ伝播する。
+     * 結果照会の不正なHTTP 200は元の425へ戻さず、ACK契約不一致として上位へ伝播する。
      */
     @Test
     void propagatesMalformedCompletedLookupInsteadOfReturningOriginalTooEarlyResponse() throws Exception {

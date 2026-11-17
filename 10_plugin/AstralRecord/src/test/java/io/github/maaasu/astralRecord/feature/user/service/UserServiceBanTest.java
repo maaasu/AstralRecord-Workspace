@@ -22,9 +22,7 @@ import static org.mockito.Mockito.when;
 class UserServiceBanTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-サービス.md
-     * 章・見出し: # 01_3-サービス > ## 1.サービスメソッド仕様 > ### ログイン前検証
-     * 検証契約: banIndefinite=true の既存ユーザーは接続を拒否し、アカウント解決と最終参加情報更新を行わない。
+     * banIndefinite=true の既存ユーザーは接続を拒否し、アカウント解決と最終参加情報更新を行わない。
      */
     @Test
     void indefiniteBanRejectsLoginBeforeAccountResolution() {
@@ -48,9 +46,7 @@ class UserServiceBanTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-サービス.md
-     * 章・見出し: # 01_3-サービス > ## 1.サービスメソッド仕様 > ### ログイン前検証
-     * 検証契約: banIndefinite=false かつ banDate が現在日時以前のユーザーは接続を許可する。
+     * banIndefinite=false かつ banDate が現在日時以前のユーザーは接続を許可する。
      */
     @Test
     void expiredTemporaryBanAllowsLogin() {
@@ -70,9 +66,7 @@ class UserServiceBanTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-サービス.md
-     * 章・見出し: # 01_3-サービス > ## 1.サービスメソッド仕様 > ### ログイン前検証
-     * 検証契約: banIndefinite=false でも banDate が現在日時より未来のユーザーは接続を拒否する。
+     * banIndefinite=false でも banDate が現在日時より未来のユーザーは接続を拒否する。
      */
     @Test
     void activeTemporaryBanRejectsLoginBeforeAccountResolution() {
@@ -90,9 +84,7 @@ class UserServiceBanTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-サービス.md
-     * 章・見出し: # 01_3-サービス > ## 1.サービスメソッド仕様 > ### ログイン前検証
-     * 検証契約: 接続前処理で取得した同一IPユーザー一覧は参加者本人を除外して保持し、参加処理側が一度だけ取得できる。
+     * 接続前処理で取得した同一IPユーザー一覧は参加者本人を除外して保持し、参加処理側が一度だけ取得できる。
      */
     @Test
     void queuesOtherUsersWithSameIpAndConsumesThemOnce() {
@@ -118,9 +110,7 @@ class UserServiceBanTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-サービス.md
-     * 章・見出し: # 01_3-サービス > ## 1.サービスメソッド仕様 > ### ログイン前検証
-     * 検証契約: user だけが残り account が0件の場合は初期accountを補完し、選択IDと参加情報を更新する。
+     * user だけが残り account が0件の場合は初期accountを補完し、選択IDと参加情報を更新する。
      */
     @Test
     void repairsExistingUserWithoutAccountBeforeAllowingLogin() {
@@ -150,9 +140,7 @@ class UserServiceBanTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-サービス.md
-     * 章・見出し: # 01_3-サービス > ## 1.サービスメソッド仕様 > ### ログイン前検証
-     * 検証契約: account 0件の補完に失敗した場合は、未ロード状態で接続させない。
+     * account 0件の補完に失敗した場合は、未ロード状態で接続させない。
      */
     @Test
     void rejectsLoginWhenMissingAccountRepairFails() {
@@ -179,9 +167,7 @@ class UserServiceBanTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-サービス.md
-     * 章・見出し: # 01_3-サービス > ## 1.サービスメソッド仕様 > ### 新規ユーザ登録
-     * 検証契約: 新規ユーザーの初期account作成に失敗した場合は接続を拒否し、次回の自己修復対象としてuserを残す。
+     * 新規ユーザーの初期account作成に失敗した場合は接続を拒否し、次回の自己修復対象としてuserを残す。
      */
     @Test
     void rejectsLoginWhenNewUserAccountCreationFails() {

@@ -10,9 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ItemTransferSupportTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
-     * 章・見出し: # 08_2-ユースケース > ## 6. ストレージ収納・取り出し
-     * 検証契約: 単一stack操作と全stack操作で数量上限に従ったtransfer量を返す。
+     * 単一stack操作と全stack操作で数量上限に従ったtransfer量を返す。
      */
     @Test
     void resolvesConsistentTransferAmountsForSingleStackAndAllStacks() {
@@ -25,9 +23,7 @@ class ItemTransferSupportTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
-     * 章・見出し: # 08_2-ユースケース > ## 6. ストレージ収納・取り出し
-     * 検証契約: Shift+右clickだけを同一item全stack transferとして認識する。
+     * Shift+右clickだけを同一item全stack transferとして認識する。
      */
     @Test
     void recognizesOnlyShiftRightAsAllStacksTransfer() {
@@ -37,9 +33,7 @@ class ItemTransferSupportTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 売却
-     * 検証契約: ストレージと売却で共通のクリック解釈を使い、Shift+右クリックだけを同一 item 全体の移動として扱う。
+     * ストレージと売却で共通のクリック解釈を使い、Shift+右クリックだけを同一 item 全体の移動として扱う。
      */
     @Test
     void resolvesReusableClickTransferRequest() {

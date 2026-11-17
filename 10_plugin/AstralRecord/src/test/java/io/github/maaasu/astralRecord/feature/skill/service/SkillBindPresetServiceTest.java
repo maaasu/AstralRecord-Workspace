@@ -33,9 +33,7 @@ import static org.mockito.Mockito.when;
 class SkillBindPresetServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
-     * 検証契約: GUI読取は公開cacheだけを参照しrepository I/Oを行わない。
+     * GUI読取は公開cacheだけを参照しrepository I/Oを行わない。
      */
     @Test
     void guiReadUsesOnlyPublishedCacheAndNeverCallsRepository() {
@@ -60,9 +58,7 @@ class SkillBindPresetServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
-     * 章・見出し: # 13_1-モデル定義 > ## 5. バインドプリセット
-     * 検証契約: APIが返した選択中プリセットをログイン後のサービスキャッシュへ復元する。
+     * APIが返した選択中プリセットをログイン後のサービスキャッシュへ復元する。
      */
     @Test
     void applyInitialPresetsRestoresSelectedPreset() {
@@ -77,9 +73,7 @@ class SkillBindPresetServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
-     * 検証契約: API未保存プリセットはexpectedVersionを省略し、targetVersionを1以上で送信する。
+     * API未保存プリセットはexpectedVersionを省略し、targetVersionを1以上で送信する。
      */
     @Test
     void snapshotNormalizesUnpersistedPresetVersionsForApi() {
@@ -111,9 +105,7 @@ class SkillBindPresetServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
-     * 検証契約: プリセット切替は通信なしでローカル確定し、保存キューへ渡す。
+     * プリセット切替は通信なしでローカル確定し、保存キューへ渡す。
      */
     @Test
     void selectPresetConfirmsSelectionLocallyAndQueuesSave() {
@@ -131,9 +123,7 @@ class SkillBindPresetServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
-     * 検証契約: 連続したプリセット切替は最後のローカル状態を一つのsnapshotとして後送する。
+     * 連続したプリセット切替は最後のローカル状態を一つのsnapshotとして後送する。
      */
     @Test
     void selectPresetWritesRapidChangesInOrder() {
@@ -154,9 +144,7 @@ class SkillBindPresetServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
-     * 検証契約: バインド内容保存はrepository I/Oを行わずローカルcacheへ即時反映し、全プリセットsnapshotの保存を予約する。
+     * バインド内容保存はrepository I/Oを行わずローカルcacheへ即時反映し、全プリセットsnapshotの保存を予約する。
      */
     @Test
     void saveUpdatesLocalCacheAndQueuesPlayerStateSnapshot() {
@@ -189,9 +177,7 @@ class SkillBindPresetServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
-     * 章・見出し: # 13_1-モデル定義 > ## 5. バインドプリセット
-     * 検証契約: 発動スロットは保存上限へ正規化し、互換コンストラクタは武器通常攻撃を既定にする。
+     * 発動スロットは保存上限へ正規化し、互換コンストラクタは武器通常攻撃を既定にする。
      */
     @Test
     void bindPresetNormalizesActionRingAndUsesWeaponNormalAttackByDefault() {
@@ -210,9 +196,7 @@ class SkillBindPresetServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
-     * 章・見出し: # 13_1-モデル定義 > ## 5. バインドプリセット
-     * 検証契約: 左クリックバインドのnull解除はローカルcacheとplayer-state snapshotへnullのまま確定する。
+     * 左クリックバインドのnull解除はローカルcacheとplayer-state snapshotへnullのまま確定する。
      */
     @Test
     void savePersistsNullLeftClickBindingInLocalSnapshot() {
@@ -235,9 +219,7 @@ class SkillBindPresetServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
-     * 検証契約: バインド変更直後の退出はsnapshot捕捉前でも全内容と選択番号を保持し、完全ACK後に退出済みcacheを破棄する。
+     * バインド変更直後の退出はsnapshot捕捉前でも全内容と選択番号を保持し、完全ACK後に退出済みcacheを破棄する。
      */
     @Test
     void quitBeforeSnapshotRetainsBindingsUntilCompleteAck() {
@@ -260,9 +242,7 @@ class SkillBindPresetServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
-     * 検証契約: 再参加ロードとapplyの間にACKが完了しても保持したバインドと選択番号を優先し、次回versionへ反映する。
+     * 再参加ロードとapplyの間にACKが完了しても保持したバインドと選択番号を優先し、次回versionへ反映する。
      */
     @Test
     void rejoinRetainsBindingsAcrossAckBetweenLoadAndApply() {
@@ -286,9 +266,7 @@ class SkillBindPresetServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
-     * 検証契約: 再参加applyは未保存バインドを旧API値で置換せず、旧ACKと重複ACKは後続変更の内容とdirtyを維持する。
+     * 再参加applyは未保存バインドを旧API値で置換せず、旧ACKと重複ACKは後続変更の内容とdirtyを維持する。
      */
     @Test
     void rejoinAndDuplicateOldAckPreserveNewerBindings() {

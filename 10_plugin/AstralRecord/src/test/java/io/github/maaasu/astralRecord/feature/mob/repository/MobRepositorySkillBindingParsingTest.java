@@ -10,9 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class MobRepositorySkillBindingParsingTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_6-Mobスキル追加ガイド.md
-     * 章・見出し: # 12_6-Mobスキル追加ガイド > ## 1. 分離方針
-     * 検証契約: 旧Mobマスターの文字列スキルIDを読み込み、object形式へ移行するまで起動を妨げない。
+     * 旧Mobマスターの文字列スキルIDを読み込み、object形式へ移行するまで起動を妨げない。
      */
     @Test
     void parsesLegacyStringMobSkillBindings() {

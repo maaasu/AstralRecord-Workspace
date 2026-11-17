@@ -15,9 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PlayerSessionTransitionGuardTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 1. service メソッド仕様 > ### セッション遷移の追加判定
-     * 検証契約: 追加判定の拒否で所有権を作らず、解除後は同じ遷移を開始できる。
+     * 追加判定の拒否で所有権を作らず、解除後は同じ遷移を開始できる。
      */
     @Test
     void rejectedTransitionDoesNotAcquireOwnershipAndCanStartAfterGuardRemoval() {
@@ -35,9 +33,7 @@ class PlayerSessionTransitionGuardTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 1. service メソッド仕様 > ### セッション遷移の追加判定
-     * 検証契約: 許可された別の遷移にも既存の所有権排他が適用され、終了後は開始できる。
+     * 許可された別の遷移にも既存の所有権排他が適用され、終了後は開始できる。
      */
     @Test
     void allowedTransitionsStillUseExistingExclusiveOwnership() {

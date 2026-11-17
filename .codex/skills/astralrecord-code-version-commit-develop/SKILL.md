@@ -20,8 +20,7 @@ description: AstralRecord で差分を作る実装・設計書反映・本番 �
 
 ## 担当スキルの選択
 
-- 既存 `AR-CODE-*` 指摘の修正 → `$astralrecord-code-fix`
-- 既存 `AR-DOC-*` 指摘の修正 → `$astralrecord-docs-fix`
+- レビュー指摘の修正（指摘IDまたは依頼で示された指摘） → `$astralrecord-code-fix`
 - Minecraft内の職業・戦闘スキル → `$astralrecord-skill-author`
 - 本番向け `40_filebase` マスタ作成 → `$astralrecord-master-data-author`
 - 新しいプレイヤー用アイテムの外観、既存アイテムのモデル作成・変更 → `$astralrecord-item-model-author`。新規アイテムは原則マスターと両版のパックを同じ変更で作る。
@@ -33,9 +32,7 @@ description: AstralRecord で差分を作る実装・設計書反映・本番 �
 
 1. 作業場所や専用作業ツリーの指定を優先する。対象入力を持つ既存の専用作業ツリーがあれば、編集分離を維持して使う。新規作業ツリーは `$astralrecord-git-worktree-develop` の準備でローカル `develop` から作る。別の作業ツリーの未コミット入力に依存する場合は、元の内容とステージ状態を保全し、対象入力を引き継いで確認してから作業する。
 2. 対象の担当スキルをその作業ツリー内で一度に一人の編集担当が実行し、最小の対象資料だけを読んで検証する。
-3. 変更種別に対応するレビュー/修正を実行する。
-   - 設計書だけ（`00_docs/40_Database設計書`以外） → `$astralrecord-docs-review` / `$astralrecord-docs-fix`
-   - コード、設定、ワークスペーススキル/ツール、ファイルベース、リソースパック、混在 → `$astralrecord-code-review` / `$astralrecord-code-fix`
+3. `$astralrecord-code-review` で対象差分をレビューし、修正できる指摘は `$astralrecord-code-fix` へ引き継ぐ。資料・スキルの変更は、ルールと参照先、実際の利用経路を対象にする。
 4. 並列作業やマージを後で行う場合は、品質ゲート後に対象ファイルだけをコミットし、作業ツリーを保持して完了処理を待つ。単独で完了まで進める依頼は、そのまま完了処理に進む。
 5. ローカル `develop` への反映は `$astralrecord-git-worktree-develop` の完了処理に従う。リベース後、プラグイン成果物を変更した場合だけ `$astralrecord-plugin-version` を実行する。
 6. 準備、品質ゲート、完了処理が停止した場合は作業ツリーを保持する。作業ツリー管理ファイルを更新し、停止理由と再開に必要なブランチ・コミットを報告する。
@@ -45,7 +42,7 @@ description: AstralRecord で差分を作る実装・設計書反映・本番 �
 - 差分なし: 作業ツリー、担当、ビルド、レビュー、コミット、マージをすべて省略。
 - 誤字、コメント、表示メタデータなどの軽量品質ゲート: 全体ビルド、第2回レビュー、専門担当を省略可。詳細は [quality-gate.md](references/quality-gate.md)。
 - API/Web/設計書/filebase/resourcepack/スキルのみ: プラグイン版番号を省略。
-- プラグインのテストソース、POM、許可された設計入力、テスト方針のパスに変更がない: テストのトレーサビリティ検証を省略。
+- [プラグインテストの構成検証](../astralrecord-code/references/plugin-code.md#プラグインテストの構成検証) は対象パスに差分がある場合に実行。
 - 対象外プロジェクトのガイド、参照、テスト方針、生成物確認は省略。
 
 ## 省略してはいけないもの

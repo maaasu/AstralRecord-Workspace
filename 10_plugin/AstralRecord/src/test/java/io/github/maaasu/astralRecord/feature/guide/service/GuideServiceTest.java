@@ -51,9 +51,7 @@ import static org.mockito.Mockito.when;
 class GuideServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
-     * 検証契約: ガイド進行の読み込みFutureを共有し、正常取得して現世代へ反映した場合だけtrueで完了する。
+     * ガイド進行の読み込みFutureを共有し、正常取得して現世代へ反映した場合だけtrueで完了する。
      */
     @Test
     void loadProgressSharesFutureAndCompletesTrueAfterSuccessfulLoad() {
@@ -74,9 +72,7 @@ class GuideServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
-     * 検証契約: ガイド進行の読み込みに失敗した場合、Futureはfalseで完了してtitle表示可否の成功判定へ進めない。
+     * ガイド進行の読み込みに失敗した場合、Futureはfalseで完了してtitle表示可否の成功判定へ進めない。
      */
     @Test
     void loadProgressCompletesFalseAfterRepositoryFailure() {
@@ -92,9 +88,7 @@ class GuideServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー退出イベント受付
-     * 検証契約: 進行読み込み中に世代を解放した場合、古い結果をキャッシュへ反映せずFutureをfalseで完了する。
+     * 進行読み込み中に世代を解放した場合、古い結果をキャッシュへ反映せずFutureをfalseで完了する。
      */
     @Test
     void loadProgressCompletesFalseWhenAccountGenerationIsReleased() {
@@ -112,9 +106,7 @@ class GuideServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 通常変更の統合スナップショット
-     * 検証契約: ガイド達成はローカルへ即時反映し、logout後もSQL ACKまでは完成状態を保持する。
+     * ガイド達成はローカルへ即時反映し、logout後もSQL ACKまでは完成状態を保持する。
      */
     @Test
     void completedStepUsesSnapshotSaveAndSurvivesReleaseUntilAcknowledged() {
@@ -164,9 +156,7 @@ class GuideServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 4. ガイド進行と通知
-     * 検証契約: 初回破損の記録はロード前の同時イベントでも一度だけ通知し、アカウント保存後の再ログインでも繰り返さない。
+     * 初回破損の記録はロード前の同時イベントでも一度だけ通知し、アカウント保存後の再ログインでも繰り返さない。
      */
     @Test
     void firstBreakIsPersistedOnceAcrossPendingEventsAndRelogin() {
@@ -206,9 +196,7 @@ class GuideServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 4. ガイド進行と通知
-     * 検証契約: ロード待ち破損→即ログアウト後も、次回ログインの保存済み耐久 0 から補完し、二重通知しない。
+     * ロード待ち破損→即ログアウト後も、次回ログインの保存済み耐久 0 から補完し、二重通知しない。
      */
     @Test
     void brokenEquipmentIsRecoveredAfterLogoutDuringProgressLoad() {
@@ -244,9 +232,7 @@ class GuideServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 4. ガイド進行と通知
-     * 検証契約: 通常ログインで読み込んだ孵化済みペットはガイドへ補完し、魔法の卵だけは対象にしない。
+     * 通常ログインで読み込んだ孵化済みペットはガイドへ補完し、魔法の卵だけは対象にしない。
      */
     @Test
     void loadedHatchedPetIsReconciledOnce() {
@@ -269,9 +255,7 @@ class GuideServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 4. ガイド進行と通知
-     * 検証契約: 破損前の部分修理は修理手順にならず、初回破損後にシンドリ操作を案内する。
+     * 破損前の部分修理は修理手順にならず、初回破損後にシンドリ操作を案内する。
      */
     @Test
     void sindriUseBeforeFirstBreakDoesNotCompleteRepairStep() {
@@ -296,9 +280,7 @@ class GuideServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 4. ガイド進行と通知
-     * 検証契約: クリア直後は次の未完了ガイドを示し、全完了後は後日追加されたガイドだけを未完了として扱う。
+     * クリア直後は次の未完了ガイドを示し、全完了後は後日追加されたガイドだけを未完了として扱う。
      */
     @Test
     void completionShowsNextGuideAndLaterGuideAdditionReopensProgress() {
@@ -330,9 +312,7 @@ class GuideServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 4. ガイド進行と通知
-     * 検証契約: 未ロードやガイドなしを全達成と誤認せず、未破損の修理ガイドを自動の次案内にしない。
+     * 未ロードやガイドなしを全達成と誤認せず、未破損の修理ガイドを自動の次案内にしない。
      */
     @Test
     void unloadedAndEmptyMasterAreNotAllCompletedAndRepairStartsOnlyOnBreak() {
@@ -358,9 +338,7 @@ class GuideServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 4. ガイド進行と通知
-     * 検証契約: 全完了・空マスター・通知OFFでは定期通知を止め、未完了進行と通知ONが揃うと次手順を1件案内する。
+     * 全完了・空マスター・通知OFFでは定期通知を止め、未完了進行と通知ONが揃うと次手順を1件案内する。
      */
     @Test
     void reminderStopsAtCompletionAndResumesForAddedGuide() {
@@ -400,9 +378,7 @@ class GuideServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 4. ガイド進行と通知
-     * 検証契約: ロード後に予約した旧セッションのイベントは再ログイン先へ適用せず、現セッションの破損補完だけが案内する。
+     * ロード後に予約した旧セッションのイベントは再ログイン先へ適用せず、現セッションの破損補完だけが案内する。
      */
     @Test
     void pendingReplayAfterReloginDoesNotConsumeNewSessionBreakNotice() {

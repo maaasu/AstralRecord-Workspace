@@ -16,9 +16,7 @@ class PetBagAccessTest {
     private static final LocalDateTime TIME = LocalDateTime.of(2026, 1, 1, 0, 0);
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/37-pet/37_0-概要.md
-     * 章・見出し: # 37_0-概要 > ## 装備と施設
-     * 検証契約: 施設共通の素材集計はGAME BAGに限定し、ホットバー・倉庫・管理者プロファイルの在庫を使用しない。
+     * 施設共通の素材集計はGAME BAGに限定し、ホットバー・倉庫・管理者プロファイルの在庫を使用しない。
      */
     @Test void excludesOtherInventoriesAndProfilesFromFacilityPayment() {
         PlayerInventoryState state = new PlayerInventoryState(account);
@@ -30,9 +28,7 @@ class PetBagAccessTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/37-pet/37_0-概要.md
-     * 章・見出し: # 37_0-概要 > ## 装備と施設
-     * 検証契約: 施設共通の支払いに個体entryと削除済みentryを混入せず、同一素材の通常entryだけを合算する。
+     * 施設共通の支払いに個体entryと削除済みentryを混入せず、同一素材の通常entryだけを合算する。
      */
     @Test void excludesInstancesAndDeletedEntriesFromMaterialTotals() {
         UUID bag = UUID.randomUUID();
@@ -47,9 +43,7 @@ class PetBagAccessTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/37-pet/37_0-概要.md
-     * 章・見出し: # 37_0-概要 > ## 装備と施設
-     * 検証契約: 無効化・削除・未読込のGAME BAGを施設操作対象にしない。
+     * 無効化・削除・未読込のGAME BAGを施設操作対象にしない。
      */
     @Test void excludesUnavailableBags() {
         PlayerInventoryState disabled = new PlayerInventoryState(account);

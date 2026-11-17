@@ -20,9 +20,7 @@ import static org.mockito.Mockito.when;
 class PlayerCapacityServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_2-ユースケース.md
-     * 章・見出し: # 03_2-ユースケース > ## 12. 権限別接続人数制限
-     * 検証契約: 基本枠30、寄付者追加枠5、管理者追加枠1のとき、通常は30人、有効なVIPアカウントは35人、管理者は36人まで接続できる。
+     * 基本枠30、寄付者追加枠5、管理者追加枠1のとき、通常は30人、有効なVIPアカウントは35人、管理者は36人まで接続できる。
      */
     @Test
     void reservesConfiguredSlotsByPermissionLevel() {
@@ -48,9 +46,7 @@ class PlayerCapacityServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_2-ユースケース.md
-     * 章・見出し: # 03_2-ユースケース > ## 12. 権限別接続人数制限
-     * 検証契約: 参加または退出で接続前予約を解放すると、同じ追加枠を後続の接続が再利用できる。
+     * 参加または退出で接続前予約を解放すると、同じ追加枠を後続の接続が再利用できる。
      */
     @Test
     void releasesReservationForLaterConnection() {
@@ -70,9 +66,7 @@ class PlayerCapacityServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_4-統合フロー.md
-     * 章・見出し: # 03_4-統合フロー > ## 1. ログイン反映 > ### 接続前の人数制限
-     * 検証契約: 参加・退出の人数更新と接続前予約の解放を同一処理で行い、参加中の人数を正確に反映する。
+     * 参加・退出の人数更新と接続前予約の解放を同一処理で行い、参加中の人数を正確に反映する。
      */
     @Test
     void recordsJoinAndQuitWithReservationRelease() {
@@ -94,9 +88,7 @@ class PlayerCapacityServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_4-統合フロー.md
-     * 章・見出し: # 03_4-統合フロー > ## 1. ログイン反映
-     * 検証契約: 起動時に Bukkit の実行時最大人数を設定合計へ変更し、停止時に起動前の値へ復元する。
+     * 起動時に Bukkit の実行時最大人数を設定合計へ変更し、停止時に起動前の値へ復元する。
      */
     @Test
     void appliesAndRestoresRuntimeMaximum() {

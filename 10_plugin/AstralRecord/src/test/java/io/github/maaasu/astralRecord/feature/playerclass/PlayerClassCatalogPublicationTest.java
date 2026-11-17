@@ -11,9 +11,7 @@ import static org.mockito.Mockito.mockStatic;
 
 class PlayerClassCatalogPublicationTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
-     * 章・見出し: # 40_player-admin-edit 概要 > ## runtime登録とカタログ準備
-     * 検証契約: 未公開とクリア後は空ハッシュを返し、正常公開した空カタログは有効なSHA-256を返す。
+     * 未公開とクリア後は空ハッシュを返し、正常公開した空カタログは有効なSHA-256を返す。
      */
     @Test
     void distinguishesUnpublishedCatalogFromPublishedEmptyCatalog() {

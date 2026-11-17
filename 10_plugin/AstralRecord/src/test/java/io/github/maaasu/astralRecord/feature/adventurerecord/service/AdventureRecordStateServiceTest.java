@@ -20,9 +20,7 @@ import static org.mockito.Mockito.verify;
 class AdventureRecordStateServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/21-adventurerecord/21_3-メソッド仕様.md
-     * 章・見出し: # 21_3-メソッド仕様 > ## 討伐・踏破のローカル加算
-     * 検証契約: 捕捉後に増えた差分は先行ACKで消さず、次のsnapshotへ残す。
+     * 捕捉後に増えた差分は先行ACKで消さず、次のsnapshotへ残す。
      */
     @Test
     void acknowledgementSubtractsOnlyCapturedDeltas() {
@@ -50,9 +48,7 @@ class AdventureRecordStateServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
-     * 検証契約: 送信delta未満の累計ACKを拒否し、未保存の冒険記録差分を破棄しない。
+     * 送信delta未満の累計ACKを拒否し、未保存の冒険記録差分を破棄しない。
      */
     @Test
     void staleCounterAcknowledgementKeepsCapturedDeltas() {

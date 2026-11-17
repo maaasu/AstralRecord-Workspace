@@ -24,9 +24,7 @@ class ParticleDisplayArchitectureTest {
 
     /**
      * feature 実装が共通の表示・解決・固定定義を使用していることを確認します。
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## パーティクル表示共通ルール
-     * 検証契約: 全production Java/Kotlin sourceで直接spawnParticle・Particle.valueOf・共有定義外の固定Particle定数が存在しない。
+     * 全production Java/Kotlin sourceで直接spawnParticle・Particle.valueOf・共有定義外の固定Particle定数が存在しない。
      */
     @Test
     void productionSourcesUseSharedParticleInfrastructure() throws IOException {

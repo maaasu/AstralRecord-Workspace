@@ -33,6 +33,6 @@ Web ログインチャレンジのハッシュ、状態、有効期限を管理�
 
 ## 関連設計書
 
-- `00_docs/20_API設計書/feature/24-web-auth`
-- `00_docs/10_Plugin設計書/feature/24-web-auth`
-- `00_docs/30_WEB設計書/feature/01-web-auth`
+- [APIのWeb認証](../../../../20_api/AstralRecordApi/AstralRecordApi/Controllers/WebAuthController.cs)
+- [PluginのWeb認証](../../../../10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/webauth/service/WebAuthService.java)
+- [Webの認証設定](../../../../30_web/AstralRecordWeb/AstralRecordWeb/Program.cs)

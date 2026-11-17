@@ -83,7 +83,7 @@ public class SkillRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/50_Filebase設計書/feature/30-skill.md、00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+    /// 設計入力: 00_docs/50_Filebase設計書/feature/30-skill.md
     /// 検証契約: 固定したクラッシュアロー payload を seed 経路へ投入し、シールドブレイク倍率がLv.1の3.0倍から各レベル0.5ずつ増加してLv.5の5.0倍になる。
     /// </summary>
     [Fact]

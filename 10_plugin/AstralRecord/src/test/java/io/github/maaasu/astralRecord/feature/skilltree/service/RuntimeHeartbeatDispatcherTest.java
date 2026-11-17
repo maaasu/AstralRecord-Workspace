@@ -14,9 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class RuntimeHeartbeatDispatcherTest {
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## スキルツリー世代を含むmaster公開 > ### スキルツリーruntime同期
-     * 検証契約: bulk成功後の一方のclaim相当callbackが遅延しても、peerのACK・inflight解除・再同期が先に完了する。
+     * bulk成功後の一方のclaim相当callbackが遅延しても、peerのACK・inflight解除・再同期が先に完了する。
      */
     @Test
     void delayedBulkAcceptedCallbackDoesNotKeepPeerInflight() throws Exception {
@@ -68,9 +66,7 @@ class RuntimeHeartbeatDispatcherTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## スキルツリー世代を含むmaster公開 > ### スキルツリーruntime同期
-     * 検証契約: 最初のbatch未対応検出でも遅延accountを待たず正常accountのinflightを解除し、正常accountは再同期できる。
+     * 最初のbatch未対応検出でも遅延accountを待たず正常accountのinflightを解除し、正常accountは再同期できる。
      */
     @Test
     void delayedLegacyAccountDoesNotKeepCompletedPeerInflight() throws Exception {
@@ -117,9 +113,7 @@ class RuntimeHeartbeatDispatcherTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## スキルツリー世代を含むmaster公開 > ### スキルツリーruntime同期
-     * 検証契約: 旧APIの一方のview/pendingが500になっても他方のrenewを実行し、失敗とinflight解除をaccountごとに確定する。
+     * 旧APIの一方のview/pendingが500になっても他方のrenewを実行し、失敗とinflight解除をaccountごとに確定する。
      */
     @Test
     void legacyHttpFailureDoesNotSuppressHealthyAccountRenewal() throws Exception {
