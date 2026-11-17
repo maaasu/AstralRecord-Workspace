@@ -13,8 +13,8 @@
 .progression-tree-selected-node > div { flex: 1; min-width: 0; }
 .progression-tree-selected-node small { display: block; color: var(--text-muted); margin-top: 3px; }
 .progression-tree-current { display: grid; grid-template-columns: 36px 1fr; align-items: center; gap: 5px 8px; padding: 10px; background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-control); }
-.progression-tree-current > img { width: 36px; height: 36px; grid-row: span 2; }
-.progression-tree-current > small { color: var(--text-muted); }
+.progression-tree-current > img, .progression-tree-current > .minecraft-icon { width: 36px; height: 36px; grid-row: span 2; }
+.progression-tree-current > small { color: var(--text-muted); grid-column: 2; }
 .skill-node.learned { border-color: #68d49b; background: #18432f; box-shadow: 0 0 0 2px #68d49b66; }
 .skill-node.learned .learned-node-mark { position: absolute; right: -6px; top: -8px; display: grid; place-items: center; width: 21px; height: 21px; border-radius: 50%; background: #68d49b; color: #0b2819; font-size: 16px; font-weight: 800; }
 .canvas.overview .skill-node.learned { outline: 5px solid #68d49b; outline-offset: 2px; }
