@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useLayoutEffect, useState } from 'react'
 import { editorApi } from './api/editorApi'
 import { toolJobApi, type ToolCapabilities } from './api/toolJobApi'
 import { DesktopToolRunHistoryProvider, DesktopToolWorkspace } from './components/DesktopToolWorkspace'
+import { MasterQuickSearch } from './components/MasterQuickSearch'
 import { toolIds, toolSpecs } from './data/desktopTools'
 import { DockCommandMenu } from './docking/DockCommandMenu'
 import { DockIcon } from './docking/DockIcon'
@@ -24,12 +25,13 @@ function AppIcon({ path }: { path: string }) {
 const filePanelIds = ['master-folders', 'master-files', 'master-validation'] as const
 const toolPanelIds = [...toolIds, 'history'] as const
 
-function EditorCommandBar({ desktop, workspaceRoot, branch, page, selectPage }: {
+function EditorCommandBar({ desktop, workspaceRoot, branch, page, selectPage, onOpenMaster }: {
   desktop?: DesktopBridge
   workspaceRoot?: string
   branch?: string
   page: Page
   selectPage: (page: Page) => void
+  onOpenMaster: (path: string) => void
 }) {
   const { api, activeId, visible, open, show, close, reset } = useDocking()!
   const navigationVisible = visible.has('navigation')
@@ -56,6 +58,7 @@ function EditorCommandBar({ desktop, workspaceRoot, branch, page, selectPage }: 
       </div>
       <div className="editor-command-context">
         <span className="editor-command-view" title={viewLabel}>{viewLabel}</span>
+        <MasterQuickSearch onOpen={onOpenMaster} />
         <div className="editor-command-workspace">
           {desktop ? <button type="button" className="editor-command-button editor-command-workspace-button" title={workspaceRoot || 'ワークスペースを変更'}
             aria-label="ワークスペースを変更" onClick={() => desktop.postMessage('select-workspace')}>
@@ -133,7 +136,10 @@ function WorkspaceViews({ workspaceRoot, desktop }: { workspaceRoot: string; des
   const retryCapabilities = () => { setCapabilitiesError(''); setCapabilitiesRequest(value => value + 1) }
   const displayRoot = workspaceRoot || capabilities?.workspaceRoot
   return <>
-    <EditorCommandBar desktop={desktop} workspaceRoot={displayRoot} branch={capabilities?.workspaceBranch ?? undefined} page={page} selectPage={selectPage} />
+    <EditorCommandBar desktop={desktop} workspaceRoot={displayRoot} branch={capabilities?.workspaceBranch ?? undefined} page={page} selectPage={selectPage} onOpenMaster={path => {
+      setMasterRequest(current => ({ path, pointer: '', requestId: (current?.requestId ?? 0) + 1 }))
+      show('master')
+    }} />
     <DockPanelContent id="navigation">
       <div id="workspace-navigation" className="master-app-sidebar">
         <nav aria-label="開発ツール">

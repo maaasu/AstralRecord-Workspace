@@ -6,6 +6,8 @@ Filebase の YAML / JSON マスターと、スキルツリーのノード・配�
 
 PowerShell 7 から `./Publish-Desktop.ps1` を実行すると、フロントエンドと self-contained の Windows x64 EXE をビルドし、`dist/desktop/` に ZIP・SHA256・ビルドログを出力します。ビルドには Node.js 24 と global.json に適合する .NET 10 SDK が必要です。`-DotnetPath`・`-NpmPath`・`-OutputDirectory` で場所を指定できます。配布物にワークスペースのマスターやローカル接続設定を含めません。
 
+操作ヘッダ中央の検索窓（Ctrl+P）から、Filebase全体のマスターを名前・ID・ファイル名・パスで検索できます。空白区切りの複数語はすべてに一致するファイルを表示し、上下キーで選択、Enterまたはクリックで保持タブとして開き、Escで閉じます。一覧パネルのフォルダやフィルターは保持します。候補は検索窓を開くたびに取得し直し、50件ずつ追加表示できます。
+
 このワークスペースの日常起動先は、メイン作業ツリーの `60_tool/05-master-data-editor/dist/desktop/AstralRecordMasterEditor-win-x64/AstralRecordMasterEditor.exe` に固定します。既存のショートカットはこの EXE を `--workspace "C:\AstralRecord-Workspace"` 付きで起動します。更新時はエディタを閉じ、ZIP 内の同名フォルダーで既存のアプリフォルダーごと差し替えます。更新履歴は ZIP で保管し、ビルドごとの展開済みフォルダーは作業後に片付けます。
 
 追加インストール不要の配布物は、Microsoft 公式の WebView2 Fixed Version Runtime x64 を展開し、`-WebView2RuntimeDirectory <msedgewebview2.exe のあるフォルダー>` を指定します。ランタイム全体を `webview2/` に同梱し、ホストはそのフォルダーを優先します。省略時はPCの Evergreen Runtime を利用します。Fixed Runtime は自己更新しないため、配布更新時に公式の安定版へ更新してください。[公式の配布手順](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution#the-fixed-version-runtime-distribution-mode)に従い、Windows 10 のパッケージ読み取り権限はホストが同梱フォルダーへ設定します。
