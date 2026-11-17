@@ -19,7 +19,7 @@ interface MasterFileBrowserProps {
   selectedPath?: string
   busy: boolean
   active: boolean
-  onOpen: (path: string) => void
+  onOpen: (path: string, preview: boolean) => void
   onNew: () => void
   onImport: () => void
   onDialogChange: (open: boolean) => void
@@ -166,7 +166,8 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
             if (event.key === 'Escape') { event.preventDefault(); searchInput.current?.focus(); return }
             const next = event.key === 'ArrowDown' ? index + 1 : event.key === 'ArrowUp' ? index - 1 : event.key === 'Home' ? 0 : event.key === 'End' ? visibleFiles.length - 1 : null
             if (next !== null && next >= 0 && next < visibleFiles.length) { event.preventDefault(); focusResult(next) }
-          }} onClick={() => onOpen(entry.path)}>
+            if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); onOpen(entry.path, false) }
+          }} onClick={() => onOpen(entry.path, true)} onDoubleClick={() => onOpen(entry.path, false)}>
             <span className="master-file-identity">{(entry.icon || entry.iconModel) && <MinecraftIcon icon={entry.icon ?? null} customModelData={entry.customModelData} iconTexture={entry.iconTexture} iconModel={entry.iconModel} className="master-list-icon" />}<strong><MinecraftText value={entry.name || name} /></strong></span><span className="master-result-badges">{level?.length ? <small>Lv {level.join(' / ')}</small> : null}{requirement?.length ? <small>必要Lv {requirement.join(' / ')}</small> : null}{indexed?.facets.unTradeable?.includes('true') && <small className="restricted">トレード禁止</small>}{entry.parseError && <b className="master-required">解析エラー</b>}{entry.readOnly && <small>閲覧のみ</small>}</span>
             {entry.id && (entry.path.startsWith('41.features.mob.spawner/') || !fileNameIncludesId(entry.path, entry.id)) && <code>ID: {entry.id}</code>}<small className="master-result-path">{name}</small>{w.searchScope === 'all' && <small className="master-result-location">{entry.path.slice(0, -(name.length + 1)) || 'Filebase 直下'}</small>}
           </button>

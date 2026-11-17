@@ -66,7 +66,7 @@ describe('master editor workflow', () => {
     vi.mocked(masterDataApi.file).mockImplementationOnce(() => new Promise((resolve) => { finishLoad = resolve }))
     const previousOverflow = document.body.style.overflow
     render(<MasterDataEditor />)
-    fireEvent.click(await screen.findByRole('button', { name: /元クラス.*old/ }))
+    fireEvent.doubleClick(await screen.findByRole('button', { name: /元クラス.*old/ }))
     await waitFor(() => expect(masterDataApi.file).toHaveBeenCalledWith(original.path, expect.any(AbortSignal)))
     fireEvent.click(screen.getByRole('button', { name: '詳細フィルター' }))
     const dialog = screen.getByRole('dialog', { name: '詳細フィルター' })
@@ -88,7 +88,7 @@ describe('master editor workflow', () => {
     render(<MasterDataEditor />)
     fireEvent.click(await screen.findByRole('button', { name: /日本語の名称/ }))
     await screen.findByRole('heading', { name: '日本語の名称' })
-    expect(screen.getByRole('tab', { name: '日本語の名称' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: '日本語の名称 · プレビュー' })).toBeInTheDocument()
     fireEvent.change(screen.getByRole('textbox', { name: '/' + key }), { target: { value: '新しい日本語名' } })
     expect(screen.getByRole('heading', { name: '新しい日本語名' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: /新しい日本語名 · 未保存/ })).toBeInTheDocument()
