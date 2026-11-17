@@ -71,7 +71,7 @@ growth MOVEMENT_SPEED = (MOVEMENT_SPEED_CAP - 100 - tree MOVEMENT_SPEED FLAT - 0
 
 通常育成16職の `MAX_MANA`、`MAX_ENERGY`、`MP_REGEN`、`ENERGY_REGEN` は、初期値を維持し、使用可能な主力skillの消費に合わせて `growthPerLevel` を配分します。共有基礎値と知力派生を含む最終値を目標にし、回復力が5秒単位である点を含めて逆算します。スキル消費・知力・HP・攻撃・防御の成長式は変更しません。最大Lvの主力複数技回転でも自然回復が全消費を賄わないようにし、装備と回復手段の価値を残します。
 
-具体的な目標値・計算式・消費収支は [[00_docs/60_戦闘バランス設計書/05-クラスリソース成長]] を参照します。ADMINは通常育成の調整対象外です。
+ADMINは通常育成の調整対象外です。
 
 ## order
 
@@ -96,6 +96,5 @@ Class マスタのファイル名は `v<schemaVersion>.<order×10>.<classId>.yml
 
 ## 正本参照
 
-- 戦闘・ゲームバランス: ステータス成長、職業間の性能配分、skill・equipmentとの役割分担を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
 - YAML: `E:\AstralRecord-Workspace\40_filebase\20.features.class\docs.class.YAMLスキーマ定義.md`
 - status: `E:\AstralRecord-Workspace\40_filebase\75.shared.status\v1.status_types.yml`

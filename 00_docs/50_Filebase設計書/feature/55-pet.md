@@ -34,4 +34,3 @@ Pet は、装備して主人と行動し、長期育成・配合・スキル継�
 - 素材の確認と導入運用: `40_filebase/55.features.pet/docs.pet.導入運用.md`
 - 共通item: `40_filebase/10.features.item/docs.item.YAMLスキーマ定義.md`
 - 主人の経験値式: `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/account/service/AccountService.java`
-- 数値基準: `00_docs/60_戦闘バランス設計書/README.md`、`02-成長曲線.md`
