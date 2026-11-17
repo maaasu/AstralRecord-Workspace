@@ -11,7 +11,7 @@ AstralRecord のモノレポです。この README はプロジェクトと資�
 | `10_plugin/AstralRecordProxy/` | Velocity Proxy Plugin | [ネットワークPluginのビルド](60_tool/12-build-network-plugins/README.md) |
 | `10_plugin/AstralRecordGeyserExtension/` | Bedrock向けカスタムヘッド、パック配布、ダメージ数値変換 | [Extension README](10_plugin/AstralRecordGeyserExtension/README.md) |
 | `10_plugin/AstralArchitect/` | AI建築候補の作成・適用 | [AstralArchitect README](10_plugin/AstralArchitect/README.md) |
-| `20_api/AstralRecordApi/` | Plugin・Web向けREST API | [APIの探し方](00_docs/10_AIパーソナライズ/APIの探し方.md) |
+| `20_api/AstralRecordApi/` | Plugin・Web向けREST API | [APIの探し方](00_docs/10_AIパーソナライズ/API/README.md) |
 | `30_web/AstralRecordWeb/` | 管理・公開用Web UI | [Webの資料](#astralrecord-web) |
 | `00_docs/40_Database設計書/` | SQL Serverのスキーマ・テーブル定義 | [Database設計書](00_docs/40_Database設計書/README.md) |
 | `40_filebase/` | YAML・JSONのマスタデータ | [Filebaseの資料](#astralrecord-filebase) |
@@ -24,13 +24,13 @@ AstralRecord のモノレポです。この README はプロジェクトと資�
 
 ## AstralRecord API
 
-- [APIの探し方](00_docs/10_AIパーソナライズ/APIの探し方.md)から、Controller、利用側のコード、APIの実装・テスト規約を確認できます。
+- [APIの探し方](00_docs/10_AIパーソナライズ/API/README.md)から、Controller、利用側のコード、APIの実装・テスト規約を確認できます。
 - [ネットワーク運用手順](60_tool/14-management-db-migrate/README.md#ネットワーク管理の初回導入): ManagementDBを含む初回配置。
 
 ## AstralRecord Plugin
 
 - [Pluginガイド](PLUGIN_GUIDE.md): 実装・メッセージ・共通基盤のルール。
-- [プレイヤー状態の保存](00_docs/10_AIパーソナライズ/機能の判断.md#プレイヤー状態の保存): 非同期保存を採用した理由と、外部取引・再送時の扱い。
+- [プレイヤー状態の保存](00_docs/10_AIパーソナライズ/プラグイン/プレイヤー状態の保存.md): 非同期保存を採用した理由と、外部取引・再送時の扱い。
 
 ## AstralRecord Web
 

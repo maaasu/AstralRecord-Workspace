@@ -1,6 +1,6 @@
 # API コード
 
-`20_api/AstralRecordApi` を実装・レビューするときに使う。入口は [APIの探し方](../../../../00_docs/10_AIパーソナライズ/APIの探し方.md)。エンドポイントの契約は `Program.cs` のルーティング、`Controllers/`、入出力モデル、既存の呼び出し元とテストで確認する。
+`20_api/AstralRecordApi` を実装・レビューするときに使う。入口は [APIの探し方](../../../../00_docs/10_AIパーソナライズ/API/README.md)。エンドポイントの契約は `Program.cs` のルーティング、`Controllers/`、入出力モデル、既存の呼び出し元とテストで確認する。
 
 ## 責務と設定
 

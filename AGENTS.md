@@ -7,7 +7,7 @@
 | `10_plugin/AstralRecord/` | Minecraft Plugin / Java・Kotlin | `PLUGIN_GUIDE.md` |
 | `10_plugin/AstralRecordGeyserExtension/` | Geyser Extension / Java | `10_plugin/AstralRecordGeyserExtension/README.md` |
 | `10_plugin/AstralArchitect/` | AI建築 / Java・Python | `10_plugin/AstralArchitect/AGENTS.md` / `$astralarchitect-builder` |
-| `20_api/AstralRecordApi/` | REST API / C# | `00_docs/10_AIパーソナライズ/APIの探し方.md` |
+| `20_api/AstralRecordApi/` | REST API / C# | `00_docs/10_AIパーソナライズ/API/README.md` |
 | `30_web/AstralRecordWeb/` | Web / Razor Pages | `30_web/AstralRecordWeb/.agents/prompts/pages.md` |
 | `30_web/AstralRecordControl/` | 独立管理Web / Agent / Runner / C# | `30_web/AstralRecordControl/AGENTS.md` |
 | `00_docs/10_AIパーソナライズ/` | AIが引き継ぐ要望・判断理由 | `00_docs/10_AIパーソナライズ/README.md` |
@@ -34,7 +34,7 @@
 
 ## AIが引き継ぐ方針と判断
 
-実装・レビュー・修正の対象と関係する継続的な要望や機能の判断理由は、[AIパーソナライズ](00_docs/10_AIパーソナライズ/README.md) の索引から該当項目を確認する。引き続き使う判断が確定したときは、同じREADMEの規則で関連する変更と一緒に記録する。
+実装・レビュー・修正では、[AIパーソナライズの索引](00_docs/10_AIパーソナライズ/README.md) の読む場面から、今回の対象・操作に関係するメモだけを選んで読む。継続する要望や判断理由を記録・整理するときは [記録と整理](00_docs/10_AIパーソナライズ/記録と整理.md) を確認し、対象領域のメモと索引を関連する変更と一緒に整える。
 
 ## サブエージェント利用方針
 
