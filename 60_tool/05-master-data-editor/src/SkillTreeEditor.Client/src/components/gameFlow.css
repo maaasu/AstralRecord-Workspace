@@ -121,3 +121,65 @@
 .game-flow-suggestion:hover { border-color: var(--accent); background: var(--surface-soft); }
 .game-flow-suggestion .minecraft-icon { width: 18px; height: 18px; flex: none; }
 .game-flow-suggestion small { margin-left: auto; color: var(--text-muted); white-space: nowrap; }
+
+/* ---- アイコン表示: 種類ごとの図形の上に名前 ---- */
+.game-flow-token { --kind: #7086a5; display: grid; justify-items: center; gap: 3px; width: 150px; color: var(--text); font-size: 11px; }
+.game-flow-token[data-kind='dungeon'] { --kind: #c0715a; }
+.game-flow-token[data-kind='shop'] { --kind: #d0a64a; }
+.game-flow-token[data-kind='item'] { --kind: #5aa7c0; }
+.game-flow-token[data-kind='mob'] { --kind: #b0596f; }
+.game-flow-token[data-kind='class'] { --kind: #8f73c9; }
+.game-flow-token[data-kind='world'] { --kind: #5fae74; }
+.game-flow-token[data-kind='gathering'] { --kind: #7fae4f; }
+.game-flow-token[data-kind='recipe'] { --kind: #c08a4f; }
+.game-flow-token[data-kind='skill'] { --kind: #5f87d6; }
+.game-flow-token[data-kind='note'] { --kind: #8a8f98; }
+.game-flow-token-name { display: -webkit-box; min-height: 30px; max-width: 150px; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; align-content: end; font-size: 12px; font-weight: 650; line-height: 1.25; text-align: center; overflow-wrap: anywhere; text-shadow: 0 1px 2px rgb(0 0 0 / 60%); }
+.game-flow-token-kind { color: var(--text-muted); font-size: 11px; }
+.game-flow-token-shape { position: relative; display: grid; place-items: center; width: 64px; height: 64px; }
+.game-flow-token-fill, .game-flow-token-fill::after { position: absolute; inset: 0; clip-path: inset(0 round 12px); }
+.game-flow-token-fill { background: var(--kind); }
+.game-flow-token-fill::after { content: ''; inset: 3px; background: var(--surface-raised); }
+.game-flow-token-icon { position: relative; z-index: 1; display: grid; place-items: center; }
+.game-flow-token-icon .minecraft-icon { width: 36px; height: 36px; image-rendering: pixelated; }
+.game-flow-token-icon .master-reference-symbol { display: grid; place-items: center; font-size: 22px; }
+.game-flow-token-flag { position: absolute; top: -4px; right: -4px; z-index: 2; display: grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; background: var(--kind); color: #111; font-size: 10px; font-weight: 800; font-style: italic; }
+.game-flow-token-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; min-height: 16px; max-width: 150px; }
+.game-flow-token-meta .game-flow-chip { font-size: 9px; padding: 0 5px; }
+.game-flow-token .game-flow-ghost-badge { display: block; margin: 0 auto 1px; width: fit-content; }
+.game-flow-token .react-flow__handle-left { left: -6px; }
+.game-flow-token .react-flow__handle-right { right: -6px; }
+/* 形: ダンジョン=門形 / ショップ=六角形 / アイテム=角丸の四角 / モブ=円 / 職業=ひし形 / ワールド=八角形 / 採集=葉形 / レシピ=平行四辺形 / スキル=盾形 */
+[data-shape='dungeon'] .game-flow-token-fill, [data-shape='dungeon'] .game-flow-token-fill::after { clip-path: polygon(50% 0, 100% 28%, 100% 100%, 0 100%, 0 28%); }
+[data-shape='dungeon'] .game-flow-token-icon { margin-top: 10px; }
+[data-shape='shop'] .game-flow-token-fill, [data-shape='shop'] .game-flow-token-fill::after { clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
+[data-shape='mob'] .game-flow-token-fill, [data-shape='mob'] .game-flow-token-fill::after { clip-path: circle(50%); }
+[data-shape='class'] { width: 72px; height: 72px; }
+[data-shape='class'] .game-flow-token-fill, [data-shape='class'] .game-flow-token-fill::after { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+[data-shape='class'] .game-flow-token-fill::after { inset: 4px; }
+[data-shape='class'] .game-flow-token-icon .minecraft-icon { width: 30px; height: 30px; }
+[data-shape='world'] .game-flow-token-fill, [data-shape='world'] .game-flow-token-fill::after { clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%); }
+[data-shape='gathering'] .game-flow-token-fill, [data-shape='gathering'] .game-flow-token-fill::after { clip-path: inset(0 round 60% 8px 60% 8px); }
+[data-shape='recipe'] { width: 76px; }
+[data-shape='recipe'] .game-flow-token-fill, [data-shape='recipe'] .game-flow-token-fill::after { clip-path: polygon(18% 0, 100% 0, 82% 100%, 0 100%); }
+[data-shape='recipe'] .game-flow-token-fill::after { inset: 3px 4px; }
+[data-shape='skill'] .game-flow-token-fill, [data-shape='skill'] .game-flow-token-fill::after { clip-path: polygon(50% 0, 100% 14%, 100% 58%, 50% 100%, 0 58%, 0 14%); }
+[data-shape='mob_spawner'] .game-flow-token-fill, [data-shape='gathering_spawner'] .game-flow-token-fill { clip-path: none; border: 3px dashed var(--kind); border-radius: 50%; background: var(--surface-raised); }
+[data-shape='mob_spawner'] .game-flow-token-fill::after, [data-shape='gathering_spawner'] .game-flow-token-fill::after { display: none; }
+[data-shape='note'] { width: 140px; height: 64px; }
+[data-shape='note'] .game-flow-token-fill { clip-path: polygon(0 0, 88% 0, 100% 22%, 100% 100%, 0 100%); }
+[data-shape='note'] .game-flow-token-fill::after { clip-path: polygon(0 0, 88% 0, 100% 22%, 100% 100%, 0 100%); inset: 2px; }
+.game-flow-token-note { position: relative; z-index: 1; display: -webkit-box; max-width: 124px; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; font-size: 12px; line-height: 1.3; text-align: center; overflow-wrap: anywhere; }
+.game-flow-token.selected .game-flow-token-shape { filter: drop-shadow(0 0 2px var(--gold)) drop-shadow(0 0 4px var(--gold)); }
+.game-flow-token.selected .game-flow-token-name { color: var(--gold); }
+.game-flow-token.dimmed { opacity: .25; }
+.game-flow-token.ghost { opacity: .55; cursor: pointer; }
+.game-flow-token.ghost:hover { opacity: .95; }
+.game-flow-token.ghost .game-flow-token-fill::after { background: var(--surface); }
+.game-flow-token.missing .game-flow-token-fill { background: var(--danger); }
+
+/* ---- 右クリックメニュー ---- */
+.game-flow-context-menu { min-width: 240px; }
+.game-flow-context-title { padding: 6px 12px 4px; color: var(--text-muted); font-size: 11px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 320px; }
+.game-flow-context-menu hr { width: 100%; margin: 4px 0; border: 0; border-top: 1px solid var(--line); }
+.game-flow-token-symbol { color: var(--kind); font-size: 26px; line-height: 1; }

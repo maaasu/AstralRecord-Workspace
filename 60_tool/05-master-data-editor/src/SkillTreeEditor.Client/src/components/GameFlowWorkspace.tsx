@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Background, BackgroundVariant, Controls, Handle, MarkerType, MiniMap, Panel, Position, ReactFlow, ReactFlowProvider,
@@ -10,7 +10,7 @@ import { ApiError } from '../api/editorApi'
 import { gameFlowApi } from '../api/gameFlowApi'
 import { masterDataApi } from '../api/masterDataApi'
 import {
-  addNode, addShopPurchases, addableKinds, applySuggestions, connect, planSuggestions, edgeKey, edgeLabelSuggestions, emptyGameFlow, flowIdPattern,
+  addNode, addShopPurchases, addableKinds, applySuggestions, connect, freeSlot, planSuggestions, edgeKey, edgeLabelSuggestions, emptyGameFlow, flowIdPattern,
   gameFlowCategory, gameFlowOutline, gameFlowPath, kindLabels, parseGameFlow, refId, refKind, removeNodes,
   serializeGameFlow, suggestFor, suggestedClasses, suggestionBatchSize, visibleFlow,
   type FlowSuggestion, type GameFlow, type GameFlowContext, type GameFlowEdge, type GameFlowNode,
@@ -35,7 +35,8 @@ interface Props {
 interface ResolvedRef { name: string; file?: MasterFileSummary }
 
 type Selection = { type: 'node'; id: string } | { type: 'edge'; key: string } | null
-type PickerRequest = { kind: string; replace?: string }
+/** position は右クリックした位置に置く場合の座標。 */
+type PickerRequest = { kind: string; replace?: string; position?: { x: number; y: number } }
 
 interface FlowNodeData extends Record<string, unknown> {
   name: string
@@ -47,6 +48,102 @@ interface FlowNodeData extends Record<string, unknown> {
   missing: boolean
   /** 未確定の候補として表示する場合の、つながりの種類（ドロップ・出現など）。 */
   suggestion?: string
+  /** icon: 種類ごとの図形にアイコンと名前、card: 補足まで見せるカード。 */
+  display: NodeDisplay
+}
+
+type NodeDisplay = 'icon' | 'card'
+const displayStorageKey = 'astral.gameFlow.nodeDisplay'
+const readDisplay = (): NodeDisplay => {
+  try { return localStorage.getItem(displayStorageKey) === 'card' ? 'card' : 'icon' } catch { return 'icon' }
+}
+
+/** アイコン表示での図形の凡例（操作方法に表示）。 */
+const shapeLegend: [string, string][] = [
+  ['dungeon', '門形'], ['shop', '六角形'], ['item', '角丸の四角'], ['mob', '円'], ['class', 'ひし形'], ['world', '八角形'],
+  ['gathering', '葉形'], ['recipe', '平行四辺形'], ['skill', '盾形'], ['mob_spawner', '点線の円'], ['note', '付箋'],
+]
+
+/** アイコンを持たないマスター（ダンジョン・ショップなど）を図形の中で示す記号。 */
+const tokenSymbols: Record<string, string> = {
+  dungeon: '⚑', shop: '⇄', mob: '⚔', item: '◆', gathering: '⛏', world: '◎', class: '◇', skill: '✦', recipe: '⚒',
+  mob_spawner: '◌', gathering_spawner: '◌', loot_table: '▦', loot_pool: '▦', fishing_area: '♒', fishing_fish: '♒',
+}
+
+/** 右クリックメニューの項目。区切り線は null。 */
+type ContextCommand = { label: string; run: () => void; disabled?: boolean } | null
+
+function FlowContextMenu({ x, y, title, commands, onDismiss }: {
+  x: number; y: number; title: string; commands: ContextCommand[]; onDismiss: () => void
+}) {
+  const document = usePanelDocument()
+  const window = document.defaultView!
+  const menu = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const element = menu.current
+    if (!element) return
+    const rect = element.getBoundingClientRect()
+    element.style.left = `${Math.max(8, Math.min(x, window.innerWidth - rect.width - 8))}px`
+    element.style.top = `${Math.max(8, Math.min(y, window.innerHeight - rect.height - 8))}px`
+    element.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus()
+  }, [x, y, window])
+  useEffect(() => {
+    const outside = (event: Event) => { if (!menu.current?.contains(event.target as globalThis.Node)) onDismiss() }
+    document.addEventListener('pointerdown', outside)
+    document.addEventListener('contextmenu', outside, true)
+    window.addEventListener('resize', onDismiss)
+    document.addEventListener('wheel', onDismiss, true)
+    return () => {
+      document.removeEventListener('pointerdown', outside)
+      document.removeEventListener('contextmenu', outside, true)
+      window.removeEventListener('resize', onDismiss)
+      document.removeEventListener('wheel', onDismiss, true)
+    }
+  }, [document, onDismiss, window])
+  return createPortal(<div ref={menu} className="master-tab-context-menu game-flow-context-menu" role="menu" aria-label={title} tabIndex={-1}
+    style={{ left: x, top: y }} onContextMenu={event => event.preventDefault()} onKeyDown={event => {
+      if (event.key === 'Escape' || event.key === 'Tab') { event.preventDefault(); onDismiss(); return }
+      const buttons = Array.from(menu.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])
+      const index = buttons.indexOf(document.activeElement as HTMLButtonElement)
+      const next = event.key === 'ArrowDown' ? (index + 1) % buttons.length : event.key === 'ArrowUp' ? (index - 1 + buttons.length) % buttons.length : -1
+      if (next >= 0) { event.preventDefault(); buttons[next]?.focus() }
+    }}>
+    <div className="game-flow-context-title">{title}</div>
+    {commands.map((command, index) => command
+      ? <button type="button" role="menuitem" key={index} disabled={command.disabled} onClick={() => { onDismiss(); command.run() }}>{command.label}</button>
+      : <hr key={index} />)}
+  </div>, document.body)
+}
+
+/** アイコン表示: 種類ごとの図形の中にアイコン、その上に名前。 */
+function FlowTokenView({ data, selected }: { data: FlowNodeData; selected: boolean }) {
+  const kindLabel = kindLabels[data.kind] ?? data.kind
+  const tooltip = [`${kindLabel}: ${plain(data.name)}`, data.classNames.length ? `対象職業: ${data.classNames.join('・')}` : '',
+    data.note ?? '', data.missing ? '参照先が見つかりません' : '', data.suggestion ? 'クリックでこの候補を配置' : ''].filter(Boolean).join('\n')
+  const shown = data.classNames.slice(0, 3)
+  return <div className={`game-flow-token${selected ? ' selected' : ''}${data.dimmed ? ' dimmed' : ''}${data.missing ? ' missing' : ''}${data.suggestion ? ' ghost' : ''}`}
+    data-kind={data.kind} title={tooltip}>
+    <div className="game-flow-token-name">
+      {data.suggestion && <span className="game-flow-ghost-badge">＋ {data.suggestion}</span>}
+      {data.kind === 'note' ? <span className="game-flow-token-kind">メモ</span> : <MinecraftText value={data.name} />}
+    </div>
+    <div className="game-flow-token-shape" data-shape={data.kind}>
+      <Handle type="target" position={Position.Left} />
+      <span className="game-flow-token-fill" aria-hidden="true" />
+      {data.kind === 'note'
+        ? <span className="game-flow-token-note"><MinecraftText value={data.name} /></span>
+        : <span className="game-flow-token-icon">{data.file?.icon || data.file?.iconModel
+          ? <ReferenceIcon file={data.file} kind={data.kind} />
+          : <span className="game-flow-token-symbol" aria-hidden="true">{tokenSymbols[data.kind] ?? '?'}</span>}</span>}
+      {data.note && data.kind !== 'note' && <span className="game-flow-token-flag" aria-label="補足あり">i</span>}
+      <Handle type="source" position={Position.Right} />
+    </div>
+    <div className="game-flow-token-meta">
+      {data.missing && <small className="game-flow-node-warning">参照なし</small>}
+      {shown.map(name => <span key={name} className="game-flow-chip">{name}</span>)}
+      {data.classNames.length > shown.length && <span className="game-flow-chip">+{data.classNames.length - shown.length}</span>}
+    </div>
+  </div>
 }
 
 const ghostPrefix = 'ghost:'
@@ -55,6 +152,7 @@ const errorMessage = (reason: unknown) => reason instanceof Error ? reason.messa
 const plain = (value: string) => stripMinecraftFormatting(value).trim()
 
 const FlowNodeView = memo(function FlowNodeView({ data, selected }: NodeProps<Node<FlowNodeData>>) {
+  if (data.display === 'icon') return <FlowTokenView data={data} selected={selected} />
   return <div className={`game-flow-node${selected ? ' selected' : ''}${data.dimmed ? ' dimmed' : ''}${data.missing ? ' missing' : ''}${data.suggestion ? ' ghost' : ''}`}
     data-kind={data.kind} title={data.suggestion ? 'クリックでこの候補を配置' : undefined}>
     <Handle type="target" position={Position.Left} />
@@ -108,6 +206,14 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   /** 候補（ゲースト）を表示するか。Esc で、そのノードを選び直すまで隠す。 */
   const [suggestOn, setSuggestOn] = useState(true)
   const [suggestHiddenFor, setSuggestHiddenFor] = useState<string | null>(null)
+  const [display, setDisplay] = useState<NodeDisplay>(readDisplay)
+  const changeDisplay = (next: NodeDisplay) => {
+    setDisplay(next)
+    try { localStorage.setItem(displayStorageKey, next) } catch { /* 保存できなくても表示は切り替える */ }
+  }
+  /** 右クリックメニュー。target は開いた対象（何もない所・ノード・矢印・候補）。 */
+  const [menu, setMenu] = useState<{ x: number; y: number; target: { type: 'pane'; at: { x: number; y: number } }
+    | { type: 'node'; id: string } | { type: 'edge'; key: string } | { type: 'ghost'; id: string } } | null>(null)
   const [yaml, setYaml] = useState('')
 
   const fileByPath = useMemo(() => new Map(files.map(file => [file.path, file])), [files])
@@ -234,10 +340,10 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       selected: selection?.type === 'node' && selection.id === node.id,
       data: {
         name: nodeName(node), kind, file: resolved?.file, classNames: node.classes.map(className),
-        note: node.note?.trim() || undefined, dimmed: !visible?.nodes.has(node.id), missing: Boolean(node.ref && !resolved),
+        note: node.note?.trim() || undefined, dimmed: !visible?.nodes.has(node.id), missing: Boolean(node.ref && !resolved), display,
       },
     }
-  }) ?? [], [className, flow, nodeName, prefixes, resolve, selection, visible])
+  }) ?? [], [className, display, flow, nodeName, prefixes, resolve, selection, visible])
   const derivedEdges = useMemo<Edge[]>(() => flow?.edges.map((edge, index) => {
     const key = edgeKey(edge)
     const chips = edge.classes.length ? ` [${edge.classes.map(className).join('・')}]` : ''
@@ -253,8 +359,12 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   const [edges, setEdges] = useState<Edge[]>([])
   // 測定済みの寸法を引き継ぎ、編集のたびに全ノードを測り直さない。
   useEffect(() => setNodes(previous => {
-    const measured = new Map(previous.map(node => [node.id, node.measured]))
-    return derivedNodes.map(node => measured.get(node.id) ? { ...node, measured: measured.get(node.id) } : node)
+    // 表示（アイコン / カード）を切り替えたノードは大きさが変わるため測り直す。
+    const measured = new Map(previous.map(node => [`${node.id}\u0000${node.data.display}`, node.measured]))
+    return derivedNodes.map(node => {
+      const size = measured.get(`${node.id}\u0000${node.data.display}`)
+      return size ? { ...node, measured: size } : node
+    })
   }), [derivedNodes])
   useEffect(() => setEdges(derivedEdges), [derivedEdges])
 
@@ -294,7 +404,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
         draggable: false, selectable: false, connectable: false, focusable: false,
         data: {
           name: resolved?.name ?? node.ref ?? node.id, kind: refKind(node.ref, prefixes), file: resolved?.file,
-          classNames: node.classes.map(className), dimmed: false, missing: !resolved, suggestion: labels,
+          classNames: node.classes.map(className), dimmed: false, missing: !resolved, suggestion: labels, display,
         },
       }
     })
@@ -307,7 +417,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       nodes: ghostNodes, edges: ghostEdges, byGhostId,
       next: positioned.filter(entry => entry.direction === 'next'), previous: positioned.filter(entry => entry.direction === 'previous'),
     }
-  }, [className, context, flow, newNodeClasses, prefixes, resolve, suggestionNodeId, suggestions])
+  }, [className, context, display, flow, newNodeClasses, prefixes, resolve, suggestionNodeId, suggestions])
   /** 候補を配置し、ズームはそのままで配置したノードが見える位置へ寄せる。 */
   const placeSuggestions = (nodeId: string, list: readonly FlowSuggestion[]) => {
     const before = current.current
@@ -361,18 +471,18 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     const offset = (flow?.nodes.length ?? 0) % 5 * 24
     return { x: Math.round(point.x - 110 + offset), y: Math.round(point.y - 40 + offset) }
   }
-  const addReference = (kind: string, id: string) => {
+  const addReference = (kind: string, id: string, position?: { x: number; y: number }) => {
     if (!current.current) return
     const result = addNode(current.current, {
-      ref: `${kind}:${id}`, ...centerPosition(),
+      ref: `${kind}:${id}`, ...(position ?? centerPosition()),
       classes: kind === 'item' ? suggestedClasses(context, id) : classFilter ? [classFilter] : [],
     })
     update(() => result.flow)
     setSelection({ type: 'node', id: result.id })
   }
-  const addNote = () => {
+  const addNote = (position?: { x: number; y: number }) => {
     if (!current.current) return
-    const result = addNode(current.current, { label: 'メモ', ...centerPosition(), classes: classFilter ? [classFilter] : [] })
+    const result = addNode(current.current, { label: 'メモ', ...(position ?? centerPosition()), classes: classFilter ? [classFilter] : [] })
     update(() => result.flow)
     setSelection({ type: 'node', id: result.id })
   }
@@ -399,7 +509,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       const prefix = original?.includes(':') ? original.slice(0, original.indexOf(':')) : picker.kind
       changeNode(picker.replace, { ref: `${prefix}:${id}` })
     }
-    else if (picker) addReference(picker.kind, id)
+    else if (picker) addReference(picker.kind, id, picker.position)
     setPicker(null)
   }
 
@@ -474,6 +584,83 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   const selectedNode = selection?.type === 'node' ? flow?.nodes.find(node => node.id === selection.id) : undefined
   const selectedEdge = selection?.type === 'edge' ? flow?.edges.find(edge => edgeKey(edge) === selection.key) : undefined
 
+  // ---- 右クリックメニュー ----
+  const closeMenu = useCallback(() => setMenu(null), [])
+  /** 表示中のゴーストと同じ位置に置けるよう、候補に表示位置を付ける。 */
+  const withShownPosition = (list: readonly FlowSuggestion[]) =>
+    list.map(entry => ghosts?.[entry.direction].find(shown => shown.ref === entry.ref) ?? entry)
+  const contextCommands = (target: NonNullable<typeof menu>['target']): { title: string; commands: ContextCommand[] } => {
+    if (!flow) return { title: '', commands: [] }
+    if (target.type === 'pane') return {
+      title: 'ここに追加',
+      commands: [
+        ...addableKinds.map(kind => ({ label: `${kindLabels[kind]}を置く…`, run: () => setPicker({ kind, position: target.at }) })),
+        { label: 'メモを置く', run: () => addNote(target.at) },
+        null,
+        { label: '全体を表示', run: () => void flowApi.fitView({ padding: .2, maxZoom: 1, duration: 250 }) },
+        { label: suggestOn ? '候補の表示をオフにする' : '候補の表示をオンにする', run: () => { setSuggestOn(value => !value); setSuggestHiddenFor(null) } },
+      ],
+    }
+    if (target.type === 'ghost') {
+      const list = ghosts?.byGhostId.get(target.id) ?? []
+      return {
+        title: '候補',
+        commands: [
+          { label: 'この候補を配置', disabled: !list.length, run: () => acceptSuggestions(list) },
+          { label: `次の候補をすべて配置（${ghosts?.next.length ?? 0}件）`, disabled: !ghosts?.next.length, run: () => acceptSuggestions(ghosts?.next ?? []) },
+          { label: `入手元・前の候補をすべて配置（${ghosts?.previous.length ?? 0}件）`, disabled: !ghosts?.previous.length, run: () => acceptSuggestions(ghosts?.previous ?? []) },
+          null,
+          { label: '候補を隠す', disabled: !suggestionNodeId, run: () => suggestionNodeId && setSuggestHiddenFor(suggestionNodeId) },
+        ],
+      }
+    }
+    if (target.type === 'edge') {
+      const edge = flow.edges.find(entry => edgeKey(entry) === target.key)
+      if (!edge) return { title: '矢印', commands: [] }
+      const name = (id: string) => { const node = flow.nodes.find(entry => entry.id === id); return plain(node ? nodeName(node) : id) }
+      const reversed = flow.edges.some(entry => entry.from === edge.to && entry.to === edge.from)
+      return {
+        title: `${name(edge.from)} → ${name(edge.to)}`,
+        commands: [
+          ...edgeLabelSuggestions.map(label => ({ label: `${edge.label === label ? '✓ ' : ''}ラベル: ${label}`, run: () => changeEdge(target.key, { label }) })),
+          { label: 'ラベルを外す', disabled: !edge.label, run: () => changeEdge(target.key, { label: undefined }) },
+          null,
+          { label: '向きを反転', disabled: reversed, run: () => { changeEdge(target.key, { from: edge.to, to: edge.from }); setSelection({ type: 'edge', key: `${edge.to}->${edge.from}` }) } },
+          { label: '矢印を削除', run: () => { update(current => ({ ...current, edges: current.edges.filter(entry => edgeKey(entry) !== target.key) })); setSelection(null) } },
+        ],
+      }
+    }
+    const node = flow.nodes.find(entry => entry.id === target.id)
+    if (!node) return { title: 'ノード', commands: [] }
+    const kind = refKind(node.ref, prefixes)
+    const resolved = node.ref ? resolve(node.ref) : undefined
+    const found = node.ref ? suggestFor(flow, node.id, context, prefixes) : { next: [], previous: [] }
+    const nextBatch = withShownPosition(found.next.slice(0, suggestionBatchSize))
+    const previousBatch = withShownPosition(found.previous.slice(0, suggestionBatchSize))
+    const shop = kind === 'shop' ? context?.shops.find(entry => entry.id === refId(node.ref)) : undefined
+    return {
+      title: `${kindLabels[kind] ?? kind}: ${plain(nodeName(node))}`,
+      commands: [
+        { label: `次の候補を配置（${nextBatch.length}件）`, disabled: !nextBatch.length, run: () => placeSuggestions(node.id, nextBatch) },
+        { label: `入手元・前の候補を配置（${previousBatch.length}件）`, disabled: !previousBatch.length, run: () => placeSuggestions(node.id, previousBatch) },
+        ...(kind === 'shop' ? [{ label: '商品を購入アイテムとして追加…', disabled: !shop?.items.length, run: () => setShopDialog(node.id) }] : []),
+        {
+          label: 'メモを追加して矢印でつなぐ', run: () => {
+            if (!current.current) return
+            const added = addNode(current.current, { label: 'メモ', ...freeSlot(current.current, node.x + 300, node.y), classes: newNodeClasses })
+            update(() => connect(added.flow, node.id, added.id))
+            setSelection({ type: 'node', id: added.id })
+          },
+        },
+        null,
+        ...(node.ref ? [{ label: '参照を変更…', run: () => setPicker({ kind, replace: node.id }) }] : []),
+        ...(resolved?.file ? [{ label: 'マスターを開く', run: () => onOpenMaster(resolved.file!.path) }] : []),
+        null,
+        { label: 'ノードを削除', run: () => { update(current => removeNodes(current, new Set([node.id]))); setSelection(null) } },
+      ],
+    }
+  }
+
   return <div className="game-flow-host"><div className="game-flow">
     <aside className="game-flow-sidebar" aria-label="フロー一覧">
       <div className="game-flow-sidebar-head">
@@ -501,7 +688,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
         <div className="game-flow-toolbar-group" role="group" aria-label="追加">
           {addableKinds.map(kind => <button key={kind} type="button" className="button compact" disabled={!flow || busy}
             onClick={() => setPicker({ kind })}>＋ {kindLabels[kind]}</button>)}
-          <button type="button" className="button compact" disabled={!flow || busy} onClick={addNote}>＋ メモ</button>
+          <button type="button" className="button compact" disabled={!flow || busy} onClick={() => addNote()}>＋ メモ</button>
         </div>
         <div className="game-flow-toolbar-group">
           <label className="game-flow-filter">職業
@@ -510,6 +697,10 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
               {flowClasses.map(entry => <option key={entry.ref} value={entry.ref}>{entry.name}</option>)}
             </select>
           </label>
+          <div className="game-flow-tabs" role="group" aria-label="ノードの表示">
+            {([['icon', 'アイコン'], ['card', 'カード']] as const).map(([id, label]) =>
+              <button key={id} type="button" aria-pressed={display === id} className="button compact" onClick={() => changeDisplay(id)}>{label}</button>)}
+          </div>
           <div className="game-flow-tabs" role="tablist" aria-label="表示">
             {([['graph', '図'], ['text', 'テキスト'], ['yaml', 'YAML']] as const).map(([id, label]) =>
               <button key={id} type="button" role="tab" aria-selected={view === id} className="button compact" onClick={() => setView(id)}>{label}</button>)}
@@ -564,7 +755,26 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
             if (list) acceptSuggestions(list)
             else if (!edge.id.startsWith(ghostPrefix)) setSelection({ type: 'edge', key: edge.id })
           }}
-          onPaneClick={() => setSelection(null)} minZoom={.1} maxZoom={2} snapToGrid snapGrid={[10, 10]} fitView proOptions={{ hideAttribution: true }}>
+          onPaneClick={() => setSelection(null)}
+          onPaneContextMenu={event => {
+            event.preventDefault()
+            const at = flowApi.screenToFlowPosition({ x: event.clientX, y: event.clientY })
+            setMenu({ x: event.clientX, y: event.clientY, target: { type: 'pane', at: { x: Math.round(at.x - 70), y: Math.round(at.y - 60) } } })
+          }}
+          onNodeContextMenu={(event, node) => {
+            event.preventDefault()
+            if (node.id.startsWith(ghostPrefix)) { setMenu({ x: event.clientX, y: event.clientY, target: { type: 'ghost', id: node.id } }); return }
+            setSelection({ type: 'node', id: node.id })
+            setSuggestHiddenFor(null)
+            setMenu({ x: event.clientX, y: event.clientY, target: { type: 'node', id: node.id } })
+          }}
+          onEdgeContextMenu={(event, edge) => {
+            event.preventDefault()
+            if (edge.id.startsWith(ghostPrefix)) { setMenu({ x: event.clientX, y: event.clientY, target: { type: 'ghost', id: edge.id } }); return }
+            setSelection({ type: 'edge', key: edge.id })
+            setMenu({ x: event.clientX, y: event.clientY, target: { type: 'edge', key: edge.id } })
+          }}
+          minZoom={.1} maxZoom={2} snapToGrid snapGrid={[10, 10]} fitView proOptions={{ hideAttribution: true }}>
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
           <Controls showInteractive={false} />
           <MiniMap pannable zoomable />
@@ -610,7 +820,9 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
           <li>ショップのノードを選ぶと、商品を購入アイテムとしてまとめて追加できます。</li>
           <li>職業ごとの違いは、ノードや矢印の「対象職業」で設定します。職業フィルタで該当しないものは薄く表示されます。</li>
           <li>Delete キーで選択中のノード・矢印を削除します。</li>
+          <li>図・ノード・矢印を右クリックすると、その場所への追加や候補の配置などの操作を選べます。</li>
         </ul>
+        <p className="game-flow-muted">アイコン表示の形: {shapeLegend.map(([kind, shape]) => `${kindLabels[kind] ?? kind}=${shape}`).join('、')}</p>
       </details>
     </aside>
 
@@ -624,6 +836,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       onClose={() => setShopDialog(null)} />}
     {creating && <CreateFlowDialog document={panelDocument} busy={busy} existing={new Set(flowFiles.map(file => file.path))}
       onCreate={(id, name) => void create(id, name)} onClose={() => setCreating(false)} />}
+    {menu && flow && <FlowContextMenu x={menu.x} y={menu.y} onDismiss={closeMenu} {...contextCommands(menu.target)} />}
     {confirmation}
   </div></div>
 }
