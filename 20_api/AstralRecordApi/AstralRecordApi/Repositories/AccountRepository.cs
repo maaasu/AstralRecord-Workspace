@@ -740,14 +740,17 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
 
         if (request.AccountName is not null)
         {
-            ValidateManualAccountName(request.AccountName);
+            // Plugin の Bedrock 判定と同じく、アカウント名ではなく所有ユーザーの MCID を使う。
+            var isBedrock = await dbContext.Users.AnyAsync(user => user.Uuid == account.UserId && user.Mcid.Contains("."));
+            var accountName = FormatManualAccountName(request.AccountName, isBedrock);
+            var normalizedName = accountName.ToLower();
             var duplicateExists = await dbContext.Accounts.AnyAsync(candidate =>
                 candidate.Uuid != uuid
                 && !candidate.IsDeleted
-                && candidate.AccountName.ToLower() == request.AccountName.ToLower());
+                && candidate.AccountName.ToLower() == normalizedName);
             if (duplicateExists)
-                throw new AccountNameConflictException(request.AccountName);
-            account.AccountName = request.AccountName;
+                throw new AccountNameConflictException(accountName);
+            account.AccountName = accountName;
         }
 
         if (request.IsActive.HasValue)
@@ -906,15 +909,19 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
             !candidate.IsDeleted && candidate.AccountName.ToLower() == normalizedName);
     }
 
-    private static void ValidateManualAccountName(string accountName)
+    private static string FormatManualAccountName(string accountName, bool isBedrock)
     {
-        if (accountName.Length is < 3 or > AccountNameMaxLength
+        var maxInputLength = isBedrock ? AccountNameMaxLength - 1 : AccountNameMaxLength;
+        if (accountName.Length < 3 || accountName.Length > maxInputLength
             || accountName.Any(character =>
-                !((character >= 'A' && character <= 'Z')
-                    || (character >= 'a' && character <= 'z')
-                    || (character >= '0' && character <= '9')
+                !(char.IsAsciiLetter(character)
+                    || (!isBedrock && char.IsAsciiDigit(character))
                     || character == '_')))
-            throw new ArgumentException("Account name must contain only ASCII letters, digits, or underscore and be 3-50 characters long.");
+            throw new ArgumentException(isBedrock
+                ? "Bedrock account name must contain only ASCII letters or underscore and be 3-49 characters long."
+                : "Account name must contain only ASCII letters, digits, or underscore and be 3-50 characters long.");
+
+        return isBedrock ? "." + accountName : accountName;
     }
 
     private static string NormalizeGeneratedAccountName(string requestedName)

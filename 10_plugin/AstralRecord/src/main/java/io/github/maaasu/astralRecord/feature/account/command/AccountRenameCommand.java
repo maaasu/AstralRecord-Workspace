@@ -25,7 +25,8 @@ import java.util.concurrent.CompletionException;
 
 /** /account rename の実行を扱います。 */
 public final class AccountRenameCommand extends AstCommand {
-    private static final String ACCOUNT_NAME_PATTERN = "[A-Za-z0-9_]{3,50}";
+    private static final String JAVA_NAME_PATTERN = "[A-Za-z0-9_]{3,50}";
+    private static final String BEDROCK_NAME_PATTERN = "[A-Za-z_]{3,49}";
     private final Set<UUID> pendingAccountIds = ConcurrentHashMap.newKeySet();
 
     public AccountRenameCommand() {
@@ -47,16 +48,17 @@ public final class AccountRenameCommand extends AstCommand {
             sendUsage(sender);
             return;
         }
-        String accountName = args[0];
-        if (!isValidAccountName(accountName)) {
-            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5347.getId()));
-            return;
-        }
-
         AstPlayer astPlayer = AstPlayerCache.get(player);
         AccountService accountService = AstralRecord.getInstance().getAccountService();
         if (astPlayer == null || accountService == null) {
             sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5330.getId()));
+            return;
+        }
+        String accountName = args[0];
+        boolean bedrock = astPlayer.isBedrock();
+        if (!isValidAccountName(accountName, bedrock)) {
+            PlayerMsgId message = bedrock ? PlayerMsgId.P_7404 : PlayerMsgId.P_5347;
+            sendError(sender, PlayerMsgResource.getMessage(message.getId()));
             return;
         }
         UUID accountId = astPlayer.getAccount().getUuid();
@@ -106,10 +108,11 @@ public final class AccountRenameCommand extends AstCommand {
      * 管理コマンドで受理するアカウント名かを判定します。
      *
      * @param accountName 検証対象の名前
-     * @return ASCII英数字またはアンダースコアの3〜50文字の場合は {@code true}
+     * @param bedrock Bedrock 版のアカウントか
+     * @return 対象の版に応じた文字種と長さを満たす場合は {@code true}
      */
-    static boolean isValidAccountName(@NotNull String accountName) {
-        return accountName.matches(ACCOUNT_NAME_PATTERN);
+    static boolean isValidAccountName(@NotNull String accountName, boolean bedrock) {
+        return accountName.matches(bedrock ? BEDROCK_NAME_PATTERN : JAVA_NAME_PATTERN);
     }
 
     private boolean hasAdminPermission(@NotNull CommandSender sender) {
