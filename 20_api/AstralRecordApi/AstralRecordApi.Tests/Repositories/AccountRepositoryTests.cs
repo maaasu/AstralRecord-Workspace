@@ -191,7 +191,7 @@ public class AccountRepositoryTests
 
     /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/02-account/1-モデル定義/02_1.00-モデル定義.md
-    /// 検証契約: 自動作成名は先頭のピリオドと ASCII 英数字・アンダースコアを保持し、大小文字を区別せず重複を避け、連番の空き名を返す。
+    /// 検証契約: 自動作成名は先頭のピリオドと ASCII 英数字・アンダースコアを保持し、大小文字を区別せず重複を避け、括弧付きの連番を返す。
     /// </summary>
     [Theory]
     [InlineData("")]
@@ -242,8 +242,9 @@ public class AccountRepositoryTests
         });
 
         Assert.Equal(prefix + "Alice_Test", first.AccountName);
-        Assert.Equal(prefix + "alice_test1", second.AccountName);
-        Assert.Equal(prefix + "Alice_Test2", third.AccountName);
+        Assert.Equal(prefix + "alice_test(1)", second.AccountName);
+        Assert.Equal(prefix + "Alice_Test(2)", third.AccountName);
+        Assert.Equal(second.Uuid, (await repository.ResolveAsync(prefix + "ALICE_TEST(1)", null))?.Uuid);
     }
 
     /// <summary>
@@ -280,16 +281,21 @@ public class AccountRepositoryTests
 
     /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/02-account/1-モデル定義/02_1.00-モデル定義.md
-    /// 検証契約: 先頭のピリオドと重複時サフィックスを含め、自動作成名は50文字以内とする。
+    /// 検証契約: 括弧付き番号を含めて50文字以内に収め、応答不明後の再試行では同じ登録を返す。
     /// </summary>
     [Theory]
-    [InlineData("")]
-    [InlineData(".")]
-    public async Task CreateAsync_BoundsGeneratedNameAndCollisionSuffixToFiftyCharacters(string prefix)
+    [InlineData("", 1)]
+    [InlineData(".", null)]
+    public async Task CreateAsync_RetriesCommitOfNumberedNameAtFiftyCharacterLimit(string prefix, int? slot)
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
-        var options = new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(connection).Options;
+        var interceptor = new CommitResultUnknownInterceptor();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection, sqlite => sqlite.ExecutionStrategy(
+                dependencies => new CommitResultUnknownRetryingExecutionStrategy(dependencies)))
+            .AddInterceptors(interceptor)
+            .Options;
         await using var dbContext = new AstralRecordDbContext(options);
         await dbContext.Database.EnsureCreatedAsync();
         var userId = Guid.NewGuid();
@@ -302,13 +308,25 @@ public class AccountRepositoryTests
         {
             UserId = userId, AccountName = requestedName, SlotIndex = 0, CreatedBy = userId,
         });
+        interceptor.Arm();
         var second = await repository.CreateAsync(new AccountCreateRequest
         {
-            UserId = userId, AccountName = requestedName, SlotIndex = 1, CreatedBy = userId,
+            UserId = userId, AccountName = requestedName, SlotIndex = slot, CreatedBy = userId,
         });
 
         Assert.Equal(prefix + new string('A', 50 - prefix.Length), first.AccountName);
-        Assert.Equal(prefix + new string('A', 49 - prefix.Length) + "1", second.AccountName);
+        Assert.Equal(prefix + new string('A', 47 - prefix.Length) + "(1)", second.AccountName);
+        Assert.True(interceptor.WasThrown);
+        Assert.Equal(2, await dbContext.Accounts.CountAsync(account => account.UserId == userId));
+
+        var conflicting = await Assert.ThrowsAsync<AccountCloneConflictException>(() =>
+            repository.CreateAsync(new AccountCreateRequest
+            {
+                UserId = userId, AccountName = prefix + new string('A', 47 - prefix.Length) + "ALT",
+                SlotIndex = second.SlotIndex, CreatedBy = userId,
+            }));
+        Assert.Equal("TARGET_ACCOUNT_EXISTS", conflicting.Code);
+        Assert.Equal(second.Uuid, conflicting.TargetAccountId);
     }
 
     /// <summary>
@@ -687,9 +705,11 @@ public class AccountRepositoryTests
     }
 
     [Theory]
-    [InlineData("Source_1")]
-    [InlineData(".Source_1")]
-    public async Task CreateAndCloneAsync_AssignsLowestSlotAndCopiesReidentifiedPlayerState(string sourceAccountName)
+    [InlineData("Source_1", "Source_1(1)")]
+    [InlineData(".Source_1", ".Source_1(1)")]
+    [InlineData(".Source_1(1)", ".Source_1(2)")]
+    public async Task CreateAndCloneAsync_AssignsLowestSlotAndCopiesReidentifiedPlayerState(
+        string sourceAccountName, string expectedCloneName)
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -792,7 +812,7 @@ public class AccountRepositoryTests
         Assert.Equal(targetUserId, cloned.Account.UserId);
         Assert.Equal(0, cloned.Account.SlotIndex);
         Assert.Equal(12, cloned.Account.Level);
-        Assert.Equal(sourceAccountName + "1", cloned.Account.AccountName);
+        Assert.Equal(expectedCloneName, cloned.Account.AccountName);
         Assert.Equal(0, cloned.Account.Mode);
         Assert.Equal(cloned.Account.Uuid, (await dbContext.Users.SingleAsync(row => row.Uuid == targetUserId)).AccountId);
         var cloneInventory = await dbContext.Inventories.SingleAsync(row => row.AccountId == cloned.Account.Uuid);

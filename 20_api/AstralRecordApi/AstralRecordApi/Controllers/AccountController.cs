@@ -9,7 +9,7 @@ namespace AstralRecordApi.Controllers;
 [Route("api/[controller]")]
 public class AccountController(IAccountRepository accountRepository) : ControllerBase
 {
-    /// <summary>入力名の先頭のピリオドを保持し、一意な名前でアカウントを登録します。</summary>
+    /// <summary>入力名の先頭のピリオドを保持し、名前が重複する場合は (1)、(2) のように採番して登録します。</summary>
     /// <param name="request">登録するアカウント情報</param>
     /// <response code="201">アカウント登録成功</response>
     [HttpPost]
@@ -61,7 +61,7 @@ public class AccountController(IAccountRepository accountRepository) : Controlle
         }
     }
 
-    /// <summary>複製元の名前の先頭のピリオドを保持し、指定ユーザーのスロットへ一意な名前で複製します。</summary>
+    /// <summary>複製元の名前を基に (1)、(2) のように採番し、指定ユーザーのスロットへ複製します。</summary>
     [HttpPost("{sourceUuid:guid}/clone")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
