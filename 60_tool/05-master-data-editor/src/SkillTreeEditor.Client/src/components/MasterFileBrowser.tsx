@@ -8,9 +8,10 @@ import { MasterFilterDialog, masterFacetValueLabel } from './MasterFilterDialog'
 import { MinecraftIcon } from './MinecraftIcon'
 import { MinecraftText } from './MinecraftText'
 import { Modal } from './Modal'
-import { emptyMasterListFilters, filterMasterFiles, type MasterListFilters } from '../data/masterFileQuery'
+import { emptyMasterListFilters, filterMasterFiles, indexMasterFilesByDirectory, type MasterListFilters } from '../data/masterFileQuery'
 import { facetLabels, inCategory, isDropSourceDirectory, isItemDefinitionDirectory, isSkillDirectory, numericFilterLabels } from '../data/masterDataFilters'
 import { fileNameIncludesId, plainMasterFilterName } from '../data/masterDataPresentation'
+import type { MasterFileSummary } from '../types/masterData'
 import './masterFileBrowser.css'
 
 interface MasterFileBrowserProps {
@@ -23,6 +24,8 @@ interface MasterFileBrowserProps {
   onImport: () => void
   onDialogChange: (open: boolean) => void
 }
+
+const noFiles: MasterFileSummary[] = []
 
 export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, onOpen, onNew, onImport, onDialogChange }: MasterFileBrowserProps) {
   const docking = useDocking()
@@ -41,7 +44,8 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
   const category = w.catalog?.categories.find((entry) => entry.id === w.categoryId)
   const directory = virtualFolder?.directory ?? category?.directory ?? ''
   const scopeLabel = w.searchScope === 'all' ? 'Filebase 全体' : virtualFolder?.label ?? category?.label ?? 'フォルダを選択'
-  const files = useMemo(() => w.searchScope === 'all' ? w.files : w.files.filter((file) => directory && inCategory(file.path, directory)), [w.files, directory, w.searchScope])
+  const filesByDirectory = useMemo(() => indexMasterFilesByDirectory(w.files), [w.files])
+  const files = w.searchScope === 'all' ? w.files : filesByDirectory.get(directory) ?? noFiles
   const filters = useMemo<MasterListFilters>(() => ({ format: w.format, sourceQuery: w.sourceQuery, dropSourcePath: w.dropSourcePath, skillTag: w.skillTag, dropItemQuery: w.dropItemQuery, dropItemId: w.dropItemId, dropPresence: w.dropPresence, facetFilters: w.facetFilters, fileStatus: w.fileStatus, numericFilters: w.numericFilters }), [w.format, w.sourceQuery, w.dropSourcePath, w.skillTag, w.dropItemQuery, w.dropItemId, w.dropPresence, w.facetFilters, w.fileStatus, w.numericFilters])
   const visibleFiles = useMemo(() => filterMasterFiles(files, w.filterIndex, filters, w.query), [files, w.filterIndex, filters, w.query])
   const indexedFiles = useMemo(() => new Map(w.filterIndex?.entries?.map((entry) => [entry.path, entry]) ?? []), [w.filterIndex])
@@ -52,15 +56,17 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
     w.setNumericFilters(Object.fromEntries(Object.entries(next.numericFilters).filter(([, range]) => range.min.trim() || range.max.trim())))
   }
   const changeCategory = (id: string) => {
+    if (id !== w.categoryId || w.searchScope !== 'folder' || virtualFolder) w.setVisibleCount(50)
     setVirtualFolder(null)
     const nextDirectory = w.catalog?.categories.find((entry) => entry.id === id)?.directory ?? ''
     w.setCategoryId(id); w.setSearchScope('folder'); w.setBrowserView('files')
     if (docking && !docking.visible.has('master-files')) docking.show('master-files')
     if (!isItemDefinitionDirectory(nextDirectory)) { w.setSourceQuery(''); w.setDropSourcePath('') }
     if (!isSkillDirectory(nextDirectory)) w.setSkillTag('')
-    if (w.format && !w.files.some((entry) => entry.format === w.format && inCategory(entry.path, nextDirectory))) w.setFormat('')
+    if (w.format && !filesByDirectory.get(nextDirectory)?.some((entry) => entry.format === w.format)) w.setFormat('')
   }
   const browseFolder = (nextDirectory: string, label: string, categoryId?: string) => {
+    w.setVisibleCount(50)
     if (categoryId) changeCategory(categoryId)
     else setVirtualFolder({ directory: nextDirectory, label })
     w.setSearchScope('folder'); w.setBrowserView('files')
@@ -75,6 +81,7 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
   }, [w.setVisibleCount, visibleFiles.length])
   const revealCurrent = () => {
     if (!canReveal || !selectedPath) return
+    w.setVisibleCount(50)
     setVirtualFolder(null)
     const targetCategory = w.catalog?.categories.filter(entry => inCategory(selectedPath, entry.directory))
       .sort((a, b) => b.directory.length - a.directory.length)[0]
@@ -90,7 +97,7 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
     w.setQuery(''); apply(emptyMasterListFilters())
   }
   const focusResult = (index: number) => {
-    if (busy || index < 0 || index >= visibleFiles.length) return
+    if (index < 0 || index >= visibleFiles.length) return
     if (index >= w.visibleCount) {
       pendingFocus.current = index
       w.setVisibleCount(Math.min(visibleFiles.length, Math.max(index + 1, w.visibleCount + 50)))
@@ -154,13 +161,12 @@ export function MasterFileBrowser({ workspace: w, selectedPath, busy, active, on
           const name = entry.path.split('/').at(-1) ?? entry.path
           const indexed = indexedFiles.get(entry.path)
           const level = indexed?.numbers?.mobLevel, requirement = indexed?.numbers?.requiredLevel
-          return <button key={entry.path} type="button" disabled={busy} className={`master-file ${selectedPath === entry.path ? 'selected' : ''}`} aria-current={selectedPath === entry.path ? 'true' : undefined} title={entry.path + (entry.id ? `\nID: ${entry.id}` : '')} onKeyDown={(event) => {
+          return <button key={entry.path} type="button" className={`master-file ${selectedPath === entry.path ? 'selected' : ''}`} aria-current={selectedPath === entry.path ? 'true' : undefined} title={entry.path + (entry.id ? `\nID: ${entry.id}` : '')} onKeyDown={(event) => {
             if (isComposing(event)) return
             if (event.key === 'Escape') { event.preventDefault(); searchInput.current?.focus(); return }
             const next = event.key === 'ArrowDown' ? index + 1 : event.key === 'ArrowUp' ? index - 1 : event.key === 'Home' ? 0 : event.key === 'End' ? visibleFiles.length - 1 : null
             if (next !== null && next >= 0 && next < visibleFiles.length) { event.preventDefault(); focusResult(next) }
-            if (event.key === 'Enter' && busy) event.preventDefault()
-          }} onClick={() => { if (!busy) onOpen(entry.path) }}>
+          }} onClick={() => onOpen(entry.path)}>
             <span className="master-file-identity">{(entry.icon || entry.iconModel) && <MinecraftIcon icon={entry.icon ?? null} customModelData={entry.customModelData} iconTexture={entry.iconTexture} iconModel={entry.iconModel} className="master-list-icon" />}<strong><MinecraftText value={entry.name || name} /></strong></span><span className="master-result-badges">{level?.length ? <small>Lv {level.join(' / ')}</small> : null}{requirement?.length ? <small>必要Lv {requirement.join(' / ')}</small> : null}{indexed?.facets.unTradeable?.includes('true') && <small className="restricted">トレード禁止</small>}{entry.parseError && <b className="master-required">解析エラー</b>}{entry.readOnly && <small>閲覧のみ</small>}</span>
             {entry.id && (entry.path.startsWith('41.features.mob.spawner/') || !fileNameIncludesId(entry.path, entry.id)) && <code>ID: {entry.id}</code>}<small className="master-result-path">{name}</small>{w.searchScope === 'all' && <small className="master-result-location">{entry.path.slice(0, -(name.length + 1)) || 'Filebase 直下'}</small>}
           </button>

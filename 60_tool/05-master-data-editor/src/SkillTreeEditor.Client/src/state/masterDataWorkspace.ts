@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import { masterDataApi } from '../api/masterDataApi'
 import type { MasterCatalog, MasterFileSummary, MasterFilterIndex, MasterReference } from '../types/masterData'
 import { categoryFacetOptions, categoryNumericOptions, inCategory, isDropSourceDirectory, type NumericFilters } from '../data/masterDataFilters'
@@ -90,21 +90,31 @@ export function useMasterDataWorkspace() {
     if (tagMissing) setSkillTag('')
     if (sourceMissing || tagMissing) setNotice('選択していた絞り込み候補が見つからないため、絞り込みを解除しました。')
   }, [filterIndex, dropSourcePath, skillTag])
+  const pruneCategoryFilters = useEffectEvent((directory: string) => {
+    const hasFacets = Object.keys(facetFilters).length > 0
+    const hasNumbers = Object.keys(numericFilters).length > 0
+    if (!hasFacets && !hasNumbers) return
+    const scopedFiles = searchScope === 'all' ? files : files.filter((file) => inCategory(file.path, directory))
+    if (hasFacets) {
+      const options = categoryFacetOptions(scopedFiles, filterIndex)
+      setFacetFilters((current) => {
+        const next = Object.fromEntries(Object.entries(current).filter(([key, value]) => options[key]?.includes(value)))
+        return Object.keys(next).length === Object.keys(current).length ? current : next
+      })
+    }
+    if (hasNumbers) {
+      const options = categoryNumericOptions(scopedFiles, filterIndex)
+      setNumericFilters((current) => {
+        const next = Object.fromEntries(Object.entries(current).filter(([key]) => options[key]))
+        return Object.keys(next).length === Object.keys(current).length ? current : next
+      })
+    }
+  })
   useEffect(() => {
     const directory = catalog?.categories.find((entry) => entry.id === categoryId)?.directory
     if (!directory) return
     if (skillTag && filterIndex && !filterIndex.skillTags.some((entry) => (searchScope === 'all' || inCategory(entry.path, directory)) && entry.tags.includes(skillTag))) setSkillTag('')
-    const scopedFiles = searchScope === 'all' ? files : files.filter((file) => inCategory(file.path, directory))
-    const options = categoryFacetOptions(scopedFiles, filterIndex)
-    setFacetFilters((current) => {
-      const next = Object.fromEntries(Object.entries(current).filter(([key, value]) => options[key]?.includes(value)))
-      return Object.keys(next).length === Object.keys(current).length ? current : next
-    })
-    const numberOptions = categoryNumericOptions(scopedFiles, filterIndex)
-    setNumericFilters((current) => {
-      const next = Object.fromEntries(Object.entries(current).filter(([key]) => numberOptions[key]))
-      return Object.keys(next).length === Object.keys(current).length ? current : next
-    })
+    pruneCategoryFilters(directory)
     if (searchScope === 'folder' && !isDropSourceDirectory(directory)) {
       setDropItemId(''); setDropItemQuery(''); setDropPresence('')
     } else if (filterIndex && dropItemId && !filterIndex.sources.some((source) => (searchScope === 'all' || inCategory(source.path, directory)) && source.itemIds.includes(dropItemId))) {

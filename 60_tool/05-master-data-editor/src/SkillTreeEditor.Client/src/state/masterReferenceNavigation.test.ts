@@ -6,7 +6,7 @@ describe('reference navigation requests', () => {
     const first = { requestId: 1, pointer: '/items/30/id', value: 'mob:first' }
     let state = masterTabsReducer(emptyMasterTabs, { type: 'open', path: 'mob.yml', referenceTarget: first })
     const tabId = state.activeId
-    state = masterTabsReducer(state, { type: 'status', id: tabId, status: { name: '原稿', dirty: true, busy: true } })
+    state = masterTabsReducer(state, { type: 'status', id: tabId, status: { name: '原稿', dirty: true, busy: true, loadState: 'ready' } })
     state = masterTabsReducer(state, { type: 'open', path: 'mob.yml', referenceTarget: { ...first, requestId: 2 } })
     expect(state.tabs).toHaveLength(1)
     expect(state.tabs[0]).toMatchObject({ id: tabId, name: '原稿', dirty: true, busy: true, referenceTarget: { requestId: 2 } })

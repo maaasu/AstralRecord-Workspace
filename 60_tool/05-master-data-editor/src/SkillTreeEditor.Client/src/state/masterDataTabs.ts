@@ -1,6 +1,6 @@
 import type { MasterDocument } from '../types/masterData'
 
-export interface MasterTabStatus { dirty: boolean; busy: boolean; name: string }
+export interface MasterTabStatus { dirty: boolean; busy: boolean; name: string; loadState: 'loading' | 'ready' | 'error' }
 export interface MasterReferenceTarget { requestId: number; pointer: string; value: string; locationOnly?: boolean }
 export interface MasterFileTab extends MasterTabStatus { id: string; path: string; initialDocument?: MasterDocument; referenceTarget?: MasterReferenceTarget }
 export interface MasterTabsState { tabs: MasterFileTab[]; activeId: string; sequence: number }
@@ -18,7 +18,7 @@ export function masterTabsReducer(state: MasterTabsState, action: MasterTabsActi
     const existing = state.tabs.find((tab) => tab.path === action.path)
     if (existing) return { ...state, activeId: existing.id, tabs: state.tabs.map(tab => tab.id === existing.id ? { ...tab, referenceTarget: action.referenceTarget } : tab) }
     const sequence = state.sequence + 1
-    const tab: MasterFileTab = { id: `master-file-${sequence}`, path: action.path, initialDocument: action.document, referenceTarget: action.referenceTarget, dirty: false, busy: false, name: '' }
+    const tab: MasterFileTab = { id: `master-file-${sequence}`, path: action.path, initialDocument: action.document, referenceTarget: action.referenceTarget, dirty: false, busy: false, name: '', loadState: 'loading' }
     return { tabs: [...state.tabs, tab], activeId: tab.id, sequence }
   }
   if (action.type === 'select') return state.tabs.some((tab) => tab.id === action.id) ? { ...state, activeId: action.id } : state
@@ -28,7 +28,7 @@ export function masterTabsReducer(state: MasterTabsState, action: MasterTabsActi
   }
   if (action.type === 'status') {
     const tab = state.tabs.find((entry) => entry.id === action.id)
-    if (!tab || tab.dirty === action.status.dirty && tab.busy === action.status.busy && tab.name === action.status.name) return state
+    if (!tab || tab.dirty === action.status.dirty && tab.busy === action.status.busy && tab.name === action.status.name && tab.loadState === action.status.loadState) return state
     return { ...state, tabs: state.tabs.map((entry) => entry.id === action.id ? { ...entry, ...action.status } : entry) }
   }
   const ids = new Set(action.type === 'closeMany' ? action.ids : [action.id])

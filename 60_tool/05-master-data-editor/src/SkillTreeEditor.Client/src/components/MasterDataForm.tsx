@@ -31,6 +31,7 @@ const typeLabels: Record<ValueType, string> = {
 const types = Object.keys(typeLabels) as ValueType[]
 const emptyReferences: MasterReference[] = []
 const isSigilReference = (entry: MasterReference) => entry.path.startsWith('10.features.item/70.sigil/')
+const isNodeReference = (entry: MasterReference) => entry.kind === 'node'
 const isCaughtItemReference = (entry: MasterReference) => !['20.equipment', '80.pet', '81.pet_egg'].some((category) => entry.path.startsWith(`10.features.item/${category}/`))
 const textFieldName = (path: string) => path.split('/').at(-1)?.replaceAll('~1', '/').replaceAll('~0', '~')
 const isNameField = (path: string) => ['name', 'displayName'].includes(textFieldName(path) ?? '')
@@ -157,10 +158,11 @@ interface MasterDataFormProps {
   invalidValues?: Record<string, string>
   onNavigate?: (path: string) => void
   navigationDisabled?: boolean
+  focusRequest?: { path: string } | null
   dungeonRoomSize?: JsonValue
 }
 
-export function MasterDataForm({ value, onChange, fields, references = emptyReferences, schema = {}, rootSchema = schema, path = '', onInvalid, invalidValues, onNavigate, navigationDisabled, dungeonRoomSize }: MasterDataFormProps) {
+export function MasterDataForm({ value, onChange, fields, references = emptyReferences, schema = {}, rootSchema = schema, path = '', onInvalid, invalidValues, onNavigate, navigationDisabled, focusRequest, dungeonRoomSize }: MasterDataFormProps) {
   const visualReferences = useContext(MasterVisualReferencesContext)
   const dungeon = isDungeonMaster(visualReferences?.documentPath)
   const resolved = resolveSchema(schema, rootSchema)
@@ -171,7 +173,7 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
   const numericType = dungeonFields && Object.hasOwn(dungeonFields, key) ? dungeonFields[key].type
     : dungeon && key === 'weight' && isDungeonWeightedList(parent.replace(/\/\d+$/, '')) ? 'integer' : undefined
   const kind = valueType(value, numericType ? { ...resolved, type: numericType } : resolved, metadata)
-  const inherited = { fields, references, rootSchema, onInvalid, invalidValues, onNavigate, navigationDisabled, dungeonRoomSize }
+  const inherited = { fields, references, rootSchema, onInvalid, invalidValues, onNavigate, navigationDisabled, focusRequest, dungeonRoomSize }
   const unions = Array.isArray(resolved.oneOf ?? resolved.anyOf) ? (resolved.oneOf ?? resolved.anyOf) as JsonValue[] : []
   const choices = unions.map((choice) => resolveSchema(objectOf(choice) ?? {}, rootSchema))
   const selectedUnion = Math.max(0, choices.findIndex((choice) => masterUnionMatches(choice, value, rootSchema)))
@@ -251,7 +253,7 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
     {value === true ? '有効' : '無効'}
   </label>
   if (kind === 'number' || kind === 'integer') return <NumberEditor value={typeof value === 'number' ? value : 0} kind={kind} path={path} onChange={onChange} onInvalid={onInvalid} restoredText={invalidValues?.[path]}
-    candidates={/^\/levels\/\d+\/nodes\/\d+$/.test(path) ? references.filter((entry) => entry.kind === 'node') : undefined} />
+    nodeReferences={/^\/levels\/\d+\/nodes\/\d+$/.test(path) ? references : undefined} />
   const materialKind = materialFieldKind(path, visualReferences?.documentPath)
   const mobIcon = visualReferences?.documentPath.startsWith('40.features.mob/') && /^\/levels\/\d+\/icon$/.test(path)
   if (materialKind) return <MaterialIconInput value={typeof value === 'string' ? value : ''} onChange={onChange} ariaLabel={path}
@@ -276,7 +278,7 @@ export function MasterDataForm({ value, onChange, fields, references = emptyRefe
     referenceFilter={progressionSigilReference ? isSigilReference : path.endsWith('/caughtItemId/ref') ? isCaughtItemReference : undefined} />
 }
 
-function ObjectEditor({ value, onChange, fields, references, schema, rootSchema, path, onInvalid, invalidValues, onNavigate, navigationDisabled, dungeonRoomSize }: Omit<MasterDataFormProps, 'value'> & { value: JsonObject; schema: JsonObject; rootSchema: JsonObject; path: string }) {
+function ObjectEditor({ value, onChange, fields, references, schema, rootSchema, path, onInvalid, invalidValues, onNavigate, navigationDisabled, focusRequest, dungeonRoomSize }: Omit<MasterDataFormProps, 'value'> & { value: JsonObject; schema: JsonObject; rootSchema: JsonObject; path: string }) {
   const { confirm, dialog } = useConfirmationDialog()
   const visualReferences = useContext(MasterVisualReferencesContext)
   const dungeon = isDungeonMaster(visualReferences?.documentPath)
@@ -344,7 +346,8 @@ function ObjectEditor({ value, onChange, fields, references, schema, rootSchema,
             onChange(Object.fromEntries(Object.entries(value).filter(([entry]) => entry !== key)))
           }}>項目を削除</button>}</div>
       const metadata = <><code>{key}</code><span className="master-type">{typeLabels[currentType]}</span></>
-      const form = { fields, references, rootSchema, onInvalid, invalidValues, onNavigate, navigationDisabled, dungeonRoomSize: path === '/generation' ? value.roomSize : dungeonRoomSize }
+      const form = { fields, references, rootSchema, onInvalid, invalidValues, onNavigate, navigationDisabled, focusRequest,
+        dungeonRoomSize: path === '/generation' ? value.roomSize : dungeonRoomSize }
       const change = (next: JsonValue) => {
         const updated = { ...value, [key]: next }
         if (dungeon && (childPath === '/clearRewards/lootTable' && next === '' || childPath === '/encounter/bossMobLevel' && next === null)) delete updated[key]
@@ -420,11 +423,25 @@ function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<
   const visual = useContext(MasterVisualReferencesContext)
   const compact = Boolean(visual && inherited.onNavigate)
   const weighted = isDungeonMaster(visual?.documentPath) && isDungeonWeightedList(path)
+  const progression = compact && visual?.documentPath.startsWith('90.shared.progression_preset/')
+  const checkpointList = progression && path === '/levels'
+  const nodeList = progression && /^\/levels\/\d+\/nodes$/.test(path)
   const [newType, setNewType] = useState<ValueType>(() => normalizeMasterType(itemSchema.type)
     ?? (compact && values.length > 0 && values.every(objectOf) ? 'object' : 'string'))
   const [page, setPage] = useState(0)
   const pageSize = 25
-  const paged = !weighted && Boolean(inherited.onNavigate) && values.every((entry) => entry !== null && typeof entry === 'object')
+  const paged = !weighted && Boolean(inherited.onNavigate) && (checkpointList || nodeList || values.every((entry) => entry !== null && typeof entry === 'object'))
+  const [handledFocus, setHandledFocus] = useState<MasterDataFormProps['focusRequest']>(null)
+  const focusRequest = inherited.focusRequest
+  if (nodeList && focusRequest && focusRequest !== handledFocus && focusRequest.path.startsWith(path + '/')
+    && (!inherited.navigationDisabled || inherited.invalidValues?.[focusRequest.path] !== undefined)) {
+    const index = focusRequest.path.slice(path.length + 1)
+    if (/^(0|[1-9]\d*)$/.test(index) && Number(index) < values.length) {
+      // Render the requested row before the editor attempts to focus its input.
+      setHandledFocus(focusRequest)
+      setPage(Math.floor(Number(index) / pageSize))
+    }
+  }
   const pageCount = Math.max(1, Math.ceil(values.length / pageSize))
   const currentPage = Math.min(page, pageCount - 1)
   const offset = paged ? currentPage * pageSize : 0
@@ -440,7 +457,7 @@ function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<
     const rowPath = path + '/' + index
     const duplicate = () => onChange([...values.slice(0, index + 1), structuredClone(entry), ...values.slice(index + 1)])
     const remove = () => onChange(values.filter((_, item) => item !== index))
-    const edit = <MasterDataForm {...inherited} path={rowPath} value={entry} schema={itemSchema}
+    const edit = !(checkpointList && structured) && <MasterDataForm {...inherited} path={rowPath} value={entry} schema={itemSchema}
       onChange={(next) => onChange(values.map((current, item) => item === index ? next : current))} />
     if (compact || weighted) return <div className="master-array-compact" key={index} {...order.destination(index)}>
       {values.length > 1 && <button type="button" className="master-order-handle" aria-label={rowPath + ' を並べ替え'}
@@ -479,8 +496,10 @@ function numberInputError(text: string, kind: 'number' | 'integer', optional = f
   return invalid ? kind === 'integer' ? '有限の整数を入力してください。' : '有限の数値を入力してください。' : ''
 }
 
-function NumberEditor({ value, kind, path, onChange, onInvalid, restoredText, candidates, optional }: { value: number | null; kind: 'number' | 'integer'; path: string; onChange: (value: JsonValue) => void; onInvalid?: MasterDataFormProps['onInvalid']; restoredText?: string; candidates?: MasterReference[]; optional?: boolean }) {
+function NumberEditor({ value, kind, path, onChange, onInvalid, restoredText, nodeReferences, optional }: { value: number | null; kind: 'number' | 'integer'; path: string; onChange: (value: JsonValue) => void; onInvalid?: MasterDataFormProps['onInvalid']; restoredText?: string; nodeReferences?: MasterReference[]; optional?: boolean }) {
   const listId = useId()
+  const [focused, setFocused] = useState(false)
+  const candidates = useMemo(() => focused ? nodeReferences?.filter(isNodeReference) : undefined, [focused, nodeReferences])
   const [text, setText] = useState(restoredText ?? String(value ?? ''))
   const [error, setError] = useState(() => numberInputError(restoredText ?? String(value ?? ''), kind, optional))
   useEffect(() => {
@@ -491,6 +510,7 @@ function NumberEditor({ value, kind, path, onChange, onInvalid, restoredText, ca
     else onInvalid?.(path, null)
   }, [value, path, kind, onInvalid, restoredText, optional])
   return <div><input type="text" inputMode="decimal" list={candidates?.length ? listId : undefined} aria-label={path || '/'} aria-invalid={Boolean(error)}
+    onFocus={nodeReferences ? () => setFocused(true) : undefined} onBlur={nodeReferences ? () => setFocused(false) : undefined}
     placeholder={optional ? '最小レベル' : undefined} value={text} onChange={(event) => {
     setText(event.target.value)
     const message = numberInputError(event.target.value, kind, optional)

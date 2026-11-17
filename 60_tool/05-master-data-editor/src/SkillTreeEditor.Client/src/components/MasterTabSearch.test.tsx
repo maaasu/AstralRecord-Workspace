@@ -4,9 +4,9 @@ import type { MasterFileTab } from '../state/masterDataTabs'
 import { MasterTabSearch } from './MasterTabSearch'
 
 const tabs: MasterFileTab[] = [
-  { id: 'a', path: '40.features.mob/forest/v1.wolf.yml', name: '&a森のウルフ', dirty: true, busy: false },
-  { id: 'b', path: '40.features.mob/desert/v1.wolf.yml', name: '&6森のウルフ', dirty: false, busy: true },
-  { id: 'c', path: '41.features.mob.spawner/v1.forest.yml', name: '森のスポナー', dirty: false, busy: false },
+  { id: 'a', path: '40.features.mob/forest/v1.wolf.yml', name: '&a森のウルフ', dirty: true, busy: false, loadState: 'ready' },
+  { id: 'b', path: '40.features.mob/desert/v1.wolf.yml', name: '&6森のウルフ', dirty: false, busy: true, loadState: 'ready' },
+  { id: 'c', path: '41.features.mob.spawner/v1.forest.yml', name: '森のスポナー', dirty: false, busy: false, loadState: 'ready' },
 ]
 const results = () => within(screen.getByLabelText('開いているファイルの検索結果'))
 const query = () => screen.getByRole('textbox', { name: '開いているファイルの検索語' })

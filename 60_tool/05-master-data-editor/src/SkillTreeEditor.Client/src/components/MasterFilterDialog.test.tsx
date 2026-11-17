@@ -191,7 +191,7 @@ describe('drop candidate preparation', () => {
     const currentIndex = dropIndex(['sword', 'shield'])
     const comparisons = vi.spyOn(String.prototype, 'localeCompare')
     try {
-      render(<MasterFilterDialog {...props} files={files} allFiles={files} index={currentIndex} candidates={candidates} itemScope dropScope value={emptyMasterListFilters()} onApply={vi.fn()} />)
+      render(<MasterFilterDialog {...props} files={files} allFiles={files} index={currentIndex} candidates={candidates} query="モブ" itemScope dropScope value={emptyMasterListFilters()} onApply={vi.fn()} />)
       const originalLabelReads = labelReads
       const originalNameReads = nameReads
       const originalComparisons = comparisons.mock.calls.length

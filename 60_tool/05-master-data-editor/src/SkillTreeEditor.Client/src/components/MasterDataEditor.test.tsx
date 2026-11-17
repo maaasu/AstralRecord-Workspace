@@ -67,7 +67,7 @@ describe('master editor workflow', () => {
     const previousOverflow = document.body.style.overflow
     render(<MasterDataEditor />)
     fireEvent.click(await screen.findByRole('button', { name: /元クラス.*old/ }))
-    await waitFor(() => expect(masterDataApi.file).toHaveBeenCalledWith(original.path))
+    await waitFor(() => expect(masterDataApi.file).toHaveBeenCalledWith(original.path, expect.any(AbortSignal)))
     fireEvent.click(screen.getByRole('button', { name: '詳細フィルター' }))
     const dialog = screen.getByRole('dialog', { name: '詳細フィルター' })
     expect(document.body.style.overflow).toBe('hidden')

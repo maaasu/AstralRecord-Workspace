@@ -36,7 +36,44 @@ async function open(name: 'ファイルA' | 'ファイルB' | 'ファイルC') {
 
 function select(name: RegExp) { fireEvent.click(screen.getByRole('tab', { name })) }
 
+function deferFile() {
+  let resolve!: (value: MasterDocument) => void
+  const promise = new Promise<MasterDocument>((finish) => { resolve = finish })
+  return { promise, resolve }
+}
+
 describe('master file tabs', () => {
+  it('opens another file while a slow file is loading and keeps the selected tab when the slow file finishes', async () => {
+    const slowFile = deferFile()
+    vi.mocked(masterDataApi.file).mockReturnValueOnce(slowFile.promise)
+    render(<MasterDataEditor />)
+    fireEvent.click(await screen.findByRole('button', { name: /ファイルA.*v1.a/ }))
+    expect(screen.getByRole('tab', { name: 'ファイルA · 読込中' })).toHaveAttribute('aria-selected', 'true')
+    expect(panel().getByRole('status')).toHaveTextContent('ファイルを読み込んでいます')
+    await open('ファイルB')
+    expect(screen.getByRole('tab', { name: 'ファイルA · 読込中' })).toHaveAttribute('aria-selected', 'false')
+    expect(panel().queryByText('ファイルを読み込んでいます…')).not.toBeInTheDocument()
+    await act(async () => slowFile.resolve(a))
+    expect(screen.getByRole('tab', { name: 'ファイルB' })).toHaveAttribute('aria-selected', 'true')
+    select(/^ファイルA$/)
+    expect(input('/name')).toHaveValue('ファイルA')
+    expect(masterDataApi.file).toHaveBeenCalledTimes(2)
+  })
+
+  it('aborts a closed loading tab and ignores its response after the same file is reopened', async () => {
+    const slowFile = deferFile()
+    vi.mocked(masterDataApi.file).mockReturnValueOnce(slowFile.promise)
+    render(<MasterDataEditor />)
+    fireEvent.click(await screen.findByRole('button', { name: /ファイルA.*v1.a/ }))
+    const signal = vi.mocked(masterDataApi.file).mock.calls[0][1]
+    fireEvent.click(screen.getByRole('button', { name: 'v1.a.yml のタブを閉じる' }))
+    expect(signal?.aborted).toBe(true)
+    await open('ファイルA')
+    await act(async () => slowFile.resolve({ ...a, content: { name: '古い結果' } }))
+    expect(input('/name')).toHaveValue('ファイルA')
+    expect(screen.getAllByRole('tab')).toHaveLength(1)
+  })
+
   it('reveals the current file without losing invalid input or reloading an unsaved tab', async () => {
     render(<MasterDataEditor />)
     await open('ファイルA')
