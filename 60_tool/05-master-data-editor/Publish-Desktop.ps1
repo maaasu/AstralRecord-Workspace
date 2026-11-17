@@ -16,7 +16,7 @@ if (-not $DotnetPath) {
     $toolsConfiguration = Join-Path $workspaceRoot '60_tool/build-tools.local.json'
     if (Test-Path -LiteralPath $toolsConfiguration) {
         $configuration = Get-Content -LiteralPath $toolsConfiguration -Raw | ConvertFrom-Json -AsHashtable
-        if ($configuration.dotnetRoot) { $configuredDotnet = Join-Path $configuration.dotnetRoot 'dotnet.exe' }
+        if ($configuration['dotnetRoot']) { $configuredDotnet = Join-Path $configuration['dotnetRoot'] 'dotnet.exe' }
     }
     $onPath = Get-Command dotnet.exe -ErrorAction SilentlyContinue
     $candidates = @(

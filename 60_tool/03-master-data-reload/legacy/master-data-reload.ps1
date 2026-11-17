@@ -38,9 +38,10 @@ function Invoke-FilebaseMirror {
         '/NJS'
     )
 
-    if ($null -ne $Config.filebase.excludeDirectories) {
+    $excludedDirectories = $Config.filebase.PSObject.Properties['excludeDirectories']
+    if ($null -ne $excludedDirectories -and $null -ne $excludedDirectories.Value) {
         $arguments += '/XD'
-        $arguments += @($Config.filebase.excludeDirectories | ForEach-Object {
+        $arguments += @($excludedDirectories.Value | ForEach-Object {
             Join-Path $Config.filebase.sourcePath $_
         })
     }
@@ -55,7 +56,10 @@ function Invoke-FilebaseMirror {
 function Invoke-MasterDataSeed {
     param($Config)
 
-    $environmentVariable = [string]$Config.api.apiKeyEnvironmentVariable
+    $environmentVariable = ''
+    if ($Config.api.PSObject.Properties['apiKeyEnvironmentVariable']) {
+        $environmentVariable = [string]$Config.api.apiKeyEnvironmentVariable
+    }
     $apiKey = ''
     if ($null -ne $Config.api.PSObject.Properties['apiKey']) {
         $apiKey = [string]$Config.api.apiKey

@@ -108,9 +108,9 @@ function Get-MaintenancePlan($Config) {
         foreach ($entry in $network.destinations) {
             if ([string]::IsNullOrWhiteSpace($entry.deployDirectory)) { Write-Host "SKIP unconfigured network artifact: $($entry.artifact)"; continue }
             if ($entry.artifact -notin @('AstralRecordLobby.jar','AstralRecordProxy.jar','AstralRecordGeyserExtension.jar')) { throw 'Unsupported network plugin artifact.' }
-            $sourceDirectory=if ([string]::IsNullOrWhiteSpace($network.sourceDirectory)) {
+            $sourceDirectory=if ([string]::IsNullOrWhiteSpace($network['sourceDirectory'])) {
                 [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../12-build-network-plugins/output'))
-            } else { $network.sourceDirectory }
+            } else { $network['sourceDirectory'] }
             $sourceDirectory=Get-MaintenanceAbsolutePath $sourceDirectory
             $source=Resolve-MaintenanceChild $sourceDirectory $entry.artifact
             if (!(Test-Path -LiteralPath $source -PathType Leaf)) { throw "Network output JAR is missing (no build is performed): $source" }

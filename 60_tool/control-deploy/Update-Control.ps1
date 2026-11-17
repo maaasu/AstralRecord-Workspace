@@ -28,8 +28,8 @@ $expected = [regex]::Escape($binaryRoot + '\')
 if ($registered.PathName -notmatch ('^"' + $expected)) { throw 'Service binary path is outside the managed installation.' }
 if ($Component -eq 'Runner') {
     if (!$CliPath -or ![IO.Path]::IsPathFullyQualified($CliPath) -or !(Test-Path -LiteralPath $CliPath -PathType Leaf)) { throw 'Runner update requires an installed Control CLI path.' }
-    $runnerConfig=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $data 'config.json') | ConvertFrom-Json
-    $pipeName=if ($runnerConfig.pipeName) { [string]$runnerConfig.pipeName } else { 'AstralRecordControl.Runner.v1' }
+    $runnerConfig=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $data 'config.json') | ConvertFrom-Json -AsHashtable
+    $pipeName=if ($runnerConfig['pipeName']) { [string]$runnerConfig['pipeName'] } else { 'AstralRecordControl.Runner.v1' }
     function Get-SafeRunnerSnapshot {
         $output=& $CliPath runner check-update --pipe-name $pipeName
         if ($LASTEXITCODE -ne 0) { throw 'Runner snapshot request failed.' }

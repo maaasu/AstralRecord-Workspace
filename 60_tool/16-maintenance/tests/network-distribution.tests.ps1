@@ -66,7 +66,7 @@ try {
     $numberedOutput=Join-Path $fixtureTools '12-build-network-plugins/output'
     Put (Join-Path $legacyOutput 'AstralRecordLobby.jar') 'old output'
     Put (Join-Path $numberedOutput 'AstralRecordLobby.jar') 'numbered output'
-    $config.networkPlugins.sourceDirectory=''
+    $config.networkPlugins.Remove('sourceDirectory')
     $config['migration']=@{enabled=$false}
     Put (Join-Path $fixtureTools 'maintenance/maintenance.local.json') ($config | ConvertTo-Json -Depth 10)
     $entry=Join-Path $fixtureTools '16-maintenance/maintenance.ps1'

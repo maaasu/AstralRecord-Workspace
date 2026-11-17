@@ -1,7 +1,11 @@
+#requires -Version 7.0
 $ErrorActionPreference = 'Stop'
+$pwsh = Join-Path $PSHOME 'pwsh.exe'
 $scriptPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'deploy-debug.ps1'
 $root = Join-Path ([IO.Path]::GetTempPath()) ('ar-history-deploy-gate-' + [Guid]::NewGuid().ToString('N'))
+$savedProgramData = $env:ProgramData
 try {
+    $env:ProgramData = Join-Path $root 'programdata'
     $bin = Join-Path $root 'bin'; $api = Join-Path $root 'api'; $web = Join-Path $root 'web'
     New-Item -ItemType Directory -Force -Path $bin, $api, $web | Out-Null
     Set-Content -LiteralPath (Join-Path $root 'api.csproj') -Value '<Project />' -Encoding UTF8
@@ -25,7 +29,7 @@ exit /b 0
         $previousPath = $env:Path; $env:Path = "$bin;$previousPath"; $env:AR_DEPLOY_GATE_LOG = $callsPath
         try {
             $previousErrorActionPreference = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
-            try { $output = @(& powershell -NoProfile -ExecutionPolicy Bypass -File $scriptPath -ConfigPath $configPath @($case.Arguments) 2>&1); $exitCode = $LASTEXITCODE }
+            try { $output = @(& $pwsh -NoProfile -ExecutionPolicy Bypass -File $scriptPath -ConfigPath $configPath @($case.Arguments) 2>&1); $exitCode = $LASTEXITCODE }
             finally { $ErrorActionPreference = $previousErrorActionPreference }
         } finally { $env:Path = $previousPath; Remove-Item Env:AR_DEPLOY_GATE_LOG -ErrorAction SilentlyContinue }
         if ($exitCode -eq 0) { throw "$($case.Name) deployment should fail when HistoryDB migration fails." }
@@ -34,8 +38,11 @@ exit /b 0
             throw "$($case.Name) deployment failed before the HistoryDB migration gate. Output: $($output -join [Environment]::NewLine)"
         }
         $calls = Get-Content -Raw -LiteralPath $callsPath
-        if ($calls -notmatch 'history-fail.csproj') { throw "$($case.Name) did not invoke the HistoryDB migration gate." }
+        if ($calls -notmatch 'history-fail.csproj') { throw "$($case.Name) did not invoke the HistoryDB migration gate. Output: $($output -join [Environment]::NewLine)" }
         if ($calls -match 'robocopy') { throw "$($case.Name) deployment copied files after HistoryDB migration failure." }
     }
     Write-Output 'HistoryDB migration deployment gate integration test passed.'
-} finally { if ((Test-Path -LiteralPath $root) -and [IO.Path]::GetFileName($root) -match '^ar-history-deploy-gate-[0-9a-f]{32}$') { Remove-Item -LiteralPath $root -Recurse -Force } }
+} finally {
+    $env:ProgramData = $savedProgramData
+    if ((Test-Path -LiteralPath $root) -and [IO.Path]::GetFileName($root) -match '^ar-history-deploy-gate-[0-9a-f]{32}$') { Remove-Item -LiteralPath $root -Recurse -Force }
+}

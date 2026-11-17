@@ -84,7 +84,7 @@ try {
                     $gateServerIds+=[string]$networkBindings[0].runtimeServerId
                 }
             }
-            if ($config.networkPlugins.sourceDirectory) { $gatePaths+=Get-MaintenanceAbsolutePath $config.networkPlugins.sourceDirectory }
+            if ($config.networkPlugins['sourceDirectory']) { $gatePaths+=Get-MaintenanceAbsolutePath $config.networkPlugins['sourceDirectory'] }
             else { $gatePaths+=Get-MaintenanceAbsolutePath (Join-Path $PSScriptRoot '../12-build-network-plugins/output') }
         }
         $gateContext=Enter-ControlGate -Configuration $config -Operation '16' -RuntimeServerIds $gateServerIds `

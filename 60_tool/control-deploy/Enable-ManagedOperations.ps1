@@ -27,7 +27,7 @@ if ($Renew) {
     Test-ControlConfiguration $data Runner
     $config=Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $data 'config.json') | ConvertFrom-Json -AsHashtable
     if ($config.enableProcessControl -ne $true) { throw 'Runner process control must be enabled before renewing managed operations.' }
-    $pipeName=if ($config.pipeName) { [string]$config.pipeName } else { 'AstralRecordControl.Runner.v1' }
+    $pipeName=if ($config['pipeName']) { [string]$config['pipeName'] } else { 'AstralRecordControl.Runner.v1' }
     Assert-ControlRunnerUpdateReady $CliPath $pipeName
 }
 if ($PSCmdlet.ShouldProcess($ToolRoot,'Attest installed P1 tool entries and atomically publish the managed operations marker')) {

@@ -79,7 +79,7 @@ function Assert-MaintenanceNetworkRunBoundary([hashtable]$Config, [string]$RunRo
     foreach ($entry in $network.destinations) {
         if ([string]::IsNullOrWhiteSpace($entry.deployDirectory)) { continue }
         $destination=Get-MaintenanceAbsolutePath $entry.deployDirectory
-        $source=if ([string]::IsNullOrWhiteSpace($network.sourceDirectory)) { Join-Path $PSScriptRoot '../12-build-network-plugins/output' } else { $network.sourceDirectory }
+        $source=if ([string]::IsNullOrWhiteSpace($network['sourceDirectory'])) { Join-Path $PSScriptRoot '../12-build-network-plugins/output' } else { $network['sourceDirectory'] }
         $source=Get-MaintenanceAbsolutePath $source
         $serverRoot=[IO.Path]::GetDirectoryName($destination)
         if ($entry.artifact -eq 'AstralRecordGeyserExtension.jar') { $serverRoot=[IO.Path]::GetDirectoryName([IO.Path]::GetDirectoryName($serverRoot)) }
