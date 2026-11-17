@@ -56,8 +56,10 @@ export const kindLabels: Record<string, string> = {
 export const addableKinds = ['dungeon', 'shop', 'item', 'mob', 'class', 'world', 'gathering', 'recipe', 'skill'] as const
 
 const isObject = (value: JsonValue | undefined): value is JsonObject => typeof value === 'object' && value !== null && !Array.isArray(value)
-const text = (value: JsonValue | undefined) => typeof value === 'string' ? value : undefined
-const integer = (value: JsonValue | undefined) => typeof value === 'number' && Number.isFinite(value) ? Math.round(value) : 0
+/** 手書きの YAML で数値・真偽値になった文字列項目も、消さずに文字列として扱う。 */
+const text = (value: JsonValue | undefined) => typeof value === 'string' ? value
+  : typeof value === 'number' || typeof value === 'boolean' ? String(value) : undefined
+const coordinate = (value: JsonValue | undefined) => typeof value === 'number' && Number.isFinite(value) ? Math.round(value) : undefined
 const strings = (value: JsonValue | undefined) => Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : []
 
 function without(source: JsonObject, keys: readonly string[]): JsonObject {
@@ -70,10 +72,21 @@ const flowKeys = ['schemaVersion', 'type', 'id', 'name', 'description', 'classes
 
 export function parseGameFlow(content: JsonValue): GameFlow {
   const root = isObject(content) ? content : {}
-  const nodes = (Array.isArray(root.nodes) ? root.nodes : []).filter(isObject).map(node => ({
-    id: text(node.id) ?? '', ref: text(node.ref), label: text(node.label), note: text(node.note),
-    classes: strings(node.classes), x: integer(node.x), y: integer(node.y), rest: without(node, nodeKeys),
-  }))
+  // 座標のないノード（AI や手書きで追加したもの）は、重ならないよう格子状に並べる。
+  let unplaced = 0
+  const nodes = (Array.isArray(root.nodes) ? root.nodes : []).filter(isObject).map(node => {
+    let x = coordinate(node.x)
+    let y = coordinate(node.y)
+    if (x === undefined || y === undefined) {
+      x ??= (unplaced % 5) * 300
+      y ??= Math.floor(unplaced / 5) * 140
+      unplaced++
+    }
+    return {
+      id: text(node.id) ?? '', ref: text(node.ref), label: text(node.label), note: text(node.note),
+      classes: strings(node.classes), x, y, rest: without(node, nodeKeys),
+    }
+  })
   const edges = (Array.isArray(root.edges) ? root.edges : []).filter(isObject).map(edge => ({
     from: text(edge.from) ?? '', to: text(edge.to) ?? '', label: text(edge.label), note: text(edge.note),
     classes: strings(edge.classes), rest: without(edge, edgeKeys),
@@ -169,18 +182,18 @@ export function suggestedClasses(context: GameFlowContext | null, itemId: string
  * ショップのノードから購入アイテムのノードと「購入」の矢印を追加する。
  * 同じアイテムのノードが既にあれば矢印だけをつなぐ。
  */
-export function addShopPurchases(flow: GameFlow, shopNodeId: string, itemIds: readonly string[], context: GameFlowContext | null): GameFlow {
+export function addShopPurchases(flow: GameFlow, shopNodeId: string, itemIds: readonly string[], context: GameFlowContext | null,
+  prefixes?: Readonly<Record<string, string>> | null): GameFlow {
   const shop = flow.nodes.find(node => node.id === shopNodeId)
   if (!shop) return flow
   let next = flow
   const existingTargets = flow.edges.filter(edge => edge.from === shopNodeId).length
   let row = 0
   for (const itemId of itemIds) {
-    const ref = 'item:' + itemId
-    let target = next.nodes.find(node => node.ref === ref)?.id
+    let target = next.nodes.find(node => refKind(node.ref, prefixes) === 'item' && refId(node.ref) === itemId)?.id
     if (!target) {
       const added = addNode(next, {
-        ref, classes: suggestedClasses(context, itemId),
+        ref: 'item:' + itemId, classes: suggestedClasses(context, itemId),
         x: shop.x + 300, y: shop.y + (existingTargets + row) * 110,
       })
       next = added.flow

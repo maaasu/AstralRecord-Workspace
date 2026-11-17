@@ -73,6 +73,20 @@ describe('game flow', () => {
     expect(flow.edges.filter(edge => edge.from === 'shop').map(edge => edge.to)).toEqual(['sword', 'bow', staff.id])
   })
 
+  it('reuses item nodes written with a reference alias', () => {
+    const flow = parseGameFlow({ ...source, nodes: [...source.nodes, { id: 'staff', ref: 'im:20a00080', x: 0, y: 0 }] })
+    const next = addShopPurchases(flow, 'shop', ['20a00080'], null, { ...prefixes, im: 'item' })
+    expect(next.nodes.filter(node => node.ref?.endsWith('20a00080'))).toHaveLength(1)
+    expect(next.edges.at(-1)).toMatchObject({ from: 'shop', to: 'staff' })
+  })
+
+  it('keeps scalar text values and lays out nodes without coordinates', () => {
+    const flow = parseGameFlow({ id: 'x', name: 'x', nodes: [
+      { id: 'a', label: 2024 }, { id: 'b', label: 'b' }, { id: 'c', label: 'c', x: 10, y: 20 },
+    ], edges: [] })
+    expect(flow.nodes.map(node => [node.label, node.x, node.y])).toEqual([['2024', 0, 0], ['b', 300, 0], ['c', 10, 20]])
+  })
+
   it('adds a note node', () => {
     const { flow, id } = addNode(parseGameFlow(source), { label: '転職', x: 1, y: 2 })
     expect(id).toBe('node')

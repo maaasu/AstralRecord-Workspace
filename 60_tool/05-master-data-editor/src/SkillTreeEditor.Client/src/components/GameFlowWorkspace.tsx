@@ -128,6 +128,10 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     .map(([key, entry]) => ({ ref: key, name: plain(entry.name) || key })), [references])
   const className = useCallback((ref: string) => classes.find(entry => entry.ref === ref)?.name ?? resolveName(ref) ?? ref, [classes, resolveName])
   const flowClasses = useMemo(() => flow?.classes.length ? classes.filter(entry => flow.classes.includes(entry.ref)) : classes, [classes, flow])
+  // 対象職業から外れた職業でフィルタしたまま、新しいノードへ割り当てない。
+  useEffect(() => {
+    if (classFilter && !flowClasses.some(entry => entry.ref === classFilter)) setClassFilter(null)
+  }, [classFilter, flowClasses])
 
   const dirty = Boolean(flow && document && JSON.stringify(serializeGameFlow(flow)) !== saved)
   useEffect(() => { onDirtyChange?.(dirty) }, [dirty, onDirtyChange])
@@ -158,6 +162,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     setPast([])
     setFuture([])
     setSelection(null)
+    setClassFilter(null)
     setIssues(next.issues ?? [])
     setError('')
     requestAnimationFrame(() => void flowApi.fitView({ padding: .2, maxZoom: 1 }))
@@ -237,7 +242,11 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   }) ?? [], [className, flow, selection, visible])
   const [nodes, setNodes] = useState<Node<FlowNodeData>[]>([])
   const [edges, setEdges] = useState<Edge[]>([])
-  useEffect(() => setNodes(derivedNodes), [derivedNodes])
+  // 測定済みの寸法を引き継ぎ、編集のたびに全ノードを測り直さない。
+  useEffect(() => setNodes(previous => {
+    const measured = new Map(previous.map(node => [node.id, node.measured]))
+    return derivedNodes.map(node => measured.get(node.id) ? { ...node, measured: measured.get(node.id) } : node)
+  }), [derivedNodes])
   useEffect(() => setEdges(derivedEdges), [derivedEdges])
   const onNodesChange = useCallback((changes: NodeChange<Node<FlowNodeData>>[]) =>
     setNodes(current => applyNodeChanges(changes.filter(change => change.type !== 'remove'), current)), [])
@@ -263,15 +272,12 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     })
     setSelection({ type: 'edge', key: `${connection.source}->${connection.target}` })
   }, [classFilter, prefixes, update])
-  const onDelete = useCallback(({ nodes: removedNodes, edges: removedEdges }: { nodes: Node[]; edges: Edge[] }) => {
-    const nodeIds = new Set(removedNodes.map(node => node.id))
-    const edgeKeys = new Set(removedEdges.map(edge => edge.id))
-    update(current => {
-      const withoutNodes = nodeIds.size ? removeNodes(current, nodeIds) : current
-      return edgeKeys.size ? { ...withoutNodes, edges: withoutNodes.edges.filter(edge => !edgeKeys.has(edgeKey(edge))) } : withoutNodes
-    })
+  const deleteSelection = () => {
+    if (!selection) return
+    if (selection.type === 'node') update(current => removeNodes(current, new Set([selection.id])))
+    else update(current => ({ ...current, edges: current.edges.filter(edge => edgeKey(edge) !== selection.key) }))
     setSelection(null)
-  }, [update])
+  }
 
   const centerPosition = () => {
     const rect = canvas.current?.getBoundingClientRect()
@@ -311,7 +317,12 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     })
   }, [picker, references])
   const selectPicked = (id: string) => {
-    if (picker?.replace) changeNode(picker.replace, { ref: `${picker.kind}:${id}` })
+    if (picker?.replace) {
+      // 別名（sh: など）で書かれた参照は、その接頭辞のまま差し替える。
+      const original = current.current?.nodes.find(node => node.id === picker.replace)?.ref
+      const prefix = original?.includes(':') ? original.slice(0, original.indexOf(':')) : picker.kind
+      changeNode(picker.replace, { ref: `${prefix}:${id}` })
+    }
     else if (picker) addReference(picker.kind, id)
     setPicker(null)
   }
@@ -328,7 +339,12 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       setIssues(report.issues)
       if (!report.isValid) { setError('検証エラーがあるため保存できませんでした。'); return }
       const next = await masterDataApi.save(document.path, rendered.raw, document.revision)
-      open(next)
+      if (current.current === flow) open(next)
+      else {
+        // 保存中に続けた編集は残し、保存済みの版と比較用の内容だけを更新する。
+        setDocument(next)
+        setSaved(JSON.stringify(serializeGameFlow(parseGameFlow(next.content))))
+      }
       setIssues(report.issues)
       setMessage(`${document.path} を保存しました。`)
     } catch (reason) {
@@ -435,13 +451,20 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       {issues.length > 0 && <ul className="game-flow-issues" aria-label="検証結果">
         {issues.map((issue, index) => <li key={index} data-severity={issue.severity}><code>{issue.path || '/'}</code> {issue.message}</li>)}
       </ul>}
-      <div className="game-flow-body" ref={canvas} hidden={view !== 'graph'} onKeyDown={event => {
-        if (!(event.ctrlKey || event.metaKey) || (event.target as HTMLElement).closest('input, textarea, select')) return
+      {/* 削除・Undo はキャンバス内のキー操作だけで受け付ける（xyflow の全体キー監視は使わない）。 */}
+      <div className="game-flow-body" ref={canvas} tabIndex={-1} hidden={view !== 'graph'} onKeyDown={event => {
+        if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return
+        if ((event.key === 'Delete' || event.key === 'Backspace') && !event.ctrlKey && !event.metaKey && !event.altKey) {
+          event.preventDefault()
+          deleteSelection()
+          return
+        }
+        if (!(event.ctrlKey || event.metaKey)) return
         if (event.key === 'z') { event.preventDefault(); undo() }
         if (event.key === 'y') { event.preventDefault(); redo() }
       }}>
         {flow ? <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-          onNodeDragStop={onNodeDragStop} onConnect={onConnect} onDelete={onDelete} deleteKeyCode={['Delete', 'Backspace']}
+          onNodeDragStop={onNodeDragStop} onConnect={onConnect} deleteKeyCode={null}
           onNodeClick={(_, node) => setSelection({ type: 'node', id: node.id })} onEdgeClick={(_, edge) => setSelection({ type: 'edge', key: edge.id })}
           onPaneClick={() => setSelection(null)} minZoom={.1} maxZoom={2} snapToGrid snapGrid={[10, 10]} fitView proOptions={{ hideAttribution: true }}>
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
@@ -488,7 +511,8 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       onSelect={selectPicked} onClose={() => setPicker(null)} />}
     {shopDialog && flow && <ShopItemsDialog document={panelDocument} flow={flow} shopNodeId={shopDialog} context={context}
       resolve={id => resolve('item:' + id)} className={className}
-      onAdd={itemIds => { update(current => addShopPurchases(current, shopDialog, itemIds, context)); setShopDialog(null) }}
+      isItem={(ref, id) => refKind(ref, prefixes) === 'item' && refId(ref) === id}
+      onAdd={itemIds => { update(current => addShopPurchases(current, shopDialog, itemIds, context, prefixes)); setShopDialog(null) }}
       onClose={() => setShopDialog(null)} />}
     {creating && <CreateFlowDialog document={panelDocument} busy={busy} existing={new Set(flowFiles.map(file => file.path))}
       onCreate={(id, name) => void create(id, name)} onClose={() => setCreating(false)} />}
@@ -584,15 +608,18 @@ function EdgeProperties({ edge, flow, nodeName, classes, onChange, onDelete }: {
   </section>
 }
 
-function ShopItemsDialog({ document, flow, shopNodeId, context, resolve, className, onAdd, onClose }: {
+function ShopItemsDialog({ document, flow, shopNodeId, context, resolve, className, isItem, onAdd, onClose }: {
   document: Document; flow: GameFlow; shopNodeId: string; context: GameFlowContext | null
   resolve: (itemId: string) => ResolvedRef | undefined; className: (ref: string) => string
+  isItem: (ref: string | undefined, itemId: string) => boolean
   onAdd: (itemIds: string[]) => void; onClose: () => void
 }) {
   const shopNode = flow.nodes.find(node => node.id === shopNodeId)
   const shop = context?.shops.find(entry => entry.id === refId(shopNode?.ref))
-  const connected = useMemo(() => new Set(flow.edges.filter(edge => edge.from === shopNodeId)
-    .map(edge => flow.nodes.find(node => node.id === edge.to)?.ref).filter(Boolean)), [flow, shopNodeId])
+  const connectedRefs = useMemo(() => flow.edges.filter(edge => edge.from === shopNodeId)
+    .map(edge => flow.nodes.find(node => node.id === edge.to)?.ref), [flow, shopNodeId])
+  const connected = useMemo(() => new Set((shop?.items ?? []).filter(id => connectedRefs.some(ref => isItem(ref, id)))
+    .map(id => 'item:' + id)), [connectedRefs, isItem, shop])
   const [query, setQuery] = useState('')
   const [chosen, setChosen] = useState<Set<string>>(new Set())
   const rows = useMemo(() => (shop?.items ?? []).map(id => {
