@@ -48,6 +48,11 @@ public static class EditorApplication
         builder.Services.AddSingleton<MasterDataCatalog>();
         builder.Services.AddSingleton<MasterDataValidation>();
         builder.Services.AddSingleton<MasterDataService>();
+        builder.Services.Configure<MasterDataAiOptions>(builder.Configuration.GetSection(MasterDataAiOptions.SectionName));
+        builder.Services.AddSingleton<MasterDataAiSettingsService>();
+        builder.Services.AddSingleton<MasterDataAiService>();
+        builder.Services.AddHttpClient<MasterDataAiProvider>(client => client.Timeout = Timeout.InfiniteTimeSpan)
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
         builder.Services.AddSingleton<MasterDataFilterIndexService>();
         builder.Services.AddSingleton<ProgressionDesignService>();
         builder.Services.AddSingleton<GameFlowService>();
@@ -97,6 +102,7 @@ public static class EditorApplication
             app.UseEditorStaticFiles(staticFilesRoot);
         app.MapEditorEndpoints();
         app.MapMasterDataEndpoints();
+        app.MapMasterDataAiEndpoints();
         app.MapFallback(async context =>
         {
             if (staticFilesRoot is null)
