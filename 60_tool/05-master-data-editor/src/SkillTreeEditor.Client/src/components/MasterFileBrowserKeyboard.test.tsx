@@ -83,18 +83,21 @@ describe('master file search keyboard navigation', () => {
     expect(search).toHaveValue('')
   })
 
-  it('ignores IME confirmation and does not open a result while busy', () => {
+  it('ignores IME confirmation and can open a different file while a tab is busy', async () => {
     const onOpen = vi.fn()
+    const user = userEvent.setup()
     render(<Harness busy onOpen={onOpen} />)
     const search = screen.getByRole('textbox', { name: 'マスター検索' })
     search.focus()
     fireEvent.keyDown(search, { key: 'Enter', isComposing: true })
     expect(search).toHaveFocus()
     fireEvent.keyDown(search, { key: 'ArrowDown' })
-    expect(search).toHaveFocus()
-    expect(results()[0]).toBeDisabled()
-    fireEvent.click(results()[0])
-    expect(onOpen).not.toHaveBeenCalled()
+    expect(results()[0]).toHaveFocus()
+    await user.keyboard('{Enter}')
+    expect(onOpen).toHaveBeenCalledWith(files[0].path)
+    await user.click(results()[1])
+    expect(onOpen).toHaveBeenCalledWith(files[1].path)
+    expect(screen.getByRole('button', { name: '＋ 新規' })).toBeDisabled()
   })
 
   it('lists files from a virtual parent folder opened through its context menu', () => {
