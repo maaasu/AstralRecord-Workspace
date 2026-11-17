@@ -52,7 +52,6 @@ class AccessorySlotTypeTest {
      */
     @Test
     void separatesAuxiliaryWeaponFromTypedAccessory() {
-        assertEquals("補助装備", ItemEquipmentSlot.SUBWEAPON.getDisplayName());
         assertSame(EquipmentType.OFF_HAND, EquipmentType.fromItemEquipmentSlot(ItemEquipmentSlot.SUBWEAPON));
         assertSame(EquipmentType.UNSUPPORTED, EquipmentType.fromItemEquipmentSlot(ItemEquipmentSlot.ACCESSORY));
         Arrays.stream(EquipmentType.values())

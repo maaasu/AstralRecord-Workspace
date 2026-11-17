@@ -8,48 +8,25 @@ import org.mockito.MockedStatic;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
 class WhitelistTabCompleterTest {
 
-    /**
-     * whitelist の第1引数では enable と user を補完する。
-     */
     @Test
-    void completesWhitelistSubcommands() {
+    void completesCommandKeywordsForEachArgumentPosition() {
         CommandSender sender = mock(CommandSender.class);
+        WhitelistTabCompleter completer = new WhitelistTabCompleter();
 
-        List<String> completions = new WhitelistTabCompleter()
-            .onTabComplete(sender, null, "whitelist", new String[] {""});
-
-        assertEquals(List.of("enable", "user"), completions);
-    }
-
-    /**
-     * user の第2引数では add と remove を補完する。
-     */
-    @Test
-    void completesWhitelistUserOperations() {
-        CommandSender sender = mock(CommandSender.class);
-
-        List<String> completions = new WhitelistTabCompleter()
-            .onTabComplete(sender, null, "whitelist", new String[] {"user", ""});
-
-        assertEquals(List.of("add", "remove"), completions);
-    }
-
-    /**
-     * enable の第2引数では true と false を補完する。
-     */
-    @Test
-    void completesWhitelistBooleanValues() {
-        CommandSender sender = mock(CommandSender.class);
-
-        List<String> completions = new WhitelistTabCompleter()
-            .onTabComplete(sender, null, "whitelist", new String[] {"enable", ""});
-
-        assertEquals(List.of("true", "false"), completions);
+        assertAll(
+            () -> assertEquals(List.of("enable", "user"),
+                completer.onTabComplete(sender, null, "whitelist", new String[] {""})),
+            () -> assertEquals(List.of("add", "remove"),
+                completer.onTabComplete(sender, null, "whitelist", new String[] {"user", ""})),
+            () -> assertEquals(List.of("true", "false"),
+                completer.onTabComplete(sender, null, "whitelist", new String[] {"enable", ""}))
+        );
     }
 
     /**

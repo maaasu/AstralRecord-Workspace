@@ -21,7 +21,9 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
+import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,6 +35,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -40,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -873,11 +877,15 @@ class InventoryServiceOrbReconciliationTest {
         assertTrue(state.snapshotEntries(bag.getInventoryId()).isEmpty());
     }
 
-    /**
-     * 取り下げでBAGへ復元された数量だけを共通付与処理で既存stackへ加算し、既存stackのIDと配置を保持する。
-     */
-    @Test
-    void marketCancellationAddsRestoredAmountToExistingBagStack() {
+    @TestFactory
+    Stream<DynamicTest> marketCancellationAddsRestoredAmountToExistingBagStack() {
+        return Stream.of(
+            dynamicTest("unslotted BAG return", () -> assertMarketCancellationMergesReturn(false)),
+            dynamicTest("slotted HOTBAR return", () -> assertMarketCancellationMergesReturn(true))
+        );
+    }
+
+    private static void assertMarketCancellationMergesReturn(boolean returnsToHotbar) {
         UUID accountId = UUID.randomUUID();
         UUID existingEntryId = UUID.randomUUID();
         UUID restoredEntryId = UUID.randomUUID();
@@ -896,6 +904,21 @@ class InventoryServiceOrbReconciliationTest {
         );
         state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(existing));
         registry.put(state);
+
+        InventoryModel restoredInventory = bag;
+        Integer restoredSlot = null;
+        Map<UUID, List<InventoryEntryModel>> baselineEntries = Map.of(bag.getInventoryId(), List.of(existing));
+        if (returnsToHotbar) {
+            restoredInventory = DesignTestFixtures.inventory(accountId, InventoryType.HOTBAR, 9);
+            state.putInventory(restoredInventory);
+            state.replaceEntriesFromLoad(restoredInventory.getInventoryId(), List.of());
+            restoredSlot = NormalInventoryLayout.DB_SLOT_START;
+            baselineEntries = Map.of(
+                bag.getInventoryId(), List.of(existing),
+                restoredInventory.getInventoryId(), List.of()
+            );
+        }
+
         InventoryRepository repository = mock(InventoryRepository.class);
         ItemService itemService = mock(ItemService.class);
         InventoryService service = new InventoryService(
@@ -910,8 +933,8 @@ class InventoryServiceOrbReconciliationTest {
         InventoryEntryModel restored = categoryEntry(
             restoredEntryId,
             accountId,
-            bag.getInventoryId(),
-            null,
+            restoredInventory.getInventoryId(),
+            restoredSlot,
             ItemCategory.MATERIAL,
             "market_material",
             5L
@@ -919,19 +942,22 @@ class InventoryServiceOrbReconciliationTest {
         when(repository.findEntryById(restoredEntryId)).thenReturn(restored);
         when(itemService.findLoadedById("market_material"))
             .thenReturn(DesignTestFixtures.item("market_material", ItemCategory.MATERIAL, 64));
-        AstPlayer player = astPlayer(accountId);
 
         service.reconcileExternalInventoryEntriesToOwnedInventory(
-            player,
+            astPlayer(accountId),
             List.of(restoredEntryId),
-            baseline(accountId, bag.getInventoryId(), List.of(existing))
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, baselineEntries)
         );
 
         List<InventoryEntryModel> entries = state.snapshotEntries(bag.getInventoryId());
         assertEquals(1, entries.size(), entries.toString());
         assertEquals(existingEntryId, entries.getFirst().getInventoryEntryId());
+        assertEquals(existing.getSlotIndex(), entries.getFirst().getSlotIndex());
         assertEquals(15L, entries.getFirst().getQuantity());
         assertNull(service.findOwnedEntry(accountId, restoredEntryId));
+        if (returnsToHotbar) {
+            assertTrue(state.snapshotEntries(restoredInventory.getInventoryId()).isEmpty());
+        }
     }
 
     /**
@@ -993,77 +1019,6 @@ class InventoryServiceOrbReconciliationTest {
         assertEquals(existingEntryId, entries.getFirst().getInventoryEntryId());
         assertEquals(NormalInventoryLayout.DB_SLOT_START, entries.getFirst().getSlotIndex());
         assertEquals(64L, entries.getFirst().getQuantity());
-    }
-
-    /**
-     * HOTBARへ復元された取り下げentryは個別配置を維持せず、共通所有インベントリ返却処理でBAGの同一stackへ統合する。
-     */
-    @Test
-    void marketCancellationMovesRestoredHotbarStackThroughSharedBagReturnPath() {
-        UUID accountId = UUID.randomUUID();
-        UUID existingEntryId = UUID.randomUUID();
-        UUID restoredEntryId = UUID.randomUUID();
-        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
-        PlayerInventoryState state = new PlayerInventoryState(accountId);
-        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG, 27);
-        InventoryModel hotbar = DesignTestFixtures.inventory(accountId, InventoryType.HOTBAR, 9);
-        state.putInventory(bag);
-        state.putInventory(hotbar);
-        InventoryEntryModel existing = categoryEntry(
-            existingEntryId,
-            accountId,
-            bag.getInventoryId(),
-            NormalInventoryLayout.DB_SLOT_START,
-            ItemCategory.MATERIAL,
-            "market_material",
-            10L
-        );
-        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(existing));
-        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of());
-        registry.put(state);
-        InventoryRepository repository = mock(InventoryRepository.class);
-        ItemService itemService = mock(ItemService.class);
-        InventoryService service = new InventoryService(
-            repository,
-            mock(EquipmentLoadoutRepository.class),
-            itemService,
-            mock(ItemStackFactory.class),
-            registry,
-            mock(InventoryPersistence.class),
-            mock(InventorySaveCoordinator.class)
-        );
-        InventoryEntryModel restored = categoryEntry(
-            restoredEntryId,
-            accountId,
-            hotbar.getInventoryId(),
-            NormalInventoryLayout.DB_SLOT_START,
-            ItemCategory.MATERIAL,
-            "market_material",
-            5L
-        );
-        when(repository.findEntryById(restoredEntryId)).thenReturn(restored);
-        when(itemService.findLoadedById("market_material"))
-            .thenReturn(DesignTestFixtures.item("market_material", ItemCategory.MATERIAL, 64));
-        AstPlayer player = astPlayer(accountId);
-
-        service.reconcileExternalInventoryEntriesToOwnedInventory(
-            player,
-            List.of(restoredEntryId),
-            new InventoryPersistence.PersistedInventoryBaseline(
-                accountId,
-                Map.of(
-                    bag.getInventoryId(), List.of(existing),
-                    hotbar.getInventoryId(), List.of()
-                )
-            )
-        );
-
-        List<InventoryEntryModel> bagEntries = state.snapshotEntries(bag.getInventoryId());
-        assertEquals(1, bagEntries.size());
-        assertEquals(existingEntryId, bagEntries.getFirst().getInventoryEntryId());
-        assertEquals(15L, bagEntries.getFirst().getQuantity());
-        assertTrue(state.snapshotEntries(hotbar.getInventoryId()).isEmpty());
-        assertNull(service.findOwnedEntry(accountId, restoredEntryId));
     }
 
     /**

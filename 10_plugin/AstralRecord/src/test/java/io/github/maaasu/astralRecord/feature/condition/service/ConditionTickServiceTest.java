@@ -12,45 +12,31 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class ConditionTickServiceTest {
 
     /**
-     * 燃焼は付与時に固定したsnapshot 2だけを与え、対象HPを参照せず20tick後へ次回時刻を進める。
+     * 炎上と毒は対象HPに依存せず、付与時の値でダメージを与え、次の実行時刻を進める。
      */
     @Test
-    void burningUsesFixedSnapshotWithoutTargetHealthRate() {
-        ConditionService conditionService = mock(ConditionService.class);
-        DamageService damageService = mock(DamageService.class);
-        AstEntity target = mock(AstEntity.class);
-        AstEntity source = mock(AstEntity.class);
-        ActiveCondition condition = condition(
-            ConditionType.BURNING, target, source, 2.0D, 0.01D, 20, 0L, Long.MAX_VALUE
-        );
-
-        new ConditionTickService(conditionService, damageService).tickCondition(condition, 100L);
-
-        verify(damageService).applyConditionDamage(source, target, 2.0D, ConditionType.BURNING);
-        verify(conditionService).pulse(condition);
-        assertEquals(1_100L, condition.nextTickAtMs());
+    void damageOverTimeUsesFixedSnapshotWithoutTargetHealthRate() {
+        assertFixedSnapshotDamage(ConditionType.BURNING, mock(AstEntity.class), 2.0D, 0.01D);
+        assertFixedSnapshotDamage(ConditionType.POISON, null, 16.0D, 0.03D);
     }
 
-    /**
-     * 毒は対象HPに依存せず、付与時に固定したsnapshotをそのまま算出する。
-     */
-    @Test
-    void poisonUsesFixedSnapshotWithoutTargetHealthRate() {
+    private void assertFixedSnapshotDamage(ConditionType type, AstEntity source, double power, double healthRate) {
         ConditionService conditionService = mock(ConditionService.class);
         DamageService damageService = mock(DamageService.class);
         AstEntity target = mock(AstEntity.class);
         ActiveCondition condition = condition(
-            ConditionType.POISON, target, null, 16.0D, 0.03D, 20, 0L, Long.MAX_VALUE
+            type, target, source, power, healthRate, 20, 0L, Long.MAX_VALUE
         );
 
         new ConditionTickService(conditionService, damageService).tickCondition(condition, 100L);
 
-        verify(damageService).applyConditionDamage(null, target, 16.0D, ConditionType.POISON);
+        verify(damageService).applyConditionDamage(source, target, power, type);
+        verify(conditionService).pulse(condition);
+        assertEquals(1_100L, condition.nextTickAtMs());
     }
 
     /**

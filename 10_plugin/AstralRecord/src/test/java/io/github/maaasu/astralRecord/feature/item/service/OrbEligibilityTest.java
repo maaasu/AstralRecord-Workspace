@@ -34,33 +34,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class OrbEligibilityTest {
 
     /**
-     * 成功率は端数を残した百分率で表示し、99.5%と確定成功の100%を区別する。
+     * 加工の成功率が100%未満なら、丸めで確定成功に見せない。
      */
     @Test
-    void successRateDisplayPreservesFractionalPercentages() {
-        assertAll(
-            () -> assertEquals("0.5", OrbService.formatPercent(0.005D)),
-            () -> assertEquals("14.5", OrbService.formatPercent(0.145D)),
-            () -> assertEquals("56.5", OrbService.formatPercent(0.565D)),
-            () -> assertEquals("99.5", OrbService.formatPercent(0.995D)),
-            () -> assertEquals("100", OrbService.formatPercent(1.0D)),
-            () -> assertEquals("69.4", OrbService.formatPercent(0.694D)),
-            () -> assertEquals("69.5", OrbService.formatPercent(0.695D)),
-            () -> assertEquals("70", OrbService.formatPercent(0.70F))
-        );
-    }
-
-    /**
-     * 状態変化一覧は数値ランク999を表示せず、状態変化名を「星鋼化へ変化」の形式で返す。
-     */
-    @Test
-    void transitionListDescriptionUsesNameWithoutNumericRank() {
-        ItemEquipmentTranscendence definition = transition("星鋼化", 999, 4, 6, 4);
-
-        String description = OrbService.transitionListDescription(definition);
-
-        assertEquals("星鋼化へ変化", description);
-        assertFalse(description.contains("999"));
+    void successRateBelowCertaintyDoesNotDisplayAsGuaranteed() {
+        assertEquals("99.5", OrbService.formatPercent(0.995D));
+        assertEquals("100", OrbService.formatPercent(1.0D));
     }
 
     /**

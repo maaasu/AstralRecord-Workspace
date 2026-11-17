@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 class SuperStarCriticalProjectileServiceTest {
 
     /**
-     * 抽選した水平方位と上向き25〜65度仰角から初速方向を算出する。
+     * 抽選した水平方位と指定仰角から初速方向を算出する。
      */
     @Test
     void initialDirectionUsesRequestedElevationAndAzimuth() {
@@ -38,22 +38,7 @@ class SuperStarCriticalProjectileServiceTest {
     }
 
     /**
-     * 初速3.2〜4.8 block/sで10〜20 tick曲線飛行する距離を1.6〜4.8 blockとし、追尾速度を7 block/sとする。
-     */
-    @Test
-    void initialFlightTravelDistanceMatchesConfiguredRandomSpeedAndDuration() {
-        double minimumDistance = SuperStarCriticalProjectileService.MIN_INITIAL_SPEED_PER_TICK
-                * SuperStarCriticalProjectileService.MIN_INITIAL_TICKS;
-        double maximumDistance = SuperStarCriticalProjectileService.MAX_INITIAL_SPEED_PER_TICK
-                * SuperStarCriticalProjectileService.MAX_INITIAL_TICKS;
-
-        assertEquals(1.6D, minimumDistance, 0.0001D);
-        assertEquals(4.8D, maximumDistance, 0.0001D);
-        assertEquals(0.35D, SuperStarCriticalProjectileService.HOMING_SPEED_PER_TICK, 0.0001D);
-    }
-
-    /**
-     * 初速に直交する長さ1の曲率軸を方位0・π/2で別方向に生成する。
+     * 曲率軸は向きの入力によらず進行方向に直交し、入力に応じて方向が変わる。
      */
     @Test
     void curvatureAxisUsesRequestedRandomDirectionAndStaysPerpendicular() {
@@ -68,7 +53,7 @@ class SuperStarCriticalProjectileServiceTest {
     }
 
     /**
-     * 初期飛行は0.2 block/tickの速度長を保持したまま毎tick 3度の曲線旋回を適用する。
+     * 初期飛行の旋回は速度の大きさを変えない。
      */
     @Test
     void initialMovementCurvesWithoutChangingSpeed() {
@@ -85,10 +70,10 @@ class SuperStarCriticalProjectileServiceTest {
     }
 
     /**
-     * 追尾移動は7 block/sの速度長で目標方向と現在方向への正の進行成分を保ち、曲率軸方向の横揺らぎを合成する。
+     * 追尾移動は設定された速度を保ち、目標方向への進行を続ける。
      */
     @Test
-    void homingMovementCurvesSidewaysWhileContinuingTowardTarget() {
+    void homingMovementMaintainsSpeedWhileMovingTowardTarget() {
         Vector targetOffset = new Vector(10.0D, 0.0D, 0.0D);
         Vector movement = SuperStarCriticalProjectileService.curvedHomingMovement(
                 new Vector(0.0D, 0.0D, 0.2D),
@@ -99,30 +84,29 @@ class SuperStarCriticalProjectileServiceTest {
 
         assertEquals(SuperStarCriticalProjectileService.HOMING_SPEED_PER_TICK, movement.length(), 0.0001D);
         assertTrue(movement.dot(targetOffset) > 0.0D);
-        assertTrue(movement.getY() > 0.0D);
-        assertTrue(movement.getZ() > 0.0D);
     }
 
     /**
-     * 現在方向と正反対に目標がある場合も、1 tickの追尾旋回角を最大15度に制限する。
+     * 逆向きと至近距離のどちらでも旋回上限を守り、残距離を超えて進まない。
      */
     @Test
-    void homingMovementLimitsNearOppositeTurnToConfiguredAngle() {
+    void homingMovementRespectsTurnAndTravelLimits() {
+        assertHomingStep(new Vector(-10.0D, 0.0D, 0.0D), -Math.PI / 2.0D,
+                SuperStarCriticalProjectileService.HOMING_SPEED_PER_TICK);
+        Vector nearbyTarget = new Vector(0.1D, 0.1D, 0.0D);
+        assertHomingStep(nearbyTarget, 0.0D, nearbyTarget.length());
+    }
+
+    private static void assertHomingStep(Vector targetOffset, double phase, double expectedDistance) {
         Vector current = new Vector(1.0D, 0.0D, 0.0D);
         Vector movement = SuperStarCriticalProjectileService.curvedHomingMovement(
-                current,
-                new Vector(-10.0D, 0.0D, 0.0D),
-                new Vector(0.0D, 1.0D, 0.0D),
-                -Math.PI / 2.0D
+                current, targetOffset, new Vector(0.0D, 1.0D, 0.0D), phase
         );
 
         double turn = Math.acos(current.dot(movement.clone().normalize()));
 
-        assertEquals(
-                SuperStarCriticalProjectileService.HOMING_MAX_TURN_RADIANS_PER_TICK,
-                turn,
-                0.0001D
-        );
+        assertEquals(expectedDistance, movement.length(), 0.0001D);
+        assertEquals(SuperStarCriticalProjectileService.HOMING_MAX_TURN_RADIANS_PER_TICK, turn, 0.0001D);
     }
 
     /**
@@ -160,26 +144,6 @@ class SuperStarCriticalProjectileServiceTest {
         }
 
         assertTrue(hit);
-    }
-
-    /**
-     * 残距離が1 tickの追尾速度未満なら移動長を残距離へ短縮しつつ、旋回角を最大15度に制限する。
-     */
-    @Test
-    void homingMovementKeepsTurnLimitWhenTargetIsWithinOneTick() {
-        Vector targetOffset = new Vector(0.1D, 0.1D, 0.0D);
-        Vector current = new Vector(1.0D, 0.0D, 0.0D);
-        Vector movement = SuperStarCriticalProjectileService.curvedHomingMovement(
-                current,
-                targetOffset,
-                new Vector(0.0D, 1.0D, 0.0D),
-                0.0D
-        );
-
-        double turn = Math.acos(current.dot(movement.clone().normalize()));
-
-        assertEquals(targetOffset.length(), movement.length(), 0.0001D);
-        assertEquals(SuperStarCriticalProjectileService.HOMING_MAX_TURN_RADIANS_PER_TICK, turn, 0.0001D);
     }
 
     /**

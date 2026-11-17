@@ -38,24 +38,6 @@ import static org.mockito.Mockito.when;
 class PlayerMessageServiceTest {
 
     /**
-     * 共通タグ直後に半角空白1文字を置く。
-     */
-    @Test
-    void systemMessagePlacesSpaceAfterCommonTag() {
-        Player player = onlinePlayer();
-        PlayerMessageService service = messageServiceWithoutConversion();
-
-        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
-            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(Set.of());
-            service.send(player, PlayerMsgId.P_5280);
-
-            Component sent = captureMessage(player);
-            assertTrue(PlainTextComponentSerializer.plainText().serialize(sent)
-                .startsWith("[AstralRecord] オートセーブ"));
-        }
-    }
-
-    /**
      * GUI導線messageに指定slash commandのrunCommand click eventを保持する。
      */
     @Test

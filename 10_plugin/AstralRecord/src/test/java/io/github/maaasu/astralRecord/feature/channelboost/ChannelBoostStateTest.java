@@ -24,36 +24,26 @@ class ChannelBoostStateTest {
         assertEquals(1.3, state.current("ch1").dropFactorAt(now));
     }
 
-    /**
-     * ネットワーク発動対象外や旧応答でも全チャンネルのゲーム内効果を保持する。
-     */
     @Test
-    void retainsLocalBoostWhenNetworkFlagIsFalseOrMissing() {
+    void onlyExplicitNetworkFlagEnablesNetworkBoostWithoutChangingLocalEffects() {
+        Instant now = Instant.parse("2026-01-01T00:00:00Z");
         var state = ChannelBoostRepository.parse(JsonParser.parseString("""
             {"eventCursor":4,"channels":[
-              {"channelId":"ch1","displayName":"第一","networkBoostEnabled":false,
+              {"channelId":"ch1","displayName":"Channel 1","networkBoostEnabled":false,
                "exp":{"multiplier":1.5,"expiresAt":"2099-01-01T00:00:00Z"},"drop":null},
-              {"channelId":"ch2","displayName":"第二","exp":null,"drop":null}
+              {"channelId":"ch2","displayName":"Channel 2",
+               "exp":{"multiplier":1.5,"expiresAt":"2099-01-01T00:00:00Z"},"drop":null},
+              {"channelId":"ch3","displayName":"Channel 3","networkBoostEnabled":true,
+               "exp":{"multiplier":1.5,"expiresAt":"2099-01-01T00:00:00Z"},"drop":null}
             ]}
             """).getAsJsonObject());
 
+        assertEquals(3, state.channels().size());
         assertFalse(state.current("ch1").networkBoostEnabled());
         assertFalse(state.current("ch2").networkBoostEnabled());
-        assertEquals(1.5, state.current("ch1").expFactorAt(Instant.parse("2026-01-01T00:00:00Z")));
-        assertEquals(2, state.channels().size());
-    }
-
-    /**
-     * ネットワーク発動対象の明示的なtrueだけTABの対象判定へ渡す。
-     */
-    @Test
-    void parsesExplicitNetworkBoostFlag() {
-        var state = ChannelBoostRepository.parse(JsonParser.parseString("""
-            {"eventCursor":0,"channels":[{"channelId":"ch1","displayName":"第一",
-             "networkBoostEnabled":true,"exp":null,"drop":null}]}
-            """).getAsJsonObject());
-
-        assertTrue(state.current("ch1").networkBoostEnabled());
-        assertEquals("第一", state.current("ch1").displayName());
+        assertTrue(state.current("ch3").networkBoostEnabled());
+        for (var channel : state.channels().values()) {
+            assertEquals(1.5, channel.expFactorAt(now), channel.channelId());
+        }
     }
 }

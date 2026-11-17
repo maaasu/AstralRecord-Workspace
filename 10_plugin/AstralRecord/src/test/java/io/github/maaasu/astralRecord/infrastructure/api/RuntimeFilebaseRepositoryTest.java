@@ -1,8 +1,10 @@
 package io.github.maaasu.astralRecord.infrastructure.api;
 
+import com.google.gson.Gson;
 import io.github.maaasu.astralRecord.feature.account.repository.ProgressionPresetRepository;
 import org.junit.jupiter.api.Test;
 import java.util.List;
+import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RuntimeFilebaseRepositoryTest {
@@ -28,48 +30,32 @@ class RuntimeFilebaseRepositoryTest {
         assertSame(published, repository.currentSnapshot());
     }
 
-    /**
-     * APIが配信する進行プリセットのYAML原稿をスナップショットから取得できる。
-     */
     @Test
-    void acceptsProgressionPresetYamlFromApi() {
-        var snapshot = RuntimeFilebaseRepository.parseSnapshot("""
-                {"schemaVersion":1,"files":[
-                  {"path":"90.shared.progression_preset/v1.adventurer_magic.yml","content":"id: adventurer_magic"}
-                ]}
-                """);
+    void progressionPresetPrefersCurrentApiDirectoryAndAcceptsLegacyApiDirectory() {
+        var legacyFile = new RuntimeFilebaseSnapshot.Entry(
+            "36.features.progression_preset/v1.adventurer_magic.yml",
+            preset("Fixture").replace("buildId: magic", "buildId: legacy_build")
+        );
+        var currentFile = new RuntimeFilebaseSnapshot.Entry(
+            "90.shared.progression_preset/v1.adventurer_magic.yml", preset("Fixture")
+        );
 
-        var entries = snapshot.files("90.shared.progression_preset");
-        assertEquals(1, entries.size());
-        assertEquals("v1.adventurer_magic.yml", entries.getFirst().name());
-        assertEquals("id: adventurer_magic", entries.getFirst().content());
+        var legacyOnly = parseApiFiles(List.of(legacyFile));
+        assertEquals(List.of(legacyFile), legacyOnly.files("36.features.progression_preset"));
+        assertEquals("legacy_build", ProgressionPresetRepository.load(legacyOnly).getFirst().buildId());
+
+        var currentOnly = parseApiFiles(List.of(currentFile));
+        assertEquals(List.of(currentFile), currentOnly.files("90.shared.progression_preset"));
+        assertEquals("magic", ProgressionPresetRepository.load(currentOnly).getFirst().buildId());
+
+        var selected = ProgressionPresetRepository.load(parseApiFiles(List.of(legacyFile, currentFile)));
+        assertEquals(1, selected.size());
+        assertEquals("magic", selected.getFirst().buildId());
     }
 
-    /**
-     * 新Pluginは旧APIの進行プリセットパスを受け付け、新パスがあれば新カテゴリだけを読み込む。
-     */
-    @Test
-    void progressionPresetUsesNewDirectoryBeforeLegacyInput() {
-        String oldPath = "36.features.progression_preset/v1.adventurer_magic.yml";
-        String newPath = "90.shared.progression_preset/v1.adventurer_magic.yml";
-        String oldContent = preset("Old");
-        String newContent = preset("New");
-        var legacy = RuntimeFilebaseRepository.parseSnapshot("""
-                {"schemaVersion":1,"files":[
-                  {"path":"36.features.progression_preset/v1.adventurer_magic.yml","content":"id: legacy"}
-                ]}
-                """);
-        assertEquals(1, legacy.files("36.features.progression_preset").size());
-        var oldOnly = new RuntimeFilebaseSnapshot(List.of(new RuntimeFilebaseSnapshot.Entry(oldPath, oldContent)));
-        assertEquals("Old", ProgressionPresetRepository.load(oldOnly).getFirst().name());
-        var newOnly = new RuntimeFilebaseSnapshot(List.of(new RuntimeFilebaseSnapshot.Entry(newPath, newContent)));
-        assertEquals("New", ProgressionPresetRepository.load(newOnly).getFirst().name());
-        var both = new RuntimeFilebaseSnapshot(List.of(
-                new RuntimeFilebaseSnapshot.Entry(oldPath, oldContent),
-                new RuntimeFilebaseSnapshot.Entry(newPath, newContent)));
-        var selected = ProgressionPresetRepository.load(both);
-        assertEquals(1, selected.size());
-        assertEquals("New", selected.getFirst().name());
+    private static RuntimeFilebaseSnapshot parseApiFiles(List<RuntimeFilebaseSnapshot.Entry> files) {
+        String json = new Gson().toJson(Map.of("schemaVersion", 1, "files", files));
+        return RuntimeFilebaseRepository.parseSnapshot(json);
     }
 
     /**

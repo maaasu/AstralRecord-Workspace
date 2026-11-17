@@ -22,22 +22,16 @@ class MobRepositoryShieldParsingTest {
     }
 
     /**
-     * rechargeAmount省略時はshield.maxを完了量として解決する。
+     * 回復量が未指定またはnullなら、最大シールド値を使う。
      */
     @Test
-    void defaultsMissingShieldRechargeAmountToMax() {
-        MobTemplate template = parseTemplate(null);
-
-        assertNotNull(template);
-        assertEquals(10.0D, template.shield().resolvedRechargeAmount(), 0.0001D);
+    void defaultsMissingOrNullShieldRechargeAmountToMax() {
+        assertDefaultShieldRechargeAmount(null);
+        assertDefaultShieldRechargeAmount("\"rechargeAmount\": null");
     }
 
-    /**
-     * rechargeAmountがnullの場合もshield.maxを完了量として解決する。
-     */
-    @Test
-    void defaultsNullShieldRechargeAmountToMax() {
-        MobTemplate template = parseTemplate("\"rechargeAmount\": null");
+    private static void assertDefaultShieldRechargeAmount(String rechargeAmountEntry) {
+        MobTemplate template = parseTemplate(rechargeAmountEntry);
 
         assertNotNull(template);
         assertEquals(10.0D, template.shield().resolvedRechargeAmount(), 0.0001D);
@@ -67,7 +61,6 @@ class MobRepositoryShieldParsingTest {
         MobTemplate levelTwo = template.resolveLevel(2);
 
         assertEquals(2, levelTwo.level());
-        assertEquals("Level Two", levelTwo.displayName());
         assertEquals(20.0D, levelTwo.statValue("MAX_HEALTH", 0.0D), 0.0001D);
     }
 

@@ -13,20 +13,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class HookshotLoadStateTest {
 
     /**
-     * 装填済み状態は inventory entry metadata の hookshot 名前空間へ保存し、他機能の metadata を保持する。
+     * 装填状態の新規追加と既存状態の更新で、他機能のメタデータを保持する。
      */
     @Test
     void storesLoadedStateWithoutDiscardingOtherMetadata() {
-        HookshotLoadState.Update update = HookshotLoadState.setLoaded(
+        for (String metadata : List.of(
             "{\"acquiredAt\":\"2026-08-15T00:00:00\",\"other\":{\"value\":1}}",
-            true
-        );
+            "{\"hookshot\":{\"loaded\":false},\"acquiredAt\":\"2026-08-15T00:00:00\",\"other\":{\"value\":1}}"
+        )) {
+            HookshotLoadState.Update update = HookshotLoadState.setLoaded(metadata, true);
 
-        assertTrue(update.accepted());
-        assertNotNull(update.metadataJson());
-        assertTrue(HookshotLoadState.isLoaded(update.metadataJson()));
-        assertTrue(JsonParser.parseString(update.metadataJson()).getAsJsonObject().has("acquiredAt"));
-        assertTrue(JsonParser.parseString(update.metadataJson()).getAsJsonObject().has("other"));
+            assertTrue(update.accepted(), metadata);
+            assertNotNull(update.metadataJson());
+            assertTrue(HookshotLoadState.isLoaded(update.metadataJson()), metadata);
+            assertTrue(JsonParser.parseString(update.metadataJson()).getAsJsonObject().has("acquiredAt"));
+            assertTrue(JsonParser.parseString(update.metadataJson()).getAsJsonObject().has("other"));
+        }
     }
 
     /**
@@ -69,17 +71,4 @@ class HookshotLoadStateTest {
         }
     }
 
-    /**
-     * boolean の既存 loaded 値は正当な状態として更新できる。
-     */
-    @Test
-    void updatesExistingBooleanLoadedValue() {
-        HookshotLoadState.Update update = HookshotLoadState.setLoaded(
-            "{\"hookshot\":{\"loaded\":false}}",
-            true
-        );
-
-        assertTrue(update.accepted());
-        assertTrue(HookshotLoadState.isLoaded(update.metadataJson()));
-    }
 }

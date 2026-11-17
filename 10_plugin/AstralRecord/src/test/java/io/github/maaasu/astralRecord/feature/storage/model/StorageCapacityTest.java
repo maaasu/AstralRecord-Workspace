@@ -6,24 +6,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class StorageCapacityTest {
 
-    /**
-     * ストレージは拡張トークン未所持時に5ページ、225 entryを上限とする。
-     */
     @Test
-    void baseCapacityHasFivePagesAnd225Entries() {
-        assertEquals(5, StorageCapacity.maxPageCount(0));
-        assertEquals(225, StorageCapacity.maxEntryCount(0));
+    void eachExpansionTokenAddsOnePageToBaseCapacity() {
+        assertCapacity(0, 5, 225);
+        assertCapacity(1, 6, 270);
+        assertCapacity(3, 8, 360);
     }
 
-    /**
-     * ストレージ拡張トークン1個につき最大ページ数とentry数を1ページ分加算する。
-     */
-    @Test
-    void eachExpansionTokenAddsOnePage() {
-        assertEquals(6, StorageCapacity.maxPageCount(1));
-        assertEquals(270, StorageCapacity.maxEntryCount(1));
-        assertEquals(8, StorageCapacity.maxPageCount(3));
-        assertEquals(360, StorageCapacity.maxEntryCount(3));
+    private static void assertCapacity(long tokens, int pages, int entries) {
+        assertEquals(pages, StorageCapacity.maxPageCount(tokens), "pages with " + tokens + " tokens");
+        assertEquals(entries, StorageCapacity.maxEntryCount(tokens), "entries with " + tokens + " tokens");
     }
 
     /**

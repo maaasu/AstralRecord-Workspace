@@ -4,6 +4,8 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -13,27 +15,14 @@ class AfkActivityStateTest {
     private static final World WORLD = mock(World.class);
 
     /**
-     * 前後左右入力中でも基準位置から1m未満の移動だけでは、AFK判定用の操作時刻を更新しない。
+     * 方向入力中の移動は、基準位置から1m以上の場合だけ操作時刻を更新する。
      */
     @Test
-    void doesNotResetInactivityForDirectionalMovementBelowOneBlock() {
-        AfkActivityState state = new AfkActivityState(location(0.0D), 0L);
-        state.setDirectionalInput(true);
-
-        assertFalse(state.recordMovement(location(0.99D), false, 120_000L));
-        assertTrue(state.isInactiveFor(300_000L, 300_000L));
-    }
-
-    /**
-     * 前後左右入力中に基準位置から1m以上移動すると、AFK判定用の操作時刻を更新する。
-     */
-    @Test
-    void resetsInactivityForDirectionalMovementOfOneBlockOrMore() {
-        AfkActivityState state = new AfkActivityState(location(0.0D), 0L);
-        state.setDirectionalInput(true);
-
-        assertTrue(state.recordMovement(location(1.0D), false, 120_000L));
-        assertFalse(state.isInactiveFor(300_000L, 300_000L));
+    void updatesInactivityAtOneBlockOfDirectionalMovement() {
+        assertAll(
+            () -> assertDirectionalMovement(0.99D, false),
+            () -> assertDirectionalMovement(1.0D, true)
+        );
     }
 
     /**
@@ -46,6 +35,16 @@ class AfkActivityStateTest {
         assertFalse(state.recordMovement(location(10.0D), false, 120_000L));
         assertFalse(state.recordMovement(location(20.0D), true, 180_000L));
         assertTrue(state.isInactiveFor(300_000L, 300_000L));
+    }
+
+    private static void assertDirectionalMovement(double distance, boolean resetsInactivity) {
+        AfkActivityState state = new AfkActivityState(location(0.0D), 0L);
+        state.setDirectionalInput(true);
+
+        assertEquals(resetsInactivity, state.recordMovement(location(distance), false, 120_000L),
+            () -> "移動距離: " + distance);
+        assertEquals(!resetsInactivity, state.isInactiveFor(300_000L, 300_000L),
+            () -> "移動距離: " + distance);
     }
 
     private static Location location(double x) {

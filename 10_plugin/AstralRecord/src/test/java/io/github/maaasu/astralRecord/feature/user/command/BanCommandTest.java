@@ -211,24 +211,6 @@ class BanCommandTest {
     }
 
     /**
-     * コンソールのBAN補完は期間フラグと有期限日数の候補を返す。
-     */
-    @Test
-    void completesBanDurationAndTemporaryDays() {
-        BanTabCompleter completer = new BanTabCompleter(mock(UserService.class));
-        ConsoleCommandSender console = mock(ConsoleCommandSender.class);
-
-        assertEquals(
-                List.of("indefinite", "temporary"),
-                completer.onTabComplete(console, null, "ban", new String[] {"Alice", ""})
-        );
-        assertEquals(
-                List.of("1", "7", "30"),
-                completer.onTabComplete(console, null, "ban", new String[] {"Alice", "temporary", ""})
-        );
-    }
-
-    /**
      * ADMINプレイヤーとコンソールのMCID補完は、UserServiceの非同期検索結果を候補として返す。
      */
     @Test

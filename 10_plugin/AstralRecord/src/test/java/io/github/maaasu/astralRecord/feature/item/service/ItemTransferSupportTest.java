@@ -23,16 +23,6 @@ class ItemTransferSupportTest {
     }
 
     /**
-     * Shift+右clickだけを同一item全stack transferとして認識する。
-     */
-    @Test
-    void recognizesOnlyShiftRightAsAllStacksTransfer() {
-        assertTrue(ItemTransferSupport.isAllStacksTransfer(ClickType.SHIFT_RIGHT));
-        assertFalse(ItemTransferSupport.isAllStacksTransfer(ClickType.SHIFT_LEFT));
-        assertFalse(ItemTransferSupport.isAllStacksTransfer(ClickType.RIGHT));
-    }
-
-    /**
      * ストレージと売却で共通のクリック解釈を使い、Shift+右クリックだけを同一 item 全体の移動として扱う。
      */
     @Test
@@ -45,7 +35,9 @@ class ItemTransferSupportTest {
         assertEquals(1, left.requestedAmount());
         assertFalse(left.allMatching());
         assertEquals(32, right.requestedAmount());
+        assertFalse(right.allMatching());
         assertEquals(64, shiftLeft.requestedAmount());
+        assertFalse(shiftLeft.allMatching());
         assertEquals(0, shiftRight.requestedAmount());
         assertTrue(shiftRight.allMatching());
         assertTrue(shiftRight.isValid());

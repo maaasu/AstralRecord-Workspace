@@ -4,9 +4,12 @@ import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateAcknowledgementException;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateOutcomeUnknownException;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
+import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
+import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.net.URI;
@@ -14,9 +17,11 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -46,19 +51,25 @@ class PlayerStateRepositoryTest {
         verify(client, times(4)).send(any(HttpRequest.class), anyStringBodyHandler());
     }
 
-    /**
-     * POSTが結果不明のHTTP応答になった場合は同じsnapshotIdを照会し、COMPLETEDのACKを成功として返す。
-     */
-    @Test
-    void recoversCompletedSnapshotAfterAmbiguousHttpResponse() throws Exception {
+    @TestFactory
+    Stream<DynamicTest> recoversCompletedSnapshotAfterUncertainPost() {
+        return Stream.of(
+            dynamicTest("HTTP 503", () ->
+                assertRecoversCompletedSnapshot(request -> response(503, "busy"))),
+            dynamicTest("I/O failure", () -> assertRecoversCompletedSnapshot(request -> {
+                throw new IOException("response lost");
+            }))
+        );
+    }
+
+    private static void assertRecoversCompletedSnapshot(Answer<HttpResponse<String>> initialPost) throws Exception {
         UUID snapshotId = UUID.randomUUID();
         UUID accountId = UUID.randomUUID();
         HttpClient client = mock(HttpClient.class);
-        HttpResponse<String> unavailable = response(503, "busy");
         HttpResponse<String> completed = response(200,
             "{\"status\":\"COMPLETED\",\"ack\":{\"snapshotId\":\"" + snapshotId + "\"}}");
         when(client.send(any(HttpRequest.class), anyStringBodyHandler()))
-            .thenReturn(unavailable)
+            .thenAnswer(initialPost)
             .thenReturn(completed);
 
         JsonObject acknowledgement;
@@ -100,29 +111,6 @@ class PlayerStateRepositoryTest {
         assertEquals("POST", requests.getAllValues().get(2).method());
         assertEquals(requests.getAllValues().get(0).bodyPublisher().orElseThrow().contentLength(),
             requests.getAllValues().get(2).bodyPublisher().orElseThrow().contentLength());
-    }
-
-    /**
-     * POSTのI/O例外でも失敗確定前に結果照会し、SQL確定済みACKがあれば重複操作せず成功扱いにする。
-     */
-    @Test
-    void recoversCompletedSnapshotAfterPostIoFailure() throws Exception {
-        UUID snapshotId = UUID.randomUUID();
-        UUID accountId = UUID.randomUUID();
-        HttpClient client = mock(HttpClient.class);
-        HttpResponse<String> completed = response(200,
-            "{\"status\":\"COMPLETED\",\"ack\":{\"snapshotId\":\"" + snapshotId + "\"}}");
-        when(client.send(any(HttpRequest.class), anyStringBodyHandler()))
-            .thenThrow(new IOException("response lost"))
-            .thenReturn(completed);
-
-        JsonObject acknowledgement;
-        try (MockedStatic<ApiRequestUtil> api = mockApi(client)) {
-            acknowledgement = new PlayerStateRepository().saveSnapshot(payload(snapshotId, accountId));
-        }
-
-        assertEquals(snapshotId.toString(), acknowledgement.get("snapshotId").getAsString());
-        assertPostThenResultLookup(client, snapshotId, accountId);
     }
 
     /**
