@@ -46,7 +46,7 @@ beforeEach(() => {
 
 async function openDungeon() {
   render(<MasterDataEditor />)
-  fireEvent.click(await screen.findByRole('button', { name: /アルダ始まりの遺跡.*ruins/ }))
+  fireEvent.doubleClick(await screen.findByRole('button', { name: /アルダ始まりの遺跡.*ruins/ }))
   return screen.findByRole('region', { name: 'マスター項目の編集' })
 }
 
