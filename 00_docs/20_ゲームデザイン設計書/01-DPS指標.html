@@ -48,6 +48,9 @@
     .lead { margin-top: 8px; color: var(--muted); font-size: 15px; }
     .chart-section { margin-top: 24px; padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); }
     .chart-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
+    .chart-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 14px 24px; }
+    .metric-control { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+    .metric-control select { max-width: 100%; min-height: 40px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--raised); color: var(--text); font: inherit; }
     .legend { display: flex; flex-wrap: wrap; gap: 24px; font-size: 14px; color: var(--muted); }
     .legend span { display: inline-flex; align-items: center; gap: 10px; }
     .key { display: inline-block; width: 24px; height: 0; border-top: 3px solid var(--standard); }
@@ -70,22 +73,26 @@
     .tooltip strong { display: block; margin-bottom: 8px; font-size: 18px; font-weight: 600; }
     .tooltip-row { display: flex; justify-content: space-between; gap: 12px; line-height: 1.9; }
     .tooltip-row span { color: var(--muted); }
-    .chart-controls { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(350px, .9fr); gap: 32px; align-items: center; margin-top: 18px; padding: 20px; background: var(--raised); border-radius: 12px; }
+    .chart-controls { display: grid; grid-template-columns: minmax(220px, .8fr) minmax(350px, 1.2fr); gap: 32px; align-items: center; margin-top: 18px; padding: 20px; background: var(--raised); border-radius: 12px; }
     .level-control label { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--muted); }
     #selected-level { color: var(--text); font-size: 24px; font-weight: 600; }
     #level-selector { display: block; width: 100%; min-height: 44px; margin: 4px 0 0; accent-color: var(--standard); }
     .readout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 0; }
     .readout dt { color: var(--muted); font-size: 14px; }
     .readout dd { margin: 6px 0 0; font-size: 34px; font-weight: 600; line-height: 1.2; }
-    #selected-standard { color: var(--standard); }
-    #selected-upper { color: var(--upper); }
+    #selected-standard, #selected-attack { color: var(--standard); }
+    #selected-upper, #selected-defense { color: var(--upper); }
     .numeric { font-variant-numeric: tabular-nums; }
     .help { margin-top: 12px; color: var(--muted); font-size: 13px; }
+    .scope-note { margin-top: 14px; font-size: 14px; }
+    .mob-note { margin-top: 6px; color: var(--muted); font-size: 13px; }
     .definition { padding: 0 0 18px; font-size: 14px; color: var(--muted); }
     .definition p + p { margin-top: 8px; }
     details { margin-top: 18px; border-top: 1px solid var(--border); }
     summary { padding: 18px 0; cursor: pointer; font-size: 15px; font-weight: 600; }
+    .table-scroll { max-width: 100%; overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    .level-table { min-width: 880px; }
     th, td { padding: 12px; border-bottom: 1px solid var(--border); text-align: right; }
     th:first-child, td:first-child { text-align: left; }
     thead th { background: var(--raised); color: var(--muted); font-size: 14px; font-weight: 600; }
@@ -100,6 +107,7 @@
       main { padding: 20px 16px; }
       .chart-section { padding: 20px 16px; }
       .chart-header { align-items: flex-start; }
+      .chart-tools { justify-content: flex-start; }
       .legend { gap: 16px; font-size: 13px; }
       .chart-controls { grid-template-columns: 1fr; gap: 12px; padding: 16px; }
       .readout { gap: 16px; }
@@ -120,11 +128,19 @@
     }
 
     @media print {
+      :root { color-scheme: light; --page: white; --surface: white; --raised: #f5f7fb; --text: #202b3c; --muted: #536178; --border: #d7deeb; --standard: #316cd8; --upper: #a96316; --band: #e7eefb; --selected: #eaf0fd; }
       body { background: white; color: black; }
       main { padding: 0; }
       .chart-section { padding: 16px 0; border: 0; box-shadow: none; }
-      .level-control, .tooltip, .help { display: none; }
-      details { break-inside: avoid; }
+      .level-control, .metric-control, .tooltip, .help { display: none; }
+      .chart-controls { grid-template-columns: 1fr; }
+      .readout { grid-template-columns: repeat(4, 1fr); }
+      .readout dd { font-size: 24px; }
+      .table-scroll { overflow: visible; }
+      .level-table { min-width: 0; table-layout: fixed; }
+      th, td { padding: 8px 4px; font-size: 11px; overflow-wrap: anywhere; }
+      thead th { font-size: 11px; }
+      details { break-inside: auto; }
       details::details-content { content-visibility: visible; }
     }
   </style>
@@ -134,16 +150,24 @@
     <header class="document-header">
       <div>
         <h1>DPS指標</h1>
-        <p class="lead">同格の標準モブに対する、単体実効DPSの目標。</p>
+        <p class="lead">同格の標準モブに対する、単体実効DPSと攻撃力・防御力の基準。</p>
       </div>
     </header>
 
     <section class="chart-section" aria-labelledby="chart-heading">
       <div class="chart-header">
         <h2 id="chart-heading">レベル別の成長曲線</h2>
-        <div class="legend" aria-label="グラフの凡例">
-          <span><i class="key" aria-hidden="true"></i>標準DPS</span>
-          <span><i class="key key-upper" aria-hidden="true"></i>育成上限の目安</span>
+        <div class="chart-tools">
+          <label class="metric-control" for="chart-metric">表示
+            <select id="chart-metric">
+              <option value="dps">総DPS</option>
+              <option value="stats">攻撃力・防御力</option>
+            </select>
+          </label>
+          <div class="legend" aria-label="グラフの凡例">
+            <span><i class="key" aria-hidden="true"></i><span id="legend-first">標準総DPS</span></span>
+            <span><i class="key key-upper" aria-hidden="true"></i><span id="legend-second">育成上限の目安</span></span>
+          </div>
         </div>
       </div>
 
@@ -154,8 +178,10 @@
         </svg>
         <div class="tooltip numeric" id="chart-tooltip" hidden aria-hidden="true">
           <strong id="tooltip-level"></strong>
-          <div class="tooltip-row"><span>標準DPS</span><b id="tooltip-standard"></b></div>
+          <div class="tooltip-row"><span>標準総DPS</span><b id="tooltip-standard"></b></div>
           <div class="tooltip-row"><span>育成上限</span><b id="tooltip-upper"></b></div>
+          <div class="tooltip-row"><span>基準攻撃力</span><b id="tooltip-attack"></b></div>
+          <div class="tooltip-row"><span>モブ共通防御</span><b id="tooltip-defense"></b></div>
         </div>
       </div>
       <div class="chart-controls">
@@ -164,31 +190,50 @@
           <input id="level-selector" type="range" min="0" max="20" step="1" value="5" aria-valuetext="レベル25">
         </div>
         <dl class="readout numeric" aria-live="polite" aria-atomic="true">
-          <div><dt>標準DPS</dt><dd id="selected-standard">500</dd></div>
+          <div><dt>標準総DPS</dt><dd id="selected-standard">500</dd></div>
           <div><dt>育成上限の目安</dt><dd id="selected-upper">650</dd></div>
+          <div><dt>基準攻撃力</dt><dd id="selected-attack">200</dd></div>
+          <div><dt>標準モブの共通防御</dt><dd id="selected-defense">100</dd></div>
         </dl>
       </div>
       <p class="help">カーソル・タップで5レベル刻みの値を確認。スライダーは矢印キーに対応。</p>
+      <p class="scope-note"><strong>総DPSには、会心率・会心ダメージ・スキル・ペットを含みます。</strong> 通常攻撃と各種効果を合わせた戦闘全体の目標です。</p>
+      <p class="mob-note" id="mob-baseline-note"></p>
 
       <details>
         <summary>指標の条件と計算方法</summary>
         <div class="definition">
-          <p>武器・防具・アクセサリー・スキルブック・職業・スキルツリー・スキル・利用段階に応じたペットを含む標準構成で、防御・属性耐性・命中・会心などを反映したDPSを評価します。</p>
+          <p>武器・防具・アクセサリー・スキルブック・職業・スキルツリー・スキル・利用段階に応じたペットを含む標準構成で、防御・属性耐性・命中・会心率・会心ダメージを反映した総DPSを評価します。会心やスキルの効果は、標準DPSと育成上限の目安の内訳に収めます。</p>
           <p>基準点は <strong>Lv.1＝10、Lv.25＝500、Lv.50＝850、Lv.100＝1,200</strong>。中間レベルは各基準点の間を直線補間します。育成上限は標準DPSの<strong>130%</strong>を目安とし、個体値・強化・付与などを詰めた構成の比較に使います。</p>
+          <p>基準攻撃力は <strong>Lv.1＝6.8、Lv.25＝200、Lv.50＝300、Lv.100＝400</strong>。装備・職業・能力値などの補正を含み、スキル倍率・会心を適用する前の合計攻撃力です。現行の算出式は <strong>（共通攻撃力＋攻撃種別の攻撃力）×（1＋対応能力値÷100）</strong>。中間レベルはDPSと同じ区間で直線補間します。</p>
+          <p>標準モブの共通防御力は、そのレベルの基準攻撃力の<strong>50%</strong>。近接・間接・魔法の追加防御は各0、火・氷・雷・無属性の耐性は各0%です。防御値はモブのレベルごとに固定し、攻撃者ごとには変えません。耐性0%は、その属性のダメージを軽減しないという意味です。</p>
+          <p>基準攻撃力と同じ攻撃力・貫通なしの条件では、防御で約26.1%軽減します。Lv.100は攻撃力400・防御力200で、倍率100%の攻撃1発が約296ダメージ。命中100%・会心や追加補正なし・通常攻撃の劣化なしで毎秒2回攻撃する比較条件なら約591DPSです。総DPSの目標1,200との差は、各成長要素を含めた実際の攻撃サイクルで調整します。</p>
+          <p>この攻撃力は比較用の共通基準です。武器ごとの攻撃間隔や職業ごとのスキル構成に合わせて個別の攻撃力を調整し、最終的な総DPSを比較します。育成上限の目安を、基準攻撃力へ一律に掛けるものではありません。</p>
         </div>
       </details>
 
       <details>
-        <summary>5レベル刻みの数値表</summary>
-        <table class="numeric">
-          <thead>
-            <tr><th scope="col">プレイヤーLv.</th><th scope="col">標準DPS</th><th scope="col">育成上限の目安</th></tr>
-          </thead>
-          <tbody id="dps-table"></tbody>
-        </table>
-        <p class="table-note">Lv.1と、Lv.5〜100を5刻みで表示。上限値は丸め前の標準DPSから計算し、表示は小数第1位までです。</p>
+        <summary>会心・会心ダメージ・スキルの評価方法</summary>
+        <div class="definition">
+          <p><strong>通常会心の期待倍率＝1＋（会心率÷100）×（会心ダメージ÷100−1）</strong>。会心ダメージ150%は会心時に1.5倍という意味です。例えば会心率20%・会心ダメージ150%なら期待倍率は1.10倍です。この数値は計算例で、レベルごとの会心率・会心ダメージの目標値は別途配分します。</p>
+          <p>スキルは倍率だけでなく、ヒット数・クールダウン・詠唱・資源消費・効果の稼働時間まで含めます。スキル使用中に通常攻撃が減る時間も反映し、<strong>計測中の通常攻撃・スキル・継続ダメージ・ペットなどの合計ダメージ÷計測秒数</strong>で総DPSを評価します。</p>
+          <p>会心・属性・貫通・バフ・状態異常による火力変化も、実際の計算順序に沿って反映します。超星会心や追加攻撃がある構成では、その効果も総DPSに含めます。耐久・回復・拘束など、直接ダメージ以外の価値は別の指標で評価します。</p>
+        </div>
       </details>
-      <noscript><p>基準点はLv.1＝10、Lv.25＝500、Lv.50＝850、Lv.100＝1,200です。グラフと補間表の表示にはJavaScriptを有効にしてください。</p></noscript>
+
+      <details>
+        <summary id="level-table-heading">5レベル刻みの数値表</summary>
+        <div class="table-scroll" role="region" aria-labelledby="level-table-heading" tabindex="0">
+          <table class="numeric level-table">
+            <thead>
+              <tr><th scope="col">プレイヤーLv.</th><th scope="col">標準総DPS</th><th scope="col">育成上限の目安</th><th scope="col">基準攻撃力</th><th scope="col">モブ共通防御</th><th scope="col">各種追加防御</th><th scope="col">各属性耐性</th></tr>
+            </thead>
+            <tbody id="dps-table"></tbody>
+          </table>
+        </div>
+        <p class="table-note">Lv.1と、Lv.5〜100を5刻みで表示。防御力・上限値は丸め前の基準値から計算し、表示は小数第1位までです。追加防御は近接・間接・魔法、耐性は火・氷・雷・無属性にそれぞれ同じ値を使います。狭い画面では表を横にスクロールできます。</p>
+      </details>
+      <noscript><p>DPSの基準点はLv.1＝10、Lv.25＝500、Lv.50＝850、Lv.100＝1,200。基準攻撃力は順に6.8・200・300・400、防御力はその半分、各種追加防御と各属性耐性は0です。グラフと補間表の表示にはJavaScriptを有効にしてください。</p></noscript>
     </section>
     <footer>同格戦の設計目安は、標準構成で通常モブを約7秒で討伐し、回復なしで通常攻撃を7発受けると倒れること。DPS指標は、モブや装備を作成するときの比較基準として使います。</footer>
   </main>
@@ -196,12 +241,15 @@
   <script type="application/json" id="dps-settings">
     {
       "anchors": [
-        {"level": 1, "dps": 10},
-        {"level": 25, "dps": 500},
-        {"level": 50, "dps": 850},
-        {"level": 100, "dps": 1200}
+        {"level": 1, "dps": 10, "attack": 6.8},
+        {"level": 25, "dps": 500, "attack": 200},
+        {"level": 50, "dps": 850, "attack": 300},
+        {"level": 100, "dps": 1200, "attack": 400}
       ],
       "upperMultiplier": 1.3,
+      "mobDefenseRatio": 0.5,
+      "mobTypedDefense": 0,
+      "mobResistancePercent": 0,
       "levelStep": 5
     }
   </script>
@@ -213,17 +261,38 @@
     const chart = document.getElementById("dps-chart");
     const frame = document.getElementById("chart-frame");
     const slider = document.getElementById("level-selector");
+    const metricSelector = document.getElementById("chart-metric");
     const tooltip = document.getElementById("chart-tooltip");
     const table = document.getElementById("dps-table");
     const namespace = "http://www.w3.org/2000/svg";
+    const chartViews = {
+      dps: {
+        firstField: "standard", secondField: "upper", maxY: 1700,
+        ticks: [0, 400, 800, 1200, 1600], axis: "実効DPS",
+        firstLabel: "標準総DPS", secondLabel: "育成上限の目安",
+        title: "レベル1〜100の総DPS目標と育成上限",
+        description: "会心率・会心ダメージ・スキル・ペットを含む総DPSの目標。標準DPSはレベル1で10、25で500、50で850、100で1,200。育成上限の目安は各標準値の130%。"
+      },
+      stats: {
+        firstField: "attack", secondField: "mobDefense", maxY: 450,
+        ticks: [0, 100, 200, 300, 400], axis: "攻撃力・防御力",
+        firstLabel: "基準攻撃力", secondLabel: "標準モブの共通防御",
+        title: "レベル1〜100の基準攻撃力と標準モブの共通防御力",
+        description: "基準攻撃力はレベル1で6.8、25で200、50で300、100で400。標準モブの共通防御力は各基準攻撃力の50%。各種追加防御と各属性耐性は0。"
+      }
+    };
 
-    function standardDps(level) {
+    function interpolatedValue(level, field) {
       const rightIndex = settings.anchors.findIndex(anchor => anchor.level >= level);
-      if (rightIndex === 0) return settings.anchors[0].dps;
+      if (rightIndex === 0) return settings.anchors[0][field];
       const left = settings.anchors[rightIndex - 1];
       const right = settings.anchors[rightIndex];
       const fraction = (level - left.level) / (right.level - left.level);
-      return left.dps + (right.dps - left.dps) * fraction;
+      return left[field] + (right[field] - left[field]) * fraction;
+    }
+
+    function standardDps(level) {
+      return interpolatedValue(level, "dps");
     }
 
     const levels = [1];
@@ -232,7 +301,8 @@
     }
     const targets = levels.map(level => {
       const standard = standardDps(level);
-      return { level, standard, upper: standard * settings.upperMultiplier };
+      const attack = interpolatedValue(level, "attack");
+      return { level, standard, upper: standard * settings.upperMultiplier, attack, mobDefense: attack * settings.mobDefenseRatio };
     });
     let selectedIndex = levels.indexOf(25);
     let layout;
@@ -254,8 +324,8 @@
       return layout.left + (level - 1) / 99 * layout.width;
     }
 
-    function yPosition(dps) {
-      return layout.top + (1 - dps / 1700) * layout.height;
+    function yPosition(value) {
+      return layout.top + (1 - value / chartViews[metricSelector.value].maxY) * layout.height;
     }
 
     function linePoints(field) {
@@ -265,14 +335,19 @@
     function updateSelection(index) {
       selectedIndex = index;
       const target = targets[index];
+      const view = chartViews[metricSelector.value];
       slider.value = index;
-      slider.setAttribute("aria-valuetext", `レベル${target.level}、標準DPS ${formatter.format(target.standard)}、育成上限 ${formatter.format(target.upper)}`);
+      slider.setAttribute("aria-valuetext", `レベル${target.level}、標準総DPS ${formatter.format(target.standard)}、育成上限 ${formatter.format(target.upper)}、基準攻撃力 ${formatter.format(target.attack)}、モブ共通防御 ${formatter.format(target.mobDefense)}`);
       document.getElementById("selected-level").textContent = `Lv.${target.level}`;
       document.getElementById("selected-standard").textContent = formatter.format(target.standard);
       document.getElementById("selected-upper").textContent = formatter.format(target.upper);
+      document.getElementById("selected-attack").textContent = formatter.format(target.attack);
+      document.getElementById("selected-defense").textContent = formatter.format(target.mobDefense);
       document.getElementById("tooltip-level").textContent = `Lv.${target.level}`;
       document.getElementById("tooltip-standard").textContent = formatter.format(target.standard);
       document.getElementById("tooltip-upper").textContent = formatter.format(target.upper);
+      document.getElementById("tooltip-attack").textContent = formatter.format(target.attack);
+      document.getElementById("tooltip-defense").textContent = formatter.format(target.mobDefense);
       for (const [rowIndex, row] of rows.entries()) {
         if (rowIndex === index) row.setAttribute("aria-current", "true");
         else row.removeAttribute("aria-current");
@@ -281,12 +356,17 @@
       selectionLine.setAttribute("x1", x);
       selectionLine.setAttribute("x2", x);
       standardMarker.setAttribute("cx", x);
-      standardMarker.setAttribute("cy", yPosition(target.standard));
+      standardMarker.setAttribute("cy", yPosition(target[view.firstField]));
       upperMarker.setAttribute("cx", x);
-      upperMarker.setAttribute("cy", yPosition(target.upper));
+      upperMarker.setAttribute("cy", yPosition(target[view.secondField]));
     }
 
     function drawChart() {
+      const view = chartViews[metricSelector.value];
+      document.getElementById("legend-first").textContent = view.firstLabel;
+      document.getElementById("legend-second").textContent = view.secondLabel;
+      document.getElementById("chart-title").textContent = view.title;
+      document.getElementById("chart-description").textContent = view.description;
       const width = frame.getBoundingClientRect().width;
       const height = chart.getBoundingClientRect().height;
       layout = { left: width < 500 ? 50 : 64, top: 24, width: width - (width < 500 ? 72 : 100), height: height - 78 };
@@ -295,12 +375,12 @@
       const drawing = svgElement("g", { "aria-hidden": "true" });
       chart.append(drawing);
 
-      for (const tick of [0, 400, 800, 1200, 1600]) {
+      for (const tick of view.ticks) {
         const y = yPosition(tick);
         drawing.append(svgElement("line", { x1: layout.left, x2: width - 24, y1: y, y2: y, class: "grid-line" }));
         drawing.append(svgElement("text", { x: layout.left - 10, y, "text-anchor": "end", "dominant-baseline": "middle" }, formatter.format(tick)));
       }
-      drawing.append(svgElement("text", { x: layout.left, y: 12 }, "実効DPS"));
+      drawing.append(svgElement("text", { x: layout.left, y: 12 }, view.axis));
 
       const ticks = width < 420 ? [1, 25, 50, 75, 100] : [1, 10, 25, 50, 75, 100];
       for (const level of ticks) {
@@ -308,14 +388,16 @@
       }
       drawing.append(svgElement("text", { x: width - 24, y: height - 2, "text-anchor": "end" }, "プレイヤーLv."));
 
-      const bandPoints = linePoints("upper") + " " + [...targets].reverse().map(target => `${xPosition(target.level)},${yPosition(target.standard)}`).join(" ");
-      drawing.append(svgElement("polygon", { points: bandPoints, class: "growth-band" }));
-      drawing.append(svgElement("polyline", { points: linePoints("upper"), class: "upper-line" }));
-      drawing.append(svgElement("polyline", { points: linePoints("standard"), class: "standard-line" }));
+      if (metricSelector.value === "dps") {
+        const bandPoints = linePoints("upper") + " " + [...targets].reverse().map(target => `${xPosition(target.level)},${yPosition(target.standard)}`).join(" ");
+        drawing.append(svgElement("polygon", { points: bandPoints, class: "growth-band" }));
+      }
+      drawing.append(svgElement("polyline", { points: linePoints(view.secondField), class: "upper-line" }));
+      drawing.append(svgElement("polyline", { points: linePoints(view.firstField), class: "standard-line" }));
       for (const target of targets) {
         const major = ticks.includes(target.level);
-        drawing.append(svgElement("circle", { cx: xPosition(target.level), cy: yPosition(target.standard), r: major ? 6 : 2.3, class: major ? "standard-dot major-dot" : "standard-dot", "data-level": target.level }));
-        drawing.append(svgElement("circle", { cx: xPosition(target.level), cy: yPosition(target.upper), r: major ? 5.5 : 2, class: major ? "upper-dot major-dot" : "upper-dot", "data-level": target.level }));
+        drawing.append(svgElement("circle", { cx: xPosition(target.level), cy: yPosition(target[view.firstField]), r: major ? 6 : 2.3, class: major ? "standard-dot major-dot" : "standard-dot", "data-level": target.level }));
+        drawing.append(svgElement("circle", { cx: xPosition(target.level), cy: yPosition(target[view.secondField]), r: major ? 5.5 : 2, class: major ? "upper-dot major-dot" : "upper-dot", "data-level": target.level }));
       }
       selectionLine = svgElement("line", { y1: layout.top, y2: layout.top + layout.height, class: "selection-line" });
       standardMarker = svgElement("circle", { r: 7, class: "selection-dot standard-dot" });
@@ -336,7 +418,9 @@
       tooltip.hidden = false;
       const targetX = xPosition(targets[nearestIndex].level);
       const left = Math.min(Math.max(6, targetX - tooltip.offsetWidth / 2), bounds.width - tooltip.offsetWidth - 6);
-      const top = Math.max(8, yPosition(targets[nearestIndex].upper) - tooltip.offsetHeight - 12);
+      const target = targets[nearestIndex];
+      const view = chartViews[metricSelector.value];
+      const top = Math.max(8, yPosition(Math.max(target[view.firstField], target[view.secondField])) - tooltip.offsetHeight - 12);
       tooltip.style.left = `${left}px`;
       tooltip.style.top = `${top}px`;
     }
@@ -348,17 +432,25 @@
       levelCell.scope = "row";
       levelCell.textContent = `Lv.${target.level}`;
       row.append(levelCell);
-      for (const value of [target.standard, target.upper]) {
+      for (const value of [target.standard, target.upper, target.attack, target.mobDefense, settings.mobTypedDefense]) {
         const cell = document.createElement("td");
         cell.textContent = formatter.format(value);
         row.append(cell);
       }
+      const resistanceCell = document.createElement("td");
+      resistanceCell.textContent = `${formatter.format(settings.mobResistancePercent)}%`;
+      row.append(resistanceCell);
       rows.push(row);
       table.append(row);
     }
 
     slider.max = targets.length - 1;
     slider.value = selectedIndex;
+    document.getElementById("mob-baseline-note").textContent = `標準モブ：共通防御は基準攻撃力の${formatter.format(settings.mobDefenseRatio * 100)}%。近接・間接・魔法の追加防御は各${formatter.format(settings.mobTypedDefense)}、火・氷・雷・無属性の耐性は各${formatter.format(settings.mobResistancePercent)}%。`;
+    metricSelector.addEventListener("change", () => {
+      tooltip.hidden = true;
+      drawChart();
+    });
     slider.addEventListener("input", () => {
       tooltip.hidden = true;
       updateSelection(Number(slider.value));
