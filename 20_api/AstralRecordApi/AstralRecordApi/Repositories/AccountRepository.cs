@@ -3,6 +3,7 @@ using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
+using System.Globalization;
 using System.Text.Json;
 
 namespace AstralRecordApi.Repositories;
@@ -106,19 +107,26 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
 
     public async Task<AccountResponse> CreateAsync(AccountCreateRequest request)
     {
+        var accountUuid = Guid.NewGuid();
+        var commitAttempted = false;
         var executionStrategy = dbContext.Database.CreateExecutionStrategy();
         return await executionStrategy.ExecuteAsync(async () =>
         {
             dbContext.ChangeTracker.Clear();
+            // Commit応答が不明な場合は、スロットを採番し直す前に今回の行を確認する。
+            if (commitAttempted && await GetByUuidAsync(accountUuid) is { } committedAccount)
+                return committedAccount;
+
             await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             await EnsureUserNotEditingAsync(request.UserId);
-            var created = await CreateInTransactionAsync(request);
+            var created = await CreateInTransactionAsync(request, accountUuid);
+            commitAttempted = true;
             await transaction.CommitAsync();
             return created;
         });
     }
 
-    private async Task<AccountResponse> CreateInTransactionAsync(AccountCreateRequest request)
+    private async Task<AccountResponse> CreateInTransactionAsync(AccountCreateRequest request, Guid accountUuid)
     {
         if (request.SlotIndex is < 0 or > 99)
             throw new ArgumentException("slotIndex must be between 0 and 99.");
@@ -127,29 +135,22 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         if (requestedSlot < 0)
             throw new ArgumentException("No account slot is available between 0 and 99.");
 
-        var existingSlot = await dbContext.Accounts
-            .Include(account => account.ClassProgresses)
-            .FirstOrDefaultAsync(account => account.UserId == request.UserId
+        var existingAccountId = await dbContext.Accounts
+            .Where(account => account.UserId == request.UserId
                 && account.SlotIndex == requestedSlot
-                && !account.IsDeleted);
-        if (existingSlot is not null
-            && existingSlot.Mode == request.Mode
-            && existingSlot.CreatedBy == request.CreatedBy
-            && IsRetryOfCreateRequest(existingSlot.AccountName, request.AccountName))
-        {
-            // Commit結果不明後の実行戦略再試行では、最初の試行で確定した行を成功結果として返す。
-            return MapToResponse(existingSlot);
-        }
-        if (existingSlot is not null)
-            throw new AccountCloneConflictException("TARGET_ACCOUNT_EXISTS", "The target account slot already exists.", existingSlot.Uuid);
+                && !account.IsDeleted)
+            .Select(account => (Guid?)account.Uuid)
+            .FirstOrDefaultAsync();
+        if (existingAccountId.HasValue)
+            throw new AccountCloneConflictException("TARGET_ACCOUNT_EXISTS", "The target account slot already exists.", existingAccountId);
 
         var now = DateTime.UtcNow;
         var hasExistingAccount = await dbContext.Accounts
             .AnyAsync(candidate => candidate.UserId == request.UserId && !candidate.IsDeleted);
-        var accountName = await ResolveGeneratedAccountNameAsync(request.AccountName);
+        var accountName = await ResolveGeneratedAccountNameAsync(NormalizeGeneratedAccountName(request.AccountName));
         var account = new AccountEntity
         {
-            Uuid = Guid.NewGuid(),
+            Uuid = accountUuid,
             UserId = request.UserId,
             AccountName = accountName,
             SlotIndex = requestedSlot,
@@ -276,11 +277,13 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         var targetAccountId = target?.Uuid ?? Guid.Empty;
         var hasOtherActiveAccount = await dbContext.Accounts.AnyAsync(account => account.UserId == request.TargetUserId
             && !account.IsDeleted && account.Uuid != targetAccountId);
+        var sourceHasNumber = TryFindNumberedAccountNameSuffix(source.AccountName, out var suffixStart);
+        var cloneBaseName = NormalizeGeneratedAccountName(sourceHasNumber ? source.AccountName[..suffixStart] : source.AccountName);
         var clonedAccount = new AccountEntity
         {
             Uuid = cloneUuid,
             UserId = request.TargetUserId,
-            AccountName = await ResolveGeneratedAccountNameAsync(source.AccountName),
+            AccountName = await ResolveGeneratedAccountNameAsync(cloneBaseName, requireSuffix: sourceHasNumber),
             SlotIndex = request.TargetSlotIndex,
             IsActive = targetWasActive || (!hasOtherActiveAccount && target is null),
             // mode はユーザー権限に関わるため、複製元の管理者 mode を複製しない。
@@ -865,17 +868,14 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         return MapToResponse(account);
     }
 
-    private async Task<string> ResolveGeneratedAccountNameAsync(string requestedName)
+    private async Task<string> ResolveGeneratedAccountNameAsync(string baseName, bool requireSuffix = false)
     {
-        var baseName = NormalizeGeneratedAccountName(requestedName);
-        if (!await AccountNameExistsAsync(baseName))
+        if (!requireSuffix && !await AccountNameExistsAsync(baseName))
             return baseName;
 
         for (var suffixIndex = 1; suffixIndex < int.MaxValue; suffixIndex++)
         {
-            var suffix = suffixIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            var prefixLength = Math.Max(3, AccountNameMaxLength - suffix.Length);
-            var candidate = baseName[..Math.Min(prefixLength, baseName.Length)] + suffix;
+            var candidate = FormatNumberedAccountName(baseName, suffixIndex);
             if (!await AccountNameExistsAsync(candidate))
                 return candidate;
         }
@@ -883,16 +883,20 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         throw new InvalidOperationException("No generated account name is available.");
     }
 
-    private static bool IsRetryOfCreateRequest(string existingName, string requestedName)
+    private static string FormatNumberedAccountName(string baseName, int number)
     {
-        var baseName = NormalizeGeneratedAccountName(requestedName);
-        if (string.Equals(existingName, baseName, StringComparison.Ordinal))
-            return true;
-        if (!existingName.StartsWith(baseName, StringComparison.Ordinal))
-            return false;
+        var suffix = "(" + number.ToString(CultureInfo.InvariantCulture) + ")";
+        return baseName[..Math.Min(baseName.Length, AccountNameMaxLength - suffix.Length)] + suffix;
+    }
 
-        var suffix = existingName[baseName.Length..];
-        return int.TryParse(suffix, out var suffixIndex) && suffixIndex > 0;
+    private static bool TryFindNumberedAccountNameSuffix(string name, out int suffixStart)
+    {
+        suffixStart = name.LastIndexOf('(');
+        return suffixStart > 0 && suffixStart < name.Length - 2 && name[^1] == ')'
+            && name[suffixStart + 1] != '0'
+            && int.TryParse(name.AsSpan(suffixStart + 1, name.Length - suffixStart - 2),
+                NumberStyles.None, CultureInfo.InvariantCulture, out var number)
+            && number > 0;
     }
 
     private Task<bool> AccountNameExistsAsync(string accountName)
