@@ -392,12 +392,15 @@ public final class AstralRecordGeyserExtension implements Extension {
             });
             return;
         }
+        if (event.entityType().is(DROPPED_ITEM) && ReceptionDisplayEntity.decode(event.uuid(), event.entityId()) != null) {
+            if (receptionDisplays != null && damagePacks.receptionDisplayReady(event.connection())) event.setCancelled(true);
+            return;
+        }
         if (!event.entityType().is(TEXT_DISPLAY)) return;
         if (ReceptionDisplayEntity.isMarker(event.uuid())) {
             var properties = receptionDisplays;
             var frame = ReceptionDisplayEntity.decode(event.uuid(), event.entityId());
-            if (frame == null || properties == null || !damagePacks.receptionDisplayReady(event.connection())
-                || !forcesResourcePacks()) {
+            if (frame == null || properties == null || !damagePacks.receptionDisplayReady(event.connection())) {
                 event.setCancelled(true);
             } else {
                 event.definition(receptionDisplayDefinition);
@@ -437,12 +440,9 @@ public final class AstralRecordGeyserExtension implements Extension {
         }
         var plaqueLayout = CombatRewardPlaqueEntity.decode(event.uuid(), event.entityId());
         if (plaqueLayout != null) {
-            var properties = combatRewardPlaque;
-            int packVersion = damagePacks.combatRewardPlaqueVersion(event.connection());
-            if (properties != null && packVersion >= 1) {
-                event.definition(CombatRewardPlaqueEntity.DEFINITION);
-                event.preSpawnConsumer(entity -> properties.initialize(entity, plaqueLayout, packVersion));
-            }
+            // Let Geyser render the inherited nametag as one plane: its native text
+            // and backdrop stay aligned. A separately camera-rotated model cannot
+            // match the client nametag's projection and baseline.
             return;
         }
         if (event.uuid().getMostSignificantBits() == COMBAT_RESULT_TAG

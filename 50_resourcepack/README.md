@@ -369,3 +369,13 @@ RPG Plugin の `resourcePack.bedrockNamePrefixes` は、Velocity の Floodgate �
 `python scripts/generate-challenge-countdown.py` は Pillow・numpy・imageio-ffmpeg を使い、同梱のライセンス済み NotoSansJP atlasから画像・名前fontを、数式合成からOgg短音を再生成する。新たなOSフォントや音源素材は不要。リングは10秒を維持し、3→1を強調。金／青緑で名前も色付けし上部へ表示する。
 
 Bedrock Title factory はGeyserの先頭 `§r` を除いた `arcd1:b:0..10` / `arcd1:d:0..10` の完全一致だけを画像表示し、その他のTitleはバニラ定義をそのまま継承する。専用音は `astralrecord:challenge.countdown.{tick,three,two,one,start}`。各秒をサーバーから独立送信し、中断時は停止する。
+
+## Bedrock reward and world-display compatibility
+
+Combat reward text, time, and item rows are rendered together as a Geyser nametag.
+The independent Bedrock decorative frame is disabled; Java reward frames are unchanged.
+Animated reception packs are admitted only when both 32-frame texture sequences are complete.
+Older complete static reception packs remain supported. Without a verified mandatory
+pack, the Bedrock gate, reception sword, and waystone use non-interactive vanilla
+markers instead of disappearing. To avoid double markers, update Paper and the
+Geyser extension together; use the matching pack and reconnect.

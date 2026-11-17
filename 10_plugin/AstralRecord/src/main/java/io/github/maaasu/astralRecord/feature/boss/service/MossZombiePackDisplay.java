@@ -259,9 +259,10 @@ final class MossZombiePackDisplay implements Listener {
             UUID viewerId = viewer.getUniqueId();
             stillTracking.add(viewerId);
             if (isBedrock(viewer)) {
-                int sent = state.bedrockMotion.getOrDefault(viewerId, MossZombieMotion.Pose.NONE.bedrock());
-                if (sent != attack.bedrock() && sendMotion(viewer, source.getEntityId(), now, bedrockState)) {
-                    state.bedrockMotion.put(viewerId, attack.bedrock());
+                var sent = state.bedrockMotion.get(viewerId);
+                if (shouldSendBedrockMotion(sent, bedrockState) && sendMotion(viewer, source.getEntityId(), now, bedrockState)) {
+                    // Replay once on first appearance: Geyser may see this marker before the carrier.
+                    state.bedrockMotion.put(viewerId, new BedrockMotionDelivery(bedrockState, sent == null));
                 }
                 continue;
             }
@@ -280,6 +281,12 @@ final class MossZombiePackDisplay implements Listener {
             body.gait.advance(0.0D, true);
         }
     }
+
+    static boolean shouldSendBedrockMotion(BedrockMotionDelivery sent, long state) {
+        return sent == null || sent.repeatPending() || sent.state() != state;
+    }
+
+    record BedrockMotionDelivery(long state, boolean repeatPending) {}
 
     void retain(Set<UUID> active) {
         for (UUID id : List.copyOf(bodies.keySet())) {
@@ -633,7 +640,7 @@ final class MossZombiePackDisplay implements Listener {
         private final UUID source;
         private final Set<UUID> masked = ConcurrentHashMap.newKeySet();
         // 統合版の閲覧者ごとに最後に送った姿勢番号。メインスレッドだけで読み書きする。
-        private final Map<UUID, Integer> bedrockMotion = new ConcurrentHashMap<>();
+        private final Map<UUID, BedrockMotionDelivery> bedrockMotion = new ConcurrentHashMap<>();
 
         private Tracking(UUID source) {
             this.source = source;

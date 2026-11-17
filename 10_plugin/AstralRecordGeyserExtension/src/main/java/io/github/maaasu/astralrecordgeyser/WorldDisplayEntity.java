@@ -16,6 +16,7 @@ record WorldDisplayEntity(GeyserIntEntityProperty style) {
     private static final int STORAGE = 2;
     private static final int BLAST_FURNACE = 3;
     private static final Identifier TEXT_DISPLAY = Identifier.of("minecraft", "text_display");
+    private static final Identifier DROPPED_ITEM = Identifier.of("minecraft", "item");
     private static final Identifier ITEM_DISPLAY = Identifier.of("minecraft", "item_display");
     private static final Identifier BLOCK_DISPLAY = Identifier.of("minecraft", "block_display");
     private static final Identifier IDENTIFIER = Identifier.of("astralrecord", "world_display");
@@ -29,7 +30,8 @@ record WorldDisplayEntity(GeyserIntEntityProperty style) {
     void onSpawn(ServerSpawnEntityEvent event, DamagePackDistribution packs) {
         int model = modelCode(event.uuid(), event.entityId(), MODEL_TAG);
         if (model >= 0 && event.entityType().is(TEXT_DISPLAY)) {
-            if (!packs.worldDisplayReady(event.connection())) {
+            boolean ready = model < STORAGE ? packs.waystoneReady(event.connection()) : packs.worldDisplayReady(event.connection());
+            if (!ready) {
                 event.setCancelled(true);
                 return;
             }
@@ -46,7 +48,9 @@ record WorldDisplayEntity(GeyserIntEntityProperty style) {
         int fallback = modelCode(event.uuid(), event.entityId(), FALLBACK_TAG);
         boolean npcFallback = (fallback == STORAGE && event.entityType().is(ITEM_DISPLAY))
             || (fallback == BLAST_FURNACE && event.entityType().is(BLOCK_DISPLAY));
-        if (npcFallback && packs.worldDisplayReady(event.connection())) {
+        boolean waystoneFallback = fallback >= 0 && fallback < STORAGE && event.entityType().is(DROPPED_ITEM);
+        if ((npcFallback && packs.worldDisplayReady(event.connection()))
+                || (waystoneFallback && packs.waystoneReady(event.connection()))) {
             event.setCancelled(true);
         }
     }

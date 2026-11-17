@@ -151,6 +151,36 @@ record DamagePack(
         "textures/entity/world/boss_reception_altar.png", "textures/entity/world/dungeon_reception_gate.png"
     );
 
+    static boolean hasReceptionDisplayTextures(ZipFile zip) throws IOException {
+        if (!RECEPTION_DISPLAY_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present)) return false;
+        try (var stream = zip.getInputStream(zip.getEntry("entity/reception_display.entity.json"))) {
+            byte[] definition = stream.readNBytes(32_769);
+            if (definition.length > 32_768) return false;
+            var textures = JsonParser.parseString(new String(definition, StandardCharsets.UTF_8)).getAsJsonObject()
+                .getAsJsonObject("minecraft:client_entity").getAsJsonObject("description").getAsJsonObject("textures");
+            if (textures.size() == 2) {
+                return textureAlias(textures, "style_0", "textures/entity/world/boss_reception_altar")
+                    && textureAlias(textures, "style_1", "textures/entity/world/dungeon_reception_gate");
+            }
+            for (String type : List.of("boss", "dungeon")) {
+                for (int frame = 0; frame < 32; frame++) {
+                    String suffix = (frame < 10 ? "0" : "") + frame;
+                    String name = "textures/entity/world/reception_animation/" + type + "_" + suffix;
+                    String alias = (type.equals("boss") ? "sword_frame_" : "frame_") + suffix;
+                    if (!textureAlias(textures, alias, name) || !present(zip.getEntry(name + ".png"))) return false;
+                }
+            }
+            return true;
+        } catch (RuntimeException invalidDefinition) {
+            return false;
+        }
+    }
+
+    private static boolean textureAlias(com.google.gson.JsonObject textures, String alias, String name) {
+        var entry = textures.get(alias);
+        return entry != null && entry.isJsonPrimitive() && name.equals(entry.getAsString());
+    }
+
     static DamagePack refresh(HeadApiConfig config, Path directory, DamagePack current)
         throws IOException, InterruptedException {
         try (HttpClient client = HeadApiClient.newClient(config)) {
@@ -260,7 +290,7 @@ record DamagePack(
                     && present(zip.getEntry("textures/ui/astralrecord/quest_hud_frame.png"))
                     && present(zip.getEntry("textures/ui/astralrecord/quest_hud_frame.json"));
                 receptionDisplay = hasVersionOne(zip, "reception-display-version.txt")
-                    && RECEPTION_DISPLAY_ENTRIES.stream().map(zip::getEntry).allMatch(DamagePack::present);
+                    && hasReceptionDisplayTextures(zip);
                 var catalog = ItemModel.read(zip);
                 itemModels = catalog.models();
                 heldWeaponModels = ItemModel.verifiedHeldWeaponModels(zip, catalog);
