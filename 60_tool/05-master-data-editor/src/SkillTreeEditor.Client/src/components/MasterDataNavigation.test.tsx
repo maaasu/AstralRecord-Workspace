@@ -2,16 +2,24 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import type { JsonObject, JsonValue } from '../types/editor'
+import type { MasterReference } from '../types/masterData'
+import type { MasterVisualReferences } from '../state/masterVisualReferences'
 import { closestContainerPointer } from '../data/masterDataNavigation'
 import * as navigation from '../data/masterDataNavigation'
 import { MasterDataDetails, MasterDataSearch } from './MasterDataNavigation'
 
 const initial = { schemaVersion: 1, id: 'test', unknown: 'root', skills: [{ params: { 'a/b~c': 2, UnknownRpc: 'keep' } }, { id: 'sibling' }] }
-function Editable({ readOnly = false, value: startingValue = initial, schema = {}, onFocus = vi.fn() }: { readOnly?: boolean; value?: JsonValue; schema?: JsonObject; onFocus?: (path: string) => void }) {
+function Editable({ readOnly = false, value: startingValue = initial, schema = {}, onFocus = vi.fn(), visualReferences, references = [] }: {
+  readOnly?: boolean; value?: JsonValue; schema?: JsonObject; onFocus?: (path: string) => void
+  visualReferences?: MasterVisualReferences; references?: MasterReference[]
+}) {
   const [value, setValue] = useState<JsonValue>(startingValue)
   const [path, setPath] = useState('')
+  const [focusRequest, setFocusRequest] = useState<{ path: string } | null>(null)
   const selected = closestContainerPointer(value, path)
-  return <><MasterDataDetails value={value} path={selected} fields={[]} references={[]} schema={schema} disabled={readOnly} navigationDisabled={false} onSelect={setPath} onFocus={onFocus} onInvalid={vi.fn()} onChange={setValue} />
+  return <><MasterDataDetails value={value} path={selected} fields={[]} references={references} schema={schema} disabled={readOnly} navigationDisabled={false}
+    onSelect={setPath} onFocus={(path) => { setFocusRequest({ path }); onFocus(path) }} focusRequest={focusRequest}
+    onInvalid={vi.fn()} onChange={setValue} visualReferences={visualReferences} />
     <output data-testid="value">{JSON.stringify(value)}</output></>
 }
 describe('master data sections, search and details', () => {
@@ -169,6 +177,42 @@ describe('master data sections, search and details', () => {
     fireEvent.click(screen.getByRole('button', { name: '次の要素' }))
     fireEvent.click(screen.getByRole('button', { name: '/items/25 を削除' }))
     expect(JSON.parse(screen.getByTestId('value').textContent!).items.map((item: { id: string }) => item.id)).toEqual(items.filter((_, index) => index !== 25).map((item) => item.id))
+  })
+
+  it('renders progression checkpoints as summaries and pages node editors with suggestions only for the focused input', () => {
+    const nodes = Array.from({ length: 55 }, (_, index) => 1000 + index)
+    const levels = [{ level: 1, nodes }, { level: 5, nodes: [1200] }]
+    const references = [
+      { kind: 'node', value: '1049', path: 'nodes/1049.yml', pointer: '/nodeId', label: '&a近接攻撃' },
+      { kind: 'node', value: '1050', path: 'nodes/1050.yml', pointer: '/nodeId' },
+      { kind: 'item', value: '20a00001', path: 'item/test.yml', pointer: '/id' },
+    ]
+    const visualReferences = { documentPath: '90.shared.progression_preset/v1.test.yml', files: new Map(), openFile: vi.fn() }
+    const { container } = render(<Editable value={{ levels }} references={references} visualReferences={visualReferences} />)
+    expect(screen.getByRole('button', { name: '/levels/1 を開く' })).toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: '/levels/0/nodes/0' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '/levels/0 を開く' }))
+    expect(screen.queryByRole('textbox', { name: '/levels/1/nodes/0' })).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '/levels/0/nodes/24' })).toHaveValue('1024')
+    expect(screen.queryByRole('textbox', { name: '/levels/0/nodes/25' })).not.toBeInTheDocument()
+    expect(container.querySelector('datalist')).toBeNull()
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'フォーム内検索' }), { target: { value: '/levels/0/nodes/50' } })
+    fireEvent.click(screen.getByRole('button', { name: '/levels/0/nodes/50 に移動' }))
+    const input = screen.getByRole('textbox', { name: '/levels/0/nodes/50' })
+    expect(input).toHaveValue('1050')
+    expect(screen.queryByRole('textbox', { name: '/levels/0/nodes/0' })).not.toBeInTheDocument()
+    fireEvent.focus(input)
+    expect(container.querySelectorAll('datalist')).toHaveLength(1)
+    expect(container.querySelectorAll('datalist option')).toHaveLength(2)
+    expect(container.querySelector('datalist option')).toHaveAttribute('label', '近接攻撃')
+    fireEvent.change(input, { target: { value: '1500' } })
+    fireEvent.blur(input)
+    expect(container.querySelector('datalist')).toBeNull()
+    expect(JSON.parse(screen.getByTestId('value').textContent!)).toEqual({
+      levels: [{ level: 1, nodes: nodes.map((id, index) => index === 50 ? 1500 : id) }, levels[1]],
+    })
   })
 })
 

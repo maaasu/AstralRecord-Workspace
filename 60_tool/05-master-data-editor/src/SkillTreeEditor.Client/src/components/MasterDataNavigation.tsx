@@ -176,11 +176,12 @@ interface DetailsProps {
   onFocus: (path: string) => void
   onInvalid: (path: string, message: string | null, text?: string) => void
   invalidValues?: Record<string, string>
+  focusRequest?: { path: string } | null
   onChange: (value: JsonValue) => void
   visualReferences?: MasterVisualReferences
 }
 
-export function MasterDataDetails({ value, path, fields, references, schema, disabled, navigationDisabled, onSelect, onFocus, onInvalid, invalidValues, onChange, visualReferences }: DetailsProps) {
+export function MasterDataDetails({ value, path, fields, references, schema, disabled, navigationDisabled, onSelect, onFocus, onInvalid, invalidValues, focusRequest, onChange, visualReferences }: DetailsProps) {
   const selectAndFocus = (nextPath: string) => {
     if (navigationDisabled) return
     onSelect(nextPath)
@@ -227,7 +228,7 @@ export function MasterDataDetails({ value, path, fields, references, schema, dis
       <MasterVisualReferencesContext.Provider value={formReferences}>
         <MasterDataForm key={currentPath} value={current === undefined ? value : current} path={currentPath} fields={fields} references={references} schema={schemaAtPointer(schema, currentPath, value)} rootSchema={schema}
           dungeonRoomSize={dungeon ? valueAtPointer(value, '/generation/roomSize') : undefined}
-          onInvalid={onInvalid} invalidValues={invalidValues} onNavigate={selectAndFocus} navigationDisabled={navigationDisabled} onChange={(next) => onChange(replaceAtPointer(value, currentPath, next))} />
+          onInvalid={onInvalid} invalidValues={invalidValues} focusRequest={focusRequest} onNavigate={selectAndFocus} navigationDisabled={navigationDisabled} onChange={(next) => onChange(replaceAtPointer(value, currentPath, next))} />
       </MasterVisualReferencesContext.Provider>
     </fieldset>
   </section>
