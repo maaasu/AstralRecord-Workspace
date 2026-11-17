@@ -14,6 +14,7 @@ const MasterDataEditor = lazy(() => import('./components/MasterDataEditor').then
 const MasterAnalytics = lazy(() => import('./components/MasterAnalytics').then((module) => ({ default: module.MasterAnalytics })))
 const SkillTreeWorkspace = lazy(() => import('./components/SkillTreeWorkspace').then((module) => ({ default: module.SkillTreeWorkspace })))
 const SpawnerPlanningWorkspace = lazy(() => import('./components/SpawnerPlanningWorkspace').then((module) => ({ default: module.SpawnerPlanningWorkspace })))
+const GameFlowWorkspace = lazy(() => import('./components/GameFlowWorkspace').then((module) => ({ default: module.GameFlowWorkspace })))
 const ProgressionDesignWorkspace = lazy(() => import('./components/ProgressionDesignWorkspace').then((module) => ({ default: module.ProgressionDesignWorkspace })))
 
 function AppIcon({ path }: { path: string }) {
@@ -96,6 +97,7 @@ function WorkspaceViews({ workspaceRoot, desktop }: { workspaceRoot: string; des
   const [treeDirty, setTreeDirty] = useState(false)
   const [designDirty, setDesignDirty] = useState(false)
   const [placementDirty, setPlacementDirty] = useState(false)
+  const [flowDirty, setFlowDirty] = useState(false)
   const [capabilities, setCapabilities] = useState<ToolCapabilities>()
   const [capabilitiesError, setCapabilitiesError] = useState('')
   const [capabilitiesRequest, setCapabilitiesRequest] = useState(0)
@@ -105,9 +107,10 @@ function WorkspaceViews({ workspaceRoot, desktop }: { workspaceRoot: string; des
     design: designDirty,
     skilltree: treeDirty,
     analytics: false,
+    flow: flowDirty,
     spawner: placementDirty,
   }
-  const dirty = masterDirty || treeDirty || designDirty || placementDirty
+  const dirty = masterDirty || treeDirty || designDirty || placementDirty || flowDirty
   useLayoutEffect(() => {
     window.astralEditorHasUnsavedChanges = () => dirty
     return () => { delete window.astralEditorHasUnsavedChanges }
@@ -159,12 +162,13 @@ function WorkspaceViews({ workspaceRoot, desktop }: { workspaceRoot: string; des
       <MasterDataEditor active={visible.has('master')} onDirtyChange={setMasterDirty} onOpenSkillTree={() => show('skilltree')} openRequest={masterRequest} />
     </Suspense>
     {visited.has('design') && <DockPanelContent id="design"><div className="master-app-content"><Suspense fallback={<div className="loading-screen">装備設計を読み込んでいます…</div>}><ProgressionDesignWorkspace active={visible.has('design')} onDirtyChange={setDesignDirty} onOpenMaster={(path, pointer = '') => { setMasterRequest({ path, pointer, requestId: Date.now() }); show('master') }} /></Suspense></div></DockPanelContent>}
+    {visited.has('flow') && <DockPanelContent id="flow"><div className="master-app-content"><Suspense fallback={<div className="loading-screen">ゲーム進行フローを読み込んでいます…</div>}><GameFlowWorkspace active={visible.has('flow')} onDirtyChange={setFlowDirty} onOpenMaster={path => { setMasterRequest({ path, pointer: '', requestId: Date.now() }); show('master') }} /></Suspense></div></DockPanelContent>}
     {visited.has('skilltree') && <DockPanelContent id="skilltree"><div className="master-app-content"><Suspense fallback={<div className="loading-screen">スキルツリーを読み込んでいます…</div>}><SkillTreeWorkspace active={visible.has('skilltree')} onDirtyChange={setTreeDirty} /></Suspense></div></DockPanelContent>}
     {visited.has('analytics') && <DockPanelContent id="analytics"><div className="master-app-content"><Suspense fallback={<div className="loading-screen">比較データを読み込んでいます…</div>}><MasterAnalytics /></Suspense></div></DockPanelContent>}
     {visited.has('spawner') && <DockPanelContent id="spawner"><div className="master-app-content"><Suspense fallback={<div className="loading-screen">ワールド配置・編集を読み込んでいます…</div>}><SpawnerPlanningWorkspace active={visible.has('spawner')} onDirtyChange={setPlacementDirty} /></Suspense></div></DockPanelContent>}
     <DesktopToolRunHistoryProvider enabled={capabilities?.enabled === true && [...visited].some(isToolPage)}>
       {[...visited].filter(isToolPage).map(tool => <DockPanelContent key={tool} id={tool}><div className="master-app-content">
-        <DesktopToolWorkspace page={tool} visible={visible.has(tool)} capabilities={capabilities} capabilitiesError={capabilitiesError} onRetryCapabilities={retryCapabilities} hasUnsavedSource={masterDirty || treeDirty || designDirty} historyRunId={tool === 'history' ? historyRunId : undefined} onOpenHistory={id => { setHistoryRunId(id); show('history') }} />
+        <DesktopToolWorkspace page={tool} visible={visible.has(tool)} capabilities={capabilities} capabilitiesError={capabilitiesError} onRetryCapabilities={retryCapabilities} hasUnsavedSource={masterDirty || treeDirty || designDirty || flowDirty} historyRunId={tool === 'history' ? historyRunId : undefined} onOpenHistory={id => { setHistoryRunId(id); show('history') }} />
       </div></DockPanelContent>)}
     </DesktopToolRunHistoryProvider>
   </>

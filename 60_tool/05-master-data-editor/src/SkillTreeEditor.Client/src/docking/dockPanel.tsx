@@ -9,13 +9,14 @@ export const editorPages = [
   { id: 'design', label: '装備・入手経路', icon: 'M3 3h6v6H3z M15 15h6v6h-6z M6 9v9h9 M15 3h6v6h-6z M9 6h6' },
   { id: 'skilltree', label: 'スキルツリー', icon: 'M12 6v5 M5 16v-5h14v5 M9 2h6v4H9z M2 16h6v5H2z M16 16h6v5h-6z' },
   { id: 'analytics', label: '比較・成長グラフ', icon: 'M3 3v18h18 M6 15l5-6 4 3 5-8' },
+  { id: 'flow', label: 'ゲーム進行フロー', icon: 'M2 4h6v5H2z M16 4h6v5h-6z M9 15h6v5H9z M8 6.5h8 M19 9v3.5h-7V15' },
   { id: 'spawner', label: 'ワールド配置・編集', icon: 'M3 5l6-2 6 2 6-2v16l-6 2-6-2-6 2z M9 3v16 M15 5v16' },
 ] as const
 
 export type EditorPage = (typeof editorPages)[number]['id']
 export const editorPageGroups: { label: string; pages: readonly EditorPage[] }[] = [
   { label: 'データ・配置編集', pages: ['master', 'skilltree', 'spawner'] },
-  { label: '設計・分析', pages: ['design', 'analytics'] },
+  { label: '設計・分析', pages: ['design', 'flow', 'analytics'] },
 ]
 export const editorPageDescriptions: Record<EditorPage, string> = {
   master: 'アイテム・モブ・ダンジョンなどのマスター定義を編集',
@@ -23,6 +24,7 @@ export const editorPageDescriptions: Record<EditorPage, string> = {
   spawner: 'ワールド上のスポナー・NPC・受付地点を地図で編集',
   design: 'ビルドの装備・スキルを設計し、アイテムの入手経路を確認',
   analytics: '保存済みマスターの性能比較・レベル成長を確認',
+  flow: 'ダンジョン・ショップ・アイテムなどの参照を矢印でつなぎ、職業別の進行をフロー図で設計',
 }
 export type Page = EditorPage | ToolPage
 export type DockPanelId = Page | 'navigation' | 'master-folders' | 'master-files' | 'master-validation'
@@ -39,6 +41,7 @@ export const dockPanels: Record<DockPanelId, string> = {
   design: '装備・入手経路',
   skilltree: 'スキルツリー',
   analytics: '比較・成長グラフ',
+  flow: 'ゲーム進行フロー',
   spawner: 'ワールド配置・編集',
   '03': toolSpecs['03'].label,
   '01': toolSpecs['01'].label,

@@ -50,6 +50,7 @@ public static class EditorApplication
         builder.Services.AddSingleton<MasterDataService>();
         builder.Services.AddSingleton<MasterDataFilterIndexService>();
         builder.Services.AddSingleton<ProgressionDesignService>();
+        builder.Services.AddSingleton<GameFlowService>();
         builder.Services.AddSingleton<WorkspaceItemTextures>();
         builder.Services.AddHttpClient<MinecraftIconService>((services, client) =>
         {

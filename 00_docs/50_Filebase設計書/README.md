@@ -110,7 +110,8 @@ feature 設計書の先頭番号は、原則として `40_filebase` のディレ
 │  ├─ 76-tag.md
 │  ├─ 80-loot.md
 │  ├─ 85-recipe.md
-│  └─ 90-progression_preset.md
+│  ├─ 90-progression_preset.md
+│  └─ 95-game_flow.md
 ├─ モチーフ選定ガイド.md
 └─ 作成時チェックリスト.md
 ```

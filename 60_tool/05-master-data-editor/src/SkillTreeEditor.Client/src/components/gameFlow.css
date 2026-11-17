@@ -1,0 +1,109 @@
+.game-flow-host { height: 100%; min-height: 0; container-type: inline-size; }
+.game-flow { display: grid; grid-template-columns: 220px minmax(0, 1fr) 300px; grid-template-rows: minmax(0, 1fr); height: 100%; min-height: 0; background: var(--surface); color: var(--text); }
+.game-flow .button { white-space: nowrap; }
+/* 分割された細いパネルでは、プロパティを図の下へ移す。 */
+@container (max-width: 1100px) {
+  .game-flow { grid-template-columns: 180px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(150px, 36%); }
+  .game-flow-sidebar { grid-row: 1 / -1; }
+  .game-flow-inspector { border-left: 0; border-top: 1px solid var(--line); }
+}
+@container (max-width: 640px) {
+  .game-flow { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) minmax(150px, 36%); }
+  .game-flow-sidebar { grid-row: auto; max-height: 120px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .game-flow-location { display: none; }
+}
+.game-flow-sidebar, .game-flow-inspector { display: flex; flex-direction: column; gap: 10px; min-height: 0; padding: 12px; overflow: auto; background: var(--surface-sidebar); }
+.game-flow-sidebar { border-right: 1px solid var(--line); }
+.game-flow-inspector { border-left: 1px solid var(--line); }
+.game-flow-sidebar-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.game-flow-sidebar-head h2 { margin: 0; font-size: 13px; }
+.game-flow-list { display: grid; gap: 4px; }
+.game-flow-list-item { display: grid; gap: 2px; width: 100%; padding: 8px 10px; border: 1px solid transparent; border-radius: var(--radius-control); background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.game-flow-list-item:hover:not(:disabled) { background: var(--surface-soft); }
+.game-flow-list-item[aria-current='true'] { border-color: var(--accent); background: var(--accent-soft); }
+.game-flow-list-item small { color: var(--text-muted); font-size: 11px; overflow-wrap: anywhere; }
+.game-flow-muted { margin: 0; color: var(--text-muted); font-size: 12px; }
+.game-flow-location { margin-top: auto; overflow-wrap: anywhere; }
+
+.game-flow-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.game-flow-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--line); background: var(--surface-raised); }
+.game-flow-toolbar-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.game-flow-filter { display: flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; }
+.game-flow-filter select { min-height: 30px; }
+.game-flow-tabs { display: flex; }
+.game-flow-tabs .button { border-radius: 0; }
+.game-flow-tabs .button:first-child { border-radius: var(--radius-control) 0 0 var(--radius-control); }
+.game-flow-tabs .button:last-child { border-radius: 0 var(--radius-control) var(--radius-control) 0; }
+.game-flow-tabs .button[aria-selected='true'] { border-color: var(--accent); background: var(--accent-soft); }
+.game-flow-message, .game-flow-error { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; font-size: 12px; border-bottom: 1px solid var(--line); }
+.game-flow-error { color: var(--danger); }
+.game-flow-message { color: var(--success); }
+.game-flow-error-text { margin: 0; color: var(--danger); font-size: 12px; }
+.game-flow-issues { max-height: 120px; margin: 0; padding: 6px 10px 6px 28px; overflow: auto; border-bottom: 1px solid var(--line); font-size: 12px; }
+.game-flow-issues li[data-severity='error'] { color: var(--danger); }
+.game-flow-issues li[data-severity='warning'] { color: var(--gold); }
+.game-flow-body { position: relative; flex: 1; min-height: 0; }
+.game-flow-body[hidden] { display: none; }
+.game-flow-empty { display: grid; place-items: center; height: 100%; color: var(--text-muted); }
+.game-flow-body .react-flow__edge.dimmed { opacity: .2; }
+.game-flow-body .react-flow__edge-text { fill: var(--text); font-size: 11px; }
+.game-flow-body .react-flow__edge-textbg { fill: var(--surface-raised); }
+.game-flow-body .react-flow__controls button { background: var(--surface-raised); border-color: var(--line); fill: var(--text); }
+
+.game-flow-node { --kind: #7086a5; width: 220px; padding: 8px 10px; border: 1px solid var(--line-bright); border-left: 4px solid var(--kind); border-radius: var(--radius-control); background: var(--surface-raised); color: var(--text); font-size: 12px; box-shadow: 0 2px 6px rgb(0 0 0 / 25%); }
+.game-flow-node.selected { outline: 2px solid var(--gold); }
+.game-flow-node.dimmed { opacity: .25; }
+.game-flow-node.missing { border-color: var(--danger); }
+.game-flow-node[data-kind='dungeon'] { --kind: #c0715a; }
+.game-flow-node[data-kind='shop'] { --kind: #d0a64a; }
+.game-flow-node[data-kind='item'] { --kind: #5aa7c0; }
+.game-flow-node[data-kind='mob'] { --kind: #b0596f; }
+.game-flow-node[data-kind='class'] { --kind: #8f73c9; }
+.game-flow-node[data-kind='world'] { --kind: #5fae74; }
+.game-flow-node[data-kind='note'] { --kind: #8a8f98; border-style: dashed; border-left-style: solid; }
+.game-flow-node-head { display: flex; align-items: center; gap: 6px; }
+.game-flow-node-head .minecraft-icon, .game-flow-node-symbol { width: 20px; height: 20px; flex: none; }
+.game-flow-node-symbol { display: grid; place-items: center; color: var(--text-muted); }
+.game-flow-node-kind { color: var(--kind); font-size: 10px; font-weight: 700; letter-spacing: .04em; }
+.game-flow-node-name { display: block; margin-top: 4px; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
+.game-flow-node-warning { color: var(--danger); }
+.game-flow-node-note { margin: 4px 0 0; color: var(--text-muted); font-size: 11px; line-height: 1.4; white-space: pre-wrap; }
+.game-flow-chips { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
+.game-flow-chip { padding: 1px 6px; border: 1px solid var(--line-bright); border-radius: 999px; background: var(--surface-soft); font-size: 10px; white-space: nowrap; }
+
+.game-flow-text { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+.game-flow-text-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; color: var(--text-muted); font-size: 12px; border-bottom: 1px solid var(--line); }
+.game-flow-text pre { flex: 1; margin: 0; padding: 12px; overflow: auto; font-size: 12px; line-height: 1.55; white-space: pre-wrap; }
+
+.game-flow-props { display: grid; gap: 8px; }
+.game-flow-props h3 { margin: 0; font-size: 13px; }
+.game-flow-props label { display: grid; gap: 3px; font-size: 12px; }
+.game-flow-props input:not([type='checkbox']), .game-flow-props textarea { width: 100%; box-sizing: border-box; }
+.game-flow-props input[readonly] { color: var(--text-muted); }
+.game-flow-props fieldset { display: grid; gap: 6px; margin: 0; padding: 8px; border: 1px solid var(--line); border-radius: var(--radius-control); }
+.game-flow-props legend { padding: 0 4px; font-size: 12px; }
+.game-flow-ref { display: grid; gap: 4px; padding: 8px; border: 1px solid var(--line); border-radius: var(--radius-control); }
+.game-flow-ref-name { display: flex; align-items: center; gap: 6px; font-weight: 650; }
+.game-flow-ref-name .minecraft-icon { width: 20px; height: 20px; }
+.game-flow-ref code { color: var(--text-muted); font-size: 11px; overflow-wrap: anywhere; }
+.game-flow-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.game-flow-class-toggles { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.game-flow-props .game-flow-class-toggle { display: flex; align-items: center; gap: 4px; }
+.game-flow-class-toggle.unknown { color: var(--danger); }
+.game-flow-class-toggles small { flex-basis: 100%; }
+.game-flow-edge-route { margin: 0; font-weight: 650; }
+.game-flow-help { font-size: 12px; color: var(--text-muted); }
+.game-flow-help ul { margin: 6px 0 0; padding-left: 18px; line-height: 1.5; }
+
+.game-flow-dialog { width: min(720px, calc(100vw - 32px)); }
+.game-flow-dialog.compact { width: min(440px, calc(100vw - 32px)); }
+.game-flow-dialog-tools { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.game-flow-dialog-tools input { flex: 1; min-width: 160px; }
+.game-flow-shop-items { max-height: 50vh; margin: 0; padding: 0; overflow: auto; list-style: none; border: 1px solid var(--line); border-radius: var(--radius-control); }
+.game-flow-shop-items li { border-bottom: 1px solid var(--line); }
+.game-flow-shop-items li:last-child { border-bottom: 0; }
+.game-flow-shop-items label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; }
+.game-flow-shop-items label.done { opacity: .55; cursor: default; }
+.game-flow-shop-items label .minecraft-icon { width: 20px; height: 20px; }
+.game-flow-shop-items code { color: var(--text-muted); font-size: 11px; }
+.game-flow-shop-items .game-flow-chips { margin: 0; }
