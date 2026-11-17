@@ -73,7 +73,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths, WorkspaceIt
         ["orb"] = "オーブ", ["bundle"] = "バンドル", ["rune"] = "ルーン", ["sigil"] = "シジル",
         ["currency"] = "通貨", ["set_effect"] = "セット効果", ["class"] = "クラス", ["skill"] = "スキル",
         ["pet"] = "ペット", ["pet_egg"] = "ペットの卵",
-        ["skilltree"] = "スキルツリー", ["progression_preset"] = "アカウント進行プリセット", ["mail"] = "メール", ["guide"] = "ガイド", ["enchant"] = "エンチャント",
+        ["skilltree"] = "スキルツリー", ["progression_preset"] = "アカウント進行プリセット", ["game_flow"] = "ゲーム進行フロー",["mail"] = "メール", ["guide"] = "ガイド", ["enchant"] = "エンチャント",
         ["mob"] = "モブ", ["enemy"] = "敵", ["boss"] = "ボス", ["npc"] = "NPC", ["spawner"] = "スポナー",
         ["gathering"] = "採集", ["shop"] = "ショップ", ["quest"] = "クエスト", ["quest_board"] = "クエスト掲示板",
         ["world"] = "ワールド", ["dungeon"] = "ダンジョン", ["buff"] = "バフ", ["status"] = "ステータス",
@@ -149,7 +149,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths, WorkspaceIt
             paths.RequireNoLinks(document);
             var raw = await File.ReadAllTextAsync(document, Encoding.UTF8, token);
             documents.Add(new(paths.Relative(document), raw.Split('\n').FirstOrDefault(line => line.StartsWith("# ", StringComparison.Ordinal))?.TrimStart('#', ' ', '\r') ?? Path.GetFileName(document)));
-            if (category is not ("55.features.pet" or ProgressionPresetValidation.Category))
+            if (category is not ("55.features.pet" or ProgressionPresetValidation.Category or GameFlowValidation.Category))
                 foreach (var field in ParseFields(raw, paths.Relative(document), category)) fields[field.Path] = field;
         }
         if (category.Equals(BuffCategory, MasterDataPaths.Comparison)
@@ -183,7 +183,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths, WorkspaceIt
             }
             catch (System.Text.Json.JsonException) { /* malformed schema remains available in the file list */ }
         }
-        if (category == "55.features.pet" || category is "44.features.fishing.fish" or "46.features.fishing.area" or "47.features.fishing.rules" or ProgressionPresetValidation.Category)
+        if (category == "55.features.pet" || category is "44.features.fishing.fish" or "46.features.fishing.area" or "47.features.fishing.rules" or ProgressionPresetValidation.Category or GameFlowValidation.Category)
             foreach (var schema in schemas)
                 foreach (var field in SchemaFields(schema.Schema, schema.Path)) fields[field.Path] = field;
         var templates = new List<MasterDataTemplate>();

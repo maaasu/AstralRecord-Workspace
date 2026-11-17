@@ -103,6 +103,8 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
             }
             if (ProgressionPresetValidation.IsPreset(path))
                 await ProgressionPresetValidation.ValidateAsync(paths, codec, path, obj, issues, token);
+            if (GameFlowValidation.IsFlow(path))
+                await GameFlowValidation.ValidateAsync(paths, codec, path, obj, issues, token);
             await PetMasterValidation.ValidateAsync(paths, codec, path, obj, issues, token);
             await FishingMasterValidation.ValidateAsync(paths, codec, path, obj, issues, token);
             if (path.StartsWith("10.features.item/", MasterDataPaths.Comparison))

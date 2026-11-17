@@ -1,0 +1,62 @@
+# ゲーム進行フロー YAML スキーマ定義
+
+ダンジョン・ショップ・アイテムなどのマスター参照をノードにして、攻略や入手の流れを矢印でつなぐ設計図です。配置先はこのディレクトリ直下の `v1.<id>.yml` です。型と必須項目は [JSON Schema](schemas/game-flow.v1.schema.json) を参照してください。Plugin / API は読み込みません。
+
+| キー | 意味 |
+| --- | --- |
+| `schemaVersion` | `1` |
+| `type` | `GAME_FLOW` |
+| `id` | ファイル名に含める一意のID |
+| `name` | フローの表示名 |
+| `description` | フロー全体の目的や前提（任意） |
+| `classes` | このフローで扱う職業の `class:<id>` 一覧（任意）。エディタの職業フィルタの候補。省略時は全職業 |
+| `nodes` | ノードの一覧 |
+| `nodes[].id` | フロー内で一意のノードID。英小文字・数字・`_` |
+| `nodes[].ref` | マスター参照。`config.yml` の `referenceResolver` の接頭辞付きID（例 `dungeon:eriva_windscar_steppe`、`shop:weapon_craftsman_shop`、`item:20a00073`、`mob:eriva_grassboar`） |
+| `nodes[].label` | 参照なしのメモノードの名前、または参照ありの場合の表示名の上書き。`ref` と `label` のどちらかは必須 |
+| `nodes[].note` | 目的・条件・周回数などの補足（任意） |
+| `nodes[].classes` | このノードが該当する職業の `class:<id>` 一覧（任意）。省略時は全職業共通 |
+| `nodes[].x` / `nodes[].y` | エディタ上の表示位置（整数）。進行の意味は持たない |
+| `edges` | 矢印の一覧 |
+| `edges[].from` / `edges[].to` | 始点・終点のノードID。同じノード同士は不可。同じ始点・終点の矢印は1本だけ |
+| `edges[].label` | `ドロップ`、`素材`、`購入`、`挑戦` など流れの種類（任意） |
+| `edges[].note` | 補足（任意） |
+| `edges[].classes` | この矢印が該当する職業の `class:<id>` 一覧（任意）。省略時は全職業共通 |
+
+## 読み方
+
+- 矢印は「from を経て to に進む・得る」を表します。ショップから購入アイテムへの矢印は購入、モブから素材への矢印はドロップのように、`label` で種類を示します。
+- 職業ごとに異なる進行は、該当するノードまたは矢印へ `classes` を付けます。ある職業の流れは、`classes` が未指定のノード・矢印と、その職業を含むノード・矢印で構成されます。矢印は両端のノードが表示される場合だけ有効です。
+- 参照先の名前・アイコン・性能は参照先のマスターを正とし、フローには複製しません。`label` は補足が必要な場合だけ使います。
+- 1ファイルは1つの進行テーマ（例: 序盤の武器更新、特定ダンジョンの攻略準備）にまとめます。
+
+## 記載例
+
+```yaml
+# design:
+#   motif: "進行設計 / エリヴァ武器の入手"
+#   progression: 0
+schemaVersion: 1
+type: GAME_FLOW
+id: sample_eriva_weapons
+name: "サンプル: エリヴァ武器を揃えて風切りの草原へ"
+classes: [class:swordsman, class:hunter, class:mage]
+nodes:
+  - { id: weapon_shop, ref: shop:weapon_craftsman_shop, x: 600, y: 80 }
+  - { id: sword, ref: item:20a00073, classes: [class:swordsman], x: 900, y: -80 }
+  - { id: short_bow, ref: item:20a00077, classes: [class:hunter], x: 900, y: 80 }
+  - { id: windscar_steppe, ref: dungeon:eriva_windscar_steppe, x: 1200, y: 80 }
+edges:
+  - { from: weapon_shop, to: sword, label: "購入" }
+  - { from: weapon_shop, to: short_bow, label: "購入" }
+  - { from: sword, to: windscar_steppe, label: "挑戦" }
+  - { from: short_bow, to: windscar_steppe, label: "挑戦" }
+```
+
+## 検証
+
+マスターデータエディタは保存前に次を確認します。
+
+- 保存先が `95.design.game_flow/v1.<id>.yml` であること。
+- ノードIDの重複、存在しないノードを指す矢印、自己ループ、同じ始点・終点の矢印の重複がないこと。
+- `nodes[].ref` と `classes` の参照先マスターが存在すること。

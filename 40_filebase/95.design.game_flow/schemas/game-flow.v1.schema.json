@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ゲーム進行フロー",
+  "description": "ダンジョン・ショップ・アイテムなどのマスター参照をノードにして、攻略や入手の流れを矢印でつなぐ設計図。Plugin / API は読み込まない。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "type", "id", "name", "nodes", "edges"],
+  "properties": {
+    "schemaVersion": { "title": "スキーマ版", "type": "integer", "const": 1, "default": 1 },
+    "type": { "title": "マスタ種別", "type": "string", "const": "GAME_FLOW", "default": "GAME_FLOW" },
+    "id": { "title": "フローID", "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
+    "name": { "title": "表示名", "type": "string", "pattern": "\\S" },
+    "description": { "title": "説明", "description": "フロー全体の目的や前提。", "type": "string" },
+    "classes": {
+      "title": "対象職業",
+      "description": "このフローで扱う職業。職業フィルタの候補になる。省略時は全職業。",
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^class:[a-z0-9]+(?:_[a-z0-9]+)*$" }
+    },
+    "nodes": {
+      "title": "ノード",
+      "description": "マスター参照またはメモ。記載順は表示順とは無関係。",
+      "type": "array",
+      "default": [],
+      "items": {
+        "title": "ノード",
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "anyOf": [{ "required": ["ref"] }, { "required": ["label"] }],
+        "properties": {
+          "id": { "title": "ノードID", "description": "フロー内で一意。矢印の from / to で使う。", "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
+          "ref": { "title": "マスター参照", "description": "dungeon:<id>、shop:<id>、item:<id> など config.yml の参照接頭辞付きID。", "type": "string", "pattern": "^[a-z_]+:[A-Za-z0-9_.\\-]+$" },
+          "label": { "title": "表示名", "description": "参照なしのメモノードの名前。参照ありの場合は表示名の上書き。", "type": "string", "pattern": "\\S" },
+          "note": { "title": "補足", "description": "目的・条件・周回数などの説明。", "type": "string" },
+          "classes": {
+            "title": "対象職業",
+            "description": "このノードが該当する職業。省略時は全職業共通。",
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string", "pattern": "^class:[a-z0-9]+(?:_[a-z0-9]+)*$" }
+          },
+          "x": { "title": "表示X座標", "type": "integer" },
+          "y": { "title": "表示Y座標", "type": "integer" }
+        }
+      }
+    },
+    "edges": {
+      "title": "矢印",
+      "description": "from のノードから to のノードへの流れ。",
+      "type": "array",
+      "default": [],
+      "items": {
+        "title": "矢印",
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "title": "始点ノードID", "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
+          "to": { "title": "終点ノードID", "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
+          "label": { "title": "ラベル", "description": "ドロップ・購入・挑戦など、流れの種類。", "type": "string" },
+          "note": { "title": "補足", "type": "string" },
+          "classes": {
+            "title": "対象職業",
+            "description": "この矢印が該当する職業。省略時は全職業共通。",
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string", "pattern": "^class:[a-z0-9]+(?:_[a-z0-9]+)*$" }
+          }
+        }
+      }
+    }
+  }
+}

@@ -25,6 +25,8 @@ public static class MasterDataEndpoints
             service.ReadAsync(token, reload == true));
         api.MapPost("/progression-design/preview", (ProgressionDesignPreviewRequest request, ProgressionDesignService service, CancellationToken token) =>
             service.PreviewAsync(request, token));
+        api.MapGet("/game-flow/context", (bool? reload, GameFlowService service, CancellationToken token) =>
+            service.ReadContextAsync(token, reload == true));
         api.MapGet("/file", (string path, MasterDataService service, CancellationToken token) => service.ReadAsync(path, token));
         api.MapPut("/file", (MasterDataSaveRequest request, MasterDataService service, CancellationToken token) => service.SaveAsync(request, token));
         api.MapPost("/file", async (MasterDataCreateRequest request, MasterDataService service, CancellationToken token) =>
