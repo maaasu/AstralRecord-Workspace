@@ -22,6 +22,7 @@ final class LobbyNpc implements Listener {
     private final AstralRecordLobbyPlugin plugin;
     private final String configPath;
     private final String defaultName;
+    private final String previousDefaultName;
     private final boolean enabledByDefault;
     private final NamespacedKey key;
     private Entity entity;
@@ -31,9 +32,15 @@ final class LobbyNpc implements Listener {
 
     LobbyNpc(AstralRecordLobbyPlugin plugin, String configPath, String key, String defaultName,
              boolean enabledByDefault) {
+        this(plugin, configPath, key, defaultName, enabledByDefault, null);
+    }
+
+    LobbyNpc(AstralRecordLobbyPlugin plugin, String configPath, String key, String defaultName,
+             boolean enabledByDefault, String previousDefaultName) {
         this.plugin = plugin;
         this.configPath = configPath;
         this.defaultName = defaultName;
+        this.previousDefaultName = previousDefaultName;
         this.enabledByDefault = enabledByDefault;
         this.key = new NamespacedKey("astralrecordlobby", key);
     }
@@ -78,7 +85,8 @@ final class LobbyNpc implements Listener {
         entity = world.spawnEntity(location, type, false);
         entity.getPersistentDataContainer().set(key, PersistentDataType.BYTE, (byte) 1);
         entity.setPersistent(false);
-        entity.customName(Component.text(plugin.getConfig().getString(configPath + ".name", defaultName)));
+        String displayName = plugin.getConfig().getString(configPath + ".name", defaultName);
+        entity.customName(Component.text(displayName.equals(previousDefaultName) ? defaultName : displayName));
         entity.setCustomNameVisible(true);
         entity.setInvulnerable(true);
         entity.setGravity(false);

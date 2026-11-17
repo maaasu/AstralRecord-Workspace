@@ -7,7 +7,7 @@ import java.util.logging.Level;
 
 /** ロビーNPC・アカウント処理のログを例外とともに記録します。 */
 final class LobbyLog {
-    enum Id { NPC_WORLD_UNAVAILABLE, ACCOUNT_LOAD_FAILED, ACCOUNT_CREATE_FAILED, ACCOUNT_SELECT_FAILED }
+    enum Id { NPC_WORLD_UNAVAILABLE, ACCOUNT_LOAD_FAILED, ACCOUNT_CREATE_FAILED, ACCOUNT_SELECT_FAILED, WEB_LOGIN_CODE_FAILED }
     private static final ResourceBundle MESSAGES = ResourceBundle.getBundle("lobby-logger", Locale.ROOT);
 
     private LobbyLog() { }

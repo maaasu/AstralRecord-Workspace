@@ -50,13 +50,13 @@ import java.util.UUID;
 final class LobbyListener implements Listener {
     private final AstralRecordLobbyPlugin plugin;
     private final ServerSelector selector;
-    private final AccountCreator accountCreator;
+    private final WebLoginDesk webLoginDesk;
     private final Set<UUID> voidReturning = new HashSet<>();
 
-    LobbyListener(AstralRecordLobbyPlugin plugin, ServerSelector selector, AccountCreator accountCreator) {
+    LobbyListener(AstralRecordLobbyPlugin plugin, ServerSelector selector, WebLoginDesk webLoginDesk) {
         this.plugin = plugin;
         this.selector = selector;
-        this.accountCreator = accountCreator;
+        this.webLoginDesk = webLoginDesk;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -115,7 +115,7 @@ final class LobbyListener implements Listener {
         }
         plugin.applyLobbyPermission(player);
         keepFoodFull(player);
-        accountCreator.onJoin(player);
+        webLoginDesk.onJoin(player);
     }
 
     @EventHandler
@@ -123,7 +123,7 @@ final class LobbyListener implements Listener {
         UUID playerId = event.getPlayer().getUniqueId();
         voidReturning.remove(playerId);
         plugin.clearPermission(playerId);
-        accountCreator.onQuit(playerId);
+        webLoginDesk.onQuit(playerId);
     }
 
     /**
@@ -174,7 +174,7 @@ final class LobbyListener implements Listener {
     public void onInteractEntity(PlayerInteractEntityEvent event) {
         if (event.getHand() == EquipmentSlot.HAND) {
             if (selector.isSelector(event.getRightClicked())) selector.open(event.getPlayer());
-            else if (accountCreator.isNpc(event.getRightClicked())) accountCreator.create(event.getPlayer());
+            else if (webLoginDesk.isNpc(event.getRightClicked())) webLoginDesk.requestLoginCode(event.getPlayer());
         }
         if (!plugin.isAdmin(event.getPlayer())) event.setCancelled(true);
     }
@@ -188,14 +188,14 @@ final class LobbyListener implements Listener {
     private void interactLookingAt(Player player) {
         Location eye = player.getEyeLocation();
         var hit = player.getWorld().rayTrace(eye, eye.getDirection(),
-            Math.max(selector.raycastDistance(), accountCreator.raycastDistance()),
+            Math.max(selector.raycastDistance(), webLoginDesk.raycastDistance()),
             FluidCollisionMode.NEVER, true, 0.3,
-            entity -> selector.isSelector(entity) || accountCreator.isNpc(entity));
+            entity -> selector.isSelector(entity) || webLoginDesk.isNpc(entity));
         if (hit == null || hit.getHitEntity() == null) return;
         boolean serverSelector = selector.isSelector(hit.getHitEntity());
-        double limit = serverSelector ? selector.raycastDistance() : accountCreator.raycastDistance();
+        double limit = serverSelector ? selector.raycastDistance() : webLoginDesk.raycastDistance();
         if (hit.getHitPosition().distanceSquared(eye.toVector()) > limit * limit) return;
-        if (serverSelector) selector.open(player); else accountCreator.create(player);
+        if (serverSelector) selector.open(player); else webLoginDesk.requestLoginCode(player);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)

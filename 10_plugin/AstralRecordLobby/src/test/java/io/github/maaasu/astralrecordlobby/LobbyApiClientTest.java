@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
+import java.time.Instant;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.UUID;
@@ -23,6 +24,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -84,6 +86,46 @@ class LobbyApiClientTest {
             var selection = JsonParser.parseString(bodies.get(4)).getAsJsonObject();
             assertEquals(accountId.toString(), selection.get("accountId").getAsString());
             assertEquals(playerId.toString(), selection.get("updatedBy").getAsString());
+        } finally { server.stop(0); }
+    }
+
+    @Test
+    void issuesWebLoginCodeThroughCommonApiWithMinecraftIdentity() throws Exception {
+        UUID playerId = UUID.randomUUID();
+        List<String> requests = new ArrayList<>();
+        Instant expiry = Instant.now().plusSeconds(300);
+        var loginUrl = new AtomicReference<>("https://example.com/Login");
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/web-auth/challenges", exchange -> {
+            requests.add(exchange.getRequestMethod() + " " + exchange.getRequestURI());
+            requests.add(exchange.getRequestHeaders().getFirst("X-Api-Key"));
+            requests.add(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            byte[] bytes = """
+                {"loginCode":"ABCD-EFGH","expiresAt":"%s","loginUrl":"%s"}
+                """.formatted(expiry, loginUrl.get()).getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(201, bytes.length);
+            try (OutputStream output = exchange.getResponseBody()) { output.write(bytes); }
+        });
+        server.start();
+        try {
+            YamlConfiguration config = new YamlConfiguration();
+            config.set("api.baseUrl", "http://127.0.0.1:" + server.getAddress().getPort());
+            config.set("api.apiKey", "test-key");
+            var api = new LobbyApiClient(config);
+            var issued = api.issueWebLoginCode(playerId, "MinecraftName", "lobby");
+
+            assertEquals("POST /api/web-auth/challenges", requests.get(0));
+            assertEquals("test-key", requests.get(1));
+            var request = JsonParser.parseString(requests.get(2)).getAsJsonObject();
+            assertEquals(playerId.toString(), request.get("userUuid").getAsString());
+            assertEquals("MinecraftName", request.get("mcid").getAsString());
+            assertEquals("lobby", request.get("serverId").getAsString());
+            assertTrue(Instant.parse(request.get("requestedAt").getAsString()).isBefore(expiry));
+            assertEquals("ABCD-EFGH", issued.code());
+            assertEquals(expiry, issued.expiresAt());
+            assertEquals("https://example.com/Login", issued.loginUrl().toString());
+            loginUrl.set("http://example.com/Login");
+            assertThrows(IllegalStateException.class, () -> api.issueWebLoginCode(playerId, "MinecraftName", "lobby"));
         } finally { server.stop(0); }
     }
 

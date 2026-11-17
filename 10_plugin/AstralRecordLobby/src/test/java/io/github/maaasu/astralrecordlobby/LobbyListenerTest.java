@@ -42,7 +42,7 @@ class LobbyListenerTest {
     void sendsRaycastOperationOnlyToFrontmostNpc() {
         AstralRecordLobbyPlugin plugin = mock(AstralRecordLobbyPlugin.class);
         ServerSelector selector = mock(ServerSelector.class);
-        AccountCreator creator = mock(AccountCreator.class);
+        WebLoginDesk creator = mock(WebLoginDesk.class);
         Player player = mock(Player.class);
         World world = mock(World.class);
         Entity accountNpc = mock(Entity.class);
@@ -60,7 +60,7 @@ class LobbyListenerTest {
 
         listener.onInteract(event);
 
-        verify(creator).create(player);
+        verify(creator).requestLoginCode(player);
         verify(selector, never()).open(player);
     }
 
@@ -68,7 +68,7 @@ class LobbyListenerTest {
     void ignoresOffhandNpcInteraction() {
         AstralRecordLobbyPlugin plugin = mock(AstralRecordLobbyPlugin.class);
         ServerSelector selector = mock(ServerSelector.class);
-        AccountCreator creator = mock(AccountCreator.class);
+        WebLoginDesk creator = mock(WebLoginDesk.class);
         Player player = mock(Player.class);
         Entity npc = mock(Entity.class);
         LobbyListener listener = new LobbyListener(plugin, selector, creator);
@@ -91,7 +91,7 @@ class LobbyListenerTest {
         when(api.getAdmission(playerId)).thenReturn(
             new LobbyApiClient.Admission(false, 0, "player_editing", null, null));
 
-        new LobbyListener(plugin, mock(ServerSelector.class), mock(AccountCreator.class)).onPreLogin(event);
+        new LobbyListener(plugin, mock(ServerSelector.class), mock(WebLoginDesk.class)).onPreLogin(event);
 
         verify(event).disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,
             "管理者によるプレイヤー情報の編集が行われているため参加できません。管理者にお問い合わせください。");
@@ -106,7 +106,7 @@ class LobbyListenerTest {
         when(event.getUniqueId()).thenReturn(playerId);
         when(event.getLoginResult()).thenReturn(AsyncPlayerPreLoginEvent.Result.KICK_OTHER);
 
-        new LobbyListener(plugin, mock(ServerSelector.class), mock(AccountCreator.class)).onPreLoginComplete(event);
+        new LobbyListener(plugin, mock(ServerSelector.class), mock(WebLoginDesk.class)).onPreLoginComplete(event);
 
         verify(plugin).finishLogin(event);
         verify(plugin).clearPermission(playerId);
@@ -156,7 +156,7 @@ class LobbyListenerTest {
         when(player.teleport(any(Location.class), eq(PlayerTeleportEvent.TeleportCause.PLUGIN))).thenReturn(false);
         when(world.getMinHeight()).thenReturn(-64);
         when(world.getSpawnLocation()).thenReturn(spawn);
-        LobbyListener listener = new LobbyListener(plugin, selector, mock(AccountCreator.class));
+        LobbyListener listener = new LobbyListener(plugin, selector, mock(WebLoginDesk.class));
         PlayerMoveEvent first = moveEvent(player, world, -65.0);
         PlayerMoveEvent duplicate = moveEvent(player, world, -66.0);
 
@@ -192,7 +192,7 @@ class LobbyListenerTest {
         when(plugin.isAdmin(player)).thenReturn(true);
         when(player.getWorld()).thenReturn(world);
         when(world.getMinHeight()).thenReturn(-64);
-        LobbyListener listener = new LobbyListener(plugin, selector, mock(AccountCreator.class));
+        LobbyListener listener = new LobbyListener(plugin, selector, mock(WebLoginDesk.class));
         PlayerMoveEvent event = moveEvent(player, world, -65.0);
 
         listener.onMove(event);
@@ -213,7 +213,7 @@ class LobbyListenerTest {
         Player regularPlayer = mock(Player.class);
         Player administrator = mock(Player.class);
         when(plugin.isAdmin(administrator)).thenReturn(true);
-        LobbyListener listener = new LobbyListener(plugin, selector, mock(AccountCreator.class));
+        LobbyListener listener = new LobbyListener(plugin, selector, mock(WebLoginDesk.class));
         FoodLevelChangeEvent regularEvent = new FoodLevelChangeEvent(regularPlayer, 14);
         FoodLevelChangeEvent administratorEvent = new FoodLevelChangeEvent(administrator, 12);
 
@@ -242,7 +242,7 @@ class LobbyListenerTest {
         Player player = mock(Player.class);
         EntityExhaustionEvent event = mock(EntityExhaustionEvent.class);
         when(event.getEntity()).thenReturn(player);
-        LobbyListener listener = new LobbyListener(plugin, selector, mock(AccountCreator.class));
+        LobbyListener listener = new LobbyListener(plugin, selector, mock(WebLoginDesk.class));
 
         listener.onExhaustion(event);
 

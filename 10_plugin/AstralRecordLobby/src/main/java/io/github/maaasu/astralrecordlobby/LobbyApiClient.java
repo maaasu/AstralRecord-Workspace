@@ -15,6 +15,7 @@ import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.time.Instant;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -102,6 +103,27 @@ final class LobbyApiClient {
         body.addProperty("updatedBy", playerId.toString());
         send("PUT", "/api/user/" + playerId, body.toString());
     }
+
+    /** RPGと同じAPIで、接続中のMinecraft本人に対する一回限りのコードを発行します。 */
+    WebLoginCode issueWebLoginCode(UUID playerId, String minecraftName, String serverId) {
+        JsonObject body = new JsonObject();
+        body.addProperty("userUuid", playerId.toString());
+        body.addProperty("mcid", minecraftName);
+        body.addProperty("serverId", serverId);
+        body.addProperty("requestedAt", Instant.now().toString());
+
+        JsonObject response = gson.fromJson(send("POST", "/api/web-auth/challenges", body.toString()), JsonObject.class);
+        String code = response.get("loginCode").getAsString();
+        Instant expiresAt = Instant.parse(response.get("expiresAt").getAsString());
+        URI url = URI.create(response.get("loginUrl").getAsString());
+        if (code.isBlank() || !expiresAt.isAfter(Instant.now()) || url.getHost() == null
+            || !"https".equalsIgnoreCase(url.getScheme())) {
+            throw new IllegalStateException("Invalid web login challenge response");
+        }
+        return new WebLoginCode(code, expiresAt, url);
+    }
+
+    record WebLoginCode(String code, Instant expiresAt, URI loginUrl) {}
 
     /** Register this Lobby boot as a participant in player edit drains. */
     void registerRuntimeServer(String serverId, UUID serverSessionId) {
