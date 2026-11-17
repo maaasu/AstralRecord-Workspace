@@ -1,5 +1,6 @@
 package io.github.maaasu.astralrecordlobby;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Server;
@@ -14,6 +15,8 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.List;
 import java.util.UUID;
@@ -23,6 +26,18 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class LobbyNpcTest {
+    @ParameterizedTest
+    @CsvSource({"アカウント作成, Webログイン受付", "特設窓口, 特設窓口"})
+    void updatesLegacyNameAndRespectsCustomNameInExistingLobbyConfiguration(String saved, String displayed) {
+        Fixture f = new Fixture();
+        f.config.set("accountCreator.npc.enabled", true);
+        f.config.set("accountCreator.npc.name", saved);
+
+        new WebLoginDesk(f.plugin).start();
+
+        verify(f.living).customName(Component.text(displayed));
+    }
+
     @Test
     void loadsTargetChunkBeforeCleanupAndSpawnsOneUnsavedImmobileNpc() {
         Fixture f = new Fixture();

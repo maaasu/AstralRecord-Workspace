@@ -5,7 +5,7 @@
     <div class="ar-panel">
         <h1>Minecraftで本人確認</h1>
         <p>設定の有効化・パスワードの再設定、管理画面の利用には本人確認が必要です。</p>
-        <p>現在ログインしている <strong>@User.Identity?.Name</strong> のMinecraftアカウントで <code>/web login</code> を実行してください。確認は5分間有効です。</p>
+        <p>現在ログインしている <strong>@User.Identity?.Name</strong> のMinecraftアカウントで、ロビーの「Webログイン受付」をクリックするか、RPGチャンネルで <code>/web login</code> を実行してください。確認は5分間有効です。</p>
         <form method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
             <input type="hidden" asp-for="ReturnUrl" />
