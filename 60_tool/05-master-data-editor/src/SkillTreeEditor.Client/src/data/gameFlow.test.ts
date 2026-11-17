@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  addNode, addShopPurchases, canConnect, connect, gameFlowOutline, parseGameFlow, refKind, removeNodes,
+  addNode, addShopPurchases, applySuggestions, canConnect, freeSlot, suggestFor, connect, gameFlowOutline, parseGameFlow, refKind, removeNodes,
   serializeGameFlow, uniqueNodeId, visibleFlow, type GameFlowContext,
 } from './gameFlow'
 
@@ -103,5 +103,55 @@ describe('game flow', () => {
     expect(text).toContain('- shop: [ショップ] 武器職人 (sh:weapon_craftsman_shop) — 交換')
     expect(text).toContain('- 武器職人 → エリヴァショートボウ（購入）')
     expect(text).not.toContain('エリヴァソード')
+  })
+})
+
+describe('game flow suggestions', () => {
+  const context: GameFlowContext = {
+    shops: [], itemClasses: { bow: ['hunter'] },
+    links: [
+      { from: 'world:field', to: 'dungeon:cave', label: '入場' },
+      { from: 'dungeon:cave', to: 'mob:boar', label: '出現' },
+      { from: 'dungeon:cave', to: 'mob:king', label: 'ボス' },
+      { from: 'mob:boar', to: 'item:pelt', label: 'ドロップ' },
+      { from: 'mob:boar', to: 'item:bow', label: 'ドロップ' },
+      { from: 'item:pelt', to: 'shop:weapon', label: '素材' },
+    ],
+  }
+  const flow = parseGameFlow({ id: 'f', name: 'f', nodes: [
+    { id: 'cave', ref: 'dn:cave', x: 0, y: 0 },
+    { id: 'boar', ref: 'mob:boar', x: 300, y: 0 },
+  ], edges: [{ from: 'cave', to: 'boar', label: '出現' }] })
+  const aliases = { ...prefixes, dn: 'dungeon', mob: 'mob', world: 'world' }
+
+  it('suggests next and previous masters and skips existing connections', () => {
+    const result = suggestFor(flow, 'cave', context, aliases)
+    expect(result.next.map(entry => entry.ref)).toEqual(['mob:king'])
+    expect(result.previous).toEqual([{ ref: 'world:field', label: '入場', direction: 'previous', existingNodeId: undefined }])
+    expect(suggestFor(flow, 'boar', context, aliases).next.map(entry => `${entry.ref} ${entry.label}`)).toEqual(['item:pelt ドロップ', 'item:bow ドロップ'])
+  })
+
+  it('places suggestions beside the node without overlap and links existing nodes', () => {
+    const withBow = { ...flow, nodes: [...flow.nodes, { id: 'bow', ref: 'item:bow', classes: [], x: 900, y: 500, rest: {} }] }
+    const { next } = suggestFor(withBow, 'boar', context, aliases)
+    expect(next.find(entry => entry.ref === 'item:bow')?.existingNodeId).toBe('bow')
+    const applied = applySuggestions(withBow, 'boar', next, context)
+    const pelt = applied.nodes.find(node => node.ref === 'item:pelt')!
+    expect([pelt.x, pelt.y]).toEqual([600, 0])
+    expect(applied.nodes).toHaveLength(4)
+    expect(applied.edges.slice(1).map(edge => `${edge.from}->${edge.to} ${edge.label}`)).toEqual(['boar->pelt ドロップ', 'boar->bow ドロップ'])
+  })
+
+  it('places previous suggestions on the left and gives items their equipment classes', () => {
+    const applied = applySuggestions(flow, 'cave', suggestFor(flow, 'cave', context, aliases).previous, context, ['class:mage'])
+    expect(applied.nodes.at(-1)).toMatchObject({ ref: 'world:field', x: -300, y: 0, classes: ['class:mage'] })
+    expect(applied.edges.at(-1)).toMatchObject({ from: 'field', to: 'cave', label: '入場' })
+    const bow = applySuggestions(flow, 'boar', [{ ref: 'item:bow', label: 'ドロップ', direction: 'next' }], context, ['class:mage'])
+    expect(bow.nodes.at(-1)?.classes).toEqual(['class:hunter'])
+  })
+
+  it('finds a free slot by alternating below and above', () => {
+    const crowded = parseGameFlow({ id: 'f', name: 'f', nodes: [{ id: 'a', label: 'a', x: 0, y: 0 }, { id: 'b', label: 'b', x: 0, y: 110 }], edges: [] })
+    expect(freeSlot(crowded, 0, 0)).toEqual({ x: 0, y: -110 })
   })
 })

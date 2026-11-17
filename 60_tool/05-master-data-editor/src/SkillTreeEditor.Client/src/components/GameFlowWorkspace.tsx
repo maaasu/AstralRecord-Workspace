@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  Background, BackgroundVariant, Controls, Handle, MarkerType, MiniMap, Position, ReactFlow, ReactFlowProvider,
+  Background, BackgroundVariant, Controls, Handle, MarkerType, MiniMap, Panel, Position, ReactFlow, ReactFlowProvider,
   applyEdgeChanges, applyNodeChanges, useReactFlow,
   type Connection, type Edge, type EdgeChange, type Node, type NodeChange, type NodeProps,
 } from '@xyflow/react'
@@ -10,10 +10,10 @@ import { ApiError } from '../api/editorApi'
 import { gameFlowApi } from '../api/gameFlowApi'
 import { masterDataApi } from '../api/masterDataApi'
 import {
-  addNode, addShopPurchases, addableKinds, connect, edgeKey, edgeLabelSuggestions, emptyGameFlow, flowIdPattern,
+  addNode, addShopPurchases, addableKinds, applySuggestions, connect, edgeKey, edgeLabelSuggestions, emptyGameFlow, flowIdPattern,
   gameFlowCategory, gameFlowOutline, gameFlowPath, kindLabels, parseGameFlow, refId, refKind, removeNodes,
-  serializeGameFlow, suggestedClasses, visibleFlow,
-  type GameFlow, type GameFlowContext, type GameFlowEdge, type GameFlowNode,
+  serializeGameFlow, suggestFor, suggestedClasses, suggestionBatchSize, visibleFlow,
+  type FlowSuggestion, type GameFlow, type GameFlowContext, type GameFlowEdge, type GameFlowNode,
 } from '../data/gameFlow'
 import { usePanelDocument } from '../docking/dockPanel'
 import type { ValidationIssue } from '../types/editor'
@@ -45,17 +45,23 @@ interface FlowNodeData extends Record<string, unknown> {
   note?: string
   dimmed: boolean
   missing: boolean
+  /** 未確定の候補として表示する場合の、つながりの種類（ドロップ・出現など）。 */
+  suggestion?: string
 }
+
+const ghostPrefix = 'ghost:'
 
 const errorMessage = (reason: unknown) => reason instanceof Error ? reason.message : String(reason)
 const plain = (value: string) => stripMinecraftFormatting(value).trim()
 
 const FlowNodeView = memo(function FlowNodeView({ data, selected }: NodeProps<Node<FlowNodeData>>) {
-  return <div className={`game-flow-node${selected ? ' selected' : ''}${data.dimmed ? ' dimmed' : ''}${data.missing ? ' missing' : ''}`} data-kind={data.kind}>
+  return <div className={`game-flow-node${selected ? ' selected' : ''}${data.dimmed ? ' dimmed' : ''}${data.missing ? ' missing' : ''}${data.suggestion ? ' ghost' : ''}`}
+    data-kind={data.kind} title={data.suggestion ? 'クリックでこの候補を配置' : undefined}>
     <Handle type="target" position={Position.Left} />
     <div className="game-flow-node-head">
       {data.kind === 'note' ? <span className="game-flow-node-symbol" aria-hidden="true">✎</span> : <ReferenceIcon file={data.file} kind={data.kind} />}
       <span className="game-flow-node-kind">{kindLabels[data.kind] ?? data.kind}</span>
+      {data.suggestion && <span className="game-flow-ghost-badge">＋ {data.suggestion}</span>}
     </div>
     <strong className="game-flow-node-name"><MinecraftText value={data.name} /></strong>
     {data.missing && <small className="game-flow-node-warning">参照先が見つかりません</small>}
@@ -99,6 +105,9 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   const [picker, setPicker] = useState<PickerRequest | null>(null)
   const [shopDialog, setShopDialog] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
+  /** 候補（ゲースト）を表示するか。Esc で、そのノードを選び直すまで隠す。 */
+  const [suggestOn, setSuggestOn] = useState(true)
+  const [suggestHiddenFor, setSuggestHiddenFor] = useState<string | null>(null)
   const [yaml, setYaml] = useState('')
 
   const fileByPath = useMemo(() => new Map(files.map(file => [file.path, file])), [files])
@@ -248,6 +257,63 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     return derivedNodes.map(node => measured.get(node.id) ? { ...node, measured: measured.get(node.id) } : node)
   }), [derivedNodes])
   useEffect(() => setEdges(derivedEdges), [derivedEdges])
+
+  // ---- 次に置くノードの候補（ゴースト表示・Tab で確定） ----
+  const suggestionNodeId = selection?.type === 'node' && suggestOn && suggestHiddenFor !== selection.id ? selection.id : null
+  const suggestions = useMemo(() => flow && suggestionNodeId ? suggestFor(flow, suggestionNodeId, context, prefixes) : null,
+    [context, flow, prefixes, suggestionNodeId])
+  const newNodeClasses = useMemo(() => classFilter ? [classFilter] : [], [classFilter])
+  const ghosts = useMemo(() => {
+    if (!flow || !suggestionNodeId || !suggestions) return null
+    const batch = [...suggestions.next.slice(0, suggestionBatchSize), ...suggestions.previous.slice(0, suggestionBatchSize)]
+    if (!batch.length) return null
+    const preview = applySuggestions(flow, suggestionNodeId, batch, context, newNodeClasses)
+    const byGhostId = new Map<string, FlowSuggestion>()
+    const nodeIds = new Map<string, string>()
+    const ghostNodes: Node<FlowNodeData>[] = preview.nodes.slice(flow.nodes.length).flatMap(node => {
+      const suggestion = batch.find(entry => entry.ref === node.ref)
+      if (!suggestion) return []
+      const id = `${ghostPrefix}${suggestion.direction}:${suggestion.ref}`
+      byGhostId.set(id, suggestion)
+      nodeIds.set(node.id, id)
+      const resolved = resolve(suggestion.ref)
+      return [{
+        id, type: 'flow', position: { x: node.x, y: node.y }, draggable: false, selectable: false, connectable: false, focusable: false,
+        data: {
+          name: resolved?.name ?? suggestion.ref, kind: refKind(suggestion.ref, prefixes), file: resolved?.file,
+          classNames: node.classes.map(className), dimmed: false, missing: !resolved, suggestion: suggestion.label,
+        },
+      }]
+    })
+    const ghostEdges: Edge[] = preview.edges.slice(flow.edges.length).map(edge => {
+      const id = ghostPrefix + edgeKey(edge)
+      const other = edge.from === suggestionNodeId ? edge.to : edge.from
+      const suggestion = byGhostId.get(nodeIds.get(other) ?? '') ?? batch.find(entry => entry.existingNodeId === other)
+      if (suggestion) byGhostId.set(id, suggestion)
+      return {
+        id, source: nodeIds.get(edge.from) ?? edge.from, target: nodeIds.get(edge.to) ?? edge.to, label: edge.label,
+        className: 'ghost', animated: true, selectable: false, focusable: false,
+        markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 }, labelBgPadding: [6, 3] as [number, number], labelBgBorderRadius: 4,
+      }
+    })
+    return { nodes: ghostNodes, edges: ghostEdges, byGhostId }
+  }, [className, context, flow, newNodeClasses, prefixes, resolve, suggestionNodeId, suggestions])
+  /** 候補を配置し、ズームはそのままで配置したノードが見える位置へ寄せる。 */
+  const placeSuggestions = (nodeId: string, list: readonly FlowSuggestion[]) => {
+    const before = current.current
+    if (!before || !list.length) return
+    const after = applySuggestions(before, nodeId, list, context, newNodeClasses)
+    update(() => after)
+    const targets = new Set([nodeId, ...after.nodes.slice(before.nodes.length).map(node => node.id),
+      ...list.map(entry => entry.existingNodeId).filter((id): id is string => Boolean(id))])
+    requestAnimationFrame(() => void flowApi.fitView({
+      nodes: [...targets].map(id => ({ id })), padding: .3, maxZoom: flowApi.getZoom(), duration: 250,
+    }))
+  }
+  const acceptSuggestions = (list: readonly FlowSuggestion[]) => { if (suggestionNodeId) placeSuggestions(suggestionNodeId, list) }
+  const displayNodes = useMemo(() => ghosts ? [...nodes, ...ghosts.nodes] : nodes, [ghosts, nodes])
+  const displayEdges = useMemo(() => ghosts ? [...edges, ...ghosts.edges] : edges, [ghosts, edges])
+
   const onNodesChange = useCallback((changes: NodeChange<Node<FlowNodeData>>[]) =>
     setNodes(current => applyNodeChanges(changes.filter(change => change.type !== 'remove'), current)), [])
   const onEdgesChange = useCallback((changes: EdgeChange[]) =>
@@ -438,6 +504,9 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
             {([['graph', '図'], ['text', 'テキスト'], ['yaml', 'YAML']] as const).map(([id, label]) =>
               <button key={id} type="button" role="tab" aria-selected={view === id} className="button compact" onClick={() => setView(id)}>{label}</button>)}
           </div>
+          <button type="button" className="button compact" aria-pressed={suggestOn} disabled={!flow}
+            title="選んだノードから、次に置くマスター（ドロップ・出現モブなど）を候補として表示します"
+            onClick={() => { setSuggestOn(value => !value); setSuggestHiddenFor(null) }}>候補 {suggestOn ? 'ON' : 'OFF'}</button>
           <button type="button" className="button compact" disabled={!past.length} title="Ctrl+Z" onClick={undo}>元に戻す</button>
           <button type="button" className="button compact" disabled={!future.length} title="Ctrl+Y" onClick={redo}>やり直す</button>
           <button type="button" className="button compact" disabled={busy || loading} onClick={() => void reloadAll()}>再読込</button>
@@ -459,17 +528,40 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
           deleteSelection()
           return
         }
+        // Tab: 次の候補を配置 / Shift+Tab: 前（入手元）の候補を配置 / Esc: 候補を隠す
+        if (event.key === 'Tab' && !event.ctrlKey && !event.metaKey && !event.altKey && suggestions) {
+          const list = (event.shiftKey ? suggestions.previous : suggestions.next).slice(0, suggestionBatchSize)
+          if (list.length) { event.preventDefault(); acceptSuggestions(list) }
+          return
+        }
+        if (event.key === 'Escape' && ghosts && suggestionNodeId) { event.preventDefault(); setSuggestHiddenFor(suggestionNodeId); return }
         if (!(event.ctrlKey || event.metaKey)) return
         if (event.key === 'z') { event.preventDefault(); undo() }
         if (event.key === 'y') { event.preventDefault(); redo() }
       }}>
-        {flow ? <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+        {flow ? <ReactFlow nodes={displayNodes} edges={displayEdges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
           onNodeDragStop={onNodeDragStop} onConnect={onConnect} deleteKeyCode={null}
-          onNodeClick={(_, node) => setSelection({ type: 'node', id: node.id })} onEdgeClick={(_, edge) => setSelection({ type: 'edge', key: edge.id })}
+          onNodeClick={(_, node) => {
+            const suggestion = ghosts?.byGhostId.get(node.id)
+            if (suggestion) acceptSuggestions([suggestion])
+            else if (!node.id.startsWith(ghostPrefix)) { setSelection({ type: 'node', id: node.id }); setSuggestHiddenFor(null) }
+          }}
+          onEdgeClick={(_, edge) => {
+            const suggestion = ghosts?.byGhostId.get(edge.id)
+            if (suggestion) acceptSuggestions([suggestion])
+            else if (!edge.id.startsWith(ghostPrefix)) setSelection({ type: 'edge', key: edge.id })
+          }}
           onPaneClick={() => setSelection(null)} minZoom={.1} maxZoom={2} snapToGrid snapGrid={[10, 10]} fitView proOptions={{ hideAttribution: true }}>
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
           <Controls showInteractive={false} />
           <MiniMap pannable zoomable />
+          {suggestions && (suggestions.next.length > 0 || suggestions.previous.length > 0) && <Panel position="top-center" className="game-flow-hint">
+            {ghosts ? <>
+              {suggestions.next.length > 0 && <span><kbd>Tab</kbd> 次の候補 {Math.min(suggestions.next.length, suggestionBatchSize)} 件を配置</span>}
+              {suggestions.previous.length > 0 && <span><kbd>Shift</kbd>+<kbd>Tab</kbd> 入手元・前 {Math.min(suggestions.previous.length, suggestionBatchSize)} 件</span>}
+              <span>候補をクリックで1件ずつ</span><span><kbd>Esc</kbd> 隠す</span>
+            </> : <button type="button" className="button compact subtle" onClick={() => setSuggestHiddenFor(null)}>候補を表示</button>}
+          </Panel>}
         </ReactFlow> : <div className="game-flow-empty">{loading ? '読み込んでいます…' : '左の一覧からフローを開くか、新規作成してください。'}</div>}
       </div>
       {view === 'text' && <div className="game-flow-text">
@@ -490,6 +582,8 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
         classes={flowClasses} context={context} flow={flow} resolveName={resolveName}
         onChange={change => changeNode(selectedNode.id, change)} onPick={kind => setPicker({ kind, replace: selectedNode.id })}
         onOpenMaster={onOpenMaster} onShopItems={() => setShopDialog(selectedNode.id)}
+        suggestions={suggestOn && selectedNode.ref ? suggestFor(flow, selectedNode.id, context, prefixes) : null}
+        resolve={resolve} prefixes={prefixes} onAccept={list => placeSuggestions(selectedNode.id, list)}
         onDelete={() => { update(current => removeNodes(current, new Set([selectedNode.id]))); setSelection(null) }} />}
       {flow && selectedEdge && <EdgeProperties edge={selectedEdge} flow={flow} nodeName={nodeName} classes={flowClasses}
         onChange={change => changeEdge(edgeKey(selectedEdge), change)}
@@ -552,11 +646,37 @@ function FlowProperties({ flow, classes, onChange }: {
   </section>
 }
 
-function NodeProperties({ node, kind, resolved, classes, context, flow, resolveName, onChange, onPick, onOpenMaster, onShopItems, onDelete }: {
+function SuggestionList({ title, items, resolve, prefixes, onAccept }: {
+  title: string; items: FlowSuggestion[]; resolve: (ref: string) => ResolvedRef | undefined
+  prefixes: Readonly<Record<string, string>>; onAccept: (list: FlowSuggestion[]) => void
+}) {
+  if (!items.length) return null
+  return <div className="game-flow-suggestions">
+    <div className="game-flow-suggestions-head"><strong>{title}（{items.length}）</strong>
+      <button type="button" className="button compact" onClick={() => onAccept(items)}>すべて配置</button></div>
+    <ul>{items.map(item => {
+      const resolved = resolve(item.ref)
+      const kind = refKind(item.ref, prefixes)
+      return <li key={item.direction + item.ref}>
+        <button type="button" className="game-flow-suggestion" title={item.existingNodeId ? '配置済みのノードへ矢印をつなぎます' : 'ノードを配置して矢印でつなぎます'} onClick={() => onAccept([item])}>
+          <ReferenceIcon file={resolved?.file} kind={kind} />
+          <MinecraftText value={resolved?.name ?? item.ref} />
+          <small>{item.label}{item.existingNodeId ? '・接続のみ' : ''}</small>
+        </button>
+      </li>
+    })}</ul>
+  </div>
+}
+
+function NodeProperties({ node, kind, resolved, classes, context, flow, resolveName, onChange, onPick, onOpenMaster, onShopItems, onDelete,
+  suggestions, resolve, prefixes, onAccept }: {
   node: GameFlowNode; kind: string; resolved?: ResolvedRef; classes: { ref: string; name: string }[]
   context: GameFlowContext | null; flow: GameFlow; resolveName: (ref: string) => string | undefined
   onChange: (change: Partial<GameFlowNode>) => void; onPick: (kind: string) => void; onOpenMaster: (path: string) => void
   onShopItems: () => void; onDelete: () => void
+  suggestions: { next: FlowSuggestion[]; previous: FlowSuggestion[] } | null
+  resolve: (ref: string) => ResolvedRef | undefined; prefixes: Readonly<Record<string, string>>
+  onAccept: (list: FlowSuggestion[]) => void
 }) {
   const shop = kind === 'shop' ? context?.shops.find(entry => entry.id === refId(node.ref)) : undefined
   const outgoing = flow.edges.filter(edge => edge.from === node.id)
@@ -584,6 +704,10 @@ function NodeProperties({ node, kind, resolved, classes, context, flow, resolveN
       <button type="button" className="button compact primary" disabled={!shop?.items.length} onClick={onShopItems}>商品を購入アイテムとして追加…</button>
       {shop && <small className="game-flow-muted">商品 {shop.items.length} 件</small>}
     </div>}
+    {suggestions && <>
+      <SuggestionList title="次に置く候補" items={suggestions.next} resolve={resolve} prefixes={prefixes} onAccept={onAccept} />
+      <SuggestionList title="入手元・前の候補" items={suggestions.previous} resolve={resolve} prefixes={prefixes} onAccept={onAccept} />
+    </>}
     <p className="game-flow-muted">入る矢印 {incoming.length} 本 / 出る矢印 {outgoing.length} 本</p>
     <button type="button" className="button compact danger subtle" onClick={onDelete}>ノードを削除</button>
   </section>

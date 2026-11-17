@@ -37,9 +37,17 @@ export interface GameFlow {
   rest: JsonObject
 }
 
+export interface GameFlowLink {
+  /** `kind:id`（config.yml の正規の接頭辞）。矢印と同じ向き。 */
+  from: string
+  to: string
+  label: string
+}
+
 export interface GameFlowContext {
   shops: { id: string; path: string; items: string[] }[]
   itemClasses: Record<string, string[]>
+  links?: GameFlowLink[]
 }
 
 export const edgeLabelSuggestions = ['ドロップ', '素材', '購入', '交換', '挑戦', 'クリア報酬', '解放', '転職', '移動']
@@ -246,4 +254,98 @@ export function gameFlowOutline(flow: GameFlow, resolve: FlowNameResolver, optio
     lines.push(`- ${from ? nodeName(from) : edge.from} → ${to ? nodeName(to) : edge.to}${label}${classes(edge.classes)}${note}`)
   })
   return lines.join('\n') + '\n'
+}
+
+// ---- 次に置くノードの候補（予測） ----
+
+export type SuggestionDirection = 'next' | 'previous'
+
+export interface FlowSuggestion {
+  /** 置く・つなぐ相手の参照（正規の接頭辞）。 */
+  ref: string
+  label: string
+  direction: SuggestionDirection
+  /** 同じマスターのノードが既にあれば、そのノードへ矢印だけをつなぐ。 */
+  existingNodeId?: string
+}
+
+/** 1回の Tab で配置する候補の上限。 */
+export const suggestionBatchSize = 8
+
+const lowPriorityKinds = new Set(['mob_spawner', 'gathering_spawner', 'loot_table', 'loot_pool'])
+
+export const canonicalRef = (ref: string | undefined, prefixes?: Readonly<Record<string, string>> | null) =>
+  ref ? `${refKind(ref, prefixes)}:${refId(ref)}` : ''
+
+/**
+ * 選択中のノードから、マスター同士のつながりをもとに次（右）と前（左）に置く候補を作る。
+ * 既に同じ向きの矢印でつながっている相手は除く。
+ */
+export function suggestFor(flow: GameFlow, nodeId: string, context: GameFlowContext | null,
+  prefixes?: Readonly<Record<string, string>> | null): { next: FlowSuggestion[]; previous: FlowSuggestion[] } {
+  const node = flow.nodes.find(entry => entry.id === nodeId)
+  const links = context?.links ?? []
+  if (!node?.ref || !links.length) return { next: [], previous: [] }
+  const self = canonicalRef(node.ref, prefixes)
+  const byRef = new Map<string, string>()
+  for (const entry of flow.nodes) if (entry.ref && !byRef.has(canonicalRef(entry.ref, prefixes))) byRef.set(canonicalRef(entry.ref, prefixes), entry.id)
+  const connected = (from: string, to: string) => flow.edges.some(edge => edge.from === from && edge.to === to)
+  const next: FlowSuggestion[] = []
+  const previous: FlowSuggestion[] = []
+  const seen = new Set<string>()
+  for (const link of links) {
+    const direction: SuggestionDirection | null = link.from === self ? 'next' : link.to === self ? 'previous' : null
+    if (!direction) continue
+    const ref = direction === 'next' ? link.to : link.from
+    if (ref === self || seen.has(direction + ref)) continue
+    seen.add(direction + ref)
+    const existingNodeId = byRef.get(ref)
+    if (existingNodeId && (direction === 'next' ? connected(node.id, existingNodeId) : connected(existingNodeId, node.id))) continue
+    ;(direction === 'next' ? next : previous).push({ ref, label: link.label, direction, existingNodeId })
+  }
+  // 進行の節目になるマスター（ダンジョン・ワールド・ショップなど）を、スポナーやルート定義より先に並べる。
+  const rank = (suggestion: FlowSuggestion) => lowPriorityKinds.has(suggestion.ref.slice(0, suggestion.ref.indexOf(':'))) ? 1 : 0
+  const ordered = (list: FlowSuggestion[]) => list.map((entry, index) => ({ entry, index }))
+    .sort((left, right) => rank(left.entry) - rank(right.entry) || left.index - right.index).map(({ entry }) => entry)
+  return { next: ordered(next), previous: ordered(previous) }
+}
+
+const occupied = (flow: GameFlow, x: number, y: number) =>
+  flow.nodes.some(node => Math.abs(node.x - x) < 240 && Math.abs(node.y - y) < 100)
+
+/** 基準の行から上下交互に、他のノードと重ならない位置を探す。 */
+export function freeSlot(flow: GameFlow, x: number, y: number) {
+  for (let step = 0; step < 200; step++) {
+    const offset = step === 0 ? 0 : Math.ceil(step / 2) * 110 * (step % 2 ? 1 : -1)
+    if (!occupied(flow, x, y + offset)) return { x, y: y + offset }
+  }
+  return { x, y }
+}
+
+/**
+ * 候補を配置する。新しいノードは選択中ノードの右（次）または左（前）の空き位置に置き、
+ * 候補のラベルで矢印をつなぐ。アイテムには装備条件の職業を初期値として付ける。
+ */
+export function applySuggestions(flow: GameFlow, nodeId: string, suggestions: readonly FlowSuggestion[],
+  context: GameFlowContext | null, classes: string[] = []): GameFlow {
+  const anchor = flow.nodes.find(node => node.id === nodeId)
+  if (!anchor) return flow
+  let next = flow
+  for (const suggestion of suggestions) {
+    let target = suggestion.existingNodeId && next.nodes.some(node => node.id === suggestion.existingNodeId) ? suggestion.existingNodeId : undefined
+    if (!target) {
+      const position = freeSlot(next, anchor.x + (suggestion.direction === 'next' ? 300 : -300), anchor.y)
+      const kind = suggestion.ref.slice(0, suggestion.ref.indexOf(':'))
+      const added = addNode(next, {
+        ref: suggestion.ref, ...position,
+        classes: kind === 'item' ? suggestedClasses(context, refId(suggestion.ref)) : [...classes],
+      })
+      next = added.flow
+      target = added.id
+    }
+    next = suggestion.direction === 'next'
+      ? connect(next, nodeId, target, suggestion.label)
+      : connect(next, target, nodeId, suggestion.label)
+  }
+  return next
 }

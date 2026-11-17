@@ -114,10 +114,64 @@ public sealed class GameFlowTests : IDisposable
         Assert.Contains(category.Fields, field => field.Path == "/nodes/*/ref");
     }
 
+    private GameFlowService CreateService()
+    {
+        var cache = new FilebaseSnapshotCache(_paths, new MasterDataCodec());
+        return new GameFlowService(cache, new ProgressionDesignService(cache, _paths));
+    }
+
+    [Fact]
+    public async Task ContextLinksMastersInFlowDirection()
+    {
+        Write("10.features.item/10.material/v1.pelt.yml", "id: pelt\nname: \"毛皮\"\ncategory: material\n");
+        Write("40.features.mob/enemy/v1.boar.yml", """
+            id: boar
+            name: "イノシシ"
+            drops:
+              items:
+                - { itemId: { ref: item:pelt }, amount: 1, rate: 50 }
+            """);
+        Write("40.features.mob/boss/v1.king.yml", "id: king\nname: \"王\"\n");
+        Write("60.features.world/v1.field.yml", "id: field\ndisplayName: \"草原\"\nrequiredItemId:\n  ref: \"item:pelt\"\n");
+        Write("65.features.dungeon/v1.cave.yml", """
+            id: cave
+            displayName: "洞窟"
+            entry: { worldRef: world:field }
+            encounter:
+              normalMobPool:
+                - { mobId: mob:boar, level: 5 }
+              bossMobId: mob:king
+            clearRewards:
+              items:
+                - { itemId: item:sword, rate: 5, amount: 1 }
+            """);
+        Write("45.features.shop/v1.weapon.yml", """
+            id: weapon
+            items:
+              - itemId: { ref: item:sword }
+                requiredItems:
+                  - { itemId: { ref: item:pelt }, amount: 2 }
+              - itemId: item:bow
+            """);
+
+        var links = (await CreateService().ReadContextAsync(CancellationToken.None)).Links
+            .Select(link => $"{link.From} -> {link.To} {link.Label}").ToArray();
+
+        Assert.Contains("mob:boar -> item:pelt ドロップ", links);
+        Assert.Contains("world:field -> dungeon:cave 入場", links);
+        Assert.Contains("dungeon:cave -> mob:boar 出現", links);
+        Assert.Contains("dungeon:cave -> mob:king ボス", links);
+        Assert.Contains("dungeon:cave -> item:sword クリア報酬", links);
+        Assert.Contains("shop:weapon -> item:sword 購入", links);
+        Assert.Contains("item:pelt -> shop:weapon 素材", links);
+        Assert.Contains("item:pelt -> world:field 入場条件", links);
+        Assert.Equal(links.Length, links.Distinct().Count());
+    }
+
     [Fact]
     public async Task ContextListsShopItemsOnceAndEquipmentClasses()
     {
-        var context = await new GameFlowService(new FilebaseSnapshotCache(_paths, new MasterDataCodec())).ReadContextAsync(CancellationToken.None);
+        var context = await CreateService().ReadContextAsync(CancellationToken.None);
         var shop = Assert.Single(context.Shops);
         Assert.Equal("weapon", shop.Id);
         Assert.Equal(["sword", "bow"], shop.Items);
