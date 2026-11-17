@@ -169,6 +169,33 @@ public sealed class GameFlowTests : IDisposable
     }
 
     [Fact]
+    public async Task RecipeBackedShopMaterialsPointToTheShop()
+    {
+        Write("10.features.item/10.material/v1.gear.yml", "id: gear\nname: \"歯車\"\ncategory: material\n");
+        Write("85.shared.recipe/v1.watch_exchange.yml", """
+            id: watch_exchange
+            type: RECIPE
+            category: SHOP
+            result: { itemId: { ref: item:sword }, amount: 1 }
+            ingredients:
+              - { itemId: { ref: item:gear }, amount: 4 }
+            """);
+        Write("45.features.shop/v1.clock.yml", """
+            id: clock
+            mode: EXCHANGE
+            items:
+              - itemId: { ref: item:sword }
+                recipeId: { ref: recipe:watch_exchange }
+            """);
+
+        var links = (await CreateService().ReadContextAsync(CancellationToken.None)).Links
+            .Select(link => $"{link.From} -> {link.To} {link.Label}").ToArray();
+
+        Assert.Contains("item:gear -> shop:clock 素材", links);
+        Assert.Contains("shop:clock -> item:sword 購入", links);
+    }
+
+    [Fact]
     public async Task ContextListsShopItemsOnceAndEquipmentClasses()
     {
         var context = await CreateService().ReadContextAsync(CancellationToken.None);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  addNode, addShopPurchases, applySuggestions, canConnect, freeSlot, suggestFor, connect, gameFlowOutline, parseGameFlow, refKind, removeNodes,
+  addNode, addShopPurchases, applySuggestions, canConnect, freeSlot, planSuggestions, suggestFor, connect, gameFlowOutline, parseGameFlow, refKind, removeNodes,
   serializeGameFlow, uniqueNodeId, visibleFlow, type GameFlowContext,
 } from './gameFlow'
 
@@ -153,5 +153,24 @@ describe('game flow suggestions', () => {
   it('finds a free slot by alternating below and above', () => {
     const crowded = parseGameFlow({ id: 'f', name: 'f', nodes: [{ id: 'a', label: 'a', x: 0, y: 0 }, { id: 'b', label: 'b', x: 0, y: 110 }], edges: [] })
     expect(freeSlot(crowded, 0, 0)).toEqual({ x: 0, y: -110 })
+  })
+})
+
+describe('suggestion placement plan', () => {
+  const flow = parseGameFlow({ id: 'f', name: 'f', nodes: [{ id: 'sword', ref: 'item:sword', x: 0, y: 0 }], edges: [] })
+
+  it('uses one node when the same master is suggested in both directions', () => {
+    const plan = planSuggestions(flow, 'sword', [
+      { ref: 'shop:weapon', label: '素材', direction: 'next' },
+      { ref: 'shop:weapon', label: '購入', direction: 'previous' },
+    ], null)
+    expect(plan.flow.nodes.map(node => node.id)).toEqual(['sword', 'weapon'])
+    expect(plan.placements.map(entry => [entry.nodeId, entry.added])).toEqual([['weapon', true], ['weapon', false]])
+    expect(plan.flow.edges.map(edge => `${edge.from}->${edge.to}`)).toEqual(['sword->weapon', 'weapon->sword'])
+  })
+
+  it('places a single suggestion at its previewed position', () => {
+    const placed = applySuggestions(flow, 'sword', [{ ref: 'mob:boar', label: '素材', direction: 'next', position: { x: 300, y: -110 } }], null)
+    expect(placed.nodes.at(-1)).toMatchObject({ x: 300, y: -110 })
   })
 })

@@ -12,7 +12,10 @@ public sealed class GameFlowService(FilebaseSnapshotCache snapshots, Progression
     private volatile Latest? _latest;
     private sealed record Latest(FilebaseSnapshot Snapshot, ProgressionDesignCatalog Design, GameFlowContext Context);
 
-    /// <summary>入手元の種類（装備・入手経路の索引の Kind）と、その矢印に付けるラベル。</summary>
+    /// <summary>
+    /// 入手元の種類（装備・入手経路の索引の Kind）と、その矢印に付けるラベル。
+    /// ルートプールはルートテーブル経由と同じアイテムを重ねて出すだけなので候補にしない。
+    /// </summary>
     private static readonly Dictionary<string, string> SourceLabels = new(StringComparer.Ordinal)
     {
         ["mob"] = "ドロップ", ["dungeon"] = "クリア報酬", ["gathering"] = "採集", ["shop"] = "購入",
@@ -22,13 +25,14 @@ public sealed class GameFlowService(FilebaseSnapshotCache snapshots, Progression
     /// <summary>使い道の種類と、アイテムからその使い道への矢印に付けるラベル。</summary>
     private static readonly Dictionary<string, string> UsageLabels = new(StringComparer.Ordinal)
     {
-        ["shop"] = "素材", ["recipe"] = "素材", ["world"] = "入場条件",
+        ["world"] = "入場条件",
     };
 
     public async Task<GameFlowContext> ReadContextAsync(CancellationToken token, bool reload = false)
     {
-        var catalog = await design.ReadAsync(token, reload);
-        var snapshot = await snapshots.GetAsync(token, includeSchemas: false);
+        // 先に走査を更新し、索引は同じ走査結果から作らせる（再読込時のずれを避ける）。
+        var snapshot = await snapshots.GetAsync(token, reload: reload, includeSchemas: false);
+        var catalog = await design.ReadAsync(token);
         if (_latest is { } latest && ReferenceEquals(latest.Snapshot, snapshot) && ReferenceEquals(latest.Design, catalog))
             return latest.Context;
         var context = Build(snapshot, catalog, token);
@@ -101,8 +105,14 @@ public sealed class GameFlowService(FilebaseSnapshotCache snapshots, Progression
         if (catalog is not null)
         {
             foreach (var source in catalog.Sources)
+            {
                 if (SourceLabels.TryGetValue(source.Kind, out var label))
                     Link(refs.GetValueOrDefault(source.Path), "item:" + source.ItemId, label);
+                // 素材は入手元（ショップ・レシピ）単位でつなぐ。レシピを使うショップの素材もショップへ向ける。
+                if (source.Kind is "shop" or "recipe")
+                    foreach (var ingredient in source.Ingredients)
+                        Link("item:" + ingredient.ItemId, refs.GetValueOrDefault(source.Path), "素材");
+            }
             foreach (var usage in catalog.Usages)
                 if (UsageLabels.TryGetValue(usage.Kind, out var label))
                     Link("item:" + usage.ItemId, refs.GetValueOrDefault(usage.Path), label);

@@ -267,6 +267,15 @@ export interface FlowSuggestion {
   direction: SuggestionDirection
   /** 同じマスターのノードが既にあれば、そのノードへ矢印だけをつなぐ。 */
   existingNodeId?: string
+  /** プレビューで表示した位置。指定があればその位置に置く（1件ずつ確定しても表示どおりに置くため）。 */
+  position?: { x: number; y: number }
+}
+
+export interface SuggestionPlacement {
+  suggestion: FlowSuggestion
+  /** 置いた、またはつないだノード。 */
+  nodeId: string
+  added: boolean
 }
 
 /** 1回の Tab で配置する候補の上限。 */
@@ -328,24 +337,38 @@ export function freeSlot(flow: GameFlow, x: number, y: number) {
  */
 export function applySuggestions(flow: GameFlow, nodeId: string, suggestions: readonly FlowSuggestion[],
   context: GameFlowContext | null, classes: string[] = []): GameFlow {
+  return planSuggestions(flow, nodeId, suggestions, context, classes).flow
+}
+
+/** {@link applySuggestions} と同じ配置を行い、候補ごとに置いた・つないだノードも返す（ゴースト表示用）。 */
+export function planSuggestions(flow: GameFlow, nodeId: string, suggestions: readonly FlowSuggestion[],
+  context: GameFlowContext | null, classes: string[] = []): { flow: GameFlow; placements: SuggestionPlacement[] } {
   const anchor = flow.nodes.find(node => node.id === nodeId)
-  if (!anchor) return flow
+  if (!anchor) return { flow, placements: [] }
   let next = flow
+  const placements: SuggestionPlacement[] = []
+  // 同じ一括配置の中で同じマスターが次・前の両方に出た場合は、1つのノードにまとめる。
+  const addedByRef = new Map<string, string>()
   for (const suggestion of suggestions) {
-    let target = suggestion.existingNodeId && next.nodes.some(node => node.id === suggestion.existingNodeId) ? suggestion.existingNodeId : undefined
+    let target = suggestion.existingNodeId && next.nodes.some(node => node.id === suggestion.existingNodeId)
+      ? suggestion.existingNodeId : addedByRef.get(suggestion.ref)
+    const added = !target
     if (!target) {
-      const position = freeSlot(next, anchor.x + (suggestion.direction === 'next' ? 300 : -300), anchor.y)
+      const position = suggestion.position
+        ?? freeSlot(next, anchor.x + (suggestion.direction === 'next' ? 300 : -300), anchor.y)
       const kind = suggestion.ref.slice(0, suggestion.ref.indexOf(':'))
-      const added = addNode(next, {
+      const result = addNode(next, {
         ref: suggestion.ref, ...position,
         classes: kind === 'item' ? suggestedClasses(context, refId(suggestion.ref)) : [...classes],
       })
-      next = added.flow
-      target = added.id
+      next = result.flow
+      target = result.id
+      addedByRef.set(suggestion.ref, target)
     }
     next = suggestion.direction === 'next'
       ? connect(next, nodeId, target, suggestion.label)
       : connect(next, target, nodeId, suggestion.label)
+    placements.push({ suggestion, nodeId: target, added })
   }
-  return next
+  return { flow: next, placements }
 }
