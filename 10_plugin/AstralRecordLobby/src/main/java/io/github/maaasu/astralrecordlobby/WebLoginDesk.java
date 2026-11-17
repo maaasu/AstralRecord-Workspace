@@ -1,6 +1,7 @@
 package io.github.maaasu.astralrecordlobby;
 
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -26,7 +27,8 @@ final class WebLoginDesk {
     WebLoginDesk(AstralRecordLobbyPlugin plugin, PlayerMessageService messages) {
         this.plugin = plugin;
         this.messages = messages;
-        npc = new LobbyNpc(plugin, "accountCreator.npc", "account_creator", "Webログイン受付", false, "アカウント作成");
+        npc = new LobbyNpc(plugin, "accountCreator.npc", "account_creator", "Webログイン受付",
+            false, "アカウント作成", EntityType.CREEPER);
     }
 
     void start() { npc.start(); }

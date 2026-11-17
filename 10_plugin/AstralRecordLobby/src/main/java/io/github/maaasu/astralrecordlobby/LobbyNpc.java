@@ -1,15 +1,20 @@
 package io.github.maaasu.astralrecordlobby;
 
+import com.destroystokyo.paper.event.entity.CreeperIgniteEvent;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.util.TriState;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.persistence.PersistentDataType;
@@ -24,6 +29,7 @@ final class LobbyNpc implements Listener {
     private final String defaultName;
     private final String previousDefaultName;
     private final boolean enabledByDefault;
+    private final EntityType fixedType;
     private final NamespacedKey key;
     private Entity entity;
     private org.bukkit.Chunk anchorChunk;
@@ -32,16 +38,17 @@ final class LobbyNpc implements Listener {
 
     LobbyNpc(AstralRecordLobbyPlugin plugin, String configPath, String key, String defaultName,
              boolean enabledByDefault) {
-        this(plugin, configPath, key, defaultName, enabledByDefault, null);
+        this(plugin, configPath, key, defaultName, enabledByDefault, null, null);
     }
 
     LobbyNpc(AstralRecordLobbyPlugin plugin, String configPath, String key, String defaultName,
-             boolean enabledByDefault, String previousDefaultName) {
+             boolean enabledByDefault, String previousDefaultName, EntityType fixedType) {
         this.plugin = plugin;
         this.configPath = configPath;
         this.defaultName = defaultName;
         this.previousDefaultName = previousDefaultName;
         this.enabledByDefault = enabledByDefault;
+        this.fixedType = fixedType;
         this.key = new NamespacedKey("astralrecordlobby", key);
     }
 
@@ -74,15 +81,7 @@ final class LobbyNpc implements Listener {
                 plugin.getConfig().getString(configPath + ".world", "world"));
             return;
         }
-        EntityType type;
-        try {
-            type = EntityType.valueOf(plugin.getConfig().getString(configPath + ".type", "VILLAGER")
-                .trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException exception) {
-            type = EntityType.VILLAGER;
-        }
-        if (!type.isSpawnable() || !type.isAlive()) type = EntityType.VILLAGER;
-        entity = world.spawnEntity(location, type, false);
+        entity = world.spawnEntity(location, spawnType(), false);
         entity.getPersistentDataContainer().set(key, PersistentDataType.BYTE, (byte) 1);
         entity.setPersistent(false);
         String displayName = plugin.getConfig().getString(configPath + ".name", defaultName);
@@ -95,6 +94,34 @@ final class LobbyNpc implements Listener {
             living.setSilent(true);
             living.setCollidable(false);
             living.setRemoveWhenFarAway(false);
+        }
+        if (fixedType == EntityType.CREEPER && entity instanceof Creeper creeper) {
+            creeper.setDespawnInPeacefulOverride(TriState.FALSE);
+        }
+    }
+
+    private EntityType spawnType() {
+        if (fixedType != null) return fixedType;
+        try {
+            EntityType configured = EntityType.valueOf(plugin.getConfig().getString(configPath + ".type", "VILLAGER")
+                .trim().toUpperCase(Locale.ROOT));
+            return configured.isSpawnable() && configured.isAlive() ? configured : EntityType.VILLAGER;
+        } catch (IllegalArgumentException exception) {
+            return EntityType.VILLAGER;
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onCreeperIgnite(CreeperIgniteEvent event) {
+        if (fixedType == EntityType.CREEPER && event.isIgnited() && matches(event.getEntity())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onExplosionPrime(ExplosionPrimeEvent event) {
+        if (fixedType == EntityType.CREEPER && event.getEntity() instanceof Creeper && matches(event.getEntity())) {
+            event.setCancelled(true);
         }
     }
 
