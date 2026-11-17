@@ -47,6 +47,11 @@
 .master-document-tab > [role="tab"] > span { display: flex; align-items: center; gap: 7px; font-size: 12px; }
 .master-document-tab .minecraft-text, .master-document-tab small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .master-document-tab small { color: var(--text-muted); font-size: 10px; }
+.master-tab-load-state { color: var(--text); }
+.master-file-loading { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.master-load-spinner { width: 1em; height: 1em; border: 2px solid var(--line-bright); border-top-color: currentColor; border-radius: 50%; animation: master-load-spin .8s linear infinite; }
+@keyframes master-load-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .master-load-spinner { animation: none; } }
 .master-tab-dirty { color: var(--gold); font-size: 9px; flex-shrink: 0; }
 .master-tab-close { padding: 6px; margin-right: 5px; border: 0; border-radius: var(--radius-small); background: transparent; color: var(--text-muted); cursor: pointer; }
 .master-tab-close:hover { color: var(--text); background: var(--surface-soft); }

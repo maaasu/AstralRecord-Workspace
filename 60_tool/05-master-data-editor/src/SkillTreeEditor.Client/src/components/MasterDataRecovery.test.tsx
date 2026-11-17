@@ -63,6 +63,36 @@ describe('draft recovery and connection recovery', () => {
     expect(screen.getByRole('button', { name: '保存 (Ctrl+S)' })).not.toBeDisabled()
   })
 
+  it('recovers invalid progression node inputs on multiple pages and lets each error be corrected', async () => {
+    const path = '90.shared.progression_preset/v1.test.yml'
+    const content = { name: '進行設定', levels: [{ level: 1, nodes: Array.from({ length: 60 }, (_, index) => index + 1) }] }
+    const preset: MasterDocument = { ...document, path, content, raw: JSON.stringify(content) }
+    const first = '/levels/0/nodes/50'
+    const second = '/levels/0/nodes/4'
+    const invalidValues = { [first]: '-', [second]: 'bad' }
+    writeMasterDraft(catalog.root, {
+      version: 1, document: preset, draft: { source: 'form', raw: preset.raw, content }, formPath: '',
+      invalidValues, updatedAt: new Date().toISOString(),
+    })
+    vi.mocked(masterDataApi.file).mockResolvedValue(preset)
+    render(<MasterDataEditor />)
+    fireEvent.click(await screen.findByRole('button', { name: '進行設定' }))
+    fireEvent.click(await screen.findByRole('button', { name: '下書きを復元' }))
+    const input = screen.getByRole('textbox', { name: first })
+    expect(input).toHaveValue('-')
+    expect(input).toHaveFocus()
+    expect(readMasterDraft(catalog.root, path)?.invalidValues).toEqual(invalidValues)
+    fireEvent.click(screen.getByRole('button', { name: second }))
+    const nextInput = screen.getByRole('textbox', { name: second })
+    expect(nextInput).toHaveValue('bad')
+    expect(nextInput).toHaveFocus()
+    fireEvent.change(nextInput, { target: { value: '100' } })
+    expect(screen.getByRole('button', { name: '保存 (Ctrl+S)' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: first }))
+    fireEvent.change(screen.getByRole('textbox', { name: first }), { target: { value: '101' } })
+    expect(screen.getByRole('button', { name: '保存 (Ctrl+S)' })).toBeEnabled()
+  })
+
   it('requires reviewing the latest disk content before saving a changed-revision draft', async () => {
     seed('older')
     const save = vi.spyOn(masterDataApi, 'save').mockResolvedValue({ ...document, revision: 'r2', raw: 'id: old\nname: 下書き\n', content: { id: 'old', name: '下書き' } })

@@ -433,7 +433,8 @@ function ArrayEditor({ values, itemSchema, path, onChange, ...inherited }: Omit<
   const paged = !weighted && Boolean(inherited.onNavigate) && (checkpointList || nodeList || values.every((entry) => entry !== null && typeof entry === 'object'))
   const [handledFocus, setHandledFocus] = useState<MasterDataFormProps['focusRequest']>(null)
   const focusRequest = inherited.focusRequest
-  if (nodeList && !inherited.navigationDisabled && focusRequest && focusRequest !== handledFocus && focusRequest.path.startsWith(path + '/')) {
+  if (nodeList && focusRequest && focusRequest !== handledFocus && focusRequest.path.startsWith(path + '/')
+    && (!inherited.navigationDisabled || inherited.invalidValues?.[focusRequest.path] !== undefined)) {
     const index = focusRequest.path.slice(path.length + 1)
     if (/^(0|[1-9]\d*)$/.test(index) && Number(index) < values.length) {
       // Render the requested row before the editor attempts to focus its input.

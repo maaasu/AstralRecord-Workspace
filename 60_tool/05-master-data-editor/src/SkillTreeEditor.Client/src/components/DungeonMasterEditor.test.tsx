@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { masterDataApi } from '../api/masterDataApi'
@@ -70,8 +70,8 @@ it('refreshes the boss catalog when the dungeon file is reloaded after an extern
   const reload = screen.getByRole('button', { name: 'ファイルを再読込' })
   await waitFor(() => expect(reload).toBeEnabled())
   vi.mocked(masterDataApi.file).mockClear()
-  fireEvent.click(reload)
-  expect(masterDataApi.file).toHaveBeenCalledWith(path)
+  await act(async () => { fireEvent.click(reload) })
+  expect(masterDataApi.file).toHaveBeenCalledWith(path, expect.any(AbortSignal))
   await waitFor(() => expect(screen.getByRole('button', { name: '/encounter/bossMobId の定義を開く' })).toHaveTextContent('モルグラス'))
   expect(screen.queryByText('参照先が見つかりません')).not.toBeInTheDocument()
   expect(masterDataApi.files).toHaveBeenLastCalledWith('', '', true)

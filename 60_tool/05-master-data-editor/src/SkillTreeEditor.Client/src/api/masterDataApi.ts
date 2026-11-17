@@ -4,16 +4,21 @@ import type { MasterCatalog, MasterDocument, MasterDraft, MasterFileSummary, Mas
 
 const endpoint = '/api/master-data'
 
-async function request<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
+async function request<T>(path: string, method = 'GET', body?: unknown, signal?: AbortSignal): Promise<T> {
   const init: RequestInit = {
     method,
     headers: { 'Content-Type': 'application/json' },
   }
   if (body !== undefined) init.body = JSON.stringify(body)
+  if (signal) init.signal = signal
   let response: Response
   try { response = await fetch(`${endpoint}${path}`, init) }
-  catch { throw new ApiError('エディタのサーバーに接続できません。サーバーの起動と接続を確認して再試行してください。', 0) }
-  const text = response.status === 204 ? '' : await response.text().catch(() => {
+  catch (reason) {
+    if (signal?.aborted) throw reason
+    throw new ApiError('エディタのサーバーに接続できません。サーバーの起動と接続を確認して再試行してください。', 0)
+  }
+  const text = response.status === 204 ? '' : await response.text().catch((reason) => {
+    if (signal?.aborted) throw reason
     throw new ApiError('サーバーの応答を受信できませんでした。接続を確認して再試行してください。', 0)
   })
   let payload: unknown = text
@@ -33,7 +38,7 @@ export const masterDataApi = {
   catalog: (reload = false) => request<MasterCatalog>(reload ? '/catalog?reload=true' : '/catalog'),
   files: (category = '', query = '', reload = false) =>
     request<MasterFileSummary[]>(`/files?${new URLSearchParams({ category, query, ...(reload ? { reload: 'true' } : {}) })}`),
-  file: (path: string) => request<MasterDocument>(`/file?${new URLSearchParams({ path })}`),
+  file: (path: string, signal?: AbortSignal) => request<MasterDocument>(`/file?${new URLSearchParams({ path })}`, 'GET', undefined, signal),
   save: (path: string, raw: string, revision: string, requireBossEntryWorldMaster?: boolean) =>
     request<MasterDocument>('/file', 'PUT', { path, raw, revision, requireBossEntryWorldMaster }),
   create: (draft: MasterDraft) => request<MasterDocument>('/file', 'POST', draft),
