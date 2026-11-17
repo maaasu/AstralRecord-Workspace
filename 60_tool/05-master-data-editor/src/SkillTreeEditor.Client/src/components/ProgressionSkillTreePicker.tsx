@@ -1,5 +1,7 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { editorApi } from '../api/editorApi'
+import { usePanelDocument } from '../docking/dockPanel'
 import { isNodeVisibleInSimulation } from '../state/nodeVisibility'
 import type { ClassMasterSummary, JsonValue, NodeMaster, SkillMasterSummary, StructureDocument } from '../types/editor'
 import { MinecraftIcon } from './MinecraftIcon'
@@ -35,7 +37,9 @@ const positiveNodeId = (value: JsonValue) => typeof value === 'number' && Number
 const SkillTreeCanvas = lazy(() => import('./SkillTreeCanvas').then(module => ({ default: module.SkillTreeCanvas })))
 
 export function ProgressionSkillTreePicker({ context, values, disabled = false, onApply, onClose }: Props) {
+  const document = usePanelDocument()
   const [selection, setSelection] = useState(values)
+  const initialNodeIds = useRef(new Set(values.filter(positiveNodeId).map(String)))
   const [data, setData] = useState<TreeData | null>(null)
   const [error, setError] = useState('')
   const [attempt, setAttempt] = useState(0)
@@ -62,6 +66,25 @@ export function ProgressionSkillTreePicker({ context, values, disabled = false, 
   })).map(node => node.nodeId) ?? []), [data, context.classId, context.playerLevel])
   const placedIds = useMemo(() => new Set(data?.structure.nodes.map(node => node.nodeId) ?? []), [data])
   const selectedIds = useMemo(() => new Set(selection.filter(positiveNodeId).map(String)), [selection])
+  useEffect(() => {
+    if (!data) return
+    const candidates = data.nodes.filter(node => visibleNodeIds.has(node.nodeId) && placedIds.has(node.nodeId))
+    const classes = new Map(data.classes.map(entry => [entry.id.toLowerCase(), entry]))
+    const pending = [context.classId.toLowerCase()]
+    const seen = new Set<string>()
+    let target: NodeMaster | undefined
+    while (pending.length && !target) {
+      const classId = pending.shift()!
+      if (seen.has(classId)) continue
+      seen.add(classId)
+      const branch = candidates.filter(node => typeof node.unlockCondition?.classId === 'string' && node.unlockCondition.classId.toLowerCase() === classId)
+      target = branch.find(node => initialNodeIds.current.has(node.nodeId)) ?? branch[0]
+      pending.push(...(classes.get(classId)?.parentClassIds.map(id => id.toLowerCase()) ?? []))
+    }
+    target ??= candidates.find(node => initialNodeIds.current.has(node.nodeId))
+      ?? candidates.find(node => node.nodeId === data.structure.rootNodeId) ?? candidates[0]
+    if (target) { setFocusedNodeId(target.nodeId); setFocusRequest({ nodeId: target.nodeId }) }
+  }, [data, visibleNodeIds, placedIds, context.classId])
   const eligible = Boolean(data?.classes.some(entry => entry.id.toLowerCase() === context.classId.toLowerCase()))
   const toggle = useCallback((nodeId: string) => {
     if (disabled || !eligible || !visibleNodeIds.has(nodeId)) return
@@ -75,7 +98,7 @@ export function ProgressionSkillTreePicker({ context, values, disabled = false, 
   const className = data?.classes.find(entry => entry.id.toLowerCase() === context.classId.toLowerCase())?.name ?? context.classId
   const selectedMaster = focusedNodeId ? masters.get(focusedNodeId) : undefined
   const removeSelection = (index: number) => setSelection(current => current.filter((_, entryIndex) => entryIndex !== index))
-  return <Modal className="progression-tree-dialog" ariaLabel="スキルツリーから習得ノードを選択" onClose={onClose} closeDisabled={disabled}>
+  return createPortal(<Modal className="progression-tree-dialog" ariaLabel="スキルツリーから習得ノードを選択" onClose={onClose} closeDisabled={disabled}>
     <header className="modal-header"><div><h2>スキルツリーから習得ノードを選択</h2><p><MinecraftText value={className} /> · プレイヤーLv.{context.playerLevel}{context.classLevel !== undefined && ` · 職業Lv.${context.classLevel}`}</p></div><button type="button" className="button" disabled={disabled} onClick={onClose}>キャンセル</button></header>
     {error ? <div className="progression-tree-loading"><p role="alert">{error}</p><button type="button" className="button" onClick={() => setAttempt(current => current + 1)}>再試行</button></div>
       : !data ? <div className="progression-tree-loading" role="status">スキルツリーを読み込んでいます…</div>
@@ -106,5 +129,5 @@ export function ProgressionSkillTreePicker({ context, values, disabled = false, 
           </aside>
         </div>}
     <footer className="modal-footer"><span>習得 {selection.length}件</span><button type="button" className="button primary" disabled={disabled || !data || Boolean(error)} onClick={() => onApply(selection)}>選択を反映</button></footer>
-  </Modal>
+  </Modal>, document.body)
 }

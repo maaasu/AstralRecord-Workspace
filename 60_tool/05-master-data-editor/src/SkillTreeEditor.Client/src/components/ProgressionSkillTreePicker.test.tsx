@@ -82,6 +82,14 @@ describe('progression skill-tree selection', () => {
     expect(onApply).toHaveBeenCalledWith([1, 3])
   })
 
+  it('opens the nearest class branch when the selected class inherits its tree', async () => {
+    vi.mocked(editorApi.listClasses).mockResolvedValue([...classes, { id: 'veteran', name: '熟練剣士', parentClassIds: ['sword'] }])
+    render(<ProgressionSkillTreePicker context={{ classId: 'veteran', playerLevel: 10, classLevel: 3 }} values={[1, 3]} onApply={vi.fn()} onClose={vi.fn()} />)
+    await screen.findByRole('checkbox', { name: '剣の技' })
+    await waitFor(() => expect(screen.getByTestId('rf__node-3')).toHaveClass('selected'))
+    expect(screen.getByRole('checkbox', { name: '剣の技' })).toHaveAttribute('aria-checked', 'true')
+  })
+
   it('opens lazily from a preset checkpoint and changes its node array without changing another checkpoint', async () => {
     const original: JsonValue = { classId: 'sword', levels: [{ level: 1, nodes: [1] }, { level: 25, classLevel: 7, nodes: [1] }] }
     function Form() {
@@ -95,6 +103,7 @@ describe('progression skill-tree selection', () => {
     expect(editorApi.listNodes).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'スキルツリーで選択' }))
     const dialog = await screen.findByRole('dialog', { name: 'スキルツリーから習得ノードを選択' })
+    expect(dialog.closest('.master-node-editor')).toBeNull()
     expect(within(dialog).getByText(/プレイヤーLv.25 · 職業Lv.7/)).toBeInTheDocument()
     fireEvent.click(await screen.findByRole('checkbox', { name: '上級の剣術' }))
     fireEvent.click(apply())
