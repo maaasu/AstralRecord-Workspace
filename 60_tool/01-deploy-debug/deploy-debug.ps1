@@ -674,9 +674,12 @@ function Publish-ResourcePacks {
             $questFont = $archive.GetEntry('assets/astralrecord/font/quest_hud.json')
             if ($null -ne $questFont) {
                 $reader = [IO.StreamReader]::new($questFont.Open())
-                try { $questFontData = $reader.ReadToEnd() | ConvertFrom-Json }
+                try { $questFontData = $reader.ReadToEnd() | ConvertFrom-Json -AsHashtable }
                 finally { $reader.Dispose() }
-                if ($questFontData.providers.file -ccontains 'astralrecord:font/quest_hud_text_hd.png') {
+                $hdBitmap = @($questFontData['providers'] | Where-Object {
+                    $_['type'] -ceq 'bitmap' -and $_['file'] -ceq 'astralrecord:font/quest_hud_text_hd.png'
+                })
+                if ($hdBitmap.Count -gt 0) {
                     $questAssets += 'assets/astralrecord/textures/font/quest_hud_text_hd.png'
                 }
             }

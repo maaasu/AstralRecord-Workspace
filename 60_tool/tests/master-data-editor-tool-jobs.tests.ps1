@@ -130,14 +130,20 @@ try {
     Assert-JobTest (!(Test-Path -LiteralPath $deploy.fileDatabase.deployPath)) '01/03 plans must not copy master files.'
 
     Set-Content -LiteralPath (Join-Path $dev 'plugins/Fixture.jar') -Value 'fixture'
+    $networkOutput = Join-Path $testTool '12-build-network-plugins/output'
+    New-Item -ItemType Directory -Path $networkOutput | Out-Null
+    $lobbyJar = Join-Path $networkOutput 'AstralRecordLobby.jar'
+    Set-Content -LiteralPath $lobbyJar -Value 'fixture'
     $maintenance = @{
         schemaVersion=1;workflow=@{seedMasterData=$false};migration=$migration
         servers=@(@{id='Dev';enabled=$true;rootPath=$dev},@{id='Channel';enabled=$true;rootPath=$channel})
         distributions=@(@{enabled=$true;kind='Jar';source='Dev';relativePath='plugins/Fixture.jar';targets=@('Channel')})
+        networkPlugins=@{destinations=@(@{artifact='AstralRecordLobby.jar';deployDirectory=(Join-Path $channel 'plugins')})}
     }
     Write-TestJson $maintenance (Join-Path $testTool '16-maintenance/maintenance.local.json')
-    $plan16 = Invoke-TestPlan @{toolId='16';worldCopy='Skip';networkPlugins='Skip';recovery='Auto'}
+    $plan16 = Invoke-TestPlan @{toolId='16';worldCopy='Skip';networkPlugins='Include';recovery='Auto'}
     Assert-JobTest ($plan16.canRun -and $plan16.paths[0].destination -eq (Join-Path $channel 'plugins/Fixture.jar')) '16 preview must use existing selection and distribution paths.'
+    Assert-JobTest ($lobbyJar -in $plan16.paths.source) '16 must use the default network output when sourceDirectory is omitted.'
     Assert-JobTest (($plan16.summary -join ' ').Contains((Join-Path $testTool '16-maintenance/runs'))) 'An omitted runRoot must resolve to the 16 output directory.'
     Assert-JobTest (!(Test-Path -LiteralPath (Join-Path $channel 'plugins/Fixture.jar'))) '16 plan must not copy the artifact.'
 

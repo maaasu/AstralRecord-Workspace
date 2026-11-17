@@ -188,8 +188,8 @@ function Get-RequiredJobPlan($Options) {
                         $serverList += $networkPath
                     }
                 }
-                $gatePaths += Get-MaintenanceAbsolutePath $(if ($config.networkPlugins.sourceDirectory) {
-                    $config.networkPlugins.sourceDirectory
+                $gatePaths += Get-MaintenanceAbsolutePath $(if ($config.networkPlugins['sourceDirectory']) {
+                    $config.networkPlugins['sourceDirectory']
                 } else { Join-Path $toolRoot '12-build-network-plugins/output' })
             }
             $runRoot = $config.workflow['runRoot']
