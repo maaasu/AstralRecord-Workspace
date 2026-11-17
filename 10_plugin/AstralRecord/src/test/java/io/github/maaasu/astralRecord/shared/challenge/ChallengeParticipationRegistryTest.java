@@ -15,9 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ChallengeParticipationRegistryTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 4. 開始・生成・転送
-     * 検証契約: Dungeon と Boss が同一参加者を同時受付した場合、共有予約を取得できる挑戦は一つだけとする。
+     * Dungeon と Boss が同一参加者を同時受付した場合、共有予約を取得できる挑戦は一つだけとする。
      */
     @Test
     void reservesAParticipantForOnlyOneConcurrentChallenge() throws Exception {
@@ -46,9 +44,7 @@ class ChallengeParticipationRegistryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/26_2-ユースケース.md
-     * 章・見出し: # 26_2-ユースケース > ## 1. 挑戦受付
-     * 検証契約: 予約競合時は競合元の表示名を返し、解放後は別挑戦が取得できる。
+     * 予約競合時は競合元の表示名を返し、解放後は別挑戦が取得できる。
      */
     @Test
     void reportsConflictNameAndReleasesAllIndexes() {
@@ -70,9 +66,7 @@ class ChallengeParticipationRegistryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 5. 離脱・再参加・中止
-     * 検証契約: 待機中にHub外へ離脱した参加者を予約から外した後、その参加者は別挑戦へ参加できる。
+     * 待機中にHub外へ離脱した参加者を予約から外した後、その参加者は別挑戦へ参加できる。
      */
     @Test
     void removesAWaitingParticipantWithoutLeavingAStaleReservation() {

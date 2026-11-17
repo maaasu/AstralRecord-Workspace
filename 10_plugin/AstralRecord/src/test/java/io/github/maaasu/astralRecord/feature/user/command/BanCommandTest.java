@@ -45,9 +45,7 @@ class BanCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-コマンド.md
-     * 章・見出し: # 01_3-コマンド > ## 1. command メソッド仕様 > ### BAN実行
-     * 検証契約: temporary と正の整数日数を指定した BAN は API 更新へ false と日数後の期限を渡し、更新成功後にオンライン対象をキックする。
+     * temporary と正の整数日数を指定した BAN は API 更新へ false と日数後の期限を渡し、更新成功後にオンライン対象をキックする。
      */
     @Test
     void temporaryBanUpdatesExpiryAndKicksOnlinePlayer() {
@@ -103,9 +101,7 @@ class BanCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-コマンド.md
-     * 章・見出し: # 01_3-コマンド > ## 1. command メソッド仕様 > ### BAN実行
-     * 検証契約: indefinite を指定した BAN は API 更新へ true と null の期限を渡し、日数引数を必要としない。
+     * indefinite を指定した BAN は API 更新へ true と null の期限を渡し、日数引数を必要としない。
      */
     @Test
     void indefiniteBanSendsIndefiniteFlagAndNullExpiry() {
@@ -157,9 +153,7 @@ class BanCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-コマンド.md
-     * 章・見出し: # 01_3-コマンド > ## 1. command メソッド仕様 > ### BAN実行
-     * 検証契約: MCID が未登録の場合は BAN 更新を行わず、DBユーザー未検出を実行者へ通知する。
+     * MCID が未登録の場合は BAN 更新を行わず、DBユーザー未検出を実行者へ通知する。
      */
     @Test
     void unknownMcidDoesNotUpdateBan() {
@@ -195,9 +189,7 @@ class BanCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-コマンド.md
-     * 章・見出し: # 01_3-コマンド > ## 1. command メソッド仕様 > ### BAN実行
-     * 検証契約: BANはADMIN権限のプレイヤーまたはコンソールだけが利用でき、一般プレイヤーは実行できない。
+     * BANはADMIN権限のプレイヤーまたはコンソールだけが利用でき、一般プレイヤーは実行できない。
      */
     @Test
     void requiresAdminPermissionForPlayersAndAllowsConsole() {
@@ -219,9 +211,7 @@ class BanCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-コマンド.md
-     * 章・見出し: # 01_3-コマンド > ## 1. command メソッド仕様 > ### BAN補完候補取得
-     * 検証契約: コンソールのBAN補完は期間フラグと有期限日数の候補を返す。
+     * コンソールのBAN補完は期間フラグと有期限日数の候補を返す。
      */
     @Test
     void completesBanDurationAndTemporaryDays() {
@@ -239,9 +229,7 @@ class BanCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-コマンド.md
-     * 章・見出し: # 01_3-コマンド > ## 1. command メソッド仕様 > ### BAN補完候補取得
-     * 検証契約: ADMINプレイヤーとコンソールのMCID補完は、UserServiceの非同期検索結果を候補として返す。
+     * ADMINプレイヤーとコンソールのMCID補完は、UserServiceの非同期検索結果を候補として返す。
      */
     @Test
     void loadsMcidCandidatesForAdminPlayerAndConsoleAsynchronously() {
@@ -282,9 +270,7 @@ class BanCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-コマンド.md
-     * 章・見出し: # 01_3-コマンド > ## 1. command メソッド仕様 > ### BAN補完候補取得
-     * 検証契約: ADMIN権限を持たないプレイヤーのMCID補完は空候補を返し、API検索を呼び出さない。
+     * ADMIN権限を持たないプレイヤーのMCID補完は空候補を返し、API検索を呼び出さない。
      */
     @Test
     void refusesMcidCompletionForNonAdminPlayer() {
@@ -308,9 +294,7 @@ class BanCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-コマンド.md
-     * 章・見出し: # 01_3-コマンド > ## 1. command メソッド仕様 > ### BAN補完候補取得
-     * 検証契約: MCID検索が失敗した場合は、直前に取得したキャッシュ候補を返す。
+     * MCID検索が失敗した場合は、直前に取得したキャッシュ候補を返す。
      */
     @Test
     void usesCachedMcidsWhenMcidCompletionFails() {

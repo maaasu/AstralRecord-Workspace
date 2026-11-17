@@ -10,9 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class MobRepositoryDefenseEligibilityTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-リポジトリ.md
-     * 章・見出し: # 12_3-リポジトリ > ## 3. template parse（内部）
-     * 検証契約: 防衛戦参加フラグがレベル別テンプレートへ解決されても維持される。
+     * 防衛戦参加フラグがレベル別テンプレートへ解決されても維持される。
      */
     @Test
     void enabledEnemyKeepsEligibilityAcrossLevelResolution() {
@@ -24,9 +22,7 @@ class MobRepositoryDefenseEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-リポジトリ.md
-     * 章・見出し: # 12_3-リポジトリ > ## 3. template parse（内部）
-     * 検証契約: 欠落・型不一致・敵以外の防衛戦参加フラグは候補にならない。
+     * 欠落・型不一致・敵以外の防衛戦参加フラグは候補にならない。
      */
     @Test
     void absentWrongTypeAndOtherCategoriesAreIneligible() {

@@ -8,9 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AccountRenameCommandTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
-     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウント名変更
-     * 検証契約: Java 版は ASCII 英数字またはアンダースコアを3〜50文字、Bedrock 版は ASCII 英字またはアンダースコアを3〜49文字受理する。ピリオドの入力は拒否する。
+     * Java 版は ASCII 英数字またはアンダースコアを3〜50文字、Bedrock 版は ASCII 英字またはアンダースコアを3〜49文字受理する。ピリオドの入力は拒否する。
      */
     @Test
     void validatesRenameInputForThePlayersEdition() {

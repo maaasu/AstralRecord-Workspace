@@ -13,9 +13,7 @@ class ProgressionPresetEquipmentMatcherTest {
     private record Held(UUID id, String item, int enhanceLevel) { }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
-     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### 戦闘検証用の進行プリセット
-     * 検証契約: バッグが満杯でも装備中の同種2枠を入れ替えて再利用し、同枠一致を優先し、個体を重複割当しない。
+     * バッグが満杯でも装備中の同種2枠を入れ替えて再利用し、同枠一致を優先し、個体を重複割当しない。
      */
     @Test
     void swapsEquippedAccessoriesBeforeUsingBagCapacity() {

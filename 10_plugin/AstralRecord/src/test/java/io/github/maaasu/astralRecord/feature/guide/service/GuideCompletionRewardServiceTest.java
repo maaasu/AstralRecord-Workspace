@@ -48,9 +48,7 @@ class GuideCompletionRewardServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### 状態表示と再照会
-     * 検証契約: 進捗未ロードまたは未完了なら保存・GETを起動せず、受取可能表示を出さない。
+     * 進捗未ロードまたは未完了なら保存・GETを起動せず、受取可能表示を出さない。
      */
     @Test
     void unloadedOrIncompleteProgressNeverQueriesReward() {
@@ -67,9 +65,7 @@ class GuideCompletionRewardServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### 状態表示と再照会
-     * 検証契約: 未設定・受取済みは案内とボタンを出さず、受取可能な場合だけ保存後に一度案内する。
+     * 未設定・受取済みは案内とボタンを出さず、受取可能な場合だけ保存後に一度案内する。
      */
     @Test
     void statusAfterSaveControlsButtonAndOneTimeAnnouncement() {
@@ -101,9 +97,7 @@ class GuideCompletionRewardServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### 受取と保存境界
-     * 検証契約: 同時クリックは一つの保存境界とPOSTへ合流し、保存前のAPI受取を行わない。
+     * 同時クリックは一つの保存境界とPOSTへ合流し、保存前のAPI受取を行わない。
      */
     @Test
     void doubleClickClaimsOnlyOnceAfterSave() {
@@ -124,9 +118,7 @@ class GuideCompletionRewardServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### 受取と保存境界
-     * 検証契約: player-state保存失敗ではPOSTを実行せず、状態を再照会して再試行可能にする。
+     * player-state保存失敗ではPOSTを実行せず、状態を再照会して再試行可能にする。
      */
     @Test
     void saveFailureNeverPostsClaim() {
@@ -141,9 +133,7 @@ class GuideCompletionRewardServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### 受取と保存境界
-     * 検証契約: POST応答が不明でもGETで受取済みを見つけ、二重配布を要求せずメールを案内する。
+     * POST応答が不明でもGETで受取済みを見つけ、二重配布を要求せずメールを案内する。
      */
     @Test
     void unknownClaimOutcomeReconcilesByGet() {
@@ -163,9 +153,7 @@ class GuideCompletionRewardServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### セッション切替
-     * 検証契約: 旧セッションの非同期応答は再ログイン後の新しい照会を上書きしない。
+     * 旧セッションの非同期応答は再ログイン後の新しい照会を上書きしない。
      */
     @Test
     void oldSessionResponseIsDiscarded() {
@@ -190,9 +178,7 @@ class GuideCompletionRewardServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### 状態表示と再照会
-     * 検証契約: GET 通信失敗でも実 coordinator の外部境界を閉じ、次の GET が再試行できる。
+     * GET 通信失敗でも実 coordinator の外部境界を閉じ、次の GET が再試行できる。
      */
     @Test
     void failedGetDoesNotStrandRealCoordinatorBoundary() {
@@ -210,9 +196,7 @@ class GuideCompletionRewardServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### 受取と保存境界
-     * 検証契約: POST 応答不明後の GET が claimed=false でも境界を閉じ、同じセッションで再請求できる。
+     * POST 応答不明後の GET が claimed=false でも境界を閉じ、同じセッションで再請求できる。
      */
     @Test
     void unknownPostAndUnclaimedGetPermitRetryWithRealCoordinator() {
@@ -234,9 +218,7 @@ class GuideCompletionRewardServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### 受取と保存境界
-     * 検証契約: POST 後保存失敗で残った境界は同じ操作 ID の recovery GET が claimed=true を確認して閉じる。
+     * POST 後保存失敗で残った境界は同じ操作 ID の recovery GET が claimed=true を確認して閉じる。
      */
     @Test
     void postSaveFailureRecoversOwnedBoundaryWithRealCoordinator() {
@@ -255,9 +237,7 @@ class GuideCompletionRewardServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### 状態表示と再照会
-     * 検証契約: GET 後保存が失敗したら同じ操作 ID で照会を再実行し、境界を閉じる。
+     * GET 後保存が失敗したら同じ操作 ID で照会を再実行し、境界を閉じる。
      */
     @Test
     void getPostSaveFailureRecoversOwnedBoundaryWithRealCoordinator() {
@@ -275,9 +255,7 @@ class GuideCompletionRewardServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### 受取と保存境界
-     * 検証契約: POST 後保存失敗と recovery GET 失敗の間は境界を保持し、次の GET で解決する。
+     * POST 後保存失敗と recovery GET 失敗の間は境界を保持し、次の GET で解決する。
      */
     @Test
     void failedRecoveryGetCanRetryWithRealCoordinator() {
@@ -302,9 +280,7 @@ class GuideCompletionRewardServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### 受取と保存境界
-     * 検証契約: 受取中の一覧再表示は同じ結果を待ち、claim callback より前に recovery を予約しない。
+     * 受取中の一覧再表示は同じ結果を待ち、claim callback より前に recovery を予約しない。
      */
     @Test
     void reopeningGuideDuringClaimWaitsForClaimResult() {
@@ -327,9 +303,7 @@ class GuideCompletionRewardServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_4-統合フロー.md
-     * 章・見出し: # 09_4-統合フロー > ## 5. ガイド全達成報酬 > ### セッション切替
-     * 検証契約: 旧 claim callback は再ログイン後に始まった recovery の操作 ID を消さず、GET 失敗後も再試行できる。
+     * 旧 claim callback は再ログイン後に始まった recovery の操作 ID を消さず、GET 失敗後も再試行できる。
      */
     @Test
     void staleClaimCallbackDoesNotEraseNewSessionRecoveryToken() {

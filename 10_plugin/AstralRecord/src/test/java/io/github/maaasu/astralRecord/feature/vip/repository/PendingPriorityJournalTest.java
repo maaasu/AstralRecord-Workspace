@@ -11,9 +11,7 @@ class PendingPriorityJournalTest {
     @TempDir Path directory;
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/02_1-モデル定義.md
-     * 章・見出し: # 02_1-モデル定義 > ## 6. アカウント特典 > ### 未開始優先消費の停止・復旧契約
-     * 検証契約: 未開始の優先消費だけが再起動後の返却対象として復元される。
+     * 未開始の優先消費だけが再起動後の返却対象として復元される。
      */
     @Test void pendingOperationsSurviveRestartAndCompletionIsDurable() {
         Path file = directory.resolve("pending.properties");
@@ -29,9 +27,7 @@ class PendingPriorityJournalTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/02_1-モデル定義.md
-     * 章・見出し: # 02_1-モデル定義 > ## 6. アカウント特典 > ### 未開始優先消費の停止・復旧契約
-     * 検証契約: 保存失敗は成功扱いにせず、元の返却対象を失わない。
+     * 保存失敗は成功扱いにせず、元の返却対象を失わない。
      */
     @Test void failedReplacementPreservesPreviousJournal() throws Exception {
         Path file = directory.resolve("pending.properties");

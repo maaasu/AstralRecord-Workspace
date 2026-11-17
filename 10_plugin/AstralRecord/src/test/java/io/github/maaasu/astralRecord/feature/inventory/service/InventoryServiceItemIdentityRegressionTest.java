@@ -37,9 +37,7 @@ import static org.mockito.Mockito.when;
 class InventoryServiceItemIdentityRegressionTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 4. 装備耐久値 > ### 戦闘耐久値消費
-     * 検証契約: itemIdを併記した主手EQUIPMENT entryでも個体IDを保持した参照を返し、武器の耐久消費対象として解決できる。
+     * itemIdを併記した主手EQUIPMENT entryでも個体IDを保持した参照を返し、武器の耐久消費対象として解決できる。
      */
     @Test
     void itemIdPopulatedMainHandEntryKeepsEquipmentInstanceReference() {
@@ -87,9 +85,7 @@ class InventoryServiceItemIdentityRegressionTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加 > ### 通常アイテムの消費・支払い順
-     * 検証契約: itemIdを併記した個体EQUIPMENT entryは通常アイテム数量へ含めず、通常消費でも削除しない。
+     * itemIdを併記した個体EQUIPMENT entryは通常アイテム数量へ含めず、通常消費でも削除しない。
      */
     @Test
     void itemIdPopulatedEquipmentIsExcludedFromNormalAmountAndConsumption() {

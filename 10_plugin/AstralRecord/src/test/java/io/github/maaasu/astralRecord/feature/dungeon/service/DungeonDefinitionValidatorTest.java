@@ -23,9 +23,7 @@ class DungeonDefinitionValidatorTest {
     private final DungeonDefinitionValidator validator = new DungeonDefinitionValidator();
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_0-概要.md
-     * 章・見出し: # 32_0-概要 > ## 4. 主要境界と不変条件
-     * 検証契約: 最初の戦闘部屋レベル上限内のENEMY候補とBOSS参照を持つ定義だけを公開可能とする。
+     * 最初の戦闘部屋レベル上限内のENEMY候補とBOSS参照を持つ定義だけを公開可能とする。
      */
     @Test
     void acceptsDefinitionWithEligibleFirstRoomEnemyAndBossReference() {
@@ -41,9 +39,7 @@ class DungeonDefinitionValidatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md
-     * 章・見出し: # 32_1-モデル定義 > ## 1. DungeonDefinition
-     * 検証契約: 推奨プレイヤーレベルは1以上の整数だけを公開可能とする。
+     * 推奨プレイヤーレベルは1以上の整数だけを公開可能とする。
      */
     @Test
     void rejectsNonPositiveRecommendedLevel() {
@@ -58,9 +54,7 @@ class DungeonDefinitionValidatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_0-概要.md
-     * 章・見出し: # 32_0-概要 > ## 4. 主要境界と不変条件
-     * 検証契約: normalMobPoolに最初の戦闘部屋レベル上限内の候補が一体もなければ定義公開を拒否する。
+     * normalMobPoolに最初の戦闘部屋レベル上限内の候補が一体もなければ定義公開を拒否する。
      */
     @Test
     void rejectsDefinitionWithoutAnyEligibleFirstRoomEnemy() {
@@ -86,9 +80,7 @@ class DungeonDefinitionValidatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_0-概要.md
-     * 章・見出し: # 32_0-概要 > ## 4. 主要境界と不変条件
-     * 検証契約: 挑戦受付半径は0.5から16.0の範囲だけを許可する。
+     * 挑戦受付半径は0.5から16.0の範囲だけを許可する。
      */
     @Test
     void rejectsEntryRadiusOutsideSupportedRange() {
@@ -123,9 +115,7 @@ class DungeonDefinitionValidatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_0-概要.md
-     * 章・見出し: # 32_0-概要 > ## 4. 主要境界と不変条件
-     * 検証契約: 明示した負の死亡許容回数と1秒未満の復帰待機時間を補正せず公開拒否する。
+     * 明示した負の死亡許容回数と1秒未満の復帰待機時間を補正せず公開拒否する。
      */
     @Test
     void rejectsInvalidChallengeBoundariesWithoutClamping() {
@@ -140,9 +130,7 @@ class DungeonDefinitionValidatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_0-概要.md
-     * 章・見出し: # 32_0-概要 > ## 4. 主要境界と不変条件
-     * 検証契約: clear rewardのrate範囲外・非有限値と正整数昇順rangeでないamountを公開拒否する。
+     * clear rewardのrate範囲外・非有限値と正整数昇順rangeでないamountを公開拒否する。
      */
     @Test
     void rejectsInvalidClearRewardRateAndAmountBoundaries() {
@@ -161,9 +149,7 @@ class DungeonDefinitionValidatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_0-概要.md
-     * 章・見出し: # 32_0-概要 > ## 4. 主要境界と不変条件
-     * 検証契約: roomTypesおよび部屋タイプ装飾paletteは空でなく、すべての相対weightが正でなければ公開しない。
+     * roomTypesおよび部屋タイプ装飾paletteは空でなく、すべての相対weightが正でなければ公開しない。
      */
     @Test
     void rejectsNonPositiveRoomTypeAndDecorationWeights() {
@@ -217,9 +203,7 @@ class DungeonDefinitionValidatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md
-     * 章・見出し: # 32_1-モデル定義 > ## 1. DungeonDefinition
-     * 検証契約: ボス部屋の最小辺は通常部屋の最小辺を下回らず、専用区画の予約を妨げない。
+     * ボス部屋の最小辺は通常部屋の最小辺を下回らず、専用区画の予約を妨げない。
      */
     @Test
     void rejectsBossRoomSizeSmallerThanTheNormalRoomSize() {

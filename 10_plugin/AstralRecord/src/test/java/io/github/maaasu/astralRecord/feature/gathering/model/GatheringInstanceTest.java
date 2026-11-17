@@ -18,9 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GatheringInstanceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
-     * 章・見出し: # 12_1-モデル定義 > ## 27. 採集インスタンス
-     * 検証契約: 同一採集オブジェクトへ複数プレイヤーが同時参加し、それぞれのdamageを累積する。
+     * 同一採集オブジェクトへ複数プレイヤーが同時参加し、それぞれのdamageを累積する。
      */
     @Test
     void multiplePlayersContributeDamageToSameInstance() {
@@ -41,9 +39,7 @@ class GatheringInstanceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
-     * 章・見出し: # 12_1-モデル定義 > ## 27. 採集インスタンス
-     * 検証契約: 1人の採集終了は他参加者と蓄積HPを変更せず、全体resetだけが初期化する。
+     * 1人の採集終了は他参加者と蓄積HPを変更せず、全体resetだけが初期化する。
      */
     @Test
     void removingOnePlayerKeepsSharedProgressUntilReset() {

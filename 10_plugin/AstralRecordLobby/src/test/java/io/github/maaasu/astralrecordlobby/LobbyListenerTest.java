@@ -202,8 +202,6 @@ class LobbyListenerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_0-概要.md
-     * 章・見出し: # 33_0-概要 > ## 不変条件
      * 検証契約: ロビーの一般プレイヤーと管理者は空腹値の変更を受けず、満腹状態を維持する。
      */
     @Test
@@ -231,8 +229,6 @@ class LobbyListenerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_0-概要.md
-     * 章・見出し: # 33_0-概要 > ## 不変条件
      * 検証契約: ロビーのプレイヤーは消耗度の増加を受けず、満腹度の減少経路を持たない。
      */
     @Test

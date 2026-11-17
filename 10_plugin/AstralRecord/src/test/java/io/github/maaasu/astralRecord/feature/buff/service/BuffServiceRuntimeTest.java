@@ -21,9 +21,7 @@ import static org.mockito.Mockito.when;
 
 class BuffServiceRuntimeTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/05-buff/3-メソッド仕様/05_3-サービス.md
-     * 章・見出し: # 05_3-サービス > ## 1. BuffService メソッド仕様 > ### バフ付与
-     * 検証契約: 実行時バフは同じstackGroupの旧個体を置換し、持続時間増加を適用してマスタ取得を行わない。
+     * 実行時バフは同じstackGroupの旧個体を置換し、持続時間増加を適用してマスタ取得を行わない。
      */
     @Test
     void runtimeBuffReplacesGroupAndScalesItsOwnDeadlineWithoutLoadingMaster() {
@@ -41,9 +39,7 @@ class BuffServiceRuntimeTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/05-buff/3-メソッド仕様/05_3-サービス.md
-     * 章・見出し: # 05_3-サービス > ## 1. BuffService メソッド仕様 > ### バフ付与
-     * 検証契約: 実行時デバフは持続時間増加を受けず、元のtick数を期限へ反映する。
+     * 実行時デバフは持続時間増加を受けず、元のtick数を期限へ反映する。
      */
     @Test
     void runtimeDebuffDoesNotReceiveDurationIncrease() {

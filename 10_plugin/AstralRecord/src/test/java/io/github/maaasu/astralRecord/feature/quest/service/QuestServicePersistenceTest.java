@@ -16,9 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 class QuestServicePersistenceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_1-モデル定義.md
-     * 章・見出し: # 29_1-モデル定義 > ## 9. 永続化世代
-     * 検証契約: 最新ロード要求だけをセッションへ適用し、古い非同期結果を捨てる。
+     * 最新ロード要求だけをセッションへ適用し、古い非同期結果を捨てる。
      */
     @Test
     void appliesOnlyTheLatestLoadToken() {
@@ -34,9 +32,7 @@ class QuestServicePersistenceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_1-モデル定義.md
-     * 章・見出し: # 29_1-モデル定義 > ## 9. 永続化世代
-     * 検証契約: SQL ACK待ちの退出直後の再ログインでDBの古い状態をruntimeへ上書きしない。
+     * SQL ACK待ちの退出直後の再ログインでDBの古い状態をruntimeへ上書きしない。
      */
     @Test
     void quickRelogUsesRetainedUnacknowledgedState() {
@@ -59,9 +55,7 @@ class QuestServicePersistenceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_1-モデル定義.md
-     * 章・見出し: # 29_1-モデル定義 > ## 9. 永続化世代
-     * 検証契約: SQL ACK確認後に解放された次回ログインはDBから状態を読み直す。
+     * SQL ACK確認後に解放された次回ログインはDBから状態を読み直す。
      */
     @Test
     void acknowledgedReleasedStateIsEvicted() {

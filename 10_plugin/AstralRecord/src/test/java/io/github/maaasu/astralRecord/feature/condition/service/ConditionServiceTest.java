@@ -32,9 +32,7 @@ import static org.mockito.Mockito.mock;
 class ConditionServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
-     * 章・見出し: # 27_3-サービス > ## 1. `ConditionService.applyCondition` > ### 1.2 付与確率
-     * 検証契約: 基礎確率・増加率・耐性率を乗算し0〜100へclampする。
+     * 基礎確率・増加率・耐性率を乗算し0〜100へclampする。
      */
     @Test
     void applyChanceUsesIncreaseAndResistanceAsPercentages() {
@@ -44,9 +42,7 @@ class ConditionServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
-     * 章・見出し: # 27_3-サービス > ## 1. `ConditionService.applyCondition` > ### 1.3 新規付与と同種更新
-     * 検証契約: 弱い再付与では効果を維持して期限だけ延長し、強い再付与では効果を置換して既存の長い期限を維持する。
+     * 弱い再付与では効果を維持して期限だけ延長し、強い再付与では効果を置換して既存の長い期限を維持する。
      */
     @Test
     void keepsStrongerEffectAndOnlyExtendsExpiry() {
@@ -75,9 +71,7 @@ class ConditionServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/27_1-モデル定義.md
-     * 章・見出し: # 27_1-モデル定義 > ## 2. `ConditionEffect`
-     * 検証契約: 炎上は攻撃種別の解決攻撃力（ATTACK と種別攻撃力の合計へ基本能力値倍率を適用）を基準にし、固定値や係数上書きで種別既定係数の上限を超えない。
+     * 炎上は攻撃種別の解決攻撃力（ATTACK と種別攻撃力の合計へ基本能力値倍率を適用）を基準にし、固定値や係数上書きで種別既定係数の上限を超えない。
      */
     @Test
     void burningSnapshotUsesResolvedAttackPowerWithDotCoefficientCap() {
@@ -108,9 +102,7 @@ class ConditionServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/27_1-モデル定義.md
-     * 章・見出し: # 27_1-モデル定義 > ## 6. 状態異常ステータス
-     * 検証契約: 毒は対象HPではなく付与元のSUPPORT_POWERを基準にする。
+     * 毒は対象HPではなく付与元のSUPPORT_POWERを基準にする。
      */
     @Test
     void poisonSnapshotUsesSupportPowerInsteadOfTargetHealth() {
@@ -140,9 +132,7 @@ class ConditionServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/27_0-概要.md
-     * 章・見出し: # 27_0-概要 > ## 3. 不変条件
-     * 検証契約: 冷気を残したまま凍結で移動不可とし、凍結解除後は冷気の移動倍率0.5へ戻す。
+     * 冷気を残したまま凍結で移動不可とし、凍結解除後は冷気の移動倍率0.5へ戻す。
      */
     @Test
     void frozenDominatesChilledWithoutRemovingIt() {
@@ -163,9 +153,7 @@ class ConditionServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 28. ソードマン エクゼプトスタンプの実装契約 > ### 28.1 数値・発動条件
-     * 検証契約: Mobの基礎移動速度100へ減少30を適用すると0.7倍になり、弱い再付与では効果を弱めない。全体掃除後は等倍へ戻る。
+     * Mobの基礎移動速度100へ減少30を適用すると0.7倍になり、弱い再付与では効果を弱めない。全体掃除後は等倍へ戻る。
      */
     @Test
     void temporaryMovementSpeedReductionUsesFlatAmountAndRestoresOnCleanup() {
@@ -185,9 +173,7 @@ class ConditionServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
-     * 章・見出し: # 27_3-サービス > ## 4. `conditionDamageMultiplier`
-     * 検証契約: DoT増加20%、耐性50%、貫通10%を専用式で0.72倍へ計算する。
+     * DoT増加20%、耐性50%、貫通10%を専用式で0.72倍へ計算する。
      */
     @Test
     void conditionDamageUsesIndependentIncreaseResistanceAndPenetration() {
@@ -204,9 +190,7 @@ class ConditionServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
-     * 章・見出し: # 27_3-サービス > ## 4. `conditionDamageMultiplier`
-     * 検証契約: DoT耐性-25%を弱点として1.25倍へ増幅する。
+     * DoT耐性-25%を弱点として1.25倍へ増幅する。
      */
     @Test
     void negativeDotResistanceIncreasesConditionDamage() {
@@ -219,11 +203,7 @@ class ConditionServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
-     * 章・見出し: # 27_3-サービス > ## 1. `ConditionService.applyCondition` > ### 1.2 付与確率
-     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
-     * 章・見出し: # 27_3-サービス > ## 3. 行動可否と倍率
-     * 検証契約: 付与耐性100%ではCHANCE_FAILEDとなり、回復阻害が有効な対象はhealing blockedとなる。
+     * 付与耐性100%ではCHANCE_FAILEDとなり、回復阻害が有効な対象はhealing blockedとなる。
      */
     @Test
     void fullApplyResistanceAlwaysRejectsAndHealingInhibitionBlocksRecovery() {
@@ -243,9 +223,7 @@ class ConditionServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
-     * 章・見出し: # 27_3-サービス > ## 3. 行動可否と倍率
-     * 検証契約: 衰弱中のsourceの全与ダメージ倍率を0.5とする。
+     * 衰弱中のsourceの全与ダメージ倍率を0.5とする。
      */
     @Test
     void weaknessHalvesAllOutgoingDamageIncludingConditionSourceDamage() {
@@ -258,9 +236,7 @@ class ConditionServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
-     * 章・見出し: # 27_3-サービス > ## 2. 解除・照会・全体掃除
-     * 検証契約: 指定時刻で期限到達した状態異常をmapから削除し、その後は新規状態として再付与できる。
+     * 指定時刻で期限到達した状態異常をmapから削除し、その後は新規状態として再付与できる。
      */
     @Test
     void cleanupSweepRemovesConditionsExpiredAtProvidedTime() {

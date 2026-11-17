@@ -24,9 +24,7 @@ class CartographMapRasterTest {
     ), 0, 1);
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ > ### 8.3 手持ち地図
-     * 検証契約: 地図の北を固定し、部屋外でも本人の X/Z と水平の向きを矢印に反映する。
+     * 地図の北を固定し、部屋外でも本人の X/Z と水平の向きを矢印に反映する。
      */
     @Test
     void markerFollowsPositionAndYawOnNorthUpMap() {
@@ -46,9 +44,7 @@ class CartographMapRasterTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ > ### 8.3 手持ち地図
-     * 検証契約: 部屋を解放すると、その部屋と接続通路の表示が両版対応の地図色で更新される。
+     * 部屋を解放すると、その部屋と接続通路の表示が両版対応の地図色で更新される。
      */
     @Test
     void openingRoomChangesItsOutlineAndCorridor() {

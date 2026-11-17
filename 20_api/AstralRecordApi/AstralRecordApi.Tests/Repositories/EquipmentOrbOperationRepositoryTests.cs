@@ -146,7 +146,6 @@ public class EquipmentOrbOperationRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.02-登録系.md
     /// 検証契約: Pluginが先に計算したENHANCE結果は、現在状態とmaster条件が一致する場合だけAPIで確定する。
     /// </summary>
     [Fact]
@@ -177,7 +176,6 @@ public class EquipmentOrbOperationRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/14-equipment/5-例外・ログ・運用/14_5.00-例外・ログ・運用.md
     /// 検証契約: Pluginのローカル結果が現在の装備状態と一致しない場合、APIは消費せずINVALIDとして確定する。
     /// </summary>
     [Fact]
@@ -257,8 +255,6 @@ public class EquipmentOrbOperationRepositoryTests
     }
 
     /**
-     * 設計入力: 00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.02-登録系.md
-     * 章・見出し: # 14_3.02 登録系 > ### ルーン装着
      * 検証契約: RUNE_ATTACH の実トランザクション経路で、ルーンのslot/tag条件が一致するとルーンとオーブを各1個消費して空きスロットへ装着する。
      */
     [Fact]
@@ -316,8 +312,6 @@ public class EquipmentOrbOperationRepositoryTests
     }
 
     /**
-     * 設計入力: 00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.02-登録系.md
-     * 章・見出し: # 14_3.02 登録系 > #### 支払い entry の消費順
      * 検証契約: RUNE_ATTACHで選択に使った表示slotに依存せず、同一itemIdのBAG後方slotからルーンを1個消費する。
      */
     [Fact]
@@ -852,8 +846,6 @@ public class EquipmentOrbOperationRepositoryTests
     }
 
     /**
-     * 設計入力: 00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.02-登録系.md
-     * 章・見出し: オーブ装備操作 > 支払い entry の消費順
      * 検証契約: itemId で素材を分割消費するときは、同一 inventory 内の slotIndex が大きい entry から消費する。
      */
     [Fact]

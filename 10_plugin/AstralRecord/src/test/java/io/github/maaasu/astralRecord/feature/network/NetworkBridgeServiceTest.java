@@ -41,9 +41,7 @@ import static org.mockito.Mockito.when;
 
 class NetworkBridgeServiceTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## ゲーム内チャンネル接続通知
-     * 検証契約: Dev受信者にも接続通知を届け、network無効時と別plugin channelでは配信しない。
+     * Dev受信者にも接続通知を届け、network無効時と別plugin channelでは配信しない。
      */
     @Test
     void gatesChannelNotificationsByNetworkEnabledWithoutExcludingDevRecipients() throws Exception {
@@ -66,9 +64,7 @@ class NetworkBridgeServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## サーバー選択
-     * 検証契約: Proxyからの保存準備要求は指定されたRPG channel名を欠損なく復元する。
+     * Proxyからの保存準備要求は指定されたRPG channel名を欠損なく復元する。
      */
     @Test
     void decodesProxyPrepareConnectTarget() throws Exception {
@@ -82,9 +78,7 @@ class NetworkBridgeServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## サーバー選択
-     * 検証契約: player-stateとQuest stateのACK成功後だけ指定RPG channelへの接続を要求する。
+     * player-stateとQuest stateのACK成功後だけ指定RPG channelへの接続を要求する。
      */
     @Test
     void transfersToRequestedChannelOnlyAfterAllSavesSucceed() throws Exception {
@@ -114,9 +108,7 @@ class NetworkBridgeServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
-     * 章・見出し: # 10_3-View > ## 5. tab list 描画
-     * 検証契約: RPGの職業shortNameに定義された色・装飾コードをProxy Tab向けmetadataで保持する。
+     * RPGの職業shortNameに定義された色・装飾コードをProxy Tab向けmetadataで保持する。
      */
     @Test
     void preservesShortNameStyleForProxyTabMetadata() {
@@ -125,9 +117,7 @@ class NetworkBridgeServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
-     * 検証契約: network有効時はRPG側のTab更新を停止し、停止時に更新を再有効化する。
+     * network有効時はRPG側のTab更新を停止し、停止時に更新を再有効化する。
      */
     @Test
     void disablesRpgTabUpdatesWhileNetworkIsEnabledAndRestoresThemOnStop() {
@@ -141,9 +131,7 @@ class NetworkBridgeServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
-     * 検証契約: network無効時はRPG側のTab更新を有効にしたままにする。
+     * network無効時はRPG側のTab更新を有効にしたままにする。
      */
     @Test
     void keepsRpgTabUpdatesEnabledWhenNetworkIsDisabled() {
@@ -156,9 +144,7 @@ class NetworkBridgeServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## RPGからの保存付き転送
-     * 検証契約: player-stateのSQL ACKが失敗した場合はProxy接続要求を送らず、現在チャンネルで操作凍結を解除する。
+     * player-stateのSQL ACKが失敗した場合はProxy接続要求を送らず、現在チャンネルで操作凍結を解除する。
      */
     @Test
     void keepsPlayerOnCurrentChannelWhenBoundarySaveFails() {
@@ -193,9 +179,7 @@ class NetworkBridgeServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## RPGからの保存付き転送
-     * 検証契約: Quest stateの保存ACKが失敗した場合もProxy接続要求を送らない。
+     * Quest stateの保存ACKが失敗した場合もProxy接続要求を送らない。
      */
     @Test
     void keepsPlayerOnCurrentChannelWhenQuestSaveFails() {
@@ -224,9 +208,7 @@ class NetworkBridgeServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## player-state snapshot
-     * 検証契約: account切替中はchannel transferを開始せず、同じ旧セッションを二重に解放しない。
+     * account切替中はchannel transferを開始せず、同じ旧セッションを二重に解放しない。
      */
     @Test
     void rejectsChannelTransferWhileAccountSwitchOwnsTransition() {

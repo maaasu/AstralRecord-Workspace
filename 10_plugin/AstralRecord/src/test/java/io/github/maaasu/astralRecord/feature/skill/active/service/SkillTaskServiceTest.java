@@ -21,9 +21,7 @@ import static org.mockito.Mockito.when;
 class SkillTaskServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 24. メイジ フロストブリザードの実装契約 > ### 24.1 数値・移動・対象
-     * 検証契約: cleanup付き反復taskは正常回数完了時にtaskを停止し、cleanupを1回だけ実行する。
+     * cleanup付き反復taskは正常回数完了時にtaskを停止し、cleanupを1回だけ実行する。
      */
     @Test
     void completionRunsCleanupExactlyOnce() {
@@ -44,9 +42,7 @@ class SkillTaskServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 24. メイジ フロストブリザードの実装契約 > ### 24.1 数値・移動・対象
-     * 検証契約: lifecycleによる発動者task破棄でも反復taskのcleanupを1回だけ実行する。
+     * lifecycleによる発動者task破棄でも反復taskのcleanupを1回だけ実行する。
      */
     @Test
     void clearCasterRunsCleanupExactlyOnce() {
@@ -66,9 +62,7 @@ class SkillTaskServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 24. メイジ フロストブリザードの実装契約 > ### 24.1 数値・移動・対象
-     * 検証契約: 反復actionが例外終了した場合もtaskを停止し、cleanupを1回だけ実行して例外を再throwする。
+     * 反復actionが例外終了した場合もtaskを停止し、cleanupを1回だけ実行して例外を再throwする。
      */
     @Test
     void actionFailureRunsCleanupExactlyOnceAndRethrows() {
@@ -90,9 +84,7 @@ class SkillTaskServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 24. メイジ フロストブリザードの実装契約 > ### 24.1 数値・移動・対象
-     * 検証契約: Plugin停止による全task破棄でもcleanupを1回だけ実行する。
+     * Plugin停止による全task破棄でもcleanupを1回だけ実行する。
      */
     @Test
     void stopRunsCleanupExactlyOnce() {

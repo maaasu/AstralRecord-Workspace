@@ -26,9 +26,7 @@ import static org.mockito.Mockito.when;
 
 class WorldSpawnLocationSnapshotTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
-     * 章・見出し: # 17_3-サービス > ## スポーン地点解決・転送
-     * 検証契約: 非同期用スポーン地点は独立したコピーとして取得でき、Bukkitのワールド状態に触れない。
+     * 非同期用スポーン地点は独立したコピーとして取得でき、Bukkitのワールド状態に触れない。
      */
     @Test
     void readingSnapshotDoesNotAccessWorldAndCannotMutatePublishedLocation() {
@@ -50,9 +48,7 @@ class WorldSpawnLocationSnapshotTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
-     * 章・見出し: # 17_3-サービス > ## スポーン地点解決・転送
-     * 検証契約: 同じ実ワールドの再公開ではactivation前も新座標を利用でき、パス変更では失効する。
+     * 同じ実ワールドの再公開ではactivation前も新座標を利用でき、パス変更では失効する。
      */
     @Test
     void reloadKeepsSameWorldAvailableWithNewCoordinatesButInvalidatesChangedPath() {
@@ -68,9 +64,7 @@ class WorldSpawnLocationSnapshotTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
-     * 章・見出し: # 17_3-サービス > ## スポーン地点解決・転送
-     * 検証契約: アンロード・定義削除で位置を失効させ、ワールドの再解決で最新位置を再公開する。
+     * アンロード・定義削除で位置を失効させ、ワールドの再解決で最新位置を再公開する。
      */
     @Test
     void unloadAndDefinitionRemovalInvalidateSpawnSnapshot() {

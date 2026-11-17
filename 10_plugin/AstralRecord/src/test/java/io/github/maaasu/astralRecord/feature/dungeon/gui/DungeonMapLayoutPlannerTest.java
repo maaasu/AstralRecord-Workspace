@@ -11,9 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class DungeonMapLayoutPlannerTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ > ### 8.2 現在ダンジョンマップ
-     * 検証契約: 複数の通路が同じマスを通るときも、分岐する辺と各接続を保持する。
+     * 複数の通路が同じマスを通るときも、分岐する辺と各接続を保持する。
      */
     @Test
     void preservesBranchAtSharedCorridorSlot() {

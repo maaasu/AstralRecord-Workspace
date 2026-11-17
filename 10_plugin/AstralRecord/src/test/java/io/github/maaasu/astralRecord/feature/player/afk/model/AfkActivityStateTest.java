@@ -13,9 +13,7 @@ class AfkActivityStateTest {
     private static final World WORLD = mock(World.class);
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_1-モデル定義.md
-     * 章・見出し: # 03_1-モデル定義 > ## 10. AFK判定状態
-     * 検証契約: 前後左右入力中でも基準位置から1m未満の移動だけでは、AFK判定用の操作時刻を更新しない。
+     * 前後左右入力中でも基準位置から1m未満の移動だけでは、AFK判定用の操作時刻を更新しない。
      */
     @Test
     void doesNotResetInactivityForDirectionalMovementBelowOneBlock() {
@@ -27,9 +25,7 @@ class AfkActivityStateTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_1-モデル定義.md
-     * 章・見出し: # 03_1-モデル定義 > ## 10. AFK判定状態
-     * 検証契約: 前後左右入力中に基準位置から1m以上移動すると、AFK判定用の操作時刻を更新する。
+     * 前後左右入力中に基準位置から1m以上移動すると、AFK判定用の操作時刻を更新する。
      */
     @Test
     void resetsInactivityForDirectionalMovementOfOneBlockOrMore() {
@@ -41,9 +37,7 @@ class AfkActivityStateTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_1-モデル定義.md
-     * 章・見出し: # 03_1-モデル定義 > ## 10. AFK判定状態
-     * 検証契約: 前後左右入力を伴わない水流・スキル・転送相当の移動は、距離にかかわらずAFK判定用の操作時刻を更新しない。
+     * 前後左右入力を伴わない水流・スキル・転送相当の移動は、距離にかかわらずAFK判定用の操作時刻を更新しない。
      */
     @Test
     void doesNotResetInactivityForMovementWithoutDirectionalInput() {

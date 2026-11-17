@@ -41,9 +41,7 @@ import static org.mockito.Mockito.when;
 class WorldJoinSpawnEventHandlerTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
-     * 章・見出し: # 17_4-統合フロー > ## 4. 参加時の拠点スポーン転送
-     * 検証契約: 初参加・再参加とも管理外の初期位置・視線を拠点マスターへ置き換え、DB操作状態は参加transactionで復元する。
+     * 初参加・再参加とも管理外の初期位置・視線を拠点マスターへ置き換え、DB操作状態は参加transactionで復元する。
      */
     @Test
     void initialSpawnOverridesUnmanagedWorldForNewAndReturningPlayers() {
@@ -79,9 +77,7 @@ class WorldJoinSpawnEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
-     * 章・見出し: # 17_4-統合フロー > ## 4. 参加時の拠点スポーン転送
-     * 検証契約: 参加前の拠点が未解決なら警告し、非同期スレッドでワールドをロードしない。
+     * 参加前の拠点が未解決なら警告し、非同期スレッドでワールドをロードしない。
      */
     @Test
     void unresolvedInitialSpawnLogsWithoutLoadingWorldAsynchronously() {
@@ -98,9 +94,7 @@ class WorldJoinSpawnEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
-     * 章・見出し: # 17_3-サービス > ## スポーン地点解決・転送
-     * 検証契約: 参加時スポーン先が解決できる場合は、設定されたスポーン地点への非同期転送を開始する。
+     * 参加時スポーン先が解決できる場合は、設定されたスポーン地点への非同期転送を開始する。
      */
     @Test
     void successfulJoinSpawnStartsTeleportAfterJoin() {
@@ -159,9 +153,7 @@ class WorldJoinSpawnEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
-     * 章・見出し: # 17_4-統合フロー > ## 4. 参加時の拠点スポーン転送
-     * 検証契約: 拠点ワールドが未ロードでも、参加時転送はオンデマンド読込を行う転送サービスへ委譲する。
+     * 拠点ワールドが未ロードでも、参加時転送はオンデマンド読込を行う転送サービスへ委譲する。
      */
     @Test
     void joinSpawnDelegatesToAsyncTeleportWhenBaseWorldIsNotLoaded() {
@@ -219,9 +211,7 @@ class WorldJoinSpawnEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_5-例外・ログ・運用.md
-     * 章・見出し: # 17_5-例外・ログ・運用 > ## ログ・メッセージ
-     * 検証契約: 参加時スポーン転送が失敗した場合、W_5753 の world 引数へ解決済み Bukkit world 名を記録する。
+     * 参加時スポーン転送が失敗した場合、W_5753 の world 引数へ解決済み Bukkit world 名を記録する。
      */
     @Test
     void failedJoinSpawnLogsResolvedBukkitWorldName() {
@@ -291,9 +281,7 @@ class WorldJoinSpawnEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
-     * 章・見出し: # 17_4-統合フロー > ## 4. 参加時の拠点スポーン転送
-     * 検証契約: 初回の非同期転送後に対象ワールドへ到達していない場合は、参加後検証で1回だけ再転送し、最終確認を行う。
+     * 初回の非同期転送後に対象ワールドへ到達していない場合は、参加後検証で1回だけ再転送し、最終確認を行う。
      */
     @Test
     void failedInitialJoinSpawnIsRetriedAfterPostJoinVerification() {
@@ -376,9 +364,7 @@ class WorldJoinSpawnEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
-     * 章・見出し: # 17_4-統合フロー > ## 4. 参加時の拠点スポーン転送
-     * 検証契約: 初回転送 Future が未完了のまま参加後検証が実行されても並行再転送せず、Future 完了後に再試行する。
+     * 初回転送 Future が未完了のまま参加後検証が実行されても並行再転送せず、Future 完了後に再試行する。
      */
     @Test
     void pendingInitialJoinSpawnStillSchedulesVerification() {
@@ -471,9 +457,7 @@ class WorldJoinSpawnEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
-     * 章・見出し: # 17_4-統合フロー > ## 4. 参加時の拠点スポーン転送
-     * 検証契約: 初回転送と再試行がともに失敗した場合は、最大試行回数を超えて転送せず最終失敗を記録する。
+     * 初回転送と再試行がともに失敗した場合は、最大試行回数を超えて転送せず最終失敗を記録する。
      */
     @Test
     void failedInitialAndRetryStopAtMaximumTeleportAttempts() {
@@ -560,9 +544,7 @@ class WorldJoinSpawnEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
-     * 章・見出し: # 17_4-統合フロー > ## 4. 参加時の拠点スポーン転送
-     * 検証契約: 再接続後に古い Player インスタンスの検証が実行されても、新しいセッションへ再転送しない。
+     * 再接続後に古い Player インスタンスの検証が実行されても、新しいセッションへ再転送しない。
      */
     @Test
     void postJoinVerificationIgnoresReconnectedPlayerInstance() {
@@ -632,9 +614,7 @@ class WorldJoinSpawnEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
-     * 章・見出し: # 17_4-統合フロー > ## 4. 参加時の拠点スポーン転送
-     * 検証契約: 初回転送が同期例外で開始できなくても、参加後検証から1回だけ再転送する。
+     * 初回転送が同期例外で開始できなくても、参加後検証から1回だけ再転送する。
      */
     @Test
     void synchronousJoinSpawnFailureStillSchedulesRetry() {

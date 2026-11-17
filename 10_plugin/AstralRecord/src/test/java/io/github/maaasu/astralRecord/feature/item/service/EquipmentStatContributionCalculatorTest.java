@@ -11,9 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class EquipmentStatContributionCalculatorTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 装備単体補正集計
-     * 検証契約: FLAT定義の存在と実効値を分け、加算の相殺もゼロとしてSCALARを無効判定する。
+     * FLAT定義の存在と実効値を分け、加算の相殺もゼロとしてSCALARを無効判定する。
      */
     @Test
     void zeroAndCancelledFlatDoNotActivateScalar() {
@@ -29,9 +27,7 @@ class EquipmentStatContributionCalculatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 装備単体補正集計
-     * 検証契約: 強化、別enchant、runeのFLATを全て足してから装備単体SCALARを適用する。
+     * 強化、別enchant、runeのFLATを全て足してから装備単体SCALARを適用する。
      */
     @Test
     void enhancementEnchantAndRuneFlatActivateScalar() {
@@ -47,9 +43,7 @@ class EquipmentStatContributionCalculatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 装備単体補正集計
-     * 検証契約: 同一statusのroll方式をsortOrderで解決し、最後のSCALARだけを採用し4端点を評価する。
+     * 同一statusのroll方式をsortOrderで解決し、最後のSCALARだけを採用し4端点を評価する。
      */
     @Test
     void lastScalarWinsAndNegativeRangesUseAllProducts() {
@@ -68,9 +62,7 @@ class EquipmentStatContributionCalculatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 装備単体補正集計
-     * 検証契約: 強化の逆順端点を個別正規化せず累積後に正規化し既存値を保持する。
+     * 強化の逆順端点を個別正規化せず累積後に正規化し既存値を保持する。
      */
     @Test
     void enhancementEndpointsAreSummedBeforeNormalization() {
@@ -82,9 +74,7 @@ class EquipmentStatContributionCalculatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 装備単体補正集計
-     * 検証契約: 旧個体の採集・釣りレベルだけを補完し、既存rollの二重加算と他stat補完を防ぐ。
+     * 旧個体の採集・釣りレベルだけを補完し、既存rollの二重加算と他stat補完を防ぐ。
      */
     @Test
     void missingToolLevelsAreSupplementedWithoutDoublingRolls() {
@@ -97,9 +87,7 @@ class EquipmentStatContributionCalculatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 装備単体補正集計
-     * 検証契約: SCALAR単体と未知statusは値を生成せず、不正rollの既存0変換も保持する。
+     * SCALAR単体と未知statusは値を生成せず、不正rollの既存0変換も保持する。
      */
     @Test
     void scalarOnlyAndUnknownStatusesDoNotGenerateContribution() {

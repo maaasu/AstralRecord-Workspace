@@ -7,9 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class PetInstancePrivacyTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/37-pet/37_0-概要.md
-     * 章・見出し: # 37_0-概要 > ## 個体と卵の不変条件
-     * 検証契約: 卵の上流応答に詳細が混入してもPlugin変換境界では個体詳細を公開しない。
+     * 卵の上流応答に詳細が混入してもPlugin変換境界では個体詳細を公開しない。
      */
     @Test void neverExposesEggDetailsEvenWhenUpstreamIncludesThem() {
         JsonObject response=fixture(true);
@@ -20,9 +18,7 @@ class PetInstancePrivacyTest {
         assertTrue(pet.details().isEmpty());
     }
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/37-pet/37_0-概要.md
-     * 章・見出し: # 37_0-概要 > ## 個体と卵の不変条件
-     * 検証契約: 孵化済み詳細は入力と返却JSONから独立して保持し、表示側の変更を保存値へ反映しない。
+     * 孵化済み詳細は入力と返却JSONから独立して保持し、表示側の変更を保存値へ反映しない。
      */
     @Test void isolatesHatchedDetailsFromInputAndDisplayMutation() {
         JsonObject response=fixture(false);JsonObject details=new JsonObject();details.addProperty("name","before");response.add("details",details);

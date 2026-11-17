@@ -11,9 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class MobRepositoryShieldParsingTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-リポジトリ.md
-     * 章・見出し: # 12_3-リポジトリ > ## 3. template parse（内部）
-     * 検証契約: rechargeAmountの明示値をPlugin payload parse後も維持する。
+     * rechargeAmountの明示値をPlugin payload parse後も維持する。
      */
     @Test
     void parsesExplicitShieldRechargeAmount() {
@@ -24,9 +22,7 @@ class MobRepositoryShieldParsingTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-リポジトリ.md
-     * 章・見出し: # 12_3-リポジトリ > ## 3. template parse（内部）
-     * 検証契約: rechargeAmount省略時はshield.maxを完了量として解決する。
+     * rechargeAmount省略時はshield.maxを完了量として解決する。
      */
     @Test
     void defaultsMissingShieldRechargeAmountToMax() {
@@ -37,9 +33,7 @@ class MobRepositoryShieldParsingTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-リポジトリ.md
-     * 章・見出し: # 12_3-リポジトリ > ## 3. template parse（内部）
-     * 検証契約: rechargeAmountがnullの場合もshield.maxを完了量として解決する。
+     * rechargeAmountがnullの場合もshield.maxを完了量として解決する。
      */
     @Test
     void defaultsNullShieldRechargeAmountToMax() {
@@ -50,9 +44,7 @@ class MobRepositoryShieldParsingTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
-     * 章・見出し: # 12_1-モデル定義 > ## 2. Mob テンプレート
-     * 検証契約: 同一 Mob マスタ内の levels を読み込み、未指定時は最小レベルを実効値にする。
+     * 同一 Mob マスタ内の levels を読み込み、未指定時は最小レベルを実効値にする。
      */
     @Test
     void resolvesLowestLevelProfileWhenLevelIsNotSpecified() {
@@ -66,9 +58,7 @@ class MobRepositoryShieldParsingTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
-     * 章・見出し: # 12_1-モデル定義 > ## 2. Mob テンプレート
-     * 検証契約: 指定レベルは同一マスタ内のプロファイルへ解決される。
+     * 指定レベルは同一マスタ内のプロファイルへ解決される。
      */
     @Test
     void resolvesExplicitLevelProfile() {
@@ -82,9 +72,7 @@ class MobRepositoryShieldParsingTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
-     * 章・見出し: # 12_1-モデル定義 > ## 2. Mob テンプレート
-     * 検証契約: APIのlevel profileに残るref/random形式のdropsを、指定レベルのitem・loot table・EXP・moneyへ解決する。
+     * APIのlevel profileに残るref/random形式のdropsを、指定レベルのitem・loot table・EXP・moneyへ解決する。
      */
     @Test
     void resolvesReferenceFormDropsInExplicitLevelProfile() {

@@ -21,9 +21,7 @@ import static org.mockito.Mockito.when;
 
 class CartographDurabilityServiceTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ
-     * 検証契約: 残耐久0のカルトグラフは、登録済み地図の再表示を含めて使用できない。
+     * 残耐久0のカルトグラフは、登録済み地図の再表示を含めて使用できない。
      */
     @Test
     void rejectsUseWhenDurabilityIsZero() {
@@ -33,9 +31,7 @@ class CartographDurabilityServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ
-     * 検証契約: 残耐久1以上のカルトグラフは使用可能と判定する。
+     * 残耐久1以上のカルトグラフは使用可能と判定する。
      */
     @Test
     void allowsUseWhenDurabilityRemains() {
@@ -45,9 +41,7 @@ class CartographDurabilityServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ
-     * 検証契約: 新規session登録時だけ固定75耐久を消費し、ちょうど75なら0へ更新して表示を再描画する。
+     * 新規session登録時だけ固定75耐久を消費し、ちょうど75なら0へ更新して表示を再描画する。
      */
     @Test
     void consumesExactlySeventyFiveAndAllowsZeroRemaining() {
@@ -66,9 +60,7 @@ class CartographDurabilityServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ
-     * 検証契約: 現在耐久が75未満なら新規sessionを登録できず、耐久更新も表示更新も行わない。
+     * 現在耐久が75未満なら新規sessionを登録できず、耐久更新も表示更新も行わない。
      */
     @Test
     void rejectsRegistrationBelowSeventyFiveWithoutMutation() {
@@ -87,9 +79,7 @@ class CartographDurabilityServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ
-     * 検証契約: 新規session登録時の消費量は現在値に比例せず常に75である。
+     * 新規session登録時の消費量は現在値に比例せず常に75である。
      */
     @Test
     void alwaysUsesTheFixedRegistrationCost() {

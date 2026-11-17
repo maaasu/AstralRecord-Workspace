@@ -35,9 +35,7 @@ import static org.mockito.Mockito.when;
 class MobDropServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
-     * 章・見出し: # 12_3-戦闘 > ## 4. MobDropService メソッド仕様 > ### ドロップ確定
-     * 検証契約: 直接drop/loot結果へ設定rateを保持し表示・rare判定へ渡す。
+     * 直接drop/loot結果へ設定rateを保持し表示・rare判定へ渡す。
      */
     @Test
     void rollPreservesConfiguredRateForResultPresentation() {
@@ -57,9 +55,7 @@ class MobDropServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
-     * 章・見出し: # 12_3-戦闘 > ## 4. MobDropService メソッド仕様 > ### ドロップ確定
-     * 検証契約: amountのmin~max記法を閉区間として抽選する。
+     * amountのmin~max記法を閉区間として抽選する。
      */
     @Test
     void rollAcceptsDocumentedTildeAmountRange() {
@@ -78,9 +74,7 @@ class MobDropServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
-     * 章・見出し: # 12_3-戦闘 > ## 4. MobDropService メソッド仕様 > ### ドロップ確定
-     * 検証契約: load済みloot table当選結果を直接drop結果へ結合する。
+     * load済みloot table当選結果を直接drop結果へ結合する。
      */
     @Test
     void rollAddsLoadedLootTableRewards() {
@@ -107,9 +101,7 @@ class MobDropServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
-     * 章・見出し: # 12_3-戦闘 > ## 4. MobDropService メソッド仕様 > ### ドロップ確定
-     * 検証契約: LUCKを設定率への相対パーセント倍率として、luckAffected=trueの直接dropだけへ適用する。
+     * LUCKを設定率への相対パーセント倍率として、luckAffected=trueの直接dropだけへ適用する。
      */
     @Test
     void calculateEffectiveRateUsesLuckAsPercentageMultiplier() {
@@ -120,9 +112,7 @@ class MobDropServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
-     * 章・見出し: # 12_3-戦闘 > ## 4. MobDropService メソッド仕様 > ### ドロップ確定
-     * 検証契約: 設定確率20%へDROP_RATE_INCREASE=200%を適用すると抽選確率40%になる。
+     * 設定確率20%へDROP_RATE_INCREASE=200%を適用すると抽選確率40%になる。
      */
     @Test
     void calculateEffectiveRateAppliesDropRateIncrease() {
@@ -130,9 +120,7 @@ class MobDropServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
-     * 章・見出し: # 12_3-戦闘 > ## 4. MobDropService メソッド仕様 > ### ドロップ確定
-     * 検証契約: rollが取得したLUCKをluckAffected=trueの直接dropへ適用し、falseには適用しない。
+     * rollが取得したLUCKをluckAffected=trueの直接dropへ適用し、falseには適用しない。
      */
     @Test
     void rollAppliesLuckToAffectedDirectDrops() {
@@ -163,9 +151,7 @@ class MobDropServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
-     * 章・見出し: # 12_3-戦闘 > ## 4. MobDropService メソッド仕様 > ### ドロップ確定
-     * 検証契約: EXPをplayer/Mob絶対level差1ごと5%減、最低10%へ補正する。
+     * EXPをplayer/Mob絶対level差1ごと5%減、最低10%へ補正する。
      */
     @Test
     void rollTemplateReducesExperienceByPlayerAndMobLevelDifference() {

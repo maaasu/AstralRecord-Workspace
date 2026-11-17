@@ -13,9 +13,7 @@ import static org.mockito.Mockito.when;
 
 class InventoryJoinModeGuardTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 4. 表示インベントリ GUI 反映
-     * 検証契約: ADMINへの初期GUI反映はBukkit所持品に触れる前に終了し、所持品を消去しない。
+     * ADMINへの初期GUI反映はBukkit所持品に触れる前に終了し、所持品を消去しない。
      */
     @Test
     void adminJoinRenderingDoesNotAccessBukkitInventory() {

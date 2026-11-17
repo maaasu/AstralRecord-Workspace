@@ -21,9 +21,7 @@ import static org.mockito.Mockito.when;
 
 class PlayerInventoryOverlayModeBoundaryTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 3. 管理者インベントリ保存・反映 > ### プレイヤーインベントリオーバーレイのモード境界
-     * 検証契約: 同じオーバーレイGUIを開いていてもADMINでは下段描画を拒否し、PLAYERの場合だけ描画する。
+     * 同じオーバーレイGUIを開いていてもADMINでは下段描画を拒否し、PLAYERの場合だけ描画する。
      */
     @Test
     void retainedOverlayCannotWriteAdminInventory() {

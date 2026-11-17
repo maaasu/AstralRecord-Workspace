@@ -74,7 +74,7 @@ README のルールを適用した後、次を確認する。
 プラグイン側の DB アクセス、DB 契約に依存する機能、スキーマ関連作業、ファイルベースのマスタデータに依存する機能を追加または変更するときは次のルールを使う。
 
 1. リポジトリの入力/出力モデルを確認する。
-2. `E:\AstralRecord-Workspace\00_docs\20_API設計書\feature\` の API 契約を確認する。
+2. [APIの探し方](../../../../00_docs/10_AIパーソナライズ/APIの探し方.md) を入口に、関連するルート定義、入出力モデル、既存テストから API 契約を確認する。
 3. `E:\AstralRecord-Workspace\00_docs\40_Database設計書\` 配下の SQL Server定義を確認する。
 4. `E:\AstralRecord-Workspace\40_filebase\` 配下のファイルベースのマスタデータと YAML スキーマを確認する。
 5. DB スキーマに依存するコードを書く前に、`00_docs\40_Database設計書` の定義と実装が一致することを確認する。
@@ -85,38 +85,19 @@ README のルールを適用した後、次を確認する。
 10. データベース/Filebase の定義を確認せず、DB 名前や YAML パスを直接記述しない。
 11. インベントリや装備耐久性などプレイヤー所有の実行時状態では、ゲームプレイ中の正本をプラグイン側の読み込み済み状態とする。戦闘または頻繁なパスで API 書き込みをブロックしない。耐久性など同様に重要度の低い状態は未コミット変更ありとして記録し、プレイヤーインベントリと同じ保存境界（自動保存、ログアウト、プラグイン無効化、明示的保存）で書き出しする。即時の API 整合性よりサーバー性能を優先する。
 
-## プラグイン設計書
+## プラグインテストの構成検証
 
-ユーザーが `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\` 配下のプラグイン設計書を作成または変更するよう依頼した場合だけ、次のルールを使う。
-
-1. `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\README.md` を読む。
-2. 機能が特定されている場合は、その `NN_0-概要.md` 入口と、実装所有権が関係する場合の `FEATURE_CATALOG.md` を読む。
-3. 推測的な説明を避けるため、対応する実装コードを読む。
-4. ルートカテゴリ `0/1/2/3/4/5/6/8/9` は内容がある場合だけ使う。カテゴリ `0` だけは必須とする。
-5. ファイル名は `NN_<category>-<meaningful-name>.md` とする。`.00` / `.01` の詳細番号を追加しない。
-6. 機能ルートにはカテゴリ文書を1つだけ置く。カテゴリディレクトリは複数の文書がある場合だけ作る。
-7. 長いファイルは一貫した責務で分割し、順序番号ではなく意味のある名前を使う。
-8. 受け入れ済みだが未実装の仕様はカテゴリ `8`、未決の設計判断はカテゴリ `9` に置く。推測したり状態を混在させたりしない。
-9. 責務または所有権が変わる場合は機能概要と `FEATURE_CATALOG.md` を整合させる。
-10. ルート設計書ルールに従い、一意に解決できる Wiki リンクまたは相対 Markdown リンクを使う。
-11. メソッド設計書は処理契約として扱い、すべての物理メソッドの必須一覧とはみなさない。
-12. properties ファイルが正本の場合、ロガー/プレイヤーメッセージテキスト全体を重複記載しない。
-
-## プラグインテストのトレーサビリティゲート
-
-作業差分が次のパスのいずれかを追加、変更、名前変更、削除する場合は、リポジトリルートから `python .codex/skills/astralrecord-plugin-test/scripts/validate_test_traceability.py` を実行する。テストソースが変わらず設計書のみまたはテスト方針のみの差分でも、このゲートは必須とする。
+作業差分が次のいずれかを追加、変更、名前変更、削除する場合は、リポジトリルートから構成検証を実行する。
 
 - `10_plugin/AstralRecord/src/test/**/*`
 - `10_plugin/AstralRecord/pom.xml`
-- `PLUGIN_GUIDE.md`
-- `00_docs/10_Plugin設計書/**/*.md`
-- `.codex/skills/astralrecord-plugin-test/**/*`
-- `.codex/skills/astralrecord-code/SKILL.md`
-- `.codex/skills/astralrecord-code/references/plugin-code.md`
-- `.codex/skills/astralrecord-code-version-commit-develop/SKILL.md`
-- `.codex/skills/astralrecord-docs-fix/SKILL.md`
+- `.codex/skills/astralrecord-plugin-test/scripts/validate_plugin_tests.py`
 
-最終の Maven テスト実行前とレビューへの引き渡し前にゲートを実行する。追跡されていないテストメソッド、無効化されたまたは条件付きでスキップされるテスト、標準外の Maven テストソース、コンパイラー/Surefire から除外されたテスト、Kotlin JUnit アノテーション別名、一時的な `AdHoc*Test` / `*OneShotTest` ソース、MockBukkit等の疑似サーバーを利用するsource・support・ビルド依存を最終差分に残さない。疑似サーバーテストは一時診断として実行後に削除する。プラグイン Shade 設定がメインワークスペースの配布先へ書き込むため、このコマンドを `mvn verify` で代替しない。
+```powershell
+python .codex/skills/astralrecord-plugin-test/scripts/validate_plugin_tests.py
+```
+
+最終の Maven テスト実行前とレビューへの引き渡し前に構成を検証する。無効化や条件付きでスキップされるテスト、標準外の Maven テストソース、コンパイラー/Surefire から除外されたテスト、Kotlin JUnit アノテーション別名、一時的な `AdHoc*Test` / `*OneShotTest` ソース、MockBukkit 等の疑似サーバーを利用するソース・補助コード・ビルド依存は最終差分から除く。疑似サーバーテストは一時診断として実行後に削除する。プラグイン Shade 設定がメインワークスペースの配布先へ書き込むため、このコマンドを `mvn verify` で代替しない。
 
 ## 個別実装指示の例
 
@@ -124,7 +105,7 @@ README のルールを適用した後、次を確認する。
 
 1. 旧値と近隣機能の用語を両方検索する。
 2. 文字列置換より列挙型/素材/定数/リソースの定義を優先する。
-3. 変更された契約が要求する場合、またはユーザーが依頼した場合だけテスト、ファイルベース 参照、メッセージ、設計書を更新する。
+3. 変更された挙動や契約に合わせ、必要なテスト、Filebase 参照、メッセージ、既存の利用資料を更新する。
 4. 対象を絞ったコンパイルまたはテストを実行し、意図しない広範囲置換がないか差分を確認する。
 
 ## パーティクルルール

@@ -19,9 +19,7 @@ import static org.mockito.Mockito.when;
 class ConfigPropertiesTest {
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## マスターデータ自動再読込
-     * 検証契約: 自動再読込の有効状態と秒単位の監視間隔を読み込み、間隔を1秒以上へ制限する。
+     * 自動再読込の有効状態と秒単位の監視間隔を読み込み、間隔を1秒以上へ制限する。
      */
     @Test
     void loadsMasterDataAutoReloadSettingsAndClampsInterval() {
@@ -59,9 +57,7 @@ class ConfigPropertiesTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_2-ユースケース.md
-     * 章・見出し: # 03_2-ユースケース > ## 11. whitelist メンテナンス
-     * 検証契約: debugUsers / whitelistUsers は UUID文字列を前後空白除去後に解析し、不正値と空値を無視し、reload後は新しい設定値へ置き換える。
+     * debugUsers / whitelistUsers は UUID文字列を前後空白除去後に解析し、不正値と空値を無視し、reload後は新しい設定値へ置き換える。
      */
     @Test
     void parsesConfiguredUserListsAndReplacesThemOnReload() {

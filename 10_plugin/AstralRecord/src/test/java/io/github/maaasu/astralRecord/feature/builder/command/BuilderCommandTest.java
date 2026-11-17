@@ -22,9 +22,7 @@ import static org.mockito.Mockito.when;
 
 class BuilderCommandTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/38-builder/38_3-ビルダーGUI.md
-     * 章・見出し: # 38_3-ビルダーGUI > ## dev の建築ファイル登録
-     * 検証契約: 引数なし、upload、load を各画面と登録リンク発行へ振り分ける。短縮コマンドでも同じ処理を行う。
+     * 引数なし、upload、load を各画面と登録リンク発行へ振り分ける。短縮コマンドでも同じ処理を行う。
      */
     @Test
     void routesHomeUploadAndLoadForABuilder() {
@@ -51,9 +49,7 @@ class BuilderCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/38-builder/38_3-ビルダーGUI.md
-     * 章・見出し: # 38_3-ビルダーGUI > ## dev の建築ファイル登録
-     * 検証契約: 接続設定の有無に関係なく、Dev サーバーのビルダーにだけ最初の引数を補完する。
+     * 接続設定の有無に関係なく、Dev サーバーのビルダーにだけ最初の引数を補完する。
      */
     @Test
     void completesTheFirstArgumentForDevBuildersBeforeConnectionIsConfigured() {

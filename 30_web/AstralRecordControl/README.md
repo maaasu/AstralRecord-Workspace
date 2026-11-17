@@ -1,6 +1,6 @@
 # AstralRecordControl
 
-Minecraft本体・既存AstralRecordWeb/API・SQL Serverが停止していてもログインできる独立管理系です。.NET 10 / Windows x64を使用します。設計の正本は [AstralRecordControl設計書](../../00_docs/30_WEB設計書/AstralRecordControl/README.md) です。
+Minecraft本体・既存AstralRecordWeb/API・SQL Serverが停止していてもログインできる独立管理系です。.NET 10 / Windows x64を使用します。機能別の入口は [プロジェクト一覧](#プロジェクト) を参照してください。
 
 ## 実装済みの機能（P0・P1・P2・P3）
 

@@ -14,9 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class VexFlightPathfinderTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-実体Mob制御.md
-     * 章・見出し: # 12_3-実体Mob制御 > ## 4. Pathfinder 移動要求 > ### Vex 三次元経路
-     * 検証契約: 障害物のない三次元空間では目標ノードまでの経路を返す。
+     * 障害物のない三次元空間では目標ノードまでの経路を返す。
      */
     @Test
     void reachesGoalInOpenThreeDimensionalSpace() {
@@ -32,9 +30,7 @@ class VexFlightPathfinderTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-実体Mob制御.md
-     * 章・見出し: # 12_3-実体Mob制御 > ## 4. Pathfinder 移動要求 > ### Vex 三次元経路
-     * 検証契約: 直線上の壁を通過せず、壁の上または横を通る安全な経路を返す。
+     * 直線上の壁を通過せず、壁の上または横を通る安全な経路を返す。
      */
     @Test
     void routesAroundWallWithoutUsingBlockedNodes() {
@@ -57,9 +53,7 @@ class VexFlightPathfinderTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-実体Mob制御.md
-     * 章・見出し: # 12_3-実体Mob制御 > ## 4. Pathfinder 移動要求 > ### Vex 三次元経路
-     * 検証契約: 複数軸の斜め移動では、塞がれた直交中間ノードを切り抜けない。
+     * 複数軸の斜め移動では、塞がれた直交中間ノードを切り抜けない。
      */
     @Test
     void diagonalMoveDoesNotCutBlockedCorner() {
@@ -77,9 +71,7 @@ class VexFlightPathfinderTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-実体Mob制御.md
-     * 章・見出し: # 12_3-実体Mob制御 > ## 4. Pathfinder 移動要求 > ### Vex 三次元経路
-     * 検証契約: 目標が探索範囲外でも無制限探索せず、範囲内で最も近い部分経路を返す。
+     * 目標が探索範囲外でも無制限探索せず、範囲内で最も近い部分経路を返す。
      */
     @Test
     void returnsBoundedPartialPathWhenGoalIsOutsideSearchRadius() {
@@ -98,9 +90,7 @@ class VexFlightPathfinderTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-実体Mob制御.md
-     * 章・見出し: # 12_3-実体Mob制御 > ## 4. Pathfinder 移動要求 > ### Vex 三次元経路
-     * 検証契約: 展開上限へ達した場合は開始ノードから先を推測せず安全に終了する。
+     * 展開上限へ達した場合は開始ノードから先を推測せず安全に終了する。
      */
     @Test
     void expansionLimitStopsSearch() {

@@ -25,9 +25,7 @@ import static org.mockito.Mockito.when;
 
 class InventoryUnknownOutcomeTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 重要操作のACKと補償
-     * 検証契約: 重要操作の結果不明ではsnapshotを破棄せず、backoff後も同一IDと本文を再送してACKを確定する。
+     * 重要操作の結果不明ではsnapshotを破棄せず、backoff後も同一IDと本文を再送してACKを確定する。
      */
     @Test
     void retainsIdenticalCriticalPayloadUntilRecovered() throws Exception {

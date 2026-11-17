@@ -66,7 +66,6 @@ description: AstralRecord ワークスペースの現在のブランチ／作業
 - ブランチ作成、作業ツリー作成、リベース、`develop` へのマージ、後片付けをユーザーが求める場合は `$astralrecord-git-worktree-develop` を使う。
 - 実装とコミット流れを1つの依頼で求める場合は `$astralrecord-code-version-commit-develop` を使う。
 - ブランチまたは作業ツリーがすでにあり、現在の未コミット差分の整理とコミットだけが必要な場合にこのスキルを使う。
-- レビュースキルは、Git 事前確認で専用の `develop` 以外の作業ツリーが選ばれた後に限りこれを使える。レビュー記録を `develop` 直接コミットの例外に依存させず、書き込む前にレビュー作業ツリーを用意する。
 
 ## 使用例
 
@@ -78,9 +77,6 @@ $astralrecord-commit-current-diff を使って、E:\AstralRecord-Workspace\.code
 $astralrecord-commit-current-diff を使って、現在の作業ブランチから E:\AstralRecord-Workspace\10_plugin\AstralRecord のプラグイン変更だけをコミットし、結果を報告してください。
 ```
 
-```text
-$astralrecord-commit-current-diff を使って、E:\AstralRecord-Worktrees\<task-slug>\00_docs\99_資料\レビュー結果のレビュー記録差分だけを作業ブランチにコミットし、結果を報告してください。
-```
 
 ## 報告形式
 

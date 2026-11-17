@@ -43,9 +43,7 @@ import static org.mockito.Mockito.verify;
 
 class InventoryServiceHandModeBoundaryTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 1. state 参照 > ### 手持ちアイテム参照のモード境界
-     * 検証契約: PLAYERからADMINへ切り替えると両手の参照と消費を拒否し、PLAYERへ戻すと保持された同じentryを参照できる。
+     * PLAYERからADMINへ切り替えると両手の参照と消費を拒否し、PLAYERへ戻すと保持された同じentryを参照できる。
      */
     @Test
     void adminHandsCannotResolveOrConsumeRetainedPlayerHotbar() {
@@ -92,9 +90,7 @@ class InventoryServiceHandModeBoundaryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 4. 表示インベントリ GUI 反映
-     * 検証契約: PLAYERで予約した次tickの再描画も、実行前にADMINへ切り替えた場合はBukkitインベントリへアクセスしない。
+     * PLAYERで予約した次tickの再描画も、実行前にADMINへ切り替えた場合はBukkitインベントリへアクセスしない。
      */
     @Test
     void queuedPlayerRefreshCannotWriteAfterSwitchingToAdmin() {

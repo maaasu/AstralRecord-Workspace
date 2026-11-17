@@ -26,9 +26,7 @@ import static org.mockito.Mockito.when;
 class PartyCommandTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
-     * 章・見出し: # 19_3-メソッド仕様 > ## `/party` command
-     * 検証契約: `/party chat <message>` は PartyService の共通配信処理へ本文を渡す。
+     * `/party chat <message>` は PartyService の共通配信処理へ本文を渡す。
      */
     @Test
     void partyChatDelegatesToPartyService() {
@@ -54,9 +52,7 @@ class PartyCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
-     * 章・見出し: # 19_3-メソッド仕様 > ## パーティーチャット mode / 管理者一覧
-     * 検証契約: `/party chat` は引数なしで PartyService のパーティーチャット mode を切り替える。
+     * `/party chat` は引数なしで PartyService のパーティーチャット mode を切り替える。
      */
     @Test
     void argumentlessPartyChatTogglesMode() {
@@ -89,9 +85,7 @@ class PartyCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_2-ユースケース.md
-     * 章・見出し: # 19_2-ユースケース > ## UC-19-06 管理者が party 一覧を確認する
-     * 検証契約: Admin は account mode が通常プレイでなくても全 party 一覧の hover 行を表示できる。
+     * Admin は account mode が通常プレイでなくても全 party 一覧の hover 行を表示できる。
      */
     @Test
     void adminCanViewAllPartiesWithHoverMembers() {
@@ -132,9 +126,7 @@ class PartyCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
-     * 章・見出し: # 19_3-メソッド仕様 > ## `/party` command
-     * 検証契約: `/party approve <player>` は掲示板参加申請の承認処理へ対象名を渡す。
+     * `/party approve <player>` は掲示板参加申請の承認処理へ対象名を渡す。
      */
     @Test
     void approveCommandDelegatesToJoinRequestApproval() {

@@ -15,9 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class ItemRepositoryEquipmentParsingTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
-     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.3 `ItemEquipment`
-     * 検証契約: nullable durability/collection項目を安全な空/defaultへ変換する。
+     * nullable durability/collection項目を安全な空/defaultへ変換する。
      */
     @Test
     void nullableDurabilityAndCollectionsUseSafeDefaults() throws Exception {
@@ -49,9 +47,7 @@ class ItemRepositoryEquipmentParsingTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
-     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.3 `ItemEquipment`
-     * 検証契約: 装備level/class条件とtranscendence強化条件をDTOから保持する。
+     * 装備level/class条件とtranscendence強化条件をDTOから保持する。
      */
     @Test
     void equipmentRequirementsAndTranscendenceEnhanceRequirementAreParsed() throws Exception {
@@ -89,9 +85,7 @@ class ItemRepositoryEquipmentParsingTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
-     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.3 `ItemEquipment`
-     * 検証契約: min/max の個別乱数範囲を計算用の下限/上限とは別に表示用モデルへ保持する。
+     * min/max の個別乱数範囲を計算用の下限/上限とは別に表示用モデルへ保持する。
      */
     @Test
     void equipmentStatRandomBoundsArePreservedForDisplay() throws Exception {
@@ -123,9 +117,7 @@ class ItemRepositoryEquipmentParsingTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
-     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.8 `ItemOrb`
-     * 検証契約: Seeder 用の enchant 参照prefixは Plugin内部のマスタIDから除く。
+     * Seeder 用の enchant 参照prefixは Plugin内部のマスタIDから除く。
      */
     @Test
     void orbEnchantReferencePrefixIsNormalized() throws Exception {
@@ -152,9 +144,7 @@ class ItemRepositoryEquipmentParsingTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
-     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.5 `ItemRune`
-     * 検証契約: ルーンの対象slotと任意の対象装備tagをAPI payloadから別々に保持する。
+     * ルーンの対象slotと任意の対象装備tagをAPI payloadから別々に保持する。
      */
     @Test
     void runeTargetTagsAreParsedSeparatelyFromTargetSlots() throws Exception {
@@ -179,9 +169,7 @@ class ItemRepositoryEquipmentParsingTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
-     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.4 `ItemConsumable`
-     * 検証契約: 消耗品の使用中サウンドと使用完了後サウンドを別々のマスタ項目として保持する。
+     * 消耗品の使用中サウンドと使用完了後サウンドを別々のマスタ項目として保持する。
      */
     @Test
     void consumableUsingAndCompletionSoundsAreParsedSeparately() throws Exception {
@@ -208,9 +196,7 @@ class ItemRepositoryEquipmentParsingTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
-     * 章・見出し: # 04_1-モデル定義 > ## 5. 所有インスタンス > ### 5.1 `EquipmentInstance`
-     * 検証契約: APIの固定flagは読込とJSON保存で保全し、欠落・nullの旧行は未固定へ正規化する。
+     * APIの固定flagは読込とJSON保存で保全し、欠落・nullの旧行は未固定へ正規化する。
      */
     @Test
     void enchantLockIsPreservedAcrossRepositoryAndJsonSnapshotPaths() throws Exception {
@@ -233,9 +219,7 @@ class ItemRepositoryEquipmentParsingTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
-     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.3 `ItemEquipment` > #### 生成時一回のステータス乱数
-     * 検証契約: 明示randomだけを保持し、未指定scalarと旧rangeの値および生値を変更しない。
+     * 明示randomだけを保持し、未指定scalarと旧rangeの値および生値を変更しない。
      */
     @Test
     void explicitRandomAndLegacyValuesRemainSeparate() throws Exception {
@@ -261,9 +245,7 @@ class ItemRepositoryEquipmentParsingTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
-     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.3 `ItemEquipment` > #### 生成時一回のステータス乱数
-     * 検証契約: 新規個体の明示randomを同値min/maxへ確定し、保存再読込で個体を再抽選しない。
+     * 新規個体の明示randomを同値min/maxへ確定し、保存再読込で個体を再抽選しない。
      */
     @Test
     void generatedScalarRollSurvivesSnapshotReload() throws Exception {
@@ -289,9 +271,7 @@ class ItemRepositoryEquipmentParsingTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
-     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.3 `ItemEquipment` > #### 生成時一回のステータス乱数
-     * 検証契約: 過去の個体に保存された異なるmin/maxもマスター乱数とは独立にそのまま復元する。
+     * 過去の個体に保存された異なるmin/maxもマスター乱数とは独立にそのまま復元する。
      */
     @Test
     void legacyInstanceBoundsAreNeverRerolledOnLoad() throws Exception {
@@ -309,9 +289,7 @@ class ItemRepositoryEquipmentParsingTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
-     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.3 `ItemEquipment` > #### 生成時一回のステータス乱数
-     * 検証契約: 同値の範囲形式・欠落した刻み・double表現不能な基準値や加算幅を明示randomで拒否する。
+     * 同値の範囲形式・欠落した刻み・double表現不能な基準値や加算幅を明示randomで拒否する。
      */
     @Test
     void explicitRandomRejectsLegacyRangeAndMissingStep() {

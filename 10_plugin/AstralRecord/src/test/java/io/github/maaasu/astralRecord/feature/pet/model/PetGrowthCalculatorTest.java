@@ -16,9 +16,7 @@ class PetGrowthCalculatorTest {
         """).getAsJsonObject());
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/37-pet/37_0-概要.md
-     * 章・見出し: # 37_0-概要 > ## 成長と遺伝
-     * 検証契約: APIの整数tier加算・wave・節目を含む必要EXPとレベル内残量を一致させる。
+     * APIの整数tier加算・wave・節目を含む必要EXPとレベル内残量を一致させる。
      */
     @Test void matchesApiExperienceCurveAndCapsDisplayAtMaxLevel() {
         assertEquals(620, PetGrowthCalculator.requiredExperience(MASTER, 1));
@@ -36,9 +34,7 @@ class PetGrowthCalculatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/37-pet/37_0-概要.md
-     * 章・見出し: # 37_0-概要 > ## 成長と遺伝
-     * 検証契約: 基礎サイズの個体差を保持し、Lv1は半分、Lv20で成体になり以後増えない。
+     * 基礎サイズの個体差を保持し、Lv1は半分、Lv20で成体になり以後増えない。
      */
     @Test void sizeGrowthPreservesIndividualDifferenceAndStopsAtMatureLevel() {
         assertEquals(.4, PetGrowthCalculator.effectiveSize(MASTER, .8, 1), 1e-12);
@@ -49,9 +45,7 @@ class PetGrowthCalculatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/37-pet/37_0-概要.md
-     * 章・見出し: # 37_0-概要 > ## 成長と遺伝
-     * 検証契約: 活動種別の独自係数と対象レベルだけでEXPを計算し、レベル下限と整数化を守る。
+     * 活動種別の独自係数と対象レベルだけでEXPを計算し、レベル下限と整数化を守る。
      */
     @Test void activityExperienceUsesIndependentCoefficientsAndTargetLevel() {
         PetMaster master = new PetMaster(JsonParser.parseString("""
@@ -66,9 +60,7 @@ class PetGrowthCalculatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/37-pet/37_0-概要.md
-     * 章・見出し: # 37_0-概要 > ## 成長と遺伝
-     * 検証契約: 基礎能力上昇でEXP倍率が単調減少し、潜在・育成済み能力には依存しない。
+     * 基礎能力上昇でEXP倍率が単調減少し、潜在・育成済み能力には依存しない。
      */
     @Test void growthRateFallsWithBaseStatsAndIgnoresCurrentStatsAndPotential() {
         JsonObject definitions = new JsonObject();

@@ -16,9 +16,7 @@ import static org.mockito.Mockito.*;
 
 class AccountManagementRepositoryTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-リポジトリ.md
-     * 章・見出し: # 02_3-リポジトリ > ## 3. 管理APIの応答契約
-     * 検証契約: 複製APIの201応答はaccountオブジェクト内のUUIDを使い、作成されたアカウントを返す。
+     * 複製APIの201応答はaccountオブジェクト内のUUIDを使い、作成されたアカウントを返す。
      */
     @Test
     void cloneReadsTheAccountEnvelopeReturnedByTheApi() throws Exception {
@@ -46,9 +44,7 @@ class AccountManagementRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-リポジトリ.md
-     * 章・見出し: # 02_3-リポジトリ > ## 3. 管理APIの応答契約
-     * 検証契約: 確認後の複製先変更を示す409は成功結果として読まず、エラーコードを保持して呼出元へ返す。
+     * 確認後の複製先変更を示す409は成功結果として読まず、エラーコードを保持して呼出元へ返す。
      */
     @Test
     void conflictIsNotParsedAsAClonedAccount() throws Exception {

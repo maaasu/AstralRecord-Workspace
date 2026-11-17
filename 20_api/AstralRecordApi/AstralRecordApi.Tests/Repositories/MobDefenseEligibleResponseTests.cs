@@ -11,7 +11,6 @@ namespace AstralRecordApi.Tests.Repositories;
 public class MobDefenseEligibleResponseTests
 {
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/16-mob/1-モデル定義/16_1.00-モデル定義.md
     /// JSON の項目順序に関係なく ENEMY だけが参加可能となり、詳細と一覧は同じ値を返す。
     /// </summary>
     [Theory]

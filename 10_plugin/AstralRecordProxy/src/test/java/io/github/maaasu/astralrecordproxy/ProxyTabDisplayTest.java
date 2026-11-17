@@ -30,8 +30,6 @@ class ProxyTabDisplayTest {
     private static final UUID DISCONNECTED_PLAYER_ID = UUID.fromString("00000000-0000-0000-0000-000000000003");
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
      * 検証契約: Tab同期はスナップショット取得からentry反映まで直列実行する。
      */
     @Test
@@ -42,8 +40,6 @@ class ProxyTabDisplayTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
      * 検証契約: 切断時のentry削除はTab同期と同じ排他境界で直列実行する。
      */
     @Test
@@ -123,8 +119,6 @@ class ProxyTabDisplayTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
      * 検証契約: Proxyのチャット用ラベルは従来のクラス名・Lv.順序と色で表示する。
      */
     @Test
@@ -146,8 +140,6 @@ class ProxyTabDisplayTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
      * 検証契約: チャットでは最大クラスレベル到達者のLv.を維持し、数値の代わりに赤太字のmaxを表示する。
      */
     @Test
@@ -203,8 +195,6 @@ class ProxyTabDisplayTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
      * 検証契約: ProxyのAFK中チャットラベルはRPG側と同じ赤いAFK接頭辞を表示する。
      */
     @Test
@@ -227,8 +217,6 @@ class ProxyTabDisplayTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
      * 検証契約: クラスメタデータ未設定時はチャットのフォールバックとしてMCIDだけを表示する。
      */
     @Test
@@ -242,8 +230,6 @@ class ProxyTabDisplayTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
      * 検証契約: チャットのADMINアカウントはchannelとアカウント名を表示し、クラス・レベル・AFKを省略する。
      */
     @Test
@@ -258,8 +244,6 @@ class ProxyTabDisplayTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
      * 検証契約: Tabメタデータは現在接続先backendからの通知だけを採用する。
      */
     @Test
@@ -270,8 +254,6 @@ class ProxyTabDisplayTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
-     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
      * 検証契約: チャットの送信元と表示名が一致しない移動・切替後のメタデータを流用しない。
      */
     @Test

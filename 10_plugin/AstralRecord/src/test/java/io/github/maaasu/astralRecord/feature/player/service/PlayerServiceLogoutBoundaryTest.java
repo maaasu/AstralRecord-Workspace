@@ -13,9 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PlayerServiceLogoutBoundaryTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
-     * 章・見出し: # 40_player-admin-edit 概要 > ## 編集開始と保存境界
-     * 検証契約: core と pet の最終保存が両方成功するまで runtime session close を始めない。
+     * core と pet の最終保存が両方成功するまで runtime session close を始めない。
      */
     @Test
     void closesRuntimeOnlyAfterCoreAndPetBothSucceed() {
@@ -34,9 +32,7 @@ class PlayerServiceLogoutBoundaryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/40-player-admin-edit/40_0-概要.md
-     * 章・見出し: # 40_player-admin-edit 概要 > ## 編集開始と保存境界
-     * 検証契約: core が保存失敗、または pet が例外終了したとき処理権限を閉じない。
+     * core が保存失敗、または pet が例外終了したとき処理権限を閉じない。
      */
     @Test
     void failedCoreOrPetKeepsRuntimeAuthority() {

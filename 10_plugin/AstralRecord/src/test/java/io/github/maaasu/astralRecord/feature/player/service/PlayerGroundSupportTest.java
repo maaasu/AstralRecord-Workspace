@@ -9,9 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** サーバーに依存せず、共通の足元接触の幾何条件を検証します。 */
 class PlayerGroundSupportTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 1. service メソッド仕様 > ### 移動アクションの共通接地判定
-     * 検証契約: 整数境界と異なる高さでも、足の水平範囲が衝突上面と重なっていれば接地とする。
+     * 整数境界と異なる高さでも、足の水平範囲が衝突上面と重なっていれば接地とする。
      */
     @Test
     void acceptsContactAtDifferentSurfaceHeights() {
@@ -22,9 +20,7 @@ class PlayerGroundSupportTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 1. service メソッド仕様 > ### 移動アクションの共通接地判定
-     * 検証契約: 足の一部が上面に重なれば接地とし、水平範囲の境界接触や離れた面は接地にしない。
+     * 足の一部が上面に重なれば接地とし、水平範囲の境界接触や離れた面は接地にしない。
      */
     @Test
     void acceptsPartialFootprintButRejectsSideAndCornerTangency() {
@@ -36,9 +32,7 @@ class PlayerGroundSupportTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
-     * 章・見出し: # 03_3-サービス > ## 1. service メソッド仕様 > ### 移動アクションの共通接地判定
-     * 検証契約: 下方0.05ブロックと座標誤差までを許容し、空中・足より高い上面・空の形状は拒否する。
+     * 下方0.05ブロックと座標誤差までを許容し、空中・足より高い上面・空の形状は拒否する。
      */
     @Test
     void rejectsAirborneFeetWallsAndEmptyShapes() {

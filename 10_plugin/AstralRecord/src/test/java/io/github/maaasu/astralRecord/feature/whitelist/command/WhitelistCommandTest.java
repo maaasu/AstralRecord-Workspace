@@ -29,9 +29,7 @@ import static org.mockito.Mockito.when;
 class WhitelistCommandTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-コマンド.md
-     * 章・見出し: # 03_3-コマンド > ## 6. whitelist メンテナンス切替
-     * 検証契約: コンソールの引数なし実行は現在値を反転し、falseをサービスへ保存する。
+     * コンソールの引数なし実行は現在値を反転し、falseをサービスへ保存する。
      */
     @Test
     void noArgumentTogglesWhitelistForConsole() {
@@ -45,9 +43,7 @@ class WhitelistCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-コマンド.md
-     * 章・見出し: # 03_3-コマンド > ## 6. whitelist メンテナンス切替
-     * 検証契約: enable の第2引数 true/false は指定値をサービスへ保存する。
+     * enable の第2引数 true/false は指定値をサービスへ保存する。
      */
     @Test
     void enableArgumentSetsExplicitWhitelistState() {
@@ -60,9 +56,7 @@ class WhitelistCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-コマンド.md
-     * 章・見出し: # 03_3-コマンド > ## 6. whitelist メンテナンス切替
-     * 検証契約: true/false以外の引数は状態を変更せず、エラーとusageを実行者へ返す。
+     * true/false以外の引数は状態を変更せず、エラーとusageを実行者へ返す。
      */
     @Test
     void rejectsNonBooleanArgumentWithoutChangingState() {
@@ -85,9 +79,7 @@ class WhitelistCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-コマンド.md
-     * 章・見出し: # 03_3-コマンド > ## 7. whitelist ユーザー設定
-     * 検証契約: DB登録済みユーザー名の追加はAPI検索後にUUIDをwhitelist設定へ反映する。
+     * DB登録済みユーザー名の追加はAPI検索後にUUIDをwhitelist設定へ反映する。
      */
     @Test
     void addsDatabaseUserToWhitelist() {
@@ -120,9 +112,7 @@ class WhitelistCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-コマンド.md
-     * 章・見出し: # 03_3-コマンド > ## 7. whitelist ユーザー設定
-     * 検証契約: DB登録済みユーザー名の削除はAPI検索後にUUIDをwhitelist設定から除去する。
+     * DB登録済みユーザー名の削除はAPI検索後にUUIDをwhitelist設定から除去する。
      */
     @Test
     void removesDatabaseUserFromWhitelist() {
@@ -155,9 +145,7 @@ class WhitelistCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-コマンド.md
-     * 章・見出し: # 03_3-コマンド > ## 7. whitelist ユーザー設定
-     * 検証契約: DB未登録ユーザー名の追加はwhitelist設定を変更せず、対象未検出メッセージを返す。
+     * DB未登録ユーザー名の追加はwhitelist設定を変更せず、対象未検出メッセージを返す。
      */
     @Test
     void rejectsUnknownDatabaseUserWithoutChangingWhitelist() {

@@ -25,9 +25,7 @@ import static org.mockito.Mockito.when;
 class PlayerSettingJoinEventHandlerTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/11_4-統合フロー.md
-     * 章・見出し: # 11_4-統合フロー > ## 1. login warmup・logout cleanup
-     * 検証契約: 設定 warmup 完了後、同一 session の online player へ装備表示をメインスレッドで再同期する。
+     * 設定 warmup 完了後、同一 session の online player へ装備表示をメインスレッドで再同期する。
      */
     @Test
     void settingWarmupRefreshesEquipmentAfterCompletion() {

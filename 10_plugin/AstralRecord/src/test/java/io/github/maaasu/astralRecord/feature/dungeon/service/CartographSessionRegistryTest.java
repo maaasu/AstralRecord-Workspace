@@ -11,9 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CartographSessionRegistryTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ
-     * 検証契約: 同じ装備個体・プレイヤー・sessionだけを再表示として扱い、別sessionへの登録は新規登録として識別する。
+     * 同じ装備個体・プレイヤー・sessionだけを再表示として扱い、別sessionへの登録は新規登録として識別する。
      */
     @Test
     void distinguishesSameSessionReuseFromAnotherSession() {
@@ -35,9 +33,7 @@ class CartographSessionRegistryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
-     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ
-     * 検証契約: 参加者離脱時は本人の対象session bindingだけを削除し、session終了時は参加者全員のbindingを削除する。
+     * 参加者離脱時は本人の対象session bindingだけを削除し、session終了時は参加者全員のbindingを削除する。
      */
     @Test
     void cleansBindingsAtParticipantAndSessionBoundaries() {

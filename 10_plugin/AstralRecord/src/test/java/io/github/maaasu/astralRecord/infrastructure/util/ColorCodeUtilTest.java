@@ -9,9 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ColorCodeUtilTest {
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## 共通基盤の設定スナップショットと入力正規化 > ### Legacy color code 正規化
-     * 検証契約: & codeを§相当Componentへ変換し色未指定部分だけfallback colorを適用する。
+     * & codeを§相当Componentへ変換し色未指定部分だけfallback colorを適用する。
      */
     @Test
     void toComponentTranslatesLegacyColorCodesAndAppliesFallbackColor() {
@@ -21,9 +19,7 @@ class ColorCodeUtilTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## 共通基盤の設定スナップショットと入力正規化 > ### Legacy color code 正規化
-     * 検証契約: blank sourceをfallback textへ置換する。
+     * blank sourceをfallback textへ置換する。
      */
     @Test
     void toComponentUsesFallbackWhenTheSourceIsBlank() {
@@ -33,9 +29,7 @@ class ColorCodeUtilTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## 共通基盤の設定スナップショットと入力正規化 > ### Legacy color code 正規化
-     * 検証契約: sourceにcolor codeがない場合component全体へfallback colorを適用する。
+     * sourceにcolor codeがない場合component全体へfallback colorを適用する。
      */
     @Test
     void toComponentAppliesFallbackColorWhenTheSourceHasNoColorCode() {

@@ -41,9 +41,7 @@ import static org.mockito.Mockito.when;
 class LearnedSkillServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 素材不要の習得はAPIを呼ばずローカルキャッシュへ個体を追加し、player-state保存を予約する。
+     * 素材不要の習得はAPIを呼ばずローカルキャッシュへ個体を追加し、player-state保存を予約する。
      */
     @Test
     void learnWithoutPaymentConfirmsLocallyAndQueuesSave() {
@@ -70,9 +68,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 同じ素材entryを複数口使う習得は数量を集約し、予約・消費・個体追加を同じaccount state lock内で確定する。
+     * 同じ素材entryを複数口使う習得は数量を集約し、予約・消費・個体追加を同じaccount state lock内で確定する。
      */
     @Test
     void learnAggregatesRepeatedPaymentEntriesInsideOneLocalMutation() {
@@ -99,9 +95,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: entryごとの必要数量を指定する習得は、その数量 map を変更せず予約・消費へ渡して個体を追加する。
+     * entryごとの必要数量を指定する習得は、その数量 map を変更せず予約・消費へ渡して個体を追加する。
      */
     @Test
     void learnWithExplicitPaymentsPreservesEntryQuantities() {
@@ -123,9 +117,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 習得素材を予約できない場合は個体を追加せず、仮予約を解放して失敗を通知する。
+     * 習得素材を予約できない場合は個体を追加せず、仮予約を解放して失敗を通知する。
      */
     @Test
     void learnRejectsInsufficientPaymentAndReleasesReservation() {
@@ -152,9 +144,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: レベルアップは指定素材の消費と同じaccount state lock内でlevel・versionを進め、保存を予約する。
+     * レベルアップは指定素材の消費と同じaccount state lock内でlevel・versionを進め、保存を予約する。
      */
     @Test
     void levelUpConfirmsLevelAndVersionWithPayment() {
@@ -178,9 +168,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 支払いcommitが不成立ならレベルとversionを変更せず、操作予約を解放する。
+     * 支払いcommitが不成立ならレベルとversionを変更せず、操作予約を解放する。
      */
     @Test
     void levelUpKeepsSkillUnchangedWhenPaymentCommitFails() {
@@ -206,9 +194,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 支払い予約後に対象個体が見つからないレベルアップは予約を解放し、保存を予約しない。
+     * 支払い予約後に対象個体が見つからないレベルアップは予約を解放し、保存を予約しない。
      */
     @Test
     void levelUpReleasesReservationWhenTargetIsMissing() {
@@ -228,9 +214,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: シジル装着はオーブとシジルを各1個消費し、同じaccount state lock内で個体へ装着してversionを進める。
+     * シジル装着はオーブとシジルを各1個消費し、同じaccount state lock内で個体へ装着してversionを進める。
      */
     @Test
     void attachSigilConsumesBothPaymentsAndUpdatesSkill() {
@@ -258,9 +242,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 同じequipGroupIdのシジルを装着しようとした場合は個体を変更せず、支払い予約を解放する。
+     * 同じequipGroupIdのシジルを装着しようとした場合は個体を変更せず、支払い予約を解放する。
      */
     @Test
     void attachSigilRejectsDuplicateEquipGroupAndReleasesReservation() {
@@ -284,9 +266,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: シジル脱着はオーブ消費、シジル返却、個体更新を同じaccount state lock内で確定する。
+     * シジル脱着はオーブ消費、シジル返却、個体更新を同じaccount state lock内で確定する。
      */
     @Test
     void detachSigilReturnsItemAndUpdatesSkillInsidePaymentCommit() {
@@ -312,9 +292,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 指定装着行が存在しない脱着はシジルを返却せず、支払い予約を解放する。
+     * 指定装着行が存在しない脱着はシジルを返却せず、支払い予約を解放する。
      */
     @Test
     void detachSigilRejectsMissingAttachmentWithoutReturningItem() {
@@ -335,9 +313,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 忘却はAPIを呼ばずキャッシュから個体を即時削除し、削除expectedVersionを含む保存を予約する。
+     * 忘却はAPIを呼ばずキャッシュから個体を即時削除し、削除expectedVersionを含む保存を予約する。
      */
     @Test
     void forgetRemovesSkillLocallyAndQueuesVersionedDeletion() {
@@ -362,9 +338,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 有償忘却のinventory変更とskill削除は一つのcritical mutation内で実行する。
+     * 有償忘却のinventory変更とskill削除は一つのcritical mutation内で実行する。
      */
     @Test
     void paidForgetRunsInventoryMutationInsideSameCriticalBoundary() {
@@ -392,9 +366,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 未所持個体の忘却はキャッシュを変更せず、player-state保存を予約しない。
+     * 未所持個体の忘却はキャッシュを変更せず、player-state保存を予約しない。
      */
     @Test
     void forgetRejectsMissingSkillWithoutQueuingSave() {
@@ -413,9 +385,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: learnedSkills snapshotは全現存個体のversionとシジル識別情報を送り、同一revisionの完全ACKだけでdirtyを解除する。
+     * learnedSkills snapshotは全現存個体のversionとシジル識別情報を送り、同一revisionの完全ACKだけでdirtyを解除する。
      */
     @Test
     void matchingCompleteAcknowledgementClearsDirtySnapshot() {
@@ -440,9 +410,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: APIのUTC日時を含む新規習得ACKはdirtyを解除し、返却versionを次回更新のexpectedVersionへ使う。
+     * APIのUTC日時を含む新規習得ACKはdirtyを解除し、返却versionを次回更新のexpectedVersionへ使う。
      */
     @Test
     void utcAcknowledgementAdvancesNewSkillVersionBaseline() {
@@ -464,9 +432,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 連続更新中に到着した旧revisionの完全ACKは新しいdirtyを解除せず、返却versionだけを後続expectedVersionへ反映する。
+     * 連続更新中に到着した旧revisionの完全ACKは新しいdirtyを解除せず、返却versionだけを後続expectedVersionへ反映する。
      */
     @Test
     void staleAcknowledgementDuringBurstKeepsLatestRevisionDirty() {
@@ -487,9 +453,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: ACKが全現存個体を含まない場合は同一revisionでもdirtyを解除せず、version基準も更新しない。
+     * ACKが全現存個体を含まない場合は同一revisionでもdirtyを解除せず、version基準も更新しない。
      */
     @Test
     void incompleteAcknowledgementKeepsSnapshotDirtyAndVersionsUnchanged() {
@@ -512,9 +476,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 送信後に忘却した個体は旧ACKのversionを削除expectedVersionへ引き継ぎ、完全な削除ACKでdirtyを解除する。
+     * 送信後に忘却した個体は旧ACKのversionを削除expectedVersionへ引き継ぎ、完全な削除ACKでdirtyを解除する。
      */
     @Test
     void oldAcknowledgementAdvancesDeletionVersionBeforeDeleteAck() {
@@ -538,9 +500,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 習得とシジル装着直後の退出でもsnapshot捕捉前の変更を保持し、完全ACK後に退出済みcacheを破棄する。
+     * 習得とシジル装着直後の退出でもsnapshot捕捉前の変更を保持し、完全ACK後に退出済みcacheを破棄する。
      */
     @Test
     void quitBeforeSnapshotRetainsLearnAndSigilUntilCompleteAck() {
@@ -565,9 +525,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 退出後の再参加は未保存個体を優先し、ロードとapplyの間にACKが届いても旧値へ戻さず次回versionへ反映する。
+     * 退出後の再参加は未保存個体を優先し、ロードとapplyの間にACKが届いても旧値へ戻さず次回versionへ反映する。
      */
     @Test
     void rejoinRetainsLocalSkillAcrossAckBetweenLoadAndApply() {
@@ -593,9 +551,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 再参加のapplyへ渡された旧API値は未保存忘却を復活させず、削除ACK後も再参加中のcacheは維持する。
+     * 再参加のapplyへ渡された旧API値は未保存忘却を復活させず、削除ACK後も再参加中のcacheは維持する。
      */
     @Test
     void rejoinDoesNotResurrectPendingDeletion() {
@@ -616,9 +572,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 旧ACKの重複到着は後続変更のversionを二重加算せず、再ロード後の保存世代にも影響しない。
+     * 旧ACKの重複到着は後続変更のversionを二重加算せず、再ロード後の保存世代にも影響しない。
      */
     @Test
     void duplicateAckCannotChangePendingVersionOrNewSession() {
@@ -642,9 +596,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 未ACKの新規learnを忘却して退出した場合も、先行learn ACKのversionを後続削除へ引き継ぎ個体を復活させない。
+     * 未ACKの新規learnを忘却して退出した場合も、先行learn ACKのversionを後続削除へ引き継ぎ個体を復活させない。
      */
     @Test
     void forgetOfUnacknowledgedNewLearnRetainsDeletionAfterLearnAck() {
@@ -673,9 +625,7 @@ class LearnedSkillServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: captureだけで未送信の新規習得をforgetしても存在しない個体の削除予定を作らない。
+     * captureだけで未送信の新規習得をforgetしても存在しない個体の削除予定を作らない。
      */
     @Test
     void forgettingCapturedButNeverSentLearnDoesNotCreatePhantomDeletion() {

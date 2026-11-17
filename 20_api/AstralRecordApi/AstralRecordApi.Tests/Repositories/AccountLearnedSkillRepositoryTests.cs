@@ -14,7 +14,6 @@ namespace AstralRecordApi.Tests.Repositories;
 public class AccountLearnedSkillRepositoryTests
 {
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md
     /// 検証契約: 同じ operationId の再送は個体作成・素材消費を再実行せず、現在の所有entry snapshotだけを再取得して返す。
     /// </summary>
     [Fact]
@@ -72,7 +71,6 @@ public class AccountLearnedSkillRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/5-例外・ログ・運用/11_5.00-例外・ログ・運用.md
     /// 検証契約: operationId を異なる要求で再利用した場合は、二つ目の mutation を実行せず409相当の failure を返す。
     /// </summary>
     [Fact]
@@ -105,7 +103,6 @@ public class AccountLearnedSkillRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
     /// 検証契約: 無条件習得では、同一skillIdを別UUIDの個体として何個でも習得できる。
     /// </summary>
     [Fact]
@@ -141,7 +138,6 @@ public class AccountLearnedSkillRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
     /// 検証契約: required items は複数stackから原子的に消費し、不足時は習得も消費もしない。
     /// </summary>
     [Fact]
@@ -172,7 +168,6 @@ public class AccountLearnedSkillRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md
     /// 検証契約: required items は通常アイテム共通消費順でBAGのslot降順から使い、HOTBARよりBAGを優先し、STORAGEとinstance itemを除外する。
     /// </summary>
     [Fact]
@@ -231,7 +226,6 @@ public class AccountLearnedSkillRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
     /// 検証契約: 指定個体だけを1レベル上げ、同じequipGroupIdのシジルを重複装着しない。
     /// </summary>
     [Fact]
@@ -307,7 +301,6 @@ public class AccountLearnedSkillRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md
     /// 検証契約: Pluginが選択したentry・数量・レベル・versionをAPIが再検証し、指定entryだけを消費する。
     /// </summary>
     [Fact]
@@ -370,7 +363,6 @@ public class AccountLearnedSkillRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
     /// 検証契約: 装着済みシジルの指定行だけを論理削除し、同一 transaction で BAG へ1個返却する。
     /// </summary>
     [Fact]
@@ -518,7 +510,6 @@ public class AccountLearnedSkillRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
     /// 検証契約: 許可されていないシジルは消費せず、素材選択段階の拒否と同じ理由で API も拒否する。
     /// </summary>
     [Fact]
@@ -570,7 +561,6 @@ public class AccountLearnedSkillRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
     /// 検証契約: シジル装着では SIGIL_ATTACH 以外のオーブを受け付けず、シジルとオーブを消費しない。
     /// </summary>
     [Fact]
@@ -684,7 +674,6 @@ public class AccountLearnedSkillRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
     /// 検証契約: skill master削除時は習得個体とそのbindをロード時に無効化する。
     /// </summary>
     [Fact]
@@ -741,7 +730,6 @@ public class AccountLearnedSkillRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
     /// 検証契約: SQL Server のリトライ実行戦略が有効でも、ログイン時の習得済みスキル照合は
     /// 実行戦略のスコープ内で Serializable transaction を開始して500にならない。
     /// </summary>
@@ -760,7 +748,6 @@ public class AccountLearnedSkillRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
     /// 検証契約: 忘却は指定個体と装着シジルだけを論理削除し、全プリセットの同UUIDバインドを保持する。同じ operationId の再送は削除を再実行せず保存済み結果を返す。
     /// </summary>
     [Fact]

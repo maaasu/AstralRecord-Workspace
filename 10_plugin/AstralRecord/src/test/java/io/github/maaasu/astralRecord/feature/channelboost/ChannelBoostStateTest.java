@@ -10,9 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ChannelBoostStateTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/36-paid-benefits/36_0-概要.md
-     * 章・見出し: # 36_0-概要 > ## 責務
-     * 検証契約: API絶対期限を過ぎた効果だけ1倍へ戻し、EXPとDROPは独立させる。
+     * API絶対期限を過ぎた効果だけ1倍へ戻し、EXPとDROPは独立させる。
      */
     @Test
     void expiryReturnsOnlyExpiredFactorToOne() {
@@ -27,9 +25,7 @@ class ChannelBoostStateTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/36-paid-benefits/36_0-概要.md
-     * 章・見出し: # 36_0-概要 > ## 責務
-     * 検証契約: ネットワーク発動対象外や旧応答でも全チャンネルのゲーム内効果を保持する。
+     * ネットワーク発動対象外や旧応答でも全チャンネルのゲーム内効果を保持する。
      */
     @Test
     void retainsLocalBoostWhenNetworkFlagIsFalseOrMissing() {
@@ -48,9 +44,7 @@ class ChannelBoostStateTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/36-paid-benefits/36_0-概要.md
-     * 章・見出し: # 36_0-概要 > ## 責務
-     * 検証契約: ネットワーク発動対象の明示的なtrueだけTABの対象判定へ渡す。
+     * ネットワーク発動対象の明示的なtrueだけTABの対象判定へ渡す。
      */
     @Test
     void parsesExplicitNetworkBoostFlag() {

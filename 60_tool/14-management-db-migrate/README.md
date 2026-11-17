@@ -11,3 +11,39 @@
 ```
 
 `--validate-only` はmanifestとSQLだけを検査し、DBへ接続・変更しません。`tests/management-db-migrate.manifest.ps1` はDBなしで登録漏れとSQL改変の拒否を検証します。統合テストは `ASTRALRECORD_SQLSERVER_TEST_CONNECTION` を設定したローカルSQL Server上のランダム名DBだけを作成・削除します。
+
+## ネットワーク管理の初回導入
+
+ManagementDBを準備し、スキーマを確認してからAPI、Proxy、RPG/Webの順に配置します。新しいManagementDBには [初期化SQL](../../00_docs/40_Database設計書/table-definitions/ManagementDB/init.sql) を適用します。既存環境の初回導入ではDBをバックアップし、接続先のサーバー名をAPIの配置先設定と照合して、下記のSQLを適用・確認します。この初回導入SQLは通常のmigrationランナーの登録対象外です。
+
+作業ツリーのルートから実行します。Windows統合認証の例です。 `$networkSqlServer` には照合済みの接続先を指定します。
+
+```powershell
+$networkMigration = '00_docs/40_Database設計書/table-definitions/ManagementDB/migrations/20260916_managed_network_and_bans.sql'
+sqlcmd -S $networkSqlServer -E -b -d ManagementDB -i $networkMigration
+if ($LASTEXITCODE -ne 0) { throw 'ManagementDB network migration failed.' }
+
+sqlcmd -S $networkSqlServer -E -b -d ManagementDB -Q "IF OBJECT_ID(N'dbo.network_settings', N'U') IS NULL OR OBJECT_ID(N'dbo.network_ban', N'U') IS NULL OR OBJECT_ID(N'dbo.network_management_audit', N'U') IS NULL OR NOT EXISTS (SELECT 1 FROM dbo.schema_migration WHERE migration_id = N'20260916_managed_network_and_bans') THROW 51020, 'Network migration verification failed.', 1;"
+if ($LASTEXITCODE -ne 0) { throw 'ManagementDB network migration verification failed.' }
+```
+
+既存プレイヤーの件数、UUID、Web管理権限、公開状態が保持されていることを確かめてからAPIを配置します。
+
+1. ProxyとLobbyの共通APIキーをAPIの設定に合わせ、サンプル値から配置環境の値へ変更します。APIの `Network:AuthoritySyncKey` とProxyの `api.authoritySyncKey` を同じ専用値に設定します。RPGとAPIには別の `api.networkModerationKey` / `Network:ModerationKey` を設定します。専用キーにはそれぞれ共通APIキーと異なる値を使います。
+2. Proxyの初回取り込みが完了するまで旧設定を保持します。APIに管理設定が未登録なら旧YAMLの非API設定を取り込み、登録済みならWeb管理値を使います。
+3. Web管理画面のネットワーク設定で、チャンネル、定員、権限、ホワイトリスト、Discord通知を確認します。RPGの `network.channelName`、Lobbyの接続先、VelocityのサーバーIDを揃えます。
+4. Velocityを公開入口にしてオンライン認証とmodern forwardingを構成します。Paper側のポートはループバックまたはfirewallで直接接続を制限し、forwardingの共通secretを揃えます。ProxyとLobbyのAPI接続先は実際の配置に合わせ、本番のHTTPSでは証明書検証を使います。
+5. Proxyの設定取得、入場、Webからの設定反映を確認します。BANを確認する場合は専用の検証ユーザーを使います。
+
+## Webログイン変更時の配置
+
+- APIとWebを更新する前にManagementDBをバックアップし、認証情報と信頼済みブラウザのmigrationを適用します。Web切替では旧インスタンスを停止し、既存ブラウザの再ログインと管理画面へのアクセスを確認します。
+- リバースプロキシ配下では接続元IPの扱いを確認し、複数Webインスタンスを運用する場合は境界側でも試行回数を制限します。
+- パスワード変更の確定が分からない場合は、再ログインして設定を確認します。ゲーム内コードでの復旧はMinecraftサーバーが利用できる環境で行います。
+- Cookie・認証世代の実装は [Webの起動設定](../../30_web/AstralRecordWeb/AstralRecordWeb/Program.cs) と [Webのセッション検証](../../30_web/AstralRecordWeb/AstralRecordWeb/Authorization/WebSessionEvents.cs)、API側は [WebAuthController](../../20_api/AstralRecordApi/AstralRecordApi/Controllers/WebAuthController.cs) を参照します。
+
+## 寄付とDiscord連携の配置
+
+1. ManagementDBの `20260926_donations.sql` を適用し、有償通貨のFilebaseをMasterDataDBへseedしてから、API・Web・Pluginを配置します。新規DBは初期化SQLを使います。
+2. APIとWebの `Donations__WebKey` に共通APIキーと異なる同じ値を設定し、`Donations__DiscordClientId` と `Donations__DiscordClientSecret` を揃えます。APIには `Donations__DiscordGuildId`、Webには `Donations__DiscordRedirectUri` を設定します。Discord側の登録と、WebのHTTPSコールバック `/Donations/Discord` のURLを一致させます。
+3. APIの `DataProtection__KeyPath` をデプロイ先と分離した永続ディレクトリに設定し、API実行アカウントだけに読み書きを許可します。複数インスタンスでは同じアプリ名と鍵を使用します。暗号化済みのDiscord OAuth情報と旧申請の明細を復元できるよう、ManagementDBと鍵を整合したバックアップとして保管します。

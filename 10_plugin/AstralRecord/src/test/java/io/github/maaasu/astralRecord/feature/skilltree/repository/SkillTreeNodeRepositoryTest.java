@@ -20,9 +20,7 @@ class SkillTreeNodeRepositoryTest {
     private final List<RuntimeFilebaseSnapshot.Entry> entries = new ArrayList<>();
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
-     * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
-     * 検証契約: schema v1 JSONのskill/status typed effectを対応modelへ変換する。
+     * schema v1 JSONのskill/status typed effectを対応modelへ変換する。
      */
     @Test
     void loadsSchemaV1TypedEffects() {
@@ -56,9 +54,7 @@ class SkillTreeNodeRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
-     * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
-     * 検証契約: 削除されたloreを未知のnode propertyとして拒否する。
+     * 削除されたloreを未知のnode propertyとして拒否する。
      */
     @Test
     void rejectsRemovedLore() {
@@ -73,9 +69,7 @@ class SkillTreeNodeRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
-     * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
-     * 検証契約: 複数file間で重複するnode IDを全体load失敗にする。
+     * 複数file間で重複するnode IDを全体load失敗にする。
      */
     @Test
     void rejectsDuplicateNodeIdsAcrossFiles() {
@@ -91,9 +85,7 @@ class SkillTreeNodeRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
-     * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
-     * 検証契約: 同じclass条件で同じskill使用許可を複数nodeへ定義できない。
+     * 同じclass条件で同じskill使用許可を複数nodeへ定義できない。
      */
     @Test
     void rejectsDuplicateSkillPermissionsWithSameClassCondition() {
@@ -111,9 +103,7 @@ class SkillTreeNodeRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
-     * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
-     * 検証契約: class条件が異なるnodeには同じskill使用許可を定義できる。
+     * class条件が異なるnodeには同じskill使用許可を定義できる。
      */
     @Test
     void allowsSameSkillPermissionForDifferentClassConditions() {
@@ -133,9 +123,7 @@ class SkillTreeNodeRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
-     * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
-     * 検証契約: schema外legacy propertyと先頭0付きnode IDを拒否する。
+     * schema外legacy propertyと先頭0付きnode IDを拒否する。
      */
     @Test
     void rejectsLegacyPropertiesAndLeadingZeroIds() {
@@ -153,9 +141,7 @@ class SkillTreeNodeRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
-     * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
-     * 検証契約: 0単独を除く先頭0付き数字node IDを拒否する。
+     * 0単独を除く先頭0付き数字node IDを拒否する。
      */
     @Test
     void rejectsNodeIdWithLeadingZero() {
@@ -170,9 +156,7 @@ class SkillTreeNodeRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
-     * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
-     * 検証契約: 任意current class/player level unlock conditionをmodelへ変換する。
+     * 任意current class/player level unlock conditionをmodelへ変換する。
      */
     @Test
     void loadsOptionalCurrentClassAndPlayerLevelCondition() {
@@ -188,9 +172,7 @@ class SkillTreeNodeRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
-     * 章・見出し: # 13_1-モデル定義 > ## 10. スキルツリー > ### node definition
-     * 検証契約: 現schemaにないclass level conditionを未知propertyとして拒否する。
+     * 現schemaにないclass level conditionを未知propertyとして拒否する。
      */
     @Test
     void rejectsClassLevelAsNodeUnlockCondition() {

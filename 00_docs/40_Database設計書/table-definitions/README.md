@@ -47,7 +47,7 @@ AstralRecordの本番 migration は `60_tool/13-db-migrate/db-migrate.config.jso
 
 player-state snapshot は既存DB向け migration を持たない。新しい `init.sql` でDBを作成するか、`60_tool/11-db-reset-except-release-notes.bat` で Release Note 2表を退避し、3DBを最新 `init.sql` から再作成して導入する。
 
-`ManagementDB` はプレイヤー識別・Web管理権限・ネットワーク設定・BAN・Web固定認証・信頼済みブラウザを保持する独立DBです。既存3DB固定の `60_tool/13-db-migrate` と `60_tool/11-db-reset-except-release-notes` は対象外です。新規環境は `ManagementDB/init.sql`、既存環境は `ManagementDB/migrations/20260916_managed_network_and_bans.sql`、`20260917_web_credentials.sql`、`20260920_trusted_admin_browser.sql` をAPI配置前に別途適用します。適用コマンドと確認SQLは [ネットワーク運用](../../10_Plugin設計書/feature/33-network/33_5-例外・ログ・運用.md) を参照します。
+`ManagementDB` はプレイヤー識別・Web管理権限・ネットワーク設定・BAN・Web固定認証・信頼済みブラウザを保持する独立DBです。既存3DB固定の `60_tool/13-db-migrate` と `60_tool/11-db-reset-except-release-notes` は対象外です。新規環境は `ManagementDB/init.sql`、既存環境は `ManagementDB/migrations/20260916_managed_network_and_bans.sql`、`20260917_web_credentials.sql`、`20260920_trusted_admin_browser.sql` をAPI配置前に別途適用します。適用コマンドと確認SQLは [ネットワーク運用](../../../60_tool/14-management-db-migrate/README.md#ネットワーク管理の初回導入) を参照します。
 
 ## AstralRecord
 

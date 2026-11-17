@@ -48,9 +48,7 @@ import static org.mockito.Mockito.when;
 class AdventureRecordServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/21-adventurerecord/21_3-メソッド仕様.md
-     * 章・見出し: # 21_3-メソッド仕様 > ## 表示 entry 生成
-     * 検証契約: 冒険記録の初期一覧はカテゴリ未指定で一度だけ取得し、main-thread callbackへsuper modeと解決済みentryを渡す。
+     * 冒険記録の初期一覧はカテゴリ未指定で一度だけ取得し、main-thread callbackへsuper modeと解決済みentryを渡す。
      */
     @Test
     void asyncBuildFetchesRecordsOnceAndPublishesResolvedEntries() {
@@ -115,9 +113,7 @@ class AdventureRecordServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/21-adventurerecord/21_1-モデル定義.md
-     * 章・見出し: # 21_1-モデル定義 > ## AdventureRecordListType
-     * 検証契約: ALL は ENEMY／BOSS を横断し、カテゴリフィルターは選択したカテゴリだけを返す。
+     * ALL は ENEMY／BOSS を横断し、カテゴリフィルターは選択したカテゴリだけを返す。
      */
     @Test
     void allAndCategoryListsKeepTheirExpectedMobCategories() {
@@ -192,9 +188,7 @@ class AdventureRecordServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/21-adventurerecord/21_3-メソッド仕様.md
-     * 章・見出し: # 21_3-メソッド仕様 > ## 表示 entry 生成
-     * 検証契約: SEARCH はロード済み lootTable の平坦化候補も visible drop として照合する。
+     * SEARCH はロード済み lootTable の平坦化候補も visible drop として照合する。
      */
     @Test
     void searchMatchesLoadedLootTableItems() {
@@ -260,9 +254,7 @@ class AdventureRecordServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/21-adventurerecord/21_3-メソッド仕様.md
-     * 章・見出し: # 21_3-メソッド仕様 > ## 討伐・踏破のローカル加算
-     * 検証契約: Mob討伐は個別APIを呼ばず、ローカル差分サービスへ即時委譲する。
+     * Mob討伐は個別APIを呼ばず、ローカル差分サービスへ即時委譲する。
      */
     @Test
     void defeatIsRecordedAsLocalSnapshotDelta() {

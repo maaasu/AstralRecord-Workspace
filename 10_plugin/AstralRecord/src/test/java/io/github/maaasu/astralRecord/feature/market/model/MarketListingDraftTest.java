@@ -10,9 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class MarketListingDraftTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_1-モデル定義.md
-     * 章・見出し: # 23_1-モデル定義 > ## Quote・summary・transaction > ### MarketListingDraft
-     * 検証契約: 同種 stack を複数 source から出品するとき、渡された共通消費順の source へ選択数量だけを順に割り当てる。
+     * 同種 stack を複数 source から出品するとき、渡された共通消費順の source へ選択数量だけを順に割り当てる。
      */
     @Test
     void selectedSourcesAllocateQuantityAcrossMatchingInventoryEntries() {
@@ -40,9 +38,7 @@ class MarketListingDraftTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_1-モデル定義.md
-     * 章・見出し: # 23_1-モデル定義 > ## Quote・summary・transaction > ### MarketListingDraft
-     * 検証契約: 相場中央値を初期単価に優先し、売値超と数量積の安全上限を守りつつ参考上限をクイック最大に使う。
+     * 相場中央値を初期単価に優先し、売値超と数量積の安全上限を守りつつ参考上限をクイック最大に使う。
      */
     @Test
     void recommendedAndQuickMaximumRespectSaleFloorAndQuantityOverflow() {

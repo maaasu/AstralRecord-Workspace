@@ -24,9 +24,7 @@ import static org.mockito.Mockito.when;
 class SuperStarCriticalProjectileServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 2. 超星会心追尾弾
-     * 検証契約: 抽選した水平方位と上向き25〜65度仰角から初速方向を算出する。
+     * 抽選した水平方位と上向き25〜65度仰角から初速方向を算出する。
      */
     @Test
     void initialDirectionUsesRequestedElevationAndAzimuth() {
@@ -40,9 +38,7 @@ class SuperStarCriticalProjectileServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 2. 超星会心追尾弾
-     * 検証契約: 初速3.2〜4.8 block/sで10〜20 tick曲線飛行する距離を1.6〜4.8 blockとし、追尾速度を7 block/sとする。
+     * 初速3.2〜4.8 block/sで10〜20 tick曲線飛行する距離を1.6〜4.8 blockとし、追尾速度を7 block/sとする。
      */
     @Test
     void initialFlightTravelDistanceMatchesConfiguredRandomSpeedAndDuration() {
@@ -57,9 +53,7 @@ class SuperStarCriticalProjectileServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 2. 超星会心追尾弾
-     * 検証契約: 初速に直交する長さ1の曲率軸を方位0・π/2で別方向に生成する。
+     * 初速に直交する長さ1の曲率軸を方位0・π/2で別方向に生成する。
      */
     @Test
     void curvatureAxisUsesRequestedRandomDirectionAndStaysPerpendicular() {
@@ -74,9 +68,7 @@ class SuperStarCriticalProjectileServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 2. 超星会心追尾弾
-     * 検証契約: 初期飛行は0.2 block/tickの速度長を保持したまま毎tick 3度の曲線旋回を適用する。
+     * 初期飛行は0.2 block/tickの速度長を保持したまま毎tick 3度の曲線旋回を適用する。
      */
     @Test
     void initialMovementCurvesWithoutChangingSpeed() {
@@ -93,9 +85,7 @@ class SuperStarCriticalProjectileServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 2. 超星会心追尾弾
-     * 検証契約: 追尾移動は7 block/sの速度長で目標方向と現在方向への正の進行成分を保ち、曲率軸方向の横揺らぎを合成する。
+     * 追尾移動は7 block/sの速度長で目標方向と現在方向への正の進行成分を保ち、曲率軸方向の横揺らぎを合成する。
      */
     @Test
     void homingMovementCurvesSidewaysWhileContinuingTowardTarget() {
@@ -114,9 +104,7 @@ class SuperStarCriticalProjectileServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 2. 超星会心追尾弾
-     * 検証契約: 現在方向と正反対に目標がある場合も、1 tickの追尾旋回角を最大15度に制限する。
+     * 現在方向と正反対に目標がある場合も、1 tickの追尾旋回角を最大15度に制限する。
      */
     @Test
     void homingMovementLimitsNearOppositeTurnToConfiguredAngle() {
@@ -138,9 +126,7 @@ class SuperStarCriticalProjectileServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 2. 超星会心追尾弾
-     * 検証契約: 正反対へ向いた追尾弾も、半径24 block内の目標へ100 tickの生存期間内に接触する。
+     * 正反対へ向いた追尾弾も、半径24 block内の目標へ100 tickの生存期間内に接触する。
      */
     @Test
     void homingMovementConvergesFromOppositeDirectionWithinLifetime() {
@@ -177,9 +163,7 @@ class SuperStarCriticalProjectileServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 2. 超星会心追尾弾
-     * 検証契約: 残距離が1 tickの追尾速度未満なら移動長を残距離へ短縮しつつ、旋回角を最大15度に制限する。
+     * 残距離が1 tickの追尾速度未満なら移動長を残距離へ短縮しつつ、旋回角を最大15度に制限する。
      */
     @Test
     void homingMovementKeepsTurnLimitWhenTargetIsWithinOneTick() {
@@ -199,9 +183,7 @@ class SuperStarCriticalProjectileServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 2. 超星会心追尾弾
-     * 検証契約: 生成元Mobの当たり判定から出る区間は除外し、同じ移動線分で新たに入ったMobを命中対象とする。
+     * 生成元Mobの当たり判定から出る区間は除外し、同じ移動線分で新たに入ったMobを命中対象とする。
      */
     @Test
     void initialFlightCollisionSelectsEnteredMobButNotSpawnOverlap() {
@@ -220,9 +202,7 @@ class SuperStarCriticalProjectileServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 2. 超星会心追尾弾
-     * 検証契約: 現在の追尾対象より手前で移動線分が接触した攻撃可能Mobを命中対象とする。
+     * 現在の追尾対象より手前で移動線分が接触した攻撃可能Mobを命中対象とする。
      */
     @Test
     void collisionSelectsMobBeforeCurrentSteeringTarget() {
@@ -241,9 +221,7 @@ class SuperStarCriticalProjectileServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 2. 超星会心追尾弾
-     * 検証契約: 生成元UUIDだけを接触除外し、同じ位置に重なる別UUIDの攻撃可能Mobは命中対象とする。
+     * 生成元UUIDだけを接触除外し、同じ位置に重なる別UUIDの攻撃可能Mobは命中対象とする。
      */
     @Test
     void originExitExclusionDoesNotHideAnotherOverlappingMob() {
@@ -262,9 +240,7 @@ class SuperStarCriticalProjectileServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 2. 超星会心追尾弾
-     * 検証契約: 生成元除外の終了後は、移動線分の開始点が攻撃可能Mob内なら即時に命中対象とする。
+     * 生成元除外の終了後は、移動線分の開始点が攻撃可能Mob内なら即時に命中対象とする。
      */
     @Test
     void startingInsideMobAfterOriginExitIsImmediateCollision() {

@@ -41,9 +41,7 @@ class SkillTargetingServiceTest {
     );
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 29. パラディン ホーリースマイトの実装契約
-     * 検証契約: 球形範囲は水平方向だけでなく、Mob body boundsまでの3次元距離で判定する。
+     * 球形範囲は水平方向だけでなく、Mob body boundsまでの3次元距離で判定する。
      */
     @Test
     void sphereSelectsElevatedMobWithinItsThreeDimensionalRadius() {
@@ -66,9 +64,7 @@ class SkillTargetingServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
-     * 検証契約: 水平eye rayとMob実body bounding boxの交差をhitとする。
+     * 水平eye rayとMob実body bounding boxの交差をhitとする。
      */
     @Test
     void horizontalEyeRayHitsTheMobsActualBodyBounds() {
@@ -82,9 +78,7 @@ class SkillTargetingServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
-     * 検証契約: line capsule半径で拡張したbounds外のtargetをhitにしない。
+     * line capsule半径で拡張したbounds外のtargetをhitにしない。
      */
     @Test
     void capsuleRadiusDoesNotHitTargetsOutsideItsExpandedBounds() {
@@ -98,9 +92,7 @@ class SkillTargetingServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
-     * 検証契約: line originより後方のtargetをhitにしない。
+     * line originより後方のtargetをhitにしない。
      */
     @Test
     void lineDoesNotHitTargetsBehindItsOrigin() {
@@ -114,9 +106,7 @@ class SkillTargetingServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
-     * 検証契約: target center距離でなくrayがbody前面へ入る交差距離でhit順を決める。
+     * target center距離でなくrayがbody前面へ入る交差距離でhit順を決める。
      */
     @Test
     void intersectionDistanceOrdersByFrontFaceInsteadOfTargetCenter() {
@@ -138,9 +128,7 @@ class SkillTargetingServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: Block面の直前で capsule がMobへ交差した場合だけ命中とし、Block面と同距離の交差はBlockを優先する。
+     * Block面の直前で capsule がMobへ交差した場合だけ命中とし、Block面と同距離の交差はBlockを優先する。
      */
     @Test
     void lineBeforeBlockIncludesOnlyMobCollisionsStrictlyBeforeBlockImpact() {
@@ -173,9 +161,7 @@ class SkillTargetingServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 17. ハンター アローレインの実装契約 > ### 17.2 弾道
-     * 検証契約: 解決済み線分はMob基準位置ではなく、拡張body前面との正確な最初の交点を返す。
+     * 解決済み線分はMob基準位置ではなく、拡張body前面との正確な最初の交点を返す。
      */
     @Test
     void lineTargetHitReturnsExactExpandedBodyIntersection() {
@@ -204,9 +190,7 @@ class SkillTargetingServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
-     * 検証契約: 同一tickの複数線分はMob一覧とbody boundsのsnapshotを共有しつつ、登録解除済みMobを後続線分から除外する。
+     * 同一tickの複数線分はMob一覧とbody boundsのsnapshotを共有しつつ、登録解除済みMobを後続線分から除外する。
      */
     @Test
     void lineTargetSnapshotReusesMobCandidatesAcrossSegments() {
@@ -251,9 +235,7 @@ class SkillTargetingServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 17. ハンター アローレインの実装契約 > ### 17.2 弾道
-     * 検証契約: 初弾着弾Y以上の線分ではBlock判定を行わず、下降してY未満へ入った区間だけを通常のBlock ray traceへ渡す。
+     * 初弾着弾Y以上の線分ではBlock判定を行わず、下降してY未満へ入った区間だけを通常のBlock ray traceへ渡す。
      */
     @Test
     void blockImpactBelowYTracesOnlyTheSegmentBelowTheOpeningImpactHeight() {
@@ -289,9 +271,7 @@ class SkillTargetingServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 17. ハンター アローレインの実装契約 > ### 17.2 弾道
-     * 検証契約: Block ray traceが排他的上限Y以上の衝突地点を返しても、雨矢のBlock衝突として採用しない。
+     * Block ray traceが排他的上限Y以上の衝突地点を返しても、雨矢のBlock衝突として採用しない。
      */
     @Test
     void blockImpactBelowYRejectsImpactAtOrAboveTheOpeningImpactHeight() {
@@ -320,9 +300,7 @@ class SkillTargetingServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
-     * 検証契約: blockHitはray traceの正確な衝突位置とBlockFaceの外向き法線を返す。
+     * blockHitはray traceの正確な衝突位置とBlockFaceの外向き法線を返す。
      */
     @Test
     void blockHitReturnsExactImpactAndBlockFaceNormal() {
@@ -343,9 +321,7 @@ class SkillTargetingServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 13. バスティオンストライクの実装契約 > ### 13.1 数値・対象・演出
-     * 検証契約: inLineは6m以内で視線線分と交差する最寄りMob 1体を返し、線外・射程外のMobを除外する。
+     * inLineは6m以内で視線線分と交差する最寄りMob 1体を返し、線外・射程外のMobを除外する。
      */
     @Test
     void lineSelectsNearestIntersectingMobWithinSixMeters() {
@@ -375,9 +351,7 @@ class SkillTargetingServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 13. バスティオンストライクの実装契約 > ### 13.1 数値・対象・演出
-     * 検証契約: inLineは視線上のBlockより後ろにいるMobを対象から除外する。
+     * inLineは視線上のBlockより後ろにいるMobを対象から除外する。
      */
     @Test
     void lineDoesNotSelectMobBehindBlockOcclusion() {
@@ -405,9 +379,7 @@ class SkillTargetingServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 9. 冒険者マナバーストの実装契約 > ### 9.1 数値と対象形状
-     * 検証契約: inConeは視線前方のMobだけを発動者から近い順に選び、最大対象数で打ち切る。
+     * inConeは視線前方のMobだけを発動者から近い順に選び、最大対象数で打ち切る。
      */
     @Test
     void coneSelectsForwardMobTargetsNearestFirstAndRespectsMaxTargets() {
@@ -436,9 +408,7 @@ class SkillTargetingServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 9. 冒険者マナバーストの実装契約 > ### 9.1 数値と対象形状
-     * 検証契約: inConeは遮蔽判定を有効にした場合だけ、対象中心までのブロック衝突を理由に対象を除外する。
+     * inConeは遮蔽判定を有効にした場合だけ、対象中心までのブロック衝突を理由に対象を除外する。
      */
     @Test
     void coneHonorsBlockLineOfSightWhenRequested() {

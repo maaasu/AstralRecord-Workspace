@@ -29,9 +29,7 @@ import static org.mockito.Mockito.when;
 class GoldInventoryServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/16-currency/16_3-メソッド仕様.md
-     * 章・見出し: # 16_3-メソッド仕様 > ## ゴールド消費（inventory 委譲）
-     * 検証契約: 不足時だけ上位額面を崩し、支払後残高をcanonical低額面構成へ再構築する。
+     * 不足時だけ上位額面を崩し、支払後残高をcanonical低額面構成へ再構築する。
      */
     @Test
     void automaticallyBreaksHigherDenominationAndReturnsCanonicalChange() {
@@ -56,9 +54,7 @@ class GoldInventoryServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/16-currency/16_3-メソッド仕様.md
-     * 章・見出し: # 16_3-メソッド仕様 > ## 等価交換（inventory 委譲）
-     * 検証契約: 選択額面と隣接上位額面だけを等価交換し他額面を変更しない。
+     * 選択額面と隣接上位額面だけを等価交換し他額面を変更しない。
      */
     @Test
     void exchangesOnlyTheSelectedAdjacentDenominationAtEqualValue() {
@@ -84,9 +80,7 @@ class GoldInventoryServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/16-currency/16_3-メソッド仕様.md
-     * 章・見出し: # 16_3-メソッド仕様 > ## ゴールド消費（inventory 委譲）
-     * 検証契約: 低額面を先に消費し不足分に限って上位額面を崩す。
+     * 低額面を先に消費し不足分に限って上位額面を崩す。
      */
     @Test
     void consumesSmallDenominationsBeforeBreakingHigherOnes() {

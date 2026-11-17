@@ -37,9 +37,7 @@ import static org.mockito.Mockito.when;
 class InheritanceBuffServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 6.7 継承バフ
-     * 検証契約: 元スキル資源を再消費しない継承バフは、最初の通常攻撃着弾でバフ時間だけを一度消費し、同じ攻撃の後続着弾では再実行せず、持続補正後の付与個体の有効時間まで追跡する。
+     * 元スキル資源を再消費しない継承バフは、最初の通常攻撃着弾でバフ時間だけを一度消費し、同じ攻撃の後続着弾では再実行せず、持続補正後の付与個体の有効時間まで追跡する。
      */
     @Test
     void statusOnlyInheritanceConsumesBuffOnlyOnFirstImpact() {

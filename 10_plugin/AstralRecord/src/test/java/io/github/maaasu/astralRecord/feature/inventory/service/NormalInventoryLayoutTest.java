@@ -19,9 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class NormalInventoryLayoutTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
-     * 章・見出し: # 08_1-モデル定義 > ## 3. インベントリ種別
-     * 検証契約: 3行24entryを右端control列17/26/35を避けて配置する。
+     * 3行24entryを右端control列17/26/35を避けて配置する。
      */
     @Test
     void mapsTwentyFourVisibleItemsAroundRightControlColumn() {
@@ -38,9 +36,7 @@ class NormalInventoryLayoutTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
-     * 章・見出し: # 08_1-モデル定義 > ## 3. インベントリ種別
-     * 検証契約: BAG scrollを1行8entry単位で移動する。
+     * BAG scrollを1行8entry単位で移動する。
      */
     @Test
     void scrollsOneEightItemRowAtATime() {
@@ -55,9 +51,7 @@ class NormalInventoryLayoutTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
-     * 章・見出し: # 08_1-モデル定義 > ## 3. インベントリ種別
-     * 検証契約: 空slot探索をruntime実効容量内に限定する。
+     * 空slot探索をruntime実効容量内に限定する。
      */
     @Test
     void freeSlotSearchHonorsConfiguredCapacity() {
@@ -73,9 +67,7 @@ class NormalInventoryLayoutTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
-     * 章・見出し: # 08_1-モデル定義 > ## 3. インベントリ種別
-     * 検証契約: BAG容量をpersisted slotCapacityへfallbackしない。
+     * BAG容量をpersisted slotCapacityへfallbackしない。
      */
     @Test
     void bagCapacityCannotFallBackToPersistedConfiguration() {
@@ -89,9 +81,7 @@ class NormalInventoryLayoutTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
-     * 章・見出し: # 08_1-モデル定義 > ## 3. インベントリ種別
-     * 検証契約: 表示行数を実効容量と最大entry indexの大きい方で求め容量外entryへscroll到達可能にする。
+     * 表示行数を実効容量と最大entry indexの大きい方で求め容量外entryへscroll到達可能にする。
      */
     @Test
     void displayCapacityKeepsOverflowEntriesReachable() {

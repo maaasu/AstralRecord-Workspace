@@ -15,9 +15,7 @@ import static org.mockito.Mockito.*;
 
 class GuiOpenSupportTransitionTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI セッション遷移
-     * 検証契約: 統合版の既存コンテナは明示closeの後にtargetを開き、同tickの成功で旧close候補を無効にする。
+     * 統合版の既存コンテナは明示closeの後にtargetを開き、同tickの成功で旧close候補を無効にする。
      */
     @Test
     void bedrockReplacementClosesBeforeOpeningAndPreservesSession() {
@@ -45,9 +43,7 @@ class GuiOpenSupportTransitionTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI セッション遷移
-     * 検証契約: Java版の画面置換では追加の明示closeを送らず、成功したtargetを保持する。
+     * Java版の画面置換では追加の明示closeを送らず、成功したtargetを保持する。
      */
     @Test
     void javaReplacementDoesNotAddAnExplicitClose() {
@@ -55,9 +51,7 @@ class GuiOpenSupportTransitionTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI セッション遷移
-     * 検証契約: 統合版の通常インベントリからの初回表示では追加closeを送らない。
+     * 統合版の通常インベントリからの初回表示では追加closeを送らない。
      */
     @Test
     void bedrockInitialOpenDoesNotCloseThePlayerInventory() {
@@ -65,9 +59,7 @@ class GuiOpenSupportTransitionTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI セッション遷移
-     * 検証契約: 遷移元が既に変わった場合とログアウト済みの場合は、旧要求で画面を閉じたり開いたりしない。
+     * 遷移元が既に変わった場合とログアウト済みの場合は、旧要求で画面を閉じたり開いたりしない。
      */
     @Test
     void obsoleteSourceAndOfflinePlayerCannotCloseOrOpenInventories() {
@@ -84,9 +76,7 @@ class GuiOpenSupportTransitionTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI セッション遷移
-     * 検証契約: 明示close中に別GUIへ遷移した場合または切断した場合は、予約していたtargetで上書きしない。
+     * 明示close中に別GUIへ遷移した場合または切断した場合は、予約していたtargetで上書きしない。
      */
     @Test
     void closeHandlerRedirectAndDisconnectCannotBeOverwritten() {
@@ -107,9 +97,7 @@ class GuiOpenSupportTransitionTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI セッション遷移
-     * 検証契約: 明示close後にtarget表示が拒否された場合、遷移を成功として扱わない。
+     * 明示close後にtarget表示が拒否された場合、遷移を成功として扱わない。
      */
     @Test
     void rejectedTargetDoesNotReportAnOpenedTransition() {
@@ -122,9 +110,7 @@ class GuiOpenSupportTransitionTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI セッション遷移
-     * 検証契約: 統合版でも同じinventoryインスタンスの再表示に追加closeを送らない。
+     * 統合版でも同じinventoryインスタンスの再表示に追加closeを送らない。
      */
     @Test
     void sameInventoryRefreshDoesNotAddAnExplicitClose() {
@@ -137,9 +123,7 @@ class GuiOpenSupportTransitionTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI セッション遷移
-     * 検証契約: close中に後続の表示予約が作られた場合は旧targetを開かず、後続予約を保持する。
+     * close中に後続の表示予約が作られた場合は旧targetを開かず、後続予約を保持する。
      */
     @Test
     void newerRequestCreatedDuringCloseSupersedesTheTarget() throws Exception {

@@ -34,9 +34,7 @@ import static org.mockito.Mockito.when;
 
 class PlayerScreenHudSettingTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
-     * 章・見出し: # 11_3-サービス > ## 1. 設定一覧読込
-     * 検証契約: 旧MSPT・PingがONの場合も、新しい独立項目の明示OFFを維持し、未登録項目だけを旧値で補う。
+     * 旧MSPT・PingがONの場合も、新しい独立項目の明示OFFを維持し、未登録項目だけを旧値で補う。
      */
     @Test
     void onlyMissingPerformanceFlagsInheritTheLegacyValue() {
@@ -61,9 +59,7 @@ class PlayerScreenHudSettingTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
-     * 章・見出し: # 11_3-サービス > ## 5. 設定更新と完成状態保存
-     * 検証契約: 旧コマンドの一括設定は両項目を更新し、直後の独立更新は他方を変えずに同一完成状態へ保存する。
+     * 旧コマンドの一括設定は両項目を更新し、直後の独立更新は他方を変えずに同一完成状態へ保存する。
      */
     @Test
     void independentFlagsAndLegacyCommandProduceTheExpectedSnapshot() {
@@ -104,9 +100,7 @@ class PlayerScreenHudSettingTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
-     * 章・見出し: # 11_3-サービス > ## 5. 設定更新と完成状態保存
-     * 検証契約: 統合版フォーム作成後にTIP対応を失った場合やJava版専用設定が送られた場合は変更せず、失効した設定セッションも拒否する。
+     * 統合版フォーム作成後にTIP対応を失った場合やJava版専用設定が送られた場合は変更せず、失効した設定セッションも拒否する。
      */
     @Test
     void unsupportedOrStaleBedrockSubmissionNeverMutatesSettings() {

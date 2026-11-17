@@ -21,9 +21,7 @@ import static org.mockito.Mockito.when;
 
 class EquipmentStatusIsolationTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
-     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### 装備単体のステータス取得
-     * 検証契約: 装備単体の取得はプレイヤー合計や外部APIを参照せず、指定したインスタンスの値だけを返す。
+     * 装備単体の取得はプレイヤー合計や外部APIを参照せず、指定したインスタンスの値だけを返す。
      */
     @Test
     void readsInstanceWithoutPlayerTotalOrRepositoryAccess() {
@@ -37,9 +35,7 @@ class EquipmentStatusIsolationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
-     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### 装備単体のステータス取得
-     * 検証契約: 新しい道具レベルを持たない既存インスタンスへだけマスタ値を補完し、既存ロールへ二重加算しない。
+     * 新しい道具レベルを持たない既存インスタンスへだけマスタ値を補完し、既存ロールへ二重加算しない。
      */
     @Test
     void supplementsMissingToolLevelWithoutDoubleCountingRoll() {
@@ -56,9 +52,7 @@ class EquipmentStatusIsolationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
-     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### 装備単体のステータス取得
-     * 検証契約: 不一致のインスタンスと破損・装備条件未達の装備は性能を返さない。
+     * 不一致のインスタンスと破損・装備条件未達の装備は性能を返さない。
      */
     @Test
     void rejectsMismatchedBrokenAndUnusableEquipment() {

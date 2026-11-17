@@ -24,9 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class MobTauntServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### 一時挑発と追跡対象解決
-     * 検証契約: 同一Mobへの後発挑発が先発を上書きし、期限切れで固定対象を解除する。
+     * 同一Mobへの後発挑発が先発を上書きし、期限切れで固定対象を解除する。
      */
     @Test
     void latestTauntWinsAndExpiryClearsForcedTarget() {
@@ -50,9 +48,7 @@ class MobTauntServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
-     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### 一時挑発と追跡対象解決
-     * 検証契約: 挑発者単位のlifecycle解除では別プレイヤーの挑発を残し、対象者の固定だけを解除する。
+     * 挑発者単位のlifecycle解除では別プレイヤーの挑発を残し、対象者の固定だけを解除する。
      */
     @Test
     void clearByTaunterOnlyRemovesMatchingTaunts() {

@@ -10,9 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ClassLevelDisplayTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
-     * 章・見出し: # 10_3-View > ## 5. tab list 描画
-     * 検証契約: 最大到達時はLv.を維持し、数値部分だけを赤太字の小文字maxへ置換する。
+     * 最大到達時はLv.を維持し、数値部分だけを赤太字の小文字maxへ置換する。
      */
     @Test
     void rendersMaximumLevelAsLvMax() {
@@ -26,9 +24,7 @@ class ClassLevelDisplayTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
-     * 章・見出し: # 10_3-View > ## 5. tab list 描画
-     * 検証契約: 最大未到達時は既存のLv.数値表示と色を維持する。
+     * 最大未到達時は既存のLv.数値表示と色を維持する。
      */
     @Test
     void preservesNumericLevelBelowMaximum() {

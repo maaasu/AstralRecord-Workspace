@@ -25,9 +25,7 @@ import static org.mockito.Mockito.mockStatic;
 
 class MasterDataPageUtilTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-リポジトリ.md
-     * 章・見出し: # 04_3-リポジトリ > ## 6. 詳細マスタ分割取得
-     * 検証契約: 101件のitem詳細は100件と1件の2リクエストで取得し、API提供の単件本文hashを保持する。
+     * 101件のitem詳細は100件と1件の2リクエストで取得し、API提供の単件本文hashを保持する。
      */
     @Test
     void loads101ItemsWithTwoRequestsAndPreservesDetailHash() throws Exception {
@@ -49,9 +47,7 @@ class MasterDataPageUtilTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-リポジトリ.md
-     * 章・見出し: # 04_3-リポジトリ > ## 6. 詳細マスタ分割取得
-     * 検証契約: 途中ページで409になれば旧世代の途中結果を捨て、新世代の全ページだけを返す。
+     * 途中ページで409になれば旧世代の途中結果を捨て、新世代の全ページだけを返す。
      */
     @Test
     void restartsAfterGenerationConflictWithoutMixingPartialResults() throws Exception {
@@ -69,9 +65,7 @@ class MasterDataPageUtilTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-リポジトリ.md
-     * 章・見出し: # 04_3-リポジトリ > ## 6. 詳細マスタ分割取得
-     * 検証契約: 404/405のみ旧一覧と単件詳細へfallbackし、単件HTTP本文のhashを維持する。
+     * 404/405のみ旧一覧と単件詳細へfallbackし、単件HTTP本文のhashを維持する。
      */
     @Test
     void fallsBackOnlyForUnavailableEndpointOnOldApi() throws Exception {
@@ -94,9 +88,7 @@ class MasterDataPageUtilTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-リポジトリ.md
-     * 章・見出し: # 04_3-リポジトリ > ## 6. 詳細マスタ分割取得
-     * 検証契約: 500障害は旧APIへfallbackせずprepare失敗として伝播する。
+     * 500障害は旧APIへfallbackせずprepare失敗として伝播する。
      */
     @Test
     void propagatesServerFailureWithoutLegacyFallback() throws Exception {

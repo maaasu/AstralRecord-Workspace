@@ -22,9 +22,7 @@ import static org.mockito.Mockito.when;
 class SkillMovementServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
-     * 検証契約: 視線が垂直でもworld固定軸でなくplayer yawから水平移動方向を決める。
+     * 視線が垂直でもworld固定軸でなくplayer yawから水平移動方向を決める。
      */
     @Test
     void verticalViewFallsBackToYawInsteadOfAWorldAxis() {
@@ -35,9 +33,7 @@ class SkillMovementServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 16. ハンターフェイドショットの実装契約
-     * 検証契約: velocity後退はテレポートせず、視線と反対方向の水平velocityを設定する。
+     * velocity後退はテレポートせず、視線と反対方向の水平velocityを設定する。
      */
     @Test
     void appliesHorizontalBackstepVelocityWithoutTeleport() {
@@ -58,9 +54,7 @@ class SkillMovementServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 28. ソードマン エクゼプトスタンプの実装契約 > ### 28.2 演出・実装境界
-     * 検証契約: 汎用velocityは移動禁止中に設定せず、nullを返す。
+     * 汎用velocityは移動禁止中に設定せず、nullを返す。
      */
     @Test
     void genericVelocityDoesNotApplyWhenMovementIsBlocked() {
@@ -80,9 +74,7 @@ class SkillMovementServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
-     * 検証契約: 移動禁止condition中はdash/backstep/blinkのteleport移動を行わない。
+     * 移動禁止condition中はdash/backstep/blinkのteleport移動を行わない。
      */
     @Test
     void movementConditionPreventsTeleportSkillMovement() {
@@ -103,9 +95,7 @@ class SkillMovementServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
-     * 検証契約: player bodyをsweepして頭高の障害物手前でskill移動を停止する。
+     * player bodyをsweepして頭高の障害物手前でskill移動を停止する。
      */
     @Test
     void sweptBodyStopsBeforeAHeadHeightObstacle() {

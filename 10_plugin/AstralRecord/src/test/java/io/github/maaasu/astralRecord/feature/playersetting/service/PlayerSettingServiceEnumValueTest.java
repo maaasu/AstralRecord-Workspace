@@ -27,9 +27,7 @@ import static org.mockito.Mockito.when;
 
 class PlayerSettingServiceEnumValueTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
-     * 章・見出し: # 11_3-サービス > ## 5. 設定更新と完成状態保存
-     * 検証契約: 管理表示のcache未読込時はOFFを返し、参照処理からAPI I/Oを行わない。
+     * 管理表示のcache未読込時はOFFを返し、参照処理からAPI I/Oを行わない。
      */
     @Test
     void unloadedEnumSettingDoesNotReadRepository() {
@@ -40,9 +38,7 @@ class PlayerSettingServiceEnumValueTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
-     * 章・見出し: # 11_3-サービス > ## 2. session 管理と warmup
-     * 検証契約: 初期ロード完了は現在sessionに限り、新sessionと旧tokenの完了では未readyを維持する。
+     * 初期ロード完了は現在sessionに限り、新sessionと旧tokenの完了では未readyを維持する。
      */
     @Test
     void initialLoadCompletionDoesNotLeakIntoANewerSession() {
@@ -65,9 +61,7 @@ class PlayerSettingServiceEnumValueTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
-     * 章・見出し: # 11_3-サービス > ## 5. 設定更新と完成状態保存
-     * 検証契約: APIのenum JSON値をuser cacheへ読み込み、更新値を同じuserの通常保存sectionへ文字列として含める。
+     * APIのenum JSON値をuser cacheへ読み込み、更新値を同じuserの通常保存sectionへ文字列として含める。
      */
     @Test
     void enumValueLoadsAndSerializesThroughCommonUserSnapshot() {
@@ -109,9 +103,7 @@ class PlayerSettingServiceEnumValueTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
-     * 章・見出し: # 11_3-サービス > ## 5. 設定更新と完成状態保存
-     * 検証契約: クエストHUDの既定はON。取得通信なしでキャッシュのOFFを読み、既存の真偽値形式で保存する。
+     * クエストHUDの既定はON。取得通信なしでキャッシュのOFFを読み、既存の真偽値形式で保存する。
      */
     @Test
     void questHudUsesCachedBooleanAndPersistsAnExplicitOptOut() {

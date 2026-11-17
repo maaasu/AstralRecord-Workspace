@@ -16,9 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AccessorySlotTypeTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
-     * 章・見出し: # 08_1-モデル定義 > ## 5. アクセサリスロット種別
-     * 検証契約: offhand1・amulet1・talisman2・charm3・core1・relic2を連続index 1〜10へ割り当てる。
+     * offhand1・amulet1・talisman2・charm3・core1・relic2を連続index 1〜10へ割り当てる。
      */
     @Test
     void definesRequestedSlotCountsAndContinuousIndexes() {
@@ -35,9 +33,7 @@ class AccessorySlotTypeTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
-     * 章・見出し: # 08_1-モデル定義 > ## 5. アクセサリスロット種別
-     * 検証契約: slot indexとequipment tagを明示対応だけで解決し不明値へunsafe fallbackしない。
+     * slot indexとequipment tagを明示対応だけで解決し不明値へunsafe fallbackしない。
      */
     @Test
     void resolvesSlotAndEquipmentTagWithoutUnsafeFallback() {
@@ -52,9 +48,7 @@ class AccessorySlotTypeTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
-     * 章・見出し: # 08_1-モデル定義 > ## 5. アクセサリスロット種別
-     * 検証契約: 補助装備をオフハンドだけへ対応付け、種類別accessory slotから分離する。
+     * 補助装備をオフハンドだけへ対応付け、種類別accessory slotから分離する。
      */
     @Test
     void separatesAuxiliaryWeaponFromTypedAccessory() {

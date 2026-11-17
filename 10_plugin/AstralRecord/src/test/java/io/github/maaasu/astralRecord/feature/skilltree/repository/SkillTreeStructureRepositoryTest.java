@@ -14,9 +14,7 @@ class SkillTreeStructureRepositoryTest {
     private String structureJson;
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
-     * 章・見出し: # 13_3-リポジトリ > ## 7. skill tree structure 読込
-     * 検証契約: 相対座標へcenterを加算し無向edge両端をcanonical順へ正規化する。
+     * 相対座標へcenterを加算し無向edge両端をcanonical順へ正規化する。
      */
     @Test
     void loadsRelativeCoordinatesAndCanonicalUndirectedEdges() {
@@ -45,9 +43,7 @@ class SkillTreeStructureRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
-     * 章・見出し: # 13_3-リポジトリ > ## 7. skill tree structure 読込
-     * 検証契約: 相対座標は0.1ブロック刻みを許可し、centerへ加算して保持する。
+     * 相対座標は0.1ブロック刻みを許可し、centerへ加算して保持する。
      */
     @Test
     void loadsTenthBlockRelativeCoordinates() {
@@ -70,9 +66,7 @@ class SkillTreeStructureRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
-     * 章・見出し: # 13_3-リポジトリ > ## 7. skill tree structure 読込
-     * 検証契約: 重複node座標をstructure load失敗にする。
+     * 重複node座標をstructure load失敗にする。
      */
     @Test
     void rejectsDuplicateCoordinates() {
@@ -89,9 +83,7 @@ class SkillTreeStructureRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
-     * 章・見出し: # 13_3-リポジトリ > ## 7. skill tree structure 読込
-     * 検証契約: node自身へ接続するself edgeを拒否する。
+     * node自身へ接続するself edgeを拒否する。
      */
     @Test
     void rejectsSelfConnections() {
@@ -103,9 +95,7 @@ class SkillTreeStructureRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
-     * 章・見出し: # 13_3-リポジトリ > ## 7. skill tree structure 読込
-     * 検証契約: 向きだけ違うものを含む同一無向edge重複を拒否する。
+     * 向きだけ違うものを含む同一無向edge重複を拒否する。
      */
     @Test
     void rejectsDuplicateUndirectedEdges() {
@@ -122,9 +112,7 @@ class SkillTreeStructureRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
-     * 章・見出し: # 13_3-リポジトリ > ## 7. skill tree structure 読込
-     * 検証契約: 配置されていないnodeを参照するedgeを拒否する。
+     * 配置されていないnodeを参照するedgeを拒否する。
      */
     @Test
     void rejectsReferencesToUnplacedNodes() {
@@ -136,9 +124,7 @@ class SkillTreeStructureRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
-     * 章・見出し: # 13_3-リポジトリ > ## 7. skill tree structure 読込
-     * 検証契約: rootから到達不能な配置nodeを拒否する。
+     * rootから到達不能な配置nodeを拒否する。
      */
     @Test
     void rejectsNodesUnreachableFromRoot() {

@@ -21,9 +21,7 @@ import static org.mockito.Mockito.*;
 
 class SkillTreeRuntimeRepositoryTest {
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## スキルツリー世代を含むmaster公開 > ### スキルツリーruntime同期
-     * 検証契約: 複数accountは専用runtimeキーを付けた1要求で同期し、未変更viewだけ全体を省略してSHA-256とsessionを送る。
+     * 複数accountは専用runtimeキーを付けた1要求で同期し、未変更viewだけ全体を省略してSHA-256とsessionを送る。
      */
     @Test
     void batchPreservesAuthorityAndHashesOnlyOmittedAcknowledgedViews() throws Exception {
@@ -56,9 +54,7 @@ class SkillTreeRuntimeRepositoryTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## スキルツリー世代を含むmaster公開 > ### スキルツリーruntime同期
-     * 検証契約: APIがbatch/ACK未対応なら既存session更新・全体view・pendingへ戻り、次周期でも処理権限を維持する。
+     * APIがbatch/ACK未対応なら既存session更新・全体view・pendingへ戻り、次周期でも処理権限を維持する。
      */
     @Test
     void olderApiFallsBackAndAvoidsRepeatedUnsupportedEndpointProbes() throws Exception {
@@ -81,9 +77,7 @@ class SkillTreeRuntimeRepositoryTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## スキルツリー世代を含むmaster公開 > ### スキルツリーruntime同期
-     * 検証契約: 入力accountが欠落した応答は一部成功のACKを採用せず例外となる。
+     * 入力accountが欠落した応答は一部成功のACKを採用せず例外となる。
      */
     @Test
     void incompleteBatchResponseIsNotAcknowledged() throws Exception {

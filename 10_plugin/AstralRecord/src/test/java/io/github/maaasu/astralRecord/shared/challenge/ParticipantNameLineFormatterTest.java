@@ -9,9 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ParticipantNameLineFormatterTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
-     * 章・見出し: # 10_3-View > ## 4. sidebar 描画・解除
-     * 検証契約: 参加者名を区切り位置で20文字を目安に折り返し、空一覧は1行として扱い、長い1名の名前は分割しない。
+     * 参加者名を区切り位置で20文字を目安に折り返し、空一覧は1行として扱い、長い1名の名前は分割しない。
      */
     @Test
     void wrapsAtBoundaryWithoutSplittingParticipantNames() {
@@ -35,9 +33,7 @@ class ParticipantNameLineFormatterTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
-     * 章・見出し: # 10_3-View > ## 4. sidebar 描画・解除
-     * 検証契約: 15行サイドバーへ収まらない参加者は名前を分割せず、最終行へ省略人数を表示する。
+     * 15行サイドバーへ収まらない参加者は名前を分割せず、最終行へ省略人数を表示する。
      */
     @Test
     void limitsSidebarLinesWithExplicitOverflowCount() {

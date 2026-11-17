@@ -73,7 +73,6 @@ public class MasterDataSeederSkillSystemTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_0-概要.md
     /// 検証契約: Plugin組み込み通貨astraldはFilebase item定義なしでも必須参照として解決できる。
     /// </summary>
     [Theory]

@@ -26,9 +26,7 @@ import static org.mockito.Mockito.when;
 class LootRepositoryTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-リポジトリ.md
-     * 章・見出し: # 06_3-リポジトリ > ## 1. LootRepository メソッド仕様 > ### HTTPクライアント所有権
-     * 検証契約: 一覧取得と単体取得は共有HTTPクライアントを借用し、処理完了時にcloseしない。
+     * 一覧取得と単体取得は共有HTTPクライアントを借用し、処理完了時にcloseしない。
      */
     @Test
     void borrowsSharedHttpClientWithoutClosingIt() throws Exception {
@@ -59,9 +57,7 @@ class LootRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-リポジトリ.md
-     * 章・見出し: # 06_3-リポジトリ > ## 2. JSON パース > ### ルートプールオブジェクトパース（内部補助）
-     * 検証契約: pick未指定時はcontents件数、空contents時は0を使う。
+     * pick未指定時はcontents件数、空contents時は0を使う。
      */
     @Test
     void missingPickDefaultsToContentCountIncludingEmptyPool() throws Exception {
@@ -87,9 +83,7 @@ class LootRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-リポジトリ.md
-     * 章・見出し: # 06_3-リポジトリ > ## 2. JSON パース > ### ルートテーブルオブジェクトパース（内部補助）
-     * 検証契約: 降順rangeを昇順へ正規化しrolls未指定を1〜1にする。
+     * 降順rangeを昇順へ正規化しrolls未指定を1〜1にする。
      */
     @Test
     void descendingRangesAreNormalizedAndMissingRollsDefaultToOne() throws Exception {

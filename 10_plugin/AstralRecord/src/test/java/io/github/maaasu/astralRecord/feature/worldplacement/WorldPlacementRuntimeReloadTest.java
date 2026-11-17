@@ -35,9 +35,7 @@ import static org.mockito.Mockito.when;
 
 class WorldPlacementRuntimeReloadTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/43-world-placement/43_3-配置スナップショット.md
-     * 章・見出し: # 配置スナップショット > ## 非同期取得と公開
-     * 検証契約: 同じスポナー座標の再公開と定義再読込では既存の生存Mobを保持し、未解決定義の古い探索は破棄する。
+     * 同じスポナー座標の再公開と定義再読込では既存の生存Mobを保持し、未解決定義の古い探索は破棄する。
      */
     @Test
     void retainsTrackedAliveMobAndDropsInvalidPendingSearchOnReload() throws Exception {
@@ -69,9 +67,7 @@ class WorldPlacementRuntimeReloadTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/43-world-placement/43_3-配置スナップショット.md
-     * 章・見出し: # 配置スナップショット > ## 非同期取得と公開
-     * 検証契約: APIモードの非同期マスター準備は公開中配置を列挙せず、メインスレッドのロールバック取得は全配置を返す。
+     * APIモードの非同期マスター準備は公開中配置を列挙せず、メインスレッドのロールバック取得は全配置を返す。
      */
     @Test
     void asyncMasterPreparationDoesNotReadLiveApiPlacementMaps() {

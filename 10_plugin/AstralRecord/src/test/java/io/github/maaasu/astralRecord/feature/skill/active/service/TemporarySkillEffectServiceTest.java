@@ -15,9 +15,7 @@ class TemporarySkillEffectServiceTest {
     private static final double DELTA = 0.0001D;
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
-     * 検証契約: 異なるtemporary modifierを合成し同じeffect keyの再適用は置換する。
+     * 異なるtemporary modifierを合成し同じeffect keyの再適用は置換する。
      */
     @Test
     void composesDifferentEffectsAndReplacesTheSameEffect() {
@@ -34,9 +32,7 @@ class TemporarySkillEffectServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
-     * 検証契約: 期限切れtemporary effectを読取時に除去して倍率へ含めない。
+     * 期限切れtemporary effectを読取時に除去して倍率へ含めない。
      */
     @Test
     void removesExpiredEffectsWhenTheyAreRead() {
@@ -59,9 +55,7 @@ class TemporarySkillEffectServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
-     * 検証契約: 指定したtemporary effectだけを解除し同一対象の別効果を保持する。
+     * 指定したtemporary effectだけを解除し同一対象の別効果を保持する。
      */
     @Test
     void clearsOnlyTheSpecifiedEffect() {
@@ -77,9 +71,7 @@ class TemporarySkillEffectServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
-     * 検証契約: 1 entityのeffectだけをclearでき、全clearも他stateを残さず行える。
+     * 1 entityのeffectだけをclearでき、全clearも他stateを残さず行える。
      */
     @Test
     void clearsOneEntityWithoutAffectingOthersAndCanClearAll() {
@@ -100,9 +92,7 @@ class TemporarySkillEffectServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
-     * 検証契約: 防御倍率は異なる効果を合成し、同じeffect IDの再付与では置換され、期限切れで除去される。
+     * 防御倍率は異なる効果を合成し、同じeffect IDの再付与では置換され、期限切れで除去される。
      */
     @Test
     void defenseMultiplierReplacesSameEffectAndExpires() {
@@ -122,9 +112,7 @@ class TemporarySkillEffectServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
-     * 検証契約: 防御力と回避率の一時倍率は同時に置換され、期限切れで両方戻る。
+     * 防御力と回避率の一時倍率は同時に置換され、期限切れで両方戻る。
      */
     @Test
     void defenseAndEvasionMultipliersExpireTogether() {

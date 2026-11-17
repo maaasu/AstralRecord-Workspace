@@ -1,15 +1,15 @@
 ---
 name: astralrecord-plugin-test
-description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord` 向けに、コンテンツ非依存の共通ロジックに限定した JUnit 恒久テスト、使い捨て診断テスト、一時 Purpur/Paper サーバー、実サーバーの複製による統合検証基盤を整備する。設計トレーサビリティを保った小規模テスト整理、AI デバッグ用の最小再現を行い、プラグイン本体の機能仕様変更を主目的としないときに使う。
+description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord` 向けに、コンテンツ非依存の共通ロジックに限定した JUnit 恒久テスト、使い捨て診断テスト、一時 Purpur/Paper サーバー、実サーバーの複製による統合検証基盤を整備する。小規模テストの整理や AI デバッグ用の最小再現を行い、プラグイン本体の機能仕様変更を主目的としないときに使う。
 ---
 
 # AstralRecord プラグインテスト
 
 ## 基本ルール
 
-`10_plugin/AstralRecord` のテストと検証基盤だけを扱います。恒久テストは採用済み設計契約を入力とし、コンテンツ非依存の共通ロジックに限定し、各テストメソッドから設計箇所と検証契約を追跡可能にします。個別コンテンツや一時的な診断は恒久テストへ混ぜません。主目的が機能実装や仕様変更なら `$astralrecord-code` を使い、このスキルでは小規模な共通ロジックテスト、一時診断、開発サーバー、実サーバーの複製を使う再現手順に集中します。
+`10_plugin/AstralRecord` のテストと検証基盤だけを扱います。恒久テストはコンテンツ非依存の共通ロジックに限定し、守るべき挙動がテスト名とアサーションから分かるようにします。個別コンテンツや一時的な診断は恒久テストへ混ぜません。主目的が機能実装や仕様変更なら `$astralrecord-code` を使い、このスキルでは小規模な共通ロジックテスト、一時診断、開発サーバー、実サーバーの複製を使う再現手順に集中します。
 
-作業開始時に `git rev-parse --show-toplevel` を実行して現在の作業用チェックアウトを `<task-root>` として解決し、以後の設計入力・ソース・スクリプトはすべて同じ `<task-root>` から読む。メインのワークスペースの固定パスへ読み替えない。実サーバーの外部配置先だけは `scripts/dev-server.config.json` の設定値を正本とする。
+作業開始時に `git rev-parse --show-toplevel` を実行して現在の作業用チェックアウトを `<task-root>` として解決し、以後の資料・ソース・スクリプトはすべて同じ `<task-root>` から読む。メインのワークスペースの固定パスへ読み替えない。実サーバーの外部配置先だけは `scripts/dev-server.config.json` の設定値を正本とする。
 
 ## 恒久テストの範囲と本番マスターデータの扱い
 
@@ -28,21 +28,18 @@ description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord`
 3. `<task-root>\PLUGIN_GUIDE.md`
 4. `<task-root>\.codex\skills\astralrecord-code\references\plugin-code.md`
 5. `<task-root>\10_plugin\AstralRecord\scripts\dev-server.config.json`
-6. `<task-root>\00_docs\10_Plugin設計書\README.md`
 
 対象が `10_plugin/AstralRecord` 以外なら、このスキルは使わず対象プロジェクト向けスキルに切り替えます。
 
 ## 手順
 
 1. 検証目的を分類する
-   - 採用済み設計契約であり、上記の恒久テスト適格性をすべて満たす: 恒久テストにする
+   - 現行要件や合意済みの仕様に沿い、上記の恒久テスト適格性をすべて満たす: 恒久テストにする
    - 個別コンテンツ、表示、GUI、演出、マスタ値: 恒久テストを追加せず、専用検証ツールまたは手動確認にする
-   - 不具合の切り分け、実装中の仮説、設計にない内部詳細を一度だけ確認する: 一時テストにする
-   - 適格性を満す共通契約だが設計書にない: 先に設計書を現行仕様へ同期してから恒久テストにする
-2. 設計入力を先に読む
-   - 恒久テストの期待値を実装コードや既存テストから写さず、許可された設計文書の採用済み記載から決める
+   - 不具合の切り分け、実装中の仮説、共通の仕様に含まれない内部詳細を一度だけ確認する: 一時テストにする
+2. 入力条件と期待結果を決める
+   - 期待結果は依頼で合意した要件や現行の仕様に基づいて決める。既存の実装結果をそのまま期待値にしない
    - 対象クラス、近傍の呼び出し元、依存リポジトリ/サービス、関連設定はテスト用データと観測点を決めるために読む
-   - `8-実装予定`、`9-未決事項`、レビュー記録、`TODO` は期待値の根拠にしない
 3. 検証層を決める
    - 適格性を満す純ロジック確認: `JUnit`
    - Bukkit境界を分離できない一度限りの再現: 一時テストとしての `MockBukkit`
@@ -56,60 +53,42 @@ description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord`
    - 実サーバー複製の既定値は `scripts/dev-server.config.json` に持つ
    - `ProtocolLib` や実サーバ依存が強い場合は、プラグイン丸ごとロードより対象クラスの分離を優先する
 5. 検証して清掃する
-   - 恒久テストは対象テスト、トレーサビリティ検証ツール、全テストの順で実行する
+   - 恒久テストは対象テスト、プラグインテストの構成検証、全テストの順で実行する
    - 一時テストは後述の追加・実行・削除手順を省略しない
    - スクリプトは `-NoStart` 付きで準備まで確認する
    - 実サーバーの複製検証は `-UseLiveServerClone` と `-RefreshLiveServerClone` の必要有無を明示する
 
-## 恒久テストのトレーサビリティ
+## 恒久テストの書き方
 
-恒久テストでは、`@Test`、`@ParameterizedTest`、`@RepeatedTest`、`@TestFactory`、`@TestTemplate` を持つ各メソッドの連続アノテーションの並びの直前へ次の Javadoc を付ける。`@DisplayName`、`@Tag`、`@Timeout` 等は Javadoc とテスト用アノテーションの間に置いてよいが、別の宣言や説明文を挟まない。
+一つのメソッドで一つの挙動または不変条件を検証する。パラメーター化テストとテストファクトリは、全ケースで同じ挙動を検証するときにまとめる。入力条件と期待結果がテスト名とアサーションで伝わりにくい場合は、コメントで補足する。設計書のファイル名、章・見出し、定型 Javadoc は不要。
 
-```java
-/**
- * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
- * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### ステータス取得
- * 検証契約: 指定したステータス種別について、現在値と最大値を同じスナップショットから返す。
- */
-@Test
-void returnsCurrentAndMaximumValuesFromOneSnapshot() {
-    // ...
-}
-```
+## プラグインテストの構成検証
 
-次を必須とする。
-
-- `設計入力:` はリポジトリ相対の `/` 区切りパスにする。許可する文書は `PLUGIN_GUIDE.md` と `00_docs/10_Plugin設計書/**/*.md` だけとする
-- `章・見出し:` は対象 Markdown に実在する H1 から対象節までを ` > ` で連結し、各要素へ `#` の見出しレベルを含める。H1 だけで済ませず、契約が書かれた子見出しまで指定する
-- `検証契約:` は入力、条件、結果または不変条件が分かる具体的な一文にする。「動作を確認する」のような汎用文にしない
-- 一つのメソッドが複数機能の契約を結合して検証する場合は、`設計入力:` と対応する `章・見出し:` の対を空の Javadoc 装飾行以外を挟まず物理的に隣接させ、必要数だけ繰り返す。`検証契約:` はそれらの結合条件が分かる一文にまとめる
-- 一つのメソッドは一つの設計契約を検証する。パラメーター化テストとテストファクトリは、全ケースが同じ記載の同じ契約を検証するときだけまとめる
-- 設計書名だけ、絶対パス、Windows の `\` 区切り、存在しない見出し、`8` / `9` カテゴリ、レビュー、`TODO` を参照しない
 - Kotlin のインポート別名 / typealias をテスト用アノテーションや無効化アノテーションに付けない。`@Disabled` / `@Ignore` に加え、`@DisabledOnOs` / `@EnabledOnJre` など環境条件でスキップし得る JUnit アノテーションで検証ツールや Maven 実行を回避しない
 - Maven Surefire の既定命名 `Test*`、`*Test`、`*Tests`、`*TestCase` に一致させる
 - `<task-root>\10_plugin\AstralRecord\pom.xml` の `build/testSourceDirectory` を Maven 既定から変更せず、`maven-compiler-plugin` の `testIncludes` / `testExcludes` や Surefire の独自の `includes` / `excludes`、グループ・エンジン フィルター、スキップ設定で恒久テストをコンパイル・実行対象外にしない
 
-リポジトリルートから次を実行し、全メソッドの設計入力と見出し階層を検証する。
+リポジトリルートから次を実行し、JUnit テストの検出を妨げる命名・除外・スキップ設定や、一時テスト・MockBukkit 等の残留を検査する。
 
 ```text
-python .codex/skills/astralrecord-plugin-test/scripts/validate_test_traceability.py
+python .codex/skills/astralrecord-plugin-test/scripts/validate_plugin_tests.py
 ```
 
-この検証ツールはテストソースを変更した場合だけの検査ではない。作業差分が `astralrecord-code/references/plugin-code.md` の「プラグインテストのトレーサビリティゲート」に列挙したテストソース、プラグイン POM、許可設計入力、テスト方針のパスのいずれかを追加・変更・名前変更・削除した場合は、POM・設計書・テスト方針だけの変更でもレビューへの引き渡し前に必ず実行する。プラグインの Shade 出力先がメインのワークスペースに固定されているため、この検査を `mvn verify` で代用しない。
+実行が必要な差分は [プラグインテストの構成検証](../astralrecord-code/references/plugin-code.md#プラグインテストの構成検証) に従う。プラグインの Shade 出力先がメインのワークスペースに固定されているため、この検査を `mvn verify` で代用しない。
 
 ## 一時テストのライフサイクル
 
-設計契約ではない一度限りの診断は、ファイルとクラスを `AdHoc<目的>Test`（既定）または `<目的>OneShotTest` として追加し、恒久テストへ残さない。MockBukkit等の疑似サーバーはこの一時診断でだけ使用できる。通常機能名と衝突し得る曖昧な接頭辞は一時診断の識別子にしない。次の順序を守る。
+一度限りの診断は、ファイルとクラスを `AdHoc<目的>Test`（既定）または `<目的>OneShotTest` として追加し、恒久テストへ残さない。MockBukkit等の疑似サーバーはこの一時診断でだけ使用できる。通常機能名と衝突し得る曖昧な接頭辞は一時診断の識別子にしない。次の順序を守る。
 
 1. `AdHoc<目的>Test` または `<目的>OneShotTest` を追加する。疑似サーバーが必要なら専用support sourceとPOM依存も一時変更として追加する
 2. `mvn -q -Dtest=<一時テストClass名> test` を実行し、手順1で選んだ実際のクラス名のテストが検出・実行されたことを結果で確認する
-3. 診断結果を実装修正または報告へ反映する。恒久契約だと判明した場合は、設計書を更新して通常名の恒久テストへ書き直す
+3. 診断結果を実装修正または報告へ反映する。恒久テストの適格性を満たすと判明した場合は、通常名の恒久テストへ書き直す
 4. 追加した一時テストを削除する。疑似サーバーを利用した場合は専用support sourceとPOM依存も削除する
 5. `git status --short` とリポジトリ検索で、一時ファイルおよび疑似サーバーのsource・依存が残っていないことを確認する
-6. `python .codex/skills/astralrecord-plugin-test/scripts/validate_test_traceability.py` を実行する
+6. `python .codex/skills/astralrecord-plugin-test/scripts/validate_plugin_tests.py` を実行する
 7. `mvn -q test` を実行する
 
-一時テストを `@Disabled` にして残す、Surefire 対象外の名前へ変える、補助クラスに移して温存する、設計入力を捏造して恒久化することは禁止する。
+一時テストを `@Disabled` にして残す、Surefire 対象外の名前へ変える、補助クラスに移して温存することは禁止する。
 
 ## 判断の目安
 

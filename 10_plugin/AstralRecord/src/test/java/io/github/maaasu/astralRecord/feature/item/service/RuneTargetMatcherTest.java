@@ -14,9 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RuneTargetMatcherTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
-     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.5 `ItemRune`
-     * 検証契約: ルーンの対象slotと対象tagは別軸で評価し、両方指定時はAND、各配列内はORで判定する。
+     * ルーンの対象slotと対象tagは別軸で評価し、両方指定時はAND、各配列内はORで判定する。
      */
     @Test
     void matchesSlotAndOptionalTagConditions() {

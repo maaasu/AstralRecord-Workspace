@@ -20,11 +20,7 @@ class SchematicImportValidatorTest {
     private static final TagWriter EMPTY = out -> { };
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/38-builder/38_4-Schematic入力検証.md
-     * 章・見出し: # 38_4-Schematic入力検証 > ## 範囲とブロック
-     * 設計入力: 00_docs/10_Plugin設計書/feature/38-builder/38_4-Schematic入力検証.md
-     * 章・見出し: # 38_4-Schematic入力検証 > ## 追加データ
-     * 検証契約: 通常ブロックと本のない書見台を含む v3 の体積が上限内なら、データ版と名前空間付き ID を返す。
+     * 通常ブロックと本のない書見台を含む v3 の体積が上限内なら、データ版と名前空間付き ID を返す。
      */
     @Test
     void acceptsVanillaBlocksAndAnEmptyLectern() throws IOException {
@@ -48,9 +44,7 @@ class SchematicImportValidatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/38-builder/38_4-Schematic入力検証.md
-     * 章・見出し: # 38_4-Schematic入力検証 > ## 圧縮と構造
-     * 検証契約: 圧縮と展開の上限超過、gzip 破損、後続メンバーや余分なバイトを拒否する。
+     * 圧縮と展開の上限超過、gzip 破損、後続メンバーや余分なバイトを拒否する。
      */
     @Test
     void rejectsInvalidGzipAndSizeLimitViolations() throws IOException {
@@ -67,9 +61,7 @@ class SchematicImportValidatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/38-builder/38_4-Schematic入力検証.md
-     * 章・見出し: # 38_4-Schematic入力検証 > ## 圧縮と構造
-     * 検証契約: ルート終端後のデータ、同名タグ、深さ・タグ数の上限超過、残量を超える配列宣言を拒否する。
+     * ルート終端後のデータ、同名タグ、深さ・タグ数の上限超過、残量を超える配列宣言を拒否する。
      */
     @Test
     void rejectsMalformedAndOverBudgetNbt() throws IOException {
@@ -95,9 +87,7 @@ class SchematicImportValidatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/38-builder/38_4-Schematic入力検証.md
-     * 章・見出し: # 38_4-Schematic入力検証 > ## 範囲とブロック
-     * 検証契約: 上限を超えた体積、選択範囲の端が相対上限を超えるオフセット、上限外の保存元原点を拒否する。
+     * 上限を超えた体積、選択範囲の端が相対上限を超えるオフセット、上限外の保存元原点を拒否する。
      */
     @Test
     void rejectsExcessiveVolumeAndCoordinates() throws IOException {
@@ -112,9 +102,7 @@ class SchematicImportValidatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/38-builder/38_4-Schematic入力検証.md
-     * 章・見出し: # 38_4-Schematic入力検証 > ## 範囲とブロック
-     * 検証契約: パレット ID の重複・欠番、参照先なし、非正規・途中終端・範囲外の VarInt と体積に一致しない格納数を拒否する。
+     * パレット ID の重複・欠番、参照先なし、非正規・途中終端・範囲外の VarInt と体積に一致しない格納数を拒否する。
      */
     @Test
     void rejectsInvalidPaletteReferencesAndBlockCounts() throws IOException {
@@ -130,9 +118,7 @@ class SchematicImportValidatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/38-builder/38_4-Schematic入力検証.md
-     * 章・見出し: # 38_4-Schematic入力検証 > ## 範囲とブロック
-     * 検証契約: コマンド等を動かすブロック、外部名前空間や WorldEdit 固有構文を使う状態指定を拒否する。
+     * コマンド等を動かすブロック、外部名前空間や WorldEdit 固有構文を使う状態指定を拒否する。
      */
     @Test
     void rejectsActiveBlocksAndExternalStateSyntax() throws IOException {
@@ -145,9 +131,7 @@ class SchematicImportValidatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/38-builder/38_4-Schematic入力検証.md
-     * 章・見出し: # 38_4-Schematic入力検証 > ## 追加データ
-     * 検証契約: 許可ブロックでも、実体と不一致の型・重複位置・範囲外位置・アイテムや戦利品を持つ追加データを拒否する。
+     * 許可ブロックでも、実体と不一致の型・重複位置・範囲外位置・アイテムや戦利品を持つ追加データを拒否する。
      */
     @Test
     void rejectsUnsupportedBlockEntityDataAndLocations() throws IOException {
@@ -176,9 +160,7 @@ class SchematicImportValidatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/38-builder/38_4-Schematic入力検証.md
-     * 章・見出し: # 38_4-Schematic入力検証 > ## 追加データ
-     * 検証契約: ブロックデータに加えてエンティティまたはバイオームを指定したファイルを拒否する。
+     * ブロックデータに加えてエンティティまたはバイオームを指定したファイルを拒否する。
      */
     @Test
     void rejectsEntitiesAndBiomeData() throws IOException {

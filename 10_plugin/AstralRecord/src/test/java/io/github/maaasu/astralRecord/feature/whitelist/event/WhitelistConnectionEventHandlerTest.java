@@ -22,9 +22,7 @@ class WhitelistConnectionEventHandlerTest {
     private static final PlainTextComponentSerializer PLAIN_TEXT = PlainTextComponentSerializer.plainText();
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### whitelist 接続前拒否
-     * 検証契約: whitelist 外の UUID は接続前イベントを KICK_OTHER とメンテナンス文言で拒否する。
+     * whitelist 外の UUID は接続前イベントを KICK_OTHER とメンテナンス文言で拒否する。
      */
     @Test
     void rejectsPlayerOutsideWhitelistBeforeLogin() throws Exception {
@@ -41,9 +39,7 @@ class WhitelistConnectionEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### whitelist 接続前拒否
-     * 検証契約: whitelist 内の UUID は接続前イベントを変更せず、そのまま接続処理へ進める。
+     * whitelist 内の UUID は接続前イベントを変更せず、そのまま接続処理へ進める。
      */
     @Test
     void keepsWhitelistedPlayerConnectionUndisturbed() throws Exception {

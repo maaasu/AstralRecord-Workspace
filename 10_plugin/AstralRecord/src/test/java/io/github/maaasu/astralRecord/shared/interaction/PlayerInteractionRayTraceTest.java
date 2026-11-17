@@ -13,9 +13,7 @@ class PlayerInteractionRayTraceTest {
     private static final double EPSILON = 1.0E-9D;
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 9. ray entry distance
-     * 検証契約: ray方向を単位化し、中心5・半径1の球への入口距離4を返す。
+     * ray方向を単位化し、中心5・半径1の球への入口距離4を返す。
      */
     @Test
     void sphereEntryUsesNormalizedDirectionAndReturnsNearSurface() {
@@ -34,9 +32,7 @@ class PlayerInteractionRayTraceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 9. ray entry distance
-     * 検証契約: ray始点が球内部なら入口距離0を返す。
+     * ray始点が球内部なら入口距離0を返す。
      */
     @Test
     void sphereContainingOriginReturnsZero() {
@@ -46,9 +42,7 @@ class PlayerInteractionRayTraceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 9. ray entry distance
-     * 検証契約: AABB外部からは手前面までの距離、内部からは0を返す。
+     * AABB外部からは手前面までの距離、内部からは0を返す。
      */
     @Test
     void aabbEntryReturnsNearFaceAndZeroFromInside() {
@@ -67,9 +61,7 @@ class PlayerInteractionRayTraceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 9. ray entry distance
-     * 検証契約: 球/AABBへのmissまたは最大距離外の入口はnullとする。
+     * 球/AABBへのmissまたは最大距離外の入口はnullとする。
      */
     @Test
     void missAndBeyondMaximumDistanceReturnNull() {
@@ -82,9 +74,7 @@ class PlayerInteractionRayTraceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
-     * 章・見出し: # 28_3-サービス > ## 9. ray entry distance
-     * 検証契約: 零・NaN方向、負数・NaN・無限大の最大距離ではrayを生成しない。
+     * 零・NaN方向、負数・NaN・無限大の最大距離ではrayを生成しない。
      */
     @Test
     void invalidDirectionAndMaximumDistanceDoNotCreateRay() {

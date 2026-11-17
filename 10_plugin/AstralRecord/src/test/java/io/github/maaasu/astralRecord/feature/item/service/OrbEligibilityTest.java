@@ -34,9 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class OrbEligibilityTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 成功率は端数を残した百分率で表示し、99.5%と確定成功の100%を区別する。
+     * 成功率は端数を残した百分率で表示し、99.5%と確定成功の100%を区別する。
      */
     @Test
     void successRateDisplayPreservesFractionalPercentages() {
@@ -53,9 +51,7 @@ class OrbEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 状態変化一覧は数値ランク999を表示せず、状態変化名を「星鋼化へ変化」の形式で返す。
+     * 状態変化一覧は数値ランク999を表示せず、状態変化名を「星鋼化へ変化」の形式で返す。
      */
     @Test
     void transitionListDescriptionUsesNameWithoutNumericRank() {
@@ -68,9 +64,7 @@ class OrbEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 強化対象は現在ランクの完全一致または指定ランク以下だけを許可し、上位の完全一致オーブを拒否する。
+     * 強化対象は現在ランクの完全一致または指定ランク以下だけを許可し、上位の完全一致オーブを拒否する。
      */
     @Test
     void enhancementUsesCurrentRankAndSupportsExactAndAtMost() {
@@ -86,9 +80,7 @@ class OrbEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 状態変化は現在強化上限未達なら拒否し、達成時は飛び級せず即時次ランクの定義を返す。
+     * 状態変化は現在強化上限未達なら拒否し、達成時は飛び級せず即時次ランクの定義を返す。
      */
     @Test
     void transcendenceUsesImmediateDestinationRankAndRequiresCurrentEnhanceCap() {
@@ -107,9 +99,7 @@ class OrbEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: rank未指定の固定値・全回復修理は損耗装備を候補化し、最大耐久の装備を候補から除外する。
+     * rank未指定の固定値・全回復修理は損耗装備を候補化し、最大耐久の装備を候補から除外する。
      */
     @Test
     void repairRequiresMissingDurabilityAndConfiguredRecovery() {
@@ -142,9 +132,7 @@ class OrbEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 全空枠付与は既存effectIdと重複しない異なる候補が空き枠数以上ある場合だけ許可する。
+     * 全空枠付与は既存effectIdと重複しない異なる候補が空き枠数以上ある場合だけ許可する。
      */
     @Test
     void fillAllRequiresEnoughDistinctEffectsWithoutExistingDuplicates() {
@@ -161,9 +149,7 @@ class OrbEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: ランダム上書きは既存枠がある場合だけ許可し、空枠1件付与は空き枠がある場合だけ許可する。
+     * ランダム上書きは既存枠がある場合だけ許可し、空枠1件付与は空き枠がある場合だけ許可する。
      */
     @Test
     void overwriteRequiresExistingSlotWhileFillOneRequiresEmptySlot() {
@@ -183,9 +169,7 @@ class OrbEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: legacy effectIdの既存行はstatus・type・値域が候補と意味一致する場合も重複として除外し、別効果がなければ付与不能にする。
+     * legacy effectIdの既存行はstatus・type・値域が候補と意味一致する場合も重複として除外し、別効果がなければ付与不能にする。
      */
     @Test
     void legacyEnchantWithEquivalentMeaningIsExcludedAsDuplicate() {
@@ -237,9 +221,7 @@ class OrbEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: エンチャント全空枠付与はAPIを待たず、空き枠を異なるeffectIdのローカル確定結果で満たす。
+     * エンチャント全空枠付与はAPIを待たず、空き枠を異なるeffectIdのローカル確定結果で満たす。
      */
     @Test
     void localEnchantFillsEveryEmptySlotWithDistinctEffects() {
@@ -261,9 +243,7 @@ class OrbEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: ルーン装着と指定slotの脱着はローカル完成状態を作り、脱着時は返却するルーンitem IDを返す。
+     * ルーン装着と指定slotの脱着はローカル完成状態を作り、脱着時は返却するルーンitem IDを返す。
      */
     @Test
     void localRuneOperationsReturnUpdatedEquipmentAndDetachedRuneId() {
@@ -288,9 +268,7 @@ class OrbEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 強化・修理・状態変化のローカル完成形は表示用の現在時刻をupdatedAtへ書かず、snapshot競合制御に使うAPI base timestampを保持する。
+     * 強化・修理・状態変化のローカル完成形は表示用の現在時刻をupdatedAtへ書かず、snapshot競合制御に使うAPI base timestampを保持する。
      */
     @Test
     void localEquipmentMutationsKeepApiBaseTimestamp() {
@@ -362,9 +340,7 @@ class OrbEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 固定操作は空枠・固定済みを飛ばし、最小スロットの未固定行だけを固定し、効果と値を保持する。
+     * 固定操作は空枠・固定済みを飛ばし、最小スロットの未固定行だけを固定し、効果と値を保持する。
      */
     @Test
     void locksLowestUnlockedSlotWithoutReorderingRemainingSlots() {
@@ -385,9 +361,7 @@ class OrbEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 削除は未固定行だけを対象とし、残存行のスロットと固定状態を保全する。
+     * 削除は未固定行だけを対象とし、残存行のスロットと固定状態を保全する。
      */
     @Test
     void removalLeavesLockedSlotAndDoesNotCompactGaps() {
@@ -401,9 +375,7 @@ class OrbEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 全固定の加工は上書き・再抽選・削除・固定のいずれも無変更として拒否し、支払い対象の完成状態を返さない。
+     * 全固定の加工は上書き・再抽選・削除・固定のいずれも無変更として拒否し、支払い対象の完成状態を返さない。
      */
     @Test
     void allLockedRejectsRandomMutationsAndFurtherLocking() {
@@ -418,9 +390,7 @@ class OrbEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 数値再抽選は固定済みを保全し、未固定行のID・枠・効果を保持しながら数値と由来だけを上下のマスタで更新する。
+     * 数値再抽選は固定済みを保全し、未固定行のID・枠・効果を保持しながら数値と由来だけを上下のマスタで更新する。
      */
     @Test
     void rerollPreservesIdentityAndLockedRowsAcrossDifferentMasterRanges() {
@@ -443,9 +413,7 @@ class OrbEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 数値再抽選は全未固定行の効果ID・status・typeが使用マスタにある場合だけ許可し、種類の置換を防ぐ。
+     * 数値再抽選は全未固定行の効果ID・status・typeが使用マスタにある場合だけ許可し、種類の置換を防ぐ。
      */
     @Test
     void rerollRejectsMissingOrDifferentEffectDefinitions() {
@@ -460,9 +428,7 @@ class OrbEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 上書きは未固定行だけを対象にし、固定済みの効果との重複を禁止する。
+     * 上書きは未固定行だけを対象にし、固定済みの効果との重複を禁止する。
      */
     @Test
     void overwriteProtectsLockedRowsAndIncludesThemInDuplicateChecks() {
@@ -479,9 +445,7 @@ class OrbEligibilityTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 空き枠への付与では固定行を占有枠・重複集合へ含めて維持し、新規付与行は未固定とする。
+     * 空き枠への付与では固定行を占有枠・重複集合へ含めて維持し、新規付与行は未固定とする。
      */
     @Test
     void fillRespectsLockedOccupancyAndEffects() {

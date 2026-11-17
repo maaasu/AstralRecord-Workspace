@@ -16,9 +16,7 @@ class SkillTreePluginConfigTest {
     Path tempDirectory;
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 10. skill tree 設定・master snapshot
-     * 検証契約: loadFileは共有cacheでなく呼出時点のdisk上config.ymlを毎回読む。
+     * loadFileは共有cacheでなく呼出時点のdisk上config.ymlを毎回読む。
      */
     @Test
     void loadFileReadsTheCurrentDiskSnapshot() throws IOException {
@@ -52,9 +50,7 @@ class SkillTreePluginConfigTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 10. skill tree 設定・master snapshot
-     * 検証契約: structure IDを小文字英数字始まりかつ小文字英数字/_/-だけに制限する。
+     * structure IDを小文字英数字始まりかつ小文字英数字/_/-だけに制限する。
      */
     @Test
     void rejectsStructureIdOutsideTheStructureSchemaRule() throws IOException {

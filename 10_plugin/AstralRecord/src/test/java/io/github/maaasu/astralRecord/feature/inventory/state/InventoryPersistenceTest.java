@@ -36,9 +36,7 @@ import static org.mockito.Mockito.when;
 class InventoryPersistenceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 保存不能の診断と再ロード
-     * 検証契約: 復旧ロードのAPI取得失敗を空の正常stateとして返さず、後続の再試行でも完全取得を必須とする。
+     * 復旧ロードのAPI取得失敗を空の正常stateとして返さず、後続の再試行でも完全取得を必須とする。
      */
     @Test
     void recoveryLoadDoesNotPublishPartialStateAfterApiFailure() {
@@ -53,9 +51,7 @@ class InventoryPersistenceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 保存不能の診断と再ロード
-     * 検証契約: 確定拒否の初回遷移は例外と送信snapshotを一度だけ通知し、再試行では重複通知しない。
+     * 確定拒否の初回遷移は例外と送信snapshotを一度だけ通知し、再試行では重複通知しない。
      */
     @Test
     void reportsFirstBlockedTransitionOnlyWithOriginalFailureAndSnapshot() {
@@ -83,9 +79,7 @@ class InventoryPersistenceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 保存不能の診断と再ロード
-     * 検証契約: 保存不能の破棄後は旧stateを再保存せず、新しいstateだけが新snapshotで保存できる。
+     * 保存不能の破棄後は旧stateを再保存せず、新しいstateだけが新snapshotで保存できる。
      */
     @Test
     void discardedStateCannotBeSavedAfterFreshStateIsLoaded() {
@@ -111,9 +105,7 @@ class InventoryPersistenceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 保存不能の診断と再ロード
-     * 検証契約: 一時的な通信失敗では保存不能の通知を発生させない。
+     * 一時的な通信失敗では保存不能の通知を発生させない。
      */
     @Test
     void transientFailureDoesNotStartDestructiveRecovery() {
@@ -129,9 +121,7 @@ class InventoryPersistenceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: 外部取引前の baseline は、BAG だけが dirty でも未変更の通貨残高を含む。
+     * 外部取引前の baseline は、BAG だけが dirty でも未変更の通貨残高を含む。
      */
     @Test
     void externalBaselineIncludesUnchangedCurrencyWhenOnlyBagIsDirty() {
@@ -165,11 +155,7 @@ class InventoryPersistenceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 4. 装備耐久値
-     * 検証契約: dirty耐久値をflushしてもpendingが残る場合、inventoryのsaveNowはfalseを返す。
+     * dirty耐久値をflushしてもpendingが残る場合、inventoryのsaveNowはfalseを返す。
      */
     @Test
     void saveNowDoesNotFallBackToLegacyEquipmentDurabilityWrite() {
@@ -194,9 +180,7 @@ class InventoryPersistenceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
-     * 検証契約: 結果不明のHTTP 425は通常保存をblockせず、同じpending snapshotをbackoff再試行できる状態に保つ。
+     * 結果不明のHTTP 425は通常保存をblockせず、同じpending snapshotをbackoff再試行できる状態に保つ。
      */
     @Test
     void ambiguousTooEarlyResponseDoesNotBlockNormalSnapshotRetry() {
@@ -223,9 +207,7 @@ class InventoryPersistenceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 5. 永続化制御
-     * 検証契約: API正本だけが更新した古いentry snapshotは、409後に正本へ差し替えて保存laneを継続する。
+     * API正本だけが更新した古いentry snapshotは、409後に正本へ差し替えて保存laneを継続する。
      */
     @Test
     void staleSnapshotConflictDoesNotFallBackToLegacyEntryReplacement() {
@@ -287,9 +269,7 @@ class InventoryPersistenceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 5. 永続化制御
-     * 検証契約: 409の再取得中に同じentryへローカル変更が入った場合は、その変更を正本snapshotで上書きしない。
+     * 409の再取得中に同じentryへローカル変更が入った場合は、その変更を正本snapshotで上書きしない。
      */
     @Test
     void staleSnapshotConflictDoesNotOverwriteConcurrentLocalEntryChange() {
@@ -360,9 +340,7 @@ class InventoryPersistenceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 5. 永続化制御
-     * 検証契約: 撤廃済みスキルジェムのようにアイテムマスタを解決できない通常 entry は、
+     * 撤廃済みスキルジェムのようにアイテムマスタを解決できない通常 entry は、
      * ログインロード時に補償なしで破棄し、API の置換保存へ送らない。
      */
     @Test
@@ -407,9 +385,7 @@ class InventoryPersistenceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 5. 永続化制御
-     * 検証契約: 全カテゴリのアイテムマスタが未公開の間は、部分キャッシュだけを根拠に entry を破棄しない。
+     * 全カテゴリのアイテムマスタが未公開の間は、部分キャッシュだけを根拠に entry を破棄しない。
      */
     @Test
     void loadRetainsEntriesUntilTheCompleteItemMasterSnapshotIsPublished() {
@@ -442,9 +418,7 @@ class InventoryPersistenceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 5. 永続化制御
-     * 検証契約: 削除済み装備マスタと通常 item master が同時に存在しても、両方の entry を同一ロードで破棄する。
+     * 削除済み装備マスタと通常 item master が同時に存在しても、両方の entry を同一ロードで破棄する。
      */
     @Test
     void loadDiscardsDeletedEquipmentAndNormalItemMastersTogether() {

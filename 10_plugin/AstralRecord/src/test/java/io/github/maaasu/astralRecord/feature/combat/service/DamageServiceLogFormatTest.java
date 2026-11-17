@@ -15,9 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 class DamageServiceLogFormatTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_5-例外・ログ・運用.md
-     * 章・見出し: # 14_5-例外・ログ・運用 > ## 2. player message
-     * 検証契約: compact damage logの結果値を接頭辞なしで表示し、attack type/elementと単一属性RES raw>effectiveを含める。
+     * compact damage logの結果値を接頭辞なしで表示し、attack type/elementと単一属性RES raw>effectiveを含める。
      */
     @Test
     void compactFormatIncludesDamageTypeAndSingleElementResistance() {
@@ -47,9 +45,7 @@ class DamageServiceLogFormatTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_5-例外・ログ・運用.md
-     * 章・見出し: # 14_5-例外・ログ・運用 > ## 2. player message
-     * 検証契約: 複数属性RESをF/I/L code付きで区別して表示する。
+     * 複数属性RESをF/I/L code付きで区別して表示する。
      */
     @Test
     void multipleElementResistancesIncludeElementCodes() {
@@ -67,9 +63,7 @@ class DamageServiceLogFormatTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_5-例外・ログ・運用.md
-     * 章・見出し: # 14_5-例外・ログ・運用 > ## 2. player message
-     * 検証契約: shield-only resultでも計算breakdownを保ちshield break時! markerを表示する。
+     * shield-only resultでも計算breakdownを保ちshield break時! markerを表示する。
      */
     @Test
     void shieldResultKeepsCalculationBreakdownAndShowsBreakMarker() {
@@ -82,9 +76,7 @@ class DamageServiceLogFormatTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_5-例外・ログ・運用.md
-     * 章・見出し: # 14_5-例外・ログ・運用 > ## 2. player message
-     * 検証契約: 超星criticalを通常CRITと独立したS-CRIT markerで表示する。
+     * 超星criticalを通常CRITと独立したS-CRIT markerで表示する。
      */
     @Test
     void superStarCriticalHasIndependentCompactMarker() {

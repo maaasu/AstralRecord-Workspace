@@ -7,9 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ShieldRechargeStateTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/07_1-モデル定義.md
-     * 章・見出し: # 07_1-モデル定義 > ## 6. Shield リチャージ状態
-     * 検証契約: now注入で残り時間・左から右へ増えるprogress・延長後の後退を決定的に計算する。
+     * now注入で残り時間・左から右へ増えるprogress・延長後の後退を決定的に計算する。
      */
     @Test
     void calculatesRemainingProgressAndExtensionWithoutWallClock() {

@@ -37,9 +37,7 @@ import static org.mockito.Mockito.when;
 class InventoryItemStackResolverTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 3. ItemStack 変換
-     * 検証契約: itemIdを併記したEQUIPMENT entryでもinstanceType / instanceIdを優先し、個体情報付きItemStackを復元する。
+     * itemIdを併記したEQUIPMENT entryでもinstanceType / instanceIdを優先し、個体情報付きItemStackを復元する。
      */
     @Test
     void itemIdPopulatedEquipmentEntryUsesInstanceItemStack() {
@@ -89,9 +87,7 @@ class InventoryItemStackResolverTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 3. ItemStack 変換
-     * 検証契約: instanceType と instanceId が対でない、または未知の個体種別を持つ entry は通常 stack へフォールバックしない。
+     * instanceType と instanceId が対でない、または未知の個体種別を持つ entry は通常 stack へフォールバックしない。
      */
     @Test
     void malformedInstanceMetadataDoesNotFallbackToNormalItem() {
@@ -114,9 +110,7 @@ class InventoryItemStackResolverTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
-     * 章・見出し: # 08_3-タスク・補助 > ## 3. ItemStack 変換
-     * 検証契約: 通常BAG表示時だけ、ホットバー割当対象アイテムへクリック案内を追加し、
+     * 通常BAG表示時だけ、ホットバー割当対象アイテムへクリック案内を追加し、
      * 通常の解決経路（HOTBAR・ストレージ等）へは追加しない。
      */
     @Test
@@ -145,9 +139,7 @@ class InventoryItemStackResolverTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-イベント.md
-     * 章・見出し: # 08_3-イベント > ## 1. インベントリクリック受付
-     * 検証契約: 通常プレイヤーインベントリ内の有効なオーブ表示にはクリック使用案内を追加する。
+     * 通常プレイヤーインベントリ内の有効なオーブ表示にはクリック使用案内を追加する。
      */
     @Test
     void bagDisplayAddsUseLoreForOrb() {
@@ -176,9 +168,7 @@ class InventoryItemStackResolverTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-イベント.md
-     * 章・見出し: # 08_3-イベント > ## 1. インベントリクリック受付
-     * 検証契約: 数量 0 のオーブには、クリック使用案内を表示しない。
+     * 数量 0 のオーブには、クリック使用案内を表示しない。
      */
     @Test
     void bagDisplayDoesNotAddUseLoreForInvalidOrbEntry() {
@@ -208,9 +198,7 @@ class InventoryItemStackResolverTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
-     * 章・見出し: # 08_2-ユースケース > ## 1. 統合所持品表示・スクロール
-     * 検証契約: entry のカテゴリに従うクリック処理と表示案内の分類を一致させる。
+     * entry のカテゴリに従うクリック処理と表示案内の分類を一致させる。
      */
     @Test
     void bagDisplayUsesEntryCategoryForClickHint() {
@@ -239,9 +227,7 @@ class InventoryItemStackResolverTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
-     * 章・見出し: # 08_2-ユースケース > ## 4. ホットバー割当とショートカット表示
-     * 検証契約: 武器・道具のうち、クリック処理が HOTBAR 割当へ進む装備には割当案内を追加する。
+     * 武器・道具のうち、クリック処理が HOTBAR 割当へ進む装備には割当案内を追加する。
      */
     @Test
     void bagDisplayAddsHotbarLoreForWeaponEquipment() {
@@ -269,9 +255,7 @@ class InventoryItemStackResolverTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-イベント.md
-     * 章・見出し: # 08_3-イベント > ## 1. インベントリクリック受付
-     * 検証契約: TOOL 装備は通常 BAG クリックで HOTBAR 割当へ進むため、割当案内を追加する。
+     * TOOL 装備は通常 BAG クリックで HOTBAR 割当へ進むため、割当案内を追加する。
      */
     @Test
     void bagDisplayAddsHotbarLoreForToolEquipment() {
@@ -299,9 +283,7 @@ class InventoryItemStackResolverTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-イベント.md
-     * 章・見出し: # 08_3-イベント > ## 1. インベントリクリック受付
-     * 検証契約: CONSUMABLE は通常 BAG クリックで HOTBAR 割当へ進むため、割当案内を追加する。
+     * CONSUMABLE は通常 BAG クリックで HOTBAR 割当へ進むため、割当案内を追加する。
      */
     @Test
     void bagDisplayAddsHotbarLoreForConsumable() {
@@ -326,9 +308,7 @@ class InventoryItemStackResolverTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-イベント.md
-     * 章・見出し: # 08_3-イベント > ## 1. インベントリクリック受付
-     * 検証契約: ホットバーへ割り当てない装備には、ホットバー割当案内を表示しない。
+     * ホットバーへ割り当てない装備には、ホットバー割当案内を表示しない。
      */
     @Test
     void bagDisplayDoesNotAddHotbarLoreForNonAssignableEquipment() {

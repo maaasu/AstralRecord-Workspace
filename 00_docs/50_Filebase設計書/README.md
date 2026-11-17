@@ -14,7 +14,7 @@
 | ステータスID・日本語名・表示メタデータ | `E:\AstralRecord-Workspace\40_filebase\75.shared.status\v1.status_types.yml` |
 | タグID・日本語名・説明・適用対象 | `E:\AstralRecord-Workspace\40_filebase\76.shared.tag\v1.tags.yml` |
 | Plugin が解釈する列挙値や動作 | `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main` 配下のソースコード |
-| Plugin の機能仕様 | `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書` |
+| Plugin の機能仕様 | [Plugin機能の実装](../../10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature) |
 | マスタカテゴリの設計方針 | 本設計書の `feature` 配下 |
 | 個別マスタの定義 | `E:\AstralRecord-Workspace\40_filebase` 配下の各 YAML / JSON |
 | 個別マスタのモチーフと進行度 | YAML の先頭コメント、または対象 JSON Schema が定義する設計メタデータ |
@@ -120,7 +120,7 @@ feature 設計書の先頭番号は、原則として `40_filebase` のディレ
 1. 本 README
 2. 対象カテゴリの `feature/<number>-<category>.md`
 3. 対象カテゴリの `docs.<項目名>.YAMLスキーマ定義.md` または `schemas/*.schema.json`
-4. feature 文書に記載された Plugin ソースまたは Plugin 設計書
+4. feature 文書に記載された Plugin ソース
 5. `モチーフ選定ガイド.md`
 6. 近い既存 YAML / JSON
 7. `作成時チェックリスト.md`

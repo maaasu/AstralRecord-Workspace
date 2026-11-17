@@ -12,9 +12,7 @@ import static org.mockito.Mockito.mock;
 class GuiNavigationStateTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 4. 共通 GUI navigation session
-     * 検証契約: GUI履歴をLIFOで直前画面から順に返す。
+     * GUI履歴をLIFOで直前画面から順に返す。
      */
     @Test
     void returnsToTheImmediatelyPreviousGuiInOrder() {
@@ -37,9 +35,7 @@ class GuiNavigationStateTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 4. 共通 GUI navigation session
-     * 検証契約: 戻る遷移が取消・失敗した場合は同じ履歴を復元し、古い予約 token は後続予約を変更しない。
+     * 戻る遷移が取消・失敗した場合は同じ履歴を復元し、古い予約 token は後続予約を変更しない。
      */
     @Test
     void rollsBackCancelledBackNavigationWithoutLettingStaleTokensChangeTheLatestReservation() {
@@ -61,9 +57,7 @@ class GuiNavigationStateTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 4. 共通 GUI navigation session
-     * 検証契約: 同一screen再描画はhistory追加でなくcurrent entry置換にする。
+     * 同一screen再描画はhistory追加でなくcurrent entry置換にする。
      */
     @Test
     void replacesCurrentGuiWhenTheSameScreenIsRedrawn() {
@@ -81,9 +75,7 @@ class GuiNavigationStateTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 4. 共通 GUI navigation session
-     * 検証契約: session終了でcurrentとprevious履歴を全消去する。
+     * session終了でcurrentとprevious履歴を全消去する。
      */
     @Test
     void clearsCurrentAndPreviousGuisWhenTheSessionEnds() {

@@ -30,9 +30,7 @@ import static org.mockito.Mockito.when;
 
 class WorldPlacementRepositoryTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/43-world-placement/43_3-配置スナップショット.md
-     * 章・見出し: # 配置スナップショット > ## API 応答の検証
-     * 検証契約: スラッシュを含む物理ワールド名と既存ウェイストーンIDを保持し、無効行は除外し、未知アイコンと空の作成者は既定表示へ戻す。
+     * スラッシュを含む物理ワールド名と既存ウェイストーンIDを保持し、無効行は除外し、未知アイコンと空の作成者は既定表示へ戻す。
      */
     @Test
     void keepsPhysicalWorldAndWaystoneIdentityButOmitsDisabledPlacement() {
@@ -57,9 +55,7 @@ class WorldPlacementRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/43-world-placement/43_3-配置スナップショット.md
-     * 章・見出し: # 配置スナップショット > ## API 応答の検証
-     * 検証契約: 不正行が一件でもあれば一括スナップショットを拒否し、部分的な公開値を返さない。
+     * 不正行が一件でもあれば一括スナップショットを拒否し、部分的な公開値を返さない。
      */
     @Test
     void rejectsEntireSnapshotForInvalidDisabledRow() {
@@ -74,9 +70,7 @@ class WorldPlacementRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/43-world-placement/43_3-配置スナップショット.md
-     * 章・見出し: # 配置スナップショット > ## Dev のウェイストーン登録
-     * 検証契約: 現行 Dev revision を指定して単件更新を送り、更新キーは書き込みだけに含める。
+     * 現行 Dev revision を指定して単件更新を送り、更新キーは書き込みだけに含める。
      */
     @Test
     void writesOneWaystoneWithCurrentDevRevision() throws IOException {
@@ -110,9 +104,7 @@ class WorldPlacementRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/43-world-placement/43_3-配置スナップショット.md
-     * 章・見出し: # 配置スナップショット > ## Dev のウェイストーン登録
-     * 検証契約: revision 競合を成功とせず自動再送もしない。成功応答に登録行がなければ保存確認としない。
+     * revision 競合を成功とせず自動再送もしない。成功応答に登録行がなければ保存確認としない。
      */
     @Test
     void treatsConflictAndUnconfirmedResponseAsSeparateOutcomes() throws IOException {
@@ -125,9 +117,7 @@ class WorldPlacementRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/43-world-placement/43_0-概要.md
-     * 章・見出し: # ワールド配置 > ## 目的と境界
-     * 検証契約: チャンネルの API モードでは、更新キーを設定していてもゲーム内から登録できない。
+     * チャンネルの API モードでは、更新キーを設定していてもゲーム内から登録できない。
      */
     @Test
     void refusesRegistrationInChannelsEvenWithWriteKey() {
@@ -138,9 +128,7 @@ class WorldPlacementRepositoryTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/43-world-placement/43_3-配置スナップショット.md
-     * 章・見出し: # 配置スナップショット > ## Dev のウェイストーン登録
-     * 検証契約: 応答ヘッダーを受信しても本文が完了しない配置要求を期限で取り消す。
+     * 応答ヘッダーを受信しても本文が完了しない配置要求を期限で取り消す。
      */
     @Test
     void timesOutWhenResponseBodyStallsAfterHeaders() throws IOException {

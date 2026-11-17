@@ -18,9 +18,7 @@ import static org.mockito.Mockito.verify;
 
 class GuiOpenSupportCancellationTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md
-     * 章・見出し: # 22_3-メソッド仕様 > ## 送信画面の開始・終了
-     * 検証契約: 終了した送信の保留遷移を取消し、同じ取消の再呼出でも通知は一度だけ、他人の遷移は維持する。
+     * 終了した送信の保留遷移を取消し、同じ取消の再呼出でも通知は一度だけ、他人の遷移は維持する。
      */
     @Test
     void cancellationStopsOnlySelectedPendingTaskAndNotifiesOnce() throws Exception {

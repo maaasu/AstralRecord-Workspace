@@ -44,9 +44,7 @@ import static org.mockito.Mockito.*;
 /** サーバーを起動せず、破壊的な上書き操作の確認境界を検証します。 */
 class AccountCloneCommandTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
-     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウント複製
-     * 検証契約: onlineの両アカウントを凍結して保存完了を待ち、複製と再読込後だけ操作受付を再開する。
+     * onlineの両アカウントを凍結して保存完了を待ち、複製と再読込後だけ操作受付を再開する。
      */
     @Test
     void onlineCloneWaitsForBothSavesAndReleasesOnlyAfterReload() throws Exception {
@@ -77,9 +75,7 @@ class AccountCloneCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
-     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウント複製
-     * 検証契約: 複製APIが失敗しても切り離した両セッションを選択中アカウントへ復旧する。
+     * 複製APIが失敗しても切り離した両セッションを選択中アカウントへ復旧する。
      */
     @Test
     void cloneFailureReloadsBothOriginalAccountsAndReleasesGuards() throws Exception {
@@ -102,9 +98,7 @@ class AccountCloneCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
-     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウント複製
-     * 検証契約: 保存に失敗したときは複製APIを呼ばず、復旧不能なセッションを切断して遷移を解放する。
+     * 保存に失敗したときは複製APIを呼ばず、復旧不能なセッションを切断して遷移を解放する。
      */
     @Test
     void failedLogoutSavePreventsCloneAndReleasesTheSessionGuard() throws Exception {
@@ -124,9 +118,7 @@ class AccountCloneCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
-     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウント複製
-     * 検証契約: 既存先は確認前に書き込まず、確認を発行した実行者だけが一度だけ上書きできる。
+     * 既存先は確認前に書き込まず、確認を発行した実行者だけが一度だけ上書きできる。
      */
     @Test
     void overwriteRequiresOriginalSenderAndConsumesConfirmationOnlyOnce() throws Exception {
@@ -149,9 +141,7 @@ class AccountCloneCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
-     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウント複製
-     * 検証契約: 確認の有効期限2分を迎えたトークンでは上書きAPIを呼び出さない。
+     * 確認の有効期限2分を迎えたトークンでは上書きAPIを呼び出さない。
      */
     @Test
     void expiredConfirmationCannotOverwrite() throws Exception {
@@ -166,9 +156,7 @@ class AccountCloneCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
-     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウント複製
-     * 検証契約: 未作成先は確認なしで複製するが、既存先の上書きを許可するUUIDは送信しない。
+     * 未作成先は確認なしで複製するが、既存先の上書きを許可するUUIDは送信しない。
      */
     @Test
     void emptyDestinationDoesNotAuthorizeOverwritingAnAccountCreatedConcurrently() throws Exception {
@@ -180,9 +168,7 @@ class AccountCloneCommandTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
-     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウント複製
-     * 検証契約: 複製先の負値・100以上はAPI照会や複製を開始する前に拒否する。
+     * 複製先の負値・100以上はAPI照会や複製を開始する前に拒否する。
      */
     @Test
     void invalidDestinationSlotsNeverReachTheApi() throws Exception {

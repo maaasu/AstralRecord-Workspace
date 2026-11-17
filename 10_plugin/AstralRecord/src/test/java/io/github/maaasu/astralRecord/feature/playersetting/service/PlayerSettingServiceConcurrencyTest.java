@@ -26,9 +26,7 @@ import static org.mockito.Mockito.when;
 
 class PlayerSettingServiceConcurrencyTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_1-モデル定義.md
-     * 章・見出し: # 03_1-モデル定義 > ## 6. 保存契機
-     * 検証契約: 設定更新は所有アカウントを共通snapshot保存キューへ登録する。
+     * 設定更新は所有アカウントを共通snapshot保存キューへ登録する。
      */
     @Test
     void updateQueuesTheOwningAccountForCommonSnapshotSave() {
@@ -57,9 +55,7 @@ class PlayerSettingServiceConcurrencyTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_1-モデル定義.md
-     * 章・見出し: # 03_1-モデル定義 > ## 6. 保存契機
-     * 検証契約: 設定更新はキャッシュを変更し、旧repository writerを呼び出さない。
+     * 設定更新はキャッシュを変更し、旧repository writerを呼び出さない。
      */
     @Test
     void updateChangesCacheWithoutCallingLegacyRepositoryWriter() {
@@ -78,9 +74,7 @@ class PlayerSettingServiceConcurrencyTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_1-モデル定義.md
-     * 章・見出し: # 03_1-モデル定義 > ## 6. 保存契機
-     * 検証契約: clear後も共通保存経路のACKまではdirty設定値を保持する。
+     * clear後も共通保存経路のACKまではdirty設定値を保持する。
      */
     @Test
     void clearRetainsDirtyCacheValueUntilCommonSaveLaneAcknowledgesIt() {
@@ -97,9 +91,7 @@ class PlayerSettingServiceConcurrencyTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_1-モデル定義.md
-     * 章・見出し: # 03_1-モデル定義 > ## 6. 保存契機
-     * 検証契約: オンラインキャッシュから退出後もdirty sectionはアカウント対応を保持する。
+     * オンラインキャッシュから退出後もdirty sectionはアカウント対応を保持する。
      */
     @Test
     void dirtySectionKeepsAccountMappingAfterPlayerLeavesOnlineCache() {
@@ -127,9 +119,7 @@ class PlayerSettingServiceConcurrencyTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_1-モデル定義.md
-     * 章・見出し: # 03_1-モデル定義 > ## 2. プレイヤーセッション
-     * 検証契約: 古いセッションtokenの設定更新は適用せずstale結果を返す。
+     * 古いセッションtokenの設定更新は適用せずstale結果を返す。
      */
     @Test
     void staleSessionDoesNotApplySettingChange() {
@@ -146,9 +136,7 @@ class PlayerSettingServiceConcurrencyTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_1-モデル定義.md
-     * 章・見出し: # 03_1-モデル定義 > ## 6. 保存契機
-     * 検証契約: section ACKは世代を統合し、ACK対象だけのdirty状態を解除する。
+     * section ACKは世代を統合し、ACK対象だけのdirty状態を解除する。
      */
     @Test
     void sectionAckMergesVersionsAndClearsOnlyCapturedDirtyState() {

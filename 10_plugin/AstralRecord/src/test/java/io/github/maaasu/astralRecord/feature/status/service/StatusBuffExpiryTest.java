@@ -24,9 +24,7 @@ import static org.mockito.Mockito.when;
 
 class StatusBuffExpiryTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
-     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### 有効バフ一覧取得
-     * 検証契約: GUIによる有効バフ取得が最初の失効検知でも、一覧からの除去とステータス再計算を行う。
+     * GUIによる有効バフ取得が最初の失効検知でも、一覧からの除去とステータス再計算を行う。
      */
     @Test
     void readingBuffListRefreshesStatusWhenItRemovesExpiredBuff() {

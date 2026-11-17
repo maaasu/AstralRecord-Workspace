@@ -22,9 +22,7 @@ class UserLoginEventHandlerTest {
     private static final PlainTextComponentSerializer PLAIN_TEXT = PlainTextComponentSerializer.plainText();
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-イベント.md
-     * 章・見出し: # 01_3-イベント > ## 1. イベント仕様 > ### ログイン前イベント受付
-     * 検証契約: UserService が有効BANを示した接続前イベントは KICK_OTHER と規約違反・公式Discord問い合わせ案内のメッセージで拒否する。
+     * UserService が有効BANを示した接続前イベントは KICK_OTHER と規約違反・公式Discord問い合わせ案内のメッセージで拒否する。
      */
     @Test
     void rejectsActiveBanBeforeLoginWithAppealMessage() throws Exception {
@@ -54,9 +52,7 @@ class UserLoginEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-イベント.md
-     * 章・見出し: # 01_3-イベント > ## 1. イベント仕様 > ### ログイン前イベント受付
-     * 検証契約: UserService が接続許可を示した接続前イベントは BAN拒否を追加せず接続処理を継続する。
+     * UserService が接続許可を示した接続前イベントは BAN拒否を追加せず接続処理を継続する。
      */
     @Test
     void leavesAllowedLoginUndisturbed() throws Exception {
@@ -79,9 +75,7 @@ class UserLoginEventHandlerTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-イベント.md
-     * 章・見出し: # 01_3-イベント > ## 1. イベント仕様 > ### ログイン前イベント受付
-     * 検証契約: プレイヤーデータ初期化失敗はBANと異なる再接続案内で接続を拒否する。
+     * プレイヤーデータ初期化失敗はBANと異なる再接続案内で接続を拒否する。
      */
     @Test
     void rejectsInitializationFailureWithRetryMessage() throws Exception {

@@ -324,7 +324,6 @@ public class SkillBindPresetRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
     /// 検証契約: 武器通常攻撃の予約バインドはアクションスロットへ保存でき、所持済みスキル個体としての検証を要求しない。
     /// </summary>
     [Fact]

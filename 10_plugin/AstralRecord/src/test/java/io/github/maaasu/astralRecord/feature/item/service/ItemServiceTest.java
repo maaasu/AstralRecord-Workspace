@@ -14,9 +14,7 @@ import static org.mockito.Mockito.when;
 class ItemServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-コマンド.md
-     * 章・見出し: # 04_3-コマンド > ## 4. ロード済みアイテム付与
-     * 検証契約: GETのアイテム指定は、ロード済みキャッシュからIDまたはカラーコードを除いた表示名で同一アイテムを解決する。
+     * GETのアイテム指定は、ロード済みキャッシュからIDまたはカラーコードを除いた表示名で同一アイテムを解決する。
      */
     @Test
     void resolvesLoadedItemByIdOrPlainDisplayName() {
@@ -37,9 +35,7 @@ class ItemServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-コマンド.md
-     * 章・見出し: # 04_3-コマンド > ## 5. item コマンド補完
-     * 検証契約: 同名アイテムが別カテゴリーに存在しても、カテゴリータグ付き検索は指定カテゴリーのアイテムを返す。
+     * 同名アイテムが別カテゴリーに存在しても、カテゴリータグ付き検索は指定カテゴリーのアイテムを返す。
      */
     @Test
     void resolvesSameNameFromRequestedCategory() {

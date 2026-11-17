@@ -33,9 +33,7 @@ import static org.mockito.Mockito.*;
 
 class SkillTreeStateLockOrderTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 1. save メソッド仕様 > ### 保存参加機能のロック順序
-     * 検証契約: 表示処理がinventory取得を待つ間も、inventory保持中の保存処理はSkillTreeへ入れる。
+     * 表示処理がinventory取得を待つ間も、inventory保持中の保存処理はSkillTreeへ入れる。
      */
     @Test
     void runtimeViewDoesNotHoldSkillTreeWhileWaitingForInventory() throws Exception {
@@ -74,9 +72,7 @@ class SkillTreeStateLockOrderTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 1. save メソッド仕様 > ### 保存参加機能のロック順序
-     * 検証契約: 退出最終viewはinventoryから同期し、session-close通信時には両monitorを解放する。
+     * 退出最終viewはinventoryから同期し、session-close通信時には両monitorを解放する。
      */
     @Test
     void logoutReleasesStateLocksBeforeClosingRuntimeSession() throws Exception {

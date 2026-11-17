@@ -9,9 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 class GoldDenominationTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/16-currency/16_0-概要.md
-     * 章・見出し: # 16_0-概要 > ## 3. 組み込みゴールド
-     * 検証契約: 組み込み7額面を1から1000000まで10倍刻みの低額面順で定義する。
+     * 組み込み7額面を1から1000000まで10倍刻みの低額面順で定義する。
      */
     @Test
     void denominationsIncreaseByOneDecimalPlace() {
@@ -24,9 +22,7 @@ class GoldDenominationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/16-currency/16_1-モデル定義.md
-     * 章・見出し: # 16_1-モデル定義 > ## 1. ゴールド額面
-     * 検証契約: 既知item ID gold_ingotを対応額面へ解決し、未知IDはnullとする。
+     * 既知item ID gold_ingotを対応額面へ解決し、未知IDはnullとする。
      */
     @Test
     void resolvesDenominationByItemId() {
@@ -37,9 +33,7 @@ class GoldDenominationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/16-currency/16_1-モデル定義.md
-     * 章・見出し: # 16_1-モデル定義 > ## 1. ゴールド額面
-     * 検証契約: 組み込みゴールド額面の正本IDは99カテゴリの採番形式であり、旧IDは移行互換として解決できる。
+     * 組み込みゴールド額面の正本IDは99カテゴリの採番形式であり、旧IDは移行互換として解決できる。
      */
     @Test
     void exposesNumberedCanonicalIdsAndLegacyAliases() {
@@ -52,9 +46,7 @@ class GoldDenominationTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/16-currency/16_1-モデル定義.md
-     * 章・見出し: # 16_1-モデル定義 > ## 1. ゴールド額面
-     * 検証契約: 隣接額面、直下交換比率10、最高額面YGGDRASIL_STAR_COREを返す。
+     * 隣接額面、直下交換比率10、最高額面YGGDRASIL_STAR_COREを返す。
      */
     @Test
     void exposesAdjacentDenominationsAndHighestTier() {

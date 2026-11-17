@@ -12,9 +12,7 @@ import static org.mockito.Mockito.*;
 
 class PlayerControlsServiceTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## アカウント操作状態の保存と復元
-     * 検証契約: 未保存操作stateは再接続へ持ち越し、保存済み旧セッションの解放は新所有者へ作用しない。
+     * 未保存操作stateは再接続へ持ち越し、保存済み旧セッションの解放は新所有者へ作用しない。
      */
     @Test
     void retainedDirtyControlsWinAndOldLogoutCannotReleaseNewOwner() {
@@ -39,9 +37,7 @@ class PlayerControlsServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## アカウント操作状態の保存と復元
-     * 検証契約: 不正ACKは未保存を解除せず、保存不能復旧後の旧ACKは新操作stateへ適用しない。
+     * 不正ACKは未保存を解除せず、保存不能復旧後の旧ACKは新操作stateへ適用しない。
      */
     @Test
     void validatesOwnerAndExactVersionBeforeAcknowledgingAndIgnoresDiscardedState() {

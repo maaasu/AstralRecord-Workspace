@@ -11,8 +11,6 @@ namespace AstralRecordApi.Tests.Repositories;
 public class UserRepositoryTests
 {
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/01-user/3-エンドポイント仕様/01_3.01-取得系.md
-    /// 章・見出し: # 01_3.01-取得系 > ## 1. 取得系エンドポイント仕様 > ### Minecraft ID 一覧取得
     /// 検証契約: MCID一覧取得は論理削除済みを除外し、prefixを前方一致させた有効ユーザーをMCID昇順で返す。
     /// </summary>
     [Fact]
@@ -45,8 +43,6 @@ public class UserRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/01-user/3-エンドポイント仕様/01_3.01-取得系.md
-    /// 章・見出し: # 01_3.01-取得系 > ## 1. 取得系エンドポイント仕様 > ### 同一グローバルIPの別ユーザー有無取得
     /// 検証契約: 同一IPの存在確認は論理削除済みと参加者本人を除外する。
     /// </summary>
     [Fact]
@@ -84,8 +80,6 @@ public class UserRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/01-user/3-エンドポイント仕様/01_3.03-更新系.md
-    /// 章・見出し: # 01_3.03-更新系 > ## 1. 更新系エンドポイント仕様 > ### ユーザ更新
     /// 検証契約: banIndefinite=true のユーザー更新は同時指定された banDate を保存せず、既存期限をNULLへ戻す。
     /// </summary>
     [Fact]

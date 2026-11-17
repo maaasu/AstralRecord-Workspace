@@ -24,9 +24,7 @@ import static org.mockito.Mockito.when;
 class StatusServiceConditionTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
-     * 章・見出し: # 07_3-サービス > ## 状態異常との統合
-     * 検証契約: 回復阻害中は通常回復を拒否し、administrative restoreAllは例外的に全回復する。
+     * 回復阻害中は通常回復を拒否し、administrative restoreAllは例外的に全回復する。
      */
     @Test
     void healingInhibitionBlocksNormalRecoveryButRestoreAllRemainsAdministrativeException() {
@@ -62,9 +60,7 @@ class StatusServiceConditionTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
-     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### MP/ENG全回復
-     * 検証契約: MP/ENGだけを最大値へ戻し、HP/Shieldを変更せず、明示的な全回復として回復阻害を受けない。
+     * MP/ENGだけを最大値へ戻し、HP/Shieldを変更せず、明示的な全回復として回復阻害を受けない。
      */
     @Test
     void restoreMpAndEnergyChangesOnlyTheRequestedResources() {
@@ -95,9 +91,7 @@ class StatusServiceConditionTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
-     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### HP回復
-     * 検証契約: HP回復通知は上限適用後に実際に増加した量だけを受け取る。
+     * HP回復通知は上限適用後に実際に増加した量だけを受け取る。
      */
     @Test
     void hpRecoveryListenerReceivesActualClampedAmount() {
@@ -123,9 +117,7 @@ class StatusServiceConditionTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
-     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### HP回復
-     * 検証契約: 回復コンテキストがないHP自然回復は実回復しても通知しない。
+     * 回復コンテキストがないHP自然回復は実回復しても通知しない。
      */
     @Test
     void naturalHpRecoveryDoesNotNotify() {
@@ -148,9 +140,7 @@ class StatusServiceConditionTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
-     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### HP回復
-     * 検証契約: HP回復通知は実回復量と回復元プレイヤーと回復手段を保持する。
+     * HP回復通知は実回復量と回復元プレイヤーと回復手段を保持する。
      */
     @Test
     void hpRecoveryNotificationKeepsHealerAndSource() {
@@ -187,9 +177,7 @@ class StatusServiceConditionTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
-     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### 回復量への支援力適用
-     * 検証契約: 自己回復と自然回復が通る既定overloadは対象本人の支援力をHP/MP/ENGへ適用する。
+     * 自己回復と自然回復が通る既定overloadは対象本人の支援力をHP/MP/ENGへ適用する。
      */
     @Test
     void selfRecoveryUsesTargetSupportPowerForEveryResource() {
@@ -214,9 +202,7 @@ class StatusServiceConditionTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
-     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### 回復量への支援力適用
-     * 検証契約: 味方回復は対象ではなく回復元プレイヤーの支援力をHP/MP/ENGへ適用する。
+     * 味方回復は対象ではなく回復元プレイヤーの支援力をHP/MP/ENGへ適用する。
      */
     @Test
     void allyRecoveryUsesRecoverySourceSupportPowerForEveryResource() {

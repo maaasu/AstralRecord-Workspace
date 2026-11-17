@@ -38,8 +38,6 @@ public sealed class MailRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md
-    /// 章・見出し: # 18_3.00 メール API > ## 未読件数レスポンス
     /// 検証契約: 同一プロセス内で同時に未読件数を取得した場合、空の共有マスタキャッシュは一度だけ読込んで以後の要求が同じ結果を返す。
     /// </summary>
     [Fact]
@@ -64,8 +62,6 @@ public sealed class MailRepositoryTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md
-    /// 章・見出し: # 18_3.00 メール API
     /// 検証契約: 未読件数は公開期限内で未削除かつ未読のメールだけを数え、既読状態と初回ログイン条件を反映する。
     /// </summary>
     [Fact]

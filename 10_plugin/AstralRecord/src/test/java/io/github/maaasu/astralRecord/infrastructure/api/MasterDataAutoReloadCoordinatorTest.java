@@ -21,9 +21,7 @@ class MasterDataAutoReloadCoordinatorTest {
     private static final String SECOND_SUCCESS = "2026-09-20T01:01:00Z";
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## マスターデータ自動再読込
-     * 検証契約: 初回の成功応答は比較基準にだけ使用し、同じ Seeder 実行では再読込しない。
+     * 初回の成功応答は比較基準にだけ使用し、同じ Seeder 実行では再読込しない。
      */
     @Test
     void capturesInitialSuccessfulRunWithoutReloading() {
@@ -35,9 +33,7 @@ class MasterDataAutoReloadCoordinatorTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## マスターデータ自動再読込
-     * 検証契約: null ID と成功日時のない成功応答は再読込せず、次回取得を継続する。
+     * null ID と成功日時のない成功応答は再読込せず、次回取得を継続する。
      */
     @Test
     void rejectsIncompleteHealthSnapshotsWithoutReloading() {
@@ -50,9 +46,7 @@ class MasterDataAutoReloadCoordinatorTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## マスターデータ自動再読込
-     * 検証契約: FAILED/RUNNING は開始せず、同じ実行 ID が SUCCEEDED へ遷移した後だけ開始する。
+     * FAILED/RUNNING は開始せず、同じ実行 ID が SUCCEEDED へ遷移した後だけ開始する。
      */
     @Test
     void waitsForSucceededStatusBeforeReloading() {
@@ -68,9 +62,7 @@ class MasterDataAutoReloadCoordinatorTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## マスターデータ自動再読込
-     * 検証契約: 再読込中の新しい成功 ID は保留し、完了後の再確認で1回だけ追走する。
+     * 再読込中の新しい成功 ID は保留し、完了後の再確認で1回だけ追走する。
      */
     @Test
     void defersNewRunUntilActiveReloadCompletes() {
@@ -88,9 +80,7 @@ class MasterDataAutoReloadCoordinatorTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## マスターデータ自動再読込
-     * 検証契約: 再読込中に確認済みの成功 ID は、直後の Seeder が失敗しても完了後の追走対象として保持する。
+     * 再読込中に確認済みの成功 ID は、直後の Seeder が失敗しても完了後の追走対象として保持する。
      */
     @Test
     void preservesDeferredSuccessWhenLatestRunFailed() {
@@ -112,9 +102,7 @@ class MasterDataAutoReloadCoordinatorTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## マスターデータ自動再読込
-     * 検証契約: 自動再読込の失敗は適用済みにせず、次回取得で同じ成功 ID を再試行できる。
+     * 自動再読込の失敗は適用済みにせず、次回取得で同じ成功 ID を再試行できる。
      */
     @Test
     void retriesRunAfterOwnedReloadFailure() {
@@ -129,9 +117,7 @@ class MasterDataAutoReloadCoordinatorTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## マスターデータ自動再読込
-     * 検証契約: 手動再読込を待った場合は対象 ID を適用済みにせず、完了後に安全な追走を行う。
+     * 手動再読込を待った場合は対象 ID を適用済みにせず、完了後に安全な追走を行う。
      */
     @Test
     void rechecksSameRunAfterWaitingForManualReload() {
@@ -146,9 +132,7 @@ class MasterDataAutoReloadCoordinatorTest {
     }
 
     /**
-     * 設計入力: PLUGIN_GUIDE.md
-     * 章・見出し: # AstralRecord Plugin > ## マスターデータ自動再読込
-     * 検証契約: ISO 8601でない成功日時を含むhealth応答は解析失敗として再読込判定へ渡さない。
+     * ISO 8601でない成功日時を含むhealth応答は解析失敗として再読込判定へ渡さない。
      */
     @Test
     void rejectsNonIsoLastSucceededAt() {

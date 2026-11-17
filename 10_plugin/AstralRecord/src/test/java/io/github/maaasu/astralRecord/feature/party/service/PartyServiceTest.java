@@ -37,9 +37,7 @@ import static org.mockito.Mockito.when;
 class PartyServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
-     * 章・見出し: # 19_3-メソッド仕様 > ## 作成・招待
-     * 検証契約: トレード中でないtargetへの招待は、従来どおり承諾command付きのクリック式通知にする。
+     * トレード中でないtargetへの招待は、従来どおり承諾command付きのクリック式通知にする。
      */
     @Test
     void keepsClickableInviteWhileTargetIsNotTrading() {
@@ -87,9 +85,7 @@ class PartyServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
-     * 章・見出し: # 19_3-メソッド仕様 > ## 作成・招待
-     * 検証契約: トレード参加中のtargetへの招待は保持し、通知だけを非クリック式にする。
+     * トレード参加中のtargetへの招待は保持し、通知だけを非クリック式にする。
      */
     @Test
     void sendsNonClickableInviteWhileTargetIsTrading() {
@@ -138,9 +134,7 @@ class PartyServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
-     * 章・見出し: # 19_3-メソッド仕様 > ## 作成・招待
-     * 検証契約: 挑戦開始後の招待者または対象者への招待は party を作成・変更せず、P_7024 を返す。
+     * 挑戦開始後の招待者または対象者への招待は party を作成・変更せず、P_7024 を返す。
      */
     @Test
     void rejectsInviteAfterChallengeStarts() {
@@ -176,9 +170,7 @@ class PartyServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
-     * 章・見出し: # 19_3-メソッド仕様 > ## 招待応答
-     * 検証契約: 既存招待の承認時に挑戦開始後の対象者が含まれる場合、membership を変更せずP_7024を返す。
+     * 既存招待の承認時に挑戦開始後の対象者が含まれる場合、membership を変更せずP_7024を返す。
      */
     @Test
     void rejectsInviteAcceptanceAfterChallengeStarts() {
@@ -231,9 +223,7 @@ class PartyServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
-     * 章・見出し: # 19_3-メソッド仕様 > ## パーティーチャット mode / 管理者一覧
-     * 検証契約: party 所属者が togglePartyChat を実行すると有効・無効が交互に切り替わる。
+     * party 所属者が togglePartyChat を実行すると有効・無効が交互に切り替わる。
      */
     @Test
     void togglesPartyChatModeForPartyMember() {
@@ -269,9 +259,7 @@ class PartyServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_2-ユースケース.md
-     * 章・見出し: # 19_2-ユースケース > ## UC-19-05 party chat
-     * 検証契約: パーティーチャットのローカル受信者はparty memberだけとし、権限99の自動追加を廃止する。
+     * パーティーチャットのローカル受信者はparty memberだけとし、権限99の自動追加を廃止する。
      */
     @Test
     void broadcastsPartyChatOnlyToMembers() {
@@ -335,9 +323,7 @@ class PartyServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_4-統合フロー.md
-     * 章・見出し: # 19_4-統合フロー > ## 5. パーティーチャット切替・管理者一覧 > ### パーティーチャット
-     * 検証契約: party chat mode は離脱・logout・追放・解散・clearAll で stale にならず、再作成後に再度有効化できる。
+     * party chat mode は離脱・logout・追放・解散・clearAll で stale にならず、再作成後に再度有効化できる。
      */
     @Test
     void clearsPartyChatModeAcrossPartyLifecycleOperations() {
@@ -408,9 +394,7 @@ class PartyServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
-     * 章・見出し: # 19_3-メソッド仕様 > ## 掲示板募集設定
-     * 検証契約: 募集内容が空のパーティーは公開できず、検証済み本文を設定した場合だけ公開一覧へ現れる。
+     * 募集内容が空のパーティーは公開できず、検証済み本文を設定した場合だけ公開一覧へ現れる。
      */
     @Test
     void requiresRecruitmentMessageBeforePublishing() {
@@ -450,9 +434,7 @@ class PartyServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
-     * 章・見出し: # 19_3-メソッド仕様 > ## 掲示板参加
-     * 検証契約: 承認不要の募集はクリックで即時参加し、6人到達時に掲載を自動終了する。
+     * 承認不要の募集はクリックで即時参加し、6人到達時に掲載を自動終了する。
      */
     @Test
     void joinsOpenRecruitmentAndClosesListingAtCapacity() {
@@ -508,9 +490,7 @@ class PartyServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
-     * 章・見出し: # 19_3-メソッド仕様 > ## 掲示板参加
-     * 検証契約: 承認制募集はリーダーへクリック可能な申請を送り、/party approve 相当の承認で参加させる。
+     * 承認制募集はリーダーへクリック可能な申請を送り、/party approve 相当の承認で参加させる。
      */
     @Test
     void requestsAndApprovesBoardJoin() {

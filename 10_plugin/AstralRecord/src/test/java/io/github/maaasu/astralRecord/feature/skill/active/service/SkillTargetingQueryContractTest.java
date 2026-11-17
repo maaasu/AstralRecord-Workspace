@@ -24,9 +24,7 @@ import static org.mockito.Mockito.when;
 class SkillTargetingQueryContractTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
-     * 検証契約: 線分・円柱・球体の同距離候補は入力順によらずinstance UUID順で対象数上限まで選ぶ。
+     * 線分・円柱・球体の同距離候補は入力順によらずinstance UUID順で対象数上限まで選ぶ。
      */
     @Test
     void equallyDistantCandidatesUseUuidOrderBeforeApplyingLimit() {
@@ -43,9 +41,7 @@ class SkillTargetingQueryContractTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
-     * 検証契約: 対象検索間で移動したMobは同じtickでも新しいbody boundsから範囲内外を再評価する。
+     * 対象検索間で移動したMobは同じtickでも新しいbody boundsから範囲内外を再評価する。
      */
     @Test
     void subsequentQueriesObserveMovementWithoutWaitingForNextTick() {
@@ -63,9 +59,7 @@ class SkillTargetingQueryContractTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
-     * 検証契約: 円柱は水平中心距離、球体はbody boundsまでの最短距離を順位の正本にする。
+     * 円柱は水平中心距離、球体はbody boundsまでの最短距離を順位の正本にする。
      */
     @Test
     void cylinderAndSphereKeepTheirDifferentDistanceDefinitions() {

@@ -7,9 +7,10 @@
 | `10_plugin/AstralRecord/` | Minecraft Plugin / Java・Kotlin | `PLUGIN_GUIDE.md` |
 | `10_plugin/AstralRecordGeyserExtension/` | Geyser Extension / Java | `10_plugin/AstralRecordGeyserExtension/README.md` |
 | `10_plugin/AstralArchitect/` | AI建築 / Java・Python | `10_plugin/AstralArchitect/AGENTS.md` / `$astralarchitect-builder` |
-| `20_api/AstralRecordApi/` | REST API / C# | `API_GUIDE.md` |
-| `30_web/AstralRecordWeb/` | Web / Razor Pages | `30_web/AstralRecordWeb/AGENTS.md` |
+| `20_api/AstralRecordApi/` | REST API / C# | `00_docs/10_AIパーソナライズ/APIの探し方.md` |
+| `30_web/AstralRecordWeb/` | Web / Razor Pages | `30_web/AstralRecordWeb/.agents/prompts/pages.md` |
 | `30_web/AstralRecordControl/` | 独立管理Web / Agent / Runner / C# | `30_web/AstralRecordControl/AGENTS.md` |
+| `00_docs/10_AIパーソナライズ/` | AIが引き継ぐ要望・判断理由 | `00_docs/10_AIパーソナライズ/README.md` |
 | `00_docs/40_Database設計書/` | SQL Server schema docs | `00_docs/40_Database設計書/README.md` |
 | `40_filebase/` | YAML master data | `00_docs/50_Filebase設計書/README.md` / `40_filebase/AGENTS.md` |
 | `50_resourcepack/` | Java / Bedrock リソースパック | `50_resourcepack/AGENTS.md` |
@@ -30,6 +31,10 @@
 - 詳細なレビュー、build、test、Git、filebase検証の規則は各skillを正本とする。ここに重複して書かない。
 - 参考用・確認用のプレビューには、背景や合成素材を含め、画像生成AIを使わない。対象の実素材や描画定義を使ってレンダリングするか、再現した実行環境でキャプチャを取得し、どちらで作成したかを明記する。
 - 実行環境や配置先が必要な場合だけ `\\DEVICE_SERVER\server` を確認し、アクセスできなければローカルで継続する。
+
+## AIが引き継ぐ方針と判断
+
+実装・レビュー・修正の対象と関係する継続的な要望や機能の判断理由は、[AIパーソナライズ](00_docs/10_AIパーソナライズ/README.md) の索引から該当項目を確認する。引き続き使う判断が確定したときは、同じREADMEの規則で関連する変更と一緒に記録する。
 
 ## サブエージェント利用方針
 

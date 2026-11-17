@@ -17,9 +17,7 @@ import static org.mockito.Mockito.*;
 @SuppressWarnings("UnstableApiUsage")
 class CustomModelDataComponentUtilTest {
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
-     * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### アイコン書き換え判定
-     * 検証契約: Bedrock防具の表示状態をflag0へ明示し、切替時も他flagとモデルID・追加データを維持する。
+     * Bedrock防具の表示状態をflag0へ明示し、切替時も他flagとモデルID・追加データを維持する。
      */
     @Test
     void armorHiddenFlagIsExplicitAndRetainsUnrelatedCustomModelData() {
@@ -45,9 +43,7 @@ class CustomModelDataComponentUtilTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
-     * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### アイコン書き換え判定
-     * 検証契約: 非表示flagの対象は4部位の標準防具素材だけで、馬鎧・頭装飾・武器・紙へ広げない。
+     * 非表示flagの対象は4部位の標準防具素材だけで、馬鎧・頭装飾・武器・紙へ広げない。
      */
     @Test
     void hiddenFlagTargetsOnlyNativeBodyArmorMaterials() {

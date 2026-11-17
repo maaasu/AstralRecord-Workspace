@@ -15,9 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class GuideProgressEvaluatorTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
-     * 検証契約: GUIDE_OPENED の対象なし条件はガイド開封イベントと一致した未達成手順を達成対象にする。
+     * GUIDE_OPENED の対象なし条件はガイド開封イベントと一致した未達成手順を達成対象にする。
      */
     @Test
     void evaluateAcceptsGuideOpenedCondition() {
@@ -47,9 +45,7 @@ class GuideProgressEvaluatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
-     * 検証契約: 表示順に関係なく、条件を満たした未達成 step を達成対象にする。
+     * 表示順に関係なく、条件を満たした未達成 step を達成対象にする。
      */
     @Test
     void evaluate_AcceptsMatchingStepRegardlessOfDisplayOrder() {
@@ -78,9 +74,7 @@ class GuideProgressEvaluatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
-     * 検証契約: guide stepにtargetIdがある場合だけ対象IDまで一致させる。
+     * guide stepにtargetIdがある場合だけ対象IDまで一致させる。
      */
     @Test
     void evaluate_AppliesOptionalTargetId() {
@@ -116,9 +110,7 @@ class GuideProgressEvaluatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
-     * 検証契約: アクションリングへ設定した対象スキルだけをバインド手順の達成対象にする。
+     * アクションリングへ設定した対象スキルだけをバインド手順の達成対象にする。
      */
     @Test
     void evaluateAcceptsBoundSkillTarget() {
@@ -148,9 +140,7 @@ class GuideProgressEvaluatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
-     * 検証契約: targetIdsを指定した手順は、候補のいずれかと一致したイベントだけを達成対象にする。
+     * targetIdsを指定した手順は、候補のいずれかと一致したイベントだけを達成対象にする。
      */
     @Test
     void evaluate_AcceptsAnyAlternativeTargetId() {
@@ -191,9 +181,7 @@ class GuideProgressEvaluatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
-     * 検証契約: クラス変更、PP/CP/スキルノード解放、武器に対応するスキル発動の各条件を、種別と対象IDの一致に基づいて評価する。
+     * クラス変更、PP/CP/スキルノード解放、武器に対応するスキル発動の各条件を、種別と対象IDの一致に基づいて評価する。
      */
     @Test
     void evaluate_AcceptsProgressionGuideConditionTypes() {
@@ -275,9 +263,7 @@ class GuideProgressEvaluatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
-     * 検証契約: スキル習得イベントは対象 skill ID が一致した手順だけを達成対象にする。
+     * スキル習得イベントは対象 skill ID が一致した手順だけを達成対象にする。
      */
     @Test
     void evaluate_AcceptsSkillLearnedTarget() {
@@ -313,9 +299,7 @@ class GuideProgressEvaluatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
-     * 検証契約: MOB_DEFEATED条件は対象Mob IDに加えて指定レベルまで一致させる。
+     * MOB_DEFEATED条件は対象Mob IDに加えて指定レベルまで一致させる。
      */
     @Test
     void evaluate_AppliesOptionalMobLevel() {
@@ -345,9 +329,7 @@ class GuideProgressEvaluatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
-     * 検証契約: 同一イベントに一致する未達成 step は、表示順に関係なくすべて達成対象にする。
+     * 同一イベントに一致する未達成 step は、表示順に関係なくすべて達成対象にする。
      */
     @Test
     void evaluate_ReturnsEveryMatchingUncompletedStep() {
@@ -392,9 +374,7 @@ class GuideProgressEvaluatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
-     * 検証契約: onboarding条件は種別と対象IDの両方が一致した成功イベントだけを受理する。
+     * onboarding条件は種別と対象IDの両方が一致した成功イベントだけを受理する。
      */
     @Test
     void evaluate_AcceptsOnboardingConditionWithSpawnerTarget() {
@@ -436,9 +416,7 @@ class GuideProgressEvaluatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
-     * 検証契約: クエスト受領・完了条件は種別と対象quest IDが一致する成功イベントだけを対応する手順へ反映し、採集イベントでは反映しない。
+     * クエスト受領・完了条件は種別と対象quest IDが一致する成功イベントだけを対応する手順へ反映し、採集イベントでは反映しない。
      */
     @Test
     void evaluate_AcceptsQuestLifecycleConditionsWithQuestTarget() {
@@ -495,9 +473,7 @@ class GuideProgressEvaluatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
-     * 検証契約: オーブ使用とダンジョンクリアは条件種別と対象IDが一致する手順だけを達成する。
+     * オーブ使用とダンジョンクリアは条件種別と対象IDが一致する手順だけを達成する。
      */
     @Test
     void evaluate_MatchesOrbUseAndDungeonClearTargets() {
@@ -539,9 +515,7 @@ class GuideProgressEvaluatorTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
-     * 検証契約: カルトグラフによる攻略済み部屋テレポートは対象ダンジョン ID が一致した場合だけ達成する。
+     * カルトグラフによる攻略済み部屋テレポートは対象ダンジョン ID が一致した場合だけ達成する。
      */
     @Test
     void evaluateMatchesCartographRoomTeleportDungeonTarget() {

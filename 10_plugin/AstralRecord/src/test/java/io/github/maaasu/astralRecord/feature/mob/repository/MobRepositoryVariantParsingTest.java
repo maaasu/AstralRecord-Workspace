@@ -11,9 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 class MobRepositoryVariantParsingTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-リポジトリ.md
-     * 章・見出し: # 12_3-リポジトリ > ## 3. template parse（内部）
-     * 検証契約: APIのvariant.scaleをMobVariantConfigへ保持する。
+     * APIのvariant.scaleをMobVariantConfigへ保持する。
      */
     @Test
     void parsesVariantScaleFromApiPayload() {
@@ -38,9 +36,7 @@ class MobRepositoryVariantParsingTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-リポジトリ.md
-     * 章・見出し: # 12_3-リポジトリ > ## 3. template parse（内部）
-     * 検証契約: 頭アイコンの役割名はレベル別に継承・上書き・解除される。
+     * 頭アイコンの役割名はレベル別に継承・上書き・解除される。
      */
     @Test
     void resolvesMobHeadModelFromEachLevelProfile() {

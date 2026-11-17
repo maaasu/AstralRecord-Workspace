@@ -1,6 +1,6 @@
 # 寄付管理テーブル
 
-正本DDLは`migrations/20260926_donations.sql`と`init.sql`。API契約は[37-donations](../../../20_API設計書/feature/37-donations/37_README.md)。すべてManagementDBに保存し、ゲーム側テーブルへの外部キーは持たない。
+正本DDLは`migrations/20260926_donations.sql`と`init.sql`。API契約は[DonationController](../../../../20_api/AstralRecordApi/AstralRecordApi/Controllers/DonationController.cs)。すべてManagementDBに保存し、ゲーム側テーブルへの外部キーは持たない。
 
 | テーブル | 主キー・一意性 | 保持する情報 |
 |---|---|---|

@@ -33,9 +33,7 @@ import static org.mockito.Mockito.when;
 class RebirthServiceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/34-rebirth/3-メソッド仕様/34_3-サービス.md
-     * 章・見出し: # 34_3-サービス > ## RebirthService 原子操作 > ### EXPポイント付与
-     * 検証契約: 転生前レベルへの自然到達時だけ、完成player-stateへブラギのオーブを1個追加する。
+     * 転生前レベルへの自然到達時だけ、完成player-stateへブラギのオーブを1個追加する。
      */
     @Test
     void naturalCompletionGrantsOneBragiOrbInTheSameLocalMutation() {
@@ -82,9 +80,7 @@ class RebirthServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/34-rebirth/3-メソッド仕様/34_3-サービス.md
-     * 章・見出し: # 34_3-サービス > ## RebirthService 原子操作 > ### EXPポイント付与
-     * 検証契約: 完了報酬を全量付与できない場合は、EXPポイントを含むinventoryとaccount進行を操作前へ戻す。
+     * 完了報酬を全量付与できない場合は、EXPポイントを含むinventoryとaccount進行を操作前へ戻す。
      */
     @Test
     void completionRewardShortfallRestoresInventoryAndAccountProgress() {
