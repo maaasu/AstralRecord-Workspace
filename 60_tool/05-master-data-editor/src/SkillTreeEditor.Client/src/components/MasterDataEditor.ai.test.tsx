@@ -8,13 +8,14 @@ import type { MasterCatalog, MasterDocument } from '../types/masterData'
 import { MasterDataEditor } from './MasterDataEditor'
 
 const category = { id: 'items/equipment', label: 'アイテム / 装備', directory: '10.items/20.equipment', itemCategoryCode: '20', fileCount: 2, documents: [], fields: [], jsonSchemas: [], templates: [] }
+const materialCategory = { ...category, id: 'items/material', label: 'アイテム / 素材', directory: '10.items/10.material', itemCategoryCode: '10' }
 const catalog: MasterCatalog = { root: '/ai-test-filebase', backups: '/backups', categories: [
-  { ...category, id: 'items', label: 'アイテム', directory: '10.items', itemCategoryCode: null }, category,
+  { ...category, id: 'items', label: 'アイテム', directory: '10.items', itemCategoryCode: null }, category, materialCategory,
 ] }
 const content = { id: '20a00001', name: '元の剣', description: '元の説明', lore: ['1行目', '2行目'] }
 const original: MasterDocument = { path: '10.items/20.equipment/sword.json', format: 'json', raw: JSON.stringify(content, null, 2), revision: 'rev-sword', content, issues: [] }
 const other: MasterDocument = { ...original, path: '10.items/20.equipment/shield.json', revision: 'rev-shield', raw: JSON.stringify({ ...content, id: '20a00002', name: '元の盾' }, null, 2), content: { ...content, id: '20a00002', name: '元の盾' } }
-const configured = { configured: true, model: 'gpt-5.6-terra', keySource: 'session', reason: null }
+const configured = { configured: true, model: 'gpt-6.1-terra', keySource: 'session', reason: null }
 const changedRaw = JSON.stringify({ ...content, name: '星の剣' }, null, 2)
 const proposal = (source = original): AiProposal => ({ path: source.path, sourcePath: source.path, raw: source === original ? changedRaw : JSON.stringify({ ...other.content as object, name: '星の盾' }, null, 2), beforeRaw: source.raw, revision: source.revision, summary: '名前を変更', issues: [], isNew: false })
 const result = (proposals: AiProposal[], mode = 'batch', suggestions: string[] = []): AiProposalResponse => ({ mode, model: configured.model, proposals, suggestions, warnings: [] })
@@ -64,6 +65,30 @@ async function reviewAndSelect(dialog: ReturnType<typeof within>) {
 }
 
 describe('AI master editor integration', () => {
+  it('hands a material proposal from a parent category with no reference to the actual child category and automatic numbering', async () => {
+    const raw = JSON.stringify({ schemaVersion: 1, id: '10z00001', category: 'material', name: 'デバッグ素材' })
+    vi.mocked(aiAssistApi.propose).mockResolvedValue(result([{ path: `${materialCategory.directory}/v1.debug_material.json`, sourcePath: null, raw, beforeRaw: null, revision: null, summary: 'デバッグ用の素材', issues: [], isNew: true }], 'create'))
+    render(<MasterDataEditor />)
+    await screen.findByRole('button', { name: 'AIアシスト' })
+    const dialog = await openAi()
+    fireEvent.change(dialog.getByRole('combobox', { name: 'AI作成カテゴリ' }), { target: { value: 'items' } })
+    expect(dialog.getByRole('combobox', { name: 'AI参考ファイル' })).toHaveValue('')
+    fireEvent.change(dialog.getByRole('textbox', { name: 'AIへの指示' }), { target: { value: 'デバッグ用のアイテム。\nただのマテリアルアイテム' } })
+    fireEvent.click(dialog.getByRole('button', { name: '候補を生成' }))
+    const adopt = await dialog.findByRole('button', { name: 'この案を原稿から新規作成へ' })
+    expect(dialog.getByText('作成先: アイテム / 素材')).toBeVisible()
+    fireEvent.click(dialog.getByText('原稿と差分を確認'))
+    await waitFor(() => expect(adopt).toBeEnabled())
+    fireEvent.click(adopt)
+    const creation = within(await screen.findByRole('dialog', { name: 'マスターファイル作成' }))
+    expect(creation.getByRole('combobox', { name: 'カテゴリ' })).toHaveValue(materialCategory.id)
+    expect(creation.getByRole('textbox', { name: '新規マスター原稿' })).toHaveValue(raw)
+    expect(creation.getByRole('checkbox', { name: 'カテゴリに沿ったアイテムID・ファイル名を自動採番' })).toBeChecked()
+    expect(masterDataApi.create).not.toHaveBeenCalled()
+    expect(masterDataApi.save).not.toHaveBeenCalled()
+    expect(aiAssistApi.propose).toHaveBeenCalledWith({ mode: 'create', categoryId: 'items', instruction: 'デバッグ用のアイテム。\nただのマテリアルアイテム' }, expect.any(AbortSignal))
+  })
+
   it('uses the deepest source category and hands a reviewed draft to normal creation with auto numbering, without saving', async () => {
     vi.mocked(aiAssistApi.propose).mockResolvedValue(result([{ ...proposal(), isNew: true, revision: null, beforeRaw: null }], 'create'))
     await openFile()
@@ -213,7 +238,7 @@ describe('AI master editor integration', () => {
     fireEvent.change(key, { target: { value: 'synthetic-test-key' } })
     fireEvent.click(dialog.getByRole('button', { name: '接続設定を保存' }))
     await dialog.findByText('APIキー設定済み')
-    expect(aiAssistApi.configure).toHaveBeenCalledWith({ apiKey: 'synthetic-test-key', model: 'gpt-5.6-terra' }, expect.any(AbortSignal))
+    expect(aiAssistApi.configure).toHaveBeenCalledWith({ apiKey: 'synthetic-test-key', model: 'gpt-6.1-terra' }, expect.any(AbortSignal))
     fireEvent.click(dialog.getByRole('button', { name: '接続設定' }))
     expect(dialog.getByLabelText('OpenAI APIキー')).toHaveValue('')
     expect(window.localStorage.getItem('synthetic-test-key')).toBeNull()
