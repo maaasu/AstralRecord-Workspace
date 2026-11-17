@@ -1,4 +1,5 @@
 import { memo, startTransition, useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 import { ResizeHandle, usePanelSize } from './ResizeHandle'
 import { DockPanelContent, useDocking, usePanelDocument } from '../docking/dockPanel'
 import { ResizableTable } from './ResizableTable'
@@ -28,6 +29,11 @@ import { MasterFileBrowser } from './MasterFileBrowser'
 import { MinecraftIcon } from './MinecraftIcon'
 import { MinecraftText } from './MinecraftText'
 import { stripMinecraftFormatting } from '../utils/minecraft'
+import { MasterAiAssist } from './MasterAiAssist'
+import { MasterAiCompletion } from './MasterAiCompletion'
+import { replaceAtPointer } from '../data/masterDataNavigation'
+import type { AiBatchGuard, AiEditorSnapshot, AiPaneActions, AiProposal } from '../types/aiAssist'
+import './masterAiAssist.css'
 
 type DraftState = MasterDraftState
 const emptyDraft: DraftState = { raw: '', content: null, source: 'raw' }
@@ -69,6 +75,22 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   const [welcomeBusy, setWelcomeBusy] = useState(false)
   const [browserDialogOpen, setBrowserDialogOpen] = useState(false)
   const browserActions = useRef(new Map<string, BrowserActions>())
+  const aiPanes = useRef(new Map<string, AiPaneActions>())
+  const [aiOpen, setAiOpen] = useState(false)
+  const [aiDraftRequests, setAiDraftRequests] = useState<Record<string, AiQueuedDraft>>({})
+  const latestAiRequests = useRef(aiDraftRequests)
+  latestAiRequests.current = aiDraftRequests
+  const aiSequence = useRef(0)
+  const registerAiPane = useCallback((id: string, actions: AiPaneActions | null) => {
+    if (actions) aiPanes.current.set(id, actions); else aiPanes.current.delete(id)
+  }, [])
+  const aiDraftHandled = useCallback((path: string, requestId: number, reason?: unknown) => {
+    const request = latestAiRequests.current[path]
+    if (request?.requestId !== requestId) return
+    const next = { ...latestAiRequests.current }; delete next[path]
+    latestAiRequests.current = next; setAiDraftRequests(next)
+    if (reason) request.reject(reason); else request.resolve()
+  }, [])
   const registerBrowserActions = useCallback((id: string, actions: BrowserActions | null) => {
     if (actions) browserActions.current.set(id, actions); else browserActions.current.delete(id)
   }, [])
@@ -84,7 +106,7 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   const referenceHandled = useCallback((id: string, requestId: number) => dispatch({ type: 'referenceHandled', id, requestId }), [])
   const dirty = welcomeDirty || tabsState.tabs.some((tab) => tab.dirty)
   const openFile = useCallback(async (path: string, document?: MasterDocument, reference?: Omit<MasterReferenceTarget, 'requestId'>, preview = false) => {
-    if (!document && latestWelcomeDirty.current && !(await confirm('未保存の新規原稿を破棄してファイルを開きますか？', { document: editorWindow().document }))) return
+    if (!document && latestWelcomeDirty.current && !(await confirm('未保存の新規原稿を破棄してファイルを開きますか？', { document: editorWindow().document }))) return false
     latestWelcomeDirty.current = false
     setWelcomeDirty(false)
     dispatch({ type: 'open', path, document, preview, referenceTarget: reference ? { ...reference, requestId: ++referenceSequence.current } : undefined })
@@ -94,7 +116,44 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
       workspace.setSidebarCollapsed(true)
       if (!reference) requestAnimationFrame(() => tabButtons.current.get(existing.id)?.focus())
     }
+    return true
   }, [workspace.setSidebarCollapsed, confirm])
+  const aiPaneForPath = (path: string) => [...aiPanes.current.values()].find(pane => pane.snapshot()?.path === path)
+  const captureAiBatch = (paths: string[]): AiBatchGuard => Object.fromEntries(paths.map(path => {
+    const pane = aiPaneForPath(path)
+    const snapshot = pane?.snapshot() ?? null
+    const tab = latestTabs.current.tabs.find(tab => tab.path === path)
+    if (latestWelcomeDirty.current || latestAiRequests.current[path] || tab && !snapshot || snapshot && (snapshot.dirty || snapshot.blocked)
+      || workspace.catalog && readMasterDraft(workspace.catalog.root, path)) throw new Error(`${path}: 未保存の編集・読込・復元を完了してから再生成してください。`)
+    return [path, snapshot]
+  }))
+  const applyAiBatch = async (proposal: AiProposal, guards: AiBatchGuard) => {
+    const path = proposal.path
+    if (!Object.hasOwn(guards, path) || !proposal.revision || proposal.beforeRaw === null) throw new Error('生成時の原稿情報がありません。再生成してください。')
+    const assertCurrent = () => {
+      const snapshot = aiPaneForPath(path)?.snapshot() ?? null
+      const expected = guards[path]
+      const tab = latestTabs.current.tabs.find(tab => tab.path === path)
+      if (latestWelcomeDirty.current || latestAiRequests.current[path] || tab && !snapshot || snapshot && (snapshot.dirty || snapshot.blocked)
+        || expected && snapshot?.token !== expected.token || !expected && snapshot
+        || workspace.catalog && readMasterDraft(workspace.catalog.root, path)) throw new Error(`${path}: 生成後に編集状態が変更されました。再生成してください。`)
+      return snapshot
+    }
+    assertCurrent()
+    const saved = await masterDataApi.file(path)
+    if (saved.revision !== proposal.revision || saved.raw !== proposal.beforeRaw) throw new Error(`${path}: 保存済み原稿が更新されました。再生成してください。`)
+    const snapshot = assertCurrent()
+    if (snapshot) await aiPaneForPath(path)!.apply(proposal.raw, snapshot)
+    else {
+      // Keep the saved document as the baseline. The pane records the proposal only after loading.
+      if (!(await openFile(path, saved))) throw new Error('ファイルを開けませんでした。')
+      await new Promise<void>((resolve, reject) => {
+        const request = { requestId: ++aiSequence.current, revision: saved.revision, beforeRaw: saved.raw, raw: proposal.raw, resolve, reject }
+        const next = { ...latestAiRequests.current, [path]: request }
+        latestAiRequests.current = next; setAiDraftRequests(next)
+      })
+    }
+  }
   const openBrowserFile = useCallback((path: string, preview: boolean) => openFile(path, undefined, undefined, preview), [openFile])
   const handledOpenRequest = useRef<number | null>(null)
   useEffect(() => {
@@ -182,6 +241,8 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   const selectedTab = tabsState.tabs.find(tab => tab.id === tabsState.activeId)
   const browser = <MasterFileBrowser workspace={workspace} selectedPath={selectedTab?.path} busy={selectedTab ? selectedTab.busy || selectedTab.loadState === 'loading' : welcomeBusy} active={docking ? docking.visible.has('master-files') || docking.visible.has('master-folders') : active} onOpen={openBrowserFile} onNew={() => runBrowserAction('create')} onImport={() => runBrowserAction('import')} onDialogChange={setBrowserDialogOpen} />
   const documentArea = <section className="master-document-area" aria-label="マスターの編集領域">
+    {!tabsState.tabs.length && <button type="button" className="button master-ai-entry" disabled={welcomeBusy} onClick={() => setAiOpen(true)}>AIアシスト</button>}
+    {active && aiOpen && <MasterAiAssist categories={workspace.catalog?.categories ?? []} files={workspace.files} categoryId={workspace.categoryId} current={() => aiPanes.current.get(latestTabs.current.activeId || 'welcome')} source={aiPaneForPath} captureBatch={captureAiBatch} applyBatch={applyAiBatch} onClose={() => setAiOpen(false)} />}
     {tabsState.tabs.length > 0 && <div className="master-tab-bar"><div className="master-document-tabs" role="tablist" aria-label="開いているマスターファイル">{displayTabs.map((tab, index) => {
       const selected = tab.id === tabsState.activeId
       const name = tab.name
@@ -212,8 +273,8 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     }} />}
     {active && tabMenu && tabCommands.length > 0 && <MasterTabContextMenu x={tabMenu.x} y={tabMenu.y} commands={tabCommands} onDismiss={dismissTabMenu} />}
     {tabsState.tabs.length ? tabsState.tabs.map((tab) => <div className="master-editor-panel" key={tab.id} id={`${tabPrefix}-${tab.id}-panel`} role="tabpanel" aria-labelledby={`${tabPrefix}-${tab.id}`} hidden={tab.id !== tabsState.activeId}>
-      <MasterDataEditorPane workspace={workspace} tabId={tab.id} preview={tab.preview} initialPath={tab.path} initialDocument={tab.initialDocument} referenceTarget={tab.referenceTarget} onReferenceHandled={referenceHandled} selected={tab.id === tabsState.activeId} active={active && tab.id === tabsState.activeId} onOpenFile={openFile} onCloseTab={() => closeTab(tab.id, true)} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen || tabSearchOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} />
-    </div>) : <div className="master-editor-panel"><MasterDataEditorPane workspace={workspace} tabId="welcome" active={active} onOpenFile={openFile} onCloseTab={() => {}} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} /></div>}
+      <MasterDataEditorPane workspace={workspace} tabId={tab.id} preview={tab.preview} initialPath={tab.path} initialDocument={tab.initialDocument} referenceTarget={tab.referenceTarget} onReferenceHandled={referenceHandled} selected={tab.id === tabsState.activeId} active={active && tab.id === tabsState.activeId} onOpenFile={openFile} onCloseTab={() => closeTab(tab.id, true)} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen || tabSearchOpen || aiOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} onAiOpen={() => setAiOpen(true)} onRegisterAiPane={registerAiPane} aiDraftRequest={aiDraftRequests[tab.path]} onAiDraftHandled={aiDraftHandled} />
+    </div>) : <div className="master-editor-panel"><MasterDataEditorPane workspace={workspace} tabId="welcome" active={active} onOpenFile={openFile} onCloseTab={() => {}} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen || aiOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} onAiOpen={() => setAiOpen(true)} onRegisterAiPane={registerAiPane} onAiDraftHandled={aiDraftHandled} /></div>}
   </section>
   const workspaceNotices = <>
     {(workspace.error || workspace.notice) && <div className={`master-message master-global-message ${workspace.error ? 'error' : 'success'}`} role={workspace.error ? 'alert' : 'status'}><span>{workspace.error || workspace.notice}</span><button type="button" className="button compact subtle" onClick={() => { workspace.setError(''); workspace.setNotice('') }}>閉じる</button></div>}
@@ -239,6 +300,7 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
 }
 
 interface BrowserActions { create: () => void; import: () => void }
+interface AiQueuedDraft { requestId: number; revision: string; beforeRaw: string; raw: string; resolve: () => void; reject: (reason: unknown) => void }
 
 interface MasterDataEditorPaneProps {
   preview?: boolean
@@ -257,9 +319,13 @@ interface MasterDataEditorPaneProps {
   browserDialogOpen: boolean
   onRecoveryHandled: (path: string) => void
   onOpenSkillTree?: () => void
+  onAiOpen: () => void
+  onRegisterAiPane: (id: string, actions: AiPaneActions | null) => void
+  aiDraftRequest?: AiQueuedDraft
+  onAiDraftHandled: (path: string, requestId: number, reason?: unknown) => void
 }
 
-function MasterDataEditorPane({ selected = true, preview = false, workspace, tabId, initialPath, initialDocument, referenceTarget, onReferenceHandled, active, onOpenFile, onCloseTab, onTabStatus, onRegisterBrowserActions, browserDialogOpen, onRecoveryHandled, onOpenSkillTree }: MasterDataEditorPaneProps) {
+function MasterDataEditorPane({ selected = true, preview = false, workspace, tabId, initialPath, initialDocument, referenceTarget, onReferenceHandled, active, onOpenFile, onCloseTab, onTabStatus, onRegisterBrowserActions, browserDialogOpen, onRecoveryHandled, onOpenSkillTree, onAiOpen, onRegisterAiPane, aiDraftRequest, onAiDraftHandled }: MasterDataEditorPaneProps) {
   const docking = useDocking()
   const panelDocument = usePanelDocument()
   const { confirm, dialog } = useConfirmationDialog()
@@ -349,6 +415,27 @@ function MasterDataEditorPane({ selected = true, preview = false, workspace, tab
   const formContentDirty = useMemo(() => draft.source === 'form' && JSON.stringify(draft.content) !== savedContentJson,
     [draft.content, draft.source, savedContentJson])
   const dirty = Boolean(document) && (formContentDirty || draft.raw !== document?.raw) || Object.keys(invalidInputs).length > 0
+  const aiInstance = useId()
+  const aiVersion = useRef({ inputs: [] as unknown[], version: 0 })
+  const aiInputs = [document, draft, busy, loadState, invalidInputs, recovery, createMode, conflictDocument, readOnly, report?.isValid]
+  if (aiInputs.some((value, index) => value !== aiVersion.current.inputs[index])) aiVersion.current = { inputs: aiInputs, version: aiVersion.current.version + 1 }
+  const aiSnapshot: AiEditorSnapshot | null = document ? {
+    path: document.path, revision: document.revision, token: `${aiInstance}:${aiVersion.current.version}`, dirty,
+    blocked: busy || loadState !== 'ready' || Boolean(recovery || createMode || conflictDocument) || readOnly || Object.keys(invalidInputs).length > 0 || report?.isValid === false || draft.content === null,
+  } : null
+  const aiLatest = useRef<{ snapshot: AiEditorSnapshot | null; draft: DraftState; createMode: typeof createMode; busy: boolean }>({ snapshot: aiSnapshot, draft, createMode, busy })
+  aiLatest.current = { snapshot: aiSnapshot, draft, createMode, busy: busy || loadState !== 'ready' }
+  const aiActions = useRef<AiPaneActions | null>(null)
+  useEffect(() => {
+    const actions: AiPaneActions = {
+      snapshot: () => editorElement.current?.isConnected ? aiLatest.current.snapshot : null,
+      raw: () => aiActions.current!.raw(),
+      apply: (raw, expected) => aiActions.current!.apply(raw, expected),
+      create: (raw, category) => aiActions.current!.create(raw, category),
+    }
+    onRegisterAiPane(tabId, actions)
+    return () => onRegisterAiPane(tabId, null)
+  }, [tabId, onRegisterAiPane])
   const filteredReferences = useMemo(() => referenceIndex ? filterMasterReferences(referenceIndex, referenceQuery, referenceCategory) : [], [referenceIndex, referenceQuery, referenceCategory])
   const referencePages = Math.max(1, Math.ceil(filteredReferences.length / 50))
   const currentReferencePage = Math.min(referencePage, referencePages - 1)
@@ -472,6 +559,41 @@ function MasterDataEditorPane({ selected = true, preview = false, workspace, tab
     latestRenderWarnings.current = warnings
     return rendered.raw
   }
+  aiActions.current = {
+    snapshot: () => editorElement.current?.isConnected ? aiLatest.current.snapshot : null,
+    raw: currentRaw,
+    apply: async (raw, expected) => {
+      const assertCurrent = () => {
+        const current = aiLatest.current.snapshot
+        if (!editorElement.current?.isConnected || !current || current.blocked || current.token !== expected.token || current.revision !== expected.revision) throw new Error('生成後に原稿が変更されました。再生成してください。')
+      }
+      assertCurrent()
+      const parsed = await masterDataApi.parse(expected.path, raw)
+      if (parsed.content === null || parsed.issues.some(issue => issue.severity === 'error')) throw new Error('AI候補に解析エラーがあります。指示を見直して再生成してください。')
+      assertCurrent()
+      const current = aiLatest.current.draft
+      history.record({ raw, content: parsed.content, source: current.source })
+      setReport({ isValid: true, issues: parsed.issues }); setNotice('AI候補を下書きへ適用しました。差分・検証を確認して保存してください。Undoで元に戻せます。')
+    },
+    create: (raw, category) => {
+      if (aiLatest.current.busy || aiLatest.current.createMode) throw new Error('新規作成または読込を完了してから採用してください。')
+      setCategoryId(category); setImportText(raw); setCreateMode('import')
+    },
+  }
+  const aiRequestHandled = useRef<number | null>(null)
+  useEffect(() => {
+    if (!aiDraftRequest || !document || loadState !== 'ready' || aiRequestHandled.current === aiDraftRequest.requestId) return
+    aiRequestHandled.current = aiDraftRequest.requestId
+    const expected = aiLatest.current.snapshot
+    void (async () => {
+      let failure: unknown
+      try {
+        if (!expected || expected.dirty || expected.blocked || document.revision !== aiDraftRequest.revision || document.raw !== aiDraftRequest.beforeRaw) throw new Error(`${document.path}: 原稿の状態が変わったためAI候補を適用できません。再生成してください。`)
+        await aiActions.current!.apply(aiDraftRequest.raw, expected)
+      } catch (reason) { failure = reason; showError(reason) }
+      finally { onAiDraftHandled(document.path, aiDraftRequest.requestId, failure) }
+    })()
+  }, [aiDraftRequest, document, loadState, onAiDraftHandled, showError])
   const changeMode = async (source: DraftState['source']) => {
     if (!document || source === draft.source || busy || Object.keys(invalidInputs).length) return
     setBusy(true); setError('')
@@ -729,7 +851,7 @@ function MasterDataEditorPane({ selected = true, preview = false, workspace, tab
       }}>この編集を維持して最新を基準にする</button></div></section>}
       {renderWarnings.length > 0 && <div className="master-message warning"><div><strong>原稿の変換を確認してください</strong>{renderWarnings.map((warning, index) => <p key={index}>{warning}</p>)}</div><button className="button" disabled={busy} onClick={() => void showDiff()}>差分を確認</button></div>}
       <div className="master-edit-area">{document ? <>
-        <div className="master-secondary-toolbar"><span className="master-file-tools-label">ファイル操作</span><button className="button subtle" disabled={busy || readOnly || nodeDocument} onClick={() => { setCategoryId(documentCategory?.id ?? ''); setCreateMode('copy') }}>保存済みファイルを複製</button><button className="button subtle" disabled={busy || Object.keys(invalidInputs).length > 0} onClick={() => void exportDraft()}>現在の原稿を書出</button><a className="button subtle" href={masterDataApi.exportUrl(document.path)} download>保存済みを書出</a><button className="button subtle" aria-expanded={showReferences} aria-controls={referencePanelId} onClick={() => setShowReferences((current) => !current)}>参照一覧{referenceState.status === 'success' ? ` (${references.length})` : referenceState.status === 'loading' ? '（読込中）' : ''}</button><button className="button subtle" disabled={busy} onClick={() => void loadDocument(document.path)}>ファイルを再読込</button><span className="master-spacer" /><button className="button danger subtle" disabled={busy || readOnly} onClick={() => void deleteDocument()}>削除</button></div>
+        <div className="master-secondary-toolbar"><span className="master-file-tools-label">ファイル操作</span><button type="button" className="button subtle" disabled={busy || readOnly} onClick={onAiOpen}>AIアシスト</button><button className="button subtle" disabled={busy || readOnly || nodeDocument} onClick={() => { setCategoryId(documentCategory?.id ?? ''); setCreateMode('copy') }}>保存済みファイルを複製</button><button className="button subtle" disabled={busy || Object.keys(invalidInputs).length > 0} onClick={() => void exportDraft()}>現在の原稿を書出</button><a className="button subtle" href={masterDataApi.exportUrl(document.path)} download>保存済みを書出</a><button className="button subtle" aria-expanded={showReferences} aria-controls={referencePanelId} onClick={() => setShowReferences((current) => !current)}>参照一覧{referenceState.status === 'success' ? ` (${references.length})` : referenceState.status === 'loading' ? '（読込中）' : ''}</button><button className="button subtle" disabled={busy} onClick={() => void loadDocument(document.path)}>ファイルを再読込</button><span className="master-spacer" /><button className="button danger subtle" disabled={busy || readOnly} onClick={() => void deleteDocument()}>削除</button></div>
         {readOnly && <p className="master-muted">このファイルは閲覧専用です。Schemaや採番情報の変更は、実装・定義書と同期して管理します。</p>}
         {nodeDocument && <p className="master-muted">ノードの新規作成・複製は専用スキルツリーで自動採番します。{onOpenSkillTree && <button className="button subtle" onClick={onOpenSkillTree}>スキルツリーを開く</button>}</p>}
         {showReferences && <section className="master-references" id={referencePanelId} aria-label="保存済みデータの参照元">
@@ -765,7 +887,11 @@ function MasterDataEditorPane({ selected = true, preview = false, workspace, tab
           if (event.key !== 'Tab') return
           event.preventDefault(); const target = event.currentTarget; const start = target.selectionStart; const end = target.selectionEnd
           history.record({ raw: `${draft.raw.slice(0, start)}  ${draft.raw.slice(end)}`, content: null, source: 'raw' }); requestAnimationFrame(() => { target.selectionStart = target.selectionEnd = start + 2 })
-        }} /></> : <MasterDocumentForm key={documentVersion} value={draft.content} path={selectedFormPath} fields={documentCategory?.fields ?? emptyFields} schema={schema} references={candidates} visualReferences={visualReferences} disabled={busy || readOnly} navigationDisabled={busy || Object.keys(invalidInputs).length > 0} onSelect={selectFormPath} onFocus={focusFormField} focusRequest={focusPath} onInvalid={handleInvalid} invalidValues={invalidValues} onChange={updateFormContent} />}
+        }} /></> : <MasterAiCompletion value={draft.content} snapshot={aiSnapshot} actions={() => aiActions.current ?? undefined} active={active && !browserDialogOpen && !createMode && diffRaw === null && !documentation && !recovery} onConfigure={onAiOpen} onApply={(pointer, value, expected) => {
+          const current = aiLatest.current
+          if (!current.snapshot || current.snapshot.blocked || current.snapshot.token !== expected.token) throw new Error('原稿が変更されました。再生成してください。')
+          history.record({ ...current.draft, content: replaceAtPointer(current.draft.content, pointer, value), source: 'form' }); setReport(null)
+        }}><MasterDocumentForm key={documentVersion} value={draft.content} path={selectedFormPath} fields={documentCategory?.fields ?? emptyFields} schema={schema} references={candidates} visualReferences={visualReferences} disabled={busy || readOnly} navigationDisabled={busy || Object.keys(invalidInputs).length > 0} onSelect={selectFormPath} onFocus={focusFormField} focusRequest={focusPath} onInvalid={handleInvalid} invalidValues={invalidValues} onChange={updateFormContent} /></MasterAiCompletion>}
       </> : initialPath ? loadState === 'error' && <div className="master-empty"><h2>ファイルを読み込めませんでした</h2><button type="button" className="button" onClick={() => void loadDocument(initialPath)}>ファイルを再読込</button></div>
         : <div className="master-empty"><h2>マスターデータを編集</h2><p>左の一覧からファイルを選択するか、新規作成・原稿の読込で開始します。</p>{category && <p>{category.label} · {category.directory}</p>}<div className="master-empty-steps"><div><b>01 / 探す</b><strong>目的のファイルへ</strong><span>フォルダと名前・IDの検索、詳細フィルターを使って絞り込みます。</span></div><div><b>02 / 編集する</b><strong>自分に合った方法で</strong><span>日本語フォームと原稿を切り替え、複数のタブで作業できます。</span></div><div><b>03 / 確かめる</b><strong>差分・検証から保存へ</strong><span>変更点と入力エラーを確認し、保存ボタンまたは Ctrl+S で反映します。</span></div></div></div>}</div>
       {!isDocked && validation}
@@ -774,7 +900,7 @@ function MasterDataEditorPane({ selected = true, preview = false, workspace, tab
     </section>
     {active && diffRaw !== null && document && <MasterDataDiff before={diffBefore ?? document.raw} after={diffRaw} onClose={() => { reviewedRaw.current = diffRaw; setDiffRaw(null); setDiffBefore(null) }} />}
     {active && documentation && <Modal className="master-doc-dialog" ariaLabel="マスター定義書" onClose={() => setDocumentation(null)}><header className="modal-header"><h2>{baseName(documentation.path)}</h2><button className="button" onClick={() => setDocumentation(null)}>閉じる</button></header><pre className="modal-body">{documentation.raw}</pre></Modal>}
-    {createMode && <MasterCreateDialog mode={createMode} category={category ?? documentCategory} categories={catalog?.categories ?? []} files={files} source={document} importedRaw={importText} busy={busy} onDirtyChange={setCreateDirty} onCancel={() => setCreateMode(null)} onCreate={create} />}
+    {createMode && createPortal(<MasterCreateDialog mode={createMode} category={category ?? documentCategory} categories={catalog?.categories ?? []} files={files} source={document} importedRaw={importText} busy={busy} onDirtyChange={setCreateDirty} onCancel={() => setCreateMode(null)} onCreate={create} />, panelDocument.body)}
   </main>
 }
 
