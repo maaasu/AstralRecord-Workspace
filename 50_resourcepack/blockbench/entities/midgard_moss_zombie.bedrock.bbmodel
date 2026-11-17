@@ -9906,7 +9906,20 @@
           "name": "root",
           "type": "bone",
           "keyframes": [
-            {"channel":"rotation","data_points":[{"x":"0","y":"-(variable.body_yaw - query.body_y_rotation)","z":"0"}],"uuid":"a90edd69-d0a0-55d8-a637-031a392ca916","time":0.0,"interpolation":"linear","color":-1},
+            {
+              "channel": "rotation",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "-(variable.body_yaw - query.body_y_rotation)",
+                  "z": "0"
+                }
+              ],
+              "uuid": "a90edd69-d0a0-55d8-a637-031a392ca916",
+              "time": 0.0,
+              "interpolation": "linear",
+              "color": -1
+            },
             {
               "channel": "scale",
               "data_points": [
@@ -10310,6 +10323,7 @@
     },
     {
       "name": "animation.astralrecord.midgard_moss_zombie.walk",
+      "anim_time_update": "variable.moss_walk_distance * 1.02",
       "uuid": "92d41679-3b96-5b14-a65d-fdd2088f88e9",
       "length": 1.02,
       "loop": "loop",

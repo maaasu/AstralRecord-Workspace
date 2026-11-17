@@ -5,7 +5,11 @@
       "loop": true,
       "bones": {
         "root": {
-          "rotation": [0, "variable.body_yaw - query.body_y_rotation", 0],
+          "rotation": [
+            0,
+            "variable.body_yaw - query.body_y_rotation",
+            0
+          ],
           "scale": 0.8333333333
         }
       }
@@ -162,6 +166,7 @@
     "animation.astralrecord.midgard_moss_zombie.walk": {
       "loop": true,
       "animation_length": 1.02,
+      "anim_time_update": "variable.moss_walk_distance * 1.02",
       "bones": {
         "body": {
           "position": {
