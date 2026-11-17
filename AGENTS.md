@@ -11,6 +11,7 @@
 | `30_web/AstralRecordWeb/` | Web / Razor Pages | `30_web/AstralRecordWeb/.agents/prompts/pages.md` |
 | `30_web/AstralRecordControl/` | 独立管理Web / Agent / Runner / C# | `30_web/AstralRecordControl/AGENTS.md` |
 | `00_docs/10_AIパーソナライズ/` | AIが引き継ぐ要望・判断理由 | `00_docs/10_AIパーソナライズ/README.md` |
+| `00_docs/20_ゲームデザイン設計書/` | ゲームデザインのHTML資料の作成・修正 | `00_docs/20_ゲームデザイン設計書/AGENTS.md` |
 | `00_docs/40_Database設計書/` | SQL Server schema docs | `00_docs/40_Database設計書/README.md` |
 | `40_filebase/` | YAML master data | `00_docs/50_Filebase設計書/README.md` / `40_filebase/AGENTS.md` |
 | `50_resourcepack/` | Java / Bedrock リソースパック | `50_resourcepack/AGENTS.md` |
