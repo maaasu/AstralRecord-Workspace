@@ -33,6 +33,7 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
         var credentials = settings.Credentials();
         var originals = new Dictionary<string, MasterDataDocument>(StringComparer.Ordinal);
         MasterDataCategory? category = null;
+        var createTargets = new Dictionary<string, MasterDataCategory>(StringComparer.Ordinal);
         MasterDataDocument? draft = null;
         string[] pointer = [];
         bool arrayCompletion = false;
@@ -72,6 +73,23 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
                 if (draft is not null && !draft.Path.StartsWith(request.CategoryId + "/", StringComparison.Ordinal))
                     throw new ArgumentException("複製元と作成先のカテゴリを合わせてください。");
                 category = await catalog.GetAsync(request.CategoryId, token);
+                if (category.Id == "10.features.item")
+                {
+                    // Use catalog-backed item subtypes, never arbitrary descendants or definition folders.
+                    var childIds = paths.Enumerate(category.Id)
+                        .Where(path => MasterDataPaths.IsData(path) || path.EndsWith("YAMLスキーマ定義.md", StringComparison.Ordinal))
+                        .Select(path => paths.Relative(Path.GetDirectoryName(path)!))
+                        .Where(id => MasterDataCatalog.ItemCode(id) is not null)
+                        .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
+                    foreach (var id in childIds)
+                    {
+                        var child = await catalog.GetAsync(id, token);
+                        if (child.ItemCategoryCode is not null) createTargets.Add(child.Id, child);
+                    }
+                    if (createTargets.Count == 0)
+                        throw new ArgumentException("作成できるアイテムカテゴリが見つかりません。カテゴリの定義を確認してください。");
+                }
+                else createTargets.Add(category.Id, category);
                 if (request.Raw is not null && draft is null)
                     draft = new(request.CategoryId + "/proposal.yml", "yaml", request.Raw, "", RequireObject("proposal.yml", request.Raw), []);
             }
@@ -106,27 +124,33 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
         var warnings = new List<string>();
         var categories = new List<MasterDataCategory>();
         if (category is not null) categories.Add(category);
+        categories.AddRange(createTargets.Values.Where(target => target.Id != category?.Id));
         if (request.Mode == "batch")
             foreach (var directory in originals.Keys.Select(path => paths.Relative(Path.GetDirectoryName(paths.Resolve(path))!)).Distinct(StringComparer.Ordinal))
                 categories.Add(await catalog.GetAsync(directory, token));
         var context = JsonSerializer.Serialize(new
         {
             mode = request.Mode, instruction = request.Instruction, categoryId = request.CategoryId,
+            createTargetCategoryIds = createTargets.Keys,
             fieldPointer = request.FieldPointer, draft = draft is null ? null : new { path = draft.Path, raw = draft.Raw },
             targets = originals.Values.Select(value => new { path = value.Path, raw = value.Raw }),
             // Templates already include at most three similar saved masters. Do not send the entire catalog.
             categories = categories.Select(metadata => new
             {
                 metadata.Id, metadata.Label, metadata.ItemCategoryCode,
-                fields = metadata.Fields.Take(120), schemas = metadata.JsonSchemas.Take(2),
-                templates = metadata.Templates.Take(request.Mode == "create" ? 3 : 0).Select(value => new { value.Path, raw = value.Raw.Length <= 24_000 ? value.Raw : "（大きいため省略）" })
+                // Parent item fields are shared; send inherited definitions only once.
+                fields = metadata.Fields.Where(field => category?.Id != "10.features.item" || metadata.Id == category.Id
+                    || !category.Fields.Any(shared => shared.Path == field.Path && shared.Source == field.Source)).Take(120), schemas = metadata.JsonSchemas.Take(2),
+                templates = metadata.Templates.Take(request.Mode == "create" ? (createTargets.Count > 1 ? 1 : 3) : 0).Select(value => new { value.Path, raw = value.Raw.Length <= 24_000 ? value.Raw : "（大きいため省略）" })
             })
         }, new JsonSerializerOptions(JsonSerializerDefaults.Web));
         if (context.Length > 240_000) throw new ArgumentException("対象原稿やスキーマが大きすぎます。対象を減らしてください。");
-        var generated = await provider.GenerateAsync(credentials.Key, credentials.Model, context, token);
+        var generated = await provider.GenerateAsync(credentials.Key, credentials.Model, context, token,
+            new(request.Mode, request.Mode == "create" ? createTargets.Keys.ToArray() : originals.Keys.ToArray()));
         if (request.Mode == "complete")
         {
-            if (generated.Proposals.Count != 0 || generated.Suggestions.Count is < 1 or > 3) throw InvalidProposal();
+            if (generated.Proposals.Count != 0) throw InvalidProposal("入力補完の応答にファイル作成・編集の提案が含まれています。");
+            if (generated.Suggestions.Count is < 1 or > 3) throw InvalidProposal("入力補完の候補は1〜3件必要です。");
             foreach (var suggestion in generated.Suggestions)
             {
                 var content = draft!.Content!.DeepClone();
@@ -142,34 +166,46 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
             return new(request.Mode, credentials.Model, generated.Suggestions, [], warnings.Distinct().ToArray());
         }
 
-        if (generated.Suggestions.Count != 0 || generated.Proposals.Count == 0
+        if (generated.Suggestions.Count != 0) throw InvalidProposal("ファイル作成・編集の応答に入力補完の候補が含まれています。");
+        if (generated.Proposals.Count == 0
             || (request.Mode == "create" && generated.Proposals.Count > 3)
-            || (request.Mode == "batch" && generated.Proposals.Count != originals.Count)) throw InvalidProposal();
+            || (request.Mode == "batch" && generated.Proposals.Count != originals.Count))
+            throw InvalidProposal(request.Mode == "create" ? "新規作成の提案は1〜3件必要です。" : "一括編集の提案件数が選択ファイル数と一致しません。");
         var proposals = new List<MasterDataAiProposal>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var proposal in generated.Proposals)
         {
-            RequireEditablePath(proposal.Path);
-            if (!seen.Add(proposal.Path)) throw InvalidProposal();
+            try { RequireEditablePath(proposal.Path); }
+            catch (Exception exception) when (exception is ArgumentException or UnauthorizedAccessException)
+            { throw InvalidProposal("提案の対象パスが編集可能な Filebase のパスではありません。"); }
             MasterDataDocument? before = null;
+            MasterDataCategory? targetCategory = null;
             if (request.Mode == "batch")
             {
-                if (!originals.TryGetValue(proposal.Path, out before)) throw InvalidProposal();
+                if (!seen.Add(proposal.Path)) throw InvalidProposal("一括編集の提案に同じ対象パスが重複しています。");
+                if (!originals.TryGetValue(proposal.Path, out before)) throw InvalidProposal("一括編集の提案に選択していない対象パスが含まれています。");
             }
-            else if (!string.Equals(Path.GetDirectoryName(proposal.Path)?.Replace('\\', '/'), request.CategoryId, StringComparison.Ordinal))
-                throw InvalidProposal();
+            else
+            {
+                var directory = Path.GetDirectoryName(proposal.Path)?.Replace('\\', '/');
+                if (directory is null || !createTargets.TryGetValue(directory, out targetCategory))
+                    throw InvalidProposal("新規作成の対象パスが許可された作成先カテゴリの直下ではありません。");
+                if (File.Exists(paths.Resolve(proposal.Path)))
+                    throw InvalidProposal("新規作成の提案が既存ファイルを対象にしています。新しいファイル名で再生成してください。");
+                // Create proposals are independent alternatives. A provisional filename may be shared.
+            }
             var content = RequireObject(proposal.Path, proposal.Raw);
             if (before is not null) RequireIdentity(before.Content!, content);
             // Re-render against the original so provider output cannot silently discard YAML comments.
             var rendered = codec.Render(new(proposal.Path, content, before?.Raw ?? draft?.Raw));
-            if (rendered.Raw.Length > 64_000) throw InvalidProposal();
+            if (rendered.Raw.Length > 64_000) throw InvalidProposal("提案の原稿が64000文字の上限を超えています。");
             RequireObject(proposal.Path, rendered.Raw);
             warnings.AddRange(rendered.Warnings);
             var report = await validation.ValidateAsync(proposal.Path, rendered.Raw, token);
-            var issues = report.Issues.Select(issue => request.Mode == "create" && category?.ItemCategoryCode is not null
+            var issues = report.Issues.Select(issue => request.Mode == "create" && targetCategory?.ItemCategoryCode is not null
                 && issue.Code is "DUPLICATE_ID" or "ITEM_ID_FORMAT" or "ITEM_FILENAME"
                     ? issue with { Severity = "warning", Message = "新規作成時の自動採番・命名で確定します。" } : issue).ToArray();
-            if (request.Mode == "create" && category?.ItemCategoryCode is not null)
+            if (request.Mode == "create" && targetCategory?.ItemCategoryCode is not null)
                 warnings.Add("アイテムの ID とファイル名は新規作成ダイアログの自動採番で確定します。");
             proposals.Add(new(proposal.Path, before?.Path, rendered.Raw, before?.Raw, before?.Revision,
                 proposal.Summary, issues, before is null));
@@ -245,5 +281,5 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
         else if (parent is JsonArray array && int.TryParse(pointer[^1], out var index) && index >= 0 && index < array.Count) array[index] = value;
         else throw new ArgumentException("対象フィールドが見つかりません。");
     }
-    private static MasterDataAiException InvalidProposal() => new(502, "AI の提案が対象や操作と一致しません。指示を調整して再実行してください。");
+    private static MasterDataAiException InvalidProposal(string reason) => new(502, $"AI の提案を採用できません。{reason} 指示を調整して再実行してください。");
 }
