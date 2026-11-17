@@ -1,15 +1,20 @@
 package io.github.maaasu.astralrecordlobby;
 
+import com.destroystokyo.paper.event.entity.CreeperIgniteEvent;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.util.TriState;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Server;
 import org.bukkit.World;
+import org.bukkit.entity.Creeper;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.plugin.PluginManager;
@@ -17,15 +22,61 @@ import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.UUID;
 
 import static org.bukkit.persistence.PersistentDataType.BYTE;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class LobbyNpcTest {
+    @Test
+    void webLoginDeskReplacesLegacyVillagerAndProtectsItsCreeper() {
+        Fixture f = new Fixture();
+        f.config.set("accountCreator.npc.enabled", true);
+        f.config.set("accountCreator.npc.type", "VILLAGER");
+        Creeper creeper = mock(Creeper.class);
+        PersistentDataContainer data = mock(PersistentDataContainer.class);
+        NamespacedKey deskKey = new NamespacedKey("astralrecordlobby", "account_creator");
+        when(creeper.getPersistentDataContainer()).thenReturn(data);
+        when(data.has(deskKey, BYTE)).thenReturn(true);
+        when(f.world.spawnEntity(any(Location.class), eq(EntityType.CREEPER), eq(false))).thenReturn(creeper);
+
+        new WebLoginDesk(f.plugin).start();
+
+        verify(f.world).spawnEntity(any(Location.class), eq(EntityType.CREEPER), eq(false));
+        verify(data).set(deskKey, BYTE, (byte) 1);
+        verify(creeper).setAI(false);
+        verify(creeper).setDespawnInPeacefulOverride(TriState.FALSE);
+        ArgumentCaptor<LobbyNpc> registered = ArgumentCaptor.forClass(LobbyNpc.class);
+        verify(f.server.getPluginManager()).registerEvents(registered.capture(), eq(f.plugin));
+        LobbyNpc npc = registered.getValue();
+
+        var ignition = new CreeperIgniteEvent(creeper, true);
+        var explosion = new ExplosionPrimeEvent(creeper, 3F, false);
+        npc.onCreeperIgnite(ignition);
+        npc.onExplosionPrime(explosion);
+        assertTrue(ignition.isCancelled());
+        assertTrue(explosion.isCancelled());
+
+        Creeper selector = mock(Creeper.class);
+        PersistentDataContainer selectorData = mock(PersistentDataContainer.class);
+        when(selector.getPersistentDataContainer()).thenReturn(selectorData);
+        when(selectorData.has(new NamespacedKey("astralrecordlobby", "server_selector"), BYTE)).thenReturn(true);
+        var selectorIgnition = new CreeperIgniteEvent(selector, true);
+        var selectorExplosion = new ExplosionPrimeEvent(selector, 3F, false);
+        npc.onCreeperIgnite(selectorIgnition);
+        npc.onExplosionPrime(selectorExplosion);
+        f.npc.onCreeperIgnite(selectorIgnition);
+        f.npc.onExplosionPrime(selectorExplosion);
+        assertFalse(selectorIgnition.isCancelled());
+        assertFalse(selectorExplosion.isCancelled());
+    }
+
     @ParameterizedTest
     @CsvSource({"アカウント作成, Webログイン受付", "特設窓口, 特設窓口"})
     void updatesLegacyNameAndRespectsCustomNameInExistingLobbyConfiguration(String saved, String displayed) {

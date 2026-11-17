@@ -61,7 +61,6 @@ accountCreator:
     z: 0.5
     yaw: 0.0
     pitch: 0.0
-    type: VILLAGER
     name: "Webログイン受付"
     raycastDistance: 6.0
     lookDistance: 8.0
