@@ -1,0 +1,14 @@
+.android-display-scale {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: calc(5px / var(--android-display-factor));
+  font-size: calc(13px / var(--android-display-factor));
+  white-space: nowrap;
+}
+
+.android-master-heading .android-display-scale select {
+  min-block-size: calc(44px / var(--android-display-factor));
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
