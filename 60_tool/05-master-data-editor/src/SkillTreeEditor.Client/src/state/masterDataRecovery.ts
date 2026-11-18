@@ -1,5 +1,6 @@
 import type { JsonValue } from '../types/editor'
 import type { MasterDocument } from '../types/masterData'
+import { isAndroidEditor } from '../androidEditor'
 
 export interface MasterDraftState { raw: string; content: JsonValue; source: 'raw' | 'form' }
 export interface RecoverableMasterDraft {
@@ -14,6 +15,7 @@ export interface RecoverableMasterDraft {
 
 const prefix = (root: string) => `astralrecord.master-draft.v1:${encodeURIComponent(root)}:`
 const key = (root: string, path: string) => prefix(root) + encodeURIComponent(path)
+const draftStorage = () => isAndroidEditor() ? window.localStorage : window.sessionStorage
 
 function validDraft(value: unknown, path: string): value is RecoverableMasterDraft {
   if (!value || typeof value !== 'object') return false
@@ -28,10 +30,10 @@ function validDraft(value: unknown, path: string): value is RecoverableMasterDra
       && Object.values(entry.invalidValues).every((text) => typeof text === 'string'))
 }
 
-/** Per-browser-tab drafts, isolated by workspace. These never write to Filebase. */
+/** Drafts stay on the device and are isolated by editor origin and workspace. */
 export function readMasterDraft(root: string, path: string): RecoverableMasterDraft | null {
   try {
-    const raw = window.sessionStorage.getItem(key(root, path))
+    const raw = draftStorage().getItem(key(root, path))
     if (!raw) return null
     const value: unknown = JSON.parse(raw)
     return validDraft(value, path) ? value : null
@@ -42,8 +44,9 @@ export function listMasterDrafts(root: string): RecoverableMasterDraft[] {
   try {
     const entries: RecoverableMasterDraft[] = []
     const start = prefix(root)
-    for (let index = 0; index < window.sessionStorage.length; index++) {
-      const name = window.sessionStorage.key(index)
+    const storage = draftStorage()
+    for (let index = 0; index < storage.length; index++) {
+      const name = storage.key(index)
       if (!name?.startsWith(start)) continue
       const entry = readMasterDraft(root, decodeURIComponent(name.slice(start.length)))
       if (entry) entries.push(entry)
@@ -53,11 +56,11 @@ export function listMasterDrafts(root: string): RecoverableMasterDraft[] {
 }
 
 export function writeMasterDraft(root: string, entry: RecoverableMasterDraft): boolean {
-  try { window.sessionStorage.setItem(key(root, entry.document.path), JSON.stringify(entry)); return true }
+  try { draftStorage().setItem(key(root, entry.document.path), JSON.stringify(entry)); return true }
   catch { return false }
 }
 
 export function removeMasterDraft(root: string, path: string): boolean {
-  try { window.sessionStorage.removeItem(key(root, path)); return true }
+  try { draftStorage().removeItem(key(root, path)); return true }
   catch { return false }
 }

@@ -1,5 +1,6 @@
 import { memo, startTransition, useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
+import { handleAndroidDialogBack } from '../androidEditor'
 import { ResizeHandle, usePanelSize } from './ResizeHandle'
 import { DockPanelContent, useDocking, usePanelDocument } from '../docking/dockPanel'
 import { ResizableTable } from './ResizableTable'
@@ -55,10 +56,10 @@ const categoryOptionLabel = (entry: MasterCategory, count: number, categories: M
   return `${'　'.repeat(depth)}${depth ? '└ ' : ''}${number ? `${number} ` : ''}${name} (${count})`
 }
 
-interface MasterDataEditorProps { active?: boolean; onDirtyChange?: (dirty: boolean) => void; onOpenSkillTree?: () => void; openRequest?: { path: string; pointer: string; requestId: number } }
+interface MasterDataEditorProps { active?: boolean; android?: boolean; onDirtyChange?: (dirty: boolean) => void; onOpenSkillTree?: () => void; openRequest?: { path: string; pointer: string; requestId: number } }
 
-export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree, openRequest }: MasterDataEditorProps) {
-  const workspace = useMasterDataWorkspace()
+export function MasterDataEditor({ active = true, android = false, onDirtyChange, onOpenSkillTree, openRequest }: MasterDataEditorProps) {
+  const workspace = useMasterDataWorkspace(android)
   const { confirm, dialog } = useConfirmationDialog()
   const docking = useDocking()
   const latestDocking = useRef(docking)
@@ -66,9 +67,17 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   const editorWindow = () => latestDocking.current?.documents.get('master')?.defaultView ?? window
   const [browserWidth, setBrowserWidth] = usePanelSize('master-browser', 520, 400, 1000)
   const [tabsState, dispatch] = useReducer(masterTabsReducer, emptyMasterTabs)
+  const [mobilePane, setMobilePane] = useState<'files' | 'editor'>('files')
   const tabPrefix = useId()
   const tabButtons = useRef(new Map<string, HTMLButtonElement>())
   const editorHost = useRef<HTMLDivElement>(null)
+  const showMobilePane = useCallback((pane: 'files' | 'editor') => {
+    setMobilePane(pane)
+    requestAnimationFrame(() => {
+      const target = pane === 'files' ? '.master-browser' : '.master-document-area'
+      editorHost.current?.querySelector<HTMLElement>(target)?.focus({ preventScroll: true })
+    })
+  }, [])
   const focusAfterClose = useRef(false)
   const latestTabs = useRef(tabsState)
   useLayoutEffect(() => { latestTabs.current = tabsState }, [tabsState])
@@ -78,7 +87,7 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   const browserActions = useRef(new Map<string, BrowserActions>())
   const aiPanes = useRef(new Map<string, AiPaneActions>())
   const [aiOpen, setAiOpen] = useState(false)
-  const [predictWhileTyping, setPredictWhileTyping] = useState(true)
+  const [predictWhileTyping, setPredictWhileTyping] = useState(!android)
   const [allowAiFallback, setAllowAiFallback] = useState(false)
   const predictionSource = useMasterPredictions(predictWhileTyping && workspace.catalog !== null, workspace.files, workspace.referenceVersion, workspace.refreshing)
   const [aiDraftRequests, setAiDraftRequests] = useState<Record<string, AiQueuedDraft>>({})
@@ -116,12 +125,13 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     dispatch({ type: 'open', path, document, preview, referenceTarget: reference ? { ...reference, requestId: ++referenceSequence.current } : undefined })
     latestDocking.current?.show('master')
     const existing = latestTabs.current.tabs.find((tab) => tab.path === path)
-    if (!latestDocking.current && existing && (!preview || !existing.preview) && window.innerWidth <= 1100) {
+    if (android) showMobilePane('editor')
+    else if (!latestDocking.current && existing && (!preview || !existing.preview) && window.innerWidth <= 1100) {
       workspace.setSidebarCollapsed(true)
       if (!reference) requestAnimationFrame(() => tabButtons.current.get(existing.id)?.focus())
     }
     return true
-  }, [workspace.setSidebarCollapsed, confirm])
+  }, [workspace.setSidebarCollapsed, confirm, android, showMobilePane])
   const aiPaneForPath = (path: string) => [...aiPanes.current.values()].find(pane => pane.snapshot()?.path === path)
   const captureAiBatch = (paths: string[]): AiBatchGuard => Object.fromEntries(paths.map(path => {
     const pane = aiPaneForPath(path)
@@ -175,7 +185,10 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     if (!tab || !deleted && (tab.busy || tab.dirty && !(await confirm(`${tab.path}\n未保存の編集内容を破棄してタブを閉じますか？`, { document: editorWindow().document })))) return
     const current = latestTabs.current.tabs.find((entry) => entry.id === id)
     if (!current || !deleted && current.busy) return
-    if (latestTabs.current.tabs.length === 1) workspace.setSidebarCollapsed(false)
+    if (latestTabs.current.tabs.length === 1) {
+      if (android) showMobilePane('files')
+      else workspace.setSidebarCollapsed(false)
+    }
     if (deleted || current.dirty) discardTabDrafts([current.path])
     if (!deleted || latestTabs.current.activeId === id) focusAfterClose.current = true
     dispatch({ type: 'close', id })
@@ -187,7 +200,10 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     if (unsaved.length && !(await confirm(`未保存の編集内容を破棄してタブを閉じますか？\n${unsaved.map((tab) => `${stripMinecraftFormatting(tab.name) || baseName(tab.path)} · ${tab.path}`).join('\n')}`, { document: editorWindow().document }))) return
     const closing = latestTabs.current.tabs.filter((tab) => ids.includes(tab.id))
     if (closing.some((tab) => tab.busy || tab.dirty && !unsaved.some((entry) => entry.id === tab.id))) return
-    if (targets.length === latestTabs.current.tabs.length) workspace.setSidebarCollapsed(false)
+    if (targets.length === latestTabs.current.tabs.length) {
+      if (android) showMobilePane('files')
+      else workspace.setSidebarCollapsed(false)
+    }
     discardTabDrafts(unsaved.map((tab) => tab.path))
     focusAfterClose.current = true
     dispatch({ type: 'closeMany', ids: targets.map((tab) => tab.id) })
@@ -221,6 +237,25 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     ].map(({ label, targets }) => ({ label, disabled: !targets.length || targets.some((tab) => tab.busy), run: () => closeTabs(targets.map((tab) => tab.id)) })),
   ]
   useEffect(() => { onDirtyChange?.(dirty) }, [dirty, onDirtyChange])
+  const { browserView, setBrowserView } = workspace
+  const selectedTab = tabsState.tabs.find(tab => tab.id === tabsState.activeId)
+  const selectedBusy = selectedTab?.busy || welcomeBusy
+  useLayoutEffect(() => {
+    if (!android) return
+    window.astralEditorHasUnsavedChanges = () => dirty
+    window.astralEditorBack = () => {
+      if (handleAndroidDialogBack()) return true
+      if (tabMenu) { setTabMenu(null); return true }
+      if (selectedBusy) return true
+      if (mobilePane === 'editor') { showMobilePane('files'); return true }
+      if (browserView === 'folders') { setBrowserView('files'); return true }
+      return false
+    }
+    return () => {
+      delete window.astralEditorHasUnsavedChanges
+      delete window.astralEditorBack
+    }
+  }, [android, browserView, dirty, mobilePane, selectedBusy, setBrowserView, showMobilePane, tabMenu])
   useEffect(() => {
     if (!workspace.catalog || recoveryRoot.current === workspace.catalog.root) return
     recoveryRoot.current = workspace.catalog.root
@@ -242,10 +277,9 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     docking?.show('master')
     browserActions.current.get(tabsState.activeId || 'welcome')?.[kind]()
   }
-  const selectedTab = tabsState.tabs.find(tab => tab.id === tabsState.activeId)
-  const browser = <MasterFileBrowser workspace={workspace} selectedPath={selectedTab?.path} busy={selectedTab ? selectedTab.busy || selectedTab.loadState === 'loading' : welcomeBusy} active={docking ? docking.visible.has('master-files') || docking.visible.has('master-folders') : active} onOpen={openBrowserFile} onNew={() => runBrowserAction('create')} onImport={() => runBrowserAction('import')} onDialogChange={setBrowserDialogOpen} />
-  const documentArea = <section className="master-document-area" aria-label="マスターの編集領域">
-    {!tabsState.tabs.length && <button type="button" className="button master-ai-entry" disabled={welcomeBusy} onClick={() => setAiOpen(true)}>AIアシスト</button>}
+  const browser = <MasterFileBrowser android={android} workspace={workspace} selectedPath={selectedTab?.path} busy={selectedTab ? selectedTab.busy || selectedTab.loadState === 'loading' : welcomeBusy} active={docking ? docking.visible.has('master-files') || docking.visible.has('master-folders') : active} onOpen={openBrowserFile} onNew={() => runBrowserAction('create')} onImport={() => runBrowserAction('import')} onDialogChange={setBrowserDialogOpen} />
+  const documentArea = <section className="master-document-area" aria-label="マスターの編集領域" tabIndex={android ? -1 : undefined}>
+    {!android && !tabsState.tabs.length && <button type="button" className="button master-ai-entry" disabled={welcomeBusy} onClick={() => setAiOpen(true)}>AIアシスト</button>}
     {active && aiOpen && <MasterAiAssist categories={workspace.catalog?.categories ?? []} files={workspace.files} categoryId={workspace.categoryId} current={() => aiPanes.current.get(latestTabs.current.activeId || 'welcome')} source={aiPaneForPath} captureBatch={captureAiBatch} applyBatch={applyAiBatch} predictWhileTyping={predictWhileTyping} onPredictionChange={setPredictWhileTyping} allowAiFallback={allowAiFallback} onAiFallbackChange={setAllowAiFallback} onClose={() => setAiOpen(false)} />}
     {tabsState.tabs.length > 0 && <div className="master-tab-bar"><div className="master-document-tabs" role="tablist" aria-label="開いているマスターファイル">{displayTabs.map((tab, index) => {
       const selected = tab.id === tabsState.activeId
@@ -266,24 +300,27 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
             const nextId = tabsState.tabs[nextIndex].id
             dispatch({ type: 'select', id: nextId }); tabButtons.current.get(nextId)?.focus()
           }}><span><MinecraftText value={name} />{tab.preview && <span className="master-tab-preview-label" aria-hidden="true">プレビュー</span>}{tab.dirty && <b className="master-tab-dirty" aria-hidden="true">●</b>}</span><small>{loadLabel && <span className="master-tab-load-state" aria-hidden="true">{loadLabel} · </span>}{baseName(tab.path)}</small></button>
+        {android && tab.preview && <button type="button" className="master-tab-pin" aria-label={`${baseName(tab.path)} のタブを保持`}
+          onClick={() => dispatch({ type: 'pin', id: tab.id })}>保持</button>}
         <button type="button" className="master-tab-close" aria-label={`${baseName(tab.path)} のタブを閉じる`} disabled={tab.busy} onClick={() => closeTab(tab.id)}>×</button>
       </div>
-    })}</div><button type="button" className="button master-tab-search-trigger" aria-label="開いているファイルを検索" aria-haspopup="dialog" aria-expanded={tabSearchOpen} onClick={() => { setTabMenu(null); setTabSearchOpen(true) }}>タブを検索 ({tabsState.tabs.length})</button></div>}
+    })}</div><button type="button" className="button master-tab-search-trigger" aria-label="開いているファイルを検索" aria-haspopup="dialog" aria-expanded={tabSearchOpen} onClick={() => { setTabMenu(null); setTabSearchOpen(true) }}>{android ? `タブ ${tabsState.tabs.length}` : `タブを検索 (${tabsState.tabs.length})`}</button></div>}
     {active && tabSearchOpen && <MasterTabSearch tabs={displayTabs} activeId={tabsState.activeId} onClose={() => setTabSearchOpen(false)} onSelect={id => {
       focusAfterSwitch.current = true
       setTabSearchOpen(false)
       dispatch({ type: 'select', id })
-      if (!docking && window.innerWidth <= 1100) workspace.setSidebarCollapsed(true)
+      if (android) showMobilePane('editor')
+      else if (!docking && window.innerWidth <= 1100) workspace.setSidebarCollapsed(true)
     }} />}
     {active && tabMenu && tabCommands.length > 0 && <MasterTabContextMenu x={tabMenu.x} y={tabMenu.y} commands={tabCommands} onDismiss={dismissTabMenu} />}
     {tabsState.tabs.length ? tabsState.tabs.map((tab) => <div className="master-editor-panel" key={tab.id} id={`${tabPrefix}-${tab.id}-panel`} role="tabpanel" aria-labelledby={`${tabPrefix}-${tab.id}`} hidden={tab.id !== tabsState.activeId}>
-      <MasterDataEditorPane workspace={workspace} tabId={tab.id} preview={tab.preview} initialPath={tab.path} initialDocument={tab.initialDocument} referenceTarget={tab.referenceTarget} onReferenceHandled={referenceHandled} selected={tab.id === tabsState.activeId} active={active && tab.id === tabsState.activeId} onOpenFile={openFile} onCloseTab={() => closeTab(tab.id, true)} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen || tabSearchOpen || aiOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} onAiOpen={() => setAiOpen(true)} onRegisterAiPane={registerAiPane} aiDraftRequest={aiDraftRequests[tab.path]} onAiDraftHandled={aiDraftHandled} predictWhileTyping={predictWhileTyping} onPredictionChange={setPredictWhileTyping} predictionSource={predictionSource} allowAiFallback={allowAiFallback} />
-    </div>) : <div className="master-editor-panel"><MasterDataEditorPane workspace={workspace} tabId="welcome" active={active} onOpenFile={openFile} onCloseTab={() => {}} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen || aiOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} onAiOpen={() => setAiOpen(true)} onRegisterAiPane={registerAiPane} onAiDraftHandled={aiDraftHandled} /></div>}
+      <MasterDataEditorPane android={android} workspace={workspace} tabId={tab.id} preview={tab.preview} initialPath={tab.path} initialDocument={tab.initialDocument} referenceTarget={tab.referenceTarget} onReferenceHandled={referenceHandled} selected={tab.id === tabsState.activeId} active={active && tab.id === tabsState.activeId} onOpenFile={openFile} onCloseTab={() => closeTab(tab.id, true)} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen || tabSearchOpen || aiOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} onAiOpen={() => setAiOpen(true)} onRegisterAiPane={registerAiPane} aiDraftRequest={aiDraftRequests[tab.path]} onAiDraftHandled={aiDraftHandled} predictWhileTyping={predictWhileTyping} onPredictionChange={setPredictWhileTyping} predictionSource={predictionSource} allowAiFallback={allowAiFallback} />
+    </div>) : <div className="master-editor-panel"><MasterDataEditorPane android={android} workspace={workspace} tabId="welcome" active={active} onOpenFile={openFile} onCloseTab={() => {}} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen || aiOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} onAiOpen={() => setAiOpen(true)} onRegisterAiPane={registerAiPane} onAiDraftHandled={aiDraftHandled} /></div>}
   </section>
   const workspaceNotices = <>
     {(workspace.error || workspace.notice) && <div className={`master-message master-global-message ${workspace.error ? 'error' : 'success'}`} role={workspace.error ? 'alert' : 'status'}><span>{workspace.error || workspace.notice}</span><button type="button" className="button compact subtle" onClick={() => { workspace.setError(''); workspace.setNotice('') }}>閉じる</button></div>}
     {workspace.error && !workspace.catalog && <div className="master-empty"><p>マスターを読み込めませんでした。接続を確認して再試行してください。</p><button type="button" className="button" disabled={workspace.refreshing} onClick={() => void workspace.refresh().catch((reason) => workspace.setError(reason instanceof Error ? reason.message : String(reason)))}>再試行</button></div>}
-    {recoverableDrafts.length > 0 && <details className="master-recovery-list"><summary>復元できる未保存の下書き · {recoverableDrafts.length} 件</summary><p>同じブラウザタブの再読込前の編集です。ファイルを開いて復元または破棄できます。</p>{recoverableDrafts.map((entry) => <button type="button" className="button compact" key={entry.document.path} onClick={() => openFile(entry.document.path)}>{masterDisplayName(entry.draft.content) || baseName(entry.document.path)}</button>)}</details>}
+    {recoverableDrafts.length > 0 && <details className="master-recovery-list"><summary>復元できる未保存の下書き · {recoverableDrafts.length} 件</summary><p>{android ? 'この端末に保存された下書きです。' : '同じブラウザタブの再読込前の編集です。'}ファイルを開いて復元または破棄できます。</p>{recoverableDrafts.map((entry) => <button type="button" className="button compact" key={entry.document.path} onClick={() => openFile(entry.document.path)}>{masterDisplayName(entry.draft.content) || baseName(entry.document.path)}</button>)}</details>}
   </>
   if (docking) return <>{dialog}
     {browser}
@@ -292,6 +329,18 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
       {documentArea}
     </div></DockPanelContent>
   </>
+  if (android) return <div ref={editorHost} className="master-tabbed-editor android-master-editor">{dialog}
+    <header className="android-master-heading"><h1>マスターデータ</h1>{dirty && <span className="save-state dirty" role="status">未保存の変更あり</span>}</header>
+    {workspaceNotices}
+    <div className="master-workbench android-master-workbench" data-pane={mobilePane}>
+      {browser}
+      {documentArea}
+    </div>
+    <nav className="android-master-navigation" aria-label="マスター編集">
+      <button type="button" aria-pressed={mobilePane === 'files'} disabled={mobilePane === 'editor' && selectedBusy} onClick={() => showMobilePane('files')}>ファイル一覧</button>
+      <button type="button" aria-pressed={mobilePane === 'editor'} disabled={!selectedTab} onClick={() => showMobilePane('editor')}>編集{tabsState.tabs.length > 0 && ` (${tabsState.tabs.length})`}</button>
+    </nav>
+  </div>
   return <div ref={editorHost} className="master-tabbed-editor">{dialog}
     <header className="workspace-heading master-workspace-heading"><div><span className="eyebrow">編集ワークスペース</span><h1>マスターデータ</h1><p>フォルダから探し、フォームで編集して、検証・保存します。</p></div><span className="workspace-count">{workspace.files.length.toLocaleString()} <small>ファイル</small>{tabsState.tabs.length > 0 && <small> · {tabsState.tabs.length} 件を編集中</small>}</span></header>
     {workspaceNotices}
@@ -307,6 +356,7 @@ interface BrowserActions { create: () => void; import: () => void }
 interface AiQueuedDraft { requestId: number; revision: string; beforeRaw: string; raw: string; resolve: () => void; reject: (reason: unknown) => void }
 
 interface MasterDataEditorPaneProps {
+  android: boolean
   preview?: boolean
   selected?: boolean
   workspace: MasterDataWorkspace
@@ -333,7 +383,7 @@ interface MasterDataEditorPaneProps {
   onAiDraftHandled: (path: string, requestId: number, reason?: unknown) => void
 }
 
-function MasterDataEditorPane({ selected = true, preview = false, workspace, tabId, initialPath, initialDocument, referenceTarget, onReferenceHandled, active, onOpenFile, onCloseTab, onTabStatus, onRegisterBrowserActions, browserDialogOpen, onRecoveryHandled, onOpenSkillTree, onAiOpen, onRegisterAiPane, aiDraftRequest, onAiDraftHandled, predictWhileTyping = false, onPredictionChange, predictionSource, allowAiFallback }: MasterDataEditorPaneProps) {
+function MasterDataEditorPane({ android, selected = true, preview = false, workspace, tabId, initialPath, initialDocument, referenceTarget, onReferenceHandled, active, onOpenFile, onCloseTab, onTabStatus, onRegisterBrowserActions, browserDialogOpen, onRecoveryHandled, onOpenSkillTree, onAiOpen, onRegisterAiPane, aiDraftRequest, onAiDraftHandled, predictWhileTyping = false, onPredictionChange, predictionSource, allowAiFallback }: MasterDataEditorPaneProps) {
   const docking = useDocking()
   const panelDocument = usePanelDocument()
   const { confirm, dialog } = useConfirmationDialog()
@@ -359,6 +409,7 @@ function MasterDataEditorPane({ selected = true, preview = false, workspace, tab
   const [diffBefore, setDiffBefore] = useState<string | null>(null)
   const storageFailed = useRef(false)
   const [diffRaw, setDiffRaw] = useState<string | null>(null)
+  const [exportedRaw, setExportedRaw] = useState<string | null>(null)
   const [createMode, setCreateMode] = useState<'new' | 'copy' | 'import' | null>(null)
   const [createDirty, setCreateDirty] = useState(false)
   const [importText, setImportText] = useState('')
@@ -472,9 +523,9 @@ function MasterDataEditorPane({ selected = true, preview = false, workspace, tab
     if (!document || !catalog || recovery || readOnly) return
     const success = dirty ? writeMasterDraft(catalog.root, { version: 1, document, draft, formPath: selectedFormPath, invalidValues, requiresDiffReview, updatedAt: new Date().toISOString() })
       : removeMasterDraft(catalog.root, document.path)
-    if (!success && !storageFailed.current) setNotice('ブラウザへ一時下書きを保存できません。再読込する前に「現在の原稿を書出」で編集内容を保管してください。')
+    if (!success && !storageFailed.current) setNotice(android ? '端末に下書きを保存できません。画面を閉じる前に編集内容を保存するか、「現在の原稿を表示」からコピーしてください。' : 'ブラウザへ一時下書きを保存できません。再読込する前に「現在の原稿を書出」で編集内容を保管してください。')
     storageFailed.current = !success
-  }, [catalog, document, draft, dirty, recovery, readOnly, selectedFormPath, invalidValues, requiresDiffReview])
+  }, [catalog, document, draft, dirty, recovery, readOnly, selectedFormPath, invalidValues, requiresDiffReview, android])
   const allowDiscard = () => confirm('未保存の編集内容を破棄して再読込しますか？')
   const acceptDocument = useCallback((loaded: MasterDocument, offerRecovery = true) => {
     setDocument(loaded); setInvalidInputs({}); setInvalidValues({}); history.reset({ raw: loaded.raw, content: loaded.content, source: loaded.content === null ? 'raw' : 'form' })
@@ -489,8 +540,8 @@ function MasterDataEditorPane({ selected = true, preview = false, workspace, tab
   useLayoutEffect(() => {
     if (!document || preview || initialLoadHandled.current) return
     initialLoadHandled.current = true
-    if (active && !isDocked && window.innerWidth <= 1100) setSidebarCollapsed(true)
-  }, [document, preview, active, isDocked, setSidebarCollapsed])
+    if (active && !android && !isDocked && window.innerWidth <= 1100) setSidebarCollapsed(true)
+  }, [document, preview, active, android, isDocked, setSidebarCollapsed])
   const latestReferences = useRef({ filesByPath, candidates, referencePrefixes })
   latestReferences.current = { filesByPath, candidates, referencePrefixes }
   useEffect(() => {
@@ -702,7 +753,9 @@ function MasterDataEditorPane({ selected = true, preview = false, workspace, tab
     if (!document || busy || Object.keys(invalidInputs).length) return
     setBusy(true)
     try {
-      const url = URL.createObjectURL(new Blob([await currentRaw()], { type: document.format === 'json' ? 'application/json;charset=utf-8' : 'text/yaml;charset=utf-8' }))
+      const raw = await currentRaw()
+      if (android) { setExportedRaw(raw); return }
+      const url = URL.createObjectURL(new Blob([raw], { type: document.format === 'json' ? 'application/json;charset=utf-8' : 'text/yaml;charset=utf-8' }))
       const anchor = panelDocument.createElement('a'); anchor.href = url; anchor.download = baseName(document.path); anchor.click(); URL.revokeObjectURL(url)
     } catch (reason) { showError(reason) } finally { setBusy(false) }
   }
@@ -824,6 +877,35 @@ function MasterDataEditorPane({ selected = true, preview = false, workspace, tab
   const validation = report || Object.keys(invalidInputs).length > 0
     ? <MasterValidationResults report={report} invalidInputs={invalidInputs} headingRef={validationHeading} active={active || Boolean(docking?.visible.has('master-validation'))} onSelect={path => { docking?.show('master'); focusIssue(path) }} />
     : null
+  const invalid = Object.keys(invalidInputs).length > 0
+  const predictionAction = document && draft.source === 'form' && !readOnly && onPredictionChange &&
+    <button type="button" className={`button ${predictWhileTyping ? 'active' : ''}`} aria-pressed={predictWhileTyping} disabled={busy}
+      title="クリックや入力で既存マスターと入力履歴から候補を表示します。" onClick={() => onPredictionChange(!predictWhileTyping)}>予測変換</button>
+  const fileTools = document && <div className="master-secondary-toolbar">
+    {!android && <>
+      <span className="master-file-tools-label">ファイル操作</span>
+      <button type="button" className="button subtle" disabled={busy || readOnly} onClick={onAiOpen}>AIアシスト</button>
+    </>}
+    <button className="button subtle" disabled={busy || readOnly || nodeDocument}
+      onClick={() => { setCategoryId(documentCategory?.id ?? ''); setCreateMode('copy') }}>保存済みファイルを複製</button>
+    <button className="button subtle" disabled={busy || invalid}
+      onClick={() => void exportDraft()}>{android ? '現在の原稿を表示' : '現在の原稿を書出'}</button>
+    {!android && <a className="button subtle" href={masterDataApi.exportUrl(document.path)} download>保存済みを書出</a>}
+    <button className="button subtle" aria-expanded={showReferences} aria-controls={referencePanelId} onClick={() => setShowReferences(current => !current)}>
+      参照一覧{referenceState.status === 'success' ? ` (${references.length})` : referenceState.status === 'loading' ? '（読込中）' : ''}
+    </button>
+    <button className="button subtle" disabled={busy} onClick={() => void loadDocument(document.path)}>ファイルを再読込</button>
+    {android && predictionAction}
+    <span className="master-spacer" />
+    <button className="button danger subtle" disabled={busy || readOnly} onClick={() => void deleteDocument()}>削除</button>
+  </div>
+  const saveActions = <div className="master-toolbar-group master-save-actions" role="group" aria-label="確認と保存">
+    <button className="button" disabled={!document || busy || invalid} onClick={() => void showDiff()}>差分</button>
+    <button className="button" disabled={!document || busy || invalid} onClick={() => void validate()}>検証</button>
+    <button className="button primary" disabled={!document || readOnly || !dirty || busy || invalid} onClick={() => void save()}>
+      {savePhase === 'prepare' ? '原稿を準備中…' : savePhase === 'validate' ? '検証中…' : savePhase === 'save' ? '保存中…' : busy ? '処理中…' : android ? '保存' : '保存 (Ctrl+S)'}
+    </button>
+  </div>
   return <main ref={editorElement} className="master-editor master-document-only">{dialog}
     <input hidden ref={importInput} type="file" accept=".yml,.yaml,.json,text/yaml,application/json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void replaceRaw(file); event.target.value = '' }} />
     <section className="master-workspace">
@@ -844,11 +926,11 @@ function MasterDataEditorPane({ selected = true, preview = false, workspace, tab
         setRecovery(null); onRecoveryHandled(document.path)
       }}>下書きを破棄</button></div></section>}
       <fieldset className="master-recovery-lock" disabled={Boolean(recovery)}>
-      {(document || !initialPath) && <div className="master-toolbar master-main-toolbar">
+      {(document || !android && !initialPath) && <div className="master-toolbar master-main-toolbar">
         <div className="master-toolbar-group" role="group" aria-label="編集モード"><button className={`button ${draft.source === 'form' ? 'active' : ''}`} aria-pressed={draft.source === 'form'} disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void changeMode('form')}>日本語フォーム</button><button className={`button ${draft.source === 'raw' ? 'active' : ''}`} aria-pressed={draft.source === 'raw'} disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void changeMode('raw')}>原稿 {document?.format.toUpperCase()}</button></div>
-        <div className="master-toolbar-group" role="group" aria-label="編集履歴"><button className="icon-button" title="元に戻す Ctrl+Z" aria-label="元に戻す Ctrl+Z" disabled={!history.canUndo || busy || Object.keys(invalidInputs).length > 0} onClick={() => moveHistory('undo')}>↶</button><button className="icon-button" title="やり直す Ctrl+Y" aria-label="やり直す Ctrl+Y" disabled={!history.canRedo || busy || Object.keys(invalidInputs).length > 0} onClick={() => moveHistory('redo')}>↷</button></div>
-        {document && draft.source === 'form' && !readOnly && onPredictionChange && <button type="button" className={`button ${predictWhileTyping ? 'active' : ''}`} aria-pressed={predictWhileTyping} disabled={busy} title="クリックや入力で既存マスターと入力履歴から候補を表示します。" onClick={() => onPredictionChange(!predictWhileTyping)}>予測変換</button>}
-        <div className="master-toolbar-group master-save-actions" role="group" aria-label="確認と保存"><button className="button" disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void showDiff()}>差分</button><button className="button" disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void validate()}>検証</button><button className="button primary" disabled={!document || readOnly || !dirty || busy || Object.keys(invalidInputs).length > 0} onClick={() => void save()}>{savePhase === 'prepare' ? '原稿を準備中…' : savePhase === 'validate' ? '検証中…' : savePhase === 'save' ? '保存中…' : busy ? '処理中…' : '保存 (Ctrl+S)'}</button></div>
+        <div className="master-toolbar-group" role="group" aria-label="編集履歴"><button className="icon-button" title={android ? '元に戻す' : '元に戻す Ctrl+Z'} aria-label={android ? '元に戻す' : '元に戻す Ctrl+Z'} disabled={!history.canUndo || busy || Object.keys(invalidInputs).length > 0} onClick={() => moveHistory('undo')}>↶</button><button className="icon-button" title={android ? 'やり直す' : 'やり直す Ctrl+Y'} aria-label={android ? 'やり直す' : 'やり直す Ctrl+Y'} disabled={!history.canRedo || busy || Object.keys(invalidInputs).length > 0} onClick={() => moveHistory('redo')}>↷</button></div>
+        {!android && predictionAction}
+        {!android && saveActions}
       </div>}
       {document && loadState === 'ready' && draft.source === 'form' && !readOnly && predictWhileTyping && predictionSource?.failed &&
         <p className="master-muted" role="status">既存マスターの候補を取得できませんでした。一覧と定義を再読込すると取得し直せます。</p>}
@@ -862,7 +944,7 @@ function MasterDataEditorPane({ selected = true, preview = false, workspace, tab
       }}>この編集を維持して最新を基準にする</button></div></section>}
       {renderWarnings.length > 0 && <div className="master-message warning"><div><strong>原稿の変換を確認してください</strong>{renderWarnings.map((warning, index) => <p key={index}>{warning}</p>)}</div><button className="button" disabled={busy} onClick={() => void showDiff()}>差分を確認</button></div>}
       <div className="master-edit-area">{document ? <>
-        <div className="master-secondary-toolbar"><span className="master-file-tools-label">ファイル操作</span><button type="button" className="button subtle" disabled={busy || readOnly} onClick={onAiOpen}>AIアシスト</button><button className="button subtle" disabled={busy || readOnly || nodeDocument} onClick={() => { setCategoryId(documentCategory?.id ?? ''); setCreateMode('copy') }}>保存済みファイルを複製</button><button className="button subtle" disabled={busy || Object.keys(invalidInputs).length > 0} onClick={() => void exportDraft()}>現在の原稿を書出</button><a className="button subtle" href={masterDataApi.exportUrl(document.path)} download>保存済みを書出</a><button className="button subtle" aria-expanded={showReferences} aria-controls={referencePanelId} onClick={() => setShowReferences((current) => !current)}>参照一覧{referenceState.status === 'success' ? ` (${references.length})` : referenceState.status === 'loading' ? '（読込中）' : ''}</button><button className="button subtle" disabled={busy} onClick={() => void loadDocument(document.path)}>ファイルを再読込</button><span className="master-spacer" /><button className="button danger subtle" disabled={busy || readOnly} onClick={() => void deleteDocument()}>削除</button></div>
+        {android ? <details className="android-file-actions"><summary>ファイル操作</summary>{fileTools}</details> : fileTools}
         {readOnly && <p className="master-muted">このファイルは閲覧専用です。Schemaや採番情報の変更は、実装・定義書と同期して管理します。</p>}
         {nodeDocument && <p className="master-muted">ノードの新規作成・複製は専用スキルツリーで自動採番します。{onOpenSkillTree && <button className="button subtle" onClick={onOpenSkillTree}>スキルツリーを開く</button>}</p>}
         {showReferences && <section className="master-references" id={referencePanelId} aria-label="保存済みデータの参照元">
@@ -904,15 +986,37 @@ function MasterDataEditorPane({ selected = true, preview = false, workspace, tab
           history.record({ ...current.draft, content: replaceAtPointer(current.draft.content, pointer, value), source: 'form' }); setReport(null)
         }}><MasterDocumentForm key={documentVersion} value={draft.content} path={selectedFormPath} fields={documentCategory?.fields ?? emptyFields} schema={schema} references={candidates} visualReferences={visualReferences} disabled={busy || readOnly} navigationDisabled={busy || Object.keys(invalidInputs).length > 0} onSelect={selectFormPath} onFocus={focusFormField} focusRequest={focusPath} onInvalid={handleInvalid} invalidValues={invalidValues} onChange={updateFormContent} /></MasterAiCompletion>}
       </> : initialPath ? loadState === 'error' && <div className="master-empty"><h2>ファイルを読み込めませんでした</h2><button type="button" className="button" onClick={() => void loadDocument(initialPath)}>ファイルを再読込</button></div>
-        : <div className="master-empty"><h2>マスターデータを編集</h2><p>左の一覧からファイルを選択するか、新規作成・原稿の読込で開始します。</p>{category && <p>{category.label} · {category.directory}</p>}<div className="master-empty-steps"><div><b>01 / 探す</b><strong>目的のファイルへ</strong><span>フォルダと名前・IDの検索、詳細フィルターを使って絞り込みます。</span></div><div><b>02 / 編集する</b><strong>自分に合った方法で</strong><span>日本語フォームと原稿を切り替え、複数のタブで作業できます。</span></div><div><b>03 / 確かめる</b><strong>差分・検証から保存へ</strong><span>変更点と入力エラーを確認し、保存ボタンまたは Ctrl+S で反映します。</span></div></div></div>}</div>
+        : android ? <div className="master-empty"><p>ファイル一覧から編集するファイルを選んでください。</p></div> : <div className="master-empty"><h2>マスターデータを編集</h2><p>左の一覧からファイルを選択するか、新規作成・原稿の読込で開始します。</p>{category && <p>{category.label} · {category.directory}</p>}<div className="master-empty-steps"><div><b>01 / 探す</b><strong>目的のファイルへ</strong><span>フォルダと名前・IDの検索、詳細フィルターを使って絞り込みます。</span></div><div><b>02 / 編集する</b><strong>自分に合った方法で</strong><span>日本語フォームと原稿を切り替え、複数のタブで作業できます。</span></div><div><b>03 / 確かめる</b><strong>差分・検証から保存へ</strong><span>変更点と入力エラーを確認し、保存ボタンまたは Ctrl+S で反映します。</span></div></div></div>}</div>
       {!isDocked && validation}
+      {android && document && saveActions}
       {isDocked && selected && <DockPanelContent id="master-validation"><div className="dock-master-validation">{validation ?? <p className="dock-validation-empty master-muted">現在のファイルを検証すると、結果が表示されます。</p>}</div></DockPanelContent>}
       </fieldset>
     </section>
     {active && diffRaw !== null && document && <MasterDataDiff before={diffBefore ?? document.raw} after={diffRaw} onClose={() => { reviewedRaw.current = diffRaw; setDiffRaw(null); setDiffBefore(null) }} />}
+    {active && exportedRaw !== null && <AndroidDraftCopy raw={exportedRaw} onClose={() => setExportedRaw(null)} />}
     {active && documentation && <Modal className="master-doc-dialog" ariaLabel="マスター定義書" onClose={() => setDocumentation(null)}><header className="modal-header"><h2>{baseName(documentation.path)}</h2><button className="button" onClick={() => setDocumentation(null)}>閉じる</button></header><pre className="modal-body">{documentation.raw}</pre></Modal>}
     {createMode && createPortal(<MasterCreateDialog mode={createMode} category={category ?? documentCategory} categories={catalog?.categories ?? []} files={files} source={document} importedRaw={importText} busy={busy} onDirtyChange={setCreateDirty} onCancel={() => setCreateMode(null)} onCreate={create} />, panelDocument.body)}
   </main>
+}
+
+function AndroidDraftCopy({ raw, onClose }: { raw: string; onClose: () => void }) {
+  const input = useRef<HTMLTextAreaElement>(null)
+  const [message, setMessage] = useState('')
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(raw)
+      setMessage('原稿をコピーしました。')
+    } catch {
+      input.current?.focus()
+      input.current?.select()
+      setMessage('原稿を選択しました。端末のコピー操作でコピーできます。')
+    }
+  }
+  return <Modal className="android-draft-copy" ariaLabel="現在の原稿" onClose={onClose}>
+    <header className="modal-header"><h2>現在の原稿</h2><button type="button" className="button" onClick={onClose}>閉じる</button></header>
+    <div className="modal-body"><textarea ref={input} className="master-raw" aria-label="コピー用の原稿" readOnly value={raw} /></div>
+    <footer className="modal-footer"><span role="status">{message}</span><button type="button" className="button primary" onClick={() => void copy()}>原稿をコピー</button></footer>
+  </Modal>
 }
 
 function MasterCreateDialog({ mode, category, categories, files, source, importedRaw, busy, onDirtyChange, onCancel, onCreate }: { mode: 'new' | 'copy' | 'import'; category: MasterCategory | null; categories: MasterCategory[]; files: MasterFileSummary[]; source: MasterDocument | null; importedRaw: string; busy: boolean; onDirtyChange: (dirty: boolean) => void; onCancel: () => void; onCreate: (draft: MasterDraft) => Promise<void> }) {

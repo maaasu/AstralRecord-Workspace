@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { registerAndroidDialog } from '../androidEditor'
 import { usePanelDocument, usePanelVisibility } from '../docking/dockPanel'
 
 interface ModalProps {
@@ -21,6 +22,9 @@ export function Modal({ children, ariaLabel, className = '', onClose, closeDisab
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog || !visible) return
+    const unregisterBack = registerAndroidDialog(dialog, () => {
+      if (!closeRef.current.closeDisabled) closeRef.current.onClose()
+    })
     const previousFocus = document.activeElement as HTMLElement | null
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -61,6 +65,7 @@ export function Modal({ children, ariaLabel, className = '', onClose, closeDisab
     document.addEventListener('keydown', keyboard, true)
     document.addEventListener('focusin', containFocus)
     return () => {
+      unregisterBack()
       document.removeEventListener('keydown', keyboard, true)
       document.removeEventListener('focusin', containFocus)
       document.body.style.overflow = previousOverflow

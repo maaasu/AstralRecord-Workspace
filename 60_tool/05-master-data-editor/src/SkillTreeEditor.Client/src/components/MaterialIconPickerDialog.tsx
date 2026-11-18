@@ -1,5 +1,6 @@
 import { usePanelDocument, usePanelVisibility } from '../docking/dockPanel'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { isAndroidEditor, registerAndroidDialog } from '../androidEditor'
 import minecraftMaterials from '../data/minecraft-materials.1.21.11.json'
 import { MinecraftIcon } from './MinecraftIcon'
 import './materialIconPicker.css'
@@ -50,11 +51,14 @@ export function MaterialIconPickerDialog({
   const document = usePanelDocument()
   const visibleInLayout = usePanelVisibility()
   useEffect(() => {
-    if (!visibleInLayout) return
+    const dialog = dialogRef.current
+    if (!visibleInLayout || !dialog) return
+    const unregisterBack = registerAndroidDialog(dialog, () => closeRef.current())
     const previousFocus = document.activeElement as HTMLElement | null
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    searchRef.current?.focus()
+    if (isAndroidEditor()) dialog.focus()
+    else searchRef.current?.focus()
 
     const keyboard = (event: KeyboardEvent) => {
       if (event.key === 'Escape' || ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's')) {
@@ -84,6 +88,7 @@ export function MaterialIconPickerDialog({
     document.addEventListener('keydown', keyboard, true)
     document.addEventListener('focusin', containFocus)
     return () => {
+      unregisterBack()
       document.removeEventListener('keydown', keyboard, true)
       document.removeEventListener('focusin', containFocus)
       document.body.style.overflow = previousOverflow
@@ -103,7 +108,7 @@ export function MaterialIconPickerDialog({
         if (event.key === 'Enter' && event.target === searchRef.current) event.preventDefault()
       }}
     >
-      <section ref={dialogRef} className="material-picker-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <section ref={dialogRef} className="material-picker-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         <header className="material-picker-header">
           <div>
             <h2 id={titleId}>素材アイコンを選択</h2>
