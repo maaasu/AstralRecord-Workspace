@@ -64,6 +64,7 @@ public sealed class MasterDataAiTests : IDisposable
         using var sent = JsonDocument.Parse(_handler.Request!);
         Assert.False(sent.RootElement.GetProperty("store").GetBoolean());
         Assert.Equal(MasterDataAiOptions.DefaultModel, sent.RootElement.GetProperty("model").GetString());
+        Assert.False(sent.RootElement.TryGetProperty("reasoning", out _));
         var format = sent.RootElement.GetProperty("text").GetProperty("format");
         Assert.Equal("json_schema", format.GetProperty("type").GetString());
         Assert.True(format.GetProperty("strict").GetBoolean());
@@ -81,13 +82,18 @@ public sealed class MasterDataAiTests : IDisposable
     [Fact]
     public async Task CompleteReturnsWholeStringArrayCandidatesWithoutWriting()
     {
+        _settings.Update(new(null, "manual-test-model"));
         _handler.Result = Result(["新しい一行目\n新しい二行目"], []);
         var before = Snapshot();
         var result = await _service.GenerateAsync(new("complete", "説明を整えて", SourcePath: PathA,
             Raw: Original, FieldPointer: "/lore"), default);
         Assert.Equal("新しい一行目\n新しい二行目", Assert.Single(result.Suggestions));
+        Assert.Equal("manual-test-model", result.Model);
         Assert.Empty(result.Proposals);
         Assert.Equal(before, Snapshot());
+        using var sent = JsonDocument.Parse(_handler.Request!);
+        Assert.Equal("manual-test-model", sent.RootElement.GetProperty("model").GetString());
+        Assert.False(sent.RootElement.TryGetProperty("reasoning", out _));
     }
 
     [Theory]
@@ -96,6 +102,7 @@ public sealed class MasterDataAiTests : IDisposable
     [InlineData("/lore", " continued", "first\nsecond continued")]
     public async Task ContinueAppendsOnlyTheSuffixAndSendsOnlyFieldContext(string pointer, string suffix, string expected)
     {
+        _settings.Update(new(null, "manual-test-model"));
         Write("test/docs.YAMLスキーマ定義.md", """
             # Test
             | キー | 型 | 必須 | 説明 |
@@ -108,9 +115,12 @@ public sealed class MasterDataAiTests : IDisposable
         var result = await _service.GenerateAsync(new("complete", "補完", SourcePath: PathA, Raw: Original,
             FieldPointer: pointer, CompletionStyle: "continue"), default);
         Assert.Equal(expected, Assert.Single(result.Suggestions));
+        Assert.Equal("gpt-6-luna", result.Model);
         Assert.Empty(result.Proposals);
         Assert.Equal(before, Snapshot());
         using var sent = JsonDocument.Parse(_handler.Request!);
+        Assert.Equal("gpt-6-luna", sent.RootElement.GetProperty("model").GetString());
+        Assert.Equal("none", sent.RootElement.GetProperty("reasoning").GetProperty("effort").GetString());
         var input = sent.RootElement.GetProperty("input");
         Assert.Contains("末尾", input[0].GetProperty("content").GetString());
         using var context = JsonDocument.Parse(input[1].GetProperty("content").GetString()!);

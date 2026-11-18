@@ -130,7 +130,7 @@ export function MasterAiAssist({ categories, files, categoryId: initialCategory,
       <div className="button-row" role="group" aria-label="AIモード">{([['complete', '入力補完'], ['create', '作成'], ['batch', '一括編集']] as const).map(([id, label]) => <button type="button" className={`button ${mode === id ? 'active' : ''}`} aria-pressed={mode === id} disabled={busy || applying} key={id} onClick={() => switchMode(id)}>{label}</button>)}</div>
       {mode === 'complete' ? <div className="master-ai-help">
         <label className="master-checkbox"><input type="checkbox" checked={predictWhileTyping} onChange={event => onPredictionChange(event.target.checked)} />入力中にAI予測変換を表示</label>
-        <p>日本語フォームの名前や説明文の末尾で入力を止めると、その欄のテキストをOpenAIへ送り、続きを提案します。変換中は待機し、候補はTabで採用、Escで閉じます。設定は起動中だけ有効です。</p>
+        <p>既存マスターや入力履歴から、名前や説明文の続きを表示します。一致する候補がないときだけ、入力が止まってから対象欄のテキストをOpenAIへ送ります。Tabで採用、Escで閉じます。設定と入力履歴は起動中だけ有効です。</p>
         <p>欄全体の言い換え候補を見たいときは Ctrl+Space を押します。</p>
       </div> : <>
         <fieldset className="master-form-lock master-ai-inputs" disabled={busy || applying}>

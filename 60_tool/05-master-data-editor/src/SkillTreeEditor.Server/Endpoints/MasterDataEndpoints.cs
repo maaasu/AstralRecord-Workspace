@@ -21,6 +21,13 @@ public static class MasterDataEndpoints
             service.ListAsync(category, query, token, reload == true));
         api.MapGet("/filter-index", (bool? reload, MasterDataFilterIndexService service, CancellationToken token) =>
             service.ReadAsync(token, reload == true));
+        api.MapGet("/prediction-index", async (FilebaseSnapshotCache snapshots, CancellationToken token) =>
+        {
+            var index = MasterDataPredictionIndex.Build(await snapshots.GetAsync(token, includeSchemas: false), token);
+            return index is null
+                ? Results.Problem(title: "既存マスターの候補が索引の上限を超えました。", statusCode: StatusCodes.Status503ServiceUnavailable)
+                : Results.Ok(index);
+        });
         api.MapGet("/progression-design", (bool? reload, ProgressionDesignService service, CancellationToken token) =>
             service.ReadAsync(token, reload == true));
         api.MapPost("/progression-design/preview", (ProgressionDesignPreviewRequest request, ProgressionDesignService service, CancellationToken token) =>

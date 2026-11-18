@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Keyboar
 import { createPortal } from 'react-dom'
 import { aiAssistApi } from '../api/aiAssistApi'
 import { valueAtPointer } from '../data/masterDataNavigation'
+import type { MasterPredictionSource, SearchLocalPredictions } from '../state/useMasterPredictions'
 import type { AiEditorSnapshot, AiPaneActions } from '../types/aiAssist'
 import type { JsonValue } from '../types/editor'
 
@@ -22,18 +23,24 @@ interface Props {
   actions: () => AiPaneActions | undefined
   active: boolean
   predictWhileTyping?: boolean
+  predictionSource?: MasterPredictionSource
   onApply: (pointer: string, value: string | string[], expected: AiEditorSnapshot) => void
   onUndoSuggestion?: () => void
   onConfigure: () => void
 }
 
 type TextControl = HTMLInputElement | HTMLTextAreaElement
-type Prediction = { input: TextControl; pointer: string; text: string; token: string | undefined; timer: ReturnType<typeof setTimeout> }
-type Completion = { input: TextControl; pointer: string; snapshot: AiEditorSnapshot; array: boolean; prefix?: string }
+type Prediction = { input: TextControl; pointer: string; text: string; token: string | undefined; timer: ReturnType<typeof setTimeout> | null }
+type Completion = { input: TextControl; pointer: string; snapshot: AiEditorSnapshot; array: boolean; prefix?: string; search?: SearchLocalPredictions }
 type AcceptedSuggestion = { input: TextControl; pointer: string; text: string; previousToken: string; token?: string }
 
 const predictionDelay = 800
 const proseFields = /^(?:name|displayName|title|label|description|lore|summary|text|message)$/i
+const shortcuts = 'Tabで採用 / ↑↓で選択 / Escで却下'
+
+function prosePointer(pointer: string) {
+  return proseFields.test(pointer.split('/').filter(segment => !/^\d+$/.test(segment)).at(-1) ?? '')
+}
 
 function textControl(target: EventTarget): TextControl | null {
   const input = target as TextControl
@@ -51,7 +58,7 @@ function fieldText(value: string | string[] | null) {
   return Array.isArray(value) ? value.join('\n') : value
 }
 
-export function MasterAiCompletion({ children, value, snapshot, actions, active, predictWhileTyping = false, onApply, onUndoSuggestion, onConfigure }: Props) {
+export function MasterAiCompletion({ children, value, snapshot, actions, active, predictWhileTyping = false, predictionSource, onApply, onUndoSuggestion, onConfigure }: Props) {
   const [candidates, setCandidates] = useState<string[]>([])
   const [selected, setSelected] = useState(0)
   const [busy, setBusy] = useState(false)
@@ -60,17 +67,19 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
   const host = useRef<HTMLDivElement>(null)
   const popover = useRef<HTMLElement>(null)
   const composing = useRef<{ input: TextControl; original: string } | null>(null)
+  const focusedText = useRef<{ input: TextControl; path: string; pointer: string; original: string } | null>(null)
   const pending = useRef<Prediction | null>(null)
   const accepted = useRef<AcceptedSuggestion | null>(null)
   const controller = useRef<AbortController | null>(null)
   const [target, setTarget] = useState<Completion | null>(null)
   const currentTarget = useRef<Completion | null>(null)
-  const latest = useRef({ value, actions, active, predictWhileTyping })
-  latest.current = { value, actions, active, predictWhileTyping }
+  const search = predictionSource?.search
+  const latest = useRef({ value, actions, active, predictWhileTyping, search })
+  latest.current = { value, actions, active, predictWhileTyping, search }
   const token = snapshot?.token
 
   const cancelPending = useCallback(() => {
-    if (pending.current) clearTimeout(pending.current.timer)
+    if (pending.current?.timer != null) clearTimeout(pending.current.timer)
     pending.current = null
   }, [])
   const dismiss = useCallback(() => {
@@ -86,16 +95,9 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
   }, [cancelPending])
   useLayoutEffect(() => {
     const completion = currentTarget.current
-    if (completion && (!active || completion.snapshot.token !== token || !predictWhileTyping && completion.prefix !== undefined)) dismiss()
-    const prediction = pending.current
-    if (prediction) {
-      if (!active || !predictWhileTyping || snapshot?.blocked ||
-        prediction.token !== undefined && prediction.token !== token ||
-        fieldText(aiCompletableValue(value, prediction.pointer)) !== prediction.text) cancelPending()
-      // The input's own onChange creates a new draft token before the debounce fires.
-      else prediction.token = token
-    }
-    if (!active) composing.current = null
+    if (completion && (!active || completion.snapshot.token !== token ||
+      completion.prefix !== undefined && (!predictWhileTyping || completion.search !== search))) dismiss()
+    if (!active) { composing.current = null; focusedText.current = null }
     const suggestion = accepted.current
     if (suggestion) {
       if (!active || snapshot?.blocked || !suggestion.input.isConnected ||
@@ -106,7 +108,7 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
         else accepted.current = null
       }
     }
-  }, [active, predictWhileTyping, snapshot?.blocked, token, value, cancelPending, dismiss])
+  }, [active, predictWhileTyping, snapshot?.blocked, token, value, search, dismiss])
   useLayoutEffect(() => () => {
     cancelPending()
     controller.current?.abort()
@@ -194,14 +196,14 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
     if (input && popover.current?.contains(input.ownerDocument.activeElement)) input.focus()
     dismiss()
   }
-  const generate = async (input: TextControl, pointer: string, currentValue: string | string[], prefix?: string) => {
+  const generate = useCallback(async (input: TextControl, pointer: string, currentValue: string | string[], prefix?: string) => {
     const pane = latest.current.actions()
     const expected = pane?.snapshot()
     if (!pane || !expected || expected.blocked) return
     dismiss()
     const request = new AbortController()
     controller.current = request
-    const field = { input, pointer, snapshot: expected, array: Array.isArray(currentValue), prefix }
+    const field = { input, pointer, snapshot: expected, array: Array.isArray(currentValue), prefix, search: latest.current.search }
     currentTarget.current = field
     setTarget(field)
     const automatic = prefix !== undefined
@@ -229,37 +231,64 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
       if (automatic && !suggestions.length && !warnings) { dismiss(); return }
       setCandidates(suggestions.slice(0, 3))
       setSelected(0)
-      const shortcuts = 'Tabで採用 / ↑↓で選択 / Escで却下'
       setMessage(suggestions.length ? (automatic && warnings ? `${warnings} ${shortcuts}` : shortcuts)
         : warnings || '候補がありません。入力を変えてCtrl+Spaceで再試行してください。')
     } catch (reason) { if (isCurrent()) setMessage(reason instanceof Error ? reason.message : String(reason)) }
     finally { if (controller.current === request) { controller.current = null; setBusy(false) } }
-  }
+  }, [dismiss])
+
+  const resolvePrediction = useCallback(() => {
+    const prediction = pending.current
+    if (!prediction) return
+    const { input, pointer, text } = prediction
+    const { value, actions, active, predictWhileTyping, search } = latest.current
+    const expected = actions()?.snapshot()
+    const field = aiCompletableValue(value, pointer)
+    if (!active || !predictWhileTyping || !expected || expected.blocked ||
+      prediction.token !== undefined && prediction.token !== expected.token ||
+      field === null || fieldText(field) !== text || composing.current?.input === input || !canContinue(input, text)) {
+      cancelPending()
+      return
+    }
+
+    // The field change creates a new draft token before this prediction is shown.
+    prediction.token = expected.token
+    const local = search?.(expected.path, pointer, text, input.maxLength < 0 ? Infinity : input.maxLength, input.tagName === 'TEXTAREA')
+    if (local?.suggestions.length) {
+      dismiss()
+      const next = { input, pointer, snapshot: expected, array: Array.isArray(field), prefix: text, search }
+      currentTarget.current = next
+      setTarget(next)
+      setCandidates(local.suggestions)
+      setSelected(0)
+      setMessage(shortcuts)
+    } else if (local?.indexReady && prediction.timer === null) {
+      if (text.replace(/\s/g, '').length >= 2) void generate(input, pointer, field, text)
+      else cancelPending()
+    }
+  }, [cancelPending, dismiss, generate])
+
+  useLayoutEffect(() => { resolvePrediction() }, [active, predictWhileTyping, token, value, search, resolvePrediction])
 
   const schedule = (eventTarget: EventTarget) => {
     accepted.current = null
     if (pending.current || currentTarget.current) dismiss()
     const input = textControl(eventTarget)
-    if (!predictWhileTyping || !active || snapshot?.blocked || !input || composing.current?.input === input) return
+    if (!predictWhileTyping || !active || !snapshot || snapshot.blocked || !input || composing.current?.input === input) return
     const pointer = input.getAttribute('aria-label') ?? ''
-    const key = pointer.split('/').filter(segment => !/^\d+$/.test(segment)).at(-1) ?? ''
     const currentValue = aiCompletableValue(value, pointer)
     const text = input.value
-    if (!proseFields.test(key) || currentValue === null || text.replace(/\s/g, '').length < 2 || text.length > 8000 ||
+    if (!prosePointer(pointer) || currentValue === null || !text.trim() || text.length > 8000 ||
       Array.isArray(currentValue) && currentValue.some(line => /[\r\n]/.test(line)) || !canContinue(input, text)) return
-    const timer = setTimeout(() => {
+    const timer = text.replace(/\s/g, '').length < 2 ? null : setTimeout(() => {
       const scheduled = pending.current
       if (!scheduled || scheduled.timer !== timer) return
-      pending.current = null
-      const { value, actions, active, predictWhileTyping } = latest.current
-      const current = actions()?.snapshot()
-      const field = aiCompletableValue(value, pointer)
-      if (!active || !predictWhileTyping || !current || current.blocked ||
-        scheduled.token !== undefined && scheduled.token !== current.token ||
-        field === null || fieldText(field) !== text || composing.current?.input === input || !canContinue(input, text)) return
-      void generate(input, pointer, field, text)
+      scheduled.timer = null
+      resolvePrediction()
     }, predictionDelay)
     pending.current = { input, pointer, text, token: fieldText(currentValue) === text ? token : undefined, timer }
+    // IME confirmation can arrive after the final change event has updated the form.
+    if (fieldText(currentValue) === text) resolvePrediction()
   }
 
   const keyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -309,10 +338,27 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
   }
   return <div ref={host} className="master-ai-completion-host"
     onKeyDownCapture={keyDown}
+    onFocusCapture={event => {
+      const input = textControl(event.target)
+      const pointer = input?.getAttribute('aria-label') ?? ''
+      if (predictWhileTyping && active && snapshot && !snapshot.blocked && input && prosePointer(pointer)) {
+        focusedText.current = { input, path: snapshot.path, pointer, original: input.value }
+      }
+    }}
     onChange={event => schedule(event.target)}
     onSelect={checkCaret}
     onPointerDownCapture={event => { if (!popover.current?.contains(event.target as Node) && (pending.current || currentTarget.current)) dismiss() }}
     onBlurCapture={event => {
+      const focused = focusedText.current
+      if (focused?.input === event.target) {
+        focusedText.current = null
+        const text = focused.input.value
+        if (predictWhileTyping && snapshot?.path === focused.path && !snapshot.blocked &&
+          composing.current?.input !== focused.input && text !== focused.original &&
+          fieldText(aiCompletableValue(value, focused.pointer)) === text) {
+          predictionSource?.remember(focused.path, focused.pointer, text)
+        }
+      }
       if (accepted.current?.input === event.target) accepted.current = null
       if (composing.current?.input === event.target) composing.current = null
       if (!popover.current?.contains(event.relatedTarget) && (pending.current || currentTarget.current)) dismiss()
