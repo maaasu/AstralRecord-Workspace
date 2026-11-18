@@ -4,7 +4,7 @@ import type { MasterCatalog, MasterFileSummary, MasterFilterIndex, MasterReferen
 import { categoryFacetOptions, categoryNumericOptions, inCategory, isDropSourceDirectory, type NumericFilters } from '../data/masterDataFilters'
 
 /** Catalog and list filters are shared by all open file tabs. */
-export function useMasterDataWorkspace(android = false) {
+export function useMasterDataWorkspace() {
   const [catalog, setCatalog] = useState<MasterCatalog | null>(null)
   const [files, setFiles] = useState<MasterFileSummary[]>([])
   const filesByPath = useMemo(() => new Map(files.map((file) => [file.path, file])), [files])
@@ -18,7 +18,7 @@ export function useMasterDataWorkspace(android = false) {
   const [notice, setNotice] = useState('')
   const [categoryId, setCategoryId] = useState('10.features.item')
   const [query, setQuery] = useState('')
-  const [searchScope, setSearchScope] = useState<'folder' | 'all'>(android ? 'all' : 'folder')
+  const [searchScope, setSearchScope] = useState<'folder' | 'all'>('folder')
   const [browserView, setBrowserView] = useState<'folders' | 'files'>('files')
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(() => new Set(['10.features.item']))
   const [numericFilters, setNumericFilters] = useState<NumericFilters>({})

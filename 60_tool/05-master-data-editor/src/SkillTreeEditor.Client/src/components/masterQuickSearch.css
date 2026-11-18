@@ -20,6 +20,7 @@
 .master-quick-search-message > p { margin: 0 0 8px; }
 .master-quick-search-more { width: 100%; padding: 8px; border: 0; background: var(--surface-soft); color: var(--accent); font: inherit; cursor: pointer; }
 .master-quick-search-popup > footer { flex-wrap: wrap; border-top: 1px solid var(--line); }
+html[data-editor-platform="android"] .master-quick-search-field > kbd { display: none; }
 @media (max-width: 1050px) {
   .master-quick-search { flex-basis: 280px; }
   .master-quick-search-field > kbd { display: none; }

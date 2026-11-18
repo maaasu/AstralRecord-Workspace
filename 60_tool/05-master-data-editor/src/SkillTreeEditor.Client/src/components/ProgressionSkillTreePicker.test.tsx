@@ -33,19 +33,15 @@ afterEach(() => {
 })
 
 describe('progression skill-tree selection', () => {
-  it('returns from the Android selection list before dismissing the picker', async () => {
+  it('displays Android selections in the picker and dismisses without applying on Back', async () => {
     window.history.replaceState(null, '', '/?mobile=android')
     const onApply = vi.fn(), onClose = vi.fn()
     render(<ProgressionSkillTreePicker context={context} values={[]} onApply={onApply} onClose={onClose} />)
     const node = await screen.findByRole('checkbox', { name: '剣の技' })
     fireEvent.click(node)
-    fireEvent.click(screen.getByRole('button', { name: '習得 1件を確認' }))
-
-    act(() => expect(handleAndroidDialogBack()).toBe(true))
-    expect(onClose).not.toHaveBeenCalled()
-    expect(onApply).not.toHaveBeenCalled()
     expect(node).toHaveAttribute('aria-checked', 'true')
-    expect(screen.getByRole('button', { name: '習得 1件を確認' })).toHaveFocus()
+    expect(screen.getByRole('heading', { name: '習得ノード 1件' })).toBeVisible()
+    expect(screen.getByRole('button', { name: '剣の技を習得から外す' })).toBeVisible()
 
     act(() => expect(handleAndroidDialogBack()).toBe(true))
     expect(onClose).toHaveBeenCalledOnce()
@@ -70,8 +66,7 @@ describe('progression skill-tree selection', () => {
     fireEvent.touchEnd(node, { touches: [], changedTouches: [point] })
     fireEvent.click(node)
     expect(node).toHaveAttribute('aria-checked', 'true')
-    fireEvent.click(screen.getByRole('button', { name: '習得 1件を確認' }))
-    expect(screen.getByRole('button', { name: 'ツリーに戻る' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('heading', { name: '習得ノード 1件' })).toBeVisible()
     expect(onApply).not.toHaveBeenCalled()
     fireEvent.click(apply())
     expect(onApply).toHaveBeenCalledExactlyOnceWith([3])

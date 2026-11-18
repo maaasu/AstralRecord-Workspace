@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useState } from 'react'
 import { editorApi } from './api/editorApi'
 import { isAndroidEditor } from './androidEditor'
+import { AndroidDisplayScale, useAndroidDisplayScale } from './androidDisplayScale'
 import { toolJobApi, type ToolCapabilities } from './api/toolJobApi'
 import { DesktopToolRunHistoryProvider, DesktopToolWorkspace } from './components/DesktopToolWorkspace'
 import { MasterQuickSearch } from './components/MasterQuickSearch'
@@ -82,13 +83,14 @@ export default function App() {
 }
 
 function AndroidWorkspace() {
+  const displayScale = useAndroidDisplayScale()
   useLayoutEffect(() => {
     document.documentElement.dataset.editorPlatform = 'android'
     return () => { delete document.documentElement.dataset.editorPlatform }
   }, [])
   return <div className="android-editor-shell">
     <Suspense fallback={<div className="loading-screen" role="status">エディタを読み込んでいます…</div>}>
-      <MasterDataEditor android />
+      <MasterDataEditor android headerAction={<AndroidDisplayScale {...displayScale} />} />
     </Suspense>
   </div>
 }

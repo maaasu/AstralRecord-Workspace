@@ -1,9 +1,4 @@
-/* Scope app styling to the Android entry, including dialogs portaled into body. */
-html[data-editor-platform="android"] {
-  --android-target: 48px;
-  --android-edge: 12px;
-}
-
+/* The tablet keeps the PC editor's three panes at every display scale. */
 .android-editor-shell {
   height: 100%;
   height: 100dvh;
@@ -13,22 +8,43 @@ html[data-editor-platform="android"] {
 .android-master-editor .android-master-heading {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
   flex: 0 0 auto;
-  padding: 10px var(--android-edge);
+  gap: 12px;
+  padding: 6px 10px;
   border-bottom: 1px solid var(--line);
   background: var(--surface-sidebar);
 }
 
 .android-master-heading h1 {
+  flex: 0 0 auto;
   margin: 0;
-  font-size: 16px;
+  font-size: 14px;
 }
 
-.android-master-editor .android-master-workbench {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+.android-master-heading > .editor-command-button {
+  flex: 0 0 auto;
+}
+
+.android-master-heading .master-quick-search {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.android-master-heading .master-quick-search-popup {
+  width: max(100%, min(460px, 62vw));
+}
+
+.android-master-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.android-master-editor .master-workbench.android-master-workbench {
+  grid-template-columns:
+    clamp(min(300px, 48%), var(--browser-width), max(48%, calc(100% - 307px)))
+    7px minmax(0, 1fr);
 }
 
 .android-master-workbench > .master-sidebar.master-browser {
@@ -38,272 +54,161 @@ html[data-editor-platform="android"] {
   box-shadow: none;
 }
 
+.android-master-editor .android-master-workbench.browser-hidden {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .android-master-editor .master-workbench.android-master-workbench > .master-document-area {
   visibility: visible;
 }
 
-.android-master-workbench[data-pane="editor"] > .master-browser,
-.android-master-workbench[data-pane="files"] > .master-document-area {
-  display: none;
-}
-
-.android-master-editor .master-browser-heading > div {
-  flex: 1;
-  justify-content: flex-start;
-}
-
-.android-master-editor .master-browser-heading > div > :last-child {
-  margin-left: auto;
-  min-width: var(--android-target);
-  font-size: 19px;
-}
-
-.android-master-editor .master-browser-switch {
-  display: flex;
-  flex-shrink: 0;
-  gap: 6px;
-  padding: 8px var(--android-edge);
-}
-
-.android-master-editor .master-browser-switch > button {
-  flex: 1;
-}
-
 .android-master-editor .master-browser-columns {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns:
+    clamp(min(112px, 43%), var(--folder-width), max(43%, calc(100% - 173px)))
+    7px minmax(0, 1fr);
 }
 
-.android-master-editor :is(.master-folder-pane, .master-results-pane) {
-  flex: 1;
+.android-master-editor .dock-master-files {
+  min-width: 0;
 }
 
-.android-master-editor .master-browser[data-browser-view="files"] .master-folder-pane,
-.android-master-editor .master-browser[data-browser-view="folders"] .master-results-pane {
-  display: none;
+.android-master-editor :is(.master-browser-resizer, .master-folder-resizer) {
+  display: block;
+  touch-action: none;
+}
+
+.android-master-editor :is(.master-browser-resizer, .master-folder-resizer)::before {
+  content: "";
+  position: absolute;
+  inset: 0 -5px;
 }
 
 .android-master-editor .master-result-search > label {
-  font-size: 13px;
+  min-width: 0;
 }
 
-.android-master-editor .master-search-input input {
-  padding-right: 52px;
-}
-
-.android-master-editor .master-search-input > button {
-  right: 0;
-  width: var(--android-target);
-  height: var(--android-target);
-  font-size: 19px;
-}
-
-.android-master-editor .master-category-row {
-  min-height: var(--android-target);
-  font-size: 14px;
-  padding-left: calc(var(--category-depth) * 10px);
-}
-
-.android-master-editor .master-category-chevron {
-  width: var(--android-target);
-  height: var(--android-target);
-  flex-basis: var(--android-target);
-}
-
-.android-master-editor .master-category-guides {
-  display: none;
+.android-master-editor .master-search-scope > label {
+  flex-basis: min(85px, 100%);
 }
 
 .android-master-editor .master-results-pane .master-file {
-  min-height: 56px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 6px;
+  padding: 7px 8px;
 }
 
-.android-master-editor .master-results-pane .master-file strong {
-  font-size: 14px;
+.android-master-editor .master-file-identity {
+  grid-area: 1 / 1 / 2 / -1;
 }
 
-.android-master-editor :is(.master-current-file, .master-results-heading, .master-result-search) {
-  padding-inline: var(--android-edge);
+.android-master-editor .master-file:has(.master-result-badges:not(:empty)) .master-file-identity {
+  grid-column: 1;
 }
 
-.android-master-editor .master-current-file {
-  padding-block: 0;
+.android-master-editor .master-file-identity strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.android-master-editor .master-result-eyebrow {
-  display: none;
+.android-master-editor .master-results-pane .master-list-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.android-master-editor .master-result-badges {
+  grid-area: 1 / 2;
+  max-width: 8em;
+}
+
+.android-master-editor .master-result-path {
+  grid-area: 2 / 1 / 3 / -1;
+}
+
+.android-master-editor .master-result-location {
+  grid-area: 3 / 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.android-master-editor .master-file:not(:has(> code)) .master-result-location {
+  grid-column: 1 / -1;
+}
+
+.android-master-editor .master-file > code {
+  grid-area: 3 / 2;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.android-master-editor .master-file:not(:has(.master-result-location)) > code {
+  grid-column: 1 / -1;
+}
+
+.android-master-editor .master-category-chevron {
+  width: 26px;
+  flex-basis: 26px;
+}
+
+.android-master-editor .master-category-row {
+  padding-left: calc(4px + var(--category-depth) * 10px);
+}
+
+.android-master-editor .master-category-guides i {
+  width: 10px;
 }
 
 .android-master-editor .master-document-tabs {
   overscroll-behavior-x: contain;
 }
 
-.android-master-editor .master-document-tab > [role="tab"] {
-  min-width: 85px;
-  max-width: min(46vw, 180px);
-}
-
-.android-master-editor :is(.master-tab-close, .master-tab-pin) {
-  width: var(--android-target);
-  height: var(--android-target);
-  flex: 0 0 var(--android-target);
-  border: 0;
-  background: transparent;
-  color: var(--text-muted);
-}
-
 .android-master-editor .master-tab-pin {
+  flex: 0 0 auto;
+  min-width: 34px;
+  min-height: 34px;
+  margin-right: 2px;
+  border: 0;
+  border-radius: var(--radius-small);
+  background: transparent;
   color: var(--accent);
-  font-weight: 650;
-  font-size: 12px;
+  font-size: 11px;
+  cursor: pointer;
 }
 
-.android-master-editor .master-tab-search-trigger {
-  margin: 4px;
-  white-space: nowrap;
+.android-master-editor .master-tab-pin:is(:hover, :focus-visible) {
+  background: var(--surface-soft);
+}
+
+.android-master-editor .master-tab-close {
+  min-width: 30px;
+  min-height: 34px;
 }
 
 .android-master-editor .master-document-header,
 .android-master-editor .master-main-toolbar {
-  padding: 4px var(--android-edge);
-}
-
-.android-master-editor .master-main-toolbar {
-  justify-content: space-between;
-}
-
-.android-master-editor .master-main-toolbar > .master-toolbar-group + .master-toolbar-group {
-  padding-left: 0;
-  border: 0;
+  padding: 7px 10px;
 }
 
 .android-master-editor .master-edit-area {
-  padding: 8px var(--android-edge) 24px;
-  min-height: 80px;
+  padding: 12px;
   overscroll-behavior-y: contain;
 }
 
-.android-master-editor .master-form-navigation {
-  position: static;
-  padding-top: 0;
-}
-
-.android-master-editor .master-section-links {
-  flex-wrap: nowrap;
-  max-height: none;
-  overflow-x: auto;
-}
-
-.android-file-actions {
-  margin-bottom: 8px;
-}
-
-.android-file-actions > summary {
-  color: var(--accent);
-  padding-inline: 8px;
-}
-
-.android-master-editor .master-secondary-toolbar {
-  gap: 4px;
-  margin-bottom: 0;
-}
-
-.android-master-editor .master-save-actions {
-  display: flex;
-  gap: 8px;
-  flex: 0 0 auto;
-  padding: 6px var(--android-edge);
-  border-top: 1px solid var(--line);
-  background: var(--surface-sidebar);
-}
-
-.android-master-editor .master-save-actions > button {
-  flex: 1;
-}
-
-.android-master-editor .master-save-actions > .primary {
-  flex: 2;
-}
-
 .android-master-editor .master-validation {
-  padding: 0 var(--android-edge);
-  overflow: auto;
-  flex: 0 0 auto;
-  max-height: min(25dvh, 180px);
-}
-
-.android-master-navigation {
-  display: flex;
-  flex-shrink: 0;
-  gap: 8px;
-  padding: 5px var(--android-edge) calc(5px + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--line);
-  background: var(--surface-sidebar);
-}
-
-.android-master-navigation > button {
-  flex: 1;
-  border: 1px solid transparent;
-  border-radius: var(--radius-control);
-  background: transparent;
-  font-size: 14px;
-  font-weight: 650;
-}
-
-.android-master-navigation > button[aria-pressed="true"] {
-  background: var(--accent-soft);
-  border-color: var(--line-bright);
-  color: var(--accent);
-}
-
-.android-master-navigation > button:disabled {
-  opacity: .45;
-}
-
-html[data-editor-platform="android"] :is(.android-master-editor, [aria-modal="true"], [role="menu"])
-  :is(button, a.button, select, input:not([type="checkbox"], [type="radio"], [type="range"]), summary) {
-  min-height: var(--android-target);
-  touch-action: manipulation;
-}
-
-html[data-editor-platform="android"] :is(.android-master-editor, [aria-modal="true"]) summary {
-  align-content: center;
-}
-
-html[data-editor-platform="android"] :is(.android-master-editor, [aria-modal="true"]) .icon-button {
-  min-width: var(--android-target);
-}
-
-html[data-editor-platform="android"] :is(.android-master-editor, [aria-modal="true"]) :is(input, textarea, select) {
-  font-size: 16px;
-}
-
-html[data-editor-platform="android"] :is(.android-master-editor, [aria-modal="true"]) :is(input[type="checkbox"], input[type="radio"]) {
-  width: 22px;
-  height: 22px;
-}
-
-html[data-editor-platform="android"] :is(.android-master-editor, [aria-modal="true"]) :is(.button, .text-button) {
-  font-size: 13px;
-}
-
-html[data-editor-platform="android"] :is(.modal-backdrop, .material-picker-backdrop, .material-picker-loading) {
-  padding: 8px;
+  max-height: 30%;
 }
 
 html[data-editor-platform="android"] :is(.modal, .material-picker-dialog, .material-picker-loading-panel) {
-  max-width: calc(100vw - 16px);
-  max-height: calc(100dvh - 16px);
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
 }
 
-html[data-editor-platform="android"] :is(.modal-header, .modal-body, .modal-footer) {
-  padding: 10px 12px;
-}
-
-html[data-editor-platform="android"] :is(.modal-header, .material-picker-header, .master-entity-picker-header) h2 {
-  font-size: 17px;
-  line-height: 1.4;
-  overflow-wrap: anywhere;
+html[data-editor-platform="android"] :is(.modal-backdrop, .material-picker-backdrop, .material-picker-loading) {
+  padding: 12px;
 }
 
 .android-draft-copy {
@@ -320,8 +225,13 @@ html[data-editor-platform="android"] :is(.modal-header, .material-picker-header,
   justify-content: space-between;
 }
 
-html[data-editor-platform="android"] .progression-tree-dialog .modal-header button {
-  flex-shrink: 0;
+html[data-editor-platform="android"] .progression-tree-dialog {
+  height: min(920px, calc(100dvh - 24px));
+}
+
+html[data-editor-platform="android"] .progression-tree-content {
+  grid-template-columns: minmax(0, 1fr) clamp(155px, 30%, 300px);
+  grid-template-rows: minmax(0, 1fr);
 }
 
 html[data-editor-platform="android"] .progression-tree-canvas > .canvas {
@@ -335,61 +245,4 @@ html[data-editor-platform="android"] .progression-tree-canvas .react-flow__rende
 html[data-editor-platform="android"] .progression-tree-canvas .react-flow__handle {
   opacity: 0;
   pointer-events: none;
-}
-
-html[data-editor-platform="android"] .progression-tree-canvas .canvas-controls button {
-  font-size: 12px;
-}
-
-html[data-editor-platform="android"] .progression-tree-canvas .canvas-zoom button {
-  min-width: var(--android-target);
-}
-
-html[data-editor-platform="android"] .progression-tree-selected-toggle {
-  display: none;
-}
-
-@media (min-width: 800px) {
-  .android-master-editor .android-master-workbench {
-    grid-template-columns: minmax(285px, min(36%, 390px)) minmax(0, 1fr);
-  }
-  .android-master-workbench[data-pane="files"] > .master-document-area,
-  .android-master-workbench[data-pane="editor"] > .master-browser {
-    display: flex;
-  }
-  .android-master-navigation {
-    display: none;
-  }
-}
-
-@media (max-width: 800px) {
-  html[data-editor-platform="android"] .progression-tree-dialog {
-    height: calc(100dvh - 16px);
-  }
-  html[data-editor-platform="android"] .progression-tree-content {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr);
-  }
-  html[data-editor-platform="android"] .progression-tree-content[data-show-selected="true"] .progression-tree-canvas,
-  html[data-editor-platform="android"] .progression-tree-content[data-show-selected="false"] .progression-tree-selection,
-  html[data-editor-platform="android"] :is(.progression-tree-footer-count, .progression-tree-canvas .react-flow__minimap) {
-    display: none;
-  }
-  html[data-editor-platform="android"] .progression-tree-selected-toggle {
-    display: inline-block;
-  }
-  html[data-editor-platform="android"] .progression-tree-dialog .modal-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    flex-wrap: nowrap;
-  }
-}
-
-@media (max-height: 490px) {
-  .android-master-editor:has(.master-edit-area :is(input, textarea):focus)
-    :is(.android-master-heading, .android-master-navigation, .master-tab-bar, .master-document-header, .master-main-toolbar) {
-    display: none;
-  }
 }
