@@ -30,7 +30,8 @@ const noFiles: MasterFileSummary[] = []
 
 export function MasterFileBrowser({ android = false, workspace: w, selectedPath, busy, active, onOpen, onNew, onImport, onDialogChange }: MasterFileBrowserProps) {
   const docking = useDocking()
-  const [folderWidth, setFolderWidth] = usePanelSize('master-folders', 200, 150, 500)
+  const folderSize = android ? { min: 112, initial: 146, max: 340, minRemaining: 166 } : { min: 150, initial: 200, max: 500, minRemaining: 220 }
+  const [folderWidth, setFolderWidth] = usePanelSize(android ? 'tablet-master-folders' : 'master-folders', folderSize.initial, folderSize.min, folderSize.max)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [pathsOpen, setPathsOpen] = useState(false)
   const [virtualFolder, setVirtualFolder] = useState<{ directory: string; label: string } | null>(null)
@@ -181,13 +182,27 @@ export function MasterFileBrowser({ android = false, workspace: w, selectedPath,
     <DockPanelContent id="master-folders"><div className="dock-master-folders">{folders}{pathsDialog}</div></DockPanelContent>
     <DockPanelContent id="master-files"><div className="dock-master-files">{heading}{revealControl}{results}{filterDialog}</div></DockPanelContent>
   </>
-  return <><aside className="master-sidebar master-browser" hidden={w.sidebarCollapsed} data-browser-view={w.browserView} aria-label="マスターファイルを探す" tabIndex={android ? -1 : undefined}>
+  const folderResize = <ResizeHandle label="フォルダと検索結果の幅を変更" size={folderWidth}
+    min={folderSize.min} max={folderSize.max} defaultSize={folderSize.initial} minRemaining={folderSize.minRemaining}
+    onResize={setFolderWidth} className="master-folder-resizer" />
+  const columnsStyle = { '--folder-width': `${folderWidth}px` } as CSSProperties
+  if (android) return <>
+    <aside className="master-sidebar master-browser" id="tablet-master-browser" hidden={w.sidebarCollapsed} aria-label="マスターファイルを探す">
+      <div className="master-browser-columns" style={columnsStyle}>
+        {folders}
+        {folderResize}
+        <div className="dock-master-files">{heading}{revealControl}{results}</div>
+      </div>
+    </aside>
+    {filterDialog}
+  </>
+  return <><aside className="master-sidebar master-browser" hidden={w.sidebarCollapsed} data-browser-view={w.browserView} aria-label="マスターファイルを探す">
     {heading}
     <div className="master-browser-switch" role="group" aria-label="ファイル一覧の表示"><button type="button" className="button" aria-pressed={w.browserView === 'folders'} onClick={() => w.setBrowserView('folders')}>フォルダ</button><button type="button" className="button" aria-pressed={w.browserView === 'files'} onClick={() => w.setBrowserView('files')}>ファイル・検索結果</button></div>
-    {(!android || selectedPath) && revealControl}
-    <div className="master-browser-columns" style={{ '--folder-width': `${folderWidth}px` } as CSSProperties}>
+    {revealControl}
+    <div className="master-browser-columns" style={columnsStyle}>
       {folders}
-      {!android && <ResizeHandle label="フォルダと検索結果の幅を変更" size={folderWidth} min={150} max={500} defaultSize={200} minRemaining={220} onResize={setFolderWidth} className="master-folder-resizer" />}
+      {folderResize}
       {results}
     </div>
   </aside>

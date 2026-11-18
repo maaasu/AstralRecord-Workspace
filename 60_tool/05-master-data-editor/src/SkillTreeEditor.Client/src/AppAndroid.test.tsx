@@ -12,7 +12,6 @@ const first: MasterDocument = {
 }
 const second: MasterDocument = { ...first, path: 'skills/b.yml', revision: 'second', raw: 'name: Second\n', content: { name: 'Second' } }
 const openFile = (name: string) => fireEvent.click(screen.getByRole('button', { name: new RegExp(name) }))
-const currentPane = () => document.querySelector('.android-master-workbench')?.getAttribute('data-pane')
 const waitForEditor = () => screen.findByRole('heading', { name: 'マスターデータ' }, { timeout: 5_000 })
 
 beforeEach(() => {
@@ -41,12 +40,19 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-it('opens straight into the file list and keeps pinned tabs and dirty drafts when returning to the list', async () => {
+it('keeps the folder, list, and editor panes available while pinning tabs and editing on Android', async () => {
   const postMessage = vi.fn()
   vi.stubGlobal('chrome', { webview: { postMessage } })
   render(<App />)
   await waitForEditor()
-  expect(currentPane()).toBe('files')
+  const folders = screen.getByRole('region', { name: 'フォルダ一覧' })
+  const results = screen.getByRole('region', { name: 'ファイル検索と結果' })
+  const editor = screen.getByRole('region', { name: 'マスターの編集領域' })
+  expect(folders).toBeVisible()
+  expect(results).toBeVisible()
+  expect(editor).toBeVisible()
+  expect(screen.getByRole('separator', { name: 'フォルダと検索結果の幅を変更' })).toBeVisible()
+  expect(screen.getByRole('separator', { name: 'ファイル一覧と編集領域の幅を変更' })).toBeVisible()
   expect(screen.queryByRole('button', { name: 'Android接続' })).not.toBeInTheDocument()
   expect(screen.queryByText('AIアシスト')).not.toBeInTheDocument()
   expect(editorApi.metadata).not.toHaveBeenCalled()
@@ -54,12 +60,12 @@ it('opens straight into the file list and keeps pinned tabs and dirty drafts whe
   expect(window.astralEditorBack?.()).toBe(false)
 
   openFile('First')
-  expect(currentPane()).toBe('editor')
   const firstName = await screen.findByRole('textbox', { name: '/name' })
+  expect(folders).toBeVisible()
+  expect(results).toBeVisible()
+  expect(screen.getByRole('button', { name: '保存' }).closest('.master-main-toolbar')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'a.yml のタブを保持' }))
   expect(screen.getByRole('tab', { name: 'First' })).toBeInTheDocument()
-  act(() => expect(window.astralEditorBack?.()).toBe(true))
-  expect(currentPane()).toBe('files')
 
   openFile('Second')
   const secondName = await screen.findByRole('textbox', { name: '/name' })
@@ -68,15 +74,36 @@ it('opens straight into the file list and keeps pinned tabs and dirty drafts whe
   fireEvent.click(screen.getByRole('button', { name: 'b.yml のタブを閉じる' }))
   expect(await screen.findByRole('dialog', { name: '未保存の編集内容' })).toBeInTheDocument()
   act(() => expect(window.astralEditorBack?.()).toBe(true))
-  expect(currentPane()).toBe('editor')
   expect(secondName).toHaveValue('Edited')
   expect(firstName).toHaveValue('First')
-  act(() => expect(window.astralEditorBack?.()).toBe(true))
-  expect(currentPane()).toBe('files')
   expect(window.astralEditorBack?.()).toBe(false)
   expect(window.astralEditorHasUnsavedChanges?.()).toBe(true)
-  fireEvent.click(screen.getByRole('button', { name: '編集 (2)' }))
+  expect(secondName).toBeVisible()
+
+  const toggle = screen.getByRole('button', { name: 'フォルダとファイル一覧' })
+  fireEvent.click(toggle)
+  expect(toggle).toHaveAttribute('aria-expanded', 'false')
+  expect(folders).not.toBeVisible()
+  expect(results).not.toBeVisible()
   expect(secondName).toHaveValue('Edited')
+  act(() => expect(window.astralEditorBack?.()).toBe(true))
+  expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  expect(folders).toBeVisible()
+  expect(results).toBeVisible()
+  expect(secondName).toHaveValue('Edited')
+})
+
+it('supports PC quick search in the Android header while retaining the filtered list', async () => {
+  render(<App />)
+  await waitForEditor()
+  const listQuery = screen.getByRole('textbox', { name: 'マスター検索' })
+  fireEvent.change(listQuery, { target: { value: 'First' } })
+  const quick = screen.getByRole('combobox', { name: 'マスターをクイック検索' })
+  fireEvent.focus(quick)
+  fireEvent.change(quick, { target: { value: 'Second' } })
+  fireEvent.click(await screen.findByRole('option', { name: /Second/ }))
+  await waitFor(() => expect(screen.getByRole('textbox', { name: '/name' })).toHaveValue('Second'))
+  expect(listQuery).toHaveValue('First')
 })
 
 it('restores a persisted Android draft after a fresh editor mounts', async () => {

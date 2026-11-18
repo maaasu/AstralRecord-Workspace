@@ -7,24 +7,23 @@ interface ModalProps {
   ariaLabel: string
   className?: string
   onClose: () => void
-  onAndroidBack?: () => void
   closeDisabled?: boolean
   ownerDocument?: Document
 }
 
 /** Keep modal keyboard operations and focus inside the active dialog. */
-export function Modal({ children, ariaLabel, className = '', onClose, onAndroidBack = onClose, closeDisabled = false, ownerDocument }: ModalProps) {
+export function Modal({ children, ariaLabel, className = '', onClose, closeDisabled = false, ownerDocument }: ModalProps) {
   const panelDocument = usePanelDocument()
   const document = ownerDocument ?? panelDocument
   const visible = usePanelVisibility()
   const dialogRef = useRef<HTMLElement>(null)
-  const closeRef = useRef({ onClose, onAndroidBack, closeDisabled })
-  closeRef.current = { onClose, onAndroidBack, closeDisabled }
+  const closeRef = useRef({ onClose, closeDisabled })
+  closeRef.current = { onClose, closeDisabled }
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog || !visible) return
     const unregisterBack = registerAndroidDialog(dialog, () => {
-      if (!closeRef.current.closeDisabled) closeRef.current.onAndroidBack()
+      if (!closeRef.current.closeDisabled) closeRef.current.onClose()
     })
     const previousFocus = document.activeElement as HTMLElement | null
     const previousOverflow = document.body.style.overflow
