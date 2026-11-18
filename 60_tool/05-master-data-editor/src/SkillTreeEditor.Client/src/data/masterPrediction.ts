@@ -61,6 +61,7 @@ export function findLocalPredictions(
   maxLength: number,
   multiline = false,
 ): string[] {
+  if (prefix === '') return findMatches(index, history, path, pointer, prefix, maxLength, multiline, true)
   const exact = findMatches(index, history, path, pointer, prefix, maxLength, multiline)
   if (exact.length) return exact
 
@@ -82,7 +83,7 @@ function findMatches(
   visibleOnly = false,
 ): string[] {
   const field = fieldLocation(pointer)
-  if (!field.key || !prefix.trim() || prefix.length >= maxLength) return []
+  if (!field.key || (prefix !== '' && !prefix.trim()) || prefix.length >= maxLength) return []
   const category = categoryOf(path)
   const best: RankedPrediction[] = []
 
