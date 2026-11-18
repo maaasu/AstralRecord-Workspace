@@ -212,7 +212,56 @@ describe('AI master editor integration', () => {
     expect(masterDataApi.save).not.toHaveBeenCalled()
   })
 
-  it('uses text previously entered in a field after leaving it', async () => {
+  it('shows local candidates on click and appends to the entire field even when the caret is in the middle', async () => {
+    vi.mocked(masterDataApi.predictionIndex).mockResolvedValue([
+      { path: other.path, fieldPointer: '/name', text: '元の剣を守る護符' },
+    ])
+    await openFile()
+    vi.useFakeTimers()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'AI予測変換' })))
+    const name = screen.getByRole<HTMLInputElement>('textbox', { name: '/name' })
+    name.focus()
+    name.setSelectionRange(1, 1)
+    expect(screen.queryByRole('listbox', { name: 'AI補完候補' })).not.toBeInTheDocument()
+    fireEvent.click(name)
+    expect(screen.getByRole('option', { name: /を守る護符/ })).toBeVisible()
+    expect(name).toHaveValue('元の剣')
+
+    await act(() => vi.advanceTimersByTimeAsync(1000))
+    fireEvent.keyDown(name, { key: 'Tab' })
+    expect(name).toHaveValue('元の剣を守る護符')
+    expect(name).toHaveFocus()
+    expect(aiAssistApi.settings).not.toHaveBeenCalled()
+    expect(aiAssistApi.propose).not.toHaveBeenCalled()
+    expect(masterDataApi.save).not.toHaveBeenCalled()
+  })
+
+  it('makes no cloud request on a local click miss and still falls back after editing', async () => {
+    vi.mocked(aiAssistApi.propose).mockResolvedValue(result([], 'complete', ['暁の護符']))
+    await openFile()
+    vi.useFakeTimers()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'AI予測変換' })))
+    const name = screen.getByRole<HTMLInputElement>('textbox', { name: '/name' })
+    name.focus()
+    name.setSelectionRange(name.value.length, name.value.length)
+    fireEvent.click(name)
+
+    await act(() => vi.advanceTimersByTimeAsync(1000))
+    expect(screen.queryByRole('listbox', { name: 'AI補完候補' })).not.toBeInTheDocument()
+    expect(aiAssistApi.settings).not.toHaveBeenCalled()
+    expect(aiAssistApi.propose).not.toHaveBeenCalled()
+
+    fireEvent.change(name, { target: { value: '暁の', selectionStart: 2, selectionEnd: 2 } })
+    expect(aiAssistApi.propose).not.toHaveBeenCalled()
+    await act(() => vi.advanceTimersByTimeAsync(1000))
+    expect(aiAssistApi.propose).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      mode: 'complete', completionStyle: 'continue', fieldPointer: '/name',
+    }), expect.any(AbortSignal))
+    expect(screen.getByRole('option', { name: /護符/ })).toBeVisible()
+    expect(name).toHaveValue('暁の')
+  })
+
+  it('uses text previously entered in a field when clicking it after leaving it', async () => {
     await openFile()
     vi.useFakeTimers()
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'AI予測変換' })))
@@ -222,6 +271,9 @@ describe('AI master editor integration', () => {
     act(() => name.blur())
     act(() => name.focus())
     fireEvent.change(name, { target: { value: '暁の', selectionStart: 2, selectionEnd: 2 } })
+    fireEvent.keyDown(name, { key: 'Escape' })
+    expect(screen.queryByRole('listbox', { name: 'AI補完候補' })).not.toBeInTheDocument()
+    fireEvent.click(name)
     expect(screen.getByRole('option', { name: /護符/ })).toBeVisible()
     await act(() => vi.advanceTimersByTimeAsync(1000))
     expect(aiAssistApi.propose).not.toHaveBeenCalled()
