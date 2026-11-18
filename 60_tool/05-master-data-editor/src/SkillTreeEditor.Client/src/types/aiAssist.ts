@@ -19,6 +19,7 @@ export interface AiProposalRequest {
   sourcePath?: string
   raw?: string
   fieldPointer?: string
+  completionStyle?: 'continue'
   paths?: string[]
 }
 export interface AiProposalResponse { mode: string; model: string; suggestions: string[]; proposals: AiProposal[]; warnings: string[] }

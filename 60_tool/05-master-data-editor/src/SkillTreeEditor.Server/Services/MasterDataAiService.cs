@@ -12,6 +12,10 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
 {
     private readonly SemaphoreSlim _requests = new(1, 1);
     private static readonly string[] IdentityKeys = ["id", "nodeId", "structureId", "schemaVersion", "$schema"];
+    private static readonly HashSet<string> ContinuationFields = new(StringComparer.OrdinalIgnoreCase)
+        { "name", "displayName", "title", "label", "description", "lore", "summary", "text", "message" };
+    private const int MaxContinuationTextLength = 8000;
+    internal const int MaxContinuationSuffixLength = 120;
 
     public async Task<MasterDataAiResult> GenerateAsync(MasterDataAiRequest request, CancellationToken token)
     {
@@ -24,6 +28,9 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
     private async Task<MasterDataAiResult> GenerateCoreAsync(MasterDataAiRequest request, CancellationToken token)
     {
         if (request.Mode is not ("create" or "complete" or "batch")) throw new ArgumentException("AI の操作を選択してください。");
+        bool continuation = request.CompletionStyle == "continue" && request.Mode == "complete";
+        if (request.CompletionStyle is not null && !continuation)
+            throw new ArgumentException("入力補完の方式を確認してください。");
         if (string.IsNullOrWhiteSpace(request.Instruction) || request.Instruction.Length > 8000)
             throw new ArgumentException("指示は1〜8000文字で入力してください。");
         if (request.Raw?.Length > 64_000 || request.CategoryId?.Length > 512 || request.SourcePath?.Length > 512
@@ -37,6 +44,9 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
         MasterDataDocument? draft = null;
         string[] pointer = [];
         bool arrayCompletion = false;
+        string? currentText = null;
+        bool multilineContinuation = false;
+        MasterDataField? continuationField = null;
         if (request.Mode == "batch")
         {
             if (request.Paths is not { Count: > 0 and <= 10 } || request.Raw is not null || request.SourcePath is not null)
@@ -118,6 +128,26 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
                     && !(value is null && field is not null && field.Type is "String" or "string" or "String[]" or "string[]"))
                     throw new MasterDataAiException(400, "入力補完は文字列または文字列配列のフィールドで利用できます。");
                 if (value is null) arrayCompletion = field!.Type.EndsWith("[]", StringComparison.Ordinal);
+                if (continuation)
+                {
+                    var key = pointer.LastOrDefault(part => !int.TryParse(part, out _));
+                    if (key is null || !ContinuationFields.Contains(key) || field?.Enum is not null
+                        || pointer.Any(part => Regex.IsMatch(part,
+                            @"\A(?:\$.*|.*ids?|version|.*path|.*url|.*uri|.*uuid|.*key|.*type|.*material|icon|iconTexture|iconModel|tags?|.*refs?|.*references?|from|to|parent|source|target)\z",
+                            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)))
+                        throw new MasterDataAiException(400, "続きの予測は名前や説明などの自由入力欄で利用できます。");
+                    currentText = value switch
+                    {
+                        JsonValue text => text.GetValue<string>(),
+                        JsonArray lines when lines.All(line => line!.GetValue<string>().IndexOfAny(['\r', '\n']) < 0)
+                            => string.Join('\n', lines.Select(line => line!.GetValue<string>())),
+                        _ => null
+                    };
+                    if (string.IsNullOrWhiteSpace(currentText) || currentText.Length > MaxContinuationTextLength)
+                        throw new MasterDataAiException(400, "続きの予測には後ろに追記できる8000文字以内の入力が必要です。");
+                    multilineContinuation = arrayCompletion || currentText.Contains('\n');
+                    continuationField = field;
+                }
             }
         }
 
@@ -128,7 +158,12 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
         if (request.Mode == "batch")
             foreach (var directory in originals.Keys.Select(path => paths.Relative(Path.GetDirectoryName(paths.Resolve(path))!)).Distinct(StringComparer.Ordinal))
                 categories.Add(await catalog.GetAsync(directory, token));
-        var context = JsonSerializer.Serialize(new
+        object input = continuation ? new
+        {
+            fieldPointer = request.FieldPointer, currentText,
+            field = continuationField is null ? null : new { continuationField.Label, continuationField.Type },
+            multiline = multilineContinuation
+        } : new
         {
             mode = request.Mode, instruction = request.Instruction, categoryId = request.CategoryId,
             createTargetCategoryIds = createTargets.Keys,
@@ -143,27 +178,45 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
                     || !category.Fields.Any(shared => shared.Path == field.Path && shared.Source == field.Source)).Take(120), schemas = metadata.JsonSchemas.Take(2),
                 templates = metadata.Templates.Take(request.Mode == "create" ? (createTargets.Count > 1 ? 1 : 3) : 0).Select(value => new { value.Path, raw = value.Raw.Length <= 24_000 ? value.Raw : "（大きいため省略）" })
             })
-        }, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        };
+        var context = JsonSerializer.Serialize(input, new JsonSerializerOptions(JsonSerializerDefaults.Web));
         if (context.Length > 240_000) throw new ArgumentException("対象原稿やスキーマが大きすぎます。対象を減らしてください。");
         var generated = await provider.GenerateAsync(credentials.Key, credentials.Model, context, token,
-            new(request.Mode, request.Mode == "create" ? createTargets.Keys.ToArray() : originals.Keys.ToArray()));
+            new(request.Mode, request.Mode == "create" ? createTargets.Keys.ToArray() : originals.Keys.ToArray(), continuation));
         if (request.Mode == "complete")
         {
             if (generated.Proposals.Count != 0) throw InvalidProposal("入力補完の応答にファイル作成・編集の提案が含まれています。");
-            if (generated.Suggestions.Count is < 1 or > 3) throw InvalidProposal("入力補完の候補は1〜3件必要です。");
-            foreach (var suggestion in generated.Suggestions)
+            if (!continuation && generated.Suggestions.Count == 0)
+                throw InvalidProposal("入力補完の候補は1〜3件必要です。");
+            var suggestions = continuation
+                ? Continuations(currentText!, multilineContinuation, generated.Suggestions)
+                : generated.Suggestions;
+            HashSet<MasterDataIssue>? existingErrors = null;
+            if (continuation && suggestions.Count > 0)
+            {
+                var baseline = await validation.ValidateAsync(draft!.Path, draft.Raw, token);
+                existingErrors = baseline.Issues.Where(issue => issue.Severity == "error").ToHashSet();
+            }
+            var accepted = new List<string>();
+            foreach (var suggestion in suggestions)
             {
                 var content = draft!.Content!.DeepClone();
                 Set(content, pointer, arrayCompletion
                     ? new JsonArray(suggestion.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n').Select(line => (JsonNode?)JsonValue.Create(line)).ToArray())
                     : JsonValue.Create(suggestion));
                 var rendered = codec.Render(new(draft.Path, content, draft.Raw));
-                RequireObject(draft.Path, rendered.Raw);
-                warnings.AddRange(rendered.Warnings);
+                if (!continuation) RequireObject(draft.Path, rendered.Raw);
                 var report = await validation.ValidateAsync(draft.Path, rendered.Raw, token);
+                if (existingErrors is not null && report.Issues.Any(issue => issue.Severity == "error" && !existingErrors.Contains(issue)))
+                {
+                    warnings.Add("検証エラーが増える候補を除外しました。");
+                    continue;
+                }
+                accepted.Add(suggestion);
+                warnings.AddRange(rendered.Warnings);
                 if (!report.IsValid) warnings.Add("入力補完後の原稿に検証エラーがあります。採用後に検証結果を確認してください。");
             }
-            return new(request.Mode, credentials.Model, generated.Suggestions, [], warnings.Distinct().ToArray());
+            return new(request.Mode, credentials.Model, accepted, [], warnings.Distinct().ToArray());
         }
 
         if (generated.Suggestions.Count != 0) throw InvalidProposal("ファイル作成・編集の応答に入力補完の候補が含まれています。");
@@ -211,6 +264,24 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
                 proposal.Summary, issues, before is null));
         }
         return new(request.Mode, credentials.Model, [], proposals, warnings.Distinct().ToArray());
+    }
+
+    private static string[] Continuations(string currentText, bool multiline, IReadOnlyList<string> suffixes)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var result = new List<string>();
+        var prefix = currentText.Trim();
+        foreach (var candidate in suffixes)
+        {
+            var suffix = candidate.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+            var trimmed = suffix.Trim();
+            if (trimmed.Length == 0 || suffix.Length > MaxContinuationSuffixLength || (!multiline && suffix.Contains('\n'))
+                || trimmed == prefix || (prefix.Length >= 8 && trimmed.StartsWith(prefix, StringComparison.Ordinal))
+                || !seen.Add(trimmed))
+                continue;
+            result.Add(currentText + suffix);
+        }
+        return result.ToArray();
     }
 
     private void RequireEditablePath(string path)

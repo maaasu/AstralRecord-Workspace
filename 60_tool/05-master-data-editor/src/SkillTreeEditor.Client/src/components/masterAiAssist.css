@@ -22,11 +22,12 @@
 .master-ai-diff-line pre { margin: 0; white-space: pre; font-size: 12px; line-height: 1.5; }
 .master-ai-diff-line.added { color: #b8efcd; background: #173529; }
 .master-ai-diff-line.removed { color: #ffc8cd; background: #3f252d; }
-.master-ai-completion-host { position: relative; }
-.master-ai-completion { position: sticky; bottom: 12px; z-index: 4; margin: 12px; padding: 14px; border: 1px solid #709edb; border-radius: 8px; background: #172638; color: #e5edf8; box-shadow: 0 8px 32px #0008; max-height: 45vh; overflow: auto; }
-.master-ai-completion-option { display: flex; width: 100%; align-items: flex-start; gap: 12px; color: inherit; background: transparent; text-align: left; padding: 8px; border: 1px solid transparent; border-radius: 5px; cursor: pointer; }
+.master-ai-completion { position: fixed; z-index: 120; box-sizing: border-box; width: min(400px, calc(100vw - 16px)); padding: 10px; border: 1px solid #709edb; border-radius: 8px; background: #172638; color: #e5edf8; box-shadow: 0 8px 32px #0008; overflow: auto; overflow-wrap: anywhere; }
+.master-ai-completion > .button-row { justify-content: space-between; }
+.master-ai-completion > p { margin: 6px 0; color: #aebed1; font-size: 12px; }
+.master-ai-completion-option { display: flex; width: 100%; align-items: flex-start; gap: 10px; color: inherit; background: transparent; text-align: left; padding: 6px 8px; border: 1px solid transparent; border-radius: 5px; cursor: pointer; }
 .master-ai-completion-option.selected { background: #294560; border-color: #709edb; }
 .master-ai-completion-option pre { flex: 1; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
 .master-ai-completion-option small { flex-shrink: 0; }
 .master-ai-entry { margin: 8px 12px; align-self: flex-start; }
-@media (max-width: 640px) { .master-ai-dialog { width: calc(100vw - 16px); } .master-ai-body { padding: 12px; } .master-ai-completion { margin: 4px; } }
+@media (max-width: 640px) { .master-ai-dialog { width: calc(100vw - 16px); } .master-ai-body { padding: 12px; } }

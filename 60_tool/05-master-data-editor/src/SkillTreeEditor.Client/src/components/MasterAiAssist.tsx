@@ -17,6 +17,8 @@ interface Props {
   source: (path: string) => AiPaneActions | undefined
   captureBatch: (paths: string[]) => AiBatchGuard
   applyBatch: (proposal: AiProposal, guard: AiBatchGuard) => Promise<void>
+  predictWhileTyping: boolean
+  onPredictionChange: (enabled: boolean) => void
   onClose: () => void
 }
 
@@ -29,12 +31,12 @@ function ProposalDiff({ proposal }: { proposal: AiProposal }) {
   </div>
 }
 
-export function MasterAiAssist({ categories, files, categoryId: initialCategory, current, source, captureBatch, applyBatch, onClose }: Props) {
+export function MasterAiAssist({ categories, files, categoryId: initialCategory, current, source, captureBatch, applyBatch, predictWhileTyping, onPredictionChange, onClose }: Props) {
   const ownerDocument = usePanelDocument()
   const currentPath = current()?.snapshot()?.path ?? ''
   const initialSource = files.find(file => file.path === currentPath && !file.readOnly && !file.path.includes('/nodes/'))?.path ?? ''
   const categoryForPath = (path: string) => categories.filter(category => path.startsWith(`${category.directory}/`)).sort((a, b) => b.directory.length - a.directory.length)[0]?.id
-  const [mode, setMode] = useState<AiMode>('create')
+  const [mode, setMode] = useState<AiMode>('complete')
   const [categoryId, setCategoryId] = useState(categoryForPath(initialSource) || initialCategory || categories[0]?.id || '')
   const [sourcePath, setSourcePath] = useState(initialSource)
   const [instruction, setInstruction] = useState('')
@@ -125,8 +127,12 @@ export function MasterAiAssist({ categories, files, categoryId: initialCategory,
     <header className="modal-header"><div><h2>AIアシスト</h2><p className="master-muted">選択したマスターデータと指示をOpenAIへ送信します。候補の採用後も保存操作が必要です。</p></div><button type="button" className="button" disabled={applying} onClick={close}>閉じる</button></header>
     <div className="modal-body master-ai-body">
       <MasterAiSettings onSettings={setSettings} />
-      <div className="button-row" role="group" aria-label="AIモード">{([['create', '作成'], ['complete', '入力補完'], ['batch', '一括編集']] as const).map(([id, label]) => <button type="button" className={`button ${mode === id ? 'active' : ''}`} aria-pressed={mode === id} disabled={busy || applying} key={id} onClick={() => switchMode(id)}>{label}</button>)}</div>
-      {mode === 'complete' ? <div className="master-ai-help"><h3>フォームで任意に入力補完</h3><p>名前・説明・loreなどの文字列欄で Ctrl+Space を押すと、現在の原稿を使って候補を生成します。Tabで採用、Escで却下できます。ID・数値・参照項目は補完しません。</p><p>このパネルを閉じて、日本語フォームの補完したい欄にカーソルを置いてください。</p></div> : <>
+      <div className="button-row" role="group" aria-label="AIモード">{([['complete', '入力補完'], ['create', '作成'], ['batch', '一括編集']] as const).map(([id, label]) => <button type="button" className={`button ${mode === id ? 'active' : ''}`} aria-pressed={mode === id} disabled={busy || applying} key={id} onClick={() => switchMode(id)}>{label}</button>)}</div>
+      {mode === 'complete' ? <div className="master-ai-help">
+        <label className="master-checkbox"><input type="checkbox" checked={predictWhileTyping} onChange={event => onPredictionChange(event.target.checked)} />入力中にAI予測変換を表示</label>
+        <p>日本語フォームの名前や説明文の末尾で入力を止めると、その欄のテキストをOpenAIへ送り、続きを提案します。変換中は待機し、候補はTabで採用、Escで閉じます。設定は起動中だけ有効です。</p>
+        <p>欄全体の言い換え候補を見たいときは Ctrl+Space を押します。</p>
+      </div> : <>
         <fieldset className="master-form-lock master-ai-inputs" disabled={busy || applying}>
           {mode === 'create' ? <>
             <label>作成カテゴリ<select aria-label="AI作成カテゴリ" value={categoryId} onChange={event => { setCategoryId(event.target.value); setSourcePath(''); setResponse(null) }}>{categories.map(category => <option key={category.id} value={category.id}>{category.label}</option>)}</select></label>

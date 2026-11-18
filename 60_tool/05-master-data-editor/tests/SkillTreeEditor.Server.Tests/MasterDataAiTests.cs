@@ -91,6 +91,104 @@ public sealed class MasterDataAiTests : IDisposable
     }
 
     [Theory]
+    [InlineData("/name", " continued", "Old continued")]
+    [InlineData("/lore", "\r\nthird", "first\nsecond\nthird")]
+    [InlineData("/lore", " continued", "first\nsecond continued")]
+    public async Task ContinueAppendsOnlyTheSuffixAndSendsOnlyFieldContext(string pointer, string suffix, string expected)
+    {
+        Write("test/docs.YAMLスキーマ定義.md", """
+            # Test
+            | キー | 型 | 必須 | 説明 |
+            |---|---|---|---|
+            | `name` | String | × | 名前 |
+            | `lore` | List<String> | × | 説明 |
+            """);
+        _handler.Result = Result([suffix, suffix, " "], []);
+        var before = Snapshot();
+        var result = await _service.GenerateAsync(new("complete", "補完", SourcePath: PathA, Raw: Original,
+            FieldPointer: pointer, CompletionStyle: "continue"), default);
+        Assert.Equal(expected, Assert.Single(result.Suggestions));
+        Assert.Empty(result.Proposals);
+        Assert.Equal(before, Snapshot());
+        using var sent = JsonDocument.Parse(_handler.Request!);
+        var input = sent.RootElement.GetProperty("input");
+        Assert.Contains("末尾", input[0].GetProperty("content").GetString());
+        using var context = JsonDocument.Parse(input[1].GetProperty("content").GetString()!);
+        Assert.Equal(new[] { "currentText", "field", "fieldPointer", "multiline" },
+            context.RootElement.EnumerateObject().Select(property => property.Name).Order());
+        Assert.Equal(pointer, context.RootElement.GetProperty("fieldPointer").GetString());
+        Assert.Equal(pointer == "/name" ? "Old" : "first\nsecond", context.RootElement.GetProperty("currentText").GetString());
+        Assert.Equal(new[] { "label", "type" }, context.RootElement.GetProperty("field").EnumerateObject()
+            .Select(property => property.Name).Order());
+    }
+
+    [Fact]
+    public async Task ContinueReturnsNoSuggestionsForUnusableSuffixes()
+    {
+        _handler.Result = Result(["", "\nnew line", new string('x', 121)], []);
+        var result = await _service.GenerateAsync(new("complete", "補完", SourcePath: PathA, Raw: Original,
+            FieldPointer: "/name", CompletionStyle: "continue"), default);
+        Assert.Empty(result.Suggestions);
+        Assert.Empty(result.Proposals);
+    }
+
+    [Fact]
+    public async Task ContinueKeepsSpacesInExistingArrayLinesAndDropsFullFieldEchoes()
+    {
+        var raw = Original.Replace("lore: [first, second]", "lore: ['  first ', '', 'second  ']");
+        _handler.Result = Result(["  first \n\nsecond  \nEcho", "\nthird"], []);
+        var result = await _service.GenerateAsync(new("complete", "補完", SourcePath: PathA, Raw: raw,
+            FieldPointer: "/lore", CompletionStyle: "continue"), default);
+        Assert.Equal("  first \n\nsecond  \nthird", Assert.Single(result.Suggestions));
+    }
+
+    [Fact]
+    public async Task ContinueExcludesNewValidationErrorsAndAllowsExistingErrors()
+    {
+        Write("test/schemas/test.schema.json", """
+            {
+              "type": "object",
+              "required": ["missing"],
+              "properties": { "name": { "type": "string", "maxLength": 5 } }
+            }
+            """);
+        _handler.Result = Result([" X", " too long"], []);
+        var result = await _service.GenerateAsync(new("complete", "補完", SourcePath: PathA, Raw: Original,
+            FieldPointer: "/name", CompletionStyle: "continue"), default);
+        Assert.Equal("Old X", Assert.Single(result.Suggestions));
+        Assert.Contains(result.Warnings, warning => warning.Contains("候補を除外"));
+        Assert.Contains(result.Warnings, warning => warning.Contains("採用後に検証結果を確認"));
+    }
+
+    [Theory]
+    [InlineData("/name", "name: '  '")]
+    [InlineData("/lore", "lore: []")]
+    [InlineData("/id", "id: a")]
+    [InlineData("/category", "category: item")]
+    [InlineData("/source/name", "source: {name: source}")]
+    [InlineData("/description", "description: 'class:mage'")]
+    public async Task ContinueRejectsEmptyAndNonProseFieldsBeforeProvider(string pointer, string field)
+    {
+        var raw = "schemaVersion: 1\n" + field + "\n";
+        Write(PathA, raw);
+        var error = await Assert.ThrowsAsync<MasterDataAiException>(() => _service.GenerateAsync(new("complete", "補完",
+            SourcePath: PathA, Raw: raw, FieldPointer: pointer, CompletionStyle: "continue"), default));
+        Assert.Equal(400, error.StatusCode);
+        Assert.Equal(0, _handler.Calls);
+    }
+
+    [Theory]
+    [InlineData("complete", "unknown")]
+    [InlineData("create", "continue")]
+    [InlineData("batch", "continue")]
+    public async Task CompletionStyleRejectsUnsupportedOperationsBeforeProvider(string mode, string style)
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            _service.GenerateAsync(new(mode, "補完", CompletionStyle: style), default));
+        Assert.Equal(0, _handler.Calls);
+    }
+
+    [Theory]
     [InlineData("/id")]
     [InlineData("/schemaVersion")]
     [InlineData("/value")]
