@@ -7,6 +7,7 @@ import { ApiError } from '../api/editorApi'
 import { masterDataApi } from '../api/masterDataApi'
 import { useHistory } from '../state/history'
 import { useMasterDataWorkspace, type MasterDataWorkspace } from '../state/masterDataWorkspace'
+import { useMasterPredictions, type MasterPredictionSource } from '../state/useMasterPredictions'
 import { useMasterReferences } from '../state/masterReferences'
 import { filterMasterReferences, indexMasterReferences } from '../data/masterReferenceSearch'
 import { currentReferenceFile, referenceId } from '../data/masterReferenceCollection'
@@ -78,6 +79,7 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
   const aiPanes = useRef(new Map<string, AiPaneActions>())
   const [aiOpen, setAiOpen] = useState(false)
   const [predictWhileTyping, setPredictWhileTyping] = useState(false)
+  const predictionSource = useMasterPredictions(predictWhileTyping, workspace.files, workspace.referenceVersion, workspace.refreshing)
   const [aiDraftRequests, setAiDraftRequests] = useState<Record<string, AiQueuedDraft>>({})
   const latestAiRequests = useRef(aiDraftRequests)
   latestAiRequests.current = aiDraftRequests
@@ -274,7 +276,7 @@ export function MasterDataEditor({ active = true, onDirtyChange, onOpenSkillTree
     }} />}
     {active && tabMenu && tabCommands.length > 0 && <MasterTabContextMenu x={tabMenu.x} y={tabMenu.y} commands={tabCommands} onDismiss={dismissTabMenu} />}
     {tabsState.tabs.length ? tabsState.tabs.map((tab) => <div className="master-editor-panel" key={tab.id} id={`${tabPrefix}-${tab.id}-panel`} role="tabpanel" aria-labelledby={`${tabPrefix}-${tab.id}`} hidden={tab.id !== tabsState.activeId}>
-      <MasterDataEditorPane workspace={workspace} tabId={tab.id} preview={tab.preview} initialPath={tab.path} initialDocument={tab.initialDocument} referenceTarget={tab.referenceTarget} onReferenceHandled={referenceHandled} selected={tab.id === tabsState.activeId} active={active && tab.id === tabsState.activeId} onOpenFile={openFile} onCloseTab={() => closeTab(tab.id, true)} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen || tabSearchOpen || aiOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} onAiOpen={() => setAiOpen(true)} onRegisterAiPane={registerAiPane} aiDraftRequest={aiDraftRequests[tab.path]} onAiDraftHandled={aiDraftHandled} predictWhileTyping={predictWhileTyping} onPredictionChange={setPredictWhileTyping} />
+      <MasterDataEditorPane workspace={workspace} tabId={tab.id} preview={tab.preview} initialPath={tab.path} initialDocument={tab.initialDocument} referenceTarget={tab.referenceTarget} onReferenceHandled={referenceHandled} selected={tab.id === tabsState.activeId} active={active && tab.id === tabsState.activeId} onOpenFile={openFile} onCloseTab={() => closeTab(tab.id, true)} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen || tabSearchOpen || aiOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} onAiOpen={() => setAiOpen(true)} onRegisterAiPane={registerAiPane} aiDraftRequest={aiDraftRequests[tab.path]} onAiDraftHandled={aiDraftHandled} predictWhileTyping={predictWhileTyping} onPredictionChange={setPredictWhileTyping} predictionSource={predictionSource} />
     </div>) : <div className="master-editor-panel"><MasterDataEditorPane workspace={workspace} tabId="welcome" active={active} onOpenFile={openFile} onCloseTab={() => {}} onTabStatus={updateStatus} onRegisterBrowserActions={registerBrowserActions} browserDialogOpen={browserDialogOpen || aiOpen} onRecoveryHandled={recoveryHandled} onOpenSkillTree={onOpenSkillTree} onAiOpen={() => setAiOpen(true)} onRegisterAiPane={registerAiPane} onAiDraftHandled={aiDraftHandled} /></div>}
   </section>
   const workspaceNotices = <>
@@ -322,13 +324,14 @@ interface MasterDataEditorPaneProps {
   onOpenSkillTree?: () => void
   onAiOpen: () => void
   predictWhileTyping?: boolean
+  predictionSource?: MasterPredictionSource
   onPredictionChange?: (enabled: boolean) => void
   onRegisterAiPane: (id: string, actions: AiPaneActions | null) => void
   aiDraftRequest?: AiQueuedDraft
   onAiDraftHandled: (path: string, requestId: number, reason?: unknown) => void
 }
 
-function MasterDataEditorPane({ selected = true, preview = false, workspace, tabId, initialPath, initialDocument, referenceTarget, onReferenceHandled, active, onOpenFile, onCloseTab, onTabStatus, onRegisterBrowserActions, browserDialogOpen, onRecoveryHandled, onOpenSkillTree, onAiOpen, onRegisterAiPane, aiDraftRequest, onAiDraftHandled, predictWhileTyping = false, onPredictionChange }: MasterDataEditorPaneProps) {
+function MasterDataEditorPane({ selected = true, preview = false, workspace, tabId, initialPath, initialDocument, referenceTarget, onReferenceHandled, active, onOpenFile, onCloseTab, onTabStatus, onRegisterBrowserActions, browserDialogOpen, onRecoveryHandled, onOpenSkillTree, onAiOpen, onRegisterAiPane, aiDraftRequest, onAiDraftHandled, predictWhileTyping = false, onPredictionChange, predictionSource }: MasterDataEditorPaneProps) {
   const docking = useDocking()
   const panelDocument = usePanelDocument()
   const { confirm, dialog } = useConfirmationDialog()
@@ -842,9 +845,10 @@ function MasterDataEditorPane({ selected = true, preview = false, workspace, tab
       {(document || !initialPath) && <div className="master-toolbar master-main-toolbar">
         <div className="master-toolbar-group" role="group" aria-label="編集モード"><button className={`button ${draft.source === 'form' ? 'active' : ''}`} aria-pressed={draft.source === 'form'} disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void changeMode('form')}>日本語フォーム</button><button className={`button ${draft.source === 'raw' ? 'active' : ''}`} aria-pressed={draft.source === 'raw'} disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void changeMode('raw')}>原稿 {document?.format.toUpperCase()}</button></div>
         <div className="master-toolbar-group" role="group" aria-label="編集履歴"><button className="icon-button" title="元に戻す Ctrl+Z" aria-label="元に戻す Ctrl+Z" disabled={!history.canUndo || busy || Object.keys(invalidInputs).length > 0} onClick={() => moveHistory('undo')}>↶</button><button className="icon-button" title="やり直す Ctrl+Y" aria-label="やり直す Ctrl+Y" disabled={!history.canRedo || busy || Object.keys(invalidInputs).length > 0} onClick={() => moveHistory('redo')}>↷</button></div>
-        {document && draft.source === 'form' && !readOnly && onPredictionChange && <button type="button" className={`button ${predictWhileTyping ? 'active' : ''}`} aria-pressed={predictWhileTyping} disabled={busy} title="オンにすると、名前や説明文の入力が止まったときにその欄のテキストをOpenAIへ送り、続きを提案します。" onClick={() => onPredictionChange(!predictWhileTyping)}>AI予測変換</button>}
+        {document && draft.source === 'form' && !readOnly && onPredictionChange && <button type="button" className={`button ${predictWhileTyping ? 'active' : ''}`} aria-pressed={predictWhileTyping} disabled={busy} title="既存マスターと入力履歴から続きを表示します。候補がない場合のみ対象欄のテキストをOpenAIへ送信します。" onClick={() => onPredictionChange(!predictWhileTyping)}>AI予測変換</button>}
         <div className="master-toolbar-group master-save-actions" role="group" aria-label="確認と保存"><button className="button" disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void showDiff()}>差分</button><button className="button" disabled={!document || busy || Object.keys(invalidInputs).length > 0} onClick={() => void validate()}>検証</button><button className="button primary" disabled={!document || readOnly || !dirty || busy || Object.keys(invalidInputs).length > 0} onClick={() => void save()}>{savePhase === 'prepare' ? '原稿を準備中…' : savePhase === 'validate' ? '検証中…' : savePhase === 'save' ? '保存中…' : busy ? '処理中…' : '保存 (Ctrl+S)'}</button></div>
       </div>}
+      {predictWhileTyping && predictionSource?.failed && <p className="master-muted" role="status">既存マスターの候補を取得できませんでした。一覧と定義を再読込すると取得し直せます。</p>}
       {(error || notice) && <div ref={noticeElement} tabIndex={-1} className={`master-message ${error ? 'error' : 'success'}`} role={error ? 'alert' : 'status'}><span>{error || notice}</span><button className="button compact subtle" onClick={() => { setError(''); setNotice('') }}>閉じる</button></div>}
       {conflictDocument && <section className="master-recovery-panel" aria-label="保存競合の解決"><strong>別の編集で保存済み原稿が変更されています</strong><p>現在の編集は保持しています。最新原稿との差分を確認してから、編集を続ける基準を更新できます。</p><div className="button-row"><button type="button" className="button" disabled={busy || Object.keys(invalidInputs).length > 0} onClick={() => {
         setBusy(true)
@@ -891,7 +895,7 @@ function MasterDataEditorPane({ selected = true, preview = false, workspace, tab
           if (event.key !== 'Tab') return
           event.preventDefault(); const target = event.currentTarget; const start = target.selectionStart; const end = target.selectionEnd
           history.record({ raw: `${draft.raw.slice(0, start)}  ${draft.raw.slice(end)}`, content: null, source: 'raw' }); requestAnimationFrame(() => { target.selectionStart = target.selectionEnd = start + 2 })
-        }} /></> : <MasterAiCompletion value={draft.content} snapshot={aiSnapshot} actions={() => aiActions.current ?? undefined} active={active && !browserDialogOpen && !createMode && diffRaw === null && !documentation && !recovery} predictWhileTyping={predictWhileTyping} onConfigure={onAiOpen} onUndoSuggestion={() => moveHistory('undo')} onApply={(pointer, value, expected) => {
+        }} /></> : <MasterAiCompletion value={draft.content} snapshot={aiSnapshot} actions={() => aiActions.current ?? undefined} active={active && !browserDialogOpen && !createMode && diffRaw === null && !documentation && !recovery} predictWhileTyping={predictWhileTyping} predictionSource={predictionSource} onConfigure={onAiOpen} onUndoSuggestion={() => moveHistory('undo')} onApply={(pointer, value, expected) => {
           const current = aiLatest.current
           if (!current.snapshot || current.snapshot.blocked || current.snapshot.token !== expected.token) throw new Error('原稿が変更されました。再生成してください。')
           history.record({ ...current.draft, content: replaceAtPointer(current.draft.content, pointer, value), source: 'form' }); setReport(null)

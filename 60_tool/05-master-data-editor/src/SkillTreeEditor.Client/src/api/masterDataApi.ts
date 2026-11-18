@@ -1,4 +1,5 @@
 import { ApiError } from './editorApi'
+import type { MasterPredictionEntry } from '../data/masterPrediction'
 import type { JsonValue, ValidationIssue, ValidationReport } from '../types/editor'
 import type { MasterCatalog, MasterDocument, MasterDraft, MasterFileSummary, MasterFilterIndex, MasterReference } from '../types/masterData'
 
@@ -51,6 +52,7 @@ export const masterDataApi = {
   validate: (path: string, raw: string) => request<ValidationReport>('/validate', 'POST', { path, raw }),
   references: (path: string) => request<MasterReference[]>(`/references?${new URLSearchParams({ path })}`),
   candidates: () => request<MasterReference[]>('/candidates'),
+  predictionIndex: (signal?: AbortSignal) => request<MasterPredictionEntry[]>('/prediction-index', 'GET', undefined, signal),
   filterIndex: () => request<MasterFilterIndex>('/filter-index'),
   documentation: (path: string) => request<{ path: string; raw: string }>(`/documentation?${new URLSearchParams({ path })}`),
   exportUrl: (path: string) => `${endpoint}/export?${new URLSearchParams({ path })}`,

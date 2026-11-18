@@ -23,7 +23,7 @@ internal static partial class MasterDataPredictionIndex
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex ReferenceText();
 
-    public static IReadOnlyList<MasterDataPredictionEntry> Build(FilebaseSnapshot snapshot, CancellationToken token)
+    public static IReadOnlyList<MasterDataPredictionEntry>? Build(FilebaseSnapshot snapshot, CancellationToken token)
     {
         var entries = new List<MasterDataPredictionEntry>();
         var characters = 0;
@@ -38,7 +38,7 @@ internal static partial class MasterDataPredictionIndex
             foreach (var (pointer, text) in TextFields(root, "", false, token))
             {
                 characters += document.Path.Length + pointer.Length + text.Length;
-                if (characters > MaxIndexCharacters || entries.Count == MaxRows) return entries;
+                if (characters > MaxIndexCharacters || entries.Count == MaxRows) return null;
                 entries.Add(new(document.Path, pointer, text));
             }
         }

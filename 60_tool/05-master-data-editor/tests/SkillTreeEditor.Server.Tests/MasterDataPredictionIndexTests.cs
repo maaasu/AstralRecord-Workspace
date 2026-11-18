@@ -76,14 +76,24 @@ public sealed class MasterDataPredictionIndexTests : IDisposable
         Write(ItemPath, "name: 初版\n");
         var cache = Cache();
         Assert.Equal("初版", Assert.Single(MasterDataPredictionIndex.Build(
-            await cache.GetAsync(CancellationToken.None), CancellationToken.None)).Text);
+            await cache.GetAsync(CancellationToken.None), CancellationToken.None)!).Text);
 
         Write(ItemPath, "name: 新版\n");
         Assert.Equal("新版", Assert.Single(MasterDataPredictionIndex.Build(
-            await cache.GetAsync(CancellationToken.None), CancellationToken.None)).Text);
+            await cache.GetAsync(CancellationToken.None), CancellationToken.None)!).Text);
 
         File.Delete(FullPath(ItemPath));
-        Assert.Empty(MasterDataPredictionIndex.Build(await cache.GetAsync(CancellationToken.None), CancellationToken.None));
+        Assert.Empty(MasterDataPredictionIndex.Build(await cache.GetAsync(CancellationToken.None), CancellationToken.None)!);
+    }
+
+    [Fact]
+    public void AnOversizedIndexIsNotReturnedAsACompleteSearch()
+    {
+        var content = new JsonObject { ["lore"] = new string('文', 8_000) };
+        var document = new FilebaseDocument(ItemPath, FullPath(ItemPath), 0, DateTime.UtcNow,
+            "", "test", content, [], null, null);
+        var snapshot = new FilebaseSnapshot([], Enumerable.Repeat(document, 501).ToArray());
+        Assert.Null(MasterDataPredictionIndex.Build(snapshot, CancellationToken.None));
     }
 
     private FilebaseSnapshotCache Cache() => new(new MasterDataPaths(new WorkspacePaths(_root)), new MasterDataCodec());

@@ -12,9 +12,9 @@
 EXE と同じフォルダーの DLL・`wwwroot`・`tool-host` も必要です。EXE だけを移動しないでください。
 ZIP にマスターデータや接続先設定は含まれていません。選んだワークスペース内のファイルを編集します。
 
-「AIアシスト」の接続設定後、日本語フォームのツールバーで「AI予測変換」をオンにできます。名前や説明文の末尾で入力を止めると、その欄のテキストと項目情報をOpenAIへ送り、続きを表示します。Tabで採用、Escで閉じます。欄全体の言い換え候補はCtrl+Spaceで開きます。手動の入力補完・作成・一括編集では、対象や参考の原稿と関連する定義もOpenAIへ送ります。採用した候補は下書きに入り、通常の検証・保存操作で反映します。予測変換のオン設定と画面で入力したAPIキーは起動中だけ有効です。
+日本語フォームで「AI予測変換」をオンにすると、既存マスターと入力履歴から名前や説明文の続きを即表示します。候補がない場合だけ、入力が止まったあとに対象欄のテキストと項目情報をOpenAIへ送り、推論なしの`gpt-6-luna`で続きを提案します。Tabで採用、Escで閉じます。欄全体の言い換え候補はCtrl+Spaceで開きます。手動の入力補完・作成・一括編集では、対象や参考の原稿と関連する定義もOpenAIへ送ります。採用した候補は下書きに入り、通常の検証・保存操作で反映します。予測変換の設定と入力履歴、画面で入力したAPIキーは起動中だけ有効です。
 
-再起動後もAI接続を使う場合は、起動環境の`OPENAI_API_KEY`、または選択ワークスペースの`60_tool/05-master-data-editor/src/SkillTreeEditor.Server/appsettings.local.json`に`SkillTreeEditor:Ai:ApiKey`を設定します。キーをGitへ登録しないでください。既定モデルは`gpt-6.1-terra`で、画面の設定または`SkillTreeEditor:Ai:Model`で変更できます。
+再起動後もAI接続を使う場合は、起動環境の`OPENAI_API_KEY`、または選択ワークスペースの`60_tool/05-master-data-editor/src/SkillTreeEditor.Server/appsettings.local.json`に`SkillTreeEditor:Ai:ApiKey`を設定します。キーをGitへ登録しないでください。手動操作の既定モデルは`gpt-6.1-terra`で、画面の設定または`SkillTreeEditor:Ai:Model`で変更できます。
 
 Windows x64 向けで、.NET は同梱しています。`webview2` フォルダーのある配布物は画面用ランタイムも同梱し、アプリ起動のための追加インストールは不要です。Node.js や .NET SDK もマスタ編集には不要です。ローカルディスクへ展開してください。
 `webview2` を省いた軽量ビルドは、PC に Microsoft Edge WebView2 Runtime が必要です。未導入の場合は [Microsoft の配布ページ](https://developer.microsoft.com/microsoft-edge/webview2/)を参照してください。
