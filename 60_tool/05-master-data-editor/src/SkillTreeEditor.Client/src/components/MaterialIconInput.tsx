@@ -1,6 +1,7 @@
 import { usePanelDocument, usePanelVisibility } from '../docking/dockPanel'
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { registerAndroidDialog } from '../androidEditor'
 import { minecraftMaterialSuggestions } from '../data/nodeFieldSuggestions'
 import { MinecraftIcon } from './MinecraftIcon'
 import { SuggestionInput } from './SuggestionInput'
@@ -58,9 +59,11 @@ export function MaterialIconInput({ value, onChange, id, ariaLabel = id ? undefi
 export function MaterialPickerLoading({ onClose }: { onClose: () => void }) {
   const document = usePanelDocument()
   const cancel = useRef<HTMLButtonElement>(null)
+  const loadingDialog = useRef<HTMLElement>(null)
   const closeRef = useRef(onClose)
   closeRef.current = onClose
   useEffect(() => {
+    const unregisterBack = loadingDialog.current ? registerAndroidDialog(loadingDialog.current, () => closeRef.current()) : undefined
     const previousFocus = document.activeElement as HTMLElement | null
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -75,6 +78,7 @@ export function MaterialPickerLoading({ onClose }: { onClose: () => void }) {
     document.addEventListener('keydown', keyboard, true)
     document.addEventListener('focusin', containFocus)
     return () => {
+      unregisterBack?.()
       document.removeEventListener('keydown', keyboard, true)
       document.removeEventListener('focusin', containFocus)
       document.body.style.overflow = previousOverflow
@@ -82,7 +86,7 @@ export function MaterialPickerLoading({ onClose }: { onClose: () => void }) {
     }
   }, [document])
   return <div className="material-picker-loading" onClick={event => { event.stopPropagation(); if (event.target === event.currentTarget) onClose() }}>
-    <section role="dialog" aria-modal="true" aria-label="素材一覧を読込中" className="material-picker-loading-panel">
+    <section ref={loadingDialog} role="dialog" aria-modal="true" aria-label="素材一覧を読込中" className="material-picker-loading-panel">
       <p role="status">素材一覧を読み込んでいます…</p>
       <button ref={cancel} type="button" className="button subtle" onClick={onClose}>キャンセル</button>
     </section>

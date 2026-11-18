@@ -1,6 +1,7 @@
 import { usePanelDocument, usePanelVisibility } from '../docking/dockPanel'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
+import { registerAndroidDialog } from '../androidEditor'
 import type { MasterCategory, MasterFileSummary } from '../types/masterData'
 import { buildMasterCategoryTree, visibleMasterCategoryNodes, type MasterCategoryNode } from '../data/masterCategoryTree'
 import './MasterCategoryTree.css'
@@ -34,6 +35,7 @@ function FolderContextMenu({ x, y, commands, onDismiss }: { x: number; y: number
   }, [x, y])
   useEffect(() => {
     if (!visibleInLayout) return
+    const unregisterBack = menu.current ? registerAndroidDialog(menu.current, () => onDismiss(true)) : undefined
     const outside = (event: Event) => { if (!menu.current?.contains(event.target as Node)) onDismiss() }
     const dismiss = () => onDismiss()
     document.addEventListener('pointerdown', outside)
@@ -41,6 +43,7 @@ function FolderContextMenu({ x, y, commands, onDismiss }: { x: number; y: number
     window.addEventListener('resize', dismiss)
     document.addEventListener('scroll', dismiss, true)
     return () => {
+      unregisterBack?.()
       document.removeEventListener('pointerdown', outside)
       document.removeEventListener('contextmenu', outside, true)
       window.removeEventListener('resize', dismiss)

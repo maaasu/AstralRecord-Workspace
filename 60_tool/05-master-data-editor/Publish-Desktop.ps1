@@ -91,6 +91,7 @@ try {
         Copy-Item -LiteralPath $WebView2RuntimeDirectory -Destination (Join-Path $publishDirectory 'webview2') -Recurse
     }
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'DESKTOP.md') -Destination (Join-Path $publishDirectory 'README.md')
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'ANDROID.md') -Destination $publishDirectory
     foreach ($package in @('dockview-react', 'dockview-core')) {
         $license = Join-Path $PSScriptRoot "src/SkillTreeEditor.Client/node_modules/$package/LICENCE.md"
         Copy-Item -LiteralPath $license -Destination (Join-Path $publishDirectory "licenses/$package-LICENSE.txt")

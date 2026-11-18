@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useState } from 'react'
 import { editorApi } from './api/editorApi'
+import { isAndroidEditor } from './androidEditor'
 import { toolJobApi, type ToolCapabilities } from './api/toolJobApi'
 import { DesktopToolRunHistoryProvider, DesktopToolWorkspace } from './components/DesktopToolWorkspace'
 import { MasterQuickSearch } from './components/MasterQuickSearch'
@@ -10,6 +11,7 @@ import { DockWindowButton, DockWorkspace, getDesktopBridge, workspaceLayoutKey, 
 import { DockPanelContent, dockPanels, editorPages, editorPageGroups, editorPageDescriptions, isPage, isToolPage, useDocking, type DockPanelId, type EditorPage, type Page } from './docking/dockPanel'
 import './docking/editorCommandBar.css'
 import './masterData.css'
+import './androidEditor.css'
 
 const MasterDataEditor = lazy(() => import('./components/MasterDataEditor').then((module) => ({ default: module.MasterDataEditor })))
 const MasterAnalytics = lazy(() => import('./components/MasterAnalytics').then((module) => ({ default: module.MasterAnalytics })))
@@ -59,6 +61,8 @@ function EditorCommandBar({ desktop, workspaceRoot, branch, page, selectPage, on
       <div className="editor-command-context">
         <span className="editor-command-view" title={viewLabel}>{viewLabel}</span>
         <MasterQuickSearch onOpen={onOpenMaster} />
+        {desktop && <button type="button" className="editor-command-button" aria-label="Android接続"
+          onClick={() => desktop.postMessage('android-connections')}>Android接続</button>}
         <div className="editor-command-workspace">
           {desktop ? <button type="button" className="editor-command-button editor-command-workspace-button" title={workspaceRoot || 'ワークスペースを変更'}
             aria-label="ワークスペースを変更" onClick={() => desktop.postMessage('select-workspace')}>
@@ -74,6 +78,22 @@ function EditorCommandBar({ desktop, workspaceRoot, branch, page, selectPage, on
 }
 
 export default function App() {
+  return isAndroidEditor() ? <AndroidWorkspace /> : <DockedEditor />
+}
+
+function AndroidWorkspace() {
+  useLayoutEffect(() => {
+    document.documentElement.dataset.editorPlatform = 'android'
+    return () => { delete document.documentElement.dataset.editorPlatform }
+  }, [])
+  return <div className="android-editor-shell">
+    <Suspense fallback={<div className="loading-screen" role="status">エディタを読み込んでいます…</div>}>
+      <MasterDataEditor android />
+    </Suspense>
+  </div>
+}
+
+function DockedEditor() {
   const [workspaceRoot, setWorkspaceRoot] = useState('')
   const desktop = getDesktopBridge()
   useEffect(() => {

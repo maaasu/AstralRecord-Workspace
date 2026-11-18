@@ -53,6 +53,7 @@ interface SkillTreeCanvasProps {
   focusRequest?: CanvasFocusRequest | null
   onFocusHandled?: (request: CanvasFocusRequest) => void
   learnedSelection?: { nodeIds: ReadonlySet<string>; disabled?: boolean; onToggle: (nodeId: string) => void }
+  androidGestures?: boolean
 }
 
 /** マスター定義と一覧だけで決まる表示内容。配置や選択が変わっても作り直さない。 */
@@ -129,6 +130,7 @@ const OVERVIEW_ZOOM = 0.45
 const DEFAULT_MIN_ZOOM = 0.1
 const MAX_ZOOM = 2.5
 const VIEW_ANIMATION_MS = 220
+const TOUCH_TAP_MAX_DISTANCE = 9
 const DELETE_KEYS = ['Backspace', 'Delete']
 
 export function SkillTreeCanvas(props: SkillTreeCanvasProps) {
@@ -158,9 +160,11 @@ function CanvasInner({
   focusRequest = null,
   onFocusHandled,
   learnedSelection,
+  androidGestures = false,
 }: SkillTreeCanvasProps) {
   const { screenToFlowPosition, setViewport, zoomIn, zoomOut, getZoom, getViewport, getNodes, getNodesBounds, getEdges, deleteElements, viewportInitialized } = useReactFlow<SkillFlowNode>()
   const canvasRef = useRef<HTMLDivElement>(null)
+  const touch = useRef({ x: 0, y: 0, interrupted: false })
   const pendingDragPositions = useRef(new Map<string, { x: number; z: number }>())
   const initializedView = useRef(false)
   const appliedVisibility = useRef(visibleNodeIds)
@@ -492,6 +496,21 @@ function CanvasInner({
     <div
       className={overview ? 'canvas overview' : 'canvas'}
       ref={canvasRef}
+      onPointerDownCapture={androidGestures ? event => {
+        if (event.pointerType !== 'touch') touch.current.interrupted = false
+      } : undefined}
+      onTouchStartCapture={androidGestures ? event => {
+        const first = event.touches[0]
+        touch.current = { x: first.clientX, y: first.clientY, interrupted: event.touches.length > 1 }
+      } : undefined}
+      onTouchMoveCapture={androidGestures ? event => {
+        const first = event.touches[0]
+        const { x, y } = touch.current
+        if (event.touches.length > 1 || Math.hypot(first.clientX - x, first.clientY - y) > TOUCH_TAP_MAX_DISTANCE) {
+          touch.current.interrupted = true
+        }
+      } : undefined}
+      onTouchCancelCapture={androidGestures ? () => { touch.current.interrupted = true } : undefined}
       onKeyDown={(event) => {
         if (learnedSelection) return
         if (!DELETE_KEYS.includes(event.key) || event.defaultPrevented || event.repeat
@@ -547,7 +566,9 @@ function CanvasInner({
         nodesFocusable={!learnedSelection}
         edgesFocusable={!learnedSelection}
         edgesReconnectable={!learnedSelection}
-        onNodeClick={learnedSelection ? (_, node) => { if (!learnedSelection.disabled) learnedSelection.onToggle(node.id) } : undefined}
+        onNodeClick={learnedSelection ? (_, node) => {
+          if (!learnedSelection.disabled && !touch.current.interrupted) learnedSelection.onToggle(node.id)
+        } : undefined}
         onNodeContextMenu={learnedSelection ? event => event.preventDefault() : openNodeContextMenu}
         onNodeDoubleClick={(_, node) => {
           if (learnedSelection) return
@@ -565,6 +586,7 @@ function CanvasInner({
         selectionKeyCode="Shift"
         multiSelectionKeyCode={['Control', 'Meta', 'Shift']}
         panOnDrag={[0, 1, 2]}
+        zoomOnDoubleClick={!androidGestures}
         onlyRenderVisibleElements={largeTree}
         minZoom={overviewMinZoom}
         maxZoom={MAX_ZOOM}
@@ -612,7 +634,7 @@ function CanvasInner({
           </button>
         </div>
       )}
-      <div className="canvas-hint">{learnedSelection ? 'ノードをクリックで習得・解除 · Space / Enterで切替 · 空白ドラッグで移動' : '空白ドラッグで移動 · Shift＋空白ドラッグで範囲選択 · Ctrl/Cmdで追加選択 · ダブルクリックで編集 · 右クリックでノード操作'}</div>
+      <div className="canvas-hint">{androidGestures ? '指で移動・ピンチで拡大縮小・タップで習得／解除' : learnedSelection ? 'ノードをクリックで習得・解除 · Space / Enterで切替 · 空白ドラッグで移動' : '空白ドラッグで移動 · Shift＋空白ドラッグで範囲選択 · Ctrl/Cmdで追加選択 · ダブルクリックで編集 · 右クリックでノード操作'}</div>
     </div>
   )
 }

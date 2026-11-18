@@ -1,4 +1,5 @@
 import { ApiError } from './editorApi'
+import { flagAndroidSessionExpiry } from '../androidEditor'
 import type { MasterPredictionEntry } from '../data/masterPrediction'
 import type { JsonValue, ValidationIssue, ValidationReport } from '../types/editor'
 import type { MasterCatalog, MasterDocument, MasterDraft, MasterFileSummary, MasterFilterIndex, MasterReference } from '../types/masterData'
@@ -18,6 +19,7 @@ async function request<T>(path: string, method = 'GET', body?: unknown, signal?:
     if (signal?.aborted) throw reason
     throw new ApiError('エディタのサーバーに接続できません。サーバーの起動と接続を確認して再試行してください。', 0)
   }
+  flagAndroidSessionExpiry(response)
   const text = response.status === 204 ? '' : await response.text().catch((reason) => {
     if (signal?.aborted) throw reason
     throw new ApiError('サーバーの応答を受信できませんでした。接続を確認して再試行してください。', 0)

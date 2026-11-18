@@ -21,6 +21,7 @@ namespace SkillTreeEditor.Desktop;
 public partial class MainWindow : Window
 {
     private WebApplication? server;
+    private AndroidConnectionHost? androidHost;
     private Uri? origin;
     private string sessionToken = "";
     private string? workspace;
@@ -111,6 +112,10 @@ public partial class MainWindow : Window
         await RestorePreferencesAsync(selected);
         acceptPopouts = true;
         Browser.CoreWebView2.Navigate(origin.AbsoluteUri);
+        androidHost = new AndroidConnectionHost(selected, Path.GetDirectoryName(PreferencesPath(selected))!);
+        // The optional mobile listener must never prevent the local workspace from opening.
+        try { await androidHost.ResumeAsync(); }
+        catch (Exception error) { App.RecordFailure(error); }
         try
         {
             Directory.CreateDirectory(App.StateDirectory);
@@ -182,6 +187,9 @@ public partial class MainWindow : Window
             if (message.ValueKind == JsonValueKind.String)
             {
                 if (message.GetString() == "select-workspace") await SelectWorkspaceAsync();
+                if (message.GetString() == "android-connections" && androidHost is not null
+                    && !changingWorkspace && !checkingClose && IsEnabled)
+                    new AndroidConnectionWindow(androidHost) { Owner = this }.ShowDialog();
                 return;
             }
             if (message.ValueKind != JsonValueKind.Object || !message.TryGetProperty("type", out var type)) return;
@@ -347,6 +355,12 @@ public partial class MainWindow : Window
 
     private async Task StopServerAsync()
     {
+        if (androidHost is not null)
+        {
+            try { await androidHost.StopAsync(); }
+            catch (Exception error) { App.RecordFailure(error); }
+            finally { androidHost = null; }
+        }
         if (server is null) return;
         var stopping = server;
         server = null;

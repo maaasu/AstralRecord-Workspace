@@ -1,0 +1,55 @@
+<Window x:Class="SkillTreeEditor.Desktop.AndroidConnectionWindow"
+        x:ClassModifier="internal"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Android接続" Width="650" Height="650" MinWidth="500" MinHeight="450"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Margin" Value="0,3,8,3"/>
+        </Style>
+        <Style TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap"/></Style>
+    </Window.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="24,18">
+            <TextBlock Text="Android接続" FontSize="24" FontWeight="SemiBold"/>
+            <TextBlock Margin="0,8,0,4" Text="接続を使う間は、このPCのエディタを開いておいてください。PCとAndroid端末を同じTailscaleネットワークに接続します。"/>
+            <TextBlock x:Name="Status" Margin="0,6" AutomationProperties.LiveSetting="Polite"/>
+            <WrapPanel>
+                <Button x:Name="Toggle" Click="Toggle_Click"/>
+                <Button x:Name="OpenApk" Content="APKの場所を開く" Click="OpenApk_Click"/>
+            </WrapPanel>
+            <Expander Header="初回の設定" Margin="0,8">
+                <StackPanel Margin="12,6">
+                    <TextBlock Text="両方の端末でTailscaleにログインします。通常は「接続を開始」でHTTPSの設定も行います。権限やHTTPSの初回承認を求められた場合は、管理者のPowerShellで次を実行し、案内に従ってください。8443番はこのエディタ用です。"/>
+                    <TextBox x:Name="SetupCommand" IsReadOnly="True" Margin="0,6" AutomationProperties.Name="Tailscale初回設定コマンド"/>
+                </StackPanel>
+            </Expander>
+            <StackPanel x:Name="PairPanel" Visibility="Collapsed">
+                <Separator Margin="0,5"/>
+                <TextBlock Text="新しい端末を登録" FontSize="18" FontWeight="SemiBold" Margin="0,8"/>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="146"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Image x:Name="ConnectionQr" Width="138" Height="138" HorizontalAlignment="Left"
+                           RenderOptions.BitmapScalingMode="NearestNeighbor" AutomationProperties.Name="Androidアプリに接続先を入力するQRコード"/>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="APKをインストールした端末のカメラでQRコードを読み取るか、アプリに接続先を入力します。"/>
+                        <TextBox x:Name="Address" IsReadOnly="True" Margin="0,7" AutomationProperties.Name="Androidアプリに入力する接続先"/>
+                        <Button Content="登録コードを発行" HorizontalAlignment="Left" Click="Issue_Click"/>
+                    </StackPanel>
+                </Grid>
+                <TextBlock x:Name="CodeText" FontSize="19" FontWeight="SemiBold" Margin="0,4" AutomationProperties.LiveSetting="Polite"/>
+            </StackPanel>
+            <Separator Margin="0,6"/>
+            <TextBlock Text="登録済みの端末" FontWeight="SemiBold" FontSize="18" Margin="0,5"/>
+            <ListBox x:Name="Devices" DisplayMemberPath="Label" MinHeight="40" MaxHeight="120"
+                     SelectionChanged="Devices_SelectionChanged" AutomationProperties.Name="登録済みの端末"/>
+            <WrapPanel>
+                <Button Content="一覧を更新" Click="Refresh_Click"/>
+                <Button x:Name="Revoke" Content="選んだ端末の登録を解除" Click="Revoke_Click" IsEnabled="False"/>
+            </WrapPanel>
+            <Button IsCancel="True" Content="閉じる" HorizontalAlignment="Right" Margin="0,12,0,0"/>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

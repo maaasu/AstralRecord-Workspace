@@ -1,5 +1,6 @@
 import { usePanelDocument } from '../docking/dockPanel'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { isAndroidEditor } from '../androidEditor'
 import { createMasterNameMatcher } from '../data/masterDataFilters'
 import type { MasterFileTab } from '../state/masterDataTabs'
 import { MinecraftText } from './MinecraftText'
@@ -31,7 +32,7 @@ export function MasterTabSearch({ tabs, activeId, onSelect, onClose }: MasterTab
   const pageCount = Math.max(1, Math.ceil(matches.length / pageSize))
   const currentPage = Math.min(page, pageCount - 1)
   const visible = matches.slice(currentPage * pageSize, (currentPage + 1) * pageSize)
-  useEffect(() => { search.current?.focus() }, [])
+  useEffect(() => { if (!isAndroidEditor()) search.current?.focus() }, [])
   useEffect(() => {
     const targetId = focusAfterPage.current
     focusAfterPage.current = null

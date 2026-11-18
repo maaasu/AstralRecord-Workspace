@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\SkillTreeEditor.Server\SkillTreeEditor.Server.csproj" />
+    <Compile Include="..\..\src\SkillTreeEditor.Desktop\AndroidPrivateNetwork.cs" Link="Desktop\AndroidPrivateNetwork.cs" />
   </ItemGroup>
 
 </Project>

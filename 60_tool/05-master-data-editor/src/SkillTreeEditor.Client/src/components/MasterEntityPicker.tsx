@@ -1,6 +1,7 @@
 import { usePanelDocument, usePanelVisibility } from '../docking/dockPanel'
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
+import { isAndroidEditor, registerAndroidDialog } from '../androidEditor'
 import { plainMasterFilterName } from '../data/masterDataPresentation'
 import { stripMinecraftFormatting } from '../utils/minecraft'
 import { MinecraftIcon } from './MinecraftIcon'
@@ -92,10 +93,12 @@ export function MasterEntityPicker({
   useEffect(() => {
     const section = dialog.current
     if (!section || !visibleInLayout) return
+    const unregisterBack = registerAndroidDialog(section, () => close.current())
     const opener = document.activeElement as HTMLElement | null
     const overflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    search.current?.focus()
+    if (isAndroidEditor()) section.focus()
+    else search.current?.focus()
 
     const keepFocus = (event: FocusEvent) => {
       if ((event.target as Node | null)?.nodeType === 1 && !(event.target as HTMLElement).closest('[role="dialog"]')) search.current?.focus()
@@ -124,6 +127,7 @@ export function MasterEntityPicker({
     document.addEventListener('keydown', handleKey, true)
     document.addEventListener('focusin', keepFocus)
     return () => {
+      unregisterBack()
       document.removeEventListener('keydown', handleKey, true)
       document.removeEventListener('focusin', keepFocus)
       document.body.style.overflow = overflow

@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.AspNetCore.Diagnostics;
 using SkillTreeEditor.Server.Endpoints;
 using SkillTreeEditor.Server.Options;
@@ -12,13 +13,28 @@ public static class EditorApplication
         var builder = WebApplication.CreateBuilder(EditorHostOptions.Create(args));
         EditorHostOptions.AddLocalSettings(builder, args);
 
-        if (!string.IsNullOrEmpty(builder.Configuration["SkillTreeEditor:DesktopSessionToken"]))
+        var mobile = MobileHostOptions.FromArguments(args);
+        if (mobile is not null)
+        {
+            builder.Services.AddMobileAuthentication(mobile);
+            // Only the configured local reverse proxy reaches this listener. Ignore Kestrel's
+            // normal endpoints and check the forwarding headers in our own boundary.
+            builder.Configuration["AllowedHosts"] = "*";
+            builder.Configuration["ForwardedHeaders_Enabled"] = "false";
+            builder.WebHost.ConfigureKestrel(options =>
+            {
+                options.Configure(new ConfigurationBuilder().Build());
+                options.Listen(IPAddress.Loopback, mobile.LoopbackPort);
+                options.AddServerHeader = false;
+            });
+        }
+        else if (!string.IsNullOrEmpty(builder.Configuration["SkillTreeEditor:DesktopSessionToken"]))
         {
             // Desktop always owns a fresh loopback port, regardless of standalone/local Kestrel settings.
             builder.WebHost.ConfigureKestrel(options =>
             {
                 options.Configure(new ConfigurationBuilder().Build());
-                options.Listen(System.Net.IPAddress.Loopback, 0);
+                options.Listen(IPAddress.Loopback, 0);
             });
         }
 
@@ -66,22 +82,26 @@ public static class EditorApplication
         });
 
         var app = builder.Build();
-        app.UseMiddleware<LocalEditorRequestBoundaryMiddleware>();
-        app.UseMiddleware<DesktopSessionBoundaryMiddleware>();
-        app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/master-data/progression-design"),
-            branch => branch.UseResponseCompression());
-        var staticFilesRoot = EditorStaticFiles.ResolveRoot(app.Environment);
-        app.MapMasterAnalyticsEndpoints();
-        app.MapSpawnerPlanningEndpoints();
-        app.MapWorldPlacementEndpoints();
-        app.MapBalanceLabEndpoints();
-        app.MapToolJobEndpoints();
+        if (mobile is null)
+        {
+            app.UseMiddleware<LocalEditorRequestBoundaryMiddleware>();
+            app.UseMiddleware<DesktopSessionBoundaryMiddleware>();
+            app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/master-data/progression-design"),
+                branch => branch.UseResponseCompression());
+            app.MapMasterAnalyticsEndpoints();
+            app.MapSpawnerPlanningEndpoints();
+            app.MapWorldPlacementEndpoints();
+            app.MapBalanceLabEndpoints();
+            app.MapToolJobEndpoints();
+            app.MapMasterDataAiEndpoints();
+        }
 
         app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
         {
             var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
             var status = exception switch
             {
+                BadHttpRequestException invalidRequest when mobile is not null => invalidRequest.StatusCode,
                 ArgumentException => StatusCodes.Status400BadRequest,
                 FileNotFoundException => StatusCodes.Status404NotFound,
                 DirectoryNotFoundException => StatusCodes.Status404NotFound,
@@ -93,18 +113,32 @@ public static class EditorApplication
             context.Response.StatusCode = status;
             await Results.Problem(
                     statusCode: status,
-                    title: status == StatusCodes.Status500InternalServerError ? "エディタの処理に失敗しました" : $"エディタの処理を実行できませんでした。{exception?.Message}",
-                    detail: status == StatusCodes.Status500InternalServerError ? exception?.Message : null)
+                    title: mobile is not null || status == StatusCodes.Status500InternalServerError ? "エディタの処理に失敗しました" : $"エディタの処理を実行できませんでした。{exception?.Message}",
+                    detail: mobile is null && status == StatusCodes.Status500InternalServerError ? exception?.Message : null)
                 .ExecuteAsync(context);
         }));
 
+        if (mobile is not null)
+        {
+            app.UseRouting();
+            app.UseMiddleware<MobileRequestBoundaryMiddleware>();
+            app.UseRateLimiter();
+            app.MapMobileEndpoints();
+        }
+
+        var staticFilesRoot = EditorStaticFiles.ResolveRoot(app.Environment);
         if (staticFilesRoot is not null)
             app.UseEditorStaticFiles(staticFilesRoot);
         app.MapEditorEndpoints();
         app.MapMasterDataEndpoints();
-        app.MapMasterDataAiEndpoints();
         app.MapFallback(async context =>
         {
+            if (mobile is not null && context.Request.Path != "/")
+            {
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+                return;
+            }
+
             if (staticFilesRoot is null)
             {
                 context.Response.StatusCode = StatusCodes.Status404NotFound;
@@ -117,7 +151,7 @@ public static class EditorApplication
 
             context.Response.ContentType = "text/html; charset=utf-8";
             await context.Response.SendFileAsync(Path.Combine(staticFilesRoot, "index.html"));
-        });
+        }).WithMetadata(MobileEndpointMetadata.Page);
 
         return app;
     }

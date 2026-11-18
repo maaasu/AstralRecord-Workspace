@@ -1,3 +1,4 @@
+import { flagAndroidSessionExpiry } from '../androidEditor'
 import type {
   ClassMasterSummary,
   EditorMetadata,
@@ -35,6 +36,7 @@ export async function request<T>(url: string, init?: RequestInit, onResponse?: (
   } catch {
     throw new ApiError('サーバーに接続できませんでした。接続を確認して、もう一度実行してください。', 0)
   }
+  flagAndroidSessionExpiry(response)
   const contentType = response.headers.get('content-type') ?? ''
   let payload: unknown
   try {

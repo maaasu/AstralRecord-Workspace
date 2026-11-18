@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { editorApi } from '../api/editorApi'
+import { isAndroidEditor } from '../androidEditor'
 import { usePanelDocument } from '../docking/dockPanel'
 import { isNodeVisibleInSimulation } from '../state/nodeVisibility'
 import type { ClassMasterSummary, JsonValue, NodeMaster, SkillMasterSummary, StructureDocument } from '../types/editor'
@@ -37,6 +38,7 @@ const positiveNodeId = (value: JsonValue) => typeof value === 'number' && Number
 const SkillTreeCanvas = lazy(() => import('./SkillTreeCanvas').then(module => ({ default: module.SkillTreeCanvas })))
 
 export function ProgressionSkillTreePicker({ context, values, disabled = false, onApply, onClose }: Props) {
+  const android = isAndroidEditor()
   const document = usePanelDocument()
   const [selection, setSelection] = useState(values)
   const initialNodeIds = useRef(new Set(values.filter(positiveNodeId).map(String)))
@@ -45,6 +47,8 @@ export function ProgressionSkillTreePicker({ context, values, disabled = false, 
   const [attempt, setAttempt] = useState(0)
   const [message, setMessage] = useState('')
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null)
+  const [showSelected, setShowSelected] = useState(false)
+  const selectedToggle = useRef<HTMLButtonElement>(null)
   const [focusRequest, setFocusRequest] = useState<{ nodeId: string } | null>(null)
   useEffect(() => {
     let cancelled = false
@@ -98,18 +102,27 @@ export function ProgressionSkillTreePicker({ context, values, disabled = false, 
   const className = data?.classes.find(entry => entry.id.toLowerCase() === context.classId.toLowerCase())?.name ?? context.classId
   const selectedMaster = focusedNodeId ? masters.get(focusedNodeId) : undefined
   const removeSelection = (index: number) => setSelection(current => current.filter((_, entryIndex) => entryIndex !== index))
-  return createPortal(<Modal className="progression-tree-dialog" ariaLabel="スキルツリーから習得ノードを選択" onClose={onClose} closeDisabled={disabled}>
+  const goBack = () => {
+    const toggle = selectedToggle.current
+    // In the wide layout both panes are visible, even after rotating from the list.
+    if (showSelected && toggle && document.defaultView?.getComputedStyle(toggle).display !== 'none') {
+      setShowSelected(false)
+      toggle.focus()
+    } else onClose()
+  }
+  return createPortal(<Modal className="progression-tree-dialog" ariaLabel="スキルツリーから習得ノードを選択"
+    onClose={onClose} onAndroidBack={goBack} closeDisabled={disabled}>
     <header className="modal-header"><div><h2>スキルツリーから習得ノードを選択</h2><p><MinecraftText value={className} /> · プレイヤーLv.{context.playerLevel}{context.classLevel !== undefined && ` · 職業Lv.${context.classLevel}`}</p></div><button type="button" className="button" disabled={disabled} onClick={onClose}>キャンセル</button></header>
     {error ? <div className="progression-tree-loading"><p role="alert">{error}</p><button type="button" className="button" onClick={() => setAttempt(current => current + 1)}>再試行</button></div>
       : !data ? <div className="progression-tree-loading" role="status">スキルツリーを読み込んでいます…</div>
-        : <div className="progression-tree-content">
+        : <div className="progression-tree-content" data-show-selected={showSelected}>
           <div className="progression-tree-canvas"><Suspense fallback={<div className="progression-tree-loading" role="status">スキルツリーを準備しています…</div>}><SkillTreeCanvas key={data.structure.structureId} structure={data.structure} masters={data.nodes} classMasters={data.classes} skillMasters={data.skills}
-            visibleNodeIds={visibleNodeIds} selectedNodeId={focusedNodeId} nodeSize={72} learnedSelection={learnedSelection}
+            visibleNodeIds={visibleNodeIds} selectedNodeId={focusedNodeId} nodeSize={72} learnedSelection={learnedSelection} androidGestures={android}
             onRecord={noChange} onReplace={ignoreChange} onBeginTransaction={ignoreChange} onCommitTransaction={ignoreChange}
             onEditMaster={ignoreChange} onSelectedNode={setFocusedNodeId} onNotify={setMessage} focusRequest={focusRequest} onFocusHandled={() => setFocusRequest(null)} /></Suspense></div>
           <aside className="progression-tree-selection">
             {!eligible && <p role="alert">職業の定義が見つかりません。プリセットの職業を確認してください。</p>}
-            <p className="master-muted">チェック付きが習得ノードです。選択を確認して「選択を反映」を押してください。</p>
+            {!android && <p className="master-muted">チェック付きが習得ノードです。選択を確認して「選択を反映」を押してください。</p>}
             {message && <p role="status">{message}</p>}
             {selectedMaster && <div className="progression-tree-current"><MinecraftIcon icon={selectedMaster.icon} /><MinecraftText value={selectedMaster.name} /><small>{selectedIds.has(selectedMaster.nodeId) ? '習得' : '未習得'} · {selectedMaster.pointType} {selectedMaster.pointCost}ポイント</small></div>}
             <h3>習得ノード {selection.length}件</h3>
@@ -121,13 +134,18 @@ export function ProgressionSkillTreePicker({ context, values, disabled = false, 
               const label = node?.name ?? `未登録のノード（${String(value)}）`
               return <div className="progression-tree-selected-node" key={index}>
                 {node && <MinecraftIcon icon={node.icon} />}
-                <div>{node && !hidden && !missingPlacement ? <button type="button" className="text-button" onClick={() => { setFocusedNodeId(id); setFocusRequest({ nodeId: id }) }}><MinecraftText value={node.name} /></button> : <MinecraftText value={label} />}
+                <div>{node && !hidden && !missingPlacement ? <button type="button" className="text-button" onClick={() => { setFocusedNodeId(id); setFocusRequest({ nodeId: id }); setShowSelected(false) }}><MinecraftText value={node.name} /></button> : <MinecraftText value={label} />}
                   {hidden && <small>この職業・レベルの表示範囲外</small>}{missingPlacement && <small>ツリーの配置外</small>}</div>
                 <button type="button" className="text-button" disabled={disabled} aria-label={`${stripMinecraftFormatting(label)}を習得から外す`} onClick={() => removeSelection(index)}>外す</button>
               </div>
             })}</div>
           </aside>
         </div>}
-    <footer className="modal-footer"><span>習得 {selection.length}件</span><button type="button" className="button primary" disabled={disabled || !data || Boolean(error)} onClick={() => onApply(selection)}>選択を反映</button></footer>
+    <footer className="modal-footer">
+      <span className="progression-tree-footer-count">習得 {selection.length}件</span>
+      {android && <button ref={selectedToggle} type="button" className="button progression-tree-selected-toggle" aria-pressed={showSelected} disabled={!data}
+        onClick={() => setShowSelected(current => !current)}>{showSelected ? 'ツリーに戻る' : `習得 ${selection.length}件を確認`}</button>}
+      <button type="button" className="button primary" disabled={disabled || !data || Boolean(error)} onClick={() => onApply(selection)}>選択を反映</button>
+    </footer>
   </Modal>, document.body)
 }

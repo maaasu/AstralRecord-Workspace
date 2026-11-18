@@ -13,9 +13,9 @@ public static class EditorEndpoints
 
         api.MapGet("/metadata", (WorkspacePaths paths) => Results.Ok(paths.ToMetadata()));
         api.MapGet("/classes", async (WorkspacePaths paths, CancellationToken token) =>
-            Results.Ok(await new ClassMasterCatalog(paths).ReadAllAsync(token)));
+            Results.Ok(await new ClassMasterCatalog(paths).ReadAllAsync(token))).AllowMobileEdit();
         api.MapGet("/skills", async (SkillMasterCatalog skills, CancellationToken token) =>
-            Results.Ok(await skills.ReadAllAsync(token)));
+            Results.Ok(await skills.ReadAllAsync(token))).AllowMobileEdit();
 
         if (endpoints.ServiceProvider.GetService<MinecraftIconService>() is not null)
         {
@@ -43,7 +43,7 @@ public static class EditorEndpoints
                         title: "MC Iconsに接続できません。",
                         detail: exception.Message);
                 }
-            });
+            }).AllowMobileEdit();
         }
 
         if (endpoints.ServiceProvider.GetService<WorkspaceItemTextures>() is not null)
@@ -54,7 +54,7 @@ public static class EditorEndpoints
                 var path = textures.FindMobHeadPath(role);
                 return path is null ? Results.NotFound()
                     : Results.File(path, "image/png", lastModified: File.GetLastWriteTimeUtc(path));
-            });
+            }).AllowMobileEdit();
             api.MapGet("/minecraft-item-textures/{material}/{modelData:int}",
                 (string material, int modelData, WorkspaceItemTextures textures, HttpContext context) =>
                 {
@@ -62,7 +62,7 @@ public static class EditorEndpoints
                     var path = textures.FindPath(material, modelData);
                     return path is null ? Results.NotFound()
                         : Results.File(path, "image/png", lastModified: File.GetLastWriteTimeUtc(path));
-                });
+                }).AllowMobileEdit();
         }
 
         api.MapGet("/nodes", async (bool? reload, FilebaseRepository repository, CancellationToken token) =>
@@ -74,7 +74,7 @@ public static class EditorEndpoints
                 document.Revision,
                 content = document.Content
             }));
-        });
+        }).AllowMobileEdit();
         api.MapGet("/nodes/{nodeId}", async (string nodeId, FilebaseRepository repository, HttpContext context, CancellationToken token) =>
         {
             var document = await repository.GetNodeAsync(nodeId, token);
@@ -95,7 +95,7 @@ public static class EditorEndpoints
                 document.Revision,
                 content = document.Content
             }));
-        });
+        }).AllowMobileEdit();
         api.MapGet("/structures/{structureId}", async (
             string structureId,
             FilebaseRepository repository,
@@ -150,7 +150,7 @@ public static class EditorEndpoints
             var settings = await config.ReadVersionedAsync(token);
             context.Response.Headers.ETag = EditorRevision.ETag(settings.Revision);
             return Results.Ok(settings.Content);
-        });
+        }).AllowMobileEdit();
         api.MapPut("/settings", async (
             PluginSkillTreeSettings settings,
             PluginConfigService config,
