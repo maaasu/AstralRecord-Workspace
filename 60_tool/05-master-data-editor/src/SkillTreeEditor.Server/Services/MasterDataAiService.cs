@@ -15,6 +15,7 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
     private static readonly HashSet<string> ContinuationFields = new(StringComparer.OrdinalIgnoreCase)
         { "name", "displayName", "title", "label", "description", "lore", "summary", "text", "message" };
     private const int MaxContinuationTextLength = 8000;
+    private const string ContinuationModel = "gpt-6-luna";
     internal const int MaxContinuationSuffixLength = 120;
 
     public async Task<MasterDataAiResult> GenerateAsync(MasterDataAiRequest request, CancellationToken token)
@@ -38,6 +39,7 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
             throw new ArgumentException("AI に渡す対象が上限を超えています。");
 
         var credentials = settings.Credentials();
+        var model = continuation ? ContinuationModel : credentials.Model;
         var originals = new Dictionary<string, MasterDataDocument>(StringComparer.Ordinal);
         MasterDataCategory? category = null;
         var createTargets = new Dictionary<string, MasterDataCategory>(StringComparer.Ordinal);
@@ -181,7 +183,7 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
         };
         var context = JsonSerializer.Serialize(input, new JsonSerializerOptions(JsonSerializerDefaults.Web));
         if (context.Length > 240_000) throw new ArgumentException("対象原稿やスキーマが大きすぎます。対象を減らしてください。");
-        var generated = await provider.GenerateAsync(credentials.Key, credentials.Model, context, token,
+        var generated = await provider.GenerateAsync(credentials.Key, model, context, token,
             new(request.Mode, request.Mode == "create" ? createTargets.Keys.ToArray() : originals.Keys.ToArray(), continuation));
         if (request.Mode == "complete")
         {
@@ -216,7 +218,7 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
                 warnings.AddRange(rendered.Warnings);
                 if (!report.IsValid) warnings.Add("入力補完後の原稿に検証エラーがあります。採用後に検証結果を確認してください。");
             }
-            return new(request.Mode, credentials.Model, accepted, [], warnings.Distinct().ToArray());
+            return new(request.Mode, model, accepted, [], warnings.Distinct().ToArray());
         }
 
         if (generated.Suggestions.Count != 0) throw InvalidProposal("ファイル作成・編集の応答に入力補完の候補が含まれています。");
