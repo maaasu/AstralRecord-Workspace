@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { editorApi } from '../api/editorApi'
+import { handleAndroidDialogBack } from '../androidEditor'
 import type { JsonValue, NodeMaster, StructureDocument } from '../types/editor'
 import { ProgressionSkillTreePicker } from './ProgressionSkillTreePicker'
 import { MasterDataDetails } from './MasterDataNavigation'
@@ -32,6 +33,25 @@ afterEach(() => {
 })
 
 describe('progression skill-tree selection', () => {
+  it('returns from the Android selection list before dismissing the picker', async () => {
+    window.history.replaceState(null, '', '/?mobile=android')
+    const onApply = vi.fn(), onClose = vi.fn()
+    render(<ProgressionSkillTreePicker context={context} values={[]} onApply={onApply} onClose={onClose} />)
+    const node = await screen.findByRole('checkbox', { name: '剣の技' })
+    fireEvent.click(node)
+    fireEvent.click(screen.getByRole('button', { name: '習得 1件を確認' }))
+
+    act(() => expect(handleAndroidDialogBack()).toBe(true))
+    expect(onClose).not.toHaveBeenCalled()
+    expect(onApply).not.toHaveBeenCalled()
+    expect(node).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('button', { name: '習得 1件を確認' })).toHaveFocus()
+
+    act(() => expect(handleAndroidDialogBack()).toBe(true))
+    expect(onClose).toHaveBeenCalledOnce()
+    expect(onApply).not.toHaveBeenCalled()
+  })
+
   it('keeps pan and pinch gestures from toggling a node and applies a tap explicitly on Android', async () => {
     window.history.replaceState(null, '', '/?mobile=android')
     const onApply = vi.fn()
