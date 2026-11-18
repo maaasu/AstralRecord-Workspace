@@ -1,3 +1,5 @@
+import { stripMinecraftFormatting } from '../utils/minecraft'
+
 export type MasterPredictionEntry = { path: string; fieldPointer: string; text: string }
 
 type IndexedEntry = MasterPredictionEntry & { category: string; normalizedPointer: string }
@@ -27,7 +29,10 @@ export function buildMasterPredictionIndex(entries: readonly MasterPredictionEnt
     const field = fieldLocation(entry.fieldPointer)
     if (!field.key || !entry.text.trim()) continue
     const bucket = index.get(field.key) ?? []
-    bucket.push({ ...entry, category: categoryOf(entry.path), normalizedPointer: field.normalized })
+    const indexed = { ...entry, category: categoryOf(entry.path), normalizedPointer: field.normalized }
+    bucket.push(indexed)
+    const visibleText = stripMinecraftFormatting(entry.text)
+    if (visibleText !== entry.text && visibleText.trim()) bucket.push({ ...indexed, text: visibleText })
     index.set(field.key, bucket)
   }
   for (const bucket of index.values()) {

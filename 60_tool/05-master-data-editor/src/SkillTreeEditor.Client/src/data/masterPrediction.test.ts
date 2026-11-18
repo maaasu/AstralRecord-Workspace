@@ -54,4 +54,17 @@ describe('master predictions', () => {
     expect(history.at(-1)?.text).toBe('星の石 1')
     expect(updatePredictionHistory(history, path, pointer, '  ')).toBe(history)
   })
+
+  it('matches the visible text and preserves explicit Minecraft formatting', () => {
+    const other = 'items/material/other.yml'
+    const index = buildMasterPredictionIndex([
+      { path: other, fieldPointer: '/name', text: '&fグラスボア' },
+      { path: other, fieldPointer: '/name', text: 'グラスボア' },
+      { path: other, fieldPointer: '/lore', text: '§aグラスの丘\n§r野草が生える' },
+    ])
+    expect(findLocalPredictions(index, [], path, '/name', 'グラス', Infinity)).toEqual(['グラスボア'])
+    expect(findLocalPredictions(index, [], path, '/name', '&fグ', Infinity)).toEqual(['&fグラスボア'])
+    expect(findLocalPredictions(index, [], path, '/lore', 'グラス', Infinity, true))
+      .toEqual(['グラスの丘\n野草が生える'])
+  })
 })
