@@ -19,6 +19,8 @@ interface Props {
   applyBatch: (proposal: AiProposal, guard: AiBatchGuard) => Promise<void>
   predictWhileTyping: boolean
   onPredictionChange: (enabled: boolean) => void
+  allowAiFallback: boolean
+  onAiFallbackChange: (enabled: boolean) => void
   onClose: () => void
 }
 
@@ -31,7 +33,7 @@ function ProposalDiff({ proposal }: { proposal: AiProposal }) {
   </div>
 }
 
-export function MasterAiAssist({ categories, files, categoryId: initialCategory, current, source, captureBatch, applyBatch, predictWhileTyping, onPredictionChange, onClose }: Props) {
+export function MasterAiAssist({ categories, files, categoryId: initialCategory, current, source, captureBatch, applyBatch, predictWhileTyping, onPredictionChange, allowAiFallback, onAiFallbackChange, onClose }: Props) {
   const ownerDocument = usePanelDocument()
   const currentPath = current()?.snapshot()?.path ?? ''
   const initialSource = files.find(file => file.path === currentPath && !file.readOnly && !file.path.includes('/nodes/'))?.path ?? ''
@@ -124,14 +126,14 @@ export function MasterAiAssist({ categories, files, categoryId: initialCategory,
   }
   const close = () => { if (applying) return; controller.current?.abort(); onClose() }
   return createPortal(<Modal ownerDocument={ownerDocument} className="master-ai-dialog" ariaLabel="AIアシスト" onClose={close} closeDisabled={applying}>
-    <header className="modal-header"><div><h2>AIアシスト</h2><p className="master-muted">選択したマスターデータと指示をOpenAIへ送信します。候補の採用後も保存操作が必要です。</p></div><button type="button" className="button" disabled={applying} onClick={close}>閉じる</button></header>
+    <header className="modal-header"><div><h2>AIアシスト</h2><p className="master-muted">{mode === 'complete' ? '候補を採用すると、入力済みの文字の末尾に追加します。' : '選択したマスターデータと指示をOpenAIへ送信します。候補の採用後も保存操作が必要です。'}</p></div><button type="button" className="button" disabled={applying} onClick={close}>閉じる</button></header>
     <div className="modal-body master-ai-body">
       <MasterAiSettings onSettings={setSettings} />
       <div className="button-row" role="group" aria-label="AIモード">{([['complete', '入力補完'], ['create', '作成'], ['batch', '一括編集']] as const).map(([id, label]) => <button type="button" className={`button ${mode === id ? 'active' : ''}`} aria-pressed={mode === id} disabled={busy || applying} key={id} onClick={() => switchMode(id)}>{label}</button>)}</div>
       {mode === 'complete' ? <div className="master-ai-help">
-        <label className="master-checkbox"><input type="checkbox" checked={predictWhileTyping} onChange={event => onPredictionChange(event.target.checked)} />入力中にAI予測変換を表示</label>
-        <p>名前や説明文の欄をクリックすると、既存マスターや入力履歴から候補を表示します。文字を変更して一致する候補がない場合は、入力が止まってから対象欄のテキストをOpenAIへ送ります。Tabで採用、Escで閉じます。設定と入力履歴は起動中だけ有効です。</p>
-        <p>欄全体の言い換え候補を見たいときは Ctrl+Space を押します。</p>
+        <label className="master-checkbox"><input type="checkbox" checked={predictWhileTyping} onChange={event => onPredictionChange(event.target.checked)} />クリックや入力でローカル候補を表示</label>
+        <label className="master-checkbox"><input type="checkbox" checked={allowAiFallback} disabled={!predictWhileTyping} onChange={event => onAiFallbackChange(event.target.checked)} />候補がないときにLunaで補完</label>
+        <p>Luna補完をオンにすると、入力を変更してローカル候補がない場合に、対象欄のテキストをOpenAIへ送ります。Tabで採用、Escで閉じ、Ctrl+Zで採用を取り消せます。設定と入力履歴は起動中だけ有効です。</p>
       </div> : <>
         <fieldset className="master-form-lock master-ai-inputs" disabled={busy || applying}>
           {mode === 'create' ? <>
