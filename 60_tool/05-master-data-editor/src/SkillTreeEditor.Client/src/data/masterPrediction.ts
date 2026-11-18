@@ -94,7 +94,7 @@ export function findLocalPredictions(
   for (let position = lowerBound(bucket, prefix); position < bucket.length; position++) {
     const entry = bucket[position]
     if (!entry.text.startsWith(prefix)) break
-    if (entry.path !== path) consider(entry, entry.category, entry.normalizedPointer, false)
+    consider(entry, entry.category, entry.normalizedPointer, false)
   }
   return best.map(candidate => candidate.text)
 }

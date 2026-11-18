@@ -12,9 +12,14 @@ describe('master predictions', () => {
       { path: 'items/material/other.yml', fieldPointer: '/variants/2/name', text: '星の枝' },
       { path: 'items/material/other.yml', fieldPointer: pointer, text: '星の石' },
       { path: 'items/material/other.yml', fieldPointer: '/lore', text: '星の説明' },
-      { path, fieldPointer: pointer, text: '星の結晶' },
     ])
     expect(findLocalPredictions(index, [], path, pointer, '星の', Infinity)).toEqual(['星の石', '星の枝', '星の粉'])
+  })
+
+  it('offers the saved value from the current file after shortening it', () => {
+    const index = buildMasterPredictionIndex([{ path, fieldPointer: pointer, text: '月の欠片' }])
+    expect(findLocalPredictions(index, [], path, pointer, '月の', Infinity)).toEqual(['月の欠片'])
+    expect(findLocalPredictions(index, [], path, pointer, '月の欠片', Infinity)).toEqual([])
   })
 
   it('prioritizes recent local history and deduplicates against other files', () => {
