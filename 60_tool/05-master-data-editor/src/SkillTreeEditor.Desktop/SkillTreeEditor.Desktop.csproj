@@ -21,11 +21,13 @@
     <Resource Include="Assets\AppIcon.ico" />
     <ProjectReference Include="..\SkillTreeEditor.Server\SkillTreeEditor.Server.csproj" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" GeneratePathProperty="true" />
+    <PackageReference Include="QRCoder" Version="1.8.1" GeneratePathProperty="true" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\..\Invoke-EditorToolJob.ps1" Link="tool-host\Invoke-EditorToolJob.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="$(PkgMicrosoft_Web_WebView2)\LICENSE.txt" Link="licenses\WebView2-LICENSE.txt" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="$(PkgMicrosoft_Web_WebView2)\NOTICE.txt" Link="licenses\WebView2-NOTICE.txt" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(PkgQRCoder)\LICENSE.txt" Link="licenses\QRCoder-LICENSE.txt" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <Target Name="PublishDesktopFrontend" AfterTargets="ComputeFilesToPublish">
     <Error Condition="!Exists('$(SpaRoot)dist\index.html')" Text="先に SkillTreeEditor.Client で npm ci と npm run build を実行してください。" />

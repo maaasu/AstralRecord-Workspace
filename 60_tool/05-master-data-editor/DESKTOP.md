@@ -79,3 +79,7 @@ Windows x64 向けで、.NET は同梱しています。`webview2` フォルダ�
 DockviewのMITライセンスは `licenses/dockview-react-LICENSE.txt` と `licenses/dockview-core-LICENSE.txt` に同梱しています。
 WebView2 のライセンス・通知は `licenses/` と同梱ランタイム内の通知を参照してください。[Microsoft の WebView2 配布条件](https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download)が適用されます。
 WebView2 は SmartScreen 等の機能に伴い Microsoft へ診断・セキュリティ情報を送信することがあります。詳細は [WebView2 のデータとプライバシー](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/data-privacy)を参照してください。
+
+## Android端末から接続する
+
+エディタ上部の「Android接続」で受付を開始し、端末を登録します。登録を解除する場合も同じ画面を使います。接続を受け付ける間はワークスペースを開いておきます。スマホ側のインストールと操作は [Android版の接続と操作](ANDROID.md) を参照してください。
