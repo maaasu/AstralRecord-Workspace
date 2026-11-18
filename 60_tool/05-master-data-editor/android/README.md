@@ -1,6 +1,6 @@
 # Android マスターデータエディター
 
-Android 9 以降のスマートフォンとタブレット向けです。PCで起動中のマスターデータエディターに Tailscale 経由で接続し、
+Android 9 以降のタブレット向けです。PCで起動中のマスターデータエディターに Tailscale 経由で接続し、
 マスターの検索・編集・検証・保存を行います。
 
 1. AndroidでTailscaleに接続して、PCと同じtailnetに参加します。

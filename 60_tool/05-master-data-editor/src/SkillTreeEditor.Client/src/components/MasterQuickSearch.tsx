@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { isAndroidEditor, registerAndroidDialog } from '../androidEditor'
 import { masterDataApi } from '../api/masterDataApi'
 import { createMasterNameSearchCache } from '../data/masterDataFilters'
 import type { MasterFileSummary } from '../types/masterData'
@@ -60,6 +61,14 @@ export function MasterQuickSearch({ onOpen }: { onOpen: (path: string) => void }
     if (open) document.getElementById(`${listId}-${activeIndex}`)?.scrollIntoView?.({ block: 'nearest' })
   }, [open, activeIndex, listId])
 
+  useEffect(() => {
+    if (!open || !host.current) return
+    return registerAndroidDialog(host.current, () => {
+      setOpen(false)
+      input.current?.blur()
+    })
+  }, [open])
+
   const openFile = (path: string) => {
     setOpen(false)
     input.current?.blur()
@@ -111,7 +120,7 @@ export function MasterQuickSearch({ onOpen }: { onOpen: (path: string) => void }
       </div>
       {!loading && !error && !matches.length && <p className="master-quick-search-message">一致するファイルがありません。検索語を変えてください。</p>}
       {!loading && !error && visible.length < matches.length && <button type="button" className="master-quick-search-more" onClick={() => setLimit(visible.length + 50)}>さらに50件を表示（{visible.length} / {matches.length}）</button>}
-      <footer>↑ ↓ で選択 · Enter で開く · Esc で閉じる<span>空白区切りで複数語検索</span></footer>
+      <footer>{!isAndroidEditor() && '↑ ↓ で選択 · Enter で開く · Esc で閉じる'}<span>空白区切りで複数語検索</span></footer>
     </div>}
   </div>
 }

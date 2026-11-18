@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import { masterDataApi } from '../api/masterDataApi'
+import { handleAndroidDialogBack } from '../androidEditor'
 import type { MasterFileSummary } from '../types/masterData'
 import { MasterQuickSearch } from './MasterQuickSearch'
 
@@ -9,6 +10,24 @@ const file = (path: string, name: string, id: string): MasterFileSummary => ({ p
 const files = [file('items/forest/sword.yml', '&a森の剣', 'SWORD_01'), file('mobs/forest/wolf.yml', '森のウルフ', 'WOLF_01')]
 const searchInput = () => screen.getByRole('combobox', { name: 'マスターをクイック検索' })
 afterEach(() => vi.restoreAllMocks())
+
+it('dismisses tablet search with Android Back without opening the selected result', async () => {
+  const previousUrl = window.location.href
+  window.history.replaceState(null, '', '/?mobile=android')
+  try {
+    vi.spyOn(masterDataApi, 'files').mockResolvedValue(files)
+    const open = vi.fn()
+    render(<MasterQuickSearch onOpen={open} />)
+    await userEvent.setup().click(searchInput())
+    await screen.findAllByRole('option')
+    act(() => { expect(handleAndroidDialogBack()).toBe(true) })
+    expect(searchInput()).toHaveAttribute('aria-expanded', 'false')
+    expect(open).not.toHaveBeenCalled()
+    expect(handleAndroidDialogBack()).toBe(false)
+  } finally {
+    window.history.replaceState(null, '', previousUrl)
+  }
+})
 
 it('searches formatted Japanese names, IDs and paths with multiple AND terms without requests per keystroke', async () => {
   const api = vi.spyOn(masterDataApi, 'files').mockResolvedValue(files)
