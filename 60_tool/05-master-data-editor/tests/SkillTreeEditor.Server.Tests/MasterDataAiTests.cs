@@ -91,6 +91,76 @@ public sealed class MasterDataAiTests : IDisposable
     }
 
     [Theory]
+    [InlineData("/name", " continued", "Old continued")]
+    [InlineData("/lore", "\r\nthird", "first\nsecond\nthird")]
+    [InlineData("/lore", " continued", "first\nsecond continued")]
+    public async Task ContinueAppendsOnlyTheSuffixAndSendsOnlyFieldContext(string pointer, string suffix, string expected)
+    {
+        _handler.Result = Result([suffix, suffix, " "], []);
+        var before = Snapshot();
+        var result = await _service.GenerateAsync(new("complete", "補完", SourcePath: PathA, Raw: Original,
+            FieldPointer: pointer, CompletionStyle: "continue"), default);
+        Assert.Equal(expected, Assert.Single(result.Suggestions));
+        Assert.Empty(result.Proposals);
+        Assert.Equal(before, Snapshot());
+        using var sent = JsonDocument.Parse(_handler.Request!);
+        var input = sent.RootElement.GetProperty("input");
+        Assert.Contains("末尾", input[0].GetProperty("content").GetString());
+        using var context = JsonDocument.Parse(input[1].GetProperty("content").GetString()!);
+        Assert.Equal("continue", context.RootElement.GetProperty("completionStyle").GetString());
+        Assert.Equal(pointer == "/name" ? "Old" : "first\nsecond", context.RootElement.GetProperty("currentText").GetString());
+        Assert.False(context.RootElement.TryGetProperty("draft", out _));
+    }
+
+    [Fact]
+    public async Task ContinueReturnsNoSuggestionsForUnusableSuffixes()
+    {
+        _handler.Result = Result(["", "\nnew line", new string('x', 121)], []);
+        var result = await _service.GenerateAsync(new("complete", "補完", SourcePath: PathA, Raw: Original,
+            FieldPointer: "/name", CompletionStyle: "continue"), default);
+        Assert.Empty(result.Suggestions);
+        Assert.Empty(result.Proposals);
+    }
+
+    [Fact]
+    public async Task ContinueKeepsSpacesInExistingArrayLinesAndDropsFullFieldEchoes()
+    {
+        var raw = Original.Replace("lore: [first, second]", "lore: ['  first ', '', 'second  ']");
+        _handler.Result = Result(["  first \n\nsecond  \nEcho", "\nthird"], []);
+        var result = await _service.GenerateAsync(new("complete", "補完", SourcePath: PathA, Raw: raw,
+            FieldPointer: "/lore", CompletionStyle: "continue"), default);
+        Assert.Equal("  first \n\nsecond  \nthird", Assert.Single(result.Suggestions));
+    }
+
+    [Theory]
+    [InlineData("/name", "name: '  '")]
+    [InlineData("/lore", "lore: []")]
+    [InlineData("/id", "id: a")]
+    [InlineData("/category", "category: item")]
+    [InlineData("/source/name", "source: {name: source}")]
+    [InlineData("/description", "description: 'class:mage'")]
+    public async Task ContinueRejectsEmptyAndNonProseFieldsBeforeProvider(string pointer, string field)
+    {
+        var raw = "schemaVersion: 1\n" + field + "\n";
+        Write(PathA, raw);
+        var error = await Assert.ThrowsAsync<MasterDataAiException>(() => _service.GenerateAsync(new("complete", "補完",
+            SourcePath: PathA, Raw: raw, FieldPointer: pointer, CompletionStyle: "continue"), default));
+        Assert.Equal(400, error.StatusCode);
+        Assert.Equal(0, _handler.Calls);
+    }
+
+    [Theory]
+    [InlineData("complete", "unknown")]
+    [InlineData("create", "continue")]
+    [InlineData("batch", "continue")]
+    public async Task CompletionStyleRejectsUnsupportedOperationsBeforeProvider(string mode, string style)
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            _service.GenerateAsync(new(mode, "補完", CompletionStyle: style), default));
+        Assert.Equal(0, _handler.Calls);
+    }
+
+    [Theory]
     [InlineData("/id")]
     [InlineData("/schemaVersion")]
     [InlineData("/value")]
