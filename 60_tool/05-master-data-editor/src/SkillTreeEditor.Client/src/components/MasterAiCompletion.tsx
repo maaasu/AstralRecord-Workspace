@@ -23,12 +23,14 @@ interface Props {
   active: boolean
   predictWhileTyping?: boolean
   onApply: (pointer: string, value: string | string[], expected: AiEditorSnapshot) => void
+  onUndoSuggestion?: () => void
   onConfigure: () => void
 }
 
 type TextControl = HTMLInputElement | HTMLTextAreaElement
 type Prediction = { input: TextControl; pointer: string; text: string; token: string | undefined; timer: ReturnType<typeof setTimeout> }
 type Completion = { input: TextControl; pointer: string; snapshot: AiEditorSnapshot; array: boolean; prefix?: string }
+type AcceptedSuggestion = { input: TextControl; pointer: string; text: string; previousToken: string; token?: string }
 
 const predictionDelay = 800
 const proseFields = /^(?:name|displayName|title|label|description|lore|summary|text|message)$/i
@@ -49,7 +51,7 @@ function fieldText(value: string | string[] | null) {
   return Array.isArray(value) ? value.join('\n') : value
 }
 
-export function MasterAiCompletion({ children, value, snapshot, actions, active, predictWhileTyping = false, onApply, onConfigure }: Props) {
+export function MasterAiCompletion({ children, value, snapshot, actions, active, predictWhileTyping = false, onApply, onUndoSuggestion, onConfigure }: Props) {
   const [candidates, setCandidates] = useState<string[]>([])
   const [selected, setSelected] = useState(0)
   const [busy, setBusy] = useState(false)
@@ -59,6 +61,7 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
   const popover = useRef<HTMLElement>(null)
   const composing = useRef<{ input: TextControl; original: string } | null>(null)
   const pending = useRef<Prediction | null>(null)
+  const accepted = useRef<AcceptedSuggestion | null>(null)
   const controller = useRef<AbortController | null>(null)
   const [target, setTarget] = useState<Completion | null>(null)
   const currentTarget = useRef<Completion | null>(null)
@@ -93,6 +96,16 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
       else prediction.token = token
     }
     if (!active) composing.current = null
+    const suggestion = accepted.current
+    if (suggestion) {
+      if (!active || snapshot?.blocked || !suggestion.input.isConnected ||
+        suggestion.input.ownerDocument.activeElement !== suggestion.input ||
+        suggestion.token !== undefined && suggestion.token !== token) accepted.current = null
+      else if (suggestion.previousToken !== token) {
+        if (fieldText(aiCompletableValue(value, suggestion.pointer)) === suggestion.text) suggestion.token = token
+        else accepted.current = null
+      }
+    }
   }, [active, predictWhileTyping, snapshot?.blocked, token, value, cancelPending, dismiss])
   useLayoutEffect(() => () => {
     cancelPending()
@@ -108,14 +121,15 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
   useEffect(() => {
     const doc = host.current?.ownerDocument
     if (!doc || !active) return
-    const hide = () => { if (doc.hidden) dismiss() }
+    const blur = () => { accepted.current = null; dismiss() }
+    const hide = () => { if (doc.hidden) blur() }
     doc.addEventListener('selectionchange', checkCaret)
     doc.addEventListener('visibilitychange', hide)
-    doc.defaultView?.addEventListener('blur', dismiss)
+    doc.defaultView?.addEventListener('blur', blur)
     return () => {
       doc.removeEventListener('selectionchange', checkCaret)
       doc.removeEventListener('visibilitychange', hide)
-      doc.defaultView?.removeEventListener('blur', dismiss)
+      doc.defaultView?.removeEventListener('blur', blur)
     }
   }, [active, checkCaret, dismiss])
 
@@ -167,9 +181,18 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
       field.prefix !== undefined && !canContinue(field.input, field.prefix)) { dismiss(); return }
     try {
       const text = candidate.replace(/\r\n?/g, '\n')
+      if (popover.current?.contains(field.input.ownerDocument.activeElement)) field.input.focus()
+      if (onUndoSuggestion && field.input.ownerDocument.activeElement === field.input && field.input.value !== text) {
+        accepted.current = { input: field.input, pointer: field.pointer, text, previousToken: field.snapshot.token }
+      }
       onApply(field.pointer, field.array ? text === '' ? [] : text.split('\n') : text, field.snapshot)
       dismiss()
-    } catch (reason) { setMessage(reason instanceof Error ? reason.message : String(reason)); setCandidates([]) }
+    } catch (reason) { accepted.current = null; setMessage(reason instanceof Error ? reason.message : String(reason)); setCandidates([]) }
+  }
+  const closePopover = () => {
+    const input = currentTarget.current?.input
+    if (input && popover.current?.contains(input.ownerDocument.activeElement)) input.focus()
+    dismiss()
   }
   const generate = async (input: TextControl, pointer: string, currentValue: string | string[], prefix?: string) => {
     const pane = latest.current.actions()
@@ -214,6 +237,7 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
   }
 
   const schedule = (eventTarget: EventTarget) => {
+    accepted.current = null
     if (pending.current || currentTarget.current) dismiss()
     const input = textControl(eventTarget)
     if (!predictWhileTyping || !active || snapshot?.blocked || !input || composing.current?.input === input) return
@@ -239,12 +263,31 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
   }
 
   const keyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!active || event.nativeEvent.isComposing || event.keyCode === 229 || event.repeat) return
+    if (popover.current?.contains(event.target as Node)) {
+      if (event.key === 'Escape') {
+        event.preventDefault(); event.stopPropagation(); closePopover()
+      } else if (event.key === 'Tab' && event.shiftKey && event.target === popover.current.querySelector('button')) {
+        event.preventDefault()
+        closePopover()
+      }
+      return
+    }
     const input = textControl(event.target)
-    if (!active || snapshot?.blocked || !input || composing.current?.input === input ||
-      event.nativeEvent.isComposing || event.keyCode === 229 || event.repeat) return
+    if (snapshot?.blocked || !input || composing.current?.input === input) return
     const pointer = input.getAttribute('aria-label') ?? ''
     const fieldValue = aiCompletableValue(value, pointer)
     if (fieldValue === null) return
+    const suggestion = accepted.current
+    if (suggestion && onUndoSuggestion && event.key.toLowerCase() === 'z' &&
+      (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey &&
+      suggestion.input === input && suggestion.pointer === pointer && suggestion.token === token &&
+      token !== undefined && input.value === suggestion.text && input.ownerDocument.activeElement === input) {
+      event.preventDefault(); event.stopPropagation()
+      accepted.current = null
+      onUndoSuggestion()
+      return
+    }
     if (event.key === ' ' && event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
       event.preventDefault(); event.stopPropagation(); void generate(input, pointer, fieldValue); return
     }
@@ -256,6 +299,10 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
     if (completion?.prefix !== undefined && !canContinue(input, completion.prefix)) { dismiss(); return }
     if (completion?.input !== input) return
     if (event.key === 'Tab' && candidates.length) { event.preventDefault(); event.stopPropagation(); adopt(selected) }
+    else if (event.key === 'Tab' && completion.prefix === undefined) {
+      const button = popover.current?.querySelector('button')
+      if (button) { event.preventDefault(); event.stopPropagation(); button.focus() }
+    }
     else if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && candidates.length) {
       event.preventDefault(); event.stopPropagation(); setSelected(index => (index + (event.key === 'ArrowDown' ? 1 : candidates.length - 1)) % candidates.length)
     }
@@ -266,10 +313,12 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
     onSelect={checkCaret}
     onPointerDownCapture={event => { if (!popover.current?.contains(event.target as Node) && (pending.current || currentTarget.current)) dismiss() }}
     onBlurCapture={event => {
+      if (accepted.current?.input === event.target) accepted.current = null
       if (composing.current?.input === event.target) composing.current = null
       if (!popover.current?.contains(event.relatedTarget) && (pending.current || currentTarget.current)) dismiss()
     }}
     onCompositionStartCapture={event => {
+      accepted.current = null
       const input = textControl(event.target)
       composing.current = input ? { input, original: input.value } : null
       if (pending.current || currentTarget.current) dismiss()
@@ -283,7 +332,7 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
     {active && target && (busy || message || candidates.length > 0) && createPortal(<aside ref={popover} className="master-ai-completion" aria-label="AI入力補完" onMouseDown={event => {
       if ((event.target as HTMLElement).closest('button')) event.preventDefault()
     }}>
-      <div className="button-row"><strong>{target.prefix === undefined ? 'AI入力補完' : 'AI予測変換'}</strong><button type="button" className="button compact" onClick={dismiss}>{busy ? '生成をキャンセル' : '候補を閉じる'}</button></div>
+      <div className="button-row"><strong>{target.prefix === undefined ? 'AI入力補完' : 'AI予測変換'}</strong><button type="button" className="button compact" onClick={closePopover}>{busy ? '生成をキャンセル' : '候補を閉じる'}</button></div>
       <p role="status">{busy ? '選択中の原稿をOpenAIへ送信して候補を生成しています…' : message}</p>
       {needsSettings && <button type="button" className="button" onClick={() => { dismiss(); onConfigure() }}>接続設定を開く</button>}
       {candidates.length > 0 && <div role="listbox" aria-label="AI補完候補">{candidates.map((candidate, index) => <button type="button" role="option" aria-selected={index === selected} className={`master-ai-completion-option ${index === selected ? 'selected' : ''}`} key={index} onClick={() => adopt(index)}><pre>{candidate.slice(target.prefix?.length ?? 0)}</pre><small>採用</small></button>)}</div>}
