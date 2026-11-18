@@ -358,6 +358,7 @@ public partial class MainWindow : Window
         if (androidHost is not null)
         {
             try { await androidHost.StopAsync(); }
+            catch (Exception error) { App.RecordFailure(error); }
             finally { androidHost = null; }
         }
         if (server is null) return;

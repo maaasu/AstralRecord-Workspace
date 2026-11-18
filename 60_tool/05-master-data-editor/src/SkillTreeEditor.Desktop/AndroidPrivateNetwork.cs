@@ -45,6 +45,12 @@ internal static class AndroidPrivateNetwork
         return HasPrivateRoute(status.RootElement, origin.Authority);
     }
 
+    internal static async Task RemoveServeAsync(Uri origin)
+    {
+        if (await IsConfiguredAsync(origin))
+            await RunAsync("serve", $"--https={Port}", "off");
+    }
+
     // A port shared with a different handler or Funnel must never be repurposed for the editor.
     internal static bool HasPrivateRoute(JsonElement config, string authority)
     {
@@ -58,6 +64,7 @@ internal static class AndroidPrivateNetwork
         if (!config.TryGetProperty("TCP", out var ports) || !ports.TryGetProperty(Port, out var listener)) return false;
         if (listener.TryGetProperty("HTTPS", out var https) && https.ValueKind == JsonValueKind.True
             && config.TryGetProperty("Web", out var web) && web.TryGetProperty(authority, out var site)
+            && web.EnumerateObject().Count(entry => entry.Name.EndsWith(":" + Port, StringComparison.Ordinal)) == 1
             && site.TryGetProperty("Handlers", out var paths) && paths.EnumerateObject().Count() == 1
             && paths.TryGetProperty("/", out var root) && root.TryGetProperty("Proxy", out var proxy)
             && proxy.GetString()?.TrimEnd('/') == Target) return true;

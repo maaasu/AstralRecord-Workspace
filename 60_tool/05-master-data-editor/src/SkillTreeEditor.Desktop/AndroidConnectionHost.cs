@@ -8,6 +8,7 @@ namespace SkillTreeEditor.Desktop;
 internal sealed class AndroidConnectionHost(string workspace, string settingsDirectory)
 {
     private WebApplication? app;
+    private bool servesPrivateRoute;
     private string SettingsFile => Path.Combine(settingsDirectory, "android-origin.txt");
     internal string ApkDirectory => Path.Combine(workspace, "60_tool", "05-master-data-editor", "dist", "android");
     internal Uri? Origin { get; private set; }
@@ -17,10 +18,9 @@ internal sealed class AndroidConnectionHost(string workspace, string settingsDir
     {
         if (app is not null) return;
         var origin = await AndroidPrivateNetwork.GetOriginAsync();
-        await StartAsync(origin);
+        await StartWithRouteAsync(origin);
         try
         {
-            await AndroidPrivateNetwork.ConfigureServeAsync(origin);
             Directory.CreateDirectory(settingsDirectory);
             var temporary = SettingsFile + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try
@@ -43,8 +43,23 @@ internal sealed class AndroidConnectionHost(string workspace, string settingsDir
         var address = await File.ReadAllTextAsync(SettingsFile);
         if (!Uri.TryCreate(address, UriKind.Absolute, out var origin) || !AndroidPrivateNetwork.IsEditorOrigin(origin))
             throw new InvalidDataException("Android接続の保存先を確認できません。受付を設定し直してください。");
-        if (!await AndroidPrivateNetwork.IsConfiguredAsync(origin)) return;
+        if (await AndroidPrivateNetwork.GetOriginAsync() != origin) return;
+        await StartWithRouteAsync(origin);
+    }
+
+    private async Task StartWithRouteAsync(Uri origin)
+    {
         await StartAsync(origin);
+        try
+        {
+            await AndroidPrivateNetwork.ConfigureServeAsync(origin);
+            servesPrivateRoute = true;
+        }
+        catch
+        {
+            await StopAsync();
+            throw;
+        }
     }
 
     private async Task StartAsync(Uri origin)
@@ -75,10 +90,19 @@ internal sealed class AndroidConnectionHost(string workspace, string settingsDir
     {
         if (app is null) return;
         var stopping = app;
+        var origin = Origin!;
         app = null;
         Origin = null;
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        try { await stopping.StopAsync(timeout.Token); }
-        finally { await stopping.DisposeAsync(); }
+        try
+        {
+            if (servesPrivateRoute) await AndroidPrivateNetwork.RemoveServeAsync(origin);
+        }
+        finally
+        {
+            servesPrivateRoute = false;
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            try { await stopping.StopAsync(timeout.Token); }
+            finally { await stopping.DisposeAsync(); }
+        }
     }
 }
