@@ -2,7 +2,7 @@ import { stripMinecraftFormatting } from '../utils/minecraft'
 
 export type MasterPredictionEntry = { path: string; fieldPointer: string; text: string }
 
-type IndexedEntry = MasterPredictionEntry & { category: string; normalizedPointer: string }
+type IndexedEntry = MasterPredictionEntry & { category: string; normalizedPointer: string; formatted: boolean }
 type MasterPredictionIndex = ReadonlyMap<string, readonly IndexedEntry[]>
 type RankedPrediction = { text: string; rank: number }
 
@@ -29,10 +29,10 @@ export function buildMasterPredictionIndex(entries: readonly MasterPredictionEnt
     const field = fieldLocation(entry.fieldPointer)
     if (!field.key || !entry.text.trim()) continue
     const bucket = index.get(field.key) ?? []
-    const indexed = { ...entry, category: categoryOf(entry.path), normalizedPointer: field.normalized }
-    bucket.push(indexed)
     const visibleText = stripMinecraftFormatting(entry.text)
-    if (visibleText !== entry.text && visibleText.trim()) bucket.push({ ...indexed, text: visibleText })
+    const indexed = { ...entry, category: categoryOf(entry.path), normalizedPointer: field.normalized, formatted: visibleText !== entry.text }
+    bucket.push(indexed)
+    if (indexed.formatted && visibleText.trim()) bucket.push({ ...indexed, text: visibleText, formatted: false })
     index.set(field.key, bucket)
   }
   for (const bucket of index.values()) {
@@ -61,6 +61,26 @@ export function findLocalPredictions(
   maxLength: number,
   multiline = false,
 ): string[] {
+  const exact = findMatches(index, history, path, pointer, prefix, maxLength, multiline)
+  if (exact.length) return exact
+
+  const visiblePrefix = stripMinecraftFormatting(prefix)
+  if (visiblePrefix === prefix || !visiblePrefix.trim()) return []
+  const visibleMaxLength = maxLength - (prefix.length - visiblePrefix.length)
+  return findMatches(index, history, path, pointer, visiblePrefix, visibleMaxLength, multiline, true)
+    .map(candidate => prefix + candidate.slice(visiblePrefix.length))
+}
+
+function findMatches(
+  index: MasterPredictionIndex,
+  history: readonly MasterPredictionEntry[],
+  path: string,
+  pointer: string,
+  prefix: string,
+  maxLength: number,
+  multiline: boolean,
+  visibleOnly = false,
+): string[] {
   const field = fieldLocation(pointer)
   if (!field.key || !prefix.trim() || prefix.length >= maxLength) return []
   const category = categoryOf(path)
@@ -86,7 +106,9 @@ export function findLocalPredictions(
 
   for (const entry of history) {
     const entryField = fieldLocation(entry.fieldPointer)
-    if (entryField.key === field.key) consider(entry, categoryOf(entry.path), entryField.normalized, true)
+    if (entryField.key !== field.key) continue
+    const candidate = visibleOnly ? { ...entry, text: stripMinecraftFormatting(entry.text) } : entry
+    consider(candidate, categoryOf(entry.path), entryField.normalized, true)
   }
   if (best.length === predictionLimit) return best.map(candidate => candidate.text)
 
@@ -94,6 +116,7 @@ export function findLocalPredictions(
   for (let position = lowerBound(bucket, prefix); position < bucket.length; position++) {
     const entry = bucket[position]
     if (!entry.text.startsWith(prefix)) break
+    if (visibleOnly && entry.formatted) continue
     consider(entry, entry.category, entry.normalizedPointer, false)
   }
   return best.map(candidate => candidate.text)

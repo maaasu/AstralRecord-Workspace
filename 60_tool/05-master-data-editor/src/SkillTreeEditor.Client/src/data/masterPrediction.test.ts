@@ -72,4 +72,16 @@ describe('master predictions', () => {
     expect(findLocalPredictions(index, [], path, '/lore', 'グラス', Infinity, true))
       .toEqual(['グラスの丘\n野草が生える'])
   })
+
+  it('falls back to visible matches without changing the typed color', () => {
+    const other = 'items/material/other.yml'
+    const index = buildMasterPredictionIndex([
+      { path: other, fieldPointer: '/name', text: '&fグラスボア' },
+      { path: other, fieldPointer: '/name', text: '&bグラスダガー' },
+      { path: other, fieldPointer: '/name', text: '&cグラス\nボア' },
+    ])
+    expect(findLocalPredictions(index, [], path, '/name', '&aグラス', 7)).toEqual(['&aグラスボア'])
+    expect(findLocalPredictions(index, [], path, '/name', '&aグラス', 6)).toEqual([])
+    expect(findLocalPredictions(index, [], path, '/name', '&fグラス', Infinity)).toEqual(['&fグラスボア'])
+  })
 })
