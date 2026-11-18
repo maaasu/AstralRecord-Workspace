@@ -34,9 +34,23 @@ internal static class AndroidPrivateNetwork
     internal static async Task ConfigureServeAsync(Uri origin)
     {
         if (await IsConfiguredAsync(origin)) return;
-        await RunAsync("serve", "--bg", $"--https={Port}", Target);
-        if (!await IsConfiguredAsync(origin))
-            throw new InvalidOperationException("TailscaleのHTTPS接続先を確認できませんでした。「初回の設定」を確認してください。");
+        try
+        {
+            await RunAsync("serve", "--bg", $"--https={Port}", Target);
+            if (!await IsConfiguredAsync(origin))
+                throw new InvalidOperationException("TailscaleのHTTPS接続先を確認できませんでした。「初回の設定」を確認してください。");
+        }
+        catch (Exception setupError)
+        {
+            // The daemon may have installed the route even when the CLI confirmation timed out.
+            try { await RemoveServeAsync(origin); }
+            catch (Exception cleanupError)
+            {
+                throw new IOException($"Tailscaleの設定を確認してください。{setupError.Message}\n"
+                    + $"専用転送の解除結果を確認できませんでした。{cleanupError.Message}", setupError);
+            }
+            throw;
+        }
     }
 
     internal static async Task<bool> IsConfiguredAsync(Uri origin)
