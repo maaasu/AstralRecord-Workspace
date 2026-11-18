@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { aiAssistApi } from '../api/aiAssistApi'
 import { masterDataApi } from '../api/masterDataApi'
 import type { AiProposal, AiProposalResponse } from '../types/aiAssist'
@@ -36,6 +36,7 @@ beforeEach(() => {
   vi.spyOn(masterDataApi, 'save').mockResolvedValue(original)
   vi.spyOn(masterDataApi, 'create').mockResolvedValue(original)
 })
+afterEach(() => vi.useRealTimers())
 
 async function openFile() {
   render(<MasterDataEditor />)
@@ -71,6 +72,7 @@ describe('AI master editor integration', () => {
     render(<MasterDataEditor />)
     await screen.findByRole('button', { name: 'AIアシスト' })
     const dialog = await openAi()
+    fireEvent.click(dialog.getByRole('button', { name: '作成', exact: true }))
     fireEvent.change(dialog.getByRole('combobox', { name: 'AI作成カテゴリ' }), { target: { value: 'items' } })
     expect(dialog.getByRole('combobox', { name: 'AI参考ファイル' })).toHaveValue('')
     fireEvent.change(dialog.getByRole('textbox', { name: 'AIへの指示' }), { target: { value: 'デバッグ用のアイテム。\nただのマテリアルアイテム' } })
@@ -94,6 +96,7 @@ describe('AI master editor integration', () => {
     await openFile()
     const dialog = await openAi()
     expect(screen.getByRole('dialog', { name: 'AIアシスト' }).parentElement?.parentElement).toBe(document.body)
+    fireEvent.click(dialog.getByRole('button', { name: '作成', exact: true }))
     expect(dialog.getByRole('combobox', { name: 'AI作成カテゴリ' })).toHaveValue(category.id)
     fireEvent.change(dialog.getByRole('textbox', { name: 'AIへの指示' }), { target: { value: '星の剣を作る' } })
     fireEvent.click(dialog.getByRole('button', { name: '候補を生成' }))
@@ -115,6 +118,7 @@ describe('AI master editor integration', () => {
   it('resets the reference when the creation category changes', async () => {
     await openFile()
     const dialog = await openAi()
+    fireEvent.click(dialog.getByRole('button', { name: '作成', exact: true }))
     fireEvent.change(dialog.getByRole('combobox', { name: 'AI作成カテゴリ' }), { target: { value: 'items' } })
     expect(dialog.getByRole('combobox', { name: 'AI参考ファイル' })).toHaveValue('')
   })
@@ -132,6 +136,83 @@ describe('AI master editor integration', () => {
     fireEvent.click(screen.getByRole('button', { name: '元に戻す Ctrl+Z' }))
     expect(screen.getByRole('textbox', { name: '/name' })).toHaveValue('元の剣')
     expect(masterDataApi.save).not.toHaveBeenCalled()
+  })
+
+  it('reaches the manual completion settings by keyboard when no API key is configured', async () => {
+    await openFile()
+    vi.mocked(aiAssistApi.settings).mockResolvedValue({ ...configured, configured: false, keySource: null })
+    const name = screen.getByRole('textbox', { name: '/name' })
+    name.focus()
+    await userEvent.keyboard('{Control>} {/Control}')
+    const settings = await screen.findByRole('button', { name: '接続設定を開く' })
+    await userEvent.tab()
+    await userEvent.tab()
+    expect(settings).toHaveFocus()
+    await userEvent.keyboard('{Enter}')
+    expect(await screen.findByRole('dialog', { name: 'AIアシスト' })).toBeVisible()
+  })
+
+  it('starts with completion help and appends a prediction only after opt-in and acceptance', async () => {
+    vi.mocked(aiAssistApi.propose).mockResolvedValue(result([], 'complete', ['星の護符', '別の名前']))
+    await openFile()
+    const dialog = await openAi()
+    expect(dialog.getByRole('button', { name: '入力補完', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    const preference = dialog.getByRole('checkbox', { name: '入力中にAI予測変換を表示' })
+    expect(preference).not.toBeChecked()
+    fireEvent.click(dialog.getByRole('button', { name: '閉じる', exact: true }))
+
+    vi.useFakeTimers()
+    const name = screen.getByRole<HTMLInputElement>('textbox', { name: '/name' })
+    name.focus()
+    fireEvent.change(name, { target: { value: '暁の', selectionStart: 2, selectionEnd: 2 } })
+    await act(() => vi.advanceTimersByTimeAsync(900))
+    expect(aiAssistApi.propose).not.toHaveBeenCalled()
+
+    const toggle = screen.getByRole('button', { name: 'AI予測変換', exact: true })
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    name.focus()
+    fireEvent.change(name, { target: { value: '星の', selectionStart: 2, selectionEnd: 2 } })
+    expect(aiAssistApi.propose).not.toHaveBeenCalled()
+    await act(() => vi.advanceTimersByTimeAsync(900))
+    expect(aiAssistApi.propose).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      mode: 'complete', completionStyle: 'continue', fieldPointer: '/name', raw: expect.stringContaining('星の'),
+    }), expect.any(AbortSignal))
+    expect(name).toHaveValue('星の')
+    const suggestion = screen.getByRole('option', { name: /護符/ })
+    expect(suggestion).not.toHaveTextContent('星の')
+    expect(screen.queryByRole('option', { name: /別の名前/ })).not.toBeInTheDocument()
+    fireEvent.keyDown(name, { key: 'Tab' })
+    expect(name).toHaveValue('星の護符')
+    expect(name).toHaveFocus()
+    expect(fireEvent.keyDown(name, { key: 'z', ctrlKey: true })).toBe(false)
+    expect(name).toHaveValue('星の')
+    expect(fireEvent.keyDown(name, { key: 'z', ctrlKey: true })).toBe(true)
+    expect(masterDataApi.save).not.toHaveBeenCalled()
+  })
+
+  it('waits for IME confirmation and aborts a prediction when the caret leaves the end', async () => {
+    let finish!: (value: AiProposalResponse) => void
+    vi.mocked(aiAssistApi.propose).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+    await openFile()
+    vi.useFakeTimers()
+    fireEvent.click(screen.getByRole('button', { name: 'AI予測変換', exact: true }))
+    const name = screen.getByRole<HTMLInputElement>('textbox', { name: '/name' })
+    name.focus()
+    fireEvent.compositionStart(name)
+    fireEvent.change(name, { target: { value: '星の', selectionStart: 2, selectionEnd: 2 } })
+    await act(() => vi.advanceTimersByTimeAsync(900))
+    expect(aiAssistApi.propose).not.toHaveBeenCalled()
+    fireEvent.compositionEnd(name, { data: '星の' })
+    await act(() => vi.advanceTimersByTimeAsync(900))
+    expect(aiAssistApi.propose).toHaveBeenCalledTimes(1)
+    const signal = vi.mocked(aiAssistApi.propose).mock.calls[0][1]!
+    name.setSelectionRange(1, 1)
+    fireEvent.select(name)
+    await act(async () => finish(result([], 'complete', ['星の護符'])))
+    expect(signal.aborted).toBe(true)
+    expect(screen.queryByRole('option', { name: /護符/ })).not.toBeInTheDocument()
+    expect(name).toHaveValue('星の')
   })
 
   it('does not trigger during Japanese IME composition, with additional modifiers, or on IDs', async () => {
