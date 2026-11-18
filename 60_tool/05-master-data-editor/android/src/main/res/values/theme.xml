@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AstralRecord マスターエディター</string>
+    <style name="AppTheme" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#B7ACFF</item>
+        <item name="android:colorBackground">#11131F</item>
+        <item name="android:windowBackground">#11131F</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:statusBarColor">#11131F</item>
+        <item name="android:navigationBarColor">#11131F</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+</resources>
