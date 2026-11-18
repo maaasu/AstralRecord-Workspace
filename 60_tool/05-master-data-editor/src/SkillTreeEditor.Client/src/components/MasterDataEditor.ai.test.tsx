@@ -237,6 +237,8 @@ describe('AI master editor integration', () => {
   })
 
   it('makes no cloud request on a local click miss and still falls back after editing', async () => {
+    let finishIndex!: (entries: Awaited<ReturnType<typeof masterDataApi.predictionIndex>>) => void
+    vi.mocked(masterDataApi.predictionIndex).mockImplementation(() => new Promise(resolve => { finishIndex = resolve }))
     vi.mocked(aiAssistApi.propose).mockResolvedValue(result([], 'complete', ['暁の護符']))
     await openFile()
     vi.useFakeTimers()
@@ -247,6 +249,7 @@ describe('AI master editor integration', () => {
     fireEvent.click(name)
 
     await act(() => vi.advanceTimersByTimeAsync(1000))
+    await act(async () => finishIndex([]))
     expect(screen.queryByRole('listbox', { name: 'AI補完候補' })).not.toBeInTheDocument()
     expect(aiAssistApi.settings).not.toHaveBeenCalled()
     expect(aiAssistApi.propose).not.toHaveBeenCalled()
@@ -293,6 +296,26 @@ describe('AI master editor integration', () => {
     await act(async () => loadIndex([{ path: other.path, fieldPointer: '/name', text: '星の粉' }]))
     expect(screen.getByRole('option', { name: /粉/ })).toBeVisible()
     expect(aiAssistApi.propose).not.toHaveBeenCalled()
+  })
+
+  it('offers and applies a local candidate when an empty text field is clicked', async () => {
+    const unnamed = { ...content, name: '' }
+    vi.mocked(masterDataApi.file).mockResolvedValueOnce({ ...original, content: unnamed, raw: JSON.stringify(unnamed) })
+    vi.mocked(masterDataApi.predictionIndex).mockResolvedValue([{ path: other.path, fieldPointer: '/name', text: '月の欠片' }])
+    await openFile()
+    vi.useFakeTimers()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'AI予測変換' })))
+    const name = screen.getByRole<HTMLInputElement>('textbox', { name: '/name' })
+    act(() => name.focus())
+    expect(name).toHaveValue('')
+    fireEvent.click(name)
+    expect(screen.getByRole('option', { name: /月の欠片/ })).toBeVisible()
+    fireEvent.keyDown(name, { key: 'Tab' })
+    expect(name).toHaveValue('月の欠片')
+    await act(() => vi.advanceTimersByTimeAsync(1000))
+    expect(aiAssistApi.settings).not.toHaveBeenCalled()
+    expect(aiAssistApi.propose).not.toHaveBeenCalled()
+    expect(masterDataApi.save).not.toHaveBeenCalled()
   })
 
   it('keeps input local when loading the master index fails', async () => {
