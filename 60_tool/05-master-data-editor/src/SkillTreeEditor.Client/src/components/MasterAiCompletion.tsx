@@ -30,8 +30,8 @@ interface Props {
 }
 
 type TextControl = HTMLInputElement | HTMLTextAreaElement
-type Prediction = { input: TextControl; pointer: string; text: string; token: string | undefined; timer: ReturnType<typeof setTimeout> | null }
-type Completion = { input: TextControl; pointer: string; snapshot: AiEditorSnapshot; array: boolean; prefix?: string; search?: SearchLocalPredictions }
+type Prediction = { input: TextControl; pointer: string; text: string; clickCaret?: number; token: string | undefined; timer: ReturnType<typeof setTimeout> | null }
+type Completion = { input: TextControl; pointer: string; snapshot: AiEditorSnapshot; array: boolean; prefix?: string; clickCaret?: number; search?: SearchLocalPredictions }
 type AcceptedSuggestion = { input: TextControl; pointer: string; text: string; previousToken: string; token?: string }
 
 const predictionDelay = 800
@@ -48,9 +48,9 @@ function textControl(target: EventTarget): TextControl | null {
   return input.matches(':disabled') || input.readOnly ? null : input
 }
 
-function canContinue(input: TextControl, text: string) {
+function canContinue(input: TextControl, text: string, caret = text.length) {
   return input.isConnected && input.ownerDocument.activeElement === input && !input.ownerDocument.hidden &&
-    input.value === text && input.selectionStart === text.length && input.selectionEnd === text.length &&
+    input.value === text && input.selectionStart === caret && input.selectionEnd === caret &&
     !input.matches(':disabled') && !input.readOnly
 }
 
@@ -116,9 +116,9 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
 
   const checkCaret = useCallback(() => {
     const prediction = pending.current
-    if (prediction && !canContinue(prediction.input, prediction.text)) cancelPending()
+    if (prediction && !canContinue(prediction.input, prediction.text, prediction.clickCaret)) cancelPending()
     const completion = currentTarget.current
-    if (completion?.prefix !== undefined && !canContinue(completion.input, completion.prefix)) dismiss()
+    if (completion?.prefix !== undefined && !canContinue(completion.input, completion.prefix, completion.clickCaret)) dismiss()
   }, [cancelPending, dismiss])
   useEffect(() => {
     const doc = host.current?.ownerDocument
@@ -180,7 +180,7 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
     const field = currentTarget.current
     const candidate = candidates[index]
     if (!field || candidate === undefined || actions()?.snapshot()?.token !== field.snapshot.token ||
-      field.prefix !== undefined && !canContinue(field.input, field.prefix)) { dismiss(); return }
+      field.prefix !== undefined && !canContinue(field.input, field.prefix, field.clickCaret)) { dismiss(); return }
     try {
       const text = candidate.replace(/\r\n?/g, '\n')
       if (popover.current?.contains(field.input.ownerDocument.activeElement)) field.input.focus()
@@ -240,13 +240,13 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
   const resolvePrediction = useCallback(() => {
     const prediction = pending.current
     if (!prediction) return
-    const { input, pointer, text } = prediction
+    const { input, pointer, text, clickCaret } = prediction
     const { value, actions, active, predictWhileTyping, search } = latest.current
     const expected = actions()?.snapshot()
     const field = aiCompletableValue(value, pointer)
     if (!active || !predictWhileTyping || !expected || expected.blocked ||
       prediction.token !== undefined && prediction.token !== expected.token ||
-      field === null || fieldText(field) !== text || composing.current?.input === input || !canContinue(input, text)) {
+      field === null || fieldText(field) !== text || composing.current?.input === input || !canContinue(input, text, clickCaret)) {
       cancelPending()
       return
     }
@@ -256,37 +256,40 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
     const local = search?.(expected.path, pointer, text, input.maxLength < 0 ? Infinity : input.maxLength, input.tagName === 'TEXTAREA')
     if (local?.suggestions.length) {
       dismiss()
-      const next = { input, pointer, snapshot: expected, array: Array.isArray(field), prefix: text, search }
+      const next = { input, pointer, snapshot: expected, array: Array.isArray(field), prefix: text, clickCaret, search }
       currentTarget.current = next
       setTarget(next)
       setCandidates(local.suggestions)
       setSelected(0)
       setMessage(shortcuts)
     } else if (local?.indexReady && prediction.timer === null) {
-      if (text.replace(/\s/g, '').length >= 2) void generate(input, pointer, field, text)
+      if (clickCaret === undefined && text.replace(/\s/g, '').length >= 2) void generate(input, pointer, field, text)
       else cancelPending()
     }
   }, [cancelPending, dismiss, generate])
 
   useLayoutEffect(() => { resolvePrediction() }, [active, predictWhileTyping, token, value, search, resolvePrediction])
 
-  const schedule = (eventTarget: EventTarget) => {
-    accepted.current = null
-    if (pending.current || currentTarget.current) dismiss()
+  const schedule = (eventTarget: EventTarget, fromClick = false) => {
     const input = textControl(eventTarget)
+    if (fromClick && !input) return
+    if (!fromClick) accepted.current = null
+    if (pending.current || currentTarget.current) dismiss()
     if (!predictWhileTyping || !active || !snapshot || snapshot.blocked || !input || composing.current?.input === input) return
     const pointer = input.getAttribute('aria-label') ?? ''
     const currentValue = aiCompletableValue(value, pointer)
     const text = input.value
-    if (!prosePointer(pointer) || currentValue === null || !text.trim() || text.length > 8000 ||
-      Array.isArray(currentValue) && currentValue.some(line => /[\r\n]/.test(line)) || !canContinue(input, text)) return
-    const timer = text.replace(/\s/g, '').length < 2 ? null : setTimeout(() => {
+    const clickCaret = fromClick ? input.selectionStart : undefined
+    if (!prosePointer(pointer) || currentValue === null || (!text.trim() && (!fromClick || text !== '')) ||
+      text.length > 8000 || clickCaret === null || Array.isArray(currentValue) && currentValue.some(line => /[\r\n]/.test(line)) ||
+      !canContinue(input, text, clickCaret)) return
+    const timer = fromClick || text.replace(/\s/g, '').length < 2 ? null : setTimeout(() => {
       const scheduled = pending.current
       if (!scheduled || scheduled.timer !== timer) return
       scheduled.timer = null
       resolvePrediction()
     }, predictionDelay)
-    pending.current = { input, pointer, text, token: fieldText(currentValue) === text ? token : undefined, timer }
+    pending.current = { input, pointer, text, clickCaret, token: fieldText(currentValue) === text ? token : undefined, timer }
     // IME confirmation can arrive after the final change event has updated the form.
     if (fieldText(currentValue) === text) resolvePrediction()
   }
@@ -325,7 +328,7 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
     if (event.key === 'Escape' && (pending.current?.input === input || completion?.input === input)) {
       event.preventDefault(); event.stopPropagation(); dismiss(); return
     }
-    if (completion?.prefix !== undefined && !canContinue(input, completion.prefix)) { dismiss(); return }
+    if (completion?.prefix !== undefined && !canContinue(input, completion.prefix, completion.clickCaret)) { dismiss(); return }
     if (completion?.input !== input) return
     if (event.key === 'Tab' && candidates.length) { event.preventDefault(); event.stopPropagation(); adopt(selected) }
     else if (event.key === 'Tab' && completion.prefix === undefined) {
@@ -346,6 +349,7 @@ export function MasterAiCompletion({ children, value, snapshot, actions, active,
       }
     }}
     onChange={event => schedule(event.target)}
+    onClick={event => { if (event.button === 0) schedule(event.target, true) }}
     onSelect={checkCaret}
     onPointerDownCapture={event => { if (!popover.current?.contains(event.target as Node) && (pending.current || currentTarget.current)) dismiss() }}
     onBlurCapture={event => {

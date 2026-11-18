@@ -5,6 +5,20 @@ const path = 'items/material/current.yml'
 const pointer = '/variants/0/name'
 
 describe('master predictions', () => {
+  it('offers ranked visible candidates for an empty field and rejects whitespace-only input', () => {
+    const fieldPointer = '/name'
+    const index = buildMasterPredictionIndex([
+      { path: 'items/weapon/other.yml', fieldPointer, text: '&6かけら' },
+      { path: 'items/material/other.yml', fieldPointer, text: '&fグラスボア' },
+      { path: 'items/material/other.yml', fieldPointer, text: '&aグラスボア' },
+      { path: 'items/material/other.yml', fieldPointer, text: '&b先頭\n続き' },
+    ])
+    const history = updatePredictionHistory([], path, fieldPointer, '&f月の欠片')
+    expect(findLocalPredictions(index, history, path, fieldPointer, '', 10))
+      .toEqual(['月の欠片', 'グラスボア', 'かけら'])
+    expect(findLocalPredictions(index, history, path, fieldPointer, ' ', 10)).toEqual([])
+  })
+
   it('ranks same-category matches by exact and normalized field pointers', () => {
     const index = buildMasterPredictionIndex([
       { path: 'items/weapon/other.yml', fieldPointer: pointer, text: '星の剣' },
