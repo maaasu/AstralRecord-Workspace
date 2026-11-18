@@ -30,6 +30,7 @@ public sealed record MasterDataCreateRequest(string Path, string Raw, bool AutoI
 public sealed record MasterDataCopyRequest(string SourcePath, string Revision, string TargetPath,
     bool AutoItemId = false, string? Slug = null, string? Group = null, bool AutoName = false, string? NewId = null);
 public sealed record MasterDataReference(string Path, string Pointer, string Value, string? Label, string? Kind);
+public sealed record MasterDataPredictionEntry(string Path, string FieldPointer, string Text);
 
 public sealed class MasterDataValidationException(MasterDataReport report) : Exception("マスタの検証に失敗しました。")
 {
