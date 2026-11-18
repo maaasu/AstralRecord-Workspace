@@ -160,9 +160,8 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
                 categories.Add(await catalog.GetAsync(directory, token));
         object input = continuation ? new
         {
-            mode = request.Mode, completionStyle = request.CompletionStyle, instruction = request.Instruction,
-            path = draft!.Path, categoryId = category!.Id, category.Label,
-            fieldPointer = request.FieldPointer, field = continuationField, currentText,
+            fieldPointer = request.FieldPointer, currentText,
+            field = continuationField is null ? null : new { continuationField.Label, continuationField.Type },
             multiline = multilineContinuation
         } : new
         {
@@ -192,6 +191,13 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
             var suggestions = continuation
                 ? Continuations(currentText!, multilineContinuation, generated.Suggestions)
                 : generated.Suggestions;
+            HashSet<MasterDataIssue>? existingErrors = null;
+            if (continuation && suggestions.Count > 0)
+            {
+                var baseline = await validation.ValidateAsync(draft!.Path, draft.Raw, token);
+                existingErrors = baseline.Issues.Where(issue => issue.Severity == "error").ToHashSet();
+            }
+            var accepted = new List<string>();
             foreach (var suggestion in suggestions)
             {
                 var content = draft!.Content!.DeepClone();
@@ -199,12 +205,18 @@ public sealed class MasterDataAiService(MasterDataAiSettingsService settings, Ma
                     ? new JsonArray(suggestion.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n').Select(line => (JsonNode?)JsonValue.Create(line)).ToArray())
                     : JsonValue.Create(suggestion));
                 var rendered = codec.Render(new(draft.Path, content, draft.Raw));
-                RequireObject(draft.Path, rendered.Raw);
-                warnings.AddRange(rendered.Warnings);
+                if (!continuation) RequireObject(draft.Path, rendered.Raw);
                 var report = await validation.ValidateAsync(draft.Path, rendered.Raw, token);
+                if (existingErrors is not null && report.Issues.Any(issue => issue.Severity == "error" && !existingErrors.Contains(issue)))
+                {
+                    warnings.Add("検証エラーが増える候補を除外しました。");
+                    continue;
+                }
+                accepted.Add(suggestion);
+                warnings.AddRange(rendered.Warnings);
                 if (!report.IsValid) warnings.Add("入力補完後の原稿に検証エラーがあります。採用後に検証結果を確認してください。");
             }
-            return new(request.Mode, credentials.Model, suggestions, [], warnings.Distinct().ToArray());
+            return new(request.Mode, credentials.Model, accepted, [], warnings.Distinct().ToArray());
         }
 
         if (generated.Suggestions.Count != 0) throw InvalidProposal("ファイル作成・編集の応答に入力補完の候補が含まれています。");

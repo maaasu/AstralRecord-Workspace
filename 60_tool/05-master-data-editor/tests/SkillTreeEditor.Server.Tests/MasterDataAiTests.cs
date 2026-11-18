@@ -96,6 +96,13 @@ public sealed class MasterDataAiTests : IDisposable
     [InlineData("/lore", " continued", "first\nsecond continued")]
     public async Task ContinueAppendsOnlyTheSuffixAndSendsOnlyFieldContext(string pointer, string suffix, string expected)
     {
+        Write("test/docs.YAMLスキーマ定義.md", """
+            # Test
+            | キー | 型 | 必須 | 説明 |
+            |---|---|---|---|
+            | `name` | String | × | 名前 |
+            | `lore` | List<String> | × | 説明 |
+            """);
         _handler.Result = Result([suffix, suffix, " "], []);
         var before = Snapshot();
         var result = await _service.GenerateAsync(new("complete", "補完", SourcePath: PathA, Raw: Original,
@@ -107,9 +114,12 @@ public sealed class MasterDataAiTests : IDisposable
         var input = sent.RootElement.GetProperty("input");
         Assert.Contains("末尾", input[0].GetProperty("content").GetString());
         using var context = JsonDocument.Parse(input[1].GetProperty("content").GetString()!);
-        Assert.Equal("continue", context.RootElement.GetProperty("completionStyle").GetString());
+        Assert.Equal(new[] { "currentText", "field", "fieldPointer", "multiline" },
+            context.RootElement.EnumerateObject().Select(property => property.Name).Order());
+        Assert.Equal(pointer, context.RootElement.GetProperty("fieldPointer").GetString());
         Assert.Equal(pointer == "/name" ? "Old" : "first\nsecond", context.RootElement.GetProperty("currentText").GetString());
-        Assert.False(context.RootElement.TryGetProperty("draft", out _));
+        Assert.Equal(new[] { "label", "type" }, context.RootElement.GetProperty("field").EnumerateObject()
+            .Select(property => property.Name).Order());
     }
 
     [Fact]
@@ -130,6 +140,24 @@ public sealed class MasterDataAiTests : IDisposable
         var result = await _service.GenerateAsync(new("complete", "補完", SourcePath: PathA, Raw: raw,
             FieldPointer: "/lore", CompletionStyle: "continue"), default);
         Assert.Equal("  first \n\nsecond  \nthird", Assert.Single(result.Suggestions));
+    }
+
+    [Fact]
+    public async Task ContinueExcludesNewValidationErrorsAndAllowsExistingErrors()
+    {
+        Write("test/schemas/test.schema.json", """
+            {
+              "type": "object",
+              "required": ["missing"],
+              "properties": { "name": { "type": "string", "maxLength": 5 } }
+            }
+            """);
+        _handler.Result = Result([" X", " too long"], []);
+        var result = await _service.GenerateAsync(new("complete", "補完", SourcePath: PathA, Raw: Original,
+            FieldPointer: "/name", CompletionStyle: "continue"), default);
+        Assert.Equal("Old X", Assert.Single(result.Suggestions));
+        Assert.Contains(result.Warnings, warning => warning.Contains("候補を除外"));
+        Assert.Contains(result.Warnings, warning => warning.Contains("採用後に検証結果を確認"));
     }
 
     [Theory]
