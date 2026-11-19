@@ -10,7 +10,7 @@ import zlib
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from astralarchitect_ticket import preview
+from astralarchitect_ticket import cli, preview
 from astralarchitect_ticket.preview import render_preview
 from astralarchitect_ticket.schematic import Bounds, Point, TicketError
 
@@ -80,6 +80,58 @@ class PreviewCameraTests(unittest.TestCase):
                 self.assertNotEqual(image, sky)
                 image = _pixel(render_preview(ticket, ["minecraft:" + hidden], **camera))
                 self.assertEqual(image, sky)
+
+    def test_clay_removes_material_color_and_pattern(self) -> None:
+        ticket = SimpleNamespace(bounds=Bounds(Point(0, 0, 0), Point(0, 0, 0)))
+        camera = dict(eye=(2, 2, -3), target=(0.5, 0.5, 0.5), width=16, height=16)
+        wood = ["minecraft:oak_planks"]
+        brick = ["minecraft:bricks"]
+        material = render_preview(ticket, wood, **camera)
+        self.assertNotEqual(material, render_preview(ticket, brick, **camera))
+        self.assertEqual(render_preview(ticket, wood, style="clay", **camera),
+                         render_preview(ticket, brick, style="clay", **camera))
+        self.assertEqual(render_preview(ticket, wood, style="material", **camera), material)
+        with self.assertRaisesRegex(TicketError, "preview style"):
+            render_preview(ticket, wood, style="invalid", **camera)
+
+    def test_clay_preserves_slab_open_space_and_glass_opacity(self) -> None:
+        ticket = SimpleNamespace(bounds=Bounds(Point(0, 0, 0), Point(0, 0, 0)))
+        slab = ["minecraft:stone_slab[type=bottom]"]
+        for height in (0.25, 0.75):
+            with self.subTest(height=height):
+                camera = dict(eye=(0.5, height, -2), target=(0.5, height, 0.5), width=1, height=1)
+                air = _pixel(render_preview(ticket, ["minecraft:cave_air"], style="clay", **camera))
+                solid = _pixel(render_preview(ticket, ["minecraft:stone"], style="clay", **camera))
+                half = _pixel(render_preview(ticket, slab, style="clay", **camera))
+                glass = _pixel(render_preview(ticket, ["minecraft:glass"], style="clay", **camera))
+                self.assertLess(solid[0], air[0])
+                self.assertEqual(half, solid if height < 0.5 else air)
+                self.assertEqual(glass, tuple(int(0.34 * face + (1.0 - 0.34) * sky)
+                                              for face, sky in zip(solid, air)))
+
+    def test_preview_cli_forwards_and_reports_clay_style(self) -> None:
+        command = ["preview", "ticket", "--eye", "0", "1", "2", "--target", "0", "0", "0",
+                   "--width", "1", "--height", "1", "--output", "preview.png"]
+        states = ["minecraft:stone"]
+        ticket = SimpleNamespace(directory=Path("ticket"), metadata={"id": "test"},
+                                 source_hash="source", candidate_hash="candidate",
+                                 candidate=SimpleNamespace(states=lambda: states))
+        for style in ("material", "clay"):
+            with self.subTest(style=style):
+                options = ["--style", "clay"] if style == "clay" else []
+                args = cli._parser().parse_args(command + options)
+                self.assertEqual(args.command, "preview")
+                with patch.object(cli, "render_preview", return_value=b"png") as render, \
+                     patch.object(cli, "_output_path", return_value=Path("preview.png")), \
+                     patch.object(cli, "_write_new_file"):
+                    result = cli._preview(ticket, args)
+                render.assert_called_once_with(ticket, states, eye=(0.0, 1.0, 2.0),
+                                               target=(0.0, 0.0, 0.0), width=1, height=1,
+                                               clip_y=None, style=style)
+                if style == "clay":
+                    self.assertEqual(result["style"], "clay")
+                else:
+                    self.assertNotIn("style", result)
 
     def test_preview_limits_empty_cell_traversal(self) -> None:
         ticket = SimpleNamespace(bounds=Bounds(Point(0, 0, 0), Point(0, 0, 2)))

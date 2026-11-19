@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import lru_cache
 from hashlib import blake2b
+from itertools import islice
 import math
 import struct
 from typing import Sequence
@@ -16,6 +17,8 @@ from .schematic import Bounds, Ticket, TicketError, is_air
 Vector = tuple[float, float, float]
 Box = tuple[float, float, float, float, float, float]
 Color = tuple[int, int, int]
+_CLAY_COLOR: Color = (160, 160, 160)
+_CLAY_BACKGROUND: Color = (228, 228, 228)
 _FULL: Box = (0, 0, 0, 1, 1, 1)
 _CUBE = (_FULL,)
 _DIRECTIONS = ("east", "south", "west", "north")
@@ -282,6 +285,10 @@ def _shade(block: BlockModel, axis: int, direction: Vector, point: Vector, x: in
         u, v = local_x, local_y
         light = 0.91 if direction[2] < 0 else 0.70
 
+    if block.pattern == "clay":
+        gray = int(block.color[0] * light)
+        return gray, gray, gray
+
     iu, iv = int(u * 16), int(v * 16)
     noise = (iu * 43 ^ iv * 137 ^ x * 199 ^ y * 157 ^ z * 193) % 11
     light *= 0.96 + noise * 0.011
@@ -337,6 +344,8 @@ def _trace(
     size: tuple[int, int, int],
     scene_box: Box,
     background: Color,
+    *,
+    clay_models: dict[str, BlockModel | None] | None = None,
 ) -> tuple[Color, int]:
     inv = tuple(1 / value if value else math.inf for value in ray)
     interval = _interval(eye, inv, scene_box)
@@ -365,7 +374,7 @@ def _trace(
     while entered < far - _EPSILON / 2:
         visited += 1
         state = scene[x + width * z + plane * y]
-        block = block_model(state)
+        block = block_model(state) if clay_models is None else clay_models[state]
         leaves = min(tx, ty, tz)
         hit = None
         if block is not None and leaves - entered > _EPSILON / 2:
@@ -425,8 +434,11 @@ def render_preview(
     width: int,
     height: int,
     clip_y: int | None = None,
+    style: str = "material",
 ) -> bytes:
-    """Draw the scene from a world-coordinate camera, clipping above clip_y."""
+    """Draw a material or clay still from a world-coordinate camera."""
+    if style not in ("material", "clay"):
+        raise TicketError("preview style must be material or clay")
     if not 1 <= width <= _MAX_IMAGE_EDGE or not 1 <= height <= _MAX_IMAGE_EDGE:
         raise TicketError(f"preview image width and height must be between 1 and {_MAX_IMAGE_EDGE}")
     bounds = ticket.bounds
@@ -448,6 +460,13 @@ def render_preview(
             raise TicketError("preview clip Y is below the ticket")
     size = (bounds.width, clip_height, bounds.length)
     scene_box = (0.0, 0.0, 0.0, *size)
+    clay_models = None
+    if style == "clay":
+        clay_models = {}
+        cell_count = bounds.width * bounds.length * clip_height
+        for state in set(islice(scene, cell_count)):
+            model = block_model(state)
+            clay_models[state] = None if model is None else replace(model, color=_CLAY_COLOR, pattern="clay")
     row_bytes = 1 + width * 3
     image = bytearray(row_bytes * height)
     columns = [((2 * column + 1) - width) / height * _CAMERA_FOV for column in range(width)]
@@ -457,11 +476,16 @@ def render_preview(
         basis_x = forward[0] + up[0] * vertical
         basis_y = forward[1] + up[1] * vertical
         basis_z = forward[2] + up[2] * vertical
-        background = (190 + row * 31 // height, 209 + row * 22 // height, 225 + row * 13 // height)
+        if clay_models is None:
+            background = (190 + row * 31 // height, 209 + row * 22 // height, 225 + row * 13 // height)
+        else:
+            background = _CLAY_BACKGROUND
         offset = row * row_bytes + 1
         for horizontal in columns:
             ray = basis_x + right[0] * horizontal, basis_y + right[1] * horizontal, basis_z + right[2] * horizontal
-            (r, g, b), visited = _trace(scene, local_eye, ray, size, scene_box, background)
+            (r, g, b), visited = _trace(
+                scene, local_eye, ray, size, scene_box, background, clay_models=clay_models,
+            )
             total_visited += visited
             if total_visited > _MAX_CELL_VISITS:
                 raise TicketError("preview exceeds the rendering budget; reduce image size or set --clip-y")
