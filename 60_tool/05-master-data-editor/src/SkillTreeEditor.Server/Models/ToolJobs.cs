@@ -12,7 +12,8 @@ public sealed record ToolJobPlanRequest(
     bool ServerAlreadyRunning = false,
     string? PluginTestMode = null,
     string? PluginTests = null,
-    string? Recovery = null);
+    string? Recovery = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? ArchitectMode = null);
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record ToolJobStartRequest(Guid PlanId, string[] Confirmations);

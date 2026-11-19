@@ -75,15 +75,17 @@ $bootstrap = Join-Path $testTool 'invoke-powershell7.ps1'
 $windowsPowerShell = Join-Path ([Environment]::SystemDirectory) 'WindowsPowerShell/v1.0/powershell.exe'
 $oldProgramData = $env:ProgramData
 $oldKey = $env:ASTRAL_JOB_TEST_API_KEY
+$oldPath = $env:PATH
 $workers = [Collections.Generic.List[Diagnostics.Process]]::new()
 try {
     foreach ($folder in @($jobRoot, (Join-Path $testTool '12-build-network-plugins'), (Join-Path $workspace '40_filebase'),
         (Join-Path $workspace 'source-filebase'), (Join-Path $workspace '10_plugin/AstralRecordLobby'),
         (Join-Path $workspace 'fixture-program-data'), (Join-Path $workspace 'dev/plugins'),
-        (Join-Path $workspace 'channel/plugins'))) {
+        (Join-Path $workspace 'channel/plugins'), (Join-Path $workspace '10_plugin/AstralArchitect'),
+        (Join-Path $workspace 'fixture-bin'))) {
         $null = New-Item -ItemType Directory -Path $folder -Force
     }
-    foreach ($folder in @('01-deploy-debug','16-maintenance','control-gate')) {
+    foreach ($folder in @('01-deploy-debug','09-astralarchitect-build-deploy','16-maintenance','control-gate')) {
         $null = New-Item -ItemType Directory -Path (Join-Path $testTool $folder)
         Get-ChildItem -LiteralPath (Join-Path $source $folder) -File |
             Where-Object Extension -in @('.ps1','.psm1','.json') |
@@ -97,6 +99,53 @@ try {
     $config = Join-Path $testTool '01-deploy-debug/deploy-debug.local.json'
     $dev = Join-Path $workspace 'dev'
     $channel = Join-Path $workspace 'channel'
+    $architectDir = Join-Path $workspace '10_plugin/AstralArchitect'
+    $architectDist = Join-Path $architectDir 'dist'
+    $architectJar = Join-Path $dev 'plugins/AstralArchitect.jar'
+    $architectLocal = Join-Path $testTool '09-astralarchitect-build-deploy/astralarchitect-deploy.local.json'
+    $fixtureBin = Join-Path $workspace 'fixture-bin'
+    $env:PATH = "$fixtureBin;$oldPath"
+    Set-Content -LiteralPath (Join-Path $architectDir 'pom.xml') -Value '<project/>'
+    @'
+@echo off
+if not "%*"=="clean package" exit /b 42
+if not exist dist mkdir dist
+echo test artifact>dist\AstralArchitect-test.jar
+exit /b 0
+'@ | Set-Content -LiteralPath (Join-Path $fixtureBin 'mvn.cmd') -Encoding ascii
+
+    $options09Build = @{toolId='09';architectMode='BuildOnly'}
+    $options09Deploy = @{toolId='09';architectMode='Deploy'}
+    Write-TestJson @{pluginsDirectory='relative/plugins'} $architectLocal
+    $plan09Build = Invoke-TestPlan $options09Build
+    Assert-JobTest ($plan09Build.canRun -and !$plan09Build.configurationPath -and $plan09Build.paths.Count -eq 1) '09 build-only must ignore invalid deployment settings.'
+    Assert-JobTest (!(Test-Path -LiteralPath $architectDist)) '09 preview must not start the build or create its output directory.'
+    $blocked09 = New-TestJob $options09Deploy
+    & $windowsPowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $bootstrap $adapter Plan $blocked09 $workspace
+    $blocked09Error = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $blocked09 'error.json')
+    Assert-JobTest ($LASTEXITCODE -ne 0 -and $blocked09Error.Contains('absolute drive or UNC path')) '09 must reject invalid deployment paths in the preview.'
+
+    $build09Job = New-TestJob $options09Build $plan09Build.fingerprint
+    $build09 = Start-TestWorker $build09Job
+    Assert-JobTest ($build09.WaitForExit(20000) -and $build09.ExitCode -eq 0) "09 build-only should run the existing build. $(Get-Content -Raw -LiteralPath (Join-Path $build09Job 'log.jsonl') -ErrorAction SilentlyContinue)"
+    Assert-JobTest ((Test-Path -LiteralPath (Join-Path $architectDist 'AstralArchitect-test.jar')) -and !(Test-Path -LiteralPath $architectJar)) '09 build-only must produce only a local artifact.'
+    Write-TestJson @{pluginsDirectory=(Join-Path $dev 'plugins')} $architectLocal
+    $plan09Deploy = Invoke-TestPlan $options09Deploy
+    Assert-JobTest ($plan09Deploy.configurationPath -eq $architectLocal -and $plan09Deploy.paths[1].destination -eq $architectJar) '09 deployment preview must show the actual configured local destination.'
+    Assert-JobTest ('deploy' -in $plan09Deploy.confirmations.id -and !(Test-Path -LiteralPath $architectJar)) '09 deployment preview must request confirmation without copying anything.'
+
+    Write-TestJson @{pluginsDirectory=(Join-Path $channel 'plugins')} $architectLocal
+    $stale09Job = New-TestJob $options09Deploy $plan09Deploy.fingerprint
+    $stale09 = Start-TestWorker $stale09Job
+    Assert-JobTest ($stale09.WaitForExit(10000) -and $stale09.ExitCode -eq 1) '09 deployment must reject a plan after its destination changed.'
+    $stale09Log = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $stale09Job 'log.jsonl')
+    Assert-JobTest ($stale09Log.Contains('変わりました') -and !(Test-Path -LiteralPath (Join-Path $channel 'plugins/AstralArchitect.jar'))) 'A stale deployment must not write to the changed destination.'
+    Write-TestJson @{pluginsDirectory=(Join-Path $dev 'plugins')} $architectLocal
+    $deploy09Job = New-TestJob $options09Deploy $plan09Deploy.fingerprint
+    $deploy09 = Start-TestWorker $deploy09Job
+    Assert-JobTest ($deploy09.WaitForExit(20000) -and $deploy09.ExitCode -eq 0) "09 build and deploy should complete. $(Get-Content -Raw -LiteralPath (Join-Path $deploy09Job 'log.jsonl') -ErrorAction SilentlyContinue)"
+    Assert-JobTest ((Get-Content -Raw -LiteralPath $architectJar).Trim() -eq 'test artifact') '09 must publish AstralArchitect.jar at the confirmed destination.'
+
     $migration = @{enabled=$true;baseUrl='https://localhost:1';apiKeyEnvironmentVariable='ASTRAL_JOB_TEST_API_KEY';
         migrationKeyEnvironmentVariable='ASTRAL_JOB_TEST_MIGRATION_KEY';serverIds=@('Dev')}
     $deploy = @{
@@ -210,6 +259,7 @@ exit 0
     }
     $env:ProgramData = $oldProgramData
     $env:ASTRAL_JOB_TEST_API_KEY = $oldKey
+    $env:PATH = $oldPath
     $temp = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\','/') + [IO.Path]::DirectorySeparatorChar
     if ([IO.Path]::GetFullPath($workspace).StartsWith($temp + 'Astral tool ジョブ ', [StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $workspace)) {
         Remove-Item -LiteralPath $workspace -Recurse -Force

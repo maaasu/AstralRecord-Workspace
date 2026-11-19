@@ -1,6 +1,6 @@
 import { request } from './editorApi'
 
-export type ToolId = '03' | '01' | '12' | '16'
+export type ToolId = '03' | '01' | '09' | '12' | '16'
 export type ToolPage = ToolId | 'history'
 export type PluginTestMode = 'All' | 'Selected' | 'Skip'
 export type NetworkTarget = 'All' | 'Lobby' | 'Proxy' | 'Extension'
@@ -9,10 +9,11 @@ export type RecoveryMode = 'Auto' | 'Restart' | 'Restore'
 export type ToolSettings =
   | { toolId: '03'; serverAlreadyRunning: boolean; recovery: Exclude<RecoveryMode, 'Restore'> }
   | { toolId: '01'; pluginTestMode: PluginTestMode; pluginTests?: string; recovery: Exclude<RecoveryMode, 'Restore'> }
+  | { toolId: '09'; architectMode: 'BuildOnly' | 'Deploy' }
   | { toolId: '12'; networkTarget: NetworkTarget; skipTests: boolean }
   | { toolId: '16'; worldCopy: IncludeMode; networkPlugins: IncludeMode; recovery: RecoveryMode }
 
-export type DirectToolSettings = Exclude<ToolSettings, { toolId: '16' }>
+export type DirectToolSettings = Exclude<ToolSettings, { toolId: '09' | '16' }>
 
 export interface ToolCapabilities {
   enabled: boolean
