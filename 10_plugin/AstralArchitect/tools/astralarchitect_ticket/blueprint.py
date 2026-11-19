@@ -152,6 +152,25 @@ def _roof_axis_samples(points: list[int]) -> Iterator[tuple[int, int, int, int]]
     yield last, last, 1, 0
 
 
+def _roof_surface(
+    height_rows: list[list[int]], x_samples: list[tuple[int, int, int, int]], section_zs: list[int],
+) -> list[list[int]]:
+    surface: list[list[int]] = []
+    for front, back, front_weight, back_weight in _roof_axis_samples(section_zs):
+        front_row, back_row = height_rows[front], height_rows[back]
+        row = []
+        for left, right, left_weight, right_weight in x_samples:
+            numerator = (
+                front_weight * (front_row[left] * left_weight + front_row[right] * right_weight)
+                + back_weight * (back_row[left] * left_weight + back_row[right] * right_weight)
+            )
+            denominator = (front_weight + back_weight) * (left_weight + right_weight)
+            # Round once, toward positive infinity at a tie, even below zero.
+            row.append((2 * numerator + denominator) // (2 * denominator))
+        surface.append(row)
+    return surface
+
+
 def _expand_roof_sheet(value: object, label: str, remaining_operations: int) -> list[_Operation]:
     roof = _fields(value, {"op", "at", "offsets", "sections", "block", "slab"}, label)
     at_x, at_y, at_z = _coordinates(roof["at"], f"{label}.at")
@@ -186,9 +205,11 @@ def _expand_roof_sheet(value: object, label: str, remaining_operations: int) -> 
 
     section_zs: list[int] = []
     height_rows: list[list[int]] = []
+    underside_rows: list[list[int]] = []
+    optional_section_fields = frozenset({"undersides"})
     for index, section in enumerate(sections):
         section_label = f"{label}.sections[{index}]"
-        fields = _fields(section, {"z", "heights"}, section_label)
+        fields = _fields(section, {"z", "heights"}, section_label, optional=optional_section_fields)
         z = fields["z"]
         if type(z) is not int:
             raise BlueprintError(f"{section_label}.z must be an integer")
@@ -198,6 +219,16 @@ def _expand_roof_sheet(value: object, label: str, remaining_operations: int) -> 
         heights = _list(fields["heights"], f"{section_label}.heights")
         if len(heights) != len(offsets) or any(type(height) is not int for height in heights):
             raise BlueprintError(f"{section_label}.heights must contain one integer per offset")
+        has_undersides = "undersides" in fields
+        if index and has_undersides != bool(underside_rows):
+            raise BlueprintError(f"{label}.sections must all specify undersides or all omit it")
+        if has_undersides:
+            undersides = _list(fields["undersides"], f"{section_label}.undersides")
+            if len(undersides) != len(offsets) or any(type(height) is not int for height in undersides):
+                raise BlueprintError(f"{section_label}.undersides must contain one integer per offset")
+            if any(bottom >= top for bottom, top in zip(undersides, heights)):
+                raise BlueprintError(f"{section_label}.undersides must be lower than the corresponding heights")
+            underside_rows.append(undersides)
         section_zs.append(z)
         height_rows.append(heights)
 
@@ -213,25 +244,14 @@ def _expand_roof_sheet(value: object, label: str, remaining_operations: int) -> 
 
     first_x, first_z = at_x + offsets[0], at_z + section_zs[0]
     # Interpolation stays within the control heights and includes the extrema.
-    lowest = min(map(min, height_rows)) - 1
+    lowest = min(map(min, underside_rows)) if underside_rows else min(map(min, height_rows)) - 1
     highest = max(map(max, height_rows)) - 1
     _checked_coordinates(first_x, at_y + lowest // 2, first_z, label)
     _checked_coordinates(first_x + width - 1, at_y + highest // 2, first_z + depth - 1, label)
 
     x_samples = list(_roof_axis_samples(offsets))
-    tops: list[list[int]] = []
-    for front, back, front_weight, back_weight in _roof_axis_samples(section_zs):
-        front_row, back_row = height_rows[front], height_rows[back]
-        row = []
-        for left, right, left_weight, right_weight in x_samples:
-            numerator = (
-                front_weight * (front_row[left] * left_weight + front_row[right] * right_weight)
-                + back_weight * (back_row[left] * left_weight + back_row[right] * right_weight)
-            )
-            denominator = (front_weight + back_weight) * (left_weight + right_weight)
-            # Round once, toward positive infinity at a tie, even below zero.
-            row.append((2 * numerator + denominator) // (2 * denominator))
-        tops.append(row)
+    tops = _roof_surface(height_rows, x_samples, section_zs)
+    bottoms = _roof_surface(underside_rows, x_samples, section_zs) if underside_rows else None
 
     operations = []
     visits = 0
@@ -240,18 +260,21 @@ def _expand_roof_sheet(value: object, label: str, remaining_operations: int) -> 
         z = first_z + z_index
         for x_index, top in enumerate(row):
             x = first_x + x_index
-            lowest_top = top
-            if x_index:
-                lowest_top = min(lowest_top, row[x_index - 1])
-            if x_index + 1 < width:
-                lowest_top = min(lowest_top, row[x_index + 1])
-            if z_index:
-                lowest_top = min(lowest_top, tops[z_index - 1][x_index])
-            if z_index + 1 < depth:
-                lowest_top = min(lowest_top, tops[z_index + 1][x_index])
+            if bottoms is None:
+                lowest_top = top
+                if x_index:
+                    lowest_top = min(lowest_top, row[x_index - 1])
+                if x_index + 1 < width:
+                    lowest_top = min(lowest_top, row[x_index + 1])
+                if z_index:
+                    lowest_top = min(lowest_top, tops[z_index - 1][x_index])
+                if z_index + 1 < depth:
+                    lowest_top = min(lowest_top, tops[z_index + 1][x_index])
+                bottom = lowest_top - 1
+            else:
+                bottom = bottoms[z_index][x_index]
 
             # Occupied half layers form the half-open interval [bottom, top).
-            bottom = lowest_top - 1
             visits += (top - 1) // 2 - bottom // 2 + 1
             if visits > MAX_TICKET_VOLUME:
                 raise BlueprintError(visit_error)

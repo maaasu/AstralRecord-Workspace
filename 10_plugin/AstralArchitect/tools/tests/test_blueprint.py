@@ -318,6 +318,104 @@ class BlueprintTest(unittest.TestCase):
                     compile_blueprint(_plan([{**roof, **changes}]), "rough")
 
 
+class RoofUndersidesTest(unittest.TestCase):
+    def test_explicit_undersides_leave_space_below_and_use_both_slab_halves(self) -> None:
+        roof = _roof([0, 1], [(0, [0, 3])])
+        self.assertEqual(_roof_layers(compile_blueprint(_plan([roof]), "rough")), {
+            (0, 0): {-1}, (1, 0): {-1, 0, 1, 2},
+        })
+
+        roof["sections"][0]["undersides"] = [-1, 2]
+        stone = _set("minecraft:stone", [1, 0, 0])
+        self.assertEqual(compile_blueprint(_plan([stone, roof]), "rough"), [
+            {"op": "set", "x": 1, "y": 0, "z": 0, "block": "minecraft:stone"},
+            {"op": "set", "x": 0, "y": -1, "z": 0,
+             "block": "minecraft:dark_prismarine_slab[type=top]"},
+            {"op": "set", "x": 1, "y": 1, "z": 0,
+             "block": "minecraft:dark_prismarine_slab[type=bottom]"},
+        ])
+
+    def test_bilinear_rounding_and_mirrored_shape_and_endpoints(self) -> None:
+        roof = _roof([1, 3], [(2, [1, 4]), (4, [2, 6])], [4, 0, 7])
+        roof["sections"][0]["undersides"] = [-5, -2]
+        roof["sections"][1]["undersides"] = [-2, 1]
+        intervals = {
+            (5, 9): (-5, 1), (6, 9): (-3, 3), (7, 9): (-2, 4),
+            (5, 10): (-3, 2), (6, 10): (-2, 3), (7, 10): (0, 5),
+            (5, 11): (-2, 2), (6, 11): (0, 4), (7, 11): (1, 6),
+        }
+        plan = _plan([roof])
+        self.assertEqual(_roof_layers(compile_blueprint(plan, "rough")), {
+            column: set(range(bottom, top)) for column, (bottom, top) in intervals.items()
+        })
+
+        for axis, first_x, first_z in (("x", 15, 39), ("z", 25, 21)):
+            with self.subTest(axis=axis):
+                plan["placements"][0].update(at=[20, 2, 30], mirror=axis)
+                operations = compile_blueprint(plan, "rough")
+                self.assertEqual(operations[1], {
+                    "op": "fill",
+                    "from": {"x": first_x, "y": 0, "z": first_z},
+                    "to": {"x": first_x, "y": 1, "z": first_z},
+                    "block": "minecraft:dark_prismarine",
+                })
+                self.assertEqual(_roof_layers(operations), {
+                    (20 + (-x if axis == "x" else x), 30 + (-z if axis == "z" else z)):
+                        set(range(bottom + 4, top + 4))
+                    for (x, z), (bottom, top) in intervals.items()
+                })
+
+    def test_rejects_invalid_underside_rows(self) -> None:
+        for rows, error in (
+            (([0, 1], None), "sections must all specify undersides"),
+            ((None, [0, 1]), "sections must all specify undersides"),
+            (("invalid", [0, 1]), r"\.undersides must be an array"),
+            (([0], [0, 1]), r"\.undersides must contain one integer per offset"),
+            (([False, 1], [0, 1]), r"\.undersides must contain one integer per offset"),
+            (([1, 1], [0, 1]), r"\.undersides must be lower"),
+            (([0, 3], [0, 1]), r"\.undersides must be lower"),
+        ):
+            with self.subTest(rows=rows):
+                roof = _roof([0, 1], [(0, [1, 2]), (1, [1, 2])])
+                for section, row in zip(roof["sections"], rows):
+                    if row is not None:
+                        section["undersides"] = row
+                with self.assertRaisesRegex(BlueprintError, error):
+                    compile_blueprint(_plan([roof]), "rough")
+
+    def test_coordinate_bounds_apply_to_occupied_blocks_after_roof_offset(self) -> None:
+        limit = 2**31
+        for at_y, bottom, top, block_y in (
+            (1, -2 * limit - 1, -2 * limit, -limit),
+            (0, 2 * limit - 1, 2 * limit, limit - 1),
+        ):
+            with self.subTest(at_y=at_y, bottom=bottom):
+                roof = _roof([0], [(0, [top])], [0, at_y, 0])
+                roof["sections"][0]["undersides"] = [bottom]
+                self.assertEqual(_roof_layers(compile_blueprint(_plan([roof]), "rough")), {
+                    (0, 0): {2 * block_y + 1},
+                })
+
+        for bottom, top in ((-2 * limit - 1, -2 * limit + 1), (2 * limit - 1, 2 * limit + 1)):
+            with self.subTest(bottom=bottom, top=top):
+                roof = _roof([0], [(0, [top])])
+                roof["sections"][0]["undersides"] = [bottom]
+                with self.assertRaisesRegex(BlueprintError, "outside the signed 32-bit coordinate range"):
+                    compile_blueprint(_plan([roof]), "rough")
+
+    def test_rejects_excess_area_and_cumulative_visits(self) -> None:
+        roof = _roof([0, 1], [(0, [4, 4])])
+        roof["sections"][0]["undersides"] = [0, 0]
+        plan = _plan([roof])
+        with patch("astralarchitect_ticket.blueprint.MAX_TICKET_VOLUME", 1):
+            with patch("astralarchitect_ticket.blueprint._roof_axis_samples") as samples:
+                with self.assertRaisesRegex(BlueprintError, "expands beyond 1 block visits"):
+                    compile_blueprint(plan, "rough")
+                samples.assert_not_called()
+        with patch("astralarchitect_ticket.blueprint.MAX_TICKET_VOLUME", 3):
+            with self.assertRaisesRegex(BlueprintError, "expands beyond 3 block visits"):
+                compile_blueprint(plan, "rough")
+
 
 if __name__ == "__main__":
     unittest.main()
