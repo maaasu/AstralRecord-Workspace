@@ -18,13 +18,9 @@
 | `60_tool/` | build/deploy/dev tools | `60_tool/README.md` |
 | `.codex/skills/` | workspace skills | `.codex/skills/README.md` と対象 `SKILL.md` |
 
-## 既存の表現・形式・実装規約
-
-- 資料や画面の文言・構成、コードの命名・書式・実装方法は、変更先の規約と同じ役割の既存例に揃える。
-- より適切な形式や実装方法がある場合は、変更案・理由・既存箇所への適用範囲をユーザーに示し、採用前に承認を得る。承認後は、新規箇所と対象範囲内の既存箇所を揃え、該当する規約・見本も更新する。
-
 ## 実行ルール
 
+- 資料・画面・コードは既存の規約と同種の例に揃える。改善案は理由と適用範囲を示してユーザーの承認を得てから、対象の新規・既存箇所と規約・見本に反映する。
 - 質問、説明、診断、読み取り専用レビューは、変更・commit・buildを伴わない限り worktree を作らない。
 - 差分を作る実装・設計書・filebase・skill変更は、原則 `$astralrecord-code-version-commit-develop` を入口にする。既存 task worktree の差分commitだけなら `$astralrecord-commit-current-diff` を使う。
 - 通常の変更はローカルの専用作業ツリーで実装・検証し、統合入口に従ってローカル `develop` に反映する。
