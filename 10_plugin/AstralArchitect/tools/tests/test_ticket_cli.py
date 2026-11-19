@@ -12,6 +12,8 @@ from unittest.mock import patch
 
 
 TOOLS_ROOT = Path(__file__).resolve().parents[1]
+WRAPPER = (TOOLS_ROOT.parents[2] / ".codex" / "skills" / "astralarchitect-builder"
+           / "scripts" / "invoke_ticket_cli.py")
 if str(TOOLS_ROOT) not in sys.path:
     sys.path.insert(0, str(TOOLS_ROOT))
 
@@ -130,9 +132,10 @@ class TicketCliTest(unittest.TestCase):
         root = nbt.Tag(nbt.TAG_COMPOUND, {"Schematic": nbt.Tag(nbt.TAG_COMPOUND, schematic)})
         nbt.write_gzip(path, nbt.Document("", root))
 
-    def _run(self, *arguments: str, stdin: str | None = None) -> tuple[subprocess.CompletedProcess[str], dict]:
+    def _run(self, *arguments: str, stdin: str | None = None,
+             entrypoint: Path = TOOLS_ROOT / "ticket_cli.py") -> tuple[subprocess.CompletedProcess[str], dict]:
         process = subprocess.run(
-            [sys.executable, str(TOOLS_ROOT / "ticket_cli.py"), *arguments],
+            [sys.executable, str(entrypoint), *arguments],
             input=stdin,
             text=True,
             capture_output=True,
@@ -205,6 +208,105 @@ class TicketCliTest(unittest.TestCase):
             "--target", "101", "65", "201",
             "--width", "96", "--height", "72", "--output", str(output),
         )
+
+    def test_preview_picks_follow_visible_shapes_in_order_without_changing_png(self) -> None:
+        slab = "minecraft:oak_slab[type=bottom]"
+        operations = json.dumps([
+            {"op": "set", "x": x, "y": 65, "z": z, "block": block}
+            for x, z, block in ((101, 200, slab), (101, 201, "minecraft:gold_block"),
+                                (102, 200, "minecraft:glass"), (102, 201, "minecraft:stone"))
+        ])
+        before = [self._sha256(path) for path in (self.source_path, self.candidate_path)]
+        camera = ("--eye", "101.5", "65.5", "198", "--target", "101.5", "65.5", "201",
+                  "--width", "7", "--height", "9", "--ops", "-")
+        slab_pick = {"pixel": {"x": 3, "y": 5}, "position": {"x": 101, "y": 65, "z": 200}, "block": slab}
+        expected = [
+            slab_pick,
+            {"pixel": {"x": 0, "y": 0}, "position": None, "block": None},
+            {"pixel": {"x": 3, "y": 3}, "position": {"x": 101, "y": 65, "z": 201},
+             "block": "minecraft:gold_block"},
+            {"pixel": {"x": 0, "y": 4}, "position": {"x": 102, "y": 65, "z": 200},
+             "block": "minecraft:glass"},
+            slab_pick,
+        ]
+        for style in ("material", "clay"):
+            with self.subTest(style=style):
+                plain = self.root / f"{style}.png"
+                picked = self.root / f"{style}-picks.png"
+                args = ("preview", str(self.ticket_dir), *camera, "--style", style)
+                process, result = self._run(*args, "--output", str(plain), stdin=operations)
+                self.assertEqual(0, process.returncode, result)
+                self.assertNotIn("picks", result)
+                process, result = self._run(*args, "--output", str(picked), "--pick", "3", "5",
+                                            "--pick", "0", "0", "--pick", "3", "3", "--pick", "0", "4",
+                                            "--pick", "3", "5", stdin=operations)
+                self.assertEqual(0, process.returncode, result)
+                self.assertEqual(expected, result["picks"])
+                self.assertEqual(plain.read_bytes(), picked.read_bytes())
+        self.assertEqual(before, [self._sha256(path) for path in (self.source_path, self.candidate_path)])
+
+    def test_preview_rejects_outside_pick_without_writing_png(self) -> None:
+        for x, y in ((-1, 0), (0, -1), (96, 0), (0, 72)):
+            with self.subTest(x=x, y=y):
+                output = self.root / "invalid.png"
+                process, result = self._run(*self._preview_args(output), "--pick", "0", "0", "--pick", str(x), str(y))
+                self.assertNotEqual(0, process.returncode)
+                self.assertIn(f"--pick pixel ({x}, {y}) is outside", result["error"])
+                self.assertFalse(output.exists())
+
+    def test_wrapper_preview_picks_the_clipped_scene(self) -> None:
+        candidate = schematic_module.load_ticket(self.ticket_dir).candidate
+        states = candidate.states()
+        states[candidate.index(1, 1, 0)] = "minecraft:gold_block"
+        candidate.set_states(states)
+        nbt.write_gzip(self.candidate_path, candidate.document)
+        before = [self._sha256(path) for path in (self.source_path, self.candidate_path)]
+        ops = json.dumps({"op": "set", "x": 101, "y": 65, "z": 200, "block": "minecraft:glass"})
+        camera = ("--eye", "101.5", "68", "200.5", "--target", "101.5", "64", "200.5",
+                  "--width", "1", "--height", "1", "--pick", "0", "0", "--pick", "0", "0")
+        for label, options, y, block in (
+            ("full", ("--ops", "-"), 65, "minecraft:glass"),
+            ("cut", ("--ops", "-", "--clip-y", "64"), 64, "minecraft:stone"),
+            ("source", ("--source",), 64, "minecraft:stone"),
+            ("candidate", (), 65, "minecraft:gold_block"),
+        ):
+            with self.subTest(label=label):
+                process, result = self._run("--ticket", str(self.ticket_dir), "--", "preview", *camera, *options,
+                                            "--output", str(self.root / f"{label}.png"), entrypoint=WRAPPER,
+                                            stdin=ops if "--ops" in options else None)
+                self.assertEqual(0, process.returncode, result)
+                expected = {"pixel": {"x": 0, "y": 0}, "position": {"x": 101, "y": y, "z": 200}, "block": block}
+                self.assertEqual([expected, expected], result["picks"])
+        self.assertEqual(before, [self._sha256(path) for path in (self.source_path, self.candidate_path)])
+
+    def test_preview_picks_mirrored_blueprint_stage_positions_and_states(self) -> None:
+        design = {
+            "version": 1, "origin": [102, 65, 200],
+            "parts": {"stairs": {
+                "rough": [{"op": "set", "at": [1, 0, 1],
+                           "block": "minecraft:oak_stairs[facing=east,half=bottom,shape=straight]"}],
+                "detail": [{"op": "set", "at": [1, 0, 0],
+                            "block": "minecraft:stone_stairs[facing=east,half=bottom,shape=straight]"}],
+            }},
+            "placements": [{"part": "stairs", "at": [0, 0, 0], "mirror": "x"}],
+        }
+        path = self.root / "mirrored.json"
+        path.write_text(json.dumps(design), encoding="utf-8")
+        before = [self._sha256(path) for path in (self.source_path, self.candidate_path)]
+        for stage, z, material in (("rough", 201, "oak"), ("detail", 200, "stone")):
+            with self.subTest(stage=stage):
+                process, result = self._run(
+                    "preview", str(self.ticket_dir), "--eye", "101.25", "65.75", "198",
+                    "--target", "101.25", "65.75", "201", "--width", "1", "--height", "1", "--pick", "0", "0",
+                    "--plan", str(path), "--stage", stage, "--output", str(self.root / f"{stage}.png"),
+                )
+                self.assertEqual(0, process.returncode, result)
+                self.assertEqual(stage, result["stage"])
+                self.assertEqual([{
+                    "pixel": {"x": 0, "y": 0}, "position": {"x": 101, "y": 65, "z": z},
+                    "block": f"minecraft:{material}_stairs[facing=west,half=bottom,shape=straight]",
+                }], result["picks"])
+        self.assertEqual(before, [self._sha256(path) for path in (self.source_path, self.candidate_path)])
 
     def test_preview_proposal_matches_applied_scene_without_writing_ticket(self) -> None:
         filenames = ("source.schem", "candidate.schem", "ticket.json")

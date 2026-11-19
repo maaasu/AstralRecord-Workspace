@@ -113,10 +113,14 @@ python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- ge
 python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- slice --y <Y> --x-min <X> --x-max <X> --z-min <Z> --z-max <Z>
 python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- surface --x-min <X> --x-max <X> --z-min <Z> --z-max <Z>
 python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- diff
-python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- preview --eye <X> <Y> <Z> --target <X> <Y> <Z> --output <新規PNGの絶対パス>
+python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- preview --eye <X> <Y> <Z> --target <X> <Y> <Z> --output <新規PNGの絶対パス> --pick 320 110 --pick 340 114
 ```
 
 `preview --ops <操作ファイルの絶対パス>` で編集をメモリ内で仮適用し、候補を書き換えずに確認できます。屋内の確認には `--clip-y` で屋根を非表示にするか、屋内にカメラを置きます。 同じ視点で素材の模様を外して形を確認するには、別の出力先を指定して `--style clay` で撮影します。ガラスの透過率とハーフブロック・階段の形は通常のプレビューと共通です。
+
+任意の `--pick X Y` は、PNG の左上を `0 0` とする列・行を受け取ります。JSON の `picks` に、半透明の形状も含めて各点で最初に描画へ寄与したブロックのワールド座標と状態を指定順で返します。空では `position` と `block` が `null` になります。照会にはこの CLI が生成した PNG の座標だけを使い、公式クライアントのメッシュを使った表示など、別レンダラーの画像座標と混用しないでください。
+
+屋根の上縁を作るブロックを調べるときは、カメラ・解像度・段階を揃え、上縁から屋根側に 1 ピクセル入った数点を照会します。意匠の採否は固定視点の全体画像で判断します。
 
 作業中の変更を見る場合は `live` を起動してローカル URL を開き、AI が `live-ops` で送った操作を3D画面で確認できます。カメラを操作している間も作業結果が反映されます。Java 1.21.11 のクライアント JAR を指定すると、草・葉・柵を含むブロックをゲームのモデルとテクスチャで表示できます。詳しくは[ライブ3Dビューアーの手順](../../.codex/skills/astralarchitect-builder/references/ticket-contract.md#ライブ3dビューアー)を参照してください。
 

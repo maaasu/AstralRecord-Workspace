@@ -11,12 +11,13 @@ import struct
 from typing import Sequence
 import zlib
 
-from .schematic import Bounds, Ticket, TicketError, is_air
+from .schematic import Bounds, Point, Ticket, TicketError, is_air
 
 
 Vector = tuple[float, float, float]
 Box = tuple[float, float, float, float, float, float]
 Color = tuple[int, int, int]
+PreviewHit = tuple[Point, str]
 _CLAY_COLOR: Color = (160, 160, 160)
 _CLAY_BACKGROUND: Color = (228, 228, 228)
 _FULL: Box = (0, 0, 0, 1, 1, 1)
@@ -347,6 +348,7 @@ def _trace(
     background: Color,
     *,
     clay_models: dict[str, BlockModel | None] | None = None,
+    first_hit: list[tuple[int, int, int, str]] | None = None,
 ) -> tuple[Color, int]:
     inv = tuple(1 / value if value else math.inf for value in ray)
     interval = _interval(eye, inv, scene_box)
@@ -383,6 +385,9 @@ def _trace(
         if hit is None:
             previous_transparent = None
         elif state != previous_transparent:
+            if first_hit is not None and block.opacity > 0:
+                first_hit.append((x, y, z, state))
+                first_hit = None
             distance, face = hit
             point = (eye[0] + distance * ray[0] - x,
                      eye[1] + distance * ray[1] - y,
@@ -436,12 +441,20 @@ def render_preview(
     height: int,
     clip_y: int | None = None,
     style: str = "material",
+    pick_hits: dict[tuple[int, int], PreviewHit | None] | None = None,
 ) -> bytes:
-    """Draw a material or clay still from a world-coordinate camera."""
+    """Draw a still and fill pick_hits at its requested (column, row) keys."""
     if style not in ("material", "clay"):
         raise TicketError("preview style must be material or clay")
     if not 1 <= width <= _MAX_IMAGE_EDGE or not 1 <= height <= _MAX_IMAGE_EDGE:
         raise TicketError(f"preview image width and height must be between 1 and {_MAX_IMAGE_EDGE}")
+    row_bytes = 1 + width * 3
+    first_hits: dict[int, list[tuple[int, int, int, str]]] = {}
+    if pick_hits:
+        for column, row in pick_hits:
+            if not (0 <= column < width and 0 <= row < height):
+                raise TicketError(f"--pick pixel ({column}, {row}) is outside the {width}x{height} preview")
+            first_hits[row * row_bytes + 1 + column * 3] = []
     bounds = ticket.bounds
     if len(scene) != bounds.volume:
         raise TicketError("preview block array has the wrong length")
@@ -468,7 +481,6 @@ def render_preview(
         for state in set(islice(scene, cell_count)):
             model = block_model(state)
             clay_models[state] = None if model is None else replace(model, color=_CLAY_COLOR, pattern="clay")
-    row_bytes = 1 + width * 3
     image = bytearray(row_bytes * height)
     columns = [((2 * column + 1) - width) / height * _CAMERA_FOV for column in range(width)]
     total_visited = 0
@@ -486,6 +498,7 @@ def render_preview(
             ray = basis_x + right[0] * horizontal, basis_y + right[1] * horizontal, basis_z + right[2] * horizontal
             (r, g, b), visited = _trace(
                 scene, local_eye, ray, size, scene_box, background, clay_models=clay_models,
+                first_hit=first_hits.get(offset) if first_hits else None,
             )
             total_visited += visited
             if total_visited > _MAX_CELL_VISITS:
@@ -494,6 +507,16 @@ def render_preview(
             image[offset + 1] = g
             image[offset + 2] = b
             offset += 3
+
+    if pick_hits:
+        minimum = bounds.minimum
+        for column, row in pick_hits:
+            hits = first_hits[row * row_bytes + 1 + column * 3]
+            if hits:
+                x, y, z, state = hits[0]
+                pick_hits[column, row] = Point(minimum.x + x, minimum.y + y, minimum.z + z), state
+            else:
+                pick_hits[column, row] = None
 
     header = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
     return (b"\x89PNG\r\n\x1a\n" + _png_chunk(b"IHDR", header)
