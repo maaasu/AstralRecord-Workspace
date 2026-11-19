@@ -505,7 +505,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       series: compare(vitality, (value, level) => rawDefense(level) + value) },
     { grid: "player-base-grid", cats: ["defense"], context: "プレイヤー｜体力", title: "魔法防御の加算", note: "体力1につき魔法防御が1増える。", max: 200, step: 50, unit: "",
       series: compare(vitality) },
-    { grid: "player-base-grid", cats: ["element"], context: "標準モブ → プレイヤー｜被弾時", title: "属性耐性", note: "属性別の基準値。特化値は未設定。", max: 100, step: 25, unit: "%",
+    { grid: "player-base-grid", cats: ["element"], context: "標準モブ → プレイヤー｜被弾時", title: "属性耐性", note: "全職業共通の基準値。", max: 100, step: 25, unit: "%",
       series: [stat("無属性", zeroToFifty), stat("火・氷・雷", playerResistance)] },
     { grid: "player-crit-grid", cats: ["offense"], context: "プレイヤー → 標準モブ｜攻撃時", title: "通常会心率", note: lv => "特化値 ＝ 幸運込みの会心率" + format.format(luckCritRate(luck.specialized(lv))) + "% ＋ 直接加算" + format.format(critRate(lv) - luckCritRate(luck.specialized(lv))) + "pt", max: 40, step: 10, unit: "%",
       series: [stat("基準値", 5.5), stat("特化値", critRate)] },
