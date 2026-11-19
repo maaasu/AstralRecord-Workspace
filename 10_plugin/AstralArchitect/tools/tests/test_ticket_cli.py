@@ -295,6 +295,39 @@ class TicketCliTest(unittest.TestCase):
         process, failure = self._run(*apply, "--expect-stage-sha256", approved["stageSha256"])
         self.assertIn("differs from the preview base", failure["error"])
 
+    def test_slice_plan_reapplies_part_rough_only_in_detail_stage(self) -> None:
+        design = {
+            "version": 1, "origin": [101, 65, 200],
+            "parts": {
+                "pier": {
+                    "reapplyRough": True,
+                    "rough": [{"op": "set", "at": [0, 0, 0], "block": "minecraft:stone"}],
+                    "detail": [{"op": "set", "at": [0, 0, 1], "block": "minecraft:diamond_block"}],
+                },
+                "overlay": {
+                    "rough": [{"op": "set", "at": [0, 0, 0], "block": "minecraft:gold_block"}],
+                    "detail": [],
+                },
+            },
+            "placements": [{"part": part, "at": [0, 0, 0]} for part in ("pier", "overlay")],
+        }
+        path = self.root / "design.json"
+        path.write_text(json.dumps(design), encoding="utf-8")
+        base = self._sha256(self.candidate_path)
+        for stage, blocks in (
+            ("rough", ["minecraft:gold_block", "minecraft:air"]),
+            ("detail", ["minecraft:stone", "minecraft:diamond_block"]),
+        ):
+            with self.subTest(stage=stage):
+                process, layer = self._run(
+                    "slice", str(self.ticket_dir), "--y", "65", "--x-min", "101", "--x-max", "101",
+                    "--z-min", "200", "--z-max", "201", "--plan", str(path), "--stage", stage,
+                )
+                self.assertEqual(0, process.returncode, layer)
+                self.assertEqual("proposed", layer["schematic"])
+                self.assertEqual(blocks, [row["runs"][0]["block"] for row in layer["rows"]])
+        self.assertEqual(base, self._sha256(self.candidate_path))
+
     def test_preview_rejects_invalid_operation_and_unsafe_output(self) -> None:
         output = self.root / "proposed.png"
         operation = json.dumps({

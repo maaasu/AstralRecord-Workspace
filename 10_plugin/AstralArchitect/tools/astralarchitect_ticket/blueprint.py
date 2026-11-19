@@ -534,7 +534,7 @@ def _translate(
 
 
 def compile_blueprint(plan: object, stage: str) -> list[dict[str, object]]:
-    """Validate a v1 blueprint and emit rough operations before any detail operations."""
+    """Validate a v1 blueprint and emit the rough pass before the detail pass."""
     if stage not in _STAGES:
         raise BlueprintError("blueprint stage must be rough or detail")
     fields = _fields(plan, {"version", "origin", "parts", "placements"}, "blueprint")
@@ -551,11 +551,21 @@ def compile_blueprint(plan: object, stage: str) -> list[dict[str, object]]:
         if not isinstance(name, str) or not name.strip():
             raise BlueprintError("each blueprint part must have a nonempty name")
         label = f"blueprint.parts[{name!r}]"
-        part = _fields(raw_part, set(_STAGES), label)
-        operations_by_stage = {}
+        part = _fields(raw_part, set(_STAGES), label, optional=frozenset({"reapplyRough"}))
+        reapply_rough = part.get("reapplyRough", False)
+        if type(reapply_rough) is not bool:
+            raise BlueprintError(f"{label}.reapplyRough must be a boolean")
+        operations_by_stage: dict[str, list[_Operation]] = {}
         for phase in _STAGES:
             phase_label = f"{label}.{phase}"
             operations = []
+            if phase == "detail" and reapply_rough:
+                # Prefix the local detail list so each repeat replays rough before its own detail.
+                rough_operations = operations_by_stage["rough"]
+                operation_count += len(rough_operations)
+                if operation_count > MAX_OPERATIONS:
+                    raise BlueprintError(f"blueprint defines more than {MAX_OPERATIONS} local operations")
+                operations.extend(rough_operations)
             for index, operation in enumerate(_list(part[phase], phase_label)):
                 operation_label = f"{phase_label}[{index}]"
                 remaining = MAX_OPERATIONS - operation_count
