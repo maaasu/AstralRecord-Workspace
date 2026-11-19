@@ -468,13 +468,10 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   const vitalityHpBonus = level => 2 * (vitality.specialized(level) - vitality.standard(level));
   let showVitalityBonus = false;
   function hpSeries(tier, baseHealth) {
-    return {
-      get label() { return (showVitalityBonus ? "特化値" : "基準値") + "（" + tier + "）"; },
-      read(level) {
-        const hp = baseHealth(level);
-        return showVitalityBonus ? hp - 2 * vitality.standard(level) + 2 * vitality.specialized(level) : hp;
-      }
-    };
+    return stat(tier, level => {
+      const hp = baseHealth(level);
+      return showVitalityBonus ? hp - 2 * vitality.standard(level) + 2 * vitality.specialized(level) : hp;
+    });
   }
   function makeHealthSelector(refresh) {
     const label = element("label");
@@ -486,7 +483,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       showVitalityBonus = input.checked;
       refresh();
     });
-    label.append(input, "特化値を表示");
+    label.append(input, "体力特化");
     return label;
   }
   const rawDefense = level => playerDefense(level) - vitality.standard(level);
@@ -495,8 +492,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   const multiplierFormat = new Intl.NumberFormat("ja-JP", {minimumFractionDigits: 2, maximumFractionDigits: 2});
   function compare(target, measure = value => value) {
     return [
-      stat("基準値", level => measure(target.standard(level), level)),
-      stat("特化値", level => measure(target.specialized(level), level))
+      stat("標準", level => measure(target.standard(level), level)),
+      stat("特化", level => measure(target.specialized(level), level))
     ];
   }
   // DamageCalculator.defenseDamageMultiplier: 同値で半減、防御が攻撃の2.5倍で全減。
@@ -526,7 +523,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   const panels = [
     { grid: "player-base-grid", cats: ["offense"], context: "プレイヤー｜主力能力", title: "基準攻撃力", note: lv => "能力値倍率を掛ける前の基準は" + twoDecimals.format(rawAttack(lv)) + "。", max: 500, step: 100, unit: "",
       series: compare(mainAttack, (value, level) => rawAttack(level) * attackMultiplier(value)) },
-    { grid: "player-base-grid", cats: ["resource"], context: "プレイヤー｜体力", title: "最大HP", note: lv => "モブの攻撃力は基準値（標準）から算出。Lv." + lv + "の体力特化は各＋" + format.format(vitalityHpBonus(lv)) + " HP。", max: 2000, step: 500, unit: "", selector: makeHealthSelector,
+    { grid: "player-base-grid", cats: ["resource"], context: "プレイヤー｜体力", title: "最大HP", note: lv => "モブの攻撃力は標準HPから算出。Lv." + lv + "の体力特化は各＋" + format.format(vitalityHpBonus(lv)) + " HP。", max: 2000, step: 500, unit: "", selector: makeHealthSelector,
       series: [hpSeries("下位", lowHealth), hpSeries("標準", health), hpSeries("上位", highHealth)] },
     { grid: "player-base-grid", cats: ["defense"], context: "プレイヤー｜体力", title: "共通防御", note: lv => "体力の加算前の基準は" + format.format(rawDefense(lv)) + "。", max: 600, step: 150, unit: "",
       series: compare(vitality, (value, level) => rawDefense(level) + value) },
@@ -534,14 +531,14 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       series: compare(vitality) },
     { grid: "player-base-grid", cats: ["element"], context: "標準モブ → プレイヤー｜被弾時", title: "属性耐性", note: "全職業共通の基準値。", max: 100, step: 25, unit: "%",
       series: [stat("無属性", zeroToFifty), stat("火・氷・雷", playerResistance)] },
-    { grid: "player-crit-grid", cats: ["offense"], context: "プレイヤー → 標準モブ｜攻撃時", title: "通常会心率", note: lv => "特化値 ＝ 幸運込みの会心率" + format.format(luckCritRate(luck.specialized(lv))) + "% ＋ 直接加算" + format.format(critRate(lv) - luckCritRate(luck.specialized(lv))) + "pt", max: 40, step: 10, unit: "%",
-      series: [stat("基準値", 5.5), stat("特化値", critRate)] },
+    { grid: "player-crit-grid", cats: ["offense"], context: "プレイヤー → 標準モブ｜攻撃時", title: "通常会心率", note: lv => "特化 ＝ 幸運込みの会心率" + format.format(luckCritRate(luck.specialized(lv))) + "% ＋ 直接加算" + format.format(critRate(lv) - luckCritRate(luck.specialized(lv))) + "pt", max: 40, step: 10, unit: "%",
+      series: [stat("標準", 5.5), stat("特化", critRate)] },
     { grid: "player-crit-grid", cats: ["offense"], context: "プレイヤー → 標準モブ｜攻撃時", title: "会心ダメージ", note: "通常会心が発生したときのダメージ倍率。", max: 200, step: 50, unit: "%",
-      series: [stat("基準値", 150), stat("特化値", critDamage)] },
+      series: [stat("標準", 150), stat("特化", critDamage)] },
     { grid: "player-crit-grid", cats: ["offense"], context: "プレイヤー → 標準モブ｜攻撃時", title: "超星会心率", note: "通常会心とは独立して判定する。", max: 10, step: 2, unit: "%",
-      series: [stat("基準値", 0), stat("特化値", curve([0, 2, 4, 8]))] },
+      series: [stat("標準", 0), stat("特化", curve([0, 2, 4, 8]))] },
     { grid: "player-crit-grid", cats: ["offense"], context: "プレイヤー → 標準モブ｜攻撃時", title: "超星会心倍率", note: "超星会心時の主攻撃への加算倍率と追尾弾の倍率。", max: 60, step: 15, unit: "%",
-      series: [stat("基準値", 30), stat("特化値", superMultiplier)] },
+      series: [stat("標準", 30), stat("特化", superMultiplier)] },
     { grid: "player-primary-grid", cats: ["primary"], context: "プレイヤー｜主力能力", title: "筋力・器用さ・知力", note: "近接は筋力、間接は器用さ、魔法は知力を使用。", max: 240, step: 60, unit: "",
       series: compare(mainAttack) },
     { grid: "player-primary-grid", cats: ["primary"], context: "プレイヤー｜耐久", title: "体力", note: "最大HP・防御・HP自然回復に反映。", max: 200, step: 50, unit: "",
@@ -730,11 +727,9 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     const buildTable = () => makeLevelTable(config.title, config.series.map(series =>
       stat(series.label, level => formatValue(series, level))));
     let table = buildTable();
-    const legendLabels = [];
     meta.append(context,cats);
     card.append(meta,heading);
     if (config.selector) card.append(config.selector(() => {
-      legendLabels.forEach((node, i) => { node.textContent = config.series[i].label; });
       const replacement = buildTable();
       table.replaceWith(replacement);
       table = replacement;
@@ -769,9 +764,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       const readout = element("b");
       const labels = levels.map(lv => formatValue(s, lv));
       readout.dataset.width = labels.reduce((widest,label) => label.length > widest.length ? label : widest);
-      const labelText = document.createTextNode(s.label);
-      legendLabels.push(labelText);
-      button.append(key,labelText,readout);
+      button.append(key,document.createTextNode(s.label),readout);
       button.addEventListener("pointerenter",e => { if (e.pointerType !== "touch") { hovered = i; refreshLegend(); } });
       button.addEventListener("pointerleave",() => { hovered = null; refreshLegend(); });
       button.addEventListener("focus",() => { if (button.matches(":focus-visible")) focused = i; refreshLegend(); });
