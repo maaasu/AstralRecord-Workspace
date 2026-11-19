@@ -73,9 +73,29 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 .st-legend button[aria-pressed="true"] { background: var(--selected); color: var(--blue); }
 .st-card tr.current > :first-child { box-shadow: inset 3px 0 var(--blue); }
 .st-tip { background: var(--soft); border-color: var(--edge); }
+.st-nav { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.st-group { --actor: var(--blue); margin: 18px 0 28px; }
+.st-group.mob { --actor: var(--gold); }
+.st-group-head { border-left: 4px solid var(--actor); padding-left: 12px; margin-bottom: 12px; }
+#stat-guide .st-group-head h2 { font-size: 23px; }
+.st-group-head p { color: var(--muted); }
+.st-context { color: var(--actor); font-size: 14px; font-weight: 600; }
+.st-card h3 { margin: 4px 0; font-size: 18px; }
+.st-card { border-top: 2px solid color-mix(in srgb, var(--actor) 55%, var(--rule)); }
+.st-card:focus-within { border-color: var(--actor); }
+.st-grid.triple { grid-template-columns: repeat(3,minmax(0,1fr)); margin-bottom: 16px; }
+.st-tip { min-width: min(168px,100%); box-shadow: 0 5px 16px #15181d66; }
+.st-lens { width: 100%; height: 58px; display: block; border-top: 1px solid var(--rule); margin-top: 4px; }
+.st-lens text { fill: var(--muted); font-size: 11px; }
+@media (prefers-reduced-motion: no-preference) {
+  .st-tip:not([hidden]) { animation: st-zoom .14s ease-out; }
+  .st-series { transition: opacity .12s ease-out; }
+  @keyframes st-zoom { from { opacity: .45; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }
+}
+@media (max-width: 1080px) { .st-grid.triple { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 
 @media (pointer: coarse) { .st-legend button,.st-tools label,.st-tools input[type=range] { min-height: 44px; } }
-@media (max-width: 760px) { #stat-guide { padding: 20px 16px; } .st-grid { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { #stat-guide { padding: 20px 16px; } .st-grid,.st-grid.triple { grid-template-columns: 1fr; } }
 @media (max-width: 420px) { #stat-guide { padding: 18px 12px; } .st-card { padding: 12px; } .st-tools { gap: 4px 10px; font-size: 13px; } }
 @media print {
   :root { color-scheme: light; --page: white; --soft: #eee; --heading: #263447; --selected: #dde6ef; --edge: #777; --paper: white; --ink: black; --muted: #444; --rule: #bbb; --axis: #777; --blue: #2466cf; --gold: #976200; --teal: #007564; --purple: #8453af; }
@@ -92,15 +112,24 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <body>
 <main id="stat-guide">
   <header><h1>ステータス指標</h1><a href="01-DPS指標.html">DPS指標へ →</a></header>
-  <p class="st-intro">線に触れると、その項目の値が表示されます。重なる線は凡例で選べます。</p>
+  <p class="st-intro">同格の1対1で使う設計値。線に触れると、その項目の値と前後の点を拡大表示します。</p>
+  <nav class="st-nav" aria-label="対象から探す"><a href="#player">プレイヤーの指標 ↓</a><a href="#mob">標準モブの指標 ↓</a></nav>
   <div class="st-tools">
     <label for="st-level">レベル <output id="st-value" for="st-level">Lv.25</output></label>
     <input id="st-level" type="range" min="0" max="20" step="1" value="5">
     <label><input id="st-all" type="checkbox"> 表を5レベル刻みに</label>
   </div>
-  <div class="st-grid" id="st-grid"></div>
+  <section class="st-group" id="player" aria-labelledby="player-title">
+    <div class="st-group-head"><h2 id="player-title">プレイヤー</h2><p>標準装備での攻撃・耐久と、会心に特化したときの到達目安。</p></div>
+    <div class="st-grid" id="player-grid"></div>
+  </section>
+  <section class="st-group mob" id="mob" aria-labelledby="mob-title">
+    <div class="st-group-head"><h2 id="mob-title">標準モブ</h2><p>同格プレイヤーが約7秒で討伐。モブの通常攻撃は、標準装備のプレイヤーに7発命中すると戦闘不能。</p></div>
+    <div class="st-grid triple" id="mob-defense-grid"></div>
+    <div class="st-grid" id="mob-attack-grid"></div>
+  </section>
   <noscript>グラフとレベル表の表示にはJavaScriptを有効にしてください。</noscript>
-  <details open><summary>装備なしの基準案</summary>
+  <details open><summary>プレイヤーの装備なし基準案</summary>
     <p class="st-note">現行の初期値に基本能力値の派生を加えた比較用の案。装備・職業・ツリー・バフの加算は別途。</p>
     <table aria-label="装備なしの戦闘ステータス案"><tbody>
       <tr><th>基本能力値</th><td>筋力・器用さ・知力・体力・敏捷性・幸運　各5</td></tr>
@@ -117,10 +146,10 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   <details><summary>計算と未確定項目</summary><table aria-label="計算と未確定項目"><tbody>
     <tr><th>基準攻撃力</th><td>（共通攻撃力 ＋ 種別攻撃力）×（1 ＋ 対応能力値 ÷ 100）。会心・スキル倍率の適用前。現行の素の攻撃力は8.4で、Lv.1の目標6.8との調整が必要。</td></tr>
     <tr><th>属性と被ダメージ</th><td>通常攻撃は無・火・氷・雷の1属性100%を想定。属性ダメージ増加がなければ、防御適用後の値 ×（1 − 対応耐性 ÷ 100）。</td></tr>
-    <tr><th>耐性の実装</th><td>モブ攻撃力の設計値は4属性ともプレイヤー耐性75%まで有効として算出。現行の組み込み通常攻撃は無属性で、無属性の基礎上限は50%。導入時は耐性成長と上限を合わせて調整する。</td></tr>
+    <tr><th>耐性の実装</th><td>設計上、モブの通常攻撃には無属性または火・氷・雷のいずれかを設定。現行の組み込み通常攻撃は無属性。設計値の導入にはレベル別耐性と攻撃属性の反映が必要。</td></tr>
     <tr><th>会心の計算</th><td>通常会心の期待倍率 ＝ 1 ＋ 会心率 ×（会心ダメージ − 1）。各値は小数表記。超星会心倍率30%なら主攻撃は1.3倍、追尾弾は0.3倍。</td></tr>
     <tr><th>標準モブの攻撃力</th><td>通常攻撃1発の実ダメージがプレイヤー最大HPの1/7以上になる最小の整数攻撃力。共通防御とプレイヤーの設計耐性を適用。近接・単一属性100%、会心・貫通・追加防御・回復なしで比較する。</td></tr>
-    <tr><th>標準モブのHP</th><td>同格で約7秒の討伐が目標。Lv.100のモブには、属性貫通なしなら防御後ダメージの25%が通る。この実ダメージでDPSを評価する。</td></tr>
+    <tr><th>標準モブのHP</th><td>同格への標準実効DPS × 7秒。Lv.100ではモブの標準耐性50%により、貫通・属性ダメージ増加がなければ防御後ダメージの50%が通る。実効DPSにはこの軽減を織り込み済み。</td></tr>
     <tr><th>特化ビルド</th><td>会心特化と超星会心特化は別々の育成案。各曲線は投資した場合の到達目安。総DPSは同格戦で測り、育成上限の目安と照合する。</td></tr>
     <tr><th>装備への配分</th><td>基礎値・標準値・特化時の目安・有効上限をもとに、装備1枠の付与量を決める。</td></tr>
   </tbody></table></details>
@@ -147,39 +176,50 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   const health = curve([100, 500, 800, 1200]);
   const playerDefense = attack;
   const playerResistance = level => 5 + 70 * (level - 1) / 99;
-  const mobResistance = level => 75 * (level - 1) / 99;
+  const zeroToFifty = level => 50 * (level - 1) / 99;
+  const mobResistanceCap = level => 5 + 80 * (level - 1) / 99;
+  const standardDps = curve([10, 500, 850, 1200]);
   // DamageCalculator.defenseDamageMultiplier: 同値で半減、防御が攻撃の2.5倍で全減。
   const defenseExponent = Math.log(0.5) / Math.log(0.6);
-  function damageTaken(power, level) {
+  function damageTaken(power, level, resistance) {
     const remaining = Math.max(0, 1 - playerDefense(level) / (2.5 * power));
-    return power * remaining ** defenseExponent * (1 - playerResistance(level) / 100);
+    return power * remaining ** defenseExponent * (1 - resistance / 100);
   }
-  function normalAttack(level) {
+  function normalAttack(level, resistance) {
     const target = health(level) / 7;
     let low = 0;
     let high = 1;
-    while (damageTaken(high, level) < target) high *= 2;
+    while (damageTaken(high, level, resistance) < target) high *= 2;
     while (high - low > 1) {
       const mid = Math.floor((high + low) / 2);
-      if (damageTaken(mid, level) >= target) high = mid;
+      if (damageTaken(mid, level, resistance) >= target) high = mid;
       else low = mid;
     }
-    return { power: high, damage: damageTaken(high, level) };
+    return { power: high, damage: damageTaken(high, level, resistance) };
   }
-  const mobHits = new Map(levels.map(level => [level, normalAttack(level)]));
+  function incomingPanel(title, resistance) {
+    const hits = new Map(levels.map(level => [level, normalAttack(level, resistance(level))]));
+    return { grid: "mob-attack-grid", context: "標準モブ → プレイヤー｜通常攻撃", title,
+      note: "攻撃力は7発基準。1発の被ダメージには共通防御と対応耐性を適用。", max: 1000, step: 250, unit: "",
+      series: [stat("モブ攻撃力", lv => hits.get(lv).power), stat("被ダメージ", lv => hits.get(lv).damage)] };
+  }
   const panels = [
-    { title: "プレイヤーの攻撃・耐久", note: "標準装備込み。基準攻撃力と共通防御は同じ値で、線が重なる。", max: 1200, step: 400, unit: "",
+    { grid: "player-grid", context: "プレイヤー｜標準装備", title: "攻撃力と耐久", note: "基準攻撃力と共通防御は同じ値。凡例で線を選択できます。", max: 1200, step: 400, unit: "",
       series: [stat("基準攻撃力", attack), stat("最大HP", health), stat("共通防御", playerDefense)] },
-    { title: "属性耐性", note: "無・火・氷・雷の各属性に適用。プレイヤーは5%から、標準モブは0%から75%まで成長。", max: 100, step: 25, unit: "%",
-      series: [stat("プレイヤー基礎", playerResistance), stat("標準モブ", mobResistance)] },
-    { title: "特化ビルドの会心率", note: "特化時の目安案。標準構成は会心率5.5%、超星会心率0%。", max: 40, step: 10, unit: "%",
+    { grid: "player-grid", context: "標準モブ → プレイヤー｜被弾時", title: "プレイヤーの基礎耐性", note: "無属性は0→50%。火・氷・雷は各5→75%。", max: 100, step: 25, unit: "%",
+      series: [stat("無属性", zeroToFifty), stat("火・氷・雷", playerResistance)] },
+    { grid: "player-grid", context: "プレイヤー → 標準モブ｜攻撃時", title: "特化ビルドの会心率", note: "特化時の目安案。標準構成は会心率5.5%、超星会心率0%。", max: 40, step: 10, unit: "%",
       series: [stat("会心率", curve([5.5, 15, 25, 35])), stat("超星会心率", curve([0, 2, 4, 8]))] },
-    { title: "特化ビルドの会心ダメージ", note: "特化時の目安案。標準構成は会心ダメージ150%、超星会心倍率30%。", max: 200, step: 50, unit: "%",
+    { grid: "player-grid", context: "プレイヤー → 標準モブ｜攻撃時", title: "特化ビルドの会心ダメージ", note: "特化時の目安案。標準構成は会心ダメージ150%、超星会心倍率30%。", max: 200, step: 50, unit: "%",
       series: [stat("会心ダメージ", curve([150, 160, 170, 180])), stat("超星会心倍率", curve([30, 40, 50, 60]))] },
-    { title: "標準モブの通常攻撃", note: "同格・通常命中7発で戦闘不能。実ダメージはプレイヤー側の防御と属性耐性を適用した1発分。", max: 1000, step: 250, unit: "",
-      series: [stat("モブ攻撃力", lv => mobHits.get(lv).power), stat("実ダメージ", lv => mobHits.get(lv).damage)] },
-    { title: "標準モブの防御", note: "共通防御はモブ自身のLv.の基準攻撃力の50%。追加防御は近接・間接・魔法に共通。", max: 200, step: 50, unit: "",
-      series: [stat("共通防御", level => attack(level) * 0.5), stat("追加防御", 0)] }
+    { grid: "mob-defense-grid", context: "プレイヤー → 標準モブ｜討伐", title: "標準モブの最大HP", note: "同格への標準実効DPS × 7秒。", max: 9000, step: 3000, unit: "",
+      series: [stat("最大HP", level => 7 * standardDps(level))] },
+    { grid: "mob-defense-grid", context: "プレイヤー → 標準モブ｜被弾時", title: "標準モブの防御", note: "共通防御は同レベルの基準攻撃力の50%。追加防御は全種別共通。", max: 200, step: 50, unit: "",
+      series: [stat("共通防御", level => attack(level) * 0.5), stat("追加防御", 0)] },
+    { grid: "mob-defense-grid", context: "プレイヤー → 標準モブ｜被弾時", title: "標準モブの属性耐性", note: "無・火・氷・雷に共通。標準戦闘の計算には基礎耐性を使用。", max: 100, step: 25, unit: "%",
+      series: [stat("基礎耐性", zeroToFifty), stat("補正込み上限", mobResistanceCap)] },
+    incomingPanel("無属性の通常攻撃", zeroToFifty),
+    incomingPanel("火・氷・雷の通常攻撃", playerResistance)
   ];
   const colors = ["blue","gold","teal","purple"];
   const symbols = ["●","◆","▲","■"];
@@ -202,18 +242,21 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     return svg("polygon", {points:points.map(([dx,dy]) => [x+dx,y+dy].join(",")).join(" "), class:cls});
   }
   let selected = 25;
+  let openTip = null;
   const views = [];
-  function choose(level) {
+  function choose(level, showPinned = true) {
     selected = level;
     root.querySelector("#st-value").textContent = "Lv." + level;
     range.value = levels.indexOf(level);
     range.setAttribute("aria-valuetext","レベル" + level);
-    views.forEach(view => view.update());
+    views.forEach(view => view.update(showPinned));
   }
   function mount(config) {
     const card = element("section");
     card.className = "st-card";
-    const heading = element("h2",config.title);
+    const context = element("div",config.context);
+    context.className = "st-context";
+    const heading = element("h3",config.title);
     const note = element("p",config.note);
     note.className = "st-note";
     const legend = element("div");
@@ -246,8 +289,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       row.append(cell);
       config.series.forEach(s => row.insertCell().textContent = format.format(s.read(lv)) + config.unit);
     }
-    card.append(heading,note,legend,box,table);
-    root.querySelector("#st-grid").append(card);
+    card.append(context,heading,note,legend,box,table);
+    document.getElementById(config.grid).append(card);
     let pinned = null, hovered = null, focused = null, inspected = null;
     let rings = [], paths = [];
     let right = 0, bottom = 0;
@@ -276,18 +319,18 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       const labels = levels.map(lv => format.format(s.read(lv)) + config.unit);
       readout.dataset.width = labels.reduce((widest,label) => label.length > widest.length ? label : widest);
       button.append(key,document.createTextNode(s.label),readout);
-      button.addEventListener("pointerenter",e => { if (e.pointerType !== "touch") { hovered = i; highlight(); } });
-      button.addEventListener("pointerleave",() => { hovered = null; highlight(); });
-      button.addEventListener("focus",() => { if (button.matches(":focus-visible")) focused = i; highlight(); });
-      button.addEventListener("blur",() => { focused = null; highlight(); });
-      button.addEventListener("click",() => { pinned = pinned === i ? null : i; hovered = null; focused = null; highlight(); });
+      button.addEventListener("pointerenter",e => { if (e.pointerType !== "touch") { hovered = i; refreshLegend(); } });
+      button.addEventListener("pointerleave",() => { hovered = null; refreshLegend(); });
+      button.addEventListener("focus",() => { if (button.matches(":focus-visible")) focused = i; refreshLegend(); });
+      button.addEventListener("blur",() => { focused = null; refreshLegend(); });
+      button.addEventListener("click",() => { pinned = pinned === i ? null : i; hovered = null; focused = null; refreshLegend(); });
       buttons.push(button);
       legend.append(button);
     });
     card.addEventListener("keydown",e => {
       if (e.key === "Escape") { pinned = hovered = focused = inspected = null; tip.hidden = true; highlight(); }
     });
-    function update() {
+    function update(showPinned = true) {
       clearInspection();
       levelLabel.textContent = "Lv." + selected;
       config.series.forEach((s,i) => {
@@ -296,6 +339,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       });
       body.querySelector(".current")?.classList.remove("current");
       body.rows[levels.indexOf(selected)].classList.add("current");
+      if (showPinned && pinned !== null) refreshLegend();
     }
     function draw() {
       const width = chart.clientWidth, height = chart.clientHeight;
@@ -329,6 +373,42 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       tip.hidden = true;
       if (inspected !== null) { inspected = null; highlight(); }
     }
+    function refreshLegend() {
+      highlight();
+      const active = hovered ?? focused ?? pinned;
+      if (active === null || !right) { tip.hidden = true; return; }
+      showDetail(active, selected);
+    }
+    function showDetail(index, level) {
+      if (openTip && openTip !== tip) openTip.hidden = true;
+      openTip = tip;
+      const series = config.series[index];
+      const start = Math.max(0, Math.min(levels.length - 5, levels.indexOf(level) - 2));
+      const nearby = levels.slice(start, start + 5);
+      const min = Math.min(...nearby.map(series.read));
+      const max = Math.max(...nearby.map(series.read));
+      const lensX = lv => 8 + 144 * (lv - nearby[0]) / (nearby.at(-1) - nearby[0]);
+      const lensY = lv => max === min ? 21 : 34 - 26 * (series.read(lv) - min) / (max - min);
+      const lens = svg("svg", {class:"st-lens",viewBox:"0 0 160 58","aria-hidden":"true"});
+      const color = "var(--" + colors[index] + ")";
+      lens.append(svg("polyline", {points:nearby.map(lv => [lensX(lv),lensY(lv)].join(",")).join(" "),
+        fill:"none",stroke:color,"stroke-width":2,"stroke-dasharray":dash[index]}));
+      for (const lv of nearby) {
+        const dot = marker(index,lensX(lv),lensY(lv),lv === level ? 4 : 2,"");
+        dot.setAttribute("fill",lv === level ? "var(--paper)" : color);
+        dot.setAttribute("stroke",color);
+        lens.append(dot);
+      }
+      lens.append(svg("text",{x:1,y:53},"Lv." + nearby[0]),svg("text",{x:159,y:53,"text-anchor":"end"},"Lv." + nearby.at(-1)));
+      const row = element("div");
+      row.append(element("span",series.label),element("b",format.format(series.read(level)) + config.unit));
+      tip.replaceChildren(element("strong","Lv." + level),row,lens);
+      tip.hidden = false;
+      const pixel = x(level), width = chart.clientWidth;
+      const leftEdge = pixel + 12 + tip.offsetWidth <= width ? pixel + 12 : pixel - tip.offsetWidth - 12;
+      tip.style.left = Math.max(4,Math.min(leftEdge,width-tip.offsetWidth-4)) + "px";
+      tip.style.top = Math.max(4,Math.min(y(series.read(level))-tip.offsetHeight/2,chart.clientHeight-tip.offsetHeight-4)) + "px";
+    }
     function inspect(event) {
       const bounds = chart.getBoundingClientRect();
       const pixel = event.clientX - bounds.left;
@@ -358,17 +438,10 @@ body { margin: 0; background: var(--page); color: var(--ink); }
         }
       });
       if (seriesIndex === null) { clearInspection(); return; }
-      choose(nearest);
+      if (selected !== nearest) choose(nearest,false);
       inspected = seriesIndex;
       highlight();
-      const s = config.series[seriesIndex];
-      const row = element("div");
-      row.append(element("span",s.label), element("b",format.format(s.read(nearest)) + config.unit));
-      tip.replaceChildren(element("strong","Lv." + nearest),row);
-      tip.hidden = false;
-      const leftEdge = pixel + 12 + tip.offsetWidth <= bounds.width ? pixel + 12 : pixel - tip.offsetWidth - 12;
-      tip.style.left = Math.max(4,Math.min(leftEdge,bounds.width-tip.offsetWidth-4))+"px";
-      tip.style.top = Math.max(4,Math.min(event.clientY-bounds.top+10,bounds.height-tip.offsetHeight-4))+"px";
+      showDetail(seriesIndex,nearest);
     }
     chart.addEventListener("pointerdown",inspect);
     chart.addEventListener("pointermove",inspect);
