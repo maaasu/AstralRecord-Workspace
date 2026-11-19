@@ -17,17 +17,147 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 #stat-guide { width: 100%; padding: 28px 32px 48px; background: var(--page); color: var(--ink);
   font: 15px/1.55 "Segoe UI","Yu Gothic UI",Meiryo,sans-serif; font-variant-numeric: tabular-nums; }
 #stat-guide :where(h1,h2,p,figure) { margin: 0; }
-#stat-guide h1 { font-size: clamp(28px,3vw,36px); line-height: 1.25; letter-spacing: -.035em; }
+#stat-guide h1 { font-size: clamp(28px,3vw,36px); line-height: 1.25; }
 #stat-guide h2 { font-size: 18px; line-height: 1.4; font-weight: 600; }
 #stat-guide :is(h1,h2,summary) { color: var(--heading); }
-#stat-guide a { color: var(--blue); text-underline-offset: 3px; }
-#stat-guide header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 6px 14px; }
+/* ===== 共通: 資料タブ・目次・章番号・能力の色分け ===== */
+/* 能力の色: 40_filebase/75.shared.status の公式カテゴリに対応 */
+:root { --cat-resource: #98c379; --cat-primary: #d19a66; --cat-offense: #e06c75; --cat-defense: #56b6c2; --cat-element: #c678dd; --cat-condition: #e8a0c8; --cat-utility: #a8b0bd; }
+:where(#dps-stat-guide, #stat-guide) a { color: var(--heading); text-decoration: none; }
+:where(#dps-stat-guide, #stat-guide) h1 { letter-spacing: 0; font-weight: 600; }
+.doc-nav { display: flex; flex-wrap: wrap; gap: 0 28px; margin: -8px 0 22px; border-bottom: 1px solid var(--rule); font-size: 14px; }
+.doc-nav a { display: inline-flex; align-items: baseline; gap: 8px; margin-bottom: -1px; padding: 9px 0 8px; color: var(--muted); border-bottom: 2px solid transparent; }
+.doc-nav a:hover { color: var(--ink); }
+.doc-nav a[aria-current="page"] { color: var(--ink); font-weight: 600; border-bottom-color: var(--blue); }
+.doc-no { color: var(--axis); font-size: 12px; font-weight: 400; }
+.doc-nav a[aria-current="page"] .doc-no { color: var(--blue); }
+.doc-lead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; margin: 6px 0 22px; color: var(--muted); }
+.cat-key { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; }
+.cat-key > span:first-child { margin-right: 4px; }
+.doc-layout { display: grid; grid-template-columns: 212px minmax(0, 1fr); gap: 0 40px; align-items: start; }
+.doc-toc { position: sticky; top: 16px; max-height: calc(100svh - 32px); overflow-y: auto; font-size: 14px; }
+.doc-toc-title { margin: 0 0 8px; color: var(--muted); font-size: 12px; letter-spacing: .1em; }
+.doc-toc ol { margin: 0; padding: 0; list-style: none; }
+.doc-toc ol ol { margin: 2px 0 8px; font-size: 13px; }
+.doc-toc a { display: flex; gap: 8px; padding: 5px 10px; color: var(--muted); border-left: 2px solid var(--rule); }
+.doc-toc ol ol a { padding-left: 24px; }
+.doc-toc a:hover { color: var(--ink); background: var(--soft); }
+.doc-toc a.is-within { color: var(--ink); }
+.doc-toc a.is-current { color: var(--ink); background: var(--selected); border-left-color: var(--blue); }
+.toc-num { flex: none; min-width: 2.1em; color: var(--axis); }
+.doc-toc .is-current .toc-num { color: var(--blue); }
+.ch-num { margin-right: 12px; color: var(--actor, var(--axis)); font-weight: 600; }
+.cat { display: inline-flex; align-items: center; gap: 5px; padding: 0 7px; color: var(--c); font-size: 12px; font-weight: 600; line-height: 22px; white-space: nowrap; background: color-mix(in srgb, var(--c) 14%, transparent); border-radius: 4px; }
+.cat::before { content: ""; width: 6px; height: 6px; border-radius: 1px; background: currentColor; }
+.cat-resource { --c: var(--cat-resource); } .cat-primary { --c: var(--cat-primary); } .cat-offense { --c: var(--cat-offense); } .cat-defense { --c: var(--cat-defense); }
+.cat-element { --c: var(--cat-element); } .cat-condition { --c: var(--cat-condition); } .cat-utility { --c: var(--cat-utility); }
+.cat-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.ch-toc { margin: 0 0 6px; padding: 0; list-style: none; border-top: 1px solid var(--rule); }
+.ch-toc li { border-bottom: 1px solid var(--rule); }
+.ch-toc a { display: grid; grid-template-columns: 3em minmax(8em, 13em) minmax(0, 1fr) auto; align-items: center; gap: 4px 14px; padding: 9px 6px; }
+.ch-toc a:hover { background: var(--soft); }
+.ch-toc .toc-num { color: var(--actor, var(--axis)); }
+.ch-toc-title { color: var(--ink); font-weight: 600; }
+.ch-toc-desc { color: var(--muted); font-size: 14px; }
+@media (max-width: 1080px) {
+  .doc-layout { grid-template-columns: minmax(0, 1fr); }
+  .doc-toc { position: static; max-height: none; overflow: visible; margin-bottom: 18px; }
+  .doc-toc > ol { display: flex; flex-wrap: wrap; gap: 6px; }
+  .doc-toc ol ol { display: none; }
+  .doc-toc a { gap: 6px; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 6px; }
+  .doc-toc .toc-num { min-width: 0; }
+}
+@media (max-width: 760px) {
+  .ch-toc a { grid-template-columns: 2.6em minmax(0, 1fr); }
+  .ch-toc-desc, .ch-toc .cat-list { grid-column: 2; }
+}
+@media print {
+  :root { --cat-resource: #3b7420; --cat-primary: #8a4f12; --cat-offense: #a8323f; --cat-defense: #0e6f80; --cat-element: #86379c; --cat-condition: #9c3a72; --cat-utility: #4c5566; }
+  .doc-nav, .doc-toc { display: none; }
+  .doc-layout { display: block; }
+}
+/* 計算式: 変数は能力の色のチップ、割り算は分数、下にレベル連動の計算例 */
+.c-resource { color: var(--cat-resource); } .c-primary { color: var(--cat-primary); } .c-offense { color: var(--cat-offense); } .c-defense { color: var(--cat-defense); } .c-element { color: var(--cat-element); }
+.fx-section-lead { margin: 2px 0 14px; color: var(--muted); font-size: 14px; }
+.fx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 680px), 1fr)); gap: 16px; }
+.fx-card { min-width: 0; padding: 18px 20px; background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; scroll-margin-top: 84px; }
+.fx-card-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 12px; }
+.fx-card-head h3 { margin: 0; color: var(--heading); font-size: 17px; font-weight: 600; line-height: 1.4; }
+.fx-card-head .sub-num { margin-right: 10px; color: var(--axis); font-weight: 600; }
+.fx { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; padding: 14px 16px; font-size: 15px; background: var(--page); border-radius: 8px; overflow-x: auto; }
+.fx-var { display: inline-flex; flex-direction: column; align-items: center; padding: 4px 10px; color: var(--c, var(--ink)); font-style: normal; font-weight: 600; line-height: 1.35; white-space: nowrap; background: color-mix(in srgb, var(--c, var(--axis)) 15%, transparent); border-radius: 6px; }
+.fx-var small { color: var(--muted); font-size: 11px; font-weight: 400; }
+.fx-op { color: var(--muted); font-size: 18px; line-height: 1; }
+.fx-paren { color: var(--axis); font-size: 30px; font-weight: 300; line-height: 1; }
+.fx-num { color: var(--ink); font-weight: 600; white-space: nowrap; }
+.fx-frac { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; }
+.fx-frac > :first-child { padding-bottom: 5px; border-bottom: 1.5px solid var(--muted); }
+.fx-example { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin: 12px 0 0; color: var(--muted); font-size: 14px; }
+.fx-example b { color: var(--ink); font-weight: 600; }
+.fx-lv { min-width: 4.5em; padding: 0 6px; color: var(--ink); font-size: 12px; font-weight: 600; text-align: center; background: var(--soft); border-radius: 4px; }
+.fx-result { color: var(--heading); font-size: 16px; font-weight: 700; }
+.fx-notes { margin: 12px 0 0; padding: 10px 0 0 18px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--rule); }
+.fx-notes li + li { margin-top: 2px; }
+.fx-include { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.fx-include + .fx-include, .fx + .fx-include { margin-top: 12px; }
+.fx-include-label { margin-right: 4px; color: var(--muted); font-size: 13px; }
+.fx-chip { padding: 2px 9px; color: var(--ink); font-size: 13px; background: var(--soft); border: 1px solid var(--rule); border-radius: 4px; }
+.fx-chip small { margin-left: 4px; color: var(--muted); font-size: 11px; }
+.fx-flow { display: flex; flex-wrap: nowrap; align-items: stretch; gap: 8px; overflow-x: auto; }
+.fx > *, .fx-flow > * { flex: none; }
+.fx-step { display: flex; flex-direction: column; justify-content: center; min-width: 7.5em; padding: 8px 12px; text-align: center; background: var(--page); border: 1px solid var(--rule); border-radius: 8px; }
+.fx-step small { color: var(--muted); font-size: 12px; }
+.fx-step b { color: var(--c, var(--ink)); font-size: 18px; font-weight: 600; }
+.fx-arrow { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; }
+.fx-arrow svg { width: 28px; height: 10px; stroke: var(--axis); fill: none; stroke-width: 1.5; }
+.fx-anchors { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.fx-anchors li { display: flex; background: var(--page); }
+.fx-anchors button { display: flex; flex-direction: column; align-items: center; width: 100%; padding: 8px 4px; color: inherit; font: inherit; background: transparent; border: 0; cursor: pointer; }
+.fx-anchors li:not(.is-active) button:hover { background: var(--soft); }
+.fx-anchors button:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.clickable-rows tbody tr { cursor: pointer; }
+.fx-anchors li + li { border-left: 1px solid var(--rule); }
+.fx-anchors small { color: var(--muted); font-size: 12px; }
+.fx-anchors b { color: var(--ink); font-size: 17px; font-weight: 600; }
+.fx-anchors .is-active { background: color-mix(in srgb, var(--cat-offense) 13%, var(--page)); box-shadow: inset 0 -2px var(--cat-offense); }
+.fx-anchors .is-active b { color: var(--cat-offense); }
+.fx-chart { margin: 12px 0 0; }
+.fx-chart figcaption { color: var(--muted); font-size: 13px; }
+.fx-chart svg { display: block; width: 100%; max-width: 460px; height: auto; }
+.fx-chart text { fill: var(--muted); font-size: 11px; font-family: inherit; }
+.fx-chart .fx-axis { fill: none; stroke: var(--axis); }
+.fx-chart .fx-guide { stroke: var(--edge); stroke-dasharray: 2 3; }
+.fx-chart .fx-curve { fill: none; stroke: var(--cat-defense); stroke-width: 2; }
+.fx-chart .fx-fixed { fill: var(--cat-defense); }
+.fx-chart .fx-live { fill: var(--paper); stroke: var(--ink); stroke-width: 2; }
+.fx-chart .fx-live-label { fill: var(--ink); font-weight: 600; }
+@media (max-width: 760px) { .fx, .fx-flow { flex-wrap: wrap; } }
+@media (max-width: 420px) { .fx-card { padding: 14px 12px; } .fx { padding: 12px 10px; gap: 6px; } }
+@media print { .fx { background: none; border: 1px solid var(--rule); } .fx-card { break-inside: avoid; } }
+/* ===== 共通ここまで ===== */
+#stat-guide .doc-lead p { margin: 0; }
+.st-sub { margin-top: 26px; scroll-margin-top: 84px; }
+.st-sub-head { margin-bottom: 12px; }
+#stat-guide .st-sub-head h3 { margin: 0; font-size: 19px; line-height: 1.4; font-weight: 600; color: var(--heading); }
+.sub-num { margin-right: 10px; color: var(--actor); font-weight: 600; }
+.st-sub-head p { margin-top: 2px; color: var(--muted); font-size: 14px; }
+.st-card-meta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; }
+#stat-guide details { scroll-margin-top: 84px; }
+#stat-guide details .ch-num { color: var(--axis); }
+#stat-guide details th .cat-list { margin-top: 4px; }
+.st-group.calc { --actor: var(--axis); }
+.st-gridline { stroke: var(--rule); stroke-width: 1; }
+.show-levels .st-card tbody tr:not(.minor) { font-weight: 600; color: var(--heading); }
+.show-levels .st-card tbody tr.minor { color: var(--muted); }
+#stat-guide summary::marker { color: var(--blue); }
 #stat-guide :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .st-intro, .st-note, .st-unit { color: var(--muted); }
 #stat-guide .st-intro { margin: 6px 0 15px; }
 .st-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; border-top: 1px solid var(--rule); padding: 10px 0; }
 .st-tools label { display: flex; align-items: center; gap: 6px; }
-.st-tools output { min-width: 3.7em; font-weight: 600; }
+.st-tools { position: sticky; top: 0; z-index: 4; background: var(--page); border-bottom: 1px solid var(--rule); box-shadow: 0 6px 12px -8px #10131999; }
+.st-tools label { color: var(--muted); font-size: 13px; }
+.st-tools output { min-width: 3.7em; font-weight: 600; color: var(--ink); font-size: 17px; }
 .st-tools input { accent-color: var(--blue); }
 .st-tools input[type=range] { width: min(30vw,320px); }
 .st-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
@@ -66,7 +196,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 .st-card .minor { display: none; }
 .show-levels .st-card .minor { display: table-row; }
 #stat-guide details { margin-top: 18px; border-top: 1px solid var(--rule); padding-top: 8px; }
-#stat-guide summary { cursor: pointer; padding: 5px 0; font-weight: 600; font-size: 17px; }
+#stat-guide summary { cursor: pointer; padding: 5px 0; font-weight: 600; font-size: 18px; }
 #stat-guide details th { width: 30%; text-align: left; font-weight: 550; color: var(--heading); background: var(--soft); }
 #stat-guide details td { text-align: left; }
 
@@ -74,19 +204,16 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 .st-card tr.current > :first-child { box-shadow: inset 3px 0 var(--blue); }
 .st-tip { background: var(--soft); border-color: var(--edge); }
 .st-nav { display: flex; flex-wrap: wrap; gap: 8px 20px; }
-.st-group { --actor: var(--blue); margin: 18px 0 28px; }
+.st-group { --actor: var(--blue); margin: 18px 0 28px; scroll-margin-top: 84px; }
 .st-group.mob { --actor: var(--gold); }
-.st-group-head { border-left: 4px solid var(--actor); padding-left: 12px; margin-bottom: 12px; }
+.st-group-head { padding-bottom: 8px; margin-bottom: 14px; border-bottom: 2px solid var(--actor); }
 #stat-guide .st-group-head h2 { font-size: 23px; }
 .st-group-head p { color: var(--muted); }
-.st-context { color: var(--actor); font-size: 14px; font-weight: 600; }
-.st-card h3 { margin: 4px 0; font-size: 18px; }
-.st-card { border-top: 2px solid color-mix(in srgb, var(--actor) 55%, var(--rule)); }
+.st-context { color: var(--muted); font-size: 13px; }
+.st-card h4 { margin: 6px 0 4px; font-size: 17px; font-weight: 600; color: var(--heading); }
 .st-card:focus-within { border-color: var(--actor); }
 .st-grid.triple { grid-template-columns: repeat(3,minmax(0,1fr)); margin-bottom: 16px; }
 .st-tip { min-width: min(168px,100%); box-shadow: 0 5px 16px #15181d66; }
-.st-lens { width: 100%; height: 58px; display: block; border-top: 1px solid var(--rule); margin-top: 4px; }
-.st-lens text { fill: var(--muted); font-size: 11px; }
 @media (prefers-reduced-motion: no-preference) {
   .st-tip:not([hidden]) { animation: st-zoom .14s ease-out; }
   .st-series { transition: opacity .12s ease-out; }
@@ -95,7 +222,9 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 @media (max-width: 1080px) { .st-grid.triple { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 
 @media (pointer: coarse) { .st-legend button,.st-tools label,.st-tools input[type=range] { min-height: 44px; } }
-@media (max-width: 760px) { #stat-guide { padding: 20px 16px; } .st-grid,.st-grid.triple { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { #stat-guide { padding: 20px 16px; } .st-grid,.st-grid.triple { grid-template-columns: 1fr; }
+  .st-group, .st-sub, #stat-guide details { scroll-margin-top: 124px; }
+  .st-tools { padding: 4px 0; row-gap: 0; } .st-tools input[type=range] { flex: 1; width: auto; min-width: 120px; } }
 @media (max-width: 420px) { #stat-guide { padding: 18px 12px; } .st-card { padding: 12px; } .st-tools { gap: 4px 10px; font-size: 13px; } }
 @media print {
   :root { color-scheme: light; --page: white; --soft: #eee; --heading: #263447; --selected: #dde6ef; --edge: #777; --paper: white; --ink: black; --muted: #444; --rule: #bbb; --axis: #777; --blue: #2466cf; --gold: #976200; --teal: #007564; --purple: #8453af; }
@@ -103,7 +232,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   #stat-guide { padding: 0; } .st-grid { display: block; } .st-card { break-inside: avoid; margin-bottom: 12px; }
   .st-card .minor { display: table-row; } .st-series.faded,.st-legend button.faded .st-key { opacity: 1; }
   .st-legend button.faded b { visibility: visible; }
-  .st-tools,.st-tip,#stat-guide header a,.st-intro { display: none; } .st-chart { height: 155px; }
+  .st-tools,.st-tip,.doc-nav { display: none; } .st-chart { height: 155px; }
   #stat-guide details::details-content { content-visibility: visible; } #stat-guide tr { break-inside: avoid; }
   #stat-guide td,#stat-guide th { padding-block: 1px; }
 }
@@ -123,48 +252,158 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 </head>
 <body>
 <main id="stat-guide">
-  <header><h1>ステータス指標</h1><a href="01-DPS指標.html">DPS指標へ →</a></header>
-  <p class="st-intro">同格の1対1で使う設計値。ホバー・タップでカード全体を拡大。線に触れると、その系列の値を確認できます。</p>
-  <nav class="st-nav" aria-label="対象から探す"><a href="#player">プレイヤーの指標 ↓</a><a href="#mob">標準モブの指標 ↓</a></nav>
+  <nav class="doc-nav" aria-label="ゲームデザイン設計書">
+    <a href="01-DPS指標.html"><span class="doc-no">01</span>DPS指標</a>
+    <a href="02-ステータス指標.html" aria-current="page"><span class="doc-no">02</span>ステータス指標</a>
+  </nav>
+  <header><h1>ステータス指標</h1></header>
+  <div class="doc-lead">
+    <p>同格の1対1で使う、プレイヤーと標準モブの設計値。</p>
+    <div class="cat-key" aria-label="ステータスの分類"><span>分類</span><span class="cat cat-resource">リソース</span><span class="cat cat-primary">基本能力値</span><span class="cat cat-offense">攻撃</span><span class="cat cat-defense">防御</span><span class="cat cat-element">属性</span><span class="cat cat-condition">状態異常</span><span class="cat cat-utility">ユーティリティ</span></div>
+  </div>
+  <div class="doc-layout">
+  <aside class="doc-toc" aria-label="目次">
+    <p class="doc-toc-title">目次</p>
+    <ol>
+      <li><a href="#player"><span class="toc-num">1</span>プレイヤー</a>
+        <ol>
+          <li><a href="#player-base"><span class="toc-num">1.1</span>基本ステータス</a></li>
+          <li><a href="#player-crit"><span class="toc-num">1.2</span>会心特化ビルド</a></li>
+        </ol>
+      </li>
+      <li><a href="#mob"><span class="toc-num">2</span>標準モブ</a>
+        <ol>
+          <li><a href="#mob-defense"><span class="toc-num">2.1</span>被弾時のステータス</a></li>
+          <li><a href="#mob-attack"><span class="toc-num">2.2</span>通常攻撃</a></li>
+        </ol>
+      </li>
+      <li><a href="#unequipped"><span class="toc-num">3</span>装備なし基準案</a></li>
+      <li><a href="#formulas"><span class="toc-num">4</span>計算方法</a>
+        <ol>
+          <li><a href="#fx-attack"><span class="toc-num">4.1</span>基準攻撃力</a></li>
+          <li><a href="#fx-damage"><span class="toc-num">4.2</span>被ダメージ</a></li>
+          <li><a href="#fx-crit"><span class="toc-num">4.3</span>会心の期待倍率</a></li>
+          <li><a href="#fx-mob-hp"><span class="toc-num">4.4</span>標準モブの最大HP</a></li>
+          <li><a href="#fx-mob-attack"><span class="toc-num">4.5</span>標準モブの攻撃力</a></li>
+        </ol>
+      </li>
+    </ol>
+  </aside>
+  <div class="doc-body">
   <div class="st-tools">
     <label for="st-level">レベル <output id="st-value" for="st-level">Lv.25</output></label>
     <input id="st-level" type="range" min="0" max="20" step="1" value="5">
     <label><input id="st-all" type="checkbox"> 表を5レベル刻みに</label>
   </div>
   <section class="st-group" id="player" aria-labelledby="player-title">
-    <div class="st-group-head"><h2 id="player-title">プレイヤー</h2><p>標準装備での攻撃・耐久と、会心に特化したときの到達目安。</p></div>
-    <div class="st-grid" id="player-grid"></div>
+    <div class="st-group-head"><h2 id="player-title"><span class="ch-num">1</span>プレイヤー</h2><p>標準装備での攻撃・耐久と、会心に特化したときの到達目安。</p></div>
+    <ol class="ch-toc" aria-label="1章の内容">
+      <li><a href="#player-base"><span class="toc-num">1.1</span><span class="ch-toc-title">基本ステータス</span><span class="ch-toc-desc">基準攻撃力・最大HP・共通防御・基礎耐性</span><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-resource">リソース</span><span class="cat cat-defense">防御</span><span class="cat cat-element">属性</span></span></a></li>
+      <li><a href="#player-crit"><span class="toc-num">1.2</span><span class="ch-toc-title">会心特化ビルド</span><span class="ch-toc-desc">会心率・超星会心率・会心ダメージ・超星会心倍率</span><span class="cat-list"><span class="cat cat-offense">攻撃</span></span></a></li>
+    </ol>
+    <section class="st-sub" id="player-base" aria-labelledby="player-base-title">
+      <div class="st-sub-head"><h3 id="player-base-title"><span class="sub-num">1.1</span>基本ステータス</h3><p>標準装備時の攻撃・耐久と、被弾時に効く基礎耐性。</p></div>
+      <div class="st-grid" id="player-base-grid"></div>
+    </section>
+    <section class="st-sub" id="player-crit" aria-labelledby="player-crit-title">
+      <div class="st-sub-head"><h3 id="player-crit-title"><span class="sub-num">1.2</span>会心特化ビルド</h3><p>会心特化と超星会心特化は別々の育成案。各曲線は投資したときの到達目安で、標準構成の値は各カードに記載。</p></div>
+      <div class="st-grid" id="player-crit-grid"></div>
+    </section>
   </section>
   <section class="st-group mob" id="mob" aria-labelledby="mob-title">
-    <div class="st-group-head"><h2 id="mob-title">標準モブ</h2><p>同格プレイヤーが約7秒で討伐。モブの通常攻撃は、標準装備のプレイヤーに7発命中すると戦闘不能。</p></div>
-    <div class="st-grid triple" id="mob-defense-grid"></div>
-    <div class="st-grid" id="mob-attack-grid"></div>
+    <div class="st-group-head"><h2 id="mob-title"><span class="ch-num">2</span>標準モブ</h2><p>同格プレイヤーが約7秒で討伐。モブの通常攻撃は、標準装備のプレイヤーに7発命中すると戦闘不能。</p></div>
+    <ol class="ch-toc" aria-label="2章の内容">
+      <li><a href="#mob-defense"><span class="toc-num">2.1</span><span class="ch-toc-title">被弾時のステータス</span><span class="ch-toc-desc">最大HP・共通防御・追加防御・属性耐性</span><span class="cat-list"><span class="cat cat-resource">リソース</span><span class="cat cat-defense">防御</span><span class="cat cat-element">属性</span></span></a></li>
+      <li><a href="#mob-attack"><span class="toc-num">2.2</span><span class="ch-toc-title">通常攻撃</span><span class="ch-toc-desc">7発で戦闘不能にする攻撃力と、1発の被ダメージ</span><span class="cat-list"><span class="cat cat-offense">攻撃</span></span></a></li>
+    </ol>
+    <section class="st-sub" id="mob-defense" aria-labelledby="mob-defense-title">
+      <div class="st-sub-head"><h3 id="mob-defense-title"><span class="sub-num">2.1</span>被弾時のステータス</h3><p>プレイヤーの攻撃を受ける側の値。討伐時間7秒の基準になる。</p></div>
+      <div class="st-grid triple" id="mob-defense-grid"></div>
+    </section>
+    <section class="st-sub" id="mob-attack" aria-labelledby="mob-attack-title">
+      <div class="st-sub-head"><h3 id="mob-attack-title"><span class="sub-num">2.2</span>通常攻撃</h3><p>プレイヤーへの通常攻撃。属性ごとにプレイヤーの耐性が異なるため2系統に分ける。</p></div>
+      <div class="st-grid" id="mob-attack-grid"></div>
+    </section>
   </section>
   <noscript>グラフとレベル表の表示にはJavaScriptを有効にしてください。</noscript>
-  <details open><summary>プレイヤーの装備なし基準案</summary>
+  <details id="unequipped" open><summary><span class="ch-num">3</span>装備なし基準案</summary>
     <p class="st-note">現行の初期値に基本能力値の派生を加えた比較用の案。装備・職業・ツリー・バフの加算は別途。</p>
     <table aria-label="装備なしの戦闘ステータス案"><tbody>
-      <tr><th>基本能力値</th><td>筋力・器用さ・知力・体力・敏捷性・幸運　各5</td></tr>
-      <tr><th>命中・回避</th><td>命中率 95% ／ 回避率 3.5%</td></tr>
-      <tr><th>速度</th><td>攻撃速度 105% ／ 移動速度 100.5%</td></tr>
-      <tr><th>リソース</th><td>最大MP 15 ／ 最大ENG 100 ／ 最大シールド 0</td></tr>
-      <tr><th>自然回復</th><td>5秒あたり HP 1.5 ／ MP 1 ／ ENG 5</td></tr>
-      <tr><th>種別攻撃・防御</th><td>近接・間接・魔法の順に、追加攻撃力 0・0・0 ／ 追加防御力 0・0・8</td></tr>
-      <tr><th>攻撃補正</th><td>通常・スキル・属性のダメージ増加、貫通は各0%。最終ダメージ倍率は100%。</td></tr>
-      <tr><th>状態異常</th><td>付与確率増加・付与耐性・継続ダメージ増加は各0%。基礎付与率はスキルごとに設定。</td></tr>
-      <tr><th>スキル・回復補正</th><td>クールダウン・詠唱時間・消費の軽減、ライフスティールは各0%。</td></tr>
+      <tr><th>基本能力値<span class="cat-list"><span class="cat cat-primary">基本能力値</span></span></th><td>筋力・器用さ・知力・体力・敏捷性・幸運　各5</td></tr>
+      <tr><th>命中・回避<span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-defense">防御</span></span></th><td>命中率 95% ／ 回避率 3.5%</td></tr>
+      <tr><th>速度<span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-utility">ユーティリティ</span></span></th><td>攻撃速度 105% ／ 移動速度 100.5%</td></tr>
+      <tr><th>リソース<span class="cat-list"><span class="cat cat-resource">リソース</span></span></th><td>最大MP 15 ／ 最大ENG 100 ／ 最大シールド 0</td></tr>
+      <tr><th>自然回復<span class="cat-list"><span class="cat cat-utility">ユーティリティ</span></span></th><td>5秒あたり HP 1.5 ／ MP 1 ／ ENG 5</td></tr>
+      <tr><th>種別攻撃・防御<span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-defense">防御</span></span></th><td>近接・間接・魔法の順に、追加攻撃力 0・0・0 ／ 追加防御力 0・0・8</td></tr>
+      <tr><th>攻撃補正<span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-element">属性</span></span></th><td>通常・スキル・属性のダメージ増加、貫通は各0%。最終ダメージ倍率は100%。</td></tr>
+      <tr><th>状態異常<span class="cat-list"><span class="cat cat-condition">状態異常</span></span></th><td>付与確率増加・付与耐性・継続ダメージ増加は各0%。基礎付与率はスキルごとに設定。</td></tr>
+      <tr><th>スキル・回復補正<span class="cat-list"><span class="cat cat-utility">ユーティリティ</span><span class="cat cat-offense">攻撃</span></span></th><td>クールダウン・詠唱時間・消費の軽減、ライフスティールは各0%。</td></tr>
     </tbody></table>
   </details>
-  <details><summary>計算と未確定項目</summary><table aria-label="計算と未確定項目"><tbody>
-    <tr><th>基準攻撃力</th><td>（共通攻撃力 ＋ 種別攻撃力）×（1 ＋ 対応能力値 ÷ 100）。会心・スキル倍率の適用前。現行の素の攻撃力は8.4で、Lv.1の目標6.8との調整が必要。</td></tr>
-    <tr><th>属性と被ダメージ</th><td>通常攻撃は無・火・氷・雷の1属性100%を想定。属性ダメージ増加がなければ、防御適用後の値 ×（1 − 対応耐性 ÷ 100）。</td></tr>
-    <tr><th>耐性の実装</th><td>設計上、モブの通常攻撃には無属性または火・氷・雷のいずれかを設定。現行の組み込み通常攻撃は無属性。設計値の導入にはレベル別耐性と攻撃属性の反映が必要。</td></tr>
-    <tr><th>会心の計算</th><td>通常会心の期待倍率 ＝ 1 ＋ 会心率 ×（会心ダメージ − 1）。各値は小数表記。超星会心倍率30%なら主攻撃は1.3倍、追尾弾は0.3倍。</td></tr>
-    <tr><th>標準モブの攻撃力</th><td>通常攻撃1発の実ダメージがプレイヤー最大HPの1/7以上になる最小の整数攻撃力。共通防御とプレイヤーの設計耐性を適用。近接・単一属性100%、会心・貫通・追加防御・回復なしで比較する。</td></tr>
-    <tr><th>標準モブのHP</th><td>同格への標準実効DPS × 7秒。Lv.100ではモブの標準耐性50%により、貫通・属性ダメージ増加がなければ防御後ダメージの50%が通る。実効DPSにはこの軽減を織り込み済み。</td></tr>
-    <tr><th>特化ビルド</th><td>会心特化と超星会心特化は別々の育成案。各曲線は投資した場合の到達目安。総DPSは同格戦で測り、育成上限の目安と照合する。</td></tr>
-    <tr><th>装備への配分</th><td>基礎値・標準値・特化時の目安・有効上限をもとに、装備1枠の付与量を決める。</td></tr>
-  </tbody></table></details>
+  <section class="st-group calc" id="formulas" aria-labelledby="formulas-title">
+    <div class="st-group-head"><h2 id="formulas-title"><span class="ch-num">4</span>計算方法</h2><p>各指標の求め方。計算例は、上部で選んだレベルの値。</p></div>
+    <div class="fx-grid">
+      <section class="fx-card" id="fx-attack" aria-labelledby="fx-attack-title">
+        <div class="fx-card-head"><h3 id="fx-attack-title"><span class="sub-num">4.1</span>基準攻撃力</h3><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-primary">基本能力値</span></span></div>
+        <div class="fx">
+          <var class="fx-var cat-offense">基準攻撃力</var><span class="fx-op">=</span>
+          <span class="fx-paren">(</span><var class="fx-var cat-offense">共通攻撃力<small>全種別に共通</small></var><span class="fx-op">+</span><var class="fx-var cat-offense">種別攻撃力<small>近接・間接・魔法</small></var><span class="fx-paren">)</span>
+          <span class="fx-op">×</span>
+          <span class="fx-paren">(</span><span class="fx-num">1</span><span class="fx-op">+</span><span class="fx-frac"><var class="fx-var cat-primary">対応能力値</var><span class="fx-num">100</span></span><span class="fx-paren">)</span>
+        </div>
+        <p class="fx-example"><span class="fx-lv">例</span>対応能力値 <b class="c-primary">5</b>（装備なし基準案）なら 1 + 5 ÷ 100 = <span class="fx-result">1.05倍</span></p>
+        <ul class="fx-notes"><li>会心・スキル倍率を掛ける前の値。</li><li>プレイヤーの共通防御は、同じレベルの基準攻撃力と同じ値。</li></ul>
+      </section>
+      <section class="fx-card" id="fx-damage" aria-labelledby="fx-damage-title">
+        <div class="fx-card-head"><h3 id="fx-damage-title"><span class="sub-num">4.2</span>被ダメージ</h3><span class="cat-list"><span class="cat cat-defense">防御</span><span class="cat cat-element">属性</span></span></div>
+        <div class="fx">
+          <var class="fx-var cat-defense">被ダメージ</var><span class="fx-op">=</span>
+          <var class="fx-var cat-offense">攻撃力</var><span class="fx-op">×</span>
+          <var class="fx-var cat-defense">防御で通る割合<small>下の曲線</small></var><span class="fx-op">×</span>
+          <span class="fx-paren">(</span><span class="fx-num">1</span><span class="fx-op">−</span><span class="fx-frac"><var class="fx-var cat-element">対応耐性</var><span class="fx-num">100</span></span><span class="fx-paren">)</span>
+        </div>
+        <figure class="fx-chart">
+          <figcaption>防御で通る割合（横軸は 防御 ÷ 攻撃力）</figcaption>
+          <svg id="fx-defense-chart" viewBox="0 0 400 170" role="img" aria-label="防御が攻撃力と同じなら50%、攻撃力の2.5倍なら0%が通る曲線"></svg>
+        </figure>
+        <p class="fx-example"><span class="fx-lv" data-fx="lv">Lv.25</span>標準モブの無属性攻撃をプレイヤーが受ける場合：<b class="c-offense" data-fx="mobPower">181</b> × <b class="c-defense" data-fx="pass">45.3%</b> × (1 − <b class="c-element" data-fx="res">12.1%</b>) = <span class="fx-result" data-fx="dmg">72.1</span></p>
+        <ul class="fx-notes"><li>通常攻撃は無・火・氷・雷のいずれか1属性100%。</li><li>属性ダメージ増加・貫通がない場合の式。</li></ul>
+      </section>
+      <section class="fx-card" id="fx-crit" aria-labelledby="fx-crit-title">
+        <div class="fx-card-head"><h3 id="fx-crit-title"><span class="sub-num">4.3</span>会心の期待倍率</h3><span class="cat-list"><span class="cat cat-offense">攻撃</span></span></div>
+        <div class="fx">
+          <var class="fx-var cat-offense">期待倍率</var><span class="fx-op">=</span><span class="fx-num">1</span><span class="fx-op">+</span>
+          <var class="fx-var cat-offense">会心率</var><span class="fx-op">×</span>
+          <span class="fx-paren">(</span><var class="fx-var cat-offense">会心ダメージ</var><span class="fx-op">−</span><span class="fx-num">1</span><span class="fx-paren">)</span>
+        </div>
+        <p class="fx-example"><span class="fx-lv">標準構成</span>1 + <b>0.055</b> × (<b>1.5</b> − 1) = <span class="fx-result">1.0275倍</span></p>
+        <p class="fx-example"><span class="fx-lv" data-fx="lvCrit">特化 Lv.25</span>1 + <b data-fx="critRate">0.15</b> × (<b data-fx="critDmg">1.6</b> − 1) = <span class="fx-result" data-fx="critExp">1.09倍</span></p>
+        <ul class="fx-notes"><li>会心率と会心ダメージは小数にして計算する（15% → 0.15）。</li><li>超星会心倍率 <b data-fx="superMul">40%</b> なら、主攻撃は <b data-fx="superMain">1.4倍</b>、追尾弾は <b data-fx="superSub">0.4倍</b>。</li></ul>
+      </section>
+      <section class="fx-card" id="fx-mob-hp" aria-labelledby="fx-mob-hp-title">
+        <div class="fx-card-head"><h3 id="fx-mob-hp-title"><span class="sub-num">4.4</span>標準モブの最大HP</h3><span class="cat-list"><span class="cat cat-resource">リソース</span></span></div>
+        <div class="fx">
+          <var class="fx-var cat-resource">最大HP</var><span class="fx-op">=</span><var class="fx-var cat-offense">標準実効DPS<small>同格のプレイヤー</small></var><span class="fx-op">×</span><span class="fx-num">7秒</span>
+        </div>
+        <p class="fx-example"><span class="fx-lv" data-fx="lv">Lv.25</span><b class="c-offense" data-fx="dps">500</b> × 7 = <span class="fx-result" data-fx="mobHp">3,500</span></p>
+        <ul class="fx-notes"><li>Lv.100 は標準耐性50%のため、防御後ダメージの50%が通る。この軽減は実効DPSに織り込み済み。</li></ul>
+      </section>
+      <section class="fx-card" id="fx-mob-attack" aria-labelledby="fx-mob-attack-title">
+        <div class="fx-card-head"><h3 id="fx-mob-attack-title"><span class="sub-num">4.5</span>標準モブの攻撃力</h3><span class="cat-list"><span class="cat cat-offense">攻撃</span></span></div>
+        <div class="fx-flow">
+          <div class="fx-step" style="--c: var(--cat-resource)"><small>プレイヤー最大HP</small><b data-fx="hp">500</b></div>
+          <div class="fx-arrow"><span>÷ 7発</span><svg viewBox="0 0 28 10" aria-hidden="true"><path d="M1 5 H26 M21 1 L26 5 L21 9"/></svg></div>
+          <div class="fx-step"><small>1発に必要なダメージ</small><b data-fx="need">71.4</b></div>
+          <div class="fx-arrow"><span>防御・耐性から逆算</span><svg viewBox="0 0 28 10" aria-hidden="true"><path d="M1 5 H26 M21 1 L26 5 L21 9"/></svg></div>
+          <div class="fx-step" style="--c: var(--cat-offense)"><small>モブ攻撃力</small><b data-fx="mobPower">181</b></div>
+        </div>
+        <p class="fx-example"><span class="fx-lv" data-fx="lv">Lv.25</span>無属性の場合。攻撃力 <b class="c-offense" data-fx="mobPower">181</b> の1発は <b data-fx="dmg">72.1</b> で、必要な <b data-fx="need">71.4</b> を超える最小の整数。</p>
+        <ul class="fx-notes"><li>共通防御とプレイヤーの基礎耐性を適用。</li><li>近接・単一属性100%、会心・貫通・追加防御・回復なしで比較する。</li></ul>
+      </section>
+    </div>
+  </section>
+  </div>
+  </div>
 </main>
 <script>
 (() => {
@@ -191,11 +430,14 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   const zeroToFifty = level => 50 * (level - 1) / 99;
   const mobResistanceCap = level => 5 + 80 * (level - 1) / 99;
   const standardDps = curve([10, 500, 850, 1200]);
+  const critRate = curve([5.5, 15, 25, 35]);
+  const critDamage = curve([150, 160, 170, 180]);
+  const superMultiplier = curve([30, 40, 50, 60]);
   // DamageCalculator.defenseDamageMultiplier: 同値で半減、防御が攻撃の2.5倍で全減。
   const defenseExponent = Math.log(0.5) / Math.log(0.6);
+  const passRatio = ratio => Math.max(0, 1 - ratio / 2.5) ** defenseExponent;
   function damageTaken(power, level, resistance) {
-    const remaining = Math.max(0, 1 - playerDefense(level) / (2.5 * power));
-    return power * remaining ** defenseExponent * (1 - resistance / 100);
+    return power * passRatio(playerDefense(level) / power) * (1 - resistance / 100);
   }
   function normalAttack(level, resistance) {
     const target = health(level) / 7;
@@ -211,24 +453,24 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   }
   function incomingPanel(title, resistance) {
     const hits = new Map(levels.map(level => [level, normalAttack(level, resistance(level))]));
-    return { grid: "mob-attack-grid", context: "標準モブ → プレイヤー｜通常攻撃", title,
+    return { grid: "mob-attack-grid", cats: ["offense"], context: "標準モブ → プレイヤー｜通常攻撃", title,
       note: "攻撃力は7発基準。1発の被ダメージには共通防御と対応耐性を適用。", max: 1000, step: 250, unit: "",
       series: [stat("モブ攻撃力", lv => hits.get(lv).power), stat("被ダメージ", lv => hits.get(lv).damage)] };
   }
   const panels = [
-    { grid: "player-grid", context: "プレイヤー｜標準装備", title: "攻撃力と耐久", note: "基準攻撃力と共通防御は同じ値。凡例で線を選択できます。", max: 1200, step: 400, unit: "",
+    { grid: "player-base-grid", cats: ["offense","resource","defense"], context: "プレイヤー｜標準装備", title: "攻撃力と耐久", note: "基準攻撃力と共通防御は同じ値。", max: 1200, step: 400, unit: "",
       series: [stat("基準攻撃力", attack), stat("最大HP", health), stat("共通防御", playerDefense)] },
-    { grid: "player-grid", context: "標準モブ → プレイヤー｜被弾時", title: "プレイヤーの基礎耐性", note: "無属性は0→50%。火・氷・雷は各5→75%。", max: 100, step: 25, unit: "%",
+    { grid: "player-base-grid", cats: ["element"], context: "標準モブ → プレイヤー｜被弾時", title: "プレイヤーの基礎耐性", note: "無属性は0→50%。火・氷・雷は各5→75%。", max: 100, step: 25, unit: "%",
       series: [stat("無属性", zeroToFifty), stat("火・氷・雷", playerResistance)] },
-    { grid: "player-grid", context: "プレイヤー → 標準モブ｜攻撃時", title: "特化ビルドの会心率", note: "特化時の目安案。標準構成は会心率5.5%、超星会心率0%。", max: 40, step: 10, unit: "%",
-      series: [stat("会心率", curve([5.5, 15, 25, 35])), stat("超星会心率", curve([0, 2, 4, 8]))] },
-    { grid: "player-grid", context: "プレイヤー → 標準モブ｜攻撃時", title: "特化ビルドの会心ダメージ", note: "特化時の目安案。標準構成は会心ダメージ150%、超星会心倍率30%。", max: 200, step: 50, unit: "%",
-      series: [stat("会心ダメージ", curve([150, 160, 170, 180])), stat("超星会心倍率", curve([30, 40, 50, 60]))] },
-    { grid: "mob-defense-grid", context: "プレイヤー → 標準モブ｜討伐", title: "標準モブの最大HP", note: "同格への標準実効DPS × 7秒。", max: 9000, step: 3000, unit: "",
+    { grid: "player-crit-grid", cats: ["offense"], context: "プレイヤー → 標準モブ｜攻撃時", title: "特化ビルドの会心率", note: "特化時の目安案。標準構成は会心率5.5%、超星会心率0%。", max: 40, step: 10, unit: "%",
+      series: [stat("会心率", critRate), stat("超星会心率", curve([0, 2, 4, 8]))] },
+    { grid: "player-crit-grid", cats: ["offense"], context: "プレイヤー → 標準モブ｜攻撃時", title: "特化ビルドの会心ダメージ", note: "特化時の目安案。標準構成は会心ダメージ150%、超星会心倍率30%。", max: 200, step: 50, unit: "%",
+      series: [stat("会心ダメージ", critDamage), stat("超星会心倍率", superMultiplier)] },
+    { grid: "mob-defense-grid", cats: ["resource"], context: "プレイヤー → 標準モブ｜討伐", title: "標準モブの最大HP", note: "同格への標準実効DPS × 7秒。", max: 9000, step: 3000, unit: "",
       series: [stat("最大HP", level => 7 * standardDps(level))] },
-    { grid: "mob-defense-grid", context: "プレイヤー → 標準モブ｜被弾時", title: "標準モブの防御", note: "共通防御は同レベルの基準攻撃力の50%。追加防御は全種別共通。", max: 200, step: 50, unit: "",
+    { grid: "mob-defense-grid", cats: ["defense"], context: "プレイヤー → 標準モブ｜被弾時", title: "標準モブの防御", note: "共通防御は同レベルの基準攻撃力の50%。追加防御は全種別共通。", max: 200, step: 50, unit: "",
       series: [stat("共通防御", level => attack(level) * 0.5), stat("追加防御", 0)] },
-    { grid: "mob-defense-grid", context: "プレイヤー → 標準モブ｜被弾時", title: "標準モブの属性耐性", note: "無・火・氷・雷に共通。標準戦闘の計算には基礎耐性を使用。", max: 100, step: 25, unit: "%",
+    { grid: "mob-defense-grid", cats: ["element"], context: "プレイヤー → 標準モブ｜被弾時", title: "標準モブの属性耐性", note: "無・火・氷・雷に共通。標準戦闘の計算には基礎耐性を使用。", max: 100, step: 25, unit: "%",
       series: [stat("基礎耐性", zeroToFifty), stat("補正込み上限", mobResistanceCap)] },
     incomingPanel("無属性の通常攻撃", zeroToFifty),
     incomingPanel("火・氷・雷の通常攻撃", playerResistance)
@@ -262,13 +504,81 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     range.value = levels.indexOf(level);
     range.setAttribute("aria-valuetext","レベル" + level);
     views.forEach(view => view.update(showPinned));
+    updateFormulas(level);
+  }
+  // 4章の計算例: 選択レベルの値を式へ代入する。
+  const decimal = new Intl.NumberFormat("ja-JP", {maximumFractionDigits: 4});
+  function setFx(key, text) {
+    root.querySelectorAll('[data-fx="' + key + '"]').forEach(node => node.textContent = text);
+  }
+  function updateFormulas(level) {
+    const resistance = zeroToFifty(level);
+    const hit = normalAttack(level, resistance);
+    const ratio = playerDefense(level) / hit.power;
+    const rate = critRate(level) / 100, damage = critDamage(level) / 100, superRate = superMultiplier(level) / 100;
+    setFx("lv", "Lv." + level);
+    setFx("lvCrit", "特化 Lv." + level);
+    setFx("mobPower", format.format(hit.power));
+    setFx("pass", format.format(passRatio(ratio) * 100) + "%");
+    setFx("res", format.format(resistance) + "%");
+    setFx("dmg", format.format(hit.damage));
+    setFx("critRate", decimal.format(rate));
+    setFx("critDmg", decimal.format(damage));
+    setFx("critExp", decimal.format(1 + rate * (damage - 1)) + "倍");
+    setFx("superMul", format.format(superRate * 100) + "%");
+    setFx("superMain", decimal.format(1 + superRate) + "倍");
+    setFx("superSub", decimal.format(superRate) + "倍");
+    setFx("dps", format.format(standardDps(level)));
+    setFx("mobHp", format.format(7 * standardDps(level)));
+    setFx("hp", format.format(health(level)));
+    setFx("need", format.format(health(level) / 7));
+    drawDefenseCurve(ratio, level);
+  }
+  function drawDefenseCurve(ratio, level) {
+    const chart = root.querySelector("#fx-defense-chart");
+    if (!chart) return;
+    const left = 44, right = 384, top = 14, bottom = 130;
+    const px = r => left + r / 2.5 * (right - left);
+    const py = p => bottom - p * (bottom - top);
+    const curvePoints = Array.from({length: 51}, (_, i) => [px(i * 0.05), py(passRatio(i * 0.05))].join(",")).join(" ");
+    const live = Math.min(2.5, ratio);
+    chart.replaceChildren(svg("path", {d: `M ${left} ${top} V ${bottom} H ${right}`, class: "fx-axis"}));
+    for (const p of [0, 0.5, 1]) {
+      chart.append(svg("line", {x1: left - 4, x2: left, y1: py(p), y2: py(p), class: "fx-axis"}),
+        svg("text", {x: left - 7, y: py(p) + 4, "text-anchor": "end"}, p * 100 + "%"));
+    }
+    for (const r of [0, 0.5, 1, 1.5, 2, 2.5]) {
+      chart.append(svg("line", {x1: px(r), x2: px(r), y1: bottom, y2: bottom + 4, class: "fx-axis"}),
+        svg("text", {x: px(r), y: bottom + 18, "text-anchor": "middle"}, r === 0 ? "0" : r + "倍"));
+    }
+    chart.append(
+      svg("line", {x1: left, x2: px(1), y1: py(0.5), y2: py(0.5), class: "fx-guide"}),
+      svg("line", {x1: px(1), x2: px(1), y1: py(0.5), y2: bottom, class: "fx-guide"}),
+      svg("polyline", {points: curvePoints, class: "fx-curve"}),
+      svg("circle", {cx: px(1), cy: py(0.5), r: 3.5, class: "fx-fixed"}),
+      svg("text", {x: px(1) + 8, y: py(0.5) - 7}, "同じ値で50%"),
+      svg("circle", {cx: px(2.5), cy: py(0), r: 3.5, class: "fx-fixed"}),
+      svg("text", {x: px(2.5) - 4, y: py(0) - 9, "text-anchor": "end"}, "2.5倍で0%"),
+      svg("circle", {cx: px(live), cy: py(passRatio(live)), r: 5, class: "fx-live"}),
+      svg("text", {x: px(live) + 9, y: py(passRatio(live)) + 16, class: "fx-live-label"}, "Lv." + level)
+    );
   }
   function mount(config) {
     const card = element("section");
     card.className = "st-card spot-field";
     const context = element("div",config.context);
     context.className = "st-context";
-    const heading = element("h3",config.title);
+    const heading = element("h4",config.title);
+    const catNames = {resource:"リソース", primary:"基本能力値", offense:"攻撃", defense:"防御", element:"属性", condition:"状態異常", utility:"ユーティリティ"};
+    const cats = element("span");
+    cats.className = "cat-list";
+    for (const key of config.cats) {
+      const tag = element("span",catNames[key]);
+      tag.className = "cat cat-" + key;
+      cats.append(tag);
+    }
+    const meta = element("div");
+    meta.className = "st-card-meta";
     const note = element("p",config.note);
     note.className = "st-note";
     const legend = element("div");
@@ -293,6 +603,12 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       header.append(th);
     }
     const body = table.createTBody();
+    table.classList.add("clickable-rows");
+    // 行をクリックすると、全カードと計算例をそのレベルに切り替える。
+    body.addEventListener("click", event => {
+      const row = event.target.closest("tr");
+      if (row) choose(levels[row.sectionRowIndex]);
+    });
     for (const lv of levels) {
       const row = body.insertRow();
       if (!major.includes(lv)) row.className = "minor";
@@ -301,7 +617,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       row.append(cell);
       config.series.forEach(s => row.insertCell().textContent = format.format(s.read(lv)) + config.unit);
     }
-    card.append(context,heading,note,legend,box,table);
+    meta.append(context,cats);
+    card.append(meta,heading,note,legend,box,table);
     document.getElementById(config.grid).append(card);
     let pinned = null, hovered = null, focused = null, inspected = null;
     let rings = [], paths = [];
@@ -360,6 +677,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       chart.setAttribute("viewBox",[0,0,width,height].join(" "));
       chart.replaceChildren(svg("path",{d:"M "+left+" "+top+" V "+bottom+" H "+right,class:"st-axis"}));
       for (let val = 0; val <= config.max; val += config.step) {
+        if (val > 0) chart.prepend(svg("line",{x1:left,x2:right,y1:y(val),y2:y(val),class:"st-gridline"}));
         chart.append(svg("line",{x1:left-4,x2:left,y1:y(val),y2:y(val),class:"st-axis"}),
           svg("text",{x:left-7,y:y(val)+4,"text-anchor":"end"},format.format(val)+config.unit));
       }
@@ -395,26 +713,9 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       if (openTip && openTip !== tip) openTip.hidden = true;
       openTip = tip;
       const series = config.series[index];
-      const start = Math.max(0, Math.min(levels.length - 5, levels.indexOf(level) - 2));
-      const nearby = levels.slice(start, start + 5);
-      const min = Math.min(...nearby.map(series.read));
-      const max = Math.max(...nearby.map(series.read));
-      const lensX = lv => 8 + 144 * (lv - nearby[0]) / (nearby.at(-1) - nearby[0]);
-      const lensY = lv => max === min ? 21 : 34 - 26 * (series.read(lv) - min) / (max - min);
-      const lens = svg("svg", {class:"st-lens",viewBox:"0 0 160 58","aria-hidden":"true"});
-      const color = "var(--" + colors[index] + ")";
-      lens.append(svg("polyline", {points:nearby.map(lv => [lensX(lv),lensY(lv)].join(",")).join(" "),
-        fill:"none",stroke:color,"stroke-width":2,"stroke-dasharray":dash[index]}));
-      for (const lv of nearby) {
-        const dot = marker(index,lensX(lv),lensY(lv),lv === level ? 4 : 2,"");
-        dot.setAttribute("fill",lv === level ? "var(--paper)" : color);
-        dot.setAttribute("stroke",color);
-        lens.append(dot);
-      }
-      lens.append(svg("text",{x:1,y:53},"Lv." + nearby[0]),svg("text",{x:159,y:53,"text-anchor":"end"},"Lv." + nearby.at(-1)));
       const row = element("div");
       row.append(element("span",series.label),element("b",format.format(series.read(level)) + config.unit));
-      tip.replaceChildren(element("strong","Lv." + level),row,lens);
+      tip.replaceChildren(element("strong","Lv." + level),row);
       tip.hidden = false;
       const pixel = x(level), width = chart.clientWidth;
       const leftEdge = pixel + 12 + tip.offsetWidth <= width ? pixel + 12 : pixel - tip.offsetWidth - 12;
@@ -546,6 +847,33 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   document.addEventListener("keydown", event => { if (event.key === "Escape") closeSpotlight(); });
   window.addEventListener("resize", closeSpotlight);
   window.addEventListener("beforeprint", closeSpotlight);
+})();
+</script>
+<script>
+(() => {
+  // 目次: 読んでいる章を強調し、折りたたみの章へ移動したら開く。
+  const links = [...document.querySelectorAll(".doc-toc a[href^='#']")];
+  const targets = links.map(link => document.getElementById(decodeURIComponent(link.hash.slice(1))));
+  function update() {
+    let current = 0;
+    targets.forEach((target, i) => { if (target && target.getBoundingClientRect().top <= 110) current = i; });
+    if (innerHeight + scrollY >= document.documentElement.scrollHeight - 2) current = links.length - 1;
+    const parent = current >= 0 ? links[current].closest("ol ol")?.closest("li")?.querySelector(":scope > a") : null;
+    links.forEach((link, i) => {
+      link.classList.toggle("is-current", i === current);
+      link.classList.toggle("is-within", link === parent);
+      if (i === current) link.setAttribute("aria-current", "location");
+      else link.removeAttribute("aria-current");
+    });
+  }
+  document.addEventListener("click", event => {
+    const link = event.target.closest("a[href^='#']");
+    const target = link && document.getElementById(decodeURIComponent(link.hash.slice(1)));
+    if (target?.tagName === "DETAILS") target.open = true;
+  });
+  addEventListener("scroll", update, { passive: true });
+  addEventListener("resize", update);
+  update();
 })();
 </script>
 </body>
