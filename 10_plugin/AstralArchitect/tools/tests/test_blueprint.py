@@ -21,6 +21,33 @@ def _plan(rough: list[dict], detail: list[dict] | None = None) -> dict:
     }
 
 
+def _roof(
+    offsets: list[int], sections: list[tuple[int, list[int]]], at: list[int] | None = None,
+) -> dict:
+    return {
+        "op": "roof_sheet",
+        "at": [0, 0, 0] if at is None else at,
+        "offsets": offsets,
+        "sections": [{"z": z, "heights": heights} for z, heights in sections],
+        "block": "minecraft:dark_prismarine",
+        "slab": "minecraft:dark_prismarine_slab",
+    }
+
+
+def _roof_layers(operations: list[dict]) -> dict[tuple[int, int], set[int]]:
+    layers = {}
+    for operation in operations:
+        first = operation if operation["op"] == "set" else operation["from"]
+        last = operation if operation["op"] == "set" else operation["to"]
+        column = layers.setdefault((first["x"], first["z"]), set())
+        for y in range(first["y"], last["y"] + 1):
+            if not operation["block"].endswith("[type=top]"):
+                column.add(2 * y)
+            if not operation["block"].endswith("[type=bottom]"):
+                column.add(2 * y + 1)
+    return layers
+
+
 class BlueprintTest(unittest.TestCase):
     def test_repeat_translation_and_stage_order(self) -> None:
         plan = _plan([_set("minecraft:stone", [2, 1, -3])], [_set("minecraft:gold_block")])
@@ -125,7 +152,7 @@ class BlueprintTest(unittest.TestCase):
                 with self.assertRaisesRegex(BlueprintError, error):
                     compile_blueprint(plan, "rough")
         for operation, error in (
-            ({"op": "replace"}, "must be set, fill, or line"),
+            ({"op": "replace"}, "must be set, fill, line, or roof_sheet"),
             ({"op": "set", "x": 0, "y": 0, "z": 0, "block": "minecraft:stone"}, "missing.*at"),
             ({"op": "set", "at": [0, 0, 0], "expect": "minecraft:air", "block": "minecraft:stone"},
              "unknown properties: expect"),
@@ -155,6 +182,141 @@ class BlueprintTest(unittest.TestCase):
         plan["placements"][0]["repeat"] = {"count": 3, "step": [1, 0, 0]}
         with self.assertRaisesRegex(BlueprintError, "outside the signed 32-bit coordinate range"):
             compile_blueprint(plan, "rough")
+
+    def test_roof_single_cell_uses_the_correct_half_at_signed_heights(self) -> None:
+        for height, y, slab_type in ((1, 10, "bottom"), (0, 9, "top"), (-1, 9, "bottom"), (-2, 8, "top")):
+            with self.subTest(height=height):
+                plan = _plan([_roof([-2], [(3, [height])], [5, 10, 7])])
+                self.assertEqual(compile_blueprint(plan, "rough"), [{
+                    "op": "set", "x": 3, "y": y, "z": 10,
+                    "block": f"minecraft:dark_prismarine_slab[type={slab_type}]",
+                }])
+
+    def test_roof_interpolates_both_axes_and_rounds_once_including_ties(self) -> None:
+        roof = _roof([-1, 1, 3], [(-2, [0, 1, -2]), (0, [0, 0, -1]), (1, [2, -1, -2])])
+        tops = {
+            (-1, -2): 0, (0, -2): 1, (1, -2): 1, (2, -2): 0, (3, -2): -2,
+            (-1, -1): 0, (0, -1): 0, (1, -1): 1, (2, -1): 0, (3, -1): -1,
+            (-1, 0): 0, (0, 0): 0, (1, 0): 0, (2, 0): 0, (3, 0): -1,
+            (-1, 1): 2, (0, 1): 1, (1, 1): -1, (2, 1): -1, (3, 1): -2,
+        }
+        expected = {}
+        for (x, z), top in tops.items():
+            adjacent = ((x - 1, z), (x + 1, z), (x, z - 1), (x, z + 1))
+            bottom = min(top, *(tops.get(point, top) for point in adjacent)) - 1
+            expected[x, z] = set(range(bottom, top))
+        self.assertEqual(_roof_layers(compile_blueprint(_plan([roof]), "rough")), expected)
+
+    def test_roof_slabs_border_one_vertical_fill(self) -> None:
+        roof = _roof([0, 1], [(-1, [-2, 7])], [2, 10, 4])
+        self.assertEqual(compile_blueprint(_plan([roof]), "rough"), [
+            {"op": "set", "x": 2, "y": 8, "z": 3, "block": "minecraft:dark_prismarine_slab[type=top]"},
+            {"op": "set", "x": 3, "y": 8, "z": 3, "block": "minecraft:dark_prismarine_slab[type=top]"},
+            {"op": "fill", "from": {"x": 3, "y": 9, "z": 3},
+             "to": {"x": 3, "y": 12, "z": 3}, "block": "minecraft:dark_prismarine"},
+            {"op": "set", "x": 3, "y": 13, "z": 3, "block": "minecraft:dark_prismarine_slab[type=bottom]"},
+        ])
+
+    def test_roof_in_detail_mirrors_and_repeats_as_ordinary_operations(self) -> None:
+        roof = _roof([0], [(-2, [0]), (-1, [2])], [2, 10, 3])
+        plan = _plan([_set("minecraft:stone")], [roof])
+        plan["origin"] = [10, 20, 30]
+        plan["placements"] = [
+            {"part": "piece", "at": [5, 1, 4], "mirror": "x",
+             "repeat": {"count": 2, "step": [4, 2, -1]}},
+            {"part": "piece", "at": [0, 0, 0], "mirror": "z"},
+        ]
+        rough = compile_blueprint(plan, "rough")
+        detail = compile_blueprint(plan, "detail")
+        self.assertEqual([operation["block"] for operation in rough], ["minecraft:stone"] * 3)
+        self.assertEqual(detail[:len(rough)], rough)
+        expected = []
+        for x, y, z, z_step in ((13, 30, 35, 1), (17, 32, 34, 1), (12, 29, 29, -1)):
+            expected.extend([
+                {"op": "set", "x": x, "y": y, "z": z, "block": "minecraft:dark_prismarine_slab[type=top]"},
+                {"op": "set", "x": x, "y": y, "z": z + z_step,
+                 "block": "minecraft:dark_prismarine_slab[type=top]"},
+                {"op": "set", "x": x, "y": y + 1, "z": z + z_step, "block": "minecraft:dark_prismarine"},
+            ])
+        self.assertEqual(detail[len(rough):], expected)
+
+    def test_roof_limits_apply_to_every_part_and_to_repeated_placements(self) -> None:
+        roof = _roof([0, 2], [(0, [0, 0])])
+        plan = _plan([_set("minecraft:stone")])
+        plan["parts"]["unused_a"] = {"rough": [roof], "detail": []}
+        plan["parts"]["unused_b"] = {"rough": [], "detail": [roof]}
+        with patch("astralarchitect_ticket.blueprint.MAX_OPERATIONS", 6):
+            with self.assertRaisesRegex(BlueprintError, "local operation limit"):
+                compile_blueprint(plan, "rough")
+            plan = _plan([roof])
+            plan["placements"][0]["repeat"] = {"count": 3, "step": [3, 0, 0]}
+            with self.assertRaisesRegex(BlueprintError, "expands beyond 6 operations"):
+                compile_blueprint(plan, "rough")
+        with patch("astralarchitect_ticket.blueprint.MAX_OPERATIONS", 3):
+            plan = _plan([_roof([0, 1], [(0, [-2, 7])])])
+            with self.assertRaisesRegex(BlueprintError, "local operation limit"):
+                compile_blueprint(plan, "rough")
+
+    def test_roof_rejects_large_footprints_and_vertical_jumps(self) -> None:
+        huge = _roof([0, 2**31 - 1], [(0, [0, 0]), (2**31 - 1, [0, 0])])
+        with patch("astralarchitect_ticket.blueprint._roof_axis_samples") as sample:
+            with self.assertRaisesRegex(BlueprintError, "local operation limit"):
+                compile_blueprint(_plan([huge]), "rough")
+            sample.assert_not_called()
+        plan = _plan([_set("minecraft:stone")])
+        plan["parts"]["unused"] = {"rough": [], "detail": [_roof([0, 1], [(0, [0, 2**31])])]}
+        with self.assertRaisesRegex(BlueprintError, "block visits"):
+            compile_blueprint(plan, "rough")
+        plan = _plan([_roof([0, 1], [(0, [0, 8])])])
+        plan["placements"][0]["repeat"] = {"count": 2, "step": [2, 0, 0]}
+        with patch("astralarchitect_ticket.blueprint.MAX_TICKET_VOLUME", 10):
+            with self.assertRaisesRegex(BlueprintError, "expands beyond 10 block visits"):
+                compile_blueprint(plan, "rough")
+
+    def test_roof_validates_coordinates_for_unused_and_skipped_parts(self) -> None:
+        for roof in (
+            _roof([1], [(0, [0])], [2**31 - 1, 0, 0]),
+            _roof([0], [(-1, [0])], [0, 0, -(2**31)]),
+            _roof([0], [(0, [0])], [0, -(2**31), 0]),
+            _roof([0], [(0, [3])], [0, 2**31 - 1, 0]),
+        ):
+            with self.subTest(roof=roof):
+                plan = _plan([_set("minecraft:stone")])
+                plan["parts"]["unused"] = {"rough": [], "detail": [roof]}
+                with self.assertRaisesRegex(BlueprintError, "signed 32-bit coordinate range"):
+                    compile_blueprint(plan, "rough")
+        plan = _plan([_set("minecraft:stone")], [_roof([-1], [(0, [0])])])
+        plan["placements"][0].update({
+            "at": [2**31 - 3, 0, 0], "mirror": "x", "repeat": {"count": 3, "step": [1, 0, 0]},
+        })
+        with self.assertRaisesRegex(BlueprintError, "signed 32-bit coordinate range"):
+            compile_blueprint(plan, "rough")
+
+    def test_roof_rejects_invalid_control_points_and_materials(self) -> None:
+        roof = _roof([0, 1], [(0, [0, 1]), (1, [1, 0])])
+        for changes, error in (
+            ({"offsets": []}, "nonempty"),
+            ({"offsets": [True, 1]}, "only integers"),
+            ({"offsets": [1, 0]}, "strictly ascending"),
+            ({"offsets": [0, 2**31]}, "signed 32-bit coordinate range"),
+            ({"sections": []}, "nonempty"),
+            ({"sections": [{"z": 0, "heights": [1]}]}, "one integer per offset"),
+            ({"sections": [{"z": 0, "heights": [1, False]}]}, "one integer per offset"),
+            ({"sections": [{"z": True, "heights": [1, 2]}]}, "must be an integer"),
+            ({"sections": [{"z": 0, "heights": [1, 2], "extra": 0}]}, "unknown properties"),
+            ({"sections": [{"z": 1, "heights": [1, 2]}] * 2}, "strictly ascending"),
+            ({"extra": 0}, "unknown properties"),
+            ({"block": "minecraft:oak_log[axis=x]"}, "without properties"),
+            ({"block": "minecraft:air"}, "non-air"),
+            ({"block": "minecraft:stone_slab"}, "full cube"),
+            ({"block": "minecraft:stone_stairs"}, "full cube"),
+            ({"slab": "minecraft:stone"}, "ending in _slab"),
+            ({"slab": "minecraft:stone_slab[type=top]"}, "without properties"),
+        ):
+            with self.subTest(changes=changes):
+                with self.assertRaisesRegex(BlueprintError, error):
+                    compile_blueprint(_plan([{**roof, **changes}]), "rough")
+
 
 
 if __name__ == "__main__":
