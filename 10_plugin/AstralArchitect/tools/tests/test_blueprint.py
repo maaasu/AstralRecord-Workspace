@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import unittest
 from unittest.mock import patch
 
@@ -76,6 +77,102 @@ class BlueprintTest(unittest.TestCase):
         expected = [{"op": "set", "x": 0, "y": 0, "z": 0, "block": "minecraft:stone"}]
         self.assertEqual(compile_blueprint(plan, "rough"), expected)
         self.assertEqual(compile_blueprint(plan, "detail"), expected)
+
+    def test_reapply_rough_matches_explicit_detail_prefix_with_overlapping_repeats(self) -> None:
+        rough = [_set("minecraft:oak_stairs[facing=east,shape=inner_left]", [1, 0, 0])]
+        detail = [_set("minecraft:gold_block")]
+        plan = _plan(rough, detail)
+        plan["parts"]["other"] = {
+            "rough": [_set("minecraft:andesite")],
+            "detail": [_set("minecraft:diamond_block", [2, 0, 0])],
+        }
+        plan["placements"] = [
+            {"part": "piece", "at": [1, 0, 0], "mirror": "x", "repeat": {"count": 2, "step": [1, 0, 0]}},
+            {"part": "other", "at": [0, 0, 0]},
+        ]
+        explicit = copy.deepcopy(plan)
+        explicit["parts"]["piece"]["detail"] = [*rough, *detail]
+        expected_rough = compile_blueprint(plan, "rough")
+        plan["parts"]["piece"]["reapplyRough"] = True
+        unchanged = copy.deepcopy(plan)
+
+        self.assertEqual(compile_blueprint(plan, "rough"), expected_rough)
+        operations = compile_blueprint(plan, "detail")
+        self.assertEqual(operations, compile_blueprint(explicit, "detail"))
+        mirrored = "minecraft:oak_stairs[facing=west,shape=inner_right]"
+        self.assertEqual(
+            {operation["x"]: operation["block"] for operation in operations},
+            {0: mirrored, 1: mirrored, 2: "minecraft:diamond_block"},
+        )
+        self.assertEqual(plan, unchanged)
+
+    def test_reapply_rough_false_matches_omission_in_both_stages(self) -> None:
+        plan = _plan([_set("minecraft:stone")], [_set("minecraft:gold_block")])
+        explicit_false = copy.deepcopy(plan)
+        explicit_false["parts"]["piece"]["reapplyRough"] = False
+        for stage in ("rough", "detail"):
+            with self.subTest(stage=stage):
+                self.assertEqual(compile_blueprint(explicit_false, stage), compile_blueprint(plan, stage))
+
+    def test_reapply_rough_requires_a_boolean(self) -> None:
+        plan = _plan([_set("minecraft:stone")])
+        for value in (None, 0, 1, 0.0, "false", [], {}):
+            with self.subTest(value=value):
+                plan["parts"]["piece"]["reapplyRough"] = value
+                with self.assertRaisesRegex(BlueprintError, r"reapplyRough must be a boolean"):
+                    compile_blueprint(plan, "rough")
+
+    def test_reapply_rough_counts_expanded_roof_operations_even_in_unused_part(self) -> None:
+        plan = _plan([_set("minecraft:stone")])
+        roof = _roof([0, 1], [(0, [1, 1])])
+        plan["parts"]["roof"] = {"rough": [roof], "detail": [], "reapplyRough": True}
+        with patch("astralarchitect_ticket.blueprint.MAX_OPERATIONS", 5):
+            self.assertEqual(len(compile_blueprint(plan, "rough")), 1)
+        with patch("astralarchitect_ticket.blueprint.MAX_OPERATIONS", 4):
+            with self.assertRaisesRegex(BlueprintError, "more than 4 local operations"):
+                compile_blueprint(plan, "rough")
+
+    def test_reapply_rough_counts_toward_placement_operation_and_visit_limits(self) -> None:
+        plan = _plan([{"op": "fill", "from": [0, 0, 0], "to": [2, 0, 0], "block": "minecraft:stone"}])
+        plan["placements"][0]["repeat"] = {"count": 2, "step": [1, 0, 0]}
+        for limit, value, error in (
+            ("MAX_OPERATIONS", 3, "expands beyond 3 operations"),
+            ("MAX_TICKET_VOLUME", 6, "expands beyond 6 block visits"),
+        ):
+            with self.subTest(limit=limit), patch(f"astralarchitect_ticket.blueprint.{limit}", value):
+                part = plan["parts"]["piece"]
+                part["reapplyRough"] = False
+                self.assertEqual(len(compile_blueprint(plan, "rough")), 2)
+                part["reapplyRough"] = True
+                with self.assertRaisesRegex(BlueprintError, error):
+                    compile_blueprint(plan, "rough")
+
+    def test_reapply_rough_counts_toward_detail_output_byte_limit(self) -> None:
+        plan = _plan([_set("minecraft:stone")], [_set("minecraft:gold_block")])
+        ordinary_detail = compile_blueprint(plan, "detail")
+        byte_limit = len(json.dumps(ordinary_detail, separators=(",", ":")).encode("utf-8"))
+        with patch("astralarchitect_ticket.blueprint.MAX_OPERATION_BYTES", byte_limit):
+            self.assertEqual(compile_blueprint(plan, "detail"), ordinary_detail)
+            plan["parts"]["piece"]["reapplyRough"] = True
+            self.assertEqual(compile_blueprint(plan, "rough"), ordinary_detail[:1])
+            with self.assertRaisesRegex(BlueprintError, "output exceeds.*operation bytes"):
+                compile_blueprint(plan, "detail")
+
+    def test_reapply_rough_keeps_detail_validation_in_rough_stage(self) -> None:
+        plan = _plan([_set("minecraft:stone")])
+        part = plan["parts"]["piece"]
+        part["reapplyRough"] = True
+        plan["origin"] = [2**31 - 2, 0, 0]
+        plan["placements"][0].update({"mirror": "x", "repeat": {"count": 2, "step": [1, 0, 0]}})
+        for operation, error in (
+            ({"op": "set", "block": "minecraft:gold_block"}, "missing.*at"),
+            (_set("example:brick"), "cannot mirror a block from namespace"),
+            (_set("minecraft:gold_block", [-1, 0, 0]), "outside the signed 32-bit coordinate range"),
+        ):
+            with self.subTest(operation=operation):
+                part["detail"] = [operation]
+                with self.assertRaisesRegex(BlueprintError, error):
+                    compile_blueprint(plan, "rough")
 
     def test_fill_and_line_endpoints_keep_their_order(self) -> None:
         plan = _plan([
