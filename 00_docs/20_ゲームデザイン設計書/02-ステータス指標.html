@@ -467,11 +467,14 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   const highHealth = curve([100, 600, 1080, 1420, 1800], major);
   const vitalityHpBonus = level => 2 * (vitality.specialized(level) - vitality.standard(level));
   let showVitalityBonus = false;
-  function hpSeries(label, baseHealth) {
-    return stat(label, level => {
-      const hp = baseHealth(level);
-      return showVitalityBonus ? hp - 2 * vitality.standard(level) + 2 * vitality.specialized(level) : hp;
-    });
+  function hpSeries(tier, baseHealth) {
+    return {
+      get label() { return (showVitalityBonus ? "特化値" : "基準値") + "（" + tier + "）"; },
+      read(level) {
+        const hp = baseHealth(level);
+        return showVitalityBonus ? hp - 2 * vitality.standard(level) + 2 * vitality.specialized(level) : hp;
+      }
+    };
   }
   function makeHealthSelector(refresh) {
     const label = element("label");
@@ -483,7 +486,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       showVitalityBonus = input.checked;
       refresh();
     });
-    label.append(input, "体力特化時のHPを表示");
+    label.append(input, "特化値を表示");
     return label;
   }
   const rawDefense = level => playerDefense(level) - vitality.standard(level);
@@ -523,8 +526,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   const panels = [
     { grid: "player-base-grid", cats: ["offense"], context: "プレイヤー｜主力能力", title: "基準攻撃力", note: lv => "能力値倍率を掛ける前の基準は" + twoDecimals.format(rawAttack(lv)) + "。", max: 500, step: 100, unit: "",
       series: compare(mainAttack, (value, level) => rawAttack(level) * attackMultiplier(value)) },
-    { grid: "player-base-grid", cats: ["resource"], context: "プレイヤー｜体力", title: "最大HP", note: lv => "標準はモブの攻撃力を決める基準。体力特化時はLv." + lv + "で各＋" + format.format(vitalityHpBonus(lv)) + " HP。", max: 2000, step: 500, unit: "", selector: makeHealthSelector,
-      series: [hpSeries("低め", lowHealth), hpSeries("標準", health), hpSeries("高め", highHealth)] },
+    { grid: "player-base-grid", cats: ["resource"], context: "プレイヤー｜体力", title: "最大HP", note: lv => "モブの攻撃力は基準値（標準）から算出。Lv." + lv + "の体力特化は各＋" + format.format(vitalityHpBonus(lv)) + " HP。", max: 2000, step: 500, unit: "", selector: makeHealthSelector,
+      series: [hpSeries("下位", lowHealth), hpSeries("標準", health), hpSeries("上位", highHealth)] },
     { grid: "player-base-grid", cats: ["defense"], context: "プレイヤー｜体力", title: "共通防御", note: lv => "体力の加算前の基準は" + format.format(rawDefense(lv)) + "。", max: 600, step: 150, unit: "",
       series: compare(vitality, (value, level) => rawDefense(level) + value) },
     { grid: "player-base-grid", cats: ["defense"], context: "プレイヤー｜体力", title: "魔法防御の加算", note: "体力1につき魔法防御が1増える。", max: 200, step: 50, unit: "",
@@ -603,7 +606,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   }
   function makeLevelTable(label, columns) {
     const table = element("table");
-    table.setAttribute("aria-label", label + "のレベル別基準値");
+    table.setAttribute("aria-label", label + "のレベル別数値");
     table.classList.add("clickable-rows");
     const header = table.createTHead().insertRow();
     for (const name of ["Lv.", ...columns.map(column => column.label)]) {
@@ -727,9 +730,11 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     const buildTable = () => makeLevelTable(config.title, config.series.map(series =>
       stat(series.label, level => formatValue(series, level))));
     let table = buildTable();
+    const legendLabels = [];
     meta.append(context,cats);
     card.append(meta,heading);
     if (config.selector) card.append(config.selector(() => {
+      legendLabels.forEach((node, i) => { node.textContent = config.series[i].label; });
       const replacement = buildTable();
       table.replaceWith(replacement);
       table = replacement;
@@ -764,7 +769,9 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       const readout = element("b");
       const labels = levels.map(lv => formatValue(s, lv));
       readout.dataset.width = labels.reduce((widest,label) => label.length > widest.length ? label : widest);
-      button.append(key,document.createTextNode(s.label),readout);
+      const labelText = document.createTextNode(s.label);
+      legendLabels.push(labelText);
+      button.append(key,labelText,readout);
       button.addEventListener("pointerenter",e => { if (e.pointerType !== "touch") { hovered = i; refreshLegend(); } });
       button.addEventListener("pointerleave",() => { hovered = null; refreshLegend(); });
       button.addEventListener("focus",() => { if (button.matches(":focus-visible")) focused = i; refreshLegend(); });
