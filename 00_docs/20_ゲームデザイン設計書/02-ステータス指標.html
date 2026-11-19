@@ -306,7 +306,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       <li><a href="#player-base"><span class="toc-num">1.1</span><span class="ch-toc-title">基本ステータス</span><span class="ch-toc-desc">基準攻撃力・最大HP・共通防御・魔法防御・属性耐性</span><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-resource">リソース</span><span class="cat cat-defense">防御</span><span class="cat cat-element">属性</span></span></a></li>
       <li><a href="#player-crit"><span class="toc-num">1.2</span><span class="ch-toc-title">会心</span><span class="ch-toc-desc">通常会心率・会心ダメージ・超星会心率・超星会心倍率</span><span class="cat-list"><span class="cat cat-offense">攻撃</span></span></a></li>
       <li><a href="#player-primary"><span class="toc-num">1.3</span><span class="ch-toc-title">基本能力値</span><span class="ch-toc-desc">筋力・器用さ・知力・体力・敏捷性・幸運</span><span class="cat-list"><span class="cat cat-primary">基本能力値</span></span></a></li>
-      <li><a href="#player-recovery"><span class="toc-num">1.4</span><span class="ch-toc-title">MP・自然回復</span><span class="ch-toc-desc">最大MP・HP自然回復・MP自然回復</span><span class="cat-list"><span class="cat cat-resource">リソース</span><span class="cat cat-utility">ユーティリティ</span></span></a></li>
+      <li><a href="#player-recovery"><span class="toc-num">1.4</span><span class="ch-toc-title">MP・自然回復</span><span class="ch-toc-desc">最大MP・HP自然回復量・MP自然回復量</span><span class="cat-list"><span class="cat cat-resource">リソース</span><span class="cat cat-utility">ユーティリティ</span></span></a></li>
       <li><a href="#player-utility"><span class="toc-num">1.5</span><span class="ch-toc-title">速度・回避・ドロップ</span><span class="ch-toc-desc">攻撃速度・移動速度・回避率・直接ドロップ倍率</span><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-defense">防御</span><span class="cat cat-utility">ユーティリティ</span></span></a></li>
     </ol>
     <section class="st-sub" id="player-base" aria-labelledby="player-base-title">
@@ -547,11 +547,11 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       series: compare(agility) },
     { grid: "player-primary-grid", cats: ["primary"], context: "プレイヤー｜会心・ドロップ", title: "幸運", note: "通常会心率と対象ドロップ率に反映。", max: 100, step: 25, unit: "",
       series: compare(luck) },
-    { grid: "player-recovery-grid", cats: ["resource"], context: "プレイヤー｜知力", title: "最大MPの加算", note: "知力1につき最大MPが1増える。", max: 240, step: 60, unit: "",
+    { grid: "player-recovery-grid", cats: ["resource"], context: "プレイヤー｜知力", title: "最大MP", note: "知力による加算分（知力1につき＋1 MP）。", max: 240, step: 60, unit: "",
       series: compare(mainAttack) },
-    { grid: "player-recovery-grid", cats: ["utility"], context: "プレイヤー｜体力", title: "HP自然回復の加算", note: "体力による5秒あたりの回復量。", max: 24, step: 6, unit: "",
+    { grid: "player-recovery-grid", cats: ["utility"], context: "プレイヤー｜体力", title: "HP自然回復量（5秒ごと）", note: "体力による加算分（体力1につき＋0.1 HP）。", max: 24, step: 6, unit: "",
       series: compare(vitality, value => value * 0.1) },
-    { grid: "player-recovery-grid", cats: ["utility"], context: "プレイヤー｜知力", title: "MP自然回復の加算", note: "知力による5秒あたりの回復量。", max: 24, step: 6, unit: "",
+    { grid: "player-recovery-grid", cats: ["utility"], context: "プレイヤー｜知力", title: "MP自然回復量（5秒ごと）", note: "知力による加算分（知力1につき＋0.1 MP）。", max: 24, step: 6, unit: "",
       series: compare(mainAttack, value => value * 0.1) },
     { grid: "player-utility-grid", cats: ["offense"], context: "プレイヤー｜敏捷性", title: "攻撃速度", note: "基礎値100%に敏捷性の効果を加算。", max: 300, step: 100, unit: "%",
       series: compare(agility, value => 100 + value) },
