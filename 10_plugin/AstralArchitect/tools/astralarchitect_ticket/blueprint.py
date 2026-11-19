@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from bisect import bisect_right
 from collections.abc import Iterator
 from dataclasses import dataclass
 import json
@@ -152,21 +153,30 @@ def _roof_axis_samples(points: list[int]) -> Iterator[tuple[int, int, int, int]]
     yield last, last, 1, 0
 
 
+def _roof_round(numerator: int, denominator: int) -> int:
+    # Round once, toward positive infinity at a tie, even below zero.
+    return (2 * numerator + denominator) // (2 * denominator)
+
+
 def _roof_surface(
-    height_rows: list[list[int]], x_samples: list[tuple[int, int, int, int]], section_zs: list[int],
-) -> list[list[int]]:
-    surface: list[list[int]] = []
-    for front, back, front_weight, back_weight in _roof_axis_samples(section_zs):
+    height_rows: list[list[int]], offsets: list[int], section_zs: list[int], row_ranges: list[range],
+) -> list[dict[int, int]]:
+    surface: list[dict[int, int]] = []
+    for (front, back, front_weight, back_weight), columns in zip(_roof_axis_samples(section_zs), row_ranges):
         front_row, back_row = height_rows[front], height_rows[back]
-        row = []
-        for left, right, left_weight, right_weight in x_samples:
+        row = {}
+        for column in columns:
+            x = offsets[0] + column
+            left = bisect_right(offsets, x) - 1
+            right = min(left + 1, len(offsets) - 1)
+            left_weight = offsets[right] - x if left != right else 1
+            right_weight = x - offsets[left]
             numerator = (
                 front_weight * (front_row[left] * left_weight + front_row[right] * right_weight)
                 + back_weight * (back_row[left] * left_weight + back_row[right] * right_weight)
             )
             denominator = (front_weight + back_weight) * (left_weight + right_weight)
-            # Round once, toward positive infinity at a tie, even below zero.
-            row.append((2 * numerator + denominator) // (2 * denominator))
+            row[column] = _roof_round(numerator, denominator)
         surface.append(row)
     return surface
 
@@ -206,7 +216,8 @@ def _expand_roof_sheet(value: object, label: str, remaining_operations: int) -> 
     section_zs: list[int] = []
     height_rows: list[list[int]] = []
     underside_rows: list[list[int]] = []
-    optional_section_fields = frozenset({"undersides"})
+    span_rows: list[tuple[int, int]] = []
+    optional_section_fields = frozenset({"undersides", "span"})
     for index, section in enumerate(sections):
         section_label = f"{label}.sections[{index}]"
         fields = _fields(section, {"z", "heights"}, section_label, optional=optional_section_fields)
@@ -229,46 +240,76 @@ def _expand_roof_sheet(value: object, label: str, remaining_operations: int) -> 
             if any(bottom >= top for bottom, top in zip(undersides, heights)):
                 raise BlueprintError(f"{section_label}.undersides must be lower than the corresponding heights")
             underside_rows.append(undersides)
+        has_span = "span" in fields
+        if index and has_span != bool(span_rows):
+            raise BlueprintError(f"{label}.sections must all specify span or all omit it")
+        if has_span:
+            span = fields["span"]
+            if not isinstance(span, list) or len(span) != 2 or any(type(end) is not int for end in span):
+                raise BlueprintError(f"{section_label}.span must be an array of two integers")
+            left, right = span
+            if left > right:
+                raise BlueprintError(f"{section_label}.span left endpoint must not exceed the right endpoint")
+            if left < offsets[0] or right > offsets[-1]:
+                raise BlueprintError(f"{section_label}.span endpoints must be within the offset range")
+            span_rows.append((left, right))
         section_zs.append(z)
         height_rows.append(heights)
 
     width = offsets[-1] - offsets[0] + 1
     depth = section_zs[-1] - section_zs[0] + 1
+    area = width * depth
     operation_error = f"{label} expands beyond the {MAX_OPERATIONS} local operation limit"
     visit_error = f"{label} expands beyond {MAX_TICKET_VOLUME} block visits"
-    # Each column emits at least one operation and visits at least one block.
-    if width * depth > remaining_operations:
+    # Bound the interpolation grid before allocating samples or surfaces.
+    if area > MAX_OPERATIONS or (not span_rows and area > remaining_operations):
         raise BlueprintError(operation_error)
-    if width * depth > MAX_TICKET_VOLUME:
+    if area > MAX_TICKET_VOLUME:
         raise BlueprintError(visit_error)
 
     first_x, first_z = at_x + offsets[0], at_z + section_zs[0]
-    # Interpolation stays within the control heights and includes the extrema.
-    lowest = min(map(min, underside_rows)) if underside_rows else min(map(min, height_rows)) - 1
-    highest = max(map(max, height_rows)) - 1
-    _checked_coordinates(first_x, at_y + lowest // 2, first_z, label)
-    _checked_coordinates(first_x + width - 1, at_y + highest // 2, first_z + depth - 1, label)
+    if span_rows:
+        row_ranges = []
+        for front, back, front_weight, back_weight in _roof_axis_samples(section_zs):
+            denominator = front_weight + back_weight
+            left = _roof_round(
+                front_weight * span_rows[front][0] + back_weight * span_rows[back][0], denominator,
+            )
+            right = _roof_round(
+                front_weight * span_rows[front][1] + back_weight * span_rows[back][1], denominator,
+            )
+            row_ranges.append(range(left - offsets[0], right - offsets[0] + 1))
+        if sum(map(len, row_ranges)) > remaining_operations:
+            raise BlueprintError(operation_error)
+    else:
+        row_ranges = [range(width)] * depth
+        # The untrimmed surface includes the control height extrema.
+        lowest = min(map(min, underside_rows)) if underside_rows else min(map(min, height_rows)) - 1
+        highest = max(map(max, height_rows)) - 1
+        _checked_coordinates(first_x, at_y + lowest // 2, first_z, label)
+        _checked_coordinates(first_x + width - 1, at_y + highest // 2, first_z + depth - 1, label)
 
-    x_samples = list(_roof_axis_samples(offsets))
-    tops = _roof_surface(height_rows, x_samples, section_zs)
-    bottoms = _roof_surface(underside_rows, x_samples, section_zs) if underside_rows else None
+    tops = _roof_surface(height_rows, offsets, section_zs, row_ranges)
+    bottoms = _roof_surface(underside_rows, offsets, section_zs, row_ranges) if underside_rows else None
 
     operations = []
     visits = 0
     top_slab, bottom_slab = f"{slab}[type=top]", f"{slab}[type=bottom]"
     for z_index, row in enumerate(tops):
         z = first_z + z_index
-        for x_index, top in enumerate(row):
+        x_range = row_ranges[z_index]
+        for x_index in x_range:
             x = first_x + x_index
+            top = row[x_index]
             if bottoms is None:
                 lowest_top = top
-                if x_index:
+                if x_index - 1 in x_range:
                     lowest_top = min(lowest_top, row[x_index - 1])
-                if x_index + 1 < width:
+                if x_index + 1 in x_range:
                     lowest_top = min(lowest_top, row[x_index + 1])
-                if z_index:
+                if z_index and x_index in row_ranges[z_index - 1]:
                     lowest_top = min(lowest_top, tops[z_index - 1][x_index])
-                if z_index + 1 < depth:
+                if z_index + 1 < depth and x_index in row_ranges[z_index + 1]:
                     lowest_top = min(lowest_top, tops[z_index + 1][x_index])
                 bottom = lowest_top - 1
             else:
@@ -278,6 +319,9 @@ def _expand_roof_sheet(value: object, label: str, remaining_operations: int) -> 
             visits += (top - 1) // 2 - bottom // 2 + 1
             if visits > MAX_TICKET_VOLUME:
                 raise BlueprintError(visit_error)
+            if span_rows:
+                _checked_coordinates(x, at_y + bottom // 2, z, label)
+                _checked_coordinates(x, at_y + (top - 1) // 2, z, label)
             runs = []
             if bottom % 2:
                 runs.append((bottom // 2, bottom // 2, top_slab))
