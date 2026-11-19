@@ -202,13 +202,6 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 
 .st-legend button[aria-pressed="true"] { background: var(--selected); color: var(--blue); }
 .st-card tr.current > :first-child { box-shadow: inset 3px 0 var(--blue); }
-.st-target-grid { display: grid; gap: 16px; }
-.st-table-scroll { margin-top: 10px; overflow-x: auto; }
-.st-table-scroll :is(th,td) { white-space: nowrap; }
-@media print {
-  .st-table-scroll { overflow: visible; }
-  #stat-guide .st-table-scroll :is(td,th) { white-space: normal; padding-inline: 4px; font-size: 12px; }
-}
 .st-tip { background: var(--soft); border-color: var(--edge); }
 .st-nav { display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .st-group { --actor: var(--blue); margin: 18px 0 28px; scroll-margin-top: 84px; }
@@ -277,6 +270,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
           <li><a href="#player-base"><span class="toc-num">1.1</span>基本ステータス</a></li>
           <li><a href="#player-crit"><span class="toc-num">1.2</span>会心特化ビルド</a></li>
           <li><a href="#player-primary"><span class="toc-num">1.3</span>基本能力値</a></li>
+          <li><a href="#player-derived"><span class="toc-num">1.4</span>派生ステータス</a></li>
+          <li><a href="#player-allocation"><span class="toc-num">1.5</span>ステータス配分</a></li>
         </ol>
       </li>
       <li><a href="#mob"><span class="toc-num">2</span>標準モブ</a>
@@ -308,7 +303,9 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     <ol class="ch-toc" aria-label="1章の内容">
       <li><a href="#player-base"><span class="toc-num">1.1</span><span class="ch-toc-title">基本ステータス</span><span class="ch-toc-desc">基準攻撃力・最大HP・共通防御・基礎耐性</span><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-resource">リソース</span><span class="cat cat-defense">防御</span><span class="cat cat-element">属性</span></span></a></li>
       <li><a href="#player-crit"><span class="toc-num">1.2</span><span class="ch-toc-title">会心特化ビルド</span><span class="ch-toc-desc">会心率・超星会心率・会心ダメージ・超星会心倍率</span><span class="cat-list"><span class="cat cat-offense">攻撃</span></span></a></li>
-      <li><a href="#player-primary"><span class="toc-num">1.3</span><span class="ch-toc-title">基本能力値</span><span class="ch-toc-desc">6種の標準値・特化値、派生ステータスと配分</span><span class="cat-list"><span class="cat cat-primary">基本能力値</span></span></a></li>
+      <li><a href="#player-primary"><span class="toc-num">1.3</span><span class="ch-toc-title">基本能力値</span><span class="ch-toc-desc">6種の標準値・特化値</span><span class="cat-list"><span class="cat cat-primary">基本能力値</span></span></a></li>
+      <li><a href="#player-derived"><span class="toc-num">1.4</span><span class="ch-toc-title">派生ステータス</span><span class="ch-toc-desc">攻撃力・耐久・リソース・速度・回避・会心・ドロップ</span><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-resource">リソース</span><span class="cat cat-defense">防御</span><span class="cat cat-utility">ユーティリティ</span></span></a></li>
+      <li><a href="#player-allocation"><span class="toc-num">1.5</span><span class="ch-toc-title">ステータス配分</span><span class="ch-toc-desc">攻撃力・最大HP・共通防御・会心率の直接配分</span><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-resource">リソース</span><span class="cat cat-defense">防御</span></span></a></li>
     </ol>
     <section class="st-sub" id="player-base" aria-labelledby="player-base-title">
       <div class="st-sub-head"><h3 id="player-base-title"><span class="sub-num">1.1</span>基本ステータス</h3><p>標準装備時の攻撃・耐久と、被弾時に効く基礎耐性。</p></div>
@@ -319,33 +316,16 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       <div class="st-grid" id="player-crit-grid"></div>
     </section>
     <section class="st-sub" id="player-primary" aria-labelledby="player-primary-title">
-      <div class="st-sub-head"><h3 id="player-primary-title"><span class="sub-num">1.3</span>基本能力値</h3><p>共通初期値・職業・装備・取得済みスキルツリーを合算した、一時バフ適用前の設計値。</p></div>
-      <div class="st-target-grid">
-        <section class="st-card" aria-labelledby="primary-values-title">
-          <div class="st-card-meta"><span class="st-context">プレイヤー｜恒常ステータス</span><span class="cat-list"><span class="cat cat-primary">基本能力値</span></span></div>
-          <h4 id="primary-values-title">基本能力値の到達目安</h4>
-          <p class="st-note">各セルは「標準 / 特化」で、同値は単記。筋力・器用さ・知力はそれぞれ近接・間接・魔法型の主力能力。特化値は能力ごとに別のビルドを想定し、主要レベルの間は直線補間する。</p>
-          <div class="st-table-scroll" id="primary-values" role="region" aria-labelledby="primary-values-title" tabindex="0"></div>
-        </section>
-        <section class="st-card" aria-labelledby="primary-combat-title">
-          <div class="st-card-meta"><span class="st-context">プレイヤー｜攻撃・耐久</span><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-resource">リソース</span><span class="cat cat-defense">防御</span><span class="cat cat-utility">ユーティリティ</span></span></div>
-          <h4 id="primary-combat-title">攻撃能力と体力の派生</h4>
-          <p class="st-note">基準攻撃力は対応する主力能力だけを、最大HP・共通防御は体力だけを特化値に置き換えた比較。魔法防御とHP自然回復は体力からの加算分。</p>
-          <div class="st-table-scroll" id="primary-combat" role="region" aria-labelledby="primary-combat-title" tabindex="0"></div>
-        </section>
-        <section class="st-card" aria-labelledby="primary-effects-title">
-          <div class="st-card-meta"><span class="st-context">プレイヤー｜リソース・機動・会心</span><span class="cat-list"><span class="cat cat-resource">リソース</span><span class="cat cat-offense">攻撃</span><span class="cat cat-defense">防御</span><span class="cat cat-utility">ユーティリティ</span></span></div>
-          <h4 id="primary-effects-title">知力・敏捷性・幸運の派生</h4>
-          <p class="st-note">MPは知力からの加算分。速度・回避・通常会心は共通初期値に基本能力値の派生を加えた値。移動速度は職業上限適用前、ドロップ倍率は幸運補正対象の討伐・採集の直接ドロップに適用する。</p>
-          <div class="st-table-scroll" id="primary-effects" role="region" aria-labelledby="primary-effects-title" tabindex="0"></div>
-        </section>
-        <section class="st-card" aria-labelledby="primary-allocation-title">
-          <div class="st-card-meta"><span class="st-context">プレイヤー｜職業・装備・ツリーへの配分</span><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-resource">リソース</span><span class="cat cat-defense">防御</span></span></div>
-          <h4 id="primary-allocation-title">基本能力値の派生を除いた配分</h4>
-          <p class="st-note">攻撃力は主力能力の倍率を掛ける前の合計、最大HPと共通防御は体力の派生を差し引いた標準構成の合計。通常会心特化では、幸運特化時の会心率に表の直接加算量を足すと会心率の曲線に届く。</p>
-          <div class="st-table-scroll" id="primary-allocation" role="region" aria-labelledby="primary-allocation-title" tabindex="0"></div>
-        </section>
-      </div>
+      <div class="st-sub-head"><h3 id="player-primary-title"><span class="sub-num">1.3</span>基本能力値</h3><p>初期値・職業・装備・ツリーの合計（バフ前）。</p></div>
+      <div class="st-grid" id="player-primary-grid"></div>
+    </section>
+    <section class="st-sub" id="player-derived" aria-labelledby="player-derived-title">
+      <div class="st-sub-head"><h3 id="player-derived-title"><span class="sub-num">1.4</span>派生ステータス</h3><p>対応する基本能力値だけを特化値に置き換えた比較。</p></div>
+      <div class="st-grid" id="player-derived-grid"></div>
+    </section>
+    <section class="st-sub" id="player-allocation" aria-labelledby="player-allocation-title">
+      <div class="st-sub-head"><h3 id="player-allocation-title"><span class="sub-num">1.5</span>ステータス配分</h3><p>基本能力値の効果を差し引いて求める、直接配分の基準。</p></div>
+      <div class="st-grid" id="player-allocation-grid"></div>
     </section>
   </section>
   <section class="st-group mob" id="mob" aria-labelledby="mob-title">
@@ -460,7 +440,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       return values[i-1] + (values[i] - values[i-1]) * fraction;
     };
   }
-  function stat(label, value) { return {label, read: typeof value === "number" ? () => value : value}; }
+  function stat(label, value, numberFormat) { return {label, read: typeof value === "number" ? () => value : value, numberFormat}; }
   const attack = curve([6.8, 200, 300, 400]);
   const health = curve([100, 500, 800, 1200]);
   const playerDefense = curve([7.5, 220, 330, 450]);
@@ -484,48 +464,14 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   const rawHealth = level => health(level) - 2 * vitality.standard(level);
   const rawDefense = level => playerDefense(level) - vitality.standard(level);
   const luckCritRate = value => 5 + value * 0.1;
-  const percent = value => format.format(value) + "%";
-  const bonus = value => "+" + format.format(value);
   const twoDecimals = new Intl.NumberFormat("ja-JP", {maximumFractionDigits: 2});
-  function targetComparison(label, target, measure = value => value, display = format.format) {
-    return stat(label, level => {
-      const standard = display(measure(target.standard(level), level));
-      const specialized = display(measure(target.specialized(level), level));
-      return standard === specialized ? standard : standard + " / " + specialized;
-    });
+  const multiplierFormat = new Intl.NumberFormat("ja-JP", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  function compare(target, measure = value => value, label = "") {
+    return [
+      stat(label ? label + "（標準）" : "標準", level => measure(target.standard(level), level)),
+      stat(label ? label + "（特化）" : "特化", level => measure(target.specialized(level), level))
+    ];
   }
-  const targetTables = {
-    "primary-values": [
-      targetComparison("筋力", mainAttack),
-      targetComparison("器用さ", mainAttack),
-      targetComparison("知力", mainAttack),
-      targetComparison("体力", vitality),
-      targetComparison("敏捷性", agility),
-      targetComparison("幸運", luck)
-    ],
-    "primary-combat": [
-      targetComparison("基準攻撃力", mainAttack, (value, level) => rawAttack(level) * attackMultiplier(value)),
-      targetComparison("最大HP", vitality, (value, level) => rawHealth(level) + 2 * value),
-      targetComparison("共通防御", vitality, (value, level) => rawDefense(level) + value),
-      targetComparison("魔法防御", vitality, value => value, bonus),
-      targetComparison("HP自然回復 / 5秒", vitality, value => value * 0.1, bonus)
-    ],
-    "primary-effects": [
-      targetComparison("最大MP", mainAttack, value => value, bonus),
-      targetComparison("MP自然回復 / 5秒", mainAttack, value => value * 0.1, bonus),
-      targetComparison("攻撃速度", agility, value => 100 + value, percent),
-      targetComparison("移動速度", agility, value => 100 + value * 0.1, percent),
-      targetComparison("回避率", agility, value => 3 + value * 0.1, percent),
-      targetComparison("通常会心率", luck, luckCritRate, percent),
-      targetComparison("直接ドロップ倍率", luck, value => 1 + value / 100, value => value.toFixed(2) + "倍")
-    ],
-    "primary-allocation": [
-      stat("共通＋種別攻撃力", level => twoDecimals.format(rawAttack(level))),
-      stat("最大HP", level => format.format(rawHealth(level))),
-      stat("共通防御", level => format.format(rawDefense(level))),
-      stat("通常会心率の直接加算", level => format.format(critRate(level) - luckCritRate(luck.specialized(level))) + "ポイント")
-    ]
-  };
   // DamageCalculator.defenseDamageMultiplier: 同値で半減、防御が攻撃の2.5倍で全減。
   const defenseExponent = Math.log(0.5) / Math.log(0.6);
   const passRatio = ratio => Math.max(0, 1 - ratio / 2.5) ** defenseExponent;
@@ -559,6 +505,36 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       series: [stat("会心率", critRate), stat("超星会心率", curve([0, 2, 4, 8]))] },
     { grid: "player-crit-grid", cats: ["offense"], context: "プレイヤー → 標準モブ｜攻撃時", title: "特化ビルドの会心ダメージ", note: "特化時の目安案。標準構成は会心ダメージ150%、超星会心倍率30%。", max: 200, step: 50, unit: "%",
       series: [stat("会心ダメージ", critDamage), stat("超星会心倍率", superMultiplier)] },
+    { grid: "player-primary-grid", cats: ["primary"], context: "プレイヤー｜主力能力", title: "筋力・器用さ・知力", note: "近接は筋力、間接は器用さ、魔法は知力を使用。", max: 240, step: 60, unit: "",
+      series: compare(mainAttack) },
+    { grid: "player-primary-grid", cats: ["primary"], context: "プレイヤー｜耐久", title: "体力", note: "最大HP・防御・HP自然回復に反映。", max: 200, step: 50, unit: "",
+      series: compare(vitality) },
+    { grid: "player-primary-grid", cats: ["primary"], context: "プレイヤー｜機動", title: "敏捷性", note: "攻撃速度・移動速度・回避率に反映。", max: 200, step: 50, unit: "",
+      series: compare(agility) },
+    { grid: "player-primary-grid", cats: ["primary"], context: "プレイヤー｜会心・ドロップ", title: "幸運", note: "通常会心率と対象ドロップ率に反映。", max: 100, step: 25, unit: "",
+      series: compare(luck) },
+    { grid: "player-derived-grid", cats: ["offense"], context: "プレイヤー｜主力能力", title: "基準攻撃力", note: "筋力・器用さ・知力のうち、攻撃種別に対応する能力を適用。", max: 500, step: 100, unit: "",
+      series: compare(mainAttack, (value, level) => rawAttack(level) * attackMultiplier(value)) },
+    { grid: "player-derived-grid", cats: ["resource"], context: "プレイヤー｜体力", title: "最大HP", note: "標準構成に体力の差分を反映。", max: 1500, step: 500, unit: "",
+      series: compare(vitality, (value, level) => rawHealth(level) + 2 * value) },
+    { grid: "player-derived-grid", cats: ["defense"], context: "プレイヤー｜体力", title: "共通防御と魔法防御", note: "魔法防御は体力による加算分。", max: 600, step: 150, unit: "",
+      series: [...compare(vitality, (value, level) => rawDefense(level) + value, "共通"), ...compare(vitality, value => value, "魔法加算")] },
+    { grid: "player-derived-grid", cats: ["resource"], context: "プレイヤー｜知力", title: "最大MPの加算", note: "知力1につき最大MPが1増える。", max: 240, step: 60, unit: "",
+      series: compare(mainAttack) },
+    { grid: "player-derived-grid", cats: ["utility"], context: "プレイヤー｜体力・知力", title: "自然回復の加算（5秒あたり）", note: "HPは体力、MPは知力による加算分。", max: 24, step: 6, unit: "",
+      series: [...compare(vitality, value => value * 0.1, "HP"), ...compare(mainAttack, value => value * 0.1, "MP")] },
+    { grid: "player-derived-grid", cats: ["offense", "utility"], context: "プレイヤー｜敏捷性", title: "攻撃速度と移動速度", note: "共通初期値と敏捷性の派生の合計（移動速度は職業上限前）。", max: 300, step: 100, unit: "%",
+      series: [...compare(agility, value => 100 + value, "攻撃"), ...compare(agility, value => 100 + value * 0.1, "移動")] },
+    { grid: "player-derived-grid", cats: ["defense"], context: "プレイヤー｜敏捷性", title: "回避率", note: "共通初期値3%に敏捷性の加算分を加える。", max: 25, step: 5, unit: "%",
+      series: compare(agility, value => 3 + value * 0.1) },
+    { grid: "player-derived-grid", cats: ["offense"], context: "プレイヤー｜幸運", title: "通常会心率", note: "共通初期値5%に幸運の加算分を加える。", max: 20, step: 5, unit: "%",
+      series: compare(luck, luckCritRate) },
+    { grid: "player-derived-grid", cats: ["utility"], context: "プレイヤー｜幸運", title: "直接ドロップ倍率", note: "幸運補正対象の討伐・採集ドロップに適用。", max: 2, step: 0.5, unit: "倍", numberFormat: multiplierFormat,
+      series: compare(luck, value => 1 + value / 100) },
+    { grid: "player-allocation-grid", cats: ["offense", "resource", "defense"], context: "プレイヤー｜標準構成", title: "攻撃力と耐久の配分", note: "攻撃力は主力能力の倍率前、最大HPと共通防御は体力の加算前。", max: 1000, step: 250, unit: "",
+      series: [stat("共通＋種別攻撃力", rawAttack, twoDecimals), stat("最大HP", rawHealth), stat("共通防御", rawDefense)] },
+    { grid: "player-allocation-grid", cats: ["offense"], context: "プレイヤー｜会心特化", title: "通常会心率の直接加算", note: "幸運特化から通常会心特化の目標までに必要な加算量。", max: 20, step: 5, unit: "pt",
+      series: [stat("会心率の加算", level => critRate(level) - luckCritRate(luck.specialized(level)))] },
     { grid: "mob-defense-grid", cats: ["resource"], context: "プレイヤー → 標準モブ｜討伐", title: "標準モブの最大HP", note: "同格への標準実効DPS × 7秒。", max: 9000, step: 3000, unit: "",
       series: [stat("最大HP", level => 7 * standardDps(level))] },
     { grid: "mob-defense-grid", cats: ["defense"], context: "プレイヤー → 標準モブ｜被弾時", title: "標準モブの防御", note: "共通防御は同レベルの基準攻撃力の50%。追加防御は全種別共通。", max: 200, step: 50, unit: "",
@@ -690,6 +666,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     );
   }
   function mount(config) {
+    const formatValue = (series, level) =>
+      (series.numberFormat ?? config.numberFormat ?? format).format(series.read(level)) + config.unit;
     const card = element("section");
     card.className = "st-card spot-field";
     const context = element("div",config.context);
@@ -721,7 +699,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     tip.setAttribute("aria-hidden","true");
     box.append(chart,tip);
     const table = makeLevelTable(config.title, config.series.map(series =>
-      stat(series.label, level => format.format(series.read(level)) + config.unit)));
+      stat(series.label, level => formatValue(series, level))));
     meta.append(context,cats);
     card.append(meta,heading,note,legend,box,table);
     document.getElementById(config.grid).append(card);
@@ -750,7 +728,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       key.className = "st-key";
       key.setAttribute("aria-hidden","true");
       const readout = element("b");
-      const labels = levels.map(lv => format.format(s.read(lv)) + config.unit);
+      const labels = levels.map(lv => formatValue(s, lv));
       readout.dataset.width = labels.reduce((widest,label) => label.length > widest.length ? label : widest);
       button.append(key,document.createTextNode(s.label),readout);
       button.addEventListener("pointerenter",e => { if (e.pointerType !== "touch") { hovered = i; refreshLegend(); } });
@@ -768,7 +746,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       clearInspection();
       levelLabel.textContent = "Lv." + selected;
       config.series.forEach((s,i) => {
-        buttons[i].querySelector("b").textContent = format.format(s.read(selected)) + config.unit;
+        buttons[i].querySelector("b").textContent = formatValue(s, selected);
         rings[i]?.setAttribute("transform","translate(" + x(selected) + " " + y(s.read(selected)) + ")");
       });
       markTableLevel(table);
@@ -818,7 +796,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       openTip = tip;
       const series = config.series[index];
       const row = element("div");
-      row.append(element("span",series.label),element("b",format.format(series.read(level)) + config.unit));
+      row.append(element("span",series.label),element("b",formatValue(series, level)));
       tip.replaceChildren(element("strong","Lv." + level),row);
       tip.hidden = false;
       const pixel = x(level), width = chart.clientWidth;
@@ -870,13 +848,6 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     return {update,draw};
   }
   for (const panel of panels) views.push(mount(panel));
-  for (const [id, columns] of Object.entries(targetTables)) {
-    const wrapper = document.getElementById(id);
-    const heading = document.getElementById(wrapper.getAttribute("aria-labelledby"));
-    const table = makeLevelTable(heading.textContent, columns);
-    wrapper.append(table);
-    views.push({update: () => markTableLevel(table)});
-  }
   range.addEventListener("input",() => choose(levels[Number(range.value)]));
   all.addEventListener("change",() => root.classList.toggle("show-levels",all.checked));
   choose(selected);
@@ -884,7 +855,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   window.addEventListener("beforeprint",() => {
     if (!opened) opened = [...root.querySelectorAll("details")].filter(d => !d.open);
     opened.forEach(d => d.open = true);
-    views.forEach(v => v.draw?.());
+    views.forEach(v => v.draw());
   });
   window.addEventListener("afterprint",() => { opened?.forEach(d => d.open = false); opened = null; });
 })();
