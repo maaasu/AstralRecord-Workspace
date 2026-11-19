@@ -33,6 +33,12 @@
     .dg-figure-head, .dg-table-head, .dg-legend, .dg-legend-item,
     .dg-slider label, .dg-table-choice { display: flex; align-items: center; }
     .dg-figure-head, .dg-table-head { justify-content: space-between; flex-wrap: wrap; gap: 8px 20px; }
+    .dg-scenario {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 2px 10px;
+      margin: 8px 0 6px; padding: 3px 8px; border-inline-start: 3px solid var(--blue);
+      background: var(--selected); font-size: 13px;
+    }
+    .dg-scenario strong { color: var(--blue); }
     #dps-stat-guide h2, #dps-stat-guide summary { font-size: 18px; font-weight: 600; line-height: 1.4; }
     .dg-table-choice { gap: 8px; color: var(--muted); font-size: 13px; }
     .dg-document-link { display: inline-block; margin-top: 8px; color: var(--blue); text-underline-offset: 3px; }
@@ -64,6 +70,10 @@
     }
     .dg-tooltip div { display: flex; justify-content: space-between; gap: 10px; }
     .dg-tooltip b { white-space: nowrap; }
+    .dg-tooltip-preview { display: block; width: 100%; height: 54px; margin-top: 5px; background: var(--paper); border-radius: 3px; }
+    .dg-tooltip:not([hidden]) { animation: dg-tip-appear 130ms ease-out; }
+    @keyframes dg-tip-appear { from { opacity: 0; transform: translateY(3px); } }
+    @media (prefers-reduced-motion: reduce) { .dg-tooltip:not([hidden]) { animation: none; } }
     .dg-slider { display: flex; align-items: center; gap: 24px; min-height: 56px; border-top: 1px solid var(--rule); }
     .dg-slider label { white-space: nowrap; gap: 9px; color: var(--muted); font-size: 13px; }
     .dg-slider output { min-width: 53px; color: var(--ink); font-size: 17px; font-weight: 600; }
@@ -153,6 +163,7 @@
         <div class="dg-figure-head">
           <h2 id="dg-chart-heading">同格モブへの総DPS</h2>
         </div>
+        <p class="dg-scenario"><strong>同格戦</strong><span>プレイヤー → 標準モブ／単体・7秒</span></p>
         <div class="dg-legend-bar">
           <span id="dg-legend-level" class="dg-legend-level">Lv.25</span>
           <div class="dg-legend" id="dg-legend" aria-label="系列と選択レベルの値"></div>
@@ -182,7 +193,8 @@
         <tbody>
           <tr><th scope="row">総DPSの評価</th><td>同格の標準モブ1体に実際に与えた合計ダメージ ÷ 計測秒数。通常攻撃・会心・スキル・継続ダメージ・ペットを合算し、会心やスキルを目標値へ別途上乗せしない。</td></tr>
           <tr><th scope="row">標準構成</th><td>職業・装備・スキルツリー・スキルブック・利用段階に応じたペットを含む。スキルは手数・待ち時間・消費資源を含む実際の攻撃サイクルで評価する。</td></tr>
-          <tr><th scope="row">基準値と成長</th><td>Lv.1＝10、Lv.25＝500、Lv.50＝850、Lv.100＝1,200。区間内は直線補間し、育成上限の目安は標準の1.3倍。通常モブを約7秒で討伐できる火力の目安とする。</td></tr>
+          <tr><th scope="row">基準値と成長</th><td>Lv.1＝10、Lv.25＝500、Lv.50＝850、Lv.100＝1,200。区間内は直線補間し、育成上限の目安は標準の1.3倍。</td></tr>
+          <tr><th scope="row">討伐HP</th><td>同格の標準モブ1体の討伐HPは、そのレベルの標準実効DPS × 7秒。Lv.100では 1,200 × 7 ＝ 8,400。</td></tr>
         </tbody>
       </table>
     </details>
@@ -284,6 +296,34 @@
         if (index === 0) return svgElement("circle", { cx: x, cy: y, r: size, class: className });
         const points = [[x, y - size], [x + size, y], [x, y + size], [x - size, y]];
         return svgElement("polygon", { points: points.map(pair => pair.join(",")).join(" "), class: className });
+      }
+      function createPreview(id, index) {
+        const width = 216;
+        const height = 54;
+        const padding = 9;
+        const seriesIndex = view.series.indexOf(id);
+        const start = Math.max(0, Math.min(index - 2, levels.length - 5));
+        const nearby = levels.slice(start, start + 5);
+        const span = nearby.at(-1) - nearby[0];
+        const values = nearby.map(level => metrics[id].at(level));
+        const low = Math.min(...values);
+        const range = Math.max(1, Math.max(...values) - low);
+        const points = nearby.map((level, i) => [
+          padding + (level - nearby[0]) / span * (width - 2 * padding),
+          height - padding - (values[i] - low) / range * (height - 2 * padding),
+        ]);
+        const [x, y] = points[index - start];
+        const preview = svgElement("svg", {
+          viewBox: `0 0 ${width} ${height}`, class: "dg-tooltip-preview dg-series-" + seriesIndex,
+          "aria-hidden": "true",
+        });
+        preview.append(
+          svgElement("line", { x1: x, x2: x, y1: 2, y2: height - 2, class: "dg-crosshair" }),
+          svgElement("polyline", { points: points.map(pair => pair.join(",")).join(" "), class: "dg-series-path" }),
+          ...points.map(([px, py]) => mark(seriesIndex, px, py, 2.4, "dg-point")),
+          mark(seriesIndex, x, y, 5.2, "dg-ring"),
+        );
+        return preview;
       }
       function makeLegend() {
         legend.replaceChildren();
@@ -429,7 +469,7 @@
           tooltip.replaceChildren(htmlElement("strong", label));
           const row = htmlElement("div");
           row.append(htmlElement("span", metrics[tipSeries].name), htmlElement("b", valueText(tipSeries, level)));
-          tooltip.append(row);
+          tooltip.append(row, createPreview(tipSeries, index));
           const x = xAt(level);
           const pointY = yAt(metrics[tipSeries].at(level));
           const width = chart.clientWidth;
