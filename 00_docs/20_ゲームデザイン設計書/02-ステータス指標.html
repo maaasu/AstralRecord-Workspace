@@ -163,8 +163,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 .st-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
 .st-card { min-width: 0; display: flex; flex-direction: column; padding: 18px 20px; border: 1px solid var(--rule); border-radius: 10px; background: var(--paper); }
 .st-note, .st-unit { font-size: 14px; }
-.st-hp-target { display: flex; align-items: center; gap: 8px; margin: 4px 0; color: var(--muted); font-size: 14px; }
-.st-hp-target select { padding: 3px 6px; border: 1px solid var(--edge); border-radius: 4px; background: var(--paper); color: var(--ink); font: inherit; }
+.st-hp-mode { display: flex; align-items: center; gap: 6px; margin: 4px 0; color: var(--ink); font-size: 14px; }
+.st-hp-mode input { accent-color: var(--blue); }
 .st-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 0 8px; margin: 6px 0 2px; }
 .st-legend button { color: var(--ink); font: inherit; font-size: 15px; background: transparent; border: 0; padding: 4px; border-radius: 4px; cursor: pointer; }
 .st-legend button:is(:hover,:focus-visible,[aria-pressed=true]) { background: var(--soft); }
@@ -463,30 +463,27 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   const luck = primaryTarget([5, 5, 5, 5, 5], [5, 25, 50, 75, 100]);
   const attackMultiplier = primary => 1 + primary / 100;
   const rawAttack = level => attack(level) / attackMultiplier(mainAttack.standard(level));
-  let displayedHealth = health;
-  const rawHealth = level => displayedHealth(level) - 2 * vitality.standard(level);
+  const lowHealth = curve([100, 450, 660, 790, 900], major);
+  const highHealth = curve([100, 600, 1080, 1420, 1800], major);
+  const vitalityHpBonus = level => 2 * (vitality.specialized(level) - vitality.standard(level));
+  let showVitalityBonus = false;
+  function hpSeries(label, baseHealth) {
+    return stat(label, level => {
+      const hp = baseHealth(level);
+      return showVitalityBonus ? hp - 2 * vitality.standard(level) + 2 * vitality.specialized(level) : hp;
+    });
+  }
   function makeHealthSelector(refresh) {
-    const targets = [
-      curve([100, 450, 660, 790, 900], major),
-      curve([100, 470, 720, 880, 1050], major),
-      curve([100, 480, 750, 930, 1100], major),
-      health,
-      curve([100, 600, 1080, 1420, 1800], major)
-    ];
-    const label = element("label", "Lv.100の基準HP");
-    label.className = "st-hp-target";
-    const select = element("select");
-    for (const target of targets) {
-      const option = element("option", format.format(target(100)));
-      option.value = String(target(100));
-      option.defaultSelected = target === health;
-      select.append(option);
-    }
-    select.addEventListener("change", () => {
-      displayedHealth = targets[select.selectedIndex];
+    const label = element("label");
+    label.className = "st-hp-mode";
+    const input = element("input");
+    input.type = "checkbox";
+    input.checked = showVitalityBonus;
+    input.addEventListener("change", () => {
+      showVitalityBonus = input.checked;
       refresh();
     });
-    label.append(select);
+    label.append(input, "体力特化時のHPを表示");
     return label;
   }
   const rawDefense = level => playerDefense(level) - vitality.standard(level);
@@ -526,8 +523,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   const panels = [
     { grid: "player-base-grid", cats: ["offense"], context: "プレイヤー｜主力能力", title: "基準攻撃力", note: lv => "能力値倍率を掛ける前の基準は" + twoDecimals.format(rawAttack(lv)) + "。", max: 500, step: 100, unit: "",
       series: compare(mainAttack, (value, level) => rawAttack(level) * attackMultiplier(value)) },
-    { grid: "player-base-grid", cats: ["resource"], context: "プレイヤー｜体力", title: "最大HP", note: lv => "体力の加算前の基準は" + format.format(rawHealth(lv)) + "。", max: 2000, step: 500, unit: "", selector: makeHealthSelector,
-      series: [stat("基準値", level => displayedHealth(level)), stat("体力特化値", level => rawHealth(level) + 2 * vitality.specialized(level))] },
+    { grid: "player-base-grid", cats: ["resource"], context: "プレイヤー｜体力", title: "最大HP", note: lv => "標準はモブの攻撃力を決める基準。体力特化時はLv." + lv + "で各＋" + format.format(vitalityHpBonus(lv)) + " HP。", max: 2000, step: 500, unit: "", selector: makeHealthSelector,
+      series: [hpSeries("低め", lowHealth), hpSeries("標準", health), hpSeries("高め", highHealth)] },
     { grid: "player-base-grid", cats: ["defense"], context: "プレイヤー｜体力", title: "共通防御", note: lv => "体力の加算前の基準は" + format.format(rawDefense(lv)) + "。", max: 600, step: 150, unit: "",
       series: compare(vitality, (value, level) => rawDefense(level) + value) },
     { grid: "player-base-grid", cats: ["defense"], context: "プレイヤー｜体力", title: "魔法防御の加算", note: "体力1につき魔法防御が1増える。", max: 200, step: 50, unit: "",
