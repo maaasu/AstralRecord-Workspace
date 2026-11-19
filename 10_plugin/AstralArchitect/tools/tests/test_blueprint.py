@@ -318,6 +318,177 @@ class BlueprintTest(unittest.TestCase):
                     compile_blueprint(_plan([{**roof, **changes}]), "rough")
 
 
+class RoofStairsTest(unittest.TestCase):
+    @staticmethod
+    def _supported_roof(rows: list[list[int]], bottom: int = -4) -> dict:
+        roof = _roof(list(range(len(rows[0]))), list(enumerate(rows)))
+        for section in roof["sections"]:
+            section["undersides"] = [bottom] * len(rows[0])
+        return roof
+
+    def test_stairs_face_uphill_in_both_axes_and_follow_placement_mirrors(self) -> None:
+        for rows, facing, reflected_x, reflected_z in (
+            ([[1, 2, 3]] * 3, "east", "west", "east"),
+            ([[3, 2, 1]] * 3, "west", "east", "west"),
+            ([[height] * 3 for height in (-3, -2, -1)], "south", "south", "north"),
+            ([[height] * 3 for height in (-1, -2, -3)], "north", "north", "south"),
+        ):
+            roof = self._supported_roof(rows, -6)
+            roof.update(at=[2, 8, 4], stairs="minecraft:oak_stairs")
+            plan = _plan([_set("minecraft:stone")], [roof])
+            plan["origin"] = [10, 20, 30]
+            for axis, expected_facing in ((None, facing), ("x", reflected_x), ("z", reflected_z)):
+                with self.subTest(facing=facing, mirror=axis):
+                    plan["placements"][0] = {"part": "piece", "at": [1, 2, 3]}
+                    if axis:
+                        plan["placements"][0]["mirror"] = axis
+                    rough = compile_blueprint(plan, "rough")
+                    detail = compile_blueprint(plan, "detail")
+                    self.assertEqual(len(rough), 1)
+                    self.assertEqual(detail[:len(rough)], rough)
+                    self.assertEqual([op for op in detail if ":oak_stairs[" in op["block"]], [{
+                        "op": "set", "x": 8 if axis == "x" else 14,
+                        "y": 30 + (rows[1][1] - 2) // 2, "z": 28 if axis == "z" else 38,
+                        "block": f"minecraft:oak_stairs[facing={expected_facing},half=bottom,shape=straight]",
+                    }])
+
+    def test_level_uphill_neighbor_requires_a_continuing_slope(self) -> None:
+        for next_top in (3, 4):
+            with self.subTest(next_top=next_top):
+                roof = self._supported_roof([[1, 2, 2, next_top]] * 3, -1)
+                roof["stairs"] = "minecraft:stone_stairs"
+                self.assertEqual([
+                    op for op in compile_blueprint(_plan([roof]), "rough") if ":stone_stairs[" in op["block"]
+                ], [{"op": "set", "x": 1, "y": 0, "z": 1,
+                     "block": "minecraft:stone_stairs[facing=east,half=bottom,shape=straight]"}])
+
+    def test_stairs_replace_a_single_course_with_implicit_or_explicit_undersides(self) -> None:
+        for heights, undersides in (([1, 2, 3], [0, 0, 1]), ([0, 2, 4], [-1, -1, 1])):
+            for explicit in (False, True):
+                with self.subTest(heights=heights, explicit=explicit):
+                    roof = _roof([0, 1, 2], [(0, heights), (2, heights)])
+                    if explicit:
+                        for section in roof["sections"]:
+                            section["undersides"] = undersides
+                    plan = _plan([roof])
+                    expected = compile_blueprint(plan, "rough")
+                    index = expected.index({"op": "set", "x": 1, "y": 0, "z": 1, "block": roof["block"]})
+                    expected[index]["block"] = "minecraft:stone_stairs[facing=east,half=bottom,shape=straight]"
+                    roof["stairs"] = "minecraft:stone_stairs"
+                    self.assertEqual(compile_blueprint(plan, "rough"), expected)
+
+    def test_parallel_grades_can_cross_courses_of_different_heights(self) -> None:
+        roof = self._supported_roof([[20, 21, 24], [20, 22, 23], [18, 19, 20]], 16)
+        roof["stairs"] = "minecraft:stone_stairs"
+        self.assertEqual([
+            op for op in compile_blueprint(_plan([roof]), "rough") if ":stone_stairs[" in op["block"]
+        ], [{"op": "set", "x": 1, "y": 10, "z": 1,
+             "block": "minecraft:stone_stairs[facing=east,half=bottom,shape=straight]"}])
+
+    def test_preserves_ambiguous_or_unsupported_cells_and_their_reserved_halves(self) -> None:
+        for label, rows in (
+            ("flat", [[2, 2, 2]] * 3),
+            ("ridge", [[1, 2, 1]] * 3),
+            ("valley", [[3, 2, 3]] * 3),
+            ("shoulder", [[1, 2, 2, 2]] * 3),
+            ("steep downhill", [[-1, 2, 3]] * 3),
+            ("steep uphill", [[1, 2, 5]] * 3),
+            ("steep uphill beyond level neighbor", [[1, 2, 2, 5]] * 3),
+            ("top slab", [[2, 3, 4]] * 3),
+            ("thin strip", [[1, 2, 3]] * 2),
+            ("ambiguous diagonal slope", [[0, 1, 2], [1, 2, 3], [2, 3, 4]]),
+            ("side shoulder", [[1, 3, 2], [1, 2, 3], [1, 2, 3]]),
+        ):
+            with self.subTest(label=label):
+                roof = self._supported_roof(rows)
+                plan = _plan([roof])
+                original = compile_blueprint(plan, "rough")
+                roof["stairs"] = "minecraft:stone_stairs"
+                self.assertEqual(compile_blueprint(plan, "rough"), original)
+
+        for label, low, column, row, bottom in (
+            ("no contact below a two-layer drop", 0, 1, 1, 0),
+            ("reserved lower half", 1, 1, 1, 1),
+            ("no lateral contact in the lower half", 1, 1, 0, 1),
+            ("no uphill contact in the upper half", 1, 2, 1, 2),
+        ):
+            with self.subTest(label=label):
+                roof = self._supported_roof([[low, 2, 3]] * 3)
+                roof["sections"][row]["undersides"][column] = bottom
+                plan = _plan([roof])
+                original = compile_blueprint(plan, "rough")
+                roof["stairs"] = "minecraft:stone_stairs"
+                self.assertEqual(compile_blueprint(plan, "rough"), original)
+
+        roof = _roof([0, 2], [(0, [1, 3]), (1, [1, 3])])
+        plan = _plan([roof])
+        original = compile_blueprint(plan, "rough")
+        roof["stairs"] = "minecraft:stone_stairs"
+        self.assertEqual(compile_blueprint(plan, "rough"), original)
+
+    def test_trimmed_patch_preserves_adjacent_pillar_and_open_edges(self) -> None:
+        roof = self._supported_roof([[0, 1, 2, 3, 4]] * 6)
+        for section, span in zip(roof["sections"], [[0, 4]] * 4 + [[1, 2], [1, 3]]):
+            section["span"] = span
+        roof["stairs"] = "minecraft:stone_stairs"
+        pillar = _set("minecraft:oak_log", [3, 0, 4])
+        operations = compile_blueprint(_plan([pillar, roof]), "rough")
+        self.assertEqual(operations[0], {"op": "set", "x": 3, "y": 0, "z": 4, "block": "minecraft:oak_log"})
+        self.assertNotIn((3, 4), _roof_layers(operations[1:]))
+        self.assertEqual([op for op in operations if ":stone_stairs[" in op["block"]], [{
+            "op": "set", "x": 2, "y": 0, "z": z,
+            "block": "minecraft:stone_stairs[facing=east,half=bottom,shape=straight]",
+        } for z in (1, 2)])
+
+    def test_only_the_top_cell_is_removed_from_an_interpolated_fill(self) -> None:
+        roof = _roof([0, 4], [(0, [0, 4]), (2, [0, 4])])
+        for section in roof["sections"]:
+            section["undersides"] = [-5, -5]
+        plan = _plan([roof])
+        legacy = compile_blueprint(plan, "rough")
+        full_run = {"op": "fill", "from": {"x": 2, "y": -2, "z": 1},
+                    "to": {"x": 2, "y": 0, "z": 1}, "block": "minecraft:dark_prismarine"}
+        index = legacy.index(full_run)
+        roof["stairs"] = "example:carved_stairs"
+        operations = compile_blueprint(plan, "rough")
+        self.assertEqual(operations, [
+            *legacy[:index],
+            {**full_run, "to": {"x": 2, "y": -1, "z": 1}},
+            {"op": "set", "x": 2, "y": 0, "z": 1,
+             "block": "example:carved_stairs[facing=east,half=bottom,shape=straight]"},
+            *legacy[index + 1:],
+        ])
+        self.assertEqual(_roof_layers(operations), _roof_layers(legacy))
+
+    def test_stair_split_counts_against_local_and_repeated_operation_limits(self) -> None:
+        roof = self._supported_roof([[1, 2, 3]] * 3)
+        plan = _plan([roof])
+        legacy_count = len(compile_blueprint(plan, "rough"))
+        roof["stairs"] = "minecraft:stone_stairs"
+        with patch("astralarchitect_ticket.blueprint.MAX_OPERATIONS", legacy_count):
+            with self.assertRaisesRegex(BlueprintError, "local operation limit"):
+                compile_blueprint(plan, "rough")
+        with patch("astralarchitect_ticket.blueprint.MAX_OPERATIONS", legacy_count + 1):
+            self.assertEqual(len(compile_blueprint(plan, "rough")), legacy_count + 1)
+        plan["placements"][0]["repeat"] = {"count": 2, "step": [4, 0, 0]}
+        limit = 2 * legacy_count + 1
+        with patch("astralarchitect_ticket.blueprint.MAX_OPERATIONS", limit):
+            with self.assertRaisesRegex(BlueprintError, f"expands beyond {limit} operations"):
+                compile_blueprint(plan, "rough")
+
+    def test_rejects_invalid_stair_materials_even_without_eligible_cells(self) -> None:
+        roof = _roof([0], [(0, [0])])
+        for material, error in (
+            (None, "namespaced"), (False, "namespaced"), ("stone_stairs", "namespaced"),
+            ("minecraft:stone", "ending in _stairs"), ("minecraft:stone_slab", "ending in _stairs"),
+            ("minecraft:stone_stairs[facing=east]", "without properties"),
+        ):
+            with self.subTest(material=material):
+                roof["stairs"] = material
+                with self.assertRaisesRegex(BlueprintError, rf"\.stairs must be a .*{error}"):
+                    compile_blueprint(_plan([roof]), "rough")
+
+
 class RoofUndersidesTest(unittest.TestCase):
     def test_explicit_undersides_leave_space_below_and_use_both_slab_halves(self) -> None:
         roof = _roof([0, 1], [(0, [0, 3])])

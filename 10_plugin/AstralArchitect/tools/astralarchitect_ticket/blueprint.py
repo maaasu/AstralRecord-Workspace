@@ -32,6 +32,7 @@ _REFLECTIONS = {"x": {"east": "west", "west": "east"}, "z": {"north": "south", "
 _HANDED = {"left": "right", "right": "left"}
 _ROTATIONS = frozenset(map(str, range(16)))
 _STAIR_SHAPES = {"straight", "inner_left", "inner_right", "outer_left", "outer_right"}
+_ROOF_DIRECTIONS = ((1, 0, "east"), (-1, 0, "west"), (0, 1, "south"), (0, -1, "north"))
 _RAIL_CORNERS = {
     frozenset(shape.split("_")): shape
     for shape in ("north_east", "north_west", "south_east", "south_west")
@@ -181,11 +182,65 @@ def _roof_surface(
     return surface
 
 
+def _roof_bottom(tops: list[dict[int, int]], bottoms: list[dict[int, int]] | None, x: int, z: int) -> int:
+    if bottoms is not None:
+        return bottoms[z][x]
+    lowest_top = tops[z][x]
+    for dx, dz, _ in _ROOF_DIRECTIONS:
+        if 0 <= z + dz < len(tops):
+            lowest_top = min(lowest_top, tops[z + dz].get(x + dx, lowest_top))
+    return lowest_top - 1
+
+
+def _roof_stair_facing(
+    tops: list[dict[int, int]], bottoms: list[dict[int, int]] | None, x: int, z: int, top: int, bottom: int,
+) -> str | None:
+    if top % 2 or not 0 < z < len(tops) - 1 or bottom > top - 2:
+        return None
+
+    directions = []
+    for dx, dz, facing in _ROOF_DIRECTIONS:
+        low, high = tops[z - dz].get(x - dx), tops[z + dz].get(x + dx)
+        if low not in (top - 1, top - 2) or high not in (top, top + 1, top + 2):
+            continue
+        # A level uphill neighbor can be a rounded step in the slope, or a crest.
+        if high == top:
+            next_z = z + 2 * dz
+            if not 0 <= next_z < len(tops) or tops[next_z].get(x + 2 * dx) not in (top + 1, top + 2):
+                continue
+        # A parallel grade may vary across the slope, but neither flank may reverse.
+        flanks = [
+            [tops[z + a * dz + side * dx].get(x + a * dx + side * dz) for a in (-1, 0, 1)]
+            for side in (-1, 1)
+        ]
+        if any(None in flank or not flank[0] < flank[1] <= flank[2]
+               or any(abs(a - b) > 3 for a, b in zip(flank, (low, top, high))) for flank in flanks):
+            continue
+        # A one-layer drop touches the stair's lower half. A two-layer drop must join just below it.
+        if low == top - 2 and (bottom > top - 3 or _roof_bottom(tops, bottoms, x - dx, z - dz) > top - 3):
+            continue
+        if _roof_bottom(tops, bottoms, x + dx, z + dz) > top - 1:
+            continue
+        contacts = [
+            min(top - 2, flank[1] - 1) for flank in flanks
+        ]
+        if any(max(bottom, _roof_bottom(tops, bottoms, x + side * dz, z + side * dx)) > layer
+               for side, layer in zip((-1, 1), contacts)):
+            continue
+        directions.append(facing)
+    return directions[0] if len(directions) == 1 else None
+
+
 def _expand_roof_sheet(value: object, label: str, remaining_operations: int) -> list[_Operation]:
-    roof = _fields(value, {"op", "at", "offsets", "sections", "block", "slab"}, label)
+    roof = _fields(
+        value, {"op", "at", "offsets", "sections", "block", "slab"}, label,
+        optional=frozenset({"stairs"}),
+    )
     at_x, at_y, at_z = _coordinates(roof["at"], f"{label}.at")
-    materials = []
-    for key in ("block", "slab"):
+    materials = {}
+    for key in ("block", "slab", "stairs"):
+        if key not in roof:
+            continue
         material_label = f"{label}.{key}"
         try:
             material = validate_block_state(roof[key], material_label)
@@ -193,14 +248,17 @@ def _expand_roof_sheet(value: object, label: str, remaining_operations: int) -> 
             raise BlueprintError(str(exc)) from exc
         if "[" in material:
             raise BlueprintError(f"{material_label} must be a block name without properties")
-        materials.append(material)
-    block, slab = materials
+        materials[key] = material
+    block, slab = materials["block"], materials["slab"]
+    stairs = materials.get("stairs")
     if block in {"minecraft:air", "minecraft:cave_air", "minecraft:void_air"}:
         raise BlueprintError(f"{label}.block must be a non-air block name")
     if block.endswith(("_slab", "_stairs")):
         raise BlueprintError(f"{label}.block requires a full cube, not a slab or stairs")
     if not slab.endswith("_slab"):
         raise BlueprintError(f"{label}.slab must be a block name ending in _slab")
+    if stairs is not None and not stairs.endswith("_stairs"):
+        raise BlueprintError(f"{label}.stairs must be a block name ending in _stairs")
 
     offsets = _list(roof["offsets"], f"{label}.offsets")
     sections = _list(roof["sections"], f"{label}.sections")
@@ -301,19 +359,7 @@ def _expand_roof_sheet(value: object, label: str, remaining_operations: int) -> 
         for x_index in x_range:
             x = first_x + x_index
             top = row[x_index]
-            if bottoms is None:
-                lowest_top = top
-                if x_index - 1 in x_range:
-                    lowest_top = min(lowest_top, row[x_index - 1])
-                if x_index + 1 in x_range:
-                    lowest_top = min(lowest_top, row[x_index + 1])
-                if z_index and x_index in row_ranges[z_index - 1]:
-                    lowest_top = min(lowest_top, tops[z_index - 1][x_index])
-                if z_index + 1 < depth and x_index in row_ranges[z_index + 1]:
-                    lowest_top = min(lowest_top, tops[z_index + 1][x_index])
-                bottom = lowest_top - 1
-            else:
-                bottom = bottoms[z_index][x_index]
+            bottom = _roof_bottom(tops, bottoms, x_index, z_index)
 
             # Occupied half layers form the half-open interval [bottom, top).
             visits += (top - 1) // 2 - bottom // 2 + 1
@@ -326,8 +372,15 @@ def _expand_roof_sheet(value: object, label: str, remaining_operations: int) -> 
             if bottom % 2:
                 runs.append((bottom // 2, bottom // 2, top_slab))
             first_full, past_full = (bottom + 1) // 2, top // 2
+            facing = None
+            if stairs is not None:
+                facing = _roof_stair_facing(tops, bottoms, x_index, z_index, top, bottom)
+            if facing:
+                past_full -= 1
             if first_full < past_full:
                 runs.append((first_full, past_full - 1, block))
+            if facing:
+                runs.append((past_full, past_full, f"{stairs}[facing={facing},half=bottom,shape=straight]"))
             if top % 2:
                 runs.append((top // 2, top // 2, bottom_slab))
             if len(operations) + len(runs) > remaining_operations:
