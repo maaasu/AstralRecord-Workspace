@@ -81,6 +81,20 @@ class PreviewCameraTests(unittest.TestCase):
                 image = _pixel(render_preview(ticket, ["minecraft:" + hidden], **camera))
                 self.assertEqual(image, sky)
 
+    def test_open_trapdoor_bounds_match_vanilla_block_models(self) -> None:
+        # Bounds of the open 1.21.11 model after applying each blockstate rotation.
+        bounds = {
+            "east": (0, 0, 0, 3/16, 1, 1),
+            "south": (0, 0, 0, 1, 1, 3/16),
+            "west": (13/16, 0, 0, 1, 1, 1),
+            "north": (0, 0, 13/16, 1, 1, 1),
+        }
+        for facing, box in bounds.items():
+            for half in ("top", "bottom"):
+                with self.subTest(facing=facing, half=half):
+                    state = f"minecraft:waxed_exposed_copper_trapdoor[facing={facing},half={half},open=true]"
+                    self.assertEqual(preview.block_model(state).boxes, (box,))
+
     def test_clay_removes_material_color_and_pattern(self) -> None:
         ticket = SimpleNamespace(bounds=Bounds(Point(0, 0, 0), Point(0, 0, 0)))
         camera = dict(eye=(2, 2, -3), target=(0.5, 0.5, 0.5), width=16, height=16)

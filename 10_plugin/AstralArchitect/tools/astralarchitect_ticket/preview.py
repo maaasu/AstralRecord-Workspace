@@ -167,7 +167,8 @@ def _block_shape(name: str, properties: dict[str, str]) -> tuple[Box, ...]:
         return (_orient((0, 0, 0, 3/16, 1, 1), facing),)
     if name.endswith("_trapdoor"):
         if properties.get("open") == "true":
-            return (_orient((1 - 3/16, 0, 0, 1, 1, 1), properties.get("facing", "east")),)
+            # Open trapdoors occupy the edge opposite their facing direction.
+            return (_orient((0, 0, 0, 3/16, 1, 1), properties.get("facing", "east")),)
         top = properties.get("half") == "top"
         return ((0, 1 - 3/16 if top else 0, 0, 1, 1 if top else 3/16, 1),)
     if name.endswith("_carpet"):
