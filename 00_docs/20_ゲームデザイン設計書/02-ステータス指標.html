@@ -111,13 +111,17 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   body::before { content: ""; position: fixed; inset: 0; z-index: 5; background: #0d1016; opacity: 0; pointer-events: none; }
   body.chart-spotlit::before { opacity: .52; }
   .spot-slot { display: grid; min-width: 0; position: relative; }
-  .spot-slot.is-spotlit { z-index: 6; }
-  .spot-slot > .spot-field { transform-origin: var(--spot-x,50%) var(--spot-y,50%); }
-  .spot-slot.is-spotlit > .spot-field { transform: scale(var(--spot-scale)); border-color: var(--actor,var(--blue)); box-shadow: 0 8px 28px #10131980; }
+  .spot-slot.is-spotlit { z-index: 6; min-height: var(--spot-height); }
+  .spot-slot.is-spotlit > .spot-field {
+    position: absolute; top: var(--spot-top,0px); left: var(--spot-left,0px); width: var(--spot-width);
+    transform: scale(var(--spot-scale)); transform-origin: top left;
+    border-color: var(--actor,var(--blue)); box-shadow: 0 8px 28px #10131980;
+  }
 }
 @media screen and (prefers-reduced-motion: no-preference) {
   body::before { transition: opacity 160ms ease-out; }
-  .spot-field { transition: transform 160ms ease-out, border-color 160ms ease-out; }
+  .is-spotlit > .spot-field { animation: spot-reveal 140ms ease-out; }
+  @keyframes spot-reveal { from { opacity: .84; } }
 }
 </style>
 </head>
@@ -356,6 +360,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     function draw() {
       const width = chart.clientWidth, height = chart.clientHeight;
       if (width < 80) return;
+      const inspectedBeforeResize = tip.hidden ? null : inspected;
       right = width - 15; bottom = height - 32;
       chart.setAttribute("viewBox",[0,0,width,height].join(" "));
       chart.replaceChildren(svg("path",{d:"M "+left+" "+top+" V "+bottom+" H "+right,class:"st-axis"}));
@@ -379,7 +384,12 @@ body { margin: 0; background: var(--page); color: var(--ink); }
         g.append(ring); chart.append(g); rings.push(ring); paths.push(g);
       });
       tip.hidden = true;
-      update(); highlight();
+      update();
+      if (inspectedBeforeResize !== null) {
+        inspected = inspectedBeforeResize;
+        showDetail(inspected,selected);
+      }
+      highlight();
     }
     function clearInspection() {
       tip.hidden = true;
@@ -461,6 +471,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     chart.addEventListener("pointercancel",clearInspection);
     document.addEventListener("pointerdown",event => { if (!box.contains(event.target)) clearInspection(); });
     draw();
+    chart.addEventListener("spotlayout",draw);
     new ResizeObserver(draw).observe(chart);
     return {update,draw};
   }
@@ -491,32 +502,64 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   function spotlight(slot, clientX, clientY) {
     if (active === slot) return;
     closeSpotlight();
-    // The slot keeps its layout size while the card grows over its neighbours.
+    // Keep the grid in place. Reflow the content before scaling it on narrow screens.
     const rect = slot.getBoundingClientRect();
     const viewport = document.documentElement.clientWidth;
-    const originX = Math.max(0, Math.min(rect.width, clientX - rect.left));
-    // Keep the indicated point under the pointer, including the first hover frame.
-    const leftRoom = originX > 0 ? (rect.left - 4) / originX : Infinity;
-    const rightRoom = rect.width > originX ? (viewport - 4 - rect.right) / (rect.width - originX) : Infinity;
-    const scale = 1 + Math.min(.14, leftRoom, rightRoom);
-    if (scale <= 1) return;
-    slot.style.setProperty("--spot-x", originX + "px");
-    slot.style.setProperty("--spot-y", Math.max(0, Math.min(rect.height, clientY - rect.top)) + "px");
+    const scale = viewport <= 760 ? 1.25 : 1.55;
+    const field = slot.firstElementChild;
+    const chart = field.querySelector("svg.st-chart, #dg-chart");
+    const before = chart.getBoundingClientRect();
+    const onPlot = clientX >= before.left && clientX <= before.right && clientY >= before.top && clientY <= before.bottom;
+    let visualWidth = Math.min(viewport - 8, rect.width * scale);
+    const line = chart.querySelector("polyline")?.points;
+    let plotFraction = null;
+    if (onPlot && line?.numberOfItems > 1) {
+      const first = line.getItem(0).x;
+      const last = line.getItem(line.numberOfItems - 1).x;
+      const u = (clientX - before.left - first) / (last - first);
+      if (u >= 0 && u <= 1) {
+        plotFraction = u;
+        // Leave room for the enlarged axis margins on both sides of this point.
+        const offset = scale * ((1 - u) * (before.left - rect.left + first)
+          - u * (rect.right - before.left - last));
+        if (u > 0) visualWidth = Math.min(visualWidth, (clientX - 4 - offset) / u);
+        if (u < 1) visualWidth = Math.min(visualWidth, (viewport - 4 - clientX + offset) / (1 - u));
+        visualWidth = Math.max(rect.width, visualWidth);
+      }
+    }
+    slot.style.setProperty("--spot-height", rect.height + "px");
+    slot.style.setProperty("--spot-width", visualWidth / scale + "px");
     slot.style.setProperty("--spot-scale", scale);
+    slot.style.setProperty("--spot-left", "0px");
+    slot.style.setProperty("--spot-top", "0px");
     slot.classList.add("is-spotlit");
+    chart.dispatchEvent(new Event("spotlayout"));
+    const after = chart.getBoundingClientRect();
+    // Anchor a chart inspection to the same part of the resized plot.
+    let shiftX = (clientX - rect.left) * (1 - visualWidth / rect.width);
+    if (plotFraction !== null) {
+      const points = chart.querySelector("polyline").points;
+      const first = points.getItem(0).x;
+      const last = points.getItem(points.numberOfItems - 1).x;
+      shiftX = clientX - after.left - scale * (first + plotFraction * (last - first));
+    }
+    const shiftY = onPlot ? clientY - after.top - (clientY - before.top) * after.height / before.height
+      : (clientY - rect.top) * (1 - scale);
+    slot.style.setProperty("--spot-left", Math.max(4 - rect.left, Math.min(viewport - 4 - visualWidth - rect.left, shiftX)) + "px");
+    slot.style.setProperty("--spot-top", Math.max(4 - rect.top - window.scrollY, shiftY) + "px");
     document.body.classList.add("chart-spotlit");
     active = slot;
   }
 
   const visibility = new IntersectionObserver(entries => {
-    if (entries.some(entry => entry.target === active && !entry.isIntersecting)) closeSpotlight();
+    if (entries.some(entry => entry.target.parentElement === active && !entry.isIntersecting)) closeSpotlight();
   });
   for (const field of fields) {
     const slot = document.createElement("div");
     slot.className = "spot-slot";
     field.before(slot);
     slot.append(field);
-    visibility.observe(slot);
+    visibility.observe(field);
     let lastPointerType = "";
     slot.addEventListener("pointerdown", event => { lastPointerType = event.pointerType; });
     slot.addEventListener("pointerenter", event => {
