@@ -141,7 +141,7 @@ class PreviewCameraTests(unittest.TestCase):
                     result = cli._preview(ticket, args)
                 render.assert_called_once_with(ticket, states, eye=(0.0, 1.0, 2.0),
                                                target=(0.0, 0.0, 0.0), width=1, height=1,
-                                               clip_y=None, style=style)
+                                               clip_y=None, style=style, pick_hits={})
                 if style == "clay":
                     self.assertEqual(result["style"], "clay")
                 else:

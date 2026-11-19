@@ -13,7 +13,7 @@ from typing import Sequence
 
 from .blueprint import compile_blueprint
 from .live import LiveServer, json_bytes, request_live
-from .preview import render_preview
+from .preview import PreviewHit, render_preview
 from .schematic import (
     MAX_OPERATION_BYTES,
     Point,
@@ -92,6 +92,8 @@ def _parser() -> JsonArgumentParser:
     preview.add_argument("--clip-y", type=int, help="hide blocks above this world Y")
     preview.add_argument("--style", choices=("material", "clay"), default="material",
                          help="still preview style (default: material)")
+    preview.add_argument("--pick", action="append", type=int, nargs=2, metavar=("X", "Y"),
+                         help="report the front block at a PNG pixel (top left is 0 0, repeatable)")
     preview.add_argument("--output", required=True, help="absolute path for a new PNG outside ticket data")
 
     live = command("live", "start a local browser viewer for an editable draft")
@@ -528,10 +530,23 @@ def _preview(ticket: Ticket, args: argparse.Namespace) -> dict[str, object]:
             "touchedBlockCount": plan.touched_count,
             "changedBlockCount": len(plan.changed_indices),
         })
+    picks = [(x, y) for x, y in args.pick] if args.pick else []
+    pick_hits: dict[tuple[int, int], PreviewHit | None] = dict.fromkeys(picks)
     png = render_preview(
         ticket, states, eye=tuple(args.eye), target=tuple(args.target),
         width=args.width, height=args.height, clip_y=args.clip_y, style=args.style,
+        pick_hits=pick_hits,
     )
+    if picks:
+        pick_results = []
+        for x, y in picks:
+            position, state = pick_hits[x, y] or (None, None)
+            pick_results.append({
+                "pixel": {"x": x, "y": y},
+                "position": _point_json(position) if position is not None else None,
+                "block": state,
+            })
+        result["picks"] = pick_results
     if args.style == "clay":
         result["style"] = args.style
     # Rendering can take several seconds, so validate the destination again.
