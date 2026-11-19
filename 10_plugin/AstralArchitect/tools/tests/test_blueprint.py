@@ -417,5 +417,121 @@ class RoofUndersidesTest(unittest.TestCase):
                 compile_blueprint(plan, "rough")
 
 
+class RoofSpanTest(unittest.TestCase):
+    def test_full_span_matches_legacy_operations(self) -> None:
+        for explicit in (False, True):
+            with self.subTest(explicit=explicit):
+                roof = _roof([-2, 0, 3], [(-1, [-2, 3, 8]), (1, [2, 4, -2])], [4, 10, -5])
+                if explicit:
+                    for section in roof["sections"]:
+                        section["undersides"] = [top - 3 for top in section["heights"]]
+                legacy = compile_blueprint(_plan([roof]), "rough")
+                for section in roof["sections"]:
+                    section["span"] = [-2, 3]
+                self.assertEqual(compile_blueprint(_plan([roof]), "rough"), legacy)
+
+    def test_taper_preserves_window_and_pillar_and_keeps_column_order(self) -> None:
+        roof = _roof([-2, 2], [(0, [1, 1]), (2, [1, 1])])
+        roof["sections"][0]["span"] = [-2, 2]
+        roof["sections"][1]["span"] = [0, 0]
+        operations = compile_blueprint(_plan([
+            _set("minecraft:blue_stained_glass", [2, 0, 1]),
+            _set("minecraft:oak_log", [1, 0, 2]),
+            roof,
+        ]), "rough")
+        columns = [(x, z) for z in range(3) for x in range(z - 2, 3 - z)]
+        self.assertEqual([(op["x"], op["z"]) for op in operations[2:]], columns)
+        self.assertEqual(_roof_layers(operations[2:]), {column: {0} for column in columns})
+        blocks = {(op["x"], op["y"], op["z"]): op["block"] for op in operations}
+        self.assertEqual(blocks[2, 0, 1], "minecraft:blue_stained_glass")
+        self.assertEqual(blocks[1, 0, 2], "minecraft:oak_log")
+
+    def test_span_endpoints_round_ties_toward_positive_x(self) -> None:
+        roof = _roof([-3, 3], [(-2, [1, 1]), (0, [1, 1])])
+        roof["sections"][0]["span"] = [-2, 2]
+        roof["sections"][1]["span"] = [-1, 1]
+        self.assertEqual(_roof_layers(compile_blueprint(_plan([roof]), "rough")), {
+            (x, z): {0}
+            for z, left, right in ((-2, -2, 2), (-1, -1, 2), (0, -1, 1))
+            for x in range(left, right + 1)
+        })
+
+    def test_implicit_underside_uses_only_occupied_orthogonal_neighbors(self) -> None:
+        roof = _roof([0, 1, 2], [(0, [-8, 3, -8]), (1, [5, -8, -8]), (2, [1, 7, -8])])
+        for section, span in zip(roof["sections"], ([1, 1], [0, 0], [0, 1])):
+            section["span"] = span
+        self.assertEqual(_roof_layers(compile_blueprint(_plan([roof]), "rough")), {
+            (1, 0): {2}, (0, 1): set(range(5)), (0, 2): {0}, (1, 2): set(range(7)),
+        })
+
+    def test_explicit_underside_interpolates_within_the_span(self) -> None:
+        roof = _roof([0, 2], [(0, [5, 5]), (2, [5, 5])])
+        roof["sections"][0].update(span=[0, 1], undersides=[-2, 0])
+        roof["sections"][1].update(span=[1, 2], undersides=[0, 2])
+        expected = {(0, 0): -2, (1, 0): -1, (1, 1): 0, (2, 1): 1, (1, 2): 1, (2, 2): 2}
+        self.assertEqual(_roof_layers(compile_blueprint(_plan([roof]), "rough")), {
+            column: set(range(bottom, 5)) for column, bottom in expected.items()
+        })
+
+    def test_mirror_transforms_emitted_columns_in_place(self) -> None:
+        roof = _roof([-2, 3], [(0, [1, 1]), (2, [1, 1])], [3, 0, 5])
+        roof["sections"][0]["span"] = [-2, 0]
+        roof["sections"][1]["span"] = [1, 1]
+        plan = _plan([roof])
+        operations = compile_blueprint(plan, "rough")
+        for axis in ("x", "z"):
+            with self.subTest(axis=axis):
+                plan["placements"][0]["mirror"] = axis
+                self.assertEqual(compile_blueprint(plan, "rough"), [
+                    {**operation, axis: -operation[axis]} for operation in operations
+                ])
+
+    def test_rejects_invalid_and_missing_spans(self) -> None:
+        for span, error in (
+            (None, "two integers"), ("0,1", "two integers"), ((0, 1), "two integers"),
+            ([], "two integers"), ([0], "two integers"), ([0, 1, 2], "two integers"),
+            ([0.0, 1], "two integers"), ([False, 1], "two integers"), ([0, True], "two integers"),
+            ([1, 0], "left endpoint"), ([-3, 0], "offset range"), ([0, 3], "offset range"),
+        ):
+            with self.subTest(span=span):
+                roof = _roof([-2, 2], [(0, [1, 1])])
+                roof["sections"][0]["span"] = span
+                with self.assertRaisesRegex(BlueprintError, error):
+                    compile_blueprint(_plan([roof]), "rough")
+        for index in (0, 1):
+            with self.subTest(index=index):
+                roof = _roof([-2, 2], [(0, [1, 1]), (1, [1, 1])])
+                roof["sections"][index]["span"] = [0, 0]
+                with self.assertRaisesRegex(BlueprintError, "all specify span or all omit"):
+                    compile_blueprint(_plan([roof]), "rough")
+
+    def test_remaining_operation_limit_counts_columns_and_runs(self) -> None:
+        roof = _roof([0, 5], [(0, [0, 0])])
+        roof["sections"][0]["span"] = [2, 2]
+        prefix = [_set("minecraft:stone", [0, 0, z]) for z in range(5)]
+        with patch("astralarchitect_ticket.blueprint.MAX_OPERATIONS", 6):
+            operations = compile_blueprint(_plan([*prefix, roof]), "rough")
+            self.assertEqual(len(operations), 6)
+            self.assertEqual(_roof_layers(operations[5:]), {(2, 0): {-1}})
+            roof["sections"][0]["span"] = [2, 3]
+            with self.assertRaisesRegex(BlueprintError, "local operation limit"):
+                compile_blueprint(_plan([*prefix, roof]), "rough")
+            roof["sections"][0].update(span=[2, 2], undersides=[-3, -3])
+            with self.assertRaisesRegex(BlueprintError, "local operation limit"):
+                compile_blueprint(_plan([*prefix, roof]), "rough")
+
+    def test_interpolation_rectangle_limits_apply_before_sampling(self) -> None:
+        roof = _roof([0, 5], [(0, [0, 0])])
+        roof["sections"][0]["span"] = [2, 2]
+        for limit, error in (("MAX_OPERATIONS", "local operation limit"),
+                             ("MAX_TICKET_VOLUME", "block visits")):
+            with self.subTest(limit=limit):
+                with patch(f"astralarchitect_ticket.blueprint.{limit}", 5):
+                    with patch("astralarchitect_ticket.blueprint._roof_axis_samples") as sample:
+                        with self.assertRaisesRegex(BlueprintError, error):
+                            compile_blueprint(_plan([roof]), "rough")
+                        sample.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
