@@ -94,11 +94,13 @@ python -m unittest discover -s tests -v
 
 画像確認後、`apply-ops <ticket> --plan <設計書> --expect-candidate-sha256 <baseCandidateSha256> --expect-stage-sha256 <stageSha256>` で採用した仕上げを反映します。部品、反復、鏡映を使う JSON の例は [設計書 v1](../../../.codex/skills/astralarchitect-builder/references/blueprint.md) を参照してください。
 
+断面を `shiftX` で横に移し、`span` で先端の幅を絞る屋根は、通常の `--plan` で指定できます。指定方法と JSON 例は [断面ごとの屋根幅と横移動](../../../.codex/skills/astralarchitect-builder/references/blueprint.md#断面ごとの屋根幅と横移動) を参照してください。
+
 ### `roof_sheet` の階段材
 
 設計書 v1 の `roof_sheet` では、任意の `stairs` にプロパティなしの名前空間付き `_stairs` ブロック名を指定できます。省略した場合は従来どおりの操作を出力します。`rough` と `detail` のどちらでも、通常の `--plan` から利用できます。
 
-補間と `span` の適用を終えた同じ屋根片の天端・下面を参照し、次の条件を満たす列の最上部の全ブロックを階段に置換します。
+補間、`span` による切り出し、`shiftX` による移動を終えた同じ屋根片の天端・下面を参照し、次の条件を満たす列の最上部の全ブロックを階段に置換します。
 
 - 下り隣の天端は 1 または 2 半段低く、上り隣は同じ高さか 1～2 半段高い。同じ高さなら、その先の列で 1 または 2 半段上がる。
 - 斜面に直交する両側にも同じ向きの勾配が続く。対応する天端の高さの差は各点で3半段以内とし、上りの向きが複数ある場合は階段化しない。

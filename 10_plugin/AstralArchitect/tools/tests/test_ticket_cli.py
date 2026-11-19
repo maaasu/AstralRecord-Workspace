@@ -397,6 +397,27 @@ class TicketCliTest(unittest.TestCase):
         process, failure = self._run(*apply, "--expect-stage-sha256", approved["stageSha256"])
         self.assertIn("differs from the preview base", failure["error"])
 
+    def test_wrapper_previews_shifted_roof_from_plan(self) -> None:
+        roof = {
+            "op": "roof_sheet", "at": [0, 0, 0], "offsets": [0],
+            "sections": [{"z": 0, "heights": [2]}, {"z": 1, "heights": [2], "shiftX": 2}],
+            "block": "minecraft:stone", "slab": "minecraft:stone_slab",
+        }
+        path = self.root / "roof.json"
+        path.write_text(json.dumps({
+            "version": 1, "origin": [100, 65, 200], "parts": {"roof": {"rough": [roof], "detail": []}},
+            "placements": [{"part": "roof", "at": [0, 0, 0]}],
+        }), encoding="utf-8")
+        process, result = self._run(
+            "--ticket", str(self.ticket_dir), "--", "preview", "--plan", str(path), "--stage", "rough",
+            "--eye", "102.5", "68", "201.5", "--target", "102.5", "65", "201.5",
+            "--width", "1", "--height", "1", "--pick", "0", "0", "--output", str(self.root / "roof.png"),
+            entrypoint=WRAPPER,
+        )
+        self.assertEqual(0, process.returncode, result)
+        self.assertEqual(result["picks"][0]["position"], {"x": 102, "y": 65, "z": 201})
+        self.assertEqual(result["picks"][0]["block"], "minecraft:stone_slab[type=top]")
+
     def test_slice_plan_reapplies_part_rough_only_in_detail_stage(self) -> None:
         design = {
             "version": 1, "origin": [101, 65, 200],
