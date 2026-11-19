@@ -90,6 +90,8 @@ def _parser() -> JsonArgumentParser:
     preview.add_argument("--width", type=int, default=720, help="output width in pixels")
     preview.add_argument("--height", type=int, default=540, help="output height in pixels")
     preview.add_argument("--clip-y", type=int, help="hide blocks above this world Y")
+    preview.add_argument("--style", choices=("material", "clay"), default="material",
+                         help="still preview style (default: material)")
     preview.add_argument("--output", required=True, help="absolute path for a new PNG outside ticket data")
 
     live = command("live", "start a local browser viewer for an editable draft")
@@ -528,8 +530,10 @@ def _preview(ticket: Ticket, args: argparse.Namespace) -> dict[str, object]:
         })
     png = render_preview(
         ticket, states, eye=tuple(args.eye), target=tuple(args.target),
-        width=args.width, height=args.height, clip_y=args.clip_y,
+        width=args.width, height=args.height, clip_y=args.clip_y, style=args.style,
     )
+    if args.style == "clay":
+        result["style"] = args.style
     # Rendering can take several seconds, so validate the destination again.
     output = _output_path(args.output, ticket.directory, ".png", "--output")
     _write_new_file(output, png)

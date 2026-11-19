@@ -116,7 +116,7 @@ python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- di
 python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- preview --eye <X> <Y> <Z> --target <X> <Y> <Z> --output <新規PNGの絶対パス>
 ```
 
-`preview --ops <操作ファイルの絶対パス>` で編集をメモリ内で仮適用し、候補を書き換えずに確認できます。屋内の確認には `--clip-y` で屋根を非表示にするか、屋内にカメラを置きます。
+`preview --ops <操作ファイルの絶対パス>` で編集をメモリ内で仮適用し、候補を書き換えずに確認できます。屋内の確認には `--clip-y` で屋根を非表示にするか、屋内にカメラを置きます。 同じ視点で素材の模様を外して形を確認するには、別の出力先を指定して `--style clay` で撮影します。ガラスの透過率とハーフブロック・階段の形は通常のプレビューと共通です。
 
 作業中の変更を見る場合は `live` を起動してローカル URL を開き、AI が `live-ops` で送った操作を3D画面で確認できます。カメラを操作している間も作業結果が反映されます。Java 1.21.11 のクライアント JAR を指定すると、草・葉・柵を含むブロックをゲームのモデルとテクスチャで表示できます。詳しくは[ライブ3Dビューアーの手順](../../.codex/skills/astralarchitect-builder/references/ticket-contract.md#ライブ3dビューアー)を参照してください。
 
