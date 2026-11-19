@@ -91,3 +91,35 @@ python -m unittest discover -s tests -v
 `preview --plan <設計書の絶対パス> --stage rough` で建物全体の骨格を、`--stage detail` で全体に仕上げを加えた姿を撮影できます。従来の `preview` と同じカメラ・出力引数を使います。プレビューのたびに現在の候補から部品を展開するので、設計書で塔を移動すると以前の位置も消えます。ライブ表示では `live-ops --session <session> --plan <設計書> --stage rough` のように設計を差し替えられます。
 
 画像確認後、`apply-ops <ticket> --plan <設計書> --expect-candidate-sha256 <baseCandidateSha256> --expect-stage-sha256 <stageSha256>` で採用した仕上げを反映します。部品、反復、鏡映を使う JSON の例は [設計書 v1](../../../.codex/skills/astralarchitect-builder/references/blueprint.md) を参照してください。
+
+### `roof_sheet` の階段材
+
+設計書 v1 の `roof_sheet` では、任意の `stairs` にプロパティなしの名前空間付き `_stairs` ブロック名を指定できます。省略した場合は従来どおりの操作を出力します。`rough` と `detail` のどちらでも、通常の `--plan` から利用できます。
+
+補間と `span` の適用を終えた同じ屋根片の天端・下面を参照し、次の条件を満たす列の最上部の全ブロックを階段に置換します。
+
+- 下り隣の天端は 1 または 2 半段低く、上り隣は同じ高さか 1～2 半段高い。同じ高さなら、その先の列で 1 または 2 半段上がる。
+- 斜面に直交する両側にも同じ向きの勾配が続く。対応する天端の高さの差は各点で3半段以内とし、上りの向きが複数ある場合は階段化しない。
+- 斜面を横切る両隣は、対象セルの下半分または両列に屋根材があるその下の位置で面が接する。上り隣は階段の高い側の上半分と面で接する。
+- 下り隣が 1 半段低い場合は、その列の最上半段が対象セルの下半分と面で接する。2 半段低い場合は、両列が対象セルの直下の半段まで達し、そこで面で接する。
+
+既定の下面でも `undersides` を指定した場合でも、同じ接触条件を使います。既定の下面は、各列と屋根片内の前後左右の天端の最小値から半段下げた位置です。
+
+階段は上り方向を `facing` とする `half=bottom,shape=straight` の `set` に展開します。セルの上り側の天端と下面を保ち、下り側の上半分だけを削ります。対象セルを含む `fill` は上端を短くし、階段の `set` も既存の操作上限に数えます。鏡映する部品には既存の `minecraft` 名前空間の制約が適用され、配置時に階段の座標と向きが鏡映されます。
+
+次の部品操作では、既定の下面で X = 1、Z = 1 の天端が東向きの階段になります。
+
+```json
+{
+  "op": "roof_sheet",
+  "at": [0, 0, 0],
+  "offsets": [0, 2],
+  "sections": [
+    {"z": 0, "heights": [0, 4]},
+    {"z": 2, "heights": [0, 4]}
+  ],
+  "block": "minecraft:stone_bricks",
+  "slab": "minecraft:stone_brick_slab",
+  "stairs": "minecraft:stone_brick_stairs"
+}
+```
