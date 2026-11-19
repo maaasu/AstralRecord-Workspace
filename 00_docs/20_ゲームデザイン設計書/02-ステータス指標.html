@@ -268,10 +268,10 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       <li><a href="#player"><span class="toc-num">1</span>プレイヤー</a>
         <ol>
           <li><a href="#player-base"><span class="toc-num">1.1</span>基本ステータス</a></li>
-          <li><a href="#player-crit"><span class="toc-num">1.2</span>会心特化ビルド</a></li>
+          <li><a href="#player-crit"><span class="toc-num">1.2</span>会心</a></li>
           <li><a href="#player-primary"><span class="toc-num">1.3</span>基本能力値</a></li>
-          <li><a href="#player-derived"><span class="toc-num">1.4</span>派生ステータス</a></li>
-          <li><a href="#player-allocation"><span class="toc-num">1.5</span>ステータス配分</a></li>
+          <li><a href="#player-recovery"><span class="toc-num">1.4</span>MP・自然回復</a></li>
+          <li><a href="#player-utility"><span class="toc-num">1.5</span>速度・回避・ドロップ</a></li>
         </ol>
       </li>
       <li><a href="#mob"><span class="toc-num">2</span>標準モブ</a>
@@ -299,33 +299,33 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     <label><input id="st-all" type="checkbox"> 表を5レベル刻みに</label>
   </div>
   <section class="st-group" id="player" aria-labelledby="player-title">
-    <div class="st-group-head"><h2 id="player-title"><span class="ch-num">1</span>プレイヤー</h2><p>標準構成の戦闘ステータスと、会心・基本能力値に特化したときの到達目安。</p></div>
+    <div class="st-group-head"><h2 id="player-title"><span class="ch-num">1</span>プレイヤー</h2><p>各ステータスの基準値と特化値。</p></div>
     <ol class="ch-toc" aria-label="1章の内容">
-      <li><a href="#player-base"><span class="toc-num">1.1</span><span class="ch-toc-title">基本ステータス</span><span class="ch-toc-desc">基準攻撃力・最大HP・共通防御・基礎耐性</span><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-resource">リソース</span><span class="cat cat-defense">防御</span><span class="cat cat-element">属性</span></span></a></li>
-      <li><a href="#player-crit"><span class="toc-num">1.2</span><span class="ch-toc-title">会心特化ビルド</span><span class="ch-toc-desc">会心率・超星会心率・会心ダメージ・超星会心倍率</span><span class="cat-list"><span class="cat cat-offense">攻撃</span></span></a></li>
-      <li><a href="#player-primary"><span class="toc-num">1.3</span><span class="ch-toc-title">基本能力値</span><span class="ch-toc-desc">6種の標準値・特化値</span><span class="cat-list"><span class="cat cat-primary">基本能力値</span></span></a></li>
-      <li><a href="#player-derived"><span class="toc-num">1.4</span><span class="ch-toc-title">派生ステータス</span><span class="ch-toc-desc">攻撃力・耐久・リソース・速度・回避・会心・ドロップ</span><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-resource">リソース</span><span class="cat cat-defense">防御</span><span class="cat cat-utility">ユーティリティ</span></span></a></li>
-      <li><a href="#player-allocation"><span class="toc-num">1.5</span><span class="ch-toc-title">ステータス配分</span><span class="ch-toc-desc">攻撃力・最大HP・共通防御・会心率の直接配分</span><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-resource">リソース</span><span class="cat cat-defense">防御</span></span></a></li>
+      <li><a href="#player-base"><span class="toc-num">1.1</span><span class="ch-toc-title">基本ステータス</span><span class="ch-toc-desc">基準攻撃力・最大HP・共通防御・魔法防御・属性耐性</span><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-resource">リソース</span><span class="cat cat-defense">防御</span><span class="cat cat-element">属性</span></span></a></li>
+      <li><a href="#player-crit"><span class="toc-num">1.2</span><span class="ch-toc-title">会心</span><span class="ch-toc-desc">通常会心率・会心ダメージ・超星会心率・超星会心倍率</span><span class="cat-list"><span class="cat cat-offense">攻撃</span></span></a></li>
+      <li><a href="#player-primary"><span class="toc-num">1.3</span><span class="ch-toc-title">基本能力値</span><span class="ch-toc-desc">筋力・器用さ・知力・体力・敏捷性・幸運</span><span class="cat-list"><span class="cat cat-primary">基本能力値</span></span></a></li>
+      <li><a href="#player-recovery"><span class="toc-num">1.4</span><span class="ch-toc-title">MP・自然回復</span><span class="ch-toc-desc">最大MP・HP自然回復・MP自然回復</span><span class="cat-list"><span class="cat cat-resource">リソース</span><span class="cat cat-utility">ユーティリティ</span></span></a></li>
+      <li><a href="#player-utility"><span class="toc-num">1.5</span><span class="ch-toc-title">速度・回避・ドロップ</span><span class="ch-toc-desc">攻撃速度・移動速度・回避率・直接ドロップ倍率</span><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-defense">防御</span><span class="cat cat-utility">ユーティリティ</span></span></a></li>
     </ol>
     <section class="st-sub" id="player-base" aria-labelledby="player-base-title">
-      <div class="st-sub-head"><h3 id="player-base-title"><span class="sub-num">1.1</span>基本ステータス</h3><p>標準装備時の攻撃・耐久と、被弾時に効く基礎耐性。</p></div>
+      <div class="st-sub-head"><h3 id="player-base-title"><span class="sub-num">1.1</span>基本ステータス</h3></div>
       <div class="st-grid" id="player-base-grid"></div>
     </section>
     <section class="st-sub" id="player-crit" aria-labelledby="player-crit-title">
-      <div class="st-sub-head"><h3 id="player-crit-title"><span class="sub-num">1.2</span>会心特化ビルド</h3><p>会心特化と超星会心特化は別々の育成案。各曲線は投資したときの到達目安で、標準構成の値は各カードに記載。</p></div>
+      <div class="st-sub-head"><h3 id="player-crit-title"><span class="sub-num">1.2</span>会心</h3></div>
       <div class="st-grid" id="player-crit-grid"></div>
     </section>
     <section class="st-sub" id="player-primary" aria-labelledby="player-primary-title">
-      <div class="st-sub-head"><h3 id="player-primary-title"><span class="sub-num">1.3</span>基本能力値</h3><p>初期値・職業・装備・ツリーの合計（バフ前）。</p></div>
+      <div class="st-sub-head"><h3 id="player-primary-title"><span class="sub-num">1.3</span>基本能力値</h3></div>
       <div class="st-grid" id="player-primary-grid"></div>
     </section>
-    <section class="st-sub" id="player-derived" aria-labelledby="player-derived-title">
-      <div class="st-sub-head"><h3 id="player-derived-title"><span class="sub-num">1.4</span>派生ステータス</h3><p>対応する基本能力値だけを特化値に置き換えた比較。</p></div>
-      <div class="st-grid" id="player-derived-grid"></div>
+    <section class="st-sub" id="player-recovery" aria-labelledby="player-recovery-title">
+      <div class="st-sub-head"><h3 id="player-recovery-title"><span class="sub-num">1.4</span>MP・自然回復</h3></div>
+      <div class="st-grid" id="player-recovery-grid"></div>
     </section>
-    <section class="st-sub" id="player-allocation" aria-labelledby="player-allocation-title">
-      <div class="st-sub-head"><h3 id="player-allocation-title"><span class="sub-num">1.5</span>ステータス配分</h3><p>基本能力値の効果を差し引いて求める、直接配分の基準。</p></div>
-      <div class="st-grid" id="player-allocation-grid"></div>
+    <section class="st-sub" id="player-utility" aria-labelledby="player-utility-title">
+      <div class="st-sub-head"><h3 id="player-utility-title"><span class="sub-num">1.5</span>速度・回避・ドロップ</h3></div>
+      <div class="st-grid" id="player-utility-grid"></div>
     </section>
   </section>
   <section class="st-group mob" id="mob" aria-labelledby="mob-title">
@@ -344,7 +344,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     </section>
   </section>
   <noscript>グラフとレベル表の表示にはJavaScriptを有効にしてください。</noscript>
-  <details id="unequipped" open><summary><span class="ch-num">3</span>装備なし基準案</summary>
+  <details id="unequipped"><summary><span class="ch-num">3</span>装備なし基準案</summary>
     <p class="st-note">現行の初期値に基本能力値の派生を加えた比較用の案。装備・職業・ツリー・バフの加算は別途。</p>
     <table aria-label="装備なしの戦闘ステータス案"><tbody>
       <tr><th>基本能力値<span class="cat-list"><span class="cat cat-primary">基本能力値</span></span></th><td>筋力・器用さ・知力・体力・敏捷性・幸運　各5</td></tr>
@@ -466,10 +466,10 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   const luckCritRate = value => 5 + value * 0.1;
   const twoDecimals = new Intl.NumberFormat("ja-JP", {maximumFractionDigits: 2});
   const multiplierFormat = new Intl.NumberFormat("ja-JP", {minimumFractionDigits: 2, maximumFractionDigits: 2});
-  function compare(target, measure = value => value, label = "") {
+  function compare(target, measure = value => value) {
     return [
-      stat(label ? label + "（標準）" : "標準", level => measure(target.standard(level), level)),
-      stat(label ? label + "（特化）" : "特化", level => measure(target.specialized(level), level))
+      stat("基準値", level => measure(target.standard(level), level)),
+      stat("特化値", level => measure(target.specialized(level), level))
     ];
   }
   // DamageCalculator.defenseDamageMultiplier: 同値で半減、防御が攻撃の2.5倍で全減。
@@ -497,14 +497,24 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       series: [stat("モブ攻撃力", lv => hits.get(lv).power), stat("被ダメージ", lv => hits.get(lv).damage)] };
   }
   const panels = [
-    { grid: "player-base-grid", cats: ["offense","resource","defense"], context: "プレイヤー｜標準装備", title: "攻撃力と耐久", note: "共通防御は基準攻撃力より約18〜20%高い。", max: 1200, step: 400, unit: "",
-      series: [stat("基準攻撃力", attack), stat("最大HP", health), stat("共通防御", playerDefense)] },
-    { grid: "player-base-grid", cats: ["element"], context: "標準モブ → プレイヤー｜被弾時", title: "プレイヤーの基礎耐性", note: "無属性は0→50%。火・氷・雷は各5→75%。", max: 100, step: 25, unit: "%",
+    { grid: "player-base-grid", cats: ["offense"], context: "プレイヤー｜主力能力", title: "基準攻撃力", note: lv => "能力値倍率を掛ける前の基準は" + twoDecimals.format(rawAttack(lv)) + "。", max: 500, step: 100, unit: "",
+      series: compare(mainAttack, (value, level) => rawAttack(level) * attackMultiplier(value)) },
+    { grid: "player-base-grid", cats: ["resource"], context: "プレイヤー｜体力", title: "最大HP", note: lv => "体力の加算前の基準は" + format.format(rawHealth(lv)) + "。", max: 1500, step: 500, unit: "",
+      series: compare(vitality, (value, level) => rawHealth(level) + 2 * value) },
+    { grid: "player-base-grid", cats: ["defense"], context: "プレイヤー｜体力", title: "共通防御", note: lv => "体力の加算前の基準は" + format.format(rawDefense(lv)) + "。", max: 600, step: 150, unit: "",
+      series: compare(vitality, (value, level) => rawDefense(level) + value) },
+    { grid: "player-base-grid", cats: ["defense"], context: "プレイヤー｜体力", title: "魔法防御の加算", note: "体力1につき魔法防御が1増える。", max: 200, step: 50, unit: "",
+      series: compare(vitality) },
+    { grid: "player-base-grid", cats: ["element"], context: "標準モブ → プレイヤー｜被弾時", title: "属性耐性", note: "属性別の基準値。特化値は未設定。", max: 100, step: 25, unit: "%",
       series: [stat("無属性", zeroToFifty), stat("火・氷・雷", playerResistance)] },
-    { grid: "player-crit-grid", cats: ["offense"], context: "プレイヤー → 標準モブ｜攻撃時", title: "特化ビルドの会心率", note: "特化時の目安案。標準構成は会心率5.5%、超星会心率0%。", max: 40, step: 10, unit: "%",
-      series: [stat("会心率", critRate), stat("超星会心率", curve([0, 2, 4, 8]))] },
-    { grid: "player-crit-grid", cats: ["offense"], context: "プレイヤー → 標準モブ｜攻撃時", title: "特化ビルドの会心ダメージ", note: "特化時の目安案。標準構成は会心ダメージ150%、超星会心倍率30%。", max: 200, step: 50, unit: "%",
-      series: [stat("会心ダメージ", critDamage), stat("超星会心倍率", superMultiplier)] },
+    { grid: "player-crit-grid", cats: ["offense"], context: "プレイヤー → 標準モブ｜攻撃時", title: "通常会心率", note: lv => "特化値 ＝ 幸運込みの会心率" + format.format(luckCritRate(luck.specialized(lv))) + "% ＋ 直接加算" + format.format(critRate(lv) - luckCritRate(luck.specialized(lv))) + "pt", max: 40, step: 10, unit: "%",
+      series: [stat("基準値", 5.5), stat("特化値", critRate)] },
+    { grid: "player-crit-grid", cats: ["offense"], context: "プレイヤー → 標準モブ｜攻撃時", title: "会心ダメージ", note: "通常会心が発生したときのダメージ倍率。", max: 200, step: 50, unit: "%",
+      series: [stat("基準値", 150), stat("特化値", critDamage)] },
+    { grid: "player-crit-grid", cats: ["offense"], context: "プレイヤー → 標準モブ｜攻撃時", title: "超星会心率", note: "通常会心とは独立して判定する。", max: 10, step: 2, unit: "%",
+      series: [stat("基準値", 0), stat("特化値", curve([0, 2, 4, 8]))] },
+    { grid: "player-crit-grid", cats: ["offense"], context: "プレイヤー → 標準モブ｜攻撃時", title: "超星会心倍率", note: "超星会心時の主攻撃への加算倍率と追尾弾の倍率。", max: 60, step: 15, unit: "%",
+      series: [stat("基準値", 30), stat("特化値", superMultiplier)] },
     { grid: "player-primary-grid", cats: ["primary"], context: "プレイヤー｜主力能力", title: "筋力・器用さ・知力", note: "近接は筋力、間接は器用さ、魔法は知力を使用。", max: 240, step: 60, unit: "",
       series: compare(mainAttack) },
     { grid: "player-primary-grid", cats: ["primary"], context: "プレイヤー｜耐久", title: "体力", note: "最大HP・防御・HP自然回復に反映。", max: 200, step: 50, unit: "",
@@ -513,28 +523,20 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       series: compare(agility) },
     { grid: "player-primary-grid", cats: ["primary"], context: "プレイヤー｜会心・ドロップ", title: "幸運", note: "通常会心率と対象ドロップ率に反映。", max: 100, step: 25, unit: "",
       series: compare(luck) },
-    { grid: "player-derived-grid", cats: ["offense"], context: "プレイヤー｜主力能力", title: "基準攻撃力", note: "筋力・器用さ・知力のうち、攻撃種別に対応する能力を適用。", max: 500, step: 100, unit: "",
-      series: compare(mainAttack, (value, level) => rawAttack(level) * attackMultiplier(value)) },
-    { grid: "player-derived-grid", cats: ["resource"], context: "プレイヤー｜体力", title: "最大HP", note: "標準構成に体力の差分を反映。", max: 1500, step: 500, unit: "",
-      series: compare(vitality, (value, level) => rawHealth(level) + 2 * value) },
-    { grid: "player-derived-grid", cats: ["defense"], context: "プレイヤー｜体力", title: "共通防御と魔法防御", note: "魔法防御は体力による加算分。", max: 600, step: 150, unit: "",
-      series: [...compare(vitality, (value, level) => rawDefense(level) + value, "共通"), ...compare(vitality, value => value, "魔法加算")] },
-    { grid: "player-derived-grid", cats: ["resource"], context: "プレイヤー｜知力", title: "最大MPの加算", note: "知力1につき最大MPが1増える。", max: 240, step: 60, unit: "",
+    { grid: "player-recovery-grid", cats: ["resource"], context: "プレイヤー｜知力", title: "最大MPの加算", note: "知力1につき最大MPが1増える。", max: 240, step: 60, unit: "",
       series: compare(mainAttack) },
-    { grid: "player-derived-grid", cats: ["utility"], context: "プレイヤー｜体力・知力", title: "自然回復の加算（5秒あたり）", note: "HPは体力、MPは知力による加算分。", max: 24, step: 6, unit: "",
-      series: [...compare(vitality, value => value * 0.1, "HP"), ...compare(mainAttack, value => value * 0.1, "MP")] },
-    { grid: "player-derived-grid", cats: ["offense", "utility"], context: "プレイヤー｜敏捷性", title: "攻撃速度と移動速度", note: "共通初期値と敏捷性の派生の合計（移動速度は職業上限前）。", max: 300, step: 100, unit: "%",
-      series: [...compare(agility, value => 100 + value, "攻撃"), ...compare(agility, value => 100 + value * 0.1, "移動")] },
-    { grid: "player-derived-grid", cats: ["defense"], context: "プレイヤー｜敏捷性", title: "回避率", note: "共通初期値3%に敏捷性の加算分を加える。", max: 25, step: 5, unit: "%",
+    { grid: "player-recovery-grid", cats: ["utility"], context: "プレイヤー｜体力", title: "HP自然回復の加算", note: "体力による5秒あたりの回復量。", max: 24, step: 6, unit: "",
+      series: compare(vitality, value => value * 0.1) },
+    { grid: "player-recovery-grid", cats: ["utility"], context: "プレイヤー｜知力", title: "MP自然回復の加算", note: "知力による5秒あたりの回復量。", max: 24, step: 6, unit: "",
+      series: compare(mainAttack, value => value * 0.1) },
+    { grid: "player-utility-grid", cats: ["offense"], context: "プレイヤー｜敏捷性", title: "攻撃速度", note: "基礎値100%に敏捷性の効果を加算。", max: 300, step: 100, unit: "%",
+      series: compare(agility, value => 100 + value) },
+    { grid: "player-utility-grid", cats: ["utility"], context: "プレイヤー｜敏捷性", title: "移動速度", note: "敏捷性を加算した職業上限適用前の速度。", max: 125, step: 25, unit: "%",
+      series: compare(agility, value => 100 + value * 0.1) },
+    { grid: "player-utility-grid", cats: ["defense"], context: "プレイヤー｜敏捷性", title: "回避率", note: "基礎値3%に敏捷性の効果を加算。", max: 25, step: 5, unit: "%",
       series: compare(agility, value => 3 + value * 0.1) },
-    { grid: "player-derived-grid", cats: ["offense"], context: "プレイヤー｜幸運", title: "通常会心率", note: "共通初期値5%に幸運の加算分を加える。", max: 20, step: 5, unit: "%",
-      series: compare(luck, luckCritRate) },
-    { grid: "player-derived-grid", cats: ["utility"], context: "プレイヤー｜幸運", title: "直接ドロップ倍率", note: "幸運補正対象の討伐・採集ドロップに適用。", max: 2, step: 0.5, unit: "倍", numberFormat: multiplierFormat,
+    { grid: "player-utility-grid", cats: ["utility"], context: "プレイヤー｜幸運", title: "直接ドロップ倍率", note: "幸運補正対象の討伐・採集ドロップに適用。", max: 2, step: 0.5, unit: "倍", numberFormat: multiplierFormat,
       series: compare(luck, value => 1 + value / 100) },
-    { grid: "player-allocation-grid", cats: ["offense", "resource", "defense"], context: "プレイヤー｜標準構成", title: "攻撃力と耐久の配分", note: "攻撃力は主力能力の倍率前、最大HPと共通防御は体力の加算前。", max: 1000, step: 250, unit: "",
-      series: [stat("共通＋種別攻撃力", rawAttack, twoDecimals), stat("最大HP", rawHealth), stat("共通防御", rawDefense)] },
-    { grid: "player-allocation-grid", cats: ["offense"], context: "プレイヤー｜会心特化", title: "通常会心率の直接加算", note: "幸運特化から通常会心特化の目標までに必要な加算量。", max: 20, step: 5, unit: "pt",
-      series: [stat("会心率の加算", level => critRate(level) - luckCritRate(luck.specialized(level)))] },
     { grid: "mob-defense-grid", cats: ["resource"], context: "プレイヤー → 標準モブ｜討伐", title: "標準モブの最大HP", note: "同格への標準実効DPS × 7秒。", max: 9000, step: 3000, unit: "",
       series: [stat("最大HP", level => 7 * standardDps(level))] },
     { grid: "mob-defense-grid", cats: ["defense"], context: "プレイヤー → 標準モブ｜被弾時", title: "標準モブの防御", note: "共通防御は同レベルの基準攻撃力の50%。追加防御は全種別共通。", max: 200, step: 50, unit: "",
@@ -683,7 +685,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     }
     const meta = element("div");
     meta.className = "st-card-meta";
-    const note = element("p",config.note);
+    const note = element("p", typeof config.note === "string" ? config.note : "");
     note.className = "st-note";
     const legend = element("div");
     legend.className = "st-legend";
@@ -743,6 +745,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       if (e.key === "Escape") { pinned = hovered = focused = inspected = null; tip.hidden = true; highlight(); }
     });
     function update(showPinned = true) {
+      if (typeof config.note === "function") note.textContent = config.note(selected);
       clearInspection();
       levelLabel.textContent = "Lv." + selected;
       config.series.forEach((s,i) => {
