@@ -159,6 +159,50 @@ it('aborts the previous log read when switching to another run and ignores its l
   expect(screen.getByText('配布ログ')).toBeVisible()
 })
 
+it('defaults AstralArchitect to building only and starts deployment through a confirmed plan', async () => {
+  let runs: ToolRun[] = []
+  vi.spyOn(toolJobApi, 'runs').mockImplementation(async () => runs)
+  vi.spyOn(toolJobApi, 'logs').mockResolvedValue({ lines: [], next: 0 })
+  const buildPlan = availablePlan({ id: 'build', toolId: '09', confirmations: [] })
+  const deployPlan = availablePlan({
+    id: 'deploy', toolId: '09', confirmations: [{ id: 'deploy', label: '配置先を確認しました' }],
+    paths: [{ label: 'JAR 配置', source: 'C:/fixture/dist/AstralArchitect-*.jar', destination: 'C:/fixture/plugins/AstralArchitect.jar' }],
+  })
+  const makePlan = vi.spyOn(toolJobApi, 'plan').mockResolvedValueOnce(buildPlan).mockResolvedValueOnce(deployPlan)
+  const direct = vi.spyOn(toolJobApi, 'startDirect')
+  const start = vi.spyOn(toolJobApi, 'start').mockImplementation(async () => {
+    const run: ToolRun = {
+      id: 'run', toolId: '09', plan: deployPlan, status: 'succeeded', startedAtUtc: new Date().toISOString(),
+      finishedAtUtc: new Date().toISOString(), exitCode: 0, prompt: null,
+    }
+    runs = [run]
+    return run
+  })
+  render(<DesktopToolWorkspace {...props} page="09" />)
+
+  const action = screen.getByRole('button', { name: '実行' })
+  const checkPlan = screen.getByRole('button', { name: '実行計画を確認' })
+  const mode = screen.getByLabelText('実行方法')
+  await waitFor(() => expect(checkPlan).toBeEnabled())
+  expect(mode).toHaveValue('BuildOnly')
+  expect(action).toBeDisabled()
+  fireEvent.click(checkPlan)
+  fireEvent.click(await screen.findByRole('checkbox', { name: '実行計画を確認しました' }))
+  expect(action).toBeEnabled()
+
+  fireEvent.change(mode, { target: { value: 'Deploy' } })
+  expect(action).toBeDisabled()
+  fireEvent.click(checkPlan)
+  expect(await screen.findByText('C:/fixture/plugins/AstralArchitect.jar')).toBeVisible()
+  fireEvent.click(screen.getByRole('checkbox', { name: '配置先を確認しました' }))
+  fireEvent.click(action)
+  expect(await screen.findByRole('heading', { name: '実行結果' })).toBeVisible()
+  expect(makePlan).toHaveBeenNthCalledWith(1, { toolId: '09', architectMode: 'BuildOnly' })
+  expect(makePlan).toHaveBeenNthCalledWith(2, { toolId: '09', architectMode: 'Deploy' })
+  expect(start).toHaveBeenCalledExactlyOnceWith('deploy', ['deploy'])
+  expect(direct).not.toHaveBeenCalled()
+})
+
 it('sends the confirmed plan and typed response, and opens the completed run in history', async () => {
   const runPlan = availablePlan({
     toolId: '16', summary: ['配布と起動確認'], confirmations: [{ id: 'serversStopped', label: 'サーバーを停止しました' }],

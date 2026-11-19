@@ -45,6 +45,7 @@ export const dockPanels: Record<DockPanelId, string> = {
   spawner: 'ワールド配置・編集',
   '03': toolSpecs['03'].label,
   '01': toolSpecs['01'].label,
+  '09': toolSpecs['09'].label,
   '12': toolSpecs['12'].label,
   '16': toolSpecs['16'].label,
   history: '実行履歴',

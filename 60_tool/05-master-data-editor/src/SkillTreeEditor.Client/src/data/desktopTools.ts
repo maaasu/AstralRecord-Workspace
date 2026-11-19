@@ -13,6 +13,12 @@ export const toolSpecs = {
     action: '実行',
     steps: ['配布設定と Dev の状態を確認', 'ビルドと検証', '設定された成果物の配布・データ更新', 'Dev 起動確認とパッチ公開'],
   },
+  '09': {
+    label: 'AstralArchitect',
+    description: 'AI 建築用プラグインをテスト・ビルドし、設定済みのサーバーへ配置できます。',
+    action: '実行',
+    steps: ['JAR の出力先と配置先を確認', 'Maven でテストとビルドを実行', '配置を選んだ場合は JAR を更新'],
+  },
   '12': {
     label: 'ネットワークビルド',
     description: 'Lobby・Velocity Proxy・Geyser Extension の JAR をビルドします。',
@@ -27,4 +33,4 @@ export const toolSpecs = {
   },
 } satisfies Record<ToolId, { label: string; description: string; action: string; steps: string[] }>
 
-export const toolIds: readonly ToolId[] = ['03', '01', '12', '16']
+export const toolIds: readonly ToolId[] = ['03', '01', '09', '12', '16']

@@ -85,7 +85,7 @@ public sealed class ToolJobService(WorkspacePaths workspace, IConfiguration conf
         if (request.RequestId == Guid.Empty || request.Settings is null)
             throw new ToolJobException(400, "実行するツールと設定を指定してください。");
         if (request.Settings.ToolId is not ("01" or "03" or "12"))
-            throw new ToolJobException(400, "直接実行できるツールを指定してください。メンテナンス配布は実行計画の確認が必要です。");
+            throw new ToolJobException(400, "直接実行できるツールを指定してください。AstralArchitect とメンテナンス配布は実行計画の確認が必要です。");
 
         var options = Normalize(request.Settings);
         using var launch = AcquireToolLaunchLock(options.ToolId);
@@ -247,18 +247,20 @@ public sealed class ToolJobService(WorkspacePaths workspace, IConfiguration conf
 
     internal static ToolJobPlanRequest Normalize(ToolJobPlanRequest request)
     {
-        if (request.ToolId is not ("01" or "03" or "12" or "16"))
+        if (request.ToolId is not ("01" or "03" or "09" or "12" or "16"))
             throw new ToolJobException(400, "対応する運用ツールを選択してください。");
         if (request.ToolId != "12" && (request.NetworkTarget is not null || request.SkipTests)
             || request.ToolId != "16" && (request.WorldCopy is not null || request.NetworkPlugins is not null)
             || request.ToolId != "03" && request.ServerAlreadyRunning
             || request.ToolId != "01" && (request.PluginTestMode is not null || request.PluginTests is not null)
-            || request.ToolId == "12" && request.Recovery is not null)
+            || request.ToolId != "09" && request.ArchitectMode is not null
+            || request.ToolId is ("09" or "12") && request.Recovery is not null)
             throw new ToolJobException(400, "選択したツールで使用できる項目を指定してください。");
 
         if (request.NetworkTarget is not (null or "All" or "Lobby" or "Proxy" or "Extension")
             || request.WorldCopy is not (null or "Include" or "Skip")
             || request.NetworkPlugins is not (null or "Include" or "Skip")
+            || request.ArchitectMode is not (null or "BuildOnly" or "Deploy")
             || request.PluginTestMode is not (null or "All" or "Selected" or "Skip")
             || request.Recovery is not (null or "Auto" or "Restart" or "Restore")
             || request.Recovery == "Restore" && request.ToolId != "16"
@@ -272,7 +274,8 @@ public sealed class ToolJobService(WorkspacePaths workspace, IConfiguration conf
             NetworkTarget = request.ToolId == "12" ? request.NetworkTarget ?? "All" : null,
             WorldCopy = request.ToolId == "16" ? request.WorldCopy ?? "Skip" : null,
             NetworkPlugins = request.ToolId == "16" ? request.NetworkPlugins ?? "Skip" : null,
-            Recovery = request.ToolId != "12" ? request.Recovery ?? "Auto" : null
+            Recovery = request.ToolId is ("09" or "12") ? null : request.Recovery ?? "Auto",
+            ArchitectMode = request.ToolId == "09" ? request.ArchitectMode ?? "BuildOnly" : null
         };
     }
 

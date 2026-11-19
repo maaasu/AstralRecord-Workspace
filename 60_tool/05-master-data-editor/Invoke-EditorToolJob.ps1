@@ -128,6 +128,24 @@ function Get-RequiredJobPlan($Options) {
         $summary.Add('選択した Maven プロジェクトをビルドして JAR を生成します。停止が必要なサーバーはありません。')
         $summary.Add($(if ($Options['skipTests']) { 'Maven テストを省略します。' } else { 'Maven テストを実行します。' }))
         $confirmations.Add(@{id='build';label='対象プラグイン、テスト条件、成果物の出力先を確認した。'})
+    } elseif ($Options['toolId'] -ceq '09') {
+        $entry = Join-Path $toolRoot '09-astralarchitect-build-deploy/astralarchitect-deploy.ps1'
+        if (!(Test-Path -LiteralPath $entry -PathType Leaf)) { throw "既存ツールの起動ファイルがありません: $entry" }
+        if ($Options['architectMode'] -cnotin @('BuildOnly', 'Deploy')) { throw 'AstralArchitect の実行方法を選択してください。' }
+        if ($Options['architectMode'] -ceq 'BuildOnly') { $invoke.BuildOnly = $true }
+        $architectPlan = & $entry @invoke -Plan
+        $configPath = $architectPlan.ConfigPath
+        $settingsFiles += Join-Path $architectPlan.ProjectDirectory 'pom.xml'
+        $paths.Add(@{label='JAR ビルド';source=$architectPlan.ProjectDirectory;destination=$architectPlan.ArtifactPattern})
+        $summary.Add('Maven で AstralArchitect のテストとビルドを実行します。')
+        if ($architectPlan.DestinationJar) {
+            $settingsFiles += $configPath
+            $secureJson += $configPath
+            $invoke.PluginsDirectory = $architectPlan.PluginsDirectory
+            $paths.Add(@{label='JAR 配置';source=$architectPlan.ArtifactPattern;destination=$architectPlan.DestinationJar})
+            $summary.Add('ビルド成功後に JAR を配置します。サーバーは手動で再起動してください。')
+            $confirmations.Add(@{id='deploy';label='AstralArchitect.jar の配置先を確認しました。'})
+        }
     } else {
         $distribution = Join-Path $toolRoot '16-maintenance/Distribution.ps1'
         $runtime = Join-Path $toolRoot '16-maintenance/SkillTreeMigration.ps1'
@@ -403,7 +421,7 @@ function Get-RequiredJobPlan($Options) {
 }
 
 function Invoke-JobPlan($Plan, [string]$ToolId) {
-    if ($ToolId -ceq '12') { return }
+    if ($ToolId -cin @('09', '12')) { return }
     $parameters = $Plan.Invoke.Clone()
     foreach ($name in @('ServersStopped','AutomaticWritersStopped','AdmissionClosed','Recovery','RecoveryChecked')) {
         $parameters.Remove($name)
@@ -487,7 +505,7 @@ try {
         Write-JobJson @{pid=$PID;startedAtTicks=$process.StartTime.ToUniversalTime().Ticks} (Join-Path $JobDirectory 'worker.json')
         $editorJobContext.Log = [IO.File]::Open((Join-Path $JobDirectory 'log.jsonl'), 'Append', 'Write', 'Read')
         $toolId = $editorJobContext.Run.toolId
-        if ($toolId -cnotin @('01', '03', '12', '16')) { throw '対応する運用ツールを選択してください。' }
+        if ($toolId -cnotin @('01', '03', '09', '12', '16')) { throw '対応する運用ツールを選択してください。' }
         try { $toolLock = [IO.File]::Open((Join-Path $root "active-$toolId.lock"), 'OpenOrCreate', 'ReadWrite', 'None') }
         catch [IO.IOException] { throw "$toolId は実行中です。完了後に再実行してください。" }
         $editorJobContext.Run.status = 'running'

@@ -1,6 +1,6 @@
 # AstralRecord Master Data Editor
 
-Filebase の YAML / JSON マスターと、スキルツリーのノード・配置・接続構造、Plugin の表示設定を編集する開発者専用ローカルアプリです。Windows デスクトップ版は ZIP を展開して `AstralRecordMasterEditor.exe` から起動し、03・01・12・16 の計画確認・実行・結果確認も同じ画面で扱います。[デスクトップ版の操作・実行条件](DESKTOP.md) を参照してください。日本語フォーム、原稿編集、装備比較、クラス成長グラフも引き継ぎます。`30_web` には依存せず、ASP.NET Core がワークスペース内のファイルを直接扱います。ブラウザ版の起動入口は従来の `05-master-data-editor.bat`、フロントエンドのビルド入口は `06-master-data-editor-build.bat` です。実装と配布物は `60_tool/05-master-data-editor/` にまとめています。
+Filebase の YAML / JSON マスターと、スキルツリーのノード・配置・接続構造、Plugin の表示設定を編集する開発者専用ローカルアプリです。Windows デスクトップ版は ZIP を展開して `AstralRecordMasterEditor.exe` から起動し、03・01・09・12・16 の計画確認・実行・結果確認も同じ画面で扱います。[デスクトップ版の操作・実行条件](DESKTOP.md) を参照してください。日本語フォーム、原稿編集、装備比較、クラス成長グラフも引き継ぎます。`30_web` には依存せず、ASP.NET Core がワークスペース内のファイルを直接扱います。ブラウザ版の起動入口は従来の `05-master-data-editor.bat`、フロントエンドのビルド入口は `06-master-data-editor-build.bat` です。実装と配布物は `60_tool/05-master-data-editor/` にまとめています。
 
 ## デスクトップ版の配布ビルド
 

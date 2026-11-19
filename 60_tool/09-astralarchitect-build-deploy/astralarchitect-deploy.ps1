@@ -2,7 +2,8 @@
 param(
     [switch]$BuildOnly,
     [string]$PluginsDirectory = '',
-    [string]$ConfigPath
+    [string]$ConfigPath,
+    [switch]$Plan
 )
 
 $ErrorActionPreference = 'Stop'
@@ -153,19 +154,14 @@ $toolDirectory = Split-Path -Parent $PSScriptRoot
 $workspaceRoot = Split-Path -Parent $toolDirectory
 $projectDirectory = Join-Path $workspaceRoot '10_plugin\AstralArchitect'
 $distDirectory = Join-Path $projectDirectory 'dist'
-if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
-    $localPath = Join-Path $PSScriptRoot 'astralarchitect-deploy.local.json'
-    $legacyPath = Join-Path $toolDirectory 'astralarchitect-deploy/astralarchitect-deploy.local.json'
-    $ConfigPath = if (Test-Path -LiteralPath $localPath -PathType Leaf) { $localPath }
-        elseif (Test-Path -LiteralPath $legacyPath -PathType Leaf) { $legacyPath }
-        else { Join-Path $PSScriptRoot 'astralarchitect-deploy.config.json' }
-}
-
 if (-not (Test-Path -LiteralPath $projectDirectory -PathType Container)) {
     throw "AstralArchitect project directory does not exist: $projectDirectory"
 }
 if (-not (Test-Path -LiteralPath (Join-Path $projectDirectory 'pom.xml') -PathType Leaf)) {
     throw "AstralArchitect pom.xml does not exist under: $projectDirectory"
+}
+if (Test-Path -LiteralPath $distDirectory -PathType Leaf) {
+    throw "AstralArchitect output directory points to a file: $distDirectory"
 }
 
 $resolvedPluginsDirectory = $null
@@ -179,11 +175,25 @@ $publishFailpointEnabled = [string]::Equals(
     [System.StringComparison]::Ordinal)
 if (-not $BuildOnly) {
     if ([string]::IsNullOrWhiteSpace($PluginsDirectory)) {
+        if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
+            $localPath = Join-Path $PSScriptRoot 'astralarchitect-deploy.local.json'
+            $legacyPath = Join-Path $toolDirectory 'astralarchitect-deploy/astralarchitect-deploy.local.json'
+            $ConfigPath = if (Test-Path -LiteralPath $localPath -PathType Leaf) { $localPath }
+                elseif (Test-Path -LiteralPath $legacyPath -PathType Leaf) { $legacyPath }
+                else { Join-Path $PSScriptRoot 'astralarchitect-deploy.config.json' }
+        }
         if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) {
             throw "Deployment config does not exist: $configPath"
         }
-        $config = Get-Content -Raw -Encoding UTF8 -LiteralPath $configPath | ConvertFrom-Json
-        $PluginsDirectory = [string]$config.pluginsDirectory
+        try {
+            $config = Get-Content -Raw -Encoding UTF8 -LiteralPath $configPath | ConvertFrom-Json
+        } catch {
+            throw "Deployment config could not be read: $configPath"
+        }
+        $PluginsDirectory = if ($null -ne $config) {
+            $pluginsProperty = $config.PSObject.Properties['pluginsDirectory']
+            if ($pluginsProperty) { [string]$pluginsProperty.Value }
+        }
     }
     if ([string]::IsNullOrWhiteSpace($PluginsDirectory)) {
         throw 'PluginsDirectory is not configured. Set it in astralarchitect-deploy.config.json or pass -PluginsDirectory.'
@@ -212,6 +222,16 @@ if (-not $BuildOnly) {
         if (-not $pluginsPath.StartsWith($systemTemp, [System.StringComparison]::OrdinalIgnoreCase)) {
             throw 'The deployment publish failpoint is permitted only under the system temporary directory.'
         }
+    }
+}
+
+if ($Plan) {
+    return @{
+        ProjectDirectory = $projectDirectory
+        ArtifactPattern = Join-Path $distDirectory 'AstralArchitect-*.jar'
+        ConfigPath = $ConfigPath
+        PluginsDirectory = $resolvedPluginsDirectory
+        DestinationJar = $destinationJar
     }
 }
 

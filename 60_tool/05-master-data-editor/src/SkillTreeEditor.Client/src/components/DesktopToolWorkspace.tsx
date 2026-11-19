@@ -140,7 +140,7 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRuns, vis
   const [expiredId, setExpiredId] = useState('')
   const inFlight = useRef(false)
   const directRequestId = useRef<string>(undefined)
-  const requiresReview = id === '16'
+  const requiresReview = id === '09' || id === '16'
   const spec = toolSpecs[id]
   const expired = requiresReview && plan && (plan.id === expiredId || Date.parse(plan.expiresAtUtc) <= Date.now())
   const activeRun = activeRuns.find(run => run.toolId === id)
@@ -194,7 +194,7 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRuns, vis
     setError('')
     clearPlan()
     try {
-      if (request.toolId === '16') {
+      if (request.toolId === '09' || request.toolId === '16') {
         if (plan) onStarted(await toolJobApi.start(plan.id, checked))
       } else {
         // Reuse the request ID when the result of a previous start is unknown.

@@ -10,6 +10,18 @@ namespace SkillTreeEditor.Server.Tests;
 public sealed class ToolJobServiceTests
 {
     [Fact]
+    public void ArchitectModeIsScopedToTool09()
+    {
+        Assert.Equal("BuildOnly", ToolJobService.Normalize(new ToolJobPlanRequest("09")).ArchitectMode);
+        var deploy = ToolJobService.Normalize(new ToolJobPlanRequest("09", ArchitectMode: "Deploy"));
+        Assert.Equal("Deploy", deploy.ArchitectMode);
+        Assert.Null(deploy.Recovery);
+        Assert.Throws<ToolJobException>(() => ToolJobService.Normalize(new ToolJobPlanRequest("09", ArchitectMode: "Invalid")));
+        Assert.Throws<ToolJobException>(() => ToolJobService.Normalize(new ToolJobPlanRequest("09", Recovery: "Auto")));
+        Assert.Throws<ToolJobException>(() => ToolJobService.Normalize(new ToolJobPlanRequest("12", ArchitectMode: "Deploy")));
+    }
+
+    [Fact]
     public void BrowserHostDoesNotExposeOperationHistory()
     {
         var workspace = new WorkspacePaths(Path.GetTempPath());
@@ -172,6 +184,9 @@ public sealed class ToolJobServiceTests
             var maintenance = await Assert.ThrowsAsync<ToolJobException>(() => service.StartDirectAsync(
                 new ToolJobDirectStartRequest(Guid.NewGuid(), new ToolJobPlanRequest("16")), token));
             Assert.Equal(400, maintenance.StatusCode);
+            var architect = await Assert.ThrowsAsync<ToolJobException>(() => service.StartDirectAsync(
+                new ToolJobDirectStartRequest(Guid.NewGuid(), new ToolJobPlanRequest("09", ArchitectMode: "Deploy")), token));
+            Assert.Equal(400, architect.StatusCode);
 
             File.WriteAllText(config, "{}");
             var stale = await service.CreatePlanAsync(new ToolJobPlanRequest("01", PluginTestMode: "All"), token);

@@ -3,6 +3,7 @@ import { type IncludeMode, type NetworkTarget, type PluginTestMode, type Recover
 export const defaultToolSettings: { [Id in ToolId]: Extract<ToolSettings, { toolId: Id }> } = {
   '03': { toolId: '03', serverAlreadyRunning: false, recovery: 'Auto' },
   '01': { toolId: '01', pluginTestMode: 'All', recovery: 'Auto' },
+  '09': { toolId: '09', architectMode: 'BuildOnly' },
   '12': { toolId: '12', networkTarget: 'All', skipTests: false },
   '16': { toolId: '16', worldCopy: 'Skip', networkPlugins: 'Skip', recovery: 'Auto' },
 }
@@ -75,6 +76,10 @@ export function ToolSettingsFields({ value, onChange }: { value: ToolSettings; o
         <RestartChoice value={value.recovery} onChange={recovery => onChange({ ...value, recovery })} />
         <p className="tool-muted">{deployReadiness}</p>
       </>
+    case '09':
+      return <Choice label="実行方法" value={value.architectMode}
+        choices={{ BuildOnly: 'ビルドのみ', Deploy: 'ビルドして配置' }}
+        onChange={architectMode => onChange({ ...value, architectMode })} />
     case '12':
       return <>
         <Choice label="ビルド対象" value={value.networkTarget} choices={networkTargets} onChange={networkTarget => onChange({ ...value, networkTarget })} />
