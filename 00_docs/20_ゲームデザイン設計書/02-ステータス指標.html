@@ -107,12 +107,24 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   #stat-guide details::details-content { content-visibility: visible; } #stat-guide tr { break-inside: avoid; }
   #stat-guide td,#stat-guide th { padding-block: 1px; }
 }
+@media screen {
+  body::before { content: ""; position: fixed; inset: 0; z-index: 5; background: #0d1016; opacity: 0; pointer-events: none; }
+  body.chart-spotlit::before { opacity: .52; }
+  .spot-slot { display: grid; min-width: 0; position: relative; }
+  .spot-slot.is-spotlit { z-index: 6; }
+  .spot-slot > .spot-field { transform-origin: var(--spot-x,50%) var(--spot-y,50%); }
+  .spot-slot.is-spotlit > .spot-field { transform: scale(var(--spot-scale)); border-color: var(--actor,var(--blue)); box-shadow: 0 8px 28px #10131980; }
+}
+@media screen and (prefers-reduced-motion: no-preference) {
+  body::before { transition: opacity 160ms ease-out; }
+  .spot-field { transition: transform 160ms ease-out, border-color 160ms ease-out; }
+}
 </style>
 </head>
 <body>
 <main id="stat-guide">
   <header><h1>ステータス指標</h1><a href="01-DPS指標.html">DPS指標へ →</a></header>
-  <p class="st-intro">同格の1対1で使う設計値。線に触れると、その項目の値と前後の点を拡大表示します。</p>
+  <p class="st-intro">同格の1対1で使う設計値。ホバー・タップでカード全体を拡大。線に触れると、その系列の値を確認できます。</p>
   <nav class="st-nav" aria-label="対象から探す"><a href="#player">プレイヤーの指標 ↓</a><a href="#mob">標準モブの指標 ↓</a></nav>
   <div class="st-tools">
     <label for="st-level">レベル <output id="st-value" for="st-level">Lv.25</output></label>
@@ -253,7 +265,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   }
   function mount(config) {
     const card = element("section");
-    card.className = "st-card";
+    card.className = "st-card spot-field";
     const context = element("div",config.context);
     context.className = "st-context";
     const heading = element("h3",config.title);
@@ -411,8 +423,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     }
     function inspect(event) {
       const bounds = chart.getBoundingClientRect();
-      const pixel = event.clientX - bounds.left;
-      const pointerY = event.clientY - bounds.top;
+      const pixel = (event.clientX - bounds.left) * chart.clientWidth / bounds.width;
+      const pointerY = (event.clientY - bounds.top) * chart.clientHeight / bounds.height;
       const radius = event.pointerType === "touch" ? 22 : 12;
       if (pixel < left-radius || pixel > right+radius || pointerY < top-radius || pointerY > bottom+radius) {
         clearInspection();
@@ -463,6 +475,77 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     views.forEach(v => v.draw());
   });
   window.addEventListener("afterprint",() => { opened?.forEach(d => d.open = false); opened = null; });
+})();
+</script>
+<script>
+(() => {
+  const fields = document.querySelectorAll(".spot-field");
+  let active = null;
+
+  function closeSpotlight() {
+    active?.classList.remove("is-spotlit");
+    document.body.classList.remove("chart-spotlit");
+    active = null;
+  }
+
+  function spotlight(slot, clientX, clientY) {
+    if (active === slot) return;
+    closeSpotlight();
+    // The slot keeps its layout size while the card grows over its neighbours.
+    const rect = slot.getBoundingClientRect();
+    const viewport = document.documentElement.clientWidth;
+    const originX = Math.max(0, Math.min(rect.width, clientX - rect.left));
+    // Keep the indicated point under the pointer, including the first hover frame.
+    const leftRoom = originX > 0 ? (rect.left - 4) / originX : Infinity;
+    const rightRoom = rect.width > originX ? (viewport - 4 - rect.right) / (rect.width - originX) : Infinity;
+    const scale = 1 + Math.min(.14, leftRoom, rightRoom);
+    if (scale <= 1) return;
+    slot.style.setProperty("--spot-x", originX + "px");
+    slot.style.setProperty("--spot-y", Math.max(0, Math.min(rect.height, clientY - rect.top)) + "px");
+    slot.style.setProperty("--spot-scale", scale);
+    slot.classList.add("is-spotlit");
+    document.body.classList.add("chart-spotlit");
+    active = slot;
+  }
+
+  const visibility = new IntersectionObserver(entries => {
+    if (entries.some(entry => entry.target === active && !entry.isIntersecting)) closeSpotlight();
+  });
+  for (const field of fields) {
+    const slot = document.createElement("div");
+    slot.className = "spot-slot";
+    field.before(slot);
+    slot.append(field);
+    visibility.observe(slot);
+    let lastPointerType = "";
+    slot.addEventListener("pointerdown", event => { lastPointerType = event.pointerType; });
+    slot.addEventListener("pointerenter", event => {
+      if (event.pointerType === "mouse" || event.pointerType === "pen") spotlight(slot, event.clientX, event.clientY);
+    });
+    slot.addEventListener("pointerleave", event => {
+      if (event.pointerType !== "touch" && active === slot) closeSpotlight();
+    });
+    slot.addEventListener("click", event => {
+      if (!event.detail || (event.pointerType || lastPointerType) !== "touch") return;
+      const control = event.target.closest("button, input, label, svg, a");
+      if (active === slot && !control) closeSpotlight();
+      else spotlight(slot, event.clientX, event.clientY);
+    });
+    slot.addEventListener("focusin", event => {
+      if (!event.target.matches(":focus-visible")) return;
+      const rect = event.target.getBoundingClientRect();
+      spotlight(slot, rect.left + rect.width / 2, rect.top + rect.height / 2);
+    });
+    slot.addEventListener("focusout", event => {
+      if (active === slot && !slot.contains(event.relatedTarget)) closeSpotlight();
+    });
+  }
+  document.addEventListener("pointerdown", event => {
+    if (active && !active.contains(event.target)) closeSpotlight();
+  });
+  document.addEventListener("keydown", event => { if (event.key === "Escape") closeSpotlight(); });
+  window.addEventListener("resize", closeSpotlight);
+  window.addEventListener("beforeprint", closeSpotlight);
 })();
 </script>
 </body>
