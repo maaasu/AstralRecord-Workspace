@@ -801,5 +801,113 @@ class RoofSpanTest(unittest.TestCase):
                         sample.assert_not_called()
 
 
+class RoofShiftTest(unittest.TestCase):
+    def test_zero_shift_preserves_operation_data_and_order(self) -> None:
+        roof = _roof([-1, 1], [(0, [1, 5]), (2, [3, 7])], [3, 0, 5])
+        for index, section in enumerate(roof["sections"]):
+            section.update(span=[0, 1], undersides=[index * 2 - 2, index * 2])
+        legacy = compile_blueprint(_plan([roof]), "rough")
+        self.assertEqual(_roof_layers(legacy)[4, 6], set(range(1, 6)))
+        roof["sections"][0]["shiftX"] = 0
+        self.assertEqual(compile_blueprint(_plan([roof]), "rough"), legacy)
+        roof["sections"][1]["shiftX"] = 0
+        self.assertEqual(compile_blueprint(_plan([roof]), "rough"), legacy)
+
+    def test_signed_shifts_and_omitted_section_round_ties_toward_positive_x(self) -> None:
+        roof = _roof([-1], [(0, [1]), (2, [1]), (4, [1])], [10, 0, 4])
+        roof["sections"][0]["shiftX"] = -3
+        roof["sections"][2]["shiftX"] = 3
+        operations = compile_blueprint(_plan([roof]), "rough")
+        columns = [(6, 4), (8, 5), (9, 6), (11, 7), (12, 8)]
+        self.assertEqual([(op["x"], op["z"]) for op in operations], columns)
+        self.assertEqual(_roof_layers(operations), {column: {0} for column in columns})
+
+    def test_span_and_shift_round_separately_and_move_both_surfaces(self) -> None:
+        roof = _roof([-2, 2], [(0, [1, 5]), (2, [3, 7])])
+        roof["sections"][0].update(span=[-2, 2], undersides=[-2, 2])
+        roof["sections"][1].update(span=[-1, 0], shiftX=1, undersides=[0, 4])
+        self.assertEqual(_roof_layers(compile_blueprint(_plan([roof]), "rough")), {
+            (x + shift, z): set(range(x + z, x + z + 3))
+            for z, left, right, shift in ((0, -2, 2, 0), (1, -1, 1, 1), (2, -1, 0, 1))
+            for x in range(left, right + 1)
+        })
+
+    def test_implicit_underside_uses_shifted_neighbors(self) -> None:
+        roof = _roof([0, 1], [(0, [1, -8]), (1, [-8, 5]), (2, [-8, 0])])
+        roof["sections"][0].update(span=[0, 0], shiftX=1)
+        roof["sections"][1].update(span=[1, 1])
+        roof["sections"][2].update(span=[1, 1], shiftX=1)
+        self.assertEqual(_roof_layers(compile_blueprint(_plan([roof]), "rough")), {
+            (1, 0): {0}, (1, 1): set(range(5)), (2, 2): {-1},
+        })
+
+    def test_shifted_stair_uses_actual_flanks_and_mirrors_in_repeated_placements(self) -> None:
+        roof = _roof([0, 2], [(0, [0, 4]), (2, [0, 4])])
+        stairs = "minecraft:dark_prismarine_stairs"
+        roof["stairs"] = stairs
+        for section in roof["sections"]:
+            section["shiftX"] = 3
+        plan = _plan([roof])
+        east = f"{stairs}[facing=east,half=bottom,shape=straight]"
+        self.assertIn({"op": "set", "x": 4, "y": 0, "z": 1, "block": east},
+                      compile_blueprint(plan, "rough"))
+
+        plan["origin"] = [100, 60, 200]
+        plan["placements"][0].update(at=[5, 0, 4], mirror="x", repeat={"count": 2, "step": [7, 1, -2]})
+        operations = compile_blueprint(plan, "rough")
+        west = f"{stairs}[facing=west,half=bottom,shape=straight]"
+        self.assertEqual([op for op in operations if op["block"].startswith(stairs)], [
+            {"op": "set", "x": 101, "y": 60, "z": 205, "block": west},
+            {"op": "set", "x": 108, "y": 61, "z": 203, "block": west},
+        ])
+
+        roof["sections"][1]["shiftX"] = 9
+        operations = compile_blueprint(_plan([roof]), "rough")
+        self.assertEqual(_roof_layers(operations)[7, 1], {-1, 0, 1})
+        self.assertFalse(any(op["block"].startswith(stairs) for op in operations))
+
+    def test_rejects_invalid_shift_values(self) -> None:
+        roof = _roof([0], [(0, [1])])
+        for shift in (True, False, 1.0, "1", None, -(2 ** 31) - 1, 2 ** 31):
+            with self.subTest(shift=shift):
+                roof["sections"][0]["shiftX"] = shift
+                with self.assertRaises(BlueprintError):
+                    compile_blueprint(_plan([roof]), "rough")
+
+    def test_shifted_bounds_check_only_emitted_columns(self) -> None:
+        max_x = 2 ** 31 - 1
+        roof = _roof([0, 1], [(0, [1, 1])])
+        section = roof["sections"][0]
+        section.update(span=[0, 0], shiftX=max_x)
+        self.assertEqual(_roof_layers(compile_blueprint(_plan([roof]), "rough")), {(max_x, 0): {0}})
+        del section["span"]
+        with self.assertRaises(BlueprintError):
+            compile_blueprint(_plan([roof]), "rough")
+
+        roof = _roof([1], [(0, [1])], [max_x, 0, 0])
+        roof["sections"][0]["shiftX"] = -1
+        self.assertEqual(_roof_layers(compile_blueprint(_plan([roof]), "rough")), {(max_x, 0): {0}})
+
+    def test_extreme_shift_uses_unshifted_grid_and_existing_limits(self) -> None:
+        min_x, max_x = -(2 ** 31), 2 ** 31 - 1
+        roof = _roof([0], [(0, [1]), (2, [1])])
+        roof["sections"][0]["shiftX"] = min_x
+        roof["sections"][1]["shiftX"] = max_x
+        plan = _plan([roof])
+        with patch("astralarchitect_ticket.blueprint.MAX_OPERATIONS", 3):
+            with patch("astralarchitect_ticket.blueprint.MAX_TICKET_VOLUME", 3):
+                self.assertEqual(_roof_layers(compile_blueprint(plan, "rough")), {
+                    (min_x, 0): {0}, (0, 1): {0}, (max_x, 2): {0},
+                })
+        for limit, error in (("MAX_OPERATIONS", "local operation limit"),
+                             ("MAX_TICKET_VOLUME", "block visits")):
+            with self.subTest(limit=limit):
+                with patch(f"astralarchitect_ticket.blueprint.{limit}", 2):
+                    with patch("astralarchitect_ticket.blueprint._roof_axis_samples") as samples:
+                        with self.assertRaisesRegex(BlueprintError, error):
+                            compile_blueprint(plan, "rough")
+                        samples.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
