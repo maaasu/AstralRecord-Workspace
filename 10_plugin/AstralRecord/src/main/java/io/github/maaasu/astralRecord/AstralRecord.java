@@ -2811,8 +2811,6 @@ public final class AstralRecord extends JavaPlugin {
         networkBridgeService.setInvulnerabilityVisualService(invulnerabilityVisualService);
         networkBridgeService.setResourcePackService(resourcePackService);
         playerHudService.setBedrockQuestHudSender(networkBridgeService::sendBedrockQuestHud);
-        skillActionRingService.setBedrockMenuSender(networkBridgeService::openBedrockSkillMenu);
-        networkBridgeService.setBedrockSkillMenuResultHandler(skillActionRingService::acceptBedrockMenuResult);
         accountModeApplicationService.setModeAppliedListener(player -> {
             playerClassService.updatePlayerListName(player);
             networkBridgeService.refreshPlayerMetadata(player);
@@ -2825,6 +2823,15 @@ public final class AstralRecord extends JavaPlugin {
      * onEnableから、Pluginが有効な状態でイベントやコマンドなどの機能を登録します。
      */
     private void registerPluginFeatures() {
+        // 統合版の一時表示中は、装備操作が実アイテムへ適用される前にクリックを止めます。
+        var skillActionRingEventHandler = new SkillActionRingEventHandler(
+            skillActionRingService,
+            inventoryService,
+            playerSettingService,
+            skillActionRingHoldService
+        );
+        eventManager.registerHandler(skillActionRingEventHandler, getServer().getPluginManager());
+
         // onLoadではまだPluginが無効のため、リスナー登録はonEnableの登録境界で行う。
         getServer().getPluginManager().registerEvents(invulnerabilityVisualService, this);
         eventManager.registerHandler(
@@ -2942,7 +2949,7 @@ public final class AstralRecord extends JavaPlugin {
         });
         playerJoinEventHandler.setPlayerQuitListener(player -> {
             UUID playerId = player.getBukkit().getUniqueId();
-            skillActionRingService.forgetBedrockShortcut(player.getBukkit());
+            skillActionRingService.forgetBedrockHotbar(player.getBukkit());
             guideCompletionRewardService.discardAccountState(player.getAccount().getUuid());
             mailService.discardMenuState(player.getAccount().getUuid());
             try {
@@ -3254,13 +3261,6 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(rebirthGuiEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(skillActionRingHoldService, getServer().getPluginManager());
-        var skillActionRingEventHandler = new SkillActionRingEventHandler(
-            skillActionRingService,
-            inventoryService,
-            playerSettingService,
-            skillActionRingHoldService
-        );
-        eventManager.registerHandler(skillActionRingEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(
             new ActiveSkillLifecycleEventHandler(activeSkillLifecycleService),
             getServer().getPluginManager()
