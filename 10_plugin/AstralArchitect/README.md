@@ -120,7 +120,7 @@ python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- pr
 
 作業中の変更を見る場合は `live` を起動してローカル URL を開き、AI が `live-ops` で送った操作を3D画面で確認できます。カメラを操作している間も作業結果が反映されます。Java 1.21.11 のクライアント JAR を指定すると、草・葉・柵を含むブロックをゲームのモデルとテクスチャで表示できます。詳しくは[ライブ3Dビューアーの手順](../../.codex/skills/astralarchitect-builder/references/ticket-contract.md#ライブ3dビューアー)を参照してください。
 
-編集は`set`、`fill`、`line`、`replace`操作をJSON/NDJSONで指定します。詳細は`tools/README.md`と`$astralarchitect-builder`を参照してください。CLIにはワールド適用、ロールバック、チケット削除機能を持たせていません。
+新築・全体改修では AI が部品を持つ JSON 設計書を作成し、全体の粗モデルを撮影してから、柱列・窓・塔を反復・鏡映して仕上げます。画像と水平断面を見て設計書を修正し、採用した仕上げを候補に反映します。局所編集には従来の `set`、`fill`、`line`、`replace` も使えます。[設計と撮影の手順](../../.codex/skills/astralarchitect-builder/references/blueprint.md)
 
 `slice`と`surface`はCodexへ巨大なJSONを返さないよう、1回につきX/Z平面で16,384セルまでです。広い範囲は座標窓を分けて順番に読みます。編集操作も全操作を合計した展開数に上限があり、異常に大きい操作ファイルは書込み前に拒否します。
 

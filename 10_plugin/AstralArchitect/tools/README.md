@@ -85,3 +85,9 @@ HTTP は `127.0.0.1` の空きポートだけで待ち受け、Web画面は閲�
 ```text
 python -m unittest discover -s tests -v
 ```
+
+## 部品を使う建築
+
+`preview --plan <設計書の絶対パス> --stage rough` で建物全体の骨格を、`--stage detail` で全体に仕上げを加えた姿を撮影できます。従来の `preview` と同じカメラ・出力引数を使います。プレビューのたびに現在の候補から部品を展開するので、設計書で塔を移動すると以前の位置も消えます。ライブ表示では `live-ops --session <session> --plan <設計書> --stage rough` のように設計を差し替えられます。
+
+画像確認後、`apply-ops <ticket> --plan <設計書> --expect-candidate-sha256 <baseCandidateSha256> --expect-stage-sha256 <stageSha256>` で採用した仕上げを反映します。部品、反復、鏡映を使う JSON の例は [設計書 v1](../../../.codex/skills/astralarchitect-builder/references/blueprint.md) を参照してください。

@@ -11,6 +11,7 @@ from pathlib import Path
 import sys
 from typing import Sequence
 
+from .blueprint import compile_blueprint
 from .live import LiveServer, json_bytes, request_live
 from .preview import render_preview
 from .schematic import (
@@ -64,7 +65,10 @@ def _parser() -> JsonArgumentParser:
 
     slice_parser = command("slice", "read one horizontal Y slice as run-length encoded rows")
     slice_parser.add_argument("--y", type=int, required=True, help="world Y coordinate")
-    slice_parser.add_argument("--source", action="store_true", help="inspect source.schem instead")
+    slice_scene = slice_parser.add_mutually_exclusive_group()
+    slice_scene.add_argument("--source", action="store_true", help="inspect source.schem instead")
+    slice_scene.add_argument("--plan", help="inspect a blueprint on the current candidate")
+    slice_parser.add_argument("--stage", choices=("rough", "detail"), help="blueprint stage (default: detail)")
     _add_horizontal_window_arguments(slice_parser)
 
     surface = command("surface", "show the top non-air block for every X/Z column")
@@ -79,6 +83,8 @@ def _parser() -> JsonArgumentParser:
     scene = preview.add_mutually_exclusive_group()
     scene.add_argument("--source", action="store_true", help="render source.schem instead")
     scene.add_argument("--ops", help="simulate a JSON/NDJSON file, or - for stdin")
+    scene.add_argument("--plan", help="simulate a modular blueprint JSON file, or - for stdin")
+    preview.add_argument("--stage", choices=("rough", "detail"), help="blueprint preview stage (default: detail)")
     preview.add_argument("--eye", type=float, nargs=3, required=True, metavar=("X", "Y", "Z"))
     preview.add_argument("--target", type=float, nargs=3, required=True, metavar=("X", "Y", "Z"))
     preview.add_argument("--width", type=int, default=720, help="output width in pixels")
@@ -92,7 +98,10 @@ def _parser() -> JsonArgumentParser:
 
     live_ops = command("live-ops", "submit one operation batch to a running live viewer")
     live_ops.add_argument("--session", required=True, help="absolute path to the live session file")
-    live_ops.add_argument("--ops", required=True, help="absolute JSON/NDJSON file path, or - for stdin")
+    live_input = live_ops.add_mutually_exclusive_group(required=True)
+    live_input.add_argument("--ops", help="append JSON/NDJSON operations, or - for stdin")
+    live_input.add_argument("--plan", help="replace the draft with a blueprint JSON file, or - for stdin")
+    live_ops.add_argument("--stage", choices=("rough", "detail"), help="blueprint stage (default: detail)")
 
     live_export = command("live-export", "export the current live draft's ordered operations")
     live_export.add_argument("--session", required=True, help="absolute path to the live session file")
@@ -102,7 +111,10 @@ def _parser() -> JsonArgumentParser:
     live_stop.add_argument("--session", required=True, help="absolute path to the live session file")
 
     apply_ops = command("apply-ops", "atomically apply JSON/NDJSON operations to candidate.schem")
-    apply_ops.add_argument("--ops", required=True, help="absolute JSON/NDJSON file path, or - for stdin")
+    proposal = apply_ops.add_mutually_exclusive_group(required=True)
+    proposal.add_argument("--ops", help="absolute JSON/NDJSON file path, or - for stdin")
+    proposal.add_argument("--plan", help="apply the detail stage of the reviewed blueprint")
+    apply_ops.add_argument("--expect-stage-sha256", help="stageSha256 from the detail preview (required with --plan)")
     apply_ops.add_argument("--expect-candidate-sha256", help="candidate hash from preview")
     return parser
 
@@ -241,6 +253,7 @@ def _slice(
     x_max: int | None,
     z_min: int | None,
     z_max: int | None,
+    proposal: list[object] | None = None,
 ) -> dict[str, object]:
     if not ticket.bounds.minimum.y <= world_y <= ticket.bounds.maximum.y:
         raise TicketError(f"Y coordinate {world_y} is outside ticket bounds")
@@ -248,7 +261,7 @@ def _slice(
         ticket, x_min, x_max, z_min, z_max
     )
     schematic = _schematic(ticket, use_source)
-    state_names = schematic.states()
+    state_names = schematic.states() if proposal is None else simulate_operations(ticket, proposal).states
     local_y = world_y - ticket.bounds.minimum.y
     rows: list[dict[str, object]] = []
     for world_z in range(selected_z_min, selected_z_max + 1):
@@ -269,7 +282,7 @@ def _slice(
     result = _base(ticket, "slice")
     result.update(
         {
-            "schematic": "source" if use_source else "candidate",
+            "schematic": "proposed" if proposal is not None else ("source" if use_source else "candidate"),
             "y": world_y,
             "window": {
                 "xMin": selected_x_min,
@@ -370,27 +383,68 @@ def _diff(ticket: Ticket, limit: int, offset: int) -> dict[str, object]:
     return result
 
 
-def _read_operations(value: str) -> list[object]:
+def _read_input(value: str, option: str) -> bytes:
+    label = "operations" if option == "--ops" else "blueprint"
     if value == "-":
         raw = sys.stdin.buffer.read(MAX_OPERATION_BYTES + 1)
     else:
         path = Path(value).expanduser()
         if not path.is_absolute():
-            raise TicketError("--ops file path must be absolute, or - for stdin")
+            raise TicketError(f"{option} file path must be absolute, or - for stdin")
         try:
             resolved = path.resolve(strict=True)
         except OSError as exc:
-            raise TicketError("operations file does not exist") from exc
-        reject_reparse_chain(path, "operations path")
+            raise TicketError(f"{label} file does not exist") from exc
+        reject_reparse_chain(path, f"{label} path")
         if not resolved.is_file():
-            raise TicketError("operations path must be a regular non-link file")
+            raise TicketError(f"{label} path must be a regular non-link file")
         try:
             with resolved.open("rb") as stream:
                 raw = stream.read(MAX_OPERATION_BYTES + 1)
         except OSError as exc:
-            raise TicketError("cannot read operations file") from exc
+            raise TicketError(f"cannot read {label} file") from exc
     if len(raw) > MAX_OPERATION_BYTES:
-        raise TicketError("operations input exceeds 16 MiB")
+        raise TicketError(f"{label} input exceeds 16 MiB")
+    return raw
+
+
+def _unique_fields(items: list[tuple[str, object]]) -> dict[str, object]:
+    result = {}
+    for name, value in items:
+        if name in result:
+            raise TicketError(f"duplicate blueprint field: {name}")
+        result[name] = value
+    return result
+
+
+def _proposal(args: argparse.Namespace) -> tuple[list[object], dict[str, object]]:
+    if args.plan is None:
+        if getattr(args, "expect_stage_sha256", None) is not None:
+            raise TicketError("--expect-stage-sha256 requires --plan")
+        return _read_operations(args.ops), {}
+    raw = _read_input(args.plan, "--plan")
+    stage = getattr(args, "stage", None) or "detail"
+    try:
+        design = json.loads(raw.decode("utf-8-sig"), object_pairs_hook=_unique_fields)
+        operations = compile_blueprint(design, stage)
+    except (UnicodeError, ValueError, RecursionError) as exc:
+        raise TicketError(f"invalid blueprint: {exc}") from exc
+    # Also bind the resulting operations in case the compiler changed after review.
+    fingerprint = hashlib.sha256(stage.encode("ascii") + b"\0")
+    fingerprint.update(raw)
+    fingerprint.update(b"\0")
+    fingerprint.update(json_bytes(operations))
+    digest = fingerprint.hexdigest()
+    if args.command == "apply-ops":
+        if not args.expect_candidate_sha256 or not args.expect_stage_sha256:
+            raise TicketError("--plan requires both hashes from the detail preview")
+        if args.expect_stage_sha256 != digest:
+            raise TicketError("blueprint or stage differs from the detail preview; preview again before applying")
+    return operations, {"stageSha256": digest, "stage": stage, "operationCount": len(operations)}
+
+
+def _read_operations(value: str) -> list[object]:
+    raw = _read_input(value, "--ops")
     try:
         text = raw.decode("utf-8")
     except UnicodeDecodeError as exc:
@@ -458,10 +512,14 @@ def _preview(ticket: Ticket, args: argparse.Namespace) -> dict[str, object]:
         "height": args.height,
         "clipY": args.clip_y,
     })
-    if args.ops is None:
+    if args.stage is not None and args.plan is None:
+        raise TicketError("--stage requires --plan")
+    if args.ops is None and args.plan is None:
         states = _schematic(ticket, args.source).states()
     else:
-        plan = simulate_operations(ticket, _read_operations(args.ops))
+        operations, description = _proposal(args)
+        plan = simulate_operations(ticket, operations)
+        result.update(description)
         states = plan.states
         result.update({
             "scene": "proposed",
@@ -550,8 +608,12 @@ def _live_command(args: argparse.Namespace) -> dict[str, object]:
     reject_reparse_chain(ticket, "ticket path")
     ticket = ticket.resolve(strict=True)
     if args.command == "live-ops":
-        operations = json_bytes(_read_operations(args.ops))
-        result = request_live(ticket, args.session, "POST", "/api/ops", operations)
+        if args.stage is not None and args.plan is None:
+            raise TicketError("--stage requires --plan")
+        operations, metadata = _proposal(args)
+        path = "/api/replace" if args.plan is not None else "/api/ops"
+        result = request_live(ticket, args.session, "POST", path, json_bytes(operations))
+        result.update(metadata)
     else:
         _output_path(args.output, ticket, ".json", "--output")
         result = request_live(ticket, args.session, "GET", "/api/export")
@@ -576,7 +638,9 @@ def execute(args: argparse.Namespace) -> dict[str, object] | None:
             if args.expect_candidate_sha256 is not None and ticket.candidate_hash != args.expect_candidate_sha256:
                 raise TicketError("candidate.schem differs from the preview base; preview again before applying")
             result = _base(ticket, "apply-ops")
-            result.update(apply_operations(ticket, _read_operations(args.ops)))
+            operations, description = _proposal(args)
+            result.update(apply_operations(ticket, operations))
+            result.update(description)
             result["requiresMinecraftValidation"] = True
             return result
 
@@ -590,6 +654,9 @@ def execute(args: argparse.Namespace) -> dict[str, object] | None:
     if args.command == "get-block":
         return _get_block(ticket, args.source, Point(args.x, args.y, args.z))
     if args.command == "slice":
+        if args.stage is not None and args.plan is None:
+            raise TicketError("--stage requires --plan")
+        operations = _proposal(args)[0] if args.plan is not None else None
         return _slice(
             ticket,
             args.source,
@@ -598,6 +665,7 @@ def execute(args: argparse.Namespace) -> dict[str, object] | None:
             args.x_max,
             args.z_min,
             args.z_max,
+            operations,
         )
     if args.command == "surface":
         return _surface(

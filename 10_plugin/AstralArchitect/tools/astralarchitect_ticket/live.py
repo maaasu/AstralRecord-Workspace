@@ -28,6 +28,7 @@ from .schematic import (
 )
 
 if TYPE_CHECKING:
+    from .schematic import ProposedOperations
     from .vanilla_assets import VanillaAssets
 
 _LOCAL_ADDRESS = "127.0.0.1"
@@ -122,60 +123,81 @@ class LiveDraft:
                 "updates": [patch for patch in self.history if patch["revision"] > since],
             }
 
-    def submit(self, operations: object, payload_size: int) -> dict:
+    def submit(self, operations: object, payload_size: int, *, replace: bool = False) -> dict:
         if not isinstance(operations, list) or not operations:
             raise TicketError("live operations must be a nonempty JSON array")
         with self.condition:
             if self.closing:
                 raise TicketError("live session is closing")
-            if len(self.operations) + len(operations) > MAX_OPERATIONS:
+            previous_ops = [] if replace else self.operations
+            if len(previous_ops) + len(operations) > MAX_OPERATIONS:
                 raise TicketError("too many cumulative live operations for apply-ops")
-            separator_bytes = 1 if self.operations else 0
-            export_size = self.operation_bytes + payload_size - 2 + separator_bytes
+            export_size = payload_size
+            if previous_ops:
+                export_size += self.operation_bytes - 1  # Splice the two JSON arrays with a comma.
             if export_size > MAX_OPERATION_BYTES:
                 raise TicketError("cumulative live operations exceed the 16 MiB apply-ops limit")
             plan = simulate_operations(
-                self.ticket, operations, base_states=self.states, previous_visits=self.visits
+                self.ticket, operations, base_states=self.initial if replace else self.states,
+                previous_visits=0 if replace else self.visits,
             )
-            # Bake every new model before publishing any block or revision change.
-            new_states = dict.fromkeys(
-                plan.states[index] for index in plan.changed_indices
-                if plan.states[index] not in self.palette_ids
-            )
-            new_models = [self._palette_model(state) for state in new_states]
-            new_palette_start = len(self.palette)
-            self.palette.extend(new_models)
-            self.palette_ids.update((state, new_palette_start + offset) for offset, state in enumerate(new_states))
-            patch = [] if len(plan.changed_indices) <= _MAX_PATCH_CELLS else None
-            for index in plan.changed_indices:
-                was_changed = self.states[index] != self.initial[index]
-                is_changed = plan.states[index] != self.initial[index]
-                self.changed_count += is_changed - was_changed
-                block_id = self.palette_ids[plan.states[index]]
-                self.blocks[index] = block_id
-                if patch is not None:
-                    patch.append((index, block_id))
-            self.states = plan.states
-            self.revision += 1
-            self.operations.extend(operations)
-            self.operation_bytes = export_size
-            self.visits = plan.visits
-            if patch is None:
+            if replace:
+                # A reset allows a fresh palette. Bake it before publishing the new revision.
+                palette_ids = {state: index for index, state in enumerate(dict.fromkeys(plan.states))}
+                palette = [
+                    self.palette[self.palette_ids[state]] if state in self.palette_ids else self._palette_model(state)
+                    for state in palette_ids
+                ]
+                blocks = [palette_ids[state] for state in plan.states]
+                changed = sum(old != new for old, new in zip(self.states, plan.states))
+                self.palette, self.palette_ids, self.blocks = palette, palette_ids, blocks
+                self.changed_count = len(plan.changed_indices)
                 self.history.clear()
             else:
-                self.history.append({
-                    "revision": self.revision,
-                    "changedBlockCount": self.changed_count,
-                    "palette": self.palette[new_palette_start:],
-                    "changes": patch,
-                })
+                changed = self._append_patch(plan)
+            self.states = plan.states
+            self.revision += 1
+            previous_ops.extend(operations)
+            self.operations = previous_ops
+            self.operation_bytes = export_size
+            self.visits = plan.visits
             self.condition.notify_all()
             return {
                 "ok": True,
                 "revision": self.revision,
-                "batchChangedBlockCount": len(plan.changed_indices),
+                "batchChangedBlockCount": changed,
                 "changedBlockCount": self.changed_count,
             }
+
+    def _append_patch(self, plan: ProposedOperations) -> int:
+        # Bake every new model before publishing any block or revision change.
+        new_states = dict.fromkeys(
+            plan.states[index] for index in plan.changed_indices
+            if plan.states[index] not in self.palette_ids
+        )
+        new_models = [self._palette_model(state) for state in new_states]
+        new_palette_start = len(self.palette)
+        self.palette.extend(new_models)
+        self.palette_ids.update((state, new_palette_start + offset) for offset, state in enumerate(new_states))
+        patch = [] if len(plan.changed_indices) <= _MAX_PATCH_CELLS else None
+        for index in plan.changed_indices:
+            was_changed = self.states[index] != self.initial[index]
+            is_changed = plan.states[index] != self.initial[index]
+            self.changed_count += is_changed - was_changed
+            block_id = self.palette_ids[plan.states[index]]
+            self.blocks[index] = block_id
+            if patch is not None:
+                patch.append((index, block_id))
+        if patch is None:
+            self.history.clear()
+        else:
+            self.history.append({
+                "revision": self.revision + 1,
+                "changedBlockCount": self.changed_count,
+                "palette": self.palette[new_palette_start:],
+                "changes": patch,
+            })
+        return len(plan.changed_indices)
 
     def export(self) -> dict:
         with self.condition:
@@ -324,7 +346,7 @@ class _LiveHandler(BaseHTTPRequestHandler):
             self._json(200, {"ok": True})
             Thread(target=self.server.shutdown, daemon=True).start()
             return
-        if self.path != "/api/ops":
+        if self.path not in {"/api/ops", "/api/replace"}:
             self._failure(404, "unknown live viewer path")
             return
         try:
@@ -335,7 +357,7 @@ class _LiveHandler(BaseHTTPRequestHandler):
             if len(body) != length:
                 raise TicketError("live operations were incomplete")
             operations = json.loads(body)
-            result = self.server.draft.submit(operations, len(json_bytes(operations)))
+            result = self.server.draft.submit(operations, len(json_bytes(operations)), replace=self.path == "/api/replace")
         except (ValueError, TimeoutError, RecursionError) as error:
             self._failure(400, str(error))
             return

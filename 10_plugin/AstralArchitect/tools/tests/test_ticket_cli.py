@@ -247,6 +247,54 @@ class TicketCliTest(unittest.TestCase):
         self.assertNotEqual(0, process.returncode)
         self.assertIn("differs from the preview base", failure["error"])
 
+    def test_blueprint_revision_and_detail_review_match_final_candidate(self) -> None:
+        design = {
+            "version": 1, "origin": [101, 65, 200],
+            "parts": {"pier": {
+                "rough": [{"op": "set", "at": [0, 0, 0], "block": "minecraft:stone"}],
+                "detail": [{"op": "set", "at": [0, 0, 1], "block": "minecraft:gold_block"}],
+            }},
+            "placements": [{"part": "pier", "at": [0, 0, 0]}],
+        }
+        path = self.root / "design.json"
+        path.write_text(json.dumps(design), encoding="utf-8")
+        base = self._sha256(self.candidate_path)
+        apply = ("apply-ops", str(self.ticket_dir), "--plan", str(path), "--expect-candidate-sha256", base)
+        for stage in ("rough", "detail"):
+            process, preview = self._run(*self._preview_args(self.root / (stage + ".png")),
+                                         "--plan", str(path), "--stage", stage)
+            self.assertEqual(0, process.returncode, preview)
+            self.assertEqual(stage, preview["stage"])
+            self.assertEqual(1 if stage == "rough" else 2, preview["changedBlockCount"])
+            self.assertEqual(base, self._sha256(self.candidate_path))
+            process, layer = self._run("slice", str(self.ticket_dir), "--y", "65",
+                                       "--x-min", "101", "--x-max", "101",
+                                       "--z-min", "201", "--z-max", "201",
+                                       "--plan", str(path), "--stage", stage)
+            self.assertEqual(0, process.returncode, layer)
+            self.assertEqual("proposed", layer["schematic"])
+            expected = "minecraft:air" if stage == "rough" else "minecraft:gold_block"
+            self.assertEqual(expected, layer["rows"][0]["runs"][0]["block"])
+            if stage == "rough":
+                process, _ = self._run(*apply, "--expect-stage-sha256", preview["stageSha256"])
+                self.assertNotEqual(0, process.returncode)
+        design["placements"][0]["at"] = [1, 0, 0]
+        path.write_text(json.dumps(design), encoding="utf-8")
+        process, _ = self._run(*apply, "--expect-stage-sha256", preview["stageSha256"])
+        self.assertNotEqual(0, process.returncode)
+        revised = self.root / "revised.png"
+        process, approved = self._run(*self._preview_args(revised), "--plan", str(path))
+        self.assertEqual(0, process.returncode, approved)
+        process, applied = self._run(*apply, "--expect-stage-sha256", approved["stageSha256"])
+        self.assertEqual(0, process.returncode, applied)
+        self.assertEqual(2, applied["changedBlockCount"])
+        final = self.root / "final.png"
+        process, _ = self._run(*self._preview_args(final))
+        self.assertEqual(0, process.returncode)
+        self.assertEqual(revised.read_bytes(), final.read_bytes())
+        process, failure = self._run(*apply, "--expect-stage-sha256", approved["stageSha256"])
+        self.assertIn("differs from the preview base", failure["error"])
+
     def test_preview_rejects_invalid_operation_and_unsafe_output(self) -> None:
         output = self.root / "proposed.png"
         operation = json.dumps({
