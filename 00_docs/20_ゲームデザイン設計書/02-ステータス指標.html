@@ -390,7 +390,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
           <span class="fx-paren">(</span><span class="fx-num">1</span><span class="fx-op">+</span><span class="fx-frac"><var class="fx-var cat-primary">対応能力値</var><span class="fx-num">100</span></span><span class="fx-paren">)</span>
         </div>
         <p class="fx-example"><span class="fx-lv">例</span>対応能力値 <b class="c-primary">5</b>（装備なし基準案）なら 1 + 5 ÷ 100 = <span class="fx-result">1.05倍</span></p>
-        <ul class="fx-notes"><li>会心・スキル倍率を掛ける前の値。</li><li>プレイヤーの共通防御は、同じレベルの基準攻撃力と同じ値。</li></ul>
+        <ul class="fx-notes"><li>会心・スキル倍率を掛ける前の値。</li></ul>
       </section>
       <section class="fx-card" id="fx-damage" aria-labelledby="fx-damage-title">
         <div class="fx-card-head"><h3 id="fx-damage-title"><span class="sub-num">4.2</span>被ダメージ</h3><span class="cat-list"><span class="cat cat-defense">防御</span><span class="cat cat-element">属性</span></span></div>
@@ -404,7 +404,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
           <figcaption>防御で通る割合（横軸は 防御 ÷ 攻撃力）</figcaption>
           <svg id="fx-defense-chart" viewBox="0 0 400 170" role="img" aria-label="防御が攻撃力と同じなら50%、攻撃力の2.5倍なら0%が通る曲線"></svg>
         </figure>
-        <p class="fx-example"><span class="fx-lv" data-fx="lv">Lv.25</span>標準モブの無属性攻撃をプレイヤーが受ける場合：<b class="c-offense" data-fx="mobPower">181</b> × <b class="c-defense" data-fx="pass">45.3%</b> × (1 − <b class="c-element" data-fx="res">12.1%</b>) = <span class="fx-result" data-fx="dmg">72.1</span></p>
+        <p class="fx-example"><span class="fx-lv" data-fx="lv">Lv.25</span>標準モブの無属性攻撃をプレイヤーが受ける場合：<b class="c-offense" data-fx="mobPower">185</b> × <b class="c-defense" data-fx="pass">44%</b> × (1 − <b class="c-element" data-fx="res">12.1%</b>) ≈ <span class="fx-result" data-fx="dmg">71.5</span></p>
         <ul class="fx-notes"><li>通常攻撃は無・火・氷・雷のいずれか1属性100%。</li><li>属性ダメージ増加・貫通がない場合の式。</li></ul>
       </section>
       <section class="fx-card" id="fx-crit" aria-labelledby="fx-crit-title">
@@ -433,10 +433,10 @@ body { margin: 0; background: var(--page); color: var(--ink); }
           <div class="fx-arrow"><span>÷ 7発</span><svg viewBox="0 0 28 10" aria-hidden="true"><path d="M1 5 H26 M21 1 L26 5 L21 9"/></svg></div>
           <div class="fx-step"><small>1発に必要なダメージ</small><b data-fx="need">71.4</b></div>
           <div class="fx-arrow"><span>防御・耐性から逆算</span><svg viewBox="0 0 28 10" aria-hidden="true"><path d="M1 5 H26 M21 1 L26 5 L21 9"/></svg></div>
-          <div class="fx-step" style="--c: var(--cat-offense)"><small>モブ攻撃力</small><b data-fx="mobPower">181</b></div>
+          <div class="fx-step" style="--c: var(--cat-offense)"><small>モブ攻撃力</small><b data-fx="mobPower">185</b></div>
         </div>
-        <p class="fx-example"><span class="fx-lv" data-fx="lv">Lv.25</span>無属性の場合。攻撃力 <b class="c-offense" data-fx="mobPower">181</b> の1発は <b data-fx="dmg">72.1</b> で、必要な <b data-fx="need">71.4</b> を超える最小の整数。</p>
-        <ul class="fx-notes"><li>共通防御とプレイヤーの基礎耐性を適用。</li><li>近接・単一属性100%、会心・貫通・追加防御・回復なしで比較する。</li></ul>
+        <p class="fx-example"><span class="fx-lv" data-fx="lv">Lv.25</span>無属性の場合。必要な被ダメージ <b data-fx="need">71.4</b> に達する最小の整数攻撃力は <b class="c-offense" data-fx="mobPower">185</b> で、1発は <b data-fx="dmg">71.5</b>。</p>
+        <ul class="fx-notes"><li>共通防御と基礎耐性を適用。共通防御が高いほど必要な攻撃力は増えるが、整数化により同値になる場合もある。</li><li>近接・単一属性100%、会心・貫通・追加防御・回復なしで比較する。</li></ul>
       </section>
     </div>
   </section>
@@ -463,7 +463,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   function stat(label, value) { return {label, read: typeof value === "number" ? () => value : value}; }
   const attack = curve([6.8, 200, 300, 400]);
   const health = curve([100, 500, 800, 1200]);
-  const playerDefense = attack;
+  const playerDefense = curve([7, 210, 315, 425]);
   const playerResistance = level => 5 + 70 * (level - 1) / 99;
   const zeroToFifty = level => 50 * (level - 1) / 99;
   const mobResistanceCap = level => 5 + 80 * (level - 1) / 99;
@@ -551,7 +551,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       series: [stat("モブ攻撃力", lv => hits.get(lv).power), stat("被ダメージ", lv => hits.get(lv).damage)] };
   }
   const panels = [
-    { grid: "player-base-grid", cats: ["offense","resource","defense"], context: "プレイヤー｜標準装備", title: "攻撃力と耐久", note: "基準攻撃力と共通防御は同じ値。", max: 1200, step: 400, unit: "",
+    { grid: "player-base-grid", cats: ["offense","resource","defense"], context: "プレイヤー｜標準装備", title: "攻撃力と耐久", note: "共通防御は同レベルの基準攻撃力を約3〜6%上回る。", max: 1200, step: 400, unit: "",
       series: [stat("基準攻撃力", attack), stat("最大HP", health), stat("共通防御", playerDefense)] },
     { grid: "player-base-grid", cats: ["element"], context: "標準モブ → プレイヤー｜被弾時", title: "プレイヤーの基礎耐性", note: "無属性は0→50%。火・氷・雷は各5→75%。", max: 100, step: 25, unit: "%",
       series: [stat("無属性", zeroToFifty), stat("火・氷・雷", playerResistance)] },
