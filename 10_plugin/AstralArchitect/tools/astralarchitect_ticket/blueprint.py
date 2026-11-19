@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 import json
 from math import prod
@@ -141,10 +142,143 @@ def _state_properties(block: str, label: str) -> tuple[str, dict[str, str]]:
     return base, properties
 
 
+def _roof_axis_samples(points: list[int]) -> Iterator[tuple[int, int, int, int]]:
+    """Yield the two control indices and integer weights at each sample."""
+    for index, (start, end) in enumerate(zip(points, points[1:])):
+        span = end - start
+        for distance in range(span):
+            yield index, index + 1, span - distance, distance
+    last = len(points) - 1
+    yield last, last, 1, 0
+
+
+def _expand_roof_sheet(value: object, label: str, remaining_operations: int) -> list[_Operation]:
+    roof = _fields(value, {"op", "at", "offsets", "sections", "block", "slab"}, label)
+    at_x, at_y, at_z = _coordinates(roof["at"], f"{label}.at")
+    materials = []
+    for key in ("block", "slab"):
+        material_label = f"{label}.{key}"
+        try:
+            material = validate_block_state(roof[key], material_label)
+        except TicketError as exc:
+            raise BlueprintError(str(exc)) from exc
+        if "[" in material:
+            raise BlueprintError(f"{material_label} must be a block name without properties")
+        materials.append(material)
+    block, slab = materials
+    if block in {"minecraft:air", "minecraft:cave_air", "minecraft:void_air"}:
+        raise BlueprintError(f"{label}.block must be a non-air block name")
+    if block.endswith(("_slab", "_stairs")):
+        raise BlueprintError(f"{label}.block requires a full cube, not a slab or stairs")
+    if not slab.endswith("_slab"):
+        raise BlueprintError(f"{label}.slab must be a block name ending in _slab")
+
+    offsets = _list(roof["offsets"], f"{label}.offsets")
+    sections = _list(roof["sections"], f"{label}.sections")
+    if not offsets or not sections:
+        raise BlueprintError(f"{label}.offsets and .sections must be nonempty")
+    for index, offset in enumerate(offsets):
+        if type(offset) is not int:
+            raise BlueprintError(f"{label}.offsets must contain only integers")
+        if index and offset <= offsets[index - 1]:
+            raise BlueprintError(f"{label}.offsets must be strictly ascending")
+        _checked_coordinates(offset, 0, 0, f"{label}.offsets[{index}]")
+
+    section_zs: list[int] = []
+    height_rows: list[list[int]] = []
+    for index, section in enumerate(sections):
+        section_label = f"{label}.sections[{index}]"
+        fields = _fields(section, {"z", "heights"}, section_label)
+        z = fields["z"]
+        if type(z) is not int:
+            raise BlueprintError(f"{section_label}.z must be an integer")
+        if section_zs and z <= section_zs[-1]:
+            raise BlueprintError(f"{label}.sections z coordinates must be strictly ascending")
+        _checked_coordinates(0, 0, z, f"{section_label}.z")
+        heights = _list(fields["heights"], f"{section_label}.heights")
+        if len(heights) != len(offsets) or any(type(height) is not int for height in heights):
+            raise BlueprintError(f"{section_label}.heights must contain one integer per offset")
+        section_zs.append(z)
+        height_rows.append(heights)
+
+    width = offsets[-1] - offsets[0] + 1
+    depth = section_zs[-1] - section_zs[0] + 1
+    operation_error = f"{label} expands beyond the {MAX_OPERATIONS} local operation limit"
+    visit_error = f"{label} expands beyond {MAX_TICKET_VOLUME} block visits"
+    # Each column emits at least one operation and visits at least one block.
+    if width * depth > remaining_operations:
+        raise BlueprintError(operation_error)
+    if width * depth > MAX_TICKET_VOLUME:
+        raise BlueprintError(visit_error)
+
+    first_x, first_z = at_x + offsets[0], at_z + section_zs[0]
+    # Interpolation stays within the control heights and includes the extrema.
+    lowest = min(map(min, height_rows)) - 1
+    highest = max(map(max, height_rows)) - 1
+    _checked_coordinates(first_x, at_y + lowest // 2, first_z, label)
+    _checked_coordinates(first_x + width - 1, at_y + highest // 2, first_z + depth - 1, label)
+
+    x_samples = list(_roof_axis_samples(offsets))
+    tops: list[list[int]] = []
+    for front, back, front_weight, back_weight in _roof_axis_samples(section_zs):
+        front_row, back_row = height_rows[front], height_rows[back]
+        row = []
+        for left, right, left_weight, right_weight in x_samples:
+            numerator = (
+                front_weight * (front_row[left] * left_weight + front_row[right] * right_weight)
+                + back_weight * (back_row[left] * left_weight + back_row[right] * right_weight)
+            )
+            denominator = (front_weight + back_weight) * (left_weight + right_weight)
+            # Round once, toward positive infinity at a tie, even below zero.
+            row.append((2 * numerator + denominator) // (2 * denominator))
+        tops.append(row)
+
+    operations = []
+    visits = 0
+    top_slab, bottom_slab = f"{slab}[type=top]", f"{slab}[type=bottom]"
+    for z_index, row in enumerate(tops):
+        z = first_z + z_index
+        for x_index, top in enumerate(row):
+            x = first_x + x_index
+            lowest_top = top
+            if x_index:
+                lowest_top = min(lowest_top, row[x_index - 1])
+            if x_index + 1 < width:
+                lowest_top = min(lowest_top, row[x_index + 1])
+            if z_index:
+                lowest_top = min(lowest_top, tops[z_index - 1][x_index])
+            if z_index + 1 < depth:
+                lowest_top = min(lowest_top, tops[z_index + 1][x_index])
+
+            # Occupied half layers form the half-open interval [bottom, top).
+            bottom = lowest_top - 1
+            visits += (top - 1) // 2 - bottom // 2 + 1
+            if visits > MAX_TICKET_VOLUME:
+                raise BlueprintError(visit_error)
+            runs = []
+            if bottom % 2:
+                runs.append((bottom // 2, bottom // 2, top_slab))
+            first_full, past_full = (bottom + 1) // 2, top // 2
+            if first_full < past_full:
+                runs.append((first_full, past_full - 1, block))
+            if top % 2:
+                runs.append((top // 2, top // 2, bottom_slab))
+            if len(operations) + len(runs) > remaining_operations:
+                raise BlueprintError(operation_error)
+            for first_y, last_y, material in runs:
+                start = (x, at_y + first_y, z)
+                if first_y == last_y:
+                    operations.append(_Operation("set", (start,), material, label))
+                else:
+                    end = (x, at_y + last_y, z)
+                    operations.append(_Operation("fill", (start, end), material, label))
+    return operations
+
+
 def _parse_operation(value: object, label: str) -> _Operation:
     kind = value.get("op") if isinstance(value, dict) else None
     if kind not in ("set", "fill", "line"):
-        raise BlueprintError(f"{label}.op must be set, fill, or line")
+        raise BlueprintError(f"{label}.op must be set, fill, line, or roof_sheet")
     coordinate_keys = ("at",) if kind == "set" else ("from", "to")
     operation = _fields(value, {"op", "block", *coordinate_keys}, label)
     try:
@@ -301,14 +435,20 @@ def compile_blueprint(plan: object, stage: str) -> list[dict[str, object]]:
         operations_by_stage = {}
         for phase in _STAGES:
             phase_label = f"{label}.{phase}"
-            operations = _list(part[phase], phase_label)
-            operation_count += len(operations)
-            if operation_count > MAX_OPERATIONS:
-                raise BlueprintError(f"blueprint defines more than {MAX_OPERATIONS} local operations")
-            operations_by_stage[phase] = [
-                _parse_operation(operation, f"{phase_label}[{index}]")
-                for index, operation in enumerate(operations)
-            ]
+            operations = []
+            for index, operation in enumerate(_list(part[phase], phase_label)):
+                operation_label = f"{phase_label}[{index}]"
+                remaining = MAX_OPERATIONS - operation_count
+                if not remaining:
+                    raise BlueprintError(f"blueprint defines more than {MAX_OPERATIONS} local operations")
+                if isinstance(operation, dict) and operation.get("op") == "roof_sheet":
+                    expanded = _expand_roof_sheet(operation, operation_label, remaining)
+                    operations.extend(expanded)
+                    operation_count += len(expanded)
+                else:
+                    operations.append(_parse_operation(operation, operation_label))
+                    operation_count += 1
+            operations_by_stage[phase] = operations
         if not any(operations_by_stage.values()):
             raise BlueprintError(f"{label} must define at least one operation")
         parts[name] = operations_by_stage
