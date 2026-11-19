@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>ステータス指標 | AstralRecord ゲームデザイン設計書</title>
+<style>
+:root {
+  color-scheme: dark;
+  --page: #21252b; --paper: #282c34; --ink: #cdd3de; --muted: #abb2bf; --rule: #3c424d;
+  --soft: #303640; --selected: #323e50; --heading: #cdd3de; --edge: #5b6474;
+  --axis: #8994a5; --blue: #8ab8eb; --gold: #e5c07b; --teal: #98c379; --purple: #c9a5df;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); }
+#stat-guide { width: 100%; padding: 28px 32px 48px; background: var(--page); color: var(--ink);
+  font: 15px/1.55 "Segoe UI","Yu Gothic UI",Meiryo,sans-serif; font-variant-numeric: tabular-nums; }
+#stat-guide :where(h1,h2,p,figure) { margin: 0; }
+#stat-guide h1 { font-size: clamp(28px,3vw,36px); line-height: 1.25; letter-spacing: -.035em; }
+#stat-guide h2 { font-size: 18px; line-height: 1.4; font-weight: 600; }
+#stat-guide :is(h1,h2,summary) { color: var(--heading); }
+#stat-guide a { color: var(--blue); text-underline-offset: 3px; }
+#stat-guide header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 6px 14px; }
+#stat-guide :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.st-intro, .st-note, .st-unit { color: var(--muted); }
+#stat-guide .st-intro { margin: 6px 0 15px; }
+.st-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; border-top: 1px solid var(--rule); padding: 10px 0; }
+.st-tools label { display: flex; align-items: center; gap: 6px; }
+.st-tools output { min-width: 3.7em; font-weight: 600; }
+.st-tools input { accent-color: var(--blue); }
+.st-tools input[type=range] { width: min(30vw,320px); }
+.st-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.st-card { min-width: 0; display: flex; flex-direction: column; padding: 18px 20px; border: 1px solid var(--rule); border-radius: 10px; background: var(--paper); }
+.st-note, .st-unit { font-size: 14px; }
+.st-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 0 8px; margin: 6px 0 2px; }
+.st-legend button { color: var(--ink); font: inherit; font-size: 15px; background: transparent; border: 0; padding: 4px; border-radius: 4px; cursor: pointer; }
+.st-legend button:is(:hover,:focus-visible,[aria-pressed=true]) { background: var(--soft); }
+.st-key { margin-right: 4px; font-weight: 700; color: var(--series); }
+.st-legend b { display: inline-block; text-align: right; margin-left: 4px; }
+.st-legend b::before { content: attr(data-width); display: block; height: 0; visibility: hidden; }
+.st-legend button.faded b { visibility: hidden; }
+.st-level { min-width: 6ch; color: var(--muted); font-size: 14px; margin-right: 2px; }
+.st-chart { width: 100%; height: 200px; display: block; touch-action: pan-y; }
+.st-chart text { fill: var(--muted); font: 13px "Segoe UI",Meiryo,sans-serif; }
+.st-axis { fill: none; stroke: var(--axis); }
+.st-series { color: var(--series); }
+.st-series polyline { stroke: currentColor; fill: none; stroke-width: 1.8; }
+.st-series .dot { fill: currentColor; }
+.st-series .ring { fill: var(--paper); stroke: currentColor; stroke-width: 2; }
+.st-series.faded { opacity: .14; }
+.st-legend button.faded .st-key { opacity: .35; }
+.st-chartbox { position: relative; }
+.st-tip { position: absolute; z-index: 2; pointer-events: none; width: max-content; max-width: calc(100% - 8px); padding: 6px 10px; font-size: 14px; background: var(--paper); color: var(--ink); border: 1px solid var(--axis); border-radius: 5px; }
+.st-tip > div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.st-tip b { white-space: nowrap; }
+#stat-guide [hidden] { display: none !important; }
+#stat-guide table { width: 100%; border-collapse: collapse; font-size: 15px; background: var(--paper); }
+#stat-guide :is(td,th) { padding: 6px 5px; border: 1px solid var(--rule); }
+.st-card table { margin-top: auto; }
+.st-card :is(th,td) { text-align: right; }
+.st-card tr > :first-child { text-align: left; }
+#stat-guide thead th { font-weight: 600; font-size: 14px; color: var(--heading); background: var(--soft); }
+.st-card tr.current { background: var(--selected); }
+.st-card tbody tr:hover { background: var(--soft); }
+.st-card .minor { display: none; }
+.show-levels .st-card .minor { display: table-row; }
+#stat-guide details { margin-top: 18px; border-top: 1px solid var(--rule); padding-top: 8px; }
+#stat-guide summary { cursor: pointer; padding: 5px 0; font-weight: 600; font-size: 17px; }
+#stat-guide details th { width: 30%; text-align: left; font-weight: 550; color: var(--heading); background: var(--soft); }
+#stat-guide details td { text-align: left; }
+
+.st-legend button[aria-pressed="true"] { background: var(--selected); color: var(--blue); }
+.st-card tr.current > :first-child { box-shadow: inset 3px 0 var(--blue); }
+.st-tip { background: var(--soft); border-color: var(--edge); }
+
+@media (pointer: coarse) { .st-legend button,.st-tools label,.st-tools input[type=range] { min-height: 44px; } }
+@media (max-width: 760px) { #stat-guide { padding: 20px 16px; } .st-grid { grid-template-columns: 1fr; } }
+@media (max-width: 420px) { #stat-guide { padding: 18px 12px; } .st-card { padding: 12px; } .st-tools { gap: 4px 10px; font-size: 13px; } }
+@media print {
+  :root { color-scheme: light; --page: white; --soft: #eee; --heading: #263447; --selected: #dde6ef; --edge: #777; --paper: white; --ink: black; --muted: #444; --rule: #bbb; --axis: #777; --blue: #2466cf; --gold: #976200; --teal: #007564; --purple: #8453af; }
+  body, #stat-guide { background: white; }
+  #stat-guide { padding: 0; } .st-grid { display: block; } .st-card { break-inside: avoid; margin-bottom: 12px; }
+  .st-card .minor { display: table-row; } .st-series.faded,.st-legend button.faded .st-key { opacity: 1; }
+  .st-legend button.faded b { visibility: visible; }
+  .st-tools,.st-tip,#stat-guide header a,.st-intro { display: none; } .st-chart { height: 155px; }
+  #stat-guide details::details-content { content-visibility: visible; } #stat-guide tr { break-inside: avoid; }
+  #stat-guide td,#stat-guide th { padding-block: 1px; }
+}
+</style>
+</head>
+<body>
+<main id="stat-guide">
+  <header><h1>ステータス指標</h1><a href="01-DPS指標.html">DPS指標へ →</a></header>
+  <p class="st-intro">線に触れると、その項目の値が表示されます。重なる線は凡例で選べます。</p>
+  <div class="st-tools">
+    <label for="st-level">レベル <output id="st-value" for="st-level">Lv.25</output></label>
+    <input id="st-level" type="range" min="0" max="20" step="1" value="5">
+    <label><input id="st-all" type="checkbox"> 表を5レベル刻みに</label>
+  </div>
+  <div class="st-grid" id="st-grid"></div>
+  <noscript>グラフとレベル表の表示にはJavaScriptを有効にしてください。</noscript>
+  <details open><summary>装備なしの基準案</summary>
+    <p class="st-note">現行の初期値に基本能力値の派生を加えた比較用の案。装備・職業・ツリー・バフの加算は別途。</p>
+    <table aria-label="装備なしの戦闘ステータス案"><tbody>
+      <tr><th>基本能力値</th><td>筋力・器用さ・知力・体力・敏捷性・幸運　各5</td></tr>
+      <tr><th>命中・回避</th><td>命中率 95% ／ 回避率 3.5%</td></tr>
+      <tr><th>速度</th><td>攻撃速度 105% ／ 移動速度 100.5%</td></tr>
+      <tr><th>リソース</th><td>最大MP 15 ／ 最大ENG 100 ／ 最大シールド 0</td></tr>
+      <tr><th>自然回復</th><td>5秒あたり HP 1.5 ／ MP 1 ／ ENG 5</td></tr>
+      <tr><th>種別攻撃・防御</th><td>近接・間接・魔法の順に、追加攻撃力 0・0・0 ／ 追加防御力 0・0・8</td></tr>
+      <tr><th>攻撃補正</th><td>通常・スキル・属性のダメージ増加、貫通は各0%。最終ダメージ倍率は100%。</td></tr>
+      <tr><th>状態異常</th><td>付与確率増加・付与耐性・継続ダメージ増加は各0%。基礎付与率はスキルごとに設定。</td></tr>
+      <tr><th>スキル・回復補正</th><td>クールダウン・詠唱時間・消費の軽減、ライフスティールは各0%。</td></tr>
+    </tbody></table>
+  </details>
+  <details><summary>計算と未確定項目</summary><table aria-label="計算と未確定項目"><tbody>
+    <tr><th>基準攻撃力</th><td>（共通攻撃力 ＋ 種別攻撃力）×（1 ＋ 対応能力値 ÷ 100）。会心・スキル倍率の適用前。現行の素の攻撃力は8.4で、Lv.1の目標6.8との調整が必要。</td></tr>
+    <tr><th>属性と被ダメージ</th><td>通常攻撃は無・火・氷・雷の1属性100%を想定。属性ダメージ増加がなければ、防御適用後の値 ×（1 − 対応耐性 ÷ 100）。</td></tr>
+    <tr><th>耐性の実装</th><td>モブ攻撃力の設計値は4属性ともプレイヤー耐性75%まで有効として算出。現行の組み込み通常攻撃は無属性で、無属性の基礎上限は50%。導入時は耐性成長と上限を合わせて調整する。</td></tr>
+    <tr><th>会心の計算</th><td>通常会心の期待倍率 ＝ 1 ＋ 会心率 ×（会心ダメージ − 1）。各値は小数表記。超星会心倍率30%なら主攻撃は1.3倍、追尾弾は0.3倍。</td></tr>
+    <tr><th>標準モブの攻撃力</th><td>通常攻撃1発の実ダメージがプレイヤー最大HPの1/7以上になる最小の整数攻撃力。共通防御とプレイヤーの設計耐性を適用。近接・単一属性100%、会心・貫通・追加防御・回復なしで比較する。</td></tr>
+    <tr><th>標準モブのHP</th><td>同格で約7秒の討伐が目標。Lv.100のモブには、属性貫通なしなら防御後ダメージの25%が通る。この実ダメージでDPSを評価する。</td></tr>
+    <tr><th>特化ビルド</th><td>会心特化と超星会心特化は別々の育成案。各曲線は投資した場合の到達目安。総DPSは同格戦で測り、育成上限の目安と照合する。</td></tr>
+    <tr><th>装備への配分</th><td>基礎値・標準値・特化時の目安・有効上限をもとに、装備1枠の付与量を決める。</td></tr>
+  </tbody></table></details>
+</main>
+<script>
+(() => {
+  const root = document.getElementById("stat-guide");
+  const range = root.querySelector("#st-level");
+  const all = root.querySelector("#st-all");
+  const major = [1, 25, 50, 75, 100];
+  const levels = [1, ...Array.from({length: 20}, (_, i) => (i + 1) * 5)];
+  const anchors = [1, 25, 50, 100];
+  const format = new Intl.NumberFormat("ja-JP", {maximumFractionDigits: 1});
+  function curve(values) {
+    return level => {
+      const i = anchors.findIndex(anchor => anchor >= level);
+      if (i === 0) return values[0];
+      const fraction = (level - anchors[i-1]) / (anchors[i] - anchors[i-1]);
+      return values[i-1] + (values[i] - values[i-1]) * fraction;
+    };
+  }
+  function stat(label, value) { return {label, read: typeof value === "number" ? () => value : value}; }
+  const attack = curve([6.8, 200, 300, 400]);
+  const health = curve([100, 500, 800, 1200]);
+  const playerDefense = attack;
+  const playerResistance = level => 5 + 70 * (level - 1) / 99;
+  const mobResistance = level => 75 * (level - 1) / 99;
+  // DamageCalculator.defenseDamageMultiplier: 同値で半減、防御が攻撃の2.5倍で全減。
+  const defenseExponent = Math.log(0.5) / Math.log(0.6);
+  function damageTaken(power, level) {
+    const remaining = Math.max(0, 1 - playerDefense(level) / (2.5 * power));
+    return power * remaining ** defenseExponent * (1 - playerResistance(level) / 100);
+  }
+  function normalAttack(level) {
+    const target = health(level) / 7;
+    let low = 0;
+    let high = 1;
+    while (damageTaken(high, level) < target) high *= 2;
+    while (high - low > 1) {
+      const mid = Math.floor((high + low) / 2);
+      if (damageTaken(mid, level) >= target) high = mid;
+      else low = mid;
+    }
+    return { power: high, damage: damageTaken(high, level) };
+  }
+  const mobHits = new Map(levels.map(level => [level, normalAttack(level)]));
+  const panels = [
+    { title: "プレイヤーの攻撃・耐久", note: "標準装備込み。基準攻撃力と共通防御は同じ値で、線が重なる。", max: 1200, step: 400, unit: "",
+      series: [stat("基準攻撃力", attack), stat("最大HP", health), stat("共通防御", playerDefense)] },
+    { title: "属性耐性", note: "無・火・氷・雷の各属性に適用。プレイヤーは5%から、標準モブは0%から75%まで成長。", max: 100, step: 25, unit: "%",
+      series: [stat("プレイヤー基礎", playerResistance), stat("標準モブ", mobResistance)] },
+    { title: "特化ビルドの会心率", note: "特化時の目安案。標準構成は会心率5.5%、超星会心率0%。", max: 40, step: 10, unit: "%",
+      series: [stat("会心率", curve([5.5, 15, 25, 35])), stat("超星会心率", curve([0, 2, 4, 8]))] },
+    { title: "特化ビルドの会心ダメージ", note: "特化時の目安案。標準構成は会心ダメージ150%、超星会心倍率30%。", max: 200, step: 50, unit: "%",
+      series: [stat("会心ダメージ", curve([150, 160, 170, 180])), stat("超星会心倍率", curve([30, 40, 50, 60]))] },
+    { title: "標準モブの通常攻撃", note: "同格・通常命中7発で戦闘不能。実ダメージはプレイヤー側の防御と属性耐性を適用した1発分。", max: 1000, step: 250, unit: "",
+      series: [stat("モブ攻撃力", lv => mobHits.get(lv).power), stat("実ダメージ", lv => mobHits.get(lv).damage)] },
+    { title: "標準モブの防御", note: "共通防御はモブ自身のLv.の基準攻撃力の50%。追加防御は近接・間接・魔法に共通。", max: 200, step: 50, unit: "",
+      series: [stat("共通防御", level => attack(level) * 0.5), stat("追加防御", 0)] }
+  ];
+  const colors = ["blue","gold","teal","purple"];
+  const symbols = ["●","◆","▲","■"];
+  const dash = ["none","5 3","2 3","8 3 2 3"];
+  function element(tag, value) {
+    const node = document.createElement(tag);
+    if (value !== undefined) node.textContent = value;
+    return node;
+  }
+  function svg(tag, attrs, value) {
+    const node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (const [k,v] of Object.entries(attrs)) node.setAttribute(k, v);
+    if (value !== undefined) node.textContent = value;
+    return node;
+  }
+  function marker(i, x, y, r, cls) {
+    if (i === 0) return svg("circle", {cx:x, cy:y, r, class:cls});
+    if (i === 3) return svg("rect", {x:x-r, y:y-r, width:2*r, height:2*r, class:cls});
+    const points = i === 1 ? [[0,-r],[r,0],[0,r],[-r,0]] : [[0,-r],[r,r],[-r,r]];
+    return svg("polygon", {points:points.map(([dx,dy]) => [x+dx,y+dy].join(",")).join(" "), class:cls});
+  }
+  let selected = 25;
+  const views = [];
+  function choose(level) {
+    selected = level;
+    root.querySelector("#st-value").textContent = "Lv." + level;
+    range.value = levels.indexOf(level);
+    range.setAttribute("aria-valuetext","レベル" + level);
+    views.forEach(view => view.update());
+  }
+  function mount(config) {
+    const card = element("section");
+    card.className = "st-card";
+    const heading = element("h2",config.title);
+    const note = element("p",config.note);
+    note.className = "st-note";
+    const legend = element("div");
+    legend.className = "st-legend";
+    const levelLabel = element("span");
+    levelLabel.className = "st-level";
+    legend.append(levelLabel);
+    const box = element("div");
+    box.className = "st-chartbox";
+    const chart = svg("svg",{class:"st-chart",role:"img","aria-label": config.title + "のレベル曲線。数値は直後の表を参照。"});
+    const tip = element("div");
+    tip.className = "st-tip";
+    tip.hidden = true;
+    tip.setAttribute("aria-hidden","true");
+    box.append(chart,tip);
+    const table = element("table");
+    table.setAttribute("aria-label",config.title + "のレベル別基準値");
+    const header = table.createTHead().insertRow();
+    for (const name of ["Lv.",...config.series.map(s => s.label)]) {
+      const th = element("th",name);
+      th.scope = "col";
+      header.append(th);
+    }
+    const body = table.createTBody();
+    for (const lv of levels) {
+      const row = body.insertRow();
+      if (!major.includes(lv)) row.className = "minor";
+      const cell = element("th",lv);
+      cell.scope = "row";
+      row.append(cell);
+      config.series.forEach(s => row.insertCell().textContent = format.format(s.read(lv)) + config.unit);
+    }
+    card.append(heading,note,legend,box,table);
+    root.querySelector("#st-grid").append(card);
+    let pinned = null, hovered = null, focused = null, inspected = null;
+    let rings = [], paths = [];
+    let right = 0, bottom = 0;
+    const left = 42, top = 15;
+    const x = lv => left + (lv-1) / 99 * (right-left);
+    const y = value => bottom - value / config.max * (bottom-top);
+    const buttons = [];
+    function highlight() {
+      const active = hovered ?? inspected ?? focused ?? pinned;
+      buttons.forEach((button,i) => {
+        const faded = active !== null && active !== i;
+        button.classList.toggle("faded",faded);
+        button.setAttribute("aria-pressed",String(pinned === i));
+        paths[i]?.classList.toggle("faded",faded);
+      });
+      if (active !== null && paths[active]) chart.append(paths[active]);
+    }
+    config.series.forEach((s,i) => {
+      const button = element("button");
+      button.type = "button";
+      button.style.setProperty("--series","var(--" + colors[i] + ")");
+      const key = element("span",symbols[i]);
+      key.className = "st-key";
+      key.setAttribute("aria-hidden","true");
+      const readout = element("b");
+      const labels = levels.map(lv => format.format(s.read(lv)) + config.unit);
+      readout.dataset.width = labels.reduce((widest,label) => label.length > widest.length ? label : widest);
+      button.append(key,document.createTextNode(s.label),readout);
+      button.addEventListener("pointerenter",e => { if (e.pointerType !== "touch") { hovered = i; highlight(); } });
+      button.addEventListener("pointerleave",() => { hovered = null; highlight(); });
+      button.addEventListener("focus",() => { if (button.matches(":focus-visible")) focused = i; highlight(); });
+      button.addEventListener("blur",() => { focused = null; highlight(); });
+      button.addEventListener("click",() => { pinned = pinned === i ? null : i; hovered = null; focused = null; highlight(); });
+      buttons.push(button);
+      legend.append(button);
+    });
+    card.addEventListener("keydown",e => {
+      if (e.key === "Escape") { pinned = hovered = focused = inspected = null; tip.hidden = true; highlight(); }
+    });
+    function update() {
+      clearInspection();
+      levelLabel.textContent = "Lv." + selected;
+      config.series.forEach((s,i) => {
+        buttons[i].querySelector("b").textContent = format.format(s.read(selected)) + config.unit;
+        rings[i]?.setAttribute("transform","translate(" + x(selected) + " " + y(s.read(selected)) + ")");
+      });
+      body.querySelector(".current")?.classList.remove("current");
+      body.rows[levels.indexOf(selected)].classList.add("current");
+    }
+    function draw() {
+      const width = chart.clientWidth, height = chart.clientHeight;
+      if (width < 80) return;
+      right = width - 15; bottom = height - 32;
+      chart.setAttribute("viewBox",[0,0,width,height].join(" "));
+      chart.replaceChildren(svg("path",{d:"M "+left+" "+top+" V "+bottom+" H "+right,class:"st-axis"}));
+      for (let val = 0; val <= config.max; val += config.step) {
+        chart.append(svg("line",{x1:left-4,x2:left,y1:y(val),y2:y(val),class:"st-axis"}),
+          svg("text",{x:left-7,y:y(val)+4,"text-anchor":"end"},format.format(val)+config.unit));
+      }
+      for (const lv of major) {
+        chart.append(svg("line",{x1:x(lv),x2:x(lv),y1:bottom,y2:bottom+4,class:"st-axis"}),
+          svg("text",{x:x(lv),y:bottom+20,"text-anchor":"middle"},lv));
+      }
+      chart.append(svg("text",{x:0,y:bottom+20},"Lv."));
+      paths = []; rings = [];
+      config.series.forEach((s,i) => {
+        const g = svg("g",{class:"st-series"});
+        g.dataset.series = i;
+        g.style.setProperty("--series","var(--"+colors[i]+")");
+        g.append(svg("polyline",{points: levels.map(lv => [x(lv),y(s.read(lv))].join(",")).join(" "), "stroke-dasharray":dash[i]}));
+        for (const lv of levels) g.append(marker(i,x(lv),y(s.read(lv)),major.includes(lv) ? 3.6 : 2,"dot"));
+        const ring = marker(i,0,0,4.8,"ring");
+        g.append(ring); chart.append(g); rings.push(ring); paths.push(g);
+      });
+      tip.hidden = true;
+      update(); highlight();
+    }
+    function clearInspection() {
+      tip.hidden = true;
+      if (inspected !== null) { inspected = null; highlight(); }
+    }
+    function inspect(event) {
+      const bounds = chart.getBoundingClientRect();
+      const pixel = event.clientX - bounds.left;
+      const pointerY = event.clientY - bounds.top;
+      const radius = event.pointerType === "touch" ? 22 : 12;
+      if (pixel < left-radius || pixel > right+radius || pointerY < top-radius || pointerY > bottom+radius) {
+        clearInspection();
+        return;
+      }
+      const hit = event.target.closest(".st-series");
+      const hitIndex = hit ? Number(hit.dataset.series) : null;
+      let seriesIndex = null, nearest = null, bestDistance = radius ** 2;
+      // マーカーどうしが重なっても、カーソルに最も近い折れ線を選ぶ。
+      config.series.forEach((series,i) => {
+        if (pinned !== null && i !== pinned) return;
+        for (let j=1; j<levels.length; j++) {
+          const a = levels[j-1], b = levels[j];
+          const ax = x(a), ay = y(series.read(a));
+          const dx = x(b)-ax, dy = y(series.read(b))-ay;
+          const t = Math.max(0,Math.min(1,((pixel-ax)*dx+(pointerY-ay)*dy)/(dx*dx+dy*dy)));
+          const distance = (pixel-ax-t*dx)**2 + (pointerY-ay-t*dy)**2;
+          if (distance < bestDistance || (distance === bestDistance && i === hitIndex)) {
+            bestDistance = distance;
+            seriesIndex = i;
+            nearest = t < 0.5 ? a : b;
+          }
+        }
+      });
+      if (seriesIndex === null) { clearInspection(); return; }
+      choose(nearest);
+      inspected = seriesIndex;
+      highlight();
+      const s = config.series[seriesIndex];
+      const row = element("div");
+      row.append(element("span",s.label), element("b",format.format(s.read(nearest)) + config.unit));
+      tip.replaceChildren(element("strong","Lv." + nearest),row);
+      tip.hidden = false;
+      const leftEdge = pixel + 12 + tip.offsetWidth <= bounds.width ? pixel + 12 : pixel - tip.offsetWidth - 12;
+      tip.style.left = Math.max(4,Math.min(leftEdge,bounds.width-tip.offsetWidth-4))+"px";
+      tip.style.top = Math.max(4,Math.min(event.clientY-bounds.top+10,bounds.height-tip.offsetHeight-4))+"px";
+    }
+    chart.addEventListener("pointerdown",inspect);
+    chart.addEventListener("pointermove",inspect);
+    chart.addEventListener("pointerleave",event => { if (event.pointerType !== "touch") clearInspection(); });
+    chart.addEventListener("pointercancel",clearInspection);
+    document.addEventListener("pointerdown",event => { if (!box.contains(event.target)) clearInspection(); });
+    draw();
+    new ResizeObserver(draw).observe(chart);
+    return {update,draw};
+  }
+  for (const panel of panels) views.push(mount(panel));
+  range.addEventListener("input",() => choose(levels[Number(range.value)]));
+  all.addEventListener("change",() => root.classList.toggle("show-levels",all.checked));
+  choose(selected);
+  let opened;
+  window.addEventListener("beforeprint",() => {
+    if (!opened) opened = [...root.querySelectorAll("details")].filter(d => !d.open);
+    opened.forEach(d => d.open = true);
+    views.forEach(v => v.draw());
+  });
+  window.addEventListener("afterprint",() => { opened?.forEach(d => d.open = false); opened = null; });
+})();
+</script>
+</body>
+</html>
