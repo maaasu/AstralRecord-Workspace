@@ -25,7 +25,7 @@
     #dps-stat-guide :focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
     #dps-stat-guide [hidden] { display: none !important; }
     .dg-head { margin-bottom: 18px; }
-    .dg-head h1 { font-size: clamp(28px, 3vw, 36px); line-height: 1.25; letter-spacing: -.035em; font-weight: 650; }
+    .dg-head h1 { font-size: clamp(28px, 3vw, 36px); line-height: 1.25; font-weight: 600; }
     .dg-head p { color: var(--muted); margin-top: 5px; }
     .dg-head h1, #dps-stat-guide h2, #dps-stat-guide summary { color: var(--heading); }
     .dg-legend button:hover { color: var(--ink); background: var(--soft); }
@@ -65,12 +65,11 @@
     .dg-crosshair { stroke: var(--axis); stroke-dasharray: 2 4; pointer-events: none; }
     .dg-ring { fill: var(--paper); stroke: currentColor; stroke-width: 2; }
     .dg-tooltip {
-      position: absolute; z-index: 1; pointer-events: none; width: 240px; max-width: calc(100% - 12px);
+      position: absolute; z-index: 1; pointer-events: none; width: max-content; min-width: 168px; max-width: calc(100% - 12px);
       padding: 7px 11px; background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; font-size: 14px;
     }
     .dg-tooltip div { display: flex; justify-content: space-between; gap: 10px; }
     .dg-tooltip b { white-space: nowrap; }
-    .dg-tooltip-preview { display: block; width: 100%; height: 54px; margin-top: 5px; background: var(--paper); border-radius: 3px; }
     .dg-tooltip:not([hidden]) { animation: dg-tip-appear 130ms ease-out; }
     @keyframes dg-tip-appear { from { opacity: 0; transform: translateY(3px); } }
     @media (prefers-reduced-motion: reduce) { .dg-tooltip:not([hidden]) { animation: none; } }
@@ -98,6 +97,130 @@
     .dg-rules th, .dg-rules td { text-align: left; vertical-align: top; }
     .dg-rules th { width: 9em; font-weight: 550; color: var(--heading); background: var(--soft); }
     .dg-rules td { overflow-wrap: anywhere; }
+/* ===== 共通: 資料タブ・目次・章番号・能力の色分け ===== */
+/* 能力の色: 40_filebase/75.shared.status の公式カテゴリに対応 */
+:root { --cat-resource: #98c379; --cat-primary: #d19a66; --cat-offense: #e06c75; --cat-defense: #56b6c2; --cat-element: #c678dd; --cat-condition: #e8a0c8; --cat-utility: #a8b0bd; }
+:where(#dps-stat-guide, #stat-guide) a { color: var(--heading); text-decoration: none; }
+:where(#dps-stat-guide, #stat-guide) h1 { letter-spacing: 0; font-weight: 600; }
+.doc-nav { display: flex; flex-wrap: wrap; gap: 0 28px; margin: -8px 0 22px; border-bottom: 1px solid var(--rule); font-size: 14px; }
+.doc-nav a { display: inline-flex; align-items: baseline; gap: 8px; margin-bottom: -1px; padding: 9px 0 8px; color: var(--muted); border-bottom: 2px solid transparent; }
+.doc-nav a:hover { color: var(--ink); }
+.doc-nav a[aria-current="page"] { color: var(--ink); font-weight: 600; border-bottom-color: var(--blue); }
+.doc-no { color: var(--axis); font-size: 12px; font-weight: 400; }
+.doc-nav a[aria-current="page"] .doc-no { color: var(--blue); }
+.doc-lead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; margin: 6px 0 22px; color: var(--muted); }
+.cat-key { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; }
+.cat-key > span:first-child { margin-right: 4px; }
+.doc-layout { display: grid; grid-template-columns: 212px minmax(0, 1fr); gap: 0 40px; align-items: start; }
+.doc-toc { position: sticky; top: 16px; max-height: calc(100svh - 32px); overflow-y: auto; font-size: 14px; }
+.doc-toc-title { margin: 0 0 8px; color: var(--muted); font-size: 12px; letter-spacing: .1em; }
+.doc-toc ol { margin: 0; padding: 0; list-style: none; }
+.doc-toc ol ol { margin: 2px 0 8px; font-size: 13px; }
+.doc-toc a { display: flex; gap: 8px; padding: 5px 10px; color: var(--muted); border-left: 2px solid var(--rule); }
+.doc-toc ol ol a { padding-left: 24px; }
+.doc-toc a:hover { color: var(--ink); background: var(--soft); }
+.doc-toc a.is-within { color: var(--ink); }
+.doc-toc a.is-current { color: var(--ink); background: var(--selected); border-left-color: var(--blue); }
+.toc-num { flex: none; min-width: 2.1em; color: var(--axis); }
+.doc-toc .is-current .toc-num { color: var(--blue); }
+.ch-num { margin-right: 12px; color: var(--actor, var(--axis)); font-weight: 600; }
+.cat { display: inline-flex; align-items: center; gap: 5px; padding: 0 7px; color: var(--c); font-size: 12px; font-weight: 600; line-height: 22px; white-space: nowrap; background: color-mix(in srgb, var(--c) 14%, transparent); border-radius: 4px; }
+.cat::before { content: ""; width: 6px; height: 6px; border-radius: 1px; background: currentColor; }
+.cat-resource { --c: var(--cat-resource); } .cat-primary { --c: var(--cat-primary); } .cat-offense { --c: var(--cat-offense); } .cat-defense { --c: var(--cat-defense); }
+.cat-element { --c: var(--cat-element); } .cat-condition { --c: var(--cat-condition); } .cat-utility { --c: var(--cat-utility); }
+.cat-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.ch-toc { margin: 0 0 6px; padding: 0; list-style: none; border-top: 1px solid var(--rule); }
+.ch-toc li { border-bottom: 1px solid var(--rule); }
+.ch-toc a { display: grid; grid-template-columns: 3em minmax(8em, 13em) minmax(0, 1fr) auto; align-items: center; gap: 4px 14px; padding: 9px 6px; }
+.ch-toc a:hover { background: var(--soft); }
+.ch-toc .toc-num { color: var(--actor, var(--axis)); }
+.ch-toc-title { color: var(--ink); font-weight: 600; }
+.ch-toc-desc { color: var(--muted); font-size: 14px; }
+@media (max-width: 1080px) {
+  .doc-layout { grid-template-columns: minmax(0, 1fr); }
+  .doc-toc { position: static; max-height: none; overflow: visible; margin-bottom: 18px; }
+  .doc-toc > ol { display: flex; flex-wrap: wrap; gap: 6px; }
+  .doc-toc ol ol { display: none; }
+  .doc-toc a { gap: 6px; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 6px; }
+  .doc-toc .toc-num { min-width: 0; }
+}
+@media (max-width: 760px) {
+  .ch-toc a { grid-template-columns: 2.6em minmax(0, 1fr); }
+  .ch-toc-desc, .ch-toc .cat-list { grid-column: 2; }
+}
+@media print {
+  :root { --cat-resource: #3b7420; --cat-primary: #8a4f12; --cat-offense: #a8323f; --cat-defense: #0e6f80; --cat-element: #86379c; --cat-condition: #9c3a72; --cat-utility: #4c5566; }
+  .doc-nav, .doc-toc { display: none; }
+  .doc-layout { display: block; }
+}
+/* 計算式: 変数は能力の色のチップ、割り算は分数、下にレベル連動の計算例 */
+.c-resource { color: var(--cat-resource); } .c-primary { color: var(--cat-primary); } .c-offense { color: var(--cat-offense); } .c-defense { color: var(--cat-defense); } .c-element { color: var(--cat-element); }
+.fx-section-lead { margin: 2px 0 14px; color: var(--muted); font-size: 14px; }
+.fx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 680px), 1fr)); gap: 16px; }
+.fx-card { min-width: 0; padding: 18px 20px; background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; scroll-margin-top: 84px; }
+.fx-card-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 12px; }
+.fx-card-head h3 { margin: 0; color: var(--heading); font-size: 17px; font-weight: 600; line-height: 1.4; }
+.fx-card-head .sub-num { margin-right: 10px; color: var(--axis); font-weight: 600; }
+.fx { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; padding: 14px 16px; font-size: 15px; background: var(--page); border-radius: 8px; overflow-x: auto; }
+.fx-var { display: inline-flex; flex-direction: column; align-items: center; padding: 4px 10px; color: var(--c, var(--ink)); font-style: normal; font-weight: 600; line-height: 1.35; white-space: nowrap; background: color-mix(in srgb, var(--c, var(--axis)) 15%, transparent); border-radius: 6px; }
+.fx-var small { color: var(--muted); font-size: 11px; font-weight: 400; }
+.fx-op { color: var(--muted); font-size: 18px; line-height: 1; }
+.fx-paren { color: var(--axis); font-size: 30px; font-weight: 300; line-height: 1; }
+.fx-num { color: var(--ink); font-weight: 600; white-space: nowrap; }
+.fx-frac { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; }
+.fx-frac > :first-child { padding-bottom: 5px; border-bottom: 1.5px solid var(--muted); }
+.fx-example { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin: 12px 0 0; color: var(--muted); font-size: 14px; }
+.fx-example b { color: var(--ink); font-weight: 600; }
+.fx-lv { min-width: 4.5em; padding: 0 6px; color: var(--ink); font-size: 12px; font-weight: 600; text-align: center; background: var(--soft); border-radius: 4px; }
+.fx-result { color: var(--heading); font-size: 16px; font-weight: 700; }
+.fx-notes { margin: 12px 0 0; padding: 10px 0 0 18px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--rule); }
+.fx-notes li + li { margin-top: 2px; }
+.fx-include { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.fx-include + .fx-include, .fx + .fx-include { margin-top: 12px; }
+.fx-include-label { margin-right: 4px; color: var(--muted); font-size: 13px; }
+.fx-chip { padding: 2px 9px; color: var(--ink); font-size: 13px; background: var(--soft); border: 1px solid var(--rule); border-radius: 4px; }
+.fx-chip small { margin-left: 4px; color: var(--muted); font-size: 11px; }
+.fx-flow { display: flex; flex-wrap: nowrap; align-items: stretch; gap: 8px; overflow-x: auto; }
+.fx > *, .fx-flow > * { flex: none; }
+.fx-step { display: flex; flex-direction: column; justify-content: center; min-width: 7.5em; padding: 8px 12px; text-align: center; background: var(--page); border: 1px solid var(--rule); border-radius: 8px; }
+.fx-step small { color: var(--muted); font-size: 12px; }
+.fx-step b { color: var(--c, var(--ink)); font-size: 18px; font-weight: 600; }
+.fx-arrow { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; }
+.fx-arrow svg { width: 28px; height: 10px; stroke: var(--axis); fill: none; stroke-width: 1.5; }
+.fx-anchors { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.fx-anchors li { display: flex; background: var(--page); }
+.fx-anchors button { display: flex; flex-direction: column; align-items: center; width: 100%; padding: 8px 4px; color: inherit; font: inherit; background: transparent; border: 0; cursor: pointer; }
+.fx-anchors li:not(.is-active) button:hover { background: var(--soft); }
+.fx-anchors button:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.clickable-rows tbody tr { cursor: pointer; }
+.fx-anchors li + li { border-left: 1px solid var(--rule); }
+.fx-anchors small { color: var(--muted); font-size: 12px; }
+.fx-anchors b { color: var(--ink); font-size: 17px; font-weight: 600; }
+.fx-anchors .is-active { background: color-mix(in srgb, var(--cat-offense) 13%, var(--page)); box-shadow: inset 0 -2px var(--cat-offense); }
+.fx-anchors .is-active b { color: var(--cat-offense); }
+.fx-chart { margin: 12px 0 0; }
+.fx-chart figcaption { color: var(--muted); font-size: 13px; }
+.fx-chart svg { display: block; width: 100%; max-width: 460px; height: auto; }
+.fx-chart text { fill: var(--muted); font-size: 11px; font-family: inherit; }
+.fx-chart .fx-axis { fill: none; stroke: var(--axis); }
+.fx-chart .fx-guide { stroke: var(--edge); stroke-dasharray: 2 3; }
+.fx-chart .fx-curve { fill: none; stroke: var(--cat-defense); stroke-width: 2; }
+.fx-chart .fx-fixed { fill: var(--cat-defense); }
+.fx-chart .fx-live { fill: var(--paper); stroke: var(--ink); stroke-width: 2; }
+.fx-chart .fx-live-label { fill: var(--ink); font-weight: 600; }
+@media (max-width: 760px) { .fx, .fx-flow { flex-wrap: wrap; } }
+@media (max-width: 420px) { .fx-card { padding: 14px 12px; } .fx { padding: 12px 10px; gap: 6px; } }
+@media print { .fx { background: none; border: 1px solid var(--rule); } .fx-card { break-inside: avoid; } }
+/* ===== 共通ここまで ===== */
+    #dps-stat-guide .dg-head { border-bottom: 0; padding-bottom: 0; }
+    .dg-scenario { margin: 2px 0 6px; padding: 0; border: 0; background: none; color: var(--muted); }
+    .dg-scenario strong { color: var(--ink); font-weight: 600; }
+    #dps-stat-guide .doc-lead p { margin: 0; }
+    #dps-stat-guide .dg-head { margin-bottom: 0; }
+    .dg-gridline { stroke: var(--rule); stroke-width: 1; }
+    .dg-all-levels .dg-values tbody tr:not(.dg-minor) { font-weight: 600; color: var(--heading); }
+    .dg-all-levels .dg-values tbody tr.dg-minor { color: var(--muted); }
+    .dg-rules summary::marker { color: var(--blue); }
     .dg-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
     .dg-head { border-bottom: 1px solid var(--rule); padding-bottom: 14px; }
@@ -132,7 +255,7 @@
       :root { color-scheme: light; --page: white; --heading: #263447; --selected: #dde6ef; --edge: #777; --paper: white; --ink: #111; --muted: #444; --rule: #ccc; --soft: #eee; --axis: #777; --blue: #164da3; --gold: #795100; }
       body, #dps-stat-guide { background: white; }
       #dps-stat-guide { padding: 0; }
-      #dps-stat-guide :is(.dg-slider, .dg-table-choice, .dg-tooltip, .dg-crosshair, .dg-ring) { display: none; }
+      #dps-stat-guide :is(.dg-slider, .dg-table-choice, .dg-tooltip, .dg-crosshair, .dg-ring, .doc-nav) { display: none; }
       .dg-figure { break-inside: avoid; padding-bottom: 4px; }
       #dg-chart { height: auto; aspect-ratio: 680 / 220; }
       .dg-legend-item.is-muted, .dg-data-line.is-muted { opacity: 1; }
@@ -165,15 +288,40 @@
 </head>
 <body>
   <main id="dps-stat-guide">
+    <nav class="doc-nav" aria-label="ゲームデザイン設計書">
+      <a href="01-DPS指標.html" aria-current="page"><span class="doc-no">01</span>DPS指標</a>
+      <a href="02-ステータス指標.html"><span class="doc-no">02</span>ステータス指標</a>
+    </nav>
     <header class="dg-head">
       <h1>DPS指標</h1>
-      <p>同格の標準モブに対する単体実効DPSの目標。グラフの枠はホバー・タップで拡大できます。</p>
-      <a class="dg-document-link" href="02-ステータス指標.html">ステータス指標を見る</a>
     </header>
-    <section aria-labelledby="dg-chart-heading">
+    <div class="doc-lead">
+      <p>同格の標準モブ1体に対する単体実効DPSの目標と育成上限。</p>
+      <div class="cat-key" aria-label="ステータスの分類"><span>分類</span><span class="cat cat-resource">リソース</span><span class="cat cat-primary">基本能力値</span><span class="cat cat-offense">攻撃</span><span class="cat cat-defense">防御</span><span class="cat cat-element">属性</span><span class="cat cat-condition">状態異常</span><span class="cat cat-utility">ユーティリティ</span></div>
+    </div>
+    <div class="doc-layout">
+    <aside class="doc-toc" aria-label="目次">
+      <p class="doc-toc-title">目次</p>
+      <ol>
+        <li><a href="#dg-chart-section"><span class="toc-num">1</span>同格モブへの総DPS</a></li>
+        <li><a href="#dg-tables"><span class="toc-num">2</span>レベル別の基準値</a></li>
+        <li><a href="#dg-rules"><span class="toc-num">3</span>設計条件と計算方法</a>
+          <ol>
+            <li><a href="#fx-total"><span class="toc-num">3.1</span>総DPSの評価</a></li>
+            <li><a href="#fx-build"><span class="toc-num">3.2</span>標準構成</a></li>
+            <li><a href="#fx-interp-card"><span class="toc-num">3.3</span>基準値とその間</a></li>
+            <li><a href="#fx-upper"><span class="toc-num">3.4</span>育成上限の目安</a></li>
+            <li><a href="#fx-kill-hp"><span class="toc-num">3.5</span>討伐HP</a></li>
+          </ol>
+        </li>
+      </ol>
+    </aside>
+    <div class="doc-body">
+    <section id="dg-chart-section" aria-labelledby="dg-chart-heading">
       <figure class="dg-figure spot-field" aria-labelledby="dg-chart-heading">
         <div class="dg-figure-head">
-          <h2 id="dg-chart-heading">同格モブへの総DPS</h2>
+          <h2 id="dg-chart-heading"><span class="ch-num">1</span>同格モブへの総DPS</h2>
+          <span class="cat-list"><span class="cat cat-atk">攻撃</span></span>
         </div>
         <p class="dg-scenario"><strong>同格戦</strong><span>プレイヤー → 標準モブ／単体・7秒</span></p>
         <div class="dg-legend-bar">
@@ -193,24 +341,57 @@
       </figure>
       <section class="dg-table-section" id="dg-tables" aria-labelledby="dg-table-heading">
         <div class="dg-table-head">
-          <h2 id="dg-table-heading">レベル別の基準値</h2>
+          <h2 id="dg-table-heading"><span class="ch-num">2</span>レベル別の基準値</h2>
           <label class="dg-table-choice"><input type="checkbox" id="dg-all-levels">5レベル刻みで表示</label>
         </div>
         <div id="dg-table-list"></div>
       </section>
     </section>
-    <details class="dg-rules">
-      <summary>設計条件と総DPSの評価方法</summary>
-      <table aria-label="戦闘バランスの設計条件">
-        <tbody>
-          <tr><th scope="row">総DPSの評価</th><td>同格の標準モブ1体に実際に与えた合計ダメージ ÷ 計測秒数。通常攻撃・会心・スキル・継続ダメージ・ペットを合算し、会心やスキルを目標値へ別途上乗せしない。</td></tr>
-          <tr><th scope="row">標準構成</th><td>職業・装備・スキルツリー・スキルブック・利用段階に応じたペットを含む。スキルは手数・待ち時間・消費資源を含む実際の攻撃サイクルで評価する。</td></tr>
-          <tr><th scope="row">基準値と成長</th><td>Lv.1＝10、Lv.25＝500、Lv.50＝850、Lv.100＝1,200。区間内は直線補間し、育成上限の目安は標準の1.3倍。</td></tr>
-          <tr><th scope="row">討伐HP</th><td>同格の標準モブ1体の討伐HPは、そのレベルの標準実効DPS × 7秒。Lv.100では 1,200 × 7 ＝ 8,400。</td></tr>
-        </tbody>
-      </table>
-    </details>
+    <section class="dg-rules fx-section" id="dg-rules" aria-labelledby="dg-rules-title">
+      <h2 id="dg-rules-title"><span class="ch-num">3</span>設計条件と計算方法</h2>
+      <p class="fx-section-lead">計算例は、1章のスライダーで選んだレベルの値。</p>
+      <div class="fx-grid">
+        <section class="fx-card" id="fx-total" aria-labelledby="fx-total-title">
+          <div class="fx-card-head"><h3 id="fx-total-title"><span class="sub-num">3.1</span>総DPSの評価</h3><span class="cat-list"><span class="cat cat-offense">攻撃</span></span></div>
+          <div class="fx">
+            <var class="fx-var cat-offense">総DPS</var><span class="fx-op">=</span>
+            <span class="fx-frac"><var class="fx-var">合計ダメージ<small>同格の標準モブ1体に与えた量</small></var><var class="fx-var">計測秒数</var></span>
+          </div>
+          <div class="fx-include"><span class="fx-include-label">合計に含める</span><span class="fx-chip">通常攻撃</span><span class="fx-chip">会心</span><span class="fx-chip">スキル</span><span class="fx-chip">継続ダメージ</span><span class="fx-chip">ペット</span></div>
+          <ul class="fx-notes"><li>会心やスキルの分を、目標値へ別に上乗せしない。</li></ul>
+        </section>
+        <section class="fx-card" id="fx-build" aria-labelledby="fx-build-title">
+          <div class="fx-card-head"><h3 id="fx-build-title"><span class="sub-num">3.2</span>標準構成</h3></div>
+          <div class="fx-include"><span class="fx-include-label">含めるもの</span><span class="fx-chip">職業</span><span class="fx-chip">装備</span><span class="fx-chip">スキルツリー</span><span class="fx-chip">スキルブック</span><span class="fx-chip">ペット<small>利用段階に応じて</small></span></div>
+          <ul class="fx-notes"><li>スキルは手数・待ち時間・消費資源を含む、実際の攻撃サイクルで評価する。</li></ul>
+        </section>
+        <section class="fx-card" id="fx-interp-card" aria-labelledby="fx-interp-title">
+          <div class="fx-card-head"><h3 id="fx-interp-title"><span class="sub-num">3.3</span>基準値とその間のレベル</h3><span class="cat-list"><span class="cat cat-offense">攻撃</span></span></div>
+          <ol class="fx-anchors" aria-label="標準総DPSの基準値">
+            <li class="fx-anchor-item"><button type="button" data-level="1" aria-label="Lv.1を選択"><small>Lv.1</small><b>10</b></button></li>
+            <li class="fx-anchor-item"><button type="button" data-level="25" aria-label="Lv.25を選択"><small>Lv.25</small><b>500</b></button></li>
+            <li class="fx-anchor-item"><button type="button" data-level="50" aria-label="Lv.50を選択"><small>Lv.50</small><b>850</b></button></li>
+            <li class="fx-anchor-item"><button type="button" data-level="100" aria-label="Lv.100を選択"><small>Lv.100</small><b>1,200</b></button></li>
+          </ol>
+          <p class="fx-example" id="fx-interp"></p>
+          <ul class="fx-notes"><li>基準値の間は、両端の値を直線で結ぶ。</li></ul>
+        </section>
+        <section class="fx-card" id="fx-upper" aria-labelledby="fx-upper-title">
+          <div class="fx-card-head"><h3 id="fx-upper-title"><span class="sub-num">3.4</span>育成上限の目安</h3><span class="cat-list"><span class="cat cat-offense">攻撃</span></span></div>
+          <div class="fx"><var class="fx-var cat-offense">育成上限</var><span class="fx-op">=</span><var class="fx-var cat-offense">標準総DPS</var><span class="fx-op">×</span><span class="fx-num">1.3</span></div>
+          <p class="fx-example"><span class="fx-lv" data-fx="lv">Lv.25</span><b class="c-offense" data-fx="dps">500</b> × 1.3 = <span class="fx-result" data-fx="upper">650</span></p>
+        </section>
+        <section class="fx-card" id="fx-kill-hp" aria-labelledby="fx-kill-hp-title">
+          <div class="fx-card-head"><h3 id="fx-kill-hp-title"><span class="sub-num">3.5</span>討伐HP</h3><span class="cat-list"><span class="cat cat-resource">リソース</span></span></div>
+          <div class="fx"><var class="fx-var cat-resource">討伐HP</var><span class="fx-op">=</span><var class="fx-var cat-offense">標準実効DPS</var><span class="fx-op">×</span><span class="fx-num">7秒</span></div>
+          <p class="fx-example"><span class="fx-lv" data-fx="lv">Lv.25</span><b class="c-offense" data-fx="dps">500</b> × 7 = <span class="fx-result" data-fx="hp">3,500</span></p>
+          <ul class="fx-notes"><li>同格の標準モブ1体あたり。</li></ul>
+        </section>
+      </div>
+    </section>
     <noscript><p>グラフと数値表の表示にはJavaScriptを有効にしてください。標準総DPSはLv.1で10、Lv.25で500、Lv.50で850、Lv.75で1,025、Lv.100で1,200です。</p></noscript>
+    </div>
+    </div>
   </main>
   <script>
     (() => {
@@ -299,6 +480,12 @@
             addCell(row, "th", level, "row");
             for (const id of view.series) addCell(row, "td", valueText(id, level));
           }
+          table.classList.add("clickable-rows");
+          // 行をクリックすると、そのレベルを選択する。
+          body.addEventListener("click", event => {
+            const row = event.target.closest("tr[data-level]");
+            if (row) setLevel(levels.indexOf(Number(row.dataset.level)), { announce: true });
+          });
           wrap.append(table);
           byId("dg-table-list").append(wrap);
           valueTable = table;
@@ -308,34 +495,6 @@
         if (index === 0) return svgElement("circle", { cx: x, cy: y, r: size, class: className });
         const points = [[x, y - size], [x + size, y], [x, y + size], [x - size, y]];
         return svgElement("polygon", { points: points.map(pair => pair.join(",")).join(" "), class: className });
-      }
-      function createPreview(id, index) {
-        const width = 216;
-        const height = 54;
-        const padding = 9;
-        const seriesIndex = view.series.indexOf(id);
-        const start = Math.max(0, Math.min(index - 2, levels.length - 5));
-        const nearby = levels.slice(start, start + 5);
-        const span = nearby.at(-1) - nearby[0];
-        const values = nearby.map(level => metrics[id].at(level));
-        const low = Math.min(...values);
-        const range = Math.max(1, Math.max(...values) - low);
-        const points = nearby.map((level, i) => [
-          padding + (level - nearby[0]) / span * (width - 2 * padding),
-          height - padding - (values[i] - low) / range * (height - 2 * padding),
-        ]);
-        const [x, y] = points[index - start];
-        const preview = svgElement("svg", {
-          viewBox: `0 0 ${width} ${height}`, class: "dg-tooltip-preview dg-series-" + seriesIndex,
-          "aria-hidden": "true",
-        });
-        preview.append(
-          svgElement("line", { x1: x, x2: x, y1: 2, y2: height - 2, class: "dg-crosshair" }),
-          svgElement("polyline", { points: points.map(pair => pair.join(",")).join(" "), class: "dg-series-path" }),
-          ...points.map(([px, py]) => mark(seriesIndex, px, py, 2.4, "dg-point")),
-          mark(seriesIndex, x, y, 5.2, "dg-ring"),
-        );
-        return preview;
       }
       function makeLegend() {
         legend.replaceChildren();
@@ -414,6 +573,7 @@
         }));
         for (let tick = 0; tick <= top; tick += step) {
           const y = yAt(tick);
+          if (tick > 0) chart.insertBefore(svgElement("line", { x1: layout.left, x2: layout.right, y1: y, y2: y, class: "dg-gridline" }), chart.querySelector(".dg-axis"));
           chart.append(
             svgElement("line", { x1: layout.left - 4, x2: layout.left, y1: y, y2: y, class: "dg-axis" }),
             svgElement("text", { x: layout.left - 7, y: y + 4, "text-anchor": "end" }, format.format(tick))
@@ -450,6 +610,36 @@
         setLevel(levelIndex, { tipSeries: hoveredSeries || focusedSeries || pinnedSeries });
       }
 
+      // 3章の計算例: 選択レベルの値を式へ代入する。
+      function setFx(key, text) {
+        root.querySelectorAll('[data-fx="' + key + '"]').forEach(node => { node.textContent = text; });
+      }
+      function updateFormulas(level) {
+        const dps = metrics.standard.at(level);
+        setFx("lv", "Lv." + level);
+        setFx("dps", format.format(dps));
+        setFx("upper", format.format(dps * upperMultiplier));
+        setFx("hp", format.format(dps * 7));
+        const right = anchors.findIndex(anchor => anchor.level >= level);
+        const exact = anchors[right].level === level;
+        root.querySelectorAll(".fx-anchor-item").forEach((item, i) => {
+          item.classList.toggle("is-active", i === right || (!exact && i === right - 1));
+        });
+        const line = byId("fx-interp");
+        const value = (text, className = "c-offense") => { const b = htmlElement("b", text); b.className = className; return b; };
+        const result = htmlElement("span", format.format(dps));
+        result.className = "fx-result";
+        const chip = htmlElement("span", "Lv." + level);
+        chip.className = "fx-lv";
+        if (exact) {
+          line.replaceChildren(chip, "基準値そのまま：", result);
+          return;
+        }
+        const a = anchors[right - 1], b = anchors[right];
+        line.replaceChildren(chip,
+          value(format.format(a.dps)), " + (", value(format.format(b.dps)), " − ", value(format.format(a.dps)), ") × (",
+          value(level, ""), " − ", value(a.level, ""), ") ÷ (", value(b.level, ""), " − ", value(a.level, ""), ") = ", result);
+      }
       function setLevel(index, { tipSeries = null, announce = false } = {}) {
         levelIndex = index;
         const level = levels[index];
@@ -460,6 +650,7 @@
         slider.setAttribute("aria-valuetext", "レベル" + level);
         valueTable.querySelector("tr[aria-current]")?.removeAttribute("aria-current");
         valueTable.querySelector('tr[data-level="' + level + '"]').setAttribute("aria-current", "true");
+        updateFormulas(level);
         const summary = [];
         view.series.forEach((id, i) => {
           const value = valueText(id, level);
@@ -480,7 +671,7 @@
           tooltip.replaceChildren(htmlElement("strong", label));
           const row = htmlElement("div");
           row.append(htmlElement("span", metrics[tipSeries].name), htmlElement("b", valueText(tipSeries, level)));
-          tooltip.append(row, createPreview(tipSeries, index));
+          tooltip.append(row);
           const x = xAt(level);
           const pointY = yAt(metrics[tipSeries].at(level));
           const width = chart.clientWidth;
@@ -519,6 +710,10 @@
           Math.abs(value - level) < Math.abs(levels[nearest] - level) ? i : nearest, 0);
         setLevel(index, { tipSeries: nearest.id });
       }
+      root.querySelector(".fx-anchors").addEventListener("click", event => {
+        const button = event.target.closest("button[data-level]");
+        if (button) setLevel(levels.indexOf(Number(button.dataset.level)), { announce: true });
+      });
       slider.addEventListener("input", () => setLevel(Number(slider.value), { tipSeries: pinnedSeries || hoveredSeries || focusedSeries || "standard", announce: true }));
       slider.addEventListener("blur", hideTip);
       chart.addEventListener("pointerdown", showPointerLevel);
@@ -617,6 +812,33 @@
   document.addEventListener("keydown", event => { if (event.key === "Escape") closeSpotlight(); });
   window.addEventListener("resize", closeSpotlight);
   window.addEventListener("beforeprint", closeSpotlight);
+})();
+</script>
+<script>
+(() => {
+  // 目次: 読んでいる章を強調し、折りたたみの章へ移動したら開く。
+  const links = [...document.querySelectorAll(".doc-toc a[href^='#']")];
+  const targets = links.map(link => document.getElementById(decodeURIComponent(link.hash.slice(1))));
+  function update() {
+    let current = 0;
+    targets.forEach((target, i) => { if (target && target.getBoundingClientRect().top <= 110) current = i; });
+    if (innerHeight + scrollY >= document.documentElement.scrollHeight - 2) current = links.length - 1;
+    const parent = current >= 0 ? links[current].closest("ol ol")?.closest("li")?.querySelector(":scope > a") : null;
+    links.forEach((link, i) => {
+      link.classList.toggle("is-current", i === current);
+      link.classList.toggle("is-within", link === parent);
+      if (i === current) link.setAttribute("aria-current", "location");
+      else link.removeAttribute("aria-current");
+    });
+  }
+  document.addEventListener("click", event => {
+    const link = event.target.closest("a[href^='#']");
+    const target = link && document.getElementById(decodeURIComponent(link.hash.slice(1)));
+    if (target?.tagName === "DETAILS") target.open = true;
+  });
+  addEventListener("scroll", update, { passive: true });
+  addEventListener("resize", update);
+  update();
 })();
 </script>
 </body>
