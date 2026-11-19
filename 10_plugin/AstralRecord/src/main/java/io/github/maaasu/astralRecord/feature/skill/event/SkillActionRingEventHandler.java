@@ -25,9 +25,12 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.jetbrains.annotations.NotNull;
 
@@ -65,7 +68,7 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
     public boolean isBedrockShortcutInput(@NotNull PlayerInteractionSnapshot snapshot) {
         AstPlayer astPlayer = AstPlayerCache.get(snapshot.player());
         return snapshot.isMainHandInput() && astPlayer != null && astPlayer.isBedrock()
-            && isArmedPlayer(astPlayer);
+            && (actionRingService.isBedrockHotbarOpen(snapshot.player()) || isArmedPlayer(astPlayer));
     }
 
     @Override
@@ -101,11 +104,15 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
                 ))
                 : List.of();
         }
+        PlayerInteractionSnapshot snapshot = context.inputSnapshot();
+        Player player = snapshot.player();
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer != null && astPlayer.isBedrock()) {
+            return resolveBedrock(context.family(), snapshot, astPlayer);
+        }
         if (context.family() != InputFamily.RIGHT_CLICK && context.family() != InputFamily.LEFT_CLICK) {
             return List.of();
         }
-        PlayerInteractionSnapshot snapshot = context.inputSnapshot();
-        Player player = snapshot.player();
         if (snapshot.hand() == EquipmentSlot.OFF_HAND) {
             return actionRingService.isOpen(player)
                 ? List.of(candidate(
@@ -119,19 +126,6 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
         }
         if (!snapshot.isMainHandInput()) {
             return List.of();
-        }
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer != null && astPlayer.isBedrock()) {
-            if (context.family() != InputFamily.RIGHT_CLICK || !isArmedPlayer(astPlayer)) {
-                return List.of();
-            }
-            boolean select = player.isSneaking();
-            return List.of(candidate(
-                "skill-action-ring-bedrock-shortcut",
-                InteractionCandidateOrder.NEW_ACTION_RING,
-                player,
-                () -> actionRingService.useBedrockShortcut(astPlayer, select)
-            ));
         }
         if (actionRingService.isOpen(player)) {
             Runnable executor = context.family() == InputFamily.RIGHT_CLICK
@@ -184,6 +178,38 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
         return List.of();
     }
 
+    private Collection<PlayerInputCandidate> resolveBedrock(
+        InputFamily family, PlayerInteractionSnapshot snapshot, AstPlayer astPlayer
+    ) {
+        Player player = snapshot.player();
+        boolean open = actionRingService.isBedrockHotbarOpen(player);
+        boolean click = family == InputFamily.RIGHT_CLICK || family == InputFamily.LEFT_CLICK;
+        if ((click && (open || actionRingService.isBedrockHotbarClickCoolingDown(player)))
+            || (open && (family == InputFamily.DROP_ITEM || family == InputFamily.BLOCK_MUTATION))) {
+            Runnable executor = open && click && snapshot.isMainHandInput()
+                ? actionRingService.bedrockHotbarClick(astPlayer, family == InputFamily.RIGHT_CLICK)
+                : () -> { };
+            return List.of(new PlayerInputCandidate(
+                "skill-action-ring-bedrock-selection",
+                InteractionTier.EXCLUSIVE_CONTEXT,
+                0.0D,
+                InteractionCandidateOrder.OPEN_ACTION_RING,
+                player.getUniqueId().toString(),
+                InputClaimPolicy.CLAIM_AND_CANCEL,
+                executor
+            ));
+        }
+        if (family == InputFamily.RIGHT_CLICK && snapshot.isMainHandInput() && isArmedPlayer(astPlayer)) {
+            return List.of(candidate(
+                "skill-action-ring-bedrock-open",
+                InteractionCandidateOrder.NEW_ACTION_RING,
+                player,
+                actionRingService.bedrockHotbarClick(astPlayer, true)
+            ));
+        }
+        return List.of();
+    }
+
     private PlayerInputCandidate candidate(
         String id,
         int stableOrder,
@@ -215,7 +241,7 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
         runSafely(
             () -> {
-                actionRingService.forgetBedrockShortcut(event.getPlayer());
+                actionRingService.forgetBedrockHotbar(event.getPlayer());
                 actionRingService.close(event.getPlayer());
             },
             LogId.E_3002,
@@ -225,18 +251,39 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerDeath(@NotNull PlayerDeathEvent event) {
-        actionRingService.closeBedrockMenu(event.getEntity());
+        actionRingService.closeBedrockHotbar(event.getEntity());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerChangedWorld(@NotNull PlayerChangedWorldEvent event) {
-        actionRingService.closeBedrockMenu(event.getPlayer());
+        actionRingService.closeBedrockHotbar(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onInventoryOpen(@NotNull InventoryOpenEvent event) {
         if (event.getPlayer() instanceof Player player) {
-            actionRingService.closeBedrockMenu(player);
+            actionRingService.closeBedrockHotbar(player);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onInventoryClick(@NotNull InventoryClickEvent event) {
+        if (event.getWhoClicked() instanceof Player player && actionRingService.dismissBedrockHotbarForInventory(player)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onInventoryDrag(@NotNull InventoryDragEvent event) {
+        if (event.getWhoClicked() instanceof Player player && actionRingService.dismissBedrockHotbarForInventory(player)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onSwapHands(@NotNull PlayerSwapHandItemsEvent event) {
+        if (actionRingService.isBedrockHotbarOpen(event.getPlayer())) {
+            event.setCancelled(true);
         }
     }
 

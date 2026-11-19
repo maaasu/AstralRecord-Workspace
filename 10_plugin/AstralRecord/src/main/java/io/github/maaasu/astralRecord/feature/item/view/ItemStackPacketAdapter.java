@@ -145,6 +145,16 @@ public class ItemStackPacketAdapter {
 
         ProtocolManager manager = ProtocolLibrary.getProtocolManager();
 
+        manager.addPacketListener(new PacketAdapter(plugin, ListenerPriority.HIGHEST, PacketType.Play.Client.HELD_ITEM_SLOT) {
+            @Override
+            public void onPacketReceiving(PacketEvent event) {
+                Player player = event.getPlayer();
+                if (!event.isCancelled() && actionRingService.queueBedrockHotbarSlot(player, event.getPacket())) {
+                    event.setCancelled(true);
+                }
+            }
+        });
+
         manager.addPacketListener(new PacketAdapter(
                 plugin,
                 ListenerPriority.NORMAL,
@@ -185,6 +195,7 @@ public class ItemStackPacketAdapter {
                     : selectedHotbarSlots.getOrDefault(viewer.getUniqueId(), -1);
 
                 ItemTooltipPresentation tooltip = tooltipPresentation(viewer.getUniqueId());
+                List<ItemStack> skillHotbar = actionRingService.bedrockHotbarProjection(viewer.getUniqueId());
                 CartographHeldMap.Projection cartograph = cartographHeldMap.projection(viewer.getUniqueId());
                 if (type == PacketType.Play.Server.SET_SLOT
                     || type == PacketType.Play.Server.SET_PLAYER_INVENTORY
@@ -195,6 +206,14 @@ public class ItemStackPacketAdapter {
                     } else if (type == PacketType.Play.Server.SET_PLAYER_INVENTORY) {
                         Integer slot = packet.getIntegers().readSafely(0);
                         hotbarSlot = slot == null ? -1 : slot;
+                    }
+                    if (hotbarSlot >= 0 && hotbarSlot < skillHotbar.size()) {
+                        ItemStack projected = skillHotbar.get(hotbarSlot);
+                        packet.getItemModifier().writeSafely(0, skillHotbarItem(
+                            projected, hotbarSlot, skillHotbar.size(), armor, permittedSkillIds,
+                            randomStatusRangeDisplayEnabled, tooltip
+                        ));
+                        return;
                     }
                     handleSetSlot(
                         packet,
@@ -221,7 +240,8 @@ public class ItemStackPacketAdapter {
                         bedrockViewer,
                         randomStatusRangeDisplayEnabled,
                         tooltip,
-                        cartograph
+                        cartograph,
+                        skillHotbar
                     );
                 } else if (type == PacketType.Play.Server.ENTITY_EQUIPMENT) {
                     handleEntityEquipment(
@@ -426,6 +446,7 @@ public class ItemStackPacketAdapter {
      * @param randomStatusRangeDisplayEnabled ランダムステータス範囲行を表示する場合は {@code true}
      * @param tooltip 受信者の装飾方式。パックが使えない場合は null
      * @param cartograph 選択中カルトグラフの送信情報
+     * @param skillHotbar 本人に送る統合版スキルホットバー。選択外では空リスト
      */
     private void handleWindowItems(
         @NotNull PacketContainer packet,
@@ -436,7 +457,8 @@ public class ItemStackPacketAdapter {
         boolean bedrockViewer,
         boolean randomStatusRangeDisplayEnabled,
         @Nullable ItemTooltipPresentation tooltip,
-        @Nullable CartographHeldMap.Projection cartograph
+        @Nullable CartographHeldMap.Projection cartograph,
+        List<ItemStack> skillHotbar
     ) {
         // カーソルで保持しているスタックにも、受信者の表示設定を適用します。
         handleSetSlot(packet, armor, false, permittedSkillIds, bedrockViewer,
@@ -448,12 +470,18 @@ public class ItemStackPacketAdapter {
 
         var modified = false;
         for (int i = 0; i < items.size(); i++) {
+            int hotbarSlot = playerInventoryHotbarSlot(packet, i);
+            if (hotbarSlot >= 0 && hotbarSlot < skillHotbar.size()) {
+                items.set(i, skillHotbarItem(skillHotbar.get(hotbarSlot), hotbarSlot, skillHotbar.size(),
+                    armor, permittedSkillIds, randomStatusRangeDisplayEnabled, tooltip));
+                modified = true;
+                continue;
+            }
             var original = items.get(i);
             if (original == null || original.getType() == Material.AIR) {
                 continue;
             }
 
-            int hotbarSlot = playerInventoryHotbarSlot(packet, i);
             boolean virtualTrident = shouldVirtualizeHotbarWeapon(
                 actionRingHoldSelectEnabled,
                 hotbarSlot,
@@ -471,6 +499,26 @@ public class ItemStackPacketAdapter {
         if (modified) {
             packet.getItemListModifier().writeSafely(0, items);
         }
+    }
+
+    private ItemStack skillHotbarItem(
+        ItemStack projected,
+        int slot,
+        int slotCount,
+        ArmorPresentation armor,
+        @Nullable Set<String> permittedSkillIds,
+        boolean randomStatusRangeDisplayEnabled,
+        @Nullable ItemTooltipPresentation tooltip
+    ) {
+        // 9番の武器は通常の統合版向けアイコン処理を通します。
+        if (slot == slotCount - 1) {
+            ItemStack rendered = replaceIcon(projected, armor, false, permittedSkillIds, true,
+                randomStatusRangeDisplayEnabled, tooltip);
+            if (rendered != null) {
+                return rendered;
+            }
+        }
+        return projected.clone();
     }
 
     private static @Nullable ItemStack applyCartograph(
