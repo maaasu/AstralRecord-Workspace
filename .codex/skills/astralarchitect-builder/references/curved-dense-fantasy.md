@@ -70,12 +70,13 @@
 
 ### 用途と地形から見せ場を選ぶ
 
-次の作例は動画ページに表示された完成外観を観察したもの。Fantasy Mangrove House については、動画本編で屋根を組む途中の場面も確認した。右列はその特徴から作る設計案。用途・敷地に合う作例があれば、屋根の高さ、部屋の位置、残す空間などに活かす。橋や門など別の構成が合う場所では、その用途と地形から見せ場を決める。
+動画の作例では公開ページの完成外観を、MineColonies の住宅では公式の建築データを確認した。Fantasy Mangrove House については、動画本編で屋根を組む途中の場面も確認した。右列はその特徴から作る設計案。用途・敷地に合う作例があれば、屋根の高さ、部屋の位置、残す空間などに活かす。橋や門など別の構成が合う場所では、その用途と地形から見せ場を決める。
 
 | 場面と作例 | 作例で確認できたこと | 粗モデルで決めること |
 |---|---|---|
 | 細長い塔 [SeeFr0・Rapunzels tower](https://www.youtube.com/shorts/Y3uVRrYPyBQ) | 長い石の塔身の上で居室が横に広がり、紫の主尖塔と脇の小尖塔が立つ。窓や木組みは上部に集まる。 | 先に高さ別の幅を決め、上階の床と張り出しの支持を組む。塔身には縦方向の連続性を残し、上階の窓で居室の位置を見せる。 |
 | 個性の強い一軒家 [MrMattRanger・Fantasy Mangrove House の制作過程（約10秒）](https://www.youtube.com/watch?v=CozTpsLJqYo&t=10s) | 壁の天端に赤いブロック、上空の複数の高さに青いブロックが並び、続く場面では片側が高い赤い屋根面ができている。[完成外観（約17秒）](https://www.youtube.com/watch?v=CozTpsLJqYo&t=17s)では、小破風の上窓の下を低い軒が横切り、反った棟先から灯りが下がる。 | 粗モデルでは軒・中腹・頂部の輪郭と、小破風が入る切れ目を先に決める。入口側から見て、棟の返りの内側に空が通る位置を選ぶ。 |
+| 木組みの住宅 [Carlansor・MineColonies 公式 Medieval Spruce「residence3」](https://github.com/ldtteam/minecolonies/blob/a53091cdee2f0d418868d6e36c4913451018e3d1/src/main/resources/blueprints/minecolonies/medievalspruce/fundamentals/residence3.blueprint) | この一棟の屋根材 `shingle` 99個の直下を数えると、44か所に上付きのトウヒの階段、38か所にトウヒの原木がある。 | 軒先か妻を一か所選び、屋根の覆いを垂木で受け、その下に桁を通す。断面で部材同士の接触を確かめ、建物全体を斜めから見ても覆いと木の支持が見分けられるか試す。 |
 | 象徴のある複合塔 [ecosmp・The Moonspire](https://www.youtube.com/shorts/QfEFGMrZtCo) | 中央の高い塔と高さの異なる脇塔に同系色の屋根が並ぶ。頂上の月形と周囲の明るい浮遊片が空を背景に読める。 | 共通の軒断面を大小に合わせて作り、脇塔を低くする。魔法表現が用途に合えば頂部に象徴を置き、その周囲に空を残す。 |
 | 開放祭壇 [HiveBuild Minecraft・Ancient Altar](https://www.youtube.com/watch?v=qANUHR-xuOU) | 階段の先に明るい中心像と途切れた石の輪があり、鎖・つる・上空の石片が輪郭を作る。 | 入口の階段から中心像を見通す軸を取る。輪の欠けと意図した浮遊片の位置を定め、歩行床・階段・台座は連続させる。 |
 | 崖の住居 [Najaosan・Windswept Cliff House](https://www.youtube.com/shorts/2RubdKBxr7s) | 崖沿いの異なる高さの緑屋根、外へ出た塔屋、張り出しの下に垂れる植生が見える。 | 最初に岩へ接する高さ、入口への経路、谷側へ出す床を置く。谷からの斜視で床裏と支持が見えるようにし、植生は通路や支持部を隠さない位置へ下げる。 |
