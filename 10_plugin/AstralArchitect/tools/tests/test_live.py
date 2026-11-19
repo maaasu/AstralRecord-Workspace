@@ -175,6 +175,42 @@ class LiveCliTest(unittest.TestCase):
         actual = read_schematic(self.fixture.candidate_path, bounds)
         self.assertEqual(states(second), actual.states())
 
+    def test_plan_replaces_draft_and_exports_only_latest_operations(self) -> None:
+        original = self.get("/api/state")
+        candidate = self.fixture.candidate_path.read_bytes()
+        self.assertEqual(0, self.submit(set_top("minecraft:glass"))[0].returncode)
+        path = self.fixture.root / "plan.json"
+        rough = {"op": "set", "at": [1, 0, 0], "block": "minecraft:stone"}
+        detail = {"op": "set", "at": [0, 0, 0], "block": "minecraft:gold_block"}
+        plan = {"version": 1, "origin": [100, 65, 200],
+                "parts": {"bay": {"rough": [rough], "detail": [detail]}},
+                "placements": [{"part": "bay", "at": [0, 0, 0]}]}
+        path.write_text(json.dumps(plan), encoding="utf-8")
+        process, result = self.run_cli("live-ops", "--plan", str(path))
+        self.assertEqual(0, process.returncode, result)
+        self.assertEqual(("detail", 2), (result["stage"], result["operationCount"]))
+        process, result = self.run_cli("live-ops", "--plan", str(path), "--stage", "rough")
+        self.assertEqual(0, process.returncode, result)
+        self.assertEqual(("rough", 1, 3), (result["stage"], result["batchChangedBlockCount"], result["revision"]))
+        expected = states(original)
+        expected[7] = "minecraft:stone"
+        accepted = self.get("/api/state")
+        self.assertEqual(expected, states(accepted))
+        self.assertTrue(self.get("/api/changes?since=2")["reset"])
+        rough["at"] = [100, 0, 0]
+        path.write_text(json.dumps(plan), encoding="utf-8")
+        self.assertNotEqual(0, self.run_cli("live-ops", "--plan", str(path))[0].returncode)
+        self.assertEqual(accepted, self.get("/api/state"))
+        self.assertEqual(0, self.submit(set_top("minecraft:glass"))[0].returncode)
+        self.assertTrue(self.get("/api/changes?since=2")["reset"])
+        self.assertEqual([4], [p["revision"] for p in self.get("/api/changes?since=3")["updates"]])
+        export = self.fixture.root / "export.json"
+        process, result = self.run_cli("live-export", "--output", str(export))
+        self.assertEqual(0, process.returncode, result)
+        self.assertEqual([dict(set_top("minecraft:stone"), x=101), set_top("minecraft:glass")],
+                         json.loads(export.read_text(encoding="utf-8")))
+        self.assertEqual(candidate, self.fixture.candidate_path.read_bytes())
+
     def test_rejected_batch_leaves_the_draft_and_ticket_unchanged(self) -> None:
         before = self.get("/api/state")
         process, result = self.submit(

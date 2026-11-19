@@ -116,6 +116,17 @@ CLI にはワールドへブロックを適用する権限、ワールドを巻�
 
 ## 3D プレビュー
 
+建物を組み立てる場合は [設計書 v1](blueprint.md) を使う。ラッパーの `--` 以降の例を示す。`plan.json` と出力 PNG はチケット外の絶対パスに置く。
+
+```text
+preview --plan <plan.json> --stage rough --eye <X> <Y> <Z> --target <X> <Y> <Z> --output <rough.png>
+preview --plan <plan.json> --stage detail --eye <X> <Y> <Z> --target <X> <Y> <Z> --output <detail.png>
+slice --plan <plan.json> --stage detail --y <Y> --x-min <X1> --x-max <X2> --z-min <Z1> --z-max <Z2>
+apply-ops --plan <plan.json> --expect-candidate-sha256 <baseCandidateSha256> --expect-stage-sha256 <stageSha256>
+```
+
+どのプレビューも現在の候補から仮適用する。AI は画像を開き、設計書に修正を戻して新しい PNG を撮る。適用には採用した仕上げ画像の二つのハッシュを使う。設計書の内容、段階、展開した操作、または基点の候補が変わった場合は再撮影する。
+
 `preview` の既定は現在の候補。`--source` は元の敷地を、`--ops <absolute-path>` は現在の候補に編集操作を仮適用した状態を撮影する。仮適用には `apply-ops` と同じ状態・範囲・`expect`・ブロックエンティティ・操作数の検査が掛かる。
 
 - `--eye X Y Z` はカメラ位置、`--target X Y Z` は注視点。どちらもワールド座標で小数可。例として、正面が北なら建物の北側（小さい Z）にカメラを置く。
@@ -136,7 +147,8 @@ python scripts/invoke_ticket_cli.py --ticket <absolute-ticket-dir> -- live-stop 
 
 - `live` は起動時の候補を読み込む。AI は実際の配置・修正ごとに `live-ops` を実行する。検証に通った呼び出しごとに画面へ差分が届く。範囲、`expect`、ブロックエンティティなどの検査は `apply-ops` と共通で、失敗した操作一式は表示に反映されない。
 - ブラウザーではドラッグで周回、右ドラッグで平行移動、ホイールでズームできる。画面にフォーカスして W/A/S/D で前後左右、Q/E で上下に移動できる。視点を維持したまま差分が反映される。
-- `live-export` は起動から採用した変更の全操作を順に書き出す。候補へ反映する際は、その応答の `baseCandidateSha256` と書き出したファイルを `apply-ops` に渡す。ライブ画面に表示した案を静止画で確認する場合は、書き出した操作を `preview --ops` に渡せる。
+- `live-ops --session <session.json> --plan <plan.json> --stage rough|detail` は起動時の候補から組み直し、現在のライブ案全体を置き換える。`--ops` の個別操作は現在の案に追記される。次の設計書への差し替えで残したい個別修正は、設計書にも戻しておく。
+- `live-export` は現在のライブ案を再現する操作を書き出す。候補へ反映する際は、書き出した操作を `preview --ops` で撮影し、基点と画像を確認して同じ操作を `apply-ops --ops` に渡す。
 - セッションは起動プロセスのメモリ内にある。必要な操作を書き出してから `live-stop` または起動端末で Ctrl+C で終了する。再開には新規セッションファイルを使う。
 - ライブ画面には WebGL 2 対応ブラウザーが必要。選択体積の上限は 20,000,000 セル。通常のランチャーの `versions/1.21.11/1.21.11.jar` を検出すると、そのブロックモデルとテクスチャを使う。Windows では `%LOCALAPPDATA%/AstralArchitect/minecraft/1.21.11.jar` も探索する。別の場所にある場合は起動時に `live --session <新規JSON> --minecraft-jar <JARの絶対パス>` を使う。バージョンが違う JAR は起動エラーを返す。
 - 画面右上の `Java 1.21.11` はゲーム素材を使うモードを示す。クライアント素材が見つからないときは `簡易表示` で起動する。ゲーム素材モードでも読めないブロックは簡易形状に切り替える。柵や塀はブロック状態に記録された接続方向を使い、草や葉は平原相当の色とテクスチャの透明部分を反映する。影・光量はブラウザー用の描画で、アニメーションするテクスチャは先頭フレームを表示する。

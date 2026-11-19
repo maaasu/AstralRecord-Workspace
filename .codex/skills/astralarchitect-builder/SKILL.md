@@ -25,9 +25,9 @@ description: AstralArchitect の建築チケットを調査し、参考建築と
 1. 絶対パスの `plugins/AstralArchitect/tickets/<ticket-id>` を必須とする。チケットを推測せず、`trash` 配下のパスを受け付けない。
 2. チケットを扱う前に [参照資料/ticket-contract.md](references/ticket-contract.md) を最後まで読む。
 3. `info` を実行し、パレット、基準点、関連するページ分割済みの断面/表面、画像がある場合は `attachments/` を確認する。添付資料は任意で読み取り専用とする。
-4. ライブ表示が依頼されたら、配置・修正の操作を作り始める前に `live` を起動してローカル URL を共有する。起動応答の `minecraftVersion` を確認し、ゲームに近い見た目が必要なら Java 1.21.11 のクライアント JAR を指定する。骨格、屋根、仕上げなど実際の作業区切りごとに操作を作り、次の区切りへ進む前に `live-ops` で送る。[ライブ3Dビューアー](references/ticket-contract.md#ライブ3dビューアー) の手順を使う。ユーザーの設計を明示的なブロック操作に変換する。新築・再設計や完成度改善では [design-quality.md](references/design-quality.md) と MC-BUILD-Q1 を使い、観測した寸法・用途・動線、保存する空気を含む領域、参考にした特徴を短く整理してから、輪郭、骨組み、細部の順に設計する。局所的な修正はその影響範囲だけに適用する。すべての変更をチケット体積内に収め、対象構造の外にある既存地形を保持する。
-5. 新築・再設計の静止画確認には `preview --ops` を使う。骨格は斜視と側面、仕上げは前後左右・屋根・対象室内から撮影し、画像を実際に開いて確認する。形や納まりに問題があれば操作を修正して撮り直す。局所修正は対象と接続部が見える視点に絞る。視点・断面・制限は [ticket-contract.md](references/ticket-contract.md#3d-プレビュー) を参照する。
-6. `candidate.schem` への操作は `apply-ops` だけで適用する。ライブ案なら `live-export` で取り出した操作ファイルを使う。採用した操作ファイルと、その `baseCandidateSha256` を渡す。ハッシュが変わったら候補を再調査して撮り直す。`source.schem`、`ticket.json`、`applied.schem`、添付資料、ごみ箱の内容は編集しない。
+4. 新築・全体改修は [部品設計とプレビュー](references/blueprint.md) に従い、編集可能な設計書をチケット外に置く。[design-quality.md](references/design-quality.md) と MC-BUILD-Q1 を使い、入口・通れるべき空間・保存する地形・建物全体の寸法を決める。まず各部品の `rough` だけで床・柱・屋根の量塊と開口を組み、`preview --plan ... --stage rough` の画像を開く。ライブ表示の依頼があれば設計を始める前に `live` を起動して URL を共有し、各段階で同じ設計書を `live-ops --plan` へ渡す。
+5. 骨格が納まったら代表となる一間を仕上げ、同じ間は反復、対称側は鏡映で配置する。余り寸法のある短い端部や地形に触れる箇所には専用の端部を作る。仕上げを固定した視点から撮影し、AIが各画像を開いて見えた問題・該当部品・修正内容を記録する。設計書を修正し、同じ候補・視点で再撮影して隙間、支持、動線を照合する。局所修理は従来の `--ops` で対象と隣接部を確認できる。
+6. 仕上げの画像を採用したら、同じ設計書とその `baseCandidateSha256`・`stageSha256` を `apply-ops --plan` に渡す。設計書や候補が変わったら再撮影する。ライブで個別操作も加えた場合は `live-export` で現在の案を書き出し、`preview --ops` で確認した操作ファイルと候補ハッシュを `apply-ops --ops` に渡す。
 7. `diff` と対象を絞った調査を実行する。最終確認用の画像は反映後の候補から `preview` で生成し、候補と画像のハッシュを証拠に使う。安全・形式の検証と、外観・動線・地形接続の評価を区別し、未観測項目を明記する。新築・全体改修は MC-BUILD-Q1 の必須条件・採点・証拠記録で、局所修正は対象評価と該当必須条件で判定する。現行CLIで確認できない視覚・ゲーム内の項目は未検証とし、点数や適用外で埋めて完成扱いしない。候補が依頼を満たさない場合は、新しい操作で反復する。
 8. 変更ブロック件数と重要な設計判断を報告する。Minecraft 内で `/architect ticket validate <ID>` を実行し、成功した場合だけ `/architect ticket apply <ID>` を実行するようプレイヤーに伝える。
 
@@ -36,8 +36,8 @@ description: AstralArchitect の建築チケットを調査し、参考建築と
 ```text
 python scripts/invoke_ticket_cli.py --ticket <absolute-ticket-directory> -- info
 python scripts/invoke_ticket_cli.py --ticket <absolute-ticket-directory> -- surface --x-min <X> --x-max <X> --z-min <Z> --z-max <Z>
-python scripts/invoke_ticket_cli.py --ticket <absolute-ticket-directory> -- preview --ops <absolute-operations-file> --eye <X> <Y> <Z> --target <X> <Y> <Z> --output <absolute-png-path>
-python scripts/invoke_ticket_cli.py --ticket <absolute-ticket-directory> -- apply-ops --ops <absolute-operations-file> --expect-candidate-sha256 <baseCandidateSha256>
+python scripts/invoke_ticket_cli.py --ticket <absolute-ticket-directory> -- preview --plan <absolute-plan-json> --stage detail --eye <X> <Y> <Z> --target <X> <Y> <Z> --output <new-absolute-png>
+python scripts/invoke_ticket_cli.py --ticket <absolute-ticket-directory> -- apply-ops --plan <absolute-plan-json> --expect-candidate-sha256 <baseCandidateSha256> --expect-stage-sha256 <stageSha256>
 python scripts/invoke_ticket_cli.py --ticket <absolute-ticket-directory> -- diff
 ```
 
