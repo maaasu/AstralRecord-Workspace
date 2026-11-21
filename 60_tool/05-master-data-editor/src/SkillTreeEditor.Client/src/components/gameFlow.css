@@ -1,18 +1,59 @@
 .game-flow-host { height: 100%; min-height: 0; container-type: inline-size; }
-.game-flow { display: grid; grid-template-columns: 220px minmax(0, 1fr) 300px; grid-template-rows: minmax(0, 1fr); height: 100%; min-height: 0; background: var(--surface); color: var(--text); }
+.game-flow {
+  --kind-dungeon: #c0715a;
+  --kind-shop: #d0a64a;
+  --kind-item: #5aa7c0;
+  --kind-mob: #b0596f;
+  --kind-class: #8f73c9;
+  --kind-world: #5fae74;
+  --kind-gathering: #7fae4f;
+  --kind-recipe: #c08a4f;
+  --kind-skill: #5f87d6;
+  --kind-note: #8a8f98;
+  --kind-default: #7086a5;
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 300px;
+  grid-template-rows: minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  background: var(--surface);
+  color: var(--text);
+}
+.game-flow [data-kind] { --kind: var(--kind-default); }
+.game-flow [data-kind='dungeon'] { --kind: var(--kind-dungeon); }
+.game-flow [data-kind='shop'] { --kind: var(--kind-shop); }
+.game-flow [data-kind='item'] { --kind: var(--kind-item); }
+.game-flow [data-kind='mob'] { --kind: var(--kind-mob); }
+.game-flow [data-kind='class'] { --kind: var(--kind-class); }
+.game-flow [data-kind='world'] { --kind: var(--kind-world); }
+.game-flow [data-kind='gathering'] { --kind: var(--kind-gathering); }
+.game-flow [data-kind='recipe'] { --kind: var(--kind-recipe); }
+.game-flow [data-kind='skill'] { --kind: var(--kind-skill); }
+.game-flow [data-kind='note'] { --kind: var(--kind-note); }
 .game-flow .button { white-space: nowrap; }
+.game-flow:where([data-sidebar='closed']) { grid-template-columns: minmax(0, 1fr) 300px; }
+.game-flow:where([data-inspector='closed']) { grid-template-columns: 220px minmax(0, 1fr); }
+.game-flow:where([data-sidebar='closed'][data-inspector='closed']) { grid-template-columns: minmax(0, 1fr); }
 /* 分割された細いパネルでは、プロパティを図の下へ移す。 */
 @container (max-width: 1100px) {
-  .game-flow { grid-template-columns: 180px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(150px, 36%); }
+  .game-flow { grid-template-columns: 180px minmax(0, 1fr); }
+  .game-flow:where([data-sidebar='closed']) { grid-template-columns: minmax(0, 1fr); }
+  .game-flow:where([data-inspector='open']) { grid-template-rows: minmax(0, 1fr) minmax(150px, 36%); }
   .game-flow-sidebar { grid-row: 1 / -1; }
-  .game-flow-inspector { border-left: 0; border-top: 1px solid var(--line); }
+  .game-flow .game-flow-inspector { border-left: 0; border-top: 1px solid var(--line); }
 }
 @container (max-width: 640px) {
-  .game-flow { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) minmax(150px, 36%); }
-  .game-flow-sidebar { grid-row: auto; max-height: 120px; border-right: 0; border-bottom: 1px solid var(--line); }
+  /* 縦積みでは図の高さを確保し、足りない分はパネル全体を縦にスクロールする。 */
+  .game-flow { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(min-content, 1fr); overflow-y: auto; }
+  .game-flow:where([data-sidebar='open']) { grid-template-rows: auto minmax(min-content, 1fr); }
+  .game-flow:where([data-sidebar='closed'][data-inspector='open']) { grid-template-rows: minmax(min-content, 1fr) minmax(150px, 36%); }
+  .game-flow:where([data-sidebar='open'][data-inspector='open']) { grid-template-rows: auto minmax(min-content, 1fr) minmax(150px, 36%); }
+  .game-flow .game-flow-sidebar { grid-row: auto; max-height: 120px; border-right: 0; border-bottom: 1px solid var(--line); }
   .game-flow-location { display: none; }
+  .game-flow .game-flow-body { min-height: 240px; }
 }
-.game-flow-sidebar, .game-flow-inspector { display: flex; flex-direction: column; gap: 10px; min-height: 0; padding: 12px; overflow: auto; background: var(--surface-sidebar); }
+.game-flow-sidebar, .game-flow-inspector { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; padding: 12px; overflow: auto; background: var(--surface-sidebar); }
+.game-flow-sidebar[hidden], .game-flow-inspector[hidden] { display: none; }
 .game-flow-sidebar { border-right: 1px solid var(--line); }
 .game-flow-inspector { border-left: 1px solid var(--line); }
 .game-flow-sidebar-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -26,10 +67,72 @@
 .game-flow-location { margin-top: auto; overflow-wrap: anywhere; }
 
 .game-flow-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-.game-flow-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--line); background: var(--surface-raised); }
-.game-flow-toolbar-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.game-flow-filter { display: flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; }
-.game-flow-filter select { min-height: 30px; }
+.game-flow-toolbar { position: relative; z-index: 1; border-bottom: 1px solid var(--line); }
+.game-flow-toolbar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 10px; }
+.game-flow-toolbar-row.add { background: var(--surface-raised); }
+.game-flow-toolbar-row.controls { border-top: 1px solid var(--line); background: var(--surface); }
+.game-flow-toolbar-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
+.game-flow-add-group { flex: 1 1 340px; }
+.game-flow-toolbar-heading { color: var(--text-muted); font-size: 11px; white-space: nowrap; }
+.game-flow-toolbar-divided { position: relative; padding-left: 10px; }
+.game-flow-toolbar-divided::before { content: ''; position: absolute; inset-inline-start: 0; top: 50%; width: 1px; height: 20px; transform: translateY(-50%); background: var(--line); }
+.game-flow-toolbar-row.add .game-flow-toolbar-divided { display: flex; }
+.game-flow-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--kind) 45%, var(--line));
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--kind) 12%, var(--surface));
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.game-flow-add[data-kind='note'] { border-style: dashed; }
+.game-flow-add:hover:not(:disabled) { border-color: var(--kind); background: color-mix(in srgb, var(--kind) 24%, var(--surface)); }
+.game-flow-add:focus-visible { outline: 2px solid var(--kind); outline-offset: 1px; }
+.game-flow-add:disabled { opacity: .45; cursor: not-allowed; }
+.game-flow-add-swatch { --shape-corner: 3px; --leaf-corner: 2px; flex: none; width: 14px; height: 14px; background: var(--kind); clip-path: var(--shape, inset(0 round var(--shape-corner))); }
+.game-flow-toolbar .game-flow-panel-toggle { display: flex; align-items: center; gap: 6px; min-height: 28px; padding-block: 4px; }
+.game-flow-toolbar .game-flow-panel-toggle[data-side='right'] { flex-direction: row-reverse; margin-left: auto; }
+.game-flow-list-toggle { flex-wrap: nowrap; }
+.game-flow-current-name { max-width: 180px; overflow: hidden; color: var(--text-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.game-flow-panel-icon { display: flex; flex: none; width: 14px; height: 12px; border: 1px solid var(--text-muted); border-radius: 2px; }
+.game-flow-panel-icon::before { content: ''; width: 4px; border-inline-end: 1px solid var(--text-muted); }
+[data-side='right'] .game-flow-panel-icon { justify-content: flex-end; }
+[data-side='right'] .game-flow-panel-icon::before { border-inline-start: 1px solid var(--text-muted); border-inline-end: 0; }
+.game-flow-panel-toggle[aria-pressed='true'] .game-flow-panel-icon::before { background: var(--accent); border-color: var(--accent); }
+.game-flow-class-group { padding: 2px 4px; border-radius: var(--radius-control); }
+.game-flow-class-group[data-filtered='true'] { background: color-mix(in srgb, var(--kind-class) 12%, var(--surface)); }
+.game-flow-class-group select { width: auto; min-width: 0; max-width: 100%; min-height: 30px; padding-block: 4px; font-size: 12px; }
+.game-flow-class-button { display: flex; align-items: center; gap: 6px; }
+.game-flow-class-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; max-width: 100%; }
+.game-flow .game-flow-class-chip { max-width: 100%; min-height: 26px; padding-block: 3px; border-radius: 999px; white-space: normal; overflow-wrap: anywhere; }
+.game-flow .game-flow-class-chip[aria-pressed='true'] { border-color: var(--kind-class); background: color-mix(in srgb, var(--kind-class) 22%, var(--surface)); }
+.game-flow-class-popover {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+  width: 360px;
+  max-width: calc(100% - 16px);
+  max-height: 60vh;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid var(--line-bright);
+  border-radius: var(--radius-control);
+  background: var(--surface-raised);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 45%);
+}
+.game-flow-class-popover .game-flow-class-toggles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.game-flow-class-popover .game-flow-class-toggles small { grid-column: 1 / -1; }
+.game-flow-file-group { justify-content: flex-end; margin-left: auto; }
+.game-flow-save-group { display: flex; align-items: center; gap: 6px; }
+.game-flow-unsaved { padding: 2px 6px; border: 1px solid color-mix(in srgb, var(--gold) 60%, var(--line)); border-radius: 999px; color: var(--gold); font-size: 11px; white-space: nowrap; }
 .game-flow-tabs { display: flex; }
 .game-flow-tabs .button { border-radius: 0; }
 .game-flow-tabs .button:first-child { border-radius: var(--radius-control) 0 0 var(--radius-control); }
@@ -42,7 +145,8 @@
 .game-flow-issues { max-height: 120px; margin: 0; padding: 6px 10px 6px 28px; overflow: auto; border-bottom: 1px solid var(--line); font-size: 12px; }
 .game-flow-issues li[data-severity='error'] { color: var(--danger); }
 .game-flow-issues li[data-severity='warning'] { color: var(--gold); }
-.game-flow-body { position: relative; flex: 1; min-height: 0; }
+.game-flow-body { position: relative; isolation: isolate; flex: 1; min-height: 0; }
+.game-flow-body:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .game-flow-body[hidden] { display: none; }
 .game-flow-empty { display: grid; place-items: center; height: 100%; color: var(--text-muted); }
 .game-flow-body .react-flow__edge.dimmed { opacity: .2; }
@@ -50,17 +154,11 @@
 .game-flow-body .react-flow__edge-textbg { fill: var(--surface-raised); }
 .game-flow-body .react-flow__controls button { background: var(--surface-raised); border-color: var(--line); fill: var(--text); }
 
-.game-flow-node { --kind: #7086a5; width: 220px; padding: 8px 10px; border: 1px solid var(--line-bright); border-left: 4px solid var(--kind); border-radius: var(--radius-control); background: var(--surface-raised); color: var(--text); font-size: 12px; box-shadow: 0 2px 6px rgb(0 0 0 / 25%); }
+.game-flow-node { width: 220px; padding: 8px 10px; border: 1px solid var(--line-bright); border-left: 4px solid var(--kind); border-radius: var(--radius-control); background: var(--surface-raised); color: var(--text); font-size: 12px; box-shadow: 0 2px 6px rgb(0 0 0 / 25%); }
 .game-flow-node.selected { outline: 2px solid var(--gold); }
 .game-flow-node.dimmed { opacity: .25; }
 .game-flow-node.missing { border-color: var(--danger); }
-.game-flow-node[data-kind='dungeon'] { --kind: #c0715a; }
-.game-flow-node[data-kind='shop'] { --kind: #d0a64a; }
-.game-flow-node[data-kind='item'] { --kind: #5aa7c0; }
-.game-flow-node[data-kind='mob'] { --kind: #b0596f; }
-.game-flow-node[data-kind='class'] { --kind: #8f73c9; }
-.game-flow-node[data-kind='world'] { --kind: #5fae74; }
-.game-flow-node[data-kind='note'] { --kind: #8a8f98; border-style: dashed; border-left-style: solid; }
+.game-flow-node[data-kind='note'] { border-style: dashed; border-left-style: solid; }
 .game-flow-node-head { display: flex; align-items: center; gap: 6px; }
 .game-flow-node-head .minecraft-icon, .game-flow-node-symbol { width: 20px; height: 20px; flex: none; }
 .game-flow-node-symbol { display: grid; place-items: center; color: var(--text-muted); }
@@ -76,7 +174,7 @@
 .game-flow-text pre { flex: 1; margin: 0; padding: 12px; overflow: auto; font-size: 12px; line-height: 1.55; white-space: pre-wrap; }
 
 .game-flow-props { display: grid; gap: 8px; }
-.game-flow-props h3 { margin: 0; font-size: 13px; }
+.game-flow-props h3 { margin: 0; padding-left: 8px; border-left: 3px solid var(--kind, var(--accent)); font-size: 13px; }
 .game-flow-props label { display: grid; gap: 3px; font-size: 12px; }
 .game-flow-props input:not([type='checkbox']), .game-flow-props textarea { width: 100%; box-sizing: border-box; }
 .game-flow-props input[readonly] { color: var(--text-muted); }
@@ -87,8 +185,11 @@
 .game-flow-ref-name .minecraft-icon { width: 20px; height: 20px; }
 .game-flow-ref code { color: var(--text-muted); font-size: 11px; overflow-wrap: anywhere; }
 .game-flow-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.game-flow-class-summary { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.game-flow-class-summary span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .game-flow-class-toggles { display: flex; flex-wrap: wrap; gap: 4px 10px; }
 .game-flow-props .game-flow-class-toggle { display: flex; align-items: center; gap: 4px; }
+.game-flow-class-popover .game-flow-class-toggle { display: flex; align-items: center; gap: 4px; font-size: 12px; overflow-wrap: anywhere; }
 .game-flow-class-toggle.unknown { color: var(--danger); }
 .game-flow-class-toggles small { flex-basis: 100%; }
 .game-flow-edge-route { margin: 0; font-weight: 650; }
@@ -123,21 +224,11 @@
 .game-flow-suggestion small { margin-left: auto; color: var(--text-muted); white-space: nowrap; }
 
 /* ---- アイコン表示: 種類ごとの図形の上に名前 ---- */
-.game-flow-token { --kind: #7086a5; display: grid; justify-items: center; gap: 3px; width: 150px; color: var(--text); font-size: 11px; }
-.game-flow-token[data-kind='dungeon'] { --kind: #c0715a; }
-.game-flow-token[data-kind='shop'] { --kind: #d0a64a; }
-.game-flow-token[data-kind='item'] { --kind: #5aa7c0; }
-.game-flow-token[data-kind='mob'] { --kind: #b0596f; }
-.game-flow-token[data-kind='class'] { --kind: #8f73c9; }
-.game-flow-token[data-kind='world'] { --kind: #5fae74; }
-.game-flow-token[data-kind='gathering'] { --kind: #7fae4f; }
-.game-flow-token[data-kind='recipe'] { --kind: #c08a4f; }
-.game-flow-token[data-kind='skill'] { --kind: #5f87d6; }
-.game-flow-token[data-kind='note'] { --kind: #8a8f98; }
+.game-flow-token { display: grid; justify-items: center; gap: 3px; width: 150px; color: var(--text); font-size: 11px; }
 .game-flow-token-name { display: -webkit-box; min-height: 30px; max-width: 150px; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; align-content: end; font-size: 12px; font-weight: 650; line-height: 1.25; text-align: center; overflow-wrap: anywhere; text-shadow: 0 1px 2px rgb(0 0 0 / 60%); }
 .game-flow-token-kind { color: var(--text-muted); font-size: 11px; }
-.game-flow-token-shape { position: relative; display: grid; place-items: center; width: 64px; height: 64px; }
-.game-flow-token-fill, .game-flow-token-fill::after { position: absolute; inset: 0; clip-path: inset(0 round 12px); }
+.game-flow-token-shape { --shape-corner: 12px; --leaf-corner: 8px; position: relative; display: grid; place-items: center; width: 64px; height: 64px; }
+.game-flow-token-fill, .game-flow-token-fill::after { position: absolute; inset: 0; clip-path: var(--shape, inset(0 round var(--shape-corner))); }
 .game-flow-token-fill { background: var(--kind); }
 .game-flow-token-fill::after { content: ''; inset: 3px; background: var(--surface-raised); }
 .game-flow-token-icon { position: relative; z-index: 1; display: grid; place-items: center; }
@@ -150,25 +241,25 @@
 .game-flow-token .react-flow__handle-left { left: -6px; }
 .game-flow-token .react-flow__handle-right { right: -6px; }
 /* 形: ダンジョン=門形 / ショップ=六角形 / アイテム=角丸の四角 / モブ=円 / 職業=ひし形 / ワールド=八角形 / 採集=葉形 / レシピ=平行四辺形 / スキル=盾形 */
-[data-shape='dungeon'] .game-flow-token-fill, [data-shape='dungeon'] .game-flow-token-fill::after { clip-path: polygon(50% 0, 100% 28%, 100% 100%, 0 100%, 0 28%); }
+.game-flow [data-shape='dungeon'] { --shape: polygon(50% 0, 100% 28%, 100% 100%, 0 100%, 0 28%); }
 [data-shape='dungeon'] .game-flow-token-icon { margin-top: 10px; }
-[data-shape='shop'] .game-flow-token-fill, [data-shape='shop'] .game-flow-token-fill::after { clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
-[data-shape='mob'] .game-flow-token-fill, [data-shape='mob'] .game-flow-token-fill::after { clip-path: circle(50%); }
-[data-shape='class'] { width: 72px; height: 72px; }
-[data-shape='class'] .game-flow-token-fill, [data-shape='class'] .game-flow-token-fill::after { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.game-flow [data-shape='shop'] { --shape: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
+.game-flow [data-shape='mob'] { --shape: circle(50%); }
+.game-flow [data-shape='class'] { --shape: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.game-flow-token-shape[data-shape='class'] { width: 72px; height: 72px; }
 [data-shape='class'] .game-flow-token-fill::after { inset: 4px; }
 [data-shape='class'] .game-flow-token-icon .minecraft-icon { width: 30px; height: 30px; }
-[data-shape='world'] .game-flow-token-fill, [data-shape='world'] .game-flow-token-fill::after { clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%); }
-[data-shape='gathering'] .game-flow-token-fill, [data-shape='gathering'] .game-flow-token-fill::after { clip-path: inset(0 round 60% 8px 60% 8px); }
-[data-shape='recipe'] { width: 76px; }
-[data-shape='recipe'] .game-flow-token-fill, [data-shape='recipe'] .game-flow-token-fill::after { clip-path: polygon(18% 0, 100% 0, 82% 100%, 0 100%); }
+.game-flow [data-shape='world'] { --shape: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%); }
+.game-flow [data-shape='gathering'] { --shape: inset(0 round 60% var(--leaf-corner) 60% var(--leaf-corner)); }
+.game-flow [data-shape='recipe'] { --shape: polygon(18% 0, 100% 0, 82% 100%, 0 100%); }
+.game-flow-token-shape[data-shape='recipe'] { width: 76px; }
 [data-shape='recipe'] .game-flow-token-fill::after { inset: 3px 4px; }
-[data-shape='skill'] .game-flow-token-fill, [data-shape='skill'] .game-flow-token-fill::after { clip-path: polygon(50% 0, 100% 14%, 100% 58%, 50% 100%, 0 58%, 0 14%); }
+.game-flow [data-shape='skill'] { --shape: polygon(50% 0, 100% 14%, 100% 58%, 50% 100%, 0 58%, 0 14%); }
 [data-shape='mob_spawner'] .game-flow-token-fill, [data-shape='gathering_spawner'] .game-flow-token-fill { clip-path: none; border: 3px dashed var(--kind); border-radius: 50%; background: var(--surface-raised); }
 [data-shape='mob_spawner'] .game-flow-token-fill::after, [data-shape='gathering_spawner'] .game-flow-token-fill::after { display: none; }
-[data-shape='note'] { width: 140px; height: 64px; }
-[data-shape='note'] .game-flow-token-fill { clip-path: polygon(0 0, 88% 0, 100% 22%, 100% 100%, 0 100%); }
-[data-shape='note'] .game-flow-token-fill::after { clip-path: polygon(0 0, 88% 0, 100% 22%, 100% 100%, 0 100%); inset: 2px; }
+.game-flow [data-shape='note'] { --shape: polygon(0 0, 88% 0, 100% 22%, 100% 100%, 0 100%); }
+.game-flow-token-shape[data-shape='note'] { width: 140px; height: 64px; }
+[data-shape='note'] .game-flow-token-fill::after { inset: 2px; }
 .game-flow-token-note { position: relative; z-index: 1; display: -webkit-box; max-width: 124px; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; font-size: 12px; line-height: 1.3; text-align: center; overflow-wrap: anywhere; }
 .game-flow-token.selected .game-flow-token-shape { filter: drop-shadow(0 0 2px var(--gold)) drop-shadow(0 0 4px var(--gold)); }
 .game-flow-token.selected .game-flow-token-name { color: var(--gold); }

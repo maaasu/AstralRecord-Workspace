@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Background, BackgroundVariant, Controls, Handle, MarkerType, MiniMap, Panel, Position, ReactFlow, ReactFlowProvider,
@@ -56,6 +56,34 @@ type NodeDisplay = 'icon' | 'card'
 const displayStorageKey = 'astral.gameFlow.nodeDisplay'
 const readDisplay = (): NodeDisplay => {
   try { return localStorage.getItem(displayStorageKey) === 'card' ? 'card' : 'icon' } catch { return 'icon' }
+}
+
+const sidebarStorageKey = 'astral.gameFlow.sidebarOpen'
+const inspectorStorageKey = 'astral.gameFlow.inspectorOpen'
+const readPanelOpen = (document: Document, key: string) => {
+  try { return document.defaultView?.localStorage.getItem(key) !== '0' } catch { return true }
+}
+const savePanelOpen = (document: Document, key: string, open: boolean) => {
+  try { document.defaultView?.localStorage.setItem(key, open ? '1' : '0') } catch { /* 保存できなくても表示は切り替える */ }
+}
+
+function AddFlowButton({ kind, disabled, onClick }: { kind: string; disabled: boolean; onClick: () => void }) {
+  const label = kindLabels[kind]
+  return <button type="button" className="game-flow-add" data-kind={kind} disabled={disabled}
+    title={`${label}のノードを追加（右クリックでも図の上に置けます）`} aria-label={`${label}を追加`} onClick={onClick}>
+    <span className="game-flow-add-swatch" data-shape={kind} aria-hidden="true" />{label}
+  </button>
+}
+
+function FlowPanelToggle({ side, open, controls, onToggle }: { side: 'left' | 'right'; open: boolean; controls: string; onToggle: () => void }) {
+  const left = side === 'left'
+  const label = left ? '一覧' : 'プロパティ'
+  const name = left ? 'フロー一覧' : label
+  const shortcut = left ? '[' : ']'
+  return <button type="button" className="button compact game-flow-panel-toggle" data-side={side} aria-pressed={open} aria-controls={controls}
+    title={`${name}を${open ? '隠す' : '表示する'}（Ctrl+${shortcut}）`} onClick={onToggle}>
+    <span className="game-flow-panel-icon" aria-hidden="true" />{label}
+  </button>
 }
 
 /** アイコン表示での図形の凡例（操作方法に表示）。 */
@@ -179,6 +207,12 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   const panelDocument = usePanelDocument()
   const flowApi = useReactFlow()
   const canvas = useRef<HTMLDivElement>(null)
+  const toolbar = useRef<HTMLDivElement>(null)
+  const classButton = useRef<HTMLButtonElement>(null)
+  const classPopover = useRef<HTMLDivElement>(null)
+  const panelId = useId()
+  const sidebarId = `game-flow-sidebar-${panelId}`
+  const inspectorId = `game-flow-inspector-${panelId}`
   const { confirm, dialog: confirmation } = useConfirmationDialog()
 
   const [loading, setLoading] = useState(true)
@@ -195,6 +229,17 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   const [future, setFuture] = useState<GameFlow[]>([])
   const [selection, setSelection] = useState<Selection>(null)
   const [classFilter, setClassFilter] = useState<string | null>(null)
+  const [classPopoverOpen, setClassPopoverOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(() => readPanelOpen(panelDocument, sidebarStorageKey))
+  const [inspectorOpen, setInspectorOpen] = useState(() => readPanelOpen(panelDocument, inspectorStorageKey))
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen)
+    savePanelOpen(panelDocument, sidebarStorageKey, !sidebarOpen)
+  }
+  const toggleInspector = () => {
+    setInspectorOpen(!inspectorOpen)
+    savePanelOpen(panelDocument, inspectorStorageKey, !inspectorOpen)
+  }
   const [view, setView] = useState<'graph' | 'text' | 'yaml'>('graph')
   const [issues, setIssues] = useState<ValidationIssue[]>([])
   const [message, setMessage] = useState('')
@@ -247,6 +292,52 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   useEffect(() => {
     if (classFilter && !flowClasses.some(entry => entry.ref === classFilter)) setClassFilter(null)
   }, [classFilter, flowClasses])
+
+  const closeClassPopover = useCallback(() => {
+    setClassPopoverOpen(false)
+    classButton.current?.focus({ preventScroll: true })
+  }, [])
+  useLayoutEffect(() => {
+    const bar = toolbar.current
+    const button = classButton.current
+    const popover = classPopover.current
+    const panelWindow = panelDocument.defaultView
+    if (!classPopoverOpen || !bar || !button || !popover || !panelWindow) return
+    const position = () => {
+      const anchor = button.getBoundingClientRect()
+      const bounds = bar.getBoundingClientRect()
+      popover.style.left = `${Math.max(8, Math.min(anchor.left - bounds.left, bar.clientWidth - popover.offsetWidth - 8))}px`
+      popover.style.top = `${anchor.bottom - bounds.top + 4}px`
+    }
+    position()
+    const focusTarget = popover.querySelector<HTMLInputElement>('input[type="checkbox"]') ?? popover
+    focusTarget.focus()
+    const observer = new panelWindow.ResizeObserver(position)
+    observer.observe(bar)
+    observer.observe(button)
+    const onOutsidePointer = (event: PointerEvent) => {
+      const target = event.target as globalThis.Node
+      if (popover.contains(target) || button.contains(target)) return
+      closeClassPopover()
+      // 余白のクリックでドックのコンテナにフォーカスが移った場合も、ボタンへ戻す。
+      panelWindow.requestAnimationFrame(() => {
+        if (panelDocument.activeElement?.contains(button)) button.focus({ preventScroll: true })
+      })
+    }
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      event.stopPropagation()
+      closeClassPopover()
+    }
+    panelDocument.addEventListener('pointerdown', onOutsidePointer)
+    panelDocument.addEventListener('keydown', onEscape, true)
+    return () => {
+      observer.disconnect()
+      panelDocument.removeEventListener('pointerdown', onOutsidePointer)
+      panelDocument.removeEventListener('keydown', onEscape, true)
+    }
+  }, [classPopoverOpen, closeClassPopover, panelDocument])
 
   const dirty = Boolean(flow && document && JSON.stringify(serializeGameFlow(flow)) !== saved)
   useEffect(() => { onDirtyChange?.(dirty) }, [dirty, onDirtyChange])
@@ -661,8 +752,8 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     }
   }
 
-  return <div className="game-flow-host"><div className="game-flow">
-    <aside className="game-flow-sidebar" aria-label="フロー一覧">
+  return <div className="game-flow-host"><div className="game-flow" data-sidebar={sidebarOpen ? 'open' : 'closed'} data-inspector={inspectorOpen ? 'open' : 'closed'}>
+    <aside id={sidebarId} className="game-flow-sidebar" aria-label="フロー一覧" hidden={!sidebarOpen}>
       <div className="game-flow-sidebar-head">
         <h2>ゲーム進行フロー</h2>
         <button type="button" className="button compact" disabled={busy || loading} onClick={async () => {
@@ -684,36 +775,69 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     </aside>
 
     <section className="game-flow-main">
-      <div className="game-flow-toolbar">
-        <div className="game-flow-toolbar-group" role="group" aria-label="追加">
-          {addableKinds.map(kind => <button key={kind} type="button" className="button compact" disabled={!flow || busy}
-            onClick={() => setPicker({ kind })}>＋ {kindLabels[kind]}</button>)}
-          <button type="button" className="button compact" disabled={!flow || busy} onClick={() => addNote()}>＋ メモ</button>
+      <div className="game-flow-toolbar" ref={toolbar}>
+        <div className="game-flow-toolbar-row add">
+          <div className="game-flow-toolbar-group game-flow-list-toggle">
+            <FlowPanelToggle side="left" open={sidebarOpen} controls={sidebarId} onToggle={toggleSidebar} />
+            {!sidebarOpen && flow && <span className="game-flow-current-name" title={plain(flow.name)}>{plain(flow.name)}</span>}
+          </div>
+          <div className="game-flow-toolbar-group game-flow-add-group" role="group" aria-label="追加">
+            <span className="game-flow-toolbar-heading">追加</span>
+            {addableKinds.map(kind => <AddFlowButton key={kind} kind={kind} disabled={!flow || busy} onClick={() => setPicker({ kind })} />)}
+            <span className="game-flow-toolbar-divided"><AddFlowButton kind="note" disabled={!flow || busy} onClick={() => addNote()} /></span>
+          </div>
+          <FlowPanelToggle side="right" open={inspectorOpen} controls={inspectorId} onToggle={toggleInspector} />
         </div>
-        <div className="game-flow-toolbar-group">
-          <label className="game-flow-filter">職業
-            <select value={classFilter ?? ''} disabled={!flow} onChange={event => setClassFilter(event.target.value || null)}>
+        <div className="game-flow-toolbar-row controls">
+          <div className="game-flow-toolbar-group game-flow-class-group" data-filtered={Boolean(classFilter)} role="group" aria-label="職業">
+            <span className="game-flow-toolbar-heading">職業</span>
+            <button ref={classButton} type="button" className="button compact game-flow-class-button" data-kind="class" disabled={!flow}
+              aria-haspopup="dialog" aria-expanded={classPopoverOpen} onClick={() => classPopoverOpen ? closeClassPopover() : setClassPopoverOpen(true)}>
+              <span className="game-flow-add-swatch" data-shape="class" aria-hidden="true" />{flow?.classes.length ? `対象職業 ${flow.classes.length}` : '対象職業: 全職業'}
+            </button>
+            {flow?.classes.length ? <div className="game-flow-class-chips" role="group" aria-label="職業で絞り込み">
+              <button type="button" className="button compact game-flow-class-chip" aria-pressed={!classFilter} onClick={() => setClassFilter(null)}>すべて</button>
+              {flowClasses.map(entry => <button key={entry.ref} type="button" className="button compact game-flow-class-chip" aria-pressed={classFilter === entry.ref}
+                onClick={() => setClassFilter(classFilter === entry.ref ? null : entry.ref)}>{entry.name}</button>)}
+            </div> : <select aria-label="職業で絞り込み" value={classFilter ?? ''} disabled={!flow} onChange={event => setClassFilter(event.target.value || null)}>
               <option value="">すべて</option>
               {flowClasses.map(entry => <option key={entry.ref} value={entry.ref}>{entry.name}</option>)}
-            </select>
-          </label>
-          <div className="game-flow-tabs" role="group" aria-label="ノードの表示">
-            {([['icon', 'アイコン'], ['card', 'カード']] as const).map(([id, label]) =>
-              <button key={id} type="button" aria-pressed={display === id} className="button compact" onClick={() => changeDisplay(id)}>{label}</button>)}
+            </select>}
           </div>
-          <div className="game-flow-tabs" role="tablist" aria-label="表示">
-            {([['graph', '図'], ['text', 'テキスト'], ['yaml', 'YAML']] as const).map(([id, label]) =>
-              <button key={id} type="button" role="tab" aria-selected={view === id} className="button compact" onClick={() => setView(id)}>{label}</button>)}
+          <div className="game-flow-toolbar-group game-flow-toolbar-divided" role="group" aria-label="表示設定">
+            <div className="game-flow-tabs" role="group" aria-label="ノードの表示">
+              {([['icon', 'アイコン'], ['card', 'カード']] as const).map(([id, label]) =>
+                <button key={id} type="button" aria-pressed={display === id} className="button compact" onClick={() => changeDisplay(id)}>{label}</button>)}
+            </div>
+            <div className="game-flow-tabs" role="tablist" aria-label="表示">
+              {([['graph', '図'], ['text', 'テキスト'], ['yaml', 'YAML']] as const).map(([id, label]) =>
+                <button key={id} type="button" role="tab" aria-selected={view === id} className="button compact" onClick={() => setView(id)}>{label}</button>)}
+            </div>
+            <button type="button" className="button compact" aria-pressed={suggestOn} disabled={!flow}
+              title="選んだノードから、次に置くマスター（ドロップ・出現モブなど）を候補として表示します"
+              onClick={() => { setSuggestOn(value => !value); setSuggestHiddenFor(null) }}>候補 {suggestOn ? 'ON' : 'OFF'}</button>
           </div>
-          <button type="button" className="button compact" aria-pressed={suggestOn} disabled={!flow}
-            title="選んだノードから、次に置くマスター（ドロップ・出現モブなど）を候補として表示します"
-            onClick={() => { setSuggestOn(value => !value); setSuggestHiddenFor(null) }}>候補 {suggestOn ? 'ON' : 'OFF'}</button>
-          <button type="button" className="button compact" disabled={!past.length} title="Ctrl+Z" onClick={undo}>元に戻す</button>
-          <button type="button" className="button compact" disabled={!future.length} title="Ctrl+Y" onClick={redo}>やり直す</button>
-          <button type="button" className="button compact" disabled={busy || loading} onClick={() => void reloadAll()}>再読込</button>
-          <button type="button" className="button compact" disabled={!dirty || busy} onClick={() => void revert()}>破棄</button>
-          <button type="button" className="button compact primary" disabled={!dirty || busy} onClick={() => void save()}>{busy ? '処理中…' : '保存'}</button>
+          <div className="game-flow-toolbar-group game-flow-toolbar-divided" role="group" aria-label="履歴">
+            <button type="button" className="button compact" disabled={!past.length} title="Ctrl+Z" onClick={undo}>元に戻す</button>
+            <button type="button" className="button compact" disabled={!future.length} title="Ctrl+Y" onClick={redo}>やり直す</button>
+          </div>
+          <div className="game-flow-toolbar-group game-flow-toolbar-divided game-flow-file-group" role="group" aria-label="ファイル操作">
+            <button type="button" className="button compact" disabled={busy || loading} onClick={() => void reloadAll()}>再読込</button>
+            <button type="button" className="button compact" disabled={!dirty || busy} onClick={() => void revert()}>破棄</button>
+            <span className="game-flow-save-group">
+              {dirty && <span className="game-flow-unsaved">未保存</span>}
+              <button type="button" className="button compact primary" disabled={!dirty || busy} onClick={() => void save()}>{busy ? '処理中…' : '保存'}</button>
+            </span>
+          </div>
         </div>
+        {classPopoverOpen && flow && <div ref={classPopover} className="game-flow-class-popover" role="dialog" aria-label="対象職業" tabIndex={-1}>
+          <p className="game-flow-muted">このフローで扱う職業。職業フィルタの候補になります。</p>
+          <ClassToggles value={flow.classes} classes={classes} emptyLabel="未指定: 全職業" onChange={classes => update(current => ({ ...current, classes }))} />
+          <div className="game-flow-actions">
+            <button type="button" className="button compact" disabled={!flow.classes.length} onClick={() => update(current => ({ ...current, classes: [] }))}>すべて外す（全職業）</button>
+            <button type="button" className="button compact" onClick={closeClassPopover}>閉じる</button>
+          </div>
+        </div>}
       </div>
       {(error || message) && <div className={error ? 'game-flow-error' : 'game-flow-message'} role={error ? 'alert' : 'status'}>
         {error || message}<button type="button" className="button compact subtle" onClick={() => { setError(''); setMessage('') }}>閉じる</button>
@@ -721,9 +845,17 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       {issues.length > 0 && <ul className="game-flow-issues" aria-label="検証結果">
         {issues.map((issue, index) => <li key={index} data-severity={issue.severity}><code>{issue.path || '/'}</code> {issue.message}</li>)}
       </ul>}
-      {/* 削除・Undo はキャンバス内のキー操作だけで受け付ける（xyflow の全体キー監視は使わない）。 */}
-      <div className="game-flow-body" ref={canvas} tabIndex={-1} hidden={view !== 'graph'} onKeyDown={event => {
+      {/* ショートカットはキャンバス内のキー操作だけで受け付ける（xyflow の全体キー監視は使わない）。 */}
+      <div className="game-flow-body" ref={canvas} tabIndex={0} hidden={view !== 'graph'} onKeyDown={event => {
         if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return
+        if (event.ctrlKey && !event.altKey && !event.metaKey && (event.key === '[' || event.key === ']')) {
+          event.preventDefault()
+          if (!event.repeat) {
+            if (event.key === '[') toggleSidebar()
+            else toggleInspector()
+          }
+          return
+        }
         if ((event.key === 'Delete' || event.key === 'Backspace') && !event.ctrlKey && !event.metaKey && !event.altKey) {
           event.preventDefault()
           deleteSelection()
@@ -755,7 +887,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
             if (list) acceptSuggestions(list)
             else if (!edge.id.startsWith(ghostPrefix)) setSelection({ type: 'edge', key: edge.id })
           }}
-          onPaneClick={() => setSelection(null)}
+          onPaneClick={() => { setSelection(null); canvas.current?.focus({ preventScroll: true }) }}
           onPaneContextMenu={event => {
             event.preventDefault()
             const at = flowApi.screenToFlowPosition({ x: event.clientX, y: event.clientY })
@@ -785,7 +917,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
               <span>候補をクリックで1件ずつ</span><span><kbd>Esc</kbd> 隠す</span>
             </> : <button type="button" className="button compact subtle" onClick={() => setSuggestHiddenFor(null)}>候補を表示</button>}
           </Panel>}
-        </ReactFlow> : <div className="game-flow-empty">{loading ? '読み込んでいます…' : '左の一覧からフローを開くか、新規作成してください。'}</div>}
+        </ReactFlow> : <div className="game-flow-empty">{loading ? '読み込んでいます…' : '「一覧」からフローを開くか、新規作成してください。'}</div>}
       </div>
       {view === 'text' && <div className="game-flow-text">
         <div className="game-flow-text-head"><span>参照先の名前を解決した一覧です。AI へ渡すときはこのテキストか YAML を使います。</span>
@@ -799,8 +931,9 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       </div>}
     </section>
 
-    <aside className="game-flow-inspector" aria-label="プロパティ">
-      {flow && !selectedNode && !selectedEdge && <FlowProperties flow={flow} classes={classes} onChange={change => update(current => ({ ...current, ...change }))} />}
+    <aside id={inspectorId} className="game-flow-inspector" aria-label="プロパティ" hidden={!inspectorOpen}>
+      {flow && !selectedNode && !selectedEdge && <FlowProperties flow={flow} className={className} onEditClasses={() => setClassPopoverOpen(true)}
+        onChange={change => update(current => ({ ...current, ...change }))} />}
       {flow && selectedNode && <NodeProperties node={selectedNode} kind={refKind(selectedNode.ref, prefixes)} resolved={selectedNode.ref ? resolve(selectedNode.ref) : undefined}
         classes={flowClasses} context={context} flow={flow} resolveName={resolveName}
         onChange={change => changeNode(selectedNode.id, change)} onPick={kind => setPicker({ kind, replace: selectedNode.id })}
@@ -815,10 +948,12 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       {!flow && <p className="game-flow-muted">フローを開くと、ノード・矢印・フロー全体の設定を編集できます。</p>}
       <details className="game-flow-help"><summary>操作方法</summary>
         <ul>
-          <li>上の「＋ ダンジョン」などからマスターを参照するノードを追加します。</li>
+          <li>ツールバーの「追加」にある「ダンジョン」などからマスターを参照するノードを追加します。</li>
           <li>ノード右端の点から別のノードの左端へドラッグすると矢印でつながります。</li>
           <li>ショップのノードを選ぶと、商品を購入アイテムとしてまとめて追加できます。</li>
-          <li>職業ごとの違いは、ノードや矢印の「対象職業」で設定します。職業フィルタで該当しないものは薄く表示されます。</li>
+          <li>フロー全体の対象職業はツールバーで設定します。職業で絞り込むと、該当しないノードや矢印が薄く表示されます。</li>
+          <li>ノードや矢印ごとの対象職業は、選択してプロパティで設定します。</li>
+          <li>「一覧」「プロパティ」で左右のパネルを開閉します。図にフォーカスがあるときは Ctrl+[ で一覧、Ctrl+] でプロパティを開閉できます。</li>
           <li>Delete キーで選択中のノード・矢印を削除します。</li>
           <li>図・ノード・矢印を右クリックすると、その場所への追加や候補の配置などの操作を選べます。</li>
         </ul>
@@ -858,17 +993,19 @@ function ClassToggles({ value, classes, onChange, emptyLabel }: {
   </div>
 }
 
-function FlowProperties({ flow, classes, onChange }: {
-  flow: GameFlow; classes: { ref: string; name: string }[]; onChange: (change: Partial<GameFlow>) => void
+function FlowProperties({ flow, className, onEditClasses, onChange }: {
+  flow: GameFlow; className: (ref: string) => string; onEditClasses: () => void; onChange: (change: Partial<GameFlow>) => void
 }) {
+  const classSummary = `対象職業: ${flow.classes.length ? flow.classes.map(className).join('・') : '全職業'}`
   return <section className="game-flow-props">
     <h3>フロー</h3>
     <label>ID<input value={flow.id} readOnly title="ID はファイル名と一致させるため変更できません" /></label>
     <label>表示名<input value={flow.name} onChange={event => onChange({ name: event.target.value })} /></label>
     <label>説明<textarea rows={3} value={flow.description ?? ''} onChange={event => onChange({ description: event.target.value })} /></label>
-    <fieldset><legend>対象職業（職業フィルタの候補）</legend>
-      <ClassToggles value={flow.classes} classes={classes} emptyLabel="未指定: 全職業" onChange={value => onChange({ classes: value })} />
-    </fieldset>
+    <div className="game-flow-class-summary">
+      <span title={classSummary}>{classSummary}</span>
+      <button type="button" className="button compact" onClick={onEditClasses}>変更</button>
+    </div>
     <p className="game-flow-muted">ノード {flow.nodes.length} 件 / 矢印 {flow.edges.length} 件</p>
   </section>
 }
@@ -909,7 +1046,7 @@ function NodeProperties({ node, kind, resolved, classes, context, flow, resolveN
   const outgoing = flow.edges.filter(edge => edge.from === node.id)
   const incoming = flow.edges.filter(edge => edge.to === node.id)
   const suggestion = kind === 'item' ? suggestedClasses(context, refId(node.ref)) : []
-  return <section className="game-flow-props">
+  return <section className="game-flow-props" data-kind={kind}>
     <h3>{kindLabels[kind] ?? kind}のノード</h3>
     <label>ノードID<input value={node.id} readOnly /></label>
     {node.ref ? <div className="game-flow-ref">
