@@ -1,22 +1,8 @@
 # AstralRecord Monorepo Guide
 
-まず依頼が質問・診断か、変更を伴う作業かを判定し、下の実行ルールで入口を選んでください。対象プロジェクトはパスまたは技術用語から判定し、対象の `Read Next` だけを読みます。複数プロジェクトにまたがる場合だけ、各対象を分けて扱います。対象が判定できない場合は確認してください。
+まず依頼が質問・診断か、変更を伴う作業かを判定し、下の実行ルールで入口を選んでください。対象プロジェクトと読む資料は [AIパーソナライズの索引](00_docs/10_AIパーソナライズ/README.md) の「プロジェクト別の作業ルール」から選びます。
 
-| 対象 | 判定 | Read Next |
-|:--|:--|:--|
-| `10_plugin/AstralRecord/` | Minecraft Plugin / Java・Kotlin | `PLUGIN_GUIDE.md` |
-| `10_plugin/AstralRecordGeyserExtension/` | Geyser Extension / Java | `10_plugin/AstralRecordGeyserExtension/README.md` |
-| `10_plugin/AstralArchitect/` | AI建築 / Java・Python | `10_plugin/AstralArchitect/AGENTS.md` / `$astralarchitect-builder` |
-| `20_api/AstralRecordApi/` | REST API / C# | `00_docs/10_AIパーソナライズ/API/README.md` |
-| `30_web/AstralRecordWeb/` | Web / Razor Pages | `30_web/AstralRecordWeb/.agents/prompts/pages.md` |
-| `30_web/AstralRecordControl/` | 独立管理Web / Agent / Runner / C# | `30_web/AstralRecordControl/AGENTS.md` |
-| `00_docs/10_AIパーソナライズ/` | AIが引き継ぐ要望・判断理由 | `00_docs/10_AIパーソナライズ/README.md` |
-| `00_docs/20_ゲームデザイン設計書/` | ゲームデザインのHTML資料の作成・修正 | `00_docs/20_ゲームデザイン設計書/AGENTS.md` |
-| `00_docs/40_Database設計書/` | SQL Server schema docs | `00_docs/40_Database設計書/README.md` |
-| `40_filebase/` | YAML master data | `00_docs/50_Filebase設計書/README.md` / `40_filebase/AGENTS.md` |
-| `50_resourcepack/` | Java / Bedrock リソースパック | `50_resourcepack/AGENTS.md` |
-| `60_tool/` | build/deploy/dev tools | `60_tool/README.md` |
-| `.codex/skills/` | workspace skills | `.codex/skills/README.md` と対象 `SKILL.md` |
+AI ツール名の記載は現在使用する Codex と Claude Code に限ります。ほかの AI を使う場合も、この `AGENTS.md` から同じ共有ルールを参照します。機能別の作業指示と継続する判断は AIパーソナライズの対象領域に集約し、`AGENTS.md` と `CLAUDE.md` の新規配置はルートに限ります。
 
 ## 実行ルール
 
@@ -40,10 +26,10 @@
 
 ## サブエージェント利用方針
 
-- 適用する `AGENTS.md` と Skill を確認したら、独立して進められる作業を判断し、必要なサブエージェントを起動する。前提の共有や成果物の統合が難しく品質を損なう場合は、理由を進捗報告に示してメインエージェントが担当する。
-- サブエージェントには GPT-6 を使用する。検索・抽出・定型変換・機械的な検証は Luna、複数資料の整理・実装・設計判断・レビューは Sol を基本とし、特に複雑で高い判断力が必要な場合だけ Astra を使用する。思考レベルは作業の難易度に合わせて選ぶ。
+- ルートの `AGENTS.md`、対象プロジェクトの `Read Next`、担当スキルを確認したら、独立して進められる作業を判断し、必要なサブエージェントを起動する。前提の共有や成果物の統合が難しく品質を損なう場合は、理由を進捗報告に示してメインエージェントが担当する。
+- 独立した担当は [サブエージェントの選び方](00_docs/10_AIパーソナライズ/共通/サブエージェントの選び方.md) に従って選ぶ。
 - 委譲時は担当範囲と所有ファイルを明示する。編集担当はファイル単位で分け、メインエージェントは結果の統合と最終確認を行う。レビューなど、差分ができてから着手できる担当はその時点で起動する。
-- Skill にサブエージェントの起動条件や分担がある場合は、その規則を優先する。指定モデルを利用できない場合は代替モデルを勝手に選ばず、ユーザーに確認する。
+- Skill にサブエージェントの起動条件や分担がある場合は、その規則を優先する。
 
 ## 文字コード
 

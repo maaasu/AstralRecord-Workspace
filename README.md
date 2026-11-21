@@ -1,6 +1,6 @@
 # AstralRecord Workspace
 
-AstralRecord のモノレポです。この README はプロジェクトと資料の入口です。作業の進め方・Skillの選択は [AGENTS.md](AGENTS.md)、AIが依頼をまたいで参照する要望・判断理由は [AIパーソナライズ](00_docs/10_AIパーソナライズ/README.md) を参照してください。
+AstralRecord のモノレポです。この README はプロジェクトと資料の入口です。作業の進め方・Skillの選択は [AGENTS.md](AGENTS.md)、機能別の作業ルールと、依頼をまたいで参照する要望・判断理由は [AIパーソナライズ](00_docs/10_AIパーソナライズ/README.md) を参照してください。
 
 ## プロジェクト一覧
 
@@ -36,14 +36,14 @@ AstralRecord のモノレポです。この README はプロジェクトと資�
 
 `30_web/AstralRecordWeb/AstralRecordWeb/` は ASP.NET Core Razor Pages によるWeb UIです。ページは `Pages/` に配置し、Page Modelパターンを使用します。
 
-- [ページ作成・変更手順](30_web/AstralRecordWeb/.agents/prompts/pages.md): ファイル構成、責務分割、UI・API契約・導線の確認。
+- [ページ作成・変更手順](00_docs/10_AIパーソナライズ/Web/Razorページの作業ルール.md): ファイル構成、責務分割、UI・API契約・導線の確認。
 - [Razor Pages](30_web/AstralRecordWeb/AstralRecordWeb/Pages) と [Webの設定・認証](30_web/AstralRecordWeb/AstralRecordWeb/Program.cs)。
 - [Webログイン変更時の配置](60_tool/14-management-db-migrate/README.md#webログイン変更時の配置)。
 - [配置・DB更新手順](60_tool/README.md): API/Web配置前のmigrationと単独復旧。
 
 ## AstralRecord Filebase
 
-- [Filebase作業ルール](40_filebase/AGENTS.md): 対象資料の選択と関連実装への影響確認。
+- [Filebase作業ルール](00_docs/10_AIパーソナライズ/ファイルベース/作業ルール.md): 対象資料の選択と関連実装への影響確認。
 - [Filebase設計書](00_docs/50_Filebase設計書/README.md): カテゴリ別仕様・スキーマ・作成時チェックリスト。
 - [型・定数の生成手順](60_tool/README.md): 共有ステータス・タグカタログ変更後の再生成と検証。
 
@@ -51,4 +51,4 @@ AstralRecord のモノレポです。この README はプロジェクトと資�
 
 ## AstralRecord Resource Pack
 
-Java 版と統合版にダメージ数値、アクションリング、アイテムモデルのリソースパックを配布します。対象バージョン、ビルド、配布方法は [Resource Pack README](50_resourcepack/README.md) と [作業ルール](50_resourcepack/AGENTS.md) を参照してください。
+Java 版と統合版にダメージ数値、アクションリング、アイテムモデルのリソースパックを配布します。対象バージョン、ビルド、配布方法は [Resource Pack README](50_resourcepack/README.md) と [作業ルール](00_docs/10_AIパーソナライズ/リソースパック/作業ルール.md) を参照してください。
