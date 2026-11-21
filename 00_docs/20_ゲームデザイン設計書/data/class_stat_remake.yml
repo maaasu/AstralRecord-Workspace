@@ -1,0 +1,92 @@
+# 職業リメイクの試算案。配分の正本は 02-ステータス指標.html。
+# 係数は標準構成の「職業」欄の加算量にだけ適用する。省略時は1。
+# commonAllocations と mainStats を各職業へ配分し、その他の職業補正は scales に記載した項目だけを採用する。
+# 種別攻撃力は武器、会心・シールド・属性・状態異常の特化はツリーや装備で組む。
+# MOVEMENT_SPEED と ATTACK_SPEED の直接成長を外し、敏捷性の派生を使う。幸運の職業補正は外す。
+# 幻影制圧のLv40ビルドはツリーの速度と敏捷性だけで上限120に届く。速度ノードの配分と上限到達時期を合わせて調整する。
+# タンクの初期シールドは取得可能なノードや装備から供給できる段階を確認する。
+#
+# 既存ビルドのプレイヤーLvとクラスLvを対応させる。新職への転職時はクラスLv1として比較する。
+# 職業補正の目安 = 設計初期値と現行共有基礎値の差 + 職業配分 × 係数。転職時の補正を baseStats に入れる。
+# Lv1冒険者の例はHP+70（設計初期90 − 現行20）、MP+85（設計100 − 現行10 − 知力派生5）、ENG+0。
+# HPと防御の配分で体力派生は控除済み。MPと5秒MP回復も知力1につき+1・+0.1の派生を差し引き、総量を照合する。
+# 共通攻撃力と防御の共有基礎値（現行8・5／設計1.30・3）は要調整。
+# growthPerLevel の試算は2点間の補正差 ÷ クラスLv差。Lv75・100はビルドとクラスLvを決めて成長を再調整する。
+# 転職前後とLv25・50・75・100で、同格モブの討伐7秒・被弾7発の標準を照合する。
+# 攻撃は 01-DPS指標.html の総DPSで比較し、特化時は標準の1.3倍を目安に上限を確認する。
+# 継戦は5秒回復と消費、支援は味方の回復・保護量も測る。既存の進行プリセットはプレイヤーLv50まで。
+
+fitPoints:
+  adventurer: [{playerLevel: 1, classLevel: 1}, {playerLevel: 10, classLevel: 30}]
+  first: [{playerLevel: 3, classLevel: 1}, {playerLevel: 15, classLevel: 50}]
+  second: [{playerLevel: 15, classLevel: 1}, {playerLevel: 40, classLevel: 80}]
+  third: [{playerLevel: 40, classLevel: 1}, {playerLevel: 50, classLevel: 33}]
+
+commonAllocations: [MAX_HEALTH, DEFENSE, VITALITY, AGILITY, ATTACK, MAX_MANA, MAX_ENERGY, HP_REGEN, MP_REGEN, ENERGY_REGEN]
+movementSpeedCap: 120
+
+# presets は 40_filebase/90.shared.progression_preset の既存マスターID。
+classes:
+  adventurer:
+    mainStats: [STRENGTH, DEXTERITY, INTELLIGENCE]
+    presets: [adventurer_melee, adventurer_ranged, adventurer_magic]
+  swordsman:
+    mainStats: [STRENGTH]
+    scales: {MAX_HEALTH: 1.05, VITALITY: 1.20, DEFENSE: 1.15, ATTACK: 0.90, AGILITY: 0.85, MAX_ENERGY: 1.10}
+    presets: [swordsman_shield_capacity, swordsman_critical]
+  hunter:
+    mainStats: [DEXTERITY]
+    scales: {DEXTERITY: 1.05, AGILITY: 1.15, ENERGY_REGEN: 1.20, MAX_HEALTH: 0.90, VITALITY: 0.90, MAX_MANA: 0.85}
+    presets: [hunter_ranged_damage, hunter_mobility, hunter_energy_efficiency]
+  mage:
+    mainStats: [INTELLIGENCE]
+    scales: {INTELLIGENCE: 1.10, MAX_MANA: 1.10, MP_REGEN: 1.15, MAX_HEALTH: 0.90, VITALITY: 0.90, MAX_ENERGY: 0.80}
+    presets: [mage_arcane, mage_fire, mage_frost, mage_lightning]
+  paladin:
+    mainStats: [STRENGTH]
+    scales: {MAX_HEALTH: 1.15, VITALITY: 1.25, DEFENSE: 1.15, SUPPORT_POWER: 1.10, ATTACK: 0.85, AGILITY: 0.80}
+    presets: [paladin_guardian, paladin_holy]
+  swordmaster:
+    mainStats: [STRENGTH]
+    scales: {STRENGTH: 1.10, NORMAL_ATTACK_DAMAGE_INCREASE: 1.35, ENERGY_REGEN: 1.20, MAX_HEALTH: 0.90, VITALITY: 0.95, DEFENSE: 0.90}
+    presets: [swordmaster_sword_dance, swordmaster_sword_saint]
+  sharpshooter:
+    mainStats: [DEXTERITY]
+    scales: {DEXTERITY: 1.15, ACCURACY: 1.30, NORMAL_ATTACK_DAMAGE_INCREASE: 1.20, AGILITY: 0.95, VITALITY: 0.85}
+    presets: [sharpshooter_inheritance, sharpshooter_direct_shot]
+  phantom_archer:
+    mainStats: [DEXTERITY]
+    scales: {AGILITY: 1.30, ENERGY_COST_REDUCTION: 1.25, ATTACK: 0.92, MAX_HEALTH: 0.90, VITALITY: 0.85}
+    presets: [phantom_archer_spirit_mark, phantom_archer_spectral_control]
+  wizard:
+    mainStats: [INTELLIGENCE]
+    scales: {INTELLIGENCE: 1.15, SKILL_DAMAGE_INCREASE: 1.20, CAST_TIME_REDUCTION: 1.30, MAX_MANA: 1.10, VITALITY: 0.85, MAX_ENERGY: 0.80}
+    presets: [wizard_arcane, wizard_elemental_combo, wizard_prism_sustain]
+  archmage:
+    mainStats: [INTELLIGENCE]
+    scales: {SUPPORT_POWER: 1.50, MAX_MANA: 1.25, MP_REGEN: 1.20, ATTACK: 0.80, VITALITY: 0.95}
+    presets: [archmage_area_support, archmage_position_control, archmage_astral_finisher]
+  royal_crusader:
+    mainStats: [STRENGTH]
+    scales: {MAX_HEALTH: 1.20, VITALITY: 1.35, DEFENSE: 1.25, SUPPORT_POWER: 1.30, ATTACK: 0.80, AGILITY: 0.80}
+    presets: [royal_crusader_guardian, royal_crusader_holy]
+  grandmaster:
+    mainStats: [STRENGTH]
+    scales: {STRENGTH: 1.15, SKILL_DAMAGE_INCREASE: 1.25, ENERGY_REGEN: 1.25, MAX_ENERGY: 1.15, VITALITY: 0.95, DEFENSE: 0.85}
+    presets: [grandmaster_sword_dance, grandmaster_sword_saint]
+  elemental_shooter:
+    mainStats: [DEXTERITY]
+    scales: {DEXTERITY: 1.10, ACCURACY: 1.15, MANA_COST_REDUCTION: 1.30, ATTACK: 0.90, VITALITY: 0.85}
+    presets: [elemental_shooter_inheritance, elemental_shooter_direct_shot]
+  spectral_archer:
+    mainStats: [DEXTERITY]
+    scales: {AGILITY: 1.35, ENERGY_COST_REDUCTION: 1.30, ENERGY_REGEN: 1.20, ATTACK: 0.90, MAX_HEALTH: 0.90, VITALITY: 0.85}
+    presets: [spectral_archer_spirit_mark, spectral_archer_spectral_control]
+  astral_wizard:
+    mainStats: [INTELLIGENCE]
+    scales: {INTELLIGENCE: 1.15, SKILL_DAMAGE_INCREASE: 1.35, CAST_TIME_REDUCTION: 1.40, MAX_MANA: 1.15, AGILITY: 0.90, VITALITY: 0.85}
+    presets: [astral_wizard_arcane, astral_wizard_elemental_combo, astral_wizard_prism_sustain]
+  arc_sage:
+    mainStats: [INTELLIGENCE]
+    scales: {SUPPORT_POWER: 1.65, COOLDOWN_REDUCTION: 1.40, MAX_MANA: 1.25, MP_REGEN: 1.25, ATTACK: 0.80, VITALITY: 0.95}
+    presets: [arc_sage_area_support, arc_sage_position_control, arc_sage_astral_finisher]
