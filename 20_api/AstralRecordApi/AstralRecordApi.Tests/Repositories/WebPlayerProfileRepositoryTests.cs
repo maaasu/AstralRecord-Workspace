@@ -132,6 +132,17 @@ public sealed class WebPlayerProfileRepositoryTests
         fixture.Management.Players.Single(player => player.PlayerUuid == admin).WebAdmin = false;
         await fixture.Management.SaveChangesAsync();
         Assert.Null(await fixture.Repository.GetProfileAsync(privatePlayer, admin, includePrivate: true));
+
+        var configured = new WebPlayerProfileRepository(fixture.Game, fixture.Management, fixture.Master,
+            Microsoft.Extensions.Options.Options.Create(new WebPlayerProfileOptions { SkillTreeStructureId = "starter" }),
+            authOptions: Microsoft.Extensions.Options.Options.Create(new WebAuthOptions
+            {
+                AdditionalAdminPlayerUuids = [admin, gameOnlyPlayer, Guid.Empty],
+            }));
+        Assert.NotNull(await configured.GetProfileAsync(privatePlayer, admin, includePrivate: true));
+        Assert.Equal(4, (await configured.SearchAsync(admin, null, null, null, 1, 20, includePrivate: true)).TotalCount);
+        Assert.Null(await configured.GetProfileAsync(privatePlayer, gameOnlyPlayer, includePrivate: true));
+        Assert.Single((await configured.SearchAsync(publicPlayer, null, null, null, 1, 20, includePrivate: true)).Profiles);
     }
 
     [Theory]

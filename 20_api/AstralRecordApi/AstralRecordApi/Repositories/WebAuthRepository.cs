@@ -187,12 +187,16 @@ public class WebAuthRepository(
         };
     }
 
-    public async Task<bool> IsWebAdminAsync(Guid userUuid) =>
-        await managementDbContext.Players
-            .AsNoTracking()
-            .Where(user => user.PlayerUuid == userUuid)
-            .Select(user => (bool?)user.WebAdmin)
-            .SingleOrDefaultAsync() == true;
+    public Task<bool> IsWebAdminAsync(Guid userUuid) =>
+        IsWebAdminAsync(managementDbContext, userUuid, webAuthOptions);
+
+    internal static Task<bool> IsWebAdminAsync(ManagementDbContext managementDb, Guid userUuid, WebAuthOptions options)
+    {
+        if (userUuid == Guid.Empty) return Task.FromResult(false);
+        var explicitlyAllowed = options.AdditionalAdminPlayerUuids?.Contains(userUuid) == true;
+        return managementDb.Players.AsNoTracking()
+            .AnyAsync(player => player.PlayerUuid == userUuid && (player.WebAdmin || explicitlyAllowed));
+    }
 
     public async Task<bool> IsTrustedBrowserAsync(Guid userUuid, Guid sessionVersion, string? token)
     {
@@ -394,13 +398,7 @@ public class WebAuthRepository(
                 .SetProperty(user => user.UpdatedAt, user => user.UpdatedAt > loginAt ? user.UpdatedAt : loginAt));
 
         if (updated == 1)
-        {
-            return await managementDbContext.Players
-                .AsNoTracking()
-                .Where(user => user.PlayerUuid == userUuid)
-                .Select(user => user.WebAdmin)
-                .SingleAsync();
-        }
+            return await IsWebAdminAsync(userUuid);
 
         var created = new ManagementPlayerEntity
         {
@@ -413,11 +411,9 @@ public class WebAuthRepository(
             LastWebLoginAt = loginAt,
         };
         await managementDbContext.Players.AddAsync(created);
-
         try
         {
             await managementDbContext.SaveChangesAsync();
-            return false;
         }
         catch (DbUpdateException)
         {
@@ -431,13 +427,8 @@ public class WebAuthRepository(
                     .SetProperty(user => user.UpdatedAt, user => user.UpdatedAt > loginAt ? user.UpdatedAt : loginAt));
             if (updatedAfterInsertRace != 1)
                 throw;
-
-            return await managementDbContext.Players
-                .AsNoTracking()
-                .Where(user => user.PlayerUuid == userUuid)
-                .Select(user => user.WebAdmin)
-                .SingleAsync();
         }
+        return await IsWebAdminAsync(userUuid);
     }
 
     private async Task<Guid> EnsureCredentialAsync(Guid userUuid, DateTime now)
@@ -516,7 +507,7 @@ public class WebAuthRepository(
                 UserUuid = userUuid,
                 Mcid = managementPlayer.Mcid,
                 Permission = 0,
-                WebAdmin = managementPlayer.WebAdmin,
+                WebAdmin = await IsWebAdminAsync(userUuid),
                 AccountIds = [],
                 SessionVersion = sessionVersion,
             };
