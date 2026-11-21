@@ -4,14 +4,14 @@ builds:
     role: 近接前衛
     playerLevel: 25
 
-# 配分の重みはプレイヤーLv上昇、職業、スキルツリー、装備の順。
+# 配分の重みは職業、スキルツリー、装備の順。
 # title と series は 02 の表示名。names を省略すると title を表示する。
 groups:
   - name: 基本ステータス
     panels:
       - {title: 基準攻撃力, mode: attack, sources: [共通攻撃力, 近接攻撃力]}
-      - {title: 最大HP, weights: [40, 30, 10, 20], derived: {stat: 体力, factor: 2}}
-      - {title: 共通防御, weights: [0, 20, 5, 177], derived: {stat: 体力, factor: 1}}
+      - {title: 最大HP, weights: [30, 10, 20], derived: {stat: 体力, factor: 2}}
+      - {title: 共通防御, weights: [20, 5, 177], derived: {stat: 体力, factor: 1}}
   - name: 会心
     panels:
       - {title: 通常会心率, mode: derived, derived: {stat: 幸運, factor: 0.1}}
@@ -20,17 +20,17 @@ groups:
       - {title: 超星会心倍率, mode: fixed}
   - name: 基本能力値
     panels:
-      - {title: 筋力・器用さ・知力, names: [筋力, 器用さ, 知力], weights: [20, 55, 20, 5]}
-      - {title: 体力, weights: [0, 80, 20, 0]}
-      - {title: 敏捷性, weights: [15, 50, 30, 5]}
+      - {title: 筋力・器用さ・知力, names: [筋力, 器用さ, 知力], weights: [55, 20, 5]}
+      - {title: 体力, weights: [80, 20, 0]}
+      - {title: 敏捷性, weights: [50, 30, 5]}
       - {title: 幸運, mode: fixed}
   - name: MP・ENG・自然回復
     panels:
-      - {title: 最大MP, weights: [30, 45, 15, 10]}
-      - {title: 最大ENG, weights: [40, 35, 15, 10]}
-      - {title: HP自然回復量（5秒ごと）, weights: [20, 30, 20, 30], derived: {stat: 体力, factor: 0.1}}
-      - {title: MP自然回復量（5秒ごと）, weights: [20, 35, 30, 15]}
-      - {title: ENG自然回復量（5秒ごと）, weights: [25, 35, 25, 15]}
+      - {title: 最大MP, weights: [45, 15, 10]}
+      - {title: 最大ENG, weights: [35, 15, 10]}
+      - {title: HP自然回復量（5秒ごと）, weights: [30, 20, 30], derived: {stat: 体力, factor: 0.1}}
+      - {title: MP自然回復量（5秒ごと）, weights: [35, 30, 15]}
+      - {title: ENG自然回復量（5秒ごと）, weights: [35, 25, 15]}
   - name: 速度・回避・報酬
     panels:
       - {title: 攻撃速度, mode: derived, derived: {stat: 敏捷性, factor: 1}}
@@ -41,13 +41,13 @@ groups:
       - {title: EXP獲得量増加率・ドロップ増加率, names: [EXP獲得量増加率, ドロップ増加率], mode: fixed}
   - name: 攻撃力・攻撃補正
     panels:
-      - {title: 共通攻撃力・種別攻撃力, series: 共通, names: [共通攻撃力], weights: [25, 55, 20, 0]}
-      - {title: 共通攻撃力・種別攻撃力, series: 種別, names: [近接攻撃力, 間接攻撃力, 魔法攻撃力], mode: equipment, weights: [0, 0, 0, 100]}
-      - {title: 命中率, weights: [50, 10, 15, 25]}
-      - {title: 通常攻撃・スキルダメージ増加, names: [通常攻撃ダメージ増加], weights: [0, 10, 45, 45]}
-      - {title: 通常攻撃・スキルダメージ増加, names: [スキルダメージ増加], weights: [0, 35, 50, 15]}
-      - {title: 最終ダメージ倍率, weights: [10, 35, 35, 20]}
-      - {title: 通常攻撃劣化遅延, weights: [0, 0, 100, 0]}
+      - {title: 共通攻撃力・種別攻撃力, series: 共通, names: [共通攻撃力], weights: [55, 20, 0]}
+      - {title: 共通攻撃力・種別攻撃力, series: 種別, names: [近接攻撃力, 間接攻撃力, 魔法攻撃力], mode: equipment, weights: [0, 0, 100]}
+      - {title: 命中率, weights: [10, 15, 25]}
+      - {title: 通常攻撃・スキルダメージ増加, names: [通常攻撃ダメージ増加], weights: [10, 45, 45]}
+      - {title: 通常攻撃・スキルダメージ増加, names: [スキルダメージ増加], weights: [35, 50, 15]}
+      - {title: 最終ダメージ倍率, weights: [35, 35, 20]}
+      - {title: 通常攻撃劣化遅延, weights: [0, 100, 0]}
       - {title: HP固定ダメージ, mode: zero}
       - {title: 共通・種別防御貫通率, names: [共通防御貫通率, 近接防御貫通率, 間接防御貫通率, 魔法防御貫通率], mode: zero}
       - {title: ライフスティール, mode: zero}
@@ -55,20 +55,20 @@ groups:
     panels:
       - {title: 近接・間接防御力, names: [近接防御力, 間接防御力], mode: zero}
       - {title: 被ダメージ軽減率, mode: zero}
-      - {title: ノックバック耐性, weights: [0, 0, 30, 70]}
-      - {title: 魔法防御力, weights: [0, 0, 30, 70], derived: {stat: 体力, factor: 1}}
+      - {title: ノックバック耐性, weights: [0, 30, 70]}
+      - {title: 魔法防御力, weights: [0, 30, 70], derived: {stat: 体力, factor: 1}}
       - {title: 最大シールド, mode: zero}
-      - {title: シールドブレイク, weights: [0, 0, 25, 75]}
+      - {title: シールドブレイク, weights: [0, 25, 75]}
       - {title: シールドリチャージ加算値, mode: zero}
       - {title: シールドリチャージ短縮, mode: zero}
   - name: 属性補正
     panels:
-      - {title: 無属性耐性, weights: [35, 0, 15, 50]}
-      - {title: 火・氷・雷属性耐性, names: [火属性耐性, 氷属性耐性, 雷属性耐性], weights: [35, 0, 15, 50]}
+      - {title: 無属性耐性, weights: [0, 15, 50]}
+      - {title: 火・氷・雷属性耐性, names: [火属性耐性, 氷属性耐性, 雷属性耐性], weights: [0, 15, 50]}
       - {title: 無属性耐性, series: 上限, names: [無属性耐性上限], mode: fixed}
       - {title: 火・氷・雷属性耐性, series: 上限, names: [火属性耐性上限, 氷属性耐性上限, 雷属性耐性上限], mode: fixed}
-      - {title: 無属性ダメージ増加, weights: [0, 20, 35, 45]}
-      - {title: 火・氷・雷属性ダメージ増加, names: [火属性ダメージ増加, 氷属性ダメージ増加, 雷属性ダメージ増加], weights: [0, 20, 35, 45]}
+      - {title: 無属性ダメージ増加, weights: [20, 35, 45]}
+      - {title: 火・氷・雷属性ダメージ増加, names: [火属性ダメージ増加, 氷属性ダメージ増加, 雷属性ダメージ増加], weights: [20, 35, 45]}
       - {title: 属性貫通, names: [火属性貫通, 氷属性貫通, 雷属性貫通], mode: zero}
   - name: 状態異常
     panels:
@@ -77,18 +77,18 @@ groups:
         mode: zero
       - title: 状態異常付与耐性
         names: [燃焼付与耐性, 凍結付与耐性, 冷気付与耐性, 感電付与耐性, 毒状態付与耐性, 盲目付与耐性, 衰弱付与耐性, 回復阻害付与耐性]
-        weights: [0, 0, 40, 60]
+        weights: [0, 40, 60]
       - {title: 継続ダメージ増加, names: [燃焼継続ダメージ増加, 感電継続ダメージ増加, 毒状態継続ダメージ増加], mode: zero}
       - {title: 継続ダメージ耐性の貫通, names: [燃焼継続ダメージ貫通, 感電継続ダメージ貫通, 毒状態継続ダメージ貫通], mode: zero}
-      - {title: 継続ダメージ耐性, names: [燃焼継続ダメージ耐性, 感電継続ダメージ耐性, 毒状態継続ダメージ耐性], weights: [0, 0, 25, 75]}
+      - {title: 継続ダメージ耐性, names: [燃焼継続ダメージ耐性, 感電継続ダメージ耐性, 毒状態継続ダメージ耐性], weights: [0, 25, 75]}
   - name: スキル・消耗品
     panels:
-      - {title: クールダウン・詠唱時間短縮, names: [クールダウン短縮, 詠唱時間短縮], weights: [0, 10, 55, 35]}
-      - {title: MP・ENG消費軽減率, names: [MP消費軽減率, ENG消費軽減率], weights: [0, 25, 55, 20]}
-      - {title: 支援力, weights: [0, 45, 45, 10]}
+      - {title: クールダウン・詠唱時間短縮, names: [クールダウン短縮, 詠唱時間短縮], weights: [10, 55, 35]}
+      - {title: MP・ENG消費軽減率, names: [MP消費軽減率, ENG消費軽減率], weights: [25, 55, 20]}
+      - {title: 支援力, weights: [45, 45, 10]}
       - {title: 回復量増加, mode: zero}
       - {title: 状態異常持続時間増加, mode: zero}
-      - {title: バフ持続時間増加, weights: [0, 20, 60, 20]}
+      - {title: バフ持続時間増加, weights: [20, 60, 20]}
       - {title: 消耗品使用時移動許容距離, mode: zero}
       - {title: 消耗品使用時移動減速率, mode: zero}
 

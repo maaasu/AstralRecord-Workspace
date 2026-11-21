@@ -134,12 +134,12 @@ def allocate_player(rows):
         require(mode in ("weighted", "equipment", "fixed", "zero", "derived", "attack"),
                 f"未登録の配分方法 {name}・{mode}")
         if mode in ("weighted", "equipment"):
-            require(len(weights) == 4 and all(type(n) is int and n >= 0 for n in weights) and sum(weights),
-                    f"配分には4欄の非負整数の重みが必要です {name}")
+            require(len(weights) == 3 and all(type(n) is int and n >= 0 for n in weights) and sum(weights),
+                    f"配分には3欄の非負整数の重みが必要です {name}")
         else:
             require(not weights, f"成長配分の対象外に重みがあります {name}")
         if mode == "equipment":
-            require(not any(weights[:3]) and "derived" not in rule, f"装備のみの配分に別の供給元があります {name}")
+            require(not any(weights[:2]) and "derived" not in rule, f"装備のみの配分に別の供給元があります {name}")
         if mode == "derived":
             require("derived" in rule, f"派生元が指定されていません {name}")
         require(not row["fixed"] or mode == "fixed", f"上限は固定値が必要です {name}")
@@ -168,7 +168,7 @@ def allocate_player(rows):
             remainder = goal - initial - bonus
             require(remainder >= 0, f"配分できる残余が負です {name} Lv.{level}")
             require(weights or remainder == 0, f"残余の配分に重みがありません {name} Lv.{level}")
-            grants = largest_remainder(remainder, weights) if weights else [0] * 4
+            grants = largest_remainder(remainder, weights) if weights else [0] * 3
             levels.append((goal, initial, *grants, bonus))
         allocations[name] = levels
 
@@ -225,7 +225,7 @@ def allocation_data(rows, allocations, mob_rules, mob_model):
 def equipment_reference(build, allocations):
     level = build["playerLevel"]
     require(type(level) is int and 1 <= level <= LEVEL_COUNT, "装備プロファイルの参照Lvが無効です")
-    total, _, _, _, _, armor, _ = allocations["共通防御"][level - 1]
+    total, _, _, _, armor, _ = allocations["共通防御"][level - 1]
     require(armor % CENTS == total % CENTS == 0, "参照Lvの共通防御と装備への配分は整数が必要です")
     return {
         "playerLevel": level, "role": build["role"],
