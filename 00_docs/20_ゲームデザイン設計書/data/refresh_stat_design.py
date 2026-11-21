@@ -24,33 +24,47 @@ def require(condition, message):
         raise ValueError(message)
 
 
-def load(name):
-    path = DATA / f"v1.{name}.yml"
+def load_design():
+    path = DATA / "v1.stat_design.yml"
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     require(type(data["schemaVersion"]) is int and data["schemaVersion"] == 1,
             f"{path.name} の schemaVersion は 1 が必要です")
     return data
 
 
-def target_curves(targets):
-    curves = {}
-    for status, variants in {
-        "commonDefense": ("standard",),
-        "vitality": ("standard", "specialized"),
-    }.items():
-        levels = [1, 25, 50, 100] if status == "commonDefense" else [1, 25, 50, 75, 100]
-        for variant in variants:
-            samples = targets[status][variant]
-            require(sorted(samples) == levels and all(type(n) is int for n in samples.values()),
-                    f"{status}.{variant} のレベル点または値が無効です")
-        curves[status] = {variant: [targets[status][variant][lv] for lv in levels] for variant in variants}
-        curves[status]["levels"] = levels
-    return curves
-
-
 def read_model(html):
+    reader = r"""
+const fs = require("node:fs");
+const vm = require("node:vm");
+
+const html = fs.readFileSync(0, "utf8");
+const blocks = [...html.matchAll(/^  \/\/ stat-model\n([\s\S]*?)^  \/\/ \/stat-model$/gm)];
+if (blocks.length !== 1) throw new Error("02の計算モデルの範囲が無効です");
+
+const source = blocks[0][1];
+const panels = vm.runInNewContext(source + "\npanels", Object.create(null), {
+  filename: "02-ステータス指標.html",
+  timeout: 1000
+});
+const result = {player: [], mob: []};
+for (const {grid, title, unit, series} of panels) {
+  const owner = grid.split("-")[0];
+  if (!Object.hasOwn(result, owner)) throw new Error(`未登録の章 ${grid}`);
+  const targets = series.map(({label, read}) => ({
+    label,
+    values: Array.from({length: 100}, (_, index) => {
+      const level = index + 1;
+      const value = read(level);
+      if (!Number.isFinite(value)) throw new Error(`${title}・${label} Lv.${level} の値が無効です`);
+      return value;
+    })
+  }));
+  result[owner].push({title, unit, series: targets});
+}
+process.stdout.write(JSON.stringify(result));
+"""
     result = subprocess.run(
-        ["node", str(DATA / "read_stat_targets.cjs")], input=html.encode("utf-8"),
+        ["node", "-e", reader], input=html.encode("utf-8"),
         capture_output=True, check=False,
     )
     require(result.returncode == 0, result.stderr.decode("utf-8").strip())
@@ -73,7 +87,7 @@ def model_series(panels, expected_count, *, player=False):
             require(len(values) == LEVEL_COUNT and all(isinstance(n, Decimal) and n.is_finite() for n in values),
                     f"02の系列に欠落または非有限値があります {title}・{label}")
             if not player or label in ("標準", "上限", "共通", "種別"):
-                series[title, label] = (panel["category"], panel["unit"], values)
+                series[title, label] = (panel["unit"], values)
         require(any(panel_title == title for panel_title, _ in series), f"対象系列がありません {title}")
     return series
 
@@ -110,11 +124,11 @@ def player_rows(groups, model):
             require(key in model, f"02のプレイヤー系列が未定義です {key}")
             registered.add(key)
             names = rule.get("names", [key[0]])
-            category, unit, values = model[key]
+            unit, values = model[key]
             for name in names:
                 require(name and name not in rows, f"表示名が空か重複しています {name}")
                 rows[name] = {
-                    "group": group_name, "category": category, "unit": unit or "点",
+                    "group": group_name, "unit": unit or "点",
                     "fixed": key[1] == "上限", "values": values, "rule": rule,
                 }
             count += len(names)
@@ -192,7 +206,7 @@ def allocate_player(rows):
     return allocations
 
 
-def allocation_data(rows, allocations, mob_rules, mob_model):
+def allocation_data(rows, allocations):
     bank = []
     indices = {}
 
@@ -208,7 +222,7 @@ def allocation_data(rows, allocations, mob_rules, mob_model):
         mode = rule.get("mode", "weighted")
         levels = allocations[name]
         stat = {
-            "name": name, "group": row["group"], "category": row["category"], "unit": row["unit"],
+            "name": name, "panel": rule["title"], "group": row["group"], "unit": row["unit"],
             "mode": mode, "goal": store(tuple(level[0] for level in levels)),
         }
         if mode == "attack":
@@ -219,18 +233,7 @@ def allocation_data(rows, allocations, mob_rules, mob_model):
             if "weights" in rule:
                 stat["weights"] = rule["weights"]
         player.append(stat)
-    mob = []
-    remaining = dict(mob_model)
-    names = set()
-    for rule in mob_rules:
-        key, name = reference_key(rule), rule["name"]
-        require(key in remaining, f"02のモブ系列が未定義か重複しています {key}")
-        require(name and name not in names, f"標準モブの表示名が空か重複しています {name}")
-        names.add(name)
-        category, unit, values = remaining.pop(key)
-        mob.append({"name": name, "category": category, "unit": unit or "点", "column": store(tuple(map(cents, values)))})
-    require(not remaining and len(mob) == 11, f"標準モブの系列数が無効です。未登録 {list(remaining)}")
-    return {"player": player, "mob": mob, "bank": bank}
+    return {"player": player, "bank": bank}
 
 
 def equipment_reference(build, allocations):
@@ -338,35 +341,28 @@ def embedded_allocation(data):
 
 
 def refresh(check):
-    target_data = load("status_targets")
-    require(target_data["interpolation"] == "linear", "ステータス目標の補間方式は linear が必要です")
-    curves = target_curves(target_data["targets"])
-    design = load("status_allocation")
+    design = load_design()
     target_path = DATA.parent / "02-ステータス指標.html"
     target_html = target_path.read_text(encoding="utf-8")
-    embedded = "  const statTargets = " + json.dumps(curves, ensure_ascii=False) + ";\n"
-    updated_targets = embed(target_html, "  // stat-targets", "  // /stat-targets", embedded)
-    model = read_model(updated_targets)
+    model = read_model(target_html)
     player_model = model_series(model["player"], 55, player=True)
-    mob_model = model_series(model["mob"], 7)
+    model_series(model["mob"], 7)
     rows = player_rows(design["groups"], player_model)
     allocations = allocate_player(rows)
-    data = allocation_data(rows, allocations, design["mob"], mob_model)
+    data = allocation_data(rows, allocations)
 
-    (profile_id, profile), = load("equipment_stat_rules")["profiles"].items()
+    (profile_id, profile), = design["profiles"].items()
     build_id = profile["buildId"]
     builds = design["builds"]
     require(build_id in builds, f"装備プロファイルの構成参照 {build_id} が未解決です")
     allocation = equipment_reference(builds[build_id], allocations)
     values = {"buildId": build_id, "profileId": profile_id, **allocation,
               **allocate_equipment(profile, allocation)}
-    allocation_path = DATA.parent / "03-ステータス配分基準.html"
-    allocation_html = allocation_path.read_text(encoding="utf-8")
-    updated_allocation = embed(
-        allocation_html, '<script type="application/json" id="stat-allocation-data">',
+    updated_targets = embed(
+        target_html, '<script type="application/json" id="stat-allocation-data">',
         "</script>", embedded_allocation(data),
     )
-    equipment_path = DATA.parent / "04-装備ステータス基準.html"
+    equipment_path = DATA.parent / "03-装備ステータス基準.html"
     equipment_html = equipment_path.read_text(encoding="utf-8")
     require(MARKER.search(equipment_html), f"{equipment_path.name} の同期対象がありません")
     updated_equipment = render_stat_values(equipment_html, values)
@@ -374,7 +370,6 @@ def refresh(check):
         path: updated
         for path, original, updated in (
             (target_path, target_html, updated_targets),
-            (allocation_path, allocation_html, updated_allocation),
             (equipment_path, equipment_html, updated_equipment),
         )
         if updated != original

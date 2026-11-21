@@ -23,8 +23,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 /* ===== 共通: 資料タブ・目次・章番号・能力の色分け ===== */
 /* 能力の色は設計書の7分類に対応 */
 :root { --cat-resource: #98c379; --cat-primary: #d19a66; --cat-offense: #e06c75; --cat-defense: #56b6c2; --cat-element: #c678dd; --cat-condition: #e8a0c8; --cat-utility: #a8b0bd; }
-:where(#dps-stat-guide, #stat-guide, #stat-allocation-guide, #equipment-stat-guide) a { color: var(--heading); text-decoration: none; }
-:where(#dps-stat-guide, #stat-guide, #stat-allocation-guide, #equipment-stat-guide) h1 { letter-spacing: 0; font-weight: 600; }
+:where(#dps-stat-guide, #stat-guide, #equipment-stat-guide) a { color: var(--heading); text-decoration: none; }
+:where(#dps-stat-guide, #stat-guide, #equipment-stat-guide) h1 { letter-spacing: 0; font-weight: 600; }
 .doc-nav { display: flex; flex-wrap: wrap; gap: 0 28px; margin: -8px 0 22px; border-bottom: 1px solid var(--rule); font-size: 14px; }
 .doc-nav a { display: inline-flex; align-items: baseline; gap: 8px; margin-bottom: -1px; padding: 9px 0 8px; color: var(--muted); border-bottom: 2px solid transparent; }
 .doc-nav a:hover { color: var(--ink); }
@@ -223,8 +223,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 #stat-guide details th .cat-list { margin-top: 4px; }
 .st-group.calc { --actor: var(--axis); }
 .st-gridline { stroke: var(--rule); stroke-width: 1; }
-.show-levels .st-card tbody tr:not(.minor) { font-weight: 600; color: var(--heading); }
-.show-levels .st-card tbody tr.minor { color: var(--muted); }
+.show-levels .st-card .clickable-rows tbody tr:not(.minor) { font-weight: 600; color: var(--heading); }
+.show-levels .st-card .clickable-rows tbody tr.minor { color: var(--muted); }
 #stat-guide summary::marker { color: var(--blue); }
 #stat-guide :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .st-intro, .st-note, .st-unit { color: var(--muted); }
@@ -270,8 +270,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 .st-card tr > :first-child { text-align: left; }
 #stat-guide thead th { font-weight: 600; font-size: 14px; color: var(--heading); background: var(--soft); }
 .st-card tr.current { background: var(--selected); }
-.st-card tbody tr:hover { background: var(--soft); }
-.st-card .minor { display: none; }
+.st-card .clickable-rows tbody tr:hover { background: var(--soft); }
+.st-card .minor:not(.current) { display: none; }
 .show-levels .st-card .minor { display: table-row; }
 #stat-guide details { margin-top: 18px; border-top: 1px solid var(--rule); padding-top: 8px; }
 #stat-guide summary { cursor: pointer; padding: 5px 0; font-weight: 600; font-size: 18px; }
@@ -292,6 +292,49 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 .st-card:focus-within { border-color: var(--actor); }
 .st-grid.triple { grid-template-columns: repeat(3,minmax(0,1fr)); margin-bottom: 16px; }
 .st-tip { min-width: min(168px,100%); box-shadow: 0 5px 16px #15181d66; }
+.st-tabs { display: flex; gap: 14px; border-bottom: 1px solid var(--rule); margin-bottom: 14px; }
+.st-tabs button { padding: 7px 10px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted); font: inherit; cursor: pointer; }
+.st-tabs button[aria-selected="true"] { color: var(--heading); border-bottom-color: var(--blue); font-weight: 600; }
+#player-allocation { min-width: 0; scroll-margin-top: 84px; }
+.st-table-scroll { min-width: 0; overflow-x: auto; }
+.st-card > .st-table-scroll { margin-top: auto; }
+#stat-guide .st-breakdown { margin: 8px 0 12px; }
+#stat-guide .st-breakdown summary { font-size: 15px; }
+.st-breakdown-level, .st-allocation-caption, .st-allocation-list caption { color: var(--muted); font-size: 13px; }
+.st-breakdown-level { margin-inline-start: 8px; }
+#stat-guide .st-breakdown table :is(th, td) { text-align: right; }
+#stat-guide .st-breakdown table tr > :first-child { text-align: left; }
+#stat-guide .st-breakdown tbody th { background: var(--paper); }
+.st-allocation-filter { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14px; }
+.st-allocation-filter select { min-width: 0; max-width: 100%; padding: 5px 8px; color: var(--ink); background: var(--soft); border: 1px solid var(--rule); border-radius: 6px; font: inherit; }
+.st-allocation-totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 8px 0 0; background: var(--soft); border-radius: 6px; }
+.st-allocation-totals > div { padding: 5px 8px; }
+.st-allocation-totals > div + div { border-inline-start: 1px solid var(--rule); }
+.st-allocation-totals dt { color: var(--muted); font-size: 13px; }
+.st-allocation-totals dd { margin: 0; overflow-wrap: anywhere; }
+.st-allocation-totals > div:last-child dd { color: var(--blue); font-weight: 600; }
+.st-allocation-list { table-layout: fixed; min-width: 17rem; }
+.st-allocation-list caption { padding-bottom: 8px; text-align: left; }
+.st-allocation-list :is(th, td) { text-align: right; vertical-align: top; overflow-wrap: anywhere; }
+.st-allocation-list tr > :first-child { text-align: left; width: 38%; }
+.st-allocation-list tbody th { font-weight: 500; }
+.st-allocation-caption { display: block; font-weight: 400; }
+.st-allocation-share { display: block; font-weight: 600; }
+.st-allocation-print { display: none; }
+@media (max-width: 760px) { #player-allocation { scroll-margin-top: 124px; } }
+@media (max-width: 420px) {
+  #stat-guide .st-allocation-list :is(th,td) { padding-inline: 4px; font-size: 13px; }
+  #stat-guide .st-allocation-list thead th { font-size: 12px; overflow-wrap: normal; }
+}
+@media (pointer: coarse) {
+  .st-tabs button, .st-allocation-filter select, #stat-guide .st-breakdown summary { min-height: 44px; }
+}
+@media print {
+  .st-tabs, .st-allocation-filter, .st-hp-mode { display: none; }
+  #stat-guide #player-indicators[hidden] { display: block !important; }
+  .st-table-scroll { overflow: visible; }
+  .st-allocation-print { display: block; }
+}
 @media (prefers-reduced-motion: no-preference) {
   .st-tip:not([hidden]) { animation: st-zoom .14s ease-out; }
   .st-series { transition: opacity .12s ease-out; }
@@ -333,8 +376,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   <nav class="doc-nav" aria-label="ゲームデザイン設計書">
     <a href="01-DPS指標.html"><span class="doc-no">01</span>DPS指標</a>
     <a href="02-ステータス指標.html" aria-current="page"><span class="doc-no">02</span>ステータス指標</a>
-    <a href="03-ステータス配分基準.html"><span class="doc-no">03</span>ステータス配分基準</a>
-    <a href="04-装備ステータス基準.html"><span class="doc-no">04</span>装備ステータス基準</a>
+    <a href="03-装備ステータス基準.html"><span class="doc-no">03</span>装備ステータス基準</a>
   </nav>
   <header><h1>ステータス指標</h1></header>
   <div class="doc-lead">
@@ -366,6 +408,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
           <li><a href="#player-elements"><span class="toc-num">1.8</span>属性補正</a></li>
           <li><a href="#player-conditions"><span class="toc-num">1.9</span>状態異常</a></li>
           <li><a href="#player-skills"><span class="toc-num">1.10</span>スキル・消耗品</a></li>
+          <li><a href="#player-allocation">配分一覧</a></li>
         </ol>
       </li>
       <li><a href="#mob"><span class="toc-num">2</span>標準モブ</a>
@@ -382,6 +425,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
           <li><a href="#fx-crit"><span class="toc-num">4.3</span>会心の期待倍率</a></li>
           <li><a href="#fx-mob-hp"><span class="toc-num">4.4</span>標準モブの最大HP</a></li>
           <li><a href="#fx-mob-attack"><span class="toc-num">4.5</span>標準モブの攻撃力</a></li>
+          <li><a href="#fx-allocation"><span class="toc-num">4.6</span>標準構成の配分</a></li>
+          <li><a href="#fx-derived"><span class="toc-num">4.7</span>基本能力値からの派生</a></li>
         </ol>
       </li>
     </ol>
@@ -389,11 +434,16 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   <div class="doc-body">
   <div class="st-tools">
     <label for="st-level">レベル <output id="st-value" for="st-level">Lv.25</output></label>
-    <input id="st-level" type="range" min="0" max="20" step="1" value="5">
+    <input id="st-level" type="range" min="1" max="100" step="1" value="25" aria-valuetext="レベル25">
     <label><input id="st-all" type="checkbox"> 表を5レベル刻みに</label>
   </div>
   <section class="st-group" id="player" aria-labelledby="player-title">
     <div class="st-group-head"><h2 id="player-title"><span class="ch-num">1</span>プレイヤー</h2><p>標準・特化ともに初期値・職業・装備・有効な装備効果・取得済みのスキルツリー・基本能力値の派生を含む合計。特化は項目ごとの配分目安。</p></div>
+    <div class="st-tabs" role="tablist" aria-label="プレイヤー">
+      <button type="button" id="player-indicators-tab" role="tab" aria-selected="true" aria-controls="player-indicators">指標</button>
+      <button type="button" id="player-allocation-tab" role="tab" aria-selected="false" aria-controls="player-allocation" tabindex="-1">配分一覧</button>
+    </div>
+    <div id="player-indicators" role="tabpanel" aria-labelledby="player-indicators-tab" tabindex="0">
     <ol class="ch-toc" aria-label="1章の内容">
       <li><a href="#player-base"><span class="toc-num">1.1</span><span class="ch-toc-title">基本ステータス</span><span class="ch-toc-desc">基準攻撃力・最大HP・共通防御</span><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-resource">リソース</span><span class="cat cat-defense">防御</span></span></a></li>
       <li><a href="#player-crit"><span class="toc-num">1.2</span><span class="ch-toc-title">会心</span><span class="ch-toc-desc">通常会心率・会心ダメージ・超星会心率・超星会心倍率</span><span class="cat-list"><span class="cat cat-offense">攻撃</span></span></a></li>
@@ -445,6 +495,18 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     <section class="st-sub" id="player-skills" aria-labelledby="player-skills-title">
       <div class="st-sub-head"><h3 id="player-skills-title"><span class="sub-num">1.10</span>スキル・消耗品</h3><p>短縮・消費軽減・持続時間の特化は、使う効果に合わせて一系統ずつ配分する。</p></div>
       <div class="st-grid" id="player-skills-grid"></div>
+    </section>
+    </div>
+    <section id="player-allocation" role="tabpanel" aria-labelledby="player-allocation-tab" aria-label="配分一覧" tabindex="0" hidden>
+      <p class="st-intro"><strong>標準構成</strong>　役割に合う主能力と武器種別を1組使い、強化なしの基準装備を着用する。</p>
+      <label class="st-allocation-filter">区分 <select id="st-allocation-group"></select></label>
+      <div class="st-table-scroll">
+        <table class="st-allocation-list">
+          <caption></caption>
+          <thead><tr><th scope="col">ステータス</th><th scope="col">職業</th><th scope="col">スキル<wbr>ツリー</th><th scope="col">装備</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </section>
   </section>
   <section class="st-group mob" id="mob" aria-labelledby="mob-title">
@@ -538,11 +600,185 @@ body { margin: 0; background: var(--page); color: var(--ink); }
         <p class="fx-example"><span class="fx-lv" data-fx="lv">Lv.25</span>無属性の場合。必要な被ダメージ <b data-fx="need">71.4</b> に達する最小の整数攻撃力は <b class="c-offense" data-fx="mobPower">197</b> で、1発は <b data-fx="dmg">71.8</b>。</p>
         <ul class="fx-notes"><li>共通防御と基礎耐性を適用。共通防御が高いほど必要な攻撃力は増えるが、整数化により同値になる場合もある。</li><li>近接・単一属性100%の命中を比較する。会心・貫通・追加防御・被ダメージ軽減・シールド・回復なし。</li></ul>
       </section>
+      <section class="fx-card" id="fx-allocation" aria-labelledby="fx-allocation-title">
+        <div class="fx-card-head"><h3 id="fx-allocation-title"><span class="sub-num">4.6</span>標準構成の配分</h3></div>
+        <div class="fx">
+          <var class="fx-var">配分対象</var><span class="fx-op">=</span><var class="fx-var">標準目標</var><span class="fx-op">−</span><var class="fx-var">初期値</var><span class="fx-op">−</span><var class="fx-var">派生</var>
+        </div>
+        <ul class="fx-notes">
+          <li>職業・スキルツリー・装備の元の重みに従い、選択Lvまでの累計を配分する。端数は最大剰余方式で、割合では0.01%、加算値では0.01ずつ、小数部の大きい欄から配る。同点では表の列順。率への加算はポイント差（pt）。</li>
+          <li>初期値はLv.1の目標からLv.1の派生を引いた値。固定値は全額を初期値に、種別攻撃力はLv.1から全額を装備に計上する。主能力・種別攻撃力・クールダウン／詠唱・MP／ENG消費は対象別の候補値。</li>
+        </ul>
+      </section>
+      <section class="fx-card" id="fx-derived" aria-labelledby="fx-derived-title">
+        <div class="fx-card-head"><h3 id="fx-derived-title"><span class="sub-num">4.7</span>基本能力値からの派生</h3></div>
+        <div class="fx">
+          <var class="fx-var cat-resource">最大HPへの派生</var><span class="fx-op">=</span><var class="fx-var cat-primary">体力</var><span class="fx-op">×</span><span class="fx-num">2</span>
+        </div>
+        <ul class="fx-notes">
+          <li>体力は共通防御・魔法防御に同値、HP自然回復に5秒ごとに体力の0.1倍を加える。</li>
+          <li>敏捷性は攻撃速度に同値、移動速度・回避率に敏捷性の0.1倍を加える。移動速度は上限適用後の有効分を計上する。</li>
+          <li>幸運は通常会心率に幸運の0.1倍のポイント差、直接ドロップ倍率に幸運の100分の1の倍率差を加える。</li>
+          <li>基準攻撃力は共通攻撃力と使用種別攻撃力の直接配分を供給元ごとに足す。主能力の倍率を反映した目標と、初期値を含む直接配分の合計との差を、派生に計上する。</li>
+        </ul>
+      </section>
     </div>
   </section>
   </div>
   </div>
 </main>
+<script type="application/json" id="stat-allocation-data">
+{
+"player":[
+{"name":"基準攻撃力","panel":"基準攻撃力","group":"基本ステータス","unit":"点","mode":"attack","goal":0,"sources":["共通攻撃力","近接攻撃力"]},
+{"name":"最大HP","panel":"最大HP","group":"基本ステータス","unit":"点","mode":"weighted","goal":1,"initial":9000,"bonus":2,"weights":[30,10,20]},
+{"name":"共通防御","panel":"共通防御","group":"基本ステータス","unit":"点","mode":"weighted","goal":3,"initial":300,"bonus":4,"weights":[20,5,177]},
+{"name":"通常会心率","panel":"通常会心率","group":"会心","unit":"%","mode":"derived","goal":5,"initial":500,"bonus":6},
+{"name":"会心ダメージ","panel":"会心ダメージ","group":"会心","unit":"%","mode":"fixed","goal":7,"initial":15000,"bonus":8},
+{"name":"超星会心率","panel":"超星会心率","group":"会心","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"超星会心倍率","panel":"超星会心倍率","group":"会心","unit":"%","mode":"fixed","goal":9,"initial":3000,"bonus":8},
+{"name":"筋力","panel":"筋力・器用さ・知力","group":"基本能力値","unit":"点","mode":"weighted","goal":10,"initial":500,"bonus":8,"weights":[55,20,5]},
+{"name":"器用さ","panel":"筋力・器用さ・知力","group":"基本能力値","unit":"点","mode":"weighted","goal":10,"initial":500,"bonus":8,"weights":[55,20,5]},
+{"name":"知力","panel":"筋力・器用さ・知力","group":"基本能力値","unit":"点","mode":"weighted","goal":10,"initial":500,"bonus":8,"weights":[55,20,5]},
+{"name":"体力","panel":"体力","group":"基本能力値","unit":"点","mode":"weighted","goal":4,"initial":500,"bonus":8,"weights":[80,20,0]},
+{"name":"敏捷性","panel":"敏捷性","group":"基本能力値","unit":"点","mode":"weighted","goal":11,"initial":500,"bonus":8,"weights":[50,30,5]},
+{"name":"幸運","panel":"幸運","group":"基本能力値","unit":"点","mode":"fixed","goal":12,"initial":500,"bonus":8},
+{"name":"最大MP","panel":"最大MP","group":"MP・ENG・自然回復","unit":"点","mode":"weighted","goal":13,"initial":10000,"bonus":8,"weights":[45,15,10]},
+{"name":"最大ENG","panel":"最大ENG","group":"MP・ENG・自然回復","unit":"点","mode":"weighted","goal":14,"initial":10000,"bonus":8,"weights":[35,15,10]},
+{"name":"HP自然回復量（5秒ごと）","panel":"HP自然回復量（5秒ごと）","group":"MP・ENG・自然回復","unit":"点","mode":"weighted","goal":15,"initial":150,"bonus":16,"weights":[30,20,30]},
+{"name":"MP自然回復量（5秒ごと）","panel":"MP自然回復量（5秒ごと）","group":"MP・ENG・自然回復","unit":"点","mode":"weighted","goal":17,"initial":300,"bonus":8,"weights":[35,30,15]},
+{"name":"ENG自然回復量（5秒ごと）","panel":"ENG自然回復量（5秒ごと）","group":"MP・ENG・自然回復","unit":"点","mode":"weighted","goal":18,"initial":500,"bonus":8,"weights":[35,25,15]},
+{"name":"攻撃速度","panel":"攻撃速度","group":"速度・回避・報酬","unit":"%","mode":"derived","goal":19,"initial":10000,"bonus":11},
+{"name":"移動速度","panel":"移動速度","group":"速度・回避・報酬","unit":"%","mode":"derived","goal":20,"initial":10000,"bonus":21},
+{"name":"移動速度上限","panel":"移動速度","group":"速度・回避・報酬","unit":"%","mode":"fixed","goal":22,"initial":12000,"bonus":8},
+{"name":"回避率","panel":"回避率","group":"速度・回避・報酬","unit":"%","mode":"derived","goal":23,"initial":300,"bonus":21},
+{"name":"直接ドロップ倍率","panel":"直接ドロップ倍率","group":"速度・回避・報酬","unit":"倍","mode":"derived","goal":24,"initial":100,"bonus":25},
+{"name":"EXP獲得量増加率","panel":"EXP獲得量増加率・ドロップ増加率","group":"速度・回避・報酬","unit":"%","mode":"fixed","goal":26,"initial":10000,"bonus":8},
+{"name":"ドロップ増加率","panel":"EXP獲得量増加率・ドロップ増加率","group":"速度・回避・報酬","unit":"%","mode":"fixed","goal":26,"initial":10000,"bonus":8},
+{"name":"共通攻撃力","panel":"共通攻撃力・種別攻撃力","group":"攻撃力・攻撃補正","unit":"点","mode":"weighted","goal":27,"initial":130,"bonus":8,"weights":[55,20,0]},
+{"name":"近接攻撃力","panel":"共通攻撃力・種別攻撃力","group":"攻撃力・攻撃補正","unit":"点","mode":"equipment","goal":28,"initial":0,"bonus":8,"weights":[0,0,100]},
+{"name":"間接攻撃力","panel":"共通攻撃力・種別攻撃力","group":"攻撃力・攻撃補正","unit":"点","mode":"equipment","goal":28,"initial":0,"bonus":8,"weights":[0,0,100]},
+{"name":"魔法攻撃力","panel":"共通攻撃力・種別攻撃力","group":"攻撃力・攻撃補正","unit":"点","mode":"equipment","goal":28,"initial":0,"bonus":8,"weights":[0,0,100]},
+{"name":"命中率","panel":"命中率","group":"攻撃力・攻撃補正","unit":"%","mode":"weighted","goal":29,"initial":9500,"bonus":8,"weights":[10,15,25]},
+{"name":"通常攻撃ダメージ増加","panel":"通常攻撃・スキルダメージ増加","group":"攻撃力・攻撃補正","unit":"%","mode":"weighted","goal":30,"initial":0,"bonus":8,"weights":[10,45,45]},
+{"name":"スキルダメージ増加","panel":"通常攻撃・スキルダメージ増加","group":"攻撃力・攻撃補正","unit":"%","mode":"weighted","goal":30,"initial":0,"bonus":8,"weights":[35,50,15]},
+{"name":"最終ダメージ倍率","panel":"最終ダメージ倍率","group":"攻撃力・攻撃補正","unit":"%","mode":"weighted","goal":31,"initial":10000,"bonus":8,"weights":[35,35,20]},
+{"name":"通常攻撃劣化遅延","panel":"通常攻撃劣化遅延","group":"攻撃力・攻撃補正","unit":"回","mode":"weighted","goal":32,"initial":0,"bonus":8,"weights":[0,100,0]},
+{"name":"HP固定ダメージ","panel":"HP固定ダメージ","group":"攻撃力・攻撃補正","unit":"HP","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"共通防御貫通率","panel":"共通・種別防御貫通率","group":"攻撃力・攻撃補正","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"近接防御貫通率","panel":"共通・種別防御貫通率","group":"攻撃力・攻撃補正","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"間接防御貫通率","panel":"共通・種別防御貫通率","group":"攻撃力・攻撃補正","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"魔法防御貫通率","panel":"共通・種別防御貫通率","group":"攻撃力・攻撃補正","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"ライフスティール","panel":"ライフスティール","group":"攻撃力・攻撃補正","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"近接防御力","panel":"近接・間接防御力","group":"追加防御・シールド","unit":"点","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"間接防御力","panel":"近接・間接防御力","group":"追加防御・シールド","unit":"点","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"被ダメージ軽減率","panel":"被ダメージ軽減率","group":"追加防御・シールド","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"ノックバック耐性","panel":"ノックバック耐性","group":"追加防御・シールド","unit":"%","mode":"weighted","goal":33,"initial":0,"bonus":8,"weights":[0,30,70]},
+{"name":"魔法防御力","panel":"魔法防御力","group":"追加防御・シールド","unit":"点","mode":"weighted","goal":34,"initial":300,"bonus":4,"weights":[0,30,70]},
+{"name":"最大シールド","panel":"最大シールド","group":"追加防御・シールド","unit":"点","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"シールドブレイク","panel":"シールドブレイク","group":"追加防御・シールド","unit":"点","mode":"weighted","goal":30,"initial":0,"bonus":8,"weights":[0,25,75]},
+{"name":"シールドリチャージ加算値","panel":"シールドリチャージ加算値","group":"追加防御・シールド","unit":"秒","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"シールドリチャージ短縮","panel":"シールドリチャージ短縮","group":"追加防御・シールド","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"無属性耐性","panel":"無属性耐性","group":"属性補正","unit":"%","mode":"weighted","goal":35,"initial":0,"bonus":8,"weights":[0,15,50]},
+{"name":"火属性耐性","panel":"火・氷・雷属性耐性","group":"属性補正","unit":"%","mode":"weighted","goal":36,"initial":500,"bonus":8,"weights":[0,15,50]},
+{"name":"氷属性耐性","panel":"火・氷・雷属性耐性","group":"属性補正","unit":"%","mode":"weighted","goal":36,"initial":500,"bonus":8,"weights":[0,15,50]},
+{"name":"雷属性耐性","panel":"火・氷・雷属性耐性","group":"属性補正","unit":"%","mode":"weighted","goal":36,"initial":500,"bonus":8,"weights":[0,15,50]},
+{"name":"無属性耐性上限","panel":"無属性耐性","group":"属性補正","unit":"%","mode":"fixed","goal":37,"initial":5000,"bonus":8},
+{"name":"火属性耐性上限","panel":"火・氷・雷属性耐性","group":"属性補正","unit":"%","mode":"fixed","goal":38,"initial":7500,"bonus":8},
+{"name":"氷属性耐性上限","panel":"火・氷・雷属性耐性","group":"属性補正","unit":"%","mode":"fixed","goal":38,"initial":7500,"bonus":8},
+{"name":"雷属性耐性上限","panel":"火・氷・雷属性耐性","group":"属性補正","unit":"%","mode":"fixed","goal":38,"initial":7500,"bonus":8},
+{"name":"無属性ダメージ増加","panel":"無属性ダメージ増加","group":"属性補正","unit":"%","mode":"weighted","goal":39,"initial":0,"bonus":8,"weights":[20,35,45]},
+{"name":"火属性ダメージ増加","panel":"火・氷・雷属性ダメージ増加","group":"属性補正","unit":"%","mode":"weighted","goal":40,"initial":0,"bonus":8,"weights":[20,35,45]},
+{"name":"氷属性ダメージ増加","panel":"火・氷・雷属性ダメージ増加","group":"属性補正","unit":"%","mode":"weighted","goal":40,"initial":0,"bonus":8,"weights":[20,35,45]},
+{"name":"雷属性ダメージ増加","panel":"火・氷・雷属性ダメージ増加","group":"属性補正","unit":"%","mode":"weighted","goal":40,"initial":0,"bonus":8,"weights":[20,35,45]},
+{"name":"火属性貫通","panel":"属性貫通","group":"属性補正","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"氷属性貫通","panel":"属性貫通","group":"属性補正","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"雷属性貫通","panel":"属性貫通","group":"属性補正","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"燃焼付与確率増加","panel":"状態異常付与確率増加","group":"状態異常","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"凍結付与確率増加","panel":"状態異常付与確率増加","group":"状態異常","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"冷気付与確率増加","panel":"状態異常付与確率増加","group":"状態異常","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"感電付与確率増加","panel":"状態異常付与確率増加","group":"状態異常","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"毒状態付与確率増加","panel":"状態異常付与確率増加","group":"状態異常","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"盲目付与確率増加","panel":"状態異常付与確率増加","group":"状態異常","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"衰弱付与確率増加","panel":"状態異常付与確率増加","group":"状態異常","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"回復阻害付与確率増加","panel":"状態異常付与確率増加","group":"状態異常","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"燃焼付与耐性","panel":"状態異常付与耐性","group":"状態異常","unit":"%","mode":"weighted","goal":41,"initial":0,"bonus":8,"weights":[0,40,60]},
+{"name":"凍結付与耐性","panel":"状態異常付与耐性","group":"状態異常","unit":"%","mode":"weighted","goal":41,"initial":0,"bonus":8,"weights":[0,40,60]},
+{"name":"冷気付与耐性","panel":"状態異常付与耐性","group":"状態異常","unit":"%","mode":"weighted","goal":41,"initial":0,"bonus":8,"weights":[0,40,60]},
+{"name":"感電付与耐性","panel":"状態異常付与耐性","group":"状態異常","unit":"%","mode":"weighted","goal":41,"initial":0,"bonus":8,"weights":[0,40,60]},
+{"name":"毒状態付与耐性","panel":"状態異常付与耐性","group":"状態異常","unit":"%","mode":"weighted","goal":41,"initial":0,"bonus":8,"weights":[0,40,60]},
+{"name":"盲目付与耐性","panel":"状態異常付与耐性","group":"状態異常","unit":"%","mode":"weighted","goal":41,"initial":0,"bonus":8,"weights":[0,40,60]},
+{"name":"衰弱付与耐性","panel":"状態異常付与耐性","group":"状態異常","unit":"%","mode":"weighted","goal":41,"initial":0,"bonus":8,"weights":[0,40,60]},
+{"name":"回復阻害付与耐性","panel":"状態異常付与耐性","group":"状態異常","unit":"%","mode":"weighted","goal":41,"initial":0,"bonus":8,"weights":[0,40,60]},
+{"name":"燃焼継続ダメージ増加","panel":"継続ダメージ増加","group":"状態異常","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"感電継続ダメージ増加","panel":"継続ダメージ増加","group":"状態異常","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"毒状態継続ダメージ増加","panel":"継続ダメージ増加","group":"状態異常","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"燃焼継続ダメージ貫通","panel":"継続ダメージ耐性の貫通","group":"状態異常","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"感電継続ダメージ貫通","panel":"継続ダメージ耐性の貫通","group":"状態異常","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"毒状態継続ダメージ貫通","panel":"継続ダメージ耐性の貫通","group":"状態異常","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"燃焼継続ダメージ耐性","panel":"継続ダメージ耐性","group":"状態異常","unit":"%","mode":"weighted","goal":41,"initial":0,"bonus":8,"weights":[0,25,75]},
+{"name":"感電継続ダメージ耐性","panel":"継続ダメージ耐性","group":"状態異常","unit":"%","mode":"weighted","goal":41,"initial":0,"bonus":8,"weights":[0,25,75]},
+{"name":"毒状態継続ダメージ耐性","panel":"継続ダメージ耐性","group":"状態異常","unit":"%","mode":"weighted","goal":41,"initial":0,"bonus":8,"weights":[0,25,75]},
+{"name":"クールダウン短縮","panel":"クールダウン・詠唱時間短縮","group":"スキル・消耗品","unit":"%","mode":"weighted","goal":40,"initial":0,"bonus":8,"weights":[10,55,35]},
+{"name":"詠唱時間短縮","panel":"クールダウン・詠唱時間短縮","group":"スキル・消耗品","unit":"%","mode":"weighted","goal":40,"initial":0,"bonus":8,"weights":[10,55,35]},
+{"name":"MP消費軽減率","panel":"MP・ENG消費軽減率","group":"スキル・消耗品","unit":"%","mode":"weighted","goal":42,"initial":0,"bonus":8,"weights":[25,55,20]},
+{"name":"ENG消費軽減率","panel":"MP・ENG消費軽減率","group":"スキル・消耗品","unit":"%","mode":"weighted","goal":42,"initial":0,"bonus":8,"weights":[25,55,20]},
+{"name":"支援力","panel":"支援力","group":"スキル・消耗品","unit":"点","mode":"weighted","goal":43,"initial":0,"bonus":8,"weights":[45,45,10]},
+{"name":"回復量増加","panel":"回復量増加","group":"スキル・消耗品","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"状態異常持続時間増加","panel":"状態異常持続時間増加","group":"スキル・消耗品","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"バフ持続時間増加","panel":"バフ持続時間増加","group":"スキル・消耗品","unit":"%","mode":"weighted","goal":44,"initial":0,"bonus":8,"weights":[20,60,20]},
+{"name":"消耗品使用時移動許容距離","panel":"消耗品使用時移動許容距離","group":"スキル・消耗品","unit":"ブロック","mode":"zero","goal":8,"initial":0,"bonus":8},
+{"name":"消耗品使用時移動減速率","panel":"消耗品使用時移動減速率","group":"スキル・消耗品","unit":"%","mode":"zero","goal":8,"initial":0,"bonus":8}
+],
+"bank":[
+[680,1485,2290,3095,3900,4705,5510,6315,7120,7925,8730,9535,10340,11145,11950,12755,13560,14365,15170,15975,16780,17585,18390,19195,20000,20400,20800,21200,21600,22000,22400,22800,23200,23600,24000,24400,24800,25200,25600,26000,26400,26800,27200,27600,28000,28400,28800,29200,29600,30000,30200,30400,30600,30800,31000,31200,31400,31600,31800,32000,32200,32400,32600,32800,33000,33200,33400,33600,33800,34000,34200,34400,34600,34800,35000,35200,35400,35600,35800,36000,36200,36400,36600,36800,37000,37200,37400,37600,37800,38000,38200,38400,38600,38800,39000,39200,39400,39600,39800,40000],
+[10000,11667,13333,15000,16667,18333,20000,21667,23333,25000,26667,28333,30000,31667,33333,35000,36667,38333,40000,41667,43333,45000,46667,48333,50000,51200,52400,53600,54800,56000,57200,58400,59600,60800,62000,63200,64400,65600,66800,68000,69200,70400,71600,72800,74000,75200,76400,77600,78800,80000,80800,81600,82400,83200,84000,84800,85600,86400,87200,88000,88800,89600,90400,91200,92000,92800,93600,94400,95200,96000,96800,97600,98400,99200,100000,100800,101600,102400,103200,104000,104800,105600,106400,107200,108000,108800,109600,110400,111200,112000,112800,113600,114400,115200,116000,116800,117600,118400,119200,120000],
+[1000,1208,1417,1625,1833,2042,2250,2458,2667,2875,3083,3292,3500,3708,3917,4125,4333,4542,4750,4958,5167,5375,5583,5792,6000,6240,6480,6720,6960,7200,7440,7680,7920,8160,8400,8640,8880,9120,9360,9600,9840,10080,10320,10560,10800,11040,11280,11520,11760,12000,12240,12480,12720,12960,13200,13440,13680,13920,14160,14400,14640,14880,15120,15360,15600,15840,16080,16320,16560,16800,17040,17280,17520,17760,18000,18240,18480,18720,18960,19200,19440,19680,19920,20160,20400,20640,20880,21120,21360,21600,21840,22080,22320,22560,22800,23040,23280,23520,23760,24000],
+[800,1746,2692,3638,4583,5529,6475,7421,8367,9313,10258,11204,12150,13096,14042,14988,15933,16879,17825,18771,19717,20663,21608,22554,23500,24000,24500,25000,25500,26000,26500,27000,27500,28000,28500,29000,29500,30000,30500,31000,31500,32000,32500,33000,33500,34000,34500,35000,35500,36000,36240,36480,36720,36960,37200,37440,37680,37920,38160,38400,38640,38880,39120,39360,39600,39840,40080,40320,40560,40800,41040,41280,41520,41760,42000,42240,42480,42720,42960,43200,43440,43680,43920,44160,44400,44640,44880,45120,45360,45600,45840,46080,46320,46560,46800,47040,47280,47520,47760,48000],
+[500,604,708,813,917,1021,1125,1229,1333,1438,1542,1646,1750,1854,1958,2063,2167,2271,2375,2479,2583,2688,2792,2896,3000,3120,3240,3360,3480,3600,3720,3840,3960,4080,4200,4320,4440,4560,4680,4800,4920,5040,5160,5280,5400,5520,5640,5760,5880,6000,6120,6240,6360,6480,6600,6720,6840,6960,7080,7200,7320,7440,7560,7680,7800,7920,8040,8160,8280,8400,8520,8640,8760,8880,9000,9120,9240,9360,9480,9600,9720,9840,9960,10080,10200,10320,10440,10560,10680,10800,10920,11040,11160,11280,11400,11520,11640,11760,11880,12000],
+550,
+50,
+15000,
+0,
+3000,
+[500,708,917,1125,1333,1542,1750,1958,2167,2375,2583,2792,3000,3208,3417,3625,3833,4042,4250,4458,4667,4875,5083,5292,5500,5700,5900,6100,6300,6500,6700,6900,7100,7300,7500,7700,7900,8100,8300,8500,8700,8900,9100,9300,9500,9700,9900,10100,10300,10500,10600,10700,10800,10900,11000,11100,11200,11300,11400,11500,11600,11700,11800,11900,12000,12100,12200,12300,12400,12500,12600,12700,12800,12900,13000,13100,13200,13300,13400,13500,13600,13700,13800,13900,14000,14100,14200,14300,14400,14500,14600,14700,14800,14900,15000,15100,15200,15300,15400,15500],
+[500,625,750,875,1000,1125,1250,1375,1500,1625,1750,1875,2000,2125,2250,2375,2500,2625,2750,2875,3000,3125,3250,3375,3500,3620,3740,3860,3980,4100,4220,4340,4460,4580,4700,4820,4940,5060,5180,5300,5420,5540,5660,5780,5900,6020,6140,6260,6380,6500,6620,6740,6860,6980,7100,7220,7340,7460,7580,7700,7820,7940,8060,8180,8300,8420,8540,8660,8780,8900,9020,9140,9260,9380,9500,9620,9740,9860,9980,10100,10220,10340,10460,10580,10700,10820,10940,11060,11180,11300,11420,11540,11660,11780,11900,12020,12140,12260,12380,12500],
+500,
+[10000,11667,13333,15000,16667,18333,20000,21667,23333,25000,26667,28333,30000,31667,33333,35000,36667,38333,40000,41667,43333,45000,46667,48333,50000,52800,55600,58400,61200,64000,66800,69600,72400,75200,78000,80800,83600,86400,89200,92000,94800,97600,100400,103200,106000,108800,111600,114400,117200,120000,123600,127200,130800,134400,138000,141600,145200,148800,152400,156000,159600,163200,166800,170400,174000,177600,181200,184800,188400,192000,195600,199200,202800,206400,210000,214400,218800,223200,227600,232000,236400,240800,245200,249600,254000,258400,262800,267200,271600,276000,280400,284800,289200,293600,298000,302400,306800,311200,315600,320000],
+[10000,10625,11250,11875,12500,13125,13750,14375,15000,15625,16250,16875,17500,18125,18750,19375,20000,20625,21250,21875,22500,23125,23750,24375,25000,25800,26600,27400,28200,29000,29800,30600,31400,32200,33000,33800,34600,35400,36200,37000,37800,38600,39400,40200,41000,41800,42600,43400,44200,45000,46000,47000,48000,49000,50000,51000,52000,53000,54000,55000,56000,57000,58000,59000,60000,61000,62000,63000,64000,65000,66000,67000,68000,69000,70000,71200,72400,73600,74800,76000,77200,78400,79600,80800,82000,83200,84400,85600,86800,88000,89200,90400,91600,92800,94000,95200,96400,97600,98800,100000],
+[200,225,250,275,300,325,350,375,400,425,450,475,500,525,550,575,600,625,650,675,700,725,750,775,800,848,896,944,992,1040,1088,1136,1184,1232,1280,1328,1376,1424,1472,1520,1568,1616,1664,1712,1760,1808,1856,1904,1952,2000,2080,2160,2240,2320,2400,2480,2560,2640,2720,2800,2880,2960,3040,3120,3200,3280,3360,3440,3520,3600,3680,3760,3840,3920,4000,4080,4160,4240,4320,4400,4480,4560,4640,4720,4800,4880,4960,5040,5120,5200,5280,5360,5440,5520,5600,5680,5760,5840,5920,6000],
+[50,60,71,81,92,102,113,123,133,144,154,165,175,185,196,206,217,227,238,248,258,269,279,290,300,312,324,336,348,360,372,384,396,408,420,432,444,456,468,480,492,504,516,528,540,552,564,576,588,600,612,624,636,648,660,672,684,696,708,720,732,744,756,768,780,792,804,816,828,840,852,864,876,888,900,912,924,936,948,960,972,984,996,1008,1020,1032,1044,1056,1068,1080,1092,1104,1116,1128,1140,1152,1164,1176,1188,1200],
+[300,338,375,413,450,488,525,563,600,638,675,713,750,788,825,863,900,938,975,1013,1050,1088,1125,1163,1200,1272,1344,1416,1488,1560,1632,1704,1776,1848,1920,1992,2064,2136,2208,2280,2352,2424,2496,2568,2640,2712,2784,2856,2928,3000,3100,3200,3300,3400,3500,3600,3700,3800,3900,4000,4100,4200,4300,4400,4500,4600,4700,4800,4900,5000,5100,5200,5300,5400,5500,5600,5700,5800,5900,6000,6100,6200,6300,6400,6500,6600,6700,6800,6900,7000,7100,7200,7300,7400,7500,7600,7700,7800,7900,8000],
+[500,529,558,588,617,646,675,704,733,763,792,821,850,879,908,938,967,996,1025,1054,1083,1113,1142,1171,1200,1252,1304,1356,1408,1460,1512,1564,1616,1668,1720,1772,1824,1876,1928,1980,2032,2084,2136,2188,2240,2292,2344,2396,2448,2500,2580,2660,2740,2820,2900,2980,3060,3140,3220,3300,3380,3460,3540,3620,3700,3780,3860,3940,4020,4100,4180,4260,4340,4420,4500,4580,4660,4740,4820,4900,4980,5060,5140,5220,5300,5380,5460,5540,5620,5700,5780,5860,5940,6020,6100,6180,6260,6340,6420,6500],
+[10500,10625,10750,10875,11000,11125,11250,11375,11500,11625,11750,11875,12000,12125,12250,12375,12500,12625,12750,12875,13000,13125,13250,13375,13500,13620,13740,13860,13980,14100,14220,14340,14460,14580,14700,14820,14940,15060,15180,15300,15420,15540,15660,15780,15900,16020,16140,16260,16380,16500,16620,16740,16860,16980,17100,17220,17340,17460,17580,17700,17820,17940,18060,18180,18300,18420,18540,18660,18780,18900,19020,19140,19260,19380,19500,19620,19740,19860,19980,20100,20220,20340,20460,20580,20700,20820,20940,21060,21180,21300,21420,21540,21660,21780,21900,22020,22140,22260,22380,22500],
+[10050,10063,10075,10088,10100,10113,10125,10138,10150,10163,10175,10188,10200,10213,10225,10238,10250,10263,10275,10288,10300,10313,10325,10338,10350,10362,10374,10386,10398,10410,10422,10434,10446,10458,10470,10482,10494,10506,10518,10530,10542,10554,10566,10578,10590,10602,10614,10626,10638,10650,10662,10674,10686,10698,10710,10722,10734,10746,10758,10770,10782,10794,10806,10818,10830,10842,10854,10866,10878,10890,10902,10914,10926,10938,10950,10962,10974,10986,10998,11010,11022,11034,11046,11058,11070,11082,11094,11106,11118,11130,11142,11154,11166,11178,11190,11202,11214,11226,11238,11250],
+[50,63,75,88,100,113,125,138,150,163,175,188,200,213,225,238,250,263,275,288,300,313,325,338,350,362,374,386,398,410,422,434,446,458,470,482,494,506,518,530,542,554,566,578,590,602,614,626,638,650,662,674,686,698,710,722,734,746,758,770,782,794,806,818,830,842,854,866,878,890,902,914,926,938,950,962,974,986,998,1010,1022,1034,1046,1058,1070,1082,1094,1106,1118,1130,1142,1154,1166,1178,1190,1202,1214,1226,1238,1250],
+12000,
+[350,363,375,388,400,413,425,438,450,463,475,488,500,513,525,538,550,563,575,588,600,613,625,638,650,662,674,686,698,710,722,734,746,758,770,782,794,806,818,830,842,854,866,878,890,902,914,926,938,950,962,974,986,998,1010,1022,1034,1046,1058,1070,1082,1094,1106,1118,1130,1142,1154,1166,1178,1190,1202,1214,1226,1238,1250,1262,1274,1286,1298,1310,1322,1334,1346,1358,1370,1382,1394,1406,1418,1430,1442,1454,1466,1478,1490,1502,1514,1526,1538,1550],
+105,
+5,
+10000,
+[130,277,420,556,688,815,938,1056,1170,1281,1388,1491,1591,1688,1781,1872,1960,2046,2129,2210,2288,2364,2438,2511,2581,2599,2616,2634,2650,2667,2683,2698,2713,2728,2743,2757,2771,2785,2798,2811,2824,2836,2848,2860,2872,2883,2894,2905,2916,2927,2932,2937,2942,2947,2952,2957,2962,2967,2972,2977,2981,2986,2991,2995,3000,3005,3009,3013,3018,3022,3027,3031,3035,3039,3043,3048,3052,3056,3060,3064,3068,3072,3076,3079,3083,3087,3091,3095,3098,3102,3106,3109,3113,3116,3120,3124,3127,3130,3134,3137],
+[518,1109,1678,2226,2753,3261,3751,4225,4682,5123,5550,5963,6363,6750,7125,7489,7842,8184,8516,8839,9153,9457,9754,10042,10323,10395,10465,10534,10601,10667,10731,10793,10854,10913,10971,11028,11084,11138,11191,11243,11294,11344,11393,11440,11487,11533,11578,11622,11665,11707,11728,11749,11769,11789,11810,11829,11849,11869,11888,11907,11926,11945,11963,11982,12000,12018,12036,12054,12071,12089,12106,12123,12140,12157,12174,12190,12207,12223,12239,12255,12271,12287,12303,12318,12333,12349,12364,12379,12393,12408,12423,12437,12452,12466,12480,12494,12508,12522,12535,12549],
+[9500,9546,9592,9638,9683,9729,9775,9821,9867,9913,9958,10004,10050,10096,10142,10188,10233,10279,10325,10371,10417,10463,10508,10554,10600,10652,10704,10756,10808,10860,10912,10964,11016,11068,11120,11172,11224,11276,11328,11380,11432,11484,11536,11588,11640,11692,11744,11796,11848,11900,11956,12012,12068,12124,12180,12236,12292,12348,12404,12460,12516,12572,12628,12684,12740,12796,12852,12908,12964,13020,13076,13132,13188,13244,13300,13356,13412,13468,13524,13580,13636,13692,13748,13804,13860,13916,13972,14028,14084,14140,14196,14252,14308,14364,14420,14476,14532,14588,14644,14700],
+[0,13,25,38,50,63,75,88,100,113,125,138,150,163,175,188,200,213,225,238,250,263,275,288,300,312,324,336,348,360,372,384,396,408,420,432,444,456,468,480,492,504,516,528,540,552,564,576,588,600,612,624,636,648,660,672,684,696,708,720,732,744,756,768,780,792,804,816,828,840,852,864,876,888,900,912,924,936,948,960,972,984,996,1008,1020,1032,1044,1056,1068,1080,1092,1104,1116,1128,1140,1152,1164,1176,1188,1200],
+[10000,10021,10042,10063,10083,10104,10125,10146,10167,10188,10208,10229,10250,10271,10292,10313,10333,10354,10375,10396,10417,10438,10458,10479,10500,10520,10540,10560,10580,10600,10620,10640,10660,10680,10700,10720,10740,10760,10780,10800,10820,10840,10860,10880,10900,10920,10940,10960,10980,11000,11020,11040,11060,11080,11100,11120,11140,11160,11180,11200,11220,11240,11260,11280,11300,11320,11340,11360,11380,11400,11420,11440,11460,11480,11500,11520,11540,11560,11580,11600,11620,11640,11660,11680,11700,11720,11740,11760,11780,11800,11820,11840,11860,11880,11900,11920,11940,11960,11980,12000],
+[0,0,0,0,0,0,0,0,0,0,0,0,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,300,400,400,400,400,400,400,400,400,400,400,400,400,400],
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,16,24,32,40,48,56,64,72,80,88,96,104,112,120,128,136,144,152,160,168,176,184,192,200,208,216,224,232,240,248,256,264,272,280,288,296,304,312,320,328,336,344,352,360,368,376,384,392,400,408,416,424,432,440,448,456,464,472,480,488,496,504,512,520,528,536,544,552,560,568,576,584,592,600],
+[800,967,1133,1300,1467,1633,1800,1967,2133,2300,2467,2633,2800,2967,3133,3300,3467,3633,3800,3967,4133,4300,4467,4633,4800,4980,5160,5340,5520,5700,5880,6060,6240,6420,6600,6780,6960,7140,7320,7500,7680,7860,8040,8220,8400,8580,8760,8940,9120,9300,9480,9660,9840,10020,10200,10380,10560,10740,10920,11100,11280,11460,11640,11820,12000,12180,12360,12540,12720,12900,13080,13260,13440,13620,13800,13980,14160,14340,14520,14700,14880,15060,15240,15420,15600,15780,15960,16140,16320,16500,16680,16860,17040,17220,17400,17580,17760,17940,18120,18300],
+[0,51,101,152,202,253,303,354,404,455,505,556,606,657,707,758,808,859,909,960,1010,1061,1111,1162,1212,1263,1313,1364,1414,1465,1515,1566,1616,1667,1717,1768,1818,1869,1919,1970,2020,2071,2121,2172,2222,2273,2323,2374,2424,2475,2525,2576,2626,2677,2727,2778,2828,2879,2929,2980,3030,3081,3131,3182,3232,3283,3333,3384,3434,3485,3535,3586,3636,3687,3737,3788,3838,3889,3939,3990,4040,4091,4141,4192,4242,4293,4343,4394,4444,4495,4545,4596,4646,4697,4747,4798,4848,4899,4949,5000],
+[500,571,641,712,783,854,924,995,1066,1136,1207,1278,1348,1419,1490,1561,1631,1702,1773,1843,1914,1985,2056,2126,2197,2268,2338,2409,2480,2551,2621,2692,2763,2833,2904,2975,3045,3116,3187,3258,3328,3399,3470,3540,3611,3682,3753,3823,3894,3965,4035,4106,4177,4247,4318,4389,4460,4530,4601,4672,4742,4813,4884,4955,5025,5096,5167,5237,5308,5379,5449,5520,5591,5662,5732,5803,5874,5944,6015,6086,6157,6227,6298,6369,6439,6510,6581,6652,6722,6793,6864,6934,7005,7076,7146,7217,7288,7359,7429,7500],
+5000,
+7500,
+[0,4,8,13,17,21,25,29,33,38,42,46,50,54,58,63,67,71,75,79,83,88,92,96,100,104,108,112,116,120,124,128,132,136,140,144,148,152,156,160,164,168,172,176,180,184,188,192,196,200,204,208,212,216,220,224,228,232,236,240,244,248,252,256,260,264,268,272,276,280,284,288,292,296,300,304,308,312,316,320,324,328,332,336,340,344,348,352,356,360,364,368,372,376,380,384,388,392,396,400],
+[0,8,17,25,33,42,50,58,67,75,83,92,100,108,117,125,133,142,150,158,167,175,183,192,200,208,216,224,232,240,248,256,264,272,280,288,296,304,312,320,328,336,344,352,360,368,376,384,392,400,408,416,424,432,440,448,456,464,472,480,488,496,504,512,520,528,536,544,552,560,568,576,584,592,600,608,616,624,632,640,648,656,664,672,680,688,696,704,712,720,728,736,744,752,760,768,776,784,792,800],
+[0,4,8,13,17,21,25,29,33,38,42,46,50,54,58,63,67,71,75,79,83,88,92,96,100,104,108,112,116,120,124,128,132,136,140,144,148,152,156,160,164,168,172,176,180,184,188,192,196,200,204,208,212,216,220,224,228,232,236,240,244,248,252,256,260,264,268,272,276,280,284,288,292,296,300,308,316,324,332,340,348,356,364,372,380,388,396,404,412,420,428,436,444,452,460,468,476,484,492,500],
+[0,8,17,25,33,42,50,58,67,75,83,92,100,108,117,125,133,142,150,158,167,175,183,192,200,212,224,236,248,260,272,284,296,308,320,332,344,356,368,380,392,404,416,428,440,452,464,476,488,500,512,524,536,548,560,572,584,596,608,620,632,644,656,668,680,692,704,716,728,740,752,764,776,788,800,808,816,824,832,840,848,856,864,872,880,888,896,904,912,920,928,936,944,952,960,968,976,984,992,1000],
+[0,21,42,63,83,104,125,146,167,188,208,229,250,271,292,313,333,354,375,396,417,438,458,479,500,528,556,584,612,640,668,696,724,752,780,808,836,864,892,920,948,976,1004,1032,1060,1088,1116,1144,1172,1200,1232,1264,1296,1328,1360,1392,1424,1456,1488,1520,1552,1584,1616,1648,1680,1712,1744,1776,1808,1840,1872,1904,1936,1968,2000,2040,2080,2120,2160,2200,2240,2280,2320,2360,2400,2440,2480,2520,2560,2600,2640,2680,2720,2760,2800,2840,2880,2920,2960,3000],
+[0,8,17,25,33,42,50,58,67,75,83,92,100,108,117,125,133,142,150,158,167,175,183,192,200,208,216,224,232,240,248,256,264,272,280,288,296,304,312,320,328,336,344,352,360,368,376,384,392,400,412,424,436,448,460,472,484,496,508,520,532,544,556,568,580,592,604,616,628,640,652,664,676,688,700,712,724,736,748,760,772,784,796,808,820,832,844,856,868,880,892,904,916,928,940,952,964,976,988,1000]
+]
+}
+</script>
 <script>
 (() => {
   const root = document.getElementById("stat-guide");
@@ -564,9 +800,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   function stat(label, value, numberFormat) { return {label, read: typeof value === "number" ? () => value : value, numberFormat}; }
   const attack = curve([6.8, 200, 300, 400]);
   const health = curve([100, 500, 800, 1200]);
-  // stat-targets
   const statTargets = {"commonDefense": {"standard": [8, 235, 360, 480], "levels": [1, 25, 50, 100]}, "vitality": {"standard": [5, 30, 60, 90, 120], "specialized": [5, 55, 100, 150, 200], "levels": [1, 25, 50, 75, 100]}};
-  // /stat-targets
   const defenseTarget = statTargets.commonDefense;
   const playerDefense = curve(defenseTarget.standard, defenseTarget.levels);
   const playerResistance = level => 5 + 70 * (level - 1) / 99;
@@ -610,7 +844,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       showVitalityBonus = input.checked;
       refresh();
     });
-    label.append(input, "体力特化");
+    label.append(input, "比較グラフの体力特化");
     return label;
   }
   const rawDefense = level => playerDefense(level) - vitality.standard(level);
@@ -837,16 +1071,258 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     const points = i === 1 ? [[0,-r],[r,0],[0,r],[-r,0]] : [[0,-r],[r,r],[-r,r]];
     return svg("polygon", {points:points.map(([dx,dy]) => [x+dx,y+dy].join(",")).join(" "), class:cls});
   }
+  const {player, bank} = JSON.parse(document.getElementById("stat-allocation-data").textContent);
+  const statsByName = new Map(player.map(stat => [stat.name, stat]));
+  const statsByPanel = new Map();
+  const statsByGroup = new Map();
+  for (const stat of player) {
+    if (!statsByPanel.has(stat.panel)) statsByPanel.set(stat.panel, []);
+    statsByPanel.get(stat.panel).push(stat);
+    if (!statsByGroup.has(stat.group)) statsByGroup.set(stat.group, []);
+    statsByGroup.get(stat.group).push(stat);
+  }
+  const sourceLabels = ["職業", "スキルツリー", "装備"];
+  const allocationReasons = {
+    fixed: "固定値を初期値に計上",
+    zero: "標準値0",
+    derived: "初期値と基本能力値の派生",
+    attack: "共通攻撃力と使用種別攻撃力を合算"
+  };
+  const allocationNumber = new Intl.NumberFormat("ja-JP", {maximumFractionDigits: 2});
+  const sum = values => values.reduce((total, value) => total + value, 0);
+  const valueAt = (index, level) => Array.isArray(bank[index]) ? bank[index][level - 1] : bank[index];
+
+  function largestRemainder(amount, weights) {
+    const total = sum(weights);
+    const products = weights.map(weight => amount * weight);
+    const grants = products.map(product => Math.floor(product / total));
+    const priority = [0, 1, 2].sort((a, b) => (products[b] % total) - (products[a] % total) || a - b);
+    for (const index of priority.slice(0, amount - sum(grants))) grants[index]++;
+    return grants;
+  }
+
+  function allocationAt(stat, level) {
+    const goal = valueAt(stat.goal, level);
+    if (stat.mode === "attack") {
+      const [common, typed] = stat.sources.map(name => allocationAt(statsByName.get(name), level));
+      const initial = common.initial + typed.initial;
+      const grants = common.grants.map((value, index) => value + typed.grants[index]);
+      return {goal, initial, grants, bonus: goal - initial - sum(grants)};
+    }
+    const bonus = valueAt(stat.bonus, level);
+    const grants = stat.weights ? largestRemainder(goal - stat.initial - bonus, stat.weights) : [0, 0, 0];
+    return {goal, initial: stat.initial, grants, bonus};
+  }
+
+  const proportions = new Map(player.filter(stat => stat.weights).map(stat => [
+    stat.name, largestRemainder(10000, stat.weights).map(value => allocationNumber.format(value / 100) + "%")
+  ]));
+  function formatAllocation(stat, value, addition = false) {
+    return allocationNumber.format(value / 100) + (addition && stat.unit === "%" ? "pt" : stat.unit);
+  }
+
+  function makeBreakdown(title, stats) {
+    const details = element("details");
+    details.className = "st-breakdown";
+    details.open = title === "最大HP" || title === "共通防御";
+    const summary = element("summary", "標準構成の配分");
+    const levelLabel = element("span");
+    levelLabel.className = "st-breakdown-level";
+    summary.append(levelLabel);
+    details.append(summary);
+    let picker;
+    let printName;
+    if (stats.length > 1) {
+      picker = element("select");
+      stats.forEach((stat, i) => picker.add(new Option(stat.name, i)));
+      const label = element("label", "項目");
+      label.className = "st-allocation-filter";
+      label.append(picker);
+      printName = element("p");
+      printName.className = "st-allocation-print";
+      details.append(label, printName);
+      picker.addEventListener("change", () => {
+        update();
+        notifySearch();
+      });
+    }
+
+    const reason = element("p");
+    reason.className = "st-allocation-caption";
+    const table = element("table");
+    table.setAttribute("aria-label", "供給元ごとの加算値");
+    const header = table.createTHead().insertRow();
+    for (const name of ["供給元", "配分割合", "加算値"]) {
+      const cell = element("th", name);
+      cell.scope = "col";
+      header.append(cell);
+    }
+    const body = table.createTBody();
+    const sources = sourceLabels.map(name => {
+      const row = body.insertRow();
+      const cell = element("th", name);
+      cell.scope = "row";
+      row.append(cell);
+      return {share: row.insertCell(), grant: row.insertCell()};
+    });
+    const scroll = element("div");
+    scroll.className = "st-table-scroll";
+    scroll.append(table);
+    const totals = element("dl");
+    totals.className = "st-allocation-totals";
+    const values = ["初期値", "派生", "標準合計"].map(name => {
+      const item = element("div");
+      const value = element("dd");
+      item.append(element("dt", name), value);
+      totals.append(item);
+      return value;
+    });
+    details.append(reason, scroll, totals);
+
+    function update() {
+      const stat = stats[picker ? picker.selectedIndex : 0];
+      const {goal, initial, grants, bonus} = allocationAt(stat, selected);
+      const shares = proportions.get(stat.name);
+      if (printName) printName.textContent = stat.name;
+      levelLabel.textContent = "Lv." + selected;
+      reason.hidden = Boolean(shares);
+      reason.textContent = allocationReasons[stat.mode] ?? "";
+      header.cells[1].hidden = !shares;
+      sources.forEach(({share, grant}, index) => {
+        share.hidden = !shares;
+        share.textContent = shares?.[index] ?? "";
+        grant.textContent = formatAllocation(stat, grants[index], true);
+      });
+      values[0].textContent = formatAllocation(stat, initial);
+      values[1].textContent = formatAllocation(stat, bonus, true);
+      values[2].textContent = formatAllocation(stat, goal);
+    }
+    return {details, update};
+  }
+
+  const groupSelect = root.querySelector("#st-allocation-group");
+  const allocationList = root.querySelector(".st-allocation-list");
+  for (const group of statsByGroup.keys()) groupSelect.add(new Option(group));
+  let listRows = [];
+  function buildAllocationList() {
+    const body = allocationList.tBodies[0];
+    body.replaceChildren();
+    listRows = statsByGroup.get(groupSelect.value).map(stat => {
+      const row = body.insertRow();
+      const name = element("th", stat.name);
+      name.scope = "row";
+      const total = element("span");
+      total.className = "st-allocation-caption";
+      name.append(total);
+      const reason = allocationReasons[stat.mode];
+      if (reason) {
+        const note = element("span", reason);
+        note.className = "st-allocation-caption";
+        name.append(note);
+      }
+      row.append(name);
+      const shares = proportions.get(stat.name);
+      const grants = sourceLabels.map((_, i) => {
+        const cell = row.insertCell();
+        if (shares) {
+          const share = element("span", shares[i]);
+          share.className = "st-allocation-share";
+          cell.append(share);
+        }
+        const grant = element("span");
+        cell.append(grant);
+        return grant;
+      });
+      return {stat, total, grants};
+    });
+  }
+
+  function updateAllocationList() {
+    allocationList.caption.textContent = `${groupSelect.value}｜配分割合とLv.${selected}の加算値`;
+    for (const {stat, total, grants} of listRows) {
+      const current = allocationAt(stat, selected);
+      total.textContent = "標準合計 " + formatAllocation(stat, current.goal);
+      grants.forEach((cell, i) => cell.textContent = formatAllocation(stat, current.grants[i], true));
+    }
+  }
+
+  const searchInput = root.querySelector("#doc-search-query");
+  let searchFrame = 0;
+  function notifySearch() {
+    if (searchFrame || !searchInput.value) return;
+    searchFrame = requestAnimationFrame(() => {
+      searchFrame = 0;
+      searchInput.dispatchEvent(new Event("input"));
+    });
+  }
+  groupSelect.addEventListener("change", () => {
+    buildAllocationList();
+    updateAllocationList();
+    notifySearch();
+  });
+  buildAllocationList();
+
+  const tabs = [...root.querySelectorAll(".st-tabs [role=tab]")];
+  const [indicatorsPanel, allocationPanel] = tabs.map(tab => document.getElementById(tab.getAttribute("aria-controls")));
+  function selectPlayerTab(index) {
+    if (tabs[index].getAttribute("aria-selected") === "true") return;
+    tabs.forEach((tab, i) => {
+      const active = i === index;
+      tab.setAttribute("aria-selected", String(active));
+      tab.tabIndex = active ? 0 : -1;
+      document.getElementById(tab.getAttribute("aria-controls")).hidden = !active;
+    });
+    document.dispatchEvent(new Event("doc-toc-change"));
+    notifySearch();
+  }
+
+  for (const [index, tab] of tabs.entries()) {
+    tab.addEventListener("click", () => selectPlayerTab(index));
+    tab.addEventListener("keydown", event => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      event.preventDefault();
+      const next = (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+      selectPlayerTab(next);
+      tabs[next].focus();
+    });
+  }
+
+  function revealHashTarget(hash) {
+    let target;
+    try {
+      target = document.getElementById(decodeURIComponent(hash.slice(1)));
+    } catch {
+      return;
+    }
+    if (allocationPanel.contains(target)) selectPlayerTab(1);
+    else if (target?.id === "player" || indicatorsPanel.contains(target)) selectPlayerTab(0);
+    return target;
+  }
+  document.addEventListener("click", event => {
+    if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    const link = event.target.closest("a[href]");
+    if (link?.hash && link.href.split("#")[0] === location.href.split("#")[0]) revealHashTarget(link.hash);
+  });
+
+  function followHash() {
+    const target = revealHashTarget(location.hash);
+    if (allocationPanel.contains(target)) allocationPanel.scrollIntoView();
+    else if (indicatorsPanel.contains(target)) target.scrollIntoView();
+  }
+  addEventListener("hashchange", followHash);
+
   let selected = 25;
   let openTip = null;
   const views = [];
   function choose(level, showPinned = true) {
     selected = level;
     root.querySelector("#st-value").textContent = "Lv." + level;
-    range.value = levels.indexOf(level);
+    range.value = level;
     range.setAttribute("aria-valuetext","レベル" + level);
     views.forEach(view => view.update(showPinned));
     updateFormulas(level);
+    updateAllocationList();
+    notifySearch();
   }
   function makeLevelTable(label, columns) {
     const table = element("table");
@@ -861,25 +1337,37 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     const body = table.createTBody();
     body.addEventListener("click", event => {
       const row = event.target.closest("tr");
-      if (row) choose(levels[row.sectionRowIndex]);
+      if (row) choose(Number(row.dataset.level));
     });
-    for (const level of levels) {
-      const row = body.insertRow();
+    const rows = new Map();
+    function insertLevel(level, before) {
+      const row = element("tr");
+      row.dataset.level = level;
       if (!major.includes(level)) row.className = "minor";
       const cell = element("th", level);
       cell.scope = "row";
       row.append(cell);
       columns.forEach(column => row.insertCell().textContent = column.read(level));
+      body.insertBefore(row, before ?? null);
+      return row;
     }
-    return table;
-  }
-  function markTableLevel(table) {
-    const previous = table.querySelector(".current");
-    previous?.classList.remove("current");
-    previous?.removeAttribute("aria-current");
-    const row = table.tBodies[0].rows[levels.indexOf(selected)];
-    row.classList.add("current");
-    row.setAttribute("aria-current", "true");
+    for (const level of levels) rows.set(level, insertLevel(level));
+    let extra, current;
+    function markLevel(level) {
+      if (Number(current?.dataset.level) === level) return;
+      current?.classList.remove("current");
+      current?.removeAttribute("aria-current");
+      extra?.remove();
+      extra = undefined;
+      current = rows.get(level);
+      if (!current) {
+        extra = insertLevel(level, rows.get(levels.find(value => value > level)));
+        current = extra;
+      }
+      current.classList.add("current");
+      current.setAttribute("aria-current", "true");
+    }
+    return {node: table, markLevel};
   }
   // 4章の計算例: 選択レベルの値を式へ代入する。
   const decimal = new Intl.NumberFormat("ja-JP", {maximumFractionDigits: 4});
@@ -979,16 +1467,24 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     const buildTable = () => makeLevelTable(config.title, config.series.map(series =>
       stat(series.label, level => formatValue(series, level))));
     let table = buildTable();
+    const tableScroll = element("div");
+    tableScroll.className = "st-table-scroll";
+    tableScroll.append(table.node);
+    const stats = statsByPanel.get(config.title);
+    const breakdown = stats && makeBreakdown(config.title, stats);
     meta.append(context,cats);
     card.append(meta,heading);
     if (config.selector) card.append(config.selector(() => {
       const replacement = buildTable();
-      table.replaceWith(replacement);
+      table.node.replaceWith(replacement.node);
       table = replacement;
       draw();
+      notifySearch();
     }));
     if (config.note) card.append(note);
-    card.append(legend,box,table);
+    card.append(legend, box);
+    if (breakdown) card.append(breakdown.details);
+    card.append(tableScroll);
     document.getElementById(config.grid).append(card);
     let pinned = null, hovered = null, focused = null, inspected = null;
     let rings = [], paths = [];
@@ -1037,7 +1533,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
         buttons[i].querySelector("b").textContent = formatValue(s, selected);
         rings[i]?.setAttribute("transform","translate(" + x(selected) + " " + y(s.read(selected)) + ")");
       });
-      markTableLevel(table);
+      table.markLevel(selected);
+      breakdown?.update();
       if (showPinned && pinned !== null) refreshLegend();
     }
     function draw() {
@@ -1116,7 +1613,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
           if (distance < bestDistance || (distance === bestDistance && i === hitIndex)) {
             bestDistance = distance;
             seriesIndex = i;
-            nearest = t < 0.5 ? a : b;
+            nearest = Math.round(a + t * (b - a));
           }
         }
       });
@@ -1136,9 +1633,14 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     return {update,draw};
   }
   for (const panel of panels) views.push(mount(panel));
-  range.addEventListener("input",() => choose(levels[Number(range.value)]));
-  all.addEventListener("change",() => root.classList.toggle("show-levels",all.checked));
+  range.addEventListener("input",() => choose(range.valueAsNumber));
+  all.addEventListener("change",() => {
+    root.classList.toggle("show-levels",all.checked);
+    notifySearch();
+  });
   choose(selected);
+  revealHashTarget(location.hash);
+  requestAnimationFrame(followHash);
   let opened;
   window.addEventListener("beforeprint",() => {
     if (!opened) opened = [...root.querySelectorAll("details")].filter(d => !d.open);
@@ -1226,8 +1728,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   const targets = links.map(link => document.getElementById(decodeURIComponent(link.hash.slice(1))));
   function update() {
     let current = 0;
-    targets.forEach((target, i) => { if (target && target.getBoundingClientRect().top <= 110) current = i; });
-    if (innerHeight + scrollY >= document.documentElement.scrollHeight - 2) current = links.length - 1;
+    targets.forEach((target, i) => { if (target?.getClientRects().length && target.getBoundingClientRect().top <= 110) current = i; });
+    if (innerHeight + scrollY >= document.documentElement.scrollHeight - 2) current = targets.findLastIndex(target => target?.getClientRects().length);
     const parent = current >= 0 ? links[current].closest("ol ol")?.closest("li")?.querySelector(":scope > a") : null;
     links.forEach((link, i) => {
       link.classList.toggle("is-current", i === current);
@@ -1243,6 +1745,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   });
   addEventListener("scroll", update, { passive: true });
   addEventListener("resize", update);
+  document.addEventListener("doc-toc-change", update);
   update();
 })();
 </script>

@@ -23,8 +23,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 /* ===== 共通: 資料タブ・目次・章番号・能力の色分け ===== */
 /* 能力の色は設計書の7分類に対応 */
 :root { --cat-resource: #98c379; --cat-primary: #d19a66; --cat-offense: #e06c75; --cat-defense: #56b6c2; --cat-element: #c678dd; --cat-condition: #e8a0c8; --cat-utility: #a8b0bd; }
-:where(#dps-stat-guide, #stat-guide, #stat-allocation-guide, #equipment-stat-guide) a { color: var(--heading); text-decoration: none; }
-:where(#dps-stat-guide, #stat-guide, #stat-allocation-guide, #equipment-stat-guide) h1 { letter-spacing: 0; font-weight: 600; }
+:where(#dps-stat-guide, #stat-guide, #equipment-stat-guide) a { color: var(--heading); text-decoration: none; }
+:where(#dps-stat-guide, #stat-guide, #equipment-stat-guide) h1 { letter-spacing: 0; font-weight: 600; }
 .doc-nav { display: flex; flex-wrap: wrap; gap: 0 28px; margin: -8px 0 22px; border-bottom: 1px solid var(--rule); font-size: 14px; }
 .doc-nav a { display: inline-flex; align-items: baseline; gap: 8px; margin-bottom: -1px; padding: 9px 0 8px; color: var(--muted); border-bottom: 2px solid transparent; }
 .doc-nav a:hover { color: var(--ink); }
@@ -265,8 +265,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   <nav class="doc-nav" aria-label="ゲームデザイン設計書">
     <a href="01-DPS指標.html"><span class="doc-no">01</span>DPS指標</a>
     <a href="02-ステータス指標.html"><span class="doc-no">02</span>ステータス指標</a>
-    <a href="03-ステータス配分基準.html"><span class="doc-no">03</span>ステータス配分基準</a>
-    <a href="04-装備ステータス基準.html" aria-current="page"><span class="doc-no">04</span>装備ステータス基準</a>
+    <a href="03-装備ステータス基準.html" aria-current="page"><span class="doc-no">03</span>装備ステータス基準</a>
   </nav>
   <header><h1>装備ステータス基準</h1></header>
   <div class="doc-lead">
@@ -333,7 +332,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   </section>
   <section class="es-chapter" id="armor" aria-labelledby="armor-title" style="--actor: var(--blue)">
     <h2 id="armor-title"><span class="ch-num">2</span>防具の配分と胴候補</h2>
-    <p class="fx-section-lead">03の<!-- stat:role -->近接前衛<!-- /stat -->の標準構成に従い、防具4部位に直接共通防御を計 <!-- stat:budget -->177<!-- /stat --> 配分する。</p>
+    <p class="fx-section-lead"><a href="02-ステータス指標.html#player-allocation"><!-- stat:role -->近接前衛<!-- /stat -->の標準構成</a>に従い、防具4部位に直接共通防御を計 <!-- stat:budget -->177<!-- /stat --> 配分する。</p>
     <ol class="ch-toc" aria-label="2章の内容">
       <li><a href="#armor-weights"><span class="toc-num">2.1</span><span class="ch-toc-title">防具4部位の基準値</span><span class="ch-toc-desc">配分比率と切り捨て後の残余</span><span class="cat-list"><span class="cat cat-defense">防御</span></span></a></li>
       <li><a href="#chest-candidate"><span class="toc-num">2.2</span><span class="ch-toc-title">標準共通防御型の胴</span><span class="ch-toc-desc">装備条件・主性能・個体差</span><span class="cat-list"><span class="cat cat-defense">防御</span></span></a></li>
@@ -495,8 +494,8 @@ stats:
   const targets = links.map(link => document.getElementById(decodeURIComponent(link.hash.slice(1))));
   function update() {
     let current = 0;
-    targets.forEach((target, i) => { if (target && target.getBoundingClientRect().top <= 110) current = i; });
-    if (innerHeight + scrollY >= document.documentElement.scrollHeight - 2) current = links.length - 1;
+    targets.forEach((target, i) => { if (target?.getClientRects().length && target.getBoundingClientRect().top <= 110) current = i; });
+    if (innerHeight + scrollY >= document.documentElement.scrollHeight - 2) current = targets.findLastIndex(target => target?.getClientRects().length);
     const parent = current >= 0 ? links[current].closest("ol ol")?.closest("li")?.querySelector(":scope > a") : null;
     links.forEach((link, i) => {
       link.classList.toggle("is-current", i === current);
@@ -512,6 +511,7 @@ stats:
   });
   addEventListener("scroll", update, { passive: true });
   addEventListener("resize", update);
+  document.addEventListener("doc-toc-change", update);
   update();
 })();
 </script>
