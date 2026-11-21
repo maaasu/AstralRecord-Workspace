@@ -21,7 +21,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 #stat-guide h2 { font-size: 18px; line-height: 1.4; font-weight: 600; }
 #stat-guide :is(h1,h2,summary) { color: var(--heading); }
 /* ===== 共通: 資料タブ・目次・章番号・能力の色分け ===== */
-/* 能力の色: 40_filebase/75.shared.status の公式カテゴリに対応 */
+/* 能力の色は設計書の7分類に対応 */
 :root { --cat-resource: #98c379; --cat-primary: #d19a66; --cat-offense: #e06c75; --cat-defense: #56b6c2; --cat-element: #c678dd; --cat-condition: #e8a0c8; --cat-utility: #a8b0bd; }
 :where(#dps-stat-guide, #stat-guide, #stat-allocation-guide, #equipment-stat-guide) a { color: var(--heading); text-decoration: none; }
 :where(#dps-stat-guide, #stat-guide, #stat-allocation-guide, #equipment-stat-guide) h1 { letter-spacing: 0; font-weight: 600; }
@@ -564,9 +564,9 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   const attack = curve([6.8, 200, 300, 400]);
   const health = curve([100, 500, 800, 1200]);
   // stat-targets
-  const statTargets = {"DEFENSE": {"standard": [8, 235, 360, 480], "levels": [1, 25, 50, 100]}, "VITALITY": {"standard": [5, 30, 60, 90, 120], "specialized": [5, 55, 100, 150, 200], "levels": [1, 25, 50, 75, 100]}};
+  const statTargets = {"commonDefense": {"standard": [8, 235, 360, 480], "levels": [1, 25, 50, 100]}, "vitality": {"standard": [5, 30, 60, 90, 120], "specialized": [5, 55, 100, 150, 200], "levels": [1, 25, 50, 75, 100]}};
   // /stat-targets
-  const defenseTarget = statTargets.DEFENSE;
+  const defenseTarget = statTargets.commonDefense;
   const playerDefense = curve(defenseTarget.standard, defenseTarget.levels);
   const playerResistance = level => 5 + 70 * (level - 1) / 99;
   const zeroToFifty = level => 50 * (level - 1) / 99;
@@ -580,7 +580,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     return { standard: curve(standard, major), specialized: curve(specialized, major) };
   }
   const mainAttack = primaryTarget([5, 55, 105, 130, 155], [5, 75, 140, 175, 210]);
-  const vitalityTarget = statTargets.VITALITY;
+  const vitalityTarget = statTargets.vitality;
   const vitality = {
     standard: curve(vitalityTarget.standard, vitalityTarget.levels),
     specialized: curve(vitalityTarget.specialized, vitalityTarget.levels),
