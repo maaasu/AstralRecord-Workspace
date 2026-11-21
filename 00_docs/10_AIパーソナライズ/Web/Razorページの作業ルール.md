@@ -1,4 +1,6 @@
-# Web Pages Prompt
+# Razorページの作業ルール
+
+対象は `30_web/AstralRecordWeb/` です。
 
 ## 読むタイミング
 

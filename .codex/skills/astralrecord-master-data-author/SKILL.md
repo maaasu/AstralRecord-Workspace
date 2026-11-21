@@ -14,7 +14,7 @@ description: AstralRecord の ファイルベース マスタデータ作成担�
 ## 必須コンテキスト
 
 1. `E:\AstralRecord-Workspace\AGENTS.md` を読む。
-2. `E:\AstralRecord-Workspace\40_filebase\AGENTS.md` を読む。
+2. [ファイルベースの作業ルール](../../../00_docs/10_AIパーソナライズ/ファイルベース/作業ルール.md) を読む。
 3. ファイルベース 設計書を読む。
    - `E:\AstralRecord-Workspace\00_docs\50_Filebase設計書\README.md`
    - 依頼されたカテゴリの `E:\AstralRecord-Workspace\00_docs\50_Filebase設計書\feature\<category>.md`
