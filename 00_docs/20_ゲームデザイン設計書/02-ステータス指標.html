@@ -408,7 +408,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
           <span class="fx-paren">(</span><span class="fx-num">1</span><span class="fx-op">+</span><span class="fx-frac"><var class="fx-var cat-primary">対応能力値</var><span class="fx-num">100</span></span><span class="fx-paren">)</span>
         </div>
         <p class="fx-example"><span class="fx-lv">例</span>対応能力値 <b class="c-primary">5</b>（装備なし基準案）なら 1 + 5 ÷ 100 = <span class="fx-result">1.05倍</span></p>
-        <p class="fx-example"><span class="fx-lv" data-fx="lv">Lv.25</span>標準構成 (<b class="c-offense" data-fx="commonAttack">120.03</b> ＋ <b class="c-offense" data-fx="typeAttack">9</b>) × <b class="c-primary" data-fx="mainMultiplier">1.55</b> ≈ <span class="fx-result" data-fx="basisAttack">200</span></p>
+        <p class="fx-example"><span class="fx-lv" data-fx="lv">Lv.25</span>標準構成 (<b class="c-offense" data-fx="commonAttack">25.81</b> ＋ <b class="c-offense" data-fx="typeAttack">103.23</b>) × <b class="c-primary" data-fx="mainMultiplier">1.55</b> ≈ <span class="fx-result" data-fx="basisAttack">200</span></p>
         <ul class="fx-notes"><li>主力能力値の倍率を適用した、会心・スキル倍率を掛ける前の値。</li></ul>
       </section>
       <section class="fx-card" id="fx-damage" aria-labelledby="fx-damage-title">
@@ -557,7 +557,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       note: "攻撃力は7発基準。1発の被ダメージには共通防御と対応耐性を適用。", max: 1000, step: 250, unit: "",
       series: [stat("モブ攻撃力", lv => hits.get(lv).power), stat("被ダメージ", lv => hits.get(lv).damage)] };
   }
-  const typeAttack = curve([0, 9, 14, 18, 22], major);
+  const typeAttack = level => rawAttack(level) * 0.8;
   const commonAttack = level => rawAttack(level) - typeAttack(level);
   const magicDefenseFromGearAndTree = curve([0, 15, 30, 45, 60], major);
   const movementCap = 120;
@@ -567,9 +567,10 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   }
   function targetPanels(grid, category, context, configs) {
     const read = value => Array.isArray(value) ? curve(value, major) : value;
-    return configs.map(({title, ids, scale: [max, step], standard, specialized, note, unit = "%", numberFormat}) => {
+    return configs.map(({title, ids, scale: [max, step], standard, specialized, cap, note, unit = "%", numberFormat}) => {
       const series = [stat("標準", read(standard))];
       if (specialized !== undefined) series.push(stat("特化", read(specialized)));
+      if (cap !== undefined) series.push(stat("上限", cap));
       return {grid, cats: [category], context, title, ids, max, step, unit, note, numberFormat, series};
     });
   }
@@ -608,25 +609,20 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       series: [stat("標準", curve([5, 12, 25, 45, 65], major))] },
     { grid: "player-utility-grid", cats: ["offense"], context: "プレイヤー｜敏捷性", title: "攻撃速度", ids: ["ATTACK_SPEED"], note: "100%を基礎速度とする敏捷性込みの倍率。攻撃サイクルの実効DPSに含める。", max: 300, step: 100, unit: "%",
       series: compare(agility, value => 100 + value) },
-    { grid: "player-utility-grid", cats: ["utility"], context: "プレイヤー｜敏捷性", title: "移動速度", ids: ["MOVEMENT_SPEED"], note: "通常移動時の合計。敏捷性を反映し、移動速度上限を適用。", max: 125, step: 25, unit: "%",
-      series: compare(agility, value => Math.min(movementCap, 100 + value * 0.1)) },
+    { grid: "player-utility-grid", cats: ["utility"], context: "プレイヤー｜敏捷性", title: "移動速度", ids: ["MOVEMENT_SPEED", "MOVEMENT_SPEED_CAP"], note: "通常移動時の合計。敏捷性を反映し、移動速度上限を適用。", max: 125, step: 25, unit: "%",
+      series: [...compare(agility, value => Math.min(movementCap, 100 + value * 0.1)), stat("上限", movementCap)] },
     { grid: "player-utility-grid", cats: ["defense"], context: "プレイヤー｜敏捷性", title: "回避率", ids: ["EVASION"], note: "基礎値3%と敏捷性を含む合計。攻撃側の命中率から差し引く。", max: 25, step: 5, unit: "%",
       series: compare(agility, value => 3 + value * 0.1) },
     { grid: "player-utility-grid", cats: ["utility"], context: "プレイヤー｜幸運", title: "直接ドロップ倍率", note: "ドロップ増加率が標準100%のとき、幸運補正対象の討伐・採集ドロップに適用する倍率。", max: 2, step: 0.5, unit: "倍", numberFormat: multiplierFormat,
       series: compare(luck, value => 1 + value / 100) },
-    ...targetPanels("player-utility-grid", "utility", "プレイヤー｜通常移動", [
-      {title: "移動速度上限", ids: ["MOVEMENT_SPEED_CAP"], scale: [125, 25], standard: movementCap,
-        note: "通常移動に適用する合計上限。"}
-    ]),
     ...targetPanels("player-utility-grid", "utility", "プレイヤー｜報酬", [
       {title: "EXP獲得量増加率・ドロップ増加率", ids: ["EXPERIENCE_GAIN_RATE", "DROP_RATE_INCREASE"], scale: [125, 25], standard: 100,
         note: "EXP量と対象のドロップ確率に別々に適用する倍率。各100%で等倍。幸運込みの直接ドロップ倍率は別掲。"}
     ]),
+    { grid: "player-offense-grid", cats: ["offense"], context: "プレイヤー｜攻撃時", title: "共通攻撃力・種別攻撃力", ids: ["ATTACK", "MELEE_ATTACK", "RANGED_ATTACK", "MAGIC_ATTACK"],
+      note: "主力能力の倍率を掛ける前の配分。共通に2割、武器の種別攻撃力（近接・間接・魔法のいずれか）に8割。", max: 160, step: 40, unit: "", numberFormat: twoDecimals,
+      series: [stat("共通", commonAttack), stat("種別", typeAttack)] },
     ...targetPanels("player-offense-grid", "offense", "プレイヤー → 標準モブ｜攻撃時", [
-      {title: "共通攻撃力", ids: ["ATTACK"], scale: [160, 40], unit: "", numberFormat: twoDecimals, standard: commonAttack,
-        note: "使用する種別の攻撃力と合算し、主力能力の倍率を掛ける。"},
-      {title: "近接・間接・魔法攻撃力", ids: ["MELEE_ATTACK", "RANGED_ATTACK", "MAGIC_ATTACK"], scale: [24, 6], unit: "", standard: typeAttack,
-        note: "各種別の標準は共通。攻撃時は使用する一種別だけを共通攻撃力に加える。"},
       {title: "命中率", ids: ["ACCURACY"], scale: [100, 25], standard: [95, 95, 96, 97, 98],
         note: "命中率から相手の回避率を引いて判定する（最低1%・最高100%）。"},
       {title: "通常攻撃・スキルダメージ増加", ids: ["NORMAL_ATTACK_DAMAGE_INCREASE", "SKILL_DAMAGE_INCREASE"], scale: [40, 10], standard: [0, 3, 6, 9, 12], specialized: [0, 8, 16, 24, 32],
@@ -670,12 +666,11 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       {title: "シールドリチャージ短縮", ids: ["SHIELD_RECHARGE_REDUCTION"], scale: [10, 2.5], standard: 0, specialized: [0, 2, 4, 6, 8],
         note: "シールドを使う構成で、破壊後・再充填パッシブの待機と攻撃による追加時間に適用。"}
     ]),
-    { grid: "player-elements-grid", cats: ["element"], context: "標準モブ → プレイヤー｜被弾時", title: "属性耐性", ids: ["NONE_RESISTANCE", "FIRE_RESISTANCE", "ICE_RESISTANCE", "LIGHTNING_RESISTANCE"], note: "全職業共通の基準値。", max: 100, step: 25, unit: "%",
-      series: [stat("無属性", zeroToFifty), stat("火・氷・雷", playerResistance)] },
-    { grid: "player-elements-grid", cats: ["element"], context: "プレイヤー｜属性耐性", title: "属性耐性上限値",
-      ids: ["NONE_RESISTANCE_CAP", "FIRE_RESISTANCE_CAP", "ICE_RESISTANCE_CAP", "LIGHTNING_RESISTANCE_CAP"],
-      note: "全職業共通の有効上限。", max: 100, step: 25, unit: "%",
-      series: [stat("無属性", 50), stat("火・氷・雷", 75)] },
+    { grid: "player-elements-grid", cats: ["element"], context: "標準モブ → プレイヤー｜被弾時", title: "無属性耐性", ids: ["NONE_RESISTANCE", "NONE_RESISTANCE_CAP"], max: 100, step: 25, unit: "%",
+      series: [stat("標準", zeroToFifty), stat("上限", 50)] },
+    { grid: "player-elements-grid", cats: ["element"], context: "標準モブ → プレイヤー｜被弾時", title: "火・氷・雷属性耐性",
+      ids: ["FIRE_RESISTANCE", "ICE_RESISTANCE", "LIGHTNING_RESISTANCE", "FIRE_RESISTANCE_CAP", "ICE_RESISTANCE_CAP", "LIGHTNING_RESISTANCE_CAP"], max: 100, step: 25, unit: "%",
+      series: [stat("標準", playerResistance), stat("上限", 75)] },
     ...targetPanels("player-elements-grid", "element", "プレイヤー → 標準モブ｜攻撃時", [
       {title: "無属性ダメージ増加", ids: ["NONE_DAMAGE_INCREASE"], scale: [20, 5], standard: [0, 1, 2, 3, 4], specialized: [0, 3, 6, 9, 12]},
       {title: "火・氷・雷属性ダメージ増加", ids: ["FIRE_DAMAGE_INCREASE", "ICE_DAMAGE_INCREASE", "LIGHTNING_DAMAGE_INCREASE"], scale: [20, 5],
@@ -732,8 +727,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     ...targetPanels("player-field-grid", "utility", "プレイヤー｜枠上限", [
       {title: "インベントリスロット", ids: ["INVENTORY_SLOTS"], scale: [48, 12], unit: "枠", standard: 36,
         note: "所持枠の合計。"},
-      {title: "パッシブスキルスロット", ids: ["PASSIVE_SKILL_SLOTS"], scale: [9, 3], unit: "枠", standard: integerTarget([5, 5, 6, 7, 8]),
-        note: "基礎5枠を含む有効枠の合計。上限9枠。"},
+      {title: "パッシブスキルスロット", ids: ["PASSIVE_SKILL_SLOTS"], scale: [9, 3], unit: "枠", standard: integerTarget([5, 5, 6, 7, 8]), cap: 9,
+        note: "基礎5枠を含む有効枠の合計。"},
       {title: "クエスト受領上限", ids: ["QUEST_LIMIT"], scale: [6, 1], unit: "件", standard: integerTarget([3, 3, 4, 4, 5]),
         note: "同時に受領できる件数。"}
     ]),
