@@ -5,7 +5,7 @@ AstralRecord の作業ツリーを作成、完了処理、マージ、監査、�
 ## 管理ファイル
 
 - `<repo-root>` は `git worktree list --porcelain` で確認したメインワークスペースの絶対パス。
-- `<worktrees-root>` は実行環境で指定された作業ツリーの配置先。指定がなければ、登録済み作業ツリーと既存の管理ファイルから現在の配置先を確認する。
+- `<worktrees-root>` は所有する作業ツリーの配置先。監査スクリプトでは複数指定でき、既定はメインワークスペースと同じ階層の `AstralRecord-Worktrees`。
 - `<management-file>` は実行環境で指定された管理ファイル。既定は `<worktrees-root>/WORKTREE_MANAGEMENT.md`。
 
 このファイルはローカル運用コンテンツであり、通常はコミット対象ではない。残っている作業ツリーを次のどれとして扱うべきか判断できるようにする。
@@ -40,17 +40,23 @@ python "<repo-root>/.codex/skills/astralrecord-prune-codex-worktrees/scripts/pru
 
 | 分類 | 意味 | 既定の扱い |
 |:--|:--|:--|
-| `REMOVABLE_WORKTREE` | ブランチは develop 取り込み済みで作業ツリーは変更のない状態。 | 明示的な実行後片付けで削除する。 |
-| `REMOVABLE_BRANCH` | ブランチは develop 取り込み済みで作業ツリー未接続。 | 明示的な実行後片付けでブランチを削除する。 |
+| `REMOVABLE_WORKTREE` | 対象ブランチ付き。develop 取り込み済みで変更がなく、最終活動から指定日数が経過している。 | 実行モードで削除する。 |
+| `REMOVABLE_DETACHED_WORKTREE` | 所有ルートまたは Codex アプリルートの detached HEAD。develop 取り込み済みで変更がなく、最終活動から指定日数が経過している。 | 実行モードで削除する。 |
+| `REMOVABLE_BRANCH` | ブランチは develop 取り込み済みで、作業ツリーからの接続や detached HEAD からの参照がない。 | 実行モードで削除する。 |
+| `RECENT_WORKTREE` | ほかの削除条件を満たすが、最終活動から指定日数が経過していない。 | 保持する。 |
+| `LOCKED_WORKTREE` | `git worktree lock` でロックされている。 | 保持する。 |
+| `APP_POOL_WORKTREE` | Claude アプリルートの detached HEAD。 | アプリが管理する。 |
 | `STALE_METADATA` | Git に存在しないパスの作業ツリーメタデータが残っている。 | 実行後片付けで `git worktree prune` する。 |
-| `UNREGISTERED_PATH` | 作業ツリールート配下に Git チェックアウトらしい未登録ディレクトリがある。 | 削除前に手動確認する。 |
-| `NON_GIT_DIRECTORY` | 作業ツリールート配下に Git 作業ツリーではないディレクトリがある。 | 削除前に手動確認する。 |
-| `DIRTY_WORKTREE` | ブランチは develop 取り込み済みだが、作業ツリーに未コミット差分が残っている。 | 内容を確認して保存、破棄、別コミットを判断する。 |
+| `UNREGISTERED_PATH` | 所有ルートまたは Claude アプリルートに Git チェックアウトらしい未登録ディレクトリがある。 | 報告し、手動で確認する。 |
+| `NON_GIT_DIRECTORY` | 所有ルートまたは Claude アプリルートに別用途のディレクトリがある。 | 報告し、手動で確認する。 |
+| `DIRTY_WORKTREE` | ブランチ付きの作業ツリーに未コミット差分が残っている。 | 内容を確認して保存、破棄、別コミットを判断する。 |
 | `UNMERGED_WORKTREE` | ブランチ先端が develop 未取り込みで、登録作業ツリーがある。 | 個別完了処理 / リベースするか、明示的に破棄判断する。 |
-| `UNMERGED_BRANCH` | ブランチ先端が develop 未取り込みで、登録作業ツリーがない。 | 作業ツリー再作成、個別完了処理、破棄を判断する。 |
-| `DETACHED_WORKTREE` | 登録作業ツリーが HEAD がブランチから分離した状態 HEAD。 | 競合、リベース中断、手動チェックアウト状態を確認する。 |
+| `UNMERGED_BRANCH` | 対象ブランチの先端が develop 未取り込み。 | 個別完了処理、破棄を判断する。 |
+| `DETACHED_WORKTREE` | 未コミット変更、develop 未取り込み、対象外の配置先のいずれかに該当する detached HEAD。 | 作業ツリーの状態を手動で確認する。 |
 | `DETACHED_HEAD_BRANCH` | マージ済みブランチの先端を HEAD がブランチから分離した状態の作業ツリーが保持している。 | ブランチ削除前に HEAD がブランチから分離した状態の作業ツリーを確認する。 |
-| `NON_CODEX_WORKTREE` | `codex/*` 以外のブランチを使う登録作業ツリー。 | この掃除対象から外す。 |
+| `NON_MANAGED_WORKTREE` | 指定された接頭辞（既定は `codex/` と `claude/`）に一致しないブランチの作業ツリー。 | 保持する。 |
+
+状態一覧の「最終活動」はローカル時刻の `YYYY-MM-DD HH:MM` で表示する。スナップショットには走査ルート、対象の接頭辞、無活動日数のしきい値を記録する。実行モードでは削除した作業ツリーとブランチ、失敗した項目も記録する。
 
 ## 手動メモ
 

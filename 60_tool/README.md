@@ -12,6 +12,7 @@
 | マスタだけ更新する | `03-master-data-reload.bat` | 01の`-MasterDataOnly`。Filebase同期・seed・再読込または起動待ち・パッチ公開。[マスタ反映](03-master-data-reload/README.md) |
 | マスタを編集する | `05-master-data-editor.bat` | 独立したローカルアプリをビルド・起動。[エディタ](05-master-data-editor/README.md) |
 | Dev/Buildから各サーバーへ配布する | `16-maintenance.bat` | JAR・配置データ・World等の配布、起動待ち、パッチ公開。[メンテナンス配布](16-maintenance/README.md) |
+| Claude・Codex の古い作業ツリーを整理する | `18-worktree-cleanup.bat` | 取り込み済みの作業ツリーとブランチを整理し、管理ファイルと最新ログを更新。日次実行はメインワークスペースで `18-worktree-cleanup/Register-WorktreeCleanupTask.ps1` を実行して登録する。[対象と登録手順](../.codex/skills/astralrecord-prune-codex-worktrees/SKILL.md#日次実行) |
 
 01/02のプロセス対象はDevだけです。01はBuild・Channelが稼働中でも実行でき、`devWorkflow.controlDevLifecycle.enabled=true`ならDevの正常停止・起動をControlで自動実行します。共有API・DB・Filebaseを更新する範囲は従来と同じです。入場制限は運用者が維持します。03の共有API構成は共有RPGの停止確認を維持し、Dev専用APIと自動再読込が有効なら稼働中Devも使用できます。16の停止・起動は運用者が行います。プレイヤーの更新は次回ログイン時です。
 
