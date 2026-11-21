@@ -92,15 +92,15 @@ groups:
       - {title: 消耗品使用時移動許容距離, mode: zero}
       - {title: 消耗品使用時移動減速率, mode: zero}
 
-mob:
-  - {title: 標準モブの最大HP, series: 最大HP, name: 最大HP}
-  - {title: 標準モブの防御, series: 共通防御, name: 共通防御}
-  - {title: 標準モブの防御, series: 追加防御, name: 追加防御}
-  - {title: 標準モブの回避率, name: 回避率}
-  - {title: 標準モブの属性耐性, series: 基礎耐性, name: 属性耐性（基礎）}
-  - {title: 標準モブの属性耐性, series: 補正込み上限, name: 属性耐性（上限）}
-  - {title: 標準モブのシールドブレイク, name: シールドブレイク}
-  - {title: 無属性の通常攻撃, series: モブ攻撃力, name: 無属性の通常攻撃力}
-  - {title: 無属性の通常攻撃, series: 被ダメージ, name: 無属性の通常攻撃の被ダメージ}
-  - {title: 火・氷・雷の通常攻撃, series: モブ攻撃力, name: 火・氷・雷の通常攻撃力}
-  - {title: 火・氷・雷の通常攻撃, series: 被ダメージ, name: 火・氷・雷の通常攻撃の被ダメージ}
+profiles:
+  standard_defense_lv25:
+    buildId: lv25_melee_standard
+    requiredPlayerLevel: 25
+    rarity: rare
+    armorWeights: {head: 20, chest: 35, legs: 30, feet: 15}
+    rounding: largestRemainder
+    tieOrder: [head, chest, legs, feet]
+    slot: chest
+    primaryStat: commonDefense
+    secondaryStats: []
+    rollOffsets: {min: -6, max: 6, step: 1}
