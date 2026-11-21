@@ -2079,6 +2079,40 @@
           { "name": "UX_account_mob_record_account_mob", "columns": [ "account_id", "mob_id" ] }
         ]
       }
+    },
+    {
+      "id": "20261122_retire_administrator_class",
+      "fileName": "20261122_retire_administrator_class.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "account",
+        "primaryKey": "PK_account",
+        "columns": [
+          { "name": "uuid", "sqlType": "uniqueidentifier", "isNullable": false },
+          { "name": "class_id", "sqlType": "nvarchar", "isNullable": false },
+          { "name": "is_deleted", "sqlType": "bit", "isNullable": false },
+          { "name": "class_level", "sqlType": "int", "isNullable": false },
+          { "name": "class_experience", "sqlType": "bigint", "isNullable": false },
+          { "name": "progress_version", "sqlType": "int", "isNullable": false },
+          { "name": "updated_at", "sqlType": "datetime2", "isNullable": false },
+          { "name": "updated_by", "sqlType": "uniqueidentifier", "isNullable": false }
+        ]
+      },
+      "additionalExpectations": [
+        {
+          "schema": "dbo",
+          "table": "account_class_progress",
+          "primaryKey": "PK_account_class_progress",
+          "columns": [
+            { "name": "account_id", "sqlType": "uniqueidentifier", "isNullable": false },
+            { "name": "class_id", "sqlType": "nvarchar", "isNullable": false },
+            { "name": "level", "sqlType": "int", "isNullable": false },
+            { "name": "experience", "sqlType": "bigint", "isNullable": false },
+            { "name": "updated_at", "sqlType": "datetime2", "isNullable": false },
+            { "name": "updated_by", "sqlType": "uniqueidentifier", "isNullable": false }
+          ]
+        }
+      ]
     }
   ]
 }

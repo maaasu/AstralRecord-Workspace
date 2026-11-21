@@ -15,7 +15,7 @@ Class は、プレイヤーの戦闘上の役割、成長傾向、利用でき�
 - `acolyte` は現行クラス定義に含めません。
 - クラスは `usableSkills` で現在クラスにおける使用許可だけを定義し、スキルの習得・レベル・所持個体は変更しません。
 - `swordsman` / `hunter` / `mage` は、冒険者から引き継ぐ初期攻撃 skill を `usableSkills` に定義する。ソードマンは `adventurer_astral_edge` / `adventurer_smash` と、タンクのシールドを有効化する `swordsman_shield_activate`、ハンターは `adventurer_blast_arrow` / `adventurer_quick_shot`、メイジは `adventurer_mana_burst` / `adventurer_lightning_bolt` とする。加えてハンターは職固有の初期範囲攻撃 `hunter_arrow_rain`、メイジは職固有の即時範囲回復 `mage_heal_aura` を許可する。
-- 上記以外の skill は class の `usableSkills` に追加せず、skilltree の `skill` 効果で使用許可を付与する。シールドドレインはソードマンの skilltree node `1352` から許可する。運営検証用 `administrator` は実装済みスキルだけを許可する。`usableSkills` は使用許可であり、習得個体はスキルマネージャーがskill masterの必要素材を消費して作成する。
+- 上記以外の skill は class の `usableSkills` に追加せず、skilltree の `skill` 効果で使用許可を付与する。シールドドレインはソードマンの skilltree node `1352` から許可する。`usableSkills` は使用許可であり、習得個体はスキルマネージャーがskill masterの必要素材を消費して作成する。
 - クラスの短縮表示とタブのプレイヤーリストには `shortName`、正式なクラス名の表示には `name` を使用します。`shortName` の形式は、下記の `shortName` 定義に従います。
 - 現行一次職のクラス色は、ソードマンを赤 `&c`、ハンターを緑 `&a`、メイジを紫 `&d` とし、各クラス YAML の `name` と `shortName` に同じ色コードを定義します。
 
@@ -33,7 +33,7 @@ class status bonus = baseStats + growthPerLevel × (classLevel - 1)
 
 クラス補正は `StatusType` ごとに加算し、未定義のステータスは `0.0` とします。これはクラスレベル1の `baseStats` を含む補正値であり、共有基礎値をクラス値で置き換えません。
 
-移動速度上限は `MOVEMENT_SPEED_CAP` を職業の `baseStats` に固定値で定義し、`growthPerLevel` には定義しません。現行値はソードマン系 `150`、ハンター系 `175`、メイジ系 `160`（冒険者・管理者 `150`）です。`AGILITY` 1ポイントから移動速度への派生は `+0.1` とし、攻撃速度・回避への派生量は維持します。
+移動速度上限は `MOVEMENT_SPEED_CAP` を職業の `baseStats` に固定値で定義し、`growthPerLevel` には定義しません。現行値はソードマン系 `150`、ハンター系 `175`、メイジ系 `160`（冒険者 `150`）です。`AGILITY` 1ポイントから移動速度への派生は `+0.1` とし、攻撃速度・回避への派生量は維持します。
 
 `MOVEMENT_SPEED` の `growthPerLevel` は、装備・バフ・パッシブスキル・アカウントモード補正なしで、現在クラスの最大レベルかつ配置済みの共通PP・祖先職CP・現職CPノードをすべて取得した理論値が職業上限に一致するよう配分します。現在クラス以外のレベル成長は加算しません。現行の移動速度ノードはすべてFLATで、敏捷性SCALARはツリーのFLATを含まないツリー適用前の値へ掛けます。
 
@@ -43,7 +43,7 @@ A = (5 + class base AGILITY + class growth AGILITY × L) × (1 + tree AGILITY SC
 growth MOVEMENT_SPEED = (MOVEMENT_SPEED_CAP - 100 - tree MOVEMENT_SPEED FLAT - 0.1 × A) / L
 ```
 
-成長値は小数12桁で上方向へ丸め、最大時の丸め差は既存の上限適用で吸収します。管理者はLv10000の敏捷性成長を相殺する負の直接移動速度成長を設定しますが、敏捷性派生を合算した実速度はレベルとともに増加します。
+成長値は小数12桁で上方向へ丸め、最大時の丸め差は既存の上限適用で吸収します。
 
 | 職業 | 最大Lv | ツリーAGI FLAT | ツリーAGI SCALAR | ツリー移動速度 FLAT | 移動速度/Lv | 最大時速度 |
 |:--|--:|--:|--:|--:|--:|--:|
@@ -63,7 +63,6 @@ growth MOVEMENT_SPEED = (MOVEMENT_SPEED_CAP - 100 - tree MOVEMENT_SPEED FLAT - 0
 | スペクトラルアーチャー | 150 | 94.0 | 0.231 | 26.0 | `0.131931543625` | 175 |
 | アストラルウィザード | 150 | 90 | 0 | 2 | `0.292818791947` | 160 |
 | アークセージ | 150 | 90 | 0 | 2 | `0.292818791947` | 160 |
-| ADMIN | 10000 | 87 | 0 | 2 | `-0.056169616961` | 150 |
 
 全取得はバランス配分の理論上の基準です。共通PPは132ポイントを要し、現行の獲得上限99PPでは全取得できません。一部職業のCPも最大レベルのポイントだけで全取得できるとは限りません。通常育成では選んだノードと装備・恒常補正に応じて到達時期が変わり、装備・バフを加えれば最大レベルより前に上限へ届く場合があります。上限を超えた分は実速度へ反映しません。
 
@@ -71,13 +70,17 @@ growth MOVEMENT_SPEED = (MOVEMENT_SPEED_CAP - 100 - tree MOVEMENT_SPEED FLAT - 0
 
 通常育成16職の `MAX_MANA`、`MAX_ENERGY`、`MP_REGEN`、`ENERGY_REGEN` は、初期値を維持し、使用可能な主力skillの消費に合わせて `growthPerLevel` を配分します。共有基礎値と知力派生を含む最終値を目標にし、回復力が5秒単位である点を含めて逆算します。スキル消費・知力・HP・攻撃・防御の成長式は変更しません。最大Lvの主力複数技回転でも自然回復が全消費を賄わないようにし、装備と回復手段の価値を残します。
 
-ADMINは通常育成の調整対象外です。
+## 旧管理用職業からの移行
+
+Admin を現在職として保存したアカウントは冒険者へ切り替えます。既存の冒険者進捗を使い、未経験の場合はLv.1・経験値0から開始します。Admin の職業進捗は履歴として保持します。
+
+全RPGサーバーの保存を完了してから停止し、管理編集による職業の変更もseed完了まで止めます。Filebaseのみを反映する場合も、先に `13-db-migrate` で `20261122_retire_administrator_class` を適用し、Filebaseの同期とseedを終えてから再開します。
 
 ## order
 
 `order` はクラス一覧の表示順を表す数値です。値が小さいクラスから順に表示し、同値の場合はクラス ID の昇順とします。プレイヤー情報画面の全クラスレベル一覧もこの順序を使用します。
 
-Class マスタのファイル名は `v<schemaVersion>.<order×10>.<classId>.yml` とします。`order×10` は `order` を10倍した整数であり、例えば `order: 1.1` は `11` になります。`administrator` だけは例外として `9999` を使用します。
+Class マスタのファイル名は `v<schemaVersion>.<order×10>.<classId>.yml` とします。`order×10` は `order` を10倍した整数であり、例えば `order: 1.1` は `11` になります。
 
 ## progression
 
