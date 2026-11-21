@@ -198,8 +198,17 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 .doc-search [hidden] {
   display: none;
 }
+@media screen {
+  mark.doc-search-match { background: var(--gold, #f3c969); color: #211806; }
+  ::highlight(doc-search-match) {
+    background-color: #f3c969;
+    background-color: color-mix(in srgb, var(--gold, #f3c969) 35%, #fff3c4);
+    color: #211806;
+  }
+}
 @media print {
-  .doc-search { display: none !important; }
+  .doc-search, .doc-search-alias { display: none !important; }
+  mark.doc-search-match { background: transparent; color: inherit; }
 }
 /* ===== 共通ここまで ===== */
 #stat-guide .doc-lead p { margin: 0; }
@@ -1343,48 +1352,148 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   if (aliasElement) {
     try { aliases = JSON.parse(aliasElement.textContent); } catch { aliases = null; }
   }
+  const highlightName = 'doc-search-match';
+  const segmenter = Intl.Segmenter && new Intl.Segmenter(undefined, { granularity: 'grapheme' });
   let composing = false;
+  let aliasLabel;
 
-  function collect() {
+  function clearHighlight() {
+    CSS.highlights?.delete(highlightName);
+    for (const mark of main.querySelectorAll('mark.doc-search-match')) {
+      const parent = mark.parentNode;
+      mark.replaceWith(...mark.childNodes);
+      parent.normalize();
+    }
+    aliasLabel?.remove();
+    aliasLabel = undefined;
+  }
+
+  function collect(visibleOnly = false) {
     const entries = [];
-    function visit(element, entry) {
-      if (element.matches(ignored)) return;
-      const { display, visibility } = getComputedStyle(element);
-      if (display === 'none' || visibility === 'hidden' || visibility === 'collapse') return;
+    const runs = [];
+    let run;
 
-      const outer = entry;
-      const boundary = !outer || element.matches('section, article, details, [data-status-ids]');
-      const separated = boundary || element.localName === 'br' || !display.startsWith('inline') && display !== 'contents';
-      if (separated) outer?.parts.push(' ');
+    function visit(element, entry) {
+      if (element.matches(`${ignored}, .doc-search-alias`)) {
+        run = undefined;
+        return;
+      }
+      const { display, visibility, contentVisibility } = getComputedStyle(element);
+      if (display === 'none' || visibility === 'hidden' || visibility === 'collapse' || contentVisibility === 'hidden') {
+        run = undefined;
+        return;
+      }
+
+      const boundary = !entry || element.matches('section, article, details, [data-status-ids]');
+      const isHeading = element.matches('h1, h2, h3, h4, h5, h6, summary');
+      const separated = boundary || isHeading || element.localName === 'br' || !display.startsWith('inline') && display !== 'contents';
+      if (separated) run = undefined;
       if (boundary) {
-        entry = { target: element, parent: outer, heading: null, parts: [], names: [] };
+        entry = { target: element, parent: entry, heading: null, runs: [], names: [] };
         entries.push(entry);
         for (const id of (element.dataset.statusIds || '').split(/\s+/)) {
           const name = id && aliases?.[id];
           if (typeof name === 'string' && name) entry.names.push(name);
         }
       }
-      if (!entry.heading && element.matches('h1, h2, h3, h4, h5, h6, summary')) {
-        entry.heading = element;
+      if (!entry.heading && isHeading) entry.heading = element;
+
+      if (visibleOnly && element.localName === 'details' && !element.open) {
+        const summary = Array.from(element.children).find(child => child.localName === 'summary');
+        if (summary) visit(summary, entry);
+      } else {
+        for (const node of element.childNodes) {
+          if (node.nodeType === Node.ELEMENT_NODE) visit(node, entry);
+          else if (node.nodeType === Node.TEXT_NODE && node.data) {
+            if (!run) {
+              run = { entry, nodes: [] };
+              runs.push(run);
+            }
+            run.nodes.push(node);
+          }
+        }
       }
-      for (const node of element.childNodes) {
-        if (node.nodeType === Node.TEXT_NODE) entry.parts.push(node.data);
-        else if (node.nodeType === Node.ELEMENT_NODE) visit(node, entry);
-      }
-      if (separated) outer?.parts.push(' ');
+      if (separated) run = undefined;
     }
+
     visit(main, null);
     for (let i = entries.length - 1; i >= 0; i--) {
-      const { target, parent, heading, parts, names } = entries[i];
-      if (parent && !heading && !target.getAttribute('aria-label')) {
-        parent.parts.push(' ', parts.join(' '), ' ', names.join(' '));
+      const entry = entries[i];
+      if (entry.parent && !entry.heading && !entry.target.getAttribute('aria-label')) {
+        entry.owner = entry.parent;
+        entry.parent.names.push(...entry.names);
         entries.splice(i, 1);
       }
+    }
+    for (const { entry, nodes } of runs) {
+      let owner = entry;
+      while (owner.owner) owner = owner.owner;
+      owner.runs.push({ nodes, text: nodes.map(node => node.data).join('') });
     }
     return entries;
   }
 
-  function jump({ target, heading }) {
+  function addMatches({ nodes, text }, words, found, ranges) {
+    const canonical = text.normalize('NFKC');
+    const folded = canonical.toLowerCase();
+    const hits = [];
+    for (const word of words) {
+      for (let at = folded.indexOf(word); at !== -1; at = folded.indexOf(word, at + 1)) {
+        hits.push([at, at + word.length]);
+        found.add(word);
+      }
+    }
+    if (!hits.length) return;
+
+    // 正規化で文字数が変わる場合も、元の書記素全体に対応づける。
+    const segments = segmenter ? segmenter.segment(text) : Array.from(text.matchAll(/./gsu), match => ({ segment: match[0], index: match.index }));
+    const offsets = [];
+    const pieces = [];
+    for (const { segment, index } of segments) {
+      const piece = segment.normalize('NFKC');
+      const span = [index, index + segment.length];
+      pieces.push(piece);
+      for (let i = 0; i < piece.toLowerCase().length; i++) offsets.push(span);
+    }
+    if (pieces.join('') !== canonical) {
+      // 互換文字が隣の書記素と合成される場合は、変化した末尾の対応を更新する。
+      offsets.length = 0;
+      let previous = '';
+      for (const { segment, index } of segments) {
+        const end = index + segment.length;
+        const next = text.slice(0, end).normalize('NFKC').toLowerCase();
+        let shared = 0;
+        while (shared < previous.length && shared < next.length && previous[shared] === next[shared]) shared++;
+        const span = [offsets[shared]?.[0] ?? index, end];
+        offsets.length = shared;
+        while (offsets.length < next.length) offsets.push(span);
+        previous = next;
+      }
+    }
+
+    const spans = [];
+    hits.sort((a, b) => a[0] - b[0]);
+    for (const [from, to] of hits) {
+      const start = offsets[from][0];
+      const end = offsets[to - 1][1];
+      const last = spans[spans.length - 1];
+      if (last && start <= last[1]) last[1] = Math.max(last[1], end);
+      else spans.push([start, end]);
+    }
+    let nodeIndex = 0;
+    let nodeStart = 0;
+    for (const [start, end] of spans) {
+      while (nodeStart + nodes[nodeIndex].length <= start) nodeStart += nodes[nodeIndex++].length;
+      const range = document.createRange();
+      range.setStart(nodes[nodeIndex], start - nodeStart);
+      while (nodeStart + nodes[nodeIndex].length < end) nodeStart += nodes[nodeIndex++].length;
+      range.setEnd(nodes[nodeIndex], end - nodeStart);
+      ranges.push(range);
+    }
+  }
+
+  function jump({ target, heading, names }, words) {
+    clearHighlight();
     for (let element = target; element; element = element.parentElement) {
       if (element.localName === 'details') {
         element.open = true;
@@ -1396,10 +1505,71 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       destination.addEventListener('blur', () => destination.removeAttribute('tabindex'), { once: true });
     }
     destination.focus({ preventScroll: true });
-    destination.scrollIntoView({ block: 'start' });
+
+    const ranges = [];
+    const found = new Set();
+    const visible = collect(true).find(entry => entry.target === target);
+    for (const run of visible?.runs ?? []) addMatches(run, words, found, ranges);
+    const labels = [];
+    for (const name of new Set(names)) {
+      const text = normalize(name);
+      const missing = words.filter(word => !found.has(word) && text.includes(word));
+      if (!missing.length) continue;
+      labels.push(name);
+      for (const word of missing) found.add(word);
+    }
+    if (labels.length) {
+      aliasLabel = document.createElement('div');
+      aliasLabel.className = 'doc-search-alias';
+      aliasLabel.textContent = labels.join(' ／ ');
+      if (heading) heading.after(aliasLabel);
+      else (target.querySelector(':scope > td, :scope > th') || target).prepend(aliasLabel);
+      addMatches({ nodes: [aliasLabel.firstChild], text: aliasLabel.textContent }, words, found, ranges);
+    }
+    ranges.sort((a, b) => a.compareBoundaryPoints(Range.START_TO_START, b));
+    if (ranges.length && CSS.highlights && typeof Highlight === 'function') {
+      const highlight = new Highlight();
+      for (const range of ranges) highlight.add(range);
+      CSS.highlights.set(highlightName, highlight);
+    } else {
+      // Rangeをまたぐインライン要素はそのままにし、末尾から文字だけを囲む。
+      const marks = [];
+      for (const range of ranges.reverse()) {
+        const root = range.commonAncestorContainer;
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        for (let node = root.nodeType === Node.TEXT_NODE ? root : walker.nextNode(); node; node = walker.nextNode()) {
+          if (!range.intersectsNode(node)) continue;
+          const part = document.createRange();
+          part.setStart(node, node === range.startContainer ? range.startOffset : 0);
+          part.setEnd(node, node === range.endContainer ? range.endOffset : node.length);
+          if (!part.collapsed) marks.push(part);
+        }
+      }
+      ranges.length = 0;
+      for (const part of marks) {
+        const mark = document.createElement('mark');
+        mark.className = 'doc-search-match';
+        part.surroundContents(mark);
+        part.selectNodeContents(mark);
+        ranges.push(part);
+      }
+      ranges.sort((a, b) => a.compareBoundaryPoints(Range.START_TO_START, b));
+    }
+
+    destination.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'instant' });
+    const top = parseFloat(getComputedStyle(destination).scrollMarginTop) || 84;
+    for (const range of ranges) {
+      const rect = Array.from(range.getClientRects()).find(box => box.width && box.height);
+      if (!rect) continue;
+      if (rect.top < top || rect.bottom > window.innerHeight) {
+        window.scrollBy({ top: rect.top - top, behavior: 'instant' });
+      }
+      break;
+    }
   }
 
   function update() {
+    clearHighlight();
     const query = normalize(input.value);
     list.replaceChildren();
     list.hidden = true;
@@ -1409,16 +1579,19 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       return;
     }
 
-    const words = query.split(' ');
+    const words = Array.from(new Set(query.split(' ')));
     const matches = [];
     for (const entry of collect()) {
       const title = entry.heading ? Array.from(entry.heading.childNodes, node => node.textContent.trim()).filter(Boolean).join(' ') : entry.target.getAttribute('aria-label');
       if (!title) continue;
-      const normalizedTitle = normalize(title);
+      const headingText = entry.heading
+        ? entry.runs.filter(run => entry.heading.contains(run.nodes[0])).map(run => run.text).join(' ')
+        : title;
+      const normalizedTitle = normalize(headingText);
       const names = normalize(entry.names.join(' '));
       const inHeading = words.every(word => normalizedTitle.includes(word));
       const inName = words.every(word => names.includes(word));
-      const text = normalize(`${title} ${entry.parts.join('')} ${names}`);
+      const text = normalize([headingText, ...entry.runs.map(run => run.text), names].join(' '));
       if (words.every(word => text.includes(word))) {
         matches.push({ ...entry, title, rank: inHeading ? 2 : inName ? 1 : 0 });
       }
@@ -1431,7 +1604,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       const button = document.createElement('button');
       button.type = 'button';
       button.textContent = match.title;
-      button.addEventListener('click', () => jump(match));
+      button.addEventListener('click', () => jump(match, words));
       item.append(button);
       items.append(item);
     }
