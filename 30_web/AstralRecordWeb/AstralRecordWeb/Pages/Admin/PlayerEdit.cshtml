@@ -4,7 +4,7 @@
 <section class="ar-portal"><div class="container">
     <header class="ar-portal-heading">
         <div><h1>プレイヤー状態の編集</h1><p class="ar-portal-sub">接続を停止し、保存済み状態を確認してから編集します。</p></div>
-        <a class="btn ar-btn-outline" asp-page="/Players/Detail" asp-route-userUuid="@Model.UserUuid" asp-route-accountId="@Model.AccountId" asp-route-includePrivate="true">プレイヤー詳細へ戻る</a>
+        <a class="btn ar-btn-outline" asp-page="/Players/Detail" asp-route-userUuid="@Model.UserUuid" asp-route-accountId="@(Model.Profile is null || Model.PendingOperation?.Action == "DELETE" ? (Guid?)null : Model.AccountId)" asp-route-includePrivate="true">プレイヤー詳細へ戻る</a>
     </header>
     @if (Model.StatusMessage is not null) { <div class="alert alert-success" role="status">@Model.StatusMessage</div> }
     @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
@@ -12,7 +12,7 @@
     @if (Model.Profile?.CurrentAccount is { } account)
     {
         <section class="ar-panel" aria-labelledby="player-edit-target"><h2 id="player-edit-target">対象</h2>
-            <dl><div><dt>MCID</dt><dd>@Model.Profile.Mcid</dd></div><div><dt>User UUID</dt><dd>@Model.UserUuid</dd></div>
+            <dl class="text-break"><div><dt>MCID</dt><dd>@Model.Profile.Mcid</dd></div><div><dt>User UUID</dt><dd>@Model.UserUuid</dd></div>
                 <div><dt>アカウント</dt><dd>スロット @account.SlotIndex: @account.AccountName</dd></div><div><dt>Account ID</dt><dd>@Model.AccountId</dd></div></dl>
         </section>
         @if (Model.PendingStart)
@@ -21,7 +21,7 @@
                 <form method="post" asp-page-handler="RetryStart"><button type="submit" class="btn ar-btn-primary">編集開始を確定・同じ要求を再送</button></form>
             </section>
         }
-        @if (Model.Session is null && Model.ErrorMessage is null && !Model.PendingStart)
+        @if (Model.Session is null && Model.ErrorMessage is null && !Model.PendingStart && Model.PendingOperation is null)
         {
             <section class="ar-panel" aria-labelledby="player-edit-start"><h2 id="player-edit-start">編集を開始</h2>
                 <p>対象ユーザーの新規参加を停止します。オンライン中ならゲームサーバーが保存し、切断を確認します。開始後は管理者が適用または取消を完了するまで参加できません。</p>
@@ -49,10 +49,10 @@
                 @if (session.Status is "COMPLETED" or "CANCELED")
                 {
                     <p>編集セッションは終了しました。プレイヤーは自動再接続されません。</p>
-                    @if (Model.IsOwner)
+                    @if (Model.IsOwner && Model.PendingOperation is null)
                     { <form method="post" asp-page-handler="New"><button type="submit" class="btn ar-btn-outline">新しい編集を開始</button></form> }
                 }
-                @if (Model.PendingOperation is { } pending)
+                @if (Model.PendingOperation is { Action: not "DELETE" } pending)
                 {
                     <div class="alert alert-warning">@(pending.Action == "APPLY" ? "適用" : "取消")を確定する前、または送信結果を確認中です。別の操作は送信できません。</div>
                     @if (pending.Action == "APPLY")
@@ -64,7 +64,8 @@
                     <form method="post" asp-page-handler="RetryOperation"><button type="submit" class="btn ar-btn-primary">同じ@(pending.Action == "APPLY" ? "変更" : "取消")を確定・再送</button></form>
                 }
                 <a class="btn ar-btn-outline" asp-page="/Admin/PlayerEdit" asp-route-userUuid="@Model.UserUuid" asp-route-accountId="@Model.AccountId">状態を再読み込み</a>
-                @if (Model.IsOwner && Model.PendingOperation is null && session.Status is ("DRAINING" or "READY" or "RECOVERY_REQUIRED"))
+                @if (Model.IsOwner && session.Status is ("DRAINING" or "READY" or "RECOVERY_REQUIRED")
+                    && (Model.PendingOperation is null || (Model.PendingOperation.Action == "DELETE" && session.Status != "READY")))
                 {
                     <form method="post" asp-page-handler="Refresh" class="mt-3">
                         <input type="hidden" name="EditSessionId" value="@session.EditSessionId" /><input type="hidden" name="ExpectedRevision" value="@session.Revision" />
@@ -133,6 +134,40 @@
                     </form>
                 </section>
             }
+            @if (Model.CanDelete)
+            {
+                <section class="ar-panel" aria-labelledby="player-edit-delete">
+                    <h2 id="player-edit-delete">キャラクターデータを削除</h2>
+                    <p>このキャラクターの進行状況・装備・所持品などが削除されます。最後のキャラクターの場合は、同じスロットに初期キャラクターを作成します。確定後は元に戻せません。</p>
+                    <form method="post" asp-page-handler="Delete" autocomplete="off">
+                        <input type="hidden" name="EditSessionId" value="@session.EditSessionId" />
+                        <input type="hidden" name="ExpectedRevision" value="@session.Revision" />
+                        <input type="hidden" name="OperationId" value="@(Model.OperationId == Guid.Empty ? Guid.NewGuid() : Model.OperationId)" />
+                        <label asp-for="DeleteConfirmation" class="form-label">確認のため「削除」と入力してください。</label>
+                        <input asp-for="DeleteConfirmation" class="form-control mb-3" maxlength="2" required />
+                        <button type="submit" class="btn btn-danger">削除内容を確認</button>
+                    </form>
+                </section>
+            }
         }
+    }
+    @if (Model.PendingOperation?.Action == "DELETE")
+    {
+        <section class="ar-panel" aria-labelledby="player-edit-delete-pending">
+            <h2 id="player-edit-delete-pending">キャラクターデータの削除を確認</h2>
+            @if (Model.Profile?.CurrentAccount is { } pendingAccount)
+            {
+                <p class="text-break">@Model.Profile.Mcid の @pendingAccount.AccountName（スロット @pendingAccount.SlotIndex）</p>
+            }
+            <p class="text-break">対象のアカウントID @Model.AccountId</p>
+            <p>削除を確定すると元に戻せません。確定には本人のMinecraftログインコードによる再認証が必要です。</p>
+            <form method="post" asp-page-handler="RetryOperation">
+                <button type="submit" class="btn btn-danger mb-2">削除を確定・同じ要求を再送</button>
+            </form>
+            <form method="post" asp-page-handler="CancelDeletion">
+                <button type="submit" class="btn ar-btn-outline mb-2">削除を取りやめて編集を終了</button>
+            </form>
+            <a class="btn ar-btn-outline" asp-page="/Admin/PlayerEdit" asp-route-userUuid="@Model.UserUuid" asp-route-accountId="@Model.AccountId">削除結果を確認</a>
+        </section>
     }
 </div></section>

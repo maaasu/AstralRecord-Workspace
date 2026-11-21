@@ -116,6 +116,71 @@ public sealed partial class PlayerAdminEditRepository
         });
     }
 
+    public async Task<PlayerAdminResult<PlayerAdminEditSessionResponse>> DeleteAccountAsync(
+        Guid editSessionId, Guid actor, PlayerAdminDeleteAccountOperation request)
+    {
+        if (request.OperationId == Guid.Empty || request.ExpectedRevision < 1
+            || request.UserUuid == Guid.Empty || request.AccountId == Guid.Empty)
+            return Fail<PlayerAdminEditSessionResponse>(400, "Invalid deletion request.");
+        var owner = await dbContext.PlayerAdminEditSessions.AsNoTracking()
+            .Where(x => x.EditSessionId == editSessionId).Select(x => (Guid?)x.UserUuid).SingleOrDefaultAsync();
+        if (!owner.HasValue) return Fail<PlayerAdminEditSessionResponse>(404, "Edit session not found.");
+        var hash = HashJson(new { Purpose = "DeleteAccount", editSessionId, actor, request });
+
+        return await InTransactionAsync<PlayerAdminEditSessionResponse>(async () =>
+        {
+            if (!await LockUserAsync(owner.Value)) return Fail<PlayerAdminEditSessionResponse>(404, "User not found.");
+            var session = await dbContext.PlayerAdminEditSessions.SingleAsync(x => x.EditSessionId == editSessionId);
+            if (session.ActorUserUuid != actor) return Fail<PlayerAdminEditSessionResponse>(403, "Session owner mismatch.");
+            if (session.UserUuid != request.UserUuid || session.AccountId != request.AccountId)
+                return Fail<PlayerAdminEditSessionResponse>(409, "Deletion target mismatch.");
+            var replay = await dbContext.PlayerAdminEditOperations.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.OperationId == request.OperationId);
+            if (replay is not null)
+            {
+                if (replay.EditSessionId != editSessionId || replay.Action != "APPLY" || replay.RequestHash != hash)
+                    return Fail<PlayerAdminEditSessionResponse>(409, "Operation ID was reused.");
+                var receipt = JsonSerializer.Deserialize<PlayerAdminEditSessionResponse>(replay.ResponseJson, JsonOptions);
+                return receipt is not null && receipt.DeleteOperationId == request.OperationId
+                    ? new(200, receipt) : Fail<PlayerAdminEditSessionResponse>(409, "Stored receipt is invalid.");
+            }
+            if (session.Status != "READY" || session.ExpiresAtUtc <= DateTime.UtcNow
+                || session.Revision != request.ExpectedRevision || !await IsFullyDrainedAsync(session))
+                return Fail<PlayerAdminEditSessionResponse>(409, "Edit session is not ready or revision changed.");
+            var account = await LockAccountAsync(request.AccountId);
+            if (account is null || account.UserId != request.UserUuid)
+                return Fail<PlayerAdminEditSessionResponse>(409, "Account changed.");
+
+            var before = await CaptureAuditStateAsync(account);
+            AccountDeleteResponse? deleted;
+            try
+            {
+                deleted = await accounts.DeleteInTransactionAsync(account.Uuid, new() { DeletedBy = actor });
+            }
+            catch (PlayerAdminEditConflictException ex)
+            {
+                return Fail<PlayerAdminEditSessionResponse>(409, ex.Message);
+            }
+            if (deleted is null) return Fail<PlayerAdminEditSessionResponse>(409, "Account deletion could not be confirmed.");
+
+            var now = DateTime.UtcNow;
+            session.Status = "COMPLETED";
+            session.Revision++;
+            session.UpdatedAtUtc = now;
+            session.CompletedAtUtc = now;
+            var response = (await MapSessionAsync(session)) with { DeleteOperationId = request.OperationId };
+            dbContext.PlayerAdminEditOperations.Add(new PlayerAdminEditOperationEntity
+            {
+                OperationId = request.OperationId, EditSessionId = editSessionId, RequestHash = hash,
+                Action = "APPLY", ResponseJson = JsonSerializer.Serialize(response, JsonOptions),
+                BeforeJson = before, AfterJson = JsonSerializer.Serialize(new { Deleted = true, Result = deleted }, JsonOptions),
+                CreatedAtUtc = now,
+            });
+            await dbContext.SaveChangesAsync();
+            return new(200, response);
+        });
+    }
+
     public async Task<PlayerAdminResult<PlayerAdminEditSessionResponse>> CancelAsync(
         Guid editSessionId, Guid actor, PlayerAdminEditCancelRequest request)
     {

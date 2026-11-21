@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using AstralRecordWeb.Authorization;
 using AstralRecordWeb.Models;
 using AstralRecordWeb.Services;
 using Microsoft.AspNetCore.DataProtection;
@@ -16,7 +17,7 @@ namespace AstralRecordWeb.Pages.Admin;
 [Authorize(Policy = "WebAdminOnly")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class PlayerEditModel(PlayerAdminApiClient adminApi, PlayerProfileApiClient profiles,
-    IDataProtectionProvider protection, ILogger<PlayerEditModel> logger) : PageModel
+    IDataProtectionProvider protection, ILogger<PlayerEditModel> logger, TimeProvider clock) : PageModel
 {
     private const string BrowserStateCookiePrefix = "__Host-AstralRecordPlayerEdit-";
     private static readonly JsonSerializerOptions BrowserJson = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
@@ -38,8 +39,10 @@ public sealed class PlayerEditModel(PlayerAdminApiClient adminApi, PlayerProfile
     [BindProperty] public string? ItemId { get; set; }
     [BindProperty] public string? QuantityText { get; set; }
     [BindProperty] public bool ConfirmTarget { get; set; }
+    [BindProperty] public string? DeleteConfirmation { get; set; }
 
     [TempData] public string? StatusMessage { get; set; }
+    [TempData] public string? CharacterDeletionStatus { get; set; }
     public string? ErrorMessage { get; private set; }
     public WebPlayerProfileResponse? Profile { get; private set; }
     public PlayerAdminEditSession? Session { get; private set; }
@@ -47,6 +50,8 @@ public sealed class PlayerEditModel(PlayerAdminApiClient adminApi, PlayerProfile
     public PlayerEditPendingOperation? PendingOperation { get; private set; }
     public bool PendingStart { get; private set; }
     public bool IsOwner { get; private set; }
+    public bool CanDelete => PendingOperation is null && IsOwner && Session?.Status == "READY"
+        && Profile?.CurrentAccount?.AccountId == AccountId;
     public bool CanEdit => PendingOperation is null && IsOwner && Session?.Status == "READY" && Editor?.Account is not null
         && !string.IsNullOrWhiteSpace(Editor.ExpectedStateHash) && !string.IsNullOrWhiteSpace(Editor.CatalogVersion);
 
@@ -60,6 +65,11 @@ public sealed class PlayerEditModel(PlayerAdminApiClient adminApi, PlayerProfile
     public async Task<IActionResult> OnPostStartAsync(CancellationToken ct)
     {
         if (!TryActor(out var actor)) return Challenge();
+        if (ReadBrowserState(actor)?.PendingOperation is not null)
+        {
+            ErrorMessage = "前回の操作結果を先に確認してください。";
+            return await LoadAsync(ct);
+        }
         if (EditSessionId == Guid.Empty || string.IsNullOrWhiteSpace(Reason) || Reason.Trim().Length is > 500 or < 1)
         {
             ModelState.AddModelError(nameof(Reason), "編集理由を1～500文字で入力してください。");
@@ -129,7 +139,8 @@ public sealed class PlayerEditModel(PlayerAdminApiClient adminApi, PlayerProfile
 
     public async Task<IActionResult> OnPostRefreshAsync(CancellationToken ct)
     {
-        if (TryActor(out var refreshActor) && ReadBrowserState(refreshActor)?.PendingOperation is not null)
+        if (TryActor(out var refreshActor) && ReadBrowserState(refreshActor) is { PendingOperation: { } pending } state
+            && (pending.Action != "DELETE" || state.EditSessionId != EditSessionId))
         {
             ErrorMessage = "前回の操作結果を先に確認してください。";
             return await LoadAsync(ct);
@@ -187,6 +198,27 @@ public sealed class PlayerEditModel(PlayerAdminApiClient adminApi, PlayerProfile
         return RedirectToPage(new { userUuid = UserUuid, accountId = AccountId });
     }
 
+    public async Task<IActionResult> OnPostDeleteAsync(CancellationToken ct)
+    {
+        if (!TryActor(out var actor)) return Challenge();
+        if (ReadBrowserState(actor)?.PendingOperation is not null)
+        {
+            ErrorMessage = "前回の操作結果を先に確認してください。";
+            return await LoadAsync(ct);
+        }
+        ModelState.Remove(nameof(InventoryAction));
+        if (DeleteConfirmation != "削除")
+            ModelState.AddModelError(nameof(DeleteConfirmation), "確認欄に「削除」と入力してください。");
+        if (OperationId == Guid.Empty)
+            ModelState.AddModelError(nameof(OperationId), "操作IDを確認できません。ページを再読み込みしてください。");
+        if (!ModelState.IsValid || !await CheckOwnedSessionAsync(ct, requireReady: true))
+            return await LoadAsync(ct);
+
+        var pending = new PlayerEditPendingOperation("DELETE", OperationId, ExpectedRevision, string.Empty, string.Empty, null, null, []);
+        WriteBrowserState(new PlayerEditBrowserState(actor, UserUuid, AccountId, EditSessionId, false, null, pending));
+        return RedirectToPage(new { userUuid = UserUuid, accountId = AccountId });
+    }
+
     public async Task<IActionResult> OnPostCancelAsync(CancellationToken ct)
     {
         if (TryActor(out var cancelActor) && ReadBrowserState(cancelActor)?.PendingOperation is not null)
@@ -219,6 +251,8 @@ public sealed class PlayerEditModel(PlayerAdminApiClient adminApi, PlayerProfile
         if (browserState?.PendingOperation is not { } pending || browserState.EditSessionId == Guid.Empty)
             return await LoadAsync(ct);
         var receipt = await adminApi.GetSessionByIdAsync(actor, browserState.EditSessionId, ct);
+        if (pending.Action == "DELETE")
+            return await RetryDeleteAsync(browserState, pending, receipt, ct);
         if (receipt.Succeeded && receipt.Value?.AccountId == AccountId && receipt.Value.UserUuid == UserUuid
             && receipt.Value.ActorUserUuid == actor
             && receipt.Value.Status is ("COMPLETED" or "CANCELED"))
@@ -262,6 +296,89 @@ public sealed class PlayerEditModel(PlayerAdminApiClient adminApi, PlayerProfile
         if (DefinitiveFailure(result.Status)) WriteBrowserState(browserState with { PendingOperation = null });
         ErrorMessage = Failure(result, "操作結果を確認できませんでした。ロック状態を確認してください。");
         return await LoadAsync(ct);
+    }
+
+    public async Task<IActionResult> OnPostCancelDeletionAsync(CancellationToken ct)
+    {
+        if (!TryActor(out var actor)) return Challenge();
+        var state = ReadBrowserState(actor);
+        if (state is not { PendingOperation.Action: "DELETE" } || state.EditSessionId == Guid.Empty)
+            return await LoadAsync(ct);
+
+        var receipt = await adminApi.GetSessionByIdAsync(actor, state.EditSessionId, ct);
+        if (ResolveDeletionOutcome(receipt, state) is { } outcome) return outcome;
+        if (MatchesDeletionSession(receipt, state)
+            && receipt.Value is { Status: "DRAINING" or "READY" or "RECOVERY_REQUIRED" } session)
+        {
+            var result = await adminApi.CancelAsync(actor, state.EditSessionId, Guid.NewGuid(), session.Revision, ct);
+            if (ResolveDeletionOutcome(result, state) is { } canceled) return canceled;
+        }
+        ErrorMessage = "編集の取消を確認できませんでした。保存・切断の状態を確認し、取消結果を再確認してください。";
+        return await LoadAsync(ct);
+    }
+
+    private async Task<IActionResult> RetryDeleteAsync(PlayerEditBrowserState state, PlayerEditPendingOperation pending,
+        PlayerAdminApiResult<PlayerAdminEditSession> receipt, CancellationToken ct)
+    {
+        if (!MatchesDeletionSession(receipt, state))
+        {
+            ErrorMessage = "削除結果を確認できません。状態が確認できるまで削除は再送されません。";
+            return await LoadAsync(ct);
+        }
+        var session = receipt.Value!;
+        if (ResolveDeletionOutcome(receipt, state) is { } outcome) return outcome;
+        if (session.Status != "READY" || session.Revision != pending.ExpectedRevision)
+        {
+            ErrorMessage = "削除を確定できませんでした。最新の編集状態を確認してください。";
+            return await LoadAsync(ct);
+        }
+        var proof = User.FindFirstValue(WebSession.CodeProofClaim);
+        if (WebSession.RecentCodeTime(User, clock) is null || string.IsNullOrEmpty(proof)
+            || !Guid.TryParse(User.FindFirstValue(WebSession.VersionClaim), out var version) || version == Guid.Empty)
+            return await ReauthenticateForDeletionAsync(state, ct);
+
+        var result = await adminApi.DeleteAccountAsync(state.ActorUserUuid, state.EditSessionId, pending.OperationId,
+            pending.ExpectedRevision, state.UserUuid, state.AccountId, version, proof, ct);
+        if (ResolveDeletionOutcome(result, state) is { } saved) return saved;
+        if (result.Status == HttpStatusCode.Forbidden) return await ReauthenticateForDeletionAsync(state, ct);
+        ErrorMessage = result.Status == HttpStatusCode.Conflict
+            ? "削除の条件を満たしていません。最新の編集状態を確認してください。"
+            : "削除の確定を確認できませんでした。編集状態を確認してください。";
+        return await LoadAsync(ct);
+    }
+
+    private static bool MatchesDeletionSession(PlayerAdminApiResult<PlayerAdminEditSession> result, PlayerEditBrowserState state) =>
+        result.Succeeded && result.Value is { } session && session.EditSessionId == state.EditSessionId
+        && session.AccountId == state.AccountId && session.UserUuid == state.UserUuid && session.ActorUserUuid == state.ActorUserUuid;
+
+    private async Task<IActionResult> ReauthenticateForDeletionAsync(PlayerEditBrowserState state, CancellationToken ct)
+    {
+        if (state.ActorUserUuid != state.UserUuid)
+            return RedirectToPage("/Reauthenticate",
+                new { returnUrl = Url.Page("/Admin/PlayerEdit", new { userUuid = UserUuid, accountId = AccountId }) });
+
+        ErrorMessage = "参加停止中はご自身のログインコードを発行できません。編集を終了してから、許可済みの別アカウントで操作してください。";
+        return await LoadAsync(ct);
+    }
+
+    private IActionResult? ResolveDeletionOutcome(PlayerAdminApiResult<PlayerAdminEditSession> result, PlayerEditBrowserState state)
+    {
+        if (!MatchesDeletionSession(result, state)) return null;
+        if (result.Value is { Status: "COMPLETED", DeleteOperationId: { } operationId }
+            && operationId == state.PendingOperation?.OperationId)
+            return CompleteDeletion();
+        if (result.Value?.Status != "CANCELED") return null;
+
+        WriteBrowserState(state with { PendingOperation = null });
+        StatusMessage = "削除を取りやめ、編集を終了しました。";
+        return RedirectToPage(new { userUuid = UserUuid, accountId = AccountId });
+    }
+
+    private IActionResult CompleteDeletion()
+    {
+        ClearBrowserState();
+        CharacterDeletionStatus = "キャラクターデータを削除しました。";
+        return RedirectToPage("/Players/Detail", new { userUuid = UserUuid, includePrivate = true });
     }
 
     public async Task<IActionResult> OnPostNewAsync(CancellationToken ct)
@@ -319,7 +436,7 @@ public sealed class PlayerEditModel(PlayerAdminApiClient adminApi, PlayerProfile
     {
         if (!TryActor(out var actor)) return false;
         var result = await adminApi.GetSessionAsync(actor, AccountId, ct);
-        if (!result.Succeeded || result.Value?.UserUuid != UserUuid || result.Value.EditSessionId != EditSessionId
+        if (!result.Succeeded || result.Value?.UserUuid != UserUuid || result.Value.AccountId != AccountId || result.Value.EditSessionId != EditSessionId
             || result.Value.ActorUserUuid != actor || result.Value.Revision != ExpectedRevision)
         {
             ErrorMessage = "編集状態が変わりました。最新の状態を確認してください。ロックは維持されています。";
@@ -342,22 +459,42 @@ public sealed class PlayerEditModel(PlayerAdminApiClient adminApi, PlayerProfile
     {
         if (UserUuid == Guid.Empty || AccountId == Guid.Empty) return NotFound();
         if (!TryActor(out var actor)) return Challenge();
+        var browserState = ReadBrowserState(actor);
+        var checkingDeletion = browserState?.PendingOperation?.Action == "DELETE";
+        if (browserState?.PendingOperation is { Action: "DELETE" } deletion)
+        {
+            var receipt = await adminApi.GetSessionByIdAsync(actor, browserState.EditSessionId, ct);
+            if (ResolveDeletionOutcome(receipt, browserState) is { } outcome) return outcome;
+            var matches = MatchesDeletionSession(receipt, browserState);
+            if (matches && receipt.Value?.Status == "COMPLETED")
+            {
+                browserState = browserState with { PendingOperation = null };
+                WriteBrowserState(browserState);
+                ErrorMessage ??= "この削除操作の確定は確認できませんでした。";
+            }
+            else
+            {
+                PendingOperation = deletion;
+                if (!matches) ErrorMessage ??= "削除結果を確認できません。状態を再読み込みしてください。";
+            }
+        }
         var profile = await profiles.GetProfileAsync(UserUuid, actor, includePrivate: true, AccountId, ct);
         if (profile.Status == HttpStatusCode.Forbidden) return Forbid();
-        if (profile.Status == HttpStatusCode.NotFound || profile.Value?.CurrentAccount?.AccountId != AccountId) return NotFound();
+        if (profile.Status == HttpStatusCode.NotFound || profile.Value?.CurrentAccount?.AccountId != AccountId)
+            return checkingDeletion ? Page() : NotFound();
         if (!profile.Succeeded)
         {
             ErrorMessage ??= "対象アカウントを確認できませんでした。";
             return Page();
         }
         Profile = profile.Value;
-        var browserState = ReadBrowserState(actor);
         var result = await adminApi.GetSessionAsync(actor, AccountId, ct);
         if (result.Status == HttpStatusCode.Forbidden) return Forbid();
         if (result.Status == HttpStatusCode.NotFound)
         {
             if (browserState is null) return Page();
             EditSessionId = browserState.EditSessionId;
+            if (PendingOperation?.Action == "DELETE") return Page();
             var receipt = await adminApi.GetSessionByIdAsync(actor, browserState.EditSessionId, ct);
             if (receipt.Succeeded && receipt.Value?.AccountId == AccountId && receipt.Value.UserUuid == UserUuid
                 && receipt.Value.ActorUserUuid == actor)
@@ -390,6 +527,11 @@ public sealed class PlayerEditModel(PlayerAdminApiClient adminApi, PlayerProfile
         if (!result.Succeeded || result.Value?.UserUuid != UserUuid || result.Value.AccountId != AccountId)
         {
             ErrorMessage ??= "編集状態を取得できませんでした。再読み込みしてください。";
+            return Page();
+        }
+        if (PendingOperation?.Action == "DELETE" && browserState?.EditSessionId != result.Value.EditSessionId)
+        {
+            ErrorMessage ??= "削除要求と現在の編集状態が一致しません。削除結果を確認してください。";
             return Page();
         }
         Session = result.Value;

@@ -66,8 +66,10 @@ public class WebAuthRepositoryTests
     /// <summary>
     /// 検証契約: 信頼済みブラウザはコード認証で発行され、最終利用から7日間だけ更新されながら有効になる。
     /// </summary>
-    [Fact]
-    public async Task ConsumeChallengeAsync_IssuesTrustedBrowserTokenWithSlidingSevenDayExpiry()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ConsumeChallengeAsync_IssuesTrustedBrowserTokenWithSlidingSevenDayExpiry(bool additionalAdmin)
     {
         await using var gameConnection = new SqliteConnection("Data Source=:memory:");
         await using var managementConnection = new SqliteConnection("Data Source=:memory:");
@@ -85,7 +87,7 @@ public class WebAuthRepositoryTests
             {
                 PlayerUuid = userId,
                 Mcid = "TrustedTester",
-                WebAdmin = true,
+                WebAdmin = !additionalAdmin,
                 CreatedAt = now,
                 UpdatedAt = now,
             });
@@ -94,7 +96,11 @@ public class WebAuthRepositoryTests
 
         await using var gameContext = new AstralRecordDbContext(gameOptions);
         await using var managementContext = new ManagementDbContext(managementOptions);
-        var repository = CreateRepository(gameContext, managementContext);
+        var unregistered = Guid.NewGuid();
+        var repository = CreateRepository(gameContext, managementContext, additionalAdmin ? [userId, unregistered, Guid.Empty] : []);
+        Assert.False(await repository.IsWebAdminAsync(Guid.Empty));
+        Assert.False(await repository.IsWebAdminAsync(unregistered));
+        Assert.False(await repository.IsWebAdminAsync(Guid.NewGuid()));
         var issued = await repository.CreateChallengeAsync(CreateChallengeRequest(userId, "TrustedTester", now));
         Assert.NotNull(issued);
 
@@ -109,6 +115,8 @@ public class WebAuthRepositoryTests
         Assert.NotNull(consumed.TrustedBrowserToken);
         var token = consumed.TrustedBrowserToken!;
         Assert.True(await repository.IsTrustedBrowserAsync(userId, consumed.SessionVersion, token));
+        Assert.Equal(!additionalAdmin, (await managementContext.Players.AsNoTracking().SingleAsync()).WebAdmin);
+        Assert.Equal(!additionalAdmin, await CreateRepository(gameContext, managementContext).IsWebAdminAsync(userId));
 
         var trustedBrowser = await managementContext.WebTrustedBrowsers.AsNoTracking().SingleAsync();
         var recentCreatedAt = DateTime.UtcNow.AddDays(-6).AddMinutes(-1);
@@ -356,10 +364,12 @@ public class WebAuthRepositoryTests
         }
     }
 
-    [Fact]
-    public async Task PasswordLogin_UsesManagementIdentityAfterGameResetButRejectsExplicitDeletion()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PasswordLogin_UsesManagementIdentityAfterGameResetButRejectsExplicitDeletion(bool additionalAdmin)
     {
-        var fixture = await PasswordFixture.CreateAsync();
+        var fixture = await PasswordFixture.CreateAsync(additionalAdmin);
         await using (fixture)
         {
             var initial = (await fixture.Repository.GetCredentialAsync(fixture.UserId))!;
@@ -371,6 +381,7 @@ public class WebAuthRepositoryTests
             var afterReset = await fixture.Repository.LoginWithPasswordAsync(new WebPasswordLoginRequest { LoginId = enabled.LoginId!, Password = "CobaltHarbor!29" });
             Assert.Equal(WebPasswordLoginStatus.Succeeded, afterReset.Status);
             Assert.Equal(0, afterReset.Response!.Permission);
+            Assert.Equal(additionalAdmin, afterReset.Response.WebAdmin);
             Assert.Empty(afterReset.Response.AccountIds);
 
             await SeedGameUserAsync(fixture.GameOptions, fixture.UserId, "PasswordTester", Guid.NewGuid(), DateTime.UtcNow);
@@ -495,7 +506,7 @@ public class WebAuthRepositoryTests
             this.managementConnection = managementConnection;
         }
 
-        public static async Task<PasswordFixture> CreateAsync()
+        public static async Task<PasswordFixture> CreateAsync(bool additionalAdmin = false)
         {
             var gameConnection = new SqliteConnection("Data Source=:memory:");
             var managementConnection = new SqliteConnection("Data Source=:memory:");
@@ -509,7 +520,7 @@ public class WebAuthRepositoryTests
             await managementSetup.Database.EnsureCreatedAsync();
             var game = new AstralRecordDbContext(gameOptions);
             var management = new ManagementDbContext(managementOptions);
-            var repository = CreateRepository(game, management);
+            var repository = CreateRepository(game, management, additionalAdmin ? [userId] : []);
             var issued = await repository.CreateChallengeAsync(CreateChallengeRequest(userId, "PasswordTester", DateTime.UtcNow));
             Assert.NotNull(issued);
             var consumed = await repository.ConsumeChallengeAsync(new WebLoginChallengeConsumeRequest { LoginCode = issued.LoginCode });
@@ -532,11 +543,13 @@ public class WebAuthRepositoryTests
 
     private static WebAuthRepository CreateRepository(
         AstralRecordDbContext gameContext,
-        ManagementDbContext managementContext) =>
+        ManagementDbContext managementContext,
+        Guid[]? additionalAdmins = null) =>
         new(gameContext, managementContext, Microsoft.Extensions.Options.Options.Create(new WebAuthOptions
         {
             ChallengeMinutes = 5,
             LoginUrl = "https://example.com/Login",
+            AdditionalAdminPlayerUuids = additionalAdmins ?? [],
         }), new WebCodeProofProtector(new EphemeralDataProtectionProvider()));
 
     private static WebLoginChallengeCreateRequest CreateChallengeRequest(Guid userId, string mcid, DateTime now) => new()

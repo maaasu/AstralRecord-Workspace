@@ -144,7 +144,8 @@ builder.Services.AddScoped<IAccountGuideCompletionRewardRepository, AccountGuide
 builder.Services.AddScoped<ILoginBonusClaimRepository, LoginBonusClaimRepository>();
 builder.Services.AddScoped<ISkillBindPresetRepository, SkillBindPresetRepository>();
 builder.Services.AddScoped<IAccountLearnedSkillRepository, AccountLearnedSkillRepository>();
-builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+builder.Services.AddScoped<AccountRepository>();
+builder.Services.AddScoped<IAccountRepository>(services => services.GetRequiredService<AccountRepository>());
 builder.Services.AddScoped<IAccountBenefitsRepository, AccountBenefitsRepository>();
 builder.Services.AddScoped<IChannelBoostRepository, ChannelBoostRepository>();
 builder.Services.AddScoped<IAstraldShopRepository, AstraldShopRepository>();

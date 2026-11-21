@@ -23,6 +23,7 @@ public class DetailModel(PlayerProfileApiClient profiles, NetworkManagementApiCl
     public NetworkBanStateResponse? BanState { get; private set; }
     public string? BanErrorMessage { get; private set; }
     public string? ErrorMessage { get; private set; }
+    [TempData] public string? CharacterDeletionStatus { get; set; }
     [BindProperty] public NetworkBanInput BanInput { get; set; } = new();
 
     public async Task<IActionResult> OnGetAsync(Guid userUuid, CancellationToken ct)

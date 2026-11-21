@@ -1,6 +1,8 @@
+using AstralRecordApi.Authentication;
 using AstralRecordApi.Controllers;
 using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Xunit;
@@ -122,8 +124,46 @@ public sealed class PlayerAdminControllerTests
         Assert.Equal(0, edits.CancelCalls);
     }
 
-    private static PlayerAdminController MakeController(EditRepository edits, WebAuthRepository auth) =>
-        new(edits, auth)
+    [Fact]
+    public async Task DeleteRequiresAdminAndRecentActorProofForCurrentCredentialVersion()
+    {
+        var edits = new EditRepository();
+        var version = Guid.NewGuid();
+        var auth = new WebAuthRepository { Credential = new() { SessionVersion = version } };
+        var protector = new WebCodeProofProtector(new EphemeralDataProtectionProvider());
+        var controller = MakeController(edits, auth, protector);
+        var session = Guid.NewGuid();
+        var operation = Guid.NewGuid();
+        var user = Guid.NewGuid();
+        var now = DateTimeOffset.UtcNow;
+        PlayerAdminDeleteAccountRequest Request(string? proof, Guid requestVersion) => new()
+        {
+            OperationId = operation, ExpectedRevision = 3, UserUuid = user, AccountId = Account,
+            SessionVersion = requestVersion, CodeAuthenticationProof = proof,
+        };
+        var valid = Request(protector.Issue(Actor, version, now), version);
+        Assert.Equal(403, Assert.IsType<StatusCodeResult>(await controller.Delete(session, Actor, valid)).StatusCode);
+        auth.IsAdmin = true;
+        var oldVersion = Guid.NewGuid();
+        foreach (var invalid in new[]
+        {
+            Request(null, version),
+            Request(protector.Issue(Actor, version, now.AddMinutes(-6)), version),
+            Request(protector.Issue(Guid.NewGuid(), version, now), version),
+            Request(protector.Issue(Actor, oldVersion, now), oldVersion),
+            Request(protector.Issue(Actor, oldVersion, now), version),
+        })
+            Assert.Equal(403, Assert.IsType<StatusCodeResult>(await controller.Delete(session, Actor, invalid)).StatusCode);
+
+        Assert.Null(edits.LastDeletion);
+        Assert.Equal(200, Assert.IsType<ObjectResult>(await controller.Delete(session, Actor, valid)).StatusCode);
+        Assert.Equal(session, edits.LastEditSession);
+        Assert.Equal(Actor, edits.LastActor);
+        Assert.Equal(new PlayerAdminDeleteAccountOperation(operation, 3, user, Account), edits.LastDeletion);
+    }
+
+    private static PlayerAdminController MakeController(EditRepository edits, WebAuthRepository auth, WebCodeProofProtector? protector = null) =>
+        new(edits, auth, protector ?? new(new EphemeralDataProtectionProvider()), TimeProvider.System)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
         };
@@ -142,6 +182,7 @@ public sealed class PlayerAdminControllerTests
         public Guid LastAccount { get; private set; }
         public Guid LastActor { get; private set; }
         public PlayerAdminEditStartRequest? LastRequest { get; private set; }
+        public PlayerAdminDeleteAccountOperation? LastDeletion { get; private set; }
         public PlayerAdminResult<PlayerAdminEditSessionResponse> StartResult { get; set; } =
             new(201, new(Guid.NewGuid(), Account, Guid.NewGuid(), Actor, "maintenance",
                 "DRAINING", 1, DateTime.UtcNow, DateTime.UtcNow,
@@ -168,6 +209,15 @@ public sealed class PlayerAdminControllerTests
             Guid actor, PlayerAdminEditCancelRequest request)
         {
             CancelCalls++;
+            return Task.FromResult(StartResult with { StatusCode = 200 });
+        }
+
+        public Task<PlayerAdminResult<PlayerAdminEditSessionResponse>> DeleteAccountAsync(Guid editSessionId,
+            Guid actor, PlayerAdminDeleteAccountOperation request)
+        {
+            LastEditSession = editSessionId;
+            LastActor = actor;
+            LastDeletion = request;
             return Task.FromResult(StartResult with { StatusCode = 200 });
         }
 
@@ -205,6 +255,7 @@ public sealed class PlayerAdminControllerTests
     private sealed class WebAuthRepository : IWebAuthRepository
     {
         public bool IsAdmin { get; set; }
+        public WebCredentialResponse? Credential { get; init; }
         public int AdminChecks { get; private set; }
         public Task<bool> IsWebAdminAsync(Guid userUuid)
         {
@@ -216,7 +267,7 @@ public sealed class PlayerAdminControllerTests
         public Task<bool> IsTrustedBrowserAsync(Guid userUuid, Guid sessionVersion, string? token) => throw new NotSupportedException();
         public Task<WebLoginChallengeUserResolveResult> ResolveUserByMcidAsync(string mcid) => throw new NotSupportedException();
         public Task<WebPasswordLoginResult> LoginWithPasswordAsync(WebPasswordLoginRequest request) => throw new NotSupportedException();
-        public Task<WebCredentialResponse?> GetCredentialAsync(Guid userUuid) => throw new NotSupportedException();
+        public Task<WebCredentialResponse?> GetCredentialAsync(Guid userUuid) => Task.FromResult(Credential);
         public Task<WebCredentialUpdateResult> UpdateCredentialAsync(Guid userUuid, WebCredentialUpdateRequest request) => throw new NotSupportedException();
     }
 }

@@ -56,7 +56,7 @@ public sealed class SkillTreeOperationRepositoryTests
 
         Assert.True(await f.Repository.CloseAccountSessionAsync(f.Server, f.Account, f.ViewRequest()));
         Assert.True((await f.Db.SkillTreeAccountSessions.AsNoTracking().SingleAsync()).Closed);
-        var edits = new PlayerAdminEditRepository(f.Db, null!, null!, new ConfigurationBuilder().Build());
+        var edits = new PlayerAdminEditRepository(f.Db, null!, null!, new ConfigurationBuilder().Build(), new AccountRepository(f.Db));
         var ack = await edits.AcknowledgeDrainAsync(editId,
             new(f.Server, f.Boot, f.Account, f.User, true, true, Guid.NewGuid()));
         Assert.Equal("READY", ack.Value?.Status);

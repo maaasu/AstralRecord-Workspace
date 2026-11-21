@@ -6,4 +6,5 @@ public class WebAuthOptions
 
     public string LoginUrl { get; set; } = "https://astralrecord.com/Login";
     public int ChallengeMinutes { get; set; } = 5;
+    public Guid[] AdditionalAdminPlayerUuids { get; set; } = [];
 }

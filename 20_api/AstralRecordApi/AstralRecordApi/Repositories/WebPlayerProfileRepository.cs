@@ -13,9 +13,11 @@ public sealed class WebPlayerProfileRepository(
     AstralRecordDbContext gameDb,
     ManagementDbContext managementDb,
     MasterDataDbContext masterDataDb,
-    IOptions<WebPlayerProfileOptions> profileOptions, ISkillTreeOperationRepository? runtime = null) : IWebPlayerProfileRepository
+    IOptions<WebPlayerProfileOptions> profileOptions, ISkillTreeOperationRepository? runtime = null,
+    IOptions<WebAuthOptions>? authOptions = null) : IWebPlayerProfileRepository
 {
     private readonly string structureId = profileOptions.Value.SkillTreeStructureId.Trim();
+    private readonly WebAuthOptions webAuthOptions = authOptions?.Value ?? new();
 
     public async Task<WebPlayerProfileResponse?> GetMyProfileAsync(Guid viewerUserUuid) =>
         await BuildProfileAsync(viewerUserUuid, includeConnection: true);
@@ -95,11 +97,8 @@ public sealed class WebPlayerProfileRepository(
         return await BuildProfileAsync(viewerUserUuid, includeConnection: true);
     }
 
-    private async Task<bool> IsWebAdminAsync(Guid viewerUserUuid) =>
-        viewerUserUuid != Guid.Empty && await managementDb.Players.AsNoTracking()
-            .Where(player => player.PlayerUuid == viewerUserUuid)
-            .Select(player => (bool?)player.WebAdmin)
-            .FirstOrDefaultAsync() == true;
+    private Task<bool> IsWebAdminAsync(Guid viewerUserUuid) =>
+        WebAuthRepository.IsWebAdminAsync(managementDb, viewerUserUuid, webAuthOptions);
 
     private async Task<WebPlayerProfileResponse?> BuildProfileAsync(Guid userUuid, Guid? requestedAccountId = null, bool includeConnection = false)
     {
