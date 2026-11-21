@@ -21,7 +21,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 #equipment-stat-guide h2 { font-size: 18px; line-height: 1.4; font-weight: 600; }
 #equipment-stat-guide :is(h1,h2,summary) { color: var(--heading); }
 /* ===== 共通: 資料タブ・目次・章番号・能力の色分け ===== */
-/* 能力の色: 40_filebase/75.shared.status の公式カテゴリに対応 */
+/* 能力の色は設計書の7分類に対応 */
 :root { --cat-resource: #98c379; --cat-primary: #d19a66; --cat-offense: #e06c75; --cat-defense: #56b6c2; --cat-element: #c678dd; --cat-condition: #e8a0c8; --cat-utility: #a8b0bd; }
 :where(#dps-stat-guide, #stat-guide, #stat-allocation-guide, #equipment-stat-guide) a { color: var(--heading); text-decoration: none; }
 :where(#dps-stat-guide, #stat-guide, #stat-allocation-guide, #equipment-stat-guide) h1 { letter-spacing: 0; font-weight: 600; }
@@ -270,7 +270,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   </nav>
   <header><h1>装備ステータス基準</h1></header>
   <div class="doc-lead">
-    <p>防具の共通防御の配分から求める、Lv.<!-- stat:playerLevel -->25<!-- /stat -->近接標準構成の胴防具の設計値。</p>
+    <p>防具の共通防御の配分から求める、Lv.<!-- stat:playerLevel -->25<!-- /stat --><!-- stat:role -->近接前衛<!-- /stat -->の標準構成の胴防具の設計値。</p>
     <div class="cat-key" aria-label="ステータスの分類"><span>分類</span><span class="cat cat-resource">リソース</span><span class="cat cat-primary">基本能力値</span><span class="cat cat-offense">攻撃</span><span class="cat cat-defense">防御</span><span class="cat cat-element">属性</span><span class="cat cat-condition">状態異常</span><span class="cat cat-utility">ユーティリティ</span></div>
   </div>
   <div class="doc-layout">
@@ -314,7 +314,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       <li><a href="#equipment-roles"><span class="toc-num">1.1</span><span class="ch-toc-title">装備種別の性能</span><span class="ch-toc-desc">武器・防具・補助装備・アクセサリの主な役割</span><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-defense">防御</span></span></a></li>
     </ol>
     <div class="es-stack">
-    <section class="es-panel" id="equipment-roles" aria-labelledby="equipment-roles-title" data-status-ids="DEFENSE">
+    <section class="es-panel" id="equipment-roles" aria-labelledby="equipment-roles-title" data-status-ids="commonDefense">
       <div class="fx-card-head"><h3 id="equipment-roles-title"><span class="sub-num">1.1</span>装備種別の性能</h3><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-defense">防御</span></span></div>
       <div class="es-table" role="region" aria-label="装備種別と性能配分" tabindex="0">
         <table aria-label="装備種別と性能配分">
@@ -333,87 +333,84 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   </section>
   <section class="es-chapter" id="armor" aria-labelledby="armor-title" style="--actor: var(--blue)">
     <h2 id="armor-title"><span class="ch-num">2</span>防具の配分と胴候補</h2>
-    <p class="fx-section-lead">近接標準構成の防具4部位に、直接共通防御を計 <!-- stat:budget -->177<!-- /stat --> 配分する。</p>
+    <p class="fx-section-lead">03の<!-- stat:role -->近接前衛<!-- /stat -->の標準構成に従い、防具4部位に直接共通防御を計 <!-- stat:budget -->177<!-- /stat --> 配分する。</p>
     <ol class="ch-toc" aria-label="2章の内容">
       <li><a href="#armor-weights"><span class="toc-num">2.1</span><span class="ch-toc-title">防具4部位の基準値</span><span class="ch-toc-desc">配分比率と切り捨て後の残余</span><span class="cat-list"><span class="cat cat-defense">防御</span></span></a></li>
       <li><a href="#chest-candidate"><span class="toc-num">2.2</span><span class="ch-toc-title">標準共通防御型の胴</span><span class="ch-toc-desc">装備条件・主性能・個体差</span><span class="cat-list"><span class="cat cat-defense">防御</span></span></a></li>
     </ol>
     <div class="es-stack">
-    <section class="es-panel" id="armor-weights" aria-labelledby="armor-weights-title" data-status-ids="DEFENSE">
+    <section class="es-panel" id="armor-weights" aria-labelledby="armor-weights-title" data-status-ids="commonDefense">
       <div class="fx-card-head"><h3 id="armor-weights-title"><span class="sub-num">2.1</span>防具4部位の基準値</h3><span class="cat-list"><span class="cat cat-defense">防御</span></span></div>
       <div class="es-table" role="region" aria-label="防具4部位の共通防御" tabindex="0">
         <table aria-label="防具4部位の共通防御">
           <thead><tr><th scope="col">部位</th><th scope="col">配分比率</th><th scope="col">理論値</th><th scope="col">切り捨て</th><th scope="col">残余配分</th><th scope="col">基準値</th></tr></thead>
           <tbody>
-            <tr><th scope="row">頭 <code>HEAD</code></th><td><!-- stat:HEAD.weight -->20<!-- /stat -->%</td><td><!-- stat:HEAD.ideal -->35.4<!-- /stat --></td><td><!-- stat:HEAD.floor -->35<!-- /stat --></td><td><!-- stat:HEAD.extra -->0<!-- /stat --></td><td><!-- stat:HEAD.value -->35<!-- /stat --></td></tr>
-            <tr><th scope="row">胴 <code>CHEST</code></th><td><!-- stat:CHEST.weight -->35<!-- /stat -->%</td><td><!-- stat:CHEST.ideal -->61.95<!-- /stat --></td><td><!-- stat:CHEST.floor -->61<!-- /stat --></td><td><!-- stat:CHEST.extra -->1<!-- /stat --></td><td><!-- stat:CHEST.value -->62<!-- /stat --></td></tr>
-            <tr><th scope="row">脚 <code>LEGS</code></th><td><!-- stat:LEGS.weight -->30<!-- /stat -->%</td><td><!-- stat:LEGS.ideal -->53.1<!-- /stat --></td><td><!-- stat:LEGS.floor -->53<!-- /stat --></td><td><!-- stat:LEGS.extra -->0<!-- /stat --></td><td><!-- stat:LEGS.value -->53<!-- /stat --></td></tr>
-            <tr><th scope="row">足 <code>FEET</code></th><td><!-- stat:FEET.weight -->15<!-- /stat -->%</td><td><!-- stat:FEET.ideal -->26.55<!-- /stat --></td><td><!-- stat:FEET.floor -->26<!-- /stat --></td><td><!-- stat:FEET.extra -->1<!-- /stat --></td><td><!-- stat:FEET.value -->27<!-- /stat --></td></tr>
+            <tr data-status-ids="head"><th scope="row">頭 <code>head</code></th><td><!-- stat:head.weight -->20<!-- /stat -->%</td><td><!-- stat:head.ideal -->35.4<!-- /stat --></td><td><!-- stat:head.floor -->35<!-- /stat --></td><td><!-- stat:head.extra -->0<!-- /stat --></td><td><!-- stat:head.value -->35<!-- /stat --></td></tr>
+            <tr data-status-ids="chest"><th scope="row">胴 <code>chest</code></th><td><!-- stat:chest.weight -->35<!-- /stat -->%</td><td><!-- stat:chest.ideal -->61.95<!-- /stat --></td><td><!-- stat:chest.floor -->61<!-- /stat --></td><td><!-- stat:chest.extra -->1<!-- /stat --></td><td><!-- stat:chest.value -->62<!-- /stat --></td></tr>
+            <tr data-status-ids="legs"><th scope="row">脚 <code>legs</code></th><td><!-- stat:legs.weight -->30<!-- /stat -->%</td><td><!-- stat:legs.ideal -->53.1<!-- /stat --></td><td><!-- stat:legs.floor -->53<!-- /stat --></td><td><!-- stat:legs.extra -->0<!-- /stat --></td><td><!-- stat:legs.value -->53<!-- /stat --></td></tr>
+            <tr data-status-ids="feet"><th scope="row">足 <code>feet</code></th><td><!-- stat:feet.weight -->15<!-- /stat -->%</td><td><!-- stat:feet.ideal -->26.55<!-- /stat --></td><td><!-- stat:feet.floor -->26<!-- /stat --></td><td><!-- stat:feet.extra -->1<!-- /stat --></td><td><!-- stat:feet.value -->27<!-- /stat --></td></tr>
             <tr><th scope="row">合計</th><td>100%</td><td><!-- stat:budget -->177<!-- /stat --></td><td></td><td></td><td><!-- stat:budget -->177<!-- /stat --></td></tr>
           </tbody>
         </table>
       </div>
-      <p class="es-note">このプロファイルの防具4部位における共通防御（DEFENSE）の配分。</p>
+      <p class="es-note">部位別の比率はこの標準構成の設計値。</p>
     </section>
-    <section class="es-panel" id="chest-candidate" aria-labelledby="chest-candidate-title" data-status-ids="DEFENSE">
+    <section class="es-panel" id="chest-candidate" aria-labelledby="chest-candidate-title" data-status-ids="commonDefense chest">
       <div class="fx-card-head"><h3 id="chest-candidate-title"><span class="sub-num">2.2</span>標準共通防御型の胴</h3><span class="cat-list"><span class="cat cat-defense">防御</span></span></div>
       <div class="es-table" role="region" aria-label="胴防具の設計" tabindex="0">
         <table aria-label="胴防具の設計">
           <thead><tr><th scope="col">項目</th><th scope="col">基準</th></tr></thead>
           <tbody>
-            <tr><th scope="row">規則ID</th><td><code><!-- stat:profileId -->standard_defense_lv25<!-- /stat --></code></td></tr>
+            <tr><th scope="row">装備設計キー</th><td><code><!-- stat:profileId -->standard_defense_lv25<!-- /stat --></code></td></tr>
             <tr><th scope="row">参照構成</th><td><code><!-- stat:buildId -->lv25_melee_standard<!-- /stat --></code></td></tr>
-            <tr><th scope="row">標準入手段階</th><td>P<!-- stat:progression -->25<!-- /stat -->（大樹の根洞を段階の目安とする）</td></tr>
-            <tr><th scope="row">評価するプレイヤーLv</th><td>Lv.<!-- stat:playerLevel -->25<!-- /stat --></td></tr>
-            <tr><th scope="row">装備条件</th><td>Lv.<!-- stat:requiredLevel -->25<!-- /stat -->（<code>requiredLevel</code>）</td></tr>
-            <tr><th scope="row">レアリティ</th><td><code><!-- stat:rarity -->RARE<!-- /stat --></code></td></tr>
-            <tr><th scope="row">部位</th><td>胴 <code><!-- stat:slot -->CHEST<!-- /stat --></code></td></tr>
-            <tr><th scope="row">主ステータス</th><td>共通防御 <code><!-- stat:main -->DEFENSE<!-- /stat --></code>、加算 <code><!-- stat:modifier -->FLAT<!-- /stat --></code></td></tr>
+            <tr><th scope="row">評価するプレイヤーLv</th><td>Lv.<!-- stat:referencePlayerLevel -->25<!-- /stat -->（配分を評価する基準）</td></tr>
+            <tr><th scope="row">装備条件</th><td>Lv.<!-- stat:requiredPlayerLevel -->25<!-- /stat -->（装備に必要な最低プレイヤーLv）</td></tr>
+            <tr><th scope="row">レアリティ</th><td>レア（<code><!-- stat:rarity -->rare<!-- /stat --></code>）</td></tr>
+            <tr><th scope="row">部位</th><td>胴 <code><!-- stat:slot -->chest<!-- /stat --></code></td></tr>
+            <tr><th scope="row">主ステータス</th><td>共通防御（加算）</td></tr>
             <tr><th scope="row">副ステータス</th><td>なし</td></tr>
-            <tr><th scope="row">名目値 / 期待値</th><td><!-- stat:CHEST.value -->62<!-- /stat --> / <!-- stat:expected -->62<!-- /stat --></td></tr>
+            <tr><th scope="row">基準値 / 期待値</th><td>+<!-- stat:chest.value -->62<!-- /stat --> / <!-- stat:expected -->62<!-- /stat --></td></tr>
             <tr><th scope="row">個体値</th><td><!-- stat:minimum -->56<!-- /stat -->〜<!-- stat:maximum -->68<!-- /stat -->（<!-- stat:step -->1<!-- /stat -->点刻み）</td></tr>
             <tr><th scope="row">プレイヤーの共通防御</th><td>基準 <!-- stat:goalDefense -->235<!-- /stat -->、胴の個体差を反映すると <!-- stat:totalMin -->229<!-- /stat -->〜<!-- stat:totalMax -->241<!-- /stat --></td></tr>
           </tbody>
         </table>
       </div>
-      <h4>装備YAML抜粋</h4>
-      <pre class="es-yaml"><code><!-- stat:yaml -->rarity: RARE
-equipment:
-  slot: CHEST
-  requiredLevel: 25
-  stats:
-  - status: DEFENSE
-    type: FLAT
-    value: 62
-    random:
-      offsetMin: -6
-      offsetMax: 6
+      <h4>胴防具の設計値（YAML）</h4>
+      <pre class="es-yaml"><code><!-- stat:yaml -->slot: chest
+referencePlayerLevel: 25
+requiredPlayerLevel: 25
+rarity: rare
+stats:
+  commonDefense:
+    base: 62
+    rollOffsets:
+      min: -6
+      max: 6
       step: 1<!-- /stat --></code></pre>
-      <p class="es-note">入手段階の <code>progression</code> はマスタのデザインコメントに記録する。</p>
     </section>
     </div>
   </section>
   <section class="es-chapter" id="calculation" aria-labelledby="calculation-title" style="--actor: var(--axis)">
     <h2 id="calculation-title"><span class="ch-num">3</span>計算方法</h2>
-    <p class="fx-section-lead">計算例は標準共通防御型の胴を採用した近接標準構成の値。</p>
+    <p class="fx-section-lead">計算例は標準共通防御型の胴を採用した<!-- stat:role -->近接前衛<!-- /stat -->の標準構成の値。</p>
     <div class="fx-grid">
-    <section class="fx-card" id="fx-slot-split" aria-labelledby="fx-slot-split-title" data-status-ids="DEFENSE">
+    <section class="fx-card" id="fx-slot-split" aria-labelledby="fx-slot-split-title" data-status-ids="commonDefense">
       <div class="fx-card-head"><h3 id="fx-slot-split-title"><span class="sub-num">3.1</span>部位の配分</h3><span class="cat-list"><span class="cat cat-defense">防御</span></span></div>
       <div class="fx"><var class="fx-var cat-defense">部位の理論値</var><span class="fx-op">=</span><var class="fx-var cat-defense">防具の共通防御</var><span class="fx-op">×</span><var class="fx-var cat-defense">部位の配分比率</var></div>
-            <p class="fx-example"><span class="fx-lv">Lv.<!-- stat:playerLevel -->25<!-- /stat --></span>胴 <b class="c-defense"><!-- stat:budget -->177<!-- /stat --></b> × <b class="c-defense"><!-- stat:CHEST.weight -->35<!-- /stat --></b>% = <b class="c-defense"><!-- stat:CHEST.ideal -->61.95<!-- /stat --></b>、切り捨て <b class="c-defense"><!-- stat:CHEST.floor -->61<!-- /stat --></b> + 残余配分 <b class="c-defense"><!-- stat:CHEST.extra -->1<!-- /stat --></b> = <span class="fx-result"><!-- stat:CHEST.value -->62<!-- /stat --></span></p>
-            <ul class="fx-notes"><li>全枠を切り捨てた残余 <!-- stat:remaining -->2<!-- /stat --> を、小数部が大きい枠から1点ずつ配分する。同点時は頭・胴・脚・足の順。</li></ul>
+            <p class="fx-example"><span class="fx-lv">Lv.<!-- stat:playerLevel -->25<!-- /stat --></span>胴 <b class="c-defense"><!-- stat:budget -->177<!-- /stat --></b> × <b class="c-defense"><!-- stat:chest.weight -->35<!-- /stat --></b>% = <b class="c-defense"><!-- stat:chest.ideal -->61.95<!-- /stat --></b>、切り捨て <b class="c-defense"><!-- stat:chest.floor -->61<!-- /stat --></b> + 残余配分 <b class="c-defense"><!-- stat:chest.extra -->1<!-- /stat --></b> = <span class="fx-result"><!-- stat:chest.value -->62<!-- /stat --></span></p>
+            <ul class="fx-notes"><li>最大剰余方式では、全枠を切り捨てた残余 <!-- stat:remaining -->2<!-- /stat --> を、小数部が大きい枠から1点ずつ配分する。同点時は頭・胴・脚・足の順。</li></ul>
     </section>
-    <section class="fx-card" id="fx-item-roll" aria-labelledby="fx-item-roll-title" data-status-ids="DEFENSE">
+    <section class="fx-card" id="fx-item-roll" aria-labelledby="fx-item-roll-title" data-status-ids="commonDefense">
       <div class="fx-card-head"><h3 id="fx-item-roll-title"><span class="sub-num">3.2</span>胴の個体値</h3><span class="cat-list"><span class="cat cat-defense">防御</span></span></div>
-      <div class="fx"><var class="fx-var cat-defense">胴の個体値</var><span class="fx-op">=</span><var class="fx-var cat-defense">胴の名目値</var><span class="fx-op">+</span><var class="fx-var cat-defense">抽選したオフセット</var></div>
-            <p class="fx-example"><span class="fx-lv">Lv.<!-- stat:playerLevel -->25<!-- /stat --></span><b class="c-defense"><!-- stat:CHEST.value -->62<!-- /stat --></b> + (<!-- stat:offsetMin -->-6<!-- /stat -->〜<!-- stat:offsetMax -->6<!-- /stat -->) = <b class="c-defense"><!-- stat:minimum -->56<!-- /stat --></b>〜<span class="fx-result"><!-- stat:maximum -->68<!-- /stat --></span></p>
-            <ul class="fx-notes"><li>生成時に一度、<!-- stat:step -->1<!-- /stat -->点刻みの候補から等確率で1つの整数を抽選する。</li></ul>
+      <div class="fx"><var class="fx-var cat-defense">胴の個体値</var><span class="fx-op">=</span><var class="fx-var cat-defense">胴の基準値</var><span class="fx-op">+</span><var class="fx-var cat-defense">抽選したオフセット</var></div>
+            <p class="fx-example"><span class="fx-lv">Lv.<!-- stat:playerLevel -->25<!-- /stat --></span><b class="c-defense"><!-- stat:chest.value -->62<!-- /stat --></b> + (<!-- stat:offsetMin -->-6<!-- /stat -->〜+<!-- stat:offsetMax -->6<!-- /stat -->) = <b class="c-defense"><!-- stat:minimum -->56<!-- /stat --></b>〜<span class="fx-result"><!-- stat:maximum -->68<!-- /stat --></span></p>
+            <ul class="fx-notes"><li>付与時に一度、<!-- stat:step -->1<!-- /stat -->点刻みの候補から等確率で1つの整数を抽選する。</li></ul>
     </section>
-    <section class="fx-card" id="fx-player-range" aria-labelledby="fx-player-range-title" data-status-ids="DEFENSE VITALITY">
+    <section class="fx-card" id="fx-player-range" aria-labelledby="fx-player-range-title" data-status-ids="commonDefense vitality">
       <div class="fx-card-head"><h3 id="fx-player-range-title"><span class="sub-num">3.3</span>胴の個体差を含む共通防御</h3><span class="cat-list"><span class="cat cat-defense">防御</span><span class="cat cat-primary">基本能力値</span></span></div>
-      <div class="fx"><var class="fx-var cat-defense">共通防御</var><span class="fx-op">=</span><var class="fx-var cat-defense">標準の共通防御</var><span class="fx-op">−</span><var class="fx-var cat-defense">胴の名目値</var><span class="fx-op">+</span><var class="fx-var cat-defense">胴の個体値</var></div>
-            <p class="fx-example"><span class="fx-lv">Lv.<!-- stat:playerLevel -->25<!-- /stat --></span><b class="c-defense"><!-- stat:goalDefense -->235<!-- /stat --></b> − <b class="c-defense"><!-- stat:CHEST.value -->62<!-- /stat --></b> + (<b class="c-defense"><!-- stat:minimum -->56<!-- /stat --></b>〜<b class="c-defense"><!-- stat:maximum -->68<!-- /stat --></b>) = <b class="c-defense"><!-- stat:totalMin -->229<!-- /stat --></b>〜<span class="fx-result"><!-- stat:totalMax -->241<!-- /stat --></span></p>
-            <ul class="fx-notes"><li>頭・脚・足は基準値で固定し、計 <!-- stat:fixedArmor -->115<!-- /stat -->。体力（VITALITY）からの派生は標準構成の共通防御に含む。</li></ul>
+      <div class="fx"><var class="fx-var cat-defense">共通防御</var><span class="fx-op">=</span><var class="fx-var cat-defense">標準の共通防御</var><span class="fx-op">−</span><var class="fx-var cat-defense">胴の基準値</var><span class="fx-op">+</span><var class="fx-var cat-defense">胴の個体値</var></div>
+            <p class="fx-example"><span class="fx-lv">Lv.<!-- stat:playerLevel -->25<!-- /stat --></span><b class="c-defense"><!-- stat:goalDefense -->235<!-- /stat --></b> − <b class="c-defense"><!-- stat:chest.value -->62<!-- /stat --></b> + (<b class="c-defense"><!-- stat:minimum -->56<!-- /stat --></b>〜<b class="c-defense"><!-- stat:maximum -->68<!-- /stat --></b>) = <b class="c-defense"><!-- stat:totalMin -->229<!-- /stat --></b>〜<span class="fx-result"><!-- stat:totalMax -->241<!-- /stat --></span></p>
+            <ul class="fx-notes"><li>頭・脚・足は基準値で固定し、計 <!-- stat:fixedArmor -->115<!-- /stat -->。体力からの派生は標準構成の共通防御に含む。</li></ul>
     </section>
     </div>
   </section>
@@ -520,103 +517,12 @@ equipment:
 </script>
 <script type="application/json" id="doc-search-aliases">
 {
-  "MAX_HEALTH": "最大HP",
-  "DEFENSE": "防御力",
-  "CRITICAL_RATE": "会心率",
-  "CRITICAL_DAMAGE": "会心ダメージ",
-  "SUPER_CRITICAL_RATE": "超星会心率",
-  "SUPER_CRITICAL_DAMAGE": "超星会心倍率",
-  "STRENGTH": "筋力",
-  "DEXTERITY": "器用さ",
-  "INTELLIGENCE": "知力",
-  "VITALITY": "体力",
-  "AGILITY": "敏捷性",
-  "LUCK": "幸運",
-  "MAX_MANA": "最大MP",
-  "MAX_ENERGY": "最大ENG",
-  "HP_REGEN": "HP回復力",
-  "MP_REGEN": "MP回復力",
-  "ENERGY_REGEN": "ENG回復力",
-  "ATTACK_SPEED": "攻撃速度",
-  "MOVEMENT_SPEED": "移動速度",
-  "MOVEMENT_SPEED_CAP": "移動速度上限",
-  "EVASION": "回避率",
-  "EXPERIENCE_GAIN_RATE": "EXP獲得量増加率",
-  "DROP_RATE_INCREASE": "ドロップ増加率",
-  "ATTACK": "攻撃力",
-  "MELEE_ATTACK": "近接攻撃力",
-  "RANGED_ATTACK": "間接攻撃力",
-  "MAGIC_ATTACK": "魔法攻撃力",
-  "ACCURACY": "命中率",
-  "NORMAL_ATTACK_DAMAGE_INCREASE": "通常攻撃ダメージ増加",
-  "SKILL_DAMAGE_INCREASE": "スキルダメージ増加",
-  "FINAL_DAMAGE_MULTIPLIER": "最終ダメージ倍率",
-  "NORMAL_ATTACK_DEGRADATION_DELAY": "通常攻撃劣化遅延",
-  "FIXED_HEALTH_DAMAGE": "HP固定ダメージ",
-  "DEFENSE_PENETRATION_RATE": "防御力貫通率",
-  "MELEE_DEFENSE_PENETRATION_RATE": "近接防御貫通率",
-  "RANGED_DEFENSE_PENETRATION_RATE": "間接防御貫通率",
-  "MAGIC_DEFENSE_PENETRATION_RATE": "魔法防御貫通率",
-  "LIFE_STEAL": "ライフスティール",
-  "MELEE_DEFENSE": "近接防御力",
-  "RANGED_DEFENSE": "間接防御力",
-  "DAMAGE_REDUCTION_RATE": "被ダメージ軽減率",
-  "KNOCKBACK_RESISTANCE": "ノックバック耐性",
-  "MAGIC_DEFENSE": "魔法防御力",
-  "MAX_SHIELD": "最大シールド",
-  "SHIELD_BREAK": "シールドブレイク",
-  "SHIELD_RECHARGE_DELAY_SECONDS": "シールドリチャージ加算値",
-  "SHIELD_RECHARGE_REDUCTION": "シールドリチャージ短縮",
-  "NONE_RESISTANCE": "無属性耐性",
-  "NONE_RESISTANCE_CAP": "無属性耐性上限値",
-  "FIRE_RESISTANCE": "火属性耐性",
-  "ICE_RESISTANCE": "氷属性耐性",
-  "LIGHTNING_RESISTANCE": "雷属性耐性",
-  "FIRE_RESISTANCE_CAP": "火属性耐性上限値",
-  "ICE_RESISTANCE_CAP": "氷属性耐性上限値",
-  "LIGHTNING_RESISTANCE_CAP": "雷属性耐性上限値",
-  "NONE_DAMAGE_INCREASE": "無属性ダメージ増加",
-  "FIRE_DAMAGE_INCREASE": "火属性ダメージ増加",
-  "ICE_DAMAGE_INCREASE": "氷属性ダメージ増加",
-  "LIGHTNING_DAMAGE_INCREASE": "雷属性ダメージ増加",
-  "FIRE_PENETRATION": "火属性貫通",
-  "ICE_PENETRATION": "氷属性貫通",
-  "LIGHTNING_PENETRATION": "雷属性貫通",
-  "BURNING_APPLY_CHANCE": "燃焼付与確率増加",
-  "FROZEN_APPLY_CHANCE": "凍結付与確率増加",
-  "CHILLED_APPLY_CHANCE": "冷気付与確率増加",
-  "SHOCKED_APPLY_CHANCE": "感電付与確率増加",
-  "POISONED_APPLY_CHANCE": "毒状態付与確率増加",
-  "BLINDNESS_APPLY_CHANCE": "盲目付与確率増加",
-  "WEAKNESS_APPLY_CHANCE": "衰弱付与確率増加",
-  "HEALING_INHIBITION_APPLY_CHANCE": "回復阻害付与確率増加",
-  "BURNING_DAMAGE_INCREASE": "燃焼ダメージ増加",
-  "SHOCKED_DAMAGE_INCREASE": "感電ダメージ増加",
-  "POISONED_DAMAGE_INCREASE": "毒状態ダメージ増加",
-  "BURNING_DAMAGE_PENETRATION": "燃焼DoT貫通",
-  "SHOCKED_DAMAGE_PENETRATION": "感電DoT貫通",
-  "POISONED_DAMAGE_PENETRATION": "毒状態DoT貫通",
-  "BURNING_RESISTANCE": "燃焼付与耐性",
-  "FROZEN_RESISTANCE": "凍結付与耐性",
-  "CHILLED_RESISTANCE": "冷気付与耐性",
-  "SHOCKED_RESISTANCE": "感電付与耐性",
-  "POISONED_RESISTANCE": "毒状態付与耐性",
-  "BLINDNESS_RESISTANCE": "盲目付与耐性",
-  "WEAKNESS_RESISTANCE": "衰弱付与耐性",
-  "HEALING_INHIBITION_RESISTANCE": "回復阻害付与耐性",
-  "BURNING_DAMAGE_RESISTANCE": "燃焼ダメージ耐性",
-  "SHOCKED_DAMAGE_RESISTANCE": "感電ダメージ耐性",
-  "POISONED_DAMAGE_RESISTANCE": "毒状態ダメージ耐性",
-  "COOLDOWN_REDUCTION": "クールダウン短縮",
-  "CAST_TIME_REDUCTION": "詠唱時間短縮率",
-  "MANA_COST_REDUCTION": "MP消費軽減率",
-  "ENERGY_COST_REDUCTION": "エネルギー消費軽減率",
-  "SUPPORT_POWER": "支援力",
-  "HEALING_INCREASE": "回復量増加",
-  "CONDITION_DURATION_INCREASE": "状態異常持続時間増加",
-  "BUFF_DURATION_INCREASE": "バフ持続時間増加",
-  "CONSUMABLE_USE_MOVEMENT_ALLOWANCE": "消耗品使用時移動許容距離",
-  "CONSUMABLE_USE_MOVEMENT_SLOWDOWN_RATE": "消耗品使用時移動減速率"
+  "commonDefense": "共通防御 commonDefense",
+  "vitality": "体力 vitality",
+  "head": "頭",
+  "chest": "胴",
+  "legs": "脚",
+  "feet": "足"
 }
 </script>
 <script>
