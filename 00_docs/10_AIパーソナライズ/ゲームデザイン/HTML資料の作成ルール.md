@@ -14,8 +14,8 @@
   - `// 目次:` で始まる `<script>`（読んでいる章の強調、折りたたみ章を開く処理）
   - `.spot-slot` / `.spot-field` のスポットライト用CSSと `<script>`
   - 目次の前に共通のページ内検索（検索欄・CSS・スクリプト）を置きます。HTMLを直接開いて検索結果を選ぶと、一致箇所へ移動し、該当する語を強調します。
-- 共通ブロックの `:where(#dps-stat-guide, #stat-guide)` には各資料の `main` のIDを並べます。資料を追加したら、全HTMLのこのセレクタに新しいIDを加えます。
-- 資料固有のCSSクラスには資料ごとの接頭辞を付けます（DPS指標は `dg-`、ステータス指標は `st-`）。共通部品のクラス名（`doc-` `toc-` `ch-` `cat` `fx-`）を資料固有の用途に流用しません。
+- 共通ブロックの `:where(#dps-stat-guide, #stat-guide, #stat-allocation-guide, #equipment-stat-guide)` には各資料の `main` のIDを並べます。資料を追加したら、全HTMLのこのセレクタに新しいIDを加えます。
+- 資料固有のCSSクラスには資料ごとの接頭辞を付けます（DPS指標は `dg-`、ステータス指標は `st-`、配分基準は `sa-`、装備基準は `es-`）。共通部品のクラス名（`doc-` `toc-` `ch-` `cat` `fx-`）を資料固有の用途に流用しません。
 - 共通デザインを変えるときは、このファイルと全HTMLを同じ変更でそろえます。各資料の指標・数値・計算式は、その資料の仕様に従います。
 
 ## 2. ファイル名と資料タブ
@@ -29,6 +29,8 @@
 <nav class="doc-nav" aria-label="ゲームデザイン設計書">
   <a href="01-DPS指標.html" aria-current="page"><span class="doc-no">01</span>DPS指標</a>
   <a href="02-ステータス指標.html"><span class="doc-no">02</span>ステータス指標</a>
+  <a href="03-ステータス配分基準.html"><span class="doc-no">03</span>ステータス配分基準</a>
+  <a href="04-装備ステータス基準.html"><span class="doc-no">04</span>装備ステータス基準</a>
 </nav>
 ```
 
@@ -186,6 +188,14 @@
 ## 12. 各資料の正本
 
 - [DPS指標](../../20_ゲームデザイン設計書/01-DPS指標.html) に総DPSの目標・育成上限・測定条件、[ステータス指標](../../20_ゲームデザイン設計書/02-ステータス指標.html) にプレイヤーと標準モブのステータスを記載します。同じ値を両方に書く場合は、正本の資料を明記して相互に参照します。
+- [ステータス配分基準](../../20_ゲームデザイン設計書/03-ステータス配分基準.html) に標準構成と供給元別の配分、[装備ステータス基準](../../20_ゲームデザイン設計書/04-装備ステータス基準.html) に装備種別の役割と、配分を使った装備の設計値を記載します。
+- 02の共通防御・体力の曲線は [v1.status_targets.yml](../../20_ゲームデザイン設計書/data/v1.status_targets.yml)、03の構成と供給元別の付与は [v1.status_allocation.yml](../../20_ゲームデザイン設計書/data/v1.status_allocation.yml)、04の装備プロファイルは [v1.equipment_stat_rules.yml](../../20_ゲームデザイン設計書/data/v1.equipment_stat_rules.yml) を正本とします。02のその他の数値は02で管理します。03・04の計算結果は元のYAMLを更新して同期します。
+- PyYAML 6.0.3 を利用できる環境で、リポジトリルートから次を実行します。
+
+```sh
+python "00_docs/20_ゲームデザイン設計書/data/refresh_stat_design.py"
+python "00_docs/20_ゲームデザイン設計書/data/refresh_stat_design.py" --check
+```
 
 ## 13. 変更後の確認
 

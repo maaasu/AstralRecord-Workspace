@@ -100,8 +100,8 @@
 /* ===== 共通: 資料タブ・目次・章番号・能力の色分け ===== */
 /* 能力の色: 40_filebase/75.shared.status の公式カテゴリに対応 */
 :root { --cat-resource: #98c379; --cat-primary: #d19a66; --cat-offense: #e06c75; --cat-defense: #56b6c2; --cat-element: #c678dd; --cat-condition: #e8a0c8; --cat-utility: #a8b0bd; }
-:where(#dps-stat-guide, #stat-guide) a { color: var(--heading); text-decoration: none; }
-:where(#dps-stat-guide, #stat-guide) h1 { letter-spacing: 0; font-weight: 600; }
+:where(#dps-stat-guide, #stat-guide, #stat-allocation-guide, #equipment-stat-guide) a { color: var(--heading); text-decoration: none; }
+:where(#dps-stat-guide, #stat-guide, #stat-allocation-guide, #equipment-stat-guide) h1 { letter-spacing: 0; font-weight: 600; }
 .doc-nav { display: flex; flex-wrap: wrap; gap: 0 28px; margin: -8px 0 22px; border-bottom: 1px solid var(--rule); font-size: 14px; }
 .doc-nav a { display: inline-flex; align-items: baseline; gap: 8px; margin-bottom: -1px; padding: 9px 0 8px; color: var(--muted); border-bottom: 2px solid transparent; }
 .doc-nav a:hover { color: var(--ink); }
@@ -367,6 +367,8 @@
     <nav class="doc-nav" aria-label="ゲームデザイン設計書">
       <a href="01-DPS指標.html" aria-current="page"><span class="doc-no">01</span>DPS指標</a>
       <a href="02-ステータス指標.html"><span class="doc-no">02</span>ステータス指標</a>
+      <a href="03-ステータス配分基準.html"><span class="doc-no">03</span>ステータス配分基準</a>
+      <a href="04-装備ステータス基準.html"><span class="doc-no">04</span>装備ステータス基準</a>
     </nav>
     <header class="dg-head">
       <h1>DPS指標</h1>
