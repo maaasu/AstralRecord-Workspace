@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>作業ライブ</title>
+  <link rel="stylesheet" href="/app.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <main class="page">
+    <header class="top">
+      <h1>作業ライブ</h1>
+      <div class="session-strip">
+        <nav id="sessions" class="sessions" aria-label="セッション"></nav>
+      </div>
+    </header>
+    <div class="toolbar">
+      <nav id="scopes" class="scopes" aria-label="表示期間">
+        <button type="button" data-scope="running">実行中</button>
+        <button type="button" data-scope="hour">直近 1 時間</button>
+        <button type="button" data-scope="all">すべて（2 時間）</button>
+      </nav>
+      <div id="live" class="live" role="status"></div>
+    </div>
+    <div id="connection" class="notice" role="status">記録を読み込み中…</div>
+    <div id="session-heading" class="session-heading" hidden></div>
+    <p id="empty" class="notice" hidden></p>
+    <section id="flows" class="flows" aria-label="依頼の流れ"></section>
+    <footer id="monitors" class="monitors" aria-label="監視状態"></footer>
+  </main>
+</body>
+</html>

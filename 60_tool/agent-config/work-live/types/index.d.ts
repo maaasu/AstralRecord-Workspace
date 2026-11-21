@@ -44,25 +44,14 @@ export type LiveRequest = RequestSummary & {
   parentId?: string
   awaitingPrompt?: boolean
   estimatedObservation?: boolean
-  codexFinished?: boolean
   observation?: string
   awaitingSession?: 'start' | 'message'
+  detailVersion?: number
 }
 export type LiveBoard = {
   actors: Actor[]
   requests: LiveRequest[]
-  selectedRequest: string | null
-  selectedSession: string | null
-  allSessionsExpanded: boolean
-  expandedStep: string | null
-  promptExpanded: boolean
-  olderStepsExpanded: boolean
-  scope: DisplayScope
   monitors: Monitors
-  placementHintShown: boolean
-  sequence: number
-  selfQueue: { id: string; fingerprint: string }[]
-  selfTurn: { id: string; request: string } | null
 }
 
 export type RolloutMeta = {
@@ -73,54 +62,16 @@ export type RolloutMeta = {
   timestamp?: number
   parentThreadId: string
 }
-export type CodexCursor = {
-  path: string
-  size: number
-  mtimeMs: number
-  boundary: string
-  scannedTo: number
-  offset: number
-  skipping: boolean
-  oversized: boolean
-  meta: RolloutMeta
-  firstSummary?: string
-  turn?: {
-    id: string
-    at: number
-    notified?: boolean
-    pending?: { id: string; kind: 'command' | 'patch'; operationId: string; step: Step }[]
-  }
-  lastRequest?: { id: string; at: number }
+export type TurnRef = { id: string; at: number }
+export type CodexTurnRef = TurnRef & {
+  notified?: boolean
+  pending?: { id: string; kind: 'command' | 'patch'; operationId: string; step: Step }[]
 }
-export type CodexCheckpoint = {
-  files: CodexCursor[]
-  index?: { version: string; titles: { id: string; name: string }[] }
-}
-
-export type SessionCursor = {
+export type ClaudeSession = {
   id: string
   cwd: string
   label: string
-  isRemote: boolean
+  startedAt?: number
   lastActiveAt?: number
-  fetchedActivityAt?: number
   isRunning: boolean
-  needsFinal: boolean
-  seen: string[]
-  sequence: number
-  request?: string
-  lastRequest?: string
-  lastRequestAt?: number
-}
-export type SessionCheckpoint = { sessions: SessionCursor[]; retryAt: number }
-
-declare module 'claude-code' {
-  interface PluginState {
-    'work-live': {
-      board: Shaped<LiveBoard | null>
-      detail: StateFamily<Shaped<RequestDetail>>
-      codex: Shaped<CodexCheckpoint>
-      sessions: Shaped<SessionCheckpoint>
-    }
-  }
 }

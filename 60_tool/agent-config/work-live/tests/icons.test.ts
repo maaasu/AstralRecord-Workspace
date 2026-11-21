@@ -1,8 +1,9 @@
-import { expect, test } from 'claude-code/testing'
-import type { IconName, Kind } from '../types'
-import { iconSvg, stepIcon } from '../hooks/icons'
-import { notification, stepOf } from '../hooks/model'
-import { parseSvg } from './fixtures/svg'
+import assert from 'node:assert/strict'
+import { test } from 'node:test'
+import type { IconName, Kind } from '../types/index.d.ts'
+import { iconSvg, stepIcon } from '../src/icons.ts'
+import { notification, stepOf } from '../src/model.ts'
+import { parseSvg } from './fixtures/svg.ts'
 
 test('全アイコンが指定の色と寸法の SVG になり、実行中の輪が広がって消える', () => {
   const colors = {
@@ -14,18 +15,18 @@ test('全アイコンが指定の色と寸法の SVG になり、実行中の輪
   } satisfies Record<IconName, string>
   for (const [name, color] of Object.entries(colors)) {
     const source = iconSvg(name as IconName)
-    expect(parseSvg(source).root).toBe('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">')
-    expect(source).toContain('stroke="' + color + '"')
-    expect(source).toContain('stroke-width="1.6"')
-    expect(source.includes('<text')).toBe(name === 'unknown')
+    assert.equal(parseSvg(source).root, '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">')
+    assert.ok((source)?.includes('stroke="' + color + '"'))
+    assert.ok((source)?.includes('stroke-width="1.6"'))
+    assert.equal(source.includes('<text'), name === 'unknown')
   }
-  expect(parseSvg(iconSvg('file', 18)).root).toContain('width="18" height="18"')
-  expect(iconSvg('running')).not.toContain('<style>')
+  assert.ok((parseSvg(iconSvg('file', 18)).root)?.includes('width="18" height="18"'))
+  assert.ok(!(iconSvg('running'))?.includes('<style>'))
   const running = iconSvg('running', 16, true)
-  expect(parseSvg(running).elements.filter(({ attributes }) => attributes.get('class')?.startsWith('ripple'))).toHaveLength(2)
-  expect(running).toContain('animation:ripple 1.6s linear infinite')
-  expect(running).toContain('animation-delay:-.8s')
-  expect(running).toContain('@media (prefers-reduced-motion: reduce)')
+  assert.equal((parseSvg(running).elements.filter(({ attributes }) => attributes.get('class')?.startsWith('ripple')))?.length, 2)
+  assert.ok((running)?.includes('animation:ripple 1.6s linear infinite'))
+  assert.ok((running)?.includes('animation-delay:-.8s'))
+  assert.ok((running)?.includes('@media (prefers-reduced-motion: reduce)'))
 })
 
 test('step は記録時のアイコンを使い、旧記録は作業種別で補う', () => {
@@ -33,8 +34,8 @@ test('step は記録時のアイコンを使い、旧記録は作業種別で補
     edit: 'edit', command: 'terminal', read: 'file', web: 'web', agent: 'agent',
     message: 'message', tool: 'tool', done: 'done', error: 'error',
   } satisfies Record<Kind, IconName>
-  for (const [kind, icon] of Object.entries(kinds)) expect(stepIcon({ kind: kind as Kind })).toBe(icon)
-  expect(stepIcon({ kind: 'command', icon: 'git' })).toBe('git')
-  expect(stepIcon({ kind: 'read', icon: 'search' })).toBe('search')
-  expect(stepOf('id', 0, notification('通知')).icon).toBe('bell')
+  for (const [kind, icon] of Object.entries(kinds)) assert.equal(stepIcon({ kind: kind as Kind }), icon)
+  assert.equal(stepIcon({ kind: 'command', icon: 'git' }), 'git')
+  assert.equal(stepIcon({ kind: 'read', icon: 'search' }), 'search')
+  assert.equal(stepOf('id', 0, notification('通知')).icon, 'bell')
 })

@@ -1,5 +1,5 @@
-import type { Actor, ActorKind, IconName, LiveBoard, Monitor, RequestDetail, RequestSummary, Step, StepCount } from '../types'
-import { stepIcon } from './icons'
+import type { Actor, ActorKind, IconName, LiveBoard, Monitor, RequestDetail, RequestSummary, Step, StepCount } from '../types/index.d.ts'
+import { stepIcon } from './icons.ts'
 
 export type StepText = Pick<Step, 'kind' | 'title' | 'full' | 'language'> & Partial<Pick<Step, 'icon'>>
 export const MAX_STEP = 4_000
@@ -9,18 +9,7 @@ export const emptyDetail: RequestDetail = { prompt: '', promptSource: '', steps:
 export const emptyBoard: LiveBoard = {
   actors: [],
   requests: [],
-  selectedRequest: null,
-  selectedSession: null,
-  allSessionsExpanded: false,
-  expandedStep: null,
-  promptExpanded: false,
-  olderStepsExpanded: false,
-  scope: 'hour',
-  monitors: { codex: { status: 'off' }, sessions: { status: 'off' } },
-  placementHintShown: false,
-  sequence: 0,
-  selfQueue: [],
-  selfTurn: null,
+  monitors: { codex: { status: 'unavailable', reason: '確認中' }, sessions: { status: 'unavailable', reason: '確認中' } },
 }
 
 export function oneLine(value: string, length: number): string {
@@ -50,6 +39,16 @@ export function textOf(value: unknown): string {
   return typeof value === 'string' ? value : ''
 }
 
+export function parseJson(text: string): unknown {
+  try { return JSON.parse(text) } catch { return undefined }
+}
+
+export function dateOf(value: unknown): number | undefined {
+  const at = typeof value === 'number' && Number.isFinite(value) ? (value < 1e12 ? value * 1_000 : value)
+    : Date.parse(textOf(value))
+  return Number.isFinite(at) ? at : undefined
+}
+
 export function basename(path: string): string {
   return path.replace(/[\\/]+$/u, '').split(/[\\/]/u).at(-1) ?? ''
 }
@@ -62,9 +61,38 @@ export function fingerprint(value: string): string {
   return value.length + ':' + (hash >>> 0).toString(36)
 }
 
+const WRAPPER_START = /^<([a-z_-]+)(?=[\s/>])[^<>]*>/u
+
+export function splitPromptWrappers(prompt: string) {
+  const wrappers: { tag: string; body: string }[] = []
+  let text = prompt.trimStart()
+  for (let match = WRAPPER_START.exec(text); match; match = WRAPPER_START.exec(text)) {
+    const [opening, tag] = match
+    text = text.slice(opening.length)
+    if (opening.endsWith('/>')) {
+      wrappers.push({ tag, body: '' })
+    } else {
+      const closing = new RegExp('</' + tag + '\\s*>', 'u').exec(text)
+      wrappers.push({ tag, body: closing ? text.slice(0, closing.index) : text })
+      text = closing ? text.slice(closing.index + closing[0].length) : ''
+    }
+    text = text.trimStart()
+  }
+  return { text, wrappers }
+}
+
 export function summarize(prompt: string): string {
-  const task = /^[ \t]*#[ \t]*タスク[ \t]*[:：][ \t]*(\S.*)$/mu.exec(prompt)?.[1]
-  const line = task ?? prompt.split(/\r?\n/u).find(part => part.trim()) ?? ''
+  const { text, wrappers } = splitPromptWrappers(prompt)
+  const task = /^[ \t]*#[ \t]*タスク[ \t]*[:：][ \t]*(\S.*)$/mu.exec(text)?.[1]
+  const firstLine = (body: string) => body.split(/\r?\n/u).find(part => part.trim()) ?? ''
+  const contents = (body: string) => body.replace(/<\/?[a-z_-]+(?=[\s/>])[^<>]*>/gu, '')
+  let line = task ?? firstLine(text)
+  if (!line) {
+    const skill = wrappers.find(({ tag, body }) => tag === 'skill' && body.trim())?.body
+    line = (skill && (/<name>\s*([^<]+?)\s*<\/name>/u.exec(skill)?.[1] ??
+      /^[ \t]*name[ \t]*:[ \t]*(\S.*)$/mu.exec(skill)?.[1] ?? firstLine(contents(skill)))) ||
+      wrappers.map(({ body }) => firstLine(contents(body))).find(Boolean) || ''
+  }
   return oneLine(line.replace(/!?\[([^\]]+)\]\([^)]+\)/gu, '$1')
     .replace(/^\s*(?:[#>*+-]+\s+|\d+[.)]\s+)/gu, '')
     .replace(/(\*\*|__|~~|\x60+)(.*?)\1/gu, '$2')
@@ -93,7 +121,6 @@ export function shortName(name: string): string {
 }
 
 export const USER = actor('user', 'user', 'あなた')
-export const SELF = actor('self', 'claude', 'Claude（このセッション）')
 
 export function isNotification(body: string): boolean {
   return /^<(?:task-notification|system-reminder|command-name|command-message|command-args|local-command-[\w-]+)(?=[\s/>]|$)/iu

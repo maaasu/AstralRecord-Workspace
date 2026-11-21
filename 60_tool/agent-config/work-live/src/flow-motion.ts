@@ -1,4 +1,4 @@
-import { reducedMotion, rippleStyles, stepMotionStyles } from './icons'
+import { reducedMotion, rippleStyles, stepMotionStyles } from './icons.ts'
 
 export function recent(now: number, at?: number): boolean {
   return at !== undefined && at <= now && now - at <= 6_000
@@ -61,9 +61,9 @@ export function runningParticles(id: string, edgeId: string, color: string): str
   }).join('')
 }
 
-export function returnParticle(id: string, edgeId: string, begin: number): string {
+export function returnParticle(id: string, edgeId: string, begin: number, key: string): string {
   const timing = `begin="${begin}s" dur=".8s"`
-  return `<g class="smil" opacity="0" fill="#22C55E"><circle r="7" filter="url(#${id}-glow)"/><circle r="3.5"/>` +
+  return `<g data-once="${key}" class="smil" opacity="0" fill="#22C55E"><circle r="7" filter="url(#${id}-glow)"/><circle r="3.5"/>` +
     `<animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.12;.8;1" ${timing}/>` +
     `<animateMotion ${timing} keyPoints="1;0" keyTimes="0;1" calcMode="linear"><mpath href="#${edgeId}"/></animateMotion></g>`
 }

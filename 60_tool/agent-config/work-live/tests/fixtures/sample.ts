@@ -1,8 +1,9 @@
-import type { Actor, LiveBoard, LiveRequest, Step } from '../../types'
-import { emptyBoard, inferVerb, requestResult, SELF, stepOf, summarizeSteps, USER } from '../../hooks/model'
-import type { StepText } from '../../hooks/model'
+import type { Actor, LiveBoard, LiveRequest, Step } from '../../types/index.d.ts'
+import { actor, emptyBoard, inferVerb, requestResult, stepOf, summarizeSteps, USER } from '../../src/model.ts'
+import type { StepText } from '../../src/model.ts'
 
 const minute = 60_000
+export const SELF = actor('self', 'claude', 'Claude（このセッション）')
 
 export function sampleBoard(now: number): LiveBoard {
   const review: Actor = { id: 'agent:review', kind: 'subagent', label: 'サブエージェント（構成レビュー）' }

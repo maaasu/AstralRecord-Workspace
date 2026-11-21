@@ -50,6 +50,7 @@ APIを含む01/10では、配置前にゲーム・History・Managementのmigrati
 | 共有ステータスの型を生成する | `07-generate-status-types.bat` | Kotlin/C#/TypeScript生成。[ステータス生成](07-generate-status-types/README.md) |
 | 共有タグの型を生成・検査する | `08-generate-tag-types.bat` | Java/C#/TypeScript生成とfilebaseの参照検査。[タグ生成](08-generate-tag-types/README.md) |
 | ネットワーク用Pluginをビルドする | `12-build-network-plugins.bat` | Lobby/Proxy/Geyser ExtensionのJAR生成。[ネットワークPlugin](12-build-network-plugins/README.md) |
+| Claude と Codex の作業を確認する | `agent-config/work-live/start.ps1` | ローカル記録から依頼の流れをブラウザーで表示。[作業ライブ](agent-config/work-live/README.md) |
 
 07/08の`-Check`は生成漏れの検査です。12はローカルに成果物を生成し、配布は16の責務です。
 

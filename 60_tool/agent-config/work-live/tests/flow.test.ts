@@ -1,10 +1,12 @@
-import { expect, test } from 'claude-code/testing'
-import type { Actor, IconName, LiveRequest } from '../types'
-import { buildFlow, buildFlowTree, flowRows, groupFlows, needsTimeRefresh, cachedFlow, layoutFlow, visibleFlows } from '../hooks/flow'
-import { iconBody } from '../hooks/icons'
-import { shortName } from '../hooks/model'
-import { sampleBoard } from './fixtures/sample'
-import { parseSvg } from './fixtures/svg'
+import assert from 'node:assert/strict'
+import { test } from 'node:test'
+import type { Actor, IconName, LiveRequest } from '../types/index.d.ts'
+import { disableReplayedMotion } from '../public/app.js'
+import { buildFlow, buildFlowTree, flowRows, groupFlows, needsTimeRefresh, cachedFlow, layoutFlow, visibleFlows } from '../src/flow.ts'
+import { iconBody } from '../src/icons.ts'
+import { shortName } from '../src/model.ts'
+import { sampleBoard } from './fixtures/sample.ts'
+import { parseSvg } from './fixtures/svg.ts'
 
 const now = 12_000_000
 const actors: Actor[] = [
@@ -30,18 +32,17 @@ test('開始以降かつ終了後 5 分以内の最新の親に付け、流れ�
     request('unknown-root', 'unknown', 'cloud', now - 10),
   ]
   const flows = groupFlows({ actors, requests: requests.reverse(), now })
-  expect(flows.map(flow => flow.root.request.id)).toEqual(['unknown-root', 'root-b', 'after-boundary', 'root-a', 'before'])
+  assert.deepEqual(flows.map(flow => flow.root.request.id), ['unknown-root', 'root-b', 'after-boundary', 'root-a', 'before'])
   const root = flows.find(flow => flow.root.request.id === 'root-b')!.root
-  expect(flowRows(root).map(({ node, number, depth }) => [node.request.id, number, depth]))
-    .toEqual([['root-b', 1, 0], ['at-boundary', 2, 1], ['grandchild', 3, 2]])
-  expect(buildFlowTree(root, now)[2]).toContain('└─2. 作業を依頼 → Codex')
+  assert.deepEqual(flowRows(root).map(({ node, number, depth }) => [node.request.id, number, depth]), [['root-b', 1, 0], ['at-boundary', 2, 1], ['grandchild', 3, 2]])
+  assert.ok((buildFlowTree(root, now)[2])?.includes('└─2. 作業を依頼 → Codex'))
 })
 
 test('同じ時刻の依頼も取得順に依存せず親子にする', () => {
   const requests = [request('child', 'claude', 'codex', now), request('root', 'user', 'claude', now)]
   const flows = groupFlows({ actors, requests, now })
-  expect(flows).toHaveLength(1)
-  expect(flows[0]?.root.children[0]?.request.id).toBe('child')
+  assert.equal((flows)?.length, 1)
+  assert.equal(flows[0]?.root.children[0]?.request.id, 'child')
 })
 
 test('最後の動きから 3 分で応答なしになり、新しい step で実行中に戻る', () => {
@@ -51,18 +52,18 @@ test('最後の動きから 3 分で応答なしになり、新しい step で�
   })
   const flows = () => groupFlows({ actors, requests: [root, child], now })
   const idle = flows()[0]!
-  expect([idle.status, idle.running, idle.root.children[0]?.idleMinutes]).toEqual(['idle', 0, 3])
+  assert.deepEqual([idle.status, idle.running, idle.root.children[0]?.idleMinutes], ['idle', 0, 3])
   const { source } = buildFlow(idle.root, undefined, now)
-  expect(source).toMatch(/<path id="flow-\d+-[a-z0-9]+-edge-2"[^>]+stroke-dasharray="2 3"/u)
-  expect(source).toContain('<g class="card-idle">')
-  expect(source).toContain('class="idle-border" stroke-dasharray="2 3"')
-  expect(source).toContain('animation:idle-border 8s linear infinite')
+  assert.match(source, /<path id="flow-\d+-[a-z0-9]+-edge-2"[^>]+stroke-dasharray="2 3"/u)
+  assert.ok((source)?.includes('<g class="card-idle">'))
+  assert.ok((source)?.includes('class="idle-border" stroke-dasharray="2 3"'))
+  assert.ok((source)?.includes('animation:idle-border 8s linear infinite'))
   child.lastStepAt = now - 179_999
-  expect([flows()[0]?.status, flows()[0]?.running]).toEqual(['running', 1])
+  assert.deepEqual([flows()[0]?.status, flows()[0]?.running], ['running', 1])
   child.status = 'done'
-  expect(flows()[0]?.status).toBe('done')
+  assert.equal(flows()[0]?.status, 'done')
   child.status = 'error'
-  expect(flows()[0]?.status).toBe('error')
+  assert.equal(flows()[0]?.status, 'error')
 })
 
 test('表示範囲は流れの最後の動きと実行中の依頼を使う', () => {
@@ -73,9 +74,9 @@ test('表示範囲は流れの最後の動きと実行中の依頼を使う', ()
     request('live', 'user', 'codex', now - 8_000_000, { status: 'running', lastStepAt: now - 10 }),
   ]
   const flows = groupFlows({ actors, requests, now })
-  expect(visibleFlows(flows, now, 'running').map(flow => flow.root.request.id)).toEqual(['live'])
-  expect(visibleFlows(flows, now, 'hour').map(flow => flow.root.request.id)).toEqual(['live', 'recent'])
-  expect(visibleFlows(flows, now, 'all').map(flow => flow.root.request.id)).toEqual(['live', 'recent', 'older'])
+  assert.deepEqual(visibleFlows(flows, now, 'running').map(flow => flow.root.request.id), ['live'])
+  assert.deepEqual(visibleFlows(flows, now, 'hour').map(flow => flow.root.request.id), ['live', 'recent'])
+  assert.deepEqual(visibleFlows(flows, now, 'all').map(flow => flow.root.request.id), ['live', 'recent', 'older'])
 })
 
 test('SVG の寸法、エスケープ、矢印の番号、実行中の装飾を確認する', () => {
@@ -83,31 +84,31 @@ test('SVG の寸法、エスケープ、矢印の番号、実行中の装飾を�
     summary: '<確認> & "次" \'続き\'\u0000', status: 'running', endedAt: undefined,
   })
   const diagram = buildFlow(groupFlows({ actors, requests: [root], now })[0]!.root, 'codex', now)
-  expect([diagram.width, diagram.height]).toEqual([608, 124])
-  expect(diagram.source).toContain('width="608" height="124" viewBox="0 0 608 124"')
-  expect(diagram.source).toContain('width="208" height="92"')
-  expect(diagram.source).toMatch(/<circle [^>]*r="9"[^>]*\/><text [^>]*fill="#FFFFFF"[^>]*>1<\/text>/u)
-  expect(diagram.source).toContain('>作業を依頼</text>')
-  expect(diagram.source).toContain('>LIVE</text>')
-  expect(diagram.source).not.toMatch(/[①-⑳㉑-㉟㊱-㊿●✔✖○]/u)
-  expect(diagram.source).toContain('scale(1)">' + iconBody('user'))
-  expect(diagram.source).toContain('scale(1)">' + iconBody('codex'))
-  expect(diagram.source).toContain(iconBody('running', true))
-  expect(diagram.source).toContain('&lt;確認&gt; &amp; &quot;次&quot; &apos;続き&apos;')
-  expect(diagram.source).toContain('<title>Codex &lt;確認&amp;検証&gt; &quot;次の作業&quot;')
-  expect(diagram.source.includes('\u0000')).toBe(false)
-  expect(diagram.source).toContain('class="card-halo motion-only"')
-  expect(diagram.source).toContain('class="card-sheen"')
-  expect(diagram.source).toContain('class="status-dot"')
-  expect(diagram.source).toContain('class="edge-dash"')
-  expect(diagram.source).toContain('stroke-dasharray:6 6;animation:edge-dash 1.2s linear infinite')
-  expect(diagram.source).toContain('class="edge-tip"')
-  expect(diagram.source.match(/<animateMotion dur="1.8s"/gu)).toHaveLength(3)
-  expect(diagram.source).toContain('begin="-0.6s"')
-  expect(diagram.source).toContain('begin="-1.2s"')
-  expect(diagram.source).toMatch(/<mpath href="#flow-\d+-[a-z0-9]+-edge-1"\/>/u)
-  expect(Array.from(shortName('🦊'.repeat(19)))).toHaveLength(18)
-  expect(shortName('🦊'.repeat(19))).toBe('🦊'.repeat(17) + '…')
+  assert.deepEqual([diagram.width, diagram.height], [608, 124])
+  assert.ok((diagram.source)?.includes('width="608" height="124" viewBox="0 0 608 124"'))
+  assert.ok((diagram.source)?.includes('width="208" height="92"'))
+  assert.match(diagram.source, /<circle [^>]*r="9"[^>]*\/><text [^>]*fill="#FFFFFF"[^>]*>1<\/text>/u)
+  assert.ok((diagram.source)?.includes('>作業を依頼</text>'))
+  assert.ok((diagram.source)?.includes('>LIVE</text>'))
+  assert.doesNotMatch(diagram.source, /[①-⑳㉑-㉟㊱-㊿●✔✖○]/u)
+  assert.ok((diagram.source)?.includes('scale(1)">' + iconBody('user')))
+  assert.ok((diagram.source)?.includes('scale(1)">' + iconBody('codex')))
+  assert.ok((diagram.source)?.includes(iconBody('running', true)))
+  assert.ok((diagram.source)?.includes('&lt;確認&gt; &amp; &quot;次&quot; &apos;続き&apos;'))
+  assert.ok((diagram.source)?.includes('<title>Codex &lt;確認&amp;検証&gt; &quot;次の作業&quot;'))
+  assert.equal(diagram.source.includes('\u0000'), false)
+  assert.ok((diagram.source)?.includes('class="card-halo motion-only"'))
+  assert.ok((diagram.source)?.includes('class="card-sheen"'))
+  assert.ok((diagram.source)?.includes('class="status-dot"'))
+  assert.ok((diagram.source)?.includes('class="edge-dash"'))
+  assert.ok((diagram.source)?.includes('stroke-dasharray:6 6;animation:edge-dash 1.2s linear infinite'))
+  assert.ok((diagram.source)?.includes('class="edge-tip"'))
+  assert.equal((diagram.source.match(/<animateMotion dur="1.8s"/gu))?.length, 3)
+  assert.ok((diagram.source)?.includes('begin="-0.6s"'))
+  assert.ok((diagram.source)?.includes('begin="-1.2s"'))
+  assert.match(diagram.source, /<mpath href="#flow-\d+-[a-z0-9]+-edge-1"\/>/u)
+  assert.equal((Array.from(shortName('🦊'.repeat(19))))?.length, 18)
+  assert.equal(shortName('🦊'.repeat(19)), '🦊'.repeat(17) + '…')
 })
 
 test('5 列と 6 列は拡幅し、分岐では行を追加する', () => {
@@ -117,17 +118,17 @@ test('5 列と 6 列は拡幅し、分岐では行を追加する', () => {
   for (const [count, width] of [[3, 1344], [4, 1712], [5, 2080]] as const) {
     const root = groupFlows({ actors: chainActors, requests: chain.slice(0, count), now })[0]!.root
     const diagram = buildFlow(root, undefined, now)
-    expect([diagram.width, diagram.height]).toEqual([width, 124])
+    assert.deepEqual([diagram.width, diagram.height], [width, 124])
   }
   const branch = request('leaf', 'a0', 'cloud', now - 1, { status: 'error' })
   const root = groupFlows({ actors: chainActors, requests: [...chain, branch], now })[0]!.root
   const diagram = buildFlow(root, undefined, now)
-  expect(diagram.height).toBe(236)
-  expect(diagram.source).toMatch(/<path id="flow-\d+-[a-z0-9]+-edge-6"[^>]*stroke="#EF4444"/u)
-  expect(diagram.source).toContain('scale(1)">' + iconBody('cloud'))
-  expect(diagram.source).toContain(iconBody('error'))
-  expect(diagram.source).toContain(iconBody('done'))
-  expect(diagram.source).toContain(iconBody('waiting'))
+  assert.equal(diagram.height, 236)
+  assert.match(diagram.source, /<path id="flow-\d+-[a-z0-9]+-edge-6"[^>]*stroke="#EF4444"/u)
+  assert.ok((diagram.source)?.includes('scale(1)">' + iconBody('cloud')))
+  assert.ok((diagram.source)?.includes(iconBody('error')))
+  assert.ok((diagram.source)?.includes(iconBody('done')))
+  assert.ok((diagram.source)?.includes(iconBody('waiting')))
 })
 
 type Rectangle = { x: number; y: number; width: number; height: number }
@@ -152,26 +153,26 @@ test('子が 1〜4 個で孫がいても親が中央にあり、カードとラ�
     ]
     const root = groupFlows({ actors: names, requests, now })[0]!.root
     const { cards, arrows, width, height, columns, rows } = layoutFlow(root)
-    expect([columns, rows, width, height]).toEqual([4, count + 1, 1344, 32 + (count + 1) * 92 + count * 20])
+    assert.deepEqual([columns, rows, width, height], [4, count + 1, 1344, 32 + (count + 1) * 92 + count * 20])
     const diagram = buildFlow(root, undefined, now)
-    expect(diagram.source).toContain('width="' + width + '" height="' + height + '"')
+    assert.ok((diagram.source)?.includes('width="' + width + '" height="' + height + '"'))
     const rects = [...cards.map(card => card.bounds), ...arrows.map(arrow => arrow.label)]
     rects.forEach((rect, index) => {
-      expect(rects.slice(index + 1).some(other => intersects(rect, other))).toBe(false)
+      assert.equal(rects.slice(index + 1).some(other => intersects(rect, other)), false)
     })
     for (const card of cards) {
       const childBounds = card.children.map(child => child.bounds)
       if (childBounds.length) {
-        expect(card.bounds.y).toBe((childBounds[0]!.y + childBounds.at(-1)!.y) / 2)
+        assert.equal(card.bounds.y, (childBounds[0]!.y + childBounds.at(-1)!.y) / 2)
       }
-      expect(card.kindX + Array.from(card.kindText).length * 12).toBeLessThanOrEqual(card.statusX)
+      assert.ok((card.kindX + Array.from(card.kindText).length * 12) <= (card.statusX))
     }
     for (const { from, to, label, bendX, summary } of arrows) {
-      expect(label.x).toBeGreaterThan(bendX + 8)
-      expect(label.x + label.width).toBe(to.bounds.x - 8)
-      expect(label.y + label.height).toBe(to.bounds.y + 46)
-      expect(Array.from(summary).length).toBeLessThanOrEqual(12)
-      expect(from.bounds.x + 208).toBeLessThan(bendX)
+      assert.ok((label.x) > (bendX + 8))
+      assert.equal(label.x + label.width, to.bounds.x - 8)
+      assert.equal(label.y + label.height, to.bounds.y + 46)
+      assert.ok((Array.from(summary).length) <= (12))
+      assert.ok((from.bounds.x + 208) < (bendX))
     }
   }
 })
@@ -182,29 +183,29 @@ test('同じ親から同じ相手への依頼を一本にまとめ、3 個の番
     ...Array.from({ length: 5 }, (_, index) => request('repeat:' + index, 'claude', 'codex', now - 10 + index)),
   ]
   const root = groupFlows({ actors, requests, now })[0]!.root
-  expect(flowRows(root)).toHaveLength(6)
+  assert.equal((flowRows(root))?.length, 6)
   const { arrows, cards } = layoutFlow(root)
-  expect(arrows).toHaveLength(2)
-  expect(cards).toHaveLength(3)
-  expect(arrows.find(arrow => arrow.to.actor.id === 'codex')?.numbers).toEqual(['2', '3', '4', '+2'])
-  expect(buildFlow(root, undefined, now).source).toContain('>+2</text>')
+  assert.equal((arrows)?.length, 2)
+  assert.equal((cards)?.length, 3)
+  assert.deepEqual(arrows.find(arrow => arrow.to.actor.id === 'codex')?.numbers, ['2', '3', '4', '+2'])
+  assert.ok((buildFlow(root, undefined, now).source)?.includes('>+2</text>'))
 })
 
 test('サンプルのカードに作業、結果、内訳を表示し、選択と直接の相手を強調する', () => {
   const root = groupFlows({ ...sampleBoard(now), now }).find(flow => flow.root.request.id === 'live-root')!.root
   const { source } = buildFlow(root, 'codex:live', now)
-  expect(source).toMatch(/<g data-actor="codex:live"><title>[^<]*<\/title>.*?width="208"[^>]*stroke-width="3"/u)
-  expect(source).toContain('<g data-actor="user" opacity="0.45">')
-  expect(source).toContain('<g data-actor="agent:review" opacity="0.45">')
-  expect(source).toContain('<g data-actor="self">')
-  expect(source).toContain('>いま:</text>')
-  expect(source).toContain('フロー図の配置テスト')
-  expect(source).toContain('>結果:</text>')
-  expect(source).toContain('>11 分</text>')
-  expect(source).toContain(iconBody('file'))
-  expect(source).toContain(iconBody('done'))
-  expect(buildFlowTree(root, now).join('\n')).toContain('結果: ノードと矢印の重なりを整理しました （3 分）')
-  expect(buildFlowTree(root, now).join('\n')).toContain('いま: フロー図の配置テストを実行 （11 分）')
+  assert.match(source, /<g data-actor="codex:live"><title>[^<]*<\/title>.*?width="208"[^>]*stroke-width="3"/u)
+  assert.ok((source)?.includes('<g data-actor="user" opacity="0.45">'))
+  assert.ok((source)?.includes('<g data-actor="agent:review" opacity="0.45">'))
+  assert.ok((source)?.includes('<g data-actor="self">'))
+  assert.ok((source)?.includes('>いま:</text>'))
+  assert.ok((source)?.includes('フロー図の配置テスト'))
+  assert.ok((source)?.includes('>結果:</text>'))
+  assert.ok((source)?.includes('>11 分</text>'))
+  assert.ok((source)?.includes(iconBody('file')))
+  assert.ok((source)?.includes(iconBody('done')))
+  assert.ok((buildFlowTree(root, now).join('\n'))?.includes('結果: ノードと矢印の重なりを整理しました （3 分）'))
+  assert.ok((buildFlowTree(root, now).join('\n'))?.includes('いま: フロー図の配置テストを実行 （11 分）'))
 })
 
 test('最新作業のアイコンだけを作業種別に応じて動かす', () => {
@@ -229,11 +230,11 @@ test('最新作業のアイコンだけを作業種別に応じて動かす', ()
       lastStep: { at: now - 10_000, icon, title: 'ソースの確認' },
     })
     const { source } = buildFlow(groupFlows({ actors, requests: [entry], now })[0]!.root, undefined, now)
-    expect(source).toMatch(pattern)
-    expect(source).toContain('<circle class="step-dot dot-last"')
-    expect(source).toContain(iconBody('edit')) // The count icon stays static.
+    assert.match(source, pattern)
+    assert.ok((source)?.includes('<circle class="step-dot dot-last"'))
+    assert.ok((source)?.includes(iconBody('edit'))) // The count icon stays static.
     const userCard = source.slice(source.indexOf('<g data-actor="user"'), source.indexOf('<g data-actor="codex"'))
-    expect(userCard).not.toMatch(/class=|<animate/u)
+    assert.doesNotMatch(userCard, /class=|<animate/u)
   }
 })
 
@@ -257,13 +258,13 @@ test('開始、最新作業、完了、失敗の演出はそれぞれの発生�
     /class="done-border motion-only"/u, /class="done-pop"/u, /keyPoints="1;0"/u,
     /class="card-shake"/u, /class="error-flash motion-only"/u,
   ]) {
-    expect(fresh).toMatch(pattern)
-    expect(stale).not.toMatch(pattern)
+    assert.match(fresh, pattern)
+    assert.doesNotMatch(stale, pattern)
   }
-  expect(fresh.match(/class="done-pop"/gu)).toHaveLength(2)
-  expect(fresh.match(/class="error-flash motion-only"/gu)).toHaveLength(2)
-  expect(fresh).not.toContain('class="count-flash">1</text>')
-  expect(diagrams(now - 6_001)).not.toMatch(/class="(?:done-pop|card-shake)"/u)
+  assert.equal((fresh.match(/class="done-pop"/gu))?.length, 2)
+  assert.equal((fresh.match(/class="error-flash motion-only"/gu))?.length, 2)
+  assert.ok(!(fresh)?.includes('class="count-flash">1</text>'))
+  assert.doesNotMatch(diagrams(now - 6_001), /class="(?:done-pop|card-shake)"/u)
 })
 
 test('動きの軽減を適用でき、同じ依頼の SVG は安定し、別の依頼との参照は独立する', () => {
@@ -273,34 +274,71 @@ test('動きの軽減を適用でき、同じ依頼の SVG は安定し、別の
   })
   const root = groupFlows({ actors, requests: [entry], now })[0]!.root
   const allIds = new Set<string>()
-  expect(buildFlow(root, undefined, now)).toEqual(buildFlow(root, undefined, now))
+  assert.deepEqual(buildFlow(root, undefined, now), buildFlow(root, undefined, now))
   for (const id of ['xml', '別の依頼']) {
     const { source } = buildFlow({ ...root, request: { ...entry, id } }, undefined, now)
-    expect(source).toContain('@media (prefers-reduced-motion: reduce)')
-    expect(source).toContain('animation:none!important')
-    expect(source).toContain('.smil,.motion-only{display:none}.still{display:inline}')
-    expect(source).not.toMatch(/<script|\son[a-z]+="/iu)
+    assert.ok((source)?.includes('@media (prefers-reduced-motion: reduce)'))
+    assert.ok((source)?.includes('animation:none!important'))
+    assert.ok((source)?.includes('.smil,.motion-only{display:none}.still{display:inline}'))
+    assert.doesNotMatch(source, /<script|\son[a-z]+="/iu)
     const { elements } = parseSvg(source)
     const ids = new Set<string>()
     for (const { name, attributes } of elements) {
-      expect(name).not.toBe('script')
+      assert.notEqual(name, 'script')
       const id = attributes.get('id')
       if (id) {
-        expect(allIds.has(id)).toBe(false)
-        expect(id).toMatch(/^flow-\d+-/u)
+        assert.equal(allIds.has(id), false)
+        assert.match(id, /^flow-\d+-/u)
         allIds.add(id)
         ids.add(id)
       }
     }
-    expect(ids.size).toBeGreaterThan(3)
+    assert.ok((ids.size) > (3))
     for (const { attributes } of elements) {
       for (const [name, value] of attributes) {
-        expect(name).not.toMatch(/^on/iu)
+        assert.doesNotMatch(name, /^on/iu)
         const reference = name === 'href' ? value.slice(1) : /^url\(#(.+)\)$/u.exec(value)?.[1]
-        if (reference) expect(ids.has(reference)).toBe(true)
+        if (reference) assert.equal(ids.has(reference), true)
       }
     }
   }
+})
+
+test('SVG を更新しても開始・完了の演出を再生し直さず、新しい更新だけを動かす', () => {
+  function effect(key: string, className: string) {
+    return {
+      className, removed: false,
+      getAttribute: () => key,
+      classList: { contains: (name: string) => name === className },
+      removeAttribute() { this.className = '' },
+      remove() { this.removed = true },
+    }
+  }
+  const seen = new Map<string, number>()
+  const first = [effect('start', 'card-enter'), effect('finish', 'done-pop'), effect('finish', 'smil')]
+  disableReplayedMotion({ querySelectorAll: () => first }, seen, 100)
+  assert.equal(first[0]!.className, 'card-enter')
+  assert.equal(first[2]!.removed, false)
+  const second = [effect('start', 'card-enter'), effect('finish', 'smil'), effect('new-step', 'step-enter')]
+  disableReplayedMotion({ querySelectorAll: () => second }, seen, 2_100)
+  assert.equal(second[0]!.className, '')
+  assert.equal(second[1]!.removed, true)
+  assert.equal(second[2]!.className, 'step-enter')
+})
+
+test('SVG 属性の主体 ID とテキストの名前、動詞、要約、結果をすべてエスケープする', () => {
+  const unsafe = '"><script>&悪意</script>'
+  const from = { ...actors[0]!, id: unsafe, label: unsafe }
+  const to = { ...actors[1]!, label: unsafe }
+  const entry = request(unsafe, from.id, to.id, now, { verb: unsafe, summary: unsafe, result: unsafe })
+  const root = groupFlows({ actors: [from, to], requests: [entry], now })[0]!.root
+  const source = buildFlow(root, undefined, now).source
+  const escaped = '&quot;&gt;&lt;script&gt;&amp;悪意&lt;/script&gt;'
+  assert.ok(source.includes('data-actor="' + escaped + '"'))
+  assert.ok(source.includes('<title>' + escaped))
+  assert.ok(source.includes(' に' + escaped + '（' + escaped + '）'))
+  assert.doesNotMatch(source, /<script|\son[a-z]+="/iu)
+  assert.ok(parseSvg(source).elements.every(({ name }) => name !== 'script'))
 })
 
 test('実行中の矢印が 6 本を超えると古いものから簡略化し、SVG の文字数上限を守る', () => {
@@ -317,13 +355,13 @@ test('実行中の矢印が 6 本を超えると古いものから簡略化し�
   const root = groupFlows({ actors: [...actors, ...children], requests, now })[0]!.root
   const { source } = buildFlow(root, undefined, now)
   const { elements } = parseSvg(source)
-  expect(source.length).toBeLessThanOrEqual(131_072)
-  expect(elements.filter(({ name }) => name === 'animateMotion')).toHaveLength(18)
-  expect(elements.filter(({ attributes }) => attributes.get('class') === 'edge-dash')).toHaveLength(41)
-  expect(elements.filter(({ attributes }) => attributes.get('class') === 'step-enter')).toHaveLength(40)
+  assert.ok((source.length) <= (131_072))
+  assert.equal((elements.filter(({ name }) => name === 'animateMotion'))?.length, 18)
+  assert.equal((elements.filter(({ attributes }) => attributes.get('class') === 'edge-dash'))?.length, 41)
+  assert.equal((elements.filter(({ attributes }) => attributes.get('class') === 'step-enter'))?.length, 40)
   const animatedEdges = new Set(elements.filter(({ name }) => name === 'mpath')
     .map(({ attributes }) => Number(attributes.get('href')!.split('-').at(-1))))
-  expect([...animatedEdges]).toEqual([36, 37, 38, 39, 40, 41])
+  assert.deepEqual([...animatedEdges], [36, 37, 38, 39, 40, 41])
 })
 
 test('現在のターンの明示的な親を優先し、完了した依頼の時刻更新を止める', () => {
@@ -331,10 +369,10 @@ test('現在のターンの明示的な親を優先し、完了した依頼の�
   const competing = request('competing', 'user', 'self', now - 20_000, { endedAt: now - 15_000 })
   const child = request('explicit-child', 'self', 'codex', now - 10_000, { parentId: root.id })
   const flows = groupFlows({ actors, requests: [root, competing, child], now })
-  expect(flows.find(flow => flow.root.request.id === root.id)?.root.children[0]?.request.id).toBe(child.id)
-  expect(flows.find(flow => flow.root.request.id === competing.id)?.root.children).toHaveLength(0)
-  expect(needsTimeRefresh([root, competing, child, { ...child, status: 'stopped' }], now)).toBe(false)
-  expect(needsTimeRefresh([{ ...child, status: 'running' }], now)).toBe(true)
-  expect(needsTimeRefresh([{ ...child, status: 'running' }], child.at + 180_000)).toBe(false)
-  expect(cachedFlow(flows[0]!.root, undefined, now + 60_000)).toBe(cachedFlow(flows[0]!.root, undefined, now))
+  assert.equal(flows.find(flow => flow.root.request.id === root.id)?.root.children[0]?.request.id, child.id)
+  assert.equal((flows.find(flow => flow.root.request.id === competing.id)?.root.children)?.length, 0)
+  assert.equal(needsTimeRefresh([root, competing, child, { ...child, status: 'stopped' }], now), false)
+  assert.equal(needsTimeRefresh([{ ...child, status: 'running' }], now), true)
+  assert.equal(needsTimeRefresh([{ ...child, status: 'running' }], child.at + 180_000), false)
+  assert.equal(cachedFlow(flows[0]!.root, undefined, now + 60_000), cachedFlow(flows[0]!.root, undefined, now))
 })

@@ -1,7 +1,7 @@
-import type { Actor, DisplayScope, IconName, LiveRequest, StepCount } from '../types'
-import { flowMotionDefs, flowMotionStyle, recent, returnParticle, runningParticles } from './flow-motion'
-import { actorIcon, iconBody, iconColor, iconLabel } from './icons'
-import { displayText, fingerprint, FLOW_WINDOW, oneLine, shortName, stepCountCategory } from './model'
+import type { Actor, DisplayScope, IconName, LiveRequest, StepCount } from '../types/index.d.ts'
+import { flowMotionDefs, flowMotionStyle, recent, returnParticle, runningParticles } from './flow-motion.ts'
+import { actorIcon, iconBody, iconColor, iconLabel } from './icons.ts'
+import { displayText, fingerprint, FLOW_WINDOW, oneLine, shortName, stepCountCategory } from './model.ts'
 
 const MINUTE = 60_000
 const PARENT_GRACE = 5 * MINUTE
@@ -297,18 +297,29 @@ const countIcons: Record<StepCount, IconName> = {
   read: 'file', search: 'search', edit: 'edit', command: 'terminal', web: 'web', agent: 'agent', delegate: 'delegate', error: 'error',
 }
 
-type Effects = { detailed: boolean; enter: boolean; step: boolean; end?: 'done' | 'error' }
-const noEffects: Effects = { detailed: false, enter: false, step: false }
+type Effects = { detailed: boolean; enter?: string; step?: string; end?: 'done' | 'error'; endKey?: string }
+const noEffects: Effects = { detailed: false }
+
+function animationKey(request: LiveRequest, name: string, at: number, count = 0) {
+  return name + '-' + fingerprint(request.id + ':' + at + ':' + count)
+}
+
+function once(key: string): string {
+  return ' data-once="' + key + '"'
+}
 
 function cardEffects(card: Card, now: number, detailed: boolean, animate: boolean): Effects {
   const { primary, incoming } = card
   if (!animate || !primary) return noEffects
   const { status, request } = primary
   const end = (status === 'done' || status === 'error') && recent(now, request.endedAt) ? status : undefined
+  const entering = incoming.findLast(({ node }) => recent(now, node.request.at))?.node.request
   return {
     detailed, end,
-    enter: incoming.some(({ node }) => recent(now, node.request.at)),
-    step: status === 'running' && recent(now, request.lastStep?.at),
+    enter: entering && animationKey(entering, 'enter', entering.at),
+    step: status === 'running' && recent(now, request.lastStep?.at)
+      ? animationKey(request, 'step', request.lastStep!.at, request.stepCount) : undefined,
+    endKey: end && animationKey(request, end, request.endedAt!),
   }
 }
 
@@ -326,13 +337,13 @@ function renderCard(card: Card, now: number, focus: string | undefined, related:
   const details = (incoming.length ? incoming : outgoing).map(({ node }) => requestTitle(node, now)).join(' / ')
   const title = actor.label + (details ? ' / ' + details : ' / 待機')
   const canMove = actor.kind !== 'user'
-  const { detailed, enter, step: stepChanged, end } = canMove ? effects : noEffects
+  const { detailed, enter, step: stepChanged, end, endKey } = canMove ? effects : noEffects
   const dash = canMove && status === 'idle' ? ' class="idle-border" stroke-dasharray="2 3"' : ''
   const outline = detailed
     ? `<rect class="card-halo motion-only" x="${x - 2}" y="${y - 2}" width="${nodeWidth + 4}" height="${nodeHeight + 4}" rx="12" fill="none" stroke="${color}" opacity="0"/>` : ''
   const borderShape = `x="${x}" y="${y}" width="${nodeWidth}" height="${nodeHeight}" rx="10" fill="none"`
   const border = `<rect ${borderShape} stroke="${color}" stroke-width="${focus === actor.id ? 3 : 1}"${dash}/>`
-  const borderFlash = end ? `<rect class="${end === 'done' ? 'done-border' : 'error-flash'} motion-only" ${borderShape} stroke="${pillColors[end]}" opacity="0"/>` : ''
+  const borderFlash = end ? `<rect${once(endKey!)} class="${end === 'done' ? 'done-border' : 'error-flash'} motion-only" ${borderShape} stroke="${pillColors[end]}" opacity="0"/>` : ''
   const band = `<path d="M${x} ${y + 24} V${y + 10} q0 -10 10 -10 h188 q10 0 10 10 v14Z" fill="${color}" fill-opacity=".25"/>`
   const sheen = detailed ? `<g class="motion-only" transform="translate(${x} ${y})"><g clip-path="url(#${id}-band)"><rect class="card-sheen" width="70" height="24" fill="url(#${id}-sheen)"/></g></g>` : ''
   const statusDot = status === 'running'
@@ -358,7 +369,7 @@ function renderCard(card: Card, now: number, focus: string | undefined, related:
     line += svgText(lineText, textX, y + 62, 12, '#CBD5E1',
       displayWidth < textEnd ? ` textLength="${displayWidth}" lengthAdjust="spacingAndGlyphs"` : '')
     if (typing) line += typingDots(textX + displayWidth + 4, y + 60)
-    body += stepChanged ? `<g class="step-enter">${line}</g>` : line
+    body += stepChanged ? `<g${once(stepChanged)} class="step-enter">${line}</g>` : line
 
     const duration = durationText(primary.request, now)
     body += svgText(duration, x + 10, y + 81, 11, gray)
@@ -371,17 +382,18 @@ function renderCard(card: Card, now: number, focus: string | undefined, related:
       const countWidth = Math.ceil(textWidth(count, 11))
       if (countX + 14 + countWidth > x + nodeWidth - 10) break
       body += svgIcon(countIcons[category], countX, y + 71, 12)
-      body += svgText(count, countX + 14, y + 81, 11, gray, category === changedCount ? ' class="count-flash"' : '')
+      body += svgText(count, countX + 14, y + 81, 11, gray,
+        category === changedCount && stepChanged ? once(stepChanged) + ' class="count-flash"' : '')
       countX += 21 + countWidth
     }
   }
   const opacity = focus && !related.has(actor.id) ? ' opacity="0.45"' : ''
   const heading = band + sheen + svgIcon(icon, x + 8, y + 4, 16) + svgText(kindText, kindX, y + 16, 12, '#E5E7EB') +
-    (actor.kind === 'user' ? '' : end === 'done' ? `<g class="done-pop">${badge}</g>` : badge)
+    (actor.kind === 'user' ? '' : end === 'done' ? `<g${once(endKey!)} class="done-pop">${badge}</g>` : badge)
   let content = `${outline}<rect x="${x}" y="${y}" width="${nodeWidth}" height="${nodeHeight}" rx="10" fill="${cardFill}"/>${heading}${body}${border}${borderFlash}`
   if (canMove && status === 'idle') content = `<g${animate ? ' class="card-idle"' : ' opacity=".75"'}>${content}</g>`
-  if (end === 'error') content = `<g class="card-shake">${content}</g>`
-  if (enter) content = `<g class="card-enter">${content}</g>`
+  if (end === 'error') content = `<g${once(endKey!)} class="card-shake">${content}</g>`
+  if (enter) content = `<g${once(enter)} class="card-enter">${content}</g>`
   return `<g data-actor="${xml(actor.id)}"${opacity}><title>${xml(title)}</title>${content}</g>`
 }
 
@@ -410,17 +422,17 @@ function renderArrow(arrow: Arrow, now: number, id: string, markers: Map<string,
     : status === 'idle' ? ' stroke-dasharray="2 3"' : ''
   const d = arrowPath(arrow)
   const path = `<path id="${edgeId}" d="${d}" fill="none" stroke="${color}" stroke-width="1.5"${dash} marker-end="url(#${markerId})"/>`
-  const draw = effects.enter ? `<path class="edge-draw motion-only" d="${d}" pathLength="1" fill="none" stroke="${color}" stroke-width="1.5" opacity="0"/>` : ''
+  const draw = effects.enter ? `<path${once(effects.enter)} class="edge-draw motion-only" d="${d}" pathLength="1" fill="none" stroke="${color}" stroke-width="1.5" opacity="0"/>` : ''
   const particles = effects.detailed ? runningParticles(id, edgeId, color) : ''
-  const movingLine = effects.enter ? `<g class="edge-reveal">${path}${particles}</g>${draw}` : path + particles
-  const resultMotion = effects.end === 'done' ? returnParticle(id, edgeId, effects.enter ? .6 : 0)
-    : effects.end === 'error' ? `<path class="error-flash motion-only${effects.enter ? ' edge-after-draw' : ''}" d="${d}" fill="none" stroke="${pillColors.error}" opacity="0"/>` : ''
+  const movingLine = effects.enter ? `<g${once(effects.enter)} class="edge-reveal">${path}${particles}</g>${draw}` : path + particles
+  const resultMotion = effects.end === 'done' ? returnParticle(id, edgeId, effects.enter ? .6 : 0, effects.endKey!)
+    : effects.end === 'error' ? `<path${once(effects.endKey!)} class="error-flash motion-only${effects.enter ? ' edge-after-draw' : ''}" d="${d}" fill="none" stroke="${pillColors.error}" opacity="0"/>` : ''
   const targetX = to.bounds.x
   const targetY = to.bounds.y + nodeHeight / 2
   const indicator = status === 'done' || status === 'error'
     ? `<circle cx="${targetX - 16}" cy="${targetY}" r="8" fill="#111827"/>` + svgIcon(status, targetX - 22, targetY - 6, 12) : ''
   const resultIcon = effects.end === 'done'
-    ? `<g class="done-pop${effects.enter ? ' edge-after-draw' : ''}">${indicator}</g>` : indicator
+    ? `<g${once(effects.endKey!)} class="done-pop${effects.enter ? ' edge-after-draw' : ''}">${indicator}</g>` : indicator
   const badges = numbers.map((number, index) => {
     const left = x + index * badgePitch
     return number.startsWith('+')
@@ -432,7 +444,7 @@ function renderArrow(arrow: Arrow, now: number, id: string, markers: Map<string,
   const verbX = x + badgeWidth
   const verbBadge = `<rect x="${verbX}" y="${y + 1}" width="${Math.ceil(textWidth(verb, 11)) + 8}" height="16" rx="4" fill="${cardFill}"/>` +
     svgText(verb, verbX + 4, y + 13, 11, '#E5E7EB')
-  const label = `<g data-label="${edgeId}"${effects.enter ? ' class="edge-badges"' : ''}>${badges}${verbBadge}${svgText(summary, x + width, y + 30, 10, gray, ' text-anchor="end"')}</g>`
+  const label = `<g data-label="${edgeId}"${effects.enter ? once(effects.enter) + ' class="edge-badges"' : ''}>${badges}${verbBadge}${svgText(summary, x + width, y + 30, 10, gray, ' text-anchor="end"')}</g>`
   return `<g><title>${xml(title)}</title>${movingLine}${resultMotion}${resultIcon}${label}</g>`
 }
 
@@ -487,7 +499,7 @@ export function buildFlow(root: FlowRequest, focus: string | undefined, now: num
   let source = render(true, detailed)
   if (source.length > svgLimit && detailed.size) source = render(true, new Set())
   if (source.length > svgLimit) source = render(false, new Set())
-  // The pane can render the same requests as a text tree when even the static SVG is too large.
+  // The browser shows the same requests as a tree when even the static SVG is too large.
   if (source.length > svgLimit) source = ''
   return { source, width, height }
 }
