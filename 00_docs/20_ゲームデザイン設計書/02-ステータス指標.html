@@ -279,7 +279,6 @@ body { margin: 0; background: var(--page); color: var(--ink); }
           <li><a href="#player-elements"><span class="toc-num">1.8</span>属性補正</a></li>
           <li><a href="#player-conditions"><span class="toc-num">1.9</span>状態異常</a></li>
           <li><a href="#player-skills"><span class="toc-num">1.10</span>スキル・消耗品</a></li>
-          <li><a href="#player-field"><span class="toc-num">1.11</span>採集・釣り・枠上限</a></li>
         </ol>
       </li>
       <li><a href="#mob"><span class="toc-num">2</span>標準モブ</a>
@@ -307,7 +306,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     <label><input id="st-all" type="checkbox"> 表を5レベル刻みに</label>
   </div>
   <section class="st-group" id="player" aria-labelledby="player-title">
-    <div class="st-group-head"><h2 id="player-title"><span class="ch-num">1</span>プレイヤー</h2><p>標準は初期値・職業・装備・有効な装備効果・取得済みのスキルツリー・基本能力値の派生を含む合計。特化は項目ごとの配分目安。</p></div>
+    <div class="st-group-head"><h2 id="player-title"><span class="ch-num">1</span>プレイヤー</h2><p>標準・特化ともに初期値・職業・装備・有効な装備効果・取得済みのスキルツリー・基本能力値の派生を含む合計。特化は項目ごとの配分目安。</p></div>
     <ol class="ch-toc" aria-label="1章の内容">
       <li><a href="#player-base"><span class="toc-num">1.1</span><span class="ch-toc-title">基本ステータス</span><span class="ch-toc-desc">基準攻撃力・最大HP・共通防御</span><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-resource">リソース</span><span class="cat cat-defense">防御</span></span></a></li>
       <li><a href="#player-crit"><span class="toc-num">1.2</span><span class="ch-toc-title">会心</span><span class="ch-toc-desc">通常会心率・会心ダメージ・超星会心率・超星会心倍率</span><span class="cat-list"><span class="cat cat-offense">攻撃</span></span></a></li>
@@ -319,7 +318,6 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       <li><a href="#player-elements"><span class="toc-num">1.8</span><span class="ch-toc-title">属性補正</span><span class="ch-toc-desc">属性耐性と上限・属性ダメージ増加・属性貫通</span><span class="cat-list"><span class="cat cat-element">属性</span></span></a></li>
       <li><a href="#player-conditions"><span class="toc-num">1.9</span><span class="ch-toc-title">状態異常</span><span class="ch-toc-desc">付与確率・付与耐性・継続ダメージ補正</span><span class="cat-list"><span class="cat cat-condition">状態異常</span></span></a></li>
       <li><a href="#player-skills"><span class="toc-num">1.10</span><span class="ch-toc-title">スキル・消耗品</span><span class="ch-toc-desc">時間・消費・持続の補正、支援力、使用中の移動</span><span class="cat-list"><span class="cat cat-utility">ユーティリティ</span></span></a></li>
-      <li><a href="#player-field"><span class="toc-num">1.11</span><span class="ch-toc-title">採集・釣り・枠上限</span><span class="ch-toc-desc">道具段階・採集速度・キャスト距離・枠数</span><span class="cat-list"><span class="cat cat-utility">ユーティリティ</span></span></a></li>
     </ol>
     <section class="st-sub" id="player-base" aria-labelledby="player-base-title">
       <div class="st-sub-head"><h3 id="player-base-title"><span class="sub-num">1.1</span>基本ステータス</h3></div>
@@ -361,15 +359,11 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       <div class="st-sub-head"><h3 id="player-skills-title"><span class="sub-num">1.10</span>スキル・消耗品</h3><p>短縮・消費軽減・持続時間の特化は、使う効果に合わせて一系統ずつ配分する。</p></div>
       <div class="st-grid" id="player-skills-grid"></div>
     </section>
-    <section class="st-sub" id="player-field" aria-labelledby="player-field-title">
-      <div class="st-sub-head"><h3 id="player-field-title"><span class="sub-num">1.11</span>採集・釣り・枠上限</h3><p>道具性能は使用中の対応道具を基準とする。</p></div>
-      <div class="st-grid" id="player-field-grid"></div>
-    </section>
   </section>
   <section class="st-group mob" id="mob" aria-labelledby="mob-title">
     <div class="st-group-head"><h2 id="mob-title"><span class="ch-num">2</span>標準モブ</h2><p>同格プレイヤーが約7秒で討伐。モブの通常攻撃は、標準装備のプレイヤーに7発命中すると戦闘不能。</p></div>
     <ol class="ch-toc" aria-label="2章の内容">
-      <li><a href="#mob-defense"><span class="toc-num">2.1</span><span class="ch-toc-title">被弾時のステータス</span><span class="ch-toc-desc">最大HP・共通防御・追加防御・属性耐性</span><span class="cat-list"><span class="cat cat-resource">リソース</span><span class="cat cat-defense">防御</span><span class="cat cat-element">属性</span></span></a></li>
+      <li><a href="#mob-defense"><span class="toc-num">2.1</span><span class="ch-toc-title">被弾時のステータス</span><span class="ch-toc-desc">最大HP・共通防御・追加防御・回避率・属性耐性</span><span class="cat-list"><span class="cat cat-resource">リソース</span><span class="cat cat-defense">防御</span><span class="cat cat-element">属性</span></span></a></li>
       <li><a href="#mob-attack"><span class="toc-num">2.2</span><span class="ch-toc-title">通常攻撃</span><span class="ch-toc-desc">攻撃力・被ダメージ・シールドブレイク</span><span class="cat-list"><span class="cat cat-offense">攻撃</span></span></a></li>
     </ol>
     <section class="st-sub" id="mob-defense" aria-labelledby="mob-defense-title">
@@ -443,7 +437,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
           <var class="fx-var cat-resource">最大HP</var><span class="fx-op">=</span><var class="fx-var cat-offense">標準実効DPS<small>同格のプレイヤー</small></var><span class="fx-op">×</span><span class="fx-num">7秒</span>
         </div>
         <p class="fx-example"><span class="fx-lv" data-fx="lv">Lv.25</span><b class="c-offense" data-fx="dps">500</b> × 7 = <span class="fx-result" data-fx="mobHp">3,500</span></p>
-        <ul class="fx-notes"><li>実効DPSは通常攻撃・会心・スキル・ペット込み。</li><li>Lv.100 は標準耐性50%のため、防御後ダメージの50%が通る。この軽減は実効DPSに織り込み済み。</li></ul>
+        <ul class="fx-notes"><li>実効DPSの目標は通常攻撃・会心・スキル・ペット込みで、実命中率と最終ダメージ倍率も織り込み済み。</li><li>Lv.100 は標準耐性50%のため、防御後ダメージの50%が通る。この軽減は実効DPSに織り込み済み。</li></ul>
       </section>
       <section class="fx-card" id="fx-mob-attack" aria-labelledby="fx-mob-attack-title">
         <div class="fx-card-head"><h3 id="fx-mob-attack-title"><span class="sub-num">4.5</span>標準モブの攻撃力</h3><span class="cat-list"><span class="cat cat-offense">攻撃</span></span></div>
@@ -567,10 +561,9 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   }
   function targetPanels(grid, category, context, configs) {
     const read = value => Array.isArray(value) ? curve(value, major) : value;
-    return configs.map(({title, ids, scale: [max, step], standard, specialized, cap, note, unit = "%", numberFormat}) => {
+    return configs.map(({title, ids, scale: [max, step], standard, specialized, note, unit = "%", numberFormat}) => {
       const series = [stat("標準", read(standard))];
       if (specialized !== undefined) series.push(stat("特化", read(specialized)));
-      if (cap !== undefined) series.push(stat("上限", cap));
       return {grid, cats: [category], context, title, ids, max, step, unit, note, numberFormat, series};
     });
   }
@@ -623,16 +616,14 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       note: "主力能力の倍率を掛ける前の配分。共通に2割、武器の種別攻撃力（近接・間接・魔法のいずれか）に8割。", max: 160, step: 40, unit: "", numberFormat: twoDecimals,
       series: [stat("共通", commonAttack), stat("種別", typeAttack)] },
     ...targetPanels("player-offense-grid", "offense", "プレイヤー → 標準モブ｜攻撃時", [
-      {title: "命中率", ids: ["ACCURACY"], scale: [100, 25], standard: [95, 95, 96, 97, 98],
-        note: "命中率から相手の回避率を引いて判定する（最低1%・最高100%）。"},
+      {title: "命中率", ids: ["ACCURACY"], scale: [160, 40], standard: [95, 106, 119, 133, 147],
+        note: "命中率から相手の回避率を引く（実命中率1〜100%）。Lv.100の同格には、命中率147%で97%、95%で45%。"},
       {title: "通常攻撃・スキルダメージ増加", ids: ["NORMAL_ATTACK_DAMAGE_INCREASE", "SKILL_DAMAGE_INCREASE"], scale: [40, 10], standard: [0, 3, 6, 9, 12], specialized: [0, 8, 16, 24, 32],
         note: "同じ目安を各攻撃に適用。特化は通常攻撃かスキルの片方。"},
-      {title: "最終ダメージ倍率", ids: ["FINAL_DAMAGE_MULTIPLIER"], scale: [125, 25], standard: 100,
-        note: "各種補正の後に適用する倍率。標準100%で等倍。"},
-      {title: "通常攻撃劣化遅延", ids: ["NORMAL_ATTACK_DEGRADATION_DELAY"], scale: [2, 1], unit: "回", standard: 0, specialized: integerTarget([0, 0, 1, 1, 2]),
-        note: "通常攻撃劣化が発生しない回数の追加。"},
-      {title: "不死鳥の追加攻撃回数", ids: ["PHOENIX_EXTRA_ATTACK_COUNT"], scale: [2, 1], unit: "回", standard: 0, specialized: integerTarget([0, 0, 0, 1, 2]),
-        note: "不死鳥との共鳴が有効な攻撃サイクルで追加する通常攻撃の回数。"},
+      {title: "最終ダメージ倍率", ids: ["FINAL_DAMAGE_MULTIPLIER"], scale: [125, 25], standard: [100, 105, 110, 115, 120],
+        note: "各種補正の後に適用する倍率。100%で等倍。"},
+      {title: "通常攻撃劣化遅延", ids: ["NORMAL_ATTACK_DEGRADATION_DELAY"], scale: [20, 5], unit: "回", standard: integerTarget([0, 1, 2, 3, 4]), specialized: integerTarget([0, 4, 8, 12, 16]),
+        note: "補正なしでは5撃目から劣化。加算回数分だけ遅れ、Lv.100では標準9撃目・特化21撃目から。"},
       {title: "HP固定ダメージ", ids: ["FIXED_HEALTH_DAMAGE"], scale: [4, 1], unit: "HP", standard: 0, specialized: [0, 1, 2, 3, 4],
         note: "直接攻撃が命中し、対象のシールドが無効な場合にHPへ加算。"},
       {title: "共通・種別防御貫通率", ids: ["DEFENSE_PENETRATION_RATE", "MELEE_DEFENSE_PENETRATION_RATE", "RANGED_DEFENSE_PENETRATION_RATE", "MAGIC_DEFENSE_PENETRATION_RATE"], scale: [10, 2.5], standard: 0, specialized: [0, 2, 4, 6, 8],
@@ -643,9 +634,9 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     ...targetPanels("player-guard-grid", "defense", "標準モブ → プレイヤー｜被弾時", [
       {title: "近接・間接防御力", ids: ["MELEE_DEFENSE", "RANGED_DEFENSE"], scale: [20, 5], unit: "", standard: 0, specialized: [0, 5, 8, 12, 16],
         note: "被弾した種別だけを共通防御に加える。特化は近接か間接の片方。"},
-      {title: "被ダメージ軽減率", ids: ["DAMAGE_REDUCTION_RATE"], scale: [5, 1], standard: 0, specialized: [0, 1, 2, 3, 4],
+      {title: "被ダメージ軽減率", ids: ["DAMAGE_REDUCTION_RATE"], scale: [15, 3], standard: 0, specialized: [0, 3, 6, 9, 12],
         note: "直接・環境・継続ダメージに適用。HP固定ダメージの加算は対象外。"},
-      {title: "ノックバック耐性", ids: ["KNOCKBACK_RESISTANCE"], scale: [8, 2], standard: [0, 0, 2, 4, 6],
+      {title: "ノックバック耐性", ids: ["KNOCKBACK_RESISTANCE"], scale: [50, 10], standard: [0, 0, 2, 4, 6], specialized: [0, 10, 20, 30, 40],
         note: "被弾時のノックバックに適用。"}
     ]),
     { grid: "player-guard-grid", cats: ["defense"], context: "プレイヤー｜体力", title: "魔法防御力", ids: ["MAGIC_DEFENSE"], note: "魔法攻撃時に共通防御へ加わる値。初期値・体力・装備・ツリーを含む。", max: 300, step: 75, unit: "",
@@ -657,10 +648,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     ...targetPanels("player-guard-grid", "offense", "プレイヤー → シールドを持つ対象｜攻撃時", [
       {title: "シールドブレイク", ids: ["SHIELD_BREAK"], scale: [50, 10], unit: "", standard: [0, 3, 6, 9, 12], specialized: [0, 12, 24, 36, 48],
         note: "シールドへの1発のダメージに加算。"},
-      {title: "シールドリチャージ加算率", ids: ["SHIELD_RECHARGE_DELAY_CHANCE"], scale: [10, 2.5], standard: 0, specialized: [0, 3, 5, 7, 9],
-        note: "直接攻撃で対象のシールドリチャージを延長する確率。"},
       {title: "シールドリチャージ加算値", ids: ["SHIELD_RECHARGE_DELAY_SECONDS"], scale: [2, 0.5], unit: "秒", standard: 0, specialized: [0, 0.5, 0.7, 0.9, 1],
-        note: "加算率の抽選に成功したときの基礎秒数。率と秒数で一組。"}
+        note: "再充填中の対象への有効な直接攻撃で加算率の抽選に当たると、加算値の秒数を基に再充填時間を延長する。"}
     ]),
     ...targetPanels("player-guard-grid", "utility", "プレイヤー｜シールド", [
       {title: "シールドリチャージ短縮", ids: ["SHIELD_RECHARGE_REDUCTION"], scale: [10, 2.5], standard: 0, specialized: [0, 2, 4, 6, 8],
@@ -716,26 +705,12 @@ body { margin: 0; background: var(--page); color: var(--ink); }
       {title: "消耗品使用時移動減速率", ids: ["CONSUMABLE_USE_MOVEMENT_SLOWDOWN_RATE"], scale: [100, 25], standard: 0, specialized: 80,
         note: "移動許容と組み合わせる値。80%減速時は通常の20%の速度。"}
     ]),
-    ...targetPanels("player-field-grid", "utility", "プレイヤー｜採集・釣り", [
-      {title: "採集速度", ids: ["MINING_SPEED"], scale: [8, 2], unit: "", standard: [1, 2, 3, 4, 5],
-        note: "対応装備の採集1回分の破壊力。装備なしの補正値は1。"},
-      {title: "ギャザリングレベル・釣りレベル", ids: ["GATHERING_LEVEL", "FISHING_LEVEL"], scale: [6, 1], unit: "段階", standard: integerTarget([1, 2, 3, 4, 5]),
-        note: "採集は対応道具の明示値。釣りは使用中の竿単体で魚テーブルを選ぶ。"},
-      {title: "キャスト距離", ids: ["CAST_DISTANCE"], scale: [10, 2], unit: "ブロック", standard: integerTarget([5, 6, 7, 8, 9]),
-        note: "釣り竿の投射距離の基準。使用する竿に配分。"}
-    ]),
-    ...targetPanels("player-field-grid", "utility", "プレイヤー｜枠上限", [
-      {title: "インベントリスロット", ids: ["INVENTORY_SLOTS"], scale: [48, 12], unit: "枠", standard: 36,
-        note: "所持枠の合計。"},
-      {title: "パッシブスキルスロット", ids: ["PASSIVE_SKILL_SLOTS"], scale: [9, 3], unit: "枠", standard: integerTarget([5, 5, 6, 7, 8]), cap: 9,
-        note: "基礎5枠を含む有効枠の合計。"},
-      {title: "クエスト受領上限", ids: ["QUEST_LIMIT"], scale: [6, 1], unit: "件", standard: integerTarget([3, 3, 4, 4, 5]),
-        note: "同時に受領できる件数。"}
-    ]),
     { grid: "mob-defense-grid", cats: ["resource"], context: "プレイヤー → 標準モブ｜討伐", title: "標準モブの最大HP", note: "同格への標準実効DPS × 7秒。", max: 9000, step: 3000, unit: "",
       series: [stat("最大HP", level => 7 * standardDps(level))] },
     { grid: "mob-defense-grid", cats: ["defense"], context: "プレイヤー → 標準モブ｜被弾時", title: "標準モブの防御", note: "共通防御は同レベルの基準攻撃力の50%。追加防御は全種別共通。", max: 200, step: 50, unit: "",
       series: [stat("共通防御", level => attack(level) * 0.5), stat("追加防御", 0)] },
+    { grid: "mob-defense-grid", cats: ["defense"], context: "プレイヤー → 標準モブ｜被弾時", title: "標準モブの回避率", note: "攻撃側の命中率から差し引く。", max: 60, step: 15, unit: "%",
+      series: [stat("標準", curve([3, 13, 25, 38, 50], major))] },
     { grid: "mob-defense-grid", cats: ["element"], context: "プレイヤー → 標準モブ｜被弾時", title: "標準モブの属性耐性", note: "無・火・氷・雷に共通。標準戦闘の計算には基礎耐性を使用。", max: 100, step: 25, unit: "%",
       series: [stat("基礎耐性", zeroToFifty), stat("補正込み上限", mobResistanceCap)] },
     { grid: "mob-attack-grid", cats: ["offense"], context: "標準モブ → プレイヤー｜通常攻撃", title: "標準モブのシールドブレイク",
