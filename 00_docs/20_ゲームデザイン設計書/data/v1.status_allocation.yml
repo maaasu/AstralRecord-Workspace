@@ -1,0 +1,28 @@
+schemaVersion: 1
+builds:
+  lv25_melee_standard:
+    playerLevel: 25
+    mode: PLAYER
+    currentClass: {id: swordsman, level: 16}
+    ancestorClass: {id: adventurer, level: 10}
+    armor: {quality: standard, enhanceLevel: 0}
+    tree:
+      id: starter
+      nodeOrder: ["1047", "1049", "1050", "1060", "1061", "1093", "1094", "1095", "1123", "1124", "1125"]
+      points:
+        PP: {spent: 2, available: 24}
+        adventurer: {spent: 3, available: 9}
+        swordsman: {spent: 3, available: 15}
+    grants:
+      sharedBase: {DEFENSE: 5, VITALITY: 5}
+      playerLevel: {DEFENSE: 0, VITALITY: 0}
+      currentClass:
+        base: {DEFENSE: 7, VITALITY: 8}
+        perLevel: {DEFENSE: 0.8, VITALITY: 1}
+      tree:
+        "1050": {DEFENSE: 3, VITALITY: 2}
+        "1125": {DEFENSE: 1, VITALITY: 0}
+      armor: {DEFENSE: remainder, VITALITY: 0}
+      other: {DEFENSE: 0, VITALITY: 0}
+    derived:
+      DEFENSE: {VITALITY: 1}

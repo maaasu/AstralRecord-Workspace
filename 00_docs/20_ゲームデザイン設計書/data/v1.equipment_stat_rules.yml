@@ -1,0 +1,14 @@
+schemaVersion: 1
+profiles:
+  standard_defense_lv25:
+    buildId: lv25_melee_standard
+    progression: 25
+    requiredLevel: 25
+    rarity: RARE
+    armorWeights: {HEAD: 20, CHEST: 35, LEGS: 30, FEET: 15}
+    rounding: largestRemainder
+    tieOrder: [HEAD, CHEST, LEGS, FEET]
+    slot: CHEST
+    main: {status: DEFENSE, type: FLAT}
+    secondary: []
+    random: {offsetMin: -6, offsetMax: 6, step: 1}
