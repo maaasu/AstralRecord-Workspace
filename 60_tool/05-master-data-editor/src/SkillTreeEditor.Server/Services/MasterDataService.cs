@@ -287,7 +287,7 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
                 if (!decimal.TryParse(MasterDataValidation.Text(content["order"]), NumberStyles.Float, CultureInfo.InvariantCulture, out var order))
                     throw new ArgumentException("クラスの order は数値で指定してください。");
                 if (order * 10 != decimal.Truncate(order * 10)) throw new ArgumentException("order × 10 が整数になる表示順を指定してください。");
-                var orderPart = id == "administrator" ? "9999" : (order * 10).ToString("0", CultureInfo.InvariantCulture);
+                var orderPart = (order * 10).ToString("0", CultureInfo.InvariantCulture);
                 path += $"/v{version}.{orderPart}.{id}.yml";
             }
             else throw new ArgumentException("自動命名はアイテムまたはクラスで使用できます。");

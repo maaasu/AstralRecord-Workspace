@@ -743,10 +743,10 @@ public sealed class MasterDataTests : IDisposable
     }
 
     [Fact]
-    public async Task AdministratorClassNameUsesReservedOrderAndFractionalOrderIsRejected()
+    public async Task ClassFileNameUsesScaledOrderAndRejectsOrderBeyondOneDecimalPlace()
     {
-        var administrator = await _service.CreateAsync(new("20.features.class", "schemaVersion: 1\nid: administrator\norder: 1\n", AutoName: true), CancellationToken.None);
-        Assert.Equal("20.features.class/v1.9999.administrator.yml", administrator.Path);
+        var created = await _service.CreateAsync(new("20.features.class", "schemaVersion: 1\nid: custom\nname: Custom\norder: 2.7\n", AutoName: true), CancellationToken.None);
+        Assert.Equal("20.features.class/v1.27.custom.yml", created.Path);
         await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(new("20.features.class", "schemaVersion: 1\nid: invalid\norder: 1.25\n", AutoName: true), CancellationToken.None));
     }
 

@@ -5,7 +5,7 @@ Class（職業）のスキーマ定義。
 本定義は、プレイヤーの職業テンプレート（成長方針・初期ステータス・進行解放要件）を管理するためのものです。
 ステータスの種別は共有カタログで定義されるため、本スキーマではステータスID（`status`）と値（`value`）のペアのみを指定します。
 
-Class マスタのファイル名は `v<schemaVersion>.<order×10>.<classId>.yml` とします。`order×10` は `order` を10倍した整数です。例えば `order: 1.1` は `11` になります。`administrator` だけは例外として `9999` を使用します。
+Class マスタのファイル名は `v<schemaVersion>.<order×10>.<classId>.yml` とします。`order×10` は `order` を10倍した整数です。例えば `order: 1.1` は `11` になります。
 
 > **StatusType について**: 使用可能なステータスIDは、共有カタログ[`v1.status_types.yml`](../75.shared.status/v1.status_types.yml)を参照してください。
 
@@ -45,7 +45,7 @@ Class マスタのファイル名は `v<schemaVersion>.<order×10>.<classId>.yml
 ### maxLevel / commandOnly
 
 - `maxLevel` は職業ごとのクラスレベル上限で、省略時は `100` です。`1` 未満はプラグイン側で `1` に補正します。
-- `commandOnly: true` の職業は職業 GUI・NPC 転職から選択できず、ADMIN の `/class change <classId>` だけで変更できます。
+- `commandOnly: true` の職業は職業 GUI・NPC 転職から選択できず、管理者権限の `/class change <classId>` で変更できます。
 
 ### classGui / adminChangeOnly
 
