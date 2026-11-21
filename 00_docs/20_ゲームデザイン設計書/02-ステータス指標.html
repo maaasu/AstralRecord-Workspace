@@ -134,6 +134,73 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 @media (max-width: 760px) { .fx, .fx-flow { flex-wrap: wrap; } }
 @media (max-width: 420px) { .fx-card { padding: 14px 12px; } .fx { padding: 12px 10px; gap: 6px; } }
 @media print { .fx { background: none; border: 1px solid var(--rule); } .fx-card { break-inside: avoid; } }
+.doc-search {
+  min-width: 0;
+  margin-bottom: 1rem;
+}
+.doc-search label {
+  display: block;
+  margin-bottom: .25rem;
+  font-weight: 600;
+}
+.doc-search-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: .375rem;
+}
+.doc-search input,
+.doc-search button {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 2rem;
+  border: 1px solid var(--edge);
+  border-radius: .25rem;
+  padding: .25rem .5rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.doc-search input {
+  width: 100%;
+}
+.doc-search button {
+  cursor: pointer;
+}
+.doc-search :is(input, button):focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+.doc-search .doc-search-count {
+  margin: .375rem 0 0;
+}
+.doc-search .doc-search-count:empty {
+  margin: 0;
+}
+.doc-search .doc-search-results {
+  max-height: min(16rem, 40vh);
+  overflow: auto;
+  margin: .375rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.doc-search-results li + li {
+  margin-top: .25rem;
+}
+.doc-search-results button {
+  width: 100%;
+  text-align: start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.doc-body :is(h2, h3, h4, summary) { scroll-margin-top: 84px; }
+.doc-search-results button:hover { background: var(--soft); }
+.doc-search[hidden],
+.doc-search [hidden] {
+  display: none;
+}
+@media print {
+  .doc-search { display: none !important; }
+}
 /* ===== 共通ここまで ===== */
 #stat-guide .doc-lead p { margin: 0; }
 .st-sub { margin-top: 26px; scroll-margin-top: 84px; }
@@ -265,6 +332,15 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   </div>
   <div class="doc-layout">
   <aside class="doc-toc" aria-label="目次">
+<div class="doc-search" hidden>
+  <label for="doc-search-query">ページ内検索</label>
+  <div class="doc-search-controls">
+    <input id="doc-search-query" type="search" inputmode="search" autocomplete="off" aria-controls="doc-search-results">
+    <button type="button" class="doc-search-clear" hidden>クリア</button>
+  </div>
+  <p class="doc-search-count" role="status"></p>
+  <ul id="doc-search-results" class="doc-search-results" hidden></ul>
+</div>
     <p class="doc-toc-title">目次</p>
     <ol>
       <li><a href="#player"><span class="toc-num">1</span>プレイヤー</a>
@@ -1145,6 +1221,262 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   });
   addEventListener("scroll", update, { passive: true });
   addEventListener("resize", update);
+  update();
+})();
+</script>
+<script type="application/json" id="doc-search-aliases">
+{
+  "MAX_HEALTH": "最大HP",
+  "DEFENSE": "防御力",
+  "CRITICAL_RATE": "会心率",
+  "CRITICAL_DAMAGE": "会心ダメージ",
+  "SUPER_CRITICAL_RATE": "超星会心率",
+  "SUPER_CRITICAL_DAMAGE": "超星会心倍率",
+  "STRENGTH": "筋力",
+  "DEXTERITY": "器用さ",
+  "INTELLIGENCE": "知力",
+  "VITALITY": "体力",
+  "AGILITY": "敏捷性",
+  "LUCK": "幸運",
+  "MAX_MANA": "最大MP",
+  "MAX_ENERGY": "最大ENG",
+  "HP_REGEN": "HP回復力",
+  "MP_REGEN": "MP回復力",
+  "ENERGY_REGEN": "ENG回復力",
+  "ATTACK_SPEED": "攻撃速度",
+  "MOVEMENT_SPEED": "移動速度",
+  "MOVEMENT_SPEED_CAP": "移動速度上限",
+  "EVASION": "回避率",
+  "EXPERIENCE_GAIN_RATE": "EXP獲得量増加率",
+  "DROP_RATE_INCREASE": "ドロップ増加率",
+  "ATTACK": "攻撃力",
+  "MELEE_ATTACK": "近接攻撃力",
+  "RANGED_ATTACK": "間接攻撃力",
+  "MAGIC_ATTACK": "魔法攻撃力",
+  "ACCURACY": "命中率",
+  "NORMAL_ATTACK_DAMAGE_INCREASE": "通常攻撃ダメージ増加",
+  "SKILL_DAMAGE_INCREASE": "スキルダメージ増加",
+  "FINAL_DAMAGE_MULTIPLIER": "最終ダメージ倍率",
+  "NORMAL_ATTACK_DEGRADATION_DELAY": "通常攻撃劣化遅延",
+  "FIXED_HEALTH_DAMAGE": "HP固定ダメージ",
+  "DEFENSE_PENETRATION_RATE": "防御力貫通率",
+  "MELEE_DEFENSE_PENETRATION_RATE": "近接防御貫通率",
+  "RANGED_DEFENSE_PENETRATION_RATE": "間接防御貫通率",
+  "MAGIC_DEFENSE_PENETRATION_RATE": "魔法防御貫通率",
+  "LIFE_STEAL": "ライフスティール",
+  "MELEE_DEFENSE": "近接防御力",
+  "RANGED_DEFENSE": "間接防御力",
+  "DAMAGE_REDUCTION_RATE": "被ダメージ軽減率",
+  "KNOCKBACK_RESISTANCE": "ノックバック耐性",
+  "MAGIC_DEFENSE": "魔法防御力",
+  "MAX_SHIELD": "最大シールド",
+  "SHIELD_BREAK": "シールドブレイク",
+  "SHIELD_RECHARGE_DELAY_SECONDS": "シールドリチャージ加算値",
+  "SHIELD_RECHARGE_REDUCTION": "シールドリチャージ短縮",
+  "NONE_RESISTANCE": "無属性耐性",
+  "NONE_RESISTANCE_CAP": "無属性耐性上限値",
+  "FIRE_RESISTANCE": "火属性耐性",
+  "ICE_RESISTANCE": "氷属性耐性",
+  "LIGHTNING_RESISTANCE": "雷属性耐性",
+  "FIRE_RESISTANCE_CAP": "火属性耐性上限値",
+  "ICE_RESISTANCE_CAP": "氷属性耐性上限値",
+  "LIGHTNING_RESISTANCE_CAP": "雷属性耐性上限値",
+  "NONE_DAMAGE_INCREASE": "無属性ダメージ増加",
+  "FIRE_DAMAGE_INCREASE": "火属性ダメージ増加",
+  "ICE_DAMAGE_INCREASE": "氷属性ダメージ増加",
+  "LIGHTNING_DAMAGE_INCREASE": "雷属性ダメージ増加",
+  "FIRE_PENETRATION": "火属性貫通",
+  "ICE_PENETRATION": "氷属性貫通",
+  "LIGHTNING_PENETRATION": "雷属性貫通",
+  "BURNING_APPLY_CHANCE": "燃焼付与確率増加",
+  "FROZEN_APPLY_CHANCE": "凍結付与確率増加",
+  "CHILLED_APPLY_CHANCE": "冷気付与確率増加",
+  "SHOCKED_APPLY_CHANCE": "感電付与確率増加",
+  "POISONED_APPLY_CHANCE": "毒状態付与確率増加",
+  "BLINDNESS_APPLY_CHANCE": "盲目付与確率増加",
+  "WEAKNESS_APPLY_CHANCE": "衰弱付与確率増加",
+  "HEALING_INHIBITION_APPLY_CHANCE": "回復阻害付与確率増加",
+  "BURNING_DAMAGE_INCREASE": "燃焼ダメージ増加",
+  "SHOCKED_DAMAGE_INCREASE": "感電ダメージ増加",
+  "POISONED_DAMAGE_INCREASE": "毒状態ダメージ増加",
+  "BURNING_DAMAGE_PENETRATION": "燃焼DoT貫通",
+  "SHOCKED_DAMAGE_PENETRATION": "感電DoT貫通",
+  "POISONED_DAMAGE_PENETRATION": "毒状態DoT貫通",
+  "BURNING_RESISTANCE": "燃焼付与耐性",
+  "FROZEN_RESISTANCE": "凍結付与耐性",
+  "CHILLED_RESISTANCE": "冷気付与耐性",
+  "SHOCKED_RESISTANCE": "感電付与耐性",
+  "POISONED_RESISTANCE": "毒状態付与耐性",
+  "BLINDNESS_RESISTANCE": "盲目付与耐性",
+  "WEAKNESS_RESISTANCE": "衰弱付与耐性",
+  "HEALING_INHIBITION_RESISTANCE": "回復阻害付与耐性",
+  "BURNING_DAMAGE_RESISTANCE": "燃焼ダメージ耐性",
+  "SHOCKED_DAMAGE_RESISTANCE": "感電ダメージ耐性",
+  "POISONED_DAMAGE_RESISTANCE": "毒状態ダメージ耐性",
+  "COOLDOWN_REDUCTION": "クールダウン短縮",
+  "CAST_TIME_REDUCTION": "詠唱時間短縮率",
+  "MANA_COST_REDUCTION": "MP消費軽減率",
+  "ENERGY_COST_REDUCTION": "エネルギー消費軽減率",
+  "SUPPORT_POWER": "支援力",
+  "HEALING_INCREASE": "回復量増加",
+  "CONDITION_DURATION_INCREASE": "状態異常持続時間増加",
+  "BUFF_DURATION_INCREASE": "バフ持続時間増加",
+  "CONSUMABLE_USE_MOVEMENT_ALLOWANCE": "消耗品使用時移動許容距離",
+  "CONSUMABLE_USE_MOVEMENT_SLOWDOWN_RATE": "消耗品使用時移動減速率"
+}
+</script>
+<script>
+// ページ内検索: 表示中の本文を、最も内側の節やカードごとに検索する。
+(() => {
+  const panel = document.querySelector('.doc-toc .doc-search');
+  const main = panel?.closest('main');
+  if (!main) return;
+
+  const input = panel.querySelector('input');
+  const clear = panel.querySelector('.doc-search-clear');
+  const count = panel.querySelector('.doc-search-count');
+  const list = panel.querySelector('.doc-search-results');
+  const normalize = text => text.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim();
+  const ignored = 'nav, .doc-toc, .ch-toc, svg, script, style, template, noscript, [hidden], [aria-hidden=true], .dg-tooltip, .dg-sr, .st-tip';
+  const aliasElement = document.getElementById('doc-search-aliases');
+  let aliases;
+  if (aliasElement) {
+    try { aliases = JSON.parse(aliasElement.textContent); } catch { aliases = null; }
+  }
+  let composing = false;
+
+  function collect() {
+    const entries = [];
+    function visit(element, entry) {
+      if (element.matches(ignored)) return;
+      const { display, visibility } = getComputedStyle(element);
+      if (display === 'none' || visibility === 'hidden' || visibility === 'collapse') return;
+
+      const outer = entry;
+      const boundary = !outer || element.matches('section, article, details, [data-status-ids]');
+      const separated = boundary || element.localName === 'br' || !display.startsWith('inline') && display !== 'contents';
+      if (separated) outer?.parts.push(' ');
+      if (boundary) {
+        entry = { target: element, parent: outer, heading: null, parts: [], names: [] };
+        entries.push(entry);
+        for (const id of (element.dataset.statusIds || '').split(/\s+/)) {
+          const name = id && aliases?.[id];
+          if (typeof name === 'string' && name) entry.names.push(name);
+        }
+      }
+      if (!entry.heading && element.matches('h1, h2, h3, h4, h5, h6, summary')) {
+        entry.heading = element;
+      }
+      for (const node of element.childNodes) {
+        if (node.nodeType === Node.TEXT_NODE) entry.parts.push(node.data);
+        else if (node.nodeType === Node.ELEMENT_NODE) visit(node, entry);
+      }
+      if (separated) outer?.parts.push(' ');
+    }
+    visit(main, null);
+    for (let i = entries.length - 1; i >= 0; i--) {
+      const { target, parent, heading, parts, names } = entries[i];
+      if (parent && !heading && !target.getAttribute('aria-label')) {
+        parent.parts.push(' ', parts.join(' '), ' ', names.join(' '));
+        entries.splice(i, 1);
+      }
+    }
+    return entries;
+  }
+
+  function jump({ target, heading }) {
+    for (let element = target; element; element = element.parentElement) {
+      if (element.localName === 'details') {
+        element.open = true;
+      }
+    }
+    const destination = heading || target;
+    if (destination.tabIndex < 0 && !destination.hasAttribute('tabindex')) {
+      destination.setAttribute('tabindex', '-1');
+      destination.addEventListener('blur', () => destination.removeAttribute('tabindex'), { once: true });
+    }
+    destination.focus({ preventScroll: true });
+    destination.scrollIntoView({ block: 'start' });
+  }
+
+  function update() {
+    const query = normalize(input.value);
+    list.replaceChildren();
+    list.hidden = true;
+    clear.hidden = !input.value;
+    if (!query) {
+      count.textContent = '';
+      return;
+    }
+
+    const words = query.split(' ');
+    const matches = [];
+    for (const entry of collect()) {
+      const title = entry.heading ? Array.from(entry.heading.childNodes, node => node.textContent.trim()).filter(Boolean).join(' ') : entry.target.getAttribute('aria-label');
+      if (!title) continue;
+      const normalizedTitle = normalize(title);
+      const names = normalize(entry.names.join(' '));
+      const inHeading = words.every(word => normalizedTitle.includes(word));
+      const inName = words.every(word => names.includes(word));
+      const text = normalize(`${title} ${entry.parts.join('')} ${names}`);
+      if (words.every(word => text.includes(word))) {
+        matches.push({ ...entry, title, rank: inHeading ? 2 : inName ? 1 : 0 });
+      }
+    }
+    matches.sort((a, b) => b.rank - a.rank);
+
+    const items = document.createDocumentFragment();
+    for (const match of matches) {
+      const item = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = match.title;
+      button.addEventListener('click', () => jump(match));
+      item.append(button);
+      items.append(item);
+    }
+    list.append(items);
+    list.hidden = matches.length === 0;
+    count.textContent = matches.length ? `${matches.length}件` : '該当する箇所はありません（0件）';
+  }
+
+  panel.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !composing && !event.isComposing && input.value) {
+      event.preventDefault();
+      clear.click();
+    }
+  });
+  input.addEventListener('compositionstart', () => { composing = true; });
+  input.addEventListener('compositionend', () => {
+    composing = false;
+    update();
+  });
+  input.addEventListener('input', event => {
+    if (!composing && !event.isComposing) update();
+  });
+  input.addEventListener('keydown', event => {
+    if (composing || event.isComposing || event.keyCode === 229) return;
+    if (event.key !== 'ArrowDown' && event.key !== 'Enter') return;
+    const first = list.querySelector('button');
+    if (!first) return;
+    event.preventDefault();
+    if (event.key === 'ArrowDown') first.focus();
+    else first.click();
+  });
+  list.addEventListener('keydown', event => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    const item = event.target.closest('li');
+    if (!item) return;
+    event.preventDefault();
+    if (event.key === 'ArrowDown') item.nextElementSibling?.firstElementChild.focus();
+    else (item.previousElementSibling?.firstElementChild || input).focus();
+  });
+  clear.addEventListener('click', () => {
+    input.value = '';
+    input.focus();
+    update();
+  });
+  panel.hidden = false;
   update();
 })();
 </script>
