@@ -22,7 +22,7 @@
 | コード・設定・資料・ワークスペーススキルのレビュー | `$astralrecord-code-review` |
 | レビュー指摘の修正 | `$astralrecord-code-fix` |
 | 複数の codex ブランチをマージ | `$astralrecord-merge-codex-branches-develop` |
-| マージ済み作業ツリーの監査・整理 | `$astralrecord-prune-codex-worktrees` |
+| Codex・Claude のローカル作業ツリーとブランチの監査・整理 | `$astralrecord-prune-codex-worktrees` |
 
 ## 専用ルーティング
 
