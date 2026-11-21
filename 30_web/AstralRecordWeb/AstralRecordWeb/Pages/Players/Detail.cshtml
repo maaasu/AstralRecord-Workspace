@@ -4,6 +4,7 @@
 <section class="ar-portal">
     <div class="container">
         <header class="ar-portal-heading"><div><p class="ar-portal-eyebrow">プレイヤーの冒険の記録</p><h1>プレイヤープロフィール</h1><p class="ar-portal-sub">@(Model.Profile?.Mcid) のアカウント情報を表示しています。</p></div><a class="btn ar-btn-outline" asp-page="/Players/Index" asp-route-mcid="@Model.Mcid" asp-route-classId="@Model.ClassId" asp-route-sort="@Model.Sort" asp-route-pageNumber="@Model.PageNumber" asp-route-includePrivate="@Model.IncludePrivate">プレイヤー一覧へ</a></header>
+        @if (Model.CharacterDeletionStatus is { } deletionStatus) { <div class="alert alert-success" role="status">@deletionStatus</div> }
         @if (Model.IsPrivateView) { <div class="alert alert-warning">このプロフィールは非公開です。閲覧権限のあるユーザーにのみ表示されています。</div> }
         @if (Model.ErrorMessage is not null) { <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div> }
         @if (Model.Profile is { } profile)

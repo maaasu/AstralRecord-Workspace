@@ -15,6 +15,7 @@ public sealed class PlayerAdminEditSession
     public DateTimeOffset ExpiresAtUtc { get; init; }
     public int ExpectedServerCount { get; init; }
     public int AcknowledgedServerCount { get; init; }
+    public Guid? DeleteOperationId { get; init; }
 }
 
 public sealed class PlayerAdminEditor

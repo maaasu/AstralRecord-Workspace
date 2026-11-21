@@ -13,6 +13,7 @@ public interface IPlayerAdminEditRepository
     Task<PlayerAdminResult<PlayerAdminEditSessionResponse>> RefreshAsync(Guid editSessionId, Guid actor);
     Task<PlayerAdminResult<PlayerAdminEditorResponse>> GetEditorAsync(Guid editSessionId, Guid actor);
     Task<PlayerAdminResult<PlayerAdminEditSessionResponse>> ApplyAsync(Guid editSessionId, Guid actor, PlayerAdminEditOperationRequest request);
+    Task<PlayerAdminResult<PlayerAdminEditSessionResponse>> DeleteAccountAsync(Guid editSessionId, Guid actor, PlayerAdminDeleteAccountOperation request);
     Task<PlayerAdminResult<PlayerAdminEditSessionResponse>> CancelAsync(Guid editSessionId, Guid actor, PlayerAdminEditCancelRequest request);
     Task<PlayerAdminResult<PlayerAdminRuntimeRegistrationResponse>> RegisterServerAsync(string serverId, PlayerAdminRuntimeRegistrationRequest request);
     Task<PlayerAdminResult<IReadOnlyList<PlayerAdminDrainResponse>>> GetDrainsAsync(string serverId, Guid serverSessionId);

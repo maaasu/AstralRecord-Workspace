@@ -9,13 +9,23 @@ public sealed record PlayerAdminEditOperationRequest(Guid OperationId, long Expe
     string ExpectedStateHash, string ExpectedCatalogVersion, int? Level, string? ClassId,
     IReadOnlyList<PlayerAdminInventoryChange>? InventoryChanges);
 public sealed record PlayerAdminEditCancelRequest(Guid OperationId, long ExpectedRevision);
+public sealed record PlayerAdminDeleteAccountOperation(Guid OperationId, long ExpectedRevision, Guid UserUuid, Guid AccountId);
+public sealed class PlayerAdminDeleteAccountRequest
+{
+    public Guid OperationId { get; init; }
+    public long ExpectedRevision { get; init; }
+    public Guid UserUuid { get; init; }
+    public Guid AccountId { get; init; }
+    public Guid SessionVersion { get; init; }
+    public string? CodeAuthenticationProof { get; init; }
+}
 public sealed record PlayerAdminInventoryChange(string Action, string? ItemId, Guid? InventoryEntryId,
     long? Quantity, DateTime? ExpectedUpdatedAt);
 
 public sealed record PlayerAdminEditSessionResponse(Guid EditSessionId, Guid AccountId, Guid UserUuid,
     Guid ActorUserUuid, string Reason, string Status, long Revision, DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc, DateTime ExpiresAtUtc, DateTime? CompletedAtUtc,
-    int ExpectedServerCount, int AcknowledgedServerCount);
+    int ExpectedServerCount, int AcknowledgedServerCount, Guid? DeleteOperationId = null);
 public sealed record PlayerAdminRuntimeRegistrationResponse(string ServerId, Guid ServerSessionId, string Role);
 public sealed record PlayerAdminDrainResponse(Guid EditSessionId, Guid AccountId, Guid UserUuid,
     string Status, long Revision, bool SafeToDisconnect);

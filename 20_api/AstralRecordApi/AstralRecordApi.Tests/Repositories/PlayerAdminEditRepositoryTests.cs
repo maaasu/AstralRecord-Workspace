@@ -15,6 +15,104 @@ namespace AstralRecordApi.Tests.Repositories;
 
 public sealed class PlayerAdminEditRepositoryTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DeleteRequiresMatchingReadySessionAndReplaysCommittedReceipt(bool lastCharacter)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        if (lastCharacter)
+            await fixture.Db.Accounts.Where(account => account.Uuid == fixture.OtherActiveAccountId)
+                .ExecuteUpdateAsync(update => update.SetProperty(account => account.IsDeleted, true));
+        var now = DateTime.UtcNow;
+        if (!lastCharacter)
+        {
+            fixture.Db.AccountClassProgresses.Add(new AccountClassProgressEntity
+            {
+                AccountId = fixture.OtherActiveAccountId, ClassId = "mage", Level = 12,
+                UpdatedAt = now, UpdatedBy = fixture.Actor,
+            });
+            await fixture.Db.SaveChangesAsync();
+        }
+        var sessionId = await fixture.StartAsync();
+        var request = new PlayerAdminDeleteAccountOperation(Guid.NewGuid(), 1, fixture.UserId, fixture.AccountId);
+        var repository = fixture.Repository;
+        Assert.Equal(409, (await repository.DeleteAccountAsync(sessionId, fixture.Actor, request)).StatusCode);
+        foreach (var server in new[] { "rpg", "lobby", "proxy" })
+            Assert.Equal(200, (await repository.AcknowledgeDrainAsync(sessionId, fixture.Ack(server))).StatusCode);
+        var ready = (await repository.GetByIdAsync(sessionId, fixture.Actor)).Value!;
+        request = request with { ExpectedRevision = ready.Revision };
+        Assert.Equal(409, (await repository.DeleteAccountAsync(sessionId, fixture.Actor,
+            request with { AccountId = fixture.OtherActiveAccountId })).StatusCode);
+        Assert.Equal(403, (await repository.DeleteAccountAsync(sessionId, Guid.NewGuid(), request)).StatusCode);
+
+        var lease = new SkillTreeAccountSessionEntity
+        {
+            AccountSessionId = Guid.NewGuid(), AccountId = fixture.OtherAccountId,
+            ServerId = "rpg", ServerSessionId = fixture.Boots["rpg"], DefinitionGenerationId = "generation",
+            LeaseTokenHash = "hash", CreatedAtUtc = now, ExpiresAtUtc = now.AddHours(1),
+        };
+        fixture.Db.SkillTreeAccountSessions.Add(lease);
+        await fixture.Db.SaveChangesAsync();
+        Assert.Equal(409, (await repository.DeleteAccountAsync(sessionId, fixture.Actor, request)).StatusCode);
+        Assert.False(await fixture.Db.Accounts.AsNoTracking().Where(x => x.Uuid == fixture.AccountId).Select(x => x.IsDeleted).SingleAsync());
+        Assert.Empty(await fixture.Db.AccountDeleteReceipts.ToListAsync());
+        await fixture.Db.SkillTreeAccountSessions.ExecuteUpdateAsync(update => update.SetProperty(x => x.Closed, true));
+
+        var deleted = await repository.DeleteAccountAsync(sessionId, fixture.Actor, request);
+        Assert.Equal(200, deleted.StatusCode);
+        Assert.Equal("COMPLETED", deleted.Value!.Status);
+        Assert.Equal(request.OperationId, deleted.Value.DeleteOperationId);
+        Assert.Equal(deleted.Value, (await repository.GetByIdAsync(sessionId, fixture.Actor)).Value);
+        Assert.Equal(deleted.Value, (await repository.DeleteAccountAsync(sessionId, fixture.Actor, request)).Value);
+        Assert.Equal(409, (await repository.DeleteAccountAsync(sessionId, fixture.Actor,
+            request with { ExpectedRevision = ready.Revision + 1 })).StatusCode);
+        Assert.Equal(409, (await repository.CancelAsync(sessionId, fixture.Actor, new(request.OperationId, ready.Revision))).StatusCode);
+        Assert.False(await repository.IsUserLockedAsync(fixture.UserId));
+        Assert.True(await fixture.Db.Accounts.AsNoTracking().Where(x => x.Uuid == fixture.AccountId).Select(x => x.IsDeleted).SingleAsync());
+        Assert.False(await fixture.Db.InventoryEntries.AnyAsync(x => x.InventoryId == fixture.InventoryId && !x.IsDeleted));
+        var selected = await fixture.Db.Accounts.AsNoTracking().SingleAsync(x => x.UserId == fixture.UserId && !x.IsDeleted);
+        if (lastCharacter)
+        {
+            Assert.Equal(1, selected.SlotIndex);
+            Assert.Equal(1, selected.Level);
+            Assert.NotEqual(fixture.AccountId, selected.Uuid);
+        }
+        else
+        {
+            Assert.Equal(fixture.OtherActiveAccountId, selected.Uuid);
+            Assert.Equal(12, (await fixture.Db.AccountClassProgresses.SingleAsync(x => x.AccountId == selected.Uuid)).Level);
+        }
+        var audit = await fixture.Db.PlayerAdminEditOperations.SingleAsync();
+        Assert.Equal("APPLY", audit.Action);
+        using var after = JsonDocument.Parse(audit.AfterJson);
+        Assert.True(after.RootElement.GetProperty("deleted").GetBoolean());
+        Assert.Equal(fixture.AccountId, after.RootElement.GetProperty("result").GetProperty("deletedAccountId").GetGuid());
+        Assert.Equal(fixture.Actor, (await fixture.Db.AccountDeleteReceipts.SingleAsync()).DeletedBy);
+    }
+
+    [Fact]
+    public async Task DeleteRollsBackCharacterAndLockWhenOperationReceiptCannotBeWritten()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var sessionId = await fixture.StartAndDrainAsync();
+        var ready = (await fixture.Repository.GetByIdAsync(sessionId, fixture.Actor)).Value!;
+        var request = new PlayerAdminDeleteAccountOperation(Guid.NewGuid(), ready.Revision, fixture.UserId, fixture.AccountId);
+        await fixture.Db.Database.ExecuteSqlRawAsync("""
+            CREATE TRIGGER reject_edit_receipt BEFORE INSERT ON player_admin_edit_operation
+            BEGIN SELECT RAISE(ABORT, 'Fixture rejects operation receipt'); END;
+            """);
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => fixture.Repository.DeleteAccountAsync(sessionId, fixture.Actor, request));
+        fixture.Db.ChangeTracker.Clear();
+        Assert.Equal(ready, (await fixture.Repository.GetByIdAsync(sessionId, fixture.Actor)).Value);
+        Assert.True(await fixture.Repository.IsUserLockedAsync(fixture.UserId));
+        Assert.True(await fixture.Db.Accounts.AnyAsync(x => x.Uuid == fixture.AccountId && !x.IsDeleted));
+        Assert.True(await fixture.Db.InventoryEntries.AnyAsync(x => x.InventoryId == fixture.InventoryId && !x.IsDeleted));
+        Assert.Empty(await fixture.Db.AccountDeleteReceipts.ToListAsync());
+        Assert.Empty(await fixture.Db.PlayerAdminEditOperations.ToListAsync());
+    }
+
     [Fact]
     public async Task StartPersistsUserWideLockAndOnlyReplaysSameSessionIdentity()
     {
@@ -233,7 +331,7 @@ public sealed class PlayerAdminEditRepositoryTests
                 ["PlayerAdmin:RequiredServerIds:1"] = "lobby",
                 ["PlayerAdmin:RequiredServerIds:2"] = "proxy",
             }).Build();
-            Repository = new PlayerAdminEditRepository(db, items, classes, config);
+            Repository = new PlayerAdminEditRepository(db, items, classes, config, new AccountRepository(db));
             BagCapacity = bagCapacity;
         }
 

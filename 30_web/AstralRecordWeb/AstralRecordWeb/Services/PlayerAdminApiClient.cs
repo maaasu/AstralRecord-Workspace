@@ -32,6 +32,11 @@ public sealed class PlayerAdminApiClient(HttpClient client, ILogger<PlayerAdminA
         SendAsync<PlayerAdminEditSession>(HttpMethod.Post, $"/api/player-admin/edit-sessions/{editSessionId:D}/apply{Actor(actor)}",
             new { operationId, expectedRevision, expectedStateHash, expectedCatalogVersion, level, classId, inventoryChanges }, ct);
 
+    public Task<PlayerAdminApiResult<PlayerAdminEditSession>> DeleteAccountAsync(Guid actor, Guid editSessionId, Guid operationId,
+        long expectedRevision, Guid userUuid, Guid accountId, Guid sessionVersion, string codeAuthenticationProof, CancellationToken ct) =>
+        SendAsync<PlayerAdminEditSession>(HttpMethod.Post, $"/api/player-admin/edit-sessions/{editSessionId:D}/delete{Actor(actor)}",
+            new { operationId, expectedRevision, userUuid, accountId, sessionVersion, codeAuthenticationProof }, ct);
+
     public Task<PlayerAdminApiResult<PlayerAdminEditSession>> CancelAsync(Guid actor, Guid editSessionId, Guid operationId, long expectedRevision, CancellationToken ct) =>
         SendAsync<PlayerAdminEditSession>(HttpMethod.Post, $"/api/player-admin/edit-sessions/{editSessionId:D}/cancel{Actor(actor)}",
             new { operationId, expectedRevision }, ct);

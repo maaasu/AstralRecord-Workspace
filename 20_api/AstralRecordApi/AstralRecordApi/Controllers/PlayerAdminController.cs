@@ -1,3 +1,4 @@
+using AstralRecordApi.Authentication;
 using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +10,9 @@ namespace AstralRecordApi.Controllers;
 [Route("api/player-admin")]
 public sealed class PlayerAdminController(
     IPlayerAdminEditRepository edits,
-    IWebAuthRepository webAuth) : ControllerBase
+    IWebAuthRepository webAuth,
+    WebCodeProofProtector codeProof,
+    TimeProvider clock) : ControllerBase
 {
     /// <summary>ユーザーの全ゲーム接続を止める編集セッションを開始します。</summary>
     [HttpPost("accounts/{accountId:guid}/edit-sessions")]
@@ -54,6 +57,23 @@ public sealed class PlayerAdminController(
         [FromBody] PlayerAdminEditOperationRequest request)
         => !await CanEditAsync(actor) ? StatusCode(403)
             : Respond(await edits.ApplyAsync(editSessionId, actor, request));
+
+    /// <summary>本人のコード再認証後、退避済みのキャラクターを削除します。</summary>
+    [HttpPost("edit-sessions/{editSessionId:guid}/delete")]
+    public async Task<IActionResult> Delete(Guid editSessionId,
+        [FromQuery(Name = "actor_user_uuid")] Guid actor,
+        [FromBody] PlayerAdminDeleteAccountRequest request)
+    {
+        if (!await CanEditAsync(actor) || request.SessionVersion == Guid.Empty)
+            return StatusCode(403);
+        var credential = await webAuth.GetCredentialAsync(actor);
+        if (credential?.SessionVersion != request.SessionVersion
+            || codeProof.Validate(request.CodeAuthenticationProof, actor, request.SessionVersion, clock.GetUtcNow()) is null)
+            return StatusCode(403);
+
+        return Respond(await edits.DeleteAccountAsync(editSessionId, actor,
+            new(request.OperationId, request.ExpectedRevision, request.UserUuid, request.AccountId)));
+    }
 
     /// <summary>全サーバー退避確認後、変更せずに編集ロックを解除します。</summary>
     [HttpPost("edit-sessions/{editSessionId:guid}/cancel")]

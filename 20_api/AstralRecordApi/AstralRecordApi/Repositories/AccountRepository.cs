@@ -970,7 +970,6 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
             var userId = await dbContext.Accounts.AsNoTracking().Where(x => x.Uuid == uuid && !x.IsDeleted)
                 .Select(x => (Guid?)x.UserId).SingleOrDefaultAsync();
             if (userId.HasValue) await EnsureUserNotEditingAsync(userId.Value);
-            await EnsureAuditProjectedBeforeDeleteAsync(uuid);
             var result = await DeleteInTransactionAsync(uuid, request);
             if (result is null)
                 return null;
@@ -980,8 +979,9 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         });
     }
 
-    private async Task<AccountDeleteResponse?> DeleteInTransactionAsync(Guid uuid, AccountDeleteRequest request)
+    internal async Task<AccountDeleteResponse?> DeleteInTransactionAsync(Guid uuid, AccountDeleteRequest request)
     {
+        await EnsureAuditProjectedBeforeDeleteAsync(uuid);
         var committedReceipt = await dbContext.AccountDeleteReceipts
             .AsNoTracking()
             .FirstOrDefaultAsync(receipt => receipt.DeletedAccountId == uuid);

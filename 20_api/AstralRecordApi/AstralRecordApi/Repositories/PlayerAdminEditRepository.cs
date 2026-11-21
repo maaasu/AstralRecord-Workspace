@@ -17,6 +17,7 @@ public sealed partial class PlayerAdminEditRepository(
     IItemRepository itemRepository,
     IClassRepository classRepository,
     IConfiguration configuration,
+    AccountRepository accounts,
     IOptions<Microsoft.AspNetCore.Mvc.JsonOptions>? mvcJsonOptions = null) : IPlayerAdminEditRepository
 {
     private static readonly string[] ActiveStatuses = ["DRAINING", "READY", "APPLYING", "RECOVERY_REQUIRED"];
@@ -132,9 +133,22 @@ public sealed partial class PlayerAdminEditRepository(
     {
         var session = await dbContext.PlayerAdminEditSessions.AsNoTracking()
             .SingleOrDefaultAsync(x => x.EditSessionId == editSessionId);
-        return session is null ? Fail<PlayerAdminEditSessionResponse>(404, "Edit session not found.")
-            : session.ActorUserUuid != actor ? Fail<PlayerAdminEditSessionResponse>(403, "Session owner mismatch.")
-            : new(200, await MapSessionAsync(session));
+        if (session is null) return Fail<PlayerAdminEditSessionResponse>(404, "Edit session not found.");
+        if (session.ActorUserUuid != actor) return Fail<PlayerAdminEditSessionResponse>(403, "Session owner mismatch.");
+        if (session.Status == "COMPLETED")
+        {
+            var operation = await dbContext.PlayerAdminEditOperations.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.EditSessionId == editSessionId && x.Action == "APPLY");
+            if (operation is not null)
+            {
+                var receipt = JsonSerializer.Deserialize<PlayerAdminEditSessionResponse>(operation.ResponseJson, JsonOptions);
+                if (receipt is { Status: "COMPLETED" } && receipt.DeleteOperationId == operation.OperationId
+                    && receipt.EditSessionId == editSessionId && receipt.AccountId == session.AccountId
+                    && receipt.UserUuid == session.UserUuid && receipt.ActorUserUuid == actor)
+                    return new(200, receipt);
+            }
+        }
+        return new(200, await MapSessionAsync(session));
     }
 
     public async Task<PlayerAdminResult<PlayerAdminEditSessionResponse>> RefreshAsync(Guid editSessionId, Guid actor)
