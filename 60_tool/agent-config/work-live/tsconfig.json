@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "allowImportingTsExtensions": true,
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "erasableSyntaxOnly": true,
+    "strict": true,
+    "types": []
+  },
+  "include": ["server.ts", "src/**/*.ts", "tests/**/*.ts", "types/**/*.d.ts"]
+}

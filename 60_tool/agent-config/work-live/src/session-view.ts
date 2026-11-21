@@ -1,7 +1,6 @@
-import type { Actor, LiveRequest } from '../types'
-import { activityAt, flowRows } from './flow'
-import type { Flow, FlowRequest, Status } from './flow'
-import { SELF } from './model'
+import type { Actor, LiveRequest } from '../types/index.d.ts'
+import { activityAt, flowRows } from './flow.ts'
+import type { Flow, FlowRequest, Status } from './flow.ts'
 
 export const ALL_SESSIONS = 'all'
 export const TAB_LIMIT = 8
@@ -16,7 +15,7 @@ export function sessionFlows(flows: readonly Flow[], session: string): Flow[] {
 }
 
 function sessionKind({ kind }: Actor): boolean {
-  return kind === 'claude' || kind === 'claude-remote' || kind === 'codex'
+  return kind === 'claude' || kind === 'codex'
 }
 
 function sessionInfo(actor: Actor, related: readonly FlowRequest[]) {
@@ -36,24 +35,19 @@ function sessionInfo(actor: Actor, related: readonly FlowRequest[]) {
     start === undefined ? request.at : Math.min(start, request.at), undefined)
   return { actor, status, latest, first, incoming: [...received.values()], outgoing: outgoing.length,
     activity: ordered[0] ? activityAt(ordered[0].request) : -Infinity,
-    stepCount: active.reduce((total, { request }) => total + request.stepCount, 0), hasRequests: related.length > 0 }
+    stepCount: active.reduce((total, { request }) => total + request.stepCount, 0) }
 }
 
 export function sessionView(actors: readonly Actor[], flows: readonly Flow[], selection: string | null) {
   const sessions = new Map(actors.filter(sessionKind).map(actor => [actor.id, { actor, related: [] as FlowRequest[] }]))
-  if (!sessions.has(SELF.id)) sessions.set(SELF.id, { actor: SELF, related: [] })
   for (const { root } of flows) {
     for (const { node } of flowRows(root)) {
       for (const id of new Set([node.request.from, node.request.to])) sessions.get(id)?.related.push(node)
     }
   }
-  const self = sessions.get(SELF.id)!
-  const current = sessionInfo(self.actor, self.related)
-  const tabs = [current, ...[...sessions.values()].filter(({ actor }) => actor.id !== SELF.id)
-    .map(({ actor, related }) => sessionInfo(actor, related))
-    .sort((a, b) => Number(b.status === 'running') - Number(a.status === 'running') || b.activity - a.activity)]
-  const fallback = current.hasRequests ? current : tabs.find(tab => tab.status === 'running') ?? current
-  const selected = selection === ALL_SESSIONS ? undefined : tabs.find(tab => tab.actor.id === selection) ?? fallback
+  const tabs = [...sessions.values()].map(({ actor, related }) => sessionInfo(actor, related))
+    .sort((a, b) => Number(b.status === 'running') - Number(a.status === 'running') || b.activity - a.activity)
+  const selected = selection === ALL_SESSIONS ? undefined : tabs.find(tab => tab.actor.id === selection) ?? tabs[0]
   return { tabs, selected, session: selected?.actor.id ?? ALL_SESSIONS }
 }
 

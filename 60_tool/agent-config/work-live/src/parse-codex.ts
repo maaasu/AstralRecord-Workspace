@@ -1,7 +1,7 @@
-import type { CodexCursor, RolloutMeta, Step } from '../types'
-import { basename, isNotification, MAX_PROMPT, MAX_STEP, notification, recordOf, stepOf, summarize, textOf, truncate } from './model'
-import type { StepText } from './model'
-import { commandLanguage, describeCommand, describeEdit, describeMessage } from './describe'
+import type { CodexTurnRef, RolloutMeta, Step, TurnRef } from '../types/index.d.ts'
+import { basename, dateOf, isNotification, MAX_PROMPT, MAX_STEP, notification, parseJson, recordOf, splitPromptWrappers, stepOf, summarize, textOf, truncate } from './model.ts'
+import type { StepText } from './model.ts'
+import { commandLanguage, describeCommand, describeEdit, describeMessage } from './describe.ts'
 
 type Operation = { kind: 'command' | 'patch'; id: string; phase: 'begin' | 'end'; hasInput: boolean }
 
@@ -12,7 +12,8 @@ export type CodexEvent =
   | { kind: 'step'; step: StepText; operation?: Operation }
   | { kind: 'end'; status: 'done' | 'error'; step: StepText }
 
-export type CodexLine = { meta: RolloutMeta } | { at: number; event: CodexEvent }
+export type CodexLine = { meta: RolloutMeta } | { at: number; turnId?: string; event: CodexEvent }
+export type CodexRecord = { offset: number; row: Exclude<CodexLine, { meta: RolloutMeta }> }
 export type CodexTurn = {
   id: string
   at: number
@@ -20,20 +21,6 @@ export type CodexTurn = {
   steps: Step[]
   status?: 'done' | 'error'
   endedAt?: number
-}
-
-export function parseJson(line: string): unknown {
-  try {
-    return JSON.parse(line)
-  } catch {
-    return undefined
-  }
-}
-
-function dateOf(value: unknown): number | undefined {
-  if (typeof value === 'number' && Number.isFinite(value)) return value < 1e12 ? value * 1_000 : value
-  const at = Date.parse(textOf(value))
-  return Number.isFinite(at) ? at : undefined
 }
 
 function commandEvent(item: Record<string, unknown>): StepText {
@@ -97,9 +84,13 @@ function itemEvent(item: Record<string, unknown>): StepText | undefined {
 
 function userPrompt(content: unknown): string {
   if (!Array.isArray(content)) return ''
-  return content.map(block => textOf(recordOf(block).text)).filter(text =>
-    text.trim() && !/^(?:# AGENTS\.md instructions|<environment_context>|<INSTRUCTIONS>)/u.test(text.trimStart()),
-  ).at(-1) ?? ''
+  return content.map(block => textOf(recordOf(block).text)).findLast(text => {
+    const body = text.trimStart()
+    if (!body || /^(?:# AGENTS\.md instructions|<INSTRUCTIONS>)/u.test(body)) return false
+    if (!/^<environment_context(?=[\s/>])/u.test(body)) return true
+    const wrapped = splitPromptWrappers(body)
+    return !!wrapped.text || wrapped.wrappers.some(({ tag }) => tag !== 'environment_context')
+  }) ?? ''
 }
 
 export function parseCodexLine(line: string, fallbackAt = 0): CodexLine | undefined {
@@ -116,9 +107,15 @@ export function parseCodexLine(line: string, fallbackAt = 0): CodexLine | undefi
     } }
   }
   const at = dateOf(row.timestamp) ?? fallbackAt
+  const turnId = textOf(payload.turn_id) || undefined
   if (row.type === 'response_item' && payload.type === 'message' && payload.role === 'user') {
     const prompt = userPrompt(payload.content)
-    if (isNotification(prompt)) return { at, event: { kind: 'notification', body: prompt } }
+    if (isNotification(prompt)) {
+      const { text, wrappers } = splitPromptWrappers(prompt)
+      if (!text || !['task-notification', 'system-reminder'].includes(wrappers[0]?.tag ?? '')) {
+        return { at, event: { kind: 'notification', body: prompt } }
+      }
+    }
     if (prompt) return { at, event: { kind: 'prompt', prompt: truncate(prompt, MAX_PROMPT) } }
   }
   if (row.type !== 'event_msg') return undefined
@@ -128,11 +125,11 @@ export function parseCodexLine(line: string, fallbackAt = 0): CodexLine | undefi
     case 'task_started':
       return { at: dateOf(payload.started_at) ?? at, event: { kind: 'start', turnId: textOf(payload.turn_id) } }
     case 'task_complete':
-      return { at: dateOf(payload.completed_at) ?? at, event: { kind: 'end', status: 'done', step: {
+      return { at: dateOf(payload.completed_at) ?? at, turnId, event: { kind: 'end', status: 'done', step: {
         kind: 'done', title: describeMessage(textOf(payload.last_agent_message), '作業完了'), full: textOf(payload.last_agent_message),
       } } }
     case 'turn_aborted':
-      return { at, event: { kind: 'end', status: 'error', step: {
+      return { at, turnId, event: { kind: 'end', status: 'error', step: {
         kind: 'error', title: '作業中断', full: textOf(payload.reason),
       } } }
     case 'item_started':
@@ -164,7 +161,7 @@ export function parseCodexLine(line: string, fallbackAt = 0): CodexLine | undefi
       step = { kind: 'message', title: describeMessage(textOf(payload.message), 'Codex のメッセージ'), full: textOf(payload.message) }
       break
   }
-  if (step) return { at, event: { kind: 'step', step, ...(operation ? { operation } : {}) } }
+  if (step) return { at, turnId, event: { kind: 'step', step, ...(operation ? { operation } : {}) } }
 }
 
 function operationOf(
@@ -179,9 +176,9 @@ function operationOf(
 
 export function collectCodexTurns(
   thread: string,
-  records: readonly { offset: number; row: Exclude<CodexLine, { meta: RolloutMeta }> }[],
-  prior: CodexCursor['turn'],
-  previousRequest?: CodexCursor['lastRequest'],
+  records: readonly CodexRecord[],
+  prior: CodexTurnRef | undefined,
+  previousRequest?: TurnRef,
 ) {
   let active = prior
   let lastRequest = previousRequest
@@ -246,20 +243,4 @@ export function collectCodexTurns(
     }
   }
   return { turns: [...turns.values()], active, lastRequest, firstSummary }
-}
-
-export function completeLines(bytes: Uint8Array, skipFirst: boolean): {
-  lines: { offset: number; text: string }[]
-  consumed: number
-  skipping: boolean
-} {
-  const decoder = new TextDecoder()
-  const lines = []
-  let start = 0
-  for (let end = bytes.indexOf(10); end !== -1; end = bytes.indexOf(10, start)) {
-    if (!skipFirst) lines.push({ offset: start, text: decoder.decode(bytes.subarray(start, end)) })
-    skipFirst = false
-    start = end + 1
-  }
-  return { lines, consumed: skipFirst ? bytes.length : start, skipping: skipFirst }
 }

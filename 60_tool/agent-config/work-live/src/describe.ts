@@ -1,5 +1,5 @@
-import type { IconName, Kind } from '../types'
-import { basename, oneLine } from './model'
+import type { IconName, Kind } from '../types/index.d.ts'
+import { basename, oneLine } from './model.ts'
 
 const wrappers = /^(?:&\s+)?(?:"[^"\r\n]*(?:pwsh|powershell)(?:\.exe)?"|'[^'\r\n]*(?:pwsh|powershell)(?:\.exe)?'|(?:pwsh|powershell)(?:\.exe)?)\s+(?:-\S+\s+)*?-(?:command|c)\s+|^(?:\/\S+\/)?(?:bash|sh|zsh)\s+-[a-z]*c\s+/iu
 const encoding = /^(?:\[Console\]::OutputEncoding|\$OutputEncoding)\s*=\s*(?:\[[\w.]+\]::\w+(?:\([^)]*\))?|New-Object\s+[\w.]+(?:\([^)]*\))?|[^;\r\n]+(?=;))\s*/iu

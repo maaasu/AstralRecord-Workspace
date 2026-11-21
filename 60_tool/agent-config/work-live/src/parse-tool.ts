@@ -1,5 +1,5 @@
-import { basename, recordOf, textOf } from './model'
-import type { CodexLaunch } from '../types'
+import { basename, recordOf, textOf } from './model.ts'
+import type { CodexLaunch } from '../types/index.d.ts'
 
 export type CodexCommand = CodexLaunch & { file: string; prompt: string }
 const CODEX = /\bcodex(?:\.cmd|\.exe)?\s+(exec|review)\b/iu
@@ -24,7 +24,7 @@ export function parseCodexCommand(command: string): CodexCommand | undefined {
 
 function quotedPrompt(args: string): string {
   // Consume options with values before looking for a quoted positional argument.
-  const values = /^(?:-[aCcmsip]|--(?:ask-for-approval|local-provider|cd|config|model|sandbox|image|profile|add-dir|output-schema|output-last-message|color|enable|disable|base|commit|title))$/u
+  const values = /^(?:-[aCcimops]|--(?:ask-for-approval|local-provider|cd|config|model|sandbox|image|profile|add-dir|output-schema|output-last-message|color|enable|disable|base|commit|title))$/u
   const words = /"((?:\\["\\]|[^"])*)"|'([^']*)'|([^\s"';&|<>]+)|[;&|<>]/gu
   let skipValue = false
   for (const [word, double, single, bare] of args.matchAll(words)) {
@@ -66,7 +66,8 @@ export function sessionKey(id: string): string {
 }
 
 export function sessionId(text: string): string {
-  return /\b(?:local|session)_[\w-]+\b/u.exec(text)?.[0] ?? ''
+  return /\b(?:local|session)_[\w-]+\b/u.exec(text)?.[0] ??
+    /(?:^|(?:session(?:[_ -]?id)?["']?\s*[:=]\s*["']?)|(?:started session\s*[:=]\s*))([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})(?=$|[^\w-])/iu.exec(text.trim())?.[1] ?? ''
 }
 
 export function startSessionInput(input: unknown) {

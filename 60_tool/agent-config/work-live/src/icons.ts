@@ -1,4 +1,4 @@
-import type { ActorKind, IconName, Kind, Step } from '../types'
+import type { ActorKind, IconName, Kind, Step } from '../types/index.d.ts'
 
 const firstPerson = '<circle cx="6" cy="5" r="2.3"/><path d="M1.5 13v-1a4.5 3.5 0 0 1 9 0v1"/>'
 const secondPerson = '<path d="M10 2.9a2.3 2.3 0 1 1 0 4.3m1.8 2a3.8 3.3 0 0 1 2.7 3.1v.7"/>'
@@ -114,4 +114,9 @@ export function iconSvg(name: IconName, size = 16, interactive = false): string 
   const animated = name === 'running' && interactive
   const style = animated ? `<style>${rippleStyles}${reducedMotion}</style>` : ''
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 16 16">${style}${iconBody(name, animated)}</svg>`
+}
+
+export function iconAssets() {
+  return Object.fromEntries((Object.keys(icons) as IconName[]).map(name => [name, iconSvg(name)])
+    .concat([['running-motion', iconSvg('running', 16, true)]]))
 }
