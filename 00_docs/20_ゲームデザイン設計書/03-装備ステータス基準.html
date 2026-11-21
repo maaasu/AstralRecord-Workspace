@@ -212,39 +212,51 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 }
 /* ===== 共通ここまで ===== */
 #equipment-stat-guide .doc-body { min-width: 0; }
-.es-chapter { margin: 0 0 34px; scroll-margin-top: 20px; }
-#equipment-stat-guide .es-chapter > h2 { padding-bottom: 7px; border-bottom: 2px solid var(--actor); font-size: clamp(18px, 2vw, 23px); }
-#equipment-stat-guide .fx-section-lead { margin: 6px 0 14px; }
-.es-stack { display: grid; gap: 14px; margin-top: 14px; }
-.es-panel { min-width: 0; padding: 18px 20px; background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; scroll-margin-top: 20px; }
-.es-panel .sub-num { color: var(--actor); }
-.es-panel h4 { margin: 14px 0 6px; }
-#equipment-stat-guide .es-note { margin-top: 10px; color: var(--muted); overflow-wrap: anywhere; }
-.es-table, .es-yaml { max-width: 100%; overflow-x: auto; }
-.es-table + .es-table { margin-top: 10px; }
-.es-table table { width: 100%; border-collapse: collapse; }
-.es-table th, .es-table td { padding: 6px 10px; text-align: left; border: 1px solid var(--rule); }
-.es-table thead th { background: var(--soft); font-size: 14px; }
-.es-table td:not(:last-child) { white-space: nowrap; }
+.es-chapter { --actor: var(--blue); margin: 0 0 34px; scroll-margin-top: 20px; }
+#equipment-stat-guide .es-chapter > h2 { margin-bottom: 12px; padding-bottom: 7px; border-bottom: 1px solid var(--rule); font-size: clamp(18px, 2vw, 23px); }
+.es-rules { margin: 0 0 14px; }
+.es-rules > div { display: grid; grid-template-columns: minmax(8em, auto) minmax(0, 1fr); gap: 2px 14px; padding: 4px 0; }
+.es-rules dt, .es-groups dt { color: var(--heading); font-weight: 600; }
+.es-rules dd, .es-groups dd { margin: 0; }
+.es-intro { margin-bottom: 24px; }
+.es-intro p { margin: 6px 0; }
+.es-table { max-width: 100%; overflow-x: auto; }
+.es-table table { width: 100%; min-width: 740px; border-collapse: collapse; background: var(--paper); }
+.es-table th, .es-table td { padding: 7px 10px; text-align: left; vertical-align: top; border: 1px solid var(--rule); }
+.es-table thead th { background: var(--soft); white-space: nowrap; }
+.es-table thead th:nth-child(2) { min-width: 7em; }
 .es-table th[scope="row"] { min-width: 6em; }
-.es-table .cat { margin-top: 3px; }
-.es-yaml { margin: 0; padding: 12px; background: var(--page); border: 1px solid var(--rule); border-radius: 8px; }
+.es-table tr { scroll-margin-top: 20px; }
+.es-stat { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
+.es-condition { display: block; color: var(--muted); font-size: 14px; }
+.es-late { margin-top: 5px; }
+.es-detail { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--rule); background: var(--paper); scroll-margin-top: 20px; }
+.es-detail summary { font-weight: 600; cursor: pointer; }
+.es-detail p { margin: 8px 0 0; }
+.es-groups { margin: 8px 0 0; }
+.es-groups > div { padding: 6px 0; border-top: 1px solid var(--rule); }
+#equipment-stat-guide .doc-body a { border-bottom: 1px dotted var(--axis); }
+#equipment-stat-guide .doc-body a:hover { background: var(--soft); }
 #equipment-stat-guide :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-#equipment-stat-guide .fx { flex-wrap: wrap; }
-#equipment-stat-guide .fx-example { display: block; margin-top: 12px; }
-#equipment-stat-guide .fx-example .fx-lv { display: inline-block; margin-right: 8px; }
-@media (max-width: 760px) { #equipment-stat-guide { padding: 20px 16px; } }
-@media (max-width: 420px) { #equipment-stat-guide { padding: 18px 12px; } .es-panel { padding: 14px 12px; } }
+#equipment-stat-guide .es-table:focus-visible { outline-offset: -2px; }
+@media screen and (max-width: 760px) {
+  #equipment-stat-guide { padding: 20px 16px; }
+  .es-table tr > :first-child { position: sticky; inset-inline-start: 0; z-index: 1; background: var(--paper); }
+  .es-table thead th:first-child { background: var(--soft); }
+}
+@media (max-width: 420px) {
+  #equipment-stat-guide { padding: 18px 12px; }
+  .es-rules > div { grid-template-columns: minmax(0, 1fr); }
+}
 @media print {
   :root { color-scheme: light; --page: white; --paper: white; --ink: black; --heading: #263447; --muted: #444; --rule: #bbb; --soft: #eee; --axis: #555; --blue: #2466a0; }
-  #equipment-stat-guide { padding: 0; }
-  #equipment-stat-guide .fx-grid, #equipment-stat-guide .es-stack { display: block; }
-  .es-panel, #equipment-stat-guide .fx-card { margin-bottom: 10px; }
-  .es-table, .es-yaml { overflow: visible; }
-  #equipment-stat-guide tr, .es-yaml { break-inside: avoid; }
-  .es-table td, .es-table th { white-space: normal; overflow-wrap: anywhere; }
-  .es-yaml { white-space: pre-wrap; }
-  #equipment-stat-guide h2, #equipment-stat-guide h3, #equipment-stat-guide h4 { break-after: avoid; }
+  #equipment-stat-guide { padding: 0; font-size: 10pt; }
+  .es-table { overflow: visible; }
+  .es-table table, .es-table th[scope="row"], .es-table thead th:nth-child(2) { min-width: 0; }
+  .es-table th, .es-table td { padding: 4px 5px; }
+  .es-table thead th { white-space: normal; }
+  .es-table tr, .es-groups > div { break-inside: avoid; }
+  #equipment-stat-guide h2, .es-detail summary { break-after: avoid; }
 }
 @media screen {
   body::before { content: ""; position: fixed; inset: 0; z-index: 5; background: #0d1016; opacity: 0; pointer-events: none; }
@@ -269,8 +281,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   </nav>
   <header><h1>装備ステータス基準</h1></header>
   <div class="doc-lead">
-    <p>防具の共通防御の配分から求める、Lv.<!-- stat:playerLevel -->25<!-- /stat --><!-- stat:role -->近接前衛<!-- /stat -->の標準構成の胴防具の設計値。</p>
-    <div class="cat-key" aria-label="ステータスの分類"><span>分類</span><span class="cat cat-resource">リソース</span><span class="cat cat-primary">基本能力値</span><span class="cat cat-offense">攻撃</span><span class="cat cat-defense">防御</span><span class="cat cat-element">属性</span><span class="cat cat-condition">状態異常</span><span class="cat cat-utility">ユーティリティ</span></div>
+    <p>武器・防具・補助装備・アクセサリごとに付与できるステータスの一覧。</p>
   </div>
   <div class="doc-layout">
   <aside class="doc-toc" aria-label="目次">
@@ -285,135 +296,252 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 </div>
     <p class="doc-toc-title">目次</p>
     <ol>
-      <li><a href="#equipment"><span class="toc-num">1</span>装備の役割</a>
-        <ol>
-          <li><a href="#equipment-roles"><span class="toc-num">1.1</span>装備種別の性能</a></li>
-        </ol>
-      </li>
-      <li><a href="#armor"><span class="toc-num">2</span>防具の配分と胴候補</a>
-        <ol>
-          <li><a href="#armor-weights"><span class="toc-num">2.1</span>防具4部位の基準値</a></li>
-          <li><a href="#chest-candidate"><span class="toc-num">2.2</span>標準共通防御型の胴</a></li>
-        </ol>
-      </li>
-      <li><a href="#calculation"><span class="toc-num">3</span>計算方法</a>
-        <ol>
-          <li><a href="#fx-slot-split"><span class="toc-num">3.1</span>部位の配分</a></li>
-          <li><a href="#fx-item-roll"><span class="toc-num">3.2</span>胴の個体値</a></li>
-          <li><a href="#fx-player-range"><span class="toc-num">3.3</span>胴の個体差を含む共通防御</a></li>
-        </ol>
-      </li>
+<!-- equipment:toc -->
+      <li><a href="#equipment-1"><span class="toc-num">1</span>武器</a></li>
+      <li><a href="#armor"><span class="toc-num">2</span>防具</a></li>
+      <li><a href="#equipment-3"><span class="toc-num">3</span>補助装備</a></li>
+      <li><a href="#equipment-4"><span class="toc-num">4</span>アクセサリ</a></li>
+      <li><a href="#equipment-excluded"><span class="toc-num">5</span>装備から直接付与しない指標</a></li>
+      <li><a href="#candidate-groups">候補グループの内訳</a></li>
+<!-- /equipment:toc -->
     </ol>
   </aside>
   <div class="doc-body">
-  <section class="es-chapter" id="equipment" aria-labelledby="equipment-title" style="--actor: var(--blue)">
-    <h2 id="equipment-title"><span class="ch-num">1</span>装備の役割</h2>
-    <p class="fx-section-lead">装備種別ごとに主性能の役割を定める。</p>
-    <ol class="ch-toc" aria-label="1章の内容">
-      <li><a href="#equipment-roles"><span class="toc-num">1.1</span><span class="ch-toc-title">装備種別の性能</span><span class="ch-toc-desc">武器・防具・補助装備・アクセサリの主な役割</span><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-defense">防御</span></span></a></li>
-    </ol>
-    <div class="es-stack">
-    <section class="es-panel" id="equipment-roles" aria-labelledby="equipment-roles-title" data-status-ids="commonDefense">
-      <div class="fx-card-head"><h3 id="equipment-roles-title"><span class="sub-num">1.1</span>装備種別の性能</h3><span class="cat-list"><span class="cat cat-offense">攻撃</span><span class="cat cat-defense">防御</span></span></div>
-      <div class="es-table" role="region" aria-label="装備種別と性能配分" tabindex="0">
-        <table aria-label="装備種別と性能配分">
-          <thead><tr><th scope="col">装備種別</th><th scope="col">性能の役割</th></tr></thead>
-          <tbody>
-            <tr><th scope="row">武器</th><td>武器種に対応する種別攻撃を主性能に配分。</td></tr>
-            <tr><th scope="row">防具</th><td>防御・耐久を担う。</td></tr>
-            <tr><th scope="row">補助装備</th><td>補助枠の役割に応じて、ビルドの性能を補強。</td></tr>
-            <tr><th scope="row">アクセサリ</th><td>少数のステータスを配分し、ビルドの強みや特化を補強。</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="es-note">特化型には、ステータス候補・最低主性能・付与量のルールを定義したプロファイルを使う。</p>
-    </section>
-    </div>
-  </section>
-  <section class="es-chapter" id="armor" aria-labelledby="armor-title" style="--actor: var(--blue)">
-    <h2 id="armor-title"><span class="ch-num">2</span>防具の配分と胴候補</h2>
-    <p class="fx-section-lead"><a href="02-ステータス指標.html#player-allocation"><!-- stat:role -->近接前衛<!-- /stat -->の標準構成</a>に従い、防具4部位に直接共通防御を計 <!-- stat:budget -->177<!-- /stat --> 配分する。</p>
-    <ol class="ch-toc" aria-label="2章の内容">
-      <li><a href="#armor-weights"><span class="toc-num">2.1</span><span class="ch-toc-title">防具4部位の基準値</span><span class="ch-toc-desc">配分比率と切り捨て後の残余</span><span class="cat-list"><span class="cat cat-defense">防御</span></span></a></li>
-      <li><a href="#chest-candidate"><span class="toc-num">2.2</span><span class="ch-toc-title">標準共通防御型の胴</span><span class="ch-toc-desc">装備条件・主性能・個体差</span><span class="cat-list"><span class="cat cat-defense">防御</span></span></a></li>
-    </ol>
-    <div class="es-stack">
-    <section class="es-panel" id="armor-weights" aria-labelledby="armor-weights-title" data-status-ids="commonDefense">
-      <div class="fx-card-head"><h3 id="armor-weights-title"><span class="sub-num">2.1</span>防具4部位の基準値</h3><span class="cat-list"><span class="cat cat-defense">防御</span></span></div>
-      <div class="es-table" role="region" aria-label="防具4部位の共通防御" tabindex="0">
-        <table aria-label="防具4部位の共通防御">
-          <thead><tr><th scope="col">部位</th><th scope="col">配分比率</th><th scope="col">理論値</th><th scope="col">切り捨て</th><th scope="col">残余配分</th><th scope="col">基準値</th></tr></thead>
-          <tbody>
-            <tr data-status-ids="head"><th scope="row">頭 <code>head</code></th><td><!-- stat:head.weight -->20<!-- /stat -->%</td><td><!-- stat:head.ideal -->35.4<!-- /stat --></td><td><!-- stat:head.floor -->35<!-- /stat --></td><td><!-- stat:head.extra -->0<!-- /stat --></td><td><!-- stat:head.value -->35<!-- /stat --></td></tr>
-            <tr data-status-ids="chest"><th scope="row">胴 <code>chest</code></th><td><!-- stat:chest.weight -->35<!-- /stat -->%</td><td><!-- stat:chest.ideal -->61.95<!-- /stat --></td><td><!-- stat:chest.floor -->61<!-- /stat --></td><td><!-- stat:chest.extra -->1<!-- /stat --></td><td><!-- stat:chest.value -->62<!-- /stat --></td></tr>
-            <tr data-status-ids="legs"><th scope="row">脚 <code>legs</code></th><td><!-- stat:legs.weight -->30<!-- /stat -->%</td><td><!-- stat:legs.ideal -->53.1<!-- /stat --></td><td><!-- stat:legs.floor -->53<!-- /stat --></td><td><!-- stat:legs.extra -->0<!-- /stat --></td><td><!-- stat:legs.value -->53<!-- /stat --></td></tr>
-            <tr data-status-ids="feet"><th scope="row">足 <code>feet</code></th><td><!-- stat:feet.weight -->15<!-- /stat -->%</td><td><!-- stat:feet.ideal -->26.55<!-- /stat --></td><td><!-- stat:feet.floor -->26<!-- /stat --></td><td><!-- stat:feet.extra -->1<!-- /stat --></td><td><!-- stat:feet.value -->27<!-- /stat --></td></tr>
-            <tr><th scope="row">合計</th><td>100%</td><td><!-- stat:budget -->177<!-- /stat --></td><td></td><td></td><td><!-- stat:budget -->177<!-- /stat --></td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="es-note">部位別の比率はこの標準構成の設計値。</p>
-    </section>
-    <section class="es-panel" id="chest-candidate" aria-labelledby="chest-candidate-title" data-status-ids="commonDefense chest">
-      <div class="fx-card-head"><h3 id="chest-candidate-title"><span class="sub-num">2.2</span>標準共通防御型の胴</h3><span class="cat-list"><span class="cat cat-defense">防御</span></span></div>
-      <div class="es-table" role="region" aria-label="胴防具の設計" tabindex="0">
-        <table aria-label="胴防具の設計">
-          <thead><tr><th scope="col">項目</th><th scope="col">基準</th></tr></thead>
-          <tbody>
-            <tr><th scope="row">装備設計キー</th><td><code><!-- stat:profileId -->standard_defense_lv25<!-- /stat --></code></td></tr>
-            <tr><th scope="row">参照構成</th><td><code><!-- stat:buildId -->lv25_melee_standard<!-- /stat --></code></td></tr>
-            <tr><th scope="row">評価するプレイヤーLv</th><td>Lv.<!-- stat:referencePlayerLevel -->25<!-- /stat -->（配分を評価する基準）</td></tr>
-            <tr><th scope="row">装備条件</th><td>Lv.<!-- stat:requiredPlayerLevel -->25<!-- /stat -->（装備に必要な最低プレイヤーLv）</td></tr>
-            <tr><th scope="row">レアリティ</th><td>レア（<code><!-- stat:rarity -->rare<!-- /stat --></code>）</td></tr>
-            <tr><th scope="row">部位</th><td>胴 <code><!-- stat:slot -->chest<!-- /stat --></code></td></tr>
-            <tr><th scope="row">主ステータス</th><td>共通防御（加算）</td></tr>
-            <tr><th scope="row">副ステータス</th><td>なし</td></tr>
-            <tr><th scope="row">基準値 / 期待値</th><td>+<!-- stat:chest.value -->62<!-- /stat --> / <!-- stat:expected -->62<!-- /stat --></td></tr>
-            <tr><th scope="row">個体値</th><td><!-- stat:minimum -->56<!-- /stat -->〜<!-- stat:maximum -->68<!-- /stat -->（<!-- stat:step -->1<!-- /stat -->点刻み）</td></tr>
-            <tr><th scope="row">プレイヤーの共通防御</th><td>基準 <!-- stat:goalDefense -->235<!-- /stat -->、胴の個体差を反映すると <!-- stat:totalMin -->229<!-- /stat -->〜<!-- stat:totalMax -->241<!-- /stat --></td></tr>
-          </tbody>
-        </table>
-      </div>
-      <h4>胴防具の設計値（YAML）</h4>
-      <pre class="es-yaml"><code><!-- stat:yaml -->slot: chest
-referencePlayerLevel: 25
-requiredPlayerLevel: 25
-rarity: rare
-stats:
-  commonDefense:
-    base: 62
-    rollOffsets:
-      min: -6
-      max: 6
-      step: 1<!-- /stat --></code></pre>
-    </section>
-    </div>
-  </section>
-  <section class="es-chapter" id="calculation" aria-labelledby="calculation-title" style="--actor: var(--axis)">
-    <h2 id="calculation-title"><span class="ch-num">3</span>計算方法</h2>
-    <p class="fx-section-lead">計算例は標準共通防御型の胴を採用した<!-- stat:role -->近接前衛<!-- /stat -->の標準構成の値。</p>
-    <div class="fx-grid">
-    <section class="fx-card" id="fx-slot-split" aria-labelledby="fx-slot-split-title" data-status-ids="commonDefense">
-      <div class="fx-card-head"><h3 id="fx-slot-split-title"><span class="sub-num">3.1</span>部位の配分</h3><span class="cat-list"><span class="cat cat-defense">防御</span></span></div>
-      <div class="fx"><var class="fx-var cat-defense">部位の理論値</var><span class="fx-op">=</span><var class="fx-var cat-defense">防具の共通防御</var><span class="fx-op">×</span><var class="fx-var cat-defense">部位の配分比率</var></div>
-            <p class="fx-example"><span class="fx-lv">Lv.<!-- stat:playerLevel -->25<!-- /stat --></span>胴 <b class="c-defense"><!-- stat:budget -->177<!-- /stat --></b> × <b class="c-defense"><!-- stat:chest.weight -->35<!-- /stat --></b>% = <b class="c-defense"><!-- stat:chest.ideal -->61.95<!-- /stat --></b>、切り捨て <b class="c-defense"><!-- stat:chest.floor -->61<!-- /stat --></b> + 残余配分 <b class="c-defense"><!-- stat:chest.extra -->1<!-- /stat --></b> = <span class="fx-result"><!-- stat:chest.value -->62<!-- /stat --></span></p>
-            <ul class="fx-notes"><li>最大剰余方式では、全枠を切り捨てた残余 <!-- stat:remaining -->2<!-- /stat --> を、小数部が大きい枠から1点ずつ配分する。同点時は頭・胴・脚・足の順。</li></ul>
-    </section>
-    <section class="fx-card" id="fx-item-roll" aria-labelledby="fx-item-roll-title" data-status-ids="commonDefense">
-      <div class="fx-card-head"><h3 id="fx-item-roll-title"><span class="sub-num">3.2</span>胴の個体値</h3><span class="cat-list"><span class="cat cat-defense">防御</span></span></div>
-      <div class="fx"><var class="fx-var cat-defense">胴の個体値</var><span class="fx-op">=</span><var class="fx-var cat-defense">胴の基準値</var><span class="fx-op">+</span><var class="fx-var cat-defense">抽選したオフセット</var></div>
-            <p class="fx-example"><span class="fx-lv">Lv.<!-- stat:playerLevel -->25<!-- /stat --></span><b class="c-defense"><!-- stat:chest.value -->62<!-- /stat --></b> + (<!-- stat:offsetMin -->-6<!-- /stat -->〜+<!-- stat:offsetMax -->6<!-- /stat -->) = <b class="c-defense"><!-- stat:minimum -->56<!-- /stat --></b>〜<span class="fx-result"><!-- stat:maximum -->68<!-- /stat --></span></p>
-            <ul class="fx-notes"><li>付与時に一度、<!-- stat:step -->1<!-- /stat -->点刻みの候補から等確率で1つの整数を抽選する。</li></ul>
-    </section>
-    <section class="fx-card" id="fx-player-range" aria-labelledby="fx-player-range-title" data-status-ids="commonDefense vitality">
-      <div class="fx-card-head"><h3 id="fx-player-range-title"><span class="sub-num">3.3</span>胴の個体差を含む共通防御</h3><span class="cat-list"><span class="cat cat-defense">防御</span><span class="cat cat-primary">基本能力値</span></span></div>
-      <div class="fx"><var class="fx-var cat-defense">共通防御</var><span class="fx-op">=</span><var class="fx-var cat-defense">標準の共通防御</var><span class="fx-op">−</span><var class="fx-var cat-defense">胴の基準値</var><span class="fx-op">+</span><var class="fx-var cat-defense">胴の個体値</var></div>
-            <p class="fx-example"><span class="fx-lv">Lv.<!-- stat:playerLevel -->25<!-- /stat --></span><b class="c-defense"><!-- stat:goalDefense -->235<!-- /stat --></b> − <b class="c-defense"><!-- stat:chest.value -->62<!-- /stat --></b> + (<b class="c-defense"><!-- stat:minimum -->56<!-- /stat --></b>〜<b class="c-defense"><!-- stat:maximum -->68<!-- /stat --></b>) = <b class="c-defense"><!-- stat:totalMin -->229<!-- /stat --></b>〜<span class="fx-result"><!-- stat:totalMax -->241<!-- /stat --></span></p>
-            <ul class="fx-notes"><li>頭・脚・足は基準値で固定し、計 <!-- stat:fixedArmor -->115<!-- /stat -->。体力からの派生は標準構成の共通防御に含む。</li></ul>
-    </section>
-    </div>
-  </section>
+  <div class="es-intro">
+<!-- equipment:rules -->
+    <dl class="es-rules">
+      <div><dt>必須</dt><dd>全品に正の補正。「いずれか1つ」は候補から1つを定義。</dd></div>
+      <div><dt>通常候補</dt><dd>Lv.1から任意。</dd></div>
+      <div><dt>上位候補</dt><dd>Lv.50以上で任意。</dd></div>
+      <div><dt>ビルド向け</dt><dd>Lv.25以上で役割が合う場合に任意。「Lv.75〜」の候補はそのLvから。</dd></div>
+    </dl>
+<!-- /equipment:rules -->
+    <p>Lvは、装備を最初に入手できる攻略の目安。候補から役割に合う能力を選び、一品の主性能は1〜2種類を目安とする。</p>
+    <p>ビルド向けは標準の付与と入れ替え、同じLvの特化目標と比較する。標準値は<a href="02-ステータス指標.html#player-allocation">02の配分一覧</a>の装備欄を参照。</p>
   </div>
+<!-- equipment:chapters -->
+  <section class="es-chapter" id="equipment-1" aria-labelledby="equipment-1-title">
+    <h2 id="equipment-1-title"><span class="ch-num">1</span>武器</h2>
+    <div class="es-table" role="region" aria-label="武器の候補表" tabindex="0">
+      <table aria-label="武器の付与候補">
+        <thead><tr><th scope="col">装備種</th><th scope="col">必須</th><th scope="col">通常候補</th><th scope="col">上位候補 <span class="es-condition">Lv.50〜</span></th><th scope="col">ビルド向け <span class="es-condition">Lv.25〜</span></th></tr></thead>
+        <tbody>
+          <tr data-status-ids="" aria-label="剣">
+            <th scope="row">剣</th>
+            <td><span class="es-stat">近接攻撃力</span></td>
+            <td><span class="es-stat">筋力</span>、<span class="es-stat">命中率</span>、<span class="es-stat">通常攻撃ダメージ増加</span></td>
+            <td><span class="es-stat">スキルダメージ増加</span>、<span class="es-stat">シールドブレイク</span></td>
+            <td><span class="es-stat">攻撃速度</span>、<span class="es-stat"><a href="#candidate-groups">通常会心</a></span>、<span class="es-stat">近接防御貫通率</span><span class="es-condition es-late">Lv.75〜</span><span class="es-stat">ライフスティール</span></td>
+          </tr>
+          <tr data-status-ids="" aria-label="ハンマー">
+            <th scope="row">ハンマー</th>
+            <td><span class="es-stat">近接攻撃力</span></td>
+            <td><span class="es-stat">筋力</span>、<span class="es-stat">シールドブレイク</span>、<span class="es-stat">スキルダメージ増加</span></td>
+            <td><span class="es-stat">命中率</span>、<span class="es-stat">通常攻撃ダメージ増加</span></td>
+            <td><span class="es-stat">近接防御貫通率</span>、<span class="es-stat"><a href="#candidate-groups">状態異常付与確率増加</a></span>、<span class="es-stat">シールドリチャージ加算値</span><span class="es-condition es-late">Lv.75〜</span><span class="es-stat">HP固定ダメージ</span></td>
+          </tr>
+          <tr data-status-ids="" aria-label="槍">
+            <th scope="row">槍</th>
+            <td><span class="es-stat">近接攻撃力</span></td>
+            <td><span class="es-stat">筋力</span>、<span class="es-stat">命中率</span>、<span class="es-stat">スキルダメージ増加</span></td>
+            <td><span class="es-stat">通常攻撃ダメージ増加</span>、<span class="es-stat">シールドブレイク</span></td>
+            <td><span class="es-stat">近接防御貫通率</span>、<span class="es-stat"><a href="#candidate-groups">状態異常付与確率増加</a></span>、<span class="es-stat"><a href="#candidate-groups">継続ダメージ増加</a></span><span class="es-condition es-late">Lv.75〜</span><span class="es-stat"><a href="#candidate-groups">継続ダメージ貫通</a></span></td>
+          </tr>
+          <tr data-status-ids="" aria-label="弓">
+            <th scope="row">弓</th>
+            <td><span class="es-stat">間接攻撃力</span></td>
+            <td><span class="es-stat">器用さ</span>、<span class="es-stat">命中率</span>、<span class="es-stat">通常攻撃ダメージ増加</span></td>
+            <td><span class="es-stat">スキルダメージ増加</span>、<span class="es-stat">シールドブレイク</span></td>
+            <td><span class="es-stat"><a href="#candidate-groups">通常会心</a></span>、<span class="es-stat">間接防御貫通率</span>、<span class="es-stat"><a href="#candidate-groups">属性ダメージ増加</a></span></td>
+          </tr>
+          <tr data-status-ids="" aria-label="短弓">
+            <th scope="row">短弓</th>
+            <td><span class="es-stat">間接攻撃力</span></td>
+            <td><span class="es-stat">器用さ</span>、<span class="es-stat">敏捷性</span>、<span class="es-stat">通常攻撃ダメージ増加</span></td>
+            <td><span class="es-stat">命中率</span>、<span class="es-stat">スキルダメージ増加</span></td>
+            <td><span class="es-stat">攻撃速度</span>、<span class="es-stat"><a href="#candidate-groups">状態異常付与確率増加</a></span>、<span class="es-stat"><a href="#candidate-groups">継続ダメージ増加</a></span></td>
+          </tr>
+          <tr data-status-ids="" aria-label="長弓">
+            <th scope="row">長弓</th>
+            <td><span class="es-stat">間接攻撃力</span></td>
+            <td><span class="es-stat">器用さ</span>、<span class="es-stat">命中率</span>、<span class="es-stat">スキルダメージ増加</span></td>
+            <td><span class="es-stat">シールドブレイク</span>、<span class="es-stat">通常攻撃ダメージ増加</span></td>
+            <td><span class="es-stat"><a href="#candidate-groups">通常会心</a></span>、<span class="es-stat">間接防御貫通率</span><span class="es-condition es-late">Lv.75〜</span><span class="es-stat"><a href="#candidate-groups">超星会心</a></span></td>
+          </tr>
+          <tr data-status-ids="" aria-label="ワンド">
+            <th scope="row">ワンド</th>
+            <td><span class="es-stat">魔法攻撃力</span></td>
+            <td><span class="es-stat">知力</span>、<span class="es-stat">最大MP</span>、<span class="es-stat"><a href="#candidate-groups">属性ダメージ増加</a></span></td>
+            <td><span class="es-stat">詠唱時間短縮</span>、<span class="es-stat">スキルダメージ増加</span></td>
+            <td><span class="es-stat">MP消費軽減率</span>、<span class="es-stat">魔法防御貫通率</span>、<span class="es-stat"><a href="#candidate-groups">状態異常付与確率増加</a></span></td>
+          </tr>
+          <tr data-status-ids="" aria-label="スタッフ">
+            <th scope="row">スタッフ</th>
+            <td><span class="es-stat">魔法攻撃力</span></td>
+            <td><span class="es-stat">知力</span>、<span class="es-stat">スキルダメージ増加</span>、<span class="es-stat"><a href="#candidate-groups">属性ダメージ増加</a></span></td>
+            <td><span class="es-stat">最大MP</span>、<span class="es-stat">詠唱時間短縮</span>、<span class="es-stat">支援力</span></td>
+            <td><span class="es-stat">魔法防御貫通率</span>、<span class="es-stat">状態異常持続時間増加</span><span class="es-condition es-late">Lv.75〜</span><span class="es-stat"><a href="#candidate-groups">属性貫通</a></span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="es-chapter" id="armor" aria-labelledby="armor-title">
+    <h2 id="armor-title"><span class="ch-num">2</span>防具</h2>
+    <div class="es-table" role="region" aria-label="防具の候補表" tabindex="0">
+      <table aria-label="防具の付与候補">
+        <thead><tr><th scope="col">装備種</th><th scope="col">必須</th><th scope="col">通常候補</th><th scope="col">上位候補 <span class="es-condition">Lv.50〜</span></th><th scope="col">ビルド向け <span class="es-condition">Lv.25〜</span></th></tr></thead>
+        <tbody>
+          <tr data-status-ids="" aria-label="頭">
+            <th scope="row">頭</th>
+            <td><span class="es-stat">共通防御</span></td>
+            <td><span class="es-stat">最大MP</span>、<span class="es-stat">魔法防御力</span>、<span class="es-stat"><a href="#candidate-groups">属性耐性</a></span></td>
+            <td><span class="es-stat">MP自然回復量（5秒ごと）</span>、<span class="es-stat">詠唱時間短縮</span></td>
+            <td><span class="es-stat"><a href="#candidate-groups">状態異常付与耐性</a></span></td>
+          </tr>
+          <tr data-status-ids="" aria-label="胴">
+            <th scope="row">胴</th>
+            <td><span class="es-stat">共通防御</span></td>
+            <td><span class="es-stat">最大HP</span>、<span class="es-stat">魔法防御力</span>、<span class="es-stat"><a href="#candidate-groups">属性耐性</a></span></td>
+            <td><span class="es-stat">HP自然回復量（5秒ごと）</span>、<span class="es-stat">ノックバック耐性</span></td>
+            <td><span class="es-stat"><a href="#candidate-groups">近接・間接防御力</a></span>、<span class="es-stat">最大シールド</span><span class="es-condition es-late">Lv.75〜</span><span class="es-stat">被ダメージ軽減率</span></td>
+          </tr>
+          <tr data-status-ids="" aria-label="脚">
+            <th scope="row">脚</th>
+            <td><span class="es-stat">共通防御</span></td>
+            <td><span class="es-stat">最大ENG</span>、<span class="es-stat">ノックバック耐性</span>、<span class="es-stat"><a href="#candidate-groups">状態異常付与耐性</a></span></td>
+            <td><span class="es-stat">最大HP</span>、<span class="es-stat">ENG自然回復量（5秒ごと）</span></td>
+            <td><span class="es-stat"><a href="#candidate-groups">近接・間接防御力</a></span>、<span class="es-stat"><a href="#candidate-groups">継続ダメージ耐性</a></span></td>
+          </tr>
+          <tr data-status-ids="" aria-label="足">
+            <th scope="row">足</th>
+            <td><span class="es-stat">共通防御</span></td>
+            <td><span class="es-stat">敏捷性</span>、<span class="es-stat">ノックバック耐性</span>、<span class="es-stat"><a href="#candidate-groups">継続ダメージ耐性</a></span></td>
+            <td><span class="es-stat"><a href="#candidate-groups">属性耐性</a></span>、<span class="es-stat"><a href="#candidate-groups">状態異常付与耐性</a></span></td>
+            <td><span class="es-stat">移動速度</span>、<span class="es-stat">回避率</span>、<span class="es-stat"><a href="#candidate-groups">消耗品使用中の移動</a></span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <details class="es-detail">
+      <summary>標準防具の数値例</summary>
+      <p>標準の共通防御の装備配分を整数点に四捨五入し、防具4部位に配分する。重みは頭20%、胴35%、脚30%、足15%。</p>
+      <p>Lv.25の例は防具合計177点（頭35、胴62、脚53、足27）、胴の個体値は56〜68点。</p>
+    </details>
+  </section>
+
+  <section class="es-chapter" id="equipment-3" aria-labelledby="equipment-3-title">
+    <h2 id="equipment-3-title"><span class="ch-num">3</span>補助装備</h2>
+    <div class="es-table" role="region" aria-label="補助装備の候補表" tabindex="0">
+      <table aria-label="補助装備の付与候補">
+        <thead><tr><th scope="col">装備種</th><th scope="col">必須</th><th scope="col">通常候補</th><th scope="col">上位候補 <span class="es-condition">Lv.50〜</span></th><th scope="col">ビルド向け <span class="es-condition">Lv.25〜</span></th></tr></thead>
+        <tbody>
+          <tr data-status-ids="" aria-label="盾">
+            <th scope="row">盾</th>
+            <td><span class="es-stat">共通防御</span></td>
+            <td><span class="es-stat">最大HP</span>、<span class="es-stat">ノックバック耐性</span>、<span class="es-stat"><a href="#candidate-groups">属性耐性</a></span></td>
+            <td><span class="es-stat">魔法防御力</span>、<span class="es-stat"><a href="#candidate-groups">状態異常付与耐性</a></span></td>
+            <td><span class="es-stat"><a href="#candidate-groups">近接・間接防御力</a></span>、<span class="es-stat">最大シールド</span>、<span class="es-stat">シールドリチャージ短縮</span><span class="es-condition es-late">Lv.75〜</span><span class="es-stat">被ダメージ軽減率</span></td>
+          </tr>
+          <tr data-status-ids="" aria-label="物理攻撃の補助">
+            <th scope="row">物理攻撃の補助</th>
+            <td><span class="es-condition">いずれか1つ</span><span class="es-stat">命中率</span>、<span class="es-stat">最大ENG</span></td>
+            <td><span class="es-stat">通常攻撃ダメージ増加</span>、<span class="es-stat">ENG消費軽減率</span>、<span class="es-stat">シールドブレイク</span></td>
+            <td><span class="es-stat">スキルダメージ増加</span>、<span class="es-stat">ENG自然回復量（5秒ごと）</span></td>
+            <td><span class="es-stat">攻撃速度</span>、<span class="es-stat"><a href="#candidate-groups">通常会心</a></span>、<span class="es-stat">近接防御貫通率</span>、<span class="es-stat">間接防御貫通率</span></td>
+          </tr>
+          <tr data-status-ids="" aria-label="魔法・支援の補助">
+            <th scope="row">魔法・支援の補助</th>
+            <td><span class="es-condition">いずれか1つ</span><span class="es-stat">最大MP</span>、<span class="es-stat">支援力</span></td>
+            <td><span class="es-stat">知力</span>、<span class="es-stat">MP自然回復量（5秒ごと）</span>、<span class="es-stat">MP消費軽減率</span>、<span class="es-stat">詠唱時間短縮</span>、<span class="es-stat">クールダウン短縮</span></td>
+            <td><span class="es-stat">魔法防御力</span>、<span class="es-stat">バフ持続時間増加</span></td>
+            <td><span class="es-stat">回復量増加</span>、<span class="es-stat">魔法防御貫通率</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="es-chapter" id="equipment-4" aria-labelledby="equipment-4-title">
+    <h2 id="equipment-4-title"><span class="ch-num">4</span>アクセサリ</h2>
+    <div class="es-table" role="region" aria-label="アクセサリの候補表" tabindex="0">
+      <table aria-label="アクセサリの付与候補">
+        <thead><tr><th scope="col">装備種</th><th scope="col">必須</th><th scope="col">通常候補</th><th scope="col">上位候補 <span class="es-condition">Lv.50〜</span></th><th scope="col">ビルド向け <span class="es-condition">Lv.25〜</span></th></tr></thead>
+        <tbody>
+          <tr data-status-ids="" aria-label="アミュレット">
+            <th scope="row">アミュレット</th>
+            <td><span class="es-condition">いずれか1つ</span><span class="es-stat">最大HP</span>、<span class="es-stat">最大MP</span>、<span class="es-stat">最大ENG</span></td>
+            <td><span class="es-stat"><a href="#candidate-groups">主能力</a></span>、<span class="es-stat"><a href="#candidate-groups">属性耐性</a></span>、<span class="es-stat">支援力</span>、<span class="es-stat">MP消費軽減率</span></td>
+            <td><span class="es-stat">クールダウン短縮</span>、<span class="es-stat">スキルダメージ増加</span></td>
+            <td><span class="es-stat">体力</span>、<span class="es-stat">回復量増加</span>、<span class="es-stat"><a href="#candidate-groups">通常会心</a></span></td>
+          </tr>
+          <tr data-status-ids="" aria-label="タリスマン">
+            <th scope="row">タリスマン</th>
+            <td><span class="es-condition">いずれか1つ</span><span class="es-stat"><a href="#candidate-groups">主能力</a></span>、<span class="es-stat">敏捷性</span></td>
+            <td><span class="es-stat">命中率</span>、<span class="es-stat">シールドブレイク</span>、<span class="es-stat">ENG消費軽減率</span></td>
+            <td><span class="es-stat">MP消費軽減率</span>、<span class="es-stat"><a href="#candidate-groups">属性耐性</a></span></td>
+            <td><span class="es-stat">幸運</span>、<span class="es-stat"><a href="#candidate-groups">属性ダメージ増加</a></span></td>
+          </tr>
+          <tr data-status-ids="" aria-label="チャーム">
+            <th scope="row">チャーム</th>
+            <td><span class="es-condition">いずれか1つ</span><span class="es-stat"><a href="#candidate-groups">属性耐性</a></span>、<span class="es-stat"><a href="#candidate-groups">状態異常付与耐性</a></span>、<span class="es-stat"><a href="#candidate-groups">継続ダメージ耐性</a></span>、<span class="es-stat">HP自然回復量（5秒ごと）</span></td>
+            <td><span class="es-stat">MP自然回復量（5秒ごと）</span>、<span class="es-stat">ENG自然回復量（5秒ごと）</span></td>
+            <td><span class="es-stat">ノックバック耐性</span>、<span class="es-stat">バフ持続時間増加</span></td>
+            <td><span class="es-stat">幸運</span>、<span class="es-stat"><a href="#candidate-groups">育成・探索報酬</a></span>、<span class="es-stat"><a href="#candidate-groups">消耗品使用中の移動</a></span></td>
+          </tr>
+          <tr data-status-ids="" aria-label="コア">
+            <th scope="row">コア</th>
+            <td><span class="es-condition">いずれか1つ</span><span class="es-stat">通常攻撃ダメージ増加</span>、<span class="es-stat">スキルダメージ増加</span>、<span class="es-stat">支援力</span>、<span class="es-stat">最大HP</span></td>
+            <td><span class="es-stat">最終ダメージ倍率</span>、<span class="es-stat"><a href="#candidate-groups">属性ダメージ増加</a></span>、<span class="es-stat">最大MP</span>、<span class="es-stat">最大ENG</span></td>
+            <td><span class="es-stat">クールダウン短縮</span>、<span class="es-stat">バフ持続時間増加</span></td>
+            <td><span class="es-stat">最大シールド</span>、<span class="es-stat">状態異常持続時間増加</span>、<span class="es-stat">回復量増加</span><span class="es-condition es-late">Lv.75〜</span><span class="es-stat">共通攻撃力</span>、<span class="es-stat">共通防御貫通率</span>、<span class="es-stat">被ダメージ軽減率</span></td>
+          </tr>
+          <tr data-status-ids="" aria-label="レリック">
+            <th scope="row">レリック</th>
+            <td><span class="es-condition">いずれか1つ</span><span class="es-stat"><a href="#candidate-groups">属性ダメージ増加</a></span>、<span class="es-stat"><a href="#candidate-groups">状態異常付与耐性</a></span>、<span class="es-stat">支援力</span></td>
+            <td><span class="es-stat">スキルダメージ増加</span>、<span class="es-stat">バフ持続時間増加</span></td>
+            <td><span class="es-stat">クールダウン短縮</span>、<span class="es-stat">詠唱時間短縮</span></td>
+            <td><span class="es-stat"><a href="#candidate-groups">状態異常付与確率増加</a></span>、<span class="es-stat"><a href="#candidate-groups">継続ダメージ増加</a></span>、<span class="es-stat">状態異常持続時間増加</span>、<span class="es-stat">シールドリチャージ短縮</span><span class="es-condition es-late">Lv.75〜</span><span class="es-stat"><a href="#candidate-groups">超星会心</a></span>、<span class="es-stat"><a href="#candidate-groups">継続ダメージ貫通</a></span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="es-chapter" id="equipment-excluded" aria-labelledby="equipment-excluded-title">
+    <h2 id="equipment-excluded-title"><span class="ch-num">5</span>装備から直接付与しない指標</h2>
+    <dl class="es-rules">
+      <div><dt>他の能力から算出</dt><dd>基準攻撃力、直接ドロップ倍率</dd></div>
+      <div><dt>システムの上限</dt><dd>移動速度上限、無属性耐性上限、火属性耐性上限、氷属性耐性上限、雷属性耐性上限</dd></div>
+      <div><dt>スキルツリーで供給</dt><dd>通常攻撃劣化遅延</dd></div>
+    </dl>
+    <p>道具とスキルブックは、採集レベル・釣り性能・使用許可など用途ごとに設計する。</p>
+  </section>
+<!-- /equipment:chapters -->
+  <details class="es-detail" id="candidate-groups">
+    <summary>候補グループの内訳</summary>
+    <p>装備の役割に合う項目を選ぶ。属性・状態異常・貫通は対象系統に、消費軽減は対象リソースに合わせる。</p>
+    <p>最大シールドとシールドリチャージ短縮はシールドを使える構成、シールドリチャージ加算値は加算率を確保できる構成で使う。</p>
+    <dl class="es-groups">
+<!-- equipment:groups -->
+      <div><dt>主能力</dt><dd>筋力、器用さ、知力</dd></div>
+      <div><dt>通常会心</dt><dd>通常会心率、会心ダメージ</dd></div>
+      <div><dt>超星会心</dt><dd>超星会心率、超星会心倍率</dd></div>
+      <div><dt>近接・間接防御力</dt><dd>近接防御力、間接防御力</dd></div>
+      <div><dt>属性ダメージ増加</dt><dd>無属性ダメージ増加、火属性ダメージ増加、氷属性ダメージ増加、雷属性ダメージ増加</dd></div>
+      <div><dt>属性耐性</dt><dd>無属性耐性、火属性耐性、氷属性耐性、雷属性耐性</dd></div>
+      <div><dt>属性貫通</dt><dd>火属性貫通、氷属性貫通、雷属性貫通</dd></div>
+      <div><dt>状態異常付与確率増加</dt><dd>燃焼付与確率増加、凍結付与確率増加、冷気付与確率増加、感電付与確率増加、毒状態付与確率増加、盲目付与確率増加、衰弱付与確率増加、回復阻害付与確率増加</dd></div>
+      <div><dt>状態異常付与耐性</dt><dd>燃焼付与耐性、凍結付与耐性、冷気付与耐性、感電付与耐性、毒状態付与耐性、盲目付与耐性、衰弱付与耐性、回復阻害付与耐性</dd></div>
+      <div><dt>継続ダメージ増加</dt><dd>燃焼継続ダメージ増加、感電継続ダメージ増加、毒状態継続ダメージ増加</dd></div>
+      <div><dt>継続ダメージ貫通</dt><dd>燃焼継続ダメージ貫通、感電継続ダメージ貫通、毒状態継続ダメージ貫通</dd></div>
+      <div><dt>継続ダメージ耐性</dt><dd>燃焼継続ダメージ耐性、感電継続ダメージ耐性、毒状態継続ダメージ耐性</dd></div>
+      <div><dt>育成・探索報酬</dt><dd>EXP獲得量増加率、ドロップ増加率</dd></div>
+      <div><dt>消耗品使用中の移動</dt><dd>消耗品使用時移動許容距離、消耗品使用時移動減速率（2つを一組で付与）</dd></div>
+<!-- /equipment:groups -->
+    </dl>
+  </details>
   </div>
 </main>
 <script>
@@ -514,16 +642,6 @@ stats:
   document.addEventListener("doc-toc-change", update);
   update();
 })();
-</script>
-<script type="application/json" id="doc-search-aliases">
-{
-  "commonDefense": "共通防御 commonDefense",
-  "vitality": "体力 vitality",
-  "head": "頭",
-  "chest": "胴",
-  "legs": "脚",
-  "feet": "足"
-}
 </script>
 <script>
 // ページ内検索: 表示中の本文を、最も内側の節やカードごとに検索する。
@@ -842,6 +960,21 @@ stats:
   });
   panel.hidden = false;
   update();
+})();
+</script>
+<script>
+(() => {
+  let expandedForPrint = [];
+  window.addEventListener("beforeprint", () => {
+    for (const detail of document.querySelectorAll(".es-detail:not([open])")) {
+      detail.open = true;
+      expandedForPrint.push(detail);
+    }
+  });
+  window.addEventListener("afterprint", () => {
+    for (const detail of expandedForPrint) detail.open = false;
+    expandedForPrint = [];
+  });
 })();
 </script>
 </body>

@@ -1,8 +1,4 @@
 schemaVersion: 1
-builds:
-  lv25_melee_standard:
-    role: 近接前衛
-    playerLevel: 25
 
 # 配分の重みは職業、スキルツリー、装備の順。
 # title と series は 02 の表示名。names を省略すると title を表示する。
@@ -92,15 +88,146 @@ groups:
       - {title: 消耗品使用時移動許容距離, mode: zero}
       - {title: 消耗品使用時移動減速率, mode: zero}
 
-profiles:
-  standard_defense_lv25:
-    buildId: lv25_melee_standard
-    requiredPlayerLevel: 25
-    rarity: rare
-    armorWeights: {head: 20, chest: 35, legs: 30, feet: 15}
-    rounding: largestRemainder
-    tieOrder: [head, chest, legs, feet]
-    slot: chest
-    primaryStat: commonDefense
-    secondaryStats: []
-    rollOffsets: {min: -6, max: 6, step: 1}
+equipment:
+  unlockLevels: {advanced: 50, build: 25, lateBuild: 75}
+  standardArmor:
+    exampleLevel: 25
+    weights: {頭: 20, 胴: 35, 脚: 30, 足: 15}
+    chestOffset: 6
+  pools:
+    主能力: {stats: [筋力, 器用さ, 知力]}
+    通常会心: {stats: [通常会心率, 会心ダメージ]}
+    超星会心: {stats: [超星会心率, 超星会心倍率]}
+    近接・間接防御力: {stats: [近接防御力, 間接防御力]}
+    属性ダメージ増加: {stats: [無属性ダメージ増加, 火属性ダメージ増加, 氷属性ダメージ増加, 雷属性ダメージ増加]}
+    属性耐性: {stats: [無属性耐性, 火属性耐性, 氷属性耐性, 雷属性耐性]}
+    属性貫通: {stats: [火属性貫通, 氷属性貫通, 雷属性貫通]}
+    状態異常付与確率増加:
+      stats: [燃焼付与確率増加, 凍結付与確率増加, 冷気付与確率増加, 感電付与確率増加, 毒状態付与確率増加, 盲目付与確率増加, 衰弱付与確率増加, 回復阻害付与確率増加]
+    状態異常付与耐性:
+      stats: [燃焼付与耐性, 凍結付与耐性, 冷気付与耐性, 感電付与耐性, 毒状態付与耐性, 盲目付与耐性, 衰弱付与耐性, 回復阻害付与耐性]
+    継続ダメージ増加: {stats: [燃焼継続ダメージ増加, 感電継続ダメージ増加, 毒状態継続ダメージ増加]}
+    継続ダメージ貫通: {stats: [燃焼継続ダメージ貫通, 感電継続ダメージ貫通, 毒状態継続ダメージ貫通]}
+    継続ダメージ耐性: {stats: [燃焼継続ダメージ耐性, 感電継続ダメージ耐性, 毒状態継続ダメージ耐性]}
+    育成・探索報酬: {stats: [EXP獲得量増加率, ドロップ増加率]}
+    消耗品使用中の移動:
+      stats: [消耗品使用時移動許容距離, 消耗品使用時移動減速率]
+      together: true
+  sections:
+    武器:
+      - name: 剣
+        required: [近接攻撃力]
+        normal: [筋力, 命中率, 通常攻撃ダメージ増加]
+        advanced: [スキルダメージ増加, シールドブレイク]
+        build: [攻撃速度, 通常会心, 近接防御貫通率]
+        lateBuild: [ライフスティール]
+      - name: ハンマー
+        required: [近接攻撃力]
+        normal: [筋力, シールドブレイク, スキルダメージ増加]
+        advanced: [命中率, 通常攻撃ダメージ増加]
+        build: [近接防御貫通率, 状態異常付与確率増加, シールドリチャージ加算値]
+        lateBuild: [HP固定ダメージ]
+      - name: 槍
+        required: [近接攻撃力]
+        normal: [筋力, 命中率, スキルダメージ増加]
+        advanced: [通常攻撃ダメージ増加, シールドブレイク]
+        build: [近接防御貫通率, 状態異常付与確率増加, 継続ダメージ増加]
+        lateBuild: [継続ダメージ貫通]
+      - name: 弓
+        required: [間接攻撃力]
+        normal: [器用さ, 命中率, 通常攻撃ダメージ増加]
+        advanced: [スキルダメージ増加, シールドブレイク]
+        build: [通常会心, 間接防御貫通率, 属性ダメージ増加]
+      - name: 短弓
+        required: [間接攻撃力]
+        normal: [器用さ, 敏捷性, 通常攻撃ダメージ増加]
+        advanced: [命中率, スキルダメージ増加]
+        build: [攻撃速度, 状態異常付与確率増加, 継続ダメージ増加]
+      - name: 長弓
+        required: [間接攻撃力]
+        normal: [器用さ, 命中率, スキルダメージ増加]
+        advanced: [シールドブレイク, 通常攻撃ダメージ増加]
+        build: [通常会心, 間接防御貫通率]
+        lateBuild: [超星会心]
+      - name: ワンド
+        required: [魔法攻撃力]
+        normal: [知力, 最大MP, 属性ダメージ増加]
+        advanced: [詠唱時間短縮, スキルダメージ増加]
+        build: [MP消費軽減率, 魔法防御貫通率, 状態異常付与確率増加]
+      - name: スタッフ
+        required: [魔法攻撃力]
+        normal: [知力, スキルダメージ増加, 属性ダメージ増加]
+        advanced: [最大MP, 詠唱時間短縮, 支援力]
+        build: [魔法防御貫通率, 状態異常持続時間増加]
+        lateBuild: [属性貫通]
+    防具:
+      - name: 頭
+        required: [共通防御]
+        normal: [最大MP, 魔法防御力, 属性耐性]
+        advanced: [MP自然回復量（5秒ごと）, 詠唱時間短縮]
+        build: [状態異常付与耐性]
+      - name: 胴
+        required: [共通防御]
+        normal: [最大HP, 魔法防御力, 属性耐性]
+        advanced: [HP自然回復量（5秒ごと）, ノックバック耐性]
+        build: [近接・間接防御力, 最大シールド]
+        lateBuild: [被ダメージ軽減率]
+      - name: 脚
+        required: [共通防御]
+        normal: [最大ENG, ノックバック耐性, 状態異常付与耐性]
+        advanced: [最大HP, ENG自然回復量（5秒ごと）]
+        build: [近接・間接防御力, 継続ダメージ耐性]
+      - name: 足
+        required: [共通防御]
+        normal: [敏捷性, ノックバック耐性, 継続ダメージ耐性]
+        advanced: [属性耐性, 状態異常付与耐性]
+        build: [移動速度, 回避率, 消耗品使用中の移動]
+    補助装備:
+      - name: 盾
+        required: [共通防御]
+        normal: [最大HP, ノックバック耐性, 属性耐性]
+        advanced: [魔法防御力, 状態異常付与耐性]
+        build: [近接・間接防御力, 最大シールド, シールドリチャージ短縮]
+        lateBuild: [被ダメージ軽減率]
+      - name: 物理攻撃の補助
+        oneOf: [命中率, 最大ENG]
+        normal: [通常攻撃ダメージ増加, ENG消費軽減率, シールドブレイク]
+        advanced: [スキルダメージ増加, ENG自然回復量（5秒ごと）]
+        build: [攻撃速度, 通常会心, 近接防御貫通率, 間接防御貫通率]
+      - name: 魔法・支援の補助
+        oneOf: [最大MP, 支援力]
+        normal: [知力, MP自然回復量（5秒ごと）, MP消費軽減率, 詠唱時間短縮, クールダウン短縮]
+        advanced: [魔法防御力, バフ持続時間増加]
+        build: [回復量増加, 魔法防御貫通率]
+    アクセサリ:
+      - name: アミュレット
+        oneOf: [最大HP, 最大MP, 最大ENG]
+        normal: [主能力, 属性耐性, 支援力, MP消費軽減率]
+        advanced: [クールダウン短縮, スキルダメージ増加]
+        build: [体力, 回復量増加, 通常会心]
+      - name: タリスマン
+        oneOf: [主能力, 敏捷性]
+        normal: [命中率, シールドブレイク, ENG消費軽減率]
+        advanced: [MP消費軽減率, 属性耐性]
+        build: [幸運, 属性ダメージ増加]
+      - name: チャーム
+        oneOf: [属性耐性, 状態異常付与耐性, 継続ダメージ耐性, HP自然回復量（5秒ごと）]
+        normal: [MP自然回復量（5秒ごと）, ENG自然回復量（5秒ごと）]
+        advanced: [ノックバック耐性, バフ持続時間増加]
+        build: [幸運, 育成・探索報酬, 消耗品使用中の移動]
+      - name: コア
+        oneOf: [通常攻撃ダメージ増加, スキルダメージ増加, 支援力, 最大HP]
+        normal: [最終ダメージ倍率, 属性ダメージ増加, 最大MP, 最大ENG]
+        advanced: [クールダウン短縮, バフ持続時間増加]
+        build: [最大シールド, 状態異常持続時間増加, 回復量増加]
+        lateBuild: [共通攻撃力, 共通防御貫通率, 被ダメージ軽減率]
+      - name: レリック
+        oneOf: [属性ダメージ増加, 状態異常付与耐性, 支援力]
+        normal: [スキルダメージ増加, バフ持続時間増加]
+        advanced: [クールダウン短縮, 詠唱時間短縮]
+        build: [状態異常付与確率増加, 継続ダメージ増加, 状態異常持続時間増加, シールドリチャージ短縮]
+        lateBuild: [超星会心, 継続ダメージ貫通]
+  excluded:
+    他の能力から算出: [基準攻撃力, 直接ドロップ倍率]
+    システムの上限: [移動速度上限, 無属性耐性上限, 火属性耐性上限, 氷属性耐性上限, 雷属性耐性上限]
+    スキルツリーで供給: [通常攻撃劣化遅延]
