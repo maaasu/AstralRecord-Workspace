@@ -204,10 +204,21 @@ def allocation_data(rows, allocations, mob_rules, mob_model):
 
     player = []
     for name, row in rows.items():
-        player.append({
+        rule = row["rule"]
+        mode = rule.get("mode", "weighted")
+        levels = allocations[name]
+        stat = {
             "name": name, "group": row["group"], "category": row["category"], "unit": row["unit"],
-            "fixed": row["fixed"], "columns": [store(column) for column in zip(*allocations[name])],
-        })
+            "mode": mode, "goal": store(tuple(level[0] for level in levels)),
+        }
+        if mode == "attack":
+            stat["sources"] = rule["sources"]
+        else:
+            stat["initial"] = levels[0][1]
+            stat["bonus"] = store(tuple(level[-1] for level in levels))
+            if "weights" in rule:
+                stat["weights"] = rule["weights"]
+        player.append(stat)
     mob = []
     remaining = dict(mob_model)
     names = set()
