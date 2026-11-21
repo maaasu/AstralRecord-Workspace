@@ -548,6 +548,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   const root = document.getElementById("stat-guide");
   const range = root.querySelector("#st-level");
   const all = root.querySelector("#st-all");
+  // stat-model
   const major = [1, 25, 50, 75, 100];
   const levels = [1, ...Array.from({length: 20}, (_, i) => (i + 1) * 5)];
   const anchors = [1, 25, 50, 100];
@@ -642,9 +643,10 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   }
   function incomingPanel(title, resistance) {
     const hits = new Map(levels.map(level => [level, normalAttack(level, resistance(level))]));
+    const hitAt = level => hits.get(level) ?? normalAttack(level, resistance(level));
     return { grid: "mob-attack-grid", cats: ["offense"], context: "標準モブ → プレイヤー｜通常攻撃", title,
       note: "攻撃力は7発基準。1発の被ダメージには共通防御と対応耐性を適用。", max: 1000, step: 250, unit: "",
-      series: [stat("モブ攻撃力", lv => hits.get(lv).power), stat("被ダメージ", lv => hits.get(lv).damage)] };
+      series: [stat("モブ攻撃力", lv => hitAt(lv).power), stat("被ダメージ", lv => hitAt(lv).damage)] };
   }
   const typeAttack = level => rawAttack(level) * 0.8;
   const commonAttack = level => rawAttack(level) - typeAttack(level);
@@ -814,6 +816,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     incomingPanel("無属性の通常攻撃", zeroToFifty),
     incomingPanel("火・氷・雷の通常攻撃", playerResistance)
   ];
+  // /stat-model
   const colors = ["blue","gold","teal","purple"];
   const symbols = ["●","◆","▲","■"];
   const dash = ["none","5 3","2 3","8 3 2 3"];

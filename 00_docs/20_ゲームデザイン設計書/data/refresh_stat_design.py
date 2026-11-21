@@ -3,7 +3,8 @@
 import argparse
 import json
 import re
-from decimal import Decimal
+import subprocess
+from decimal import ROUND_HALF_UP, Decimal
 from html import escape
 from pathlib import Path
 
@@ -12,7 +13,9 @@ import yaml
 
 DATA = Path(__file__).resolve().parent
 SLOTS = ("head", "chest", "legs", "feet")
-STATUSES = ("commonDefense", "vitality")
+LEVEL_COUNT = 100
+CENTS = 100
+PLAYER_GROUP_COUNTS = (3, 4, 6, 5, 7, 15, 9, 15, 25, 10)
 MARKER = re.compile(r"<!-- stat:([a-zA-Z0-9_.]+) -->.*?<!-- /stat -->", re.DOTALL)
 
 
@@ -45,43 +48,189 @@ def target_curves(targets):
     return curves
 
 
-def allocate_status(build, targets):
+def read_model(html):
+    result = subprocess.run(
+        ["node", str(DATA / "read_stat_targets.cjs")], input=html.encode("utf-8"),
+        capture_output=True, check=False,
+    )
+    require(result.returncode == 0, result.stderr.decode("utf-8").strip())
+    return json.loads(result.stdout, parse_float=Decimal, parse_int=Decimal)
+
+
+def model_series(panels, expected_count, *, player=False):
+    require(len(panels) == expected_count, "02のパネル数が無効です")
+    titles = set()
+    series = {}
+    for panel in panels:
+        title = panel["title"]
+        require(title and title not in titles, f"02のパネル名が空か重複しています {title}")
+        titles.add(title)
+        labels = set()
+        for data in panel["series"]:
+            label, values = data["label"], data["values"]
+            require(label and label not in labels, f"02の系列名が空か重複しています {title}・{label}")
+            labels.add(label)
+            require(len(values) == LEVEL_COUNT and all(isinstance(n, Decimal) and n.is_finite() for n in values),
+                    f"02の系列に欠落または非有限値があります {title}・{label}")
+            if not player or label in ("標準", "上限", "共通", "種別"):
+                series[title, label] = (panel["category"], panel["unit"], values)
+        require(any(panel_title == title for panel_title, _ in series), f"対象系列がありません {title}")
+    return series
+
+
+def cents(value):
+    return int((value * CENTS).to_integral_value(rounding=ROUND_HALF_UP))
+
+
+def largest_remainder(amount, weights):
+    shares = [divmod(amount * weight, sum(weights)) for weight in weights]
+    grants = [whole for whole, _ in shares]
+    priority = sorted(range(len(weights)), key=lambda i: -shares[i][1])
+    for i in priority[:amount - sum(grants)]:
+        grants[i] += 1
+    return grants
+
+
+def reference_key(rule):
+    return rule["title"], rule.get("series", "標準")
+
+
+def player_rows(groups, model):
+    registered = set()
+    rows = {}
+    group_names = set()
+    counts = []
+    for group in groups:
+        group_name = group["name"]
+        require(group_name and group_name not in group_names, f"分類名が空か重複しています {group_name}")
+        group_names.add(group_name)
+        count = 0
+        for rule in group["panels"]:
+            key = reference_key(rule)
+            require(key in model, f"02のプレイヤー系列が未定義です {key}")
+            registered.add(key)
+            names = rule.get("names", [key[0]])
+            category, unit, values = model[key]
+            for name in names:
+                require(name and name not in rows, f"表示名が空か重複しています {name}")
+                rows[name] = {
+                    "group": group_name, "category": category, "unit": unit or "点",
+                    "fixed": key[1] == "上限", "values": values, "rule": rule,
+                }
+            count += len(names)
+        counts.append(count)
+    require(registered == set(model), f"02の未登録のプレイヤー系列 {sorted(set(model) - registered)}")
+    require(tuple(counts) == PLAYER_GROUP_COUNTS, f"プレイヤーの分類別の行数が無効です {counts}")
+    return rows
+
+
+def allocate_player(rows):
+    allocations = {}
+    attacks = []
+    for name, row in rows.items():
+        rule = row["rule"]
+        mode = rule.get("mode", "weighted")
+        weights = rule.get("weights", [])
+        require(mode in ("weighted", "equipment", "fixed", "zero", "derived", "attack"),
+                f"未登録の配分方法 {name}・{mode}")
+        if mode in ("weighted", "equipment"):
+            require(len(weights) == 4 and all(type(n) is int and n >= 0 for n in weights) and sum(weights),
+                    f"配分には4欄の非負整数の重みが必要です {name}")
+        else:
+            require(not weights, f"成長配分の対象外に重みがあります {name}")
+        if mode == "equipment":
+            require(not any(weights[:3]) and "derived" not in rule, f"装備のみの配分に別の供給元があります {name}")
+        if mode == "derived":
+            require("derived" in rule, f"派生元が指定されていません {name}")
+        require(not row["fixed"] or mode == "fixed", f"上限は固定値が必要です {name}")
+        goals = [cents(value) for value in row["values"]]
+        if mode == "attack":
+            attacks.append((name, goals, rule["sources"]))
+            continue
+        if mode == "fixed":
+            require(len(set(row["values"])) == 1 and "derived" not in rule, f"固定値に変動があります {name}")
+        if mode == "zero":
+            require(not any(row["values"]) and "derived" not in rule, f"標準0に付与があります {name}")
+        bonuses = [Decimal(0)] * LEVEL_COUNT
+        if "derived" in rule:
+            derived = rule["derived"]
+            factor = Decimal(str(derived["factor"]))
+            require(factor.is_finite() and factor >= 0, f"派生係数が無効です {name}")
+            bonuses = [value * factor for value in rows[derived["stat"]]["values"]]
+            if "cap" in derived:
+                base = row["values"][0] - bonuses[0]
+                limits = rows[derived["cap"]]["values"]
+                bonuses = [min(bonus, limit - base) for bonus, limit in zip(bonuses, limits)]
+        derived_cents = list(map(cents, bonuses))
+        initial = 0 if mode == "equipment" else goals[0] - derived_cents[0]
+        levels = []
+        for level, (goal, bonus) in enumerate(zip(goals, derived_cents), 1):
+            remainder = goal - initial - bonus
+            require(remainder >= 0, f"配分できる残余が負です {name} Lv.{level}")
+            require(weights or remainder == 0, f"残余の配分に重みがありません {name} Lv.{level}")
+            grants = largest_remainder(remainder, weights) if weights else [0] * 4
+            levels.append((goal, initial, *grants, bonus))
+        allocations[name] = levels
+
+    for name, goals, sources in attacks:
+        require(len(sources) == 2 and len(set(sources)) == 2, f"共通と使用種別の攻撃力を指定してください {name}")
+        levels = []
+        for goal, common, typed in zip(goals, *(allocations[source] for source in sources)):
+            direct = [a + b for a, b in zip(common[1:-1], typed[1:-1])]
+            levels.append((goal, *direct, goal - sum(direct)))
+        allocations[name] = levels
+
+    for name, levels in allocations.items():
+        require(len(levels) == LEVEL_COUNT, f"配分に欠レベルがあります {name}")
+        for level, (goal, *parts) in enumerate(levels, 1):
+            require(min(parts) >= 0 and sum(parts) == goal,
+                    f"配分が負か、合計が02の目標値と一致しません {name} Lv.{level}")
+            if rows[name]["unit"] == "回":
+                require(all(value % CENTS == 0 for value in [goal, *parts]), f"回数は整数が必要です {name} Lv.{level}")
+    require(sum(row["rule"].get("mode") == "zero" for row in rows.values()) == 34, "標準0の行数が無効です")
+    require(sum(row["fixed"] for row in rows.values()) == 5, "固定上限の行数が無効です")
+    return allocations
+
+
+def allocation_data(rows, allocations, mob_rules, mob_model):
+    bank = []
+    indices = {}
+
+    def store(values):
+        if values not in indices:
+            indices[values] = len(bank)
+            bank.append(values[0] if len(set(values)) == 1 else values)
+        return indices[values]
+
+    player = []
+    for name, row in rows.items():
+        player.append({
+            "name": name, "group": row["group"], "category": row["category"], "unit": row["unit"],
+            "fixed": row["fixed"], "columns": [store(column) for column in zip(*allocations[name])],
+        })
+    mob = []
+    remaining = dict(mob_model)
+    names = set()
+    for rule in mob_rules:
+        key, name = reference_key(rule), rule["name"]
+        require(key in remaining, f"02のモブ系列が未定義か重複しています {key}")
+        require(name and name not in names, f"標準モブの表示名が空か重複しています {name}")
+        names.add(name)
+        category, unit, values = remaining.pop(key)
+        mob.append({"name": name, "category": category, "unit": unit or "点", "column": store(tuple(map(cents, values)))})
+    require(not remaining and len(mob) == 11, f"標準モブの系列数が無効です。未登録 {list(remaining)}")
+    return {"player": player, "mob": mob, "bank": bank}
+
+
+def equipment_reference(build, allocations):
     level = build["playerLevel"]
-    goal = {status: targets[status]["standard"][level] for status in STATUSES}
-    initial_level = build["initialPlayerLevel"]
-    initial_goal = {status: targets[status]["standard"][initial_level] for status in STATUSES}
-    factor = build["derived"]["commonDefense"]["vitality"]
-    initial_vitality = initial_goal["vitality"]
-    initial_defense = initial_goal["commonDefense"] - initial_vitality * factor
-    require(type(initial_defense) is int and initial_defense >= 0,
-            "初期の直接共通防御は非負整数が必要です")
-
-    grants = build["grants"]
-    rows = {source: dict(grants[source]) for source in ("playerLevel", "job", "skillTree", "armor", "other")}
-    rows["sharedBase"] = {"commonDefense": initial_defense, "vitality": initial_vitality}
-    vitality = sum(row["vitality"] for row in rows.values())
-    require(vitality == goal["vitality"], "構成の体力が標準目標と一致しません")
-    derived = vitality * factor
-    direct = goal["commonDefense"] - derived
-    without_armor = sum(row["commonDefense"] for source, row in rows.items() if source != "armor")
-    budget = direct - without_armor
-    require(rows["armor"]["commonDefense"] == "remainder" and budget >= 0 and budget % 1 == 0,
-            "防具の共通防御に非負整数の残余を配分できません")
-    rows["armor"]["commonDefense"] = int(budget)
-    total_defense = sum(row["commonDefense"] for row in rows.values()) + derived
-    require(total_defense == goal["commonDefense"], "構成の共通防御が標準目標と一致しません")
-
-    values = {
-        "playerLevel": level, "initialPlayerLevel": initial_level, "role": build["role"],
-        "initialGoalDefense": initial_goal["commonDefense"],
-        "quality": {"standard": "基準個体"}[build["armor"]["quality"]],
-        "enhanceLevel": build["armor"]["enhanceLevel"],
-        "goalDefense": total_defense, "vitality": vitality, "factor": factor,
-        "derived": derived, "direct": direct, "withoutArmor": without_armor,
-        "vitalityGrowth": vitality - initial_vitality,
+    require(type(level) is int and 1 <= level <= LEVEL_COUNT, "装備プロファイルの参照Lvが無効です")
+    total, _, _, _, _, armor, _ = allocations["共通防御"][level - 1]
+    require(armor % CENTS == total % CENTS == 0, "参照Lvの共通防御と装備への配分は整数が必要です")
+    return {
+        "playerLevel": level, "role": build["role"],
+        "goalDefense": total // CENTS, "armor.commonDefense": armor // CENTS,
     }
-    values.update({f"{source}.{status}": row[status] for source, row in rows.items() for status in STATUSES})
-    return values
 
 
 def allocate_equipment(profile, allocation):
@@ -160,38 +309,72 @@ def render_stat_values(html, values):
     return MARKER.sub(replace, html)
 
 
+def embed(html, start, end, content):
+    block = re.compile(rf"(?<=\n{re.escape(start)}\n).*?(?=^{re.escape(end)}\n)", re.DOTALL | re.MULTILINE)
+    updated, replacements = block.subn(lambda _: content, html)
+    require(replacements == 1, f"同期ブロックが無効です {start}")
+    return updated
+
+
+def embedded_allocation(data):
+    def line(value):
+        return json.dumps(value, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
+
+    sections = []
+    for key, records in data.items():
+        sections.append(f'{line(key)}:[\n' + ",\n".join(map(line, records)) + "\n]")
+    return "{\n" + ",\n".join(sections) + "\n}\n"
+
+
 def refresh(check):
     target_data = load("status_targets")
     require(target_data["interpolation"] == "linear", "ステータス目標の補間方式は linear が必要です")
-    targets = target_data["targets"]
-    curves = target_curves(targets)
-    builds = load("status_allocation")["builds"]
+    curves = target_curves(target_data["targets"])
+    design = load("status_allocation")
+    target_path = DATA.parent / "02-ステータス指標.html"
+    target_html = target_path.read_text(encoding="utf-8")
+    embedded = "  const statTargets = " + json.dumps(curves, ensure_ascii=False) + ";\n"
+    updated_targets = embed(target_html, "  // stat-targets", "  // /stat-targets", embedded)
+    model = read_model(updated_targets)
+    player_model = model_series(model["player"], 55, player=True)
+    mob_model = model_series(model["mob"], 7)
+    rows = player_rows(design["groups"], player_model)
+    allocations = allocate_player(rows)
+    data = allocation_data(rows, allocations, design["mob"], mob_model)
+
     (profile_id, profile), = load("equipment_stat_rules")["profiles"].items()
     build_id = profile["buildId"]
+    builds = design["builds"]
     require(build_id in builds, f"装備プロファイルの構成参照 {build_id} が未解決です")
-    allocation = allocate_status(builds[build_id], targets)
+    allocation = equipment_reference(builds[build_id], allocations)
     values = {"buildId": build_id, "profileId": profile_id, **allocation,
               **allocate_equipment(profile, allocation)}
-    # 曲線は JavaScript 用の JSON、固定レベル資料は HTML 本文へ埋め込む。
-    curve_block = re.compile(r"(?<=\n  // stat-targets\n).*?(?=^  // /stat-targets\n)", re.DOTALL | re.MULTILINE)
-    embedded = "  const statTargets = " + json.dumps(curves, ensure_ascii=False) + ";\n"
-    updates = {}
-    for filename in ("02-ステータス指標.html", "03-ステータス配分基準.html", "04-装備ステータス基準.html"):
-        path = DATA.parent / filename
-        original = path.read_text(encoding="utf-8")
-        if filename.startswith("02"):
-            updated, replacements = curve_block.subn(lambda _: embedded, original)
-            require(replacements == 1, f"{filename} の曲線ブロックが無効です")
-        else:
-            require(MARKER.search(original), f"{filename} の同期対象がありません")
-            updated = render_stat_values(original, values)
-        if updated != original:
-            updates[path] = updated
+    allocation_path = DATA.parent / "03-ステータス配分基準.html"
+    allocation_html = allocation_path.read_text(encoding="utf-8")
+    updated_allocation = embed(
+        allocation_html, '<script type="application/json" id="stat-allocation-data">',
+        "</script>", embedded_allocation(data),
+    )
+    equipment_path = DATA.parent / "04-装備ステータス基準.html"
+    equipment_html = equipment_path.read_text(encoding="utf-8")
+    require(MARKER.search(equipment_html), f"{equipment_path.name} の同期対象がありません")
+    updated_equipment = render_stat_values(equipment_html, values)
+    updates = {
+        path: updated
+        for path, original, updated in (
+            (target_path, target_html, updated_targets),
+            (allocation_path, allocation_html, updated_allocation),
+            (equipment_path, equipment_html, updated_equipment),
+        )
+        if updated != original
+    }
     for path, updated in updates.items():
         if check:
             print(f"要同期 {path.name}")
         else:
-            path.write_text(updated, encoding="utf-8", newline="\n")
+            with path.open(encoding="utf-8", newline="") as source:
+                newline = "\r\n" if source.readline().endswith("\r\n") else "\n"
+            path.write_text(updated, encoding="utf-8", newline=newline)
             print(f"更新 {path.name}")
     return int(check and bool(updates))
 
