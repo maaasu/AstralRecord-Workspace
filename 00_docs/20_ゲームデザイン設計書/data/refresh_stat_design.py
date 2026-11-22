@@ -322,58 +322,93 @@ def armor_example(armor, allocations):
 
 def equipment_table(section, rows, pools, unlock):
     def candidates(names):
+        if not names:
+            return '<span class="es-empty">なし</span>'
+
         items = []
         for candidate in names:
             label = escape(candidate)
             if candidate in pools:
                 label = f'<a href="#candidate-groups">{label}</a>'
-            items.append(f'<span class="es-stat">{label}</span>')
-        return "、".join(items)
+            items.append(f'<li>{label}</li>')
+        return '<ul class="es-candidates" role="list">' + "".join(items) + '</ul>'
 
-    label = escape(section)
-    lines = [
-        f'    <div class="es-table" role="region" aria-label="{label}の候補表" tabindex="0">',
-        f'      <table aria-label="{label}の付与候補">',
-        '        <thead><tr><th scope="col">装備種</th><th scope="col">必須</th>'
-        '<th scope="col">通常候補</th>'
-        f'<th scope="col">上位候補 <span class="es-condition">Lv.{unlock["advanced"]}〜</span></th>'
-        f'<th scope="col">ビルド向け <span class="es-condition">Lv.{unlock["build"]}〜</span></th></tr></thead>',
-        '        <tbody>',
-    ]
-    for row in rows:
-        name = escape(row["name"])
-        required = candidates(row.get("required", row.get("oneOf")))
-        if "oneOf" in row:
-            required = '<span class="es-condition">いずれか1つ</span>' + required
-        normal = candidates(row.get("normal", [])) or "なし"
-        advanced = candidates(row.get("advanced", [])) or "なし"
-        build = candidates(row.get("build", []))
-        if row.get("lateBuild"):
-            build += f'<span class="es-condition es-late">Lv.{unlock["lateBuild"]}〜</span>{candidates(row["lateBuild"])}'
-        lines.append(
-            f'          <tr data-status-ids="" aria-label="{name}">\n'
-            f'            <th scope="row">{name}</th>\n'
-            f'            <td>{required}</td>\n'
-            f'            <td>{normal}</td>\n'
-            f'            <td>{advanced}</td>\n'
-            f'            <td>{build or "なし"}</td>\n'
-            '          </tr>'
-        )
-    lines.extend(('        </tbody>', '      </table>', '    </div>'))
-    return "\n".join(lines) + "\n"
+    def render_table(columns, indent, *, build=False):
+        label = escape(section)
+        table_label = f'{label}のビルド向け候補' if build else f'{label}の標準候補'
+        table_class = "es-table" if build else "es-table es-table-standard"
+        lines = [
+            f'{indent}<div class="{table_class}">',
+            f'{indent}  <table role="table" aria-label="{table_label}">',
+            f'{indent}    <thead role="rowgroup">',
+            f'{indent}      <tr role="row">',
+            f'{indent}        <th scope="col" role="columnheader">装備種</th>',
+        ]
+        for _, heading in columns:
+            lines.append(f'{indent}        <th scope="col" role="columnheader">{heading}</th>')
+        lines.extend((
+            f'{indent}      </tr>',
+            f'{indent}    </thead>',
+            f'{indent}    <tbody role="rowgroup">',
+        ))
+        for row in rows:
+            name = escape(row["name"])
+            row_label = f'{name}（ビルド向け）' if build else name
+            level_keys = " ".join(key for key, _ in columns if row.get(key)) if build else ""
+            lines.extend((
+                f'{indent}      <tr role="row" data-status-ids="{level_keys}" aria-label="{row_label}">',
+                f'{indent}        <th scope="row" role="rowheader">{name}</th>',
+            ))
+            for key, heading in columns:
+                names = row.get(key, [])
+                cell_class = ' class="es-required"' if key == "required" else ''
+                note = ''
+                if key == "required" and "oneOf" in row:
+                    names = row["oneOf"]
+                    note = '<span class="es-condition es-choice">いずれか1つ</span>'
+                lines.extend((
+                    f'{indent}        <td role="cell"{cell_class}>',
+                    f'{indent}          <span class="es-mobile-label" aria-hidden="true">{heading}</span>',
+                    f'{indent}          <div class="es-cell-value">{note}{candidates(names)}</div>',
+                    f'{indent}        </td>',
+                ))
+            lines.append(f'{indent}      </tr>')
+        lines.extend((
+            f'{indent}    </tbody>',
+            f'{indent}  </table>',
+            f'{indent}</div>',
+        ))
+        return "\n".join(lines) + "\n"
+
+    standard_columns = (
+        ("required", "必須"),
+        ("normal", '通常候補 <span class="es-condition">Lv.1〜</span>'),
+        ("advanced", f'上位候補 <span class="es-condition">Lv.{unlock["advanced"]}〜</span>'),
+    )
+    build_columns = (
+        ("build", f'Lv.{unlock["build"]}〜'),
+        ("lateBuild", f'Lv.{unlock["lateBuild"]}から追加'),
+    )
+    standard_table = render_table(standard_columns, "    ")
+    build_table = render_table(build_columns, "      ", build=True)
+    return (
+        f'{standard_table}'
+        '    <details class="es-detail es-build">\n'
+        f'      <summary>{escape(section)}のビルド向け候補</summary>\n'
+        f'{build_table}'
+        '    </details>\n'
+    )
 
 
 def render_equipment(html, equipment, allocations):
     unlock = equipment["unlockLevels"]
     pools = equipment["pools"]
+    level_aliases = {key: f'Lv.{unlock[key]}〜' for key in ("build", "lateBuild")}
     rules = (
-        '    <dl class="es-rules">\n'
-        '      <div><dt>必須</dt><dd>全品に正の補正。「いずれか1つ」は候補から1つを定義。</dd></div>\n'
-        '      <div><dt>通常候補</dt><dd>Lv.1から任意。</dd></div>\n'
-        f'      <div><dt>上位候補</dt><dd>Lv.{unlock["advanced"]}以上で任意。</dd></div>\n'
-        f'      <div><dt>ビルド向け</dt><dd>Lv.{unlock["build"]}以上で役割が合う場合に任意。'
-        f'「Lv.{unlock["lateBuild"]}〜」の候補はそのLvから。</dd></div>\n'
-        '    </dl>\n'
+        '    <p>Lvは装備を最初に入手できる攻略の目安。候補は装備の役割に応じて任意で付与する。</p>\n'
+        '    <p>ビルド向けは標準の付与と入れ替え、同じLvの特化目標と比較する。'
+        '標準値は<a href="02-ステータス指標.html#player-allocation">02の配分一覧</a>の装備欄を参照。</p>\n'
+        f'    <script type="application/json" id="doc-search-aliases">{json.dumps(level_aliases, ensure_ascii=False)}</script>\n'
     )
 
     toc = []
