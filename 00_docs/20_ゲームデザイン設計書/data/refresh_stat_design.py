@@ -355,11 +355,11 @@ def armor_example(armor, allocations):
     shares = "、".join(f"{slot}{weights[slot]}%" for slot in ARMOR_SLOTS)
     points = "、".join(f"{slot}{value}" for slot, value in values.items())
     return (
-        '    <details class="es-detail">\n'
-        '      <summary>標準防具の数値例</summary>\n'
+        '    <section class="es-armor-example" aria-labelledby="armor-example-title">\n'
+        '      <h3 id="armor-example-title">標準防具の数値例</h3>\n'
         f'      <p>標準の共通防御の装備配分を整数点に四捨五入し、防具4部位に配分する。重みは{shares}。</p>\n'
         f'      <p>Lv.{level}の例は防具合計{budget}点（{points}）、胴の個体値は{chest - offset}〜{chest + offset}点。</p>\n'
-        '    </details>\n'
+        '    </section>\n'
     )
 
 
@@ -406,12 +406,12 @@ def equipment_cards(section, rows, equipment, allocations, categories, search_id
         cats = shared or set.union(*member_cats)
         return tuple(cat for cat in category_order if cat in cats)
 
-    def stage(heading, names, tag):
+    def stage(key, heading, names, tag):
         grouped = {}
         for name in names:
             cats = candidate_categories(name)
             grouped.setdefault(cats, []).append(candidate_value(name))
-        lines = [f'<div class="es-stage"><{tag}>{heading}</{tag}>']
+        lines = [f'<div class="es-stage" data-stage="{key}"><{tag}>{heading}</{tag}>']
         for cats in sorted(grouped, key=lambda group: tuple(map(category_order.index, group))):
             labels = '・'.join(f'<span class="es-category-name cat-{cat}">{EQUIPMENT_CATEGORIES[cat]}</span>'
                               for cat in cats)
@@ -433,26 +433,23 @@ def equipment_cards(section, rows, equipment, allocations, categories, search_id
         title_tag, stage_tag = ('h4', 'h5') if section == '武器' else ('h3', 'h4')
         choice = 'oneOf' in row
         mandatory = row['oneOf'] if choice else row['required']
-        label = '必須（いずれか1つ）' if choice else '必須'
-        summary = ' '.join(candidate_value(candidate) for candidate in mandatory[:2])
-        if len(mandatory) > 2:
-            summary += f' <small>ほか{len(mandatory) - 2}候補</small>'
-        facts = [f'<div><dt>{label}</dt><dd class="es-values">{summary}</dd></div>']
+        label = '必須 <small class="es-choice">いずれか1つ</small>' if choice else '必須'
+        values = ' '.join(candidate_value(candidate) for candidate in mandatory)
+        facts = [f'<div><dt>{label}</dt><dd class="es-values">{values}</dd></div>']
         if bonus:
             grant, _ = two_handed_allocation(allocations, bonus, level, policy['sharePercent'])
             unit = 'ポイント' if units[bonus] == '%' else escape(units[bonus])
             value = f'+{Decimal(grant) / CENTS:.2f}{unit}'
-            facts.append(f'<div><dt>両手固定の補正</dt><dd class="es-values">{equipment_stat(bonus, categories[bonus][0])} '
-                         f'<strong>{value}</strong> <small class="es-example">Lv.{level}の例</small></dd></div>')
+            facts.append(f'<div><dt>両手固定の補正 <small class="es-example">Lv.{level}の例</small></dt>'
+                         f'<dd class="es-values">{equipment_stat(bonus, categories[bonus][0])} <strong>{value}</strong></dd></div>')
 
-        details = []
-        if len(mandatory) > 2:
-            details.append(stage(label, mandatory, stage_tag))
+        stage_blocks = []
         candidates = list(mandatory)
         for key, title, start in stages:
             names = row.get(key, [])
             if names:
-                details.append(stage(f'{title} <span class="es-condition">Lv.{start}〜</span>', names, stage_tag))
+                heading = f'{title} <span class="es-condition">Lv.{start}〜</span>'
+                stage_blocks.append(stage(key, heading, names, stage_tag))
                 candidates.extend(names)
         search_terms = equipment_search_context(row)
         for candidate in candidates:
@@ -461,14 +458,12 @@ def equipment_cards(section, rows, equipment, allocations, categories, search_id
         ids = dict.fromkeys(search_ids[term] for term in search_terms)
         search_attr = f' data-status-ids="{" ".join(ids)}"' if ids else ''
         return '\n'.join((
-            f'<article class="{card_class}">',
+            f'<article class="{card_class}"{search_attr}>',
             '<div class="es-card-head">',
             f'<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-{icon}"></use></svg>',
             f'<div><{title_tag} class="es-name">{name}</{title_tag}><p class="es-role">{role}</p></div></div>',
             '<dl class="es-facts">', *facts, '</dl>',
-            f'<details class="es-detail es-card-more"{search_attr}>',
-            f'<summary><span class="es-sr">{name}の</span>付与候補</summary>',
-            '<div class="es-stages">', *details, '</div></details></article>',
+            *stage_blocks, '</article>',
         ))
 
     def grid(entries):
@@ -552,6 +547,7 @@ def render_equipment(html, equipment, allocations, categories, units):
     toc.append(
         f'      <li><a href="#equipment-excluded"><span class="toc-num">{number}</span>'
         '装備から直接付与しない指標</a></li>\n'
+        '      <li><a href="#equipment-rules">付与条件と標準値</a></li>\n'
         '      <li><a href="#candidate-groups">候補グループの内訳</a></li>\n'
     )
 
