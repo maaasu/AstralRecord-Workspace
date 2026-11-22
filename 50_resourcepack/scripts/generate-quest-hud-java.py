@@ -37,7 +37,6 @@ RING_SLOT = 14
 RING_SIZE = RING_RADIUS * 2 + RING_SLOT
 RING_HOTBAR_HALF = 91
 RING_OFFHAND_WIDTH = 30
-RING_LEFT_MARGIN = 4
 RING_HUD_GAP = 8
 RING_COMPACT_SIZE = 32
 RING_WIDE_CENTER_FROM_BOTTOM = 48
@@ -263,21 +262,28 @@ def ring_injection(version):
             && questCode.b >= 0 && (questCode.g == 8 ? questCode.b == 0 : questCode.b <= 5)
             && questScreen.y > questHeight + 4000.0 && questScreen.y < questHeight + 4120.0) {{
         vec2 viewportSize = vec2(2.0 / abs(ProjMat[0][0]), questHeight);
-        float hotbarLeft = viewportSize.x * 0.5 - {RING_HOTBAR_HALF}.0;
-        float combatLeft = viewportSize.x * 0.5 - {PROFILE_HALF_WIDTH}.0 - {RING_HUD_GAP}.0;
-        bool wide = combatLeft >= {RING_LEFT_MARGIN + RING_SIZE}.0;
-        // On a small screen move below the combat row and reserve the offhand.
-        float right = wide ? combatLeft : hotbarLeft - {RING_OFFHAND_WIDTH + 3}.0;
-        float width = wide ? {RING_SIZE}.0 : clamp(right - {RING_LEFT_MARGIN}.0, 0.0, {RING_COMPACT_SIZE}.0);
+        float hotbarRight = viewportSize.x * 0.5 + {RING_HOTBAR_HALF}.0;
+        float profileRight = viewportSize.x * 0.5 + {PROFILE_HALF_WIDTH}.0;
+        float combatRight = profileRight + {RING_HUD_GAP}.0;
+        float rightLimit = viewportSize.x - {EDGE_MARGIN}.0;
+        // Bound the right-side Location HUD for any row count.
+        float locationLeft = max({LEFT + WIDTH + HUD_GAP}.0, viewportSize.x - {LEFT + WIDTH}.0);
+        float locationBottom = min({TOP + LOCATION_ROW_HEIGHT * LOCATION_MAX_ROWS}.0,
+            questHeight - (locationLeft < profileRight ? {PROFILE_BOTTOM_BAND}.0 : {EDGE_MARGIN}.0));
+        bool wide = combatRight + {RING_SIZE}.0 <= rightLimit
+            && (combatRight + {RING_SIZE}.0 <= locationLeft
+                || questHeight - {RING_WIDE_CENTER_FROM_BOTTOM + RING_SIZE / 2:.1f} >= locationBottom + {EDGE_MARGIN}.0);
+        // The compact ring sits below the combat row and clears either main-hand setting.
+        float left = wide ? combatRight : hotbarRight + {RING_OFFHAND_WIDTH + 3}.0;
+        if (!wide && questHeight - {RING_COMPACT_SIZE + EDGE_MARGIN}.0 < locationBottom + {EDGE_MARGIN}.0) {{
+            rightLimit = min(rightLimit, locationLeft);
+        }}
+        float width = wide ? {RING_SIZE}.0 : clamp(rightLimit - left, 0.0, {RING_COMPACT_SIZE}.0);
         float scale = width / {RING_SIZE}.0;
-        vec2 center = vec2(right - width * 0.5,
-            questHeight - (wide ? {RING_WIDE_CENTER_FROM_BOTTOM}.0 : width * 0.5 + 4.0));
-        float questRight = clamp(viewportSize.x - {WIDTH}.0, 0.0, {LEFT}.0) + {WIDTH}.0;
-        float questBottom = min({TOP + PADDING * 2 + ROW_HEIGHT * MAX_ROWS}.0, questHeight -
-            (viewportSize.x * 0.5 - {PROFILE_HALF_WIDTH}.0 < questRight ? {PROFILE_BOTTOM_BAND}.0 : {EDGE_MARGIN}.0));
+        vec2 center = vec2(left + width * 0.5,
+            questHeight - (wide ? {RING_WIDE_CENTER_FROM_BOTTOM}.0 : width * 0.5 + {EDGE_MARGIN}.0));
         float ringTop = center.y - width * 0.5;
-        bool fits = width >= 28.0 && ringTop >= 4.0 &&
-            (right - width >= questRight || ringTop >= questBottom + 4.0);
+        bool fits = width >= 28.0 && ringTop >= {EDGE_MARGIN}.0;
         const vec2 offsets[8] = vec2[8]({offsets});
         float size = (questCode.g == 8 ? {RING_SIZE}.0 : {RING_SLOT}.0) * scale;
         if (questCode.g < 8) {{
@@ -303,17 +309,23 @@ def ring_geometry(marker, width, height):
     red, slot, layer = marker
     if red != RING_MARKER or not 0 <= slot <= 8 or not 0 <= layer <= (0 if slot == 8 else 5):
         return None
-    combat_left = width * .5 - PROFILE_HALF_WIDTH - RING_HUD_GAP
-    wide = combat_left >= RING_LEFT_MARGIN + RING_SIZE
-    right = combat_left if wide else width * .5 - RING_HOTBAR_HALF - RING_OFFHAND_WIDTH - 3
-    size = RING_SIZE if wide else max(0, min(right - RING_LEFT_MARGIN, RING_COMPACT_SIZE))
+    profile_right = width * .5 + PROFILE_HALF_WIDTH
+    combat_right = profile_right + RING_HUD_GAP
+    right_limit = width - EDGE_MARGIN
+    location_left = max(LEFT + WIDTH + HUD_GAP, width - LEFT - WIDTH)
+    location_bottom = min(TOP + LOCATION_ROW_HEIGHT * LOCATION_MAX_ROWS,
+        height - (PROFILE_BOTTOM_BAND if location_left < profile_right else EDGE_MARGIN))
+    wide_right = combat_right + RING_SIZE
+    wide_top = height - RING_WIDE_CENTER_FROM_BOTTOM - RING_SIZE * .5
+    wide = wide_right <= right_limit and (wide_right <= location_left or wide_top >= location_bottom + EDGE_MARGIN)
+    left = combat_right if wide else width * .5 + RING_HOTBAR_HALF + RING_OFFHAND_WIDTH + 3
+    if not wide and height - RING_COMPACT_SIZE - EDGE_MARGIN < location_bottom + EDGE_MARGIN:
+        right_limit = min(right_limit, location_left)
+    size = RING_SIZE if wide else max(0, min(right_limit - left, RING_COMPACT_SIZE))
     scale = size / RING_SIZE
-    cx, cy = right - size * .5, height - (RING_WIDE_CENTER_FROM_BOTTOM if wide else size * .5 + 4)
-    quest_right = min(LEFT, max(0, width - WIDTH)) + WIDTH
-    quest_bottom = min(TOP + PADDING * 2 + ROW_HEIGHT * MAX_ROWS,
-        height - (PROFILE_BOTTOM_BAND if width * .5 - PROFILE_HALF_WIDTH < quest_right else EDGE_MARGIN))
+    cx, cy = left + size * .5, height - (RING_WIDE_CENTER_FROM_BOTTOM if wide else size * .5 + EDGE_MARGIN)
     ring_top = cy - size * .5
-    fits = size >= 28 and ring_top >= 4 and (right - size >= quest_right or ring_top >= quest_bottom + 4)
+    fits = size >= 28 and ring_top >= EDGE_MARGIN
     if slot != 8:
         dx, dy = RING_SLOT_OFFSETS[slot]
         cx += (dx * RING_RADIUS + (0, 0, -2.5, 2.5, -4, 4)[layer]) * scale
@@ -325,21 +337,19 @@ def ring_geometry(marker, width, height):
 
 
 def verify_ring_geometry():
-    for width, height in GUI_SIZES + ((390, 220), (443, 250), (444, 250)):
+    for width, height in GUI_SIZES + ((312, 180), (443, 250), (444, 250), (667, 180),
+                                     (668, 180), (720, 180), (720, 540), (796, 180)):
         ring, _ = ring_geometry((RING_MARKER, 8, 0), width, height)
         left, top, size, _ = ring
-        combat_left = width * .5 - PROFILE_HALF_WIDTH - RING_HUD_GAP
-        wide = combat_left >= RING_LEFT_MARGIN + RING_SIZE
-        assert left >= RING_LEFT_MARGIN and top >= 0 and size > 0
-        assert left + size <= width * .5 - RING_HOTBAR_HALF
-        if wide:
-            assert left + size == combat_left and math.isclose(size, RING_SIZE)
+        assert size >= 28 and top >= EDGE_MARGIN and left + size <= width - EDGE_MARGIN
+        assert left >= width * .5 + RING_HOTBAR_HALF + RING_OFFHAND_WIDTH
+        if math.isclose(size, RING_SIZE):
+            assert left == width * .5 + PROFILE_HALF_WIDTH + RING_HUD_GAP
         else:
-            assert left + size <= width * .5 - RING_HOTBAR_HALF - RING_OFFHAND_WIDTH
-            assert top >= height - RING_COMPACT_SIZE - 4
-        for rows in range(1, MAX_ROWS + 1):
-            qx, qy, qscale = panel_placement(width, height, rows)
-            assert left >= qx + WIDTH * qscale or top >= qy + (PADDING * 2 + ROW_HEIGHT * rows) * qscale
+            assert size <= RING_COMPACT_SIZE and math.isclose(top + size, height - EDGE_MARGIN)
+        for rows in range(1, LOCATION_MAX_ROWS + 1):
+            lx, ly, lscale = location_placement(width, height, rows)
+            assert left + size <= lx + 1e-8 or top >= ly + LOCATION_ROW_HEIGHT * rows * lscale
         for slot in range(8):
             base, _ = ring_geometry((RING_MARKER, slot, 0), width, height)
             digit_l, _ = ring_geometry((RING_MARKER, slot, 2), width, height)
@@ -352,11 +362,11 @@ def verify_ring_geometry():
             scale = base[2] / RING_SLOT
             assert math.isclose(triple_r[0] - triple_l[0], 8 * scale)
             assert 8 + 3 < RING_SLOT
-    for width, height in ((300, 180), (720, 180), (640, 60)):
+    for width, height in ((300, 180), (311, 180), (640, 60)):
         assert ring_geometry((RING_MARKER, 8, 0), width, height)[0][2] == 0
     assert ring_geometry((RING_MARKER, 8, 1), 640, 360) is None
     assert ring_geometry((RING_MARKER, 9, 0), 640, 360) is None
-    print('Action ring: viewport fit, offhand clearance, text offsets and Quest separation passed.')
+    print('Action ring: right-side placement, offhand clearance, text offsets and Location separation passed.')
 
 
 def generated_fonts():

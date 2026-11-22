@@ -199,21 +199,28 @@ void main() {
             && questCode.b >= 0 && (questCode.g == 8 ? questCode.b == 0 : questCode.b <= 5)
             && questScreen.y > questHeight + 4000.0 && questScreen.y < questHeight + 4120.0) {
         vec2 viewportSize = vec2(2.0 / abs(ProjMat[0][0]), questHeight);
-        float hotbarLeft = viewportSize.x * 0.5 - 91.0;
-        float combatLeft = viewportSize.x * 0.5 - 154.0 - 8.0;
-        bool wide = combatLeft >= 60.0;
-        // On a small screen move below the combat row and reserve the offhand.
-        float right = wide ? combatLeft : hotbarLeft - 33.0;
-        float width = wide ? 56.0 : clamp(right - 4.0, 0.0, 32.0);
+        float hotbarRight = viewportSize.x * 0.5 + 91.0;
+        float profileRight = viewportSize.x * 0.5 + 154.0;
+        float combatRight = profileRight + 8.0;
+        float rightLimit = viewportSize.x - 4.0;
+        // Bound the right-side Location HUD for any row count.
+        float locationLeft = max(188.0, viewportSize.x - 180.0);
+        float locationBottom = min(432.0,
+            questHeight - (locationLeft < profileRight ? 134.0 : 4.0));
+        bool wide = combatRight + 56.0 <= rightLimit
+            && (combatRight + 56.0 <= locationLeft
+                || questHeight - 76.0 >= locationBottom + 4.0);
+        // The compact ring sits below the combat row and clears either main-hand setting.
+        float left = wide ? combatRight : hotbarRight + 33.0;
+        if (!wide && questHeight - 36.0 < locationBottom + 4.0) {
+            rightLimit = min(rightLimit, locationLeft);
+        }
+        float width = wide ? 56.0 : clamp(rightLimit - left, 0.0, 32.0);
         float scale = width / 56.0;
-        vec2 center = vec2(right - width * 0.5,
+        vec2 center = vec2(left + width * 0.5,
             questHeight - (wide ? 48.0 : width * 0.5 + 4.0));
-        float questRight = clamp(viewportSize.x - 172.0, 0.0, 8.0) + 172.0;
-        float questBottom = min(184.0, questHeight -
-            (viewportSize.x * 0.5 - 154.0 < questRight ? 134.0 : 4.0));
         float ringTop = center.y - width * 0.5;
-        bool fits = width >= 28.0 && ringTop >= 4.0 &&
-            (right - width >= questRight || ringTop >= questBottom + 4.0);
+        bool fits = width >= 28.0 && ringTop >= 4.0;
         const vec2 offsets[8] = vec2[8](vec2(0.00000000, -1.00000000), vec2(0.70710678, -0.70710678), vec2(1.00000000, 0.00000000), vec2(0.70710678, 0.70710678), vec2(0.00000000, 1.00000000), vec2(-0.70710678, 0.70710678), vec2(-1.00000000, 0.00000000), vec2(-0.70710678, -0.70710678));
         float size = (questCode.g == 8 ? 56.0 : 14.0) * scale;
         if (questCode.g < 8) {
