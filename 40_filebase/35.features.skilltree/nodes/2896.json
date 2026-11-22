@@ -1,0 +1,38 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2896",
+  "name": "&c城塞化",
+  "icon": "REINFORCED_DEEPSLATE",
+  "tags": [
+    "status",
+    "keystone",
+    "defense",
+    "durability"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "DAMAGE_REDUCTION_RATE",
+      "modifierType": "FLAT",
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "MELEE_DEFENSE",
+      "modifierType": "FLAT",
+      "value": 2
+    },
+    {
+      "type": "status",
+      "status": "AGILITY",
+      "modifierType": "FLAT",
+      "value": -3
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}

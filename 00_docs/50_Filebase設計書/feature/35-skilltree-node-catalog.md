@@ -86,6 +86,46 @@ node JSONの契約には`lore`を定義しません。Pluginとエディター�
 | `status-adventurer-star-blessing-notable` | `FIRE_RESISTANCE` / `FLAT` / `1.5` + `ICE_RESISTANCE` / `FLAT` / `1.5` + `LIGHTNING_RESISTANCE` / `FLAT` / `1.5` + `NONE_RESISTANCE` / `FLAT` / `1` | `&6星の加護` | `TOTEM_OF_UNDYING` | `status`, `notable`, `durability`, `defense`, `element` |
 | `status-adventurer-unyielding-keystone` | `DAMAGE_REDUCTION_RATE` / `FLAT` / `3` + `MAX_HEALTH` / `FLAT` / `20` + `FINAL_DAMAGE_MULTIPLIER` / `FLAT` / `-3` | `&c不屈` | `RESPAWN_ANCHOR` | `status`, `keystone`, `durability`, `defense`, `health` |
 | `status-adventurer-great-tree-gateway` | `ATTACK` / `FLAT` / `1` + `MAX_HEALTH` / `FLAT` / `5` | `&b大樹の道標` | `BELL` | `status`, `gateway`, `durability`, `health`, `offense` |
+| `status-max-health-flat-5` | `MAX_HEALTH` / `FLAT` / `5` | `&d灯芯の星脈` | `RED_CANDLE` | `status`, `resource`, `health` |
+| `status-max-mana-flat-5` | `MAX_MANA` / `FLAT` / `5` | `&d湧水の星脈` | `LIGHT_BLUE_DYE` | `status`, `resource`, `mana` |
+| `status-max-energy-flat-3` | `MAX_ENERGY` / `FLAT` / `3` | `&d微風の星脈` | `STRING` | `status`, `resource`, `energy` |
+| `status-critical-damage-flat-1` | `CRITICAL_DAMAGE` / `FLAT` / `1` | `&d鋭刃の星環` | `FLINT` | `status`, `offense` |
+| `status-super-critical-damage-flat-1` | `SUPER_CRITICAL_DAMAGE` / `FLAT` / `1` | `&d超星刃の星環` | `AMETHYST_CLUSTER` | `status`, `offense`, `astral` |
+| `status-shield-recharge-reduction-flat-0-5` | `SHIELD_RECHARGE_REDUCTION` / `FLAT` / `0.5` | `&b再起の星環` | `NAUTILUS_SHELL` | `status`, `defense`, `shield` |
+| `status-knockback-resistance-flat-1` | `KNOCKBACK_RESISTANCE` / `FLAT` / `1` | `&d踏堅の星脈` | `IRON_BOOTS` | `status`, `defense`, `durability` |
+| `status-melee-defense-flat-1` | `MELEE_DEFENSE` / `FLAT` / `1` | `&d鉄甲の星脈` | `IRON_CHESTPLATE` | `status`, `defense` |
+| `status-swordsman-honed-blade-notable` | `STRENGTH` / `FLAT` / `1` + `CRITICAL_RATE` / `FLAT` / `1` | `&6研ぎ澄ます刃` | `GRINDSTONE` | `status`, `notable`, `strength`, `offense` |
+| `status-swordsman-critical-stance-notable` | `CRITICAL_RATE` / `FLAT` / `1` + `CRITICAL_DAMAGE` / `FLAT` / `2` | `&6会心の構え` | `DIAMOND_SWORD` | `status`, `notable`, `offense` |
+| `status-swordsman-iron-cutter-notable` | `NORMAL_ATTACK_DAMAGE_INCREASE` / `FLAT` / `1` + `CRITICAL_DAMAGE` / `FLAT` / `1` | `&6斬鉄` | `SHEARS` | `status`, `notable`, `offense` |
+| `status-swordsman-readiness-notable` | `ACCURACY` / `FLAT` / `1` + `AGILITY` / `FLAT` / `1` | `&6見切り` | `OBSERVER` | `status`, `notable`, `accuracy`, `agility` |
+| `status-swordsman-fatal-slash-notable` | `CRITICAL_DAMAGE` / `FLAT` / `2` + `ATTACK` / `FLAT` / `1` | `&6必殺の一閃` | `GOLDEN_SWORD` | `status`, `notable`, `offense` |
+| `status-swordsman-swordsman-pride-notable` | `STRENGTH` / `FLAT` / `1` + `MAX_HEALTH` / `FLAT` / `10` | `&6剣士の矜持` | `IRON_HELMET` | `status`, `notable`, `strength`, `health` |
+| `status-swordsman-reckless-sword-keystone` | `CRITICAL_RATE` / `FLAT` / `3` + `CRITICAL_DAMAGE` / `FLAT` / `6` + `DEFENSE` / `FLAT` / `-4` | `&c捨て身の剣` | `WITHER_SKELETON_SKULL` | `status`, `keystone`, `offense` |
+| `status-swordsman-fierce-blade-gateway` | `STRENGTH` / `FLAT` / `1` + `CRITICAL_RATE` / `FLAT` / `0.5` | `&b烈刃の道標` | `RED_BANNER` | `status`, `gateway`, `strength`, `offense` |
+| `status-swordsman-step-in-notable` | `AGILITY` / `FLAT` / `1` + `SHIELD_BREAK` / `FLAT` / `0.5` | `&6踏み込み` | `LEATHER_BOOTS` | `status`, `notable`, `agility`, `shield` |
+| `status-swordsman-shield-crusher-notable` | `SHIELD_BREAK` / `FLAT` / `1` + `NORMAL_ATTACK_DAMAGE_INCREASE` / `FLAT` / `0.5` | `&6盾砕き` | `STONE_AXE` | `status`, `notable`, `shield`, `offense` |
+| `status-swordsman-super-critical-flash-notable` | `SUPER_CRITICAL_RATE` / `FLAT` / `0.3` + `SUPER_CRITICAL_DAMAGE` / `FLAT` / `2` | `&6超星の閃き` | `FIREWORK_ROCKET` | `status`, `notable`, `astral`, `offense` |
+| `status-swordsman-swift-step-notable` | `AGILITY` / `FLAT` / `1` + `MAX_ENERGY` / `FLAT` / `4` | `&6疾駆` | `GOLDEN_BOOTS` | `status`, `notable`, `agility`, `energy` |
+| `status-swordsman-combo-training-notable` | `NORMAL_ATTACK_DEGRADATION_DELAY` / `FLAT` / `1` + `ACCURACY` / `FLAT` / `0.5` | `&6連撃の心得` | `IRON_CHAIN` | `status`, `notable`, `offense`, `accuracy` |
+| `status-swordsman-fighting-spirit-notable` | `ENERGY_REGEN` / `FLAT` / `1` + `MAX_ENERGY` / `FLAT` / `3` | `&6闘気` | `BLAZE_ROD` | `status`, `notable`, `resource`, `energy` |
+| `status-swordsman-siege-strike-keystone` | `SHIELD_BREAK` / `FLAT` / `3` + `SUPER_CRITICAL_DAMAGE` / `FLAT` / `5` + `CRITICAL_RATE` / `FLAT` / `-2` | `&c破城の一撃` | `TNT` | `status`, `keystone`, `shield`, `astral` |
+| `status-swordsman-shield-break-gateway` | `SHIELD_BREAK` / `FLAT` / `0.25` + `AGILITY` / `FLAT` / `1` | `&b破盾の道標` | `YELLOW_BANNER` | `status`, `gateway`, `shield`, `agility` |
+| `status-swordsman-shield-training-notable` | `MAX_SHIELD` / `FLAT` / `3` + `DEFENSE` / `FLAT` / `1` | `&6盾の心得` | `IRON_DOOR` | `status`, `notable`, `shield`, `defense` |
+| `status-swordsman-sturdy-shield-notable` | `MAX_SHIELD` / `FLAT` / `4` + `MAGIC_DEFENSE` / `FLAT` / `1` | `&6堅牢の盾` | `IRON_BLOCK` | `status`, `notable`, `shield`, `defense` |
+| `status-swordsman-restored-shield-notable` | `SHIELD_RECHARGE_REDUCTION` / `FLAT` / `0.5` + `MAX_SHIELD` / `FLAT` / `2` | `&6再起の盾` | `ECHO_SHARD` | `status`, `notable`, `shield`, `defense` |
+| `status-swordsman-warding-shield-notable` | `MAGIC_DEFENSE` / `FLAT` / `1` + `MAX_MANA` / `FLAT` / `5` | `&6魔を弾く盾` | `AMETHYST_BLOCK` | `status`, `notable`, `astral`, `mana` |
+| `status-swordsman-guardian-oath-notable` | `SUPPORT_POWER` / `FLAT` / `1` + `MAX_SHIELD` / `FLAT` / `2` | `&6守護者の誓い` | `LANTERN` | `status`, `notable`, `shield`, `defense` |
+| `status-swordsman-iron-will-notable` | `VITALITY` / `FLAT` / `1` + `MAX_HEALTH` / `FLAT` / `5` + `MAX_SHIELD` / `FLAT` / `2` | `&6鉄の意志` | `CHAINMAIL_CHESTPLATE` | `status`, `notable`, `durability`, `shield` |
+| `status-swordsman-unfallen-shield-keystone` | `MAX_SHIELD` / `FLAT` / `15` + `SHIELD_RECHARGE_REDUCTION` / `FLAT` / `1.5` + `MAX_HEALTH` / `FLAT` / `-20` | `&c不落の盾` | `CRYING_OBSIDIAN` | `status`, `keystone`, `shield`, `defense` |
+| `status-swordsman-guardian-gateway` | `MAX_SHIELD` / `FLAT` / `2` + `MAX_MANA` / `FLAT` / `5` | `&b守護の道標` | `BLUE_BANNER` | `status`, `gateway`, `shield`, `mana` |
+| `status-swordsman-robust-body-notable` | `VITALITY` / `FLAT` / `1` + `MAX_HEALTH` / `FLAT` / `10` | `&6頑強な体` | `COOKED_BEEF` | `status`, `notable`, `durability`, `health` |
+| `status-swordsman-iron-armor-notable` | `DEFENSE` / `FLAT` / `1` + `MELEE_DEFENSE` / `FLAT` / `1` | `&6鉄甲` | `DIAMOND_CHESTPLATE` | `status`, `notable`, `defense`, `durability` |
+| `status-swordsman-immovable-stance-notable` | `KNOCKBACK_RESISTANCE` / `FLAT` / `2` + `DAMAGE_REDUCTION_RATE` / `FLAT` / `1` | `&6仁王立ち` | `SMITHING_TABLE` | `status`, `notable`, `defense`, `durability` |
+| `status-swordsman-three-realms-notable` | `FIRE_RESISTANCE` / `FLAT` / `1` + `ICE_RESISTANCE` / `FLAT` / `1` + `LIGHTNING_RESISTANCE` / `FLAT` / `1` + `NONE_RESISTANCE` / `FLAT` / `1` | `&6三界の守り` | `MAGMA_CREAM` | `status`, `notable`, `defense`, `element` |
+| `status-swordsman-frontline-shield-notable` | `MAX_HEALTH` / `FLAT` / `5` + `DEFENSE` / `FLAT` / `1` | `&6前線の盾` | `STONE_BRICKS` | `status`, `notable`, `health`, `defense` |
+| `status-swordsman-steel-body-notable` | `VITALITY` / `FLAT` / `1` + `MAX_HEALTH` / `FLAT` / `5` + `HP_REGEN` / `FLAT` / `1` | `&6鋼の肉体` | `DEEPSLATE` | `status`, `notable`, `durability`, `health` |
+| `status-swordsman-fortification-keystone` | `DAMAGE_REDUCTION_RATE` / `FLAT` / `3` + `MELEE_DEFENSE` / `FLAT` / `2` + `AGILITY` / `FLAT` / `-3` | `&c城塞化` | `REINFORCED_DEEPSLATE` | `status`, `keystone`, `defense`, `durability` |
+| `status-swordsman-rampart-gateway` | `KNOCKBACK_RESISTANCE` / `FLAT` / `1` + `NONE_RESISTANCE` / `FLAT` / `1` | `&b城壁の道標` | `GREEN_BANNER` | `status`, `gateway`, `durability`, `element` |
 
 表の表示名には JSON に保存する Legacy color code を含めます。同じ能力を追加するときは、表の表示名、`icon`、タグをすべて同一にします。`administrator_just_dodge` は冒険者 `1350` とハンター `1355` で同じ表現を再利用します。各配置済みノードには、従来どおり一意の `nodeId` を割り当てます。
 

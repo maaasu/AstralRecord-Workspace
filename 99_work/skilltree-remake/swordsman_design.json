@@ -1,0 +1,1119 @@
+{
+  "note": "ソードマン領域の正規座標(u,v)・接続・スロット割り当て。x=sx*u, z=sz*v。aG3L/aG3H は同じ象限の冒険者道標。SK1/SK2 はスキルを割り当てた象限だけ配置する。",
+  "slotOrder": [
+    "EL",
+    "IL1",
+    "IL2",
+    "IL3",
+    "IL4",
+    "IL5",
+    "EH",
+    "IH1",
+    "IH2",
+    "IH3",
+    "IH4",
+    "IH5",
+    "NI",
+    "SL",
+    "SM",
+    "SH",
+    "WL0",
+    "WL1",
+    "WL2",
+    "WL3",
+    "WL4",
+    "WL5",
+    "WM0",
+    "WM1",
+    "WM2",
+    "WM3",
+    "WM4",
+    "WM5",
+    "WH0",
+    "WH1",
+    "WH2",
+    "WH3",
+    "WH4",
+    "WH5",
+    "O0",
+    "O1",
+    "O2",
+    "O3",
+    "O4",
+    "O5",
+    "O6",
+    "O7",
+    "O8",
+    "O9",
+    "O10",
+    "O11",
+    "O12",
+    "O13",
+    "O14",
+    "XL",
+    "XH",
+    "YL",
+    "YH",
+    "KS1",
+    "KS2",
+    "KY",
+    "GL1",
+    "GL2",
+    "GH1",
+    "GH2"
+  ],
+  "coords": {
+    "EL": [
+      22.0,
+      3.1
+    ],
+    "IL1": [
+      22.8,
+      5.7
+    ],
+    "IL2": [
+      22.1,
+      8.0
+    ],
+    "IL3": [
+      21.1,
+      10.3
+    ],
+    "IL4": [
+      19.9,
+      12.5
+    ],
+    "IL5": [
+      18.5,
+      14.5
+    ],
+    "EH": [
+      3.1,
+      22.0
+    ],
+    "IH1": [
+      5.7,
+      22.8
+    ],
+    "IH2": [
+      8.0,
+      22.1
+    ],
+    "IH3": [
+      10.3,
+      21.1
+    ],
+    "IH4": [
+      12.5,
+      19.9
+    ],
+    "IH5": [
+      14.5,
+      18.5
+    ],
+    "NI": [
+      17.0,
+      17.0
+    ],
+    "SL": [
+      23.8,
+      8.7
+    ],
+    "SM": [
+      18.5,
+      18.5
+    ],
+    "SH": [
+      8.7,
+      23.8
+    ],
+    "WL0": [
+      25.5,
+      9.3
+    ],
+    "WL1": [
+      27.1,
+      8.0
+    ],
+    "WL2": [
+      28.9,
+      8.7
+    ],
+    "WL3": [
+      29.3,
+      10.7
+    ],
+    "WL4": [
+      27.7,
+      12.0
+    ],
+    "WL5": [
+      25.9,
+      11.3
+    ],
+    "WM0": [
+      20.0,
+      20.0
+    ],
+    "WM1": [
+      21.9,
+      19.5
+    ],
+    "WM2": [
+      23.3,
+      20.9
+    ],
+    "WM3": [
+      22.8,
+      22.8
+    ],
+    "WM4": [
+      20.9,
+      23.3
+    ],
+    "WM5": [
+      19.5,
+      21.9
+    ],
+    "WH0": [
+      9.3,
+      25.5
+    ],
+    "WH1": [
+      8.0,
+      27.1
+    ],
+    "WH2": [
+      8.7,
+      28.9
+    ],
+    "WH3": [
+      10.7,
+      29.3
+    ],
+    "WH4": [
+      12.0,
+      27.7
+    ],
+    "WH5": [
+      11.3,
+      25.9
+    ],
+    "O0": [
+      34.3,
+      4.2
+    ],
+    "O1": [
+      33.8,
+      7.4
+    ],
+    "O2": [
+      32.9,
+      10.6
+    ],
+    "O3": [
+      31.8,
+      13.7
+    ],
+    "O4": [
+      30.3,
+      16.6
+    ],
+    "O5": [
+      28.6,
+      19.4
+    ],
+    "O6": [
+      26.7,
+      22.0
+    ],
+    "O7": [
+      24.5,
+      24.5
+    ],
+    "O8": [
+      22.0,
+      26.7
+    ],
+    "O9": [
+      19.4,
+      28.6
+    ],
+    "O10": [
+      16.6,
+      30.3
+    ],
+    "O11": [
+      13.7,
+      31.8
+    ],
+    "O12": [
+      10.6,
+      32.9
+    ],
+    "O13": [
+      7.4,
+      33.8
+    ],
+    "O14": [
+      4.2,
+      34.3
+    ],
+    "XL": [
+      29.8,
+      12.8
+    ],
+    "XH": [
+      12.8,
+      29.8
+    ],
+    "YL": [
+      26.0,
+      20.1
+    ],
+    "YH": [
+      20.1,
+      26.0
+    ],
+    "KS1": [
+      26.1,
+      26.1
+    ],
+    "KS2": [
+      27.6,
+      27.6
+    ],
+    "KY": [
+      29.3,
+      29.3
+    ],
+    "GL1": [
+      36.8,
+      3.9
+    ],
+    "GL2": [
+      39.2,
+      3.7
+    ],
+    "GH1": [
+      3.9,
+      36.8
+    ],
+    "GH2": [
+      3.7,
+      39.2
+    ],
+    "SK1": [
+      32.8,
+      18.0
+    ],
+    "SK2": [
+      18.0,
+      32.8
+    ]
+  },
+  "edges": [
+    [
+      "aG3L",
+      "EL"
+    ],
+    [
+      "EL",
+      "IL1"
+    ],
+    [
+      "IL1",
+      "IL2"
+    ],
+    [
+      "IL2",
+      "IL3"
+    ],
+    [
+      "IL3",
+      "IL4"
+    ],
+    [
+      "IL4",
+      "IL5"
+    ],
+    [
+      "IL5",
+      "NI"
+    ],
+    [
+      "aG3H",
+      "EH"
+    ],
+    [
+      "EH",
+      "IH1"
+    ],
+    [
+      "IH1",
+      "IH2"
+    ],
+    [
+      "IH2",
+      "IH3"
+    ],
+    [
+      "IH3",
+      "IH4"
+    ],
+    [
+      "IH4",
+      "IH5"
+    ],
+    [
+      "IH5",
+      "NI"
+    ],
+    [
+      "WL0",
+      "WL1"
+    ],
+    [
+      "WL1",
+      "WL2"
+    ],
+    [
+      "WL2",
+      "WL3"
+    ],
+    [
+      "WL3",
+      "WL4"
+    ],
+    [
+      "WL4",
+      "WL5"
+    ],
+    [
+      "WL5",
+      "WL0"
+    ],
+    [
+      "WM0",
+      "WM1"
+    ],
+    [
+      "WM1",
+      "WM2"
+    ],
+    [
+      "WM2",
+      "WM3"
+    ],
+    [
+      "WM3",
+      "WM4"
+    ],
+    [
+      "WM4",
+      "WM5"
+    ],
+    [
+      "WM5",
+      "WM0"
+    ],
+    [
+      "WH0",
+      "WH1"
+    ],
+    [
+      "WH1",
+      "WH2"
+    ],
+    [
+      "WH2",
+      "WH3"
+    ],
+    [
+      "WH3",
+      "WH4"
+    ],
+    [
+      "WH4",
+      "WH5"
+    ],
+    [
+      "WH5",
+      "WH0"
+    ],
+    [
+      "IL2",
+      "SL"
+    ],
+    [
+      "SL",
+      "WL0"
+    ],
+    [
+      "IH2",
+      "SH"
+    ],
+    [
+      "SH",
+      "WH0"
+    ],
+    [
+      "NI",
+      "SM"
+    ],
+    [
+      "SM",
+      "WM0"
+    ],
+    [
+      "O0",
+      "O1"
+    ],
+    [
+      "O1",
+      "O2"
+    ],
+    [
+      "O2",
+      "O3"
+    ],
+    [
+      "O3",
+      "O4"
+    ],
+    [
+      "O4",
+      "O5"
+    ],
+    [
+      "O5",
+      "O6"
+    ],
+    [
+      "O6",
+      "O7"
+    ],
+    [
+      "O7",
+      "O8"
+    ],
+    [
+      "O8",
+      "O9"
+    ],
+    [
+      "O9",
+      "O10"
+    ],
+    [
+      "O10",
+      "O11"
+    ],
+    [
+      "O11",
+      "O12"
+    ],
+    [
+      "O12",
+      "O13"
+    ],
+    [
+      "O13",
+      "O14"
+    ],
+    [
+      "O7",
+      "KS1"
+    ],
+    [
+      "KS1",
+      "KS2"
+    ],
+    [
+      "KS2",
+      "KY"
+    ],
+    [
+      "O0",
+      "GL1"
+    ],
+    [
+      "GL1",
+      "GL2"
+    ],
+    [
+      "O14",
+      "GH1"
+    ],
+    [
+      "GH1",
+      "GH2"
+    ],
+    [
+      "WL3",
+      "O2"
+    ],
+    [
+      "WL4",
+      "XL"
+    ],
+    [
+      "XL",
+      "O3"
+    ],
+    [
+      "WM3",
+      "O7"
+    ],
+    [
+      "WM2",
+      "YL"
+    ],
+    [
+      "YL",
+      "O5"
+    ],
+    [
+      "WM4",
+      "YH"
+    ],
+    [
+      "YH",
+      "O9"
+    ],
+    [
+      "WH3",
+      "O12"
+    ],
+    [
+      "WH4",
+      "XH"
+    ],
+    [
+      "XH",
+      "O11"
+    ],
+    [
+      "O4",
+      "SK1"
+    ],
+    [
+      "O10",
+      "SK2"
+    ]
+  ],
+  "quadrants": {
+    "NW": {
+      "sx": -1,
+      "sz": -1,
+      "firstId": 2661,
+      "adventurerGate": {
+        "aG3L": "2560",
+        "aG3H": "2570"
+      },
+      "skills": {
+        "SK1": "1361"
+      }
+    },
+    "NE": {
+      "sx": 1,
+      "sz": -1,
+      "firstId": 2721,
+      "adventurerGate": {
+        "aG3L": "2590",
+        "aG3H": "2600"
+      },
+      "skills": {
+        "SK1": "1204"
+      }
+    },
+    "SW": {
+      "sx": -1,
+      "sz": 1,
+      "firstId": 2781,
+      "adventurerGate": {
+        "aG3L": "2620",
+        "aG3H": "2630"
+      },
+      "skills": {
+        "SK1": "1202",
+        "SK2": "1352"
+      }
+    },
+    "SE": {
+      "sx": 1,
+      "sz": 1,
+      "firstId": 2841,
+      "adventurerGate": {
+        "aG3L": "2650",
+        "aG3H": "2660"
+      },
+      "skills": {
+        "SK1": "1203"
+      }
+    }
+  },
+  "assign": {
+    "NW": {
+      "EL": "STR1",
+      "IL1": "HP5",
+      "IL2": "ENG3",
+      "IL3": "SB025",
+      "IL4": "MP5",
+      "IL5": "VIT1",
+      "EH": "AGI1",
+      "IH1": "HP5",
+      "IH2": "MP5",
+      "IH3": "ACC05",
+      "IH4": "ENG3",
+      "IH5": "DEF1",
+      "NI": "N1",
+      "SL": "CR05",
+      "SM": "CD1",
+      "SH": "ACC05",
+      "WL0": "CR05",
+      "WL1": "SCR01",
+      "WL2": "KB1",
+      "WL3": "N2",
+      "WL4": "CR05",
+      "WL5": "MP5",
+      "WM0": "CD1",
+      "WM1": "NADMG05",
+      "WM2": "CD1",
+      "WM3": "N3",
+      "WM4": "NADMG05",
+      "WM5": "SB025",
+      "WH0": "ACC05",
+      "WH1": "AGI1",
+      "WH2": "ACC05",
+      "WH3": "N4",
+      "WH4": "KB1",
+      "WH5": "MP5",
+      "O0": "ENG3",
+      "O1": "RES",
+      "O2": "SB025",
+      "O3": "SCR01",
+      "O4": "N5",
+      "O5": "NADMG05",
+      "O6": "VIT1",
+      "O7": "CR05",
+      "O8": "DEF1",
+      "O9": "MP5",
+      "O10": "N6",
+      "O11": "SB025",
+      "O12": "RES",
+      "O13": "MDEF1",
+      "O14": "ENG3",
+      "XL": "SCR01",
+      "XH": "SCR01",
+      "YL": "KB1",
+      "YH": "MDEF1",
+      "KS1": "ATK1",
+      "KS2": "KB1",
+      "KY": "K",
+      "GL1": "SB025",
+      "GL2": "G",
+      "GH1": "MP5",
+      "GH2": "G"
+    },
+    "NE": {
+      "EL": "AGI1",
+      "IL1": "HP5",
+      "IL2": "SB025",
+      "IL3": "ENG3",
+      "IL4": "MP5",
+      "IL5": "VIT1",
+      "EH": "STR1",
+      "IH1": "HP5",
+      "IH2": "MP5",
+      "IH3": "ACC05",
+      "IH4": "SB025",
+      "IH5": "DEF1",
+      "NI": "N1",
+      "SL": "SB025",
+      "SM": "SCR01",
+      "SH": "ACC05",
+      "WL0": "SB025",
+      "WL1": "SB025",
+      "WL2": "KB1",
+      "WL3": "N2",
+      "WL4": "SB025",
+      "WL5": "ATK1",
+      "WM0": "SCR01",
+      "WM1": "SCD1",
+      "WM2": "SCD1",
+      "WM3": "N3",
+      "WM4": "SCR01",
+      "WM5": "SCD1",
+      "WH0": "ACC05",
+      "WH1": "ENG3",
+      "WH2": "SCR01",
+      "WH3": "N4",
+      "WH4": "KB1",
+      "WH5": "MP5",
+      "O0": "MDEF1",
+      "O1": "RES",
+      "O2": "SB025",
+      "O3": "SCR01",
+      "O4": "N5",
+      "O5": "NADMG05",
+      "O6": "VIT1",
+      "O7": "SCD1",
+      "O8": "DEF1",
+      "O9": "MP5",
+      "O10": "N6",
+      "O11": "NADMG05",
+      "O12": "RES",
+      "O13": "MDEF1",
+      "O14": "MP5",
+      "XL": "SB025",
+      "XH": "SCR01",
+      "YL": "KB1",
+      "YH": "STR1",
+      "KS1": "ATK1",
+      "KS2": "SB025",
+      "KY": "K",
+      "GL1": "KB1",
+      "GL2": "G",
+      "GH1": "SB025",
+      "GH2": "G"
+    },
+    "SW": {
+      "EL": "VIT1",
+      "IL1": "HP5",
+      "IL2": "MP5",
+      "IL3": "SH2",
+      "IL4": "HP5",
+      "IL5": "DEF1",
+      "EH": "STR1",
+      "IH1": "MP5",
+      "IH2": "ENG3",
+      "IH3": "MDEF1",
+      "IH4": "HP5",
+      "IH5": "KB1",
+      "NI": "N1",
+      "SL": "SH2",
+      "SM": "SRR05",
+      "SH": "ACC05",
+      "WL0": "SH2",
+      "WL1": "SH2",
+      "WL2": "KB1",
+      "WL3": "N2",
+      "WL4": "SH2",
+      "WL5": "ATK1",
+      "WM0": "SRR05",
+      "WM1": "SH2",
+      "WM2": "SB025",
+      "WM3": "N3",
+      "WM4": "SH2",
+      "WM5": "ENG3",
+      "WH0": "RES",
+      "WH1": "MP5",
+      "WH2": "RES",
+      "WH3": "N4",
+      "WH4": "KB1",
+      "WH5": "ENG3",
+      "O0": "ENG3",
+      "O1": "RES",
+      "O2": "KB1",
+      "O3": "SH2",
+      "O4": "N5",
+      "O5": "SB025",
+      "O6": "AGI1",
+      "O7": "SH2",
+      "O8": "MELD1",
+      "O9": "SB025",
+      "O10": "N6",
+      "O11": "KB1",
+      "O12": "RES",
+      "O13": "SB025",
+      "O14": "ENG3",
+      "XL": "SH2",
+      "XH": "STR1",
+      "YL": "MELD1",
+      "YH": "ACC05",
+      "KS1": "SH2",
+      "KS2": "KB1",
+      "KY": "K",
+      "GL1": "ATK1",
+      "GL2": "G",
+      "GH1": "SH2",
+      "GH2": "G"
+    },
+    "SE": {
+      "EL": "VIT1",
+      "IL1": "HP5",
+      "IL2": "KB1",
+      "IL3": "RES",
+      "IL4": "MP5",
+      "IL5": "STR1",
+      "EH": "AGI1",
+      "IH1": "HP5",
+      "IH2": "ENG3",
+      "IH3": "RES",
+      "IH4": "MP5",
+      "IH5": "ATK1",
+      "NI": "N1",
+      "SL": "MELD1",
+      "SM": "KB1",
+      "SH": "RES",
+      "WL0": "DEF1",
+      "WL1": "MELD1",
+      "WL2": "SB025",
+      "WL3": "N2",
+      "WL4": "MELD1",
+      "WL5": "ENG3",
+      "WM0": "KB1",
+      "WM1": "KB1",
+      "WM2": "SH2",
+      "WM3": "N3",
+      "WM4": "SB025",
+      "WM5": "MP5",
+      "WH0": "RES",
+      "WH1": "MDEF1",
+      "WH2": "CR05",
+      "WH3": "N4",
+      "WH4": "ACC05",
+      "WH5": "ENG3",
+      "O0": "ENG3",
+      "O1": "SB025",
+      "O2": "CR05",
+      "O3": "SH2",
+      "O4": "N5",
+      "O5": "ACC05",
+      "O6": "AGI1",
+      "O7": "NADMG05",
+      "O8": "MDEF1",
+      "O9": "MP5",
+      "O10": "N6",
+      "O11": "SB025",
+      "O12": "CR05",
+      "O13": "ACC05",
+      "O14": "STR1",
+      "XL": "SH2",
+      "XH": "NADMG05",
+      "YL": "SB025",
+      "YH": "MP5",
+      "KS1": "ATK1",
+      "KS2": "MELD1",
+      "KY": "K",
+      "GL1": "SB025",
+      "GL2": "G",
+      "GH1": "ACC05",
+      "GH2": "G"
+    }
+  },
+  "smallPackages": {
+    "STR1": {
+      "STRENGTH": 1
+    },
+    "AGI1": {
+      "AGILITY": 1
+    },
+    "VIT1": {
+      "VITALITY": 1
+    },
+    "ATK1": {
+      "ATTACK": 1
+    },
+    "DEF1": {
+      "DEFENSE": 1
+    },
+    "MDEF1": {
+      "MAGIC_DEFENSE": 1
+    },
+    "HP5": {
+      "MAX_HEALTH": 5
+    },
+    "MP5": {
+      "MAX_MANA": 5
+    },
+    "ENG3": {
+      "MAX_ENERGY": 3
+    },
+    "CR05": {
+      "CRITICAL_RATE": 0.5
+    },
+    "CD1": {
+      "CRITICAL_DAMAGE": 1
+    },
+    "SCR01": {
+      "SUPER_CRITICAL_RATE": 0.1
+    },
+    "SCD1": {
+      "SUPER_CRITICAL_DAMAGE": 1
+    },
+    "NADMG05": {
+      "NORMAL_ATTACK_DAMAGE_INCREASE": 0.5
+    },
+    "ACC05": {
+      "ACCURACY": 0.5
+    },
+    "SB025": {
+      "SHIELD_BREAK": 0.25
+    },
+    "SH2": {
+      "MAX_SHIELD": 2
+    },
+    "SRR05": {
+      "SHIELD_RECHARGE_REDUCTION": 0.5
+    },
+    "KB1": {
+      "KNOCKBACK_RESISTANCE": 1
+    },
+    "MELD1": {
+      "MELEE_DEFENSE": 1
+    },
+    "RES": {
+      "FIRE_RESISTANCE": 0.5,
+      "ICE_RESISTANCE": 0.5,
+      "LIGHTNING_RESISTANCE": 0.5
+    }
+  },
+  "specialEffects": {
+    "NW": {
+      "N1": {
+        "STRENGTH": 1,
+        "CRITICAL_RATE": 1
+      },
+      "N2": {
+        "CRITICAL_RATE": 1,
+        "CRITICAL_DAMAGE": 2
+      },
+      "N3": {
+        "NORMAL_ATTACK_DAMAGE_INCREASE": 1,
+        "CRITICAL_DAMAGE": 1
+      },
+      "N4": {
+        "ACCURACY": 1,
+        "AGILITY": 1
+      },
+      "N5": {
+        "CRITICAL_DAMAGE": 2,
+        "ATTACK": 1
+      },
+      "N6": {
+        "STRENGTH": 1,
+        "MAX_HEALTH": 10
+      },
+      "K": {
+        "CRITICAL_RATE": 3,
+        "CRITICAL_DAMAGE": 6,
+        "DEFENSE": -4
+      },
+      "G": {
+        "STRENGTH": 1,
+        "CRITICAL_RATE": 0.5
+      }
+    },
+    "NE": {
+      "N1": {
+        "AGILITY": 1,
+        "SHIELD_BREAK": 0.5
+      },
+      "N2": {
+        "SHIELD_BREAK": 1,
+        "NORMAL_ATTACK_DAMAGE_INCREASE": 0.5
+      },
+      "N3": {
+        "SUPER_CRITICAL_RATE": 0.3,
+        "SUPER_CRITICAL_DAMAGE": 2
+      },
+      "N4": {
+        "AGILITY": 1,
+        "MAX_ENERGY": 5
+      },
+      "N5": {
+        "NORMAL_ATTACK_DEGRADATION_DELAY": 1,
+        "ACCURACY": 0.5
+      },
+      "N6": {
+        "ENERGY_REGEN": 1,
+        "MAX_ENERGY": 3
+      },
+      "K": {
+        "SHIELD_BREAK": 3,
+        "SUPER_CRITICAL_DAMAGE": 5,
+        "CRITICAL_RATE": -2
+      },
+      "G": {
+        "SHIELD_BREAK": 0.25,
+        "AGILITY": 1
+      }
+    },
+    "SW": {
+      "N1": {
+        "MAX_SHIELD": 3,
+        "DEFENSE": 1
+      },
+      "N2": {
+        "MAX_SHIELD": 4,
+        "MAGIC_DEFENSE": 1
+      },
+      "N3": {
+        "SHIELD_RECHARGE_REDUCTION": 0.5,
+        "MAX_SHIELD": 2
+      },
+      "N4": {
+        "MAGIC_DEFENSE": 1,
+        "MAX_MANA": 5
+      },
+      "N5": {
+        "SUPPORT_POWER": 1,
+        "MAX_SHIELD": 2
+      },
+      "N6": {
+        "VITALITY": 1,
+        "MAX_HEALTH": 5,
+        "MAX_SHIELD": 2
+      },
+      "K": {
+        "MAX_SHIELD": 15,
+        "SHIELD_RECHARGE_REDUCTION": 1.5,
+        "MAX_HEALTH": -20
+      },
+      "G": {
+        "MAX_SHIELD": 2,
+        "MAX_MANA": 5
+      }
+    },
+    "SE": {
+      "N1": {
+        "VITALITY": 1,
+        "MAX_HEALTH": 10
+      },
+      "N2": {
+        "DEFENSE": 1,
+        "MELEE_DEFENSE": 1
+      },
+      "N3": {
+        "KNOCKBACK_RESISTANCE": 2,
+        "DAMAGE_REDUCTION_RATE": 1
+      },
+      "N4": {
+        "FIRE_RESISTANCE": 1,
+        "ICE_RESISTANCE": 1,
+        "LIGHTNING_RESISTANCE": 1,
+        "NONE_RESISTANCE": 1
+      },
+      "N5": {
+        "MAX_HEALTH": 5,
+        "DEFENSE": 1
+      },
+      "N6": {
+        "VITALITY": 1,
+        "MAX_HEALTH": 5,
+        "HP_REGEN": 1
+      },
+      "K": {
+        "DAMAGE_REDUCTION_RATE": 3,
+        "MELEE_DEFENSE": 2,
+        "AGILITY": -3
+      },
+      "G": {
+        "KNOCKBACK_RESISTANCE": 1,
+        "NONE_RESISTANCE": 1
+      }
+    }
+  }
+}
