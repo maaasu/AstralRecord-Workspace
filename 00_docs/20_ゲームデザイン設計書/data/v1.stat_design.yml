@@ -114,6 +114,9 @@ relativeRates:
 
 equipment:
   relativeCandidates:
+    会心率の相対増加: {base: 通常会心率, id: CRITICAL_RATE_RELATIVE_INCREASE}
+    命中率の相対増加: {base: 命中率, id: ACCURACY_RELATIVE_INCREASE}
+    氷属性耐性の相対増加: {base: 氷属性耐性, id: ICE_RESISTANCE_RELATIVE_INCREASE}
     通常攻撃会心率の相対増加:
       base: 通常会心率
       id: NORMAL_ATTACK_CRITICAL_RATE_RELATIVE_INCREASE
@@ -194,7 +197,7 @@ equipment:
         twoHandedBonus: 命中率
         normal: [器用さ, 通常攻撃ダメージ増加]
         advanced: [スキルダメージ増加, シールドブレイク]
-        build: [通常会心, 間接防御貫通率]
+        build: [通常会心, 間接防御貫通率, 命中率の相対増加]
         lateBuild: [超星会心]
       - name: ワンド
         icon: wand
@@ -272,7 +275,7 @@ equipment:
         oneOf: [最大HP, 最大MP, 最大ENG]
         normal: [主能力, 属性耐性, 支援力, MP消費軽減率]
         advanced: [クールダウン短縮, スキルダメージ増加]
-        build: [体力, 回復量増加, 通常会心]
+        build: [体力, 回復量増加, 通常会心, 会心率の相対増加]
       - name: タリスマン
         icon: talisman
         role: 主能力か敏捷性を補い、攻撃を当てやすくする。
@@ -286,7 +289,7 @@ equipment:
         oneOf: [属性耐性, 状態異常付与耐性, 継続ダメージ耐性, HP自然回復量（5秒ごと）]
         normal: [MP自然回復量（5秒ごと）, ENG自然回復量（5秒ごと）]
         advanced: [ノックバック耐性, バフ持続時間増加]
-        build: [幸運, 育成・探索報酬, 消耗品使用中の移動]
+        build: [幸運, 育成・探索報酬, 消耗品使用中の移動, 氷属性耐性の相対増加]
       - name: コア
         icon: core
         role: 攻撃・支援・耐久のうち、構成の軸になる能力を伸ばす。
