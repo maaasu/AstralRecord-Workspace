@@ -121,6 +121,33 @@ class PlayerInteractionGatewayEventHandlerTest {
         verify(event, never()).setUseItemInHand(any());
     }
 
+    /** オフハンド使用制限は、ブロック操作やメインハンドの使用を打ち消しません。 */
+    @Test
+    void deniesOnlyOffhandItemUseWhilePreservingBlockInteraction() {
+        AtomicInteger blockExecutions = new AtomicInteger();
+        PlayerInputResolver<PlayerInteractionSnapshot> worldResolver = context -> List.of(new PlayerInputCandidate(
+            "block", InteractionTier.WORLD_INTERACTION, 0.0D, 0, "block", InputClaimPolicy.CLAIM,
+            blockExecutions::incrementAndGet
+        ));
+        PlayerInteractionGatewayEventHandler gateway = new PlayerInteractionGatewayEventHandler(
+            plugin, List.of(worldResolver), ignored -> false, ignored -> false, ignored -> {},
+            new VanillaInteractionResolver(), ignored -> true
+        );
+        PlayerInteractEvent offhand = interactEvent(EquipmentSlot.OFF_HAND, false);
+        when(offhand.getAction()).thenReturn(Action.RIGHT_CLICK_BLOCK);
+        when(offhand.useInteractedBlock()).thenReturn(Event.Result.DEFAULT);
+        PlayerInteractEvent mainHand = interactEvent(EquipmentSlot.HAND, false);
+
+        gateway.onPlayerInteract(offhand);
+        gateway.onPlayerInteract(mainHand);
+
+        assertEquals(1, blockExecutions.get());
+        verify(offhand).setUseItemInHand(Event.Result.DENY);
+        verify(offhand, never()).setUseInteractedBlock(any());
+        verify(offhand, never()).setCancelled(true);
+        verify(mainHand, never()).setUseItemInHand(any());
+    }
+
     /**
      * main/offhandの相関配送でexecutorを一回だけ実行し、cancel要求を両eventへ反映する。
      */

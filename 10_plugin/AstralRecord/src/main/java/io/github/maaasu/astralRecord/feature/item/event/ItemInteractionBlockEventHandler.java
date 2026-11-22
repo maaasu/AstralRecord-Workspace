@@ -22,9 +22,12 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInputCandidate;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
+import io.papermc.paper.event.entity.EntityEquipmentChangedEvent;
+import io.papermc.paper.event.player.PlayerItemFrameChangeEvent;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -61,6 +64,12 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler
         this.potionUseService = potionUseService;
     }
 
+    /**
+     * 使用可能な手のアイテムに対し、カスタム使用またはバニラ使用抑止の候補を返します。
+     *
+     * @param context 仲裁対象のプレイヤー入力
+     * @return 実行時に手の使用可否を再確認する候補一覧
+     */
     @Override
     public @NotNull Collection<PlayerInputCandidate> resolve(
         @NotNull PlayerInputContext<PlayerInteractionSnapshot> context
@@ -71,7 +80,7 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler
         PlayerInteractionSnapshot snapshot = context.inputSnapshot();
         AstPlayer astPlayer = AstPlayerCache.get(snapshot.player());
         EquipmentSlot hand = snapshot.hand();
-        if (!isPlayerMode(astPlayer) || hand == null) {
+        if (!isPlayerMode(astPlayer) || hand == null || isHandUseBlocked(astPlayer, hand)) {
             return List.of();
         }
         ItemModel model = inventoryService.getItemModelInHand(astPlayer, hand);
@@ -89,6 +98,7 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler
                 0,
                 model.getId() + ":" + hand.name(),
                 InputClaimPolicy.CLAIM_AND_CANCEL,
+                () -> !isHandUseBlocked(astPlayer, hand),
                 () -> runSafely(() -> {
                     if (category == ItemCategory.BUNDLE) {
                         bundleUseService.beginBundleUse(astPlayer, hand, model);
@@ -110,6 +120,7 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler
                 : InteractionCandidateOrder.ITEM_VANILLA_GUARD,
             model.getId() + ":" + hand.name(),
             InputClaimPolicy.CLAIM_AND_CANCEL,
+            () -> !isHandUseBlocked(astPlayer, hand),
             () -> {
                 if (category == ItemCategory.EQUIPMENT && model.getEquipment() != null) {
                     EquipmentRequirementService.checkAndNotify(astPlayer, model.getEquipment());
@@ -118,10 +129,61 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler
         ));
     }
 
+    /**
+     * 使用中に装備が切り替わった場合は、制限対象のオフハンド使用を中断します。
+     *
+     * @param event Paper の装備変更イベント
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onEquipmentChanged(@NotNull EntityEquipmentChangedEvent event) {
+        if (event.getEntity() instanceof Player player
+            && player.hasActiveItem()
+            && player.getActiveItemHand() == EquipmentSlot.OFF_HAND
+            && inventoryService.isOffhandUseBlocked(AstPlayerCache.get(player))) {
+            player.clearActiveItem();
+        }
+    }
+
+    /**
+     * 制限中の補助装備を防具立てへ渡す操作を拒否します。
+     *
+     * @param event Bukkit の防具立て装備操作イベント
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onArmorStandManipulate(@NotNull PlayerArmorStandManipulateEvent event) {
+        if (isHandUseBlocked(AstPlayerCache.get(event.getPlayer()), event.getHand())) {
+            event.setCancelled(true);
+        }
+    }
+
+    /**
+     * 制限中の補助装備を額縁に入れる操作を拒否します。
+     *
+     * @param event Paper の額縁変更イベント。アイテムの設置時に判定します
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onItemFrameChange(@NotNull PlayerItemFrameChangeEvent event) {
+        Player player = event.getPlayer();
+        if (event.getAction() == PlayerItemFrameChangeEvent.ItemFrameChangeAction.PLACE
+            && inventoryService.isOffhandUseBlocked(AstPlayerCache.get(player))
+            && player.getInventory().getItemInOffHand().isSimilar(event.getItemStack())) {
+            event.setCancelled(true);
+        }
+    }
+
+    /**
+     * 制限対象のオフハンド使用と、AstralRecord アイテムのバニラ消費を拒否します。
+     *
+     * @param event Bukkit のアイテム消費イベント
+     */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerItemConsume(PlayerItemConsumeEvent event) {
         runSafely(() -> {
             var astPlayer = AstPlayerCache.get(event.getPlayer());
+            if (isHandUseBlocked(astPlayer, event.getHand())) {
+                event.setCancelled(true);
+                return;
+            }
             if (!isPlayerMode(astPlayer)) {
                 return;
             }
@@ -172,6 +234,11 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler
 
     private static boolean isPlayerMode(AstPlayer astPlayer) {
         return astPlayer != null && astPlayer.getAccount().getMode() == AccountMode.PLAYER;
+    }
+
+    /** 実際に無効化中のオフハンドからの入力かを判定します。 */
+    private boolean isHandUseBlocked(AstPlayer astPlayer, EquipmentSlot hand) {
+        return hand == EquipmentSlot.OFF_HAND && inventoryService.isOffhandUseBlocked(astPlayer);
     }
 
     private static boolean matchesItemId(ItemReference reference, @NotNull String itemId) {

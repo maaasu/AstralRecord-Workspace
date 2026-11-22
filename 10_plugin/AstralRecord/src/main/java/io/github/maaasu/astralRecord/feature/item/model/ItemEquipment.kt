@@ -29,6 +29,13 @@ data class ItemEquipment @JvmOverloads constructor(
     /** 装備中に使用を許可するスキル参照。 */
     val usableSkills: List<String> = emptyList(),
 ) {
+    /** メインハンドに装備すると補助装備の使用を無効にする両手武器の場合は true を返します。 */
+    fun isTwoHandedWeapon(): Boolean =
+        slot == ItemEquipmentSlot.WEAPON && handType == ItemEquipmentHandType.TWO
+
+    /** オフハンド用の補助装備の場合は true を返します。 */
+    fun isOffhandEquipment(): Boolean = slot == ItemEquipmentSlot.SUBWEAPON
+
     /**
      * 装備インスタンスのステータスロールに対応するマスタ定義を返します。
      *
