@@ -56,7 +56,7 @@
     },
     {
       "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/combat/model/AstEntity.java",
-      "sha256": "43156d17235e0d9dd5ef9a21bc597527d481a04215c7508f593290fe33867bc4"
+      "sha256": "73920bcdd2768bcf04f25ea9fb7781c52ca6e5b91351481d9d4209da6065befb"
     },
     {
       "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/active/support/PlayerActiveSkillExecutor.java",

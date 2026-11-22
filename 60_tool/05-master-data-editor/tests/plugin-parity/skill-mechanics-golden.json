@@ -8,7 +8,7 @@
     { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/active/model/SkillProjectileSpec.java", "sha256": "0d10cc1a2a42c3b1d561826a92520f724aade1596a063703981287e589550a14" },
     { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/active/service/SkillTargetingService.java", "sha256": "cadc6da571356c2148e56455cc67e262cb504f88bae7a5c05340885da80698f8" },
     { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/active/service/SkillProjectileService.java", "sha256": "f34142a929dfdad78e98f40ce493592a89eb5dc0ac8a85a07c7e946a473844b5" },
-    { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/combat/service/DamageCalculator.java", "sha256": "8151d376fd2a7f71d89d2c56213c830f3a7c5900613780d0d4035a98cacadcf6" },
+    { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/combat/service/DamageCalculator.java", "sha256": "63ec5708e4b1cd5b63eebe1fbcde7019850f4e3040fcf9b5c28bcb5740bd9970" },
     { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/combat/model/DamageContext.java", "sha256": "8b786e9b2b6f2fdeb0f80bc0d54b8f03327d26d565d7295f468c45f662af0d54" },
     { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/combat/model/DamageComponent.java", "sha256": "17306128fdde270ffbdf8191f43b41b193ea48fe680d7c0d7775ac9fe349d12d" },
     { "path": "10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/buff/service/BuffService.java", "sha256": "4724ecf9c2a1ffcec58a37eaf206225a3f3017ed80c8a3b6f0d68f145ffa6b5a" },

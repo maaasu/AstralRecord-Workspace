@@ -6,16 +6,20 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageContext;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageScaling;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobBaseStat;
 import java.util.UUID;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
+import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Set;
 
@@ -23,6 +27,94 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
 class DamageCalculatorBreakdownTest {
+
+    @Test
+    void relativeRatesMatchCombatAndPreviewForEachAttackSource() {
+        var base = DesignTestFixtures.statusSnapshot(Map.of(
+                StatusType.ATTACK, 100.0, StatusType.ACCURACY, 100.0, StatusType.FINAL_DAMAGE_MULTIPLIER, 100.0,
+                StatusType.CRITICAL_DAMAGE, 200.0, StatusType.CRITICAL_RATE, 4.0,
+                StatusType.CRITICAL_RATE_RELATIVE_INCREASE, 100.0,
+                StatusType.NORMAL_ATTACK_CRITICAL_RATE_RELATIVE_INCREASE, 100.0,
+                StatusType.SKILL_CRITICAL_RATE_RELATIVE_INCREASE, 40.0), 100, 50, 10);
+        var snapshot = base.withFlatBonuses(Map.of(StatusType.CRITICAL_RATE, 1.0));
+        var attacker = AstEntity.player(mock(AstPlayer.class), snapshot);
+        var victim = AstEntity.mob(DesignTestFixtures.mobInstance(100, 0, 0));
+
+        for (var source : DamageSource.values()) {
+            double expectedRate = switch (source) {
+                case NORMAL_ATTACK -> 15.0;
+                case SKILL -> 12.0;
+                case OTHER -> 10.0;
+            };
+            assertEquals(expectedRate, attacker.criticalRate(source), 1e-9);
+            double sum = 0;
+            for (int roll = 0; roll < 100; roll++) {
+                double percent = roll + 0.5;
+                var combat = new DamageCalculator(() -> percent);
+                sum += combat.calculate(new DamageContext(attacker, victim, 0, AttackType.MELEE,
+                        List.of(DamageComponent.defaultComponent()), DamageScaling.ATTACKER_STATUS, source)).finalDamage();
+            }
+            assertEquals(100.0 + expectedRate, sum / 100, 1e-9);
+            assertEquals(sum / 100, DamageCalculator.expectedDirectHit(snapshot, AttackType.MELEE,
+                    DamageElement.NONE, source, 1), 1e-9);
+        }
+        assertEquals(8.0, base.getMaxValue(StatusType.CRITICAL_RATE), 1e-9);
+    }
+
+    @Test
+    void previewUsesCombatRangeAfterCommonScopedAndSigilBonuses() {
+        var snapshot = new StatusSnapshot(Map.of(
+                StatusType.CRITICAL_RATE, new StatusValue(5, 10, 0, 0),
+                StatusType.CRITICAL_RATE_RELATIVE_INCREASE, new StatusValue(0, 60, 0, 0),
+                StatusType.NORMAL_ATTACK_CRITICAL_RATE_RELATIVE_INCREASE, new StatusValue(0, 40, 0, 0),
+                StatusType.SKILL_CRITICAL_RATE_RELATIVE_INCREASE, new StatusValue(0, 40, 0, 0)),
+                0, 0, 0, 0, 0, LocalDateTime.MIN);
+        for (var source : List.of(DamageSource.NORMAL_ATTACK, DamageSource.SKILL)) {
+            var combatRange = snapshot.getValue(StatusType.CRITICAL_RATE, source.criticalRateIncrease());
+            assertEquals(5, combatRange.getMinValue(), 1e-9);
+            assertEquals(20, combatRange.getMaxValue(), 1e-9);
+            assertEquals(0.125, DamageCalculator.criticalChance(snapshot.atMidpoints(), source), 1e-9);
+        }
+
+        var withSigil = snapshot.withFlatBonuses(Map.of(
+                StatusType.CRITICAL_RATE, 2.0, StatusType.SKILL_CRITICAL_RATE_RELATIVE_INCREASE, 10.0));
+        var skillRange = withSigil.getValue(StatusType.CRITICAL_RATE, DamageSource.SKILL.criticalRateIncrease());
+        assertEquals(7.7, skillRange.getMinValue(), 1e-9);
+        assertEquals(25.2, skillRange.getMaxValue(), 1e-9);
+        assertEquals(0.1645, DamageCalculator.criticalChance(withSigil.atMidpoints(), DamageSource.SKILL), 1e-9);
+        assertEquals(0.155, DamageCalculator.criticalChance(withSigil.atMidpoints(), DamageSource.NORMAL_ATTACK), 1e-9);
+        assertEquals(0.125, DamageCalculator.criticalChance(snapshot.atMidpoints(), DamageSource.SKILL), 1e-9);
+    }
+
+    @Test
+    void previewAveragesEffectiveChanceAcrossTheGuaranteedCriticalThreshold() {
+        var snapshot = new StatusSnapshot(Map.of(StatusType.CRITICAL_RATE, new StatusValue(80, 120, 0, 0)),
+                0, 0, 0, 0, 0, LocalDateTime.MIN);
+        assertEquals(0.95, DamageCalculator.criticalChance(snapshot.atMidpoints(), DamageSource.SKILL), 1e-9);
+    }
+
+    @Test
+    void relativeRateCapsApplyAfterStackingAndExistingMultipliersKeepTheirUnits() {
+        var stats = DesignTestFixtures.statusSnapshot(Map.of(
+                StatusType.ACCURACY, 80.0, StatusType.ACCURACY_RELATIVE_INCREASE, 50.0,
+                StatusType.CRITICAL_RATE, 5.0, StatusType.SKILL_DAMAGE_INCREASE, 20.0,
+                StatusType.ATTACK, 100.0, StatusType.FINAL_DAMAGE_MULTIPLIER, 120.0), 100, 20, 10);
+        assertEquals(120, stats.getMaxValue(StatusType.ACCURACY));
+        assertEquals(5, stats.getMaxValue(StatusType.CRITICAL_RATE));
+        assertEquals(20, stats.getMaxValue(StatusType.SKILL_DAMAGE_INCREASE));
+        assertEquals(147.6, DamageCalculator.expectedDirectHit(stats, AttackType.MELEE, DamageElement.NONE,
+                DamageSource.SKILL, 1), 1e-9);
+    }
+
+    @Test
+    void fixedHealthDamageAppliesOncePerDirectHitWithMultipleElements() {
+        var stats = DesignTestFixtures.statusSnapshot(Map.of(
+                StatusType.ATTACK, 100.0, StatusType.ACCURACY, 100.0,
+                StatusType.FINAL_DAMAGE_MULTIPLIER, 100.0, StatusType.FIXED_HEALTH_DAMAGE, 10.0), 0, 0, 0);
+        var components = List.of(new DamageComponent(DamageElement.FIRE, 0.5), new DamageComponent(DamageElement.ICE, 0.5));
+        assertEquals(110.0, DamageCalculator.expectedDirectHit(stats, AttackType.MAGIC, components, DamageSource.SKILL, 0));
+        assertEquals(100.0, DamageCalculator.expectedDirectHit(stats, AttackType.MAGIC, components, DamageSource.OTHER, 0));
+    }
 
     /**
      * 同一hit計算で解決attack、貫通前後defense、属性raw/effective resistanceをsnapshot化する。

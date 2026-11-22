@@ -15,6 +15,7 @@ var deserializer = new DeserializerBuilder()
     .Build();
 var catalog = deserializer.Deserialize<StatusCatalog>(await File.ReadAllTextAsync(sourcePath))
     ?? throw new InvalidDataException("Status catalog root is empty.");
+RelativeStatuses.AppendTo(catalog);
 CatalogValidator.Validate(catalog);
 
 var targets = new Dictionary<string, string>
@@ -31,6 +32,8 @@ var targets = new Dictionary<string, string>
         options.RepositoryRoot,
         "60_tool", "05-master-data-editor", "src", "SkillTreeEditor.Client", "src", "data", "statusTypes.generated.ts")] =
         CodeTemplates.TypeScript(catalog),
+    [Path.Combine(options.RepositoryRoot, "60_tool", "05-master-data-editor", "src", "SkillTreeEditor.Server",
+        "Services", "RelativeStatusTypes.generated.cs")] = CodeTemplates.EditorRelativeStatuses(catalog),
 };
 
 var staleTargets = new List<string>();
@@ -119,6 +122,50 @@ internal sealed class StatusDefinition
     public string Suffix { get; init; } = string.Empty;
     public int DecimalPlaces { get; init; }
     public bool SupportsRange { get; init; } = true;
+}
+
+// 派生IDは既存enumの末尾に追加し、保存済みID・序数を維持する。
+internal static class RelativeStatuses
+{
+    public static void AppendTo(StatusCatalog catalog)
+    {
+        foreach (var source in catalog.Statuses.ToArray())
+        {
+            if (source.Suffix != "%" || !IsBaseRate(source.Id))
+                continue;
+            Add(source.Id, source.DisplayName, "");
+            if (source.Id == "CRITICAL_RATE")
+            {
+                Add("SKILL_CRITICAL_RATE", "スキル会心率", "職業スキル・シジルの攻撃時に");
+                Add("NORMAL_ATTACK_CRITICAL_RATE", "通常攻撃会心率", "通常攻撃時に");
+            }
+
+            void Add(string prefix, string label, string scope)
+            {
+                var id = prefix + "_RELATIVE_INCREASE";
+                if (id.Length > 50) throw new InvalidDataException($"Equipment status ID exceeds 50 characters: {id}");
+                catalog.Statuses.Add(new StatusDefinition
+                {
+                    Id = id,
+                    DisplayName = label + "の相対増加",
+                    Description = scope + source.DisplayName + "の固定加算・派生込みの値を指定割合だけ増加させる。",
+                    Category = source.Category,
+                    Suffix = "%",
+                    DecimalPlaces = 1,
+                    SupportsRange = source.SupportsRange
+                });
+            }
+        }
+    }
+
+    private static bool IsBaseRate(string id) =>
+        id is "CRITICAL_RATE" or "CRITICAL_DAMAGE" or "SUPER_CRITICAL_RATE" or "SUPER_CRITICAL_DAMAGE"
+            or "ACCURACY" or "EVASION" or "ATTACK_SPEED" or "LIFE_STEAL" or "SHIELD_RECHARGE_DELAY_CHANCE"
+            or "COOLDOWN_REDUCTION" or "CAST_TIME_REDUCTION" or "MANA_COST_REDUCTION"
+            or "ENERGY_COST_REDUCTION" or "SHIELD_RECHARGE_REDUCTION" or "DAMAGE_REDUCTION_RATE"
+        || id.EndsWith("_PENETRATION_RATE", StringComparison.Ordinal)
+        || id.EndsWith("_PENETRATION", StringComparison.Ordinal)
+        || id.EndsWith("_RESISTANCE", StringComparison.Ordinal);
 }
 
 internal static partial class CatalogValidator
@@ -210,6 +257,9 @@ internal static class CodeTemplates
         }
         builder.AppendLine("    ;");
         builder.AppendLine();
+        builder.AppendLine("    /** この基本値に対する共通の相対増加。対象外のステータスは null。 */");
+        builder.AppendLine("    val relativeIncrease: StatusType? get() = increases[this]");
+        builder.AppendLine();
         builder.AppendLine("    /** 共有ステータスカテゴリです。 */");
         builder.AppendLine("    enum class Category(val displayName: String) {");
         foreach (var category in catalog.Categories)
@@ -293,6 +343,9 @@ internal static class CodeTemplates
         builder.AppendLine();
         builder.AppendLine("    companion object {");
         builder.AppendLine("        private val byId = entries.associateBy(StatusType::id)");
+        builder.AppendLine("        private val increases = entries.mapNotNull { base ->");
+        builder.AppendLine("            byId[base.id + \"_RELATIVE_INCREASE\"]?.let { base to it }");
+        builder.AppendLine("        }.toMap()");
         builder.AppendLine();
         builder.AppendLine("        /**");
         builder.AppendLine("         * 指定カテゴリに属するステータスを返します。");
@@ -376,6 +429,29 @@ internal static class CodeTemplates
         builder.AppendLine("    /// <summary>不変IDに対応するステータス定義を取得します。</summary>");
         builder.AppendLine("    public static bool TryGet(string id, out StatusTypeDefinition? definition) =>");
         builder.AppendLine("        Definitions.TryGetValue(id, out definition);");
+        builder.AppendLine("}");
+        return builder.ToString();
+    }
+
+    public static string EditorRelativeStatuses(StatusCatalog catalog)
+    {
+        var ids = catalog.Statuses.Select(status => status.Id).ToHashSet(StringComparer.Ordinal);
+        var builder = new StringBuilder();
+        builder.AppendLine("// <auto-generated>共有ステータス生成ツールから生成。直接編集しないでください。</auto-generated>");
+        builder.AppendLine("namespace SkillTreeEditor.Server.Services;");
+        builder.AppendLine();
+        builder.AppendLine("internal static class RelativeStatusTypes");
+        builder.AppendLine("{");
+        builder.AppendLine("    internal static readonly IReadOnlyDictionary<string, string> Increases =");
+        builder.AppendLine("        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)");
+        builder.AppendLine("        {");
+        foreach (var status in catalog.Statuses)
+        {
+            var increase = status.Id + "_RELATIVE_INCREASE";
+            if (ids.Contains(increase))
+                builder.Append("            [").Append(Quote(status.Id)).Append("] = ").Append(Quote(increase)).AppendLine(",");
+        }
+        builder.AppendLine("        };");
         builder.AppendLine("}");
         return builder.ToString();
     }

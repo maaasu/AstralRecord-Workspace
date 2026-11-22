@@ -6,6 +6,22 @@ namespace SkillTreeEditor.Server.Tests;
 public sealed class BalanceCombatTests
 {
     [Fact]
+    public void ScopedIncreasesReadTheSameUnscaledBaseForBothAttackSources()
+    {
+        var stats = new Dictionary<string, double>
+        {
+            ["CRITICAL_RATE"] = 5,
+            ["CRITICAL_RATE_RELATIVE_INCREASE"] = 50,
+            ["SKILL_CRITICAL_RATE_RELATIVE_INCREASE"] = 50,
+            ["NORMAL_ATTACK_CRITICAL_RATE_RELATIVE_INCREASE"] = 100
+        };
+        Assert.All(stats.Keys, key => Assert.True(BalanceCombat.SupportsStatus(key)));
+        Assert.Equal(7.5, BalanceCombatData.Stat(stats, "CRITICAL_RATE"));
+        Assert.Equal(10, BalanceCombatData.Stat(stats, "CRITICAL_RATE", source: "SKILL"));
+        Assert.Equal(12.5, BalanceCombatData.Stat(stats, "CRITICAL_RATE", source: "NORMAL_ATTACK"));
+    }
+
+    [Fact]
     public void DamageAndTimingMatchPluginGoldenHarness()
     {
         // These expectations are emitted by CombatGoldenHarness.java through real Plugin classes.

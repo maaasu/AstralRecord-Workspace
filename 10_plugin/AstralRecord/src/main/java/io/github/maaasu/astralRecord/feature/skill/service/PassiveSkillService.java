@@ -216,6 +216,11 @@ public final class PassiveSkillService {
     public boolean isPassiveSkillActive(@NotNull AstPlayer player, @NotNull String skillId) {
         if (!isCurrentSession(player)) return false;
         reconcileIfNeeded(player);
+        return hasPublishedPassive(player, skillId);
+    }
+
+    /** 公開済みのパッシブ状態を、再構築や発動処理を伴わず照会します。 */
+    public boolean hasPublishedPassive(@NotNull AstPlayer player, @NotNull String skillId) {
         PlayerPassiveState state = activeStates.get(player.getAccount().getUuid());
         if (state == null) return false;
         return state.skillsByInstanceId.values().stream()

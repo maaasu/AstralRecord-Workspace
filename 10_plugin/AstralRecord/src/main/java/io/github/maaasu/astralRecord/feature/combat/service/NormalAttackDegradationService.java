@@ -108,10 +108,7 @@ public final class NormalAttackDegradationService {
         int previousAttackCount = previous == null ? 0 : previous.attackCount();
         long previousExpiresAtMillis = previous == null ? 0L : previous.expiresAtMillis();
         int degradationDelay = degradationDelayAttackCount(player);
-        int maxAttackCountForState = maxAttackCount(degradationDelay);
-        int attackCount = previousAttackCount >= maxAttackCountForState
-                ? maxAttackCountForState
-                : previousAttackCount + 1;
+        int attackCount = nextCount(previousAttackCount, degradationDelay);
         long expiresAtMillis = now + DEGRADATION_DURATION_MILLIS;
         DegradationState updated = new DegradationState(attackCount, expiresAtMillis);
         states.put(playerId, updated);
@@ -368,6 +365,10 @@ public final class NormalAttackDegradationService {
             return 0;
         }
         double value = statusService.getStatus(player).getMaxValue(StatusType.NORMAL_ATTACK_DEGRADATION_DELAY);
+        return normalizeDelay(value);
+    }
+
+    private static int normalizeDelay(double value) {
         if (!Double.isFinite(value)) {
             return 0;
         }
@@ -375,6 +376,25 @@ public final class NormalAttackDegradationService {
                 Integer.MAX_VALUE - (double) FIRST_DEGRADATION_ATTACK_COUNT,
                 Math.floor(Math.max(0.0D, value))
         );
+    }
+
+    /** 次の通常攻撃の劣化倍率を、回数・有効期限・表示を変更せずに読み取ります。 */
+    public AttackModifiers previewNextAttack(@NotNull AstPlayer player) {
+        if (isDegradationExcluded(player)) return new AttackModifiers(1, 1);
+        var previous = states.get(player.getBukkit().getUniqueId());
+        int count = previous == null || previous.expiresAtMillis() <= currentTimeMillis.getAsLong()
+                ? 0 : previous.attackCount();
+        int delay = normalizeDelay(player.getStatusSnapshot().getMaxValue(StatusType.NORMAL_ATTACK_DEGRADATION_DELAY));
+        int stage = stageForAttackCount(nextCount(count, delay), delay);
+        return new AttackModifiers(damageMultiplierForStage(stage), attackSpeedMultiplierForStage(stage));
+    }
+
+    /** 次の一撃だけに適用する威力・速度倍率です。 */
+    public record AttackModifiers(double damage, double speed) {}
+
+    private static int nextCount(int previous, int delay) {
+        int max = maxAttackCount(delay);
+        return previous >= max ? max : previous + 1;
     }
 
     private static int maxAttackCount(int degradationDelay) {
