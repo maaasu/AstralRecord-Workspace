@@ -1,0 +1,33 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2660",
+  "name": "&b大樹の道標",
+  "icon": "BELL",
+  "tags": [
+    "status",
+    "gateway",
+    "durability",
+    "health",
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ATTACK",
+      "modifierType": "FLAT",
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "adventurer"
+  }
+}

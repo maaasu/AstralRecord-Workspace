@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2642",
+  "name": "&d紅蓮の星脈",
+  "icon": "BLAZE_POWDER",
+  "tags": [
+    "status",
+    "primary",
+    "strength",
+    "ember"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "STRENGTH",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "classId": "adventurer"
+  }
+}

@@ -62,6 +62,30 @@ node JSONの契約には`lore`を定義しません。Pluginとエディター�
 | `skill-mage-frost-blizzard` | `skill` / `mage_frost_blizzard` | `&bフロストブリザード` | `DIAMOND_NAUTILUS_ARMOR` | `ice`, `azure` |
 | `skill-mage-frost-ball` | `skill` / `mage_frost_ball` | `&bフロストボール` | `SNOWBALL` | `ice`, `azure` |
 | `skill-administrator-just-dodge` | `skill` / `administrator_just_dodge` | `&eジャスト回避` | `RABBIT_FOOT` | `defense`, `agility`, `wind` |
+| `status-normal-attack-damage-increase-flat-0-5` | `NORMAL_ATTACK_DAMAGE_INCREASE` / `FLAT` / `0.5` | `&d剛撃の星脈` | `STONE_SWORD` | `status`, `offense`, `strength` |
+| `status-accuracy-flat-0-5` | `ACCURACY` / `FLAT` / `0.5` | `&d明鏡の星環` | `SPYGLASS` | `status`, `offense`, `agility` |
+| `status-skill-damage-increase-flat-0-5` | `SKILL_DAMAGE_INCREASE` / `FLAT` / `0.5` | `&d術理の星脈` | `BOOK` | `status`, `offense`, `intelligence`, `astral` |
+| `status-three-element-resistance-flat-0-5` | `FIRE_RESISTANCE` / `FLAT` / `0.5` + `ICE_RESISTANCE` / `FLAT` / `0.5` + `LIGHTNING_RESISTANCE` / `FLAT` / `0.5` | `&d三元の星脈` | `PRISMARINE_SHARD` | `status`, `defense`, `element` |
+| `status-adventurer-strength-notable` | `STRENGTH` / `FLAT` / `2` + `ATTACK` / `FLAT` / `1` | `&6剛腕` | `IRON_AXE` | `status`, `notable`, `strength`, `offense` |
+| `status-adventurer-steadfast-notable` | `MAX_HEALTH` / `FLAT` / `10` + `DEFENSE` / `FLAT` / `1` + `KNOCKBACK_RESISTANCE` / `FLAT` / `3` | `&6不動の構え` | `SHIELD` | `status`, `notable`, `strength`, `defense`, `durability` |
+| `status-adventurer-heavy-strike-notable` | `NORMAL_ATTACK_DAMAGE_INCREASE` / `FLAT` / `1.5` + `SHIELD_BREAK` / `FLAT` / `1` | `&6重撃` | `NETHERITE_SWORD` | `status`, `notable`, `strength`, `offense` |
+| `status-adventurer-full-force-keystone` | `NORMAL_ATTACK_DAMAGE_INCREASE` / `FLAT` / `4` + `SHIELD_BREAK` / `FLAT` / `2` + `ATTACK_SPEED` / `FLAT` / `-5` | `&c渾身` | `NETHERITE_AXE` | `status`, `keystone`, `strength`, `offense` |
+| `status-adventurer-strength-gateway` | `ATTACK` / `FLAT` / `1` + `MAX_ENERGY` / `FLAT` / `5` | `&b剛剣の道標` | `LODESTONE` | `status`, `gateway`, `strength`, `offense`, `energy` |
+| `status-adventurer-hawk-eye-notable` | `DEXTERITY` / `FLAT` / `2` + `ACCURACY` / `FLAT` / `1` | `&6鷹の目` | `SPYGLASS` | `status`, `notable`, `dexterity`, `accuracy` |
+| `status-adventurer-acrobatics-notable` | `AGILITY` / `FLAT` / `2` + `ENERGY_REGEN` / `FLAT` / `1` | `&6軽業` | `PHANTOM_MEMBRANE` | `status`, `notable`, `agility`, `wind`, `energy` |
+| `status-adventurer-rapid-shot-notable` | `NORMAL_ATTACK_DAMAGE_INCREASE` / `FLAT` / `1` + `ENERGY_COST_REDUCTION` / `FLAT` / `1` | `&6速射` | `CROSSBOW` | `status`, `notable`, `dexterity`, `wind`, `offense`, `energy` |
+| `status-adventurer-focus-keystone` | `ACCURACY` / `FLAT` / `3` + `CRITICAL_RATE` / `FLAT` / `2` + `MAX_HEALTH` / `FLAT` / `-15` | `&c一点集中` | `SPECTRAL_ARROW` | `status`, `keystone`, `dexterity`, `accuracy`, `offense` |
+| `status-adventurer-wind-gateway` | `AGILITY` / `FLAT` / `1` + `MAX_ENERGY` / `FLAT` / `5` | `&b疾風の道標` | `RECOVERY_COMPASS` | `status`, `gateway`, `agility`, `wind`, `energy` |
+| `status-adventurer-wisdom-notable` | `INTELLIGENCE` / `FLAT` / `2` + `MAX_MANA` / `FLAT` / `10` | `&6叡智` | `KNOWLEDGE_BOOK` | `status`, `notable`, `intelligence`, `astral`, `mana` |
+| `status-adventurer-mana-flow-notable` | `MP_REGEN` / `FLAT` / `1` + `MANA_COST_REDUCTION` / `FLAT` / `1` + `SUPPORT_POWER` / `FLAT` / `1` | `&6魔力循環` | `CONDUIT` | `status`, `notable`, `astral`, `mana` |
+| `status-adventurer-spell-power-notable` | `SKILL_DAMAGE_INCREASE` / `FLAT` / `1.5` + `CAST_TIME_REDUCTION` / `FLAT` / `1` | `&6術式強化` | `WRITABLE_BOOK` | `status`, `notable`, `intelligence`, `astral`, `offense` |
+| `status-adventurer-stargazer-cost-keystone` | `SKILL_DAMAGE_INCREASE` / `FLAT` / `3` + `MAX_MANA` / `FLAT` / `30` + `MAX_HEALTH` / `FLAT` / `-20` | `&c星詠みの代償` | `DRAGON_BREATH` | `status`, `keystone`, `intelligence`, `astral`, `mana` |
+| `status-adventurer-stargazer-gateway` | `ATTACK` / `FLAT` / `1` + `MAX_MANA` / `FLAT` / `5` | `&b星詠みの道標` | `LECTERN` | `status`, `gateway`, `astral`, `mana`, `offense` |
+| `status-adventurer-vigor-notable` | `VITALITY` / `FLAT` / `2` + `MAX_HEALTH` / `FLAT` / `10` + `HP_REGEN` / `FLAT` / `1` | `&6頑健` | `GOLDEN_APPLE` | `status`, `notable`, `durability`, `health` |
+| `status-adventurer-iron-wall-notable` | `DEFENSE` / `FLAT` / `2` + `MAGIC_DEFENSE` / `FLAT` / `2` | `&6鉄壁` | `NETHERITE_CHESTPLATE` | `status`, `notable`, `durability`, `defense` |
+| `status-adventurer-star-blessing-notable` | `FIRE_RESISTANCE` / `FLAT` / `1.5` + `ICE_RESISTANCE` / `FLAT` / `1.5` + `LIGHTNING_RESISTANCE` / `FLAT` / `1.5` + `NONE_RESISTANCE` / `FLAT` / `1` | `&6星の加護` | `TOTEM_OF_UNDYING` | `status`, `notable`, `durability`, `defense`, `element` |
+| `status-adventurer-unyielding-keystone` | `DAMAGE_REDUCTION_RATE` / `FLAT` / `3` + `MAX_HEALTH` / `FLAT` / `20` + `FINAL_DAMAGE_MULTIPLIER` / `FLAT` / `-3` | `&c不屈` | `RESPAWN_ANCHOR` | `status`, `keystone`, `durability`, `defense`, `health` |
+| `status-adventurer-great-tree-gateway` | `ATTACK` / `FLAT` / `1` + `MAX_HEALTH` / `FLAT` / `5` | `&b大樹の道標` | `BELL` | `status`, `gateway`, `durability`, `health`, `offense` |
 
 表の表示名には JSON に保存する Legacy color code を含めます。同じ能力を追加するときは、表の表示名、`icon`、タグをすべて同一にします。`administrator_just_dodge` は冒険者 `1350` とハンター `1355` で同じ表現を再利用します。各配置済みノードには、従来どおり一意の `nodeId` を割り当てます。
 

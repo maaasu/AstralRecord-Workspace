@@ -176,6 +176,12 @@ public static class MasterTagIds
         public const string SHARED = "shared";
         /// <summary>中核。</summary>
         public const string CORE = "core";
+        /// <summary>主要ノード。</summary>
+        public const string NOTABLE = "notable";
+        /// <summary>キーストーン。</summary>
+        public const string KEYSTONE = "keystone";
+        /// <summary>道標。</summary>
+        public const string GATEWAY = "gateway";
         /// <summary>基本能力。</summary>
         public const string PRIMARY = "primary";
         /// <summary>リソース。</summary>
@@ -411,6 +417,9 @@ public static class MasterTags
                 ["root"] = new("root", "ルート／根", "スキルツリーの開始点、または根をモチーフとする分類。", "SKILLTREE", ["SKILLTREE_NODE", "MOB"]),
                 ["shared"] = new("shared", "共通", "複数クラスで共有するスキルツリーノード。", "SKILLTREE", ["SKILLTREE_NODE"]),
                 ["core"] = new("core", "中核", "スキルツリーの中核となるノード。", "SKILLTREE", ["SKILLTREE_NODE"]),
+                ["notable"] = new("notable", "主要ノード", "周囲の小ノードより強い効果を持つ、ビルドの方向を決めるスキルツリーノード。", "SKILLTREE", ["SKILLTREE_NODE"]),
+                ["keystone"] = new("keystone", "キーストーン", "長所と短所を併せ持ち、ビルドの性質を大きく変えるスキルツリーノード。", "SKILLTREE", ["SKILLTREE_NODE"]),
+                ["gateway"] = new("gateway", "道標", "次の職業の領域へつながる出口となるスキルツリーノード。", "SKILLTREE", ["SKILLTREE_NODE"]),
                 ["primary"] = new("primary", "基本能力", "基本能力値に関係するノード。", "SKILLTREE", ["SKILLTREE_NODE"]),
                 ["resource"] = new("resource", "リソース", "HP、MPなどのリソースに関係するノード。", "SKILLTREE", ["SKILLTREE_NODE"]),
                 ["strength"] = new("strength", "筋力", "筋力に関係するノード。", "SKILLTREE", ["SKILLTREE_NODE"]),

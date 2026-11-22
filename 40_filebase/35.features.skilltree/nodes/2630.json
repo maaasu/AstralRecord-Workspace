@@ -1,0 +1,33 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2630",
+  "name": "&b星詠みの道標",
+  "icon": "LECTERN",
+  "tags": [
+    "status",
+    "gateway",
+    "astral",
+    "mana",
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ATTACK",
+      "modifierType": "FLAT",
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "adventurer"
+  }
+}

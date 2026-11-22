@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2644",
+  "name": "&6鉄壁",
+  "icon": "NETHERITE_CHESTPLATE",
+  "tags": [
+    "status",
+    "notable",
+    "durability",
+    "defense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "DEFENSE",
+      "modifierType": "FLAT",
+      "value": 2
+    },
+    {
+      "type": "status",
+      "status": "MAGIC_DEFENSE",
+      "modifierType": "FLAT",
+      "value": 2
+    }
+  ],
+  "unlockCondition": {
+    "classId": "adventurer"
+  }
+}

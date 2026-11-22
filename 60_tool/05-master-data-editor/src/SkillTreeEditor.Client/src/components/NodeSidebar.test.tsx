@@ -2,10 +2,17 @@ import type { ComponentProps } from 'react'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { NodeMaster } from '../types/editor'
-import { NodeSidebar } from './NodeSidebar'
+import { NodeSidebar as Listing } from './NodeSidebar'
+import { useNodeListing } from './useNodeListing'
 import * as nodePresentation from '../data/nodeEffectPresentation'
 
 afterEach(() => vi.restoreAllMocks())
+
+function NodeSidebar(props: Omit<ComponentProps<typeof Listing>, 'entries'> &
+  Pick<Parameters<typeof useNodeListing>[0], 'skillMasters' | 'classMasters' | 'rootNodeId'>) {
+  const { entries } = useNodeListing(props)
+  return <Listing {...props} entries={entries} />
+}
 
 const node: NodeMaster = {
   $schema: '../schemas/node.v1.schema.json',
@@ -199,7 +206,7 @@ describe('NodeSidebar', () => {
     update({ classMasters: [{ id: 'adventurer', name: '魔導士', parentClassIds: [] }] })
     expect(screen.queryByRole('article')).not.toBeInTheDocument()
     update({ query: '大炎 魔導士' })
-    expect(screen.getByText('消費 CP[魔導士] 0')).toBeInTheDocument()
+    expect(screen.getByRole('article')).toHaveTextContent('#1000 · 魔導士 · 0 CP · スキル')
     update({ nodes: [{ ...props.nodes[0], name: '&a変更新名', icon: 'DIAMOND', tags: ['custom_edit'], pointCost: 9, effects: [{ type: 'skill', skillId: 'ice' }] }] })
     expect(screen.queryByRole('article')).not.toBeInTheDocument()
     update({ query: '変更新名 custom_edit 9 未定義スキル ICE' })
@@ -268,8 +275,7 @@ describe('NodeSidebar', () => {
       skillMasters={[]}
     />)
 
-    const cost = screen.getByText('消費 CP 3')
-    expect(cost).toHaveClass('cost-chip', 'cp')
+    const cost = screen.getByText('#1000 · 共通 · 3 CP · 小ノード')
     expect(cost.closest('article')).toHaveAttribute('title', expect.stringContaining('消費: CP 3'))
   })
 
@@ -292,7 +298,7 @@ describe('NodeSidebar', () => {
       classMasters={[{ id: 'adventurer', name: '&6冒険者', parentClassIds: [] }]}
     />)
 
-    const cost = screen.getByText('消費 CP[冒険者] 1')
+    const cost = screen.getByText('#1000 · 冒険者 · 1 CP · 小ノード')
     expect(cost.closest('article')).toHaveAttribute('title', expect.stringContaining('消費: CP[冒険者] 1'))
   })
 
@@ -309,10 +315,37 @@ describe('NodeSidebar', () => {
     }
     const { rerender } = render(<NodeSidebar {...props} query="" />)
 
-    expect(screen.getByText('ルート／根')).toHaveAttribute('title', expect.stringContaining('root'))
+    expect(screen.getByRole('article')).toHaveAttribute('title', expect.stringContaining('ルート／根（root）'))
     expect(screen.getByRole('option', { name: 'ルート／根（root）' })).toHaveValue('root')
 
     rerender(<NodeSidebar {...props} query="スキルツリーの開始点" />)
     expect(screen.getByText('始まりのノード')).toBeInTheDocument()
+  })
+
+  it('filters by node kind and shows three lines with colored effect names', () => {
+    const onKindChange = vi.fn()
+    const nodes = [node, {
+      ...node, nodeId: '2541', name: '&a旅の技', pointType: 'CP', tags: ['notable'],
+      pointCost: 1, unlockCondition: { classId: 'adventurer' },
+      effects: [
+        { type: 'status', status: 'MAX_HEALTH', modifierType: 'FLAT', value: 10 },
+        { type: 'status', status: 'STRENGTH', modifierType: 'FLAT', value: 2 },
+        { type: 'skill', skillId: 'flame' },
+      ],
+    }]
+    const props = { nodes, placedIds: new Set(['2541']), query: '', selectedTag: '', rootNodeId: node.nodeId,
+      onKindChange, onQueryChange: vi.fn(), onTagChange: vi.fn(), onEdit: vi.fn(), onCreate: vi.fn(),
+      classMasters: [{ id: 'adventurer', name: '冒険者', parentClassIds: [] }], skillMasters: [] }
+    const view = render(<NodeSidebar {...props} />)
+    expect(screen.getAllByRole('article')).toHaveLength(2)
+    fireEvent.change(screen.getByRole('combobox', { name: 'ノードの種類' }), { target: { value: 'notable' } })
+    expect(onKindChange).toHaveBeenCalledWith('notable')
+    view.rerender(<NodeSidebar {...props} selectedKind="notable" />)
+    const row = screen.getByRole('article')
+    expect(screen.getByText('旅の技')).toHaveStyle({ color: '#55ff55' })
+    expect(row).toHaveTextContent('#2541 · 冒険者 · 1 CP · 主要ノード')
+    expect(screen.getByText('最大HP')).toHaveAttribute('data-stat-category', 'resource')
+    expect(screen.getByText('筋力')).toHaveAttribute('data-stat-category', 'primary')
+    expect(row).toHaveTextContent('ほか 1 件')
   })
 })

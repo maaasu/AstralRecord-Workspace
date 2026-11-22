@@ -106,22 +106,6 @@ body.resizing-rows, body.resizing-rows * { cursor: row-resize !important; }
 .node-pagination { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 0 10px 8px; flex-shrink: 0; }
 .node-pagination .button { min-height: 28px; padding: 4px 7px; font-size: 11px; }
 .node-pagination [role="status"] { color: var(--text-muted); font-size: 11px; line-height: 1.4; text-align: center; overflow-wrap: anywhere; }
-.node-list-item { position: relative; display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; grid-template-rows: auto auto auto auto auto; gap: 2px 8px; margin: 5px 0; padding: 8px 8px 8px 10px; border: 1px solid var(--line); border-left: 3px solid #607ba3; border-radius: var(--radius-control); background: var(--surface-raised); cursor: grab; }
-.node-list-item.placed { border-left-color: #536070; opacity: .72; cursor: default; }
-.node-list-item:hover { border-color: #4a607e; }
-.node-list-item.selected { border-color: #9cc8ff; border-left-color: #9cc8ff; opacity: 1; box-shadow: 0 0 0 1px #75a7e844; }
-.node-list-item strong { grid-column: 2; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.node-list-item .text-button { grid-column: 3; grid-row: 1 / -1; align-self: center; }
-.node-id { color: var(--text-muted); font: 10px ui-monospace, monospace; }
-.node-list-item .node-id { grid-column: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tag-row { display: flex; gap: 3px; overflow: hidden; }
-.node-list-item .tag-row { grid-column: 2; }
-.node-cost-preview { grid-column: 2; display: flex; margin-top: 3px; }
-.node-effect-preview { grid-column: 2; display: grid; gap: 2px; min-width: 0; margin-top: 3px; }
-.node-effect { overflow: hidden; color: #c3cee0; font-size: 9px; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
-.node-effect.status { color: #dfb7f5; }
-.node-effect.skill { color: #9fd4f3; }
-.node-effect.more { color: var(--text-muted); }
 .tag { padding: 2px 5px; border: 1px solid #384960; border-radius: 3px; color: #9fb2ce; font-size: 9px; white-space: nowrap; }
 .empty-state { padding: 10px; color: var(--text-muted); font-size: 11px; text-align: center; }
 
@@ -139,26 +123,6 @@ body.resizing-rows, body.resizing-rows * { cursor: row-resize !important; }
 .canvas-placeholder { display: grid; place-content: center; color: var(--text-muted); text-align: center; }
 .canvas-placeholder h2 { color: #dce4ef; }
 .canvas-hint { position: absolute; left: 12px; bottom: 12px; z-index: 4; padding: 6px 9px; border: 1px solid var(--line); border-radius: var(--radius-small); color: var(--text-muted); background: var(--surface-sidebar); font-size: 10px; pointer-events: none; }
-.react-flow__minimap { border: 1px solid var(--line) !important; background: var(--surface) !important; }
-.react-flow__edge-path { stroke: #7086a5; stroke-width: 2; }
-.react-flow__edge.selected .react-flow__edge-path { stroke: var(--gold); stroke-width: 3; }
-.skill-node { position: relative; width: var(--skill-node-size, 56px); height: var(--skill-node-size, 56px); display: grid; grid-template-rows: minmax(0, .55fr) minmax(0, 1fr) auto; place-items: center; padding: clamp(2px, calc(var(--skill-node-size, 56px) * .055), 7px); border: 2px solid var(--line-bright); border-radius: clamp(5px, calc(var(--skill-node-size, 56px) * .075), 9px); color: var(--text); background: var(--surface-raised); box-shadow: 0 5px 12px #0008; }
-.skill-node.selected { border-color: #9cc8ff; box-shadow: 0 0 0 2px #75a7e844, 0 8px 20px #0009; }
-.skill-node.root { border-color: #b28a48; border-left-color: var(--gold); background: linear-gradient(145deg, #40351f, #241f17); }
-.skill-node strong { width: 100%; display: -webkit-box; overflow: hidden; font-size: 11px; line-height: 1.25; text-align: center; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.skill-node.compact { grid-template-rows: 1fr; }
-.skill-node.compact strong, .skill-node.compact .node-kicker, .skill-node.compact .root-label { display: none; }
-/* アイコンだけの大きさでも、ポインターを重ねたノードと選択中のノードは名前を下に出す。 */
-.skill-node.compact:hover strong, .skill-node.compact.selected strong { position: absolute; top: calc(100% + 5px); left: 50%; z-index: 5; display: block; width: max-content; max-width: 240px; padding: 3px 7px; overflow: hidden; border: 1px solid var(--line-bright); border-radius: var(--radius-small); color: var(--text); background: var(--surface-sidebar); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; transform: translateX(-50%); pointer-events: none; }
-.skill-node.compact.selected strong { border-color: #9cc8ff; }
-.react-flow__node:hover { z-index: 1001 !important; }
-.node-kicker { display: block; max-width: 100%; overflow: hidden; color: #93a4bc; font: 8px ui-monospace, monospace; text-overflow: ellipsis; white-space: nowrap; }
-.root-label { position: absolute; right: 6px; top: -8px; padding: 2px 5px; border: 1px solid #b28a48; border-radius: 3px; color: #20180c; background: var(--gold); font-size: 8px; font-weight: 800; }
-.effect-count { position: absolute; right: -5px; bottom: -5px; min-width: 15px; height: 15px; display: grid; place-items: center; padding: 0 3px; border: 1px solid #76568a; border-radius: 99px; color: #f2defc; background: #392747; font: 700 8px ui-monospace, monospace; }
-.react-flow__handle { width: 8px; height: 8px; border-color: #151d29; background: #9fb6d7; }
-.react-flow__edge.connected .react-flow__edge-path { stroke: #9cc8ff; stroke-width: 3; }
-.react-flow__edge.connected.selected .react-flow__edge-path { stroke: var(--gold); }
-/* 縮小表示では文字と影を省く。接続ハンドルは引き続き操作できる。 */
 .canvas.overview .skill-node { box-shadow: none; }
 .canvas.overview .skill-node strong, .canvas.overview .node-kicker, .canvas.overview .root-label, .canvas.overview .effect-count { visibility: hidden; }
 .canvas.overview .skill-node.root { outline: 6px solid var(--gold); outline-offset: 3px; }
@@ -188,18 +152,11 @@ body.resizing-rows, body.resizing-rows * { cursor: row-resize !important; }
 .minecraft-head-face { position: relative; width: 78%; aspect-ratio: 1; overflow: hidden; }
 .minecraft-icon .minecraft-head-face img { position: absolute; width: 800%; height: auto; max-width: none; top: -100%; left: -100%; }
 .minecraft-icon .minecraft-head-face img + img { left: -500%; }
-.canvas-node-icon { width: min(58px, calc(var(--skill-node-size, 56px) * .52)); height: min(58px, calc(var(--skill-node-size, 56px) * .52)); border: 0; background: transparent; }
-.skill-node.compact .canvas-node-icon { width: calc(var(--skill-node-size, 56px) * .68); height: calc(var(--skill-node-size, 56px) * .68); }
-.sidebar-node-icon { width: 34px; height: 34px; grid-column: 1; grid-row: 1 / -1; align-self: center; }
-.inspector-node-icon { width: 62px; height: 62px; }
 
 .right-panel { overflow-y: auto; border-left: 1px solid var(--line); }
 .panel-section { padding: 15px; border-bottom: 1px solid var(--line); }
 .panel-section h2 { margin-bottom: 8px; }
 .muted { color: var(--text-muted); font-size: 11px; }
-.inspector-heading { display: grid; grid-template-columns: 62px minmax(0, 1fr); align-items: center; gap: 12px; }
-.inspector-heading h2 { overflow: hidden; margin: 3px 0; text-overflow: ellipsis; white-space: nowrap; }
-.inspector-heading p { margin: 0; }
 .inspector-subtitle { margin: 14px 0 6px; color: #c8d3e2; font-size: 11px; letter-spacing: .06em; }
 .inspector-divider { height: 1px; margin: 15px -15px 12px; background: var(--line); }
 .inline-master-form { display: grid; gap: 10px; }
@@ -311,25 +268,14 @@ body.resizing-rows, body.resizing-rows * { cursor: row-resize !important; }
 .workspace-layout { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 .workspace-layout > .workspace-grid { flex: 1; }
 .compact-pane-navigation { display: none; }
-.skilltree-workspace .simulation-toolbar { grid-template-columns: minmax(140px, 1fr) minmax(120px, 1fr) 90px minmax(110px, 1fr); gap: 10px; padding: 12px; }
-.skilltree-workspace .simulation-toolbar > span { grid-column: 1 / -1; text-align: right; }
-.skilltree-workspace .simulation-toolbar .simulation-toggle { line-height: 1.5; }
 .skilltree-workspace .node-group h3 { font-size: 11px; letter-spacing: .03em; }
 .skilltree-workspace .sidebar-header { padding: 16px 16px 12px; }
-.skilltree-workspace .node-list-item { padding-block: 11px; margin-block: 6px; background: var(--surface-raised); border-radius: 7px; }
-.skilltree-workspace .node-effect { font-size: 10px; line-height: 1.45; }
 .skilltree-workspace .node-group.empty { flex: 0 0 auto; }
 .skilltree-workspace .node-group.empty .node-list { flex: 0 0 auto; padding-bottom: 0; }
 .skilltree-workspace .node-group.empty .empty-state { margin: 0; padding: 4px 14px 12px; }
-.node-list-actions { grid-column: 3; grid-row: 1 / -1; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 8px; }
-.node-list-actions .button { min-height: 28px; padding: 4px 7px; font-size: 10px; }
-.node-list-actions .text-button { min-height: 26px; }
 .node-placement-dialog { width: min(520px, calc(100vw - 24px)); display: block; }
 .node-placement-dialog form { display: flex; flex-direction: column; min-height: 0; max-height: calc(100dvh - 32px); }
 .node-placement-dialog h2 { overflow-wrap: anywhere; }
-.skilltree-workspace .simulation-toolbar { grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr)); }
-.skilltree-workspace .simulation-toolbar label { min-width: 0; }
-.skilltree-workspace .simulation-toolbar .simulation-toggle { grid-column: 1 / -1; }
 .skilltree-workspace .panel-section { padding: 17px; }
 .skilltree-workspace .inline-master-form label { font-size: 11px; }
 .skilltree-workspace .inline-master-form small { font-size: 10px; line-height: 1.5; }
@@ -353,9 +299,6 @@ body.resizing-rows, body.resizing-rows * { cursor: row-resize !important; }
   .skilltree-utility-actions { gap: 3px; }
   .skilltree-utility-actions .button { font-size: 10px; padding: 5px 7px; }
   .skilltree-structure-summary { flex-basis: 100%; }
-  .skilltree-workspace .simulation-toolbar { padding: 10px 12px; gap: 8px; }
-  .skilltree-workspace .simulation-toggle { grid-column: 1 / -1; }
-  .skilltree-workspace .simulation-toolbar label:has(input[type="range"]) { grid-column: 1 / -1; }
   .compact-pane-navigation { padding: 7px 12px; gap: 5px; }
   .compact-pane-navigation .button { padding-inline: 5px; font-size: 11px; }
   .modal-backdrop { padding: 8px; }

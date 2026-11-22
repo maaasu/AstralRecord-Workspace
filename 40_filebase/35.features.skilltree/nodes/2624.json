@@ -1,0 +1,33 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2624",
+  "name": "&6術式強化",
+  "icon": "WRITABLE_BOOK",
+  "tags": [
+    "status",
+    "notable",
+    "intelligence",
+    "astral",
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "SKILL_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 1.5
+    },
+    {
+      "type": "status",
+      "status": "CAST_TIME_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "classId": "adventurer"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2584",
+  "name": "&6軽業",
+  "icon": "PHANTOM_MEMBRANE",
+  "tags": [
+    "status",
+    "notable",
+    "agility",
+    "wind",
+    "energy"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "AGILITY",
+      "modifierType": "FLAT",
+      "value": 2
+    },
+    {
+      "type": "status",
+      "status": "ENERGY_REGEN",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "classId": "adventurer"
+  }
+}

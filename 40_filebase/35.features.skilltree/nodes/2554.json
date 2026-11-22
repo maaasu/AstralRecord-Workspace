@@ -1,0 +1,39 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2554",
+  "name": "&6不動の構え",
+  "icon": "SHIELD",
+  "tags": [
+    "status",
+    "notable",
+    "strength",
+    "defense",
+    "durability"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 10
+    },
+    {
+      "type": "status",
+      "status": "DEFENSE",
+      "modifierType": "FLAT",
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "KNOCKBACK_RESISTANCE",
+      "modifierType": "FLAT",
+      "value": 3
+    }
+  ],
+  "unlockCondition": {
+    "classId": "adventurer"
+  }
+}

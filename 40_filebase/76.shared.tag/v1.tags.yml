@@ -422,6 +422,21 @@ tags:
     description: スキルツリーの中核となるノード。
     category: SKILLTREE
     appliesTo: [SKILLTREE_NODE]
+  - id: notable
+    displayName: 主要ノード
+    description: 周囲の小ノードより強い効果を持つ、ビルドの方向を決めるスキルツリーノード。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE]
+  - id: keystone
+    displayName: キーストーン
+    description: 長所と短所を併せ持ち、ビルドの性質を大きく変えるスキルツリーノード。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE]
+  - id: gateway
+    displayName: 道標
+    description: 次の職業の領域へつながる出口となるスキルツリーノード。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE]
   - id: primary
     displayName: 基本能力
     description: 基本能力値に関係するノード。

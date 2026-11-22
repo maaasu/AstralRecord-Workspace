@@ -1,0 +1,38 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2636",
+  "name": "&6頑健",
+  "icon": "GOLDEN_APPLE",
+  "tags": [
+    "status",
+    "notable",
+    "durability",
+    "health"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "VITALITY",
+      "modifierType": "FLAT",
+      "value": 2
+    },
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 10
+    },
+    {
+      "type": "status",
+      "status": "HP_REGEN",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "classId": "adventurer"
+  }
+}

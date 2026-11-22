@@ -1,0 +1,33 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2570",
+  "name": "&b剛剣の道標",
+  "icon": "LODESTONE",
+  "tags": [
+    "status",
+    "gateway",
+    "strength",
+    "offense",
+    "energy"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ATTACK",
+      "modifierType": "FLAT",
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "MAX_ENERGY",
+      "modifierType": "FLAT",
+      "value": 5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "adventurer"
+  }
+}

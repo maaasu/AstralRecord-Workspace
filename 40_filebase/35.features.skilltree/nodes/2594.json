@@ -1,0 +1,34 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2594",
+  "name": "&6速射",
+  "icon": "CROSSBOW",
+  "tags": [
+    "status",
+    "notable",
+    "dexterity",
+    "wind",
+    "offense",
+    "energy"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "NORMAL_ATTACK_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "ENERGY_COST_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "classId": "adventurer"
+  }
+}

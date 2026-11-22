@@ -260,6 +260,15 @@ public final class MasterTagIds {
         /** 中核: スキルツリーの中核となるノード。 */
         public static final String CORE = "core";
 
+        /** 主要ノード: 周囲の小ノードより強い効果を持つ、ビルドの方向を決めるスキルツリーノード。 */
+        public static final String NOTABLE = "notable";
+
+        /** キーストーン: 長所と短所を併せ持ち、ビルドの性質を大きく変えるスキルツリーノード。 */
+        public static final String KEYSTONE = "keystone";
+
+        /** 道標: 次の職業の領域へつながる出口となるスキルツリーノード。 */
+        public static final String GATEWAY = "gateway";
+
         /** 基本能力: 基本能力値に関係するノード。 */
         public static final String PRIMARY = "primary";
 
@@ -562,6 +571,9 @@ public final class MasterTagIds {
         Map.entry("root", new Definition("root", "ルート／根", "スキルツリーの開始点、または根をモチーフとする分類。", "SKILLTREE", List.of("SKILLTREE_NODE", "MOB"))),
         Map.entry("shared", new Definition("shared", "共通", "複数クラスで共有するスキルツリーノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
         Map.entry("core", new Definition("core", "中核", "スキルツリーの中核となるノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
+        Map.entry("notable", new Definition("notable", "主要ノード", "周囲の小ノードより強い効果を持つ、ビルドの方向を決めるスキルツリーノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
+        Map.entry("keystone", new Definition("keystone", "キーストーン", "長所と短所を併せ持ち、ビルドの性質を大きく変えるスキルツリーノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
+        Map.entry("gateway", new Definition("gateway", "道標", "次の職業の領域へつながる出口となるスキルツリーノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
         Map.entry("primary", new Definition("primary", "基本能力", "基本能力値に関係するノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
         Map.entry("resource", new Definition("resource", "リソース", "HP、MPなどのリソースに関係するノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
         Map.entry("strength", new Definition("strength", "筋力", "筋力に関係するノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),

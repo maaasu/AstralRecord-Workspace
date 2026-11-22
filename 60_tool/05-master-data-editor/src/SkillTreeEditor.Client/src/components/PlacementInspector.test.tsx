@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import type { NodeMaster, StructureDocument } from '../types/editor'
@@ -27,6 +27,48 @@ const structure: StructureDocument = {
 }
 
 describe('PlacementInspector', () => {
+  it('未選択時は構造と操作を表示し、選択後は条件、色付き効果、接続先を確認できる', async () => {
+    const target = { ...master, nodeId: '1013', name: '&a冒険者の剣', pointType: 'CP', pointCost: 2,
+      tags: ['keystone'], unlockCondition: { classId: 'adventurer', playerLevel: 9 } }
+    const other = { ...master, nodeId: '1014', name: '道標', tags: ['gateway'] }
+    const map = { ...structure, nodes: [...structure.nodes, { nodeId: target.nodeId, x: 3, y: 68, z: 0 },
+      { nodeId: other.nodeId, x: -10, y: 64, z: -4 }],
+      edges: [{ sourceNodeId: target.nodeId, targetNodeId: master.nodeId }] }
+    const selected = { ...master, effects: [{ type: 'status', status: 'MAX_HEALTH', modifierType: 'FLAT', value: 10 }] }
+    const props = { structure: map, masters: new Map([[master.nodeId, selected], [target.nodeId, target], [other.nodeId, other]]),
+      classMasters: [{ id: 'adventurer', name: '冒険者', parentClassIds: [] }], saving: false, iconRevision: 0,
+      onChange: vi.fn(), onSaveMaster: vi.fn(), onEditMaster: vi.fn(), onRetryIcons: vi.fn(), onShowNode: vi.fn() }
+    const view = render(<PlacementInspector {...props} nodeId={null} master={null} />)
+    const detail = () => within(screen.getByRole('region', { name: 'ノード詳細' }))
+    expect(detail().getByText('Starter')).toBeVisible()
+    expect(detail().getByText('3 ノード · 1 接続')).toBeVisible()
+    expect(detail().getByText('冒険者')).toBeVisible()
+    expect(detail().getByText('-10 ～ 3')).toBeVisible()
+    expect(detail().getByRole('heading', { name: '操作のヒント' })).toBeVisible()
+
+    view.rerender(<PlacementInspector {...props} nodeId={master.nodeId} master={selected} />)
+    expect(detail().getByText('最大HP')).toHaveAttribute('data-stat-category', 'resource')
+    expect(detail().getByText('解放コスト').parentElement).toHaveTextContent('1 PP')
+    fireEvent.click(detail().getByRole('button', { name: '冒険者の剣 2 CP' }))
+    expect(props.onShowNode).toHaveBeenCalledWith(target.nodeId)
+    const connectionEditor = detail().getByText('接続を編集').parentElement as HTMLDetailsElement
+    connectionEditor.open = true
+    fireEvent(connectionEditor, new Event('toggle'))
+    const candidate = await detail().findByRole('combobox', { name: '接続先' })
+    fireEvent.change(candidate, { target: { value: other.nodeId } })
+    fireEvent.click(detail().getByRole('button', { name: '接続を追加' }))
+    expect(props.onChange).toHaveBeenLastCalledWith({ ...map, edges: [...map.edges, { sourceNodeId: master.nodeId, targetNodeId: other.nodeId }] })
+    fireEvent.click(detail().getByRole('button', { name: '#1013 との接続を削除' }))
+    expect(props.onChange).toHaveBeenLastCalledWith({ ...map, edges: [] })
+
+    view.rerender(<PlacementInspector {...props} nodeId={target.nodeId} master={target} />)
+    expect(detail().getByText('CP（クラス）')).toBeVisible()
+    expect(detail().getByText('キーストーン')).toBeVisible()
+    expect(detail().getByText('冒険者')).toBeVisible()
+    expect(detail().getByText('プレイヤーLv. 9 以上')).toBeVisible()
+    expect(detail().getByText('起点からの距離 5.0 ブロック')).toBeVisible()
+  })
+
   it('マスター保存待機中は実入力をdisabledにして追加入力を受け付けない', async () => {
     let finishSave!: (value: NodeMaster) => void
     const onSaveMaster = vi.fn(() => new Promise<NodeMaster>((resolve) => { finishSave = resolve }))
