@@ -1,0 +1,39 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2640",
+  "name": "&c不屈",
+  "icon": "RESPAWN_ANCHOR",
+  "tags": [
+    "status",
+    "keystone",
+    "durability",
+    "defense",
+    "health"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "DAMAGE_REDUCTION_RATE",
+      "modifierType": "FLAT",
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 20
+    },
+    {
+      "type": "status",
+      "status": "FINAL_DAMAGE_MULTIPLIER",
+      "modifierType": "FLAT",
+      "value": -3
+    }
+  ],
+  "unlockCondition": {
+    "classId": "adventurer"
+  }
+}

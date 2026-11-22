@@ -1,0 +1,39 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2610",
+  "name": "&c星詠みの代償",
+  "icon": "DRAGON_BREATH",
+  "tags": [
+    "status",
+    "keystone",
+    "intelligence",
+    "astral",
+    "mana"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "SKILL_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 30
+    },
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": -20
+    }
+  ],
+  "unlockCondition": {
+    "classId": "adventurer"
+  }
+}

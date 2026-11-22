@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2547",
+  "name": "&d剛撃の星脈",
+  "icon": "STONE_SWORD",
+  "tags": [
+    "status",
+    "offense",
+    "strength"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "NORMAL_ATTACK_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 0.5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "adventurer"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2580",
+  "name": "&c一点集中",
+  "icon": "SPECTRAL_ARROW",
+  "tags": [
+    "status",
+    "keystone",
+    "dexterity",
+    "accuracy",
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ACCURACY",
+      "modifierType": "FLAT",
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "CRITICAL_RATE",
+      "modifierType": "FLAT",
+      "value": 2
+    },
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": -15
+    }
+  ],
+  "unlockCondition": {
+    "classId": "adventurer"
+  }
+}
