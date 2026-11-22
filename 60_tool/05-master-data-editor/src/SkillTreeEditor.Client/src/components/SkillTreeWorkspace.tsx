@@ -2,6 +2,9 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useDocking, usePanelDocument } from '../docking/dockPanel'
 import { ApiError, editorApi } from '../api/editorApi'
 import { NodeSidebar } from './NodeSidebar'
+import { useNodeListing } from './useNodeListing'
+import { DEFAULT_NODE_SIZE } from '../state/skillTreeMapLayout'
+import { SkillTreeLegend, type NodeKind } from './skillTreeMapPresentation'
 import { NodePlacementDialog } from './NodePlacementDialog'
 import { PlacementInspector } from './PlacementInspector'
 import { defaultFromSchema } from './SchemaForm'
@@ -48,7 +51,6 @@ interface EditorTarget {
 type WorkspacePane = 'nodes' | 'canvas' | 'details'
 
 const NODE_SIZE_STORAGE_KEY = 'astralrecord.skilltree-editor.node-size'
-const DEFAULT_NODE_SIZE = 56
 const MIN_NODE_SIZE = 32
 const MAX_NODE_SIZE = 140
 const SettingsDialog = lazy(() => import('./SettingsDialog').then((module) => ({ default: module.SettingsDialog })))
@@ -82,6 +84,7 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [selectedTag, setSelectedTag] = useState('')
+  const [selectedKind, setSelectedKind] = useState<NodeKind | ''>('')
   const [simulationEnabled, setSimulationEnabled] = useState(false)
   const [simulationClassId, setSimulationClassId] = useState('adventurer')
   const [simulationPlayerLevel, setSimulationPlayerLevel] = useState(1)
@@ -126,7 +129,8 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
   const anyDirty = dirty || nodeDirty || settingsDirty || inspectorDirty || placementDirty
   useEffect(() => { onDirtyChange(anyDirty) }, [anyDirty, onDirtyChange])
   const placedIds = useMemo(() => new Set(currentStructure.nodes.map((node) => node.nodeId)), [currentStructure.nodes])
-  const selectedMaster = nodes.find((node) => node.nodeId === selectedNodeId) ?? null
+  const nodeMasters = useMemo(() => new Map(nodes.map(node => [node.nodeId, node])), [nodes])
+  const selectedMaster = selectedNodeId ? nodeMasters.get(selectedNodeId) ?? null : null
   const tagSuggestions = useMemo(
     () => [...new Set(nodes.flatMap((node) => node.tags))].sort((a, b) => a.localeCompare(b, 'ja')),
     [nodes],
@@ -148,6 +152,16 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
     () => simulationEnabled ? new Set(simulatedNodes.map((node) => node.nodeId)) : null,
     [simulatedNodes, simulationEnabled],
   )
+  const { entries: matchingEntries, matchingNodeIds } = useNodeListing({
+    nodes: simulatedNodes, skillMasters, classMasters, rootNodeId: currentStructure.rootNodeId,
+    query, selectedTag, selectedKind,
+  })
+
+  const visiblePlacementCount = useMemo(() => simulationVisibleNodeIds
+    ? currentStructure.nodes.filter(node => simulationVisibleNodeIds.has(node.nodeId)).length
+    : currentStructure.nodes.length, [currentStructure.nodes, simulationVisibleNodeIds])
+  const simulationClass = classMasters.find(entry => entry.id === simulationClassId)
+  const simulationClassName = simulationClass ? stripMinecraftFormatting(simulationClass.name) : simulationClassId
 
   const showError = useCallback((reason: unknown) => {
     if (reason instanceof ApiError) {
@@ -248,11 +262,15 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
     return true
   }, [inspectorDirty, inspectorInputValid, saving, selectedNodeId])
 
-  const showOnCanvas = (node: NodeMaster) => {
-    if (saving || !inspectorInputValid || !selectNode(node.nodeId)) return
+  const showOnCanvas = (nodeId: string) => {
+    if (saving || !inspectorInputValid || !selectNode(nodeId)) return
+    if (simulationVisibleNodeIds && !simulationVisibleNodeIds.has(nodeId)) {
+      setSimulationEnabled(false)
+      setNotice('接続先が表示範囲外のため、ゲーム内表示シミュレーションを解除しました。')
+    }
     setVisiblePanes((current) => current.canvas ? current : { ...current, canvas: true })
     setFocusedPane('center')
-    setFocusRequest({ nodeId: node.nodeId })
+    setFocusRequest({ nodeId })
   }
 
   const editMaster = (node: NodeMaster) => {
@@ -586,69 +604,75 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
         left={(
           <NodeSidebar
             nodes={simulatedNodes}
+            entries={matchingEntries}
             placedIds={placedIds}
             query={query}
             selectedTag={selectedTag}
+            selectedKind={selectedKind}
+            onKindChange={setSelectedKind}
             paginationContext={JSON.stringify([selectedStructureId, simulationEnabled, simulationClassId, simulationPlayerLevel])}
             onQueryChange={setQuery}
             onTagChange={setSelectedTag}
             onEdit={editMaster}
             onCreate={openNewNode}
             onPlace={(node) => { if (!saving && inspectorInputValid && selectedStructureId && !placedIds.has(node.nodeId)) setPlacementNode(node) }}
-            onShow={selectedStructureId ? showOnCanvas : undefined}
+            onShow={selectedStructureId ? node => showOnCanvas(node.nodeId) : undefined}
             selectedNodeId={selectedNodeId}
             placementDisabled={saving || !inspectorInputValid || !selectedStructureId}
             iconRevision={iconRevision}
-            skillMasters={skillMasters}
-            classMasters={classMasters}
           />
         )}
         center={(
           <section className="canvas-column" inert={saving || !inspectorInputValid} aria-busy={saving}>
-            <div className={`simulation-toolbar ${simulationEnabled ? 'active' : ''}`}>
-              <label className="simulation-toggle">
-                <input
-                  type="checkbox"
-                  checked={simulationEnabled}
-                  onChange={(event) => setSimulationEnabled(event.target.checked)}
-                />
-                ゲーム内表示シミュレーション
-              </label>
-              <label>現在の職業
-                <select
-                  value={simulationClassId}
-                  disabled={!simulationEnabled}
-                  onChange={(event) => setSimulationClassId(event.target.value)}
-                >
-                  {classMasters.map((entry) => (
-                    <option key={entry.id} value={entry.id}>
-                      {stripMinecraftFormatting(entry.name)} · {entry.id}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>プレイヤーLv.
-                <input
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={simulationPlayerLevel}
-                  disabled={!simulationEnabled}
-                  onChange={(event) => setSimulationPlayerLevel(Math.max(1, Math.floor(Number(event.target.value) || 1)))}
-                />
-              </label>
-              <label>ノードサイズ {nodeSize}px
-                <input
-                  type="range"
-                  min={MIN_NODE_SIZE}
-                  max={MAX_NODE_SIZE}
-                  step={4}
-                  value={nodeSize}
-                  aria-label="キャンバスのノードサイズ"
-                  onChange={(event) => setNodeSize(Number(event.target.value))}
-                />
-              </label>
-              <span>{simulationEnabled ? `${simulatedNodes.length} / ${nodes.length} ノード表示` : '全ノード表示'}</span>
+            <div>
+              <div className={`simulation-toolbar ${simulationEnabled ? 'active' : ''}`}>
+                <label className="simulation-toggle">
+                  <input
+                    type="checkbox"
+                    checked={simulationEnabled}
+                    onChange={(event) => setSimulationEnabled(event.target.checked)}
+                  />
+                  ゲーム内表示シミュレーション
+                </label>
+                <label>現在の職業
+                  <select
+                    value={simulationClassId}
+                    disabled={!simulationEnabled}
+                    onChange={(event) => setSimulationClassId(event.target.value)}
+                  >
+                    {classMasters.map((entry) => (
+                      <option key={entry.id} value={entry.id}>
+                        {stripMinecraftFormatting(entry.name)} · {entry.id}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>プレイヤーLv.
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={simulationPlayerLevel}
+                    disabled={!simulationEnabled}
+                    onChange={(event) => setSimulationPlayerLevel(Math.max(1, Math.floor(Number(event.target.value) || 1)))}
+                  />
+                </label>
+                <span className="tree-map-scope">{simulationEnabled
+                  ? `${simulationClassName}と祖先職・共通ノードを表示中 ${visiblePlacementCount} / ${currentStructure.nodes.length}`
+                  : `全ノードを表示中 ${visiblePlacementCount}件`}</span>
+                <label>最大ノードサイズ {nodeSize}px
+                  <input
+                    type="range"
+                    min={MIN_NODE_SIZE}
+                    max={MAX_NODE_SIZE}
+                    step={4}
+                    value={nodeSize}
+                    aria-label="最大ノードサイズ"
+                    onChange={(event) => setNodeSize(Number(event.target.value))}
+                  />
+                </label>
+              </div>
+              {selectedStructureId && <SkillTreeLegend />}
             </div>
             {selectedStructureId ? (
               <SkillTreeCanvas
@@ -664,6 +688,7 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
                 onNotify={setNotice}
                 iconRevision={iconRevision}
                 visibleNodeIds={simulationVisibleNodeIds}
+                matchingNodeIds={matchingNodeIds}
                 skillMasters={skillMasters}
                 classMasters={classMasters}
                 nodeSize={nodeSize}
@@ -682,6 +707,8 @@ export function SkillTreeWorkspace({ active, onDirtyChange }: { active: boolean;
               nodeId={selectedNodeId}
               structure={currentStructure}
               master={selectedMaster}
+              masters={nodeMasters}
+              onShowNode={showOnCanvas}
               saving={saving}
               onDirtyChange={setInspectorDirty}
               onInputValidityChange={setInspectorInputValid}

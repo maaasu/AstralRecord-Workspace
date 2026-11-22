@@ -1,0 +1,402 @@
+/* Web のスキルツリーと共通の配色。フォーム・ツールバーには適用しない。 */
+:is(.tree-map, .tree-map-legend, .tree-map-detail, .tree-map-list-row) {
+  --tree-bg: #2b2e28;
+  --tree-map: #232822;
+  --tree-panel: #31362f;
+  --tree-control: #3b4138;
+  --tree-hover: #454c41;
+  --tree-line: #50584b;
+  --tree-line-strong: #939a8b;
+  --tree-text: #f3eee1;
+  --tree-muted: #c8cbbd;
+  --tree-gold: #e1c587;
+  --tree-selection: #4c422e;
+  --tree-teal: #9dd7c2;
+  --tree-orange: #efad81;
+  --tree-stat-resource: #e8c787;
+  --tree-stat-primary: #b4d29f;
+  --tree-stat-offense: #f2a297;
+  --tree-stat-defense: #a9c5ef;
+  --tree-stat-element: #dbb7eb;
+  --tree-stat-condition: #e8b3cc;
+  --tree-stat-utility: #d9d39b;
+  color: var(--tree-text);
+}
+
+:is(.tree-map, .tree-map-legend, .tree-map-detail, .tree-map-list-row) :is([data-node-kind], .tree-map-icon-frame) {
+  --tree-frame-color: var(--tree-line-strong);
+  --tree-frame-width: 1.6px;
+}
+:is(.tree-map, .tree-map-legend, .tree-map-detail, .tree-map-list-row) [data-node-kind="notable"] {
+  --tree-frame-color: var(--tree-gold);
+  --tree-frame-width: 2.4px;
+}
+:is(.tree-map, .tree-map-legend, .tree-map-detail, .tree-map-list-row) [data-node-kind="keystone"] {
+  --tree-frame-color: var(--tree-orange);
+}
+:is(.tree-map, .tree-map-legend, .tree-map-detail, .tree-map-list-row) [data-node-kind="gateway"] {
+  --tree-frame-color: var(--tree-teal);
+  --tree-frame-width: 2.2px;
+}
+:is(.tree-map, .tree-map-legend, .tree-map-detail, .tree-map-list-row) [data-node-kind="root"] {
+  --tree-frame-color: var(--tree-gold);
+  --tree-frame-width: 3px;
+}
+:is(.tree-map, .tree-map-detail, .tree-map-list-row) [data-node-kind="skill"] {
+  --tree-frame-color: var(--tree-stat-condition);
+}
+
+.canvas.tree-map {
+  --tree-mini-width: 128px;
+  --tree-overlay-gap: 8px;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--tree-map);
+}
+.tree-map::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: .45;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, #e7dfbd99 .7px, transparent 1.4px) 17px 6px / 109px 73px,
+    radial-gradient(circle, #aabbb59e .5px, transparent 1.2px) 48px 26px / 71px 97px,
+    radial-gradient(circle, #e1c587b0 1px, transparent 1.8px) 54px 5px / 163px 133px;
+}
+.tree-map-grid {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+  --grid-color: color-mix(in srgb, var(--tree-line) 25%, transparent);
+  --axis-color: color-mix(in srgb, var(--tree-line-strong) 40%, transparent);
+  background-image: linear-gradient(90deg, var(--grid-color) 1px, transparent 1px),
+    linear-gradient(var(--grid-color) 1px, transparent 1px);
+}
+.tree-map-grid::before, .tree-map-grid::after { content: ''; position: absolute; background: var(--axis-color); }
+.tree-map-grid::before { inset: 0 auto 0 var(--tree-axis-x); width: 1px; }
+.tree-map-grid::after { inset: var(--tree-axis-z) 0 auto; height: 1px; }
+.tree-map .react-flow__renderer { z-index: 1; }
+
+.tree-map .react-flow__edge .react-flow__edge-path { stroke: var(--tree-line-strong); stroke-width: 1.4px; }
+.tree-map .react-flow__edge.connected .react-flow__edge-path { stroke: var(--tree-text); stroke-width: 2.2px; }
+.tree-map .react-flow__edge.selected .react-flow__edge-path { stroke: var(--tree-gold); stroke-width: 2.2px; }
+.tree-map .react-flow__edge-interaction { vector-effect: non-scaling-stroke; }
+
+.tree-map .skill-node { position: relative; width: 100%; height: 100%; }
+.tree-map .skill-node.learned {
+  --tree-frame-color: var(--tree-gold);
+  --tree-frame-width: 2.2px;
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+}
+.tree-map .skill-node.learned.root { --tree-frame-width: 3px; }
+.tree-node-frame, .tree-map-icon-frame {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  position: relative;
+  border: var(--tree-frame-width) solid var(--tree-frame-color);
+  border-radius: var(--tree-frame-radius, 18%);
+  background: color-mix(in srgb, var(--tree-frame-color) 12%, var(--tree-panel));
+}
+:is(.skill-node, .tree-map-icon-frame)[data-point-type="PP"] { --tree-frame-radius: 50%; }
+.tree-node-frame {
+  width: var(--skill-node-size);
+  height: var(--skill-node-size);
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  border-width: min(var(--tree-frame-width), calc(var(--skill-node-size) * .18));
+}
+.tree-map .skill-node.learned .tree-node-frame { background: var(--tree-selection); }
+.tree-map .skill-node [aria-hidden].tree-node-frame .minecraft-icon {
+  width: calc(var(--skill-node-size) * .63);
+  height: calc(var(--skill-node-size) * .63);
+}
+.tree-node-frame .minecraft-icon, .tree-map-icon-frame .minecraft-icon { background: none; border: 0; border-radius: 0; }
+.tree-map-icon-frame { width: var(--tree-icon-size); }
+.tree-map-icon-frame .minecraft-icon { width: calc(var(--tree-icon-size) * .63); height: calc(var(--tree-icon-size) * .63); }
+.tree-node-frame::after, .skill-node[data-keystone="true"] .tree-node-frame::before, .tree-map-icon-frame[data-node-kind="keystone"]::before {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.skill-node[data-keystone="true"] .tree-node-frame::before, .tree-map-icon-frame[data-node-kind="keystone"]::before {
+  inset: 2px;
+  border: 1px solid var(--tree-orange);
+}
+.skill-node[data-keystone="true"] .tree-node-frame::before {
+  inset: min(2px, calc(var(--skill-node-size) * .07));
+  border-width: min(1px, calc(var(--skill-node-size) * .08));
+}
+.tree-node-frame::after { inset: -6px; border: 1.5px solid transparent; }
+.tree-neighbor .tree-node-frame::after { border-color: var(--tree-line-strong); }
+.tree-match .tree-node-frame { outline: 1.5px solid var(--tree-teal); outline-offset: 9px; }
+.tree-map .tree-dim { opacity: .25; }
+.tree-map .skill-node.selected .tree-node-frame::after { border-color: var(--tree-gold); border-width: 2px; }
+.tree-map .skill-node:not(.selected):is(:hover, :focus-visible) .tree-node-frame::after { border-color: var(--tree-text); }
+.tree-map .skill-node.learned .learned-node-mark {
+  position: absolute;
+  right: -2px;
+  top: -3px;
+  display: grid;
+  place-items: center;
+  width: clamp(7px, calc(var(--skill-node-size) * .34), 20px);
+  aspect-ratio: 1;
+  height: auto;
+  border-radius: 50%;
+  background: var(--tree-gold);
+  color: var(--tree-map);
+  font: 800 clamp(6px, calc(var(--skill-node-size) * .26), 14px)/1 sans-serif;
+  pointer-events: none;
+}
+.tree-map .react-flow__node:hover { z-index: 1001 !important; }
+.tree-map .react-flow__handle {
+  z-index: 1;
+  border: 0;
+  background: var(--tree-muted);
+  box-shadow: inset 0 0 0 min(1px, calc(var(--skill-node-size) * .04)) var(--tree-map);
+  opacity: 0;
+}
+.tree-map .skill-node:is(:hover, .selected, :focus-within) .react-flow__handle.connectable,
+.tree-map .react-flow__handle.connectingfrom, .tree-map .react-flow__handle.connectingto,
+.tree-map .react-flow__handle.valid { opacity: 1; }
+.tree-map .react-flow__handle:not(.connectable) { pointer-events: none; }
+
+.tree-node-label {
+  position: absolute;
+  top: calc(50% + var(--skill-node-size) / 2 + var(--tree-label-gap) * var(--tree-label-scale, 1));
+  left: 50%;
+  display: none;
+  width: max-content;
+  max-width: var(--tree-label-width);
+  min-width: 35px;
+  min-height: var(--tree-label-height);
+  padding: 2px 5px;
+  border: 1px solid var(--tree-line);
+  border-radius: 4px;
+  background: var(--tree-panel);
+  color: var(--tree-text);
+  text-align: center;
+  line-height: 1.2;
+  transform: translateX(-50%) scale(var(--tree-label-scale, 1));
+  transform-origin: center top;
+  pointer-events: none;
+}
+.tree-node-label strong { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 9px; }
+.tree-node-label small { display: block; color: var(--tree-muted); font-size: 8px; }
+.skill-node[data-label-visible="true"] .tree-node-label,
+.skill-node[data-overview="false"]:is(.selected, :hover, :focus-visible) .tree-node-label { display: block; }
+.skill-node.selected .tree-node-label { border-color: var(--tree-gold); background: var(--tree-selection); }
+
+.tree-node-overlap {
+  position: absolute;
+  left: 50%;
+  width: max-content;
+  padding: 1px 3px;
+  border: 1px solid var(--tree-line);
+  border-radius: 4px;
+  color: var(--tree-muted);
+  background: var(--tree-panel);
+  font-size: 9px;
+  transform: translateX(-50%) scale(var(--tree-label-scale, 1));
+  transform-origin: center bottom;
+  pointer-events: none;
+}
+
+.tree-map .react-flow__minimap {
+  margin: var(--tree-overlay-gap);
+  border: 1px solid var(--tree-line-strong);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.tree-mini-dot { fill: none; stroke: var(--tree-frame-color); stroke-width: 2px; vector-effect: non-scaling-stroke; }
+.tree-map .canvas-controls {
+  left: var(--tree-overlay-gap);
+  bottom: 36px;
+  max-width: calc(100% - var(--tree-mini-width) - 3 * var(--tree-overlay-gap));
+  margin: 0;
+}
+.tree-map-coordinates, .tree-map .canvas-hint {
+  position: absolute;
+  z-index: 5;
+  left: var(--tree-overlay-gap);
+  bottom: var(--tree-overlay-gap);
+  pointer-events: none;
+  padding: 4px 7px;
+  border: 1px solid var(--tree-line);
+  border-radius: 4px;
+  color: var(--tree-muted);
+  background: var(--tree-panel);
+  font: 11px ui-monospace, monospace;
+}
+.tree-map .canvas-hint {
+  top: var(--tree-overlay-gap);
+  bottom: auto;
+  max-width: calc(100% - 2 * var(--tree-overlay-gap));
+  font-size: 11px;
+  line-height: 1.45;
+  font-family: inherit;
+}
+.tree-map-hover {
+  position: absolute;
+  z-index: 6;
+  top: var(--tree-overlay-gap);
+  right: var(--tree-overlay-gap);
+  width: min(255px, calc(100% - 2 * var(--tree-overlay-gap)));
+  max-height: calc(100% - 135px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  padding: 9px 11px;
+  border: 1px solid var(--tree-line-strong);
+  border-radius: 4px;
+  background: var(--tree-panel);
+  box-shadow: 0 6px 20px #10120e99;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.tree-map:has(.canvas-hint) .tree-map-hover { top: 48px; max-height: calc(100% - 175px); }
+.tree-map-hover-meta, .tree-map-detail-cost { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; }
+.tree-map-hover-meta small, .tree-map-muted { color: var(--tree-muted); }
+.tree-map-hover-meta strong, .tree-map-detail-cost strong { margin-left: auto; color: var(--tree-gold); white-space: nowrap; }
+.tree-map-hover p { margin: 4px 0 0; }
+.tree-map-effects { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.tree-map-hover > :not(.tree-map-effects) { flex: none; }
+.tree-map-hover .tree-map-effects { margin-top: 4px; overflow: hidden; }
+.tree-map-effects li { border-inline-start: 2px solid var(--tree-line); padding-inline-start: 6px; overflow-wrap: anywhere; }
+
+[data-stat-category="resource"] { color: var(--tree-stat-resource); }
+[data-stat-category="primary"] { color: var(--tree-stat-primary); }
+[data-stat-category="offense"] { color: var(--tree-stat-offense); }
+[data-stat-category="defense"] { color: var(--tree-stat-defense); }
+[data-stat-category="element"] { color: var(--tree-stat-element); }
+[data-stat-category="condition"] { color: var(--tree-stat-condition); }
+[data-stat-category="utility"] { color: var(--tree-stat-utility); }
+
+.skilltree-workspace .simulation-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 8px 10px;
+}
+.simulation-toolbar > label { min-width: 0; }
+.simulation-toolbar > label:has(select) { width: min(170px, 100%); }
+.simulation-toolbar input[type="number"] { width: 84px; max-width: 100%; }
+.skilltree-workspace .simulation-toolbar > .tree-map-scope { white-space: normal; overflow-wrap: anywhere; text-align: start; }
+.tree-map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 10px;
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--tree-line);
+  background: var(--tree-bg);
+  color: var(--tree-muted);
+  font-size: 10px;
+}
+.tree-map-legend > span { display: inline-flex; align-items: center; gap: 4px; }
+.tree-map-legend svg { stroke: var(--tree-frame-color); fill: var(--tree-panel); stroke-width: var(--tree-frame-width); }
+.tree-map-legend .legend-keystone-ring { stroke-width: 1px; fill: none; }
+
+.skilltree-workspace .tree-map-detail, .tree-map-detail {
+  padding: 0;
+  border-bottom: 1px solid var(--tree-line);
+  background: var(--tree-bg);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.tree-map-detail > h2 { padding: 10px 14px; margin: 0; border-bottom: 1px solid var(--tree-line); font-size: 13px; }
+.tree-map-detail-summary {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--tree-line);
+  background: var(--tree-panel);
+}
+.tree-map-detail-summary h3 { margin: 3px 0; font-size: 16px; overflow-wrap: anywhere; }
+.tree-map-detail-summary .tree-map-muted { margin: 4px 0 0; font-size: 10px; }
+.tree-map-chip {
+  display: inline-block;
+  border: 1px solid var(--tree-line-strong);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--tree-muted);
+  font-size: 10px;
+}
+.tree-map-detail-section { padding: 9px 14px; border-bottom: 1px solid var(--tree-line); }
+.tree-map-detail-section h3, .tree-map-detail-cost > span { margin: 0 0 5px; color: var(--tree-muted); font-size: 11px; }
+.tree-map-detail-section :is(p, dl) { margin: 0; }
+.tree-map-detail-section :is(ul, p) + p { margin-top: 4px; }
+.tree-map-detail-section dd { margin-left: 0; overflow-wrap: anywhere; }
+.tree-map-count { display: grid; gap: 2px 10px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.tree-map-detail-section dt { color: var(--tree-muted); }
+.tree-map-detail-cost { background: var(--tree-map); }
+.tree-map-detail-cost strong { font-size: 16px; }
+.tree-map-linked { display: flex; gap: 4px; flex-wrap: wrap; }
+.tree-map-linked button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  max-width: 100%;
+  border: 1px solid var(--tree-line);
+  border-radius: 4px;
+  background: var(--tree-control);
+  color: var(--tree-text);
+  padding: 3px 6px;
+  font: inherit;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+.tree-map-linked button:enabled:hover { background: var(--tree-hover); cursor: pointer; }
+.tree-map-linked button:disabled { opacity: .65; }
+.tree-map-linked small { flex: none; color: var(--tree-gold); }
+.tree-map-detail .tree-map-editing { padding: 10px 14px 14px; background: var(--surface-sidebar); color: var(--text); }
+.tree-map-editing > h3 { margin: 0 0 6px; font-size: 12px; }
+.tree-map-connection-form { display: flex; gap: 5px; align-items: end; flex-wrap: wrap; margin-block: 6px; }
+.tree-map-connection-form label { display: grid; gap: 3px; flex: 1 1 130px; min-width: 0; }
+.tree-map-connection-form select { min-width: 0; }
+
+.tree-map-list-row.node-list-item {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 64px;
+  gap: 7px;
+  margin: 4px 0;
+  padding: 4px 6px;
+  border: 1px solid var(--tree-line);
+  border-left: 3px solid transparent;
+  border-radius: 4px;
+  background: var(--tree-panel);
+  cursor: grab;
+}
+.tree-map-list-row.placed { cursor: default; }
+.tree-map-list-row:hover { background: var(--tree-hover); }
+.tree-map-list-row.selected { border-left-color: var(--tree-gold); background: var(--tree-selection); }
+.tree-map-list-copy { min-width: 0; display: grid; gap: 2px; align-content: center; }
+.tree-map-list-copy > :is(strong, small) { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.tree-map-list-copy strong { font-size: 12px; }
+.tree-map-list-copy small { color: var(--tree-muted); font-size: 10px; }
+.tree-map-list-effects { display: flex; gap: 5px; min-width: 0; min-height: 12px; font-size: 10px; }
+.tree-map-list-effects > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-map-list-effects > .tree-map-muted { flex-shrink: 0; }
+.tree-map-list-row .node-list-actions { display: grid; justify-items: stretch; gap: 1px; }
+.tree-map-list-row .node-list-actions :is(.button, .text-button) { min-height: 20px; padding: 2px 5px; font-size: 10px; }
+.tree-map-list-row .node-list-actions .text-button { color: var(--tree-muted); }
+
+@media (max-width: 480px) {
+  .tree-map .react-flow__minimap { transform: scale(.75); transform-origin: bottom right; }
+  .tree-map { --tree-mini-width: 96px; }
+}

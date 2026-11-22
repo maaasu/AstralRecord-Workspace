@@ -1,13 +1,45 @@
 import { StrictMode, useCallback, useState, type ComponentProps } from 'react'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DockWorkspace } from '../docking/DockWorkspace'
 import { DockPanelContent, useDocking } from '../docking/dockPanel'
 import { routeEdge, SkillTreeCanvas } from './SkillTreeCanvas'
 import type { NodeMaster, StructureDocument } from '../types/editor'
 import * as nodePresentation from '../data/nodeEffectPresentation'
+import * as mapLayout from '../state/skillTreeMapLayout'
+import { useHistory } from '../state/history'
 
-afterEach(() => vi.restoreAllMocks())
+beforeEach(() => {
+  // 地図のノードは明示した寸法で描画するため、JSDOMでも実ブラウザと同じ寸法を返す。
+  for (const [property, dimension] of [['offsetWidth', 'width'], ['offsetHeight', 'height']] as const) {
+    const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, property)!.get!
+    vi.spyOn(HTMLElement.prototype, property, 'get').mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains('react-flow__node') ? parseFloat(this.style[dimension]) : original.call(this)
+    })
+  }
+})
+afterEach(() => {
+  localStorage.removeItem('astralrecord.skilltree-editor.grid')
+  vi.restoreAllMocks()
+})
+
+function nodeCenter(node: HTMLElement) {
+  const [, left, top] = node.style.transform.match(/translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/)!
+  return {
+    x: Number(left) + parseFloat(node.style.width) / 2,
+    z: Number(top) + parseFloat(node.style.height) / 2,
+  }
+}
+
+function dragEvent(type: string, clientX: number, clientY: number, buttons: number) {
+  const event = new MouseEvent(type, { bubbles: true, cancelable: true, button: 0, buttons, clientX, clientY })
+  // JSDOMのWindow変換を避け、d3-dragが参照するviewを明示する。
+  Object.defineProperty(event, 'view', { value: window })
+  return event
+}
+
+// d3はドラッグとして終了した場合、次のイベントループまでクリックを抑止する。
+const afterDrag = () => act(() => new Promise<void>(resolve => setTimeout(resolve, 0)))
 
 const structure: StructureDocument = {
   $schema: '../schemas/structure.v1.schema.json',
@@ -33,7 +65,106 @@ const masters: NodeMaster[] = [
   },
 ]
 
+function CanvasWithHistory({ initial, nodeSize }: { initial: StructureDocument; nodeSize: number }) {
+  const history = useHistory(initial)
+  const [filtered, setFiltered] = useState(false)
+  return <div style={{ width: 800, height: 600 }}>
+    <button onClick={history.undo} disabled={!history.canUndo}>Undo</button>
+    <button onClick={history.redo} disabled={!history.canRedo}>Redo</button>
+    <button onClick={() => setFiltered(true)}>表示対象を変更</button>
+    <output aria-label="確定座標">{JSON.stringify(history.present.nodes)}</output>
+    <SkillTreeCanvas structure={history.present} masters={masters} nodeSize={nodeSize}
+      onRecord={history.record} onReplace={history.replace} onBeginTransaction={history.beginTransaction}
+      onCommitTransaction={history.commitTransaction} onSelectedNode={() => {}} onEditMaster={() => {}} onNotify={() => {}}
+      visibleNodeIds={filtered ? new Set(['1000']) : null} />
+  </div>
+}
+
+function canvasViewport(node: Element) {
+  const viewport = node.closest<HTMLElement>('.react-flow__viewport')!
+  const [, x, y, zoom] = viewport.style.transform.match(/translate\(([^,]+)px,\s*([^)]+)px\) scale\(([^)]+)\)/)!
+  return { x: Number(x), y: Number(y), zoom: Number(zoom) }
+}
+
+function savedPositions() {
+  return JSON.parse(screen.getByLabelText('確定座標').textContent!) as StructureDocument['nodes']
+}
+
 describe('SkillTreeCanvas', () => {
+  it('複数ドラッグで1ブロックの差分を両方に適用し、Undoで元のX/Zへ戻す', async () => {
+    const initial = { ...structure, nodes: [structure.nodes[0], { ...structure.nodes[1], x: 6.1 }] }
+    render(<CanvasWithHistory initial={initial} nodeSize={32} />)
+    const first = await screen.findByTestId('rf__node-1000')
+    const second = screen.getByTestId('rf__node-1001')
+    fireEvent.click(first)
+    fireEvent.keyDown(window, { key: 'Control', code: 'ControlLeft', ctrlKey: true })
+    fireEvent.click(second, { ctrlKey: true })
+    fireEvent.keyUp(window, { key: 'Control', code: 'ControlLeft' })
+    await waitFor(() => expect(second).toHaveClass('selected'))
+    expect(first).toHaveClass('selected')
+    const { x, y, zoom } = canvasViewport(first)
+    const endX = x + mapLayout.BLOCK_SCALE * zoom
+    fireEvent(first.querySelector('.skill-node')!, dragEvent('mousedown', x, y, 1))
+    fireEvent(window, dragEvent('mousemove', endX, y, 1))
+    fireEvent(window, dragEvent('mouseup', endX, y, 0))
+    expect(savedPositions()).toEqual([{ ...initial.nodes[0], x: 1 }, { ...initial.nodes[1], x: 7.1 }])
+    await afterDrag()
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(savedPositions()).toEqual(initial.nodes)
+    expect(nodeCenter(first)).toEqual({ x: 0, z: 0 })
+    expect(nodeCenter(second)).toEqual({ x: 6.1 * mapLayout.BLOCK_SCALE, z: 0 })
+  })
+
+  it('密集したノードも端で接続し、中央から移動できる。接続の履歴では間隔を再計算しない', async () => {
+    const measureSpacing = vi.spyOn(mapLayout, 'measureNodeSpacing')
+    const measureLabels = vi.spyOn(mapLayout, 'measureLabelZoom')
+    const initial = { ...structure, edges: [], nodes: [structure.nodes[0], { ...structure.nodes[1], x: 0.1 }] }
+    render(<CanvasWithHistory initial={initial} nodeSize={32} />)
+    const first = await screen.findByTestId('rf__node-1000')
+    const second = screen.getByTestId('rf__node-1001')
+    const right = first.querySelector<HTMLElement>('[data-handleid="right"]')!
+    const left = second.querySelector<HTMLElement>('[data-handleid="left"]')!
+    const frameSize = parseFloat(first.querySelector<HTMLElement>('.skill-node')!.style.getPropertyValue('--skill-node-size'))
+    expect(parseFloat(right.style.width)).toBeCloseTo(frameSize * 0.2)
+    expect(right.style.minWidth).toBe(right.style.width)
+    expect(right.style.minHeight).toBe(right.style.height)
+    expect(right).toHaveClass('nodrag', 'connectable')
+
+    const hitTest = Object.getOwnPropertyDescriptor(document, 'elementFromPoint')
+    Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: () => left })
+    const { x, y, zoom } = canvasViewport(first)
+    try {
+      fireEvent(right, dragEvent('mousedown', x + frameSize * zoom / 2, y, 1))
+      fireEvent(document, dragEvent('mousemove', x + (3.6 - frameSize / 2) * zoom, y, 1))
+      fireEvent(document, dragEvent('mouseup', x + (3.6 - frameSize / 2) * zoom, y, 0))
+    } finally {
+      if (hitTest) Object.defineProperty(document, 'elementFromPoint', hitTest)
+      else Reflect.deleteProperty(document, 'elementFromPoint')
+    }
+    const edgeId = 'rf__edge-edge:1000:1001'
+    expect(await screen.findByTestId(edgeId)).toBeInTheDocument()
+    expect(savedPositions()).toEqual(initial.nodes)
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(screen.queryByTestId(edgeId)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Redo' }))
+    expect(await screen.findByTestId(edgeId)).toBeInTheDocument()
+    expect(measureSpacing).toHaveBeenCalledTimes(1)
+    expect(measureLabels).toHaveBeenCalledTimes(1)
+
+    const endY = y + mapLayout.BLOCK_SCALE * zoom
+    fireEvent(first.querySelector('.skill-node')!, dragEvent('mousedown', x, y, 1))
+    fireEvent(window, dragEvent('mousemove', x, endY, 1))
+    fireEvent(window, dragEvent('mouseup', x, endY, 0))
+    expect(savedPositions()).toEqual([{ ...initial.nodes[0], z: 1 }, initial.nodes[1]])
+    expect(measureSpacing).toHaveBeenCalledTimes(2)
+    expect(measureLabels).toHaveBeenCalledTimes(2)
+    await afterDrag()
+    fireEvent.click(screen.getByRole('button', { name: '表示対象を変更' }))
+    expect(screen.queryByTestId('rf__node-1001')).not.toBeInTheDocument()
+    expect(measureSpacing).toHaveBeenCalledTimes(3)
+    expect(measureLabels).toHaveBeenCalledTimes(3)
+  })
+
   it('reuses prepared connections across six edge-only selections in a 100-node tree', async () => {
     const sourcesRead = vi.fn((index: number) => String(2000 + index))
     const manyMasters = Array.from({ length: 100 }, (_, index) => ({ ...masters[1], nodeId: String(2000 + index) }))
@@ -69,7 +200,7 @@ describe('SkillTreeCanvas', () => {
     const onRecord = vi.fn(), onReplace = vi.fn(), onSelectedNode = vi.fn()
     render(<div style={{ width: 800, height: 600 }}><SkillTreeCanvas structure={manyNodes} masters={manyMasters} skillMasters={skillMasters} classMasters={classMasters}
       onRecord={onRecord} onReplace={onReplace} onSelectedNode={onSelectedNode} onBeginTransaction={vi.fn()} onCommitTransaction={vi.fn()} onEditMaster={vi.fn()} onNotify={vi.fn()} /></div>)
-    expect(await screen.findByTestId('rf__node-2099')).toHaveTextContent('CP[職業99] 1')
+    expect(await screen.findByTestId('rf__node-2099')).toHaveTextContent('1 CP')
     expect(effects).toHaveBeenCalledTimes(100)
     expect(tooltip).toHaveBeenCalledTimes(100)
     effects.mockClear(); tooltip.mockClear()
@@ -131,12 +262,6 @@ describe('SkillTreeCanvas', () => {
     const originalPath = edge.querySelector('path')?.getAttribute('d')
     const node = screen.getByTestId('rf__node-1001')
     const dragWindow = node.ownerDocument.defaultView!
-    const dragEvent = (type: string, clientX: number, clientY: number, buttons: number) => {
-      const event = new MouseEvent(type, { bubbles: true, cancelable: true, button: 0, buttons, clientX, clientY })
-      // JSDOMのWindow変換を避け、d3-dragが参照するviewを明示する。
-      Object.defineProperty(event, 'view', { value: dragWindow })
-      return event
-    }
     fireEvent(node, dragEvent('mousedown', 400, 100, 1))
     fireEvent(dragWindow, dragEvent('mousemove', 410, 110, 1))
     fireEvent(dragWindow, dragEvent('mousemove', 100, 500, 1))
@@ -175,22 +300,24 @@ describe('SkillTreeCanvas', () => {
     update({ skillMasters: [{ id: 'flame', name: '&6大火球', type: 'ACTIVE' }] })
     await waitFor(() => expect(node().querySelector('.skill-node')).toHaveAttribute('title', expect.stringContaining('・大火球')))
     update({ classMasters: [{ id: 'adventurer', name: '&b熟練冒険者', parentClassIds: [] }] })
-    await waitFor(() => expect(node()).toHaveTextContent('CP[熟練冒険者] 1'))
+    await waitFor(() => expect(node().querySelector('.skill-node')).toHaveAttribute('title', expect.stringContaining('CP[熟練冒険者] 1')))
     update({ masters: props.masters.map(master => master.nodeId === '1001' ? { ...master, name: '&b強化ノード', icon: 'DIAMOND', pointCost: 2, effects: [], tags: ['root'] } : master) })
     await waitFor(() => expect(node()).toHaveTextContent('強化ノード'))
-    expect(node()).toHaveTextContent('CP[熟練冒険者] 2')
+    expect(node()).toHaveTextContent('2 CP')
     expect(node().querySelector('.skill-node')).not.toHaveAttribute('title', expect.stringContaining('大火球'))
     expect(node().querySelector('.skill-node')).toHaveAttribute('title', expect.stringContaining('ルート／根（root）'))
     expect(node()).toHaveClass('selected')
 
     update({ structure: { ...structure, rootNodeId: '1001', nodes: structure.nodes.map(placement => placement.nodeId === '1001' ? { ...placement, x: -6, y: 12, z: 9 } : placement) } })
-    await waitFor(() => expect(node().style.transform).toMatch(/translate\(-216px,\s*324px\)/))
-    expect(node()).toHaveTextContent('Y 12')
+    await waitFor(() => expect(nodeCenter(node())).toEqual({ x: -216, z: 324 }))
+    fireEvent.mouseEnter(node())
+    expect(screen.getByLabelText('ノードの要約')).toHaveTextContent('Y 12')
     expect(node().querySelector('.skill-node')).toHaveClass('root')
     expect(screen.getByTestId('rf__node-1000').querySelector('.skill-node')).not.toHaveClass('root')
     update({ structure })
-    await waitFor(() => expect(node().style.transform).toMatch(/translate\(216px,\s*0px\)/))
-    expect(node()).toHaveTextContent('Y 0')
+    await waitFor(() => expect(nodeCenter(node())).toEqual({ x: 216, z: 0 }))
+    expect(screen.getByLabelText('ノードの要約')).toHaveTextContent('Y 0')
+    fireEvent.mouseLeave(node())
     expect(node().querySelector('.skill-node')).not.toHaveClass('root')
 
     update({ nodeSize: 96, iconRevision: 3 })
@@ -223,10 +350,12 @@ describe('SkillTreeCanvas', () => {
     })
   })
 
-  it('shows the unlock class in the canvas cost label', async () => {
+  it('shows cost in the map label and the class, kind, effects and conditions in the hover summary', async () => {
     const classMasters = [{ id: 'adventurer', name: '&6冒険者', parentClassIds: [] }]
     const classMastersNodes = masters.map((master) => master.nodeId === '1001'
-      ? { ...master, pointType: 'CP', pointCost: 1, unlockCondition: { classId: 'adventurer' } }
+      ? { ...master, name: '&aABCDEFGHIJKLM', tags: ['notable'], pointType: 'CP', pointCost: 1,
+          unlockCondition: { classId: 'adventurer', playerLevel: 8 },
+          effects: [{ type: 'status', status: 'MAX_HEALTH', modifierType: 'FLAT', value: 10 }] }
       : master)
 
     render(
@@ -246,7 +375,24 @@ describe('SkillTreeCanvas', () => {
       </div>,
     )
 
-    expect(await screen.findByTestId('rf__node-1001')).toHaveTextContent('CP[冒険者] 1')
+    const second = await screen.findByTestId('rf__node-1001')
+    const root = screen.getByTestId('rf__node-1000')
+    expect(root.querySelector('.skill-node')).toHaveAttribute('data-point-type', 'PP')
+    expect(root.querySelector('.skill-node')).toHaveAttribute('data-node-kind', 'root')
+    expect(second.querySelector('.skill-node')).toHaveAttribute('data-point-type', 'CP')
+    expect(second.querySelector('.skill-node')).toHaveAttribute('data-node-kind', 'notable')
+    expect(within(second).getByText('ABCDEFGHIJK…')).toHaveStyle({ color: '#55ff55' })
+    expect(second).toHaveTextContent('1 CP')
+    fireEvent.mouseEnter(second)
+    const summary = screen.getByLabelText('ノードの要約')
+    expect(summary).toHaveTextContent('#1001 · 冒険者 · 主要ノード')
+    expect(summary).toHaveTextContent('プレイヤーLv. 8 以上')
+    expect(summary).toHaveTextContent('接続 1件 · Root node')
+    expect(within(summary).getByText('最大HP')).toHaveAttribute('data-stat-category', 'resource')
+    expect(root).toHaveClass('tree-neighbor')
+    expect(screen.getByTestId('rf__edge-edge:1000:1001')).toHaveClass('connected')
+    fireEvent.mouseLeave(second)
+    expect(summary).not.toBeInTheDocument()
   })
 
   it('renders and survives a parent selection rerender without a React Flow update loop', async () => {
@@ -495,7 +641,7 @@ describe('SkillTreeCanvas', () => {
       const neighbour = await screen.findByTestId('rf__node-3001')
       const icon = neighbour.querySelector('img')
       update({ structure: { ...largeStructure, nodes: largeStructure.nodes.map(placement => placement.nodeId === '3000' ? { ...placement, x: 1, z: 1 } : { ...placement }) } })
-      await waitFor(() => expect(root.style.transform).toMatch(/translate\(36px,\s*36px\)/))
+      await waitFor(() => expect(nodeCenter(root)).toEqual({ x: 36, z: 36 }))
       expect(screen.getByTestId('rf__node-3001')).toBe(neighbour)
       expect(neighbour.querySelector('img')).toBe(icon)
     })
@@ -582,5 +728,45 @@ describe('SkillTreeCanvas', () => {
 
     const rootNode = await screen.findByTestId('rf__node-1000')
     expect(rootNode.querySelector('.skill-node')).toHaveStyle('--skill-node-size: 40px')
+  })
+
+  it('keeps the block grid preference and reports pointer coordinates relative to the map origin', async () => {
+    const props = { structure, masters, onRecord: vi.fn(), onReplace: vi.fn(), onSelectedNode: vi.fn(),
+      onBeginTransaction: vi.fn(), onCommitTransaction: vi.fn(), onEditMaster: vi.fn(), onNotify: vi.fn() }
+    const view = render(<SkillTreeCanvas {...props} />)
+    const canvas = await screen.findByTestId('rf__wrapper')
+    const grid = () => view.container.querySelector('.tree-map-grid')
+    const toggle = () => screen.getByRole('button', { name: 'グリッド' })
+    const coordinates = screen.getByLabelText('ポインターのブロック座標')
+    expect(toggle()).toHaveAttribute('aria-pressed', 'true')
+    expect(grid()).toBeInTheDocument()
+    const transform = canvas.querySelector<HTMLElement>('.react-flow__viewport')!.style.transform
+    const [, x, y, zoom] = transform.match(/translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\) scale\(([\d.]+)\)/)!
+    fireEvent.pointerMove(canvas, { clientX: Number(x) + 12.3 * 36 * Number(zoom), clientY: Number(y) - 4.5 * 36 * Number(zoom) })
+    expect(coordinates).toHaveTextContent('X 12.3 / Z -4.5')
+    expect(grid()).toHaveStyle('--tree-axis-x: ' + x + 'px')
+    fireEvent.click(toggle())
+    expect(toggle()).toHaveAttribute('aria-pressed', 'false')
+    expect(grid()).not.toBeInTheDocument()
+    view.unmount()
+    render(<SkillTreeCanvas {...props} />)
+    expect(toggle()).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('marks gateways, keystones and search matches without hiding non-matching placements', async () => {
+    const additional = { ...masters[1], nodeId: '1002', tags: ['keystone'] }
+    const view = render(<SkillTreeCanvas
+      structure={{ ...structure, nodes: [...structure.nodes, { nodeId: '1002', x: 12, y: 0, z: 0 }] }}
+      masters={[masters[0], { ...masters[1], tags: ['gateway'] }, additional]}
+      matchingNodeIds={new Set(['1002'])} onRecord={vi.fn()} onReplace={vi.fn()} onSelectedNode={vi.fn()}
+      onBeginTransaction={vi.fn()} onCommitTransaction={vi.fn()} onEditMaster={vi.fn()} onNotify={vi.fn()} />)
+    const gateway = await screen.findByTestId('rf__node-1001')
+    const keystone = screen.getByTestId('rf__node-1002')
+    expect(gateway).toHaveClass('tree-dim')
+    expect(gateway.querySelector('.skill-node')).toHaveAttribute('data-node-kind', 'gateway')
+    expect(keystone).toHaveClass('tree-match')
+    expect(keystone.querySelector('.skill-node')).toHaveAttribute('data-node-kind', 'keystone')
+    expect(keystone.querySelector('.skill-node')).toHaveAttribute('data-keystone', 'true')
+    expect(view.container.querySelector('.tree-mini-dot[data-node-kind="keystone"]')).toBeInTheDocument()
   })
 })

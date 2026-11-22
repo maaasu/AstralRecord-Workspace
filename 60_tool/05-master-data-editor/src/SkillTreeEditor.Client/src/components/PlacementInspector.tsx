@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ClassMasterSummary, JsonValue, NodeMaster, SkillMasterSummary, StructureDocument } from '../types/editor'
-import { MinecraftIcon } from './MinecraftIcon'
+import { MinecraftText } from './MinecraftText'
+import { MapEffectList, MapNodeIcon, MapNodeName, NODE_KIND_LABEL, connectedNodeIds, mapNodeCost, mapNodeEffects, nodeClassId, nodeClassName, nodeKind, nodeLevel, pointType, type NodeKind } from './skillTreeMapPresentation'
 import { stripMinecraftFormatting } from '../utils/minecraft'
 import { parsePlacementCoordinate as parseCoordinate } from '../state/placementCoordinates'
 import { MaterialIconInput } from './MaterialIconInput'
@@ -16,6 +17,8 @@ interface PlacementInspectorProps {
   nodeId: string | null
   structure: StructureDocument
   master: NodeMaster | null
+  masters?: ReadonlyMap<string, NodeMaster>
+  onShowNode?: (nodeId: string) => void
   saving: boolean
   onDirtyChange?: (dirty: boolean) => void
   onInputValidityChange?: (valid: boolean) => void
@@ -30,10 +33,16 @@ interface PlacementInspectorProps {
   classMasters?: readonly ClassMasterSummary[]
 }
 
+const EMPTY_MASTERS: ReadonlyMap<string, NodeMaster> = new Map()
+const EMPTY_SKILLS: readonly SkillMasterSummary[] = []
+const EMPTY_CLASSES: readonly ClassMasterSummary[] = []
+
 export function PlacementInspector({
   nodeId,
   structure,
   master,
+  masters = EMPTY_MASTERS,
+  onShowNode,
   saving,
   onDirtyChange,
   onInputValidityChange,
@@ -44,8 +53,8 @@ export function PlacementInspector({
   onRetryIcons,
   materialSuggestions = [],
   tagSuggestions = [],
-  skillMasters = [],
-  classMasters = [],
+  skillMasters = EMPTY_SKILLS,
+  classMasters = EMPTY_CLASSES,
 }: PlacementInspectorProps) {
   const placement = structure.nodes.find((node) => node.nodeId === nodeId)
   const [draft, setDraft] = useState<NodeMaster | null>(() => master ? structuredClone(master) : null)
@@ -91,14 +100,17 @@ export function PlacementInspector({
     [draft?.tags, knownTagIds, tagSuggestions],
   )
 
-  if (!placement) {
-    return (
-      <section className="panel-section inspector empty-inspector">
-        <h2>ノードインスペクター</h2>
-        <p className="muted">キャンバス上のノードを選択すると、配置とマスター定義をここで編集できます。</p>
-      </section>
-    )
-  }
+  const mapMaster = draft?.nodeId === placement?.nodeId ? draft : master
+  const effects = useMemo(() => mapMaster ? mapNodeEffects(mapMaster, skillMasters) : [], [mapMaster, skillMasters])
+  if (!placement) return <StructureOverview structure={structure} masters={masters} classMasters={classMasters} />
+
+  const kind = nodeKind(mapMaster, placement.nodeId === structure.rootNodeId)
+  const classId = nodeClassId(mapMaster)
+  const level = nodeLevel(mapMaster)
+  const linkedIds = connectedNodeIds(structure.edges, placement.nodeId)
+  const root = structure.nodes.find(node => node.nodeId === structure.rootNodeId)
+  const rootDistance = root ? Math.hypot(placement.x - root.x, placement.y - root.y, placement.z - root.z) : null
+  const placedIds = new Set(structure.nodes.map(node => node.nodeId))
 
   const updatePlacement = (key: 'x' | 'y' | 'z', value: number) => onChange({
     ...structure,
@@ -145,18 +157,40 @@ export function PlacementInspector({
   }
 
   return (
-    <section className="panel-section inspector node-master-inspector">
-      <div className="inspector-heading">
-        <MinecraftIcon icon={draft?.icon ?? master?.icon ?? ''} revision={iconRevision} className="inspector-node-icon" />
+    <section className="panel-section inspector node-master-inspector tree-map-detail" aria-label="ノード詳細">
+      <h2>ノード詳細</h2>
+      <div className="tree-map-detail-summary">
+        <MapNodeIcon node={mapMaster} kind={kind} size={64} revision={iconRevision} />
         <div>
-          <span className="eyebrow">選択中のノード</span>
-          <h2>{stripMinecraftFormatting(String(draft?.name ?? master?.name ?? '不明なノード'))}</h2>
-          <p className="muted">nodeId #{placement.nodeId}{masterInputDirty ? ' · マスター未保存' : ''}</p>
+          {mapMaster && <span className="tree-map-chip">{pointType(mapMaster) === 'CP' ? 'CP（クラス）' : 'PP（共通）'}</span>}
+          <h3><MapNodeName node={mapMaster} id={placement.nodeId} /></h3>
+          <span className="tree-map-chip">{NODE_KIND_LABEL[kind]}</span>
+          <p className="tree-map-muted">#{placement.nodeId}{masterInputDirty ? ' · マスター未保存' : ''}</p>
         </div>
       </div>
+      <div className="tree-map-detail-section tree-map-detail-cost">
+        <span>解放コスト</span><strong>{mapNodeCost(mapMaster)}</strong>
+      </div>
+      <div className="tree-map-detail-section">
+        <h3>得られる効果</h3>
+        <MapEffectList effects={effects} />
+      </div>
+      <div className="tree-map-detail-section">
+        <h3>必要条件</h3>
+        {classId && <p>{nodeClassName(mapMaster, classMasters)} <small className="tree-map-muted">（祖先職としても成立）</small></p>}
+        {level !== undefined && <p>プレイヤーLv. {level} 以上</p>}
+        {!classId && level === undefined && <p className="tree-map-muted">なし</p>}
+      </div>
+      <div className="tree-map-detail-section">
+        <h3>つながるノード</h3>
+        {linkedIds.length ? <div className="tree-map-linked">{linkedIds.map(id => <button type="button" key={id}
+          onClick={() => onShowNode?.(id)} disabled={!onShowNode || busy || !inputValid || !placedIds.has(id)}>
+          <MapNodeName node={masters.get(id)} id={id} />{' '}<small>{mapNodeCost(masters.get(id))}</small>
+        </button>)}</div> : <p className="tree-map-muted">なし</p>}
+      </div>
 
-      <fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-      <h3 className="inspector-subtitle">配置</h3>
+      <fieldset className="tree-map-editing" disabled={busy} style={{ border: 0, margin: 0, minWidth: 0 }}>
+      <h3>配置と編集</h3>
       <div className="coordinate-grid">
         {(['x', 'y', 'z'] as const).map((key) => (
           <label key={key}>{key.toUpperCase()}<input
@@ -174,6 +208,7 @@ export function PlacementInspector({
           /></label>
         ))}
       </div>
+      <p className="muted">起点からの距離 {rootDistance === null ? '—' : `${rootDistance.toFixed(1)} ブロック`}</p>
       {!coordinatesValid && <p className="error-message" role="alert">座標は -2147483648～2147483647 の範囲で0.1単位の数値を入力してください。入力内容は保持しています。</p>}
       {coordinatesValid && coordinatePending && <p className="muted">座標はEnterまたはフォーカス移動で確定してください。</p>}
       <div className="button-row compact-actions">
@@ -186,6 +221,9 @@ export function PlacementInspector({
         </button>
         <button className="button danger subtle compact" onClick={remove} disabled={busy || !inputValid}>配置から削除</button>
       </div>
+
+      <ConnectionControls key={placement.nodeId} nodeId={placement.nodeId} linkedIds={linkedIds}
+        masters={masters} structure={structure} onChange={onChange} disabled={!inputValid} />
 
       {draft && (
         <>
@@ -322,6 +360,108 @@ export function PlacementInspector({
       </fieldset>
     </section>
   )
+}
+
+function ConnectionControls({ nodeId, linkedIds, masters, structure, onChange, disabled }: {
+  nodeId: string
+  linkedIds: string[]
+  masters: ReadonlyMap<string, NodeMaster>
+  structure: StructureDocument
+  onChange: (structure: StructureDocument) => void
+  disabled: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [targetId, setTargetId] = useState('')
+  const candidates = open ? structure.nodes.filter(node => node.nodeId !== nodeId && !linkedIds.includes(node.nodeId)) : []
+  const add = () => {
+    if (!candidates.some(node => node.nodeId === targetId)) return
+    const [sourceNodeId, targetNodeId] = [nodeId, targetId].sort()
+    onChange({ ...structure, edges: [...structure.edges, { sourceNodeId, targetNodeId }] })
+    setTargetId('')
+  }
+  const remove = (id: string) => onChange({
+    ...structure,
+    edges: structure.edges.filter(edge => !(edge.sourceNodeId === nodeId && edge.targetNodeId === id
+      || edge.sourceNodeId === id && edge.targetNodeId === nodeId)),
+  })
+  return <details onToggle={event => setOpen(event.currentTarget.open)}>
+    <summary>接続を編集</summary>
+    {open && <>
+      <div className="tree-map-connection-form">
+        <label>接続先
+          <select value={targetId} onChange={event => setTargetId(event.target.value)} disabled={disabled}>
+            <option value="">配置済みのノードを選択</option>
+            {candidates.map(({ nodeId: id }) => {
+              const name = masters.get(id)?.name
+              return <option value={id} key={id}>#{id}{name && ` · ${stripMinecraftFormatting(name)}`}</option>
+            })}
+          </select>
+        </label>
+        <button type="button" className="button compact" disabled={disabled || !targetId} onClick={add}>接続を追加</button>
+      </div>
+      <div className="button-row compact-actions">{linkedIds.map(id => <button type="button" key={id}
+        className="button compact subtle" disabled={disabled} onClick={() => remove(id)}>#{id} との接続を削除</button>)}</div>
+    </>}
+  </details>
+}
+
+function StructureOverview({ structure, masters, classMasters }: {
+  structure: StructureDocument
+  masters: ReadonlyMap<string, NodeMaster>
+  classMasters: readonly ClassMasterSummary[]
+}) {
+  const { kinds, classes, min, max } = useMemo(() => {
+    const kinds = new Map<NodeKind, number>()
+    const classes = new Map<string, number>()
+    const min = { x: Infinity, y: Infinity, z: Infinity }
+    const max = { x: -Infinity, y: -Infinity, z: -Infinity }
+    for (const placement of structure.nodes) {
+      const node = masters.get(placement.nodeId)
+      const kind = nodeKind(node, placement.nodeId === structure.rootNodeId)
+      const className = node ? nodeClassName(node, classMasters) : '定義不明'
+      kinds.set(kind, (kinds.get(kind) ?? 0) + 1)
+      classes.set(className, (classes.get(className) ?? 0) + 1)
+      for (const axis of ['x', 'y', 'z'] as const) {
+        min[axis] = Math.min(min[axis], placement[axis])
+        max[axis] = Math.max(max[axis], placement[axis])
+      }
+    }
+    return { kinds, classes, min, max }
+  }, [structure.nodes, structure.rootNodeId, masters, classMasters])
+  return <section className="panel-section inspector empty-inspector tree-map-detail" aria-label="ノード詳細">
+    <h2>ノード詳細</h2>
+    <div className="tree-map-detail-section">
+      <h3>構造の概要</h3>
+      <p><strong><MinecraftText value={structure.name || structure.structureId || '構造未選択'} /></strong></p>
+      <p className="tree-map-muted">{structure.nodes.length} ノード · {structure.edges.length} 接続</p>
+    </div>
+    {structure.nodes.length > 0 && <>
+      <div className="tree-map-detail-section">
+        <h3>クラス条件ごとのノード数</h3>
+        <dl>{[...classes].sort(([a], [b]) => a.localeCompare(b, 'ja')).map(([name, count]) =>
+          <div key={name} className="tree-map-count"><dt>{name}</dt><dd>{count}</dd></div>,
+        )}</dl>
+      </div>
+      <div className="tree-map-detail-section">
+        <h3>種類ごとのノード数</h3>
+        <dl>{(Object.keys(NODE_KIND_LABEL) as NodeKind[]).filter(kind => kinds.has(kind)).map(kind =>
+          <div key={kind} className="tree-map-count"><dt>{NODE_KIND_LABEL[kind]}</dt><dd>{kinds.get(kind)}</dd></div>,
+        )}</dl>
+      </div>
+      <div className="tree-map-detail-section">
+        <h3>座標の範囲</h3>
+        <dl>{(['x', 'y', 'z'] as const).map(axis => <div key={axis} className="tree-map-count">
+          <dt>{axis.toUpperCase()}</dt><dd>{min[axis]} ～ {max[axis]}</dd>
+        </div>)}</dl>
+      </div>
+    </>}
+    <div className="tree-map-detail-section">
+      <h3>操作のヒント</h3>
+      <p>ノードを選ぶと効果や条件を確認できます。一覧の「表示」でノードの位置へ移動できます。</p>
+      <p>空白をドラッグして地図を移動します。Shift を押すと範囲選択、Ctrl / Cmd を押してクリックすると追加選択できます。</p>
+      <p>ノードのハンドルをドラッグして接続します。ノードを右クリックすると編集メニューを開きます。</p>
+    </div>
+  </section>
 }
 
 const parsePointCost = (raw: string): number | null => {

@@ -1,16 +1,19 @@
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { ResizeHandle, usePanelSize } from './ResizeHandle'
-import type { ClassMasterSummary, NodeMaster, SkillMasterSummary } from '../types/editor'
-import { MinecraftIcon } from './MinecraftIcon'
-import { stripMinecraftFormatting } from '../utils/minecraft'
-import { describeNodeCost, describeNodeEffects, nodeTooltip, type NodeCostPresentation, type NodeEffectPresentation } from '../data/nodeEffectPresentation'
-import { masterTagLabel, masterTagSearchText, masterTagTooltip } from '../data/masterTagPresentation'
+import type { NodeMaster } from '../types/editor'
+import { MinecraftText } from './MinecraftText'
+import { MapEffectText, MapNodeIcon, NODE_KIND_LABEL, mapNodeCost, type NodeKind } from './skillTreeMapPresentation'
+import { masterTagLabel } from '../data/masterTagPresentation'
+import type { NodeListingEntry } from './useNodeListing'
 
 interface NodeSidebarProps {
   nodes: NodeMaster[]
+  entries: NodeListingEntry[]
   placedIds: Set<string>
   query: string
   selectedTag: string
+  selectedKind?: NodeKind | ''
+  onKindChange?: (value: NodeKind | '') => void
   paginationContext?: string
   onQueryChange: (value: string) => void
   onTagChange: (value: string) => void
@@ -22,29 +25,19 @@ interface NodeSidebarProps {
   selectedNodeId?: string | null
   placementDisabled?: boolean
   iconRevision?: number
-  skillMasters: readonly SkillMasterSummary[]
-  classMasters?: readonly ClassMasterSummary[]
 }
 
-interface NodeListingEntry {
-  node: NodeMaster
-  name: string
-  effects: NodeEffectPresentation[]
-  cost: NodeCostPresentation
-  tags: { id: string; label: string; tooltip: string }[]
-  tooltip: string
-  searchText: string
-}
-
-const EMPTY_CLASS_MASTERS: readonly ClassMasterSummary[] = []
 const NODE_PAGE_SIZE = 50
-const normalizeSearch = (text: string) => stripMinecraftFormatting(text).toLocaleLowerCase('ja-JP')
+const FILTER_KINDS = ['small', 'notable', 'keystone', 'gateway', 'skill'] as const
 
 export function NodeSidebar({
   nodes,
+  entries,
   placedIds,
   query,
   selectedTag,
+  selectedKind = '',
+  onKindChange,
   paginationContext = '',
   onQueryChange,
   onTagChange,
@@ -55,32 +48,16 @@ export function NodeSidebar({
   selectedNodeId = null,
   placementDisabled = false,
   iconRevision = 0,
-  skillMasters,
-  classMasters = EMPTY_CLASS_MASTERS,
 }: NodeSidebarProps) {
   const searchHelpId = useId()
   const [groupHeight, setGroupHeight] = usePanelSize('tree-node-groups', 280, 100, 1000)
-  const pageContext = JSON.stringify([query, selectedTag, paginationContext])
-  const entries = useMemo<NodeListingEntry[]>(() => nodes.map(node => {
-    const effects = describeNodeEffects(node, skillMasters)
-    const cost = describeNodeCost(node, classMasters)
-    const name = stripMinecraftFormatting(node.name)
-    const tags = (node.tags ?? []).map(id => ({ id, label: masterTagLabel(id), tooltip: masterTagTooltip(id) }))
-    return {
-      node, name, effects, cost, tags,
-      tooltip: [nodeTooltip(node, effects, classMasters), ...(tags.length ? ['', 'タグ:', ...tags.map(tag => tag.tooltip)] : [])].join('\n'),
-      searchText: normalizeSearch([node.nodeId, name, ...(node.tags ?? []).map(masterTagSearchText), cost.searchText, ...effects.map(effect => effect.searchText)].join('\n')),
-    }
-  }), [nodes, skillMasters, classMasters])
+  const pageContext = JSON.stringify([query, selectedTag, selectedKind, paginationContext])
   const tags = useMemo(() => [...new Set(nodes.flatMap(node => node.tags ?? []))].sort((a, b) => a.localeCompare(b, 'ja')), [nodes])
-  const words = useMemo(() => normalizeSearch(query).trim().split(/\s+/u).filter(Boolean), [query])
-  const filtered = useMemo(() => entries.filter(entry => (!selectedTag || entry.node.tags?.includes(selectedTag))
-    && words.every(word => entry.searchText.includes(word))), [entries, selectedTag, words])
   const { unplaced, placed } = useMemo(() => {
     const unplaced: NodeListingEntry[] = [], placed: NodeListingEntry[] = []
-    for (const entry of filtered) (placedIds.has(entry.node.nodeId) ? placed : unplaced).push(entry)
+    for (const entry of entries) (placedIds.has(entry.node.nodeId) ? placed : unplaced).push(entry)
     return { unplaced, placed }
-  }, [filtered, placedIds])
+  }, [entries, placedIds])
 
   return (
     <aside className="sidebar">
@@ -104,6 +81,10 @@ export function NodeSidebar({
         <select aria-label="ノードのタグ" value={selectedTag} onChange={(event) => onTagChange(event.target.value)}>
           <option value="">すべてのタグ</option>
           {tags.map((tag) => <option key={tag} value={tag}>{masterTagLabel(tag, true)}</option>)}
+        </select>
+        <select aria-label="ノードの種類" value={selectedKind} onChange={(event) => onKindChange?.(event.target.value as NodeKind | '')}>
+          <option value="">すべての種類</option>
+          {FILTER_KINDS.map(kind => <option key={kind} value={kind}>{NODE_KIND_LABEL[kind]}</option>)}
         </select>
       </div>
       <div className="node-groups" data-split={unplaced.length > 0 && placed.length > 0} style={{ '--node-group-height': `${groupHeight}px` } as CSSProperties}>
@@ -169,9 +150,9 @@ function NodeGroup({
         <button className="button compact subtle" aria-label={`${label}ノードの次のページ`} disabled={page === pageCount - 1} onClick={() => changePage(page + 1)}>次へ</button>
       </div>}
       <div className="node-list" ref={listRef}>
-        {visibleEntries.map(({ node, name, effects, cost, tags, tooltip }, index) => {
+        {visibleEntries.map(({ node, name, effects, className, kind, tooltip }, index) => {
           return <article
-            className={`node-list-item ${placedIds.has(node.nodeId) ? 'placed' : ''} ${node.nodeId === selectedNodeId ? 'selected' : ''}`}
+            className={`node-list-item tree-map-list-row ${placedIds.has(node.nodeId) ? 'placed' : ''} ${node.nodeId === selectedNodeId ? 'selected' : ''}`}
             aria-current={node.nodeId === selectedNodeId ? 'true' : undefined}
             key={node.nodeId}
             title={tooltip}
@@ -182,25 +163,17 @@ function NodeGroup({
             }}
             onDoubleClick={() => onEdit(node)}
           >
-            <MinecraftIcon icon={node.icon} revision={iconRevision} className="sidebar-node-icon" />
-            <div className="node-id">#{node.nodeId} · {String(node.icon)}</div>
-            <strong>{name}</strong>
-            <div className="tag-row">
-              {tags.slice(0, 3).map((tag) => (
-                <span className="tag" title={tag.tooltip} key={tag.id}>{tag.label}</span>
-              ))}
-            </div>
-            <div className="node-cost-preview" title={cost.detail}>
-              <span className={`cost-chip ${cost.kind}`}>消費 {cost.title}</span>
-            </div>
-            {effects.length > 0 && (
-              <div className="node-effect-preview">
+            <MapNodeIcon node={node} kind={kind} size={36} revision={iconRevision} />
+            <div className="tree-map-list-copy">
+              <strong><MinecraftText value={node.name} /></strong>
+              <small>#{node.nodeId} · {className} · {mapNodeCost(node)} · {NODE_KIND_LABEL[kind]}</small>
+              <div className="tree-map-list-effects">
                 {effects.slice(0, 2).map((effect, index) => (
-                  <span className={`node-effect ${effect.kind}`} key={`${effect.kind}-${index}`}>{effect.title}</span>
+                  <span key={index}><MapEffectText effect={effect} /></span>
                 ))}
-                {effects.length > 2 && <span className="node-effect more">ほか{effects.length - 2}件</span>}
+                {effects.length > 2 && <span className="tree-map-muted">ほか {effects.length - 2} 件</span>}
               </div>
-            )}
+            </div>
             <div className="node-list-actions">
               {onPlace && <button className="button compact subtle" aria-label={`${name}を座標指定で配置`} disabled={placementDisabled} onClick={() => onPlace(node)}>配置</button>}
               {onShow && <button className="button compact subtle" aria-label={`${name}をキャンバスで表示`} title="キャンバスの中央に表示して選択" disabled={placementDisabled} onClick={() => onShow(node)}>表示</button>}
