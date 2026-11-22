@@ -6,7 +6,9 @@ import re
 import subprocess
 from decimal import ROUND_HALF_UP, Decimal
 from html import escape
+from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import quote
 
 import yaml
 
@@ -46,7 +48,7 @@ const panels = vm.runInNewContext(source + "\npanels", Object.create(null), {
   timeout: 1000
 });
 const result = {player: [], mob: []};
-for (const {grid, title, unit, series} of panels) {
+for (const {grid, title, unit, cats, series} of panels) {
   const owner = grid.split("-")[0];
   if (!Object.hasOwn(result, owner)) throw new Error(`未登録の章 ${grid}`);
   const targets = series.map(({label, read}) => ({
@@ -58,7 +60,7 @@ for (const {grid, title, unit, series} of panels) {
       return value;
     })
   }));
-  result[owner].push({title, unit, series: targets});
+  result[owner].push({title, unit, cats, series: targets});
 }
 process.stdout.write(JSON.stringify(result));
 """
@@ -235,64 +237,105 @@ def allocation_data(rows, allocations):
     return {"player": player, "bank": bank}
 
 
+def valid_equipment_icon(icon):
+    return isinstance(icon, str) and re.fullmatch(r'[A-Za-z][A-Za-z0-9_.-]*', icon) is not None
+
+
 def validate_equipment(equipment, rows, allocations):
-    unlock = equipment["unlockLevels"]
-    require(all(type(unlock[key]) is int and 1 <= unlock[key] <= LEVEL_COUNT
-                for key in ("advanced", "build", "lateBuild"))
-            and unlock["build"] <= unlock["lateBuild"], "装備候補の解禁Lvが無効です")
+    unlock = equipment['unlockLevels']
+    require(set(unlock) == {'advanced', 'build', 'lateBuild'}
+            and all(type(level) is int and 1 <= level <= LEVEL_COUNT for level in unlock.values())
+            and unlock['build'] <= unlock['lateBuild'], '装備候補の解禁Lvが無効です')
+    policy = equipment['twoHanded']
+    require(set(policy) == {'sharePercent', 'exampleLevel'}
+            and type(policy['sharePercent']) is int and 1 <= policy['sharePercent'] <= 99
+            and type(policy['exampleLevel']) is int and 1 <= policy['exampleLevel'] <= LEVEL_COUNT,
+            f'両手補正の配分は1〜99の整数%、表示例はLv.1〜{LEVEL_COUNT}の整数で指定してください')
 
-    pools = equipment["pools"]
+    pools = equipment['pools']
     for name, pool in pools.items():
-        stats = pool["stats"]
-        require(stats and len(stats) == len(set(stats)) and set(stats) <= rows.keys(),
-                f"候補グループの内訳が空か、未定義・重複の指標があります {name}")
+        require(isinstance(name, str) and name.strip() and not re.search(r'[\t\n\f\r ]', name),
+                f'候補グループ名をフラグメントIDに使用できません {name}')
+        stats = pool['stats']
+        require(isinstance(stats, list) and stats and len(stats) == len(set(stats))
+                and set(stats) <= rows.keys(), f'候補グループの内訳が空か、未定義・重複の指標があります {name}')
 
-    excluded = [name for names in equipment["excluded"].values() for name in names]
+    excluded = [name for names in equipment['excluded'].values() for name in names]
     require(len(excluded) == len(set(excluded)) and set(excluded) <= rows.keys(),
-            "装備から直接付与しない指標は、02の表示名で重複なく指定してください")
+            '装備から直接付与しない指標は、02の表示名で重複なく指定してください')
 
-    row_names = set()
+    fixed_weapons = {'ハンマー', '長弓', 'スタッフ'}
+    sections = equipment['sections']
+    require({'武器', '防具', '補助装備', 'アクセサリ'} <= sections.keys(), '装備の必須4分類を確認してください')
+    equipment_names = set()
+    found_fixed = set()
     candidates = set()
     standard_unlock = {}
-    sections = equipment["sections"]
-    require({"武器", "防具", "補助装備", "アクセサリ"} <= sections.keys(),
-            "武器・防具・補助装備・アクセサリの区分が必要です")
-    row_keys = {"name", "required", "oneOf", "normal", "advanced", "build", "lateBuild"}
-    for section in sections.values():
-        for row in section:
-            name = row["name"]
+    stages = ('normal', 'advanced', 'build', 'lateBuild')
+    row_keys = {'name', 'role', 'icon', 'alias', 'required', 'oneOf', 'twoHandedBonus', *stages}
+    for section, entries in sections.items():
+        require(isinstance(entries, list) and entries, f'装備種別の一覧が空です {section}')
+        for row in entries:
+            name = row.get('name')
+            require(isinstance(name, str) and name.strip() and name not in equipment_names,
+                    f'装備名が空か重複しています {section}・{name}')
+            equipment_names.add(name)
             unknown = row.keys() - row_keys
-            require(not unknown, f"未定義の装備候補の欄です {name}・{sorted(unknown)}")
-            require(name and name not in row_names, f"装備種別名が空か重複しています {name}")
-            row_names.add(name)
-            mandatory = [key for key in ("required", "oneOf") if key in row]
-            require(len(mandatory) == 1 and row[mandatory[0]],
-                    f"必須またはいずれか1つの候補を指定してください {name}")
+            require(not unknown, f'未定義の装備候補の欄です {name}・{sorted(unknown)}')
+            require(isinstance(row.get('role'), str) and row['role'].strip()
+                    and valid_equipment_icon(row.get('icon')), f'役割またはアイコンが無効です {name}')
+            if 'alias' in row:
+                require(isinstance(row['alias'], str) and row['alias'].strip(), f'別名が空です {name}')
+            if name == '長弓':
+                require(row.get('alias') == 'ロングボウ', '長弓の別名を確認してください')
+
+            mandatory = [key for key in ('required', 'oneOf') if key in row]
+            require(len(mandatory) == 1, f'必須またはいずれか1つの候補が必要です {name}')
+            mandatory_key = mandatory[0]
+            required_names = row[mandatory_key]
+            require(isinstance(required_names, list) and required_names,
+                    f'必須候補は空でない一覧で指定してください {name}')
+            require(('twoHandedBonus' in row) == (name in fixed_weapons), f'両手固定の対象を確認してください {name}')
             seen = set()
-            for key in (*mandatory, "normal", "advanced", "build", "lateBuild"):
-                for candidate in row.get(key, []):
-                    require(candidate in pools or candidate in rows,
-                            f"装備候補の参照が未解決です {name}・{candidate}")
-                    stats = pools[candidate]["stats"] if candidate in pools else [candidate]
+            if name in fixed_weapons:
+                require(section == '武器', f'両手固定の装備は武器章に指定してください {name}')
+                found_fixed.add(name)
+                stat = row['twoHandedBonus']
+                require(mandatory_key == 'required' and len(required_names) == 1
+                        and required_names[0] in rows and required_names[0] not in pools
+                        and isinstance(stat, str) and stat in rows and stat in allocations,
+                        f'両手固定の必須能力または専用補正が無効です {name}')
+                require(len(allocations[stat]) == LEVEL_COUNT and allocations[stat][0][4] == 0,
+                        f'両手補正の配分にはLv.1の原資0を含む全Lvの値が必要です {stat}')
+                seen.add(stat)
+                standard_unlock[stat] = 1
+
+            for key in (mandatory_key, *stages):
+                names = row.get(key, [])
+                require(isinstance(names, list), f'装備候補は一覧で指定してください {name}・{key}')
+                for candidate in names:
+                    require(isinstance(candidate, str) and (candidate in pools or candidate in rows),
+                            f'装備候補の参照が未解決です {name}・{candidate}')
+                    stats = pools[candidate]['stats'] if candidate in pools else [candidate]
                     for stat in stats:
-                        require(stat not in seen, f"装備候補が展開後に重複しています {name}・{stat}")
+                        require(stat not in seen, f'必須・専用補正・付与候補が展開後に重複しています {name}・{stat}')
                         seen.add(stat)
-                        if key not in ("build", "lateBuild"):
-                            level = unlock["advanced"] if key == "advanced" else 1
+                        if key not in ('build', 'lateBuild'):
+                            level = unlock['advanced'] if key == 'advanced' else 1
                             standard_unlock[stat] = min(level, standard_unlock.get(stat, level))
             candidates.update(seen)
 
+    require(found_fixed == fixed_weapons, f'武器章の両手固定装備が不足しています {sorted(fixed_weapons - found_fixed)}')
     overlap = candidates.intersection(excluded)
     missing = rows.keys() - candidates - set(excluded)
     require(not overlap and not missing,
-            f"装備候補と適用外の分類が無効です 重複 {sorted(overlap)}／不足 {sorted(missing)}")
-    # 標準装備の候補が解禁される前の配分を検証する。
+            f'装備候補と適用外の分類が無効です 重複 {sorted(overlap)}／不足 {sorted(missing)}')
     for stat, levels in allocations.items():
-        if rows[stat]["rule"].get("mode") in ("attack", "derived"):
+        if rows[stat]['rule'].get('mode') in ('attack', 'derived'):
             continue
         available = standard_unlock.get(stat, LEVEL_COUNT + 1)
         for level, (_, _, _, _, gear, _) in enumerate(levels[:available - 1], 1):
-            require(gear <= 0, f"標準の装備配分を付与できる候補がありません {stat} Lv.{level}")
+            require(gear <= 0, f'標準の装備配分を付与できる候補がありません {stat} Lv.{level}')
 
 
 def armor_example(armor, allocations):
@@ -320,110 +363,189 @@ def armor_example(armor, allocations):
     )
 
 
-def equipment_table(section, rows, pools, unlock):
-    def candidates(names):
-        if not names:
-            return '<span class="es-empty">なし</span>'
+EQUIPMENT_CATEGORIES = {
+    'resource': 'リソース', 'primary': '基本能力値', 'offense': '攻撃', 'defense': '防御',
+    'element': '属性', 'condition': '状態異常', 'utility': 'ユーティリティ',
+}
 
-        items = []
-        for candidate in names:
-            label = escape(candidate)
+
+def equipment_stat(stat, cat):
+    return f'<span class="es-stat cat-{escape(cat, quote=True)}">{escape(stat)}</span>'
+
+
+def equipment_search_context(row):
+    terms = [row['role'], *row.get('required', row.get('oneOf', []))]
+    if 'twoHandedBonus' in row:
+        terms.extend((row['twoHandedBonus'], '両手固定', 'オフハンド不可'))
+    return terms
+
+
+def equipment_cards(section, rows, equipment, allocations, categories, search_ids, units):
+    pools = equipment['pools']
+    unlock = equipment['unlockLevels']
+    policy = equipment['twoHanded']
+    level = policy['exampleLevel']
+    stages = (
+        ('normal', '通常候補', 1), ('advanced', '上位候補', unlock['advanced']),
+        ('build', 'ビルド向け候補', unlock['build']), ('lateBuild', '後期ビルド向け候補', unlock['lateBuild']),
+    )
+    category_order = tuple(EQUIPMENT_CATEGORIES)
+
+    def candidate_value(name):
+        if name in pools:
+            fragment = 'es-pool-' + quote(name, safe='')
+            cats = candidate_categories(name)
+            color = f' cat-{cats[0]}' if len(cats) == 1 else ''
+            return f'<a class="es-stat{color}" href="#{fragment}">{escape(name)}</a>'
+        return equipment_stat(name, categories[name][0])
+
+    def candidate_categories(name):
+        stats = pools[name]['stats'] if name in pools else [name]
+        member_cats = [set(categories[stat]) for stat in stats]
+        shared = set.intersection(*member_cats)
+        cats = shared or set.union(*member_cats)
+        return tuple(cat for cat in category_order if cat in cats)
+
+    def stage(heading, names, tag):
+        grouped = {}
+        for name in names:
+            cats = candidate_categories(name)
+            grouped.setdefault(cats, []).append(candidate_value(name))
+        lines = [f'<div class="es-stage"><{tag}>{heading}</{tag}>']
+        for cats in sorted(grouped, key=lambda group: tuple(map(category_order.index, group))):
+            labels = '・'.join(f'<span class="es-category-name cat-{cat}">{EQUIPMENT_CATEGORIES[cat]}</span>'
+                              for cat in cats)
+            values = ' '.join(grouped[cats])
+            row_class = f' cat-{cats[0]}' if len(cats) == 1 else ''
+            lines.append(f'<div class="es-category-row{row_class}"><div>{labels}</div> '
+                         f'<div class="es-values">{values}</div></div>')
+        lines.append('</div>')
+        return '\n'.join(lines)
+
+    def card(row):
+        name = escape(row['name'])
+        if 'alias' in row:
+            name += '（' + escape(row['alias']) + '）'
+        role = escape(row['role'])
+        icon = escape(row['icon'], quote=True)
+        bonus = row.get('twoHandedBonus')
+        card_class = 'es-card es-two-hand' if bonus else 'es-card'
+        title_tag, stage_tag = ('h4', 'h5') if section == '武器' else ('h3', 'h4')
+        choice = 'oneOf' in row
+        mandatory = row['oneOf'] if choice else row['required']
+        label = '必須（いずれか1つ）' if choice else '必須'
+        summary = ' '.join(candidate_value(candidate) for candidate in mandatory[:2])
+        if len(mandatory) > 2:
+            summary += f' <small>ほか{len(mandatory) - 2}候補</small>'
+        facts = [f'<div><dt>{label}</dt><dd class="es-values">{summary}</dd></div>']
+        if bonus:
+            grant, _ = two_handed_allocation(allocations, bonus, level, policy['sharePercent'])
+            unit = 'ポイント' if units[bonus] == '%' else escape(units[bonus])
+            value = f'+{Decimal(grant) / CENTS:.2f}{unit}'
+            facts.append(f'<div><dt>両手固定の補正</dt><dd class="es-values">{equipment_stat(bonus, categories[bonus][0])} '
+                         f'<strong>{value}</strong> <small class="es-example">Lv.{level}の例</small></dd></div>')
+
+        details = []
+        if len(mandatory) > 2:
+            details.append(stage(label, mandatory, stage_tag))
+        candidates = list(mandatory)
+        for key, title, start in stages:
+            names = row.get(key, [])
+            if names:
+                details.append(stage(f'{title} <span class="es-condition">Lv.{start}〜</span>', names, stage_tag))
+                candidates.extend(names)
+        search_terms = equipment_search_context(row)
+        for candidate in candidates:
             if candidate in pools:
-                label = f'<a href="#candidate-groups">{label}</a>'
-            items.append(f'<li>{label}</li>')
-        return '<ul class="es-candidates" role="list">' + "".join(items) + '</ul>'
-
-    def render_table(columns, indent, *, build=False):
-        label = escape(section)
-        table_label = f'{label}のビルド向け候補' if build else f'{label}の標準候補'
-        table_class = "es-table" if build else "es-table es-table-standard"
-        lines = [
-            f'{indent}<div class="{table_class}">',
-            f'{indent}  <table role="table" aria-label="{table_label}">',
-            f'{indent}    <thead role="rowgroup">',
-            f'{indent}      <tr role="row">',
-            f'{indent}        <th scope="col" role="columnheader">装備種</th>',
-        ]
-        for _, heading in columns:
-            lines.append(f'{indent}        <th scope="col" role="columnheader">{heading}</th>')
-        lines.extend((
-            f'{indent}      </tr>',
-            f'{indent}    </thead>',
-            f'{indent}    <tbody role="rowgroup">',
+                search_terms.extend(pools[candidate]['stats'])
+        ids = dict.fromkeys(search_ids[term] for term in search_terms)
+        search_attr = f' data-status-ids="{" ".join(ids)}"' if ids else ''
+        return '\n'.join((
+            f'<article class="{card_class}">',
+            '<div class="es-card-head">',
+            f'<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-{icon}"></use></svg>',
+            f'<div><{title_tag} class="es-name">{name}</{title_tag}><p class="es-role">{role}</p></div></div>',
+            '<dl class="es-facts">', *facts, '</dl>',
+            f'<details class="es-detail es-card-more"{search_attr}>',
+            f'<summary><span class="es-sr">{name}の</span>付与候補</summary>',
+            '<div class="es-stages">', *details, '</div></details></article>',
         ))
-        for row in rows:
-            name = escape(row["name"])
-            row_label = f'{name}（ビルド向け）' if build else name
-            level_keys = " ".join(key for key, _ in columns if row.get(key)) if build else ""
-            lines.extend((
-                f'{indent}      <tr role="row" data-status-ids="{level_keys}" aria-label="{row_label}">',
-                f'{indent}        <th scope="row" role="rowheader">{name}</th>',
-            ))
-            for key, heading in columns:
-                names = row.get(key, [])
-                cell_class = ' class="es-required"' if key == "required" else ''
-                note = ''
-                if key == "required" and "oneOf" in row:
-                    names = row["oneOf"]
-                    note = '<span class="es-condition es-choice">いずれか1つ</span>'
-                lines.extend((
-                    f'{indent}        <td role="cell"{cell_class}>',
-                    f'{indent}          <span class="es-mobile-label" aria-hidden="true">{heading}</span>',
-                    f'{indent}          <div class="es-cell-value">{note}{candidates(names)}</div>',
-                    f'{indent}        </td>',
-                ))
-            lines.append(f'{indent}      </tr>')
-        lines.extend((
-            f'{indent}    </tbody>',
-            f'{indent}  </table>',
-            f'{indent}</div>',
-        ))
-        return "\n".join(lines) + "\n"
 
-    standard_columns = (
-        ("required", "必須"),
-        ("normal", '通常候補 <span class="es-condition">Lv.1〜</span>'),
-        ("advanced", f'上位候補 <span class="es-condition">Lv.{unlock["advanced"]}〜</span>'),
-    )
-    build_columns = (
-        ("build", f'Lv.{unlock["build"]}〜'),
-        ("lateBuild", f'Lv.{unlock["lateBuild"]}から追加'),
-    )
-    standard_table = render_table(standard_columns, "    ")
-    build_table = render_table(build_columns, "      ", build=True)
+    def grid(entries):
+        return '<div class="es-grid">\n' + '\n'.join(map(card, entries)) + '\n</div>\n'
+
+    if section != '武器':
+        return grid(rows)
     return (
-        f'{standard_table}'
-        '    <details class="es-detail es-build">\n'
-        f'      <summary>{escape(section)}のビルド向け候補</summary>\n'
-        f'{build_table}'
-        '    </details>\n'
+        '<div class="es-subhead"><h3>両手固定</h3>'
+        '<p class="es-subnote">オフハンド（盾・補助装備）は使用不可。</p></div>\n'
+        + grid(row for row in rows if 'twoHandedBonus' in row)
+        + '<div class="es-subhead"><h3>その他の武器</h3></div>\n'
+        + grid(row for row in rows if 'twoHandedBonus' not in row)
     )
 
 
-def render_equipment(html, equipment, allocations):
-    unlock = equipment["unlockLevels"]
-    pools = equipment["pools"]
-    level_aliases = {key: f'Lv.{unlock[key]}〜' for key in ("build", "lateBuild")}
+def two_handed_allocation(allocations, stat, level, share):
+    """同じLvの装備配分を、両手武器分と他部位分に0.01単位で分ける。"""
+    require(type(level) is int and 1 <= level <= LEVEL_COUNT, '両手補正のLvが無効です')
+    gear = allocations[stat][level - 1][4]
+    weapon = largest_remainder(gear, [share, 100 - share])[0]
+    return weapon, gear - weapon
+
+
+class EquipmentSymbols(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.ids = set()
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'symbol':
+            self.ids.add(dict(attrs).get('id'))
+
+
+def render_equipment(html, equipment, allocations, categories, units):
+    require(categories.keys() == allocations.keys(), '装備表示の能力と02の配分が一致しません')
+    for stat, cats in categories.items():
+        require(isinstance(cats, list) and cats and len(cats) == len(set(cats))
+                and set(cats) <= EQUIPMENT_CATEGORIES.keys(), f'02の能力分類が無効です {stat}・{cats}')
+    symbols = EquipmentSymbols()
+    symbols.feed(html)
+    symbols.close()
+    search_terms = {stat for pool in equipment['pools'].values() for stat in pool['stats']}
+    for entries in equipment['sections'].values():
+        for row in entries:
+            icon = row.get('icon')
+            require(valid_equipment_icon(icon), f'装備アイコンのIDが無効です {row["name"]}・{icon}')
+            require(f'es-icon-{icon}' in symbols.ids, f'装備アイコンのsymbol定義がありません {row["name"]}・es-icon-{icon}')
+            search_terms.update(equipment_search_context(row))
+
+    search_ids = {term: f'es-{i}' for i, term in enumerate(sorted(search_terms), 1)}
+    aliases = {key: stat for stat, key in search_ids.items()}
+    alias_json = json.dumps(aliases, ensure_ascii=False).replace('<', '\\u003c')
+    share = equipment['twoHanded']['sharePercent']
     rules = (
-        '    <p>Lvは装備を最初に入手できる攻略の目安。候補は装備の役割に応じて任意で付与する。</p>\n'
-        '    <p>ビルド向けは標準の付与と入れ替え、同じLvの特化目標と比較する。'
+        '    <p>Lvは装備を初めて入手できる攻略段階の目安。通常・上位・ビルド向けの候補は、装備の役割に応じて任意で付与する。</p>\n'
+        '    <p>ビルド向けの付与は標準の付与と入れ替え、同じLvの特化目標と比較する。'
         '標準値は<a href="02-ステータス指標.html#player-allocation">02の配分一覧</a>の装備欄を参照。</p>\n'
-        f'    <script type="application/json" id="doc-search-aliases">{json.dumps(level_aliases, ensure_ascii=False)}</script>\n'
+        f'    <p>両手固定武器の種別攻撃力は02の標準値に従う。専用補正には、対応する能力の同じLvの装備配分の{share}%を使う。'
+        'これは攻撃用の補助装備1枠分の目安で、両手固定時はその分を武器で付与する。オフハンドの値は重ねて加算しない。</p>\n'
+        '    <p>専用補正は0.01単位に四捨五入し、装備配分から差し引いた残りを他部位に配る。'
+        'Lv.1は装備配分が0のため補正も0。装備配分が正になるLvから有効になる。命中率の補正はポイントで加算する。</p>\n'
+        f'    <script type="application/json" id="doc-search-aliases">{alias_json}</script>\n'
     )
-
     toc = []
     chapters = []
-    for number, (name, rows) in enumerate(equipment["sections"].items(), 1):
-        anchor = "armor" if name == "防具" else f"equipment-{number}"
-        label = escape(name)
+    for number, (section, entries) in enumerate(equipment['sections'].items(), 1):
+        anchor = 'armor' if section == '防具' else f'equipment-{number}'
+        label = escape(section)
         toc.append(f'      <li><a href="#{anchor}"><span class="toc-num">{number}</span>{label}</a></li>\n')
-        table = equipment_table(name, rows, pools, unlock)
-        if name == "防具":
-            table += armor_example(equipment["standardArmor"], allocations)
+        cards = equipment_cards(section, entries, equipment, allocations, categories, search_ids, units)
+        if section == '防具':
+            cards += armor_example(equipment['standardArmor'], allocations)
         chapters.append(
             f'  <section class="es-chapter" id="{anchor}" aria-labelledby="{anchor}-title">\n'
             f'    <h2 id="{anchor}-title"><span class="ch-num">{number}</span>{label}</h2>\n'
-            f'{table}  </section>\n'
+            f'{cards}  </section>\n'
         )
 
     number = len(chapters) + 1
@@ -432,9 +554,13 @@ def render_equipment(html, equipment, allocations):
         '装備から直接付与しない指標</a></li>\n'
         '      <li><a href="#candidate-groups">候補グループの内訳</a></li>\n'
     )
-    excluded = "".join(
-        f'      <div><dt>{escape(reason)}</dt><dd>{escape("、".join(names))}</dd></div>\n'
-        for reason, names in equipment["excluded"].items()
+
+    def stat_list(names):
+        return ' '.join(equipment_stat(stat, categories[stat][0]) for stat in names)
+
+    excluded = ''.join(
+        f'      <div><dt>{escape(reason)}</dt><dd class="es-values">{stat_list(names)}</dd></div>\n'
+        for reason, names in equipment['excluded'].items()
     )
     chapters.append(
         '  <section class="es-chapter" id="equipment-excluded" aria-labelledby="equipment-excluded-title">\n'
@@ -444,17 +570,17 @@ def render_equipment(html, equipment, allocations):
         '    <p>道具とスキルブックは、採集レベル・釣り性能・使用許可など用途ごとに設計する。</p>\n'
         '  </section>\n'
     )
+    groups = []
+    for name, pool in equipment['pools'].items():
+        values = stat_list(pool['stats'])
+        if pool.get('together'):
+            values += ' <span>（2つを一組で付与）</span>'
+        fragment = escape('es-pool-' + name, quote=True)
+        groups.append(f'      <div><dt id="{fragment}">{escape(name)}</dt><dd class="es-values">{values}</dd></div>\n')
 
-    group_rows = []
-    for name, pool in pools.items():
-        stats = escape("、".join(pool["stats"]))
-        if pool.get("together"):
-            stats += "（2つを一組で付与）"
-        group_rows.append(f'      <div><dt>{escape(name)}</dt><dd>{stats}</dd></div>\n')
-
-    for marker, content in (("rules", rules), ("toc", "".join(toc)),
-                            ("chapters", "\n".join(chapters)), ("groups", "".join(group_rows))):
-        html = embed(html, f"<!-- equipment:{marker} -->", f"<!-- /equipment:{marker} -->", content)
+    for marker, content in (('rules', rules), ('toc', ''.join(toc)),
+                            ('chapters', '\n'.join(chapters)), ('groups', ''.join(groups))):
+        html = embed(html, f'<!-- equipment:{marker} -->', f'<!-- /equipment:{marker} -->', content)
     return html
 
 
@@ -494,7 +620,10 @@ def refresh(check):
     )
     equipment_path = DATA.parent / "03-装備ステータス基準.html"
     equipment_html = equipment_path.read_text(encoding="utf-8")
-    updated_equipment = render_equipment(equipment_html, equipment, allocations)
+    panel_categories = {panel['title']: panel['cats'] for panel in model['player']}
+    categories = {name: panel_categories[row['rule']['title']] for name, row in rows.items()}
+    units = {name: row['unit'] for name, row in rows.items()}
+    updated_equipment = render_equipment(equipment_html, equipment, allocations, categories, units)
     updates = {
         path: updated
         for path, original, updated in (

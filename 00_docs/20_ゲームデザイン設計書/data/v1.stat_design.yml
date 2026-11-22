@@ -90,6 +90,7 @@ groups:
 
 equipment:
   unlockLevels: {advanced: 50, build: 25, lateBuild: 75}
+  twoHanded: {sharePercent: 50, exampleLevel: 25}
   standardArmor:
     exampleLevel: 25
     weights: {頭: 20, 胴: 35, 脚: 30, 足: 15}
@@ -116,112 +117,156 @@ equipment:
   sections:
     武器:
       - name: 剣
+        icon: sword
+        role: 通常攻撃を軸に、手数と会心を伸ばす。
         required: [近接攻撃力]
         normal: [筋力, 命中率, 通常攻撃ダメージ増加]
         advanced: [スキルダメージ増加, シールドブレイク]
         build: [攻撃速度, 通常会心, 近接防御貫通率]
         lateBuild: [ライフスティール]
       - name: ハンマー
+        icon: hammer
+        role: 敵のシールドを崩す。
         required: [近接攻撃力]
-        normal: [筋力, シールドブレイク, スキルダメージ増加]
+        twoHandedBonus: シールドブレイク
+        normal: [筋力, 最大ENG, スキルダメージ増加]
         advanced: [命中率, 通常攻撃ダメージ増加]
-        build: [近接防御貫通率, 状態異常付与確率増加, シールドリチャージ加算値]
+        build: [近接防御貫通率, 状態異常付与確率増加]
         lateBuild: [HP固定ダメージ]
       - name: 槍
+        icon: spear
+        role: 近接スキルを当て、状態異常と継続ダメージにつなぐ。
         required: [近接攻撃力]
         normal: [筋力, 命中率, スキルダメージ増加]
         advanced: [通常攻撃ダメージ増加, シールドブレイク]
         build: [近接防御貫通率, 状態異常付与確率増加, 継続ダメージ増加]
         lateBuild: [継続ダメージ貫通]
       - name: 弓
+        icon: bow
+        role: 離れた敵に通常攻撃を当て、会心や属性で威力を伸ばす。
         required: [間接攻撃力]
         normal: [器用さ, 命中率, 通常攻撃ダメージ増加]
         advanced: [スキルダメージ増加, シールドブレイク]
         build: [通常会心, 間接防御貫通率, 属性ダメージ増加]
       - name: 短弓
+        icon: shortbow
+        role: 素早く動き、手数を生かして状態異常を狙う。
         required: [間接攻撃力]
         normal: [器用さ, 敏捷性, 通常攻撃ダメージ増加]
         advanced: [命中率, スキルダメージ増加]
         build: [攻撃速度, 状態異常付与確率増加, 継続ダメージ増加]
       - name: 長弓
+        alias: ロングボウ
+        icon: longbow
+        role: 精密射撃で会心を狙う。
         required: [間接攻撃力]
-        normal: [器用さ, 命中率, スキルダメージ増加]
-        advanced: [シールドブレイク, 通常攻撃ダメージ増加]
+        twoHandedBonus: 命中率
+        normal: [器用さ, 通常攻撃ダメージ増加]
+        advanced: [スキルダメージ増加, シールドブレイク]
         build: [通常会心, 間接防御貫通率]
         lateBuild: [超星会心]
       - name: ワンド
+        icon: wand
+        role: 属性魔法を使い、詠唱の短縮や消費MPの軽減を図る。
         required: [魔法攻撃力]
         normal: [知力, 最大MP, 属性ダメージ増加]
         advanced: [詠唱時間短縮, スキルダメージ増加]
         build: [MP消費軽減率, 魔法防御貫通率, 状態異常付与確率増加]
       - name: スタッフ
+        icon: staff
+        role: MPを確保し、攻撃・支援魔法を続ける。
         required: [魔法攻撃力]
-        normal: [知力, スキルダメージ増加, 属性ダメージ増加]
-        advanced: [最大MP, 詠唱時間短縮, 支援力]
+        twoHandedBonus: 最大MP
+        normal: [知力, スキルダメージ増加, MP消費軽減率]
+        advanced: [属性ダメージ増加, 詠唱時間短縮, 支援力]
         build: [魔法防御貫通率, 状態異常持続時間増加]
         lateBuild: [属性貫通]
     防具:
       - name: 頭
+        icon: helm
+        role: 魔法や属性攻撃に備え、詠唱を支える。
         required: [共通防御]
         normal: [最大MP, 魔法防御力, 属性耐性]
         advanced: [MP自然回復量（5秒ごと）, 詠唱時間短縮]
         build: [状態異常付与耐性]
       - name: 胴
+        icon: chest
+        role: 防具で最も多くの共通防御を受け持ち、HPを補う。
         required: [共通防御]
         normal: [最大HP, 魔法防御力, 属性耐性]
         advanced: [HP自然回復量（5秒ごと）, ノックバック耐性]
         build: [近接・間接防御力, 最大シールド]
         lateBuild: [被ダメージ軽減率]
       - name: 脚
+        icon: legs
+        role: ENGを補い、ノックバックや状態異常に耐える。
         required: [共通防御]
         normal: [最大ENG, ノックバック耐性, 状態異常付与耐性]
         advanced: [最大HP, ENG自然回復量（5秒ごと）]
         build: [近接・間接防御力, 継続ダメージ耐性]
       - name: 足
+        icon: boots
+        role: 移動と回避を支え、継続ダメージを抑える。
         required: [共通防御]
         normal: [敏捷性, ノックバック耐性, 継続ダメージ耐性]
         advanced: [属性耐性, 状態異常付与耐性]
         build: [移動速度, 回避率, 消耗品使用中の移動]
     補助装備:
       - name: 盾
+        icon: shield
+        role: 敵の攻撃を受け止め、シールドの容量と再充填を補う。
         required: [共通防御]
         normal: [最大HP, ノックバック耐性, 属性耐性]
         advanced: [魔法防御力, 状態異常付与耐性]
-        build: [近接・間接防御力, 最大シールド, シールドリチャージ短縮]
+        build: [近接・間接防御力, 最大シールド, シールドリチャージ短縮, シールドリチャージ加算値]
         lateBuild: [被ダメージ軽減率]
       - name: 物理攻撃の補助
+        icon: target
+        role: 命中かENGを補い、物理攻撃を続けやすくする。
         oneOf: [命中率, 最大ENG]
         normal: [通常攻撃ダメージ増加, ENG消費軽減率, シールドブレイク]
         advanced: [スキルダメージ増加, ENG自然回復量（5秒ごと）]
         build: [攻撃速度, 通常会心, 近接防御貫通率, 間接防御貫通率]
       - name: 魔法・支援の補助
+        icon: book
+        role: MPか支援力を補い、魔法や支援スキルを使いやすくする。
         oneOf: [最大MP, 支援力]
         normal: [知力, MP自然回復量（5秒ごと）, MP消費軽減率, 詠唱時間短縮, クールダウン短縮]
         advanced: [魔法防御力, バフ持続時間増加]
         build: [回復量増加, 魔法防御貫通率]
     アクセサリ:
       - name: アミュレット
+        icon: amulet
+        role: HP・MP・ENGのいずれかの上限を伸ばす。
         oneOf: [最大HP, 最大MP, 最大ENG]
         normal: [主能力, 属性耐性, 支援力, MP消費軽減率]
         advanced: [クールダウン短縮, スキルダメージ増加]
         build: [体力, 回復量増加, 通常会心]
       - name: タリスマン
+        icon: talisman
+        role: 主能力か敏捷性を補い、攻撃を当てやすくする。
         oneOf: [主能力, 敏捷性]
         normal: [命中率, シールドブレイク, ENG消費軽減率]
         advanced: [MP消費軽減率, 属性耐性]
         build: [幸運, 属性ダメージ増加]
       - name: チャーム
+        icon: charm
+        role: 耐性や自然回復を補い、探索を続けやすくする。
         oneOf: [属性耐性, 状態異常付与耐性, 継続ダメージ耐性, HP自然回復量（5秒ごと）]
         normal: [MP自然回復量（5秒ごと）, ENG自然回復量（5秒ごと）]
         advanced: [ノックバック耐性, バフ持続時間増加]
         build: [幸運, 育成・探索報酬, 消耗品使用中の移動]
       - name: コア
+        icon: core
+        role: 攻撃・支援・耐久のうち、構成の軸になる能力を伸ばす。
         oneOf: [通常攻撃ダメージ増加, スキルダメージ増加, 支援力, 最大HP]
         normal: [最終ダメージ倍率, 属性ダメージ増加, 最大MP, 最大ENG]
         advanced: [クールダウン短縮, バフ持続時間増加]
         build: [最大シールド, 状態異常持続時間増加, 回復量増加]
         lateBuild: [共通攻撃力, 共通防御貫通率, 被ダメージ軽減率]
       - name: レリック
+        icon: relic
+        role: 属性攻撃・状態異常への備え・支援から得意分野を選ぶ。
         oneOf: [属性ダメージ増加, 状態異常付与耐性, 支援力]
         normal: [スキルダメージ増加, バフ持続時間増加]
         advanced: [クールダウン短縮, 詠唱時間短縮]

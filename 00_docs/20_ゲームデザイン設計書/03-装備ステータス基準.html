@@ -213,70 +213,107 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 /* ===== 共通ここまで ===== */
 #equipment-stat-guide .doc-body { min-width: 0; }
 #equipment-stat-guide .doc-lead p { margin: 0; }
-.es-chapter { --actor: var(--blue); margin: 0 0 34px; scroll-margin-top: 20px; }
-#equipment-stat-guide .es-chapter > h2 { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); font-size: clamp(18px, 2vw, 23px); }
+.es-symbols { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+.es-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+.es-chapter { --actor: var(--blue); margin: 0 0 36px; scroll-margin-top: 20px; }
+#equipment-stat-guide .es-chapter > h2 { margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); font-size: clamp(18px, 2vw, 23px); }
+.es-subhead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 14px; margin: 22px 0 10px; }
+.es-subhead h3 { margin: 0; color: var(--heading); font-size: 18px; font-weight: 600; }
+.es-subnote { margin: 0; color: var(--muted); font-size: 14px; }
+
+.es-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: stretch; }
+.es-card { display: flex; flex-direction: column; min-width: 0; padding: 16px 18px 0; border: 1px solid var(--rule); background: var(--paper); overflow-wrap: anywhere; scroll-margin-top: 20px; }
+.es-card.es-two-hand { padding-top: 20px; border-top: 2px solid var(--axis); }
+.es-card-head { display: flex; align-items: flex-start; gap: 12px; }
+.es-card-head > div { min-width: 0; }
+.es-gear-icon { display: block; flex: none; width: 34px; height: 34px; color: var(--heading); }
+.es-two-hand .es-gear-icon { width: 42px; height: 42px; }
+.es-card .es-name { margin: 0; color: var(--heading); font-size: 19px; line-height: 1.35; font-weight: 600; }
+.es-two-hand .es-name { font-size: 22px; }
+.es-role { margin: 4px 0 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
+.es-facts { display: grid; gap: 10px; margin: 18px 0 16px; }
+.es-facts > div { min-width: 0; }
+.es-facts dt { margin: 0 0 2px; color: var(--muted); font-size: 14px; }
+.es-facts dd { margin: 0; color: var(--heading); font-size: 16px; font-weight: 600; }
+.es-values { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 12px; min-width: 0; }
+.es-stat { max-width: 100%; color: var(--c, var(--ink)); overflow-wrap: anywhere; }
+.es-example, .es-condition { color: var(--muted); font-size: 14px; font-weight: 400; }
+.es-example { display: block; margin-top: 3px; }
+
+.es-detail { margin: 12px 0 0; padding: 0 14px; border: 1px solid var(--rule); background: var(--paper); scroll-margin-top: 20px; }
+.es-detail > summary { padding: 9px 0; font-weight: 600; cursor: pointer; overflow-wrap: anywhere; }
+.es-detail > summary::marker { color: var(--axis); }
+.es-detail > summary:hover { color: var(--blue); }
+.es-detail p { margin: 6px 0; }
+.es-detail[open] { padding-bottom: 12px; }
+.es-detail.es-card-more { margin: auto 0 0; padding: 0; border: 0; border-top: 1px solid var(--rule); background: transparent; }
+.es-card-more > summary { padding: 11px 0; font-size: 14px; }
+.es-grid:has(.es-card-more[open]) { align-items: start; }
+.es-stages { display: grid; gap: 14px; padding: 2px 0 16px; }
+.es-stage { min-width: 0; }
+.es-stage > :is(h4, h5) { margin: 0 0 6px; color: var(--heading); font-size: 15px; line-height: 1.45; font-weight: 600; }
+.es-stage + .es-stage { padding-top: 12px; border-top: 1px solid var(--rule); }
+.es-category-row { display: grid; grid-template-columns: 6em minmax(0, 1fr); gap: 6px; align-items: baseline; margin-top: 4px; }
+.es-category-name { color: var(--c, var(--muted)); font-size: 13px; font-weight: 600; }
+.es-category-row .es-values { gap: 2px 12px; font-size: 15px; }
+.es-category-row .es-stat { color: var(--ink); }
+
 .es-detail.es-intro { margin: 0 0 16px; padding: 0; border: 0; background: transparent; }
-#equipment-stat-guide .es-intro summary { width: fit-content; padding-block: 4px; color: var(--muted); font-size: 14px; }
-.es-intro p { margin: 0; }
-.es-intro p + p { margin-top: 4px; }
-.es-rules { margin: 0 0 12px; }
-.es-rules > div { display: grid; grid-template-columns: minmax(8em, auto) minmax(0, 1fr); gap: 4px 12px; padding: 4px 0; }
+#equipment-stat-guide .es-intro > summary { width: fit-content; padding-block: 4px; color: var(--muted); font-size: 14px; }
+.es-intro p { margin: 4px 0 0; }
+.es-rules, .es-groups { margin: 8px 0 0; }
+.es-rules > div, .es-groups > div { display: grid; grid-template-columns: minmax(8em, 12em) minmax(0, 1fr); gap: 3px 14px; padding: 6px 0; }
+.es-groups > div + div { border-top: 1px solid var(--rule); }
 .es-rules dt, .es-groups dt { color: var(--heading); font-weight: 600; }
-.es-rules dd, .es-groups dd { margin: 0; overflow-wrap: anywhere; }
-.es-table { position: relative; }
-.es-table table { width: 100%; table-layout: fixed; border-collapse: collapse; border: 1px solid var(--rule); background: var(--paper); font-size: 15px; line-height: 1.45; }
-.es-table th, .es-table td { padding: 8px 12px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
-.es-table thead th { border-bottom: 1px solid var(--rule); background: var(--soft); color: var(--heading); font-size: 14px; font-weight: 600; }
-.es-table thead th:first-child { width: 18%; }
-.es-table-standard thead th:nth-child(2) { width: 22%; }
-.es-table tbody tr { scroll-margin-top: 20px; }
-.es-table tbody tr + tr { border-top: 1px solid var(--rule); }
-.es-table tbody tr:nth-child(even) { background: var(--page); }
-.es-table th[scope="row"], .es-required { font-weight: 600; }
-.es-cell-value { min-width: 0; }
-.es-candidates { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; padding: 0; list-style: none; }
-.es-candidates > li { min-width: 0; max-width: 100%; }
-.es-condition { color: var(--muted); font-size: 13px; font-weight: 400; }
-.es-table thead .es-condition, .es-mobile-label .es-condition { white-space: nowrap; }
-.es-choice { display: block; margin-bottom: 4px; }
-.es-empty { color: var(--muted); }
-.es-mobile-label { display: none; }
-.es-detail { margin-top: 12px; padding: 8px 12px; border: 1px solid var(--rule); background: var(--paper); scroll-margin-top: 20px; }
-.es-detail summary { font-weight: 600; cursor: pointer; }
-.es-detail p { margin: 8px 0 0; }
-.es-build { margin-top: 8px; padding: 0; }
-.es-build > summary { padding: 8px 12px; }
-.es-build .es-table table { border-inline: 0; border-bottom: 0; }
-.es-groups { margin: 8px 0 0; }
-.es-groups > div { padding: 4px 0; border-top: 1px solid var(--rule); }
-#equipment-stat-guide .doc-body a { border-bottom: 1px dotted var(--axis); }
-#equipment-stat-guide .doc-body a:hover { background: var(--soft); }
+.es-groups dt:target { color: var(--blue); }
+.es-rules dd, .es-groups dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+#equipment-stat-guide .doc-body a { border-bottom: 1px dotted var(--axis); overflow-wrap: anywhere; }
+#equipment-stat-guide .doc-body a:hover { color: var(--blue); background: var(--soft); }
 #equipment-stat-guide :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+@media screen {
+  #equipment-stat-guide .doc-body { container-type: inline-size; }
+}
+@container (min-width: 35rem) {
+  .es-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (min-width: 53rem) {
+  .es-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 @media screen and (max-width: 760px) {
   #equipment-stat-guide { padding: 20px 16px; }
-  .es-table table, .es-table tbody, .es-table tbody tr, .es-table tbody th { display: block; }
-  .es-table thead { position: absolute; display: block; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .es-table tbody tr { padding-block: 4px; }
-  .es-table tbody th, .es-table tbody td { padding: 4px 8px; }
-  .es-table tbody th { padding-block: 6px; font-size: 17px; }
-  .es-table tbody td { display: grid; grid-template-columns: minmax(0, 6em) minmax(0, 1fr); gap: 8px; align-items: start; }
-  .es-mobile-label { display: block; color: var(--muted); font-size: 13px; font-weight: 500; }
-  .es-mobile-label .es-condition { display: block; }
-  .es-build > summary { padding-inline: 8px; }
 }
 @media screen and (max-width: 420px) {
   #equipment-stat-guide { padding: 18px 12px; }
-  .es-rules > div { grid-template-columns: minmax(0, 1fr); }
+  .es-rules > div, .es-groups > div { grid-template-columns: minmax(0, 1fr); }
+  .es-grid { gap: 10px; }
 }
+
 @media print {
-  :root { color-scheme: light; --page: white; --paper: white; --ink: black; --heading: #263447; --muted: #444; --rule: #bbb; --soft: #eee; --axis: #555; --blue: #2466a0; }
+  :root { color-scheme: light; --page: white; --paper: white; --ink: #171717; --heading: #202936; --muted: #454b53; --rule: #b9bec5; --soft: #eee; --edge: #737a84; --axis: #525b67; --blue: #20578a; --cat-resource: #365c28; --cat-primary: #804514; --cat-offense: #923244; --cat-defense: #1a626c; --cat-element: #713987; --cat-condition: #86456a; --cat-utility: #46515d; }
   #equipment-stat-guide { padding: 0; font-size: 10pt; }
-  .es-table table, .es-table thead th { font-size: 10pt; }
-  .es-table th, .es-table td { padding: 4px 5px; }
-  .es-condition { font-size: 9pt; }
-  #equipment-stat-guide .es-detail::details-content { content-visibility: visible; }
-  .es-table thead, .es-table tr, .es-groups > div { break-inside: avoid; }
-  #equipment-stat-guide h2, .es-detail summary, .es-table thead { break-after: avoid; }
+  #equipment-stat-guide .doc-body { container-type: normal; }
+  .es-grid, .es-card, .es-facts, .es-stages { display: block; }
+  .es-chapter, .es-grid, .es-card, .es-detail, .es-stage, .es-stages { break-inside: auto; }
+  .es-chapter { margin-bottom: 14pt; }
+  .es-card, .es-card.es-two-hand { margin: 8pt 0; padding: 6pt 0 0; border: 0; border-top: 1px solid var(--rule); background: white; }
+  .es-gear-icon, .es-two-hand .es-gear-icon { width: 24pt; height: 24pt; }
+  .es-card .es-name { font-size: 13pt; }
+  .es-facts { margin: 5pt 0; }
+  .es-facts > div + div { margin-top: 3pt; }
+  .es-detail, .es-detail[open] { padding: 0; border: 0; }
+  #equipment-stat-guide .es-detail::details-content { display: block; content-visibility: visible; height: auto; overflow: visible; }
+  .es-detail > summary { padding: 3pt 0; list-style: none; }
+  #equipment-stat-guide :focus-visible { outline: none; }
+  .es-facts > div, .es-category-row, .es-rules > div, .es-groups > div { break-inside: avoid; }
+  .es-stages { padding: 0; }
+  .es-stage + .es-stage { margin-top: 5pt; padding: 0; border: 0; }
+  .es-category-row { margin-top: 3pt; }
+  .es-values { display: block; }
+  .es-values > * { display: inline; margin-inline-end: .7em; }
+  .es-role, .es-facts dt, .es-facts dd, .es-example, .es-condition, .es-category-name, .es-category-row .es-values { font-size: 10pt; }
+  #equipment-stat-guide :is(h2, h3, h4, h5), .es-subhead, .es-card-head, .es-category-name, .es-detail > summary { break-after: avoid; }
 }
 @media screen {
   body::before { content: ""; position: fixed; inset: 0; z-index: 5; background: #0d1016; opacity: 0; pointer-events: none; }
@@ -294,15 +331,129 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 </head>
 <body>
 <main id="equipment-stat-guide">
+<svg class="es-symbols" xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="es-icon-sword" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m10 19 13-14 6-2-2 7-13 13zM7 17l9 9M10 22l-6 6 1 1 7-5"/><path d="m14 18 9-10"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-hammer" viewBox="0 0 32 32">
+      <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path fill="none" d="m17 12 3 3L8 29l-3-3z"/><path fill="var(--cat-offense)" d="m12 4 2-2 15 12-5 6L9 8z"/><path fill="none" d="m8 6 5-5M23 21l7-8"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-spear" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 29 20 13m-3 0 3 3M18 13l2-6 9-5-4 10-5 3zM21 11l5-6"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-bow" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 4q14 3 14 12T8 28"/><path d="M8 4v24M4 16h23m-3-3 3 3-3 3"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-shortbow" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 6q1 4 5 3 6-1 8 5v4q-2 6-8 5-4-1-5 3" stroke-width="2.4"/><path d="M8 6v20M18 14h3m-3 4h3"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-longbow" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 4c8 0 13 4 18 10 4 5 6 10 6 14" stroke-width="2.3"/><path d="m4 4 7 17 17 7" stroke-width="1.3"/><path d="M8 24 26 6m-6 1 6-1-1 6" stroke="var(--cat-offense)" stroke-width="2"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-wand" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m5 27 12-15 3 3L7 29zM16 12l5 4M20 11l1-5 5-2 1 5-5 4z"/><path d="m16 5-1-2m13 11 2 1"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-staff" viewBox="0 0 32 32">
+      <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path fill="none" d="m8 29 7-14 3 1-7 14zM16 15c-5-2-6-6-5-10 1 4 4 7 7 7 4 0 7-3 9-7-1 6-4 11-10 12"/><path fill="var(--cat-resource)" d="m18 2 4 4-3 5-4-4z"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-helm" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 17v-3a11 11 0 0 1 22 0v10l-7 5-1-11h-6l-1 11-7-5z"/><path d="m6 13 10 2 10-2M16 5v5"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-chest" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m7 4 5-1q4 5 8 0l5 1 4 7-5 4-2-2 1 14-7 2-7-2 1-14-2 2-5-4z"/><path d="m10 15 6 3 6-3M16 18v6"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-legs" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7 4h18l1 24h-7l-3-14-3 14H6zM7 9h18M9 21h4m6 0h4"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-boots" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7 4h14l-2 12 2 3 6 2 1 5H6l1-9zM6 26v2h22v-2M8 8h12M15 12h5m-6 4h5"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-shield" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 2q5 4 11 4v9q0 8-11 15Q5 23 5 15V6q6 0 11-4z"/><path d="M16 7v17q7-5 7-11V9"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-target" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="14" cy="18" r="11"/><circle cx="14" cy="18" r="6"/><path d="M14 18 25 7m-3 3 1-6 3-2v4l4-1-2 4z"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-book" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 6q7-2 13 3 6-5 13-3v19q-7-2-13 3-6-5-13-3zM16 9v19M7 11q3 0 5 2m8 0q2-2 5-2"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-amulet" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 3c1 7 4 11 10 15 6-4 9-8 10-15"/><ellipse cx="16" cy="23" rx="6" ry="6.5"/><path d="m16 20 2 3-2 3-2-3z"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-talisman" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m10 6 5-3 7 3 2 18-12 2zM15 7q-3-6 2-5M12 12l10-2M15 26l-1 4m5-5 1 5m2-6 2 4"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-charm" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="10" cy="6" r="3"/><path d="m11 9 2 4m-5 1 5-2 4 3c6 3 5 8 10 9l-15 5c4-4-4-8-4-15zM10 25l14-5"/><path d="M18 28q3 3 5-1"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-core" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+        <path d="m16 2 10 7 2 12-12 9-12-9L6 9zM16 2l5 10-5 18-5-18zM6 9l5 3h10l5-3M4 21l7-9m17 9-7-9"/>
+      </g>
+    </symbol>
+    <symbol id="es-icon-relic" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3h8l-1 6c2 3 6 5 6 10 0 4-4 7-7 7v2h3v2H11v-2h3v-2c-3 0-7-3-7-7 0-5 4-7 6-10zM12 6h8M9 15h14M10 22h12"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
   <nav class="doc-nav" aria-label="ゲームデザイン設計書">
     <a href="01-DPS指標.html"><span class="doc-no">01</span>DPS指標</a>
     <a href="02-ステータス指標.html"><span class="doc-no">02</span>ステータス指標</a>
     <a href="03-装備ステータス基準.html" aria-current="page"><span class="doc-no">03</span>装備ステータス基準</a>
   </nav>
   <header><h1>装備ステータス基準</h1></header>
-  <div class="doc-lead">
-    <p>主性能は装備1品につき1〜2種類が目安。必須の能力には正の補正を付ける。</p>
+<div class="doc-lead">
+  <p>主性能は装備1品につき1〜2種類が目安。必須の能力には正の補正を付ける。</p>
+  <div class="cat-key" role="group" aria-label="ステータスの分類">
+    <span>分類</span>
+    <span class="cat cat-resource">リソース</span>
+    <span class="cat cat-primary">基本能力値</span>
+    <span class="cat cat-offense">攻撃</span>
+    <span class="cat cat-defense">防御</span>
+    <span class="cat cat-element">属性</span>
+    <span class="cat cat-condition">状態異常</span>
+    <span class="cat cat-utility">ユーティリティ</span>
   </div>
+</div>
   <div class="doc-layout">
   <aside class="doc-toc" aria-label="目次">
 <div class="doc-search" hidden>
@@ -330,390 +481,323 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   <details class="es-detail es-intro">
     <summary>付与条件と標準値</summary>
 <!-- equipment:rules -->
-    <p>Lvは装備を最初に入手できる攻略の目安。候補は装備の役割に応じて任意で付与する。</p>
-    <p>ビルド向けは標準の付与と入れ替え、同じLvの特化目標と比較する。標準値は<a href="02-ステータス指標.html#player-allocation">02の配分一覧</a>の装備欄を参照。</p>
-    <script type="application/json" id="doc-search-aliases">{"build": "Lv.25〜", "lateBuild": "Lv.75〜"}</script>
+    <p>Lvは装備を初めて入手できる攻略段階の目安。通常・上位・ビルド向けの候補は、装備の役割に応じて任意で付与する。</p>
+    <p>ビルド向けの付与は標準の付与と入れ替え、同じLvの特化目標と比較する。標準値は<a href="02-ステータス指標.html#player-allocation">02の配分一覧</a>の装備欄を参照。</p>
+    <p>両手固定武器の種別攻撃力は02の標準値に従う。専用補正には、対応する能力の同じLvの装備配分の50%を使う。これは攻撃用の補助装備1枠分の目安で、両手固定時はその分を武器で付与する。オフハンドの値は重ねて加算しない。</p>
+    <p>専用補正は0.01単位に四捨五入し、装備配分から差し引いた残りを他部位に配る。Lv.1は装備配分が0のため補正も0。装備配分が正になるLvから有効になる。命中率の補正はポイントで加算する。</p>
+    <script type="application/json" id="doc-search-aliases">{"es-1": "ENGを補い、ノックバックや状態異常に耐える。", "es-2": "EXP獲得量増加率", "es-3": "HP・MP・ENGのいずれかの上限を伸ばす。", "es-4": "HP自然回復量（5秒ごと）", "es-5": "MPか支援力を補い、魔法や支援スキルを使いやすくする。", "es-6": "MPを確保し、攻撃・支援魔法を続ける。", "es-7": "オフハンド不可", "es-8": "シールドブレイク", "es-9": "スキルダメージ増加", "es-10": "ドロップ増加率", "es-11": "両手固定", "es-12": "主能力", "es-13": "主能力か敏捷性を補い、攻撃を当てやすくする。", "es-14": "会心ダメージ", "es-15": "共通防御", "es-16": "冷気付与確率増加", "es-17": "冷気付与耐性", "es-18": "凍結付与確率増加", "es-19": "凍結付与耐性", "es-20": "命中かENGを補い、物理攻撃を続けやすくする。", "es-21": "命中率", "es-22": "器用さ", "es-23": "回復阻害付与確率増加", "es-24": "回復阻害付与耐性", "es-25": "属性ダメージ増加", "es-26": "属性攻撃・状態異常への備え・支援から得意分野を選ぶ。", "es-27": "属性耐性", "es-28": "属性魔法を使い、詠唱の短縮や消費MPの軽減を図る。", "es-29": "感電付与確率増加", "es-30": "感電付与耐性", "es-31": "感電継続ダメージ増加", "es-32": "感電継続ダメージ耐性", "es-33": "感電継続ダメージ貫通", "es-34": "支援力", "es-35": "攻撃・支援・耐久のうち、構成の軸になる能力を伸ばす。", "es-36": "敏捷性", "es-37": "敵のシールドを崩す。", "es-38": "敵の攻撃を受け止め、シールドの容量と再充填を補う。", "es-39": "最大ENG", "es-40": "最大HP", "es-41": "最大MP", "es-42": "毒状態付与確率増加", "es-43": "毒状態付与耐性", "es-44": "毒状態継続ダメージ増加", "es-45": "毒状態継続ダメージ耐性", "es-46": "毒状態継続ダメージ貫通", "es-47": "氷属性ダメージ増加", "es-48": "氷属性耐性", "es-49": "氷属性貫通", "es-50": "消耗品使用時移動減速率", "es-51": "消耗品使用時移動許容距離", "es-52": "火属性ダメージ増加", "es-53": "火属性耐性", "es-54": "火属性貫通", "es-55": "無属性ダメージ増加", "es-56": "無属性耐性", "es-57": "燃焼付与確率増加", "es-58": "燃焼付与耐性", "es-59": "燃焼継続ダメージ増加", "es-60": "燃焼継続ダメージ耐性", "es-61": "燃焼継続ダメージ貫通", "es-62": "状態異常付与耐性", "es-63": "盲目付与確率増加", "es-64": "盲目付与耐性", "es-65": "知力", "es-66": "移動と回避を支え、継続ダメージを抑える。", "es-67": "筋力", "es-68": "精密射撃で会心を狙う。", "es-69": "素早く動き、手数を生かして状態異常を狙う。", "es-70": "継続ダメージ耐性", "es-71": "耐性や自然回復を補い、探索を続けやすくする。", "es-72": "衰弱付与確率増加", "es-73": "衰弱付与耐性", "es-74": "超星会心倍率", "es-75": "超星会心率", "es-76": "近接スキルを当て、状態異常と継続ダメージにつなぐ。", "es-77": "近接攻撃力", "es-78": "近接防御力", "es-79": "通常会心率", "es-80": "通常攻撃を軸に、手数と会心を伸ばす。", "es-81": "通常攻撃ダメージ増加", "es-82": "間接攻撃力", "es-83": "間接防御力", "es-84": "防具で最も多くの共通防御を受け持ち、HPを補う。", "es-85": "離れた敵に通常攻撃を当て、会心や属性で威力を伸ばす。", "es-86": "雷属性ダメージ増加", "es-87": "雷属性耐性", "es-88": "雷属性貫通", "es-89": "魔法や属性攻撃に備え、詠唱を支える。", "es-90": "魔法攻撃力"}</script>
 <!-- /equipment:rules -->
   </details>
 <!-- equipment:chapters -->
   <section class="es-chapter" id="equipment-1" aria-labelledby="equipment-1-title">
     <h2 id="equipment-1-title"><span class="ch-num">1</span>武器</h2>
-    <div class="es-table es-table-standard">
-      <table role="table" aria-label="武器の標準候補">
-        <thead role="rowgroup">
-          <tr role="row">
-            <th scope="col" role="columnheader">装備種</th>
-            <th scope="col" role="columnheader">必須</th>
-            <th scope="col" role="columnheader">通常候補 <span class="es-condition">Lv.1〜</span></th>
-            <th scope="col" role="columnheader">上位候補 <span class="es-condition">Lv.50〜</span></th>
-          </tr>
-        </thead>
-        <tbody role="rowgroup">
-          <tr role="row" data-status-ids="" aria-label="剣">
-            <th scope="row" role="rowheader">剣</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>近接攻撃力</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>筋力</li><li>命中率</li><li>通常攻撃ダメージ増加</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>スキルダメージ増加</li><li>シールドブレイク</li></ul></div>
-            </td>
-          </tr>
-          <tr role="row" data-status-ids="" aria-label="ハンマー">
-            <th scope="row" role="rowheader">ハンマー</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>近接攻撃力</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>筋力</li><li>シールドブレイク</li><li>スキルダメージ増加</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>命中率</li><li>通常攻撃ダメージ増加</li></ul></div>
-            </td>
-          </tr>
-          <tr role="row" data-status-ids="" aria-label="槍">
-            <th scope="row" role="rowheader">槍</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>近接攻撃力</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>筋力</li><li>命中率</li><li>スキルダメージ増加</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>通常攻撃ダメージ増加</li><li>シールドブレイク</li></ul></div>
-            </td>
-          </tr>
-          <tr role="row" data-status-ids="" aria-label="弓">
-            <th scope="row" role="rowheader">弓</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>間接攻撃力</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>器用さ</li><li>命中率</li><li>通常攻撃ダメージ増加</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>スキルダメージ増加</li><li>シールドブレイク</li></ul></div>
-            </td>
-          </tr>
-          <tr role="row" data-status-ids="" aria-label="短弓">
-            <th scope="row" role="rowheader">短弓</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>間接攻撃力</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>器用さ</li><li>敏捷性</li><li>通常攻撃ダメージ増加</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>命中率</li><li>スキルダメージ増加</li></ul></div>
-            </td>
-          </tr>
-          <tr role="row" data-status-ids="" aria-label="長弓">
-            <th scope="row" role="rowheader">長弓</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>間接攻撃力</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>器用さ</li><li>命中率</li><li>スキルダメージ増加</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>シールドブレイク</li><li>通常攻撃ダメージ増加</li></ul></div>
-            </td>
-          </tr>
-          <tr role="row" data-status-ids="" aria-label="ワンド">
-            <th scope="row" role="rowheader">ワンド</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>魔法攻撃力</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>知力</li><li>最大MP</li><li><a href="#candidate-groups">属性ダメージ増加</a></li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>詠唱時間短縮</li><li>スキルダメージ増加</li></ul></div>
-            </td>
-          </tr>
-          <tr role="row" data-status-ids="" aria-label="スタッフ">
-            <th scope="row" role="rowheader">スタッフ</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>魔法攻撃力</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>知力</li><li>スキルダメージ増加</li><li><a href="#candidate-groups">属性ダメージ増加</a></li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>最大MP</li><li>詠唱時間短縮</li><li>支援力</li></ul></div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <details class="es-detail es-build">
-      <summary>武器のビルド向け候補</summary>
-      <div class="es-table">
-        <table role="table" aria-label="武器のビルド向け候補">
-          <thead role="rowgroup">
-            <tr role="row">
-              <th scope="col" role="columnheader">装備種</th>
-              <th scope="col" role="columnheader">Lv.25〜</th>
-              <th scope="col" role="columnheader">Lv.75から追加</th>
-            </tr>
-          </thead>
-          <tbody role="rowgroup">
-            <tr role="row" data-status-ids="build lateBuild" aria-label="剣（ビルド向け）">
-              <th scope="row" role="rowheader">剣</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>攻撃速度</li><li><a href="#candidate-groups">通常会心</a></li><li>近接防御貫通率</li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>ライフスティール</li></ul></div>
-              </td>
-            </tr>
-            <tr role="row" data-status-ids="build lateBuild" aria-label="ハンマー（ビルド向け）">
-              <th scope="row" role="rowheader">ハンマー</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>近接防御貫通率</li><li><a href="#candidate-groups">状態異常付与確率増加</a></li><li>シールドリチャージ加算値</li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>HP固定ダメージ</li></ul></div>
-              </td>
-            </tr>
-            <tr role="row" data-status-ids="build lateBuild" aria-label="槍（ビルド向け）">
-              <th scope="row" role="rowheader">槍</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>近接防御貫通率</li><li><a href="#candidate-groups">状態異常付与確率増加</a></li><li><a href="#candidate-groups">継続ダメージ増加</a></li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">継続ダメージ貫通</a></li></ul></div>
-              </td>
-            </tr>
-            <tr role="row" data-status-ids="build" aria-label="弓（ビルド向け）">
-              <th scope="row" role="rowheader">弓</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">通常会心</a></li><li>間接防御貫通率</li><li><a href="#candidate-groups">属性ダメージ増加</a></li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><span class="es-empty">なし</span></div>
-              </td>
-            </tr>
-            <tr role="row" data-status-ids="build" aria-label="短弓（ビルド向け）">
-              <th scope="row" role="rowheader">短弓</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>攻撃速度</li><li><a href="#candidate-groups">状態異常付与確率増加</a></li><li><a href="#candidate-groups">継続ダメージ増加</a></li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><span class="es-empty">なし</span></div>
-              </td>
-            </tr>
-            <tr role="row" data-status-ids="build lateBuild" aria-label="長弓（ビルド向け）">
-              <th scope="row" role="rowheader">長弓</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">通常会心</a></li><li>間接防御貫通率</li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">超星会心</a></li></ul></div>
-              </td>
-            </tr>
-            <tr role="row" data-status-ids="build" aria-label="ワンド（ビルド向け）">
-              <th scope="row" role="rowheader">ワンド</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>MP消費軽減率</li><li>魔法防御貫通率</li><li><a href="#candidate-groups">状態異常付与確率増加</a></li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><span class="es-empty">なし</span></div>
-              </td>
-            </tr>
-            <tr role="row" data-status-ids="build lateBuild" aria-label="スタッフ（ビルド向け）">
-              <th scope="row" role="rowheader">スタッフ</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>魔法防御貫通率</li><li>状態異常持続時間増加</li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">属性貫通</a></li></ul></div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </details>
+<div class="es-subhead"><h3>両手固定</h3><p class="es-subnote">オフハンド（盾・補助装備）は使用不可。</p></div>
+<div class="es-grid">
+<article class="es-card es-two-hand">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-hammer"></use></svg>
+<div><h4 class="es-name">ハンマー</h4><p class="es-role">敵のシールドを崩す。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須</dt><dd class="es-values"><span class="es-stat cat-offense">近接攻撃力</span></dd></div>
+<div><dt>両手固定の補正</dt><dd class="es-values"><span class="es-stat cat-offense">シールドブレイク</span> <strong>+1.13点</strong> <small class="es-example">Lv.25の例</small></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-37 es-77 es-8 es-11 es-7 es-57 es-18 es-16 es-29 es-42 es-63 es-72 es-23">
+<summary><span class="es-sr">ハンマーの</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h5>通常候補 <span class="es-condition">Lv.1〜</span></h5>
+<div class="es-category-row cat-resource"><div><span class="es-category-name cat-resource">リソース</span></div> <div class="es-values"><span class="es-stat cat-resource">最大ENG</span></div></div>
+<div class="es-category-row cat-primary"><div><span class="es-category-name cat-primary">基本能力値</span></div> <div class="es-values"><span class="es-stat cat-primary">筋力</span></div></div>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">スキルダメージ増加</span></div></div>
+</div>
+<div class="es-stage"><h5>上位候補 <span class="es-condition">Lv.50〜</span></h5>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">命中率</span> <span class="es-stat cat-offense">通常攻撃ダメージ増加</span></div></div>
+</div>
+<div class="es-stage"><h5>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h5>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">近接防御貫通率</span></div></div>
+<div class="es-category-row cat-condition"><div><span class="es-category-name cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%8A%B6%E6%85%8B%E7%95%B0%E5%B8%B8%E4%BB%98%E4%B8%8E%E7%A2%BA%E7%8E%87%E5%A2%97%E5%8A%A0">状態異常付与確率増加</a></div></div>
+</div>
+<div class="es-stage"><h5>後期ビルド向け候補 <span class="es-condition">Lv.75〜</span></h5>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">HP固定ダメージ</span></div></div>
+</div>
+</div></details></article>
+<article class="es-card es-two-hand">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-longbow"></use></svg>
+<div><h4 class="es-name">長弓（ロングボウ）</h4><p class="es-role">精密射撃で会心を狙う。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須</dt><dd class="es-values"><span class="es-stat cat-offense">間接攻撃力</span></dd></div>
+<div><dt>両手固定の補正</dt><dd class="es-values"><span class="es-stat cat-offense">命中率</span> <strong>+2.75ポイント</strong> <small class="es-example">Lv.25の例</small></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-68 es-82 es-21 es-11 es-7 es-79 es-14 es-75 es-74">
+<summary><span class="es-sr">長弓（ロングボウ）の</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h5>通常候補 <span class="es-condition">Lv.1〜</span></h5>
+<div class="es-category-row cat-primary"><div><span class="es-category-name cat-primary">基本能力値</span></div> <div class="es-values"><span class="es-stat cat-primary">器用さ</span></div></div>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">通常攻撃ダメージ増加</span></div></div>
+</div>
+<div class="es-stage"><h5>上位候補 <span class="es-condition">Lv.50〜</span></h5>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">スキルダメージ増加</span> <span class="es-stat cat-offense">シールドブレイク</span></div></div>
+</div>
+<div class="es-stage"><h5>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h5>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><a class="es-stat cat-offense" href="#es-pool-%E9%80%9A%E5%B8%B8%E4%BC%9A%E5%BF%83">通常会心</a> <span class="es-stat cat-offense">間接防御貫通率</span></div></div>
+</div>
+<div class="es-stage"><h5>後期ビルド向け候補 <span class="es-condition">Lv.75〜</span></h5>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><a class="es-stat cat-offense" href="#es-pool-%E8%B6%85%E6%98%9F%E4%BC%9A%E5%BF%83">超星会心</a></div></div>
+</div>
+</div></details></article>
+<article class="es-card es-two-hand">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-staff"></use></svg>
+<div><h4 class="es-name">スタッフ</h4><p class="es-role">MPを確保し、攻撃・支援魔法を続ける。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須</dt><dd class="es-values"><span class="es-stat cat-offense">魔法攻撃力</span></dd></div>
+<div><dt>両手固定の補正</dt><dd class="es-values"><span class="es-stat cat-resource">最大MP</span> <strong>+28.57点</strong> <small class="es-example">Lv.25の例</small></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-6 es-90 es-41 es-11 es-7 es-55 es-52 es-47 es-86 es-54 es-49 es-88">
+<summary><span class="es-sr">スタッフの</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h5>通常候補 <span class="es-condition">Lv.1〜</span></h5>
+<div class="es-category-row cat-primary"><div><span class="es-category-name cat-primary">基本能力値</span></div> <div class="es-values"><span class="es-stat cat-primary">知力</span></div></div>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">スキルダメージ増加</span></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">MP消費軽減率</span></div></div>
+</div>
+<div class="es-stage"><h5>上位候補 <span class="es-condition">Lv.50〜</span></h5>
+<div class="es-category-row cat-element"><div><span class="es-category-name cat-element">属性</span></div> <div class="es-values"><a class="es-stat cat-element" href="#es-pool-%E5%B1%9E%E6%80%A7%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E5%A2%97%E5%8A%A0">属性ダメージ増加</a></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">詠唱時間短縮</span> <span class="es-stat cat-utility">支援力</span></div></div>
+</div>
+<div class="es-stage"><h5>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h5>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">魔法防御貫通率</span></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">状態異常持続時間増加</span></div></div>
+</div>
+<div class="es-stage"><h5>後期ビルド向け候補 <span class="es-condition">Lv.75〜</span></h5>
+<div class="es-category-row cat-element"><div><span class="es-category-name cat-element">属性</span></div> <div class="es-values"><a class="es-stat cat-element" href="#es-pool-%E5%B1%9E%E6%80%A7%E8%B2%AB%E9%80%9A">属性貫通</a></div></div>
+</div>
+</div></details></article>
+</div>
+<div class="es-subhead"><h3>その他の武器</h3></div>
+<div class="es-grid">
+<article class="es-card">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-sword"></use></svg>
+<div><h4 class="es-name">剣</h4><p class="es-role">通常攻撃を軸に、手数と会心を伸ばす。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須</dt><dd class="es-values"><span class="es-stat cat-offense">近接攻撃力</span></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-80 es-77 es-79 es-14">
+<summary><span class="es-sr">剣の</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h5>通常候補 <span class="es-condition">Lv.1〜</span></h5>
+<div class="es-category-row cat-primary"><div><span class="es-category-name cat-primary">基本能力値</span></div> <div class="es-values"><span class="es-stat cat-primary">筋力</span></div></div>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">命中率</span> <span class="es-stat cat-offense">通常攻撃ダメージ増加</span></div></div>
+</div>
+<div class="es-stage"><h5>上位候補 <span class="es-condition">Lv.50〜</span></h5>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">スキルダメージ増加</span> <span class="es-stat cat-offense">シールドブレイク</span></div></div>
+</div>
+<div class="es-stage"><h5>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h5>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">攻撃速度</span> <a class="es-stat cat-offense" href="#es-pool-%E9%80%9A%E5%B8%B8%E4%BC%9A%E5%BF%83">通常会心</a> <span class="es-stat cat-offense">近接防御貫通率</span></div></div>
+</div>
+<div class="es-stage"><h5>後期ビルド向け候補 <span class="es-condition">Lv.75〜</span></h5>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">ライフスティール</span></div></div>
+</div>
+</div></details></article>
+<article class="es-card">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-spear"></use></svg>
+<div><h4 class="es-name">槍</h4><p class="es-role">近接スキルを当て、状態異常と継続ダメージにつなぐ。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須</dt><dd class="es-values"><span class="es-stat cat-offense">近接攻撃力</span></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-76 es-77 es-57 es-18 es-16 es-29 es-42 es-63 es-72 es-23 es-59 es-31 es-44 es-61 es-33 es-46">
+<summary><span class="es-sr">槍の</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h5>通常候補 <span class="es-condition">Lv.1〜</span></h5>
+<div class="es-category-row cat-primary"><div><span class="es-category-name cat-primary">基本能力値</span></div> <div class="es-values"><span class="es-stat cat-primary">筋力</span></div></div>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">命中率</span> <span class="es-stat cat-offense">スキルダメージ増加</span></div></div>
+</div>
+<div class="es-stage"><h5>上位候補 <span class="es-condition">Lv.50〜</span></h5>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">通常攻撃ダメージ増加</span> <span class="es-stat cat-offense">シールドブレイク</span></div></div>
+</div>
+<div class="es-stage"><h5>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h5>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">近接防御貫通率</span></div></div>
+<div class="es-category-row cat-condition"><div><span class="es-category-name cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%8A%B6%E6%85%8B%E7%95%B0%E5%B8%B8%E4%BB%98%E4%B8%8E%E7%A2%BA%E7%8E%87%E5%A2%97%E5%8A%A0">状態異常付与確率増加</a> <a class="es-stat cat-condition" href="#es-pool-%E7%B6%99%E7%B6%9A%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E5%A2%97%E5%8A%A0">継続ダメージ増加</a></div></div>
+</div>
+<div class="es-stage"><h5>後期ビルド向け候補 <span class="es-condition">Lv.75〜</span></h5>
+<div class="es-category-row cat-condition"><div><span class="es-category-name cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%B6%99%E7%B6%9A%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E8%B2%AB%E9%80%9A">継続ダメージ貫通</a></div></div>
+</div>
+</div></details></article>
+<article class="es-card">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-bow"></use></svg>
+<div><h4 class="es-name">弓</h4><p class="es-role">離れた敵に通常攻撃を当て、会心や属性で威力を伸ばす。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須</dt><dd class="es-values"><span class="es-stat cat-offense">間接攻撃力</span></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-85 es-82 es-79 es-14 es-55 es-52 es-47 es-86">
+<summary><span class="es-sr">弓の</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h5>通常候補 <span class="es-condition">Lv.1〜</span></h5>
+<div class="es-category-row cat-primary"><div><span class="es-category-name cat-primary">基本能力値</span></div> <div class="es-values"><span class="es-stat cat-primary">器用さ</span></div></div>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">命中率</span> <span class="es-stat cat-offense">通常攻撃ダメージ増加</span></div></div>
+</div>
+<div class="es-stage"><h5>上位候補 <span class="es-condition">Lv.50〜</span></h5>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">スキルダメージ増加</span> <span class="es-stat cat-offense">シールドブレイク</span></div></div>
+</div>
+<div class="es-stage"><h5>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h5>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><a class="es-stat cat-offense" href="#es-pool-%E9%80%9A%E5%B8%B8%E4%BC%9A%E5%BF%83">通常会心</a> <span class="es-stat cat-offense">間接防御貫通率</span></div></div>
+<div class="es-category-row cat-element"><div><span class="es-category-name cat-element">属性</span></div> <div class="es-values"><a class="es-stat cat-element" href="#es-pool-%E5%B1%9E%E6%80%A7%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E5%A2%97%E5%8A%A0">属性ダメージ増加</a></div></div>
+</div>
+</div></details></article>
+<article class="es-card">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-shortbow"></use></svg>
+<div><h4 class="es-name">短弓</h4><p class="es-role">素早く動き、手数を生かして状態異常を狙う。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須</dt><dd class="es-values"><span class="es-stat cat-offense">間接攻撃力</span></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-69 es-82 es-57 es-18 es-16 es-29 es-42 es-63 es-72 es-23 es-59 es-31 es-44">
+<summary><span class="es-sr">短弓の</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h5>通常候補 <span class="es-condition">Lv.1〜</span></h5>
+<div class="es-category-row cat-primary"><div><span class="es-category-name cat-primary">基本能力値</span></div> <div class="es-values"><span class="es-stat cat-primary">器用さ</span> <span class="es-stat cat-primary">敏捷性</span></div></div>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">通常攻撃ダメージ増加</span></div></div>
+</div>
+<div class="es-stage"><h5>上位候補 <span class="es-condition">Lv.50〜</span></h5>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">命中率</span> <span class="es-stat cat-offense">スキルダメージ増加</span></div></div>
+</div>
+<div class="es-stage"><h5>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h5>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">攻撃速度</span></div></div>
+<div class="es-category-row cat-condition"><div><span class="es-category-name cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%8A%B6%E6%85%8B%E7%95%B0%E5%B8%B8%E4%BB%98%E4%B8%8E%E7%A2%BA%E7%8E%87%E5%A2%97%E5%8A%A0">状態異常付与確率増加</a> <a class="es-stat cat-condition" href="#es-pool-%E7%B6%99%E7%B6%9A%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E5%A2%97%E5%8A%A0">継続ダメージ増加</a></div></div>
+</div>
+</div></details></article>
+<article class="es-card">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-wand"></use></svg>
+<div><h4 class="es-name">ワンド</h4><p class="es-role">属性魔法を使い、詠唱の短縮や消費MPの軽減を図る。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須</dt><dd class="es-values"><span class="es-stat cat-offense">魔法攻撃力</span></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-28 es-90 es-55 es-52 es-47 es-86 es-57 es-18 es-16 es-29 es-42 es-63 es-72 es-23">
+<summary><span class="es-sr">ワンドの</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h5>通常候補 <span class="es-condition">Lv.1〜</span></h5>
+<div class="es-category-row cat-resource"><div><span class="es-category-name cat-resource">リソース</span></div> <div class="es-values"><span class="es-stat cat-resource">最大MP</span></div></div>
+<div class="es-category-row cat-primary"><div><span class="es-category-name cat-primary">基本能力値</span></div> <div class="es-values"><span class="es-stat cat-primary">知力</span></div></div>
+<div class="es-category-row cat-element"><div><span class="es-category-name cat-element">属性</span></div> <div class="es-values"><a class="es-stat cat-element" href="#es-pool-%E5%B1%9E%E6%80%A7%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E5%A2%97%E5%8A%A0">属性ダメージ増加</a></div></div>
+</div>
+<div class="es-stage"><h5>上位候補 <span class="es-condition">Lv.50〜</span></h5>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">スキルダメージ増加</span></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">詠唱時間短縮</span></div></div>
+</div>
+<div class="es-stage"><h5>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h5>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">魔法防御貫通率</span></div></div>
+<div class="es-category-row cat-condition"><div><span class="es-category-name cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%8A%B6%E6%85%8B%E7%95%B0%E5%B8%B8%E4%BB%98%E4%B8%8E%E7%A2%BA%E7%8E%87%E5%A2%97%E5%8A%A0">状態異常付与確率増加</a></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">MP消費軽減率</span></div></div>
+</div>
+</div></details></article>
+</div>
   </section>
 
   <section class="es-chapter" id="armor" aria-labelledby="armor-title">
     <h2 id="armor-title"><span class="ch-num">2</span>防具</h2>
-    <div class="es-table es-table-standard">
-      <table role="table" aria-label="防具の標準候補">
-        <thead role="rowgroup">
-          <tr role="row">
-            <th scope="col" role="columnheader">装備種</th>
-            <th scope="col" role="columnheader">必須</th>
-            <th scope="col" role="columnheader">通常候補 <span class="es-condition">Lv.1〜</span></th>
-            <th scope="col" role="columnheader">上位候補 <span class="es-condition">Lv.50〜</span></th>
-          </tr>
-        </thead>
-        <tbody role="rowgroup">
-          <tr role="row" data-status-ids="" aria-label="頭">
-            <th scope="row" role="rowheader">頭</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>共通防御</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>最大MP</li><li>魔法防御力</li><li><a href="#candidate-groups">属性耐性</a></li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>MP自然回復量（5秒ごと）</li><li>詠唱時間短縮</li></ul></div>
-            </td>
-          </tr>
-          <tr role="row" data-status-ids="" aria-label="胴">
-            <th scope="row" role="rowheader">胴</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>共通防御</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>最大HP</li><li>魔法防御力</li><li><a href="#candidate-groups">属性耐性</a></li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>HP自然回復量（5秒ごと）</li><li>ノックバック耐性</li></ul></div>
-            </td>
-          </tr>
-          <tr role="row" data-status-ids="" aria-label="脚">
-            <th scope="row" role="rowheader">脚</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>共通防御</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>最大ENG</li><li>ノックバック耐性</li><li><a href="#candidate-groups">状態異常付与耐性</a></li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>最大HP</li><li>ENG自然回復量（5秒ごと）</li></ul></div>
-            </td>
-          </tr>
-          <tr role="row" data-status-ids="" aria-label="足">
-            <th scope="row" role="rowheader">足</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>共通防御</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>敏捷性</li><li>ノックバック耐性</li><li><a href="#candidate-groups">継続ダメージ耐性</a></li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">属性耐性</a></li><li><a href="#candidate-groups">状態異常付与耐性</a></li></ul></div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <details class="es-detail es-build">
-      <summary>防具のビルド向け候補</summary>
-      <div class="es-table">
-        <table role="table" aria-label="防具のビルド向け候補">
-          <thead role="rowgroup">
-            <tr role="row">
-              <th scope="col" role="columnheader">装備種</th>
-              <th scope="col" role="columnheader">Lv.25〜</th>
-              <th scope="col" role="columnheader">Lv.75から追加</th>
-            </tr>
-          </thead>
-          <tbody role="rowgroup">
-            <tr role="row" data-status-ids="build" aria-label="頭（ビルド向け）">
-              <th scope="row" role="rowheader">頭</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">状態異常付与耐性</a></li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><span class="es-empty">なし</span></div>
-              </td>
-            </tr>
-            <tr role="row" data-status-ids="build lateBuild" aria-label="胴（ビルド向け）">
-              <th scope="row" role="rowheader">胴</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">近接・間接防御力</a></li><li>最大シールド</li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>被ダメージ軽減率</li></ul></div>
-              </td>
-            </tr>
-            <tr role="row" data-status-ids="build" aria-label="脚（ビルド向け）">
-              <th scope="row" role="rowheader">脚</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">近接・間接防御力</a></li><li><a href="#candidate-groups">継続ダメージ耐性</a></li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><span class="es-empty">なし</span></div>
-              </td>
-            </tr>
-            <tr role="row" data-status-ids="build" aria-label="足（ビルド向け）">
-              <th scope="row" role="rowheader">足</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>移動速度</li><li>回避率</li><li><a href="#candidate-groups">消耗品使用中の移動</a></li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><span class="es-empty">なし</span></div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </details>
+<div class="es-grid">
+<article class="es-card">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-helm"></use></svg>
+<div><h3 class="es-name">頭</h3><p class="es-role">魔法や属性攻撃に備え、詠唱を支える。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須</dt><dd class="es-values"><span class="es-stat cat-defense">共通防御</span></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-89 es-15 es-56 es-53 es-48 es-87 es-58 es-19 es-17 es-30 es-43 es-64 es-73 es-24">
+<summary><span class="es-sr">頭の</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h4>通常候補 <span class="es-condition">Lv.1〜</span></h4>
+<div class="es-category-row cat-resource"><div><span class="es-category-name cat-resource">リソース</span></div> <div class="es-values"><span class="es-stat cat-resource">最大MP</span></div></div>
+<div class="es-category-row cat-defense"><div><span class="es-category-name cat-defense">防御</span></div> <div class="es-values"><span class="es-stat cat-defense">魔法防御力</span></div></div>
+<div class="es-category-row cat-element"><div><span class="es-category-name cat-element">属性</span></div> <div class="es-values"><a class="es-stat cat-element" href="#es-pool-%E5%B1%9E%E6%80%A7%E8%80%90%E6%80%A7">属性耐性</a></div></div>
+</div>
+<div class="es-stage"><h4>上位候補 <span class="es-condition">Lv.50〜</span></h4>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">MP自然回復量（5秒ごと）</span> <span class="es-stat cat-utility">詠唱時間短縮</span></div></div>
+</div>
+<div class="es-stage"><h4>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h4>
+<div class="es-category-row cat-condition"><div><span class="es-category-name cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%8A%B6%E6%85%8B%E7%95%B0%E5%B8%B8%E4%BB%98%E4%B8%8E%E8%80%90%E6%80%A7">状態異常付与耐性</a></div></div>
+</div>
+</div></details></article>
+<article class="es-card">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-chest"></use></svg>
+<div><h3 class="es-name">胴</h3><p class="es-role">防具で最も多くの共通防御を受け持ち、HPを補う。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須</dt><dd class="es-values"><span class="es-stat cat-defense">共通防御</span></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-84 es-15 es-56 es-53 es-48 es-87 es-78 es-83">
+<summary><span class="es-sr">胴の</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h4>通常候補 <span class="es-condition">Lv.1〜</span></h4>
+<div class="es-category-row cat-resource"><div><span class="es-category-name cat-resource">リソース</span></div> <div class="es-values"><span class="es-stat cat-resource">最大HP</span></div></div>
+<div class="es-category-row cat-defense"><div><span class="es-category-name cat-defense">防御</span></div> <div class="es-values"><span class="es-stat cat-defense">魔法防御力</span></div></div>
+<div class="es-category-row cat-element"><div><span class="es-category-name cat-element">属性</span></div> <div class="es-values"><a class="es-stat cat-element" href="#es-pool-%E5%B1%9E%E6%80%A7%E8%80%90%E6%80%A7">属性耐性</a></div></div>
+</div>
+<div class="es-stage"><h4>上位候補 <span class="es-condition">Lv.50〜</span></h4>
+<div class="es-category-row cat-defense"><div><span class="es-category-name cat-defense">防御</span></div> <div class="es-values"><span class="es-stat cat-defense">ノックバック耐性</span></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">HP自然回復量（5秒ごと）</span></div></div>
+</div>
+<div class="es-stage"><h4>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h4>
+<div class="es-category-row cat-resource"><div><span class="es-category-name cat-resource">リソース</span></div> <div class="es-values"><span class="es-stat cat-resource">最大シールド</span></div></div>
+<div class="es-category-row cat-defense"><div><span class="es-category-name cat-defense">防御</span></div> <div class="es-values"><a class="es-stat cat-defense" href="#es-pool-%E8%BF%91%E6%8E%A5%E3%83%BB%E9%96%93%E6%8E%A5%E9%98%B2%E5%BE%A1%E5%8A%9B">近接・間接防御力</a></div></div>
+</div>
+<div class="es-stage"><h4>後期ビルド向け候補 <span class="es-condition">Lv.75〜</span></h4>
+<div class="es-category-row cat-defense"><div><span class="es-category-name cat-defense">防御</span></div> <div class="es-values"><span class="es-stat cat-defense">被ダメージ軽減率</span></div></div>
+</div>
+</div></details></article>
+<article class="es-card">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-legs"></use></svg>
+<div><h3 class="es-name">脚</h3><p class="es-role">ENGを補い、ノックバックや状態異常に耐える。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須</dt><dd class="es-values"><span class="es-stat cat-defense">共通防御</span></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-1 es-15 es-58 es-19 es-17 es-30 es-43 es-64 es-73 es-24 es-78 es-83 es-60 es-32 es-45">
+<summary><span class="es-sr">脚の</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h4>通常候補 <span class="es-condition">Lv.1〜</span></h4>
+<div class="es-category-row cat-resource"><div><span class="es-category-name cat-resource">リソース</span></div> <div class="es-values"><span class="es-stat cat-resource">最大ENG</span></div></div>
+<div class="es-category-row cat-defense"><div><span class="es-category-name cat-defense">防御</span></div> <div class="es-values"><span class="es-stat cat-defense">ノックバック耐性</span></div></div>
+<div class="es-category-row cat-condition"><div><span class="es-category-name cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%8A%B6%E6%85%8B%E7%95%B0%E5%B8%B8%E4%BB%98%E4%B8%8E%E8%80%90%E6%80%A7">状態異常付与耐性</a></div></div>
+</div>
+<div class="es-stage"><h4>上位候補 <span class="es-condition">Lv.50〜</span></h4>
+<div class="es-category-row cat-resource"><div><span class="es-category-name cat-resource">リソース</span></div> <div class="es-values"><span class="es-stat cat-resource">最大HP</span></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">ENG自然回復量（5秒ごと）</span></div></div>
+</div>
+<div class="es-stage"><h4>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h4>
+<div class="es-category-row cat-defense"><div><span class="es-category-name cat-defense">防御</span></div> <div class="es-values"><a class="es-stat cat-defense" href="#es-pool-%E8%BF%91%E6%8E%A5%E3%83%BB%E9%96%93%E6%8E%A5%E9%98%B2%E5%BE%A1%E5%8A%9B">近接・間接防御力</a></div></div>
+<div class="es-category-row cat-condition"><div><span class="es-category-name cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%B6%99%E7%B6%9A%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E8%80%90%E6%80%A7">継続ダメージ耐性</a></div></div>
+</div>
+</div></details></article>
+<article class="es-card">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-boots"></use></svg>
+<div><h3 class="es-name">足</h3><p class="es-role">移動と回避を支え、継続ダメージを抑える。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須</dt><dd class="es-values"><span class="es-stat cat-defense">共通防御</span></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-66 es-15 es-60 es-32 es-45 es-56 es-53 es-48 es-87 es-58 es-19 es-17 es-30 es-43 es-64 es-73 es-24 es-51 es-50">
+<summary><span class="es-sr">足の</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h4>通常候補 <span class="es-condition">Lv.1〜</span></h4>
+<div class="es-category-row cat-primary"><div><span class="es-category-name cat-primary">基本能力値</span></div> <div class="es-values"><span class="es-stat cat-primary">敏捷性</span></div></div>
+<div class="es-category-row cat-defense"><div><span class="es-category-name cat-defense">防御</span></div> <div class="es-values"><span class="es-stat cat-defense">ノックバック耐性</span></div></div>
+<div class="es-category-row cat-condition"><div><span class="es-category-name cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%B6%99%E7%B6%9A%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E8%80%90%E6%80%A7">継続ダメージ耐性</a></div></div>
+</div>
+<div class="es-stage"><h4>上位候補 <span class="es-condition">Lv.50〜</span></h4>
+<div class="es-category-row cat-element"><div><span class="es-category-name cat-element">属性</span></div> <div class="es-values"><a class="es-stat cat-element" href="#es-pool-%E5%B1%9E%E6%80%A7%E8%80%90%E6%80%A7">属性耐性</a></div></div>
+<div class="es-category-row cat-condition"><div><span class="es-category-name cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%8A%B6%E6%85%8B%E7%95%B0%E5%B8%B8%E4%BB%98%E4%B8%8E%E8%80%90%E6%80%A7">状態異常付与耐性</a></div></div>
+</div>
+<div class="es-stage"><h4>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h4>
+<div class="es-category-row cat-defense"><div><span class="es-category-name cat-defense">防御</span></div> <div class="es-values"><span class="es-stat cat-defense">回避率</span></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">移動速度</span> <a class="es-stat cat-utility" href="#es-pool-%E6%B6%88%E8%80%97%E5%93%81%E4%BD%BF%E7%94%A8%E4%B8%AD%E3%81%AE%E7%A7%BB%E5%8B%95">消耗品使用中の移動</a></div></div>
+</div>
+</div></details></article>
+</div>
     <details class="es-detail">
       <summary>標準防具の数値例</summary>
       <p>標準の共通防御の装備配分を整数点に四捨五入し、防具4部位に配分する。重みは頭20%、胴35%、脚30%、足15%。</p>
@@ -723,286 +807,237 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 
   <section class="es-chapter" id="equipment-3" aria-labelledby="equipment-3-title">
     <h2 id="equipment-3-title"><span class="ch-num">3</span>補助装備</h2>
-    <div class="es-table es-table-standard">
-      <table role="table" aria-label="補助装備の標準候補">
-        <thead role="rowgroup">
-          <tr role="row">
-            <th scope="col" role="columnheader">装備種</th>
-            <th scope="col" role="columnheader">必須</th>
-            <th scope="col" role="columnheader">通常候補 <span class="es-condition">Lv.1〜</span></th>
-            <th scope="col" role="columnheader">上位候補 <span class="es-condition">Lv.50〜</span></th>
-          </tr>
-        </thead>
-        <tbody role="rowgroup">
-          <tr role="row" data-status-ids="" aria-label="盾">
-            <th scope="row" role="rowheader">盾</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>共通防御</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>最大HP</li><li>ノックバック耐性</li><li><a href="#candidate-groups">属性耐性</a></li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>魔法防御力</li><li><a href="#candidate-groups">状態異常付与耐性</a></li></ul></div>
-            </td>
-          </tr>
-          <tr role="row" data-status-ids="" aria-label="物理攻撃の補助">
-            <th scope="row" role="rowheader">物理攻撃の補助</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><span class="es-condition es-choice">いずれか1つ</span><ul class="es-candidates" role="list"><li>命中率</li><li>最大ENG</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>通常攻撃ダメージ増加</li><li>ENG消費軽減率</li><li>シールドブレイク</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>スキルダメージ増加</li><li>ENG自然回復量（5秒ごと）</li></ul></div>
-            </td>
-          </tr>
-          <tr role="row" data-status-ids="" aria-label="魔法・支援の補助">
-            <th scope="row" role="rowheader">魔法・支援の補助</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><span class="es-condition es-choice">いずれか1つ</span><ul class="es-candidates" role="list"><li>最大MP</li><li>支援力</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>知力</li><li>MP自然回復量（5秒ごと）</li><li>MP消費軽減率</li><li>詠唱時間短縮</li><li>クールダウン短縮</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>魔法防御力</li><li>バフ持続時間増加</li></ul></div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <details class="es-detail es-build">
-      <summary>補助装備のビルド向け候補</summary>
-      <div class="es-table">
-        <table role="table" aria-label="補助装備のビルド向け候補">
-          <thead role="rowgroup">
-            <tr role="row">
-              <th scope="col" role="columnheader">装備種</th>
-              <th scope="col" role="columnheader">Lv.25〜</th>
-              <th scope="col" role="columnheader">Lv.75から追加</th>
-            </tr>
-          </thead>
-          <tbody role="rowgroup">
-            <tr role="row" data-status-ids="build lateBuild" aria-label="盾（ビルド向け）">
-              <th scope="row" role="rowheader">盾</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">近接・間接防御力</a></li><li>最大シールド</li><li>シールドリチャージ短縮</li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>被ダメージ軽減率</li></ul></div>
-              </td>
-            </tr>
-            <tr role="row" data-status-ids="build" aria-label="物理攻撃の補助（ビルド向け）">
-              <th scope="row" role="rowheader">物理攻撃の補助</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>攻撃速度</li><li><a href="#candidate-groups">通常会心</a></li><li>近接防御貫通率</li><li>間接防御貫通率</li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><span class="es-empty">なし</span></div>
-              </td>
-            </tr>
-            <tr role="row" data-status-ids="build" aria-label="魔法・支援の補助（ビルド向け）">
-              <th scope="row" role="rowheader">魔法・支援の補助</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>回復量増加</li><li>魔法防御貫通率</li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><span class="es-empty">なし</span></div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </details>
+<div class="es-grid">
+<article class="es-card">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-shield"></use></svg>
+<div><h3 class="es-name">盾</h3><p class="es-role">敵の攻撃を受け止め、シールドの容量と再充填を補う。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須</dt><dd class="es-values"><span class="es-stat cat-defense">共通防御</span></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-38 es-15 es-56 es-53 es-48 es-87 es-58 es-19 es-17 es-30 es-43 es-64 es-73 es-24 es-78 es-83">
+<summary><span class="es-sr">盾の</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h4>通常候補 <span class="es-condition">Lv.1〜</span></h4>
+<div class="es-category-row cat-resource"><div><span class="es-category-name cat-resource">リソース</span></div> <div class="es-values"><span class="es-stat cat-resource">最大HP</span></div></div>
+<div class="es-category-row cat-defense"><div><span class="es-category-name cat-defense">防御</span></div> <div class="es-values"><span class="es-stat cat-defense">ノックバック耐性</span></div></div>
+<div class="es-category-row cat-element"><div><span class="es-category-name cat-element">属性</span></div> <div class="es-values"><a class="es-stat cat-element" href="#es-pool-%E5%B1%9E%E6%80%A7%E8%80%90%E6%80%A7">属性耐性</a></div></div>
+</div>
+<div class="es-stage"><h4>上位候補 <span class="es-condition">Lv.50〜</span></h4>
+<div class="es-category-row cat-defense"><div><span class="es-category-name cat-defense">防御</span></div> <div class="es-values"><span class="es-stat cat-defense">魔法防御力</span></div></div>
+<div class="es-category-row cat-condition"><div><span class="es-category-name cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%8A%B6%E6%85%8B%E7%95%B0%E5%B8%B8%E4%BB%98%E4%B8%8E%E8%80%90%E6%80%A7">状態異常付与耐性</a></div></div>
+</div>
+<div class="es-stage"><h4>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h4>
+<div class="es-category-row cat-resource"><div><span class="es-category-name cat-resource">リソース</span></div> <div class="es-values"><span class="es-stat cat-resource">最大シールド</span></div></div>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">シールドリチャージ加算値</span></div></div>
+<div class="es-category-row cat-defense"><div><span class="es-category-name cat-defense">防御</span></div> <div class="es-values"><a class="es-stat cat-defense" href="#es-pool-%E8%BF%91%E6%8E%A5%E3%83%BB%E9%96%93%E6%8E%A5%E9%98%B2%E5%BE%A1%E5%8A%9B">近接・間接防御力</a></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">シールドリチャージ短縮</span></div></div>
+</div>
+<div class="es-stage"><h4>後期ビルド向け候補 <span class="es-condition">Lv.75〜</span></h4>
+<div class="es-category-row cat-defense"><div><span class="es-category-name cat-defense">防御</span></div> <div class="es-values"><span class="es-stat cat-defense">被ダメージ軽減率</span></div></div>
+</div>
+</div></details></article>
+<article class="es-card">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-target"></use></svg>
+<div><h3 class="es-name">物理攻撃の補助</h3><p class="es-role">命中かENGを補い、物理攻撃を続けやすくする。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須（いずれか1つ）</dt><dd class="es-values"><span class="es-stat cat-offense">命中率</span> <span class="es-stat cat-resource">最大ENG</span></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-20 es-21 es-39 es-79 es-14">
+<summary><span class="es-sr">物理攻撃の補助の</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h4>通常候補 <span class="es-condition">Lv.1〜</span></h4>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">通常攻撃ダメージ増加</span> <span class="es-stat cat-offense">シールドブレイク</span></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">ENG消費軽減率</span></div></div>
+</div>
+<div class="es-stage"><h4>上位候補 <span class="es-condition">Lv.50〜</span></h4>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">スキルダメージ増加</span></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">ENG自然回復量（5秒ごと）</span></div></div>
+</div>
+<div class="es-stage"><h4>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h4>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">攻撃速度</span> <a class="es-stat cat-offense" href="#es-pool-%E9%80%9A%E5%B8%B8%E4%BC%9A%E5%BF%83">通常会心</a> <span class="es-stat cat-offense">近接防御貫通率</span> <span class="es-stat cat-offense">間接防御貫通率</span></div></div>
+</div>
+</div></details></article>
+<article class="es-card">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-book"></use></svg>
+<div><h3 class="es-name">魔法・支援の補助</h3><p class="es-role">MPか支援力を補い、魔法や支援スキルを使いやすくする。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須（いずれか1つ）</dt><dd class="es-values"><span class="es-stat cat-resource">最大MP</span> <span class="es-stat cat-utility">支援力</span></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-5 es-41 es-34">
+<summary><span class="es-sr">魔法・支援の補助の</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h4>通常候補 <span class="es-condition">Lv.1〜</span></h4>
+<div class="es-category-row cat-primary"><div><span class="es-category-name cat-primary">基本能力値</span></div> <div class="es-values"><span class="es-stat cat-primary">知力</span></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">MP自然回復量（5秒ごと）</span> <span class="es-stat cat-utility">MP消費軽減率</span> <span class="es-stat cat-utility">詠唱時間短縮</span> <span class="es-stat cat-utility">クールダウン短縮</span></div></div>
+</div>
+<div class="es-stage"><h4>上位候補 <span class="es-condition">Lv.50〜</span></h4>
+<div class="es-category-row cat-defense"><div><span class="es-category-name cat-defense">防御</span></div> <div class="es-values"><span class="es-stat cat-defense">魔法防御力</span></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">バフ持続時間増加</span></div></div>
+</div>
+<div class="es-stage"><h4>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h4>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">魔法防御貫通率</span></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">回復量増加</span></div></div>
+</div>
+</div></details></article>
+</div>
   </section>
 
   <section class="es-chapter" id="equipment-4" aria-labelledby="equipment-4-title">
     <h2 id="equipment-4-title"><span class="ch-num">4</span>アクセサリ</h2>
-    <div class="es-table es-table-standard">
-      <table role="table" aria-label="アクセサリの標準候補">
-        <thead role="rowgroup">
-          <tr role="row">
-            <th scope="col" role="columnheader">装備種</th>
-            <th scope="col" role="columnheader">必須</th>
-            <th scope="col" role="columnheader">通常候補 <span class="es-condition">Lv.1〜</span></th>
-            <th scope="col" role="columnheader">上位候補 <span class="es-condition">Lv.50〜</span></th>
-          </tr>
-        </thead>
-        <tbody role="rowgroup">
-          <tr role="row" data-status-ids="" aria-label="アミュレット">
-            <th scope="row" role="rowheader">アミュレット</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><span class="es-condition es-choice">いずれか1つ</span><ul class="es-candidates" role="list"><li>最大HP</li><li>最大MP</li><li>最大ENG</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">主能力</a></li><li><a href="#candidate-groups">属性耐性</a></li><li>支援力</li><li>MP消費軽減率</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>クールダウン短縮</li><li>スキルダメージ増加</li></ul></div>
-            </td>
-          </tr>
-          <tr role="row" data-status-ids="" aria-label="タリスマン">
-            <th scope="row" role="rowheader">タリスマン</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><span class="es-condition es-choice">いずれか1つ</span><ul class="es-candidates" role="list"><li><a href="#candidate-groups">主能力</a></li><li>敏捷性</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>命中率</li><li>シールドブレイク</li><li>ENG消費軽減率</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>MP消費軽減率</li><li><a href="#candidate-groups">属性耐性</a></li></ul></div>
-            </td>
-          </tr>
-          <tr role="row" data-status-ids="" aria-label="チャーム">
-            <th scope="row" role="rowheader">チャーム</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><span class="es-condition es-choice">いずれか1つ</span><ul class="es-candidates" role="list"><li><a href="#candidate-groups">属性耐性</a></li><li><a href="#candidate-groups">状態異常付与耐性</a></li><li><a href="#candidate-groups">継続ダメージ耐性</a></li><li>HP自然回復量（5秒ごと）</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>MP自然回復量（5秒ごと）</li><li>ENG自然回復量（5秒ごと）</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>ノックバック耐性</li><li>バフ持続時間増加</li></ul></div>
-            </td>
-          </tr>
-          <tr role="row" data-status-ids="" aria-label="コア">
-            <th scope="row" role="rowheader">コア</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><span class="es-condition es-choice">いずれか1つ</span><ul class="es-candidates" role="list"><li>通常攻撃ダメージ増加</li><li>スキルダメージ増加</li><li>支援力</li><li>最大HP</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>最終ダメージ倍率</li><li><a href="#candidate-groups">属性ダメージ増加</a></li><li>最大MP</li><li>最大ENG</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>クールダウン短縮</li><li>バフ持続時間増加</li></ul></div>
-            </td>
-          </tr>
-          <tr role="row" data-status-ids="" aria-label="レリック">
-            <th scope="row" role="rowheader">レリック</th>
-            <td role="cell" class="es-required">
-              <span class="es-mobile-label" aria-hidden="true">必須</span>
-              <div class="es-cell-value"><span class="es-condition es-choice">いずれか1つ</span><ul class="es-candidates" role="list"><li><a href="#candidate-groups">属性ダメージ増加</a></li><li><a href="#candidate-groups">状態異常付与耐性</a></li><li>支援力</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>スキルダメージ増加</li><li>バフ持続時間増加</li></ul></div>
-            </td>
-            <td role="cell">
-              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
-              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>クールダウン短縮</li><li>詠唱時間短縮</li></ul></div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <details class="es-detail es-build">
-      <summary>アクセサリのビルド向け候補</summary>
-      <div class="es-table">
-        <table role="table" aria-label="アクセサリのビルド向け候補">
-          <thead role="rowgroup">
-            <tr role="row">
-              <th scope="col" role="columnheader">装備種</th>
-              <th scope="col" role="columnheader">Lv.25〜</th>
-              <th scope="col" role="columnheader">Lv.75から追加</th>
-            </tr>
-          </thead>
-          <tbody role="rowgroup">
-            <tr role="row" data-status-ids="build" aria-label="アミュレット（ビルド向け）">
-              <th scope="row" role="rowheader">アミュレット</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>体力</li><li>回復量増加</li><li><a href="#candidate-groups">通常会心</a></li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><span class="es-empty">なし</span></div>
-              </td>
-            </tr>
-            <tr role="row" data-status-ids="build" aria-label="タリスマン（ビルド向け）">
-              <th scope="row" role="rowheader">タリスマン</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>幸運</li><li><a href="#candidate-groups">属性ダメージ増加</a></li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><span class="es-empty">なし</span></div>
-              </td>
-            </tr>
-            <tr role="row" data-status-ids="build" aria-label="チャーム（ビルド向け）">
-              <th scope="row" role="rowheader">チャーム</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>幸運</li><li><a href="#candidate-groups">育成・探索報酬</a></li><li><a href="#candidate-groups">消耗品使用中の移動</a></li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><span class="es-empty">なし</span></div>
-              </td>
-            </tr>
-            <tr role="row" data-status-ids="build lateBuild" aria-label="コア（ビルド向け）">
-              <th scope="row" role="rowheader">コア</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>最大シールド</li><li>状態異常持続時間増加</li><li>回復量増加</li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>共通攻撃力</li><li>共通防御貫通率</li><li>被ダメージ軽減率</li></ul></div>
-              </td>
-            </tr>
-            <tr role="row" data-status-ids="build lateBuild" aria-label="レリック（ビルド向け）">
-              <th scope="row" role="rowheader">レリック</th>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">状態異常付与確率増加</a></li><li><a href="#candidate-groups">継続ダメージ増加</a></li><li>状態異常持続時間増加</li><li>シールドリチャージ短縮</li></ul></div>
-              </td>
-              <td role="cell">
-                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
-                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">超星会心</a></li><li><a href="#candidate-groups">継続ダメージ貫通</a></li></ul></div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </details>
+<div class="es-grid">
+<article class="es-card">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-amulet"></use></svg>
+<div><h3 class="es-name">アミュレット</h3><p class="es-role">HP・MP・ENGのいずれかの上限を伸ばす。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須（いずれか1つ）</dt><dd class="es-values"><span class="es-stat cat-resource">最大HP</span> <span class="es-stat cat-resource">最大MP</span> <small>ほか1候補</small></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-3 es-40 es-41 es-39 es-67 es-22 es-65 es-56 es-53 es-48 es-87 es-79 es-14">
+<summary><span class="es-sr">アミュレットの</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h4>必須（いずれか1つ）</h4>
+<div class="es-category-row cat-resource"><div><span class="es-category-name cat-resource">リソース</span></div> <div class="es-values"><span class="es-stat cat-resource">最大HP</span> <span class="es-stat cat-resource">最大MP</span> <span class="es-stat cat-resource">最大ENG</span></div></div>
+</div>
+<div class="es-stage"><h4>通常候補 <span class="es-condition">Lv.1〜</span></h4>
+<div class="es-category-row cat-primary"><div><span class="es-category-name cat-primary">基本能力値</span></div> <div class="es-values"><a class="es-stat cat-primary" href="#es-pool-%E4%B8%BB%E8%83%BD%E5%8A%9B">主能力</a></div></div>
+<div class="es-category-row cat-element"><div><span class="es-category-name cat-element">属性</span></div> <div class="es-values"><a class="es-stat cat-element" href="#es-pool-%E5%B1%9E%E6%80%A7%E8%80%90%E6%80%A7">属性耐性</a></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">支援力</span> <span class="es-stat cat-utility">MP消費軽減率</span></div></div>
+</div>
+<div class="es-stage"><h4>上位候補 <span class="es-condition">Lv.50〜</span></h4>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">スキルダメージ増加</span></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">クールダウン短縮</span></div></div>
+</div>
+<div class="es-stage"><h4>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h4>
+<div class="es-category-row cat-primary"><div><span class="es-category-name cat-primary">基本能力値</span></div> <div class="es-values"><span class="es-stat cat-primary">体力</span></div></div>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><a class="es-stat cat-offense" href="#es-pool-%E9%80%9A%E5%B8%B8%E4%BC%9A%E5%BF%83">通常会心</a></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">回復量増加</span></div></div>
+</div>
+</div></details></article>
+<article class="es-card">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-talisman"></use></svg>
+<div><h3 class="es-name">タリスマン</h3><p class="es-role">主能力か敏捷性を補い、攻撃を当てやすくする。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須（いずれか1つ）</dt><dd class="es-values"><a class="es-stat cat-primary" href="#es-pool-%E4%B8%BB%E8%83%BD%E5%8A%9B">主能力</a> <span class="es-stat cat-primary">敏捷性</span></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-13 es-12 es-36 es-67 es-22 es-65 es-56 es-53 es-48 es-87 es-55 es-52 es-47 es-86">
+<summary><span class="es-sr">タリスマンの</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h4>通常候補 <span class="es-condition">Lv.1〜</span></h4>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">命中率</span> <span class="es-stat cat-offense">シールドブレイク</span></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">ENG消費軽減率</span></div></div>
+</div>
+<div class="es-stage"><h4>上位候補 <span class="es-condition">Lv.50〜</span></h4>
+<div class="es-category-row cat-element"><div><span class="es-category-name cat-element">属性</span></div> <div class="es-values"><a class="es-stat cat-element" href="#es-pool-%E5%B1%9E%E6%80%A7%E8%80%90%E6%80%A7">属性耐性</a></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">MP消費軽減率</span></div></div>
+</div>
+<div class="es-stage"><h4>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h4>
+<div class="es-category-row cat-primary"><div><span class="es-category-name cat-primary">基本能力値</span></div> <div class="es-values"><span class="es-stat cat-primary">幸運</span></div></div>
+<div class="es-category-row cat-element"><div><span class="es-category-name cat-element">属性</span></div> <div class="es-values"><a class="es-stat cat-element" href="#es-pool-%E5%B1%9E%E6%80%A7%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E5%A2%97%E5%8A%A0">属性ダメージ増加</a></div></div>
+</div>
+</div></details></article>
+<article class="es-card">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-charm"></use></svg>
+<div><h3 class="es-name">チャーム</h3><p class="es-role">耐性や自然回復を補い、探索を続けやすくする。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須（いずれか1つ）</dt><dd class="es-values"><a class="es-stat cat-element" href="#es-pool-%E5%B1%9E%E6%80%A7%E8%80%90%E6%80%A7">属性耐性</a> <a class="es-stat cat-condition" href="#es-pool-%E7%8A%B6%E6%85%8B%E7%95%B0%E5%B8%B8%E4%BB%98%E4%B8%8E%E8%80%90%E6%80%A7">状態異常付与耐性</a> <small>ほか2候補</small></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-71 es-27 es-62 es-70 es-4 es-56 es-53 es-48 es-87 es-58 es-19 es-17 es-30 es-43 es-64 es-73 es-24 es-60 es-32 es-45 es-2 es-10 es-51 es-50">
+<summary><span class="es-sr">チャームの</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h4>必須（いずれか1つ）</h4>
+<div class="es-category-row cat-element"><div><span class="es-category-name cat-element">属性</span></div> <div class="es-values"><a class="es-stat cat-element" href="#es-pool-%E5%B1%9E%E6%80%A7%E8%80%90%E6%80%A7">属性耐性</a></div></div>
+<div class="es-category-row cat-condition"><div><span class="es-category-name cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%8A%B6%E6%85%8B%E7%95%B0%E5%B8%B8%E4%BB%98%E4%B8%8E%E8%80%90%E6%80%A7">状態異常付与耐性</a> <a class="es-stat cat-condition" href="#es-pool-%E7%B6%99%E7%B6%9A%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E8%80%90%E6%80%A7">継続ダメージ耐性</a></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">HP自然回復量（5秒ごと）</span></div></div>
+</div>
+<div class="es-stage"><h4>通常候補 <span class="es-condition">Lv.1〜</span></h4>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">MP自然回復量（5秒ごと）</span> <span class="es-stat cat-utility">ENG自然回復量（5秒ごと）</span></div></div>
+</div>
+<div class="es-stage"><h4>上位候補 <span class="es-condition">Lv.50〜</span></h4>
+<div class="es-category-row cat-defense"><div><span class="es-category-name cat-defense">防御</span></div> <div class="es-values"><span class="es-stat cat-defense">ノックバック耐性</span></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">バフ持続時間増加</span></div></div>
+</div>
+<div class="es-stage"><h4>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h4>
+<div class="es-category-row cat-primary"><div><span class="es-category-name cat-primary">基本能力値</span></div> <div class="es-values"><span class="es-stat cat-primary">幸運</span></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><a class="es-stat cat-utility" href="#es-pool-%E8%82%B2%E6%88%90%E3%83%BB%E6%8E%A2%E7%B4%A2%E5%A0%B1%E9%85%AC">育成・探索報酬</a> <a class="es-stat cat-utility" href="#es-pool-%E6%B6%88%E8%80%97%E5%93%81%E4%BD%BF%E7%94%A8%E4%B8%AD%E3%81%AE%E7%A7%BB%E5%8B%95">消耗品使用中の移動</a></div></div>
+</div>
+</div></details></article>
+<article class="es-card">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-core"></use></svg>
+<div><h3 class="es-name">コア</h3><p class="es-role">攻撃・支援・耐久のうち、構成の軸になる能力を伸ばす。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須（いずれか1つ）</dt><dd class="es-values"><span class="es-stat cat-offense">通常攻撃ダメージ増加</span> <span class="es-stat cat-offense">スキルダメージ増加</span> <small>ほか2候補</small></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-35 es-81 es-9 es-34 es-40 es-55 es-52 es-47 es-86">
+<summary><span class="es-sr">コアの</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h4>必須（いずれか1つ）</h4>
+<div class="es-category-row cat-resource"><div><span class="es-category-name cat-resource">リソース</span></div> <div class="es-values"><span class="es-stat cat-resource">最大HP</span></div></div>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">通常攻撃ダメージ増加</span> <span class="es-stat cat-offense">スキルダメージ増加</span></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">支援力</span></div></div>
+</div>
+<div class="es-stage"><h4>通常候補 <span class="es-condition">Lv.1〜</span></h4>
+<div class="es-category-row cat-resource"><div><span class="es-category-name cat-resource">リソース</span></div> <div class="es-values"><span class="es-stat cat-resource">最大MP</span> <span class="es-stat cat-resource">最大ENG</span></div></div>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">最終ダメージ倍率</span></div></div>
+<div class="es-category-row cat-element"><div><span class="es-category-name cat-element">属性</span></div> <div class="es-values"><a class="es-stat cat-element" href="#es-pool-%E5%B1%9E%E6%80%A7%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E5%A2%97%E5%8A%A0">属性ダメージ増加</a></div></div>
+</div>
+<div class="es-stage"><h4>上位候補 <span class="es-condition">Lv.50〜</span></h4>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">クールダウン短縮</span> <span class="es-stat cat-utility">バフ持続時間増加</span></div></div>
+</div>
+<div class="es-stage"><h4>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h4>
+<div class="es-category-row cat-resource"><div><span class="es-category-name cat-resource">リソース</span></div> <div class="es-values"><span class="es-stat cat-resource">最大シールド</span></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">状態異常持続時間増加</span> <span class="es-stat cat-utility">回復量増加</span></div></div>
+</div>
+<div class="es-stage"><h4>後期ビルド向け候補 <span class="es-condition">Lv.75〜</span></h4>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">共通攻撃力</span> <span class="es-stat cat-offense">共通防御貫通率</span></div></div>
+<div class="es-category-row cat-defense"><div><span class="es-category-name cat-defense">防御</span></div> <div class="es-values"><span class="es-stat cat-defense">被ダメージ軽減率</span></div></div>
+</div>
+</div></details></article>
+<article class="es-card">
+<div class="es-card-head">
+<svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-relic"></use></svg>
+<div><h3 class="es-name">レリック</h3><p class="es-role">属性攻撃・状態異常への備え・支援から得意分野を選ぶ。</p></div></div>
+<dl class="es-facts">
+<div><dt>必須（いずれか1つ）</dt><dd class="es-values"><a class="es-stat cat-element" href="#es-pool-%E5%B1%9E%E6%80%A7%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E5%A2%97%E5%8A%A0">属性ダメージ増加</a> <a class="es-stat cat-condition" href="#es-pool-%E7%8A%B6%E6%85%8B%E7%95%B0%E5%B8%B8%E4%BB%98%E4%B8%8E%E8%80%90%E6%80%A7">状態異常付与耐性</a> <small>ほか1候補</small></dd></div>
+</dl>
+<details class="es-detail es-card-more" data-status-ids="es-26 es-25 es-62 es-34 es-55 es-52 es-47 es-86 es-58 es-19 es-17 es-30 es-43 es-64 es-73 es-24 es-57 es-18 es-16 es-29 es-42 es-63 es-72 es-23 es-59 es-31 es-44 es-75 es-74 es-61 es-33 es-46">
+<summary><span class="es-sr">レリックの</span>付与候補</summary>
+<div class="es-stages">
+<div class="es-stage"><h4>必須（いずれか1つ）</h4>
+<div class="es-category-row cat-element"><div><span class="es-category-name cat-element">属性</span></div> <div class="es-values"><a class="es-stat cat-element" href="#es-pool-%E5%B1%9E%E6%80%A7%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E5%A2%97%E5%8A%A0">属性ダメージ増加</a></div></div>
+<div class="es-category-row cat-condition"><div><span class="es-category-name cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%8A%B6%E6%85%8B%E7%95%B0%E5%B8%B8%E4%BB%98%E4%B8%8E%E8%80%90%E6%80%A7">状態異常付与耐性</a></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">支援力</span></div></div>
+</div>
+<div class="es-stage"><h4>通常候補 <span class="es-condition">Lv.1〜</span></h4>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">スキルダメージ増加</span></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">バフ持続時間増加</span></div></div>
+</div>
+<div class="es-stage"><h4>上位候補 <span class="es-condition">Lv.50〜</span></h4>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">クールダウン短縮</span> <span class="es-stat cat-utility">詠唱時間短縮</span></div></div>
+</div>
+<div class="es-stage"><h4>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h4>
+<div class="es-category-row cat-condition"><div><span class="es-category-name cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%8A%B6%E6%85%8B%E7%95%B0%E5%B8%B8%E4%BB%98%E4%B8%8E%E7%A2%BA%E7%8E%87%E5%A2%97%E5%8A%A0">状態異常付与確率増加</a> <a class="es-stat cat-condition" href="#es-pool-%E7%B6%99%E7%B6%9A%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E5%A2%97%E5%8A%A0">継続ダメージ増加</a></div></div>
+<div class="es-category-row cat-utility"><div><span class="es-category-name cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">状態異常持続時間増加</span> <span class="es-stat cat-utility">シールドリチャージ短縮</span></div></div>
+</div>
+<div class="es-stage"><h4>後期ビルド向け候補 <span class="es-condition">Lv.75〜</span></h4>
+<div class="es-category-row cat-offense"><div><span class="es-category-name cat-offense">攻撃</span></div> <div class="es-values"><a class="es-stat cat-offense" href="#es-pool-%E8%B6%85%E6%98%9F%E4%BC%9A%E5%BF%83">超星会心</a></div></div>
+<div class="es-category-row cat-condition"><div><span class="es-category-name cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%B6%99%E7%B6%9A%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E8%B2%AB%E9%80%9A">継続ダメージ貫通</a></div></div>
+</div>
+</div></details></article>
+</div>
   </section>
 
   <section class="es-chapter" id="equipment-excluded" aria-labelledby="equipment-excluded-title">
     <h2 id="equipment-excluded-title"><span class="ch-num">5</span>装備から直接付与しない指標</h2>
     <dl class="es-rules">
-      <div><dt>他の能力から算出</dt><dd>基準攻撃力、直接ドロップ倍率</dd></div>
-      <div><dt>システムの上限</dt><dd>移動速度上限、無属性耐性上限、火属性耐性上限、氷属性耐性上限、雷属性耐性上限</dd></div>
-      <div><dt>スキルツリーで供給</dt><dd>通常攻撃劣化遅延</dd></div>
+      <div><dt>他の能力から算出</dt><dd class="es-values"><span class="es-stat cat-offense">基準攻撃力</span> <span class="es-stat cat-utility">直接ドロップ倍率</span></dd></div>
+      <div><dt>システムの上限</dt><dd class="es-values"><span class="es-stat cat-utility">移動速度上限</span> <span class="es-stat cat-element">無属性耐性上限</span> <span class="es-stat cat-element">火属性耐性上限</span> <span class="es-stat cat-element">氷属性耐性上限</span> <span class="es-stat cat-element">雷属性耐性上限</span></dd></div>
+      <div><dt>スキルツリーで供給</dt><dd class="es-values"><span class="es-stat cat-offense">通常攻撃劣化遅延</span></dd></div>
     </dl>
     <p>道具とスキルブックは、採集レベル・釣り性能・使用許可など用途ごとに設計する。</p>
   </section>
@@ -1013,20 +1048,20 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     <p>最大シールドとシールドリチャージ短縮はシールドを使える構成、シールドリチャージ加算値は加算率を確保できる構成で使う。</p>
     <dl class="es-groups">
 <!-- equipment:groups -->
-      <div><dt>主能力</dt><dd>筋力、器用さ、知力</dd></div>
-      <div><dt>通常会心</dt><dd>通常会心率、会心ダメージ</dd></div>
-      <div><dt>超星会心</dt><dd>超星会心率、超星会心倍率</dd></div>
-      <div><dt>近接・間接防御力</dt><dd>近接防御力、間接防御力</dd></div>
-      <div><dt>属性ダメージ増加</dt><dd>無属性ダメージ増加、火属性ダメージ増加、氷属性ダメージ増加、雷属性ダメージ増加</dd></div>
-      <div><dt>属性耐性</dt><dd>無属性耐性、火属性耐性、氷属性耐性、雷属性耐性</dd></div>
-      <div><dt>属性貫通</dt><dd>火属性貫通、氷属性貫通、雷属性貫通</dd></div>
-      <div><dt>状態異常付与確率増加</dt><dd>燃焼付与確率増加、凍結付与確率増加、冷気付与確率増加、感電付与確率増加、毒状態付与確率増加、盲目付与確率増加、衰弱付与確率増加、回復阻害付与確率増加</dd></div>
-      <div><dt>状態異常付与耐性</dt><dd>燃焼付与耐性、凍結付与耐性、冷気付与耐性、感電付与耐性、毒状態付与耐性、盲目付与耐性、衰弱付与耐性、回復阻害付与耐性</dd></div>
-      <div><dt>継続ダメージ増加</dt><dd>燃焼継続ダメージ増加、感電継続ダメージ増加、毒状態継続ダメージ増加</dd></div>
-      <div><dt>継続ダメージ貫通</dt><dd>燃焼継続ダメージ貫通、感電継続ダメージ貫通、毒状態継続ダメージ貫通</dd></div>
-      <div><dt>継続ダメージ耐性</dt><dd>燃焼継続ダメージ耐性、感電継続ダメージ耐性、毒状態継続ダメージ耐性</dd></div>
-      <div><dt>育成・探索報酬</dt><dd>EXP獲得量増加率、ドロップ増加率</dd></div>
-      <div><dt>消耗品使用中の移動</dt><dd>消耗品使用時移動許容距離、消耗品使用時移動減速率（2つを一組で付与）</dd></div>
+      <div><dt id="es-pool-主能力">主能力</dt><dd class="es-values"><span class="es-stat cat-primary">筋力</span> <span class="es-stat cat-primary">器用さ</span> <span class="es-stat cat-primary">知力</span></dd></div>
+      <div><dt id="es-pool-通常会心">通常会心</dt><dd class="es-values"><span class="es-stat cat-offense">通常会心率</span> <span class="es-stat cat-offense">会心ダメージ</span></dd></div>
+      <div><dt id="es-pool-超星会心">超星会心</dt><dd class="es-values"><span class="es-stat cat-offense">超星会心率</span> <span class="es-stat cat-offense">超星会心倍率</span></dd></div>
+      <div><dt id="es-pool-近接・間接防御力">近接・間接防御力</dt><dd class="es-values"><span class="es-stat cat-defense">近接防御力</span> <span class="es-stat cat-defense">間接防御力</span></dd></div>
+      <div><dt id="es-pool-属性ダメージ増加">属性ダメージ増加</dt><dd class="es-values"><span class="es-stat cat-element">無属性ダメージ増加</span> <span class="es-stat cat-element">火属性ダメージ増加</span> <span class="es-stat cat-element">氷属性ダメージ増加</span> <span class="es-stat cat-element">雷属性ダメージ増加</span></dd></div>
+      <div><dt id="es-pool-属性耐性">属性耐性</dt><dd class="es-values"><span class="es-stat cat-element">無属性耐性</span> <span class="es-stat cat-element">火属性耐性</span> <span class="es-stat cat-element">氷属性耐性</span> <span class="es-stat cat-element">雷属性耐性</span></dd></div>
+      <div><dt id="es-pool-属性貫通">属性貫通</dt><dd class="es-values"><span class="es-stat cat-element">火属性貫通</span> <span class="es-stat cat-element">氷属性貫通</span> <span class="es-stat cat-element">雷属性貫通</span></dd></div>
+      <div><dt id="es-pool-状態異常付与確率増加">状態異常付与確率増加</dt><dd class="es-values"><span class="es-stat cat-condition">燃焼付与確率増加</span> <span class="es-stat cat-condition">凍結付与確率増加</span> <span class="es-stat cat-condition">冷気付与確率増加</span> <span class="es-stat cat-condition">感電付与確率増加</span> <span class="es-stat cat-condition">毒状態付与確率増加</span> <span class="es-stat cat-condition">盲目付与確率増加</span> <span class="es-stat cat-condition">衰弱付与確率増加</span> <span class="es-stat cat-condition">回復阻害付与確率増加</span></dd></div>
+      <div><dt id="es-pool-状態異常付与耐性">状態異常付与耐性</dt><dd class="es-values"><span class="es-stat cat-condition">燃焼付与耐性</span> <span class="es-stat cat-condition">凍結付与耐性</span> <span class="es-stat cat-condition">冷気付与耐性</span> <span class="es-stat cat-condition">感電付与耐性</span> <span class="es-stat cat-condition">毒状態付与耐性</span> <span class="es-stat cat-condition">盲目付与耐性</span> <span class="es-stat cat-condition">衰弱付与耐性</span> <span class="es-stat cat-condition">回復阻害付与耐性</span></dd></div>
+      <div><dt id="es-pool-継続ダメージ増加">継続ダメージ増加</dt><dd class="es-values"><span class="es-stat cat-condition">燃焼継続ダメージ増加</span> <span class="es-stat cat-condition">感電継続ダメージ増加</span> <span class="es-stat cat-condition">毒状態継続ダメージ増加</span></dd></div>
+      <div><dt id="es-pool-継続ダメージ貫通">継続ダメージ貫通</dt><dd class="es-values"><span class="es-stat cat-condition">燃焼継続ダメージ貫通</span> <span class="es-stat cat-condition">感電継続ダメージ貫通</span> <span class="es-stat cat-condition">毒状態継続ダメージ貫通</span></dd></div>
+      <div><dt id="es-pool-継続ダメージ耐性">継続ダメージ耐性</dt><dd class="es-values"><span class="es-stat cat-condition">燃焼継続ダメージ耐性</span> <span class="es-stat cat-condition">感電継続ダメージ耐性</span> <span class="es-stat cat-condition">毒状態継続ダメージ耐性</span></dd></div>
+      <div><dt id="es-pool-育成・探索報酬">育成・探索報酬</dt><dd class="es-values"><span class="es-stat cat-utility">EXP獲得量増加率</span> <span class="es-stat cat-utility">ドロップ増加率</span></dd></div>
+      <div><dt id="es-pool-消耗品使用中の移動">消耗品使用中の移動</dt><dd class="es-values"><span class="es-stat cat-utility">消耗品使用時移動許容距離</span> <span class="es-stat cat-utility">消耗品使用時移動減速率</span> <span>（2つを一組で付与）</span></dd></div>
 <!-- /equipment:groups -->
     </dl>
   </details>
