@@ -9,6 +9,9 @@ import org.bukkit.event.entity.EntityExhaustionEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
+import org.bukkit.event.player.PlayerAnimationEvent;
+import org.bukkit.event.player.PlayerAnimationType;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -22,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -62,6 +66,59 @@ class LobbyListenerTest {
 
         verify(creator).requestLoginCode(player);
         verify(selector, never()).open(player);
+    }
+
+    @Test
+    void sharesNpcCooldownAcrossClickPathsAndExpiresAfter500Milliseconds() {
+        AstralRecordLobbyPlugin plugin = mock(AstralRecordLobbyPlugin.class);
+        ServerSelector selector = mock(ServerSelector.class);
+        WebLoginDesk creator = mock(WebLoginDesk.class);
+        Player player = mock(Player.class);
+        Player otherPlayer = mock(Player.class);
+        World world = mock(World.class);
+        Entity selectorNpc = mock(Entity.class);
+        Entity accountNpc = mock(Entity.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(otherPlayer.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.getWorld()).thenReturn(world);
+        when(player.getEyeLocation()).thenReturn(new Location(world, 0.0, 65.0, 0.0));
+        when(selector.raycastDistance()).thenReturn(6.0);
+        when(creator.raycastDistance()).thenReturn(6.0);
+        when(selector.isSelector(selectorNpc)).thenReturn(true);
+        when(creator.isNpc(accountNpc)).thenReturn(true);
+        when(world.rayTrace(any(), any(), eq(6.0), eq(FluidCollisionMode.NEVER), eq(true), eq(0.3), any()))
+            .thenReturn(new RayTraceResult(new Vector(0.0, 65.0, 3.0), accountNpc));
+        AtomicLong nanoTime = new AtomicLong();
+        LobbyListener listener = new LobbyListener(plugin, selector, creator, nanoTime::get);
+        PlayerInteractEntityEvent directClick =
+            new PlayerInteractEntityEvent(player, selectorNpc, EquipmentSlot.HAND);
+        PlayerInteractEvent rayClick = new PlayerInteractEvent(player, Action.RIGHT_CLICK_AIR,
+            null, null, org.bukkit.block.BlockFace.SELF, EquipmentSlot.HAND);
+        PlayerAnimationEvent armSwing = mock(PlayerAnimationEvent.class);
+        when(armSwing.getPlayer()).thenReturn(player);
+        when(armSwing.getAnimationType()).thenReturn(PlayerAnimationType.ARM_SWING);
+
+        listener.onInteractEntity(new PlayerInteractEntityEvent(player, mock(Entity.class), EquipmentSlot.HAND));
+        listener.onInteractEntity(directClick);
+        verify(selector).open(player);
+        listener.onInteract(rayClick);
+        nanoTime.set(499_999_999L);
+        listener.onAnimation(armSwing);
+        verify(creator, never()).requestLoginCode(player);
+
+        nanoTime.set(500_000_000L);
+        listener.onAnimation(armSwing);
+        verify(creator).requestLoginCode(player);
+        listener.onInteractEntity(directClick);
+        verify(selector).open(player);
+
+        listener.onInteractEntity(new PlayerInteractEntityEvent(otherPlayer, selectorNpc, EquipmentSlot.HAND));
+        verify(selector).open(otherPlayer);
+        PlayerQuitEvent quit = mock(PlayerQuitEvent.class);
+        when(quit.getPlayer()).thenReturn(player);
+        listener.onQuit(quit);
+        listener.onInteractEntity(directClick);
+        verify(selector, times(2)).open(player);
     }
 
     @Test

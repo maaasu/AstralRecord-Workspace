@@ -43,20 +43,33 @@ import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.util.Vector;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.LongSupplier;
 
 final class LobbyListener implements Listener {
+    private static final long NPC_COOLDOWN_NANOS = 500_000_000L;
+
     private final AstralRecordLobbyPlugin plugin;
     private final ServerSelector selector;
     private final WebLoginDesk webLoginDesk;
+    private final LongSupplier nanoTime;
     private final Set<UUID> voidReturning = new HashSet<>();
+    private final Map<UUID, Long> lastNpcInteraction = new HashMap<>();
 
     LobbyListener(AstralRecordLobbyPlugin plugin, ServerSelector selector, WebLoginDesk webLoginDesk) {
+        this(plugin, selector, webLoginDesk, System::nanoTime);
+    }
+
+    LobbyListener(AstralRecordLobbyPlugin plugin, ServerSelector selector, WebLoginDesk webLoginDesk,
+                  LongSupplier nanoTime) {
         this.plugin = plugin;
         this.selector = selector;
         this.webLoginDesk = webLoginDesk;
+        this.nanoTime = nanoTime;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -122,6 +135,7 @@ final class LobbyListener implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         UUID playerId = event.getPlayer().getUniqueId();
         voidReturning.remove(playerId);
+        lastNpcInteraction.remove(playerId);
         plugin.clearPermission(playerId);
         webLoginDesk.onQuit(playerId);
     }
@@ -173,8 +187,11 @@ final class LobbyListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onInteractEntity(PlayerInteractEntityEvent event) {
         if (event.getHand() == EquipmentSlot.HAND) {
-            if (selector.isSelector(event.getRightClicked())) selector.open(event.getPlayer());
-            else if (webLoginDesk.isNpc(event.getRightClicked())) webLoginDesk.requestLoginCode(event.getPlayer());
+            if (selector.isSelector(event.getRightClicked())) {
+                dispatchNpcInteraction(event.getPlayer(), true);
+            } else if (webLoginDesk.isNpc(event.getRightClicked())) {
+                dispatchNpcInteraction(event.getPlayer(), false);
+            }
         }
         if (!plugin.isAdmin(event.getPlayer())) event.setCancelled(true);
     }
@@ -195,6 +212,22 @@ final class LobbyListener implements Listener {
         boolean serverSelector = selector.isSelector(hit.getHitEntity());
         double limit = serverSelector ? selector.raycastDistance() : webLoginDesk.raycastDistance();
         if (hit.getHitPosition().distanceSquared(eye.toVector()) > limit * limit) return;
+        dispatchNpcInteraction(player, serverSelector);
+    }
+
+    /**
+     * 認識したNPCの操作をプレイヤーごとに受け付け、直後の重複イベントを抑止します。
+     *
+     * @param player NPCを操作したプレイヤー
+     * @param serverSelector 接続先選択NPCならtrue、Webログイン受付ならfalse
+     */
+    private void dispatchNpcInteraction(Player player, boolean serverSelector) {
+        UUID playerId = player.getUniqueId();
+        long now = nanoTime.getAsLong();
+        Long previous = lastNpcInteraction.get(playerId);
+        if (previous != null && now - previous < NPC_COOLDOWN_NANOS) return;
+
+        lastNpcInteraction.put(playerId, now);
         if (serverSelector) selector.open(player); else webLoginDesk.requestLoginCode(player);
     }
 
