@@ -212,51 +212,71 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 }
 /* ===== 共通ここまで ===== */
 #equipment-stat-guide .doc-body { min-width: 0; }
+#equipment-stat-guide .doc-lead p { margin: 0; }
 .es-chapter { --actor: var(--blue); margin: 0 0 34px; scroll-margin-top: 20px; }
-#equipment-stat-guide .es-chapter > h2 { margin-bottom: 12px; padding-bottom: 7px; border-bottom: 1px solid var(--rule); font-size: clamp(18px, 2vw, 23px); }
-.es-rules { margin: 0 0 14px; }
-.es-rules > div { display: grid; grid-template-columns: minmax(8em, auto) minmax(0, 1fr); gap: 2px 14px; padding: 4px 0; }
+#equipment-stat-guide .es-chapter > h2 { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); font-size: clamp(18px, 2vw, 23px); }
+.es-detail.es-intro { margin: 0 0 16px; padding: 0; border: 0; background: transparent; }
+#equipment-stat-guide .es-intro summary { width: fit-content; padding-block: 4px; color: var(--muted); font-size: 14px; }
+.es-intro p { margin: 0; }
+.es-intro p + p { margin-top: 4px; }
+.es-rules { margin: 0 0 12px; }
+.es-rules > div { display: grid; grid-template-columns: minmax(8em, auto) minmax(0, 1fr); gap: 4px 12px; padding: 4px 0; }
 .es-rules dt, .es-groups dt { color: var(--heading); font-weight: 600; }
-.es-rules dd, .es-groups dd { margin: 0; }
-.es-intro { margin-bottom: 24px; }
-.es-intro p { margin: 6px 0; }
-.es-table { max-width: 100%; overflow-x: auto; }
-.es-table table { width: 100%; min-width: 740px; border-collapse: collapse; background: var(--paper); }
-.es-table th, .es-table td { padding: 7px 10px; text-align: left; vertical-align: top; border: 1px solid var(--rule); }
-.es-table thead th { background: var(--soft); white-space: nowrap; }
-.es-table thead th:nth-child(2) { min-width: 7em; }
-.es-table th[scope="row"] { min-width: 6em; }
-.es-table tr { scroll-margin-top: 20px; }
-.es-stat { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
-.es-condition { display: block; color: var(--muted); font-size: 14px; }
-.es-late { margin-top: 5px; }
-.es-detail { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--rule); background: var(--paper); scroll-margin-top: 20px; }
+.es-rules dd, .es-groups dd { margin: 0; overflow-wrap: anywhere; }
+.es-table { position: relative; }
+.es-table table { width: 100%; table-layout: fixed; border-collapse: collapse; border: 1px solid var(--rule); background: var(--paper); font-size: 15px; line-height: 1.45; }
+.es-table th, .es-table td { padding: 8px 12px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.es-table thead th { border-bottom: 1px solid var(--rule); background: var(--soft); color: var(--heading); font-size: 14px; font-weight: 600; }
+.es-table thead th:first-child { width: 18%; }
+.es-table-standard thead th:nth-child(2) { width: 22%; }
+.es-table tbody tr { scroll-margin-top: 20px; }
+.es-table tbody tr + tr { border-top: 1px solid var(--rule); }
+.es-table tbody tr:nth-child(even) { background: var(--page); }
+.es-table th[scope="row"], .es-required { font-weight: 600; }
+.es-cell-value { min-width: 0; }
+.es-candidates { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; padding: 0; list-style: none; }
+.es-candidates > li { min-width: 0; max-width: 100%; }
+.es-condition { color: var(--muted); font-size: 13px; font-weight: 400; }
+.es-table thead .es-condition, .es-mobile-label .es-condition { white-space: nowrap; }
+.es-choice { display: block; margin-bottom: 4px; }
+.es-empty { color: var(--muted); }
+.es-mobile-label { display: none; }
+.es-detail { margin-top: 12px; padding: 8px 12px; border: 1px solid var(--rule); background: var(--paper); scroll-margin-top: 20px; }
 .es-detail summary { font-weight: 600; cursor: pointer; }
 .es-detail p { margin: 8px 0 0; }
+.es-build { margin-top: 8px; padding: 0; }
+.es-build > summary { padding: 8px 12px; }
+.es-build .es-table table { border-inline: 0; border-bottom: 0; }
 .es-groups { margin: 8px 0 0; }
-.es-groups > div { padding: 6px 0; border-top: 1px solid var(--rule); }
+.es-groups > div { padding: 4px 0; border-top: 1px solid var(--rule); }
 #equipment-stat-guide .doc-body a { border-bottom: 1px dotted var(--axis); }
 #equipment-stat-guide .doc-body a:hover { background: var(--soft); }
 #equipment-stat-guide :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-#equipment-stat-guide .es-table:focus-visible { outline-offset: -2px; }
 @media screen and (max-width: 760px) {
   #equipment-stat-guide { padding: 20px 16px; }
-  .es-table tr > :first-child { position: sticky; inset-inline-start: 0; z-index: 1; background: var(--paper); }
-  .es-table thead th:first-child { background: var(--soft); }
+  .es-table table, .es-table tbody, .es-table tbody tr, .es-table tbody th { display: block; }
+  .es-table thead { position: absolute; display: block; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .es-table tbody tr { padding-block: 4px; }
+  .es-table tbody th, .es-table tbody td { padding: 4px 8px; }
+  .es-table tbody th { padding-block: 6px; font-size: 17px; }
+  .es-table tbody td { display: grid; grid-template-columns: minmax(0, 6em) minmax(0, 1fr); gap: 8px; align-items: start; }
+  .es-mobile-label { display: block; color: var(--muted); font-size: 13px; font-weight: 500; }
+  .es-mobile-label .es-condition { display: block; }
+  .es-build > summary { padding-inline: 8px; }
 }
-@media (max-width: 420px) {
+@media screen and (max-width: 420px) {
   #equipment-stat-guide { padding: 18px 12px; }
   .es-rules > div { grid-template-columns: minmax(0, 1fr); }
 }
 @media print {
   :root { color-scheme: light; --page: white; --paper: white; --ink: black; --heading: #263447; --muted: #444; --rule: #bbb; --soft: #eee; --axis: #555; --blue: #2466a0; }
   #equipment-stat-guide { padding: 0; font-size: 10pt; }
-  .es-table { overflow: visible; }
-  .es-table table, .es-table th[scope="row"], .es-table thead th:nth-child(2) { min-width: 0; }
+  .es-table table, .es-table thead th { font-size: 10pt; }
   .es-table th, .es-table td { padding: 4px 5px; }
-  .es-table thead th { white-space: normal; }
-  .es-table tr, .es-groups > div { break-inside: avoid; }
-  #equipment-stat-guide h2, .es-detail summary { break-after: avoid; }
+  .es-condition { font-size: 9pt; }
+  #equipment-stat-guide .es-detail::details-content { content-visibility: visible; }
+  .es-table thead, .es-table tr, .es-groups > div { break-inside: avoid; }
+  #equipment-stat-guide h2, .es-detail summary, .es-table thead { break-after: avoid; }
 }
 @media screen {
   body::before { content: ""; position: fixed; inset: 0; z-index: 5; background: #0d1016; opacity: 0; pointer-events: none; }
@@ -281,7 +301,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   </nav>
   <header><h1>装備ステータス基準</h1></header>
   <div class="doc-lead">
-    <p>武器・防具・補助装備・アクセサリごとに付与できるステータスの一覧。</p>
+    <p>主性能は装備1品につき1〜2種類が目安。必須の能力には正の補正を付ける。</p>
   </div>
   <div class="doc-layout">
   <aside class="doc-toc" aria-label="目次">
@@ -307,123 +327,393 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     </ol>
   </aside>
   <div class="doc-body">
-  <div class="es-intro">
+  <details class="es-detail es-intro">
+    <summary>付与条件と標準値</summary>
 <!-- equipment:rules -->
-    <dl class="es-rules">
-      <div><dt>必須</dt><dd>全品に正の補正。「いずれか1つ」は候補から1つを定義。</dd></div>
-      <div><dt>通常候補</dt><dd>Lv.1から任意。</dd></div>
-      <div><dt>上位候補</dt><dd>Lv.50以上で任意。</dd></div>
-      <div><dt>ビルド向け</dt><dd>Lv.25以上で役割が合う場合に任意。「Lv.75〜」の候補はそのLvから。</dd></div>
-    </dl>
-<!-- /equipment:rules -->
-    <p>Lvは、装備を最初に入手できる攻略の目安。候補から役割に合う能力を選び、一品の主性能は1〜2種類を目安とする。</p>
+    <p>Lvは装備を最初に入手できる攻略の目安。候補は装備の役割に応じて任意で付与する。</p>
     <p>ビルド向けは標準の付与と入れ替え、同じLvの特化目標と比較する。標準値は<a href="02-ステータス指標.html#player-allocation">02の配分一覧</a>の装備欄を参照。</p>
-  </div>
+    <script type="application/json" id="doc-search-aliases">{"build": "Lv.25〜", "lateBuild": "Lv.75〜"}</script>
+<!-- /equipment:rules -->
+  </details>
 <!-- equipment:chapters -->
   <section class="es-chapter" id="equipment-1" aria-labelledby="equipment-1-title">
     <h2 id="equipment-1-title"><span class="ch-num">1</span>武器</h2>
-    <div class="es-table" role="region" aria-label="武器の候補表" tabindex="0">
-      <table aria-label="武器の付与候補">
-        <thead><tr><th scope="col">装備種</th><th scope="col">必須</th><th scope="col">通常候補</th><th scope="col">上位候補 <span class="es-condition">Lv.50〜</span></th><th scope="col">ビルド向け <span class="es-condition">Lv.25〜</span></th></tr></thead>
-        <tbody>
-          <tr data-status-ids="" aria-label="剣">
-            <th scope="row">剣</th>
-            <td><span class="es-stat">近接攻撃力</span></td>
-            <td><span class="es-stat">筋力</span>、<span class="es-stat">命中率</span>、<span class="es-stat">通常攻撃ダメージ増加</span></td>
-            <td><span class="es-stat">スキルダメージ増加</span>、<span class="es-stat">シールドブレイク</span></td>
-            <td><span class="es-stat">攻撃速度</span>、<span class="es-stat"><a href="#candidate-groups">通常会心</a></span>、<span class="es-stat">近接防御貫通率</span><span class="es-condition es-late">Lv.75〜</span><span class="es-stat">ライフスティール</span></td>
+    <div class="es-table es-table-standard">
+      <table role="table" aria-label="武器の標準候補">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th scope="col" role="columnheader">装備種</th>
+            <th scope="col" role="columnheader">必須</th>
+            <th scope="col" role="columnheader">通常候補 <span class="es-condition">Lv.1〜</span></th>
+            <th scope="col" role="columnheader">上位候補 <span class="es-condition">Lv.50〜</span></th>
           </tr>
-          <tr data-status-ids="" aria-label="ハンマー">
-            <th scope="row">ハンマー</th>
-            <td><span class="es-stat">近接攻撃力</span></td>
-            <td><span class="es-stat">筋力</span>、<span class="es-stat">シールドブレイク</span>、<span class="es-stat">スキルダメージ増加</span></td>
-            <td><span class="es-stat">命中率</span>、<span class="es-stat">通常攻撃ダメージ増加</span></td>
-            <td><span class="es-stat">近接防御貫通率</span>、<span class="es-stat"><a href="#candidate-groups">状態異常付与確率増加</a></span>、<span class="es-stat">シールドリチャージ加算値</span><span class="es-condition es-late">Lv.75〜</span><span class="es-stat">HP固定ダメージ</span></td>
+        </thead>
+        <tbody role="rowgroup">
+          <tr role="row" data-status-ids="" aria-label="剣">
+            <th scope="row" role="rowheader">剣</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>近接攻撃力</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>筋力</li><li>命中率</li><li>通常攻撃ダメージ増加</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>スキルダメージ増加</li><li>シールドブレイク</li></ul></div>
+            </td>
           </tr>
-          <tr data-status-ids="" aria-label="槍">
-            <th scope="row">槍</th>
-            <td><span class="es-stat">近接攻撃力</span></td>
-            <td><span class="es-stat">筋力</span>、<span class="es-stat">命中率</span>、<span class="es-stat">スキルダメージ増加</span></td>
-            <td><span class="es-stat">通常攻撃ダメージ増加</span>、<span class="es-stat">シールドブレイク</span></td>
-            <td><span class="es-stat">近接防御貫通率</span>、<span class="es-stat"><a href="#candidate-groups">状態異常付与確率増加</a></span>、<span class="es-stat"><a href="#candidate-groups">継続ダメージ増加</a></span><span class="es-condition es-late">Lv.75〜</span><span class="es-stat"><a href="#candidate-groups">継続ダメージ貫通</a></span></td>
+          <tr role="row" data-status-ids="" aria-label="ハンマー">
+            <th scope="row" role="rowheader">ハンマー</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>近接攻撃力</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>筋力</li><li>シールドブレイク</li><li>スキルダメージ増加</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>命中率</li><li>通常攻撃ダメージ増加</li></ul></div>
+            </td>
           </tr>
-          <tr data-status-ids="" aria-label="弓">
-            <th scope="row">弓</th>
-            <td><span class="es-stat">間接攻撃力</span></td>
-            <td><span class="es-stat">器用さ</span>、<span class="es-stat">命中率</span>、<span class="es-stat">通常攻撃ダメージ増加</span></td>
-            <td><span class="es-stat">スキルダメージ増加</span>、<span class="es-stat">シールドブレイク</span></td>
-            <td><span class="es-stat"><a href="#candidate-groups">通常会心</a></span>、<span class="es-stat">間接防御貫通率</span>、<span class="es-stat"><a href="#candidate-groups">属性ダメージ増加</a></span></td>
+          <tr role="row" data-status-ids="" aria-label="槍">
+            <th scope="row" role="rowheader">槍</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>近接攻撃力</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>筋力</li><li>命中率</li><li>スキルダメージ増加</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>通常攻撃ダメージ増加</li><li>シールドブレイク</li></ul></div>
+            </td>
           </tr>
-          <tr data-status-ids="" aria-label="短弓">
-            <th scope="row">短弓</th>
-            <td><span class="es-stat">間接攻撃力</span></td>
-            <td><span class="es-stat">器用さ</span>、<span class="es-stat">敏捷性</span>、<span class="es-stat">通常攻撃ダメージ増加</span></td>
-            <td><span class="es-stat">命中率</span>、<span class="es-stat">スキルダメージ増加</span></td>
-            <td><span class="es-stat">攻撃速度</span>、<span class="es-stat"><a href="#candidate-groups">状態異常付与確率増加</a></span>、<span class="es-stat"><a href="#candidate-groups">継続ダメージ増加</a></span></td>
+          <tr role="row" data-status-ids="" aria-label="弓">
+            <th scope="row" role="rowheader">弓</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>間接攻撃力</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>器用さ</li><li>命中率</li><li>通常攻撃ダメージ増加</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>スキルダメージ増加</li><li>シールドブレイク</li></ul></div>
+            </td>
           </tr>
-          <tr data-status-ids="" aria-label="長弓">
-            <th scope="row">長弓</th>
-            <td><span class="es-stat">間接攻撃力</span></td>
-            <td><span class="es-stat">器用さ</span>、<span class="es-stat">命中率</span>、<span class="es-stat">スキルダメージ増加</span></td>
-            <td><span class="es-stat">シールドブレイク</span>、<span class="es-stat">通常攻撃ダメージ増加</span></td>
-            <td><span class="es-stat"><a href="#candidate-groups">通常会心</a></span>、<span class="es-stat">間接防御貫通率</span><span class="es-condition es-late">Lv.75〜</span><span class="es-stat"><a href="#candidate-groups">超星会心</a></span></td>
+          <tr role="row" data-status-ids="" aria-label="短弓">
+            <th scope="row" role="rowheader">短弓</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>間接攻撃力</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>器用さ</li><li>敏捷性</li><li>通常攻撃ダメージ増加</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>命中率</li><li>スキルダメージ増加</li></ul></div>
+            </td>
           </tr>
-          <tr data-status-ids="" aria-label="ワンド">
-            <th scope="row">ワンド</th>
-            <td><span class="es-stat">魔法攻撃力</span></td>
-            <td><span class="es-stat">知力</span>、<span class="es-stat">最大MP</span>、<span class="es-stat"><a href="#candidate-groups">属性ダメージ増加</a></span></td>
-            <td><span class="es-stat">詠唱時間短縮</span>、<span class="es-stat">スキルダメージ増加</span></td>
-            <td><span class="es-stat">MP消費軽減率</span>、<span class="es-stat">魔法防御貫通率</span>、<span class="es-stat"><a href="#candidate-groups">状態異常付与確率増加</a></span></td>
+          <tr role="row" data-status-ids="" aria-label="長弓">
+            <th scope="row" role="rowheader">長弓</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>間接攻撃力</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>器用さ</li><li>命中率</li><li>スキルダメージ増加</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>シールドブレイク</li><li>通常攻撃ダメージ増加</li></ul></div>
+            </td>
           </tr>
-          <tr data-status-ids="" aria-label="スタッフ">
-            <th scope="row">スタッフ</th>
-            <td><span class="es-stat">魔法攻撃力</span></td>
-            <td><span class="es-stat">知力</span>、<span class="es-stat">スキルダメージ増加</span>、<span class="es-stat"><a href="#candidate-groups">属性ダメージ増加</a></span></td>
-            <td><span class="es-stat">最大MP</span>、<span class="es-stat">詠唱時間短縮</span>、<span class="es-stat">支援力</span></td>
-            <td><span class="es-stat">魔法防御貫通率</span>、<span class="es-stat">状態異常持続時間増加</span><span class="es-condition es-late">Lv.75〜</span><span class="es-stat"><a href="#candidate-groups">属性貫通</a></span></td>
+          <tr role="row" data-status-ids="" aria-label="ワンド">
+            <th scope="row" role="rowheader">ワンド</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>魔法攻撃力</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>知力</li><li>最大MP</li><li><a href="#candidate-groups">属性ダメージ増加</a></li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>詠唱時間短縮</li><li>スキルダメージ増加</li></ul></div>
+            </td>
+          </tr>
+          <tr role="row" data-status-ids="" aria-label="スタッフ">
+            <th scope="row" role="rowheader">スタッフ</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>魔法攻撃力</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>知力</li><li>スキルダメージ増加</li><li><a href="#candidate-groups">属性ダメージ増加</a></li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>最大MP</li><li>詠唱時間短縮</li><li>支援力</li></ul></div>
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
+    <details class="es-detail es-build">
+      <summary>武器のビルド向け候補</summary>
+      <div class="es-table">
+        <table role="table" aria-label="武器のビルド向け候補">
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col" role="columnheader">装備種</th>
+              <th scope="col" role="columnheader">Lv.25〜</th>
+              <th scope="col" role="columnheader">Lv.75から追加</th>
+            </tr>
+          </thead>
+          <tbody role="rowgroup">
+            <tr role="row" data-status-ids="build lateBuild" aria-label="剣（ビルド向け）">
+              <th scope="row" role="rowheader">剣</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>攻撃速度</li><li><a href="#candidate-groups">通常会心</a></li><li>近接防御貫通率</li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>ライフスティール</li></ul></div>
+              </td>
+            </tr>
+            <tr role="row" data-status-ids="build lateBuild" aria-label="ハンマー（ビルド向け）">
+              <th scope="row" role="rowheader">ハンマー</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>近接防御貫通率</li><li><a href="#candidate-groups">状態異常付与確率増加</a></li><li>シールドリチャージ加算値</li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>HP固定ダメージ</li></ul></div>
+              </td>
+            </tr>
+            <tr role="row" data-status-ids="build lateBuild" aria-label="槍（ビルド向け）">
+              <th scope="row" role="rowheader">槍</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>近接防御貫通率</li><li><a href="#candidate-groups">状態異常付与確率増加</a></li><li><a href="#candidate-groups">継続ダメージ増加</a></li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">継続ダメージ貫通</a></li></ul></div>
+              </td>
+            </tr>
+            <tr role="row" data-status-ids="build" aria-label="弓（ビルド向け）">
+              <th scope="row" role="rowheader">弓</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">通常会心</a></li><li>間接防御貫通率</li><li><a href="#candidate-groups">属性ダメージ増加</a></li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><span class="es-empty">なし</span></div>
+              </td>
+            </tr>
+            <tr role="row" data-status-ids="build" aria-label="短弓（ビルド向け）">
+              <th scope="row" role="rowheader">短弓</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>攻撃速度</li><li><a href="#candidate-groups">状態異常付与確率増加</a></li><li><a href="#candidate-groups">継続ダメージ増加</a></li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><span class="es-empty">なし</span></div>
+              </td>
+            </tr>
+            <tr role="row" data-status-ids="build lateBuild" aria-label="長弓（ビルド向け）">
+              <th scope="row" role="rowheader">長弓</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">通常会心</a></li><li>間接防御貫通率</li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">超星会心</a></li></ul></div>
+              </td>
+            </tr>
+            <tr role="row" data-status-ids="build" aria-label="ワンド（ビルド向け）">
+              <th scope="row" role="rowheader">ワンド</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>MP消費軽減率</li><li>魔法防御貫通率</li><li><a href="#candidate-groups">状態異常付与確率増加</a></li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><span class="es-empty">なし</span></div>
+              </td>
+            </tr>
+            <tr role="row" data-status-ids="build lateBuild" aria-label="スタッフ（ビルド向け）">
+              <th scope="row" role="rowheader">スタッフ</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>魔法防御貫通率</li><li>状態異常持続時間増加</li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">属性貫通</a></li></ul></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
   </section>
 
   <section class="es-chapter" id="armor" aria-labelledby="armor-title">
     <h2 id="armor-title"><span class="ch-num">2</span>防具</h2>
-    <div class="es-table" role="region" aria-label="防具の候補表" tabindex="0">
-      <table aria-label="防具の付与候補">
-        <thead><tr><th scope="col">装備種</th><th scope="col">必須</th><th scope="col">通常候補</th><th scope="col">上位候補 <span class="es-condition">Lv.50〜</span></th><th scope="col">ビルド向け <span class="es-condition">Lv.25〜</span></th></tr></thead>
-        <tbody>
-          <tr data-status-ids="" aria-label="頭">
-            <th scope="row">頭</th>
-            <td><span class="es-stat">共通防御</span></td>
-            <td><span class="es-stat">最大MP</span>、<span class="es-stat">魔法防御力</span>、<span class="es-stat"><a href="#candidate-groups">属性耐性</a></span></td>
-            <td><span class="es-stat">MP自然回復量（5秒ごと）</span>、<span class="es-stat">詠唱時間短縮</span></td>
-            <td><span class="es-stat"><a href="#candidate-groups">状態異常付与耐性</a></span></td>
+    <div class="es-table es-table-standard">
+      <table role="table" aria-label="防具の標準候補">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th scope="col" role="columnheader">装備種</th>
+            <th scope="col" role="columnheader">必須</th>
+            <th scope="col" role="columnheader">通常候補 <span class="es-condition">Lv.1〜</span></th>
+            <th scope="col" role="columnheader">上位候補 <span class="es-condition">Lv.50〜</span></th>
           </tr>
-          <tr data-status-ids="" aria-label="胴">
-            <th scope="row">胴</th>
-            <td><span class="es-stat">共通防御</span></td>
-            <td><span class="es-stat">最大HP</span>、<span class="es-stat">魔法防御力</span>、<span class="es-stat"><a href="#candidate-groups">属性耐性</a></span></td>
-            <td><span class="es-stat">HP自然回復量（5秒ごと）</span>、<span class="es-stat">ノックバック耐性</span></td>
-            <td><span class="es-stat"><a href="#candidate-groups">近接・間接防御力</a></span>、<span class="es-stat">最大シールド</span><span class="es-condition es-late">Lv.75〜</span><span class="es-stat">被ダメージ軽減率</span></td>
+        </thead>
+        <tbody role="rowgroup">
+          <tr role="row" data-status-ids="" aria-label="頭">
+            <th scope="row" role="rowheader">頭</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>共通防御</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>最大MP</li><li>魔法防御力</li><li><a href="#candidate-groups">属性耐性</a></li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>MP自然回復量（5秒ごと）</li><li>詠唱時間短縮</li></ul></div>
+            </td>
           </tr>
-          <tr data-status-ids="" aria-label="脚">
-            <th scope="row">脚</th>
-            <td><span class="es-stat">共通防御</span></td>
-            <td><span class="es-stat">最大ENG</span>、<span class="es-stat">ノックバック耐性</span>、<span class="es-stat"><a href="#candidate-groups">状態異常付与耐性</a></span></td>
-            <td><span class="es-stat">最大HP</span>、<span class="es-stat">ENG自然回復量（5秒ごと）</span></td>
-            <td><span class="es-stat"><a href="#candidate-groups">近接・間接防御力</a></span>、<span class="es-stat"><a href="#candidate-groups">継続ダメージ耐性</a></span></td>
+          <tr role="row" data-status-ids="" aria-label="胴">
+            <th scope="row" role="rowheader">胴</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>共通防御</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>最大HP</li><li>魔法防御力</li><li><a href="#candidate-groups">属性耐性</a></li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>HP自然回復量（5秒ごと）</li><li>ノックバック耐性</li></ul></div>
+            </td>
           </tr>
-          <tr data-status-ids="" aria-label="足">
-            <th scope="row">足</th>
-            <td><span class="es-stat">共通防御</span></td>
-            <td><span class="es-stat">敏捷性</span>、<span class="es-stat">ノックバック耐性</span>、<span class="es-stat"><a href="#candidate-groups">継続ダメージ耐性</a></span></td>
-            <td><span class="es-stat"><a href="#candidate-groups">属性耐性</a></span>、<span class="es-stat"><a href="#candidate-groups">状態異常付与耐性</a></span></td>
-            <td><span class="es-stat">移動速度</span>、<span class="es-stat">回避率</span>、<span class="es-stat"><a href="#candidate-groups">消耗品使用中の移動</a></span></td>
+          <tr role="row" data-status-ids="" aria-label="脚">
+            <th scope="row" role="rowheader">脚</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>共通防御</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>最大ENG</li><li>ノックバック耐性</li><li><a href="#candidate-groups">状態異常付与耐性</a></li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>最大HP</li><li>ENG自然回復量（5秒ごと）</li></ul></div>
+            </td>
+          </tr>
+          <tr role="row" data-status-ids="" aria-label="足">
+            <th scope="row" role="rowheader">足</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>共通防御</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>敏捷性</li><li>ノックバック耐性</li><li><a href="#candidate-groups">継続ダメージ耐性</a></li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">属性耐性</a></li><li><a href="#candidate-groups">状態異常付与耐性</a></li></ul></div>
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
+    <details class="es-detail es-build">
+      <summary>防具のビルド向け候補</summary>
+      <div class="es-table">
+        <table role="table" aria-label="防具のビルド向け候補">
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col" role="columnheader">装備種</th>
+              <th scope="col" role="columnheader">Lv.25〜</th>
+              <th scope="col" role="columnheader">Lv.75から追加</th>
+            </tr>
+          </thead>
+          <tbody role="rowgroup">
+            <tr role="row" data-status-ids="build" aria-label="頭（ビルド向け）">
+              <th scope="row" role="rowheader">頭</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">状態異常付与耐性</a></li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><span class="es-empty">なし</span></div>
+              </td>
+            </tr>
+            <tr role="row" data-status-ids="build lateBuild" aria-label="胴（ビルド向け）">
+              <th scope="row" role="rowheader">胴</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">近接・間接防御力</a></li><li>最大シールド</li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>被ダメージ軽減率</li></ul></div>
+              </td>
+            </tr>
+            <tr role="row" data-status-ids="build" aria-label="脚（ビルド向け）">
+              <th scope="row" role="rowheader">脚</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">近接・間接防御力</a></li><li><a href="#candidate-groups">継続ダメージ耐性</a></li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><span class="es-empty">なし</span></div>
+              </td>
+            </tr>
+            <tr role="row" data-status-ids="build" aria-label="足（ビルド向け）">
+              <th scope="row" role="rowheader">足</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>移動速度</li><li>回避率</li><li><a href="#candidate-groups">消耗品使用中の移動</a></li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><span class="es-empty">なし</span></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
     <details class="es-detail">
       <summary>標準防具の数値例</summary>
       <p>標準の共通防御の装備配分を整数点に四捨五入し、防具4部位に配分する。重みは頭20%、胴35%、脚30%、足15%。</p>
@@ -433,80 +723,278 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 
   <section class="es-chapter" id="equipment-3" aria-labelledby="equipment-3-title">
     <h2 id="equipment-3-title"><span class="ch-num">3</span>補助装備</h2>
-    <div class="es-table" role="region" aria-label="補助装備の候補表" tabindex="0">
-      <table aria-label="補助装備の付与候補">
-        <thead><tr><th scope="col">装備種</th><th scope="col">必須</th><th scope="col">通常候補</th><th scope="col">上位候補 <span class="es-condition">Lv.50〜</span></th><th scope="col">ビルド向け <span class="es-condition">Lv.25〜</span></th></tr></thead>
-        <tbody>
-          <tr data-status-ids="" aria-label="盾">
-            <th scope="row">盾</th>
-            <td><span class="es-stat">共通防御</span></td>
-            <td><span class="es-stat">最大HP</span>、<span class="es-stat">ノックバック耐性</span>、<span class="es-stat"><a href="#candidate-groups">属性耐性</a></span></td>
-            <td><span class="es-stat">魔法防御力</span>、<span class="es-stat"><a href="#candidate-groups">状態異常付与耐性</a></span></td>
-            <td><span class="es-stat"><a href="#candidate-groups">近接・間接防御力</a></span>、<span class="es-stat">最大シールド</span>、<span class="es-stat">シールドリチャージ短縮</span><span class="es-condition es-late">Lv.75〜</span><span class="es-stat">被ダメージ軽減率</span></td>
+    <div class="es-table es-table-standard">
+      <table role="table" aria-label="補助装備の標準候補">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th scope="col" role="columnheader">装備種</th>
+            <th scope="col" role="columnheader">必須</th>
+            <th scope="col" role="columnheader">通常候補 <span class="es-condition">Lv.1〜</span></th>
+            <th scope="col" role="columnheader">上位候補 <span class="es-condition">Lv.50〜</span></th>
           </tr>
-          <tr data-status-ids="" aria-label="物理攻撃の補助">
-            <th scope="row">物理攻撃の補助</th>
-            <td><span class="es-condition">いずれか1つ</span><span class="es-stat">命中率</span>、<span class="es-stat">最大ENG</span></td>
-            <td><span class="es-stat">通常攻撃ダメージ増加</span>、<span class="es-stat">ENG消費軽減率</span>、<span class="es-stat">シールドブレイク</span></td>
-            <td><span class="es-stat">スキルダメージ増加</span>、<span class="es-stat">ENG自然回復量（5秒ごと）</span></td>
-            <td><span class="es-stat">攻撃速度</span>、<span class="es-stat"><a href="#candidate-groups">通常会心</a></span>、<span class="es-stat">近接防御貫通率</span>、<span class="es-stat">間接防御貫通率</span></td>
+        </thead>
+        <tbody role="rowgroup">
+          <tr role="row" data-status-ids="" aria-label="盾">
+            <th scope="row" role="rowheader">盾</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>共通防御</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>最大HP</li><li>ノックバック耐性</li><li><a href="#candidate-groups">属性耐性</a></li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>魔法防御力</li><li><a href="#candidate-groups">状態異常付与耐性</a></li></ul></div>
+            </td>
           </tr>
-          <tr data-status-ids="" aria-label="魔法・支援の補助">
-            <th scope="row">魔法・支援の補助</th>
-            <td><span class="es-condition">いずれか1つ</span><span class="es-stat">最大MP</span>、<span class="es-stat">支援力</span></td>
-            <td><span class="es-stat">知力</span>、<span class="es-stat">MP自然回復量（5秒ごと）</span>、<span class="es-stat">MP消費軽減率</span>、<span class="es-stat">詠唱時間短縮</span>、<span class="es-stat">クールダウン短縮</span></td>
-            <td><span class="es-stat">魔法防御力</span>、<span class="es-stat">バフ持続時間増加</span></td>
-            <td><span class="es-stat">回復量増加</span>、<span class="es-stat">魔法防御貫通率</span></td>
+          <tr role="row" data-status-ids="" aria-label="物理攻撃の補助">
+            <th scope="row" role="rowheader">物理攻撃の補助</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><span class="es-condition es-choice">いずれか1つ</span><ul class="es-candidates" role="list"><li>命中率</li><li>最大ENG</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>通常攻撃ダメージ増加</li><li>ENG消費軽減率</li><li>シールドブレイク</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>スキルダメージ増加</li><li>ENG自然回復量（5秒ごと）</li></ul></div>
+            </td>
+          </tr>
+          <tr role="row" data-status-ids="" aria-label="魔法・支援の補助">
+            <th scope="row" role="rowheader">魔法・支援の補助</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><span class="es-condition es-choice">いずれか1つ</span><ul class="es-candidates" role="list"><li>最大MP</li><li>支援力</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>知力</li><li>MP自然回復量（5秒ごと）</li><li>MP消費軽減率</li><li>詠唱時間短縮</li><li>クールダウン短縮</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>魔法防御力</li><li>バフ持続時間増加</li></ul></div>
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
+    <details class="es-detail es-build">
+      <summary>補助装備のビルド向け候補</summary>
+      <div class="es-table">
+        <table role="table" aria-label="補助装備のビルド向け候補">
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col" role="columnheader">装備種</th>
+              <th scope="col" role="columnheader">Lv.25〜</th>
+              <th scope="col" role="columnheader">Lv.75から追加</th>
+            </tr>
+          </thead>
+          <tbody role="rowgroup">
+            <tr role="row" data-status-ids="build lateBuild" aria-label="盾（ビルド向け）">
+              <th scope="row" role="rowheader">盾</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">近接・間接防御力</a></li><li>最大シールド</li><li>シールドリチャージ短縮</li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>被ダメージ軽減率</li></ul></div>
+              </td>
+            </tr>
+            <tr role="row" data-status-ids="build" aria-label="物理攻撃の補助（ビルド向け）">
+              <th scope="row" role="rowheader">物理攻撃の補助</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>攻撃速度</li><li><a href="#candidate-groups">通常会心</a></li><li>近接防御貫通率</li><li>間接防御貫通率</li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><span class="es-empty">なし</span></div>
+              </td>
+            </tr>
+            <tr role="row" data-status-ids="build" aria-label="魔法・支援の補助（ビルド向け）">
+              <th scope="row" role="rowheader">魔法・支援の補助</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>回復量増加</li><li>魔法防御貫通率</li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><span class="es-empty">なし</span></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
   </section>
 
   <section class="es-chapter" id="equipment-4" aria-labelledby="equipment-4-title">
     <h2 id="equipment-4-title"><span class="ch-num">4</span>アクセサリ</h2>
-    <div class="es-table" role="region" aria-label="アクセサリの候補表" tabindex="0">
-      <table aria-label="アクセサリの付与候補">
-        <thead><tr><th scope="col">装備種</th><th scope="col">必須</th><th scope="col">通常候補</th><th scope="col">上位候補 <span class="es-condition">Lv.50〜</span></th><th scope="col">ビルド向け <span class="es-condition">Lv.25〜</span></th></tr></thead>
-        <tbody>
-          <tr data-status-ids="" aria-label="アミュレット">
-            <th scope="row">アミュレット</th>
-            <td><span class="es-condition">いずれか1つ</span><span class="es-stat">最大HP</span>、<span class="es-stat">最大MP</span>、<span class="es-stat">最大ENG</span></td>
-            <td><span class="es-stat"><a href="#candidate-groups">主能力</a></span>、<span class="es-stat"><a href="#candidate-groups">属性耐性</a></span>、<span class="es-stat">支援力</span>、<span class="es-stat">MP消費軽減率</span></td>
-            <td><span class="es-stat">クールダウン短縮</span>、<span class="es-stat">スキルダメージ増加</span></td>
-            <td><span class="es-stat">体力</span>、<span class="es-stat">回復量増加</span>、<span class="es-stat"><a href="#candidate-groups">通常会心</a></span></td>
+    <div class="es-table es-table-standard">
+      <table role="table" aria-label="アクセサリの標準候補">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th scope="col" role="columnheader">装備種</th>
+            <th scope="col" role="columnheader">必須</th>
+            <th scope="col" role="columnheader">通常候補 <span class="es-condition">Lv.1〜</span></th>
+            <th scope="col" role="columnheader">上位候補 <span class="es-condition">Lv.50〜</span></th>
           </tr>
-          <tr data-status-ids="" aria-label="タリスマン">
-            <th scope="row">タリスマン</th>
-            <td><span class="es-condition">いずれか1つ</span><span class="es-stat"><a href="#candidate-groups">主能力</a></span>、<span class="es-stat">敏捷性</span></td>
-            <td><span class="es-stat">命中率</span>、<span class="es-stat">シールドブレイク</span>、<span class="es-stat">ENG消費軽減率</span></td>
-            <td><span class="es-stat">MP消費軽減率</span>、<span class="es-stat"><a href="#candidate-groups">属性耐性</a></span></td>
-            <td><span class="es-stat">幸運</span>、<span class="es-stat"><a href="#candidate-groups">属性ダメージ増加</a></span></td>
+        </thead>
+        <tbody role="rowgroup">
+          <tr role="row" data-status-ids="" aria-label="アミュレット">
+            <th scope="row" role="rowheader">アミュレット</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><span class="es-condition es-choice">いずれか1つ</span><ul class="es-candidates" role="list"><li>最大HP</li><li>最大MP</li><li>最大ENG</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">主能力</a></li><li><a href="#candidate-groups">属性耐性</a></li><li>支援力</li><li>MP消費軽減率</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>クールダウン短縮</li><li>スキルダメージ増加</li></ul></div>
+            </td>
           </tr>
-          <tr data-status-ids="" aria-label="チャーム">
-            <th scope="row">チャーム</th>
-            <td><span class="es-condition">いずれか1つ</span><span class="es-stat"><a href="#candidate-groups">属性耐性</a></span>、<span class="es-stat"><a href="#candidate-groups">状態異常付与耐性</a></span>、<span class="es-stat"><a href="#candidate-groups">継続ダメージ耐性</a></span>、<span class="es-stat">HP自然回復量（5秒ごと）</span></td>
-            <td><span class="es-stat">MP自然回復量（5秒ごと）</span>、<span class="es-stat">ENG自然回復量（5秒ごと）</span></td>
-            <td><span class="es-stat">ノックバック耐性</span>、<span class="es-stat">バフ持続時間増加</span></td>
-            <td><span class="es-stat">幸運</span>、<span class="es-stat"><a href="#candidate-groups">育成・探索報酬</a></span>、<span class="es-stat"><a href="#candidate-groups">消耗品使用中の移動</a></span></td>
+          <tr role="row" data-status-ids="" aria-label="タリスマン">
+            <th scope="row" role="rowheader">タリスマン</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><span class="es-condition es-choice">いずれか1つ</span><ul class="es-candidates" role="list"><li><a href="#candidate-groups">主能力</a></li><li>敏捷性</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>命中率</li><li>シールドブレイク</li><li>ENG消費軽減率</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>MP消費軽減率</li><li><a href="#candidate-groups">属性耐性</a></li></ul></div>
+            </td>
           </tr>
-          <tr data-status-ids="" aria-label="コア">
-            <th scope="row">コア</th>
-            <td><span class="es-condition">いずれか1つ</span><span class="es-stat">通常攻撃ダメージ増加</span>、<span class="es-stat">スキルダメージ増加</span>、<span class="es-stat">支援力</span>、<span class="es-stat">最大HP</span></td>
-            <td><span class="es-stat">最終ダメージ倍率</span>、<span class="es-stat"><a href="#candidate-groups">属性ダメージ増加</a></span>、<span class="es-stat">最大MP</span>、<span class="es-stat">最大ENG</span></td>
-            <td><span class="es-stat">クールダウン短縮</span>、<span class="es-stat">バフ持続時間増加</span></td>
-            <td><span class="es-stat">最大シールド</span>、<span class="es-stat">状態異常持続時間増加</span>、<span class="es-stat">回復量増加</span><span class="es-condition es-late">Lv.75〜</span><span class="es-stat">共通攻撃力</span>、<span class="es-stat">共通防御貫通率</span>、<span class="es-stat">被ダメージ軽減率</span></td>
+          <tr role="row" data-status-ids="" aria-label="チャーム">
+            <th scope="row" role="rowheader">チャーム</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><span class="es-condition es-choice">いずれか1つ</span><ul class="es-candidates" role="list"><li><a href="#candidate-groups">属性耐性</a></li><li><a href="#candidate-groups">状態異常付与耐性</a></li><li><a href="#candidate-groups">継続ダメージ耐性</a></li><li>HP自然回復量（5秒ごと）</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>MP自然回復量（5秒ごと）</li><li>ENG自然回復量（5秒ごと）</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>ノックバック耐性</li><li>バフ持続時間増加</li></ul></div>
+            </td>
           </tr>
-          <tr data-status-ids="" aria-label="レリック">
-            <th scope="row">レリック</th>
-            <td><span class="es-condition">いずれか1つ</span><span class="es-stat"><a href="#candidate-groups">属性ダメージ増加</a></span>、<span class="es-stat"><a href="#candidate-groups">状態異常付与耐性</a></span>、<span class="es-stat">支援力</span></td>
-            <td><span class="es-stat">スキルダメージ増加</span>、<span class="es-stat">バフ持続時間増加</span></td>
-            <td><span class="es-stat">クールダウン短縮</span>、<span class="es-stat">詠唱時間短縮</span></td>
-            <td><span class="es-stat"><a href="#candidate-groups">状態異常付与確率増加</a></span>、<span class="es-stat"><a href="#candidate-groups">継続ダメージ増加</a></span>、<span class="es-stat">状態異常持続時間増加</span>、<span class="es-stat">シールドリチャージ短縮</span><span class="es-condition es-late">Lv.75〜</span><span class="es-stat"><a href="#candidate-groups">超星会心</a></span>、<span class="es-stat"><a href="#candidate-groups">継続ダメージ貫通</a></span></td>
+          <tr role="row" data-status-ids="" aria-label="コア">
+            <th scope="row" role="rowheader">コア</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><span class="es-condition es-choice">いずれか1つ</span><ul class="es-candidates" role="list"><li>通常攻撃ダメージ増加</li><li>スキルダメージ増加</li><li>支援力</li><li>最大HP</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>最終ダメージ倍率</li><li><a href="#candidate-groups">属性ダメージ増加</a></li><li>最大MP</li><li>最大ENG</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>クールダウン短縮</li><li>バフ持続時間増加</li></ul></div>
+            </td>
+          </tr>
+          <tr role="row" data-status-ids="" aria-label="レリック">
+            <th scope="row" role="rowheader">レリック</th>
+            <td role="cell" class="es-required">
+              <span class="es-mobile-label" aria-hidden="true">必須</span>
+              <div class="es-cell-value"><span class="es-condition es-choice">いずれか1つ</span><ul class="es-candidates" role="list"><li><a href="#candidate-groups">属性ダメージ増加</a></li><li><a href="#candidate-groups">状態異常付与耐性</a></li><li>支援力</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">通常候補 <span class="es-condition">Lv.1〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>スキルダメージ増加</li><li>バフ持続時間増加</li></ul></div>
+            </td>
+            <td role="cell">
+              <span class="es-mobile-label" aria-hidden="true">上位候補 <span class="es-condition">Lv.50〜</span></span>
+              <div class="es-cell-value"><ul class="es-candidates" role="list"><li>クールダウン短縮</li><li>詠唱時間短縮</li></ul></div>
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
+    <details class="es-detail es-build">
+      <summary>アクセサリのビルド向け候補</summary>
+      <div class="es-table">
+        <table role="table" aria-label="アクセサリのビルド向け候補">
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col" role="columnheader">装備種</th>
+              <th scope="col" role="columnheader">Lv.25〜</th>
+              <th scope="col" role="columnheader">Lv.75から追加</th>
+            </tr>
+          </thead>
+          <tbody role="rowgroup">
+            <tr role="row" data-status-ids="build" aria-label="アミュレット（ビルド向け）">
+              <th scope="row" role="rowheader">アミュレット</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>体力</li><li>回復量増加</li><li><a href="#candidate-groups">通常会心</a></li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><span class="es-empty">なし</span></div>
+              </td>
+            </tr>
+            <tr role="row" data-status-ids="build" aria-label="タリスマン（ビルド向け）">
+              <th scope="row" role="rowheader">タリスマン</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>幸運</li><li><a href="#candidate-groups">属性ダメージ増加</a></li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><span class="es-empty">なし</span></div>
+              </td>
+            </tr>
+            <tr role="row" data-status-ids="build" aria-label="チャーム（ビルド向け）">
+              <th scope="row" role="rowheader">チャーム</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>幸運</li><li><a href="#candidate-groups">育成・探索報酬</a></li><li><a href="#candidate-groups">消耗品使用中の移動</a></li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><span class="es-empty">なし</span></div>
+              </td>
+            </tr>
+            <tr role="row" data-status-ids="build lateBuild" aria-label="コア（ビルド向け）">
+              <th scope="row" role="rowheader">コア</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>最大シールド</li><li>状態異常持続時間増加</li><li>回復量増加</li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li>共通攻撃力</li><li>共通防御貫通率</li><li>被ダメージ軽減率</li></ul></div>
+              </td>
+            </tr>
+            <tr role="row" data-status-ids="build lateBuild" aria-label="レリック（ビルド向け）">
+              <th scope="row" role="rowheader">レリック</th>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.25〜</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">状態異常付与確率増加</a></li><li><a href="#candidate-groups">継続ダメージ増加</a></li><li>状態異常持続時間増加</li><li>シールドリチャージ短縮</li></ul></div>
+              </td>
+              <td role="cell">
+                <span class="es-mobile-label" aria-hidden="true">Lv.75から追加</span>
+                <div class="es-cell-value"><ul class="es-candidates" role="list"><li><a href="#candidate-groups">超星会心</a></li><li><a href="#candidate-groups">継続ダメージ貫通</a></li></ul></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
   </section>
 
   <section class="es-chapter" id="equipment-excluded" aria-labelledby="equipment-excluded-title">
