@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2752",
+  "name": "&6疾駆",
+  "icon": "GOLDEN_BOOTS",
+  "tags": [
+    "status",
+    "notable",
+    "agility",
+    "energy"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "AGILITY",
+      "modifierType": "FLAT",
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "MAX_ENERGY",
+      "modifierType": "FLAT",
+      "value": 4
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}

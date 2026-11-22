@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2705",
+  "name": "&6剣士の矜持",
+  "icon": "IRON_HELMET",
+  "tags": [
+    "status",
+    "notable",
+    "strength",
+    "health"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "STRENGTH",
+      "modifierType": "FLAT",
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 10
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}

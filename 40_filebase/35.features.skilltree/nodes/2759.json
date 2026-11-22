@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2759",
+  "name": "&6連撃の心得",
+  "icon": "IRON_CHAIN",
+  "tags": [
+    "status",
+    "notable",
+    "offense",
+    "accuracy"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "NORMAL_ATTACK_DEGRADATION_DELAY",
+      "modifierType": "FLAT",
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "ACCURACY",
+      "modifierType": "FLAT",
+      "value": 0.5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}

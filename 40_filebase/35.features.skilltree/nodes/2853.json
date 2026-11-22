@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2853",
+  "name": "&6頑強な体",
+  "icon": "COOKED_BEEF",
+  "tags": [
+    "status",
+    "notable",
+    "durability",
+    "health"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "VITALITY",
+      "modifierType": "FLAT",
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 10
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}

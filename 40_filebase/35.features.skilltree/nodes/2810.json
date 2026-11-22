@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2810",
+  "name": "&d湧水の星脈",
+  "icon": "LIGHT_BLUE_DYE",
+  "tags": [
+    "status",
+    "resource",
+    "mana"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}

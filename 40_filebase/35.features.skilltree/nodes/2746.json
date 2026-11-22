@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2746",
+  "name": "&6超星の閃き",
+  "icon": "FIREWORK_ROCKET",
+  "tags": [
+    "status",
+    "notable",
+    "astral",
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "SUPER_CRITICAL_RATE",
+      "modifierType": "FLAT",
+      "value": 0.3
+    },
+    {
+      "type": "status",
+      "status": "SUPER_CRITICAL_DAMAGE",
+      "modifierType": "FLAT",
+      "value": 2
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}

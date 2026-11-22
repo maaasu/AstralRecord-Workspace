@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "2780",
+  "name": "&b破盾の道標",
+  "icon": "YELLOW_BANNER",
+  "tags": [
+    "status",
+    "gateway",
+    "shield",
+    "agility"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "SHIELD_BREAK",
+      "modifierType": "FLAT",
+      "value": 0.25
+    },
+    {
+      "type": "status",
+      "status": "AGILITY",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}
