@@ -10,8 +10,6 @@ import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
-import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType;
-import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
@@ -44,7 +42,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1569,49 +1566,26 @@ public class StatusService {
                 }
             }
         }
-        return suppressOffhandEffectsForTwoHandedWeapon(references);
-    }
-
-    private @NotNull List<ItemReference> suppressOffhandEffectsForTwoHandedWeapon(
-        @NotNull List<ItemReference> references
-    ) {
-        if (references.isEmpty() || itemReferenceResolver == null) {
+        if (references.isEmpty() || itemReferenceResolver == null || !hasTwoHandedMainHand(player)) {
             return references;
         }
-
-        Map<ItemReference, ItemModel> models = new LinkedHashMap<>();
-        boolean twoHandedWeaponEquipped = false;
-        for (ItemReference reference : references) {
-            ItemModel model = resolveEquippedItemModel(reference);
-            models.put(reference, model);
-            twoHandedWeaponEquipped |= isTwoHandedWeapon(model);
-        }
-        if (!twoHandedWeaponEquipped) {
-            return references;
-        }
-
         return references.stream()
-            .filter(reference -> !isOffhandEquipment(models.get(reference)))
+            .filter(reference -> {
+                ItemModel model = itemReferenceResolver.resolveItemModel(reference);
+                return model == null || model.getEquipment() == null || !model.getEquipment().isOffhandEquipment();
+            })
             .toList();
     }
 
-    private @Nullable ItemModel resolveEquippedItemModel(@Nullable ItemReference reference) {
-        return reference == null ? null : itemReferenceResolver.resolveItemModel(reference);
-    }
-
-    private boolean isTwoHandedWeapon(@Nullable ItemModel model) {
-        if (model == null || model.getEquipment() == null) {
-            return false;
+    /** 装備一覧の効果判定に使う、現在選択中の両手武器を確認します。 */
+    private boolean hasTwoHandedMainHand(@NotNull AstPlayer player) {
+        if (inventoryService != null) {
+            return inventoryService.hasTwoHandedMainHand(player);
         }
-        ItemEquipment equipment = model.getEquipment();
-        return equipment.getSlot() == ItemEquipmentSlot.WEAPON
-            && equipment.getHandType() == ItemEquipmentHandType.TWO;
-    }
-
-    private boolean isOffhandEquipment(@Nullable ItemModel model) {
+        ItemModel model = itemReferenceResolver.resolveItemModel(player.getBukkit().getInventory().getItemInMainHand());
         return model != null
             && model.getEquipment() != null
-            && model.getEquipment().getSlot() == ItemEquipmentSlot.SUBWEAPON;
+            && model.getEquipment().isTwoHandedWeapon();
     }
 
     private void applyEquipmentItemBonus(

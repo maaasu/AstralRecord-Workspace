@@ -10,11 +10,17 @@ import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.wrappers.Pair;
 import io.github.maaasu.astralRecord.feature.dungeon.service.CartographHeldMap;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskHotbarIconService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
+import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
+import io.github.maaasu.astralRecord.feature.menu.view.MenuInventoryHolder;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.EquipmentMenuScreenView;
 import io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
@@ -33,16 +39,19 @@ import io.papermc.paper.datacomponent.DataComponentTypes;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CrossbowMeta;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -52,6 +61,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -90,12 +100,15 @@ public class ItemStackPacketAdapter {
     private static final int PLAYER_INVENTORY_WINDOW_ID = 0;
     private static final int PLAYER_INVENTORY_DIRECT_WINDOW_ID = -2;
     private static final int PLAYER_INVENTORY_HOTBAR_START_SLOT = 36;
+    private static final int PLAYER_INVENTORY_OFFHAND_SLOT = 45;
+    private static final int DIRECT_INVENTORY_OFFHAND_SLOT = 40;
 
     private final Plugin plugin;
     private final PlayerSettingService playerSettingService;
     private final SkillActionRingService actionRingService;
     private final @Nullable SkillPermissionService skillPermissionService;
     private final ItemService itemService;
+    private final InventoryService inventoryService;
     private final ResourcePackService resourcePacks;
     private final CartographHeldMap cartographHeldMap;
     private final Map<UUID, Set<String>> permittedSkillSnapshots = new ConcurrentHashMap<>();
@@ -103,6 +116,8 @@ public class ItemStackPacketAdapter {
     private final Map<UUID, Boolean> actionRingHoldEligibleSnapshots = new ConcurrentHashMap<>();
     private final EquipmentOverrideRegistry equipmentOverrideRegistry = new EquipmentOverrideRegistry();
     private final Map<UUID, Integer> selectedHotbarSlots = new ConcurrentHashMap<>();
+    private final Set<UUID> twoHandedMainHandSnapshots = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> disabledOffhandInventorySnapshots = new HashSet<>();
     private boolean registered = false;
 
     /**
@@ -113,6 +128,7 @@ public class ItemStackPacketAdapter {
      * @param actionRingService 受信者のアクションリング表示状態を参照するサービス
      * @param skillPermissionService 受信者のスキル使用可否を判定するサービス
      * @param itemService 公開済みアイテムマスタを参照するサービス
+     * @param inventoryService 実アイテムと装備マスタを照合するサービス
      * @param resourcePacks 受信者がツールチップと着用ヘルメットの専用表示を使えるか判定するサービス
      * @param cartographHeldMap 本人の登録済みカルトグラフの表示情報
      */
@@ -122,6 +138,7 @@ public class ItemStackPacketAdapter {
         @NotNull SkillActionRingService actionRingService,
         @Nullable SkillPermissionService skillPermissionService,
         @NotNull ItemService itemService,
+        @NotNull InventoryService inventoryService,
         @NotNull ResourcePackService resourcePacks,
         @NotNull CartographHeldMap cartographHeldMap
     ) {
@@ -130,6 +147,7 @@ public class ItemStackPacketAdapter {
         this.actionRingService = actionRingService;
         this.skillPermissionService = skillPermissionService;
         this.itemService = itemService;
+        this.inventoryService = inventoryService;
         this.resourcePacks = resourcePacks;
         this.cartographHeldMap = cartographHeldMap;
     }
@@ -202,9 +220,20 @@ public class ItemStackPacketAdapter {
                     || type == PacketType.Play.Server.SET_CURSOR_ITEM) {
                     int hotbarSlot = -1;
                     if (type == PacketType.Play.Server.SET_SLOT) {
-                        hotbarSlot = hotbarSlotForSetSlot(packet);
+                        int slot = containerSlotForSetSlot(packet);
+                        if ((slot == PLAYER_INVENTORY_OFFHAND_SLOT || slot == DIRECT_INVENTORY_OFFHAND_SLOT
+                            || slot == EquipmentMenuScreenView.EQUIPMENT_OFF_HAND_SLOT)
+                            && slot == disabledOffhandSlot(viewer, packet)
+                            && replaceWithDisabledOffhand(packet)) {
+                            return;
+                        }
+                        hotbarSlot = hotbarSlotForSetSlot(packet, slot);
                     } else if (type == PacketType.Play.Server.SET_PLAYER_INVENTORY) {
                         Integer slot = packet.getIntegers().readSafely(0);
+                        if (!bedrockViewer && slot != null && slot == DIRECT_INVENTORY_OFFHAND_SLOT
+                            && hasTwoHandedMainHand(viewer) && replaceWithDisabledOffhand(packet)) {
+                            return;
+                        }
                         hotbarSlot = slot == null ? -1 : slot;
                     }
                     if (hotbarSlot >= 0 && hotbarSlot < skillHotbar.size()) {
@@ -233,6 +262,7 @@ public class ItemStackPacketAdapter {
                 } else if (type == PacketType.Play.Server.WINDOW_ITEMS) {
                     handleWindowItems(
                         packet,
+                        disabledOffhandSlot(viewer, packet),
                         armor,
                         actionRingHoldSelectEnabled,
                         selectedHotbarSlot,
@@ -263,6 +293,24 @@ public class ItemStackPacketAdapter {
                     event.getPlayer().getUniqueId(),
                     event.getPlayer().getInventory().getHeldItemSlot()
                 );
+            }
+
+            /**
+             * オフハンド更新を含まないコンテナを閉じた場合は、本人の補助装備表示を再同期します。
+             *
+             * @param event Bukkit のコンテナクローズイベント
+             */
+            @EventHandler(priority = EventPriority.MONITOR)
+            public void onInventoryClose(@NotNull InventoryCloseEvent event) {
+                if (!(event.getPlayer() instanceof Player player)
+                    || !inventoryService.isOffhandEquipment(player.getInventory().getItemInOffHand())) {
+                    return;
+                }
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    if (player.isOnline() && isPlayerInventoryOnlyOpen(player)) {
+                        player.updateInventory();
+                    }
+                });
             }
 
             @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
@@ -301,6 +349,8 @@ public class ItemStackPacketAdapter {
                 permittedSkillSnapshots.remove(event.getPlayer().getUniqueId());
                 bedrockSnapshots.remove(event.getPlayer().getUniqueId());
                 actionRingHoldEligibleSnapshots.remove(event.getPlayer().getUniqueId());
+                twoHandedMainHandSnapshots.remove(event.getPlayer().getUniqueId());
+                disabledOffhandInventorySnapshots.remove(event.getPlayer().getUniqueId());
                 equipmentOverrideRegistry.discardViewer(event.getPlayer().getUniqueId());
             }
         }, plugin);
@@ -329,6 +379,8 @@ public class ItemStackPacketAdapter {
                 permittedSkillSnapshots.remove(player.getUniqueId());
                 bedrockSnapshots.remove(player.getUniqueId());
                 actionRingHoldEligibleSnapshots.remove(player.getUniqueId());
+                twoHandedMainHandSnapshots.remove(player.getUniqueId());
+                disabledOffhandInventorySnapshots.remove(player.getUniqueId());
                 continue;
             }
             boolean nextBedrock = astPlayer.isBedrock();
@@ -352,12 +404,98 @@ public class ItemStackPacketAdapter {
                 permittedSkillSnapshotChanged = previousPermittedSkillIds == null
                     || !previousPermittedSkillIds.equals(nextPermittedSkillIds);
             }
+            boolean offhandDisplayChanged = refreshOffhandDisplaySnapshot(player, astPlayer);
             if (displaySnapshotChanged) {
                 refreshEquipmentView(player, true);
-            } else if (permittedSkillSnapshotChanged || actionRingHoldEligibilityChanged) {
+            } else if (permittedSkillSnapshotChanged || actionRingHoldEligibilityChanged || offhandDisplayChanged) {
                 player.updateInventory();
             }
         }
+    }
+
+    /**
+     * 持ち替え後のオフハンド表示を次の tick で再同期します。
+     * プレイヤーインベントリ以外を表示中は、閉じた直後に本人のインベントリを再送します。
+     *
+     * @param player 表示対象プレイヤー
+     * @param astPlayer ロード済みのプレイヤー状態
+     * @return 現在開いている画面の再送が必要な場合は true
+     */
+    private boolean refreshOffhandDisplaySnapshot(@NotNull Player player, @NotNull AstPlayer astPlayer) {
+        UUID playerId = player.getUniqueId();
+        boolean twoHanded = inventoryService.hasTwoHandedMainHand(astPlayer);
+        boolean mainHandChanged = twoHanded
+            ? twoHandedMainHandSnapshots.add(playerId) : twoHandedMainHandSnapshots.remove(playerId);
+        if (!twoHanded && !mainHandChanged && !disabledOffhandInventorySnapshots.contains(playerId)) {
+            return false;
+        }
+        ItemStack offhand = player.getInventory().getItemInOffHand();
+        boolean hasOffhandEquipment = inventoryService.isOffhandEquipment(offhand);
+        if (isPlayerInventoryOnlyOpen(player)) {
+            return twoHanded && hasOffhandEquipment ? disabledOffhandInventorySnapshots.add(playerId)
+                : disabledOffhandInventorySnapshots.remove(playerId);
+        }
+        if (mainHandChanged && hasOffhandEquipment) {
+            sendEquipmentOverride(player, player, List.of(new EquipmentUpdate(EquipmentSlot.OFF_HAND, offhand)));
+        }
+        if (!mainHandChanged) {
+            return false;
+        }
+        Inventory top = player.getOpenInventory().getTopInventory();
+        return top.getHolder(false) instanceof MenuInventoryHolder holder
+            && holder.screen() == MenuScreen.EQUIPMENT_GUI && !holder.equipmentReadOnly()
+            && inventoryService.isOffhandEquipment(top.getItem(EquipmentMenuScreenView.EQUIPMENT_OFF_HAND_SLOT));
+    }
+
+    /** パケットが非同期の場合は、メインスレッドで収集した両手武器の状態を参照します。 */
+    private boolean hasTwoHandedMainHand(@NotNull Player viewer) {
+        return Bukkit.isPrimaryThread()
+            ? inventoryService.hasTwoHandedMainHand(AstPlayerCache.get(viewer))
+            : twoHandedMainHandSnapshots.contains(viewer.getUniqueId());
+    }
+
+    /** パケットに含まれる無効表示の対象位置を返します。対象外の window は -1 です。 */
+    private int disabledOffhandSlot(@NotNull Player viewer, @NotNull PacketContainer packet) {
+        Integer windowId = packet.getIntegers().readSafely(0);
+        if (windowId == null) {
+            return -1;
+        }
+        if (windowId == PLAYER_INVENTORY_WINDOW_ID || windowId == PLAYER_INVENTORY_DIRECT_WINDOW_ID) {
+            if (!hasTwoHandedMainHand(viewer)) {
+                return -1;
+            }
+            return windowId == PLAYER_INVENTORY_WINDOW_ID ? PLAYER_INVENTORY_OFFHAND_SLOT : DIRECT_INVENTORY_OFFHAND_SLOT;
+        }
+        if (windowId <= 0 || !Bukkit.isPrimaryThread()) {
+            return -1;
+        }
+        Inventory top = viewer.getOpenInventory().getTopInventory();
+        if (!(top.getHolder(false) instanceof MenuInventoryHolder holder) || holder.screen() != MenuScreen.EQUIPMENT_GUI) {
+            return -1;
+        }
+        boolean twoHanded = holder.equipmentReadOnly()
+            ? inventoryService.isTwoHandedWeapon(top.getItem(EquipmentMenuScreenView.EQUIPMENT_MAIN_HAND_SLOT))
+            : hasTwoHandedMainHand(viewer);
+        return twoHanded ? EquipmentMenuScreenView.EQUIPMENT_OFF_HAND_SLOT : -1;
+    }
+
+    /** 補助装備の単一スロットパケットを表示用バリアに差し替えます。 */
+    private boolean replaceWithDisabledOffhand(@NotNull PacketContainer packet) {
+        if (!inventoryService.isOffhandEquipment(packet.getItemModifier().readSafely(0))) {
+            return false;
+        }
+        packet.getItemModifier().writeSafely(0, createDisabledOffhandIcon());
+        return true;
+    }
+
+    /** 実アイテムの識別情報やアイコンモデルを持たない、送信専用のバリアを作成します。 */
+    private @NotNull ItemStack createDisabledOffhandIcon() {
+        ItemStack icon = new ItemStack(Material.BARRIER);
+        icon.editMeta(meta -> meta.displayName(
+            PlayerMsgResource.formatPlainComponent(PlayerMsgId.P_5274.getId())
+                .decoration(TextDecoration.ITALIC, false)
+        ));
+        return icon;
     }
 
     /**
@@ -438,6 +576,7 @@ public class ItemStackPacketAdapter {
      * WINDOW_ITEMS パケット内の ItemStack リストを書き換えます。
      *
      * @param packet 書き換え対象パケット
+     * @param disabledOffhandSlot 無効表示対象のオフハンド枠。対象外は負値
      * @param armor 受信者の防具表示設定と着用モデル一覧
      * @param actionRingHoldSelectEnabled 長押し選択設定が有効な場合は {@code true}
      * @param selectedHotbarSlot 選択中 hotbar slot（0-8）、不明な場合は負値
@@ -450,6 +589,7 @@ public class ItemStackPacketAdapter {
      */
     private void handleWindowItems(
         @NotNull PacketContainer packet,
+        int disabledOffhandSlot,
         ArmorPresentation armor,
         boolean actionRingHoldSelectEnabled,
         int selectedHotbarSlot,
@@ -478,6 +618,11 @@ public class ItemStackPacketAdapter {
                 continue;
             }
             var original = items.get(i);
+            if (i == disabledOffhandSlot && inventoryService.isOffhandEquipment(original)) {
+                items.set(i, createDisabledOffhandIcon());
+                modified = true;
+                continue;
+            }
             if (original == null || original.getType() == Material.AIR) {
                 continue;
             }
@@ -578,7 +723,10 @@ public class ItemStackPacketAdapter {
             ItemStack original = pair.getSecond();
             boolean virtualTrident = virtualizeSelectedMainHand
                 && pair.getFirst() == EnumWrappers.ItemSlot.MAINHAND;
-            if (original != null && original.getType() != Material.AIR
+            if (entityId == viewer.getEntityId() && pair.getFirst() == EnumWrappers.ItemSlot.OFFHAND
+                && hasTwoHandedMainHand(viewer) && inventoryService.isOffhandEquipment(original)) {
+                requiresOverride = true;
+            } else if (original != null && original.getType() != Material.AIR
                 && replaceIcon(original, armor, virtualTrident, permittedSkillIds, bedrockViewer,
                     randomStatusRangeDisplayEnabled, null) != null) {
                 requiresOverride = true;
@@ -752,14 +900,20 @@ public class ItemStackPacketAdapter {
         return true;
     }
 
-    private int hotbarSlotForSetSlot(@NotNull PacketContainer packet) {
-        Integer windowId = packet.getIntegers().readSafely(0);
+    /** SET_SLOT の形式差を吸収してコンテナ内のスロット番号を返します。 */
+    private int containerSlotForSetSlot(@NotNull PacketContainer packet) {
         Integer slot = packet.getIntegers().readSafely(2);
         if (slot == null) {
             Short shortSlot = packet.getShorts().readSafely(0);
             slot = shortSlot == null ? null : Short.toUnsignedInt(shortSlot);
         }
-        if (windowId == null || slot == null) {
+        return slot == null ? -1 : slot;
+    }
+
+    /** プレイヤーインベントリの単一スロット更新をホットバーの位置へ変換します。 */
+    private int hotbarSlotForSetSlot(@NotNull PacketContainer packet, int slot) {
+        Integer windowId = packet.getIntegers().readSafely(0);
+        if (windowId == null || slot < 0) {
             return -1;
         }
         if (windowId == PLAYER_INVENTORY_WINDOW_ID) {
@@ -991,6 +1145,11 @@ public class ItemStackPacketAdapter {
             ? cartographHeldMap.projection(viewer.getUniqueId()) : null;
         Map<EquipmentSlot, ItemStack> equipment = new EnumMap<>(EquipmentSlot.class);
         for (EquipmentUpdate update : updates) {
+            if (target == viewer && update.slot() == EquipmentSlot.OFF_HAND
+                && hasTwoHandedMainHand(viewer) && inventoryService.isOffhandEquipment(update.item())) {
+                equipment.put(update.slot(), createDisabledOffhandIcon());
+                continue;
+            }
             boolean virtualTrident = virtualizeSelectedMainHand && update.slot() == EquipmentSlot.HAND;
             ItemStack replaced = replaceIcon(
                 update.item(),

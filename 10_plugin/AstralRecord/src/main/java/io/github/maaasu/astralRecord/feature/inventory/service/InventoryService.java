@@ -28,6 +28,7 @@ import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStat
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStateRegistry;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.castdisk.CastDiskHotbarIconService;
@@ -42,6 +43,7 @@ import io.github.maaasu.astralRecord.feature.player.GameModeChangeGuard;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.shared.gui.playerinventory.PlayerInventoryOverlaySupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageSortDirection;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageSortKey;
@@ -5984,6 +5986,74 @@ public class InventoryService {
         @NotNull EquipmentSlot hand
     ) {
         return itemReferenceResolver.resolveItemModel(getItemReferenceInHand(astPlayer, hand));
+    }
+
+    /**
+     * 通常プレイで、実際に選択中のメインハンドが両手武器かを判定します。専用の下段表示中は HOTBAR の装備を参照します。
+     *
+     * @param astPlayer 対象プレイヤー。未ロードの場合は null
+     * @return 選択中のメインハンドが両手武器の場合は true
+     */
+    public boolean hasTwoHandedMainHand(@Nullable AstPlayer astPlayer) {
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
+            return false;
+        }
+        Player player = astPlayer.getBukkit();
+        if (!PlayerInventoryOverlaySupport.isActive(player.getOpenInventory().getTopInventory())) {
+            return isTwoHandedWeapon(player.getInventory().getItemInMainHand());
+        }
+
+        InventoryEntryModel entry = getHotbarEntryInHand(astPlayer, EquipmentSlot.HAND);
+        if (entry == null) {
+            return false;
+        }
+        String itemId = entry.getItemId();
+        if ((itemId == null || itemId.isBlank()) && entry.getInstanceId() != null) {
+            EquipmentInstance instance = itemService.findLoadedEquipmentInstanceById(entry.getInstanceId().toString());
+            itemId = instance == null ? null : instance.getItemId();
+        }
+        ItemModel model = itemId == null ? null : itemService.findLoadedById(itemId);
+        return model != null && model.getEquipment() != null && model.getEquipment().isTwoHandedWeapon();
+    }
+
+    /**
+     * 実際の手持ちの組み合わせから、オフハンド補助装備を使用できないか判定します。
+     *
+     * @param astPlayer 対象プレイヤー。未ロードの場合は null
+     * @return 両手武器と補助装備を同時に手に持つ通常プレイヤーの場合は true
+     */
+    public boolean isOffhandUseBlocked(@Nullable AstPlayer astPlayer) {
+        return hasTwoHandedMainHand(astPlayer)
+            && isOffhandEquipment(astPlayer.getBukkit().getInventory().getItemInOffHand());
+    }
+
+    /**
+     * 公開済みの装備マスタから、両手武器かを判定します。
+     *
+     * @param stack 実アイテム。空枠の場合は null または AIR
+     * @return AstralRecord の両手武器の場合は true
+     */
+    public boolean isTwoHandedWeapon(@Nullable ItemStack stack) {
+        ItemEquipment equipment = resolveLoadedEquipment(stack);
+        return equipment != null && equipment.isTwoHandedWeapon();
+    }
+
+    /**
+     * 公開済みの装備マスタから、オフハンド用の補助装備かを判定します。
+     *
+     * @param stack 実アイテム。空枠の場合は null または AIR
+     * @return AstralRecord の補助装備の場合は true
+     */
+    public boolean isOffhandEquipment(@Nullable ItemStack stack) {
+        ItemEquipment equipment = resolveLoadedEquipment(stack);
+        return equipment != null && equipment.isOffhandEquipment();
+    }
+
+    /** 表示・入力判定向けに、手持ちのアイテム ID をロード済みマスタで解決します。 */
+    private @Nullable ItemEquipment resolveLoadedEquipment(@Nullable ItemStack stack) {
+        String itemId = stack == null || stack.getType().isAir() ? null : ItemStackFactory.getAstralItemId(stack);
+        ItemModel model = itemId == null ? null : itemService.findLoadedById(itemId);
+        return model == null ? null : model.getEquipment();
     }
 
     private boolean applyActiveEquipmentLoadoutToGui(@NotNull AstPlayer astPlayer) {

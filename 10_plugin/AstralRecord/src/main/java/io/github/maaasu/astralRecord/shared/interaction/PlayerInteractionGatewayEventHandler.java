@@ -48,6 +48,7 @@ public final class PlayerInteractionGatewayEventHandler extends AbstractEventHan
     private final PlayerInputSequenceLedger sequenceLedger = new PlayerInputSequenceLedger();
     private final Predicate<Player> actionRingOpen;
     private final Consumer<Player> actionRingClose;
+    private final Predicate<Player> offhandUseBlocked;
     private final Map<PlayerInputToken, PendingArmSwing> pendingArmSwings = new HashMap<>();
 
     /**
@@ -66,20 +67,34 @@ public final class PlayerInteractionGatewayEventHandler extends AbstractEventHan
         @NotNull Predicate<Player> actionRingOpen,
         @NotNull Consumer<Player> actionRingClose
     ) {
-        this(plugin, resolvers, inputLocked, actionRingOpen, actionRingClose, new VanillaInteractionResolver());
+        this(plugin, resolvers, inputLocked, actionRingOpen, actionRingClose, new VanillaInteractionResolver(),
+            player -> false);
     }
 
+    /**
+     * 手持ちアイテムの使用制限を含む共通入力 gateway を生成します。
+     *
+     * @param plugin プラグイン本体
+     * @param resolvers feature ごとの副作用なし候補 resolver
+     * @param inputLocked 入力全体を拒否する状態の判定
+     * @param actionRingOpen アクションリングが開いているかの判定
+     * @param actionRingClose アクションリングを閉じる処理
+     * @param vanillaInteractionResolver バニラ操作候補の resolver
+     * @param offhandUseBlocked オフハンドのバニラアイテム使用を拒否する状態の判定
+     */
     public PlayerInteractionGatewayEventHandler(
         @NotNull AstralRecord plugin,
         @NotNull Collection<? extends PlayerInputResolver<PlayerInteractionSnapshot>> resolvers,
         @NotNull Predicate<Player> inputLocked,
         @NotNull Predicate<Player> actionRingOpen,
         @NotNull Consumer<Player> actionRingClose,
-        @NotNull VanillaInteractionResolver vanillaInteractionResolver
+        @NotNull VanillaInteractionResolver vanillaInteractionResolver,
+        @NotNull Predicate<Player> offhandUseBlocked
     ) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.actionRingOpen = Objects.requireNonNull(actionRingOpen, "actionRingOpen");
         this.actionRingClose = Objects.requireNonNull(actionRingClose, "actionRingClose");
+        this.offhandUseBlocked = Objects.requireNonNull(offhandUseBlocked, "offhandUseBlocked");
         Objects.requireNonNull(inputLocked, "inputLocked");
         List<PlayerInputResolver<PlayerInteractionSnapshot>> allResolvers = new ArrayList<>();
         allResolvers.add(context -> inputLocked.test(context.inputSnapshot().player())
@@ -100,7 +115,7 @@ public final class PlayerInteractionGatewayEventHandler extends AbstractEventHan
     }
 
     /**
-     * PlayerInteractEvent の左右クリックを semantic 入力として調停します。
+     * PlayerInteractEvent の左右クリックを調停し、制限中はオフハンドのアイテム使用だけを拒否します。
      *
      * @param event interact イベント
      */
@@ -125,7 +140,13 @@ public final class PlayerInteractionGatewayEventHandler extends AbstractEventHan
             event.getBlockFace(),
             false
         );
+        boolean blockOffhandUse = family == InputFamily.RIGHT_CLICK
+            && event.getHand() == EquipmentSlot.OFF_HAND
+            && offhandUseBlocked.test(event.getPlayer());
         dispatchSemantic(family, InputSource.PLAYER_INTERACT, snapshot);
+        if (blockOffhandUse) {
+            event.setUseItemInHand(Event.Result.DENY);
+        }
     }
 
     /**

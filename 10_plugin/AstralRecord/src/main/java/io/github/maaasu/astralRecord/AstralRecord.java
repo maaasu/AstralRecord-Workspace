@@ -2769,6 +2769,7 @@ public final class AstralRecord extends JavaPlugin {
             skillActionRingService,
             skillPermissionService,
             itemService,
+            inventoryService,
             resourcePackService,
             dungeonService.cartographHeldMap()
         );
@@ -3383,7 +3384,8 @@ public final class AstralRecord extends JavaPlugin {
                 playerJoinEventHandler::isLoading,
                 skillActionRingService::isOpen,
                 skillActionRingService::close,
-                new VanillaInteractionResolver(skillActionRingEventHandler::isBedrockShortcutInput)
+                new VanillaInteractionResolver(skillActionRingEventHandler::isBedrockShortcutInput),
+                player -> inventoryService.isOffhandUseBlocked(AstPlayerCache.get(player))
             ),
             getServer().getPluginManager()
         );

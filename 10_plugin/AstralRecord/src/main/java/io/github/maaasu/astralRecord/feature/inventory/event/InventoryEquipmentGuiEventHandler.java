@@ -160,8 +160,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     }
 
     /**
-     * 装備 GUI 表示中にホットバー選択が変わった場合、メインスロット表示を更新します。
-     * 一時的に持ち替えを拒否する間は、後続の共通入力仲裁に任せて表示を更新しません。
+     * オーブ GUI がホットバーの持ち替えを扱う場合は、共通入力仲裁の前に処理します。
      *
      * @param event Bukkit のホットバー選択変更イベント
      */
@@ -170,10 +169,18 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         if (inventoryService.isHotbarSlotLocked(event.getPlayer())) {
             return;
         }
+        runSafely(() -> orbService.handleHeldChange(event),
+            LogId.E_5601, event.getPlayer().getName(), "equipment_gui_held_item");
+    }
+
+    /**
+     * 持ち替えが認められた場合に、装備画面のメインハンド見本を更新します。
+     *
+     * @param event Bukkit のホットバー選択変更イベント
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEquipmentMenuHeldChange(@NotNull PlayerItemHeldEvent event) {
         runSafely(() -> {
-            if (orbService.handleHeldChange(event)) {
-                return;
-            }
             Player player = event.getPlayer();
             Inventory topInventory = player.getOpenInventory().getTopInventory();
             if (!isEquipmentMenu(topInventory)) {
