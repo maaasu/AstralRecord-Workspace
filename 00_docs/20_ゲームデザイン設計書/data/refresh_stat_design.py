@@ -413,11 +413,11 @@ def equipment_cards(section, rows, equipment, allocations, categories, search_id
             grouped.setdefault(cats, []).append(candidate_value(name))
         lines = [f'<div class="es-stage" data-stage="{key}"><{tag}>{heading}</{tag}>']
         for cats in sorted(grouped, key=lambda group: tuple(map(category_order.index, group))):
-            labels = '・'.join(f'<span class="es-category-name cat-{cat}">{EQUIPMENT_CATEGORIES[cat]}</span>'
+            labels = ' '.join(f'<span class="cat cat-{cat}">{EQUIPMENT_CATEGORIES[cat]}</span>'
                               for cat in cats)
             values = ' '.join(grouped[cats])
             row_class = f' cat-{cats[0]}' if len(cats) == 1 else ''
-            lines.append(f'<div class="es-category-row{row_class}"><div>{labels}</div> '
+            lines.append(f'<div class="es-category-row{row_class}"><div class="cat-list">{labels}</div> '
                          f'<div class="es-values">{values}</div></div>')
         lines.append('</div>')
         return '\n'.join(lines)
