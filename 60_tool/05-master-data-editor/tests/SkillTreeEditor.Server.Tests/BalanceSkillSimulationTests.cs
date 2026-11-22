@@ -269,6 +269,133 @@ public sealed class BalanceSkillSimulationTests
         Assert.Equal("invalid", invalid["outcome"]?.ToString());
     }
 
+    [Theory]
+    [InlineData(5, 100, 0, 0, 10, 10)]
+    [InlineData(5, 50, 50, 0, 10, 7.5)]
+    [InlineData(5, 50, 0, 50, 7.5, 10)]
+    [InlineData(0, 100, 100, 100, 0, 0)]
+    [InlineData(5, -200, 0, 0, 0, 0)]
+    public void CriticalRateCombinesOnlyApplicablePercentages(double basis, double common, double normal, double skill,
+        double expectedNormal, double expectedSkill)
+    {
+        var stats = new Dictionary<string, double>
+        {
+            ["CRITICAL_RATE"] = basis, ["CRITICAL_RATE_RELATIVE_INCREASE"] = common,
+            ["NORMAL_ATTACK_CRITICAL_RATE_RELATIVE_INCREASE"] = normal, ["SKILL_CRITICAL_RATE_RELATIVE_INCREASE"] = skill
+        };
+        Assert.Equal(expectedNormal, BalanceCombatData.Stat(stats, "CRITICAL_RATE", source: "NORMAL_ATTACK"));
+        Assert.Equal(expectedSkill, BalanceCombatData.Stat(stats, "CRITICAL_RATE", source: "SKILL"));
+        Assert.Equal(basis * Math.Max(0, 1 + common / 100), BalanceCombatData.Stat(stats, "CRITICAL_RATE", source: "OTHER"));
+    }
+
+    [Theory]
+    [InlineData("NORMAL_ATTACK", true, false)]
+    [InlineData("SKILL", false, true)]
+    public void DamageRollUsesTheAttackSource(string source, bool normal, bool skill)
+    {
+        var stats = new Dictionary<string, double> { ["ACCURACY"] = 100, ["ATTACK"] = 10, ["CRITICAL_RATE"] = 50,
+            ["NORMAL_ATTACK_CRITICAL_RATE_RELATIVE_INCREASE"] = normal ? 100 : -100,
+            ["SKILL_CRITICAL_RATE_RELATIVE_INCREASE"] = skill ? 100 : -100 };
+        bool Critical(string attackSource) => BalanceSkillDamage.Calculate(stats, new Dictionary<string, double>(), "MELEE",
+            [new("NONE", 1)], attackSource, 1, true, new Random(17)).Critical;
+        Assert.True(Critical(source));
+        Assert.False(Critical(normal ? "SKILL" : "NORMAL_ATTACK"));
+    }
+
+    [Fact]
+    public void EffectiveRateIncludesClassGearTreeAndDerivedValues()
+    {
+        var catalog = Catalog();
+        var masters = catalog["masters"]!.AsArray();
+        masters[0]!["content"]!["baseStats"] = JsonNode.Parse("""[{"status":"CRITICAL_RATE","value":2}]""");
+        masters[1]!["content"]!["equipment"]!["stats"] = JsonNode.Parse("""
+            [{"status":"CRITICAL_RATE","type":"FLAT","value":3},{"status":"CRITICAL_RATE_RELATIVE_INCREASE","type":"FLAT","value":50}]
+            """);
+        masters.Add(JsonNode.Parse("""
+            {"kind":"node","content":{"nodeId":"12","effects":[{"type":"status","status":"CRITICAL_RATE","modifierType":"SCALAR","value":0.5},
+              {"type":"status","status":"CRITICAL_RATE_RELATIVE_INCREASE","modifierType":"FLAT","value":50}]}}
+            """));
+        var build = Build();
+        build["nodes"] = new JsonArray(12);
+        var result = BalanceCombat.Simulate(catalog, Request(1), build, 1, CancellationToken.None);
+        Assert.Equal("timeout", result["outcome"]!.ToString());
+        // (5 default + 2 class + 3 gear) × 1.5 tree + 0.5 from luck, then +100%.
+        Assert.Equal(31, result["playerStats"]!["CRITICAL_RATE"]!.GetValue<double>());
+        Assert.DoesNotContain(result["diagnostics"]!.AsArray(), row => row?["code"]?.ToString() == "unsupported_mechanic");
+    }
+
+    [Fact]
+    public void SigilAddsRawAndRelativeModifiersOnlyToItsOwnSkill()
+    {
+        var catalog = Catalog();
+        var first = Skill("shot", "adventurer_quick_shot", "ENERGY", 4, 100, new JsonObject());
+        first["allowedSigilIds"] = new JsonArray("critical");
+        first["sigilSlotsByLevel"] = JsonNode.Parse("""[{"level":1,"slots":1}]""");
+        AddSkill(catalog, first);
+        AddSkill(catalog, Skill("burst", "adventurer_mana_burst", "MANA", 0, 100,
+            new JsonObject { ["angle"] = 45, ["range"] = 8, ["damageRatio"] = 1, ["maxTargets"] = 1 }));
+        catalog["masters"]!.AsArray().Add(JsonNode.Parse("""
+            {"kind":"item","content":{"id":"critical","category":"sigil","sigil":{"equipGroupId":"critical",
+             "modifiers":[{"status":"CRITICAL_RATE","value":50},{"status":"SKILL_CRITICAL_RATE_RELATIVE_INCREASE","value":100}]}}}
+            """));
+        var build = Build("shot", "burst");
+        build["baseStats"]!["CRITICAL_RATE"] = 0;
+        build["baseStats"]!["LUCK"] = 0;
+        build["baseStats"]!["INTELLIGENCE"] = 0;
+        var plain = BalanceCombat.Simulate(catalog, Request(1), build, 3, CancellationToken.None);
+        build["skillSigils"] = new JsonObject { ["shot"] = new JsonArray("critical") };
+        var sigil = BalanceCombat.Simulate(catalog, Request(1), build, 3, CancellationToken.None);
+        static double Damage(JsonObject result, string id) => result["contributions"]!.AsArray()
+            .Single(row => row?["id"]?.ToString() == id)!["damage"]!.GetValue<double>();
+        Assert.True(Damage(plain, "shot") > 0);
+        Assert.Equal(Damage(plain, "shot") * 1.5, Damage(sigil, "shot"), 8);
+        Assert.Equal(Damage(plain, "burst"), Damage(sigil, "burst"));
+        Assert.Equal(0, sigil["playerStats"]!["CRITICAL_RATE"]!.GetValue<double>());
+        Assert.Equal(92, sigil["resources"]!.AsArray().Last()!["eng"]!.GetValue<double>());
+    }
+
+    [Fact]
+    public void SigilRatesUseTheFinishedCostAndCooldownTotals()
+    {
+        var catalog = Catalog();
+        var shot = Skill("shot", "adventurer_quick_shot", "ENERGY", 10, 20, new JsonObject());
+        shot["allowedSigilIds"] = new JsonArray("tempo");
+        shot["sigilSlotsByLevel"] = JsonNode.Parse("""[{"level":1,"slots":1}]""");
+        AddSkill(catalog, shot);
+        catalog["masters"]!.AsArray().Add(JsonNode.Parse("""
+            {"kind":"item","content":{"id":"tempo","category":"sigil","sigil":{"equipGroupId":"tempo","modifiers":[
+              {"status":"COOLDOWN_REDUCTION","value":10},{"status":"COOLDOWN_REDUCTION_RELATIVE_INCREASE","value":100},
+              {"status":"ENERGY_COST_REDUCTION_RELATIVE_INCREASE","value":100}]}}}
+            """));
+        var build = Build("shot");
+        build["baseStats"]!["COOLDOWN_REDUCTION"] = 15;
+        build["baseStats"]!["ENERGY_COST_REDUCTION"] = 25;
+        build["skillSigils"] = new JsonObject { ["shot"] = new JsonArray("tempo") };
+        var result = BalanceCombat.Simulate(catalog, Request(.8), build, 1, CancellationToken.None);
+        Assert.Equal(2, Assert.Single(result["contributions"]!.AsArray())!["uses"]!.GetValue<int>());
+        // Two casts, each costing 10 × (1 + 1 sigil) × (1 - 50/100).
+        Assert.Equal(80, result["resources"]!.AsArray().Last()!["eng"]!.GetValue<double>());
+    }
+
+    [Fact]
+    public void UnsupportedAndUngeneratedRelativeIdsStillFailClosed()
+    {
+        Assert.True(BalanceCombat.SupportsStatus("FIRE_RESISTANCE_RELATIVE_INCREASE"));
+        Assert.False(BalanceCombat.SupportsStatus("SKILL_DAMAGE_INCREASE_RELATIVE_INCREASE"));
+        Assert.False(BalanceCombat.SupportsStatus("SKILL_ACCURACY_RELATIVE_INCREASE"));
+        Assert.False(BalanceCombat.SupportsStatus("LIFE_STEAL_RELATIVE_INCREASE"));
+        var catalog = Catalog();
+        catalog["sources"] = new JsonArray(BalanceCombatParity.SourceHashes.Select(pair => (JsonNode?)new JsonObject
+            { ["path"] = pair.Key, ["hash"] = pair.Value }).ToArray());
+        var request = Request(1);
+        request["mode"] = "strict";
+        var build = Build();
+        build["baseStats"]!["SKILL_ACCURACY_RELATIVE_INCREASE"] = 100;
+        var result = BalanceCombat.Simulate(catalog, request, build, 2, CancellationToken.None);
+        Assert.Equal("unsupported", result["outcome"]!.ToString());
+        Assert.Contains(result["diagnostics"]!.AsArray(), row => row?["message"]?.ToString().Contains("SKILL_ACCURACY_RELATIVE_INCREASE") == true);
+    }
+
     private static JsonObject Catalog() => JsonNode.Parse("""
         {"masters":[
           {"kind":"class","path":"test/class.yml","content":{"id":"adventurer","maxLevel":30,"baseStats":[]}},

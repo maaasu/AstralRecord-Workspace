@@ -260,6 +260,18 @@ def validate_equipment(equipment, rows, allocations):
         require(isinstance(stats, list) and stats and len(stats) == len(set(stats))
                 and set(stats) <= rows.keys(), f'候補グループの内訳が空か、未定義・重複の指標があります {name}')
 
+    relative = equipment['relativeCandidates']
+    require(not relative.keys() & (rows.keys() | pools.keys()), '相対増加候補名が重複しています')
+    for name, definition in relative.items():
+        require(
+            set(definition) == {'base', 'id'}
+            and definition['base'] in rows
+            and re.fullmatch(r'[A-Z][A-Z0-9_]*_RELATIVE_INCREASE', definition['id']),
+            f'相対増加候補の定義が無効です {name}',
+        )
+    require(len({entry['id'] for entry in relative.values()}) == len(relative),
+            '相対増加候補のIDが重複しています')
+
     excluded = [name for names in equipment['excluded'].values() for name in names]
     require(len(excluded) == len(set(excluded)) and set(excluded) <= rows.keys(),
             '装備から直接付与しない指標は、02の表示名で重複なく指定してください')
@@ -314,8 +326,16 @@ def validate_equipment(equipment, rows, allocations):
                 names = row.get(key, [])
                 require(isinstance(names, list), f'装備候補は一覧で指定してください {name}・{key}')
                 for candidate in names:
-                    require(isinstance(candidate, str) and (candidate in pools or candidate in rows),
-                            f'装備候補の参照が未解決です {name}・{candidate}')
+                    require(
+                        isinstance(candidate, str)
+                        and (candidate in pools or candidate in rows or candidate in relative),
+                        f'装備候補の参照が未解決です {name}・{candidate}',
+                    )
+                    if candidate in relative:
+                        require(key in ('build', 'lateBuild') and candidate not in seen,
+                                f'相対増加はビルド向けの候補に重複なく指定してください {name}・{candidate}')
+                        seen.add(candidate)
+                        continue
                     stats = pools[candidate]['stats'] if candidate in pools else [candidate]
                     for stat in stats:
                         require(stat not in seen, f'必須・専用補正・付与候補が展開後に重複しています {name}・{stat}')
@@ -323,7 +343,7 @@ def validate_equipment(equipment, rows, allocations):
                         if key not in ('build', 'lateBuild'):
                             level = unlock['advanced'] if key == 'advanced' else 1
                             standard_unlock[stat] = min(level, standard_unlock.get(stat, level))
-            candidates.update(seen)
+            candidates.update(seen - relative.keys())
 
     require(found_fixed == fixed_weapons, f'武器章の両手固定装備が不足しています {sorted(fixed_weapons - found_fixed)}')
     overlap = candidates.intersection(excluded)
@@ -382,6 +402,7 @@ def equipment_search_context(row):
 
 def equipment_cards(section, rows, equipment, allocations, categories, search_ids, units):
     pools = equipment['pools']
+    relative = equipment['relativeCandidates']
     unlock = equipment['unlockLevels']
     policy = equipment['twoHanded']
     level = policy['exampleLevel']
@@ -397,10 +418,20 @@ def equipment_cards(section, rows, equipment, allocations, categories, search_id
             cats = candidate_categories(name)
             color = f' cat-{cats[0]}' if len(cats) == 1 else ''
             return f'<a class="es-stat{color}" href="#{fragment}">{escape(name)}</a>'
+        if name in relative:
+            base = relative[name]['base']
+            label = equipment_stat(name, categories[base][0])
+            status_id = escape(relative[name]['id'])
+            return f'<span class="es-relative-candidate">{label} <code>{status_id}</code></span>'
         return equipment_stat(name, categories[name][0])
 
     def candidate_categories(name):
-        stats = pools[name]['stats'] if name in pools else [name]
+        if name in pools:
+            stats = pools[name]['stats']
+        elif name in relative:
+            stats = [relative[name]['base']]
+        else:
+            stats = [name]
         member_cats = [set(categories[stat]) for stat in stats]
         shared = set.intersection(*member_cats)
         cats = shared or set.union(*member_cats)
@@ -455,6 +486,8 @@ def equipment_cards(section, rows, equipment, allocations, categories, search_id
         for candidate in candidates:
             if candidate in pools:
                 search_terms.extend(pools[candidate]['stats'])
+            elif candidate in relative:
+                search_terms.append(relative[candidate]['id'])
         ids = dict.fromkeys(search_ids[term] for term in search_terms)
         search_attr = f' data-status-ids="{" ".join(ids)}"' if ids else ''
         return '\n'.join((
@@ -507,6 +540,7 @@ def render_equipment(html, equipment, allocations, categories, units):
     symbols.feed(html)
     symbols.close()
     search_terms = {stat for pool in equipment['pools'].values() for stat in pool['stats']}
+    search_terms.update(definition['id'] for definition in equipment['relativeCandidates'].values())
     for entries in equipment['sections'].values():
         for row in entries:
             icon = row.get('icon')
@@ -608,12 +642,31 @@ def refresh(check):
     allocations = allocate_player(rows)
     data = allocation_data(rows, allocations)
 
+    rates = design["relativeRates"]
+    require(isinstance(rates, list) and rates and all(isinstance(row, list) and len(row) == 2
+            and all(isinstance(text, str) and text for text in row) for row in rates), "相対増加の設計行が無効です")
+    status_pattern = r"(?a)\b[A-Z][A-Z0-9_]*_RELATIVE_INCREASE\b"
+    rate_rows = []
+    for label, text in rates:
+        text = re.sub(status_pattern, r"<code>\g<0></code>", escape(text))
+        rate_rows.append(f"          <li><strong>{escape(label)}</strong>　{text}</li>\n")
+    rate_rules = (
+        '        <ul class="fx-notes">\n'
+        + "".join(rate_rows)
+        + '          <li><strong>ID生成元</strong>　'
+          '<a href="../../60_tool/07-generate-status-types/Program.cs">ステータス型の生成処理</a>が'
+          '<a href="../../40_filebase/75.shared.status/v1.status_types.yml">基礎ステータス定義</a>の'
+          '対象となる％の指標からIDを作成し、プラグイン・API・エディタへ出力する。</li>\n'
+          '        </ul>\n'
+    )
     equipment = design["equipment"]
     validate_equipment(equipment, rows, allocations)
     updated_targets = embed(
         target_html, '<script type="application/json" id="stat-allocation-data">',
         "</script>", embedded_allocation(data),
     )
+    updated_targets = embed(updated_targets, "        <!-- relative-rates -->",
+                            "        <!-- /relative-rates -->", rate_rules)
     equipment_path = DATA.parent / "03-装備ステータス基準.html"
     equipment_html = equipment_path.read_text(encoding="utf-8")
     panel_categories = {panel['title']: panel['cats'] for panel in model['player']}

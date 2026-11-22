@@ -320,6 +320,8 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   body::before { transition: opacity 160ms ease-out; }
   .spot-field { transition: transform 160ms ease-out, border-color 160ms ease-out; }
 }
+.es-relative-candidate { display: inline-grid; gap: 3px; max-width: 100%; min-width: 0; }
+.es-relative-candidate code { color: var(--muted); font-size: 0.75rem; overflow-wrap: anywhere; }
 </style>
 </head>
 <body>
@@ -477,7 +479,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     <h2 id="equipment-1-title"><span class="ch-num">1</span>武器</h2>
 <div class="es-subhead"><h3>両手固定</h3><p class="es-subnote">オフハンド（盾・補助装備）は使用不可。</p></div>
 <div class="es-grid">
-<article class="es-card es-two-hand" data-status-ids="es-37 es-77 es-8 es-11 es-7 es-57 es-18 es-16 es-29 es-42 es-63 es-72 es-23">
+<article class="es-card es-two-hand" data-status-ids="es-39 es-79 es-10 es-13 es-9 es-59 es-20 es-18 es-31 es-44 es-65 es-74 es-25">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-hammer"></use></svg>
 <div><h4 class="es-name">ハンマー</h4><p class="es-role">敵のシールドを崩す。</p></div></div>
@@ -501,7 +503,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <div class="es-category-row cat-offense"><div class="cat-list"><span class="cat cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">HP固定ダメージ</span></div></div>
 </div>
 </article>
-<article class="es-card es-two-hand" data-status-ids="es-68 es-82 es-21 es-11 es-7 es-79 es-14 es-75 es-74">
+<article class="es-card es-two-hand" data-status-ids="es-70 es-84 es-23 es-13 es-9 es-81 es-16 es-77 es-76">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-longbow"></use></svg>
 <div><h4 class="es-name">長弓（ロングボウ）</h4><p class="es-role">精密射撃で会心を狙う。</p></div></div>
@@ -523,7 +525,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <div class="es-category-row cat-offense"><div class="cat-list"><span class="cat cat-offense">攻撃</span></div> <div class="es-values"><a class="es-stat cat-offense" href="#es-pool-%E8%B6%85%E6%98%9F%E4%BC%9A%E5%BF%83">超星会心</a></div></div>
 </div>
 </article>
-<article class="es-card es-two-hand" data-status-ids="es-6 es-90 es-41 es-11 es-7 es-55 es-52 es-47 es-86 es-54 es-49 es-88">
+<article class="es-card es-two-hand" data-status-ids="es-6 es-92 es-43 es-13 es-9 es-57 es-54 es-49 es-88 es-8 es-56 es-51 es-90">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-staff"></use></svg>
 <div><h4 class="es-name">スタッフ</h4><p class="es-role">MPを確保し、攻撃・支援魔法を続ける。</p></div></div>
@@ -541,7 +543,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <div class="es-category-row cat-utility"><div class="cat-list"><span class="cat cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">詠唱時間短縮</span> <span class="es-stat cat-utility">支援力</span></div></div>
 </div>
 <div class="es-stage" data-stage="build"><h5>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h5>
-<div class="es-category-row cat-offense"><div class="cat-list"><span class="cat cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">魔法防御貫通率</span></div></div>
+<div class="es-category-row cat-offense"><div class="cat-list"><span class="cat cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">魔法防御貫通率</span> <span class="es-relative-candidate"><span class="es-stat cat-offense">スキル会心率の相対増加</span> <code>SKILL_CRITICAL_RATE_RELATIVE_INCREASE</code></span></div></div>
 <div class="es-category-row cat-utility"><div class="cat-list"><span class="cat cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">状態異常持続時間増加</span></div></div>
 </div>
 <div class="es-stage" data-stage="lateBuild"><h5>後期ビルド向け候補 <span class="es-condition">Lv.75〜</span></h5>
@@ -551,7 +553,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 </div>
 <div class="es-subhead"><h3>その他の武器</h3></div>
 <div class="es-grid">
-<article class="es-card" data-status-ids="es-80 es-77 es-79 es-14">
+<article class="es-card" data-status-ids="es-82 es-79 es-81 es-16 es-7">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-sword"></use></svg>
 <div><h4 class="es-name">剣</h4><p class="es-role">通常攻撃を軸に、手数と会心を伸ばす。</p></div></div>
@@ -566,13 +568,13 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <div class="es-category-row cat-offense"><div class="cat-list"><span class="cat cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">スキルダメージ増加</span> <span class="es-stat cat-offense">シールドブレイク</span></div></div>
 </div>
 <div class="es-stage" data-stage="build"><h5>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h5>
-<div class="es-category-row cat-offense"><div class="cat-list"><span class="cat cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">攻撃速度</span> <a class="es-stat cat-offense" href="#es-pool-%E9%80%9A%E5%B8%B8%E4%BC%9A%E5%BF%83">通常会心</a> <span class="es-stat cat-offense">近接防御貫通率</span></div></div>
+<div class="es-category-row cat-offense"><div class="cat-list"><span class="cat cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">攻撃速度</span> <a class="es-stat cat-offense" href="#es-pool-%E9%80%9A%E5%B8%B8%E4%BC%9A%E5%BF%83">通常会心</a> <span class="es-stat cat-offense">近接防御貫通率</span> <span class="es-relative-candidate"><span class="es-stat cat-offense">通常攻撃会心率の相対増加</span> <code>NORMAL_ATTACK_CRITICAL_RATE_RELATIVE_INCREASE</code></span></div></div>
 </div>
 <div class="es-stage" data-stage="lateBuild"><h5>後期ビルド向け候補 <span class="es-condition">Lv.75〜</span></h5>
 <div class="es-category-row cat-offense"><div class="cat-list"><span class="cat cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">ライフスティール</span></div></div>
 </div>
 </article>
-<article class="es-card" data-status-ids="es-76 es-77 es-57 es-18 es-16 es-29 es-42 es-63 es-72 es-23 es-59 es-31 es-44 es-61 es-33 es-46">
+<article class="es-card" data-status-ids="es-78 es-79 es-59 es-20 es-18 es-31 es-44 es-65 es-74 es-25 es-61 es-33 es-46 es-63 es-35 es-48">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-spear"></use></svg>
 <div><h4 class="es-name">槍</h4><p class="es-role">近接スキルを当て、状態異常と継続ダメージにつなぐ。</p></div></div>
@@ -594,7 +596,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <div class="es-category-row cat-condition"><div class="cat-list"><span class="cat cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%B6%99%E7%B6%9A%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E8%B2%AB%E9%80%9A">継続ダメージ貫通</a></div></div>
 </div>
 </article>
-<article class="es-card" data-status-ids="es-85 es-82 es-79 es-14 es-55 es-52 es-47 es-86">
+<article class="es-card" data-status-ids="es-87 es-84 es-81 es-16 es-57 es-54 es-49 es-88">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-bow"></use></svg>
 <div><h4 class="es-name">弓</h4><p class="es-role">離れた敵に通常攻撃を当て、会心や属性で威力を伸ばす。</p></div></div>
@@ -613,7 +615,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <div class="es-category-row cat-element"><div class="cat-list"><span class="cat cat-element">属性</span></div> <div class="es-values"><a class="es-stat cat-element" href="#es-pool-%E5%B1%9E%E6%80%A7%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E5%A2%97%E5%8A%A0">属性ダメージ増加</a></div></div>
 </div>
 </article>
-<article class="es-card" data-status-ids="es-69 es-82 es-57 es-18 es-16 es-29 es-42 es-63 es-72 es-23 es-59 es-31 es-44">
+<article class="es-card" data-status-ids="es-71 es-84 es-59 es-20 es-18 es-31 es-44 es-65 es-74 es-25 es-61 es-33 es-46">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-shortbow"></use></svg>
 <div><h4 class="es-name">短弓</h4><p class="es-role">素早く動き、手数を生かして状態異常を狙う。</p></div></div>
@@ -632,7 +634,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <div class="es-category-row cat-condition"><div class="cat-list"><span class="cat cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%8A%B6%E6%85%8B%E7%95%B0%E5%B8%B8%E4%BB%98%E4%B8%8E%E7%A2%BA%E7%8E%87%E5%A2%97%E5%8A%A0">状態異常付与確率増加</a> <a class="es-stat cat-condition" href="#es-pool-%E7%B6%99%E7%B6%9A%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E5%A2%97%E5%8A%A0">継続ダメージ増加</a></div></div>
 </div>
 </article>
-<article class="es-card" data-status-ids="es-28 es-90 es-55 es-52 es-47 es-86 es-57 es-18 es-16 es-29 es-42 es-63 es-72 es-23">
+<article class="es-card" data-status-ids="es-30 es-92 es-57 es-54 es-49 es-88 es-59 es-20 es-18 es-31 es-44 es-65 es-74 es-25 es-8">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-wand"></use></svg>
 <div><h4 class="es-name">ワンド</h4><p class="es-role">属性魔法を使い、詠唱の短縮や消費MPの軽減を図る。</p></div></div>
@@ -649,7 +651,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <div class="es-category-row cat-utility"><div class="cat-list"><span class="cat cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">詠唱時間短縮</span></div></div>
 </div>
 <div class="es-stage" data-stage="build"><h5>ビルド向け候補 <span class="es-condition">Lv.25〜</span></h5>
-<div class="es-category-row cat-offense"><div class="cat-list"><span class="cat cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">魔法防御貫通率</span></div></div>
+<div class="es-category-row cat-offense"><div class="cat-list"><span class="cat cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">魔法防御貫通率</span> <span class="es-relative-candidate"><span class="es-stat cat-offense">スキル会心率の相対増加</span> <code>SKILL_CRITICAL_RATE_RELATIVE_INCREASE</code></span></div></div>
 <div class="es-category-row cat-condition"><div class="cat-list"><span class="cat cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%8A%B6%E6%85%8B%E7%95%B0%E5%B8%B8%E4%BB%98%E4%B8%8E%E7%A2%BA%E7%8E%87%E5%A2%97%E5%8A%A0">状態異常付与確率増加</a></div></div>
 <div class="es-category-row cat-utility"><div class="cat-list"><span class="cat cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">MP消費軽減率</span></div></div>
 </div>
@@ -660,7 +662,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   <section class="es-chapter" id="armor" aria-labelledby="armor-title">
     <h2 id="armor-title"><span class="ch-num">2</span>防具</h2>
 <div class="es-grid">
-<article class="es-card" data-status-ids="es-89 es-15 es-56 es-53 es-48 es-87 es-58 es-19 es-17 es-30 es-43 es-64 es-73 es-24">
+<article class="es-card" data-status-ids="es-91 es-17 es-58 es-55 es-50 es-89 es-60 es-21 es-19 es-32 es-45 es-66 es-75 es-26">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-helm"></use></svg>
 <div><h3 class="es-name">頭</h3><p class="es-role">魔法や属性攻撃に備え、詠唱を支える。</p></div></div>
@@ -679,7 +681,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <div class="es-category-row cat-condition"><div class="cat-list"><span class="cat cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%8A%B6%E6%85%8B%E7%95%B0%E5%B8%B8%E4%BB%98%E4%B8%8E%E8%80%90%E6%80%A7">状態異常付与耐性</a></div></div>
 </div>
 </article>
-<article class="es-card" data-status-ids="es-84 es-15 es-56 es-53 es-48 es-87 es-78 es-83">
+<article class="es-card" data-status-ids="es-86 es-17 es-58 es-55 es-50 es-89 es-80 es-85">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-chest"></use></svg>
 <div><h3 class="es-name">胴</h3><p class="es-role">防具で最も多くの共通防御を受け持ち、HPを補う。</p></div></div>
@@ -703,7 +705,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <div class="es-category-row cat-defense"><div class="cat-list"><span class="cat cat-defense">防御</span></div> <div class="es-values"><span class="es-stat cat-defense">被ダメージ軽減率</span></div></div>
 </div>
 </article>
-<article class="es-card" data-status-ids="es-1 es-15 es-58 es-19 es-17 es-30 es-43 es-64 es-73 es-24 es-78 es-83 es-60 es-32 es-45">
+<article class="es-card" data-status-ids="es-1 es-17 es-60 es-21 es-19 es-32 es-45 es-66 es-75 es-26 es-80 es-85 es-62 es-34 es-47">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-legs"></use></svg>
 <div><h3 class="es-name">脚</h3><p class="es-role">ENGを補い、ノックバックや状態異常に耐える。</p></div></div>
@@ -724,7 +726,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <div class="es-category-row cat-condition"><div class="cat-list"><span class="cat cat-condition">状態異常</span></div> <div class="es-values"><a class="es-stat cat-condition" href="#es-pool-%E7%B6%99%E7%B6%9A%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E8%80%90%E6%80%A7">継続ダメージ耐性</a></div></div>
 </div>
 </article>
-<article class="es-card" data-status-ids="es-66 es-15 es-60 es-32 es-45 es-56 es-53 es-48 es-87 es-58 es-19 es-17 es-30 es-43 es-64 es-73 es-24 es-51 es-50">
+<article class="es-card" data-status-ids="es-68 es-17 es-62 es-34 es-47 es-58 es-55 es-50 es-89 es-60 es-21 es-19 es-32 es-45 es-66 es-75 es-26 es-53 es-52">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-boots"></use></svg>
 <div><h3 class="es-name">足</h3><p class="es-role">移動と回避を支え、継続ダメージを抑える。</p></div></div>
@@ -756,7 +758,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   <section class="es-chapter" id="equipment-3" aria-labelledby="equipment-3-title">
     <h2 id="equipment-3-title"><span class="ch-num">3</span>補助装備</h2>
 <div class="es-grid">
-<article class="es-card" data-status-ids="es-38 es-15 es-56 es-53 es-48 es-87 es-58 es-19 es-17 es-30 es-43 es-64 es-73 es-24 es-78 es-83">
+<article class="es-card" data-status-ids="es-40 es-17 es-58 es-55 es-50 es-89 es-60 es-21 es-19 es-32 es-45 es-66 es-75 es-26 es-80 es-85">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-shield"></use></svg>
 <div><h3 class="es-name">盾</h3><p class="es-role">敵の攻撃を受け止め、シールドの容量と再充填を補う。</p></div></div>
@@ -782,7 +784,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <div class="es-category-row cat-defense"><div class="cat-list"><span class="cat cat-defense">防御</span></div> <div class="es-values"><span class="es-stat cat-defense">被ダメージ軽減率</span></div></div>
 </div>
 </article>
-<article class="es-card" data-status-ids="es-20 es-21 es-39 es-79 es-14">
+<article class="es-card" data-status-ids="es-22 es-23 es-41 es-81 es-16">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-target"></use></svg>
 <div><h3 class="es-name">物理攻撃の補助</h3><p class="es-role">命中かENGを補い、物理攻撃を続けやすくする。</p></div></div>
@@ -801,7 +803,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <div class="es-category-row cat-offense"><div class="cat-list"><span class="cat cat-offense">攻撃</span></div> <div class="es-values"><span class="es-stat cat-offense">攻撃速度</span> <a class="es-stat cat-offense" href="#es-pool-%E9%80%9A%E5%B8%B8%E4%BC%9A%E5%BF%83">通常会心</a> <span class="es-stat cat-offense">近接防御貫通率</span> <span class="es-stat cat-offense">間接防御貫通率</span></div></div>
 </div>
 </article>
-<article class="es-card" data-status-ids="es-5 es-41 es-34">
+<article class="es-card" data-status-ids="es-5 es-43 es-36">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-book"></use></svg>
 <div><h3 class="es-name">魔法・支援の補助</h3><p class="es-role">MPか支援力を補い、魔法や支援スキルを使いやすくする。</p></div></div>
@@ -827,7 +829,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   <section class="es-chapter" id="equipment-4" aria-labelledby="equipment-4-title">
     <h2 id="equipment-4-title"><span class="ch-num">4</span>アクセサリ</h2>
 <div class="es-grid">
-<article class="es-card" data-status-ids="es-3 es-40 es-41 es-39 es-67 es-22 es-65 es-56 es-53 es-48 es-87 es-79 es-14">
+<article class="es-card" data-status-ids="es-3 es-42 es-43 es-41 es-69 es-24 es-67 es-58 es-55 es-50 es-89 es-81 es-16">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-amulet"></use></svg>
 <div><h3 class="es-name">アミュレット</h3><p class="es-role">HP・MP・ENGのいずれかの上限を伸ばす。</p></div></div>
@@ -849,7 +851,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <div class="es-category-row cat-utility"><div class="cat-list"><span class="cat cat-utility">ユーティリティ</span></div> <div class="es-values"><span class="es-stat cat-utility">回復量増加</span></div></div>
 </div>
 </article>
-<article class="es-card" data-status-ids="es-13 es-12 es-36 es-67 es-22 es-65 es-56 es-53 es-48 es-87 es-55 es-52 es-47 es-86">
+<article class="es-card" data-status-ids="es-15 es-14 es-38 es-69 es-24 es-67 es-58 es-55 es-50 es-89 es-57 es-54 es-49 es-88">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-talisman"></use></svg>
 <div><h3 class="es-name">タリスマン</h3><p class="es-role">主能力か敏捷性を補い、攻撃を当てやすくする。</p></div></div>
@@ -869,7 +871,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <div class="es-category-row cat-element"><div class="cat-list"><span class="cat cat-element">属性</span></div> <div class="es-values"><a class="es-stat cat-element" href="#es-pool-%E5%B1%9E%E6%80%A7%E3%83%80%E3%83%A1%E3%83%BC%E3%82%B8%E5%A2%97%E5%8A%A0">属性ダメージ増加</a></div></div>
 </div>
 </article>
-<article class="es-card" data-status-ids="es-71 es-27 es-62 es-70 es-4 es-56 es-53 es-48 es-87 es-58 es-19 es-17 es-30 es-43 es-64 es-73 es-24 es-60 es-32 es-45 es-2 es-10 es-51 es-50">
+<article class="es-card" data-status-ids="es-73 es-29 es-64 es-72 es-4 es-58 es-55 es-50 es-89 es-60 es-21 es-19 es-32 es-45 es-66 es-75 es-26 es-62 es-34 es-47 es-2 es-12 es-53 es-52">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-charm"></use></svg>
 <div><h3 class="es-name">チャーム</h3><p class="es-role">耐性や自然回復を補い、探索を続けやすくする。</p></div></div>
@@ -888,7 +890,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <div class="es-category-row cat-utility"><div class="cat-list"><span class="cat cat-utility">ユーティリティ</span></div> <div class="es-values"><a class="es-stat cat-utility" href="#es-pool-%E8%82%B2%E6%88%90%E3%83%BB%E6%8E%A2%E7%B4%A2%E5%A0%B1%E9%85%AC">育成・探索報酬</a> <a class="es-stat cat-utility" href="#es-pool-%E6%B6%88%E8%80%97%E5%93%81%E4%BD%BF%E7%94%A8%E4%B8%AD%E3%81%AE%E7%A7%BB%E5%8B%95">消耗品使用中の移動</a></div></div>
 </div>
 </article>
-<article class="es-card" data-status-ids="es-35 es-81 es-9 es-34 es-40 es-55 es-52 es-47 es-86">
+<article class="es-card" data-status-ids="es-37 es-83 es-11 es-36 es-42 es-57 es-54 es-49 es-88">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-core"></use></svg>
 <div><h3 class="es-name">コア</h3><p class="es-role">攻撃・支援・耐久のうち、構成の軸になる能力を伸ばす。</p></div></div>
@@ -912,7 +914,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <div class="es-category-row cat-defense"><div class="cat-list"><span class="cat cat-defense">防御</span></div> <div class="es-values"><span class="es-stat cat-defense">被ダメージ軽減率</span></div></div>
 </div>
 </article>
-<article class="es-card" data-status-ids="es-26 es-25 es-62 es-34 es-55 es-52 es-47 es-86 es-58 es-19 es-17 es-30 es-43 es-64 es-73 es-24 es-57 es-18 es-16 es-29 es-42 es-63 es-72 es-23 es-59 es-31 es-44 es-75 es-74 es-61 es-33 es-46">
+<article class="es-card" data-status-ids="es-28 es-27 es-64 es-36 es-57 es-54 es-49 es-88 es-60 es-21 es-19 es-32 es-45 es-66 es-75 es-26 es-59 es-20 es-18 es-31 es-44 es-65 es-74 es-25 es-61 es-33 es-46 es-77 es-76 es-63 es-35 es-48">
 <div class="es-card-head">
 <svg class="es-gear-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#es-icon-relic"></use></svg>
 <div><h3 class="es-name">レリック</h3><p class="es-role">属性攻撃・状態異常への備え・支援から得意分野を選ぶ。</p></div></div>
@@ -955,8 +957,12 @@ body { margin: 0; background: var(--page); color: var(--ink); }
     <p>ビルド向けの付与は標準の付与と入れ替え、同じLvの特化目標と比較する。標準値は<a href="02-ステータス指標.html#player-allocation">02の配分一覧</a>の装備欄を参照。</p>
     <p>両手固定武器の種別攻撃力は02の標準値に従う。専用補正には、対応する能力の同じLvの装備配分の50%を使う。これは攻撃用の補助装備1枠分の目安で、両手固定時はその分を武器で付与する。オフハンドの値は重ねて加算しない。</p>
     <p>専用補正は0.01単位に四捨五入し、装備配分から差し引いた残りを他部位に配る。Lv.1は装備配分が0のため補正も0。装備配分が正になるLvから有効になる。命中率の補正はポイントで加算する。</p>
-    <script type="application/json" id="doc-search-aliases">{"es-1": "ENGを補い、ノックバックや状態異常に耐える。", "es-2": "EXP獲得量増加率", "es-3": "HP・MP・ENGのいずれかの上限を伸ばす。", "es-4": "HP自然回復量（5秒ごと）", "es-5": "MPか支援力を補い、魔法や支援スキルを使いやすくする。", "es-6": "MPを確保し、攻撃・支援魔法を続ける。", "es-7": "オフハンド不可", "es-8": "シールドブレイク", "es-9": "スキルダメージ増加", "es-10": "ドロップ増加率", "es-11": "両手固定", "es-12": "主能力", "es-13": "主能力か敏捷性を補い、攻撃を当てやすくする。", "es-14": "会心ダメージ", "es-15": "共通防御", "es-16": "冷気付与確率増加", "es-17": "冷気付与耐性", "es-18": "凍結付与確率増加", "es-19": "凍結付与耐性", "es-20": "命中かENGを補い、物理攻撃を続けやすくする。", "es-21": "命中率", "es-22": "器用さ", "es-23": "回復阻害付与確率増加", "es-24": "回復阻害付与耐性", "es-25": "属性ダメージ増加", "es-26": "属性攻撃・状態異常への備え・支援から得意分野を選ぶ。", "es-27": "属性耐性", "es-28": "属性魔法を使い、詠唱の短縮や消費MPの軽減を図る。", "es-29": "感電付与確率増加", "es-30": "感電付与耐性", "es-31": "感電継続ダメージ増加", "es-32": "感電継続ダメージ耐性", "es-33": "感電継続ダメージ貫通", "es-34": "支援力", "es-35": "攻撃・支援・耐久のうち、構成の軸になる能力を伸ばす。", "es-36": "敏捷性", "es-37": "敵のシールドを崩す。", "es-38": "敵の攻撃を受け止め、シールドの容量と再充填を補う。", "es-39": "最大ENG", "es-40": "最大HP", "es-41": "最大MP", "es-42": "毒状態付与確率増加", "es-43": "毒状態付与耐性", "es-44": "毒状態継続ダメージ増加", "es-45": "毒状態継続ダメージ耐性", "es-46": "毒状態継続ダメージ貫通", "es-47": "氷属性ダメージ増加", "es-48": "氷属性耐性", "es-49": "氷属性貫通", "es-50": "消耗品使用時移動減速率", "es-51": "消耗品使用時移動許容距離", "es-52": "火属性ダメージ増加", "es-53": "火属性耐性", "es-54": "火属性貫通", "es-55": "無属性ダメージ増加", "es-56": "無属性耐性", "es-57": "燃焼付与確率増加", "es-58": "燃焼付与耐性", "es-59": "燃焼継続ダメージ増加", "es-60": "燃焼継続ダメージ耐性", "es-61": "燃焼継続ダメージ貫通", "es-62": "状態異常付与耐性", "es-63": "盲目付与確率増加", "es-64": "盲目付与耐性", "es-65": "知力", "es-66": "移動と回避を支え、継続ダメージを抑える。", "es-67": "筋力", "es-68": "精密射撃で会心を狙う。", "es-69": "素早く動き、手数を生かして状態異常を狙う。", "es-70": "継続ダメージ耐性", "es-71": "耐性や自然回復を補い、探索を続けやすくする。", "es-72": "衰弱付与確率増加", "es-73": "衰弱付与耐性", "es-74": "超星会心倍率", "es-75": "超星会心率", "es-76": "近接スキルを当て、状態異常と継続ダメージにつなぐ。", "es-77": "近接攻撃力", "es-78": "近接防御力", "es-79": "通常会心率", "es-80": "通常攻撃を軸に、手数と会心を伸ばす。", "es-81": "通常攻撃ダメージ増加", "es-82": "間接攻撃力", "es-83": "間接防御力", "es-84": "防具で最も多くの共通防御を受け持ち、HPを補う。", "es-85": "離れた敵に通常攻撃を当て、会心や属性で威力を伸ばす。", "es-86": "雷属性ダメージ増加", "es-87": "雷属性耐性", "es-88": "雷属性貫通", "es-89": "魔法や属性攻撃に備え、詠唱を支える。", "es-90": "魔法攻撃力"}</script>
+    <script type="application/json" id="doc-search-aliases">{"es-1": "ENGを補い、ノックバックや状態異常に耐える。", "es-2": "EXP獲得量増加率", "es-3": "HP・MP・ENGのいずれかの上限を伸ばす。", "es-4": "HP自然回復量（5秒ごと）", "es-5": "MPか支援力を補い、魔法や支援スキルを使いやすくする。", "es-6": "MPを確保し、攻撃・支援魔法を続ける。", "es-7": "NORMAL_ATTACK_CRITICAL_RATE_RELATIVE_INCREASE", "es-8": "SKILL_CRITICAL_RATE_RELATIVE_INCREASE", "es-9": "オフハンド不可", "es-10": "シールドブレイク", "es-11": "スキルダメージ増加", "es-12": "ドロップ増加率", "es-13": "両手固定", "es-14": "主能力", "es-15": "主能力か敏捷性を補い、攻撃を当てやすくする。", "es-16": "会心ダメージ", "es-17": "共通防御", "es-18": "冷気付与確率増加", "es-19": "冷気付与耐性", "es-20": "凍結付与確率増加", "es-21": "凍結付与耐性", "es-22": "命中かENGを補い、物理攻撃を続けやすくする。", "es-23": "命中率", "es-24": "器用さ", "es-25": "回復阻害付与確率増加", "es-26": "回復阻害付与耐性", "es-27": "属性ダメージ増加", "es-28": "属性攻撃・状態異常への備え・支援から得意分野を選ぶ。", "es-29": "属性耐性", "es-30": "属性魔法を使い、詠唱の短縮や消費MPの軽減を図る。", "es-31": "感電付与確率増加", "es-32": "感電付与耐性", "es-33": "感電継続ダメージ増加", "es-34": "感電継続ダメージ耐性", "es-35": "感電継続ダメージ貫通", "es-36": "支援力", "es-37": "攻撃・支援・耐久のうち、構成の軸になる能力を伸ばす。", "es-38": "敏捷性", "es-39": "敵のシールドを崩す。", "es-40": "敵の攻撃を受け止め、シールドの容量と再充填を補う。", "es-41": "最大ENG", "es-42": "最大HP", "es-43": "最大MP", "es-44": "毒状態付与確率増加", "es-45": "毒状態付与耐性", "es-46": "毒状態継続ダメージ増加", "es-47": "毒状態継続ダメージ耐性", "es-48": "毒状態継続ダメージ貫通", "es-49": "氷属性ダメージ増加", "es-50": "氷属性耐性", "es-51": "氷属性貫通", "es-52": "消耗品使用時移動減速率", "es-53": "消耗品使用時移動許容距離", "es-54": "火属性ダメージ増加", "es-55": "火属性耐性", "es-56": "火属性貫通", "es-57": "無属性ダメージ増加", "es-58": "無属性耐性", "es-59": "燃焼付与確率増加", "es-60": "燃焼付与耐性", "es-61": "燃焼継続ダメージ増加", "es-62": "燃焼継続ダメージ耐性", "es-63": "燃焼継続ダメージ貫通", "es-64": "状態異常付与耐性", "es-65": "盲目付与確率増加", "es-66": "盲目付与耐性", "es-67": "知力", "es-68": "移動と回避を支え、継続ダメージを抑える。", "es-69": "筋力", "es-70": "精密射撃で会心を狙う。", "es-71": "素早く動き、手数を生かして状態異常を狙う。", "es-72": "継続ダメージ耐性", "es-73": "耐性や自然回復を補い、探索を続けやすくする。", "es-74": "衰弱付与確率増加", "es-75": "衰弱付与耐性", "es-76": "超星会心倍率", "es-77": "超星会心率", "es-78": "近接スキルを当て、状態異常と継続ダメージにつなぐ。", "es-79": "近接攻撃力", "es-80": "近接防御力", "es-81": "通常会心率", "es-82": "通常攻撃を軸に、手数と会心を伸ばす。", "es-83": "通常攻撃ダメージ増加", "es-84": "間接攻撃力", "es-85": "間接防御力", "es-86": "防具で最も多くの共通防御を受け持ち、HPを補う。", "es-87": "離れた敵に通常攻撃を当て、会心や属性で威力を伸ばす。", "es-88": "雷属性ダメージ増加", "es-89": "雷属性耐性", "es-90": "雷属性貫通", "es-91": "魔法や属性攻撃に備え、詠唱を支える。", "es-92": "魔法攻撃力"}</script>
 <!-- /equipment:rules -->
+    <p>装備の <code>equipment.stats</code> で、<code>status</code> にカード記載の相対増加ID、<code>type</code> に <code>FLAT</code> を指定する。相対増加の付与量は「狙う上昇ポイント÷補正前の値×100」で求める。
+      例えば通常会心率5%を2.5ポイント伸ばす候補は <code>value: 50</code> とする。
+      補正前の値が0のときは固定加算で値を確保する。
+      <a href="02-ステータス指標.html#fx-relative-rates">相対％補正の計算方法</a>を参照。</p>
   </section>
   <section class="es-chapter" id="candidate-groups" aria-labelledby="candidate-groups-title">
     <h2 id="candidate-groups-title">候補グループの内訳</h2>
@@ -981,6 +987,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
 <!-- /equipment:groups -->
     </dl>
   </section>
+  </div>
   </div>
 </main>
 <script>

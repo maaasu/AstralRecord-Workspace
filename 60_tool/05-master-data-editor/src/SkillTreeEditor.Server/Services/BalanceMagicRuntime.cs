@@ -134,7 +134,7 @@ internal sealed class BalanceMagicRuntime : IBalanceSkillRuntime
                 AdvancePickups(c); Meditation(c); Phoenix(c); break;
             case "damage_applied": if (e.Hit is { Landed: true } hit && hit.Source is "SKILL" or "NORMAL_ATTACK")
                 { RecordPhoenixHit(c, hit); RecordOrreryHit(c, hit); } break;
-            case "condition_applied": if (e.Reason == "SKILL" && e.Cast is { } conditionCast) ConditionApplied(c, conditionCast, e.Condition); break;
+            case "condition_applied": if (e.Reason == "SKILL" && e.Cast is not null) ConditionApplied(c, e.Condition); break;
             case "input":
                 if (!c.Sneaking) InterruptMeditation(c);
                 if (c.Sneaking && !s.WasSneaking && !c.OnGround && c.Passive("mage_blink") is { } blink) Blink(c, c.Snapshot(blink));
@@ -396,7 +396,7 @@ internal sealed class BalanceMagicRuntime : IBalanceSkillRuntime
         }
     }
 
-    private static void ConditionApplied(BalanceRuntimeContext c, BalanceRuntimeCast source, string condition)
+    private static void ConditionApplied(BalanceRuntimeContext c, string condition)
     {
         if (c.Passive("wizard_prism_condition") is { } prismDefinition)
         {
@@ -405,12 +405,12 @@ internal sealed class BalanceMagicRuntime : IBalanceSkillRuntime
         }
         if (condition == "BURNING" && c.Distance <= 30 && c.Passive("wizard_burn_meteor_strike") is { } burn)
         {
-            var cast = new BalanceRuntimeCast(BalanceCombatData.Text(burn["id"]), burn, source.Stats);
+            var cast = c.Snapshot(burn);
             if (SpendMana(c, burn)) Meteor(c, cast, c.EnemyPosition, 2.5, 1.5, 20, false);
         }
         if (condition == "SHOCKED" && c.Passive("wizard_lightning_strike") is { } lightning
             && c.Distance <= N(BalanceSkillParameters.Params(lightning), "range", 30) && SpendMana(c, lightning))
-            c.Hit(new(BalanceCombatData.Text(lightning["id"]), lightning, source.Stats),
+            c.Hit(c.Snapshot(lightning),
                 N(BalanceSkillParameters.Params(lightning), "damageRatio", 1.5), element: "LIGHTNING");
     }
 

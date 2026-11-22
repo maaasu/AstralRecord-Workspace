@@ -24,8 +24,8 @@ internal static class BalanceSkillDamage
         if (ratio <= 0) return new(0, true, false);
         var increase = source == "SKILL" ? "SKILL_DAMAGE_INCREASE" : "NORMAL_ATTACK_DAMAGE_INCREASE";
         var damage = attack * ratio * Math.Max(0, 1 + BalanceCombatData.Stat(attacker, increase) / 100) * attackerMultiplier;
-        var critical = BalanceCombatData.Stat(attacker, "CRITICAL_RATE") > 0
-            && rng.NextDouble() * 100 < BalanceCombatData.Stat(attacker, "CRITICAL_RATE");
+        var criticalRate = BalanceCombatData.Stat(attacker, "CRITICAL_RATE", source: playerAgainstMob ? source : null);
+        var critical = criticalRate > 0 && rng.NextDouble() * 100 < criticalRate;
         if (critical)
         {
             var value = BalanceCombatData.Stat(attacker, "CRITICAL_DAMAGE");

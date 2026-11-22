@@ -103,8 +103,25 @@ internal static class BalanceCombatData
         }
     }
 
-    internal static double Stat(IReadOnlyDictionary<string, double> stats, string key, double fallback = 0)
-        => stats.TryGetValue(key, out var value) ? value : fallback;
+    internal const string NormalCriticalIncrease = "NORMAL_ATTACK_CRITICAL_RATE_RELATIVE_INCREASE";
+    internal const string SkillCriticalIncrease = "SKILL_CRITICAL_RATE_RELATIVE_INCREASE";
+
+    // Snapshots retain raw totals so later skill-instance and timed bonuses can still be added.
+    internal static double Stat(IReadOnlyDictionary<string, double> stats, string key, double fallback = 0,
+        string? source = null)
+    {
+        if (!stats.TryGetValue(key, out var value)) return fallback;
+        if (!RelativeStatusTypes.Increases.TryGetValue(key, out var commonId)) return value;
+        var increase = stats.GetValueOrDefault(commonId);
+        if (key == "CRITICAL_RATE")
+            increase += source switch
+            {
+                "NORMAL_ATTACK" => stats.GetValueOrDefault(NormalCriticalIncrease),
+                "SKILL" => stats.GetValueOrDefault(SkillCriticalIncrease),
+                _ => 0
+            };
+        return value * Math.Max(0, 1 + increase / 100);
+    }
 
     internal static void Add(IDictionary<string, double> stats, string key, double value)
     {
@@ -120,6 +137,48 @@ internal static class BalanceCombatData
             Add(stats, Text(entry["status"]), Number(entry["value"]));
         foreach (var entry in Array(definition["growthPerLevel"]).OfType<JsonObject>())
             Add(stats, Text(entry["status"]), Number(entry["value"]) * (effectiveLevel - 1));
+    }
+
+    // The build supplies the active, learned node IDs (the same IDs as a progression preset).
+    internal static void AddTreeStats(Dictionary<string, double> stats, JsonNode? selection,
+        IEnumerable<Master> masters, List<string> unsupported)
+    {
+        if (selection is null) return;
+        if (selection is not JsonArray nodes)
+        {
+            unsupported.Add("build.nodes は有効な習得ノードIDの配列で指定してください。");
+            return;
+        }
+        var catalog = masters.Where(m => m.Kind == "node").ToLookup(m => Text(m.Content["nodeId"]));
+        var seen = new HashSet<string>();
+        var flats = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        var scalars = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        foreach (var node in nodes)
+        {
+            var id = Text(node);
+            var matches = catalog[id].Take(2).ToArray();
+            if (matches.Length != 1 || !seen.Add(id) || matches[0].Content["effects"] is not JsonArray effects)
+            {
+                unsupported.Add($"build.nodes: ノード {id} の定義を一意に特定できません。");
+                continue;
+            }
+            foreach (var entry in effects)
+            {
+                if (entry is JsonObject skill && Text(skill["type"]) == "skill") continue;
+                if (entry is not JsonObject effect || Text(effect["type"]) != "status"
+                    || !BalanceCombat.SupportsStatus(Text(effect["status"]))
+                    || Text(effect["modifierType"]) is not ("FLAT" or "SCALAR")
+                    || effect["value"]?.GetValueKind() != System.Text.Json.JsonValueKind.Number
+                    || !double.IsFinite(Number(effect["value"], double.NaN)))
+                {
+                    unsupported.Add($"build.nodes: ノード {id} の効果 {entry} は未対応です。");
+                    continue;
+                }
+                Add(Text(effect["modifierType"]) == "FLAT" ? flats : scalars, Text(effect["status"]), Number(effect["value"]));
+            }
+        }
+        foreach (var (key, scalar) in scalars) Add(stats, key, stats.GetValueOrDefault(key) * scalar);
+        foreach (var (key, flat) in flats) Add(stats, key, flat);
     }
 
     internal static void AddPrimaryDerived(IDictionary<string, double> stats)

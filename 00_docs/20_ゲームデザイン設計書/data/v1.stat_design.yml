@@ -88,7 +88,38 @@ groups:
       - {title: 消耗品使用時移動許容距離, mode: zero}
       - {title: 消耗品使用時移動減速率, mode: zero}
 
+relativeRates:
+  - - 適用順
+    - 固定加算・基本能力値からの派生・スキル個体の補正を合計し、相対増加率を一度掛ける。
+      倍率の下限は0。各判定の上限は最後に適用する。補正前の値が0なら補正後も0。
+  - - 装備とスキルツリー
+    - 元IDへのFLATはポイント加算。通常会心率5%に元IDで5ポイントを加えると10%。
+      相対増加は別IDへのFLATで指定する。通常会心率5%に相対増加100%を付けても10%になる。
+  - - 攻撃元
+    - 共通のCRITICAL_RATE_RELATIVE_INCREASEに、攻撃元に応じて
+      NORMAL_ATTACK_CRITICAL_RATE_RELATIVE_INCREASEまたは
+      SKILL_CRITICAL_RATE_RELATIVE_INCREASEを足す。
+      職業スキルにはシジル装着の有無を問わずスキル限定が適用される。
+      通常会心と超星会心はそれぞれ独立して判定する。
+  - - 対象
+    - 会心率・会心ダメージ・超星会心率・超星会心倍率、命中率・回避率・攻撃速度、
+      ライフスティール、シールドリチャージ加算率、共通・種別防御貫通、属性耐性と火・氷・雷の属性貫通。
+  - - 対象（続き）
+    - 状態異常の付与耐性、燃焼・感電・毒の継続ダメージ耐性と貫通、ノックバック耐性、
+      被ダメージ軽減率、CT・詠唱・シールドリチャージの短縮、MP・ENG消費軽減。
+  - - 対象外
+    - 通常攻撃・スキル・属性・継続ダメージ、回復量、持続時間、状態異常付与確率の増加は既存の補正。
+      最終ダメージ・EXP・ドロップは既存の倍率。耐性上限は制限値、消耗品使用時移動減速率はペナルティ。
+      これらと相対増加自体には相対増加IDを生成しない。
+
 equipment:
+  relativeCandidates:
+    通常攻撃会心率の相対増加:
+      base: 通常会心率
+      id: NORMAL_ATTACK_CRITICAL_RATE_RELATIVE_INCREASE
+    スキル会心率の相対増加:
+      base: 通常会心率
+      id: SKILL_CRITICAL_RATE_RELATIVE_INCREASE
   unlockLevels: {advanced: 50, build: 25, lateBuild: 75}
   twoHanded: {sharePercent: 50, exampleLevel: 25}
   standardArmor:
@@ -122,7 +153,7 @@ equipment:
         required: [近接攻撃力]
         normal: [筋力, 命中率, 通常攻撃ダメージ増加]
         advanced: [スキルダメージ増加, シールドブレイク]
-        build: [攻撃速度, 通常会心, 近接防御貫通率]
+        build: [攻撃速度, 通常会心, 近接防御貫通率, 通常攻撃会心率の相対増加]
         lateBuild: [ライフスティール]
       - name: ハンマー
         icon: hammer
@@ -171,7 +202,7 @@ equipment:
         required: [魔法攻撃力]
         normal: [知力, 最大MP, 属性ダメージ増加]
         advanced: [詠唱時間短縮, スキルダメージ増加]
-        build: [MP消費軽減率, 魔法防御貫通率, 状態異常付与確率増加]
+        build: [MP消費軽減率, 魔法防御貫通率, 状態異常付与確率増加, スキル会心率の相対増加]
       - name: スタッフ
         icon: staff
         role: MPを確保し、攻撃・支援魔法を続ける。
@@ -179,7 +210,7 @@ equipment:
         twoHandedBonus: 最大MP
         normal: [知力, スキルダメージ増加, MP消費軽減率]
         advanced: [属性ダメージ増加, 詠唱時間短縮, 支援力]
-        build: [魔法防御貫通率, 状態異常持続時間増加]
+        build: [魔法防御貫通率, 状態異常持続時間増加, スキル会心率の相対増加]
         lateBuild: [属性貫通]
     防具:
       - name: 頭

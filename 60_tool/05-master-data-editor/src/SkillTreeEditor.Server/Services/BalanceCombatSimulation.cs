@@ -75,6 +75,7 @@ public static partial class BalanceCombat
             .GroupBy(master => BalanceCombatData.Text(master.Content["implementationId"]), StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First().Content, StringComparer.Ordinal);
         foreach (var skill in skills.Concat(passives)) definitions[skill.Profile.ImplementationId] = skill.Definition;
+        var learned = skills.ToDictionary(skill => skill.Id, StringComparer.Ordinal);
         BalanceRuntimeContext runtime = null!;
         BalanceRuntimeWorld world = null!;
         runtime = new()
@@ -83,6 +84,8 @@ public static partial class BalanceCombat
             Passives = passives.ToDictionary(skill => skill.Profile.ImplementationId, skill => skill.Definition, StringComparer.Ordinal),
             WeaponTag = weaponTag, ReadResource = ReadResource, WriteResource = WriteResource,
             ReadStats = enemySide => Stats(enemySide ? enemy : player, enemySide ? "enemy" : "player"),
+            ReadSkillStats = definition => learned.TryGetValue(BalanceCombatData.Text(definition["id"]), out var skill)
+                ? SkillStats(skill) : Stats(player, "player"),
             Queue = (cast, delay, action, scope) =>
             {
                 if (actions.Sum(pair => pair.Value.Count) >= 20_000) throw new BalanceRuntimeUnsupportedException("同時予約処理が20000件を超えました。");
@@ -167,7 +170,7 @@ public static partial class BalanceCombat
                 foreach (var skill in skills)
                 {
                     if (tick < ready[skill.Id]) continue;
-                    var stats = Stats(player, "player");
+                    var stats = SkillStats(skill);
                     if (skill.Kind == "heal" && hp >= Stat(stats, "MAX_HEALTH") * .75) continue;
                     var cost = Cost(skill, stats);
                     var mana = ManaCost(skill, stats);
@@ -176,7 +179,7 @@ public static partial class BalanceCombat
                     if (skill.Resource == "GUARD" && runtime.Resource("GUARD") + 1e-6 < cost) continue;
                     runtime.AdditionalCastReductionPercent = 0; runtime.CastReductionTicks = 0;
                     if (dynamic) Dispatch(new("before_cast", RuntimeCast(skill, stats)));
-                    if (skill.CastTicks > 0) { casting = skill; castAt = tick + Math.Max(0, BalanceCombatMath.CastTimeTicks(skill.CastTicks, Stat(stats, "CAST_TIME_REDUCTION") + runtime.AdditionalCastReductionPercent) - runtime.CastReductionTicks); }
+                    if (skill.CastTicks > 0) { casting = skill; castAt = tick + Math.Max(0, BalanceCombatMath.CastTimeTicks(skill.CastTicks, Stat(stats, "CAST_TIME_REDUCTION"), runtime.AdditionalCastReductionPercent) - runtime.CastReductionTicks); }
                     else Cast(skill, tick);
                     used = true; break;
                 }
@@ -269,10 +272,17 @@ public static partial class BalanceCombat
                 var flat = group.Where(item => item.Effect.Mode == "FLAT").Sum(item => item.Effect.Value);
                 var scalar = group.Where(item => item.Effect.Mode == "SCALAR").Sum(item => item.Effect.Value);
                 var final = group.Where(item => item.Effect.Mode == "FINAL_SCALAR").Aggregate(1.0, (value, item) => value * Math.Max(0, 1 + item.Effect.Value));
-                copy[group.Key] = (Stat(baseline, group.Key) * (1 + scalar) + flat) * final;
+                copy[group.Key] = (baseline.GetValueOrDefault(group.Key) * (1 + scalar) + flat) * final;
             }
             return copy;
         }
+        Dictionary<string, double> SkillStats(Skill skill)
+        {
+            var stats = Stats(player, "player");
+            foreach (var (status, value) in skill.StatusBonuses) BalanceCombatData.Add(stats, status, value);
+            return stats;
+        }
+
         double Multiplier(string kind) => timed.Where(item => item.Effect.Kind == kind).Aggregate(1.0, (value, item) => value * item.Effect.Value);
         double Cost(Skill skill, Dictionary<string, double> stats) => skill.Resource == "GUARD" ? Math.Max(0, skill.Cost)
             : Math.Max(0, skill.Cost * (1 - Math.Max(0, Stat(stats, skill.Resource == "MANA" ? "MANA_COST_REDUCTION" : "ENERGY_COST_REDUCTION")) / 100));
@@ -284,7 +294,7 @@ public static partial class BalanceCombat
         void Cast(Skill skill, int tick)
         {
             normalCount = 0;
-            var stats = Stats(player, "player");
+            var stats = SkillStats(skill);
             var cast = new SkillCast(skill, stats) { PlayerPosition = runtime.PlayerPosition, Eye = runtime.Eye, Facing = runtime.Facing, EnemyPosition = runtime.EnemyPosition };
             if (dynamic && !skill.Profile.Runtime && !BalanceStaticGeometry.CanCast(runtime, skill.Definition))
             { RuntimeTrace(RuntimeCast(skill, stats), "cast_failed", 0, "対象なし"); return; }
@@ -302,7 +312,7 @@ public static partial class BalanceCombat
                 mp = Math.Max(0, mp - ManaCost(skill, stats));
                 if (skill.Resource == "ENERGY") eng = Math.Max(0, eng - Cost(skill, stats));
                 if (skill.Resource == "GUARD") runtime.SetResource("GUARD", Math.Max(0, runtime.Resource("GUARD") - Cost(skill, stats)));
-                ready[skill.Id] = tick + Math.Max(1, BalanceCombatMath.CooldownTicks(answer.CooldownTicks ?? skill.CooldownTicks, Stat(stats, "COOLDOWN_REDUCTION")));
+                ready[skill.Id] = tick + Math.Max(1, answer.CooldownTicks ?? BalanceCombatMath.CooldownTicks(skill.CooldownTicks, Stat(stats, "COOLDOWN_REDUCTION")));
                 if (answer.Success) Dispatch(new("cast_completed", runtimeCast));
                 return;
             }
@@ -522,7 +532,7 @@ public static partial class BalanceCombat
         {
             var definition = cast.Definition; var resource = BalanceCombatData.Text(definition["resourceType"]);
             var cost = Math.Max(0, BalanceCombatData.Number(definition["resourceCost"], BalanceCombatData.Number(definition["manaCost"])));
-            var stats = Stats(player, "player");
+            var stats = cast.Stats;
             var amount = resource == "GUARD" ? cost : cost * Math.Max(0, 1 - Math.Max(0, Stat(stats, resource == "MANA" ? "MANA_COST_REDUCTION" : "ENERGY_COST_REDUCTION")) / 100);
             var mana = resource == "MANA" ? amount : BalanceCombatData.Number(definition["manaCost"]) * Math.Max(0, 1 - Math.Max(0, Stat(stats, "MANA_COST_REDUCTION")) / 100);
             if (mp + 1e-6 < mana || resource == "ENERGY" && eng + 1e-6 < amount || resource == "GUARD" && runtime.Resource("GUARD") + 1e-6 < amount) return false;

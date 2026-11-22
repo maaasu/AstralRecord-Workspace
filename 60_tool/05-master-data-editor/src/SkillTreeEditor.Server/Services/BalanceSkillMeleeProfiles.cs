@@ -15,7 +15,7 @@ internal static class BalanceSkillMeleeProfiles
         var id = definition["implementationId"]?.ToString() ?? definition["id"]?.ToString() ?? "";
         var parameters = BalanceSkillParameters.Params(definition);
         var p = parameters;
-        var assumptions = new[] { "スキルLv1・シジル未装着・静止した敵1体を射程内で視認できる条件です。" };
+        var assumptions = new[] { "スキルLv1・静止した敵1体を射程内で視認できる条件です。" };
         BalanceSkillProfile Supported(string file, string[] keys, params BalanceSkillEffect[] effects)
             => new(id, effects, Sources(file), keys, assumptions, ValidateParameters(id, p, keys));
         BalanceSkillProfile Stopped(string file, string reason, params string[] keys)

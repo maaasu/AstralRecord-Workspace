@@ -78,7 +78,7 @@ internal sealed class BalanceRuntimeWorld(BalanceRuntimeContext context)
     internal bool AddVelocity(string target, BalanceVector velocity)
     {
         var stats = target == "enemy" ? context.EnemyStats : context.PlayerStats;
-        var scale = 1 - Math.Clamp(stats.GetValueOrDefault("KNOCKBACK_RESISTANCE"), 0, 100) / 100;
+        var scale = 1 - Math.Clamp(BalanceCombatData.Stat(stats, "KNOCKBACK_RESISTANCE"), 0, 100) / 100;
         if (scale <= 0 || velocity.LengthSquared <= 1e-12) return false;
         if (context.State.GetValueOrDefault("knockback.until:" + target) is int until && context.Tick < until) return false;
         context.State["knockback.until:" + target] = context.Tick + 4;

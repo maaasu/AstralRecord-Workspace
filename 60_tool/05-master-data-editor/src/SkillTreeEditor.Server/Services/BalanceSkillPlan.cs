@@ -12,7 +12,7 @@ internal sealed record BalanceSkillView(
     bool LastLanded, bool LastCritical, bool LastKilled, IReadOnlySet<string> Conditions, int CircleCount,
     double LastDamage = 0, double LastShieldDamage = 0)
 {
-    internal double Stat(string key) => Player.GetValueOrDefault(key);
+    internal double Stat(string key) => BalanceCombatData.Stat(Player, key);
     internal bool HasCondition(string key) => Conditions.Contains(key);
 }
 
