@@ -2175,6 +2175,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         configureArcaneFlowIntegration(skillService, arcaneFlowSkillRuntimeService);
         skillMagicCircleRegistry = new SkillMagicCircleRegistry();
+        skillService.setPreviewCircleCount(skillMagicCircleRegistry::count);
         wizardPrismConditionRuntimeService = new WizardPrismConditionRuntimeService(
             this, statusService, particleDisplayService, skillMagicCircleRegistry,
             skillPackDisplay
@@ -2650,6 +2651,7 @@ public final class AstralRecord extends JavaPlugin {
             skillService,
             normalAttackDegradationService
         );
+        skillBindGui.setNormalAttackPreview(itemWeaponAttackService::previewNormalAttack);
         itemWeaponAttackService.setEquipmentDurabilityService(equipmentDurabilityService);
         itemWeaponAttackService.setSeijakuIssenSkillRuntimeService(seijakuIssenSkillRuntimeService);
         PhantomArcherRuntime.configure(passiveSkillService, skillService, itemWeaponAttackService,

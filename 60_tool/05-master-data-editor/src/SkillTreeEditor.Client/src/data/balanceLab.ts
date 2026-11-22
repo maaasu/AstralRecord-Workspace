@@ -23,6 +23,7 @@ export interface BalanceEquipment { itemId: string; enhanceLevel: number; [key: 
 export interface BalanceBuild {
   id: string; name: string; classId: string; playerLevel: number; classLevel: number
   equipment: BalanceEquipment[]; skillIds: string[]; baseStats?: Record<string, number>
+  nodes?: (number | string)[]; skillSigils?: Record<string, string[]>
   normalAttacks?: boolean; initialShield?: number; passiveSkillIds?: string[]
 }
 export interface BalanceEconomy {

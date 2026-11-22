@@ -502,6 +502,27 @@ public class SkillService {
             .collect(java.util.stream.Collectors.toSet()));
     }
 
+    private java.util.function.ToIntFunction<UUID> circleCount = id -> 0;
+
+    /** 発動時にも参照する現存魔法陣の読み取り口を画面に接続します。 */
+    public void setPreviewCircleCount(java.util.function.ToIntFunction<UUID> circleCount) {
+        this.circleCount = circleCount;
+    }
+
+    /** 現在のビルド・レベル・シジルで消費量と時間を測定します。発動・抽選・消費を行いません。 */
+    public CastPreview previewCast(PlayerSkillCaster caster, ResolvedLearnedSkill resolved) {
+        var skill = resolved.definition();
+        var snapshot = caster.statusSnapshot();
+        if (!skill.getKind().isPassive()) snapshot = snapshot.withFlatBonuses(resolved.statusBonuses());
+        snapshot = snapshot.atMidpoints();
+        return new CastPreview(snapshot, resolveCooldownTicks(snapshot, skill.getCooldownTicks()),
+            resolveCastTimeTicks(caster, skill, snapshot, false), resolveResourceCosts(snapshot, skill), circleCount.applyAsInt(caster.casterId()));
+    }
+
+    /** 画面表示用の発動条件。時間はtick、コストは各リソースの実単位です。 */
+    public record CastPreview(StatusSnapshot status, long cooldownTicks, long castTicks,
+                              Map<SkillResourceType, Double> costs, int circleCount) {}
+
     /** 習得個体に適用される短縮を含むクールダウンtick数を返します。 */
     public long resolvedCooldownTicks(
         @NotNull SkillCaster caster,
@@ -1169,6 +1190,16 @@ public class SkillService {
             @NotNull SkillDefinition definition,
             @NotNull StatusSnapshot statusSnapshot
     ) {
+        return resolveCastTimeTicks(caster, definition, statusSnapshot, true);
+    }
+
+    /** 通常の詠唱時は状態異常も適用します。表示時は期限切れ状態の更新を伴う参照を避けます。 */
+    private long resolveCastTimeTicks(
+            @NotNull SkillCaster caster,
+            @NotNull SkillDefinition definition,
+            @NotNull StatusSnapshot statusSnapshot,
+            boolean applyConditions
+    ) {
         double reduction = Math.max(0.0D, statusSnapshot.rollValue(StatusType.CAST_TIME_REDUCTION));
         double additionalReduction = 0.0D;
         if (caster instanceof PlayerSkillCaster playerCaster) {
@@ -1179,7 +1210,7 @@ public class SkillService {
         }
         double multiplier = CombatTimingCalculator.resolveStackedTimeReductionMultiplier(
             reduction, additionalReduction);
-        if (conditionService != null) {
+        if (applyConditions && conditionService != null) {
             if (caster instanceof PlayerSkillCaster playerCaster) {
                 multiplier *= conditionService.castTimeMultiplier(AstEntity.player(playerCaster.player()));
             } else if (caster instanceof MobSkillCaster mobCaster) {
@@ -1569,13 +1600,18 @@ public class SkillService {
             long baseCooldownTicks,
             double attackSpeedMultiplier
     ) {
-        long cooldownTicks = resolveCooldownTicks(caster.statusSnapshot(), baseCooldownTicks);
+        return resolveAttackCooldownTicks(caster.statusSnapshot(), baseCooldownTicks, attackSpeedMultiplier);
+    }
+
+    /** 指定スナップショットと一撃の速度倍率から、通常攻撃の実間隔をtickで求めます。 */
+    public long resolveAttackCooldownTicks(StatusSnapshot stats, long baseCooldownTicks, double attackSpeedMultiplier) {
+        long cooldownTicks = resolveCooldownTicks(stats, baseCooldownTicks);
         double temporaryMultiplier = Double.isFinite(attackSpeedMultiplier) && attackSpeedMultiplier > 0.0D
                 ? attackSpeedMultiplier
                 : 1.0D;
         return CombatTimingCalculator.resolveAttackIntervalTicks(
                 cooldownTicks,
-                caster.statusSnapshot().rollValue(StatusType.ATTACK_SPEED) * temporaryMultiplier
+                stats.rollValue(StatusType.ATTACK_SPEED) * temporaryMultiplier
         );
     }
 

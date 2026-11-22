@@ -12,7 +12,7 @@
 4. `catalog.skillCatalog`の`runtime`、`kind`、`requirements`、対応理由と、実行結果の`diagnostics`、`assumptions`を確認します。選択できるマスターでも、そのビルドや入力で実行できるとは限りません。
 5. 第1試行の`resources`、`skillTimeline`と攻撃別寄与を確認し、条件・結果JSONを保存します。位置、専用資源、味方HP等も資源トレースに含まれます。トレースは間引き・件数上限があるため、全tickのイベントログではありません。
 
-スキルはLv1・シジルなし、習得・装着・使用許可済みとして扱います。アクティブは`builds[].skillIds`の順で自動選択され、`inputs`に任意のスキルIDを指定して発動する契約はありません。`builds[].normalAttacks=false`で自動通常攻撃を止められます。明示的な`normal_attack`入力は別の操作です。
+スキルはLv1・能力補正シジル対応、習得・装着・使用許可済みとして扱います。アクティブは`builds[].skillIds`の順で自動選択され、`inputs`に任意のスキルIDを指定して発動する契約はありません。`builds[].normalAttacks=false`で自動通常攻撃を止められます。明示的な`normal_attack`入力は別の操作です。
 
 runtimeアダプターを選ぶか、パッシブまたは`world`・`inputs`・`allies`を指定すると、動的位置判定を使います。旧来の静的効果計画もこの経路に混在できますが、形状・参照時点を特定できない効果には`static_only`が付き、動的な`strict`実行を停止します。
 

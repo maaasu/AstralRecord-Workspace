@@ -398,6 +398,7 @@
             <li><a href="#fx-interp-card"><span class="toc-num">3.3</span>基準値とその間</a></li>
             <li><a href="#fx-upper"><span class="toc-num">3.4</span>育成上限の目安</a></li>
             <li><a href="#fx-kill-hp"><span class="toc-num">3.5</span>討伐HP</a></li>
+            <li><a href="#fx-skill-dps"><span class="toc-num">3.6</span>職業スキルの直接攻撃DPS</a></li>
           </ol>
         </li>
       </ol>
@@ -472,6 +473,25 @@
           <div class="fx"><var class="fx-var cat-resource">討伐HP</var><span class="fx-op">=</span><var class="fx-var cat-offense">標準実効DPS</var><span class="fx-op">×</span><span class="fx-num">7秒</span></div>
           <p class="fx-example"><span class="fx-lv" data-fx="lv">Lv.25</span><b class="c-offense" data-fx="dps">500</b> × 7 = <span class="fx-result" data-fx="hp">3,500</span></p>
           <ul class="fx-notes"><li>同格の標準モブ1体あたり。</li></ul>
+        </section>
+        <section class="fx-card" id="fx-skill-dps" aria-labelledby="fx-skill-dps-title">
+          <div class="fx-card-head">
+            <h3 id="fx-skill-dps-title"><span class="sub-num">3.6</span>職業スキルの直接攻撃DPS</h3>
+            <span class="cat-list"><span class="cat cat-offense">攻撃</span></span>
+          </div>
+          <div class="fx">
+            <var class="fx-var cat-offense">直接攻撃の期待DPS</var><span class="fx-op">=</span>
+            <var class="fx-var cat-offense">各段の直接ダメージ期待値の合計</var>
+            <span class="fx-op">÷</span><var class="fx-var cat-utility">発動周期（秒）</var>
+          </div>
+          <ul class="fx-notes">
+            <li>スキルマネージャーでは習得レベル・装備・シジルを反映する。対応するMP・ENG・ガード消費と、アクティブスキルの詠唱・CTを実効値で表示する。装備の範囲値は中央値を使う。敵は無傷で状態異常のない1体とし、射程内、防御・耐性・回避・シールドは0とする。</li>
+            <li>各段の主撃は、攻撃力に段ごとのスキル倍率、スキルダメージ補正、会心、属性、最終ダメージ倍率を掛ける。攻撃力と最終ダメージ倍率の下限は0。</li>
+            <li>通常会心の期待倍率は「1＋発生確率×（会心倍率−1）」。超星会心の主撃期待倍率は「1＋発生確率×超星会心倍率」。各会心の発生確率は0〜100%に収める。主撃とHP固定ダメージの合計に命中確率を掛ける。</li>
+            <li>発動周期は「詠唱時間＋CTと全段終了までの時間の長い方」。全段終了までの時間は「発動から初撃までの遅延＋段間隔×（段数−1）」。詠唱・CTには短縮を反映し、20 tickを1秒として換算する。</li>
+            <li>初撃の会心で追撃や2段目の威力が変わるスキルは、その発生確率を織り込む。飛翔時間・追尾弾・継続ダメージは除外し、継承・反撃・聖域などの一時効果は使わない。回復・補助は効果を示し、単独の発動周期や段数が決まらない場合は理由を表示する。</li>
+            <li><a href="#fx-total">総DPSの評価</a>では、通常攻撃・職業スキル・ペットを含む構成を同格の標準モブ相手に測る。</li>
+          </ul>
         </section>
       </div>
     </section>

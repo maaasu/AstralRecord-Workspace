@@ -17,7 +17,8 @@ import org.jetbrains.annotations.NotNull;
 public final class AdventurerQuickShotExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "adventurer_quick_shot";
-    static final double DAMAGE_RATIO = 2.25D;
+    /** レベル補正を受けない固定の射撃倍率。直接攻撃の表示にも使用します。 */
+    public static final double DAMAGE_RATIO = 2.25D;
     static final double RANGE = 12.0D;
     static final double SPEED = 2.2D;
     static final double HIT_RADIUS = 0.45D;

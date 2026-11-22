@@ -14,6 +14,8 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
+import java.util.function.ToDoubleFunction;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -320,20 +322,17 @@ public final class DamageCalculator {
             return new CriticalDamage(damage, false, false);
         }
 
-        double criticalRate = Math.max(0.0D, context.attacker().statValue(StatusType.CRITICAL_RATE));
+        double criticalRate = Math.max(0.0D, context.attacker().criticalRate(context.source()));
         boolean critical = criticalRate > 0.0D && criticalRollSupplier.getAsDouble() < criticalRate;
         if (critical) {
             double criticalDamage = context.attacker().statValue(StatusType.CRITICAL_DAMAGE);
-            damage *= (criticalDamage <= 0.0D ? DEFAULT_CRITICAL_DAMAGE : criticalDamage) / 100.0D;
+            damage *= criticalFactor(criticalDamage, DEFAULT_CRITICAL_DAMAGE);
         }
 
         boolean superStarCritical = shouldApplySuperStarCritical(context);
         if (superStarCritical) {
             double configuredMultiplier = context.attacker().statValue(StatusType.SUPER_CRITICAL_DAMAGE);
-            double multiplierPercent = configuredMultiplier <= 0.0D
-                    ? DEFAULT_SUPER_STAR_CRITICAL_MULTIPLIER
-                    : configuredMultiplier;
-            double multiplier = multiplierPercent / 100.0D;
+            double multiplier = criticalFactor(configuredMultiplier, DEFAULT_SUPER_STAR_CRITICAL_MULTIPLIER);
             if (context.superStarCriticalMode() == SuperStarCriticalMode.ROLL) {
                 multiplier += 1.0D;
             }
@@ -390,9 +389,14 @@ public final class DamageCalculator {
             @NotNull AstEntity attacker,
             @NotNull AttackType attackType
     ) {
-        double attack = attacker.statValue(StatusType.ATTACK);
-        double typedAttack = attacker.statValue(attackType.statusType());
-        double primary = attacker.statValue(attackType.primaryStatusType());
+        return calculateAttackPower(attacker::statValue, attackType);
+    }
+
+    /** 指定のステータス参照から、戦闘・プレビュー共通の種別攻撃力を算出します。 */
+    public static double calculateAttackPower(ToDoubleFunction<StatusType> stats, AttackType attackType) {
+        double attack = stats.applyAsDouble(StatusType.ATTACK);
+        double typedAttack = stats.applyAsDouble(attackType.statusType());
+        double primary = stats.applyAsDouble(attackType.primaryStatusType());
         return (attack + typedAttack) * (1.0D + primary / 100.0D);
     }
 
@@ -490,7 +494,11 @@ public final class DamageCalculator {
         if (context.attacker() == null || !context.attacker().isManaged()) {
             return 1.0D;
         }
-        StatusType statusType = switch (context.source()) {
+        return sourceDamageMultiplier(context.source(), context.attacker()::statValue);
+    }
+
+    private static double sourceDamageMultiplier(DamageSource source, ToDoubleFunction<StatusType> stats) {
+        StatusType statusType = switch (source) {
             case SKILL -> StatusType.SKILL_DAMAGE_INCREASE;
             case NORMAL_ATTACK -> StatusType.NORMAL_ATTACK_DAMAGE_INCREASE;
             case OTHER -> null;
@@ -498,7 +506,7 @@ public final class DamageCalculator {
         if (statusType == null) {
             return 1.0D;
         }
-        return Math.max(0.0D, 1.0D + context.attacker().statValue(statusType) / 100.0D);
+        return Math.max(0.0D, 1.0D + stats.applyAsDouble(statusType) / 100.0D);
     }
 
     /** 無属性を含む各成分の増加・耐性上限・貫通と、同じ計算で使用する耐性内訳を解決します。 */
@@ -512,6 +520,11 @@ public final class DamageCalculator {
         double penetration = context.attacker() == null || element == DamageElement.NONE ? 0.0D
                 : context.attacker().statValue(elementPenetration(element));
         double resistanceCap = elementResistanceCap(context, element);
+        return elementCalculation(element, increase, resistance, resistanceCap, penetration);
+    }
+
+    private static ElementCalculation elementCalculation(DamageElement element, double increase,
+            double resistance, double resistanceCap, double penetration) {
         double effectiveResistance = Math.min(resistance, resistanceCap) - penetration;
         double increaseRatio = increase / 100.0D;
         double increaseMultiplier = Math.max(0.0D, 1.0D + increaseRatio);
@@ -524,7 +537,7 @@ public final class DamageCalculator {
         );
     }
 
-    private @NotNull StatusType elementDamageIncrease(@NotNull DamageElement element) {
+    private static @NotNull StatusType elementDamageIncrease(@NotNull DamageElement element) {
         return switch (element) {
             case FIRE -> StatusType.FIRE_DAMAGE_INCREASE;
             case ICE -> StatusType.ICE_DAMAGE_INCREASE;
@@ -542,7 +555,7 @@ public final class DamageCalculator {
         };
     }
 
-    private @Nullable StatusType elementPenetration(@NotNull DamageElement element) {
+    private static @Nullable StatusType elementPenetration(@NotNull DamageElement element) {
         return switch (element) {
             case FIRE -> StatusType.FIRE_PENETRATION;
             case ICE -> StatusType.ICE_PENETRATION;
@@ -565,6 +578,52 @@ public final class DamageCalculator {
             return context.victim().mob().template().statValue(capStatus.name(), defaultCap);
         }
         return context.victim().statValue(capStatus);
+    }
+
+    private static double criticalFactor(double percent, double fallback) {
+        return (percent <= 0.0D ? fallback : percent) / 100.0D;
+    }
+
+    /** 表示条件に固定したスナップショットから、通常会心の成立確率を0～1で返します。 */
+    public static double criticalChance(StatusSnapshot stats, DamageSource source) {
+        var critical = stats.getValue(StatusType.CRITICAL_RATE, source.criticalRateIncrease());
+        return critical == null ? 0 : Math.clamp(critical.getMaxValue(), 0, 100) / 100;
+    }
+
+    /** 表示条件に固定したスナップショットから実戦の既定値を含む会心倍率を返します。 */
+    public static double normalCriticalMultiplier(StatusSnapshot stats) {
+        return criticalFactor(stats.getMaxValue(StatusType.CRITICAL_DAMAGE), DEFAULT_CRITICAL_DAMAGE);
+    }
+
+    /** 防御・回避・耐性・シールドがゼロの単体Mobへの直接攻撃。入力は表示条件の固定値です。 */
+    public static double expectedDirectHit(StatusSnapshot stats, AttackType type, DamageElement element,
+            DamageSource source, double ratio) {
+        return expectedDirectHit(stats, type, List.of(new DamageComponent(element, ratio)), source,
+                stats.getMaxValue(StatusType.SUPER_CRITICAL_RATE));
+    }
+
+    /** 複数属性は一つの攻撃判定を共有し、命中時の固定HPダメージを一度だけ計上します。 */
+    public static double expectedDirectHit(StatusSnapshot stats, AttackType type, List<DamageComponent> components,
+            DamageSource source, double starRate) {
+        double power = Math.max(0.0D, calculateAttackPower(stats::getMaxValue, type));
+        double chance = criticalChance(stats, source);
+        double normalFactor = normalCriticalMultiplier(stats);
+        double starChance = Math.clamp(starRate, 0.0D, 100.0D) / 100.0D;
+        double starFactor = criticalFactor(stats.getMaxValue(StatusType.SUPER_CRITICAL_DAMAGE),
+                DEFAULT_SUPER_STAR_CRITICAL_MULTIPLIER);
+        double attributedRatio = 0.0D;
+        for (var component : components) {
+            var element = component.element();
+            var penetration = elementPenetration(element);
+            var attribution = elementCalculation(element, stats.getMaxValue(elementDamageIncrease(element)),
+                    0.0D, 0.0D, penetration == null ? 0.0D : stats.getMaxValue(penetration));
+            attributedRatio += component.ratio() * attribution.multiplier();
+        }
+        double damage = power * attributedRatio * sourceDamageMultiplier(source, stats::getMaxValue)
+                * (1.0D + chance * (normalFactor - 1.0D)) * (1.0D + starChance * starFactor)
+                * Math.max(0.0D, stats.getMaxValue(StatusType.FINAL_DAMAGE_MULTIPLIER)) / 100.0D;
+        double fixed = source == DamageSource.OTHER ? 0 : Math.max(0.0D, stats.getMaxValue(StatusType.FIXED_HEALTH_DAMAGE));
+        return calculateHitChance(stats.getMaxValue(StatusType.ACCURACY), 0.0D) / 100.0D * (damage + fixed);
     }
 
     private record CriticalDamage(double damage, boolean critical, boolean superStarCritical) {}

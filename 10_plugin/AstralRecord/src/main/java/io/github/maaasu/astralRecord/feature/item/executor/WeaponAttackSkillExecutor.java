@@ -59,6 +59,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillDamagePreview;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.feature.combat.service.DamageCalculator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1264,6 +1269,35 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
     }
 
     private record CastOrigin(@NotNull Location location, @NotNull Vector direction, @NotNull AstEntity attacker) {
+    }
+
+    /** 現装備の次の通常攻撃を単体Mobに当てる条件で測定します。劣化・バフ・リソースを消費しません。 */
+    public List<String> previewAttack(AstPlayer player, SkillDefinition skill, long cooldown, SkillService service) {
+        var stats = player.getStatusSnapshot().atMidpoints();
+        var modifiers = normalAttackDegradationService == null ? new NormalAttackDegradationService.AttackModifiers(1, 1)
+                : normalAttackDegradationService.previewNextAttack(player);
+        boolean mastery = passiveSkillService != null
+                && passiveSkillService.hasPublishedPassive(player, SharpshooterInheritanceMasterySkillExecutor.ID);
+        double damageFactor = modifiers.damage() * (mastery ? SharpshooterInheritanceMasterySkillExecutor.NORMAL_ATTACK_DAMAGE_MULTIPLIER : 1);
+
+        var components = readDamageComponents(skill).stream()
+                .map(c -> new DamageComponent(c.element(), c.ratio() * damageFactor))
+                .toList();
+        var type = readAttackType(skill);
+        int hits = Math.max(1, readIntParam(skill, "hitCount", 1));
+        int interval = Math.max(0, readIntParam(skill, "hitIntervalTicks", 0));
+        long cycle = Math.max((hits - 1L) * interval, service.resolveAttackCooldownTicks(stats, cooldown, modifiers.speed()));
+        double expected = DamageCalculator.expectedDirectHit(stats, type, components, DamageSource.NORMAL_ATTACK,
+                stats.getMaxValue(StatusType.SUPER_CRITICAL_RATE));
+        double rate = DamageCalculator.criticalChance(stats, DamageSource.NORMAL_ATTACK);
+        return List.of(type.statusType().getDisplayName() + "（派生込み） "
+                        + SkillDamagePreview.number(DamageCalculator.calculateAttackPower(stats::getMaxValue, type))
+                        + "　会心 " + SkillDamagePreview.number(rate * 100) + "%",
+                "次の通常攻撃 " + hits + "撃　周期 " + SkillDamagePreview.number(cycle / 20.0) + "秒",
+                cycle <= 0 ? "期待DPS算出不可（周期未定義）"
+                        : "直接攻撃の期待DPS " + SkillDamagePreview.number(expected * hits * 20 / cycle),
+                "単体Mob・防御／耐性／回避／盾0。装備範囲は実効範囲の中央、会心率は平均",
+                "次回の劣化段階を固定。命中範囲内、反撃・継承弾・追尾弾なしで測定");
     }
 
     private @NotNull AttackType readAttackType(@NotNull SkillDefinition skill) {

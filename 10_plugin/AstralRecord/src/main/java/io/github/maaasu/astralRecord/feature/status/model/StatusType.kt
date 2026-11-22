@@ -123,7 +123,53 @@ enum class StatusType(
     PASSIVE_SKILL_SLOTS("PASSIVE_SKILL_SLOTS", "パッシブスキルスロット", "基礎5枠へ加算されるパッシブスキルの有効枠数。1ポイントごとに1枠増加し、合計9枠を上限とする。", Category.UTILITY, "", 0, false),
     QUEST_LIMIT("QUEST_LIMIT", "クエスト受領上限", "同時に受領できるクエスト数の上限。", Category.UTILITY, "", 0, false),
     DAMAGE_REDUCTION_RATE("DAMAGE_REDUCTION_RATE", "被ダメージ軽減率", "直接攻撃・環境・継続ダメージを軽減する割合。0〜100%へ補正し、HP固定ダメージの加算を除いて適用する。", Category.DEFENSE, "%", 1, true),
+    CRITICAL_RATE_RELATIVE_INCREASE("CRITICAL_RATE_RELATIVE_INCREASE", "会心率の相対増加", "会心率の固定加算・派生込みの値を指定割合だけ増加させる。", Category.OFFENSE, "%", 1, true),
+    SKILL_CRITICAL_RATE_RELATIVE_INCREASE("SKILL_CRITICAL_RATE_RELATIVE_INCREASE", "スキル会心率の相対増加", "職業スキル・シジルの攻撃時に会心率の固定加算・派生込みの値を指定割合だけ増加させる。", Category.OFFENSE, "%", 1, true),
+    NORMAL_ATTACK_CRITICAL_RATE_RELATIVE_INCREASE("NORMAL_ATTACK_CRITICAL_RATE_RELATIVE_INCREASE", "通常攻撃会心率の相対増加", "通常攻撃時に会心率の固定加算・派生込みの値を指定割合だけ増加させる。", Category.OFFENSE, "%", 1, true),
+    CRITICAL_DAMAGE_RELATIVE_INCREASE("CRITICAL_DAMAGE_RELATIVE_INCREASE", "会心ダメージの相対増加", "会心ダメージの固定加算・派生込みの値を指定割合だけ増加させる。", Category.OFFENSE, "%", 1, true),
+    SUPER_CRITICAL_RATE_RELATIVE_INCREASE("SUPER_CRITICAL_RATE_RELATIVE_INCREASE", "超星会心率の相対増加", "超星会心率の固定加算・派生込みの値を指定割合だけ増加させる。", Category.OFFENSE, "%", 1, true),
+    SUPER_CRITICAL_DAMAGE_RELATIVE_INCREASE("SUPER_CRITICAL_DAMAGE_RELATIVE_INCREASE", "超星会心倍率の相対増加", "超星会心倍率の固定加算・派生込みの値を指定割合だけ増加させる。", Category.OFFENSE, "%", 1, true),
+    ACCURACY_RELATIVE_INCREASE("ACCURACY_RELATIVE_INCREASE", "命中率の相対増加", "命中率の固定加算・派生込みの値を指定割合だけ増加させる。", Category.OFFENSE, "%", 1, true),
+    ATTACK_SPEED_RELATIVE_INCREASE("ATTACK_SPEED_RELATIVE_INCREASE", "攻撃速度の相対増加", "攻撃速度の固定加算・派生込みの値を指定割合だけ増加させる。", Category.OFFENSE, "%", 1, true),
+    SHIELD_RECHARGE_DELAY_CHANCE_RELATIVE_INCREASE("SHIELD_RECHARGE_DELAY_CHANCE_RELATIVE_INCREASE", "シールドリチャージ加算率の相対増加", "シールドリチャージ加算率の固定加算・派生込みの値を指定割合だけ増加させる。", Category.OFFENSE, "%", 1, true),
+    DEFENSE_PENETRATION_RATE_RELATIVE_INCREASE("DEFENSE_PENETRATION_RATE_RELATIVE_INCREASE", "防御力貫通率の相対増加", "防御力貫通率の固定加算・派生込みの値を指定割合だけ増加させる。", Category.OFFENSE, "%", 1, true),
+    MELEE_DEFENSE_PENETRATION_RATE_RELATIVE_INCREASE("MELEE_DEFENSE_PENETRATION_RATE_RELATIVE_INCREASE", "近接防御貫通率の相対増加", "近接防御貫通率の固定加算・派生込みの値を指定割合だけ増加させる。", Category.OFFENSE, "%", 1, true),
+    RANGED_DEFENSE_PENETRATION_RATE_RELATIVE_INCREASE("RANGED_DEFENSE_PENETRATION_RATE_RELATIVE_INCREASE", "間接防御貫通率の相対増加", "間接防御貫通率の固定加算・派生込みの値を指定割合だけ増加させる。", Category.OFFENSE, "%", 1, true),
+    MAGIC_DEFENSE_PENETRATION_RATE_RELATIVE_INCREASE("MAGIC_DEFENSE_PENETRATION_RATE_RELATIVE_INCREASE", "魔法防御貫通率の相対増加", "魔法防御貫通率の固定加算・派生込みの値を指定割合だけ増加させる。", Category.OFFENSE, "%", 1, true),
+    LIFE_STEAL_RELATIVE_INCREASE("LIFE_STEAL_RELATIVE_INCREASE", "ライフスティールの相対増加", "ライフスティールの固定加算・派生込みの値を指定割合だけ増加させる。", Category.OFFENSE, "%", 1, true),
+    NONE_RESISTANCE_RELATIVE_INCREASE("NONE_RESISTANCE_RELATIVE_INCREASE", "無属性耐性の相対増加", "無属性耐性の固定加算・派生込みの値を指定割合だけ増加させる。", Category.ELEMENT, "%", 1, true),
+    FIRE_RESISTANCE_RELATIVE_INCREASE("FIRE_RESISTANCE_RELATIVE_INCREASE", "火属性耐性の相対増加", "火属性耐性の固定加算・派生込みの値を指定割合だけ増加させる。", Category.ELEMENT, "%", 1, true),
+    FIRE_PENETRATION_RELATIVE_INCREASE("FIRE_PENETRATION_RELATIVE_INCREASE", "火属性貫通の相対増加", "火属性貫通の固定加算・派生込みの値を指定割合だけ増加させる。", Category.ELEMENT, "%", 1, true),
+    ICE_RESISTANCE_RELATIVE_INCREASE("ICE_RESISTANCE_RELATIVE_INCREASE", "氷属性耐性の相対増加", "氷属性耐性の固定加算・派生込みの値を指定割合だけ増加させる。", Category.ELEMENT, "%", 1, true),
+    ICE_PENETRATION_RELATIVE_INCREASE("ICE_PENETRATION_RELATIVE_INCREASE", "氷属性貫通の相対増加", "氷属性貫通の固定加算・派生込みの値を指定割合だけ増加させる。", Category.ELEMENT, "%", 1, true),
+    LIGHTNING_RESISTANCE_RELATIVE_INCREASE("LIGHTNING_RESISTANCE_RELATIVE_INCREASE", "雷属性耐性の相対増加", "雷属性耐性の固定加算・派生込みの値を指定割合だけ増加させる。", Category.ELEMENT, "%", 1, true),
+    LIGHTNING_PENETRATION_RELATIVE_INCREASE("LIGHTNING_PENETRATION_RELATIVE_INCREASE", "雷属性貫通の相対増加", "雷属性貫通の固定加算・派生込みの値を指定割合だけ増加させる。", Category.ELEMENT, "%", 1, true),
+    BURNING_RESISTANCE_RELATIVE_INCREASE("BURNING_RESISTANCE_RELATIVE_INCREASE", "燃焼付与耐性の相対増加", "燃焼付与耐性の固定加算・派生込みの値を指定割合だけ増加させる。", Category.CONDITION, "%", 1, true),
+    BURNING_DAMAGE_RESISTANCE_RELATIVE_INCREASE("BURNING_DAMAGE_RESISTANCE_RELATIVE_INCREASE", "燃焼ダメージ耐性の相対増加", "燃焼ダメージ耐性の固定加算・派生込みの値を指定割合だけ増加させる。", Category.CONDITION, "%", 1, true),
+    BURNING_DAMAGE_PENETRATION_RELATIVE_INCREASE("BURNING_DAMAGE_PENETRATION_RELATIVE_INCREASE", "燃焼DoT貫通の相対増加", "燃焼DoT貫通の固定加算・派生込みの値を指定割合だけ増加させる。", Category.CONDITION, "%", 1, true),
+    FROZEN_RESISTANCE_RELATIVE_INCREASE("FROZEN_RESISTANCE_RELATIVE_INCREASE", "凍結付与耐性の相対増加", "凍結付与耐性の固定加算・派生込みの値を指定割合だけ増加させる。", Category.CONDITION, "%", 1, true),
+    CHILLED_RESISTANCE_RELATIVE_INCREASE("CHILLED_RESISTANCE_RELATIVE_INCREASE", "冷気付与耐性の相対増加", "冷気付与耐性の固定加算・派生込みの値を指定割合だけ増加させる。", Category.CONDITION, "%", 1, true),
+    SHOCKED_RESISTANCE_RELATIVE_INCREASE("SHOCKED_RESISTANCE_RELATIVE_INCREASE", "感電付与耐性の相対増加", "感電付与耐性の固定加算・派生込みの値を指定割合だけ増加させる。", Category.CONDITION, "%", 1, true),
+    SHOCKED_DAMAGE_RESISTANCE_RELATIVE_INCREASE("SHOCKED_DAMAGE_RESISTANCE_RELATIVE_INCREASE", "感電ダメージ耐性の相対増加", "感電ダメージ耐性の固定加算・派生込みの値を指定割合だけ増加させる。", Category.CONDITION, "%", 1, true),
+    SHOCKED_DAMAGE_PENETRATION_RELATIVE_INCREASE("SHOCKED_DAMAGE_PENETRATION_RELATIVE_INCREASE", "感電DoT貫通の相対増加", "感電DoT貫通の固定加算・派生込みの値を指定割合だけ増加させる。", Category.CONDITION, "%", 1, true),
+    POISONED_RESISTANCE_RELATIVE_INCREASE("POISONED_RESISTANCE_RELATIVE_INCREASE", "毒状態付与耐性の相対増加", "毒状態付与耐性の固定加算・派生込みの値を指定割合だけ増加させる。", Category.CONDITION, "%", 1, true),
+    POISONED_DAMAGE_RESISTANCE_RELATIVE_INCREASE("POISONED_DAMAGE_RESISTANCE_RELATIVE_INCREASE", "毒状態ダメージ耐性の相対増加", "毒状態ダメージ耐性の固定加算・派生込みの値を指定割合だけ増加させる。", Category.CONDITION, "%", 1, true),
+    POISONED_DAMAGE_PENETRATION_RELATIVE_INCREASE("POISONED_DAMAGE_PENETRATION_RELATIVE_INCREASE", "毒状態DoT貫通の相対増加", "毒状態DoT貫通の固定加算・派生込みの値を指定割合だけ増加させる。", Category.CONDITION, "%", 1, true),
+    BLINDNESS_RESISTANCE_RELATIVE_INCREASE("BLINDNESS_RESISTANCE_RELATIVE_INCREASE", "盲目付与耐性の相対増加", "盲目付与耐性の固定加算・派生込みの値を指定割合だけ増加させる。", Category.CONDITION, "%", 1, true),
+    WEAKNESS_RESISTANCE_RELATIVE_INCREASE("WEAKNESS_RESISTANCE_RELATIVE_INCREASE", "衰弱付与耐性の相対増加", "衰弱付与耐性の固定加算・派生込みの値を指定割合だけ増加させる。", Category.CONDITION, "%", 1, true),
+    HEALING_INHIBITION_RESISTANCE_RELATIVE_INCREASE("HEALING_INHIBITION_RESISTANCE_RELATIVE_INCREASE", "回復阻害付与耐性の相対増加", "回復阻害付与耐性の固定加算・派生込みの値を指定割合だけ増加させる。", Category.CONDITION, "%", 1, true),
+    EVASION_RELATIVE_INCREASE("EVASION_RELATIVE_INCREASE", "回避率の相対増加", "回避率の固定加算・派生込みの値を指定割合だけ増加させる。", Category.DEFENSE, "%", 1, true),
+    KNOCKBACK_RESISTANCE_RELATIVE_INCREASE("KNOCKBACK_RESISTANCE_RELATIVE_INCREASE", "ノックバック耐性の相対増加", "ノックバック耐性の固定加算・派生込みの値を指定割合だけ増加させる。", Category.DEFENSE, "%", 1, true),
+    COOLDOWN_REDUCTION_RELATIVE_INCREASE("COOLDOWN_REDUCTION_RELATIVE_INCREASE", "クールダウン短縮の相対増加", "クールダウン短縮の固定加算・派生込みの値を指定割合だけ増加させる。", Category.UTILITY, "%", 1, true),
+    CAST_TIME_REDUCTION_RELATIVE_INCREASE("CAST_TIME_REDUCTION_RELATIVE_INCREASE", "詠唱時間短縮率の相対増加", "詠唱時間短縮率の固定加算・派生込みの値を指定割合だけ増加させる。", Category.UTILITY, "%", 1, true),
+    MANA_COST_REDUCTION_RELATIVE_INCREASE("MANA_COST_REDUCTION_RELATIVE_INCREASE", "MP消費軽減率の相対増加", "MP消費軽減率の固定加算・派生込みの値を指定割合だけ増加させる。", Category.UTILITY, "%", 1, true),
+    ENERGY_COST_REDUCTION_RELATIVE_INCREASE("ENERGY_COST_REDUCTION_RELATIVE_INCREASE", "エネルギー消費軽減率の相対増加", "エネルギー消費軽減率の固定加算・派生込みの値を指定割合だけ増加させる。", Category.UTILITY, "%", 1, true),
+    SHIELD_RECHARGE_REDUCTION_RELATIVE_INCREASE("SHIELD_RECHARGE_REDUCTION_RELATIVE_INCREASE", "シールドリチャージ短縮の相対増加", "シールドリチャージ短縮の固定加算・派生込みの値を指定割合だけ増加させる。", Category.UTILITY, "%", 1, true),
+    DAMAGE_REDUCTION_RATE_RELATIVE_INCREASE("DAMAGE_REDUCTION_RATE_RELATIVE_INCREASE", "被ダメージ軽減率の相対増加", "被ダメージ軽減率の固定加算・派生込みの値を指定割合だけ増加させる。", Category.DEFENSE, "%", 1, true),
     ;
+
+    /** この基本値に対する共通の相対増加。対象外のステータスは null。 */
+    val relativeIncrease: StatusType? get() = increases[this]
 
     /** 共有ステータスカテゴリです。 */
     enum class Category(val displayName: String) {
@@ -213,6 +259,9 @@ enum class StatusType(
 
     companion object {
         private val byId = entries.associateBy(StatusType::id)
+        private val increases = entries.mapNotNull { base ->
+            byId[base.id + "_RELATIVE_INCREASE"]?.let { base to it }
+        }.toMap()
 
         /**
          * 指定カテゴリに属するステータスを返します。

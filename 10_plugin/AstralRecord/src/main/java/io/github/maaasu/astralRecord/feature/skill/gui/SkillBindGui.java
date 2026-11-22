@@ -52,15 +52,21 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.math.BigDecimal;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillDamagePreview;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.ToLongBiFunction;
+import java.util.function.Function;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 
 /** 習得済みスキルの表示・バインドを扱うスキルマネージャー GUI です。 */
 public final class SkillBindGui {
+    private static final UUID PREVIEW_INSTANCE_ID = new UUID(0, 0);
     public static final int SIZE = 54;
     /** スキル一覧は上5行に45件を表示し、最下段をナビゲーションに使用します。 */
     public static final int CONTENT_SLOT_COUNT = 45;
@@ -647,6 +653,9 @@ public final class SkillBindGui {
         ));
         lore.add(separator());
         lore.add(Component.text("未習得", NamedTextColor.RED));
+        var firstLevel = skillService.resolveLearnedSkill(new LearnedSkillInstance(
+            PREVIEW_INSTANCE_ID, accountId, skill.getId(), 1, List.of(), 0, null, null));
+        if (firstLevel != null) appendCastCostLore(lore, firstLevel);
         appendRequiredItemLore(lore, skill.getLearnRequiredItems(), "習得に必要な素材", accountId);
         lore.add(Component.text("左クリック: 習得", NamedTextColor.YELLOW));
         ItemStack item = createSkillItem(skill, true,
@@ -733,8 +742,29 @@ public final class SkillBindGui {
         @NotNull ResolvedLearnedSkill resolved
     ) {
         SkillDefinition skill = resolved.definition();
-        double reduction = resolved.statusBonuses().getOrDefault(StatusType.COOLDOWN_REDUCTION, 0.0D);
-        appendCastCostLore(lore, skill, reduction);
+        var owner = AstPlayerCache.getByAccount(resolved.learnedSkill().getAccountId());
+        if (owner == null || owner.getStatusSnapshot().getValues().isEmpty()) {
+            appendBaseCastCostLore(lore, skill);
+            lore.add(Component.text("実効値を取得できません（ビルド未読込）", NamedTextColor.GRAY));
+            return;
+        }
+        var preview = skillService.previewCast(new PlayerSkillCaster(owner), resolved);
+        preview.costs().forEach((type, cost) -> {
+            if (skill.getKind().isPassive() && cost <= 0) return;
+            String name = switch (type) {
+                case MANA -> "MP";
+                case ENERGY -> "ENG";
+                case GUARD -> "ガード";
+            };
+            lore.add(Component.text(name + "消費 " + SkillDamagePreview.number(cost), NamedTextColor.AQUA));
+        });
+        if (!skill.getKind().isPassive()) {
+            lore.add(Component.text("詠唱（状態異常なし） " + SkillDamagePreview.number(preview.castTicks() / 20.0D)
+                + "秒　通常時CT " + SkillDamagePreview.number(preview.cooldownTicks() / 20.0D) + "秒", NamedTextColor.YELLOW));
+        }
+        for (String line : SkillDamagePreview.describe(preview.status(), skill, preview.cooldownTicks(), preview.castTicks(), preview.circleCount())) {
+            lore.add(Component.text(line, NamedTextColor.GRAY));
+        }
     }
 
     /**
@@ -1087,17 +1117,23 @@ public final class SkillBindGui {
         return Material.BARRIER;
     }
 
+    private Function<AstPlayer, List<String>> normalAttackPreview = player -> List.of();
+
+    /** 主手武器の読み取り専用プレビューを接続します。 */
+    public void setNormalAttackPreview(Function<AstPlayer, List<String>> preview) {
+        normalAttackPreview = preview;
+    }
+
     /** 下段右端へ表示する武器通常攻撃の設定アイテムを生成します。 */
     public ItemStack createNormalAttackItem() {
-        ItemStack item = createItem(
-            Material.STICK,
-            "武器通常攻撃",
-            NamedTextColor.WHITE,
-            List.of(
-                Component.text("武器タグ SWORD / BOW / STAFF から自動決定", NamedTextColor.GRAY),
-                Component.text("左クリックまたはアクション枠を選択してからクリック", NamedTextColor.YELLOW)
-            )
-        );
+        return createNormalAttackItem(List.of());
+    }
+
+    private ItemStack createNormalAttackItem(List<String> preview) {
+        List<Component> lore = new ArrayList<>();
+        preview.forEach(line -> lore.add(Component.text(line, NamedTextColor.GRAY)));
+        lore.add(Component.text("左クリックまたはアクション枠を選択してからクリック", NamedTextColor.YELLOW));
+        ItemStack item = createItem(Material.STICK, "武器通常攻撃", NamedTextColor.WHITE, lore);
         String bindingId = SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID;
         return withBindingId(SkillIconCatalog.apply(item, bindingId), bindingId);
     }
@@ -1153,7 +1189,9 @@ public final class SkillBindGui {
             SkillBindType.LEFT_CLICK, 0, session.leftClickDraft(), entries, permittedSkillDefinitions,
             session.isSelectedBindSlot(SkillBindType.LEFT_CLICK, 0), true
         ));
-        inventory.setItem(PLAYER_INVENTORY_NORMAL_ATTACK_SLOT, createNormalAttackItem());
+        var owner = inventory.getHolder() instanceof Player player ? AstPlayerCache.get(player) : null;
+        inventory.setItem(PLAYER_INVENTORY_NORMAL_ATTACK_SLOT,
+                createNormalAttackItem(owner == null ? List.of() : normalAttackPreview.apply(owner)));
         renderScrolledBindSlots(inventory, PLAYER_INVENTORY_PASSIVE_PREVIOUS_SLOT,
             PLAYER_INVENTORY_PASSIVE_SLOT_START, PLAYER_INVENTORY_PASSIVE_NEXT_SLOT, SkillBindType.PASSIVE,
             session.passiveSlotOffset(), SkillBindPreset.PASSIVE_SLOT_COUNT, activePassiveSlots,
@@ -1326,7 +1364,7 @@ public final class SkillBindGui {
             }
             int slotIndex = slotCandidate;
             sigils.add(new LearnedSkillSigil(
-                UUID.randomUUID(),
+                PREVIEW_INSTANCE_ID,
                 pendingSigil.getId(),
                 pendingSigil.getSigil().getEquipGroupId(),
                 slotIndex

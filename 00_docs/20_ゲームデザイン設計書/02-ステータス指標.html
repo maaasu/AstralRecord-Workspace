@@ -369,6 +369,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
   body::before { transition: opacity 160ms ease-out; }
   .spot-field { transition: transform 160ms ease-out, border-color 160ms ease-out; }
 }
+#fx-relative-rates .fx-notes code { overflow-wrap: anywhere; }
 </style>
 </head>
 <body>
@@ -427,6 +428,7 @@ body { margin: 0; background: var(--page); color: var(--ink); }
           <li><a href="#fx-mob-attack"><span class="toc-num">4.5</span>標準モブの攻撃力</a></li>
           <li><a href="#fx-allocation"><span class="toc-num">4.6</span>標準構成の配分</a></li>
           <li><a href="#fx-derived"><span class="toc-num">4.7</span>基本能力値からの派生</a></li>
+          <li><a href="#fx-relative-rates"><span class="toc-num">4.8</span>相対％補正</a></li>
         </ol>
       </li>
     </ol>
@@ -621,6 +623,29 @@ body { margin: 0; background: var(--page); color: var(--ink); }
           <li>幸運は通常会心率に幸運の0.1倍のポイント差、直接ドロップ倍率に幸運の100分の1の倍率差を加える。</li>
           <li>基準攻撃力は共通攻撃力と使用種別攻撃力の直接配分を供給元ごとに足す。主能力の倍率を反映した目標と、初期値を含む直接配分の合計との差を、派生に計上する。</li>
         </ul>
+      </section>
+      <section class="fx-card" id="fx-relative-rates" aria-labelledby="fx-relative-rates-title">
+        <div class="fx-card-head">
+          <h3 id="fx-relative-rates-title"><span class="sub-num">4.8</span>相対％補正</h3>
+        </div>
+        <div class="fx">
+          <var class="fx-var">補正後の値</var><span class="fx-op">=</span>
+          <var class="fx-var">補正前の値</var><span class="fx-op">×</span>
+          <span>max（0, 1＋<var class="fx-var">相対増加率の合計</var>÷100）</span>
+        </div>
+        <p class="fx-example">通常会心率5%に共通で50%増加を付けると7.5%。
+          スキル限定の50%増加も付けると、その職業スキルの攻撃では10%。</p>
+        <!-- relative-rates -->
+        <ul class="fx-notes">
+          <li><strong>適用順</strong>　固定加算・基本能力値からの派生・スキル個体の補正を合計し、相対増加率を一度掛ける。 倍率の下限は0。各判定の上限は最後に適用する。補正前の値が0なら補正後も0。</li>
+          <li><strong>装備とスキルツリー</strong>　元IDへのFLATはポイント加算。通常会心率5%に元IDで5ポイントを加えると10%。 相対増加は別IDへのFLATで指定する。通常会心率5%に相対増加100%を付けても10%になる。</li>
+          <li><strong>攻撃元</strong>　共通の<code>CRITICAL_RATE_RELATIVE_INCREASE</code>に、攻撃元に応じて <code>NORMAL_ATTACK_CRITICAL_RATE_RELATIVE_INCREASE</code>または <code>SKILL_CRITICAL_RATE_RELATIVE_INCREASE</code>を足す。 職業スキルにはシジル装着の有無を問わずスキル限定が適用される。 通常会心と超星会心はそれぞれ独立して判定する。</li>
+          <li><strong>対象</strong>　会心率・会心ダメージ・超星会心率・超星会心倍率、命中率・回避率・攻撃速度、 ライフスティール、シールドリチャージ加算率、共通・種別防御貫通、属性耐性と火・氷・雷の属性貫通。</li>
+          <li><strong>対象（続き）</strong>　状態異常の付与耐性、燃焼・感電・毒の継続ダメージ耐性と貫通、ノックバック耐性、 被ダメージ軽減率、CT・詠唱・シールドリチャージの短縮、MP・ENG消費軽減。</li>
+          <li><strong>対象外</strong>　通常攻撃・スキル・属性・継続ダメージ、回復量、持続時間、状態異常付与確率の増加は既存の補正。 最終ダメージ・EXP・ドロップは既存の倍率。耐性上限は制限値、消耗品使用時移動減速率はペナルティ。 これらと相対増加自体には相対増加IDを生成しない。</li>
+          <li><strong>ID生成元</strong>　<a href="../../60_tool/07-generate-status-types/Program.cs">ステータス型の生成処理</a>が<a href="../../40_filebase/75.shared.status/v1.status_types.yml">基礎ステータス定義</a>の対象となる％の指標からIDを作成し、プラグイン・API・エディタへ出力する。</li>
+        </ul>
+        <!-- /relative-rates -->
       </section>
     </div>
   </section>

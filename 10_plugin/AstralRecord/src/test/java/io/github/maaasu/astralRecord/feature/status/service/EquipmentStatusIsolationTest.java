@@ -20,6 +20,21 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class EquipmentStatusIsolationTest {
+    @Test
+    void loadsRelativeRollSeparatelyFromLegacyFlatRoll() {
+        Fixture fixture = fixture();
+        var relative = StatusType.CRITICAL_RATE_RELATIVE_INCREASE;
+        var increase = new EquipmentStatRoll("increase", relative.getId(), "100", "100", 1);
+        var flat = new EquipmentStatRoll("rate", "CRITICAL_RATE", "5", "5", 0);
+        when(fixture.instance.getStatRolls()).thenReturn(List.of(flat, increase));
+        when(fixture.equipment.findStatDefinition(increase)).thenReturn(
+                new ItemEquipmentStat(relative.getId(), ItemEquipmentStatType.FLAT, 100, 100));
+        assertEquals(5, fixture.service.getEquipmentStatus(fixture.player, fixture.model, fixture.instance,
+                StatusType.CRITICAL_RATE).getMaxValue());
+        assertEquals(100, fixture.service.getEquipmentStatus(fixture.player, fixture.model, fixture.instance,
+                relative).getMaxValue());
+    }
+
     /**
      * 装備単体の取得はプレイヤー合計や外部APIを参照せず、指定したインスタンスの値だけを返す。
      */

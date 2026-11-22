@@ -201,7 +201,7 @@ internal sealed class BalanceMeleeRuntime : IBalanceSkillRuntime
                     {
                         DefenseDebuff(c, cast, N("defenseReductionRatio"), I("defenseDebuffDurationTicks"));
                         Recover(c, "ENG", N("energyRecoveryAmount"));
-                        return new(true, I("reducedCooldownTicks"));
+                        return new(true, (int)BalanceCombatMath.CooldownTicks(I("reducedCooldownTicks"), cast.Stat("COOLDOWN_REDUCTION")));
                     }
                 }
                 break;

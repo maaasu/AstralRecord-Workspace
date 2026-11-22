@@ -11,7 +11,7 @@ import java.time.LocalDateTime
  * @property currentEnergy 現在エネルギー
  * @property calculatedAt  計算日時
  */
-data class StatusSnapshot(
+data class StatusSnapshot @JvmOverloads constructor(
     val values: Map<StatusType, StatusValue>,
     val currentHp: Double,
     val currentMp: Double,
@@ -19,6 +19,7 @@ data class StatusSnapshot(
     val currentShield: Double,
     val shieldChangedAtMs: Long,
     val calculatedAt: LocalDateTime,
+    private val useMidpoints: Boolean = false,
 ) {
     /**
      * 指定した種別のステータス値を返します。
@@ -26,7 +27,35 @@ data class StatusSnapshot(
      * @param type ステータス種別
      * @return 対応するステータス値。未定義なら null
      */
-    fun getValue(type: StatusType): StatusValue? = values[type]
+    @JvmOverloads
+    fun getValue(type: StatusType, scopedIncrease: StatusType? = null): StatusValue? {
+        val effective = effectiveValue(type, scopedIncrease) ?: return null
+        if (!useMidpoints) return effective
+        val min = effective.minValue
+        val max = effective.maxValue
+        val average = if (type == StatusType.CRITICAL_RATE || type == StatusType.SUPER_CRITICAL_RATE) {
+            averagePercent(min, max)
+        } else {
+            (min + max) / 2.0
+        }
+        return StatusValue(average, 0.0)
+    }
+
+    /** 実戦で抽選する範囲。共通と攻撃元別の補正を端点に一度だけ適用します。 */
+    private fun effectiveValue(type: StatusType, scopedIncrease: StatusType?): StatusValue? {
+        val raw = values[type] ?: return null
+        val increase = type.relativeIncrease ?: return raw
+        val common = values[increase]
+        val scoped = scopedIncrease?.let(values::get)
+        val low = (common?.minValue ?: 0.0) + (scoped?.minValue ?: 0.0)
+        val high = (common?.maxValue ?: 0.0) + (scoped?.maxValue ?: 0.0)
+        if (low == 0.0 && high == 0.0) return raw
+        val lowFactor = (1.0 + low / 100.0).coerceAtLeast(0.0)
+        val highFactor = (1.0 + high / 100.0).coerceAtLeast(0.0)
+        val min = minOf(raw.minValue * lowFactor, raw.minValue * highFactor)
+        val max = maxOf(raw.maxValue * lowFactor, raw.maxValue * highFactor)
+        return raw.copy(bonusMinValue = min - raw.baseMinValue, bonusMaxValue = max - raw.baseMaxValue)
+    }
 
     /**
      * 指定したステータスを参照時に確定します。
@@ -35,7 +64,7 @@ data class StatusSnapshot(
      * @param type 参照するステータス種別
      * @return 確定した値。未定義の場合は0.0
      */
-    fun rollValue(type: StatusType): Double = values[type]?.rollValue() ?: 0.0
+    fun rollValue(type: StatusType): Double = getValue(type)?.rollValue() ?: 0.0
 
     /**
      * 指定した種別の最大値（totalValue）を返します。
@@ -43,7 +72,7 @@ data class StatusSnapshot(
      * @param type ステータス種別
      * @return 最大値。未定義なら 0.0
      */
-    fun getMaxValue(type: StatusType): Double = values[type]?.maxValue ?: 0.0
+    fun getMaxValue(type: StatusType): Double = getValue(type)?.maxValue ?: 0.0
 
     /**
      * 現在HP/MP/エネルギーを上限範囲へクランプした新しいスナップショットを返します。
@@ -108,6 +137,19 @@ data class StatusSnapshot(
         val normalizedShield = shield.coerceAtLeast(0.0)
         val shieldChangedAt = if (normalizedShield != currentShield) System.currentTimeMillis() else shieldChangedAtMs
         return copy(currentShield = normalizedShield, shieldChangedAtMs = shieldChangedAt)
+    }
+
+    /** 実効範囲の中心を参照する測定用スナップショットを返します。会心率は判定上の平均確率です。 */
+    fun atMidpoints(): StatusSnapshot = copy(useMidpoints = true)
+
+    /** 一様な範囲から得た値を0～100%の確率として判定した場合の平均を返します。 */
+    private fun averagePercent(min: Double, max: Double): Double {
+        if (min == max) return min.coerceIn(0.0, 100.0)
+        val low = min.coerceIn(0.0, 100.0)
+        val high = max.coerceIn(0.0, 100.0)
+        val ramp = (low + high) * (high - low) / 2.0
+        val guaranteed = (max - maxOf(min, 100.0)).coerceAtLeast(0.0) * 100.0
+        return (ramp + guaranteed) / (max - min)
     }
 
     /** スキル個体だけに適用する加算補正を反映した一時スナップショットを返します。 */

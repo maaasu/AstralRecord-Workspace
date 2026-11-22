@@ -18,6 +18,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import io.github.maaasu.astralRecord.feature.item.executor.WeaponAttackSkillExecutor;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
@@ -160,6 +161,19 @@ public final class ItemWeaponAttackService {
         }
         WeaponAttackDefinition attack = resolveAttack(equipment.getTag());
         return attack == null ? null : attack.skillId();
+    }
+
+    /** スキルマネージャー用に主手武器の使用条件と通常攻撃の実効値を読み取ります。 */
+    public List<String> previewNormalAttack(@NotNull AstPlayer player) {
+        if (!hasUsableMainHandWeapon(player)) return List.of("使用可能な主手武器を装備してください");
+        var item = inventoryService.getItemModelInHand(player, EquipmentSlot.HAND);
+        var attack = resolveAttack(item.getEquipment().getTag());
+        if (attack != null) {
+            var skill = skillService.registry().getDefinition(attack.skillId());
+            if (skill != null && skillService.registry().getExecutor(skill.getImplementationId()) instanceof WeaponAttackSkillExecutor executor)
+                return executor.previewAttack(player, skill, attack.cooldownTicks(), skillService);
+        }
+        return List.of("この武器の通常攻撃定義を取得できません");
     }
 
     /**

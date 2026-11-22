@@ -19,6 +19,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SkillTreeNodeRepositoryTest {
     private final List<RuntimeFilebaseSnapshot.Entry> entries = new ArrayList<>();
 
+    @Test
+    void readsScopedRelativeIncreaseInPercentagePoints() {
+        writeNode("1000.json", nodeJson("1000", """
+                [{"type":"status","status":"SKILL_CRITICAL_RATE_RELATIVE_INCREASE","modifierType":"FLAT","value":100}]
+                """));
+        var repository = repository();
+        var effect = assertInstanceOf(SkillTreeStatusEffect.class, repository.findAll().getFirst().effects().getFirst());
+        assertEquals(StatusType.SKILL_CRITICAL_RATE_RELATIVE_INCREASE, effect.statusType());
+        assertEquals(100.0, effect.value());
+    }
+
     /**
      * schema v1 JSONのskill/status typed effectを対応modelへ変換する。
      */

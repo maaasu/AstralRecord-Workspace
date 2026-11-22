@@ -205,6 +205,13 @@ public final class AstEntity {
         };
     }
 
+    /** 攻撃元に有効な通常会心率を、発動時点の個体補正を含めて抽選します。 */
+    public double criticalRate(@NotNull DamageSource source) {
+        if (!isPlayer()) return statValue(StatusType.CRITICAL_RATE);
+        var rate = playerStatus().getValue(StatusType.CRITICAL_RATE, source.criticalRateIncrease());
+        return rate == null ? 0.0D : rate.rollValue();
+    }
+
     /**
      * 現在 HP を返します。
      *

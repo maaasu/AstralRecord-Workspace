@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class AstPlayerCache {
 
     private static final Map<UUID, AstPlayer> CACHE = new ConcurrentHashMap<>();
+    private static final Map<UUID, AstPlayer> BY_ACCOUNT = new HashMap<>();
 
     private AstPlayerCache() {
         // utility class
@@ -30,8 +32,11 @@ public final class AstPlayerCache {
      *
      * @param astPlayer キャッシュに追加するプレイヤー
      */
-    public static void put(@NotNull AstPlayer astPlayer) {
-        CACHE.put(astPlayer.getBukkit().getUniqueId(), astPlayer);
+    public static synchronized void put(@NotNull AstPlayer astPlayer) {
+        AstPlayer previous = CACHE.put(astPlayer.getBukkit().getUniqueId(), astPlayer);
+        if (previous != null) BY_ACCOUNT.remove(accountId(previous), previous);
+        UUID accountId = accountId(astPlayer);
+        if (accountId != null) BY_ACCOUNT.put(accountId, astPlayer);
     }
 
     /**
@@ -56,6 +61,17 @@ public final class AstPlayerCache {
     }
 
     /**
+     * アカウント ID に対応するオンラインセッションを取得します。
+     *
+     * @param accountId アカウントの UUID
+     * @return 対応するセッション。未登録なら {@code null}
+     */
+    @Nullable
+    public static synchronized AstPlayer getByAccount(@NotNull UUID accountId) {
+        return BY_ACCOUNT.get(accountId);
+    }
+
+    /**
      * Bukkit {@link Player} に対応する {@link AstPlayer} をキャッシュから取得します。
      *
      * @param player Bukkit プレイヤー
@@ -71,8 +87,9 @@ public final class AstPlayerCache {
      *
      * @param uuid プレイヤーの UUID
      */
-    public static void remove(@NotNull UUID uuid) {
-        CACHE.remove(uuid);
+    public static synchronized void remove(@NotNull UUID uuid) {
+        AstPlayer removed = CACHE.remove(uuid);
+        if (removed != null) BY_ACCOUNT.remove(accountId(removed), removed);
     }
 
     /**
@@ -82,8 +99,10 @@ public final class AstPlayerCache {
      * @param expectedPlayer 削除対象として期待するプレイヤーセッション
      * @return 対象セッションを削除できた場合は {@code true}
      */
-    public static boolean remove(@NotNull UUID uuid, @NotNull AstPlayer expectedPlayer) {
-        return CACHE.remove(uuid, expectedPlayer);
+    public static synchronized boolean remove(@NotNull UUID uuid, @NotNull AstPlayer expectedPlayer) {
+        if (!CACHE.remove(uuid, expectedPlayer)) return false;
+        BY_ACCOUNT.remove(accountId(expectedPlayer), expectedPlayer);
+        return true;
     }
 
     /**
@@ -100,7 +119,14 @@ public final class AstPlayerCache {
      * キャッシュをすべてクリアします。
      * プラグインのシャットダウン時に呼び出してください。
      */
-    public static void clear() {
+    public static synchronized void clear() {
         CACHE.clear();
+        BY_ACCOUNT.clear();
+    }
+
+    /** セッションに読み込まれているアカウントのIDを返します。 */
+    private static @Nullable UUID accountId(AstPlayer player) {
+        var account = player.getAccount();
+        return account == null ? null : account.getUuid();
     }
 }

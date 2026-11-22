@@ -23,7 +23,7 @@ internal sealed record BalanceRuntimeCast(string Id, JsonObject Definition, IRea
     internal string ImplementationId => BalanceCombatData.Text(Definition["implementationId"]);
     internal JsonObject Params => BalanceSkillParameters.Params(Definition);
     internal bool Tagged(string tag) => BalanceCombatData.Array(Definition["tags"]).Any(value => value?.ToString() == tag);
-    internal double Stat(string key, double fallback = 0) => Stats.GetValueOrDefault(key, fallback);
+    internal double Stat(string key, double fallback = 0) => BalanceCombatData.Stat(Stats, key, fallback);
 }
 
 internal sealed record BalanceRuntimeHit(BalanceRuntimeCast Cast, string AttackType, string Source,
@@ -88,6 +88,7 @@ internal sealed class BalanceRuntimeContext
     internal required Func<string, double> ReadResource { get; init; }
     internal required Action<string, double> WriteResource { get; init; }
     internal required Func<bool, IReadOnlyDictionary<string, double>> ReadStats { get; init; }
+    internal Func<JsonObject, IReadOnlyDictionary<string, double>>? ReadSkillStats { get; init; }
     internal required Action<BalanceRuntimeCast, int, Action, string> Queue { get; init; }
     internal required Func<BalanceRuntimeCast, string, IReadOnlyList<BalanceSkillComponent>, string, double, bool, IReadOnlyDictionary<string, double>?, BalanceRuntimeHit> Damage { get; init; }
     internal required Func<BalanceRuntimeCast, double, double> Healing { get; init; }
@@ -168,7 +169,7 @@ internal sealed class BalanceRuntimeContext
     internal bool HasPassive(string id) => Passives.ContainsKey(id);
     internal JsonObject? Passive(string id) => Passives.GetValueOrDefault(id);
     internal JsonObject? Skill(string id) => Definitions.GetValueOrDefault(id);
-    internal double Stat(string key, double fallback = 0) => PlayerStats.GetValueOrDefault(key, fallback);
+    internal double Stat(string key, double fallback = 0) => BalanceCombatData.Stat(PlayerStats, key, fallback);
     internal double Resource(string key) => key is "HP" or "MP" or "ENG" or "SHIELD" or "ENEMY_HP" or "ENEMY_SHIELD"
         ? ReadResource(key) : CustomResources.GetValueOrDefault(key);
     internal void SetResource(string key, double value)
@@ -189,7 +190,7 @@ internal sealed class BalanceRuntimeContext
         AddResource(key, -value); return true;
     }
     internal BalanceRuntimeCast Snapshot(JsonObject definition) => new(BalanceCombatData.Text(definition["id"]), definition,
-        new Dictionary<string, double>(PlayerStats, StringComparer.OrdinalIgnoreCase));
+        new Dictionary<string, double>(ReadSkillStats?.Invoke(definition) ?? PlayerStats, StringComparer.OrdinalIgnoreCase));
     internal BalanceRuntimeCast? Snapshot(string implementationId) => Skill(implementationId) is { } definition ? Snapshot(definition) : null;
     internal void Schedule(BalanceRuntimeCast cast, int delay, Action action, string scope = "") => Queue(cast, Math.Max(0, delay), action, scope);
     internal BalanceRuntimeHit Hit(BalanceRuntimeCast cast, double ratio, string type = "MAGIC", string element = "NONE",

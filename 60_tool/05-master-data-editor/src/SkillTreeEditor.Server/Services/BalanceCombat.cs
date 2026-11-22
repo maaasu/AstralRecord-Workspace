@@ -17,7 +17,10 @@ public static partial class BalanceCombat
     private static readonly string[] Sources = BalanceCombatParity.SourceHashes.Keys.ToArray();
     private sealed record Skill(string Id, string Name, string Kind, string Type, string Element, double Ratio,
         double HealPercent, string Resource, double Cost, double AdditionalManaCost, int CooldownTicks, int CastTicks,
-        int ImpactDelayTicks, BalanceSkillProfile Profile, JsonObject Definition);
+        int ImpactDelayTicks, BalanceSkillProfile Profile, JsonObject Definition)
+    {
+        internal IReadOnlyDictionary<string, double> StatusBonuses { get; init; } = new Dictionary<string, double>();
+    }
 
     /// <summary>Simulates one seeded encounter, or returns an explicit invalid/unsupported result.</summary>
     public static JsonObject Simulate(JsonObject catalog, JsonObject request, JsonObject build, int seed, CancellationToken token)
@@ -68,8 +71,8 @@ public static partial class BalanceCombat
             diagnostics.Add(("duplicate_skill", "同じスキルを優先順位へ重複指定できません。", "error"));
         foreach (var field in new[] { "buffIds", "statusEffects", "followUpSkills" })
             if (BalanceCombatData.Array(build[field]).Any()) unsupported.Add($"build.{field} の戦闘効果は未対応です。");
-        foreach (var field in new[] { "skillLevels", "skillSigils", "sigils", "skillModifiers" })
-            if (build[field] is not null) unsupported.Add($"build.{field} は未対応です。対応スキルはLv1・シジル未装着で計算します。");
+        foreach (var field in new[] { "skillLevels", "sigils", "skillModifiers" })
+            if (build[field] is not null) unsupported.Add($"build.{field} は未対応です。対応スキルはLv1で計算します。");
         foreach (var field in new[] { "buffIds", "statusEffects", "environmentEffects" })
             if (BalanceCombatData.Array(request[field]).Any()) unsupported.Add($"request.{field} の戦闘効果は未対応です。");
         var skills = new List<Skill>();
@@ -77,6 +80,10 @@ public static partial class BalanceCombat
         if (passiveIds.Distinct(StringComparer.Ordinal).Count() != passiveIds.Length || passiveIds.Length > 32)
             diagnostics.Add(("invalid_passives", "パッシブは重複なしで32件以下にしてください。", "error"));
         var passives = new List<Skill>();
+        var attachments = build["skillSigils"] as JsonObject;
+        if (build["skillSigils"] is not null && (attachments is null ||
+            attachments.Any(pair => !requestedSkills.Contains(pair.Key) || pair.Value is not JsonArray)))
+            unsupported.Add("build.skillSigils はアクティブスキルIDごとに装着順のシジルID配列を指定してください。");
         foreach (var message in BalanceRuntimeWorld.Validate(request)) diagnostics.Add(("invalid_world", message, "error"));
         foreach (var id in requestedSkills.Concat(passiveIds))
         {
@@ -84,6 +91,8 @@ public static partial class BalanceCombat
             var master = BalanceCombatData.Find(masters, "skill", id);
             if (master is null) { diagnostics.Add(("skill_missing", $"スキル {id} の定義がありません。", "error")); continue; }
             var skill = ResolveSkill(master.Content, catalog);
+            if (skill is not null && attachments?[id] is JsonArray { Count: > 0 } sigils && !skill.Profile.Passive)
+                skill = WithSigils(skill, sigils, masters, unsupported);
             if (skill is null) unsupported.Add($"スキル {id}: {string.Join(" / ", BalanceSkills.Resolve(master.Content, catalog).Reasons)}");
             else
             {
@@ -187,6 +196,7 @@ public static partial class BalanceCombat
                             unsupported.Add($"セット効果 {setId} の SCALAR は未対応です。");
                         else BalanceCombatData.Add(player, BalanceCombatData.Text(stat["status"]), BalanceCombatData.Number(stat["value"]));
         }
+        BalanceCombatData.AddTreeStats(player, build["nodes"], masters, unsupported);
         if (build["baseStats"] is JsonObject overrides)
         {
             foreach (var (key, value) in overrides) player[key] = BalanceCombatData.Number(value);
@@ -196,6 +206,11 @@ public static partial class BalanceCombat
         var enemyLevel = BalanceCombatData.Integer(BalanceCombatData.Object(request["enemy"])?["level"], BalanceCombatData.Integer(mob!.Content["level"], 1));
         var effectiveMob = BalanceCombatData.ResolveMob(mob!.Content, enemyLevel, assumptions);
         var enemy = BalanceCombatData.MobStats(effectiveMob, enemyLevel, assumptions);
+        foreach (var id in enemy.Keys.Where(id => id.EndsWith("_RELATIVE_INCREASE", StringComparison.OrdinalIgnoreCase)).ToArray())
+        {
+            if (enemy[id] != 0) unsupported.Add($"敵のステータス {id} はプレイヤー用の相対補正の対象外です。");
+            enemy.Remove(id);
+        }
         var enemyCombat = BalanceCombatData.Object(effectiveMob["ai"])?["combat"] as JsonObject;
         var enemyNormal = BalanceCombatData.Object(enemyCombat?["normalAttack"]);
         if (enemyNormal is null) unsupported.Add("Mob に通常攻撃設定がありません。AIのスキル専用戦闘は未対応です。");
@@ -253,13 +268,21 @@ public static partial class BalanceCombat
         assumptions.Add(dynamic ? "一対一・読み込み済みの遮蔽なし平面です。移動は明示したtick入力とPluginの位置移動処理に限定し、Bukkit物理・地形・敵AIの接近は再現しません。"
             : "一対一の静止戦闘です。対象は射程内で標的に取られ続け、ボス・ダンジョン制限や環境効果はありません。");
         assumptions.Add("乱数列は Plugin の ThreadLocalRandom と一致しません。指定seedで本モデルの判定を再現します。");
-        assumptions.Add("skillIds はLv1・シジル未装着・習得/装着/使用許可済みとし、記載順に使用します。実アカウント解放状態は参照しません。");
+        assumptions.Add("skillIds はLv1・習得/装着/使用許可済みとし、記載順に使用します。実アカウント解放状態は参照しません。");
         if (unsupported.Count > 0) assumptions.Add("未対応のスキル・エンチャント・ルーン効果は近似モードで省略します。");
         return Run(request, seed, maxSeconds, player, enemy, effectiveMob, enemyNormal, weapon ?? ("MELEE", 10),
             weaponName ?? "通常攻撃", skills, classId, diagnostics, assumptions, catalog, build, token, passives, weaponTag ?? "", dynamic);
     }
 
     internal static bool SupportsSkill(JsonObject definition) => BalanceSkills.Resolve(definition).Supported;
+    static BalanceCombat()
+    {
+        foreach (var (status, increase) in RelativeStatusTypes.Increases)
+            if (SupportedStatuses.Contains(status)) SupportedStatuses.Add(increase);
+        SupportedStatuses.Add(BalanceCombatData.NormalCriticalIncrease);
+        SupportedStatuses.Add(BalanceCombatData.SkillCriticalIncrease);
+    }
+
     internal static bool SupportsStatus(string key) => SupportedStatuses.Contains(key);
 
     private static Skill? ResolveSkill(JsonObject definition, JsonObject catalog)
@@ -273,6 +296,50 @@ public static partial class BalanceCombat
             BalanceCombatData.Number(definition["resourceCost"], BalanceCombatData.Number(definition["manaCost"])),
             resource == "ENERGY" ? BalanceCombatData.Number(definition["manaCost"]) : 0,
             BalanceCombatData.Integer(definition["cooldownTicks"]), BalanceCombatData.Integer(definition["castTimeTicks"]), 0, profile, definition);
+    }
+
+    private static Skill WithSigils(Skill skill, JsonArray attachments, BalanceCombatData.Master[] masters, List<string> unsupported)
+    {
+        var slots = BalanceCombatData.Array(skill.Definition["sigilSlotsByLevel"]).OfType<JsonObject>()
+            .Where(row => BalanceCombatData.Integer(row["level"]) == 1)
+            .Select(row => BalanceCombatData.Integer(row["slots"])).DefaultIfEmpty().Max();
+        var allowed = BalanceCombatData.Array(skill.Definition["allowedSigilIds"]).Select(BalanceCombatData.Id)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var groups = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var bonuses = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        if (attachments.Count > slots)
+            unsupported.Add($"build.skillSigils: {skill.Id} のLv1のシジル枠数は {slots} です。");
+        for (var slot = 0; slot < Math.Min(attachments.Count, slots); slot++)
+        {
+            var id = BalanceCombatData.Id(attachments[slot]);
+            var items = masters.Where(m => m.Kind == "item" && string.Equals(BalanceCombatData.Text(m.Content["id"]), id,
+                StringComparison.OrdinalIgnoreCase)).Take(2).ToArray();
+            var item = items.Length == 1 ? items[0].Content : null;
+            var sigil = item?["sigil"] as JsonObject;
+            var group = BalanceCombatData.Text(sigil?["equipGroupId"]);
+            if (!allowed.Contains(id) || BalanceCombatData.Text(item?["category"]) != "sigil"
+                || string.IsNullOrWhiteSpace(group) || sigil?["modifiers"] is not JsonArray { Count: > 0 } modifiers
+                || sigil.Any(pair => pair.Key is not ("equipGroupId" or "modifiers"))
+                || modifiers.Any(node => node is not JsonObject mod || !SupportsStatus(BalanceCombatData.Text(mod["status"]))
+                    || mod.Any(pair => pair.Key is not ("status" or "value"))
+                    || mod["value"]?.GetValueKind() != System.Text.Json.JsonValueKind.Number
+                    || !double.IsFinite(BalanceCombatData.Number(mod["value"], double.NaN))) || !groups.Add(group))
+            {
+                unsupported.Add($"build.skillSigils: {skill.Id} の枠{slot + 1}に指定された {id} は装着条件か能力補正の対応範囲を満たしません。");
+                continue;
+            }
+            foreach (var mod in modifiers.OfType<JsonObject>())
+                BalanceCombatData.Add(bonuses, BalanceCombatData.Text(mod["status"]), BalanceCombatData.Number(mod["value"]));
+        }
+        var multiplier = 1 + groups.Count;
+        var definition = skill.Definition.DeepClone().AsObject();
+        definition["resourceCost"] = skill.Cost * multiplier;
+        definition["manaCost"] = BalanceCombatData.Number(definition["manaCost"]) * multiplier;
+        return skill with
+        {
+            Definition = definition, StatusBonuses = bonuses,
+            Cost = skill.Cost * multiplier, AdditionalManaCost = skill.AdditionalManaCost * multiplier
+        };
     }
 
     private static (string Type, int Ticks)? Weapon(string? tag) => tag?.ToUpperInvariant() switch
@@ -321,8 +388,8 @@ public static partial class BalanceCombat
             ["outcome"] = outcome, ["elapsedTicks"] = ticks, ["damageDealt"] = dealt, ["damageTaken"] = taken,
             ["dps"] = dps, ["mpExhaustedTick"] = mpExhausted, ["engExhaustedTick"] = engExhausted,
             ["contributions"] = contributions, ["resources"] = resources,
-            ["playerStats"] = new JsonObject(player.Select(pair => new KeyValuePair<string, JsonNode?>(pair.Key, JsonValue.Create(pair.Value)))),
-            ["enemyStats"] = new JsonObject(enemy.Select(pair => new KeyValuePair<string, JsonNode?>(pair.Key, JsonValue.Create(pair.Value)))),
+            ["playerStats"] = new JsonObject(player.Select(pair => new KeyValuePair<string, JsonNode?>(pair.Key, JsonValue.Create(BalanceCombatData.Stat(player, pair.Key))))),
+            ["enemyStats"] = new JsonObject(enemy.Select(pair => new KeyValuePair<string, JsonNode?>(pair.Key, JsonValue.Create(BalanceCombatData.Stat(enemy, pair.Key))))),
             ["diagnostics"] = new JsonArray(diagnostics.Select(item => (JsonNode?)new JsonObject
                 { ["code"] = item.Code, ["message"] = item.Message, ["severity"] = item.Severity }).ToArray()),
             ["assumptions"] = new JsonArray(assumptions.Select(item => (JsonNode?)JsonValue.Create(item)).ToArray()),
