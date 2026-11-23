@@ -103,7 +103,7 @@ public class GuideRepository {
 
     private @Nullable GuideEntry parse(@NotNull JsonObject obj) {
         String id = stringValue(obj, "id", "");
-        if (id.isBlank()) {
+        if (!GuideEntry.FIRST_CHAPTER_ID.equals(id)) {
             return null;
         }
 

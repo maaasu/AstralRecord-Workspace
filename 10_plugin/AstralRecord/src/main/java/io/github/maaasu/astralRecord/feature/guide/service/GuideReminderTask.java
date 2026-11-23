@@ -69,6 +69,7 @@ public final class GuideReminderTask {
     void sendReminder() {
         for (var astPlayer : AstPlayerCache.getAll()) {
             if (!playerSettingService.isGuideReminderEnabled(astPlayer.getBukkit().getUniqueId())
+                || !guideService.shouldSendGuideReminder(astPlayer)
                 || !guideService.hasIncompleteGuide(astPlayer.getAccount().getUuid())) {
                 continue;
             }

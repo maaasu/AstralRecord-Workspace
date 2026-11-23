@@ -8,28 +8,24 @@ namespace AstralRecordApi.Repositories;
 public class GuideRepository(MasterDataDbContext dbContext) : IGuideRepository
 {
     private const string MasterTypeGuide = "guide";
+    private const string ChapterOneId = "beginner_onboarding";
+
+    private static readonly string[] ChapterOneSteps =
+    [
+        "open_menu", "receive_welcome_mail", "open_initial_bundle",
+        "buy_starter_weapon", "equip_starter_weapon", "defeat_grassboar",
+    ];
 
     public IReadOnlyList<GuideResponse> GetAll()
     {
-        var payloads = dbContext.Entries
-            .AsNoTracking()
-            .Where(entry => !entry.IsDeleted && entry.MasterType == MasterTypeGuide)
-            .OrderBy(entry => entry.MasterId)
-            .Select(entry => entry.PayloadJson)
-            .ToArray();
-
-        return payloads
-            .Select(MasterDataPayloadJson.Deserialize<GuideResponse>)
-            .Where(guide => guide is not null)
-            .Select(guide => guide!)
-            .OrderBy(guide => CategoryOrder(guide.Category))
-            .ThenBy(guide => guide.DisplayOrder)
-            .ThenBy(guide => guide.Id)
-            .ToArray();
+        var chapter = GetById(ChapterOneId);
+        return chapter is null ? [] : [chapter];
     }
 
     public GuideResponse? GetById(string guideId)
     {
+        if (guideId != ChapterOneId) return null;
+
         var payload = dbContext.Entries
             .AsNoTracking()
             .Where(entry => !entry.IsDeleted
@@ -38,20 +34,8 @@ public class GuideRepository(MasterDataDbContext dbContext) : IGuideRepository
             .Select(entry => entry.PayloadJson)
             .FirstOrDefault();
 
-        return payload is null
-            ? null
-            : MasterDataPayloadJson.Deserialize<GuideResponse>(payload);
-    }
-
-    private static int CategoryOrder(string? category)
-    {
-        return (category ?? string.Empty).Trim().ToLowerInvariant() switch
-        {
-            "beginner" => 10,
-            "equipment" => 20,
-            "skill" => 30,
-            "world" => 40,
-            _ => 100,
-        };
+        var chapter = payload is null ? null : MasterDataPayloadJson.Deserialize<GuideResponse>(payload);
+        return chapter is { SchemaVersion: 3, Id: ChapterOneId }
+            && chapter.Steps.Select(step => step.Id).SequenceEqual(ChapterOneSteps) ? chapter : null;
     }
 }

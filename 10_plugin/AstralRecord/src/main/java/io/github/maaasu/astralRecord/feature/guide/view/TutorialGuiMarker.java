@@ -40,7 +40,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.plugin.java.JavaPlugin;
+import io.github.maaasu.astralRecord.AstralRecord;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.Nullable;
 
@@ -74,7 +74,7 @@ public final class TutorialGuiMarker implements Listener {
     private static final Component PREFIX = Component.text("▶ ", NamedTextColor.GOLD)
         .decoration(TextDecoration.ITALIC, false);
 
-    private final JavaPlugin plugin;
+    private final AstralRecord plugin;
     private final GuideService guides;
     private final NamespacedKey mailIdKey;
     private final NamespacedKey shopEntryIdKey;
@@ -83,7 +83,7 @@ public final class TutorialGuiMarker implements Listener {
     private @Nullable BukkitTask task;
     private @Nullable PacketAdapter packetListener;
 
-    public TutorialGuiMarker(JavaPlugin plugin, GuideService guides) {
+    public TutorialGuiMarker(AstralRecord plugin, GuideService guides) {
         this.plugin = plugin;
         this.guides = guides;
         this.mailIdKey = new NamespacedKey(plugin, "mail_id");
@@ -195,7 +195,8 @@ public final class TutorialGuiMarker implements Listener {
             if (AccountModeGuard.isGameplayPlayer(astPlayer)) {
                 accountId = astPlayer.getAccount().getUuid();
             }
-            String step = accountId == null ? null : guides.tutorialStep(accountId);
+            String step = accountId != null && plugin.getPlayerSettingService().isGuideDisplayEnabled(astPlayer.getUser().getUuid())
+                ? guides.tutorialStep(accountId) : null;
             boolean recentEquipSuccess = session.observeStep(accountId, step, now);
 
             Presentation previous = session.presentation.get();

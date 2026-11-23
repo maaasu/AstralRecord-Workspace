@@ -1980,6 +1980,11 @@ public final class AstralRecord extends JavaPlugin {
         guideService.setTutorialCompletedListener(player -> guideActionService.onTutorialCompleted(player.getBukkit()));
         tutorialGuiMarker = new TutorialGuiMarker(this, guideService);
         guideReminderTask = new GuideReminderTask(playerMessageService, guideService, playerSettingService);
+        guideService.setGuideDisplayPolicy(
+            player -> playerSettingService.isGuideDisplayEnabled(player.getUser().getUuid()),
+            player -> !player.isBedrock() && resourcePackService.hasJavaGuideHud(player.getBukkit().getUniqueId())
+        );
+        playerHudService.setGuideHud(guideService, guideActionService::tutorialHudInstruction);
 
         // menu
         guiSessionTransitionService = new GuiSessionTransitionService();
@@ -3698,6 +3703,7 @@ public final class AstralRecord extends JavaPlugin {
      */
     /** Repaints the screen controls without replacing unrelated HUD channels. */
     public void refreshScreenHud(AstPlayer player) {
+        if (guideActionService != null) guideActionService.refreshTutorialDisplay(player);
         playerHudService.refreshScreenHud(player);
     }
 

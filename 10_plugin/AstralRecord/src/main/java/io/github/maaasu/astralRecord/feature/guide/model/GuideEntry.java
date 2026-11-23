@@ -27,6 +27,8 @@ public record GuideEntry(
     @Nullable String summary,
     @NotNull List<GuideStep> steps
 ) {
+    public static final String FIRST_CHAPTER_ID = "beginner_onboarding";
+
     public GuideEntry {
         steps = List.copyOf(steps);
     }

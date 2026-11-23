@@ -515,7 +515,10 @@ class GuideServiceTest {
         fixture.service.loadProgressAsync(accountId);
         fixture.asyncTasks.getFirst().run();
 
+        assertEquals(0, fixture.service.tutorialCompletedStepCount(accountId));
         fixture.service.recordCondition(player, GuideConditionType.MOB_DEFEATED, "midgard_grassboar");
+        assertEquals(1, fixture.service.tutorialCompletedStepCount(accountId));
+        assertEquals("open_menu", fixture.service.tutorialStep(accountId));
         fixture.service.recordCondition(player, GuideConditionType.SHOP_PURCHASED, "nox_weapon");
         when(player.getAccount().getMode()).thenReturn(AccountMode.ADMIN);
         fixture.service.recordTutorialHeldWeapon(player, 8);
@@ -539,6 +542,7 @@ class GuideServiceTest {
         fixture.service.recordTutorialMenuOpened(player);
         fixture.service.recordTutorialMenuOpened(player);
         assertNull(fixture.service.tutorialStep(accountId));
+        assertEquals(6, fixture.service.tutorialCompletedStepCount(accountId));
         assertEquals(List.of(player), tutorialCompletions);
         assertFalse(fixture.service.areAllGuidesCompleted(accountId));
         assertTrue(allCompletions.isEmpty());
@@ -901,6 +905,35 @@ class GuideServiceTest {
             progress.add(new GuideStepKey(GuideService.INITIAL_GUIDE_ID, id));
         }
         return progress;
+    }
+
+    /** v3はHUD、v2/統合版はチャットで案内し、非表示の間も進捗は記録します。 */
+    @Test
+    void guideDisplayPolicyChoosesOneAutomaticChannelAndPreservesHiddenProgress() {
+        Fixture fixture = new Fixture();
+        AstPlayer player = fixture.player(UUID.randomUUID());
+        UUID account = player.getAccount().getUuid();
+        when(fixture.progressRepository.findByAccountId(account)).thenReturn(Set.of());
+        fixture.service.replaceEntrySnapshot(List.of(tutorialGuide()));
+        fixture.service.loadProgressAsync(account);
+        fixture.asyncTasks.getFirst().run();
+
+        fixture.service.setGuideDisplayPolicy(ignored -> true, ignored -> true);
+        fixture.service.recordTutorialMenuOpened(player);
+        assertFalse(fixture.service.shouldSendGuideReminder(player));
+        verify(fixture.messages, never()).send(eq(player), eq(PlayerMsgId.P_5180), any());
+        verify(fixture.messages, never()).send(eq(player), eq(PlayerMsgId.P_5186), any());
+
+        fixture.service.setGuideDisplayPolicy(ignored -> false, ignored -> false);
+        fixture.service.recordCondition(player, GuideConditionType.MAIL_RECEIVED, "welcome_mail");
+        assertEquals(2, fixture.service.tutorialCompletedStepCount(account));
+        assertFalse(fixture.service.shouldSendGuideReminder(player));
+        verify(fixture.messages, never()).send(eq(player), eq(PlayerMsgId.P_5180), any());
+
+        fixture.service.setGuideDisplayPolicy(ignored -> true, ignored -> false);
+        assertTrue(fixture.service.shouldSendGuideReminder(player));
+        fixture.service.sendNextStepHint(player);
+        verify(fixture.messages).send(player, PlayerMsgId.P_5186, "open_initial_bundle");
     }
 
     private static GuideEntry tutorialGuide() {

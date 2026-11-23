@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import math
@@ -229,6 +230,103 @@ def panel(rows: int) -> Raster:
     return draw
 
 
+CHAPTER_GLYPHS = ROOT / "gui-source/chapter-glyphs.json"
+CHAPTER_ATLAS = ROOT / "assets/astralrecord/textures/font/quest_hud_text_hd.png"
+CHAPTER_STEPS = ("案内", "受取", "開封", "購入", "装備", "討伐")
+CHAPTER_NAME = "グラスボアを1体倒そう"
+CHAPTER_LABELS = ("チャプター一覧", "手順を見る", "第1章", CHAPTER_NAME, "次のステップ", "攻略結果",
+                  "現在", "完了", "一覧", "戻る", *CHAPTER_STEPS)
+
+
+def refresh_chapter_glyphs():
+    """Extract the small label alphabet from the shipped Noto Sans JP atlas (OFL)."""
+    from PIL import Image
+    providers = json.loads((ROOT / "assets/astralrecord/font/profile_hud_class_name_compact.json")
+                           .read_text(encoding="utf-8"))["providers"]
+    rows = next(p["chars"] for p in providers if p["type"] == "bitmap")
+    with Image.open(CHAPTER_ATLAS) as image:
+        alpha = image.convert("RGBA").getchannel("A")
+    width, height = alpha.width // len(rows[0]), alpha.height // len(rows)
+    glyphs = {}
+    for letter in sorted(set("".join(CHAPTER_LABELS))):
+        col, row = next((i, j) for j, text in enumerate(rows) for i, c in enumerate(text) if c == letter)
+        mask = alpha.crop((col * width, row * height, (col+1) * width, (row+1) * height))
+        # Keep the original baseline. Half-width numerals use a narrower advance.
+        right = mask.getbbox()[2]
+        w = max(1, round(15 * right / width))
+        scaled = mask.crop((0, 0, right, height)).resize((w, 15), Image.Resampling.LANCZOS)
+        glyphs[letter] = [w, "".join(format(round(a / 17), "x") for a in scaled.tobytes())]
+    data = {"source": "assets/astralrecord/textures/font/quest_hud_text_hd.png",
+            "license": "licenses/OFL-NotoSansJP.txt", "source_sha256": hashlib.sha256(CHAPTER_ATLAS.read_bytes()).hexdigest(),
+            "height": 15, "glyphs": glyphs}
+    CHAPTER_GLYPHS.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def chapter_label(draw, glyphs, text, center_x, y, color=CREAM):
+    """Typeset on the 2x bitmap. Logical coordinates match the Java chest."""
+    width = sum(glyphs[c][0] + 1 for c in text) - 1
+    left, top = round(center_x * 2 - width / 2), y * 2
+    rgb = bytes.fromhex(color[1:])
+    if left < 0 or left + width > draw.width or top < 0 or top + 15 > draw.height:
+        raise ValueError(f"Chapter label outside menu: {text}")
+    for c in text:
+        w, mask = glyphs[c]
+        for i, ink in enumerate(mask):
+            coverage = int(ink, 16)
+            if coverage:
+                dx, dy = left + i % w, top + i // w
+                bg = draw.pixels[dy][dx]
+                draw.pixels[dy][dx] = tuple((rgb[k] * coverage + bg[k] * (15-coverage) + 7) // 15
+                                            for k in range(3)) + (255,)
+        left += w + 1
+
+
+def chapter_panel(variant, glyphs):
+    """Overlay only the upper 125 GUI pixels. Inventory and hotbar remain native."""
+    base = panel(6)
+    base.rectangle((5, 17, 170, 124), NAVY)
+    # Clear the standard grid while retaining its gold frame and the title band.
+    base.rectangle((4, 16, 171, 124), NAVY)
+    def field(left, top, right, bottom, face):
+        cut_rect(base, (left, top, right, bottom), RIDGE, 2)
+        cut_rect(base, (left+1, top+1, right-1, bottom-1), face, 2)
+    def button_slot(index):
+        slot(base, 8 + 18 * (index % 9), 18 + 18 * (index // 9))
+    overview = variant == "list"
+    if overview:
+        field(25, 17, 150, 88, BLUE)
+        field(66, 49, 109, 73, NAVY)
+        button_slot(22)
+    else:
+        field(8, 17, 167, 36, BLUE)
+        # The book is physically in slot 4. Put the chapter name on its own line.
+        button_slot(4)
+        field(8, 38, 167, 50, INK)
+        field(25, 53, 150, 70, "#254448")
+        button_slot(22)
+        for index in range(28, 34):
+            button_slot(index)
+    base.line((8, 102, 167, 102), GOLD_DARK)
+    for index in ([49] if overview else [45, 49]):
+        button_slot(index)
+    # Slot 51 is drawn by the plugin only while a reward is actually claimable.
+    art = Raster(352, 250)
+    art.pixels = [[pixel for pixel in row for _ in range(2)] for row in base.pixels[:125] for _ in range(2)]
+    if overview:
+        chapter_label(art, glyphs, "チャプター一覧", 88, 28)
+        chapter_label(art, glyphs, "手順を見る", 88, 79, "#bad9dd")
+    else:
+        chapter_label(art, glyphs, "第1章", 43, 22, "#bad9dd")
+        chapter_label(art, glyphs, "完了" if variant == "complete" else "現在", 130, 22, BRIGHT)
+        chapter_label(art, glyphs, CHAPTER_NAME, 88, 40)
+        chapter_label(art, glyphs, "攻略結果" if variant == "complete" else "次のステップ", 51, 57)
+        for i, text in enumerate(CHAPTER_STEPS):
+            chapter_label(art, glyphs, text, 34 + i * 18, 91, "#d7e5e7")
+        chapter_label(art, glyphs, "一覧", 34, 112, "#bad9dd")
+    chapter_label(art, glyphs, "戻る", 106, 112, "#bad9dd")
+    return art
+
+
 def assets() -> dict[Path, bytes]:
     result: dict[Path, bytes] = {}
     providers: list[dict] = [
@@ -244,6 +342,16 @@ def assets() -> dict[Path, bytes]:
             "ascent": 13,
             "chars": [chr(0xEA0F + rows)],
         })
+    providers[0]["advances"].update({"\uea02": -177, "\uea03": -1})
+    data = json.loads(CHAPTER_GLYPHS.read_text(encoding="utf-8"))
+    if data["source_sha256"] != hashlib.sha256(CHAPTER_ATLAS.read_bytes()).hexdigest():
+        raise ValueError("Chapter label source changed; run --refresh-chapter-font")
+    for i, variant in enumerate(("list", "active", "complete")):
+        texture = f"gui/panel_chapter_{variant}.png"
+        result[ROOT / f"assets/astralrecord/textures/{texture}"] = png(chapter_panel(variant, data["glyphs"]).pixels)
+        pair = chr(0xEA20 + i*2) + chr(0xEA21 + i*2)
+        providers.append({"type": "bitmap", "file": f"astralrecord:{texture}",
+                          "height": 125, "ascent": 13, "chars": [pair]})
     result[ROOT / "assets/astralrecord/font/gui.json"] = (
         json.dumps({"providers": providers}, ensure_ascii=True, indent=2) + "\n"
     ).encode("utf-8")
@@ -300,9 +408,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="Check generated bytes without writing them")
     parser.add_argument("--preview", type=Path, help="Optional layout mock output, never a client screenshot")
+    parser.add_argument("--refresh-chapter-font", action="store_true", help="Extract chapter label subset (Pillow)")
+    parser.add_argument("--chapter-only", action="store_true", help="Write or check only Java chapter panels and gui.json")
     args = parser.parse_args()
+    if args.refresh_chapter_font:
+        refresh_chapter_glyphs()
     mismatches = []
     for path, expected in assets().items():
+        if args.chapter_only and not (path.name.startswith("panel_chapter_") or path.name == "gui.json"):
+            continue
         if args.check:
             actual = path.read_bytes() if path.exists() else None
             if actual is not None and path.suffix == ".json":

@@ -74,7 +74,7 @@ public class ResourcePackService {
     private final Set<UUID> requestedJavaLocationHud = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaSkillCooldownHud = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaFishingRodTip = ConcurrentHashMap.newKeySet();
-    private final Set<UUID> requestedJavaQuestHud = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, Integer> requestedJavaQuestHud = new ConcurrentHashMap<>();
     private final Set<UUID> requestedJavaActionRingCooldownHud = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockQuestHud = ConcurrentHashMap.newKeySet();
     private final Map<UUID, String> bedrockActionRingHudRevisions = new ConcurrentHashMap<>();
@@ -190,7 +190,7 @@ public class ResourcePackService {
                     if (pack.locationHud()) requestedJavaLocationHud.add(viewer);
                     if (pack.skillCooldownHud()) requestedJavaSkillCooldownHud.add(viewer);
                     if (pack.fishingRodTip()) requestedJavaFishingRodTip.add(viewer);
-                    if (pack.questTrackingHud()) requestedJavaQuestHud.add(viewer);
+                    if (pack.questHudVersion() >= 2) requestedJavaQuestHud.put(viewer, pack.questHudVersion());
                     if (pack.actionRingCooldownHud()) requestedJavaActionRingCooldownHud.add(viewer);
                     if (pack.actionRingPanel() != null) {
                         requestedActionRingPanels.put(viewer, pack.actionRingPanel());
@@ -502,7 +502,12 @@ public class ResourcePackService {
      * @return 対応管理パックの適用成功を受けたJava接続ならtrue
      */
     public boolean hasJavaQuestHud(UUID playerId) {
-        return hasManagedJavaPack(playerId) && requestedJavaQuestHud.contains(playerId);
+        return hasManagedJavaPack(playerId) && requestedJavaQuestHud.containsKey(playerId);
+    }
+
+    /** ガイドとクエストを描けるJava版パックの適用を確認します。 */
+    public boolean hasJavaGuideHud(UUID playerId) {
+        return hasManagedJavaPack(playerId) && requestedJavaQuestHud.getOrDefault(playerId, 0) == 3;
     }
 
     /** @param playerId 閲覧者UUID @return リングCTを描画できる管理パックの適用成功後のみtrue */

@@ -2,6 +2,8 @@ package io.github.maaasu.astralRecord.feature.hud.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.hud.model.QuestHudLayout;
+import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.feature.skill.model.ActionRingCooldownEntry;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCooldownHudEntry;
 import io.github.maaasu.astralRecord.feature.hud.view.PlayerHudView;
@@ -40,10 +42,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -70,6 +74,8 @@ public class PlayerHudService {
     private ArchmagePhoenixRuntimeService archmagePhoenixRuntimeService;
     private DungeonService dungeonService;
     private QuestService questService;
+    private GuideService guideService;
+    private BiFunction<AstPlayer, String, String> guideInstruction = (player, step) -> null;
     private Function<AstPlayer, List<SkillCooldownHudEntry>> skillCooldownProvider = ignored -> List.of();
 
     /** @param provider メインスレッドで現在装備とCTを返す、通信を伴わない参照先 */
@@ -112,20 +118,36 @@ public class PlayerHudService {
         playerHudView.setQuestHudRenderer(this::javaQuestHud);
     }
 
-    private record JavaQuestHud(List<QuestHudLayout.Row> rows, Component component) {
+    public void setGuideHud(@NotNull GuideService service, @NotNull BiFunction<AstPlayer, String, String> instruction) {
+        guideService = service;
+        guideInstruction = instruction;
+    }
+
+    private record JavaQuestHud(List<QuestHudLayout.Row> rows, boolean transparent, Component component) {
     }
 
     private Component javaQuestHud(Player player) {
         UUID id = player.getUniqueId();
-        List<QuestHudLayout.Row> rows = resourcePackService.hasJavaQuestHud(id)
-                ? visibleQuestRows(AstPlayerCache.get(player)) : List.of();
+        if (!resourcePackService.hasJavaQuestHud(id)) {
+            javaQuestHuds.remove(id);
+            return Component.empty();
+        }
+        AstPlayer ast = AstPlayerCache.get(player);
+        boolean transparent = resourcePackService.hasJavaGuideHud(id);
+        List<QuestHudLayout.Row> guide = transparent ? visibleGuideRows(ast) : List.of();
+        List<QuestHudLayout.Row> rows = visibleQuestRows(ast, QuestHudLayout.MAX_ROWS - guide.size());
+        if (!guide.isEmpty()) {
+            var combined = new ArrayList<>(guide);
+            combined.addAll(rows);
+            rows = List.copyOf(combined);
+        }
         if (rows.isEmpty()) {
             javaQuestHuds.remove(id);
             return Component.empty();
         }
         JavaQuestHud cached = javaQuestHuds.get(id);
-        if (cached == null || !cached.rows().equals(rows)) {
-            cached = new JavaQuestHud(rows, QuestHudGlyphs.render(rows));
+        if (cached == null || cached.transparent() != transparent || !cached.rows().equals(rows)) {
+            cached = new JavaQuestHud(rows, transparent, QuestHudGlyphs.render(rows, transparent));
             javaQuestHuds.put(id, cached);
         }
         return cached.component();
@@ -136,13 +158,35 @@ public class PlayerHudService {
         bedrockQuestHudSender = sender;
     }
 
-    private List<QuestHudLayout.Row> visibleQuestRows(@Nullable AstPlayer player) {
+    private List<QuestHudLayout.Row> visibleGuideRows(@Nullable AstPlayer player) {
+        if (guideService == null || player == null || player.isBedrock() || player.getBukkit().isDead()
+            || !player.getAccount().getMode().shouldProcessGameplay() || !guideService.isGuideDisplayEnabled(player)
+            || bossChallengeService.isPlayerInActiveChallenge(player.getBukkit().getUniqueId())
+            || (dungeonService != null && dungeonService.isDungeonWorld(player.getBukkit().getWorld()))) return List.of();
+        UUID account = player.getAccount().getUuid();
+        String stepId = guideService.tutorialStep(account);
+        if (stepId == null) return List.of();
+        var chapter = guideService.getById(GuideService.INITIAL_GUIDE_ID);
+        if (chapter == null) return List.of();
+        int completed = guideService.tutorialCompletedStepCount(account);
+        for (int i = 0; i < chapter.steps().size(); i++) {
+            var step = chapter.steps().get(i);
+            if (!step.id().equals(stepId)) continue;
+            String hint = guideInstruction.apply(player, stepId);
+            if (hint == null) hint = ColorCodeUtil.toPlainText(guideService.resolveText(step.text()), "");
+            return QuestHudGlyphs.guideRows(ColorCodeUtil.toPlainText(guideService.resolveText(chapter.title()), ""),
+                completed, chapter.steps().size(), i + 1, hint);
+        }
+        return List.of();
+    }
+
+    private List<QuestHudLayout.Row> visibleQuestRows(@Nullable AstPlayer player, int rowBudget) {
         if (questService == null || player == null
             || !playerSettingService.isQuestHudDisplayEnabled(player.getUser().getUuid())
             || !player.getAccount().getMode().shouldProcessGameplay()
             || bossChallengeService.isPlayerInActiveChallenge(player.getBukkit().getUniqueId())
             || (dungeonService != null && dungeonService.isDungeonWorld(player.getBukkit().getWorld()))) return List.of();
-        return QuestHudLayout.rows(questService.hudQuests(player));
+        return QuestHudLayout.rows(questService.hudQuests(player), rowBudget);
     }
 
     private void updateBedrockQuestHud(Player player, @Nullable AstPlayer astPlayer) {
@@ -152,7 +196,7 @@ public class PlayerHudService {
             bedrockQuestSentAt.remove(id);
             return;
         }
-        List<QuestHudLayout.Row> rows = visibleQuestRows(astPlayer);
+        List<QuestHudLayout.Row> rows = visibleQuestRows(astPlayer, QuestHudLayout.MAX_ROWS);
         String payload = QuestHudLayout.bedrockText(rows);
         long now = System.currentTimeMillis();
         boolean heartbeat = !rows.isEmpty() && now - bedrockQuestSentAt.getOrDefault(id, 0L) >= 2000L;

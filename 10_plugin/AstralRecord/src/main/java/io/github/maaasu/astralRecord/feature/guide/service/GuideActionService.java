@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.guide.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideAction;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
@@ -62,7 +63,7 @@ public final class GuideActionService {
         this.playerMessageService = playerMessageService;
         this.firstAdventureGuide = new FirstAdventureGuide(
             plugin,
-            particles, this::navigateTutorialMerchant,
+            particles, this::automaticMerchantHint,
             this::clearTutorialHighlight
         );
     }
@@ -70,6 +71,18 @@ public final class GuideActionService {
     /** 全サービスの起動後に、メインスレッドで初回案内の観測を開始します。 */
     public void startTutorial() {
         firstAdventureGuide.start();
+    }
+
+    /** 設定保存時に旧表示を即時回収し、再表示時はその時点の操作を復元します。 */
+    public void refreshTutorialDisplay(@NotNull AstPlayer player) {
+        firstAdventureGuide.refreshDisplay(player);
+    }
+
+    /** 現セッションの手順と一致する、持ち物・現在地に応じた短い操作文を返します。 */
+    public @Nullable String tutorialHudInstruction(
+        @NotNull AstPlayer player, @NotNull String step
+    ) {
+        return firstAdventureGuide.hudInstruction(player, step);
     }
 
     /** 指定された段階の目的地を、操作したプレイヤーに再表示します。 */
@@ -102,6 +115,25 @@ public final class GuideActionService {
         return found;
     }
 
+    /** HUD対応接続では、個人用の発光と座標をチャットとHUDに重複して出さないよう分けます。 */
+    private String automaticMerchantHint(AstPlayer ast) {
+        Player player = ast.getBukkit();
+        if (!plugin.getGuideService().usesJavaGuideHud(ast)) {
+            navigateTutorialMerchant(player);
+            return "雑貨商ミナで簡素な武器を1つ買おう";
+        }
+        NavigationTarget target = pointAtNpc(player, "general_goods_merchant");
+        if (target == null) {
+            var world = plugin.getWorldService().findByBukkitWorld(player.getWorld());
+            return world != null && world.worldType() == WorldType.BASE ? "ノクスで雑貨商ミナを探そう"
+                : "メニューの「帰還」でノクスに戻り、雑貨商ミナを探そう";
+        }
+        HighlightSession session = highlights.get(player.getUniqueId());
+        if (session != null) session.tutorial = true;
+        Location at = target.location();
+        return "雑貨商ミナで簡素な武器を買う\n(" + at.getBlockX() + ", " + at.getBlockY() + ", " + at.getBlockZ() + ")";
+    }
+
     private void clearTutorialHighlight(UUID playerId) {
         HighlightSession session = highlights.get(playerId);
         if (session != null && session.tutorial) {
@@ -131,15 +163,12 @@ public final class GuideActionService {
      * @return 案内先の座標を解決できた場合は true
      */
     private boolean navigateNpc(@NotNull Player player, @Nullable String npcId) {
-        clearHighlight(player.getUniqueId());
         if (npcId == null) {
+            clearHighlight(player.getUniqueId());
             playerMessageService.send(player, PlayerMsgId.P_5184);
             return false;
         }
-        NavigationTarget target = findNearestLiveNpc(player, npcId);
-        if (target == null) {
-            target = findNearestPlacement(player, npcId);
-        }
+        NavigationTarget target = pointAtNpc(player, npcId);
         if (target == null) {
             playerMessageService.send(player, PlayerMsgId.P_5183);
             return false;
@@ -155,10 +184,15 @@ public final class GuideActionService {
             location.getBlockY(),
             location.getBlockZ()
         );
-        if (target.instance() != null) {
-            highlight(player, target.instance());
-        }
         return true;
+    }
+
+    private @Nullable NavigationTarget pointAtNpc(Player player, String npcId) {
+        clearHighlight(player.getUniqueId());
+        NavigationTarget target = findNearestLiveNpc(player, npcId);
+        if (target == null) return findNearestPlacement(player, npcId);
+        if (target.instance() != null) highlight(player, target.instance());
+        return target;
     }
 
     private boolean openMenu(@NotNull Player player, @Nullable String menuId) {

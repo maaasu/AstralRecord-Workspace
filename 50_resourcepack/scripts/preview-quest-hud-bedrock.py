@@ -3,9 +3,12 @@
 
 import argparse
 import json
+import struct
+import io
+import zipfile
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
 COLORS = {"6": "#ffaa00", "f": "#ffffff", "a": "#55ff55", "7": "#aaaaaa"}
@@ -53,26 +56,91 @@ def draw_text(image, origin, value, color, glyphs):
         x += box[2] + 1
 
 
-def resize_frame(texture, width, height, slice_size):
-    """Resize the pack's nine-slice texture without changing the edge thickness."""
-    source_x = (0, slice_size, texture.width - slice_size, texture.width)
-    source_y = (0, slice_size, texture.height - slice_size, texture.height)
-    dest_x = (0, slice_size, width - slice_size, width)
-    dest_y = (0, slice_size, height - slice_size, height)
-    output = Image.new("RGBA", (width, height))
-    for row in range(3):
-        for column in range(3):
-            tile = texture.crop(
-                (source_x[column], source_y[row], source_x[column + 1], source_y[row + 1])
-            )
-            size = (dest_x[column + 1] - dest_x[column], dest_y[row + 1] - dest_y[row])
-            output.paste(tile.resize(size, Image.Resampling.NEAREST), (dest_x[column], dest_y[row]))
-    return output
+def native_pages(font_source):
+    """Read ordinary Bedrock font PNGs from a font folder or a local vanilla brarchive."""
+    if font_source.is_dir():
+        return {p.name: p.read_bytes() for p in font_source.glob('*.png')}
+    blob = font_source.read_bytes()
+    count, version = struct.unpack_from('<II', blob, 8)
+    data_start = 16 + count * 256
+    if version != 1 or data_start > len(blob):
+        raise ValueError("このフォントアーカイブ形式には対応していません")
+    pages = {}
+    for entry in range(count):
+        start = 16 + entry * 256
+        name = blob[start + 1:start + 1 + blob[start]].decode('utf-8')
+        if not (name.startswith('glyph_') or name == 'default8.png'):
+            continue
+        offset, size = struct.unpack_from('<II', blob, start + 248)
+        page = blob[data_start + offset:data_start + offset + size]
+        if not page.startswith(b'\x89PNG\r\n\x1a\n'):
+            raise ValueError(f'PNGとして読み込めない字形ページ: {name}')
+        pages[name.lower()] = page
+    return pages
 
 
-def render_preview(output_path):
-    definition = ROOT / "bedrock/ui/astralrecord_quest_hud.json"
-    ui = json.loads(definition.read_text(encoding="utf-8"))
+def native_preview(path, ui, font_source, backdrop):
+    """Draw a cropped native bitmap-font example from the published Bedrock label definition."""
+    pages = native_pages(font_source)
+    frame = ui['frame']
+    label = frame['controls'][0]['quest_text']
+    assert frame['type'] == 'panel' and 'texture' not in frame
+    assert label['shadow'] and label['text_alignment'] == 'left'
+    samples = [('6', 'グラスボア討伐依頼'), ('f', '◇ ミズガルズ・グラスボア  3/10')]
+    scale = 4
+    text_x, text_y = label['offset']
+    frame_x, frame_y = frame['offset']
+    pitch = 10 + label['line_padding']
+    variant = next(iter(ui['panel']['controls'][len(samples)].values()))
+    height = variant['$frame_height'] + 6
+    layer = Image.new('RGBA', ((frame_x + frame['size'][0] + 4) * scale, height * scale))
+    opened = {}
+    for num, (code, text) in enumerate(samples):
+        pen = float(frame_x + text_x)
+        y = frame_y + text_y + pitch * num
+        for char in text:
+            if char == ' ':
+                pen += 4
+                continue
+            cp = ord(char)
+            page = f'glyph_{cp >> 8:02x}.png'
+            if page not in opened:
+                opened[page] = Image.open(io.BytesIO(pages[page])).convert('RGBA')
+            sheet = opened[page]
+            cell = sheet.width // 16
+            left, top = (cp % 16) * cell, ((cp & 255) // 16) * cell
+            alpha = sheet.crop((left, top, left + cell, top + cell)).getchannel('A')
+            ink = alpha.getbbox()
+            if ink is None:
+                raise ValueError(f'クライアントに字形がありません: {char}')
+            alpha = alpha.crop((ink[0], 0, ink[2], cell))
+            logical_width = alpha.width * 8 / cell
+            alpha = alpha.resize((round(logical_width * scale), 8 * scale), Image.Resampling.NEAREST)
+            for shift, color in [(1, '#252525'), (0, COLORS[code])]:
+                glyph = Image.new('RGBA', alpha.size, color)
+                glyph.putalpha(alpha)
+                layer.alpha_composite(glyph, (round((pen + shift) * scale), (y + shift) * scale))
+            pen += logical_width + 1
+        assert pen < frame_x + frame['size'][0]
+    assert layer.getchannel('A').histogram()[0] > layer.width * layer.height * 0.75
+    if backdrop:
+        with Image.open(backdrop) as source:
+            ground = ImageOps.fit(source.convert('RGBA'), layer.size, method=Image.Resampling.LANCZOS)
+        layer = Image.alpha_composite(ground, layer)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    layer.save(path)
+    print(f'Bedrock native pack font / JSON UI crop: {path}')
+
+
+def render_preview(output_path, packed=None, font_source=None, backdrop=None):
+    from contextlib import nullcontext
+    with zipfile.ZipFile(packed) if packed else nullcontext() as archive:
+        def resource(name):
+            return archive.read(name) if archive else (ROOT / "bedrock" / name).read_bytes()
+        ui = json.loads(resource("ui/astralrecord_quest_hud.json"))
+        assert resource("quest-tracking-hud-version.txt") == b"2"
+        texture = Image.open(io.BytesIO(resource("textures/ui/astralrecord/quest_hud_frame.png"))).convert("RGBA")
+        slicing = json.loads(resource("textures/ui/astralrecord/quest_hud_frame.json"))
     frame = ui["frame"]
     label = frame["controls"][0]["quest_text"]
     variants = [next(iter(control.values())) for control in ui["panel"]["controls"][1:]]
@@ -85,15 +153,13 @@ def render_preview(output_path):
     for row, variant in enumerate(variants, 1):
         assert variant["$row_tip_prefix"].endswith(f":{row:02}|")
 
-    frame_path = ROOT / "bedrock" / frame["texture"]
-    texture = Image.open(frame_path.with_suffix(".png")).convert("RGBA")
-    slicing = json.loads(frame_path.with_suffix(".json").read_text(encoding="utf-8"))
-    slice_size = slicing["nineslice_size"]
+    assert frame["type"] == "panel" and "texture" not in frame
     assert texture.size == tuple(slicing["base_size"])
-    assert texture.crop(
-        (slice_size, slice_size, texture.width - slice_size, texture.height - slice_size)
-    ).getchannel("A").getbbox() is None
+    assert texture.getchannel("A").getbbox() is None, "背景は四隅・縁を含めて完全透過"
 
+    if font_source:
+        native_preview(output_path, ui, font_source, backdrop)
+        return
     glyphs = load_glyphs()
     if "◆" not in glyphs:
         filled = glyphs["◇"].copy()
@@ -147,7 +213,6 @@ def render_preview(output_path):
 
         if rows:
             height = heights[len(rows) - 1]
-            scene.alpha_composite(resize_frame(texture, frame_width, height, slice_size), (frame_x, y + frame_y))
             text_area = Image.new("RGBA", (frame_width - 8, height - 6))
             for row, value in enumerate(rows):
                 draw_text(text_area, (0, row * row_pitch), value[1:], COLORS[value[0]], glyphs)
@@ -170,4 +235,8 @@ def render_preview(output_path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--preview", type=Path, required=True)
-    render_preview(parser.parse_args().preview)
+    parser.add_argument("--pack", type=Path, help="Validate and preview the built .mcpack")
+    parser.add_argument("--bedrock-font", type=Path, help="Local vanilla font directory or font.brarchive")
+    parser.add_argument("--background", type=Path, help="Comparison scene for the native-font crop")
+    args = parser.parse_args()
+    render_preview(args.preview, args.pack, args.bedrock_font, args.background)

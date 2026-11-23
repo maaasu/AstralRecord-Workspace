@@ -6,7 +6,6 @@ import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameF
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideEntry;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType;
-import io.github.maaasu.astralRecord.feature.guide.model.GuideStep;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideCompletionRewardService;
 import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
@@ -341,11 +340,11 @@ public class MenuView {
         if (astPlayer != null) {
             guideService.recordCondition(astPlayer, GuideConditionType.GUIDE_OPENED, null);
         }
-        openTutorialGuide(player);
+        openChapterList(player);
     }
 
     public void openTutorialGuide(@NotNull Player player) {
-        showTutorialGuide(player, getTutorialContentId(player));
+        showChapter(player, false, getTutorialContentId(player));
     }
 
     public @NotNull String getTutorialContentId(@NotNull Player player) {
@@ -367,96 +366,76 @@ public class MenuView {
             ? GuideScreenView.TUTORIAL_COMPLETE : GuideScreenView.TUTORIAL_UNAVAILABLE;
     }
 
-    private void showTutorialGuide(@NotNull Player player, @NotNull String contentId) {
-        ItemStack action = guideScreenView.tutorialAction(contentId);
-        Component caption = action.getItemMeta().displayName();
+    public void openChapterList(@NotNull Player player) {
+        showChapter(player, true, getTutorialContentId(player));
+    }
+
+    private void showChapter(@NotNull Player player, boolean overview, @NotNull String contentId) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        UUID accountId = astPlayer == null ? null : astPlayer.getAccount().getUuid();
+        int completed = guideService.tutorialCompletedStepCount(accountId);
+        // 読込・失敗画面は専用のcontentIdを保持し、再試行を通常の章選択と区別します。
+        String holderId = overview && completed >= 0 ? null : contentId;
         Inventory inventory = Bukkit.createInventory(
-            new MenuInventoryHolder(MenuScreen.GUIDE, -1, 0, contentId),
-            SIZE,
-            Component.text("ガイド ▶ ", NamedTextColor.GOLD).append(caption == null ? Component.empty() : caption)
+            new MenuInventoryHolder(MenuScreen.GUIDE, -1, 0, holderId), SIZE,
+            Component.text(GuideScreenView.title(overview, contentId, completed, guideService.getById(GuideService.INITIAL_GUIDE_ID)), NamedTextColor.GOLD)
         );
-        guideScreenView.renderTutorial(inventory, action);
+        drawChapter(inventory, overview, accountId, contentId, completed);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory, () -> {
             if (GuideScreenView.TUTORIAL_LOADING.equals(contentId)) {
-                refreshTutorialAfterProgressLoad(player, inventory);
+                refreshChapterAfterLoad(player, inventory, overview);
+            } else if (accountId != null && completed == 6) {
+                completionRewardService.refresh(player, false, () -> redrawChapterReward(player, inventory));
             }
         });
     }
 
-    private void refreshTutorialAfterProgressLoad(@NotNull Player player, @NotNull Inventory inventory) {
+    private void drawChapter(Inventory inventory, boolean overview, UUID accountId, String contentId, int completed) {
+        guideScreenView.renderChapter(inventory, overview, contentId, guideService.getById(GuideService.INITIAL_GUIDE_ID),
+            guideService, accountId, completed, completed == 6 && completionRewardService.canClaim(accountId));
+    }
+
+    private void refreshChapterAfterLoad(@NotNull Player player, @NotNull Inventory inventory, boolean overview) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
-            return;
-        }
+        if (astPlayer == null) return;
         UUID accountId = astPlayer.getAccount().getUuid();
         guideService.loadProgressAsync(accountId).whenComplete((loaded, failure) ->
             plugin.getServer().getScheduler().runTask(plugin, () -> {
                 if (!player.isOnline() || AstPlayerCache.get(player) != astPlayer
                     || !accountId.equals(astPlayer.getAccount().getUuid())
-                    || player.getOpenInventory().getTopInventory() != inventory) {
-                    return;
-                }
-                String currentContentId = getTutorialContentId(player);
-                if (!GuideScreenView.TUTORIAL_LOADING.equals(currentContentId)) {
-                    showTutorialGuide(player, currentContentId);
+                    || player.getOpenInventory().getTopInventory() != inventory) return;
+                String current = getTutorialContentId(player);
+                if (!GuideScreenView.TUTORIAL_LOADING.equals(current)) {
+                    showChapter(player, overview, current);
                 } else if (failure != null || !Boolean.TRUE.equals(loaded)) {
-                    showTutorialGuide(player, GuideScreenView.TUTORIAL_LOAD_FAILED);
+                    showChapter(player, overview, GuideScreenView.TUTORIAL_LOAD_FAILED);
                 }
             })
         );
     }
 
-    public void openGuide(@NotNull Player player, int pageIndex) {
-        List<GuideEntry> guides = guideService.getAll();
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        UUID accountId = astPlayer == null ? null : astPlayer.getAccount().getUuid();
-        int normalizedPage = guideScreenView.normalizePage(pageIndex, guides.size());
-        int totalPages = guideScreenView.totalPages(guides.size());
-        Component title = Component.text("ガイド " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.LIGHT_PURPLE);
-        Inventory inventory = Bukkit.createInventory(
-            new MenuInventoryHolder(MenuScreen.GUIDE, -1, normalizedPage, null),
-            SIZE,
-            title
-        );
-        guideScreenView.renderList(inventory, guides, normalizedPage, guideService, accountId,
-            completionRewardService.canClaim(accountId));
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
-        completionRewardService.refresh(player, false, () -> redrawOpenGuideList(player, inventory));
+    public boolean isCurrentChapterStepSlot(int slot, @NotNull String contentId) {
+        return GuideScreenView.isCurrentStepSlot(slot, guideService.getById(GuideService.INITIAL_GUIDE_ID), contentId);
     }
 
-    /** 受取可能な全達成報酬を要求し、現在のガイド一覧を更新します。 */
     public void claimGuideReward(@NotNull Player player) {
         Inventory inventory = player.getOpenInventory().getTopInventory();
-        completionRewardService.claim(player, () -> redrawOpenGuideList(player, inventory));
+        completionRewardService.claim(player, () -> redrawChapterReward(player, inventory));
     }
 
-    /** ガイド一覧の報酬ボタンが有効な場合 true を返します。 */
     public boolean canClaimGuideReward(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         return astPlayer != null && completionRewardService.canClaim(astPlayer.getAccount().getUuid());
     }
 
-    private void redrawOpenGuideList(@NotNull Player player, @NotNull Inventory inventory) {
+    private void redrawChapterReward(@NotNull Player player, @NotNull Inventory inventory) {
         if (!player.isOnline() || player.getOpenInventory().getTopInventory() != inventory
-            || !(inventory.getHolder() instanceof MenuInventoryHolder holder)
-            || holder.screen() != MenuScreen.GUIDE || holder.contentId() != null) return;
+            || !(inventory.getHolder() instanceof MenuInventoryHolder holder) || holder.screen() != MenuScreen.GUIDE) return;
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        UUID accountId = astPlayer == null ? null : astPlayer.getAccount().getUuid();
-        List<GuideEntry> guides = guideService.getAll();
-        guideScreenView.renderList(inventory, guides, holder.pageIndex(), guideService, accountId,
-            completionRewardService.canClaim(accountId));
-    }
-
-    public void openGuideDetail(@NotNull Player player, @NotNull GuideEntry guide, int returnPageIndex) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        UUID accountId = astPlayer == null ? null : astPlayer.getAccount().getUuid();
-        Inventory inventory = Bukkit.createInventory(
-            new MenuInventoryHolder(MenuScreen.GUIDE, -1, returnPageIndex, guide.id()),
-            SIZE,
-            Component.text("ガイド", NamedTextColor.LIGHT_PURPLE)
-        );
-        guideScreenView.renderDetail(inventory, guide, guideService, accountId);
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+        if (astPlayer == null) return;
+        UUID accountId = astPlayer.getAccount().getUuid();
+        drawChapter(inventory, holder.contentId() == null, accountId, getTutorialContentId(player),
+            guideService.tutorialCompletedStepCount(accountId));
     }
 
     public void openTrash(@NotNull Player player, @NotNull List<ItemStack> trashItems, int pageIndex) {
@@ -763,35 +742,6 @@ public class MenuView {
 
     public boolean hasNextCurrencyPage(@NotNull List<ItemStack> currencyItems, int pageIndex) {
         return currencyGuiView.hasNextPage(pageIndex, currencyItems.size());
-    }
-
-    public boolean hasPreviousGuidePage(int pageIndex) {
-        return guideScreenView.hasPreviousPage(pageIndex);
-    }
-
-    public boolean hasNextGuidePage(int pageIndex) {
-        return guideScreenView.hasNextPage(pageIndex, guideService.getAll().size());
-    }
-
-    public @Nullable GuideEntry getGuideAtSlot(int rawSlot, int pageIndex) {
-        if (!guideScreenView.isContentSlot(rawSlot)) {
-            return null;
-        }
-        List<GuideEntry> guides = guideService.getAll();
-        int index = guideScreenView.normalizePage(pageIndex, guides.size()) * GuideScreenView.CONTENT_SLOT_COUNT + rawSlot;
-        return index >= 0 && index < guides.size() ? guides.get(index) : null;
-    }
-
-    /**
-     * ガイド詳細画面の物理スロットから手順を解決します。
-     *
-     * @param guideId 詳細表示中のガイド ID
-     * @param rawSlot クリックされた物理スロット
-     * @return 対応する手順。対象外の場合は null
-     */
-    public @Nullable GuideStep getGuideStepAtSlot(@NotNull String guideId, int rawSlot) {
-        GuideEntry guide = guideService.getById(guideId);
-        return guide == null ? null : guideScreenView.getStepAtSlot(guide, rawSlot);
     }
 
     public boolean hasPreviousTrashPage(int pageIndex) {

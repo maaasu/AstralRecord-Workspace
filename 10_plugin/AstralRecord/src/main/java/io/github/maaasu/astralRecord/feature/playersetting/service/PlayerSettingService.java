@@ -236,6 +236,11 @@ public final class PlayerSettingService {
         return cachedBooleanSetting(userId, PlayerSettingKey.QUEST_HUD_DISPLAY, true);
     }
 
+    /** 次のステップの自動表示を有効にしているか、ユーザーの設定キャッシュから返します。 */
+    public boolean isGuideDisplayEnabled(@NotNull UUID userId) {
+        return isHudDisplayEnabled(userId, PlayerSettingKey.GUIDE_DISPLAY);
+    }
+
     public boolean isBuffSidebarDisplayEnabled(@NotNull UUID userId) { return booleanSetting(userId, PlayerSettingKey.BUFF_SIDEBAR_DISPLAY, false); }
     public boolean isDropLogDisplayEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.DROP_LOG_DISPLAY, true); }
     public boolean isAutoSaveMessageEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.AUTO_SAVE_MESSAGE, false); }

@@ -24,9 +24,19 @@ public final class ResourcePackRepository {
                            boolean mossZombiePresentation,
                            boolean archmagePhoenixPresentation, boolean nyxeronPresentation, boolean itemTooltips,
                            boolean weaponAttackProjectiles, @Nullable ProfileHud profileHud, boolean skillEffects,
-                           boolean combatRewardPlaque, boolean questTrackingHud, boolean receptionDisplay,
+                           boolean combatRewardPlaque, int questHudVersion, boolean receptionDisplay,
                            boolean locationHud, Set<Integer> wornHelmetModels, boolean fishingRodTip, boolean skillCooldownHud, boolean challengeCountdown,
                            boolean dungeonClearSound, boolean actionRingCooldownHud) {
+    }
+
+    /** 対応を確認した文字列マーカーだけを受け入れます。 */
+    static int questHudVersion(@Nullable JsonElement value) {
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) return 0;
+        return switch (value.getAsString()) {
+            case "2" -> 2;
+            case "3" -> 3;
+            default -> 0;
+        };
     }
 
     /** 個人情報HUDの字形とゲージの互換情報です。 */
@@ -132,9 +142,7 @@ public final class ResourcePackRepository {
                     seleneaPresentation, mossZombiePresentation, archmagePhoenixPresentation, nyxeronPresentation, itemTooltips,
                     weaponAttackProjectiles, profileHud,
                     skillEffects, combatRewardPlaque,
-                    java.has("questTrackingHud") && java.get("questTrackingHud").isJsonPrimitive()
-                        && java.get("questTrackingHud").getAsJsonPrimitive().isString()
-                        && "2".equals(java.get("questTrackingHud").getAsString()), receptionDisplay, locationHud,
+                    questHudVersion(java.get("questTrackingHud")), receptionDisplay, locationHud,
                     parseWornHelmetModels(java.get("wornHelmetModels")), fishingRodTip, skillCooldownHud, challengeCountdown,
                     dungeonClearSound, actionRingCooldownHud);
             }
