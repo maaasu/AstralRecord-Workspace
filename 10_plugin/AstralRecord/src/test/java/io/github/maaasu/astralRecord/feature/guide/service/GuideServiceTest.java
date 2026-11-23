@@ -676,7 +676,8 @@ class GuideServiceTest {
                 var inventory = welcome.fixture.inventoryService;
                 if (location.equals("beforeLookup")) {
                     when(inventory.getNormalItemAmount(welcome.accountId, "50a00001"))
-                        .thenReturn(1L, 0L);
+                        // 最初の照会中だけ一時的に消え、次回の照会では再びバッグにある。
+                        .thenReturn(1L, 0L, 1L);
                 }
                 welcome.start();
                 welcome.fixture.asyncTasks.removeFirst().run();
@@ -701,7 +702,7 @@ class GuideServiceTest {
             }
 
             assertTrue(welcome.completed("receive_welcome_mail"));
-            assertFalse(welcome.completed("open_initial_bundle"));
+            assertFalse(welcome.completed("open_initial_bundle"), location);
             assertEquals("open_initial_bundle", welcome.fixture.service.tutorialStep(welcome.accountId));
             verify(welcome.fixture.inventoryService, times(1)).queueLocalPlayerSave(welcome.accountId);
         }

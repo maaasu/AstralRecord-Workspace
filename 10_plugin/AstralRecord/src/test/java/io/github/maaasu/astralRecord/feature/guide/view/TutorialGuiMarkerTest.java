@@ -88,6 +88,9 @@ class TutorialGuiMarkerTest {
         when(view.getItem(4)).thenReturn(otherItem);
         when(view.getItem(45)).thenReturn(welcomeItem);
         assertNull(select(view, 3, "receive_welcome_mail"));
+        ItemStack next = item(Material.ARROW);
+        when(view.getItem(MailGuiView.NEXT_SLOT)).thenReturn(next);
+        assertEquals(MailGuiView.NEXT_SLOT, select(view, 3, "receive_welcome_mail").rawSlot());
 
         view = chest(new MailGuiView.Holder(1, MailFilter.ALL, mails));
         when(view.getItem(44)).thenReturn(welcomeItem);

@@ -791,6 +791,7 @@ public final class MailService {
             return;
         }
 
+        boolean receivedBeforeLookup = completedClaims.contains(claimKey);
         final boolean hasBundleAtStart;
         try {
             hasBundleAtStart = hasInitialBundle(accountId, bukkit.getUniqueId());
@@ -814,7 +815,8 @@ public final class MailService {
                             return;
                         }
 
-                        if (stateRegistry.get(accountId) != capturedState || claimsInFlight.contains(claimKey)) {
+                        if (stateRegistry.get(accountId) != capturedState || claimsInFlight.contains(claimKey)
+                            || (!receivedBeforeLookup && completedClaims.contains(claimKey))) {
                             return;
                         }
 

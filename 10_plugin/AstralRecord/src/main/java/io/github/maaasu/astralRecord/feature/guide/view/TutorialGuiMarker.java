@@ -9,6 +9,7 @@ import com.comphenix.protocol.events.PacketEvent;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.mail.gui.MailGuiView;
+import io.github.maaasu.astralRecord.feature.mail.model.MailFilter;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuToolJoinGrantService;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.MainMenuScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuInventoryHolder;
@@ -415,6 +416,9 @@ public final class TutorialGuiMarker implements Listener {
             };
         }
         if (holder instanceof MailGuiView.Holder mail && "receive_welcome_mail".equals(step)) {
+            if (mail.filter() == MailFilter.READ) {
+                return menuButton(view, windowId, MailGuiView.FILTER_SLOT);
+            }
             int start = mail.pageIndex() * MAIL_PAGE_SIZE;
             if (start < 0 || start >= mail.mails().size()) {
                 return null;
@@ -431,6 +435,14 @@ public final class TutorialGuiMarker implements Listener {
                     MailPage page = new MailPage(mailIdKey, unreadIds,
                         Math.min(MAIL_PAGE_SIZE, view.getTopInventory().getSize()));
                     return new Mark(windowId, target.rawSlot(), -1, target.guard(), page);
+                }
+            } else {
+                for (int index = 0; index < mail.mails().size(); index++) {
+                    var entry = mail.mails().get(index);
+                    if (!entry.read() && WELCOME_MAIL_ID.equals(entry.id())) {
+                        return menuButton(view, windowId,
+                            index < start ? MailGuiView.PREVIOUS_SLOT : MailGuiView.NEXT_SLOT);
+                    }
                 }
             }
         }
