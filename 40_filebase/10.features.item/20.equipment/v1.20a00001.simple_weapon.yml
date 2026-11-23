@@ -23,7 +23,7 @@ equipment:
   stats:
     - status: ATTACK
       type: FLAT
-      value: 10
+      value: 13
   durability:
     max: 80
     consume: 1
