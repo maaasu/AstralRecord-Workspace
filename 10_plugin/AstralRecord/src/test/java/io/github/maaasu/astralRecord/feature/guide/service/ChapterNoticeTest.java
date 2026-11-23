@@ -1,13 +1,10 @@
 package io.github.maaasu.astralRecord.feature.guide.service;
 
-import io.github.maaasu.astralRecord.AstralRecord;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.kyori.adventure.title.Title;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.inventory.InventoryView;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -37,16 +34,16 @@ class ChapterNoticeTest {
     }
 
     @Test
-    void doesNotConsumeCentralTitleWhileChestOrAnvilIsOpen() {
-        AstralRecord plugin = mock(AstralRecord.class);
+    void deferringTitleSendsChatImmediatelyAndUsesOnlyCurrentStepWhenDisplayIsFree() {
         Player player = mock(Player.class);
-        InventoryView view = mock(InventoryView.class);
-        when(player.getOpenInventory()).thenReturn(view);
-        when(view.getType()).thenReturn(InventoryType.CHEST, InventoryType.ANVIL, InventoryType.CRAFTING);
-        when(plugin.isGuideTitleOccupied(player)).thenCallRealMethod();
-        assertTrue(plugin.isGuideTitleOccupied(player));
-        assertTrue(plugin.isGuideTitleOccupied(player));
-        assertFalse(plugin.isGuideTitleOccupied(player));
+        new ChapterNotice(2, 6, "冒険", "メールを受け取る", true, false, false, false, false).send(player, false);
+        new ChapterNotice(3, 6, "冒険", "バンドルを開ける", true, false, false, false, false).send(player, false);
+        verify(player, never()).showTitle(any(Title.class));
+        new ChapterNotice(3, 6, "冒険", "バンドルを開ける", false, true, false, false, false).send(player, false);
+        var title = ArgumentCaptor.forClass(Title.class);
+        verify(player).showTitle(title.capture());
+        assertEquals("ステップ 3/6", plain(title.getValue().title()));
+        verify(player, times(2)).sendMessage(any(Component.class));
     }
 
     private static String plain(Component component) {
