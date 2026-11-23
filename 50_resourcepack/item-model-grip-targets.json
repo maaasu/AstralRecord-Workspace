@@ -3977,6 +3977,76 @@
       }
     }
   },
+  "astralrecord:simple_talisman": {
+    "thirdperson_righthand": {
+      "position": [
+        0,
+        -0.6559,
+        1.9354
+      ],
+      "up": [
+        0.35672,
+        0.69309,
+        0.62641
+      ],
+      "front": [
+        0.09585,
+        0.63983,
+        -0.76252
+      ]
+    },
+    "thirdperson_lefthand": {
+      "position": [
+        0,
+        -0.6559,
+        1.9354
+      ],
+      "up": [
+        -0.35672,
+        0.69309,
+        0.62641
+      ],
+      "front": [
+        -0.09585,
+        0.63983,
+        -0.76252
+      ]
+    },
+    "firstperson_righthand": {
+      "position": [
+        0.35,
+        -1.85,
+        -0.75
+      ],
+      "up": [
+        -0.27224,
+        0.92293,
+        -0.27219
+      ],
+      "front": [
+        0.15643,
+        0.32156,
+        0.93388
+      ]
+    },
+    "firstperson_lefthand": {
+      "position": [
+        -0.35,
+        -1.85,
+        -0.75
+      ],
+      "up": [
+        0.27224,
+        0.92293,
+        -0.27219
+      ],
+      "front": [
+        -0.15643,
+        0.32156,
+        0.93388
+      ]
+    }
+  },
   "astralrecord:simple_weapon": {
     "thirdperson_righthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },
     "thirdperson_lefthand": { "position": [0, -2.1559, 1.5854], "up": [0, 0.9848, -0.1736] },

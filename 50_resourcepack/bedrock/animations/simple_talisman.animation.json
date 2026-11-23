@@ -42,8 +42,8 @@
       "bones": {
         "grip": {
           "rotation": [
-            35,
-            0,
+            32,
+            "context.item_slot == 'main_hand' ? 16 : -16",
             0
           ],
           "position": [
@@ -51,7 +51,7 @@
             23,
             -3
           ],
-          "scale": 0.86
+          "scale": 0.8
         }
       }
     },

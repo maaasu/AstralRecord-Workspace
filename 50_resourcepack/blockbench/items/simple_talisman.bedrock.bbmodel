@@ -5980,8 +5980,8 @@
               "channel": "rotation",
               "data_points": [
                 {
-                  "x": "-35",
-                  "y": "0",
+                  "x": "-32",
+                  "y": "context.item_slot == 'main_hand' ? 16 : -16;",
                   "z": "0"
                 }
               ],
@@ -6008,9 +6008,9 @@
               "channel": "scale",
               "data_points": [
                 {
-                  "x": "0.86",
-                  "y": "0.86",
-                  "z": "0.86"
+                  "x": "0.8",
+                  "y": "0.8",
+                  "z": "0.8"
                 }
               ],
               "uuid": "fe315b23-0f82-50e3-8f80-0cb03af15170",
