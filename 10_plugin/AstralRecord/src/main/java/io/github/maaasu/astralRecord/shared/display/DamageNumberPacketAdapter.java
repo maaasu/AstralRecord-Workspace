@@ -130,7 +130,7 @@ final class DamageNumberPacketAdapter extends PacketAdapter implements Listener 
                 replacement = new WrappedDataValue(DISPLAY_SCALE_INDEX, value.getSerializer(),
                         new Vector3f(scale).mul(size.getScale()));
             } else if (fontAvailable && value.getIndex() == DISPLAY_TEXT_INDEX) {
-                String json = GsonComponentSerializer.gson().serialize(number.text().font(DAMAGE_FONT));
+                String json = GsonComponentSerializer.gson().serialize(number.javaPackText().font(DAMAGE_FONT));
                 replacement = WrappedDataValue.fromWrappedValue(DISPLAY_TEXT_INDEX, value.getSerializer(),
                         WrappedChatComponent.fromJson(json));
             }
@@ -343,7 +343,7 @@ final class DamageNumberPacketAdapter extends PacketAdapter implements Listener 
 
     /** @param roundedAmount パック用の整数値（有限の範囲外なら負値）
      * @param style Bedrock のエンティティと共有する演出コード
-     * @param text Javaで表示する既存書式の本文
+     * @param javaPackText Java版の専用フォントで表示する本文
      */
-    record NumberDisplay(long roundedAmount, int style, Component text) { }
+    record NumberDisplay(long roundedAmount, int style, Component javaPackText) { }
 }

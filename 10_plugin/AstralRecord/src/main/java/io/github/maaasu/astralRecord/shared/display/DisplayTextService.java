@@ -7,6 +7,8 @@ import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSetting
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
@@ -48,6 +50,7 @@ public final class DisplayTextService {
     private static final long UPDATE_INTERVAL_TICKS = 1L;
     private static final int MAX_DAMAGE_DISPLAYS = 80;
     private static final double DAMAGE_NUMBER_SPAWN_RADIUS = 0.75D;
+    private static final TextColor JAVA_PACK_CRITICAL_COLOR = TextColor.color(0xFFC45C);
     private static final long FLOATING_FRAME_TICKS = 4L;
     private static final long FLOATING_ENTRANCE_TICKS = 8L;
     private static final long FLOATING_EXIT_TICKS = 12L;
@@ -878,9 +881,15 @@ public final class DisplayTextService {
                         new Vector3f(scale, height, scale), new Quaternionf()));
                 if (style.isDamageNumber()) {
                     String text = ColorCodeUtil.translateAlternateColorCodes(state.options.text());
-                    display.text(LegacyComponentSerializer.legacySection().deserialize(text));
+                    Component fallbackText = LegacyComponentSerializer.legacySection().deserialize(text);
+                    display.text(fallbackText);
+                    // 書式付きの子を畳み、専用フォントに重なる太字を外します。
+                    Component javaPackText = fallbackText.compact().decoration(TextDecoration.BOLD, false);
+                    if (style == FloatingStyle.CRITICAL) {
+                        javaPackText = javaPackText.color(JAVA_PACK_CRITICAL_COLOR);
+                    }
                     damageNumbers.put(display.getEntityId(), new DamageNumberPacketAdapter.NumberDisplay(
-                            animation.roundedAmount(), style.bedrockCode, display.text()));
+                            animation.roundedAmount(), style.bedrockCode, javaPackText));
                 }
             }
         });
