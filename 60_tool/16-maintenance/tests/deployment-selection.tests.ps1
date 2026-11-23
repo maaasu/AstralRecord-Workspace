@@ -3,18 +3,25 @@ $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot '../UpdateWorkflow.ps1')
 . (Join-Path $PSScriptRoot '../DeploymentSelection.ps1')
+. (Join-Path $PSScriptRoot '../WorkflowRunRoot.ps1')
 $fixture=Join-Path ([IO.Path]::GetTempPath()) ('ar-selection-'+[guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $fixture | Out-Null
 Start-Transcript -LiteralPath (Join-Path $fixture 'verification.log') | Out-Null
+$previousProgramData=$env:ProgramData
 function Assert($Value,[string]$Message) { if(!$Value){throw "ASSERT: $Message"} }
 function Reject([scriptblock]$Action,[string]$Pattern) { $failed=$false; try { & $Action | Out-Null } catch { $failed=$_.Exception.Message -match $Pattern }; Assert $failed "Expected rejection: $Pattern" }
 function Put([string]$Path,[string]$Value) {New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($Path)) -Force | Out-Null; [IO.File]::WriteAllText($Path,$Value)}
 function New-Run([string]$Name) {$p=Join-Path $fixture $Name; New-Item -ItemType Directory -Path $p | Out-Null; return $p}
-function Entry([string[]]$Arguments,[bool]$Success=$true) {
-    & (Get-Process -Id $PID).Path -NoProfile -File (Join-Path $PSScriptRoot '../maintenance.ps1') @Arguments 2>&1 | Out-Host
+function Entry([string[]]$Arguments,[bool]$Success=$true,[string]$Pattern,[string]$ScriptPath=(Join-Path $PSScriptRoot '../maintenance.ps1'),[switch]$PassThru) {
+    $output = & (Get-Process -Id $PID).Path -NoProfile -File $ScriptPath @Arguments 2>&1 | Out-String
     Assert (($LASTEXITCODE -eq 0) -eq $Success) 'entry exit code'
+    Write-Host $output
+    if ($Pattern) { Assert ($output -match $Pattern) "Expected entry message: $Pattern" }
+    if ($PassThru) { return $output }
 }
 try {
+    $env:ProgramData=Join-Path $fixture 'program-data'
+    New-Item -ItemType Directory -Path $env:ProgramData | Out-Null
     $choiceRun=New-Run 'choices'; $script:answers=[Collections.Generic.Queue[string]]::new()
     foreach($answer in @('invalid','2','1')){$script:answers.Enqueue($answer)}
     $choice=Resolve-MaintenanceDeploymentSelection $choiceRun -PromptForNewRun -PromptAction {$script:answers.Dequeue()}
@@ -74,6 +81,20 @@ try {
     Assert ($bomRead.config.schemaVersion -eq 1 -and $bomRead.digest -ceq (Get-FileHash -LiteralPath $bomPath).Hash) 'BOM encoded config and its raw digest remain supported'
     $options = @(Get-MaintenanceDistributionOptions $config)
     Assert (($options.id -join ',') -ceq 'd1-t1,d1-t3,d2-t1,d3-t1,n1,n2') 'catalog includes reachable choices without checking artifacts'
+    Assert (((Select-MaintenanceDistributionScope $config { '1' }) -join ',') -ceq 'n1,n2') 'one menu choice selects network destinations'
+    Assert (((Select-MaintenanceDistributionScope $config { '' }) -join ',') -ceq ($options.id -join ',')) 'Enter selects all destinations'
+    $script:answers.Enqueue('invalid'); $script:answers.Enqueue('3'); $script:answers.Enqueue('2,6')
+    Assert (((Select-MaintenanceDistributionScope $config { $script:answers.Dequeue() }) -join ',') -ceq 'd1-t3,n2') 'scope menu opens numbered selection'
+    Reject { Select-MaintenanceDistributionScope $config { '0' } } '中止'
+    $planOutput = Entry @('-Phase','Plan','-ConfigPath',$path,'-NetworkOnly') -PassThru
+    Assert ($planOutput -match 'Distribution targets: 2' -and $planOutput -notmatch 'AstralRecord\.jar|npc_locations|level\.dat') 'network plan excludes ordinary artifacts'
+    foreach ($conflict in @(@('-WorldCopy','Ask'),@('-NetworkPlugins','Include'),@('-DistributionSelection','n1'))) {
+        Entry (@('-Phase','Plan','-ConfigPath',$path,'-NetworkOnly') + $conflict) $false '併用できません' | Out-Null
+    }
+    $noNetwork = $config.Clone(); $noNetwork.networkPlugins = @{destinations=@(@{artifact='AstralRecordLobby.jar';deployDirectory=''})}
+    $noNetworkPath = Join-Path $fixture 'no-network.json'; Write-MaintenanceJson $noNetwork $noNetworkPath
+    Entry @('-Phase','Plan','-ConfigPath',$noNetworkPath,'-NetworkOnly') $false 'ネットワークの配布先が設定されていません' | Out-Null
+    Entry @('-ConfigPath',$noNetworkPath,'-NetworkOnly','-ServersStopped','-AdmissionClosed') $false 'ネットワークの配布先が設定されていません' | Out-Null
     $script:answers.Enqueue('2,2'); $script:answers.Enqueue('2,6')
     Assert ((@(Select-MaintenanceDistributionDetails $config {$script:answers.Dequeue()}) -join ',') -ceq 'd1-t3,n2') 'numbered menu retries duplicate numbers and selects two destinations'
     Reject { Select-MaintenanceDistributionDetails $config { '0' } } '中止'
@@ -106,6 +127,56 @@ try {
     Entry @('-Phase','Restore','-ConfigPath',$path,'-RunDirectory',$detailRun,'-ServersStopped')
     Assert ([IO.File]::ReadAllText("$other/plugins/AstralRecord.jar") -eq 'old-other-plugin' -and [IO.File]::ReadAllText("$otherLobby/plugins/AstralRecordLobby.jar") -eq 'old-other-lobby') 'detailed restore uses the journal'
 
+    # Run the real entry, workflow and child process with isolated fixtures and a fake transport.
+    $fixtureTools=Join-Path $fixture 'tools'
+    New-Item -ItemType Directory -Path "$fixtureTools/16-maintenance","$fixtureTools/control-gate" | Out-Null
+    foreach ($name in @('maintenance.ps1','Distribution.ps1','DeploymentSelection.ps1','Diagnostics.ps1','WorkflowRunRoot.ps1','WorkflowRecovery.ps1','SkillTreeMigration.ps1','UpdateWorkflow.ps1')) {
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot "../$name") -Destination "$fixtureTools/16-maintenance"
+    }
+    foreach ($name in @('Control.Gate.psm1','Control.DevLifecycle.ps1')) {
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot "../../control-gate/$name") -Destination "$fixtureTools/control-gate"
+    }
+    Add-Content -LiteralPath "$fixtureTools/16-maintenance/UpdateWorkflow.ps1" -Encoding UTF8 -Value @'
+
+function Invoke-UpdateWorkflowHttp {
+    param($Method,$Uri,$Headers,$Body,$ApiBaseUrl,[switch]$AllowPrivateApiInsecureTls,[datetime]$StartupPollDeadlineUtc)
+    if ($StartupPollDeadlineUtc -gt [DateTime]::MinValue) { return @{StatusCode=401;Body=$null} }
+    if ($Method -ne 'GET') { throw 'Unexpected fixture request.' }
+    return @{StatusCode=404;Body=$null}
+}
+'@
+    $env:SELECTION_TEST_API='test-api'; $env:SELECTION_TEST_MIGRATION='test-migration'
+    $networkRunRoot=New-Run 'network-workflow'
+    $config['workflow']=@{runRoot=$networkRunRoot;startupTimeoutSeconds=1;pollIntervalSeconds=1;seedMasterData=$false}
+    $config.migration=@{enabled=$true;baseUrl='http://127.0.0.1:1';serverIds=@('test');apiKeyEnvironmentVariable='SELECTION_TEST_API';migrationKeyEnvironmentVariable='SELECTION_TEST_MIGRATION'}
+    $networkPath=Join-Path $fixture 'network-config.json'; Write-MaintenanceJson $config $networkPath
+    $networkArgs=@('-ConfigPath',$networkPath,'-ServersStopped','-AdmissionClosed')
+    $fixtureEntry="$fixtureTools/16-maintenance/maintenance.ps1"
+    [IO.File]::Delete("$source/plugins/AstralRecord.jar")
+    $missingJarPlan = Entry @('-Phase','Plan','-ConfigPath',$networkPath,'-NetworkOnly') -PassThru
+    Assert ($missingJarPlan -match 'Distribution targets: 2') 'network plan succeeds with ordinary JAR missing'
+    Entry ($networkArgs + '-NetworkOnly') $false 'runtime API did not accept' $fixtureEntry
+    $networkRun=(Get-PendingUpdateRun $networkRunRoot).Directory
+    $networkDigest=(Get-FileHash -LiteralPath $networkPath).Hash
+    $record = Get-MaintenanceDeploymentSelectionRecord $networkRun -ConfigurationDigest $networkDigest
+    Assert (($record.distributionIds -join ',') -ceq 'n1,n2') 'network-only IDs frozen in workflow record and accepted by child'
+    $journal=Get-Content -Raw -Encoding UTF8 -LiteralPath "$networkRun/deployment.json" | ConvertFrom-Json
+    Assert ($journal.status -eq 'Deployed' -and $journal.operations.Count -eq 2 -and
+        !@($journal.operations | Where-Object { [IO.Path]::GetFileName($_.destination) -ne 'AstralRecordLobby.jar' }).Count) 'only network operations reach workflow journal'
+    Assert ([IO.File]::ReadAllText("$target/plugins/AstralRecord.jar") -eq 'old-plugin' -and [IO.File]::ReadAllText("$lobby/plugins/AstralRecordLobby.jar") -eq 'new-lobby') 'workflow only replaces network JARs'
+    $resumeOutput=Entry $networkArgs $false 'runtime API did not accept' $fixtureEntry -PassThru
+    Assert ($resumeOutput -match 'Resuming update' -and $resumeOutput -notmatch 'CAPTURE|PREPARE|APPLIED') 'automatic resume keeps selection and does not redeploy'
+    $selectionPath=Join-Path $networkRun 'deployment-selection.json'
+    $savedBytes=[IO.File]::ReadAllBytes($selectionPath)
+    Write-MaintenanceJson @{schemaVersion=2;worldCopy='Include';networkPlugins='Include';configurationDigest=$networkDigest;distributionIds=@('d1-t1','n2')} $selectionPath
+    Entry ($networkArgs + '-NetworkOnly') $false 'selections cannot change' $fixtureEntry | Out-Null
+    [IO.File]::Delete($selectionPath)
+    Entry ($networkArgs + '-NetworkOnly') $false 'selections cannot change' $fixtureEntry | Out-Null
+    Assert (!(Test-Path -LiteralPath $selectionPath)) 'legacy run is rejected before recovery or a new record'
+    [IO.File]::WriteAllBytes($selectionPath,$savedBytes)
+    Entry @('-Phase','Restore','-ConfigPath',$networkPath,'-RunDirectory',$networkRun,'-ServersStopped')
+    Assert ([IO.File]::ReadAllText("$lobby/plugins/AstralRecordLobby.jar") -eq 'old-lobby') 'network-only workflow is restorable from its journal'
+
     # The workflow fixes selections under its root lock before baseline/API/deploy and binds them to state.
     $env:SELECTION_TEST_API='test-api'; $env:SELECTION_TEST_MIGRATION='test-migration'
     $workflowRoot=New-Run 'workflow'; $script:apiCalls=0; $script:deployCalls=0
@@ -134,6 +205,7 @@ try {
 
     Write-Host "PASS: group and detailed choices, per-destination deployment, legacy/resume, fingerprints, restore and boundaries. Evidence: $fixture"
 } finally {
+    $env:ProgramData=$previousProgramData
     Remove-Item Env:SELECTION_TEST_API,Env:SELECTION_TEST_MIGRATION -ErrorAction SilentlyContinue
     Stop-Transcript | Out-Null
 }

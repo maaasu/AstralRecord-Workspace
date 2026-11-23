@@ -32,13 +32,17 @@ Filebase配布は各serverのローカル配置が対象です。APIが別の共
 ## メンテナンス運用
 
 1. 入場制限をかけ、保存完了後に対象チャンネルを停止します。コピー元のDev/Build、更新対象のLobby/Proxyも必要に応じ停止し、自動ビルド配置などの書込みを止めます。
-2. `16-maintenance.bat` を実行し、一覧から今回の配布対象を選びます。配布ファイルと配布先の組ごとに番号が付きます。番号をカンマ区切りで入力すると個別に選べます。Enterで全件、`0`で中止です。その後、停止・入場制限の確認に応答します。
+2. `16-maintenance.bat` を実行し、`1`でネットワークのみ、`2`またはEnterで全件、`3`で配布先を個別に選びます。個別選択では配布ファイルと配布先の組に付いた番号をカンマ区切りで入力します。`0`で中止できます。その後、停止・入場制限の確認に応答します。
 3. 設定した配布とseedが完了すると、バッチが起動案内を表示して自動待機します。
 4. サーバーを起動します。入場制限は維持します。
 5. 対象チャンネルが新しい起動sessionでreadyかつ同一世代になったことを確認し、バッチが現在の設定をパッチとして公開します。全員分のプレイヤーデータ更新は待ちません。
 6. バッチの完了表示後に接続制限を解除します。Lobby/Proxy自体の起動確認は管理画面で行ってください。
 
 ```powershell
+# 設定済みの Lobby・Proxy・Geyser 拡張だけの配布計画を確認
+.\60_tool\16-maintenance.bat -Phase Plan -NetworkOnly
+# ネットワークだけ配布して通常のメンテナンスフローを実行
+.\60_tool\16-maintenance.bat -NetworkOnly
 # 設定済みの配布対象IDと設定のSHA-256を表示
 .\60_tool\16-maintenance.bat -Phase Plan -ListDistributionOptions
 # 選んだ配布対象の実行計画を確認（IDは一覧に表示されたものを指定）
@@ -58,11 +62,13 @@ $digest = '一覧に表示されたSHA-256をここに貼り付け'
 
 詳細選択では、通常プラグインJAR、各配置ファイル、Filebase、ワールド、Lobby・Proxy・Geyser拡張を配布先ごとに選べます。対象は既存の設定で有効な項目に限ります。詳細IDは設定内の位置に対応します。詳細IDを指定して実行する際は、一覧に表示されたSHA-256を `-DistributionConfigurationDigest` に指定してください。設定を変更したら一覧を取得し直します。`-WorldCopy Skip` や `-NetworkPlugins Skip` を併用した場合は、その種類のIDを指定できません。
 
-マスタデータエディタでは「ビルド・反映」から「メンテナンス配布」を開き、「配布先ごとに選ぶ」で対象にチェックを入れます。「実行計画を確認」で配布先と運用条件を確認してください。未完了の詳細選択を再開するときは「前回の選択を適用」で同じ対象を読み込めます。
+`-NetworkOnly` は `networkPlugins.destinations` に設定した配布先だけを選びます。配布先が空なら処理を開始できません。同じ設定の読み取りから対象IDとSHA-256を取得するため、ダイジェストの入力は不要です。`-WorldCopy`、`-NetworkPlugins`、`-DistributionSelection` とは併用できません。
 
-選択は実行フォルダーの `deployment-selection.json` に保存され、子Deployへ渡ります。途中再開では保存済みの選択を使用し、同じrunでの選択変更を拒否します。選択記録のない旧runは全配布の設定を使用します。Restoreは実際の配布journalを読み取ります。設定JSONや実行記録は手で書き換えないでください。
+マスタデータエディタでは「ビルド・反映」から「メンテナンス配布」を開き、配布範囲を選びます。「ネットワークのみ」は Lobby・Proxy・Geyser 拡張の配布先を初期選択します。「配布先ごとに選ぶ」では全種類から個別に選択でき、未完了runの選択も「前回の選択を適用」で読み込めます。「実行計画を確認」で配布先と運用条件を確認してください。
 
-無人の新規Workflowでは詳細IDと設定のSHA-256を指定するか、従来の `-WorldCopy Include|Skip` と `-NetworkPlugins Include|Skip` を両方指定してください。後者では通常プラグインJAR・配置ファイル・Filebaseは設定どおり対象となります。`-Phase Plan` と `-Phase Deploy` は新規時の選択未指定をIncludeとして扱います。ファイルの配布先を絞っても、停止・入場制限・自動書込み停止・起動確認・パッチ公開は従来の運用設定に従います。
+選択は実行フォルダーの `deployment-selection.json` に保存され、子Deployへ渡ります。途中再開では保存済みの選択を使用し、同じrunでの選択変更を拒否します。選択記録のない旧runは全配布の設定を使用します。個別選択でネットワークの一部を配布したrunは、配布対象を指定せずに再開するか、同じIDを指定してください。Restoreは実際の配布journalを読み取ります。設定JSONや実行記録は手で書き換えないでください。
+
+無人の新規Workflowでは `-NetworkOnly`、詳細IDと設定のSHA-256、または `-WorldCopy Include|Skip` と `-NetworkPlugins Include|Skip` の両方を指定します。グループ指定では通常プラグインJAR・配置ファイル・Filebaseは設定どおり対象となります。`-Phase Plan` と `-Phase Deploy` は新規時の選択未指定をIncludeとして扱います。停止・入場制限・自動書込み停止・seed・起動確認・パッチ公開は従来の運用設定に従います。
 
 `workflow.runRoot` が空なら `60_tool/16-maintenance/runs/` へ実行記録を自動作成します。`startupTimeoutSeconds` / `pollIntervalSeconds` は起動待ち時間と確認間隔、`seedMasterData` は配布後のAPI diff seedです。起動案内はseed成功後に表示します。共有API側のFilebaseが今回のリリースと一致していることが前提です。起動確認対象は `migration.serverIds` なので、今回更新する全チャンネルの実server IDを列挙してください。
 

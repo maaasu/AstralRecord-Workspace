@@ -21,7 +21,12 @@ const maintenanceCatalog: MaintenanceDistributionOptions = {
     { id: 'd1-t1', kind: 'Jar', label: 'AstralRecord.jar', source: 'Dev', destination: 'Channel1' },
     { id: 'd1-t2', kind: 'Jar', label: 'AstralRecord.jar', source: 'Dev', destination: 'Channel2' },
     { id: 'd2-t1', kind: 'World', label: 'worlds/skill_tree', source: 'Build', destination: 'Channel1' },
+    { id: 'd3-t1', kind: 'Jar', label: 'Custom.jar', source: 'Dev', destination: 'Channel1' },
+    { id: 'd4-t1', kind: 'Placement', label: 'npc_locations.yml', source: 'Build', destination: 'Channel1' },
+    { id: 'd5-t1', kind: 'Filebase', label: 'filebase', source: 'Build', destination: 'Channel1' },
     { id: 'n1', kind: 'Network', label: 'AstralRecordLobby.jar', source: 'Build', destination: 'Lobby' },
+    { id: 'n2', kind: 'Network', label: 'AstralRecordProxy.jar', source: 'Build', destination: 'Proxy' },
+    { id: 'n3', kind: 'Network', label: 'AstralRecordGeyserExtension.jar', source: 'Build', destination: 'Geyser' },
   ],
   savedSelection: ['d1-t2', 'n1'],
 }
@@ -273,10 +278,16 @@ it('plans maintenance for selected destinations and clears approvals when the ch
   }))
   render(<DesktopToolWorkspace {...props} page="16" />)
 
-  const detailed = screen.getByRole('button', { name: '配布先ごとに選ぶ' })
+  const detailed = screen.getByRole('radio', { name: '配布先ごとに選ぶ' })
+  const normal = screen.getByRole('radio', { name: '通常配布' })
   await waitFor(() => expect(detailed).toBeEnabled())
+  expect(normal).toBeChecked()
   expect(readOptions).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: '実行計画を確認' }))
+  const normalConfirm = await screen.findByRole('checkbox', { name: 'サーバーを停止しました' })
+  expect(makePlan).toHaveBeenLastCalledWith({ toolId: '16', recovery: 'Auto', worldCopy: 'Skip', networkPlugins: 'Skip' })
   fireEvent.change(screen.getByLabelText('ワールドのコピー'), { target: { value: 'Include' } })
+  expect(normalConfirm).not.toBeInTheDocument()
   fireEvent.click(detailed)
   const first = await screen.findByRole('checkbox', { name: /AstralRecord\.jar.*Channel1/ })
   const second = screen.getByRole('checkbox', { name: /AstralRecord\.jar.*Channel2/ })
@@ -289,6 +300,9 @@ it('plans maintenance for selected destinations and clears approvals when the ch
 
   fireEvent.click(first)
   fireEvent.click(world)
+  fireEvent.click(screen.getByRole('checkbox', { name: /Custom\.jar/ }))
+  fireEvent.click(screen.getByRole('checkbox', { name: /npc_locations\.yml/ }))
+  fireEvent.click(screen.getByRole('checkbox', { name: /filebase/ }))
   fireEvent.click(screen.getByRole('button', { name: '実行計画を確認' }))
   const confirm = await screen.findByRole('checkbox', { name: 'サーバーを停止しました' })
   expect(makePlan).toHaveBeenLastCalledWith({
@@ -316,21 +330,22 @@ it('plans maintenance for selected destinations and clears approvals when the ch
     toolId: '16', recovery: 'Auto', distributionSelection: ['d1-t2', 'n1'],
     distributionConfigurationDigest: maintenanceCatalog.configurationDigest,
   }))
-  await waitFor(() => expect(screen.getByRole('button', { name: '簡易設定に戻す' })).toBeEnabled())
-  fireEvent.click(screen.getByRole('button', { name: '簡易設定に戻す' }))
+  await waitFor(() => expect(normal).toBeEnabled())
+  fireEvent.click(normal)
   expect(screen.getByLabelText('ワールドのコピー')).toHaveValue('Include')
   expect(screen.queryByRole('checkbox', { name: /AstralRecord\.jar.*Channel1/ })).not.toBeInTheDocument()
 })
 
 it('retries distribution discovery and clears choices when the configuration changes', async () => {
   vi.spyOn(toolJobApi, 'runs').mockResolvedValue([])
+  vi.spyOn(toolJobApi, 'plan').mockResolvedValue(availablePlan({ toolId: '16' }))
   vi.spyOn(toolJobApi, 'maintenanceOptions')
     .mockRejectedValueOnce(new Error('配布設定を確認してください。'))
     .mockResolvedValueOnce(maintenanceCatalog)
     .mockResolvedValueOnce({ ...maintenanceCatalog, configurationDigest: 'B'.repeat(64), savedSelection: null })
   render(<DesktopToolWorkspace {...props} page="16" />)
 
-  const detailed = screen.getByRole('button', { name: '配布先ごとに選ぶ' })
+  const detailed = screen.getByRole('radio', { name: '配布先ごとに選ぶ' })
   await waitFor(() => expect(detailed).toBeEnabled())
   fireEvent.click(detailed)
   expect(await screen.findByRole('alert')).toHaveTextContent('配布設定を確認してください。')
@@ -338,9 +353,98 @@ it('retries distribution discovery and clears choices when the configuration cha
   fireEvent.click(screen.getByRole('button', { name: '再取得' }))
   expect(await screen.findByRole('checkbox', { name: /AstralRecord\.jar.*Channel1/ })).toBeChecked()
 
+  fireEvent.click(screen.getByRole('button', { name: '実行計画を確認' }))
+  const confirmation = await screen.findByRole('checkbox', { name: '出力先を確認しました' })
+  fireEvent.click(confirmation)
+  expect(screen.getByRole('button', { name: '配布を開始' })).toBeEnabled()
   fireEvent.click(screen.getByRole('button', { name: '候補を再取得' }))
+  expect(confirmation).not.toBeInTheDocument()
   expect(await screen.findByRole('checkbox', { name: /AstralRecord\.jar.*Channel1/ })).not.toBeChecked()
   expect(screen.getByText('配布設定が変わりました。配布対象を選び直してください。')).toBeVisible()
   expect(screen.getByRole('button', { name: '実行計画を確認' })).toBeDisabled()
   expect(screen.queryByRole('button', { name: '前回の選択を適用' })).not.toBeInTheDocument()
+})
+
+it('plans network destinations only, including after select all, and clears approval on a scope switch', async () => {
+  vi.spyOn(toolJobApi, 'runs').mockResolvedValue([])
+  vi.spyOn(toolJobApi, 'maintenanceOptions').mockResolvedValue(maintenanceCatalog)
+  const makePlan = vi.spyOn(toolJobApi, 'plan').mockResolvedValue(availablePlan({ toolId: '16' }))
+  render(<DesktopToolWorkspace {...props} page="16" />)
+
+  const networkOnly = screen.getByRole('radio', { name: 'ネットワークのみ' })
+  await waitFor(() => expect(networkOnly).toBeEnabled())
+  fireEvent.click(networkOnly)
+  const candidates = await screen.findByRole('region', { name: '配布候補' })
+  const lobby = within(candidates).getByRole('checkbox', { name: /AstralRecordLobby\.jar/ })
+  const proxy = within(candidates).getByRole('checkbox', { name: /AstralRecordProxy\.jar/ })
+  const extension = within(candidates).getByRole('checkbox', { name: /AstralRecordGeyserExtension\.jar/ })
+  expect(within(candidates).getAllByRole('checkbox')).toEqual([lobby, proxy, extension])
+  for (const candidate of [lobby, proxy, extension]) expect(candidate).toBeChecked()
+  expect(screen.getByText('前回の選択は「配布先ごとに選ぶ」で適用できます。')).toBeVisible()
+  expect(screen.queryByRole('button', { name: '前回の選択を適用' })).not.toBeInTheDocument()
+
+  fireEvent.click(proxy)
+  fireEvent.click(screen.getByRole('button', { name: '実行計画を確認' }))
+  const confirmation = await screen.findByRole('checkbox', { name: '出力先を確認しました' })
+  expect(makePlan).toHaveBeenLastCalledWith({
+    toolId: '16', recovery: 'Auto', distributionSelection: ['n1', 'n3'],
+    distributionConfigurationDigest: maintenanceCatalog.configurationDigest,
+  })
+  fireEvent.click(confirmation)
+  expect(screen.getByRole('button', { name: '配布を開始' })).toBeEnabled()
+  fireEvent.click(screen.getByRole('button', { name: '全選択' }))
+  expect(confirmation).not.toBeInTheDocument()
+  expect(proxy).toBeChecked()
+  fireEvent.click(screen.getByRole('button', { name: '実行計画を確認' }))
+  const nextConfirmation = await screen.findByRole('checkbox', { name: '出力先を確認しました' })
+  expect(nextConfirmation).not.toBeChecked()
+  expect(makePlan).toHaveBeenLastCalledWith({
+    toolId: '16', recovery: 'Auto', distributionSelection: ['n1', 'n2', 'n3'],
+    distributionConfigurationDigest: maintenanceCatalog.configurationDigest,
+  })
+  fireEvent.click(nextConfirmation)
+  fireEvent.click(screen.getByRole('radio', { name: '配布先ごとに選ぶ' }))
+  expect(nextConfirmation).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '配布を開始' })).toBeDisabled()
+  fireEvent.click(await screen.findByRole('button', { name: '前回の選択を適用' }))
+  expect(screen.getByRole('checkbox', { name: /AstralRecord\.jar.*Channel2/ })).toBeChecked()
+})
+
+it('applies a saved network selection within the network scope', async () => {
+  vi.spyOn(toolJobApi, 'runs').mockResolvedValue([])
+  vi.spyOn(toolJobApi, 'maintenanceOptions').mockResolvedValue({ ...maintenanceCatalog, savedSelection: ['n2'] })
+  const makePlan = vi.spyOn(toolJobApi, 'plan').mockResolvedValue(availablePlan({ toolId: '16' }))
+  render(<DesktopToolWorkspace {...props} page="16" />)
+
+  const networkOnly = screen.getByRole('radio', { name: 'ネットワークのみ' })
+  await waitFor(() => expect(networkOnly).toBeEnabled())
+  fireEvent.click(networkOnly)
+  fireEvent.click(await screen.findByRole('button', { name: '前回の選択を適用' }))
+  expect(screen.getByRole('checkbox', { name: /AstralRecordLobby\.jar/ })).not.toBeChecked()
+  expect(screen.getByRole('checkbox', { name: /AstralRecordProxy\.jar/ })).toBeChecked()
+  fireEvent.click(screen.getByRole('button', { name: '実行計画を確認' }))
+  expect(makePlan).toHaveBeenCalledExactlyOnceWith({
+    toolId: '16', recovery: 'Auto', distributionSelection: ['n2'],
+    distributionConfigurationDigest: maintenanceCatalog.configurationDigest,
+  })
+  await screen.findByRole('checkbox', { name: '出力先を確認しました' })
+})
+
+it('requires a configured network destination even if ordinary candidates exist', async () => {
+  vi.spyOn(toolJobApi, 'runs').mockResolvedValue([])
+  vi.spyOn(toolJobApi, 'maintenanceOptions').mockResolvedValue({
+    ...maintenanceCatalog, options: maintenanceCatalog.options.filter(option => option.kind !== 'Network'), savedSelection: null,
+  })
+  const makePlan = vi.spyOn(toolJobApi, 'plan')
+  render(<DesktopToolWorkspace {...props} page="16" />)
+
+  const networkOnly = screen.getByRole('radio', { name: 'ネットワークのみ' })
+  await waitFor(() => expect(networkOnly).toBeEnabled())
+  fireEvent.click(networkOnly)
+  expect(await screen.findByText('ネットワークの配布先が設定されていません。配布設定を確認してください。')).toBeVisible()
+  expect(screen.queryByRole('region', { name: '配布候補' })).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '全選択' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: '実行計画を確認' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: '配布を開始' })).toBeDisabled()
+  expect(makePlan).not.toHaveBeenCalled()
 })
