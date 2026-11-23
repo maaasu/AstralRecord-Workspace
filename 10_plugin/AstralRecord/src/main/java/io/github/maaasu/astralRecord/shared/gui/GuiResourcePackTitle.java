@@ -84,7 +84,7 @@ public final class GuiResourcePackTitle {
             // 将来のサーバーで構造が変わった場合も、元の GUI と操作を維持します。
             return player.openInventory(inventory);
         }
-        int chapterGlyph = rows == 6 && active.resourcePacks().hasJavaGuideHud(player.getUniqueId())
+        int chapterGlyph = rows == 6 && supportsChapterPanel(player)
             && inventory.getHolder() instanceof MenuInventoryHolder holder && holder.screen() == MenuScreen.GUIDE
             ? chapterGlyph(holder.contentId()) : 0;
         ProtocolManager protocol = ProtocolLibrary.getProtocolManager();
@@ -139,6 +139,15 @@ public final class GuiResourcePackTitle {
                 .decoration(TextDecoration.BOLD, false)
                 .decoration(TextDecoration.ITALIC, false))
             .append(readableTitle(original));
+    }
+
+    /** Java版のチャプターパネルを使う接続では、ボタンの文字部分も操作に含めます。 */
+    public static boolean supportsChapterPanel(@NotNull Player player) {
+        ThemeContext active = context;
+        return active != null && active.plugin().isEnabled()
+            && !active.resourcePacks().isBedrock(player.getName())
+            && active.resourcePacks().hasGuiTheme(player.getUniqueId())
+            && active.resourcePacks().hasJavaGuideHud(player.getUniqueId());
     }
 
     private static int chapterGlyph(@Nullable String contentId) {

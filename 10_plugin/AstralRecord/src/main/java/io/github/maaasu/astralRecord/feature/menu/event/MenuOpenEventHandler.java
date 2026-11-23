@@ -53,6 +53,7 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
+import io.github.maaasu.astralRecord.shared.gui.GuiResourcePackTitle;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -877,9 +878,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         Inventory inventory = event.getView().getTopInventory();
         String contentId = menuView.getContentId(inventory);
 
-        var packs = plugin.getResourcePackService();
-        if (packs != null && packs.hasGuiTheme(player.getUniqueId()) && packs.hasJavaGuideHud(player.getUniqueId())
-            && !packs.isBedrock(player.getName())) {
+        if (GuiResourcePackTitle.supportsChapterPanel(player)) {
             rawSlot = GuideScreenView.panelControlSlot(rawSlot, contentId);
         }
 
