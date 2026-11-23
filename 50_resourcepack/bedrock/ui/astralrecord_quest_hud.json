@@ -41,8 +41,7 @@
     ]
   },
   "frame": {
-    "type": "image",
-    "texture": "textures/ui/astralrecord/quest_hud_frame",
+    "type": "panel",
     "size": [ 172, "$frame_height" ],
     "anchor_from": "top_left",
     "anchor_to": "top_left",

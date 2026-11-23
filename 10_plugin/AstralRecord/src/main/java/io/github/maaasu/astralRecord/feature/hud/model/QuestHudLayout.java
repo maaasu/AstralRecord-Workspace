@@ -13,12 +13,12 @@ public final class QuestHudLayout {
     public static final int WIDTH = 172;
     public static final int ROW_HEIGHT = 13;
     public static final int PADDING = 3;
-    private static final int MAX_ROWS = 10;
+    public static final int MAX_ROWS = 10;
     private static final int MAX_QUESTS = 3;
     private static final int BEDROCK_TEXT_WIDTH = WIDTH - 12;
 
     public enum Kind {
-        TITLE, OBJECTIVE, COMPLETE, OVERFLOW
+        TITLE, OBJECTIVE, COMPLETE, OVERFLOW, GUIDE_TITLE, GUIDE_ACTION, GUIDE_CONTINUATION
     }
 
     public record Row(Kind kind, String label, String value, int progressPercent) {
@@ -33,12 +33,20 @@ public final class QuestHudLayout {
      * @return 最大3件・10行の表示行
      */
     public static List<Row> rows(List<QuestService.HudQuest> quests) {
-        List<Row> rows = new ArrayList<>(MAX_ROWS);
+        return rows(quests, MAX_ROWS);
+    }
+
+    /** ガイドと同時表示するときも、省略するクエストや目標の件数を残します。 */
+    public static List<Row> rows(List<QuestService.HudQuest> quests, int rowBudget) {
+        if (rowBudget < 3 || rowBudget > MAX_ROWS) {
+            throw new IllegalArgumentException("クエストHUDの行数が範囲外です: " + rowBudget);
+        }
+        List<Row> rows = new ArrayList<>(rowBudget);
         int displayed = 0;
         while (displayed < Math.min(MAX_QUESTS, quests.size())) {
             QuestService.HudQuest quest = quests.get(displayed);
             List<QuestService.HudObjective> objectives = quest.objectives();
-            int available = MAX_ROWS - rows.size() - (displayed + 1 < quests.size() ? 1 : 0);
+            int available = rowBudget - rows.size() - (displayed + 1 < quests.size() ? 1 : 0);
             int shown = objectives.size();
             if (shown + 1 > available) {
                 if (displayed > 0) break;
@@ -84,6 +92,8 @@ public final class QuestHudLayout {
                 case OBJECTIVE -> "§f◇ ";
                 case COMPLETE -> "§a◆ ";
                 case OVERFLOW -> "§7";
+                case GUIDE_TITLE, GUIDE_ACTION, GUIDE_CONTINUATION ->
+                    throw new IllegalArgumentException("ガイド行はJava版専用です");
             };
             String suffix = row.value().isEmpty() ? "" : "  " + row.value();
             int available = BEDROCK_TEXT_WIDTH - textWidth(prefix.substring(2)) - textWidth(suffix);

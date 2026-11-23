@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.logging.Level;
 
 /** 初回チュートリアルの現在の段階を観測し、本人向けに一時表示します。 */
@@ -53,7 +54,7 @@ final class FirstAdventureGuide {
 
     private final AstralRecord plugin;
     private final ParticleDisplayService particles;
-    private final Consumer<Player> navigateMerchant;
+    private final Function<AstPlayer, String> navigateMerchant;
     private final Consumer<UUID> clearMerchantHighlight;
     private final Map<UUID, Session> sessions = new HashMap<>();
 
@@ -65,7 +66,7 @@ final class FirstAdventureGuide {
 
     FirstAdventureGuide(
         AstralRecord plugin,
-        ParticleDisplayService particles, Consumer<Player> navigateMerchant,
+        ParticleDisplayService particles, Function<AstPlayer, String> navigateMerchant,
         Consumer<UUID> clearMerchantHighlight
     ) {
         this.plugin = plugin;
@@ -100,7 +101,8 @@ final class FirstAdventureGuide {
         UUID playerId = player.getUniqueId();
         discard(playerId);
         clearMerchantHighlight.accept(playerId);
-        if (player.isOnline()) {
+        AstPlayer ast = AstPlayerCache.get(player);
+        if (player.isOnline() && ast != null && plugin.getGuideService().isGuideDisplayEnabled(ast)) {
             showTitle(player, "最初の冒険 完了", "グラスボアを1体倒した！");
         }
     }
@@ -137,6 +139,14 @@ final class FirstAdventureGuide {
         }
     }
 
+    void refreshDisplay(AstPlayer ast) {
+        if (!plugin.getGuideService().isGuideDisplayEnabled(ast)) {
+            discard(ast.getBukkit().getUniqueId());
+        } else {
+            observe(ast);
+        }
+    }
+
     private void observe(AstPlayer ast) {
         if (!AccountModeGuard.isGameplayPlayer(ast)) {
             return;
@@ -149,7 +159,7 @@ final class FirstAdventureGuide {
 
         UUID accountId = ast.getAccount().getUuid();
         String step = plugin.getGuideService().tutorialStep(accountId);
-        if (step == null) {
+        if (step == null || !plugin.getGuideService().isGuideDisplayEnabled(ast)) {
             return;
         }
 
@@ -163,40 +173,35 @@ final class FirstAdventureGuide {
         Session session = sessions.get(playerId);
         boolean sameStep = session != null && session.ast == ast && session.player == player
             && session.accountId.equals(accountId) && session.step.equals(step);
-        boolean changed = !sameStep || !session.worldId.equals(worldId);
+        boolean hud = plugin.getGuideService().usesJavaGuideHud(ast);
+        boolean changed = !sameStep || !session.worldId.equals(worldId) || session.hud != hud;
         if (changed) {
             discard(playerId);
             session = new Session(ast, player, accountId, worldId, step);
+            session.hud = hud;
             sessions.put(playerId, session);
         }
 
-        var settings = plugin.getPlayerSettingService();
-        boolean automatic = settings == null || settings.isGuideReminderEnabled(playerId);
-        if (!automatic || tick >= session.hintExpiresAt) {
+        if (hud || tick >= session.hintExpiresAt) {
             hideHint(session);
         }
-        if (automatic) {
-            if (HUNT_GRASSBOAR.equals(step)) {
-                updateHunt(session, from, changed);
-            } else if ("open_initial_bundle".equals(step)) {
-                boolean inHand = "50a00001".equals(ItemStackFactory.getAstralItemId(player.getInventory().getItemInMainHand()));
-                if (changed || inHand != session.bundleInHand) {
-                    String use = ast.isBedrock() ? "「使う」操作" : "右クリック";
-                    showHint(session, inHand ? "画面を閉じ、" + use + "でバンドルを開けよう"
-                        : "持ち物でバンドルを選び、ホットバーに持とう");
-                    session.bundleInHand = inHand;
-                }
-            } else if (changed) {
-                if (OPEN_MENU.equals(step)) {
-                    showIntroductionOnce(player, accountId);
-                }
-                String hint = instruction(step);
-                if (hint != null) {
-                    showHint(session, hint);
-                }
-                if (BUY_WEAPON.equals(step)) {
-                    navigateMerchant.accept(player);
-                }
+        if (HUNT_GRASSBOAR.equals(step)) {
+            updateHunt(session, from, changed);
+        } else if ("open_initial_bundle".equals(step)) {
+            boolean inHand = "50a00001".equals(ItemStackFactory.getAstralItemId(player.getInventory().getItemInMainHand()));
+            if (changed || inHand != session.bundleInHand) {
+                String use = ast.isBedrock() ? "「使う」操作" : "右クリック";
+                showHint(session, inHand ? "画面を閉じ、" + use + "でバンドルを開けよう"
+                    : "持ち物でバンドルを選び、ホットバーに持とう");
+                session.bundleInHand = inHand;
+            }
+        } else if (changed) {
+            if (OPEN_MENU.equals(step)) {
+                showIntroductionOnce(player, accountId);
+            }
+            String hint = BUY_WEAPON.equals(step) ? navigateMerchant.apply(ast) : instruction(step);
+            if (hint != null) {
+                showHint(session, hint);
             }
         }
         session.lastObservedTick = tick;
@@ -206,7 +211,6 @@ final class FirstAdventureGuide {
         return switch (step) {
             case OPEN_MENU -> "案内具を使うか /menu でメニューを開こう";
             case "receive_welcome_mail" -> "メールで『初ログイン記念の贈り物』を受け取ろう";
-            case BUY_WEAPON -> "雑貨商ミナで簡素な武器を1つ買おう";
             case "equip_starter_weapon" -> "案内具で『装備』を開き、下のバッグの簡素な武器を選ぼう";
             default -> null;
         };
@@ -233,6 +237,8 @@ final class FirstAdventureGuide {
     }
 
     private void showHint(Session session, String hint) {
+        session.hudInstruction = hint;
+        if (plugin.getGuideService().usesJavaGuideHud(session.ast)) return;
         hideHint(session);
         session.hint = BossBar.bossBar(Component.text(hint), 1.0F, BossBar.Color.GREEN, BossBar.Overlay.PROGRESS);
         session.hintExpiresAt = tick + HINT_TICKS;
@@ -268,14 +274,12 @@ final class FirstAdventureGuide {
 
     private void updateHunt(Session session, Location from, boolean changed) {
         HuntRoute route = resolveHunt(from);
-        if (changed) {
-            showHint(session, route.hint());
-        }
-
         Location target = route.target();
         boolean arrived = route.hunting() && target != null && distanceSquared(from, target) <= HUNT_RADIUS_SQUARED;
-        if (arrived && !session.atHunt) {
-            showHint(session, "グラスボアの狩場に到着");
+        String hint = arrived ? "狩場に到着。目印のグラスボアを1体倒そう" : route.hint();
+        session.hudInstruction = hint;
+        if (changed || arrived != session.atHunt) {
+            showHint(session, hint);
         }
         session.atHunt = arrived;
         renderRoute(session.player, from, route);
@@ -424,6 +428,19 @@ final class FirstAdventureGuide {
     private record HuntRoute(@Nullable Location target, boolean hunting, String hint) {
     }
 
+    @Nullable String hudInstruction(AstPlayer player, String step) {
+        Session session = sessions.get(player.getBukkit().getUniqueId());
+        if (session == null || session.ast != player || !session.accountId.equals(player.getAccount().getUuid())
+            || !session.worldId.equals(player.getBukkit().getWorld().getUID()) || !session.step.equals(step)) return null;
+        return switch (step) {
+            case OPEN_MENU -> "案内具か /menu を使う";
+            case "receive_welcome_mail" -> "メールで贈り物を受け取る";
+            case "open_initial_bundle" -> session.bundleInHand ? "画面を閉じて右クリックで開封" : "バンドルをホットバーへ";
+            case "equip_starter_weapon" -> "装備画面でバッグの武器を選ぶ";
+            default -> session.hudInstruction;
+        };
+    }
+
     private static final class Session {
         private final AstPlayer ast;
         private final Player player;
@@ -432,9 +449,11 @@ final class FirstAdventureGuide {
         private final String step;
 
         private @Nullable BossBar hint;
+        private @Nullable String hudInstruction;
         private long hintExpiresAt;
         private long lastObservedTick;
         private boolean atHunt;
+        private boolean hud;
         private boolean bundleInHand;
 
         private Session(AstPlayer ast, Player player, UUID accountId, UUID worldId, String step) {

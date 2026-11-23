@@ -85,7 +85,9 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             new SettingItem(12, PlayerSettingKey.QUEST_HUD_DISPLAY, Material.MAP, "quest"),
             new SettingItem(13, PlayerSettingKey.ACTION_RING_COOLDOWN_DISPLAY, Material.TRIDENT, "setting_action_ring_cooldown"),
             new SettingItem(14, PlayerSettingKey.EQUIPPED_SKILL_COOLDOWN_DISPLAY, Material.BOOK, "setting_equipped_skill_cooldown"),
-            new SettingItem(15, PlayerSettingKey.COMBAT_DPS_DISPLAY, Material.CLOCK, "setting_dps")
+            new SettingItem(15, PlayerSettingKey.COMBAT_DPS_DISPLAY, Material.CLOCK, "setting_dps"),
+            new SettingItem(16, PlayerSettingKey.GUIDE_DISPLAY, Material.KNOWLEDGE_BOOK, "guide",
+                List.of(PlayerSettingMsgId.P_6835))
         )),
         new SettingGroup(19, Material.CYAN_BANNER, NamedTextColor.AQUA, PlayerSettingMsgId.P_6821, List.of(
             new SettingItem(21, PlayerSettingKey.WORLD_NAME_DISPLAY, Material.FILLED_MAP, "setting_world_name"),

@@ -8,6 +8,9 @@ import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.utility.MinecraftReflection;
 import com.comphenix.protocol.wrappers.WrappedChatComponent;
+import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
+import io.github.maaasu.astralRecord.feature.menu.view.MenuInventoryHolder;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.GuideScreenView;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionTransitionService;
 import net.kyori.adventure.key.Key;
@@ -81,6 +84,9 @@ public final class GuiResourcePackTitle {
             // 将来のサーバーで構造が変わった場合も、元の GUI と操作を維持します。
             return player.openInventory(inventory);
         }
+        int chapterGlyph = rows == 6 && active.resourcePacks().hasJavaGuideHud(player.getUniqueId())
+            && inventory.getHolder() instanceof MenuInventoryHolder holder && holder.screen() == MenuScreen.GUIDE
+            ? chapterGlyph(holder.contentId()) : 0;
         ProtocolManager protocol = ProtocolLibrary.getProtocolManager();
         PacketAdapter listener = new PacketAdapter(active.plugin(), ListenerPriority.HIGH,
             PacketType.Play.Server.OPEN_WINDOW) {
@@ -101,7 +107,7 @@ public final class GuiResourcePackTitle {
                 Component title = GsonComponentSerializer.gson().deserialize(original.getJson());
                 var decorated = event.getPacket().shallowClone();
                 decorated.getChatComponents().write(0, WrappedChatComponent.fromJson(
-                    GsonComponentSerializer.gson().serialize(decorate(title, rows))
+                    GsonComponentSerializer.gson().serialize(decorate(title, rows, chapterGlyph))
                 ));
                 event.setPacket(decorated);
             }
@@ -120,14 +126,29 @@ public final class GuiResourcePackTitle {
      * @param rows 1～6 のチェスト行数
      * @return 背景と、文字内容・装飾・座標を維持し暗い帯で読める色に揃えたタイトル
      */
-    private static Component decorate(Component original, int rows) {
+    private static Component decorate(Component original, int rows, int chapterGlyph) {
+        String panels = "" + MOVE_LEFT + (char) (FIRST_PANEL + rows - 1);
+        if (chapterGlyph != 0) {
+            // 下の所持品は6段共通背景を使用。上部だけを2倍解像度の左右2字で描きます。
+            // 176px+余白1pxを戻し、各88pxの字形間に付く1pxの余白を除きます。
+            panels += "\uea02" + (char) chapterGlyph + "\uea03" + (char) (chapterGlyph + 1);
+        }
         return Component.empty()
-            .append(Component.text("" + MOVE_LEFT + (char) (FIRST_PANEL + rows - 1) + RETURN_TO_TITLE,
-                    NamedTextColor.WHITE)
+            .append(Component.text(panels + RETURN_TO_TITLE, NamedTextColor.WHITE)
                 .font(FONT)
                 .decoration(TextDecoration.BOLD, false)
                 .decoration(TextDecoration.ITALIC, false))
             .append(readableTitle(original));
+    }
+
+    private static int chapterGlyph(@Nullable String contentId) {
+        if (contentId == null) return 0xea20;
+        if (GuideScreenView.TUTORIAL_COMPLETE.equals(contentId)) return 0xea24;
+        if (contentId.startsWith(GuideScreenView.TUTORIAL_PREFIX)
+            && !GuideScreenView.TUTORIAL_LOADING.equals(contentId)
+            && !GuideScreenView.TUTORIAL_LOAD_FAILED.equals(contentId)
+            && !GuideScreenView.TUTORIAL_UNAVAILABLE.equals(contentId)) return 0xea22;
+        return 0;
     }
 
     /** タイトルの子要素も含め、内容・装飾を保持して暗い帯用の文字色に揃えます。 */

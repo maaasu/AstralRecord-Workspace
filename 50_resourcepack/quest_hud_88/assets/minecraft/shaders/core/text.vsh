@@ -49,13 +49,15 @@ void main() {
     bool questFrame = questType == 220;
     int questRows = questText ? (questType - 180) / 4 + 1
         : (questFrame ? questCode.g : questCode.g >> 4);
-    int questRow = questText ? questCode.b : questCode.g & 15;
-    bool questTextMarker = questText && questRow < questRows
+    int questRow = questText ? questCode.b & 15 : questCode.g & 15;
+    bool guideText = (questCode.b & 16) != 0;
+    bool textShadow = (questCode.b & 32) != 0;
+    bool questTextMarker = questText && questCode.b < 64 && questRow < questRows
         && questCode.g >= 8 && questCode.g < 180;
     bool questShapeMarker = questFrame ? questCode.b < 8 : questRow < questRows
-        && ((questType == 221 && questCode.b == 0)
+        && ((questType == 221 && questCode.b <= 1)
             || (questType >= 222 && questType <= 223 && (questCode.b & 31) <= 18)
-            || (questType == 224 && questCode.b < 3)
+            || (questType == 224 && questCode.b < 32 && (questCode.b & 15) < 3)
             || (questType == 225 && (questCode.b & 31) <= 18));
     bool questProjection = abs(ProjMat[3][3] - 1.0) < 0.001 && abs(ProjMat[2][3]) < 0.001;
     if (questProjection && questRows >= 1 && questRows <= 10 && (questTextMarker || questShapeMarker)
@@ -76,6 +78,8 @@ void main() {
             (limit - 4.0) / panelHeight), 0.0, 1.0);
         float top = clamp(limit - panelHeight * scale, 4.0, 48.0);
         float rowY = top + float(3 + questRow * 13);
+        bool guideRow = (questText || questType == 224) && guideText;
+        if (!guideRow) rowY += 3.0;
         vec2 origin;
         vec2 size;
         vec3 tint;
@@ -84,53 +88,37 @@ void main() {
             origin = vec2(left + float(questCode.g - 8), rowY);
             // The dedicated 36x36 atlas retains the original 9x9 logical ink cell.
             size = vec2(9.0, 9.0);
-            tint = palette == 0 ? vec3(0.97647059, 0.82352941, 0.52156863) : palette == 1 ? vec3(0.96078431, 0.92549020, 0.84705882)
-                : palette == 2 ? vec3(0.69411765, 0.89411765, 0.79215686) : vec3(0.74509804, 0.66666667, 0.54509804);
-        } else if (questFrame) {
-            // The existing eight frame quads supply the backing, four brass rails,
-            // two glints and the first heading band without a new server marker.
-            vec2 first = ceil(vec2(left, top) - 0.0001);
-            vec2 last = floor(vec2(left + 172.0 * scale, top + panelHeight * scale) + 0.0001);
-            vec2 span = last - first;
-            int edge = questCode.b;
-            tint = vec3(0.71764706, 0.56862745, 0.32941176);
-            if (edge == 0) {
-                origin = first + vec2(1.0, 1.0);
-                size = span - vec2(2.0);
-                tint = vec3(0.11372549, 0.09411765, 0.07058824);
-            } else if (edge < 3) {
-                origin = vec2(first.x + 1.0, edge == 1 ? first.y : last.y - 1.0);
-                size = vec2(span.x - 2.0, 1.0);
-            } else if (edge < 5) {
-                origin = vec2(edge == 3 ? first.x : last.x - 1.0, first.y + 1.0);
-                size = vec2(1.0, span.y - 2.0);
-            } else if (edge < 7) {
-                origin = vec2(edge == 5 ? first.x + 2.0 : last.x - 9.0, first.y + 1.0);
-                size = vec2(7.0, 1.0);
-                tint = vec3(0.94901961, 0.79215686, 0.50196078);
+            if (textShadow) {
+                origin += vec2(1.0);
+                tint = vec3(0.10980392, 0.12549020, 0.12941176);
+            } else if (guideText) {
+                tint = palette == 0 ? vec3(0.54509804, 0.89019608, 0.81568627) : palette == 1 ? vec3(0.93725490, 0.99607843, 0.97254902)
+                    : palette == 2 ? vec3(0.69411765, 0.92156863, 0.76470588) : vec3(0.72941176, 0.84705882, 0.81568627);
             } else {
-                origin = first + vec2(2.0, 2.0);
-                size = vec2(span.x - 4.0, max(1.0, floor(13.0 * scale) - 1.0));
-                tint = vec3(0.28235294, 0.20000000, 0.12156863);
+                tint = palette == 0 ? vec3(1.00000000, 0.85490196, 0.56862745) : palette == 1 ? vec3(0.97647059, 0.96862745, 0.93725490)
+                    : palette == 2 ? vec3(0.69411765, 0.92156863, 0.76470588) : vec3(0.79607843, 0.79215686, 0.76470588);
             }
-            if (any(lessThan(span, vec2(20.0, 5.0)))) {
-                size = vec2(0.0);
-            }
-        } else if (questType == 221) {
-            origin = vec2(left + 2.0, rowY - 1.0);
-            size = vec2(168.0, 12.0);
-            tint = vec3(0.28235294, 0.20000000, 0.12156863);
-        } else if (questType == 224) {
-            origin = vec2(left + 6.0, rowY + 1.0);
-            size = vec2(6.0, 9.0);
+        } else if (questFrame || (questType == 221 && questCode.b == 0)) {
+            // Older servers still send the former panel and heading quads. Emit no surface.
+            origin = vec2(left, top);
+            size = vec2(0.0);
             tint = vec3(1.0);
+        } else if (questType == 221) {
+            origin = vec2(left + 7.0, rowY - 3.0);
+            size = vec2(26.0, 1.0);
+            tint = vec3(0.66274510, 0.58039216, 0.41176471);
+        } else if (questType == 224) {
+            bool heading = (questCode.b & 15) == 0;
+            origin = vec2(left + (heading ? 6.0 : 11.0), rowY + (heading ? 1.0 : 2.0));
+            size = heading ? vec2(6.0, 9.0) : vec2(5.0, 7.0);
+            tint = (questCode.b & 15) == 2 ? vec3(0.69411765, 0.92156863, 0.76470588) : guideText ? vec3(0.54509804, 0.89019608, 0.81568627) : vec3(1.00000000, 0.85490196, 0.56862745);
         } else {
             float filled = float(questCode.b & 31);
             float shift = float(questCode.b >> 5) * 2.0;
             bool remaining = questType == 222;
             origin = vec2(left + 122.0 + shift + (remaining ? filled : 0.0), rowY + 6.0);
-            size = vec2(remaining ? 18.0 - filled : filled, 2.0);
-            tint = remaining ? vec3(0.36862745, 0.29411765, 0.20784314) : questType == 225 ? vec3(0.63137255, 0.89019608, 0.67450980) : vec3(0.92549020, 0.72941176, 0.38823529);
+            size = vec2(remaining ? 18.0 - filled : filled, 1.0);
+            tint = remaining ? vec3(0.43529412, 0.40784314, 0.35686275) : questType == 225 ? vec3(0.69411765, 0.92156863, 0.76470588) : vec3(1.00000000, 0.85490196, 0.56862745);
         }
         vec2 questPixel = origin + size * vec2(questCorner >= 2 ? 1.0 : 0.0,
             questCorner == 1 || questCorner == 2 ? 1.0 : 0.0);
@@ -139,11 +127,7 @@ void main() {
             questPixel = panelOrigin + (questPixel - panelOrigin) * scale;
         }
         gl_Position.xy = (vec2(-1.0, 1.0) + questPixel / questSize * vec2(2.0, -2.0)) * gl_Position.w;
-        float opacity = questFrame ? (questCode.b == 0 ? 132.0
-            : questCode.b <= 4 ? 236.0
-            : questCode.b <= 6 ? 255.0 : 112.0) / 255.0
-            : questType == 221 ? 112.0 / 255.0 : 1.0;
-        vertexColor = vec4(tint, Color.a * opacity);
+        vertexColor = vec4(tint, Color.a);
     }
 #endif
     // END ASTRALRECORD QUEST HUD

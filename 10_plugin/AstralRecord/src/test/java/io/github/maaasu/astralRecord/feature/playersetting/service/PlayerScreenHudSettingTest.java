@@ -70,6 +70,8 @@ class PlayerScreenHudSettingTest {
         PlayerSettingService settings = new PlayerSettingService(repository, new PlayerSettingDefaults(), new PlayerSettingCache());
         long token = settings.beginSession(userId);
         settings.warmup(userId, token);
+        assertTrue(settings.isGuideDisplayEnabled(userId));
+        assertFalse(settings.isQuestHudDisplayEnabled(userId));
 
         AstPlayer player = mock(AstPlayer.class);
         AccountModel account = mock(AccountModel.class);
@@ -86,6 +88,10 @@ class PlayerScreenHudSettingTest {
             assertTrue(settings.isHudDisplayEnabled(userId, PlayerSettingKey.PING_DISPLAY));
             assertTrue(settings.updatePlayerSetting(new PlayerSettingChangeRequest(
                 userId, PlayerSettingKey.PING_DISPLAY, false, userId), token).success());
+            assertTrue(settings.updatePlayerSetting(new PlayerSettingChangeRequest(
+                userId, PlayerSettingKey.GUIDE_DISPLAY, false, userId), token).success());
+            assertFalse(settings.isGuideDisplayEnabled(userId));
+            assertTrue(settings.isGuideReminderEnabled(userId));
             var section = settings.snapshotPlayerState(accountId);
             var settingsJson = section.payload().getAsJsonObject().getAsJsonArray("settings").asList().stream()
                 .map(value -> value.getAsJsonObject())
@@ -93,6 +99,7 @@ class PlayerScreenHudSettingTest {
                     value -> value.get("settingKey").getAsString(),
                     value -> JsonParser.parseString(value.get("settingValueJson").getAsString()).getAsJsonObject()
                 ));
+            assertFalse(settingsJson.get(PlayerSettingKey.GUIDE_DISPLAY.getCode()).get("enabled").getAsBoolean());
             assertTrue(settingsJson.get(PlayerSettingKey.MSPT_DISPLAY.getCode()).get("enabled").getAsBoolean());
             assertFalse(settingsJson.get(PlayerSettingKey.PING_DISPLAY.getCode()).get("enabled").getAsBoolean());
             assertFalse(settingsJson.get(PlayerSettingKey.QUEST_HUD_DISPLAY.getCode()).get("enabled").getAsBoolean());
@@ -125,6 +132,7 @@ class PlayerScreenHudSettingTest {
         assertFalse(save.canEdit(player, PlayerSettingKey.ACTION_RING_COOLDOWN_DISPLAY));
         assertFalse(save.canEdit(player, PlayerSettingKey.EQUIPPED_SKILL_COOLDOWN_DISPLAY));
         questHudSupported.set(false);
+        assertTrue(save.canEdit(player, PlayerSettingKey.GUIDE_DISPLAY));
         try (var cache = mockStatic(AstPlayerCache.class)) {
             cache.when(() -> AstPlayerCache.get(bukkit)).thenReturn(player);
             save.save(bukkit, userId, 2L, Map.of(

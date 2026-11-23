@@ -27,6 +27,7 @@ public enum PlayerSettingKey {
     AREA_NAME_DISPLAY("AREA_NAME_DISPLAY", "エリア名表示", true),
     ACTION_RING_COOLDOWN_DISPLAY("ACTION_RING_COOLDOWN_DISPLAY", "アクションリングのクールタイム", true),
     EQUIPPED_SKILL_COOLDOWN_DISPLAY("EQUIPPED_SKILL_COOLDOWN_DISPLAY", "装備スキルのクールタイム", true),
+    GUIDE_DISPLAY("GUIDE_DISPLAY", "ガイド表示", true),
     QUEST_HUD_DISPLAY("QUEST_HUD_DISPLAY", "クエスト追跡HUD表示", true),
     COMBAT_DPS_DISPLAY("COMBAT_DPS_DISPLAY", "戦闘DPS表示", true),
     AUTO_SAVE_MESSAGE("AUTO_SAVE_MESSAGE", "オートセーブメッセージ", false),
@@ -65,7 +66,7 @@ public enum PlayerSettingKey {
     /** @return 画面UI設定で独立に切り替える表示項目の場合は true */
     public boolean isHudDisplaySetting() {
         return switch (this) {
-            case QUEST_HUD_DISPLAY, ACTION_RING_COOLDOWN_DISPLAY, EQUIPPED_SKILL_COOLDOWN_DISPLAY,
+            case GUIDE_DISPLAY, QUEST_HUD_DISPLAY, ACTION_RING_COOLDOWN_DISPLAY, EQUIPPED_SKILL_COOLDOWN_DISPLAY,
                 MSPT_DISPLAY, PING_DISPLAY, WORLD_NAME_DISPLAY, AREA_NAME_DISPLAY, COMBAT_DPS_DISPLAY -> true;
             default -> false;
         };

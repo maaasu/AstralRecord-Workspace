@@ -47,13 +47,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public class GuideService {
     private static final String PROGRESS_SECTION_NAME = "guideProgress";
     private static final Pattern REFERENCE_PATTERN = Pattern.compile("\\{([a-zA-Z_]+):([^}]+)}");
 
     /** 初参加者へ案内する導入ガイドの ID。 */
-    public static final String INITIAL_GUIDE_ID = "beginner_onboarding";
+    public static final String INITIAL_GUIDE_ID = GuideEntry.FIRST_CHAPTER_ID;
     /** 導入ガイドを初めて開いたことを記録する step ID。 */
     public static final String INITIAL_GUIDE_OPEN_STEP_ID = "open_guide";
     private static final String TUTORIAL_MENU_STEP_ID = "open_menu";
@@ -116,6 +117,8 @@ public class GuideService {
     private final Set<UUID> initialGuideOpenedAccounts = ConcurrentHashMap.newKeySet();
     private volatile Consumer<AstPlayer> allGuidesCompletedListener = ignored -> { };
     private volatile Consumer<AstPlayer> tutorialCompletedListener = ignored -> { };
+    private Predicate<AstPlayer> guideDisplayEnabled = player -> true;
+    private Predicate<AstPlayer> javaGuideHud = player -> false;
     private Consumer<AstPlayer> stepSoundPlayer = player -> GuiSound.GUIDE_STEP.play(player.getBukkit());
     private Consumer<AstPlayer> guideSoundPlayer = player -> GuiSound.GUIDE_COMPLETE.play(player.getBukkit());
 
@@ -165,6 +168,7 @@ public class GuideService {
     public @NotNull List<GuideEntry> loadEntrySnapshot() {
         try {
             return repository.findAll().stream()
+                .filter(GuideService::isProductionTutorial)
                 .sorted(Comparator
                     .comparingInt((GuideEntry guide) -> categoryOrder(guide.category()))
                     .thenComparingInt(GuideEntry::displayOrder)
@@ -397,6 +401,23 @@ public class GuideService {
                 return false;
             }
             return getAll().stream().anyMatch(guide -> firstIncompleteStep(guide, state.completed) != null);
+        }
+    }
+
+    /** 第1章の保存済み手順数。マスターまたは進行を利用できない場合は -1 を返します。 */
+    public int tutorialCompletedStepCount(@Nullable UUID accountId) {
+        ProgressState state = accountId == null ? null : progressByAccount.get(accountId);
+        GuideEntry chapter = getById(INITIAL_GUIDE_ID);
+        if (state == null || !isProductionTutorial(chapter)) {
+            return -1;
+        }
+        synchronized (state) {
+            if (state.released) {
+                return -1;
+            }
+            return (int) chapter.steps().stream()
+                .filter(step -> state.completed.contains(new GuideStepKey(chapter.id(), step.id())))
+                .count();
         }
     }
 
@@ -688,22 +709,47 @@ public class GuideService {
         }
     }
 
+    /** 表示設定と、ガイド用の字形を実際に適用したJava接続の判定を登録します。 */
+    public void setGuideDisplayPolicy(Predicate<AstPlayer> enabled, Predicate<AstPlayer> hasHud) {
+        guideDisplayEnabled = Objects.requireNonNull(enabled);
+        javaGuideHud = Objects.requireNonNull(hasHud);
+    }
+
+    public boolean isGuideDisplayEnabled(@NotNull AstPlayer player) {
+        return guideDisplayEnabled.test(player);
+    }
+
+    boolean usesJavaGuideHud(@NotNull AstPlayer player) {
+        return javaGuideHud.test(player);
+    }
+
+    boolean shouldSendGuideReminder(@NotNull AstPlayer player) {
+        return isGuideDisplayEnabled(player)
+            && (!usesJavaGuideHud(player) || tutorialStep(player.getAccount().getUuid()) == null);
+    }
+
     private void notifyCompletedSteps(
         @NotNull AstPlayer player,
         @NotNull List<CompletedStep> completedSteps,
         boolean tutorialCompleted
     ) {
+        if (!isGuideDisplayEnabled(player)) return;
+        boolean hud = usesJavaGuideHud(player);
         UUID accountId = player.getAccount().getUuid();
         Set<String> completedGuideIds = new LinkedHashSet<>();
         for (CompletedStep completed : completedSteps) {
-            playerMessageService.send(player, PlayerMsgId.P_5180, resolveText(completed.step().text()));
+            if (!hud || !INITIAL_GUIDE_ID.equals(completed.guide().id())) {
+                playerMessageService.send(player, PlayerMsgId.P_5180, resolveText(completed.step().text()));
+            }
             stepSoundPlayer.accept(player);
             completedGuideIds.add(completed.guide().id());
         }
         for (String guideId : completedGuideIds) {
             GuideEntry guide = getById(guideId);
             if (guide != null && isGuideCompleted(accountId, guide)) {
-                playerMessageService.send(player, PlayerMsgId.P_5181, resolveText(guide.title()));
+                if (!hud || !INITIAL_GUIDE_ID.equals(guideId)) {
+                    playerMessageService.send(player, PlayerMsgId.P_5181, resolveText(guide.title()));
+                }
                 guideSoundPlayer.accept(player);
             }
         }
@@ -730,6 +776,7 @@ public class GuideService {
      * @param preferredGuide 優先するガイド。定期案内ではnull
      */
     private void sendNextStepHint(@NotNull AstPlayer player, @Nullable GuideEntry preferredGuide) {
+        if (!isGuideDisplayEnabled(player)) return;
         UUID accountId = player.getAccount().getUuid();
         ProgressState state = progressByAccount.get(accountId);
         if (state == null) {
@@ -757,7 +804,8 @@ public class GuideService {
                 }
             }
         }
-        if (nextGuide != null && nextStep != null) {
+        if (nextGuide != null && nextStep != null
+            && !(INITIAL_GUIDE_ID.equals(nextGuide.id()) && usesJavaGuideHud(player))) {
             playerMessageService.send(player, PlayerMsgId.P_5185, resolveText(nextGuide.title()));
             playerMessageService.send(player, PlayerMsgId.P_5186, resolveText(nextStep.text()));
         }

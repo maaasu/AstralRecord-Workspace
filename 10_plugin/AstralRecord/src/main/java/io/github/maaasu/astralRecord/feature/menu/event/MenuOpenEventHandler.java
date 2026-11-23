@@ -6,7 +6,6 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.currency.event.CurrencyExchangeGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.currency.view.CurrencyGuiView;
-import io.github.maaasu.astralRecord.feature.guide.model.GuideStep;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BuffScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.GuideScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.ItemProtectionScreenView;
@@ -797,10 +796,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler
     ) {
         if (rawSlot == GuideScreenView.ALL_GUIDES_SLOT) {
             GuiSound.SELECT.play(player);
-            switchGuiWithoutInventoryReload(player, () -> menuView.openGuide(player, 0));
+            switchGuiWithoutInventoryReload(player, () -> menuView.openChapterList(player));
             return;
         }
-        if (rawSlot != GuideScreenView.TUTORIAL_ACTION_SLOT) {
+        if (rawSlot != GuideScreenView.TUTORIAL_ACTION_SLOT && !menuView.isCurrentChapterStepSlot(rawSlot, contentId)) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -832,15 +831,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler
                 GuiSound.SELECT.play(player);
                 openEquipmentGui(player);
             }
-            case GuideScreenView.TUTORIAL_COMPLETE -> {
-                var skillManager = plugin.getSkillBindGuiEventHandler();
-                if (skillManager == null) {
-                    GuiSound.DENY.play(player);
-                    return;
-                }
-                GuiSound.SELECT.play(player);
-                switchGuiWithoutInventoryReload(player, () -> skillManager.open(player));
-            }
+            case GuideScreenView.TUTORIAL_COMPLETE -> GuiSound.SELECT.play(player);
             default -> GuiSound.DENY.play(player);
         }
     }
@@ -884,59 +875,31 @@ public class MenuOpenEventHandler extends AbstractEventHandler
     private void handleGuideClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
         int rawSlot = event.getRawSlot();
         Inventory inventory = event.getView().getTopInventory();
-        int pageIndex = menuView.getPageIndex(inventory);
         String contentId = menuView.getContentId(inventory);
 
-        if (rawSlot == MenuView.PAGING_BACK_SLOT || rawSlot == MenuView.BACK_SLOT) {
+        var packs = plugin.getResourcePackService();
+        if (packs != null && packs.hasGuiTheme(player.getUniqueId()) && packs.hasJavaGuideHud(player.getUniqueId())
+            && !packs.isBedrock(player.getName())) {
+            rawSlot = GuideScreenView.panelControlSlot(rawSlot, contentId);
+        }
+
+        if (rawSlot == MenuView.BACK_SLOT) {
             navigateBack(player);
-            return;
-        }
-
-        if (contentId != null && contentId.startsWith(GuideScreenView.TUTORIAL_PREFIX)) {
-            handleTutorialGuideClick(player, inventory, rawSlot, contentId);
-            return;
-        }
-
-        if (contentId != null) {
-            GuideStep step = menuView.getGuideStepAtSlot(contentId, rawSlot);
-            if (step == null || step.action() == null || plugin.getGuideActionService() == null) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            boolean executed = plugin.getGuideActionService().execute(player, step.action());
-            (executed ? GuiSound.SELECT : GuiSound.DENY).play(player);
-            return;
-        }
-
-        if (rawSlot == GuideScreenView.REWARD_SLOT) {
-            if (!menuView.canClaimGuideReward(player)) {
-                GuiSound.DENY.play(player);
-                return;
-            }
+        } else if (rawSlot == GuideScreenView.REWARD_SLOT && menuView.canClaimGuideReward(player)) {
             GuiSound.SELECT.play(player);
             menuView.claimGuideReward(player);
-            return;
-        }
-
-        if (rawSlot == MenuView.PAGING_PREVIOUS_SLOT && menuView.hasPreviousGuidePage(pageIndex)) {
-            GuiSound.PAGE.play(player);
-            switchGuiWithoutInventoryReload(player, () -> menuView.openGuide(player, pageIndex - 1));
-            return;
-        }
-        if (rawSlot == MenuView.PAGING_NEXT_SLOT && menuView.hasNextGuidePage(pageIndex)) {
-            GuiSound.PAGE.play(player);
-            switchGuiWithoutInventoryReload(player, () -> menuView.openGuide(player, pageIndex + 1));
-            return;
-        }
-
-        var guide = menuView.getGuideAtSlot(rawSlot, pageIndex);
-        if (guide != null) {
+        } else if (contentId == null && rawSlot == GuideScreenView.TUTORIAL_ACTION_SLOT) {
             GuiSound.SELECT.play(player);
-            switchGuiWithoutInventoryReload(player, () -> menuView.openGuideDetail(player, guide, pageIndex));
-            return;
+            switchGuiWithoutInventoryReload(player, () -> menuView.openTutorialGuide(player));
+        } else if (GuideScreenView.TUTORIAL_LOAD_FAILED.equals(contentId)
+            && rawSlot == GuideScreenView.TUTORIAL_ACTION_SLOT) {
+            GuiSound.SELECT.play(player);
+            switchGuiWithoutInventoryReload(player, () -> menuView.openChapterList(player));
+        } else if (contentId != null) {
+            handleTutorialGuideClick(player, inventory, rawSlot, contentId);
+        } else {
+            GuiSound.DENY.play(player);
         }
-
-        GuiSound.DENY.play(player);
     }
 
     private void handleCurrencyClick(@NotNull InventoryClickEvent event, @NotNull Player player) {

@@ -4,7 +4,9 @@
       "type": "space",
       "advances": {
         "\uea00": -8,
-        "\uea01": -169
+        "\uea01": -169,
+        "\uea02": -177,
+        "\uea03": -1
       }
     },
     {
@@ -59,6 +61,33 @@
       "ascent": 13,
       "chars": [
         "\uea15"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/panel_chapter_list.png",
+      "height": 125,
+      "ascent": 13,
+      "chars": [
+        "\uea20\uea21"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/panel_chapter_active.png",
+      "height": 125,
+      "ascent": 13,
+      "chars": [
+        "\uea22\uea23"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "astralrecord:gui/panel_chapter_complete.png",
+      "height": 125,
+      "ascent": 13,
+      "chars": [
+        "\uea24\uea25"
       ]
     }
   ]

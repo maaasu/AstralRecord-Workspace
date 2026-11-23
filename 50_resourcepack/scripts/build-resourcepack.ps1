@@ -543,10 +543,9 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'textures/entity/fishing_visual.png'
 )
 # Fail closed before packaging either edition's dedicated quest payload assets.
-foreach ($entries in @($java, $bedrock)) {
-    if ($utf8.GetString($entries['quest-tracking-hud-version.txt']) -cne '2') {
-        throw 'Unsupported quest tracking HUD version.'
-    }
+if ($utf8.GetString($java['quest-tracking-hud-version.txt']) -cne '3' -or
+    $utf8.GetString($bedrock['quest-tracking-hud-version.txt']) -cne '2') {
+    throw 'Unsupported quest tracking HUD version.'
 }
 
 $seleneaSkillStyles = @(
