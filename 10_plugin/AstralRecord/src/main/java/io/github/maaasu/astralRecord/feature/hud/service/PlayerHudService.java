@@ -166,7 +166,10 @@ public class PlayerHudService {
             || (dungeonService != null && dungeonService.isDungeonWorld(player.getBukkit().getWorld()))) return List.of();
         UUID account = player.getAccount().getUuid();
         String stepId = guideService.tutorialStep(account);
-        if (stepId == null) return List.of();
+        if (stepId == null) {
+            return !guideService.isInitialGuideOpened(account) && guideService.tutorialCompletedStepCount(account) == 6
+                ? List.of(guideCommandRow()) : List.of();
+        }
         var chapter = guideService.getById(GuideService.INITIAL_GUIDE_ID);
         if (chapter == null) return List.of();
         int completed = guideService.tutorialCompletedStepCount(account);
@@ -175,10 +178,18 @@ public class PlayerHudService {
             if (!step.id().equals(stepId)) continue;
             String hint = guideInstruction.apply(player, stepId);
             if (hint == null) hint = ColorCodeUtil.toPlainText(guideService.resolveText(step.text()), "");
-            return QuestHudGlyphs.guideRows(ColorCodeUtil.toPlainText(guideService.resolveText(chapter.title()), ""),
+            var rows = QuestHudGlyphs.guideRows(ColorCodeUtil.toPlainText(guideService.resolveText(chapter.title()), ""),
                 completed, chapter.steps().size(), i + 1, hint, format);
+            if (rows.isEmpty() || guideService.isInitialGuideOpened(account)) return rows;
+            var withHint = new ArrayList<>(rows);
+            withHint.add(guideCommandRow());
+            return List.copyOf(withHint);
         }
         return List.of();
+    }
+
+    private static QuestHudLayout.Row guideCommandRow() {
+        return new QuestHudLayout.Row(QuestHudLayout.Kind.GUIDE_CONTINUATION, "/guide で進行を確認", "", -1);
     }
 
     private List<QuestHudLayout.Row> visibleQuestRows(@Nullable AstPlayer player, int rowBudget) {

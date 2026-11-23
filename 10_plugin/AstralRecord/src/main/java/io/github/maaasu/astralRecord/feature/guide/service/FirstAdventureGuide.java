@@ -10,7 +10,6 @@ import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.title.Title;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import org.bukkit.Location;
@@ -23,7 +22,6 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Nullable;
 
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -48,9 +46,6 @@ final class FirstAdventureGuide {
     private static final double SPAWN_CIRCLE_RADIUS = 2.0D;
     private static final double HUNT_RADIUS_SQUARED = 18.0D * 18.0D;
     private static final int MAX_MARKED_MOBS = 4;
-    private static final Title.Times TITLE_TIMES = Title.Times.times(
-        Duration.ofMillis(150), Duration.ofMillis(1600), Duration.ofMillis(350)
-    );
 
     private final AstralRecord plugin;
     private final ParticleDisplayService particles;
@@ -102,9 +97,7 @@ final class FirstAdventureGuide {
         discard(playerId);
         clearMerchantHighlight.accept(playerId);
         AstPlayer ast = AstPlayerCache.get(player);
-        if (player.isOnline() && ast != null && plugin.getGuideService().isGuideDisplayEnabled(ast)) {
-            showTitle(player, "最初の冒険 完了", "グラスボアを1体倒した！");
-        }
+        if (ast != null) deliverNotice(ast, null);
     }
 
     boolean showHunt(Player player) {
@@ -159,9 +152,12 @@ final class FirstAdventureGuide {
 
         UUID accountId = ast.getAccount().getUuid();
         String step = plugin.getGuideService().tutorialStep(accountId);
-        if (step == null || !plugin.getGuideService().isGuideDisplayEnabled(ast)) {
+        if (!plugin.getGuideService().isGuideDisplayEnabled(ast)) return;
+        if (step == null) {
+            if (plugin.getGuideService().hasPendingChapterCompletion(accountId)) deliverNotice(ast, null);
             return;
         }
+        if (plugin.getPlayerJoinEventHandler().isLoading(player)) return;
 
         Location from = player.getLocation();
         if (from.getWorld() == null) {
@@ -185,6 +181,7 @@ final class FirstAdventureGuide {
         if (hud || tick >= session.hintExpiresAt) {
             hideHint(session);
         }
+        if (changed || session.titleDeferred) session.titleDeferred = deliverNotice(ast, step);
         if (HUNT_GRASSBOAR.equals(step)) {
             updateHunt(session, from, changed);
         } else if ("open_initial_bundle".equals(step)) {
@@ -196,9 +193,6 @@ final class FirstAdventureGuide {
                 session.bundleInHand = inHand;
             }
         } else if (changed) {
-            if (OPEN_MENU.equals(step)) {
-                showIntroductionOnce(player, accountId);
-            }
             String hint = BUY_WEAPON.equals(step) ? navigateMerchant.apply(ast) : instruction(step);
             if (hint != null) {
                 showHint(session, hint);
@@ -216,24 +210,25 @@ final class FirstAdventureGuide {
         };
     }
 
-    private void showIntroductionOnce(Player player, UUID accountId) {
+    /** 過去版がすでに開始タイトルを送った印も読み、アップデートで再送しないようにします。 */
+    private boolean introTitleAlreadyShown(Player player, UUID accountId) {
         if (seenAccountKey == null) {
             seenAccountKey = new NamespacedKey(plugin, "first_adventure_seen_account");
         }
         var data = player.getPersistentDataContainer();
         String current = accountId.toString();
         String seen = data.get(seenAccountKey, PersistentDataType.STRING);
-        if (seen != null && Arrays.asList(seen.split(",")).contains(current)) {
-            return;
-        }
-
-        showTitle(player, "最初の冒険", "グラスボアを1体倒そう");
-        data.set(seenAccountKey, PersistentDataType.STRING,
-            seen == null || seen.isEmpty() ? current : seen + "," + current);
+        return seen != null && Arrays.asList(seen.split(",")).contains(current);
     }
 
-    private static void showTitle(Player player, String title, String subtitle) {
-        player.showTitle(Title.title(Component.text(title), Component.text(subtitle), TITLE_TIMES));
+    private boolean deliverNotice(AstPlayer ast, @Nullable String step) {
+        Player player = ast.getBukkit();
+        if (!player.isOnline() || player.isDead() || AstPlayerCache.get(player) != ast
+            || plugin.getPlayerJoinEventHandler().isLoading(player)) return true;
+        boolean available = !plugin.isGuideTitleOccupied(player);
+        ChapterNotice notice = plugin.getGuideService().claimChapterNotice(ast, step, available);
+        if (notice != null) notice.send(player, notice.startTitle() && introTitleAlreadyShown(player, ast.getAccount().getUuid()));
+        return !available;
     }
 
     private void showHint(Session session, String hint) {
@@ -453,6 +448,7 @@ final class FirstAdventureGuide {
         private long hintExpiresAt;
         private long lastObservedTick;
         private boolean atHunt;
+        private boolean titleDeferred;
         private boolean hud;
         private boolean bundleInHand;
 

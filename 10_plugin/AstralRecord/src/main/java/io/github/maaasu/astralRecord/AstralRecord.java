@@ -1978,6 +1978,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         guideActionService = new GuideActionService(this, mobService, npcPlacementService, playerMessageService, particleDisplayService);
         guideService.setTutorialCompletedListener(player -> guideActionService.onTutorialCompleted(player.getBukkit()));
+        guideService.setTutorialStepChangedListener(guideActionService::refreshTutorialDisplay);
         tutorialGuiMarker = new TutorialGuiMarker(this, guideService);
         guideReminderTask = new GuideReminderTask(playerMessageService, guideService, playerSettingService);
         guideService.setGuideDisplayPolicy(
@@ -3568,6 +3569,13 @@ public final class AstralRecord extends JavaPlugin {
      */
     public GuideActionService getGuideActionService() {
         return guideActionService;
+    }
+
+    /** Javaのスキルリング表示中は他の中央タイトルが取り消されるため、章の中央案内を保留します。 */
+    public boolean isGuideTitleOccupied(org.bukkit.entity.Player player) {
+        var type = player.getOpenInventory().getType();
+        return (type != org.bukkit.event.inventory.InventoryType.CRAFTING && type != org.bukkit.event.inventory.InventoryType.CREATIVE)
+            || (skillActionRingService != null && skillActionRingService.isOpen(player));
     }
 
     public TrashService getTrashService() {

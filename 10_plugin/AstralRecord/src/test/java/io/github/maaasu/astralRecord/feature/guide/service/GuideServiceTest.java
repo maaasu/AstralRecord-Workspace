@@ -386,7 +386,7 @@ class GuideServiceTest {
             when(settings.isGuideReminderEnabled(userId)).thenReturn(true);
             reminder.sendReminder();
         }
-        verify(fixture.messages, times(3)).sendClickable(bukkit, PlayerMsgId.P_5600, "/menu guide");
+        verify(fixture.messages, times(3)).sendClickable(bukkit, PlayerMsgId.P_5600, "/guide");
         verify(fixture.messages).send(player, PlayerMsgId.P_5186, "Start");
         verify(fixture.messages, times(2)).send(player, PlayerMsgId.P_5186, "Later action");
     }
@@ -920,20 +920,158 @@ class GuideServiceTest {
 
         fixture.service.setGuideDisplayPolicy(ignored -> true, ignored -> true);
         fixture.service.recordTutorialMenuOpened(player);
-        assertFalse(fixture.service.shouldSendGuideReminder(player));
-        verify(fixture.messages, never()).send(eq(player), eq(PlayerMsgId.P_5180), any());
+        assertTrue(fixture.service.shouldSendGuideReminder(player));
+        verify(fixture.messages).send(player, PlayerMsgId.P_5180, "open_menu");
         verify(fixture.messages, never()).send(eq(player), eq(PlayerMsgId.P_5186), any());
 
         fixture.service.setGuideDisplayPolicy(ignored -> false, ignored -> false);
         fixture.service.recordCondition(player, GuideConditionType.MAIL_RECEIVED, "welcome_mail");
         assertEquals(2, fixture.service.tutorialCompletedStepCount(account));
         assertFalse(fixture.service.shouldSendGuideReminder(player));
-        verify(fixture.messages, never()).send(eq(player), eq(PlayerMsgId.P_5180), any());
+        verify(fixture.messages, never()).send(player, PlayerMsgId.P_5180, "receive_welcome_mail");
 
         fixture.service.setGuideDisplayPolicy(ignored -> true, ignored -> false);
         assertTrue(fixture.service.shouldSendGuideReminder(player));
         fixture.service.sendNextStepHint(player);
         verify(fixture.messages).send(player, PlayerMsgId.P_5186, "open_initial_bundle");
+    }
+
+    @Test
+    void firstGuideViewPersistsAcrossRestartWithoutCountingAsAChapterStep() {
+        Fixture first = new Fixture();
+        UUID account = UUID.randomUUID();
+        AstPlayer player = first.player(account);
+        first.service.replaceEntrySnapshot(List.of(tutorialGuide()));
+        when(first.progressRepository.findByAccountId(account)).thenReturn(Set.of());
+        first.service.loadProgressAsync(account);
+        first.asyncTasks.getFirst().run();
+        assertFalse(first.service.isInitialGuideOpened(account));
+        first.service.recordCondition(player, GuideConditionType.GUIDE_OPENED, null);
+        first.service.recordCondition(player, GuideConditionType.GUIDE_OPENED, null);
+        assertTrue(first.service.isInitialGuideOpened(account));
+        assertFalse(first.service.shouldSendGuideReminder(player));
+        assertEquals(0, first.service.tutorialCompletedStepCount(account));
+        verify(first.inventoryService, times(1)).queueLocalPlayerSave(account);
+        var persisted = savedKeys(first, account);
+        assertEquals(Set.of(new GuideStepKey(GuideService.INITIAL_GUIDE_ID, "open_guide")), persisted);
+
+        Fixture restarted = new Fixture();
+        restarted.service.replaceEntrySnapshot(List.of(tutorialGuide()));
+        when(restarted.progressRepository.findByAccountId(account)).thenReturn(persisted);
+        restarted.service.loadProgressAsync(account);
+        restarted.asyncTasks.getFirst().run();
+        assertTrue(restarted.service.isInitialGuideOpened(account));
+        assertFalse(restarted.service.isInitialGuideOpened(UUID.randomUUID()));
+        assertEquals("open_menu", restarted.service.tutorialStep(account));
+    }
+
+    @Test
+    void firstChatNamesChapterEvenWhenMenuOpenedBeforePollAndDeferredTitleOnlyUsesLatestStep() {
+        Fixture fixture = new Fixture();
+        UUID account = UUID.randomUUID();
+        AstPlayer player = fixture.player(account);
+        fixture.service.replaceEntrySnapshot(List.of(tutorialGuide()));
+        when(fixture.progressRepository.findByAccountId(account)).thenReturn(Set.of());
+        assertNull(fixture.service.claimChapterNotice(player, "open_menu", true));
+        fixture.service.loadProgressAsync(account);
+        fixture.asyncTasks.getFirst().run();
+        fixture.service.recordTutorialMenuOpened(player);
+        var mail = fixture.service.claimChapterNotice(player, "receive_welcome_mail", false);
+        assertEquals(2, mail.number());
+        assertTrue(mail.startChat());
+        assertTrue(mail.chat());
+        assertFalse(mail.title());
+        assertTrue(mail.guideHint());
+        assertNull(fixture.service.claimChapterNotice(player, "receive_welcome_mail", false));
+        fixture.service.recordCondition(player, GuideConditionType.GUIDE_OPENED, null);
+        fixture.service.recordCondition(player, GuideConditionType.MAIL_RECEIVED, "welcome_mail");
+        assertNull(fixture.service.claimChapterNotice(player, "receive_welcome_mail", true));
+        var bundleChat = fixture.service.claimChapterNotice(player, "open_initial_bundle", false);
+        assertEquals(3, bundleChat.number());
+        assertTrue(bundleChat.chat());
+        assertFalse(bundleChat.guideHint());
+        assertFalse(bundleChat.title());
+        var bundleTitle = fixture.service.claimChapterNotice(player, "open_initial_bundle", true);
+        assertTrue(bundleTitle.title());
+        assertTrue(bundleTitle.startTitle());
+        assertFalse(bundleTitle.chat());
+        assertNull(fixture.service.claimChapterNotice(player, "open_initial_bundle", true));
+        Fixture restarted = new Fixture();
+        restarted.service.replaceEntrySnapshot(List.of(tutorialGuide()));
+        when(restarted.progressRepository.findByAccountId(account)).thenReturn(savedKeys(fixture, account));
+        restarted.service.loadProgressAsync(account);
+        restarted.asyncTasks.getFirst().run();
+        assertNull(restarted.service.claimChapterNotice(restarted.player(account), "open_initial_bundle", true));
+    }
+
+    @Test
+    void unopenedFinishedChapterStillOffersGuideUntilViewedButDoesNotReplayOldCompletion() {
+        Fixture fixture = new Fixture();
+        UUID account = UUID.randomUUID();
+        AstPlayer player = fixture.player(account);
+        Player bukkit = player.getBukkit();
+        UUID userId = UUID.randomUUID();
+        when(bukkit.getUniqueId()).thenReturn(userId);
+        var chapter = tutorialGuide();
+        fixture.service.replaceEntrySnapshot(List.of(chapter));
+        var allSteps = chapter.steps().stream().map(step -> new GuideStepKey(chapter.id(), step.id()))
+            .collect(java.util.stream.Collectors.toSet());
+        when(fixture.progressRepository.findByAccountId(account)).thenReturn(allSteps);
+        fixture.service.loadProgressAsync(account);
+        fixture.asyncTasks.getFirst().run();
+        assertNull(fixture.service.claimChapterNotice(player, null, true));
+        assertFalse(fixture.service.hasPendingChapterCompletion(account));
+        var settings = mock(PlayerSettingService.class);
+        when(settings.isGuideReminderEnabled(userId)).thenReturn(true);
+        var reminder = new GuideReminderTask(fixture.messages, fixture.service, settings);
+        try (var cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(AstPlayerCache::getAll).thenReturn(List.of(player));
+            reminder.sendReminder();
+            fixture.service.recordCondition(player, GuideConditionType.GUIDE_OPENED, null);
+            reminder.sendReminder();
+        }
+        verify(fixture.messages, times(1)).sendClickable(bukkit, PlayerMsgId.P_5600, "/guide");
+        assertEquals(6, fixture.service.tutorialCompletedStepCount(account));
+    }
+
+    @Test
+    void completionChatAndDeferredTitleAreBothOnceAndHiddenChaptersDoNotClaimNotices() {
+        Fixture fixture = new Fixture();
+        UUID account = UUID.randomUUID();
+        AstPlayer player = fixture.player(account);
+        var chapter = tutorialGuide();
+        fixture.service.replaceEntrySnapshot(List.of(chapter));
+        var firstFive = chapter.steps().subList(0, 5).stream().map(step -> new GuideStepKey(chapter.id(), step.id()))
+            .collect(java.util.stream.Collectors.toSet());
+        when(fixture.progressRepository.findByAccountId(account)).thenReturn(firstFive);
+        fixture.service.loadProgressAsync(account);
+        fixture.asyncTasks.getFirst().run();
+        fixture.service.setGuideDisplayPolicy(ignored -> false, ignored -> false);
+        assertNull(fixture.service.claimChapterNotice(player, "defeat_grassboar", true));
+        fixture.service.setGuideDisplayPolicy(ignored -> true, ignored -> false);
+        fixture.service.recordCondition(player, GuideConditionType.MOB_DEFEATED, "midgard_grassboar");
+        assertTrue(fixture.service.hasPendingChapterCompletion(account));
+        ChapterNotice chat = fixture.service.claimChapterNotice(player, null, false);
+        assertEquals(0, chat.number());
+        assertTrue(chat.chat());
+        assertFalse(chat.title());
+        assertNull(fixture.service.claimChapterNotice(player, null, false));
+        assertTrue(fixture.service.hasPendingChapterCompletion(account));
+        ChapterNotice title = fixture.service.claimChapterNotice(player, null, true);
+        assertTrue(title.title());
+        assertFalse(title.chat());
+        assertFalse(fixture.service.hasPendingChapterCompletion(account));
+        assertNull(fixture.service.claimChapterNotice(player, null, true));
+    }
+
+    private static Set<GuideStepKey> savedKeys(Fixture fixture, UUID account) {
+        var result = new java.util.HashSet<GuideStepKey>();
+        var payload = fixture.service.snapshotPlayerState(account).payload().getAsJsonObject();
+        for (var entry : payload.getAsJsonArray("completedStepKeys")) {
+            var key = entry.getAsJsonObject();
+            result.add(new GuideStepKey(key.get("guideId").getAsString(), key.get("stepId").getAsString()));
+        }
+        return result;
     }
 
     private static GuideEntry tutorialGuide() {

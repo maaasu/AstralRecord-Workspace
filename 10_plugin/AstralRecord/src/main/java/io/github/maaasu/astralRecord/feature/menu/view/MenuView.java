@@ -336,10 +336,6 @@ public class MenuView {
     }
 
     public void openGuide(@NotNull Player player) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer != null) {
-            guideService.recordCondition(astPlayer, GuideConditionType.GUIDE_OPENED, null);
-        }
         openChapterList(player);
     }
 
@@ -382,6 +378,15 @@ public class MenuView {
         );
         drawChapter(inventory, overview, accountId, contentId, completed);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory, () -> {
+            if (completed >= 0 && !GuideScreenView.TUTORIAL_LOADING.equals(contentId)
+                && !GuideScreenView.TUTORIAL_LOAD_FAILED.equals(contentId) && !GuideScreenView.TUTORIAL_UNAVAILABLE.equals(contentId)
+                && astPlayer != null && accountId.equals(astPlayer.getAccount().getUuid())
+                && AstPlayerCache.get(player) == astPlayer && player.isOnline()
+                && player.getOpenInventory().getTopInventory() == inventory
+                && !guideService.isInitialGuideOpened(accountId)) {
+                guideService.recordCondition(astPlayer, GuideConditionType.GUIDE_OPENED, null);
+                plugin.refreshQuestHud(astPlayer);
+            }
             if (GuideScreenView.TUTORIAL_LOADING.equals(contentId)) {
                 refreshChapterAfterLoad(player, inventory, overview);
             } else if (accountId != null && completed == 6) {

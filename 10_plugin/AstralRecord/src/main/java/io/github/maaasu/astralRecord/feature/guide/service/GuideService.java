@@ -57,6 +57,12 @@ public class GuideService {
     public static final String INITIAL_GUIDE_ID = GuideEntry.FIRST_CHAPTER_ID;
     /** 導入ガイドを初めて開いたことを記録する step ID。 */
     public static final String INITIAL_GUIDE_OPEN_STEP_ID = "open_guide";
+    private static final GuideStepKey GUIDE_OPENED_KEY = new GuideStepKey(INITIAL_GUIDE_ID, INITIAL_GUIDE_OPEN_STEP_ID);
+    private static final GuideStepKey COMPLETION_NOTICE_DUE = new GuideStepKey(INITIAL_GUIDE_ID, "notice_completion_due");
+    private static final String COMPLETE_NOTICE = "chapter_complete";
+    private static final GuideStepKey COMPLETION_TITLE_SENT = new GuideStepKey(INITIAL_GUIDE_ID, "notice_title_" + COMPLETE_NOTICE);
+    private static final GuideStepKey START_CHAT_SENT = new GuideStepKey(INITIAL_GUIDE_ID, "notice_chat_open_menu");
+    private static final GuideStepKey START_TITLE_SENT = new GuideStepKey(INITIAL_GUIDE_ID, "notice_title_open_menu");
     private static final String TUTORIAL_MENU_STEP_ID = "open_menu";
     private static final String TUTORIAL_MAIL_STEP_ID = "receive_welcome_mail";
     private static final String TUTORIAL_BUNDLE_STEP_ID = "open_initial_bundle";
@@ -117,6 +123,7 @@ public class GuideService {
     private final Set<UUID> initialGuideOpenedAccounts = ConcurrentHashMap.newKeySet();
     private volatile Consumer<AstPlayer> allGuidesCompletedListener = ignored -> { };
     private volatile Consumer<AstPlayer> tutorialCompletedListener = ignored -> { };
+    private Consumer<AstPlayer> tutorialStepChangedListener = ignored -> { };
     private Predicate<AstPlayer> guideDisplayEnabled = player -> true;
     private Predicate<AstPlayer> javaGuideHud = player -> false;
     private Consumer<AstPlayer> stepSoundPlayer = player -> GuiSound.GUIDE_STEP.play(player.getBukkit());
@@ -310,7 +317,7 @@ public class GuideService {
                     return;
                 }
                 for (GuideConditionEvent event : pending) {
-                    if (event.player().getBukkit().isOnline()
+                    if (event.player().getBukkit().isOnline() && accountId.equals(event.player().getAccount().getUuid())
                         && AstPlayerCache.get(event.player().getBukkit()) == event.player()) {
                         recordLoadedCondition(event.player(), state, event.type(), event.targetId(),
                             event.targetLevel(), event.notifyPlayer());
@@ -525,6 +532,49 @@ public class GuideService {
         tutorialCompletedListener = Objects.requireNonNull(listener);
     }
 
+    public void setTutorialStepChangedListener(@NotNull Consumer<AstPlayer> listener) {
+        tutorialStepChangedListener = Objects.requireNonNull(listener);
+    }
+
+    /** 通知履歴はアカウントの通常保存に含め、実際の6手順とは別のIDを使います。 */
+    @Nullable ChapterNotice claimChapterNotice(AstPlayer player, @Nullable String expectedStep, boolean titleAvailable) {
+        UUID account = player.getAccount().getUuid();
+        ProgressState state = progressByAccount.get(account);
+        GuideEntry chapter = getById(INITIAL_GUIDE_ID);
+        if (state == null || !isProductionTutorial(chapter) || !isGuideDisplayEnabled(player)) return null;
+        ChapterNotice notice;
+        synchronized (state) {
+            if (state.released || state != progressByAccount.get(account)) return null;
+            GuideStep next = firstIncompleteStep(chapter, state.completed);
+            if (next == null ? expectedStep != null || !state.completed.contains(COMPLETION_NOTICE_DUE)
+                : !next.id().equals(expectedStep)) return null;
+            String noticeId = next == null ? COMPLETE_NOTICE : next.id();
+            boolean startChat = next != null && !state.completed.contains(START_CHAT_SENT);
+            boolean startTitle = next != null && titleAvailable && !state.completed.contains(START_TITLE_SENT);
+            boolean chat = state.completed.add(new GuideStepKey(INITIAL_GUIDE_ID, "notice_chat_" + noticeId));
+            boolean title = titleAvailable && state.completed.add(new GuideStepKey(INITIAL_GUIDE_ID, "notice_title_" + noticeId));
+            if (startChat) state.completed.add(START_CHAT_SENT);
+            if (startTitle) state.completed.add(START_TITLE_SENT);
+            if (!chat && !title && !startChat && !startTitle) return null;
+            markProgressDirty(state);
+            int number = next == null ? 0 : chapter.steps().indexOf(next) + 1;
+            notice = new ChapterNotice(number, chapter.steps().size(), chapter.title(),
+                next == null ? "" : resolveText(next.text()), chat || startChat, title || startTitle,
+                startChat, startTitle, !state.completed.contains(GUIDE_OPENED_KEY));
+        }
+        inventoryService.queueLocalPlayerSave(account);
+        return notice;
+    }
+
+    boolean hasPendingChapterCompletion(UUID accountId) {
+        ProgressState state = progressByAccount.get(accountId);
+        if (state == null) return false;
+        synchronized (state) {
+            return !state.released && state.completed.contains(COMPLETION_NOTICE_DUE)
+                && !state.completed.contains(COMPLETION_TITLE_SENT);
+        }
+    }
+
     /** Bukkit を起動しない単体テストで効果音だけを差し替えます。 */
     void setSoundPlayers(@NotNull Consumer<AstPlayer> step, @NotNull Consumer<AstPlayer> guide) {
         stepSoundPlayer = Objects.requireNonNull(step);
@@ -667,12 +717,15 @@ public class GuideService {
         UUID accountId = player.getAccount().getUuid();
         List<CompletedStep> newlyCompleted = new ArrayList<>();
         boolean tutorialCompleted = false;
+        boolean tutorialAdvanced = false;
+        boolean opened;
         synchronized (state) {
             if (state.released || progressByAccount.get(accountId) != state) {
                 return;
             }
             for (GuideEntry guide : getAll()) {
                 int completedBeforeGuide = newlyCompleted.size();
+                GuideStep previous = isProductionTutorial(guide) ? firstIncompleteStep(guide, state.completed) : null;
                 for (GuideStep step : GuideProgressEvaluator.evaluate(
                     guide, state.completed, eventType, targetId, targetLevel
                 )) {
@@ -686,25 +739,32 @@ public class GuideService {
                         newlyCompleted.add(new CompletedStep(guide, step));
                     }
                 }
-                if (newlyCompleted.size() > completedBeforeGuide && isProductionTutorial(guide)
-                    && firstIncompleteStep(guide, state.completed) == null) {
-                    tutorialCompleted = true;
+                if (newlyCompleted.size() > completedBeforeGuide && previous != null) {
+                    GuideStep next = firstIncompleteStep(guide, state.completed);
+                    tutorialAdvanced = !previous.equals(next);
+                    tutorialCompleted = next == null;
+                    if (tutorialCompleted && notifyPlayer && isGuideDisplayEnabled(player)) {
+                        state.completed.add(COMPLETION_NOTICE_DUE);
+                    }
                 }
             }
-            if (!newlyCompleted.isEmpty()) {
+            opened = eventType == GuideConditionType.GUIDE_OPENED && state.completed.add(GUIDE_OPENED_KEY);
+            if (opened || !newlyCompleted.isEmpty()) {
                 markProgressDirty(state);
             }
         }
         if (notifyPlayer && !newlyCompleted.isEmpty()) {
             notifyCompletedSteps(player, newlyCompleted, tutorialCompleted);
         }
+        if (opened || !newlyCompleted.isEmpty()) inventoryService.queueLocalPlayerSave(accountId);
         if (!newlyCompleted.isEmpty()) {
-            inventoryService.queueLocalPlayerSave(accountId);
             if (areAllGuidesCompleted(accountId)) {
                 allGuidesCompletedListener.accept(player);
             }
             if (notifyPlayer && tutorialCompleted) {
                 tutorialCompletedListener.accept(player);
+            } else if (notifyPlayer && tutorialAdvanced) {
+                tutorialStepChangedListener.accept(player);
             }
         }
     }
@@ -724,8 +784,7 @@ public class GuideService {
     }
 
     boolean shouldSendGuideReminder(@NotNull AstPlayer player) {
-        return isGuideDisplayEnabled(player)
-            && (!usesJavaGuideHud(player) || tutorialStep(player.getAccount().getUuid()) == null);
+        return isGuideDisplayEnabled(player) && !isInitialGuideOpened(player.getAccount().getUuid());
     }
 
     private void notifyCompletedSteps(
@@ -734,27 +793,24 @@ public class GuideService {
         boolean tutorialCompleted
     ) {
         if (!isGuideDisplayEnabled(player)) return;
-        boolean hud = usesJavaGuideHud(player);
         UUID accountId = player.getAccount().getUuid();
         Set<String> completedGuideIds = new LinkedHashSet<>();
         for (CompletedStep completed : completedSteps) {
-            if (!hud || !INITIAL_GUIDE_ID.equals(completed.guide().id())) {
-                playerMessageService.send(player, PlayerMsgId.P_5180, resolveText(completed.step().text()));
-            }
+            playerMessageService.send(player, PlayerMsgId.P_5180, resolveText(completed.step().text()));
             stepSoundPlayer.accept(player);
             completedGuideIds.add(completed.guide().id());
         }
         for (String guideId : completedGuideIds) {
             GuideEntry guide = getById(guideId);
             if (guide != null && isGuideCompleted(accountId, guide)) {
-                if (!hud || !INITIAL_GUIDE_ID.equals(guideId)) {
+                if (!isProductionTutorial(guide)) {
                     playerMessageService.send(player, PlayerMsgId.P_5181, resolveText(guide.title()));
                 }
                 guideSoundPlayer.accept(player);
             }
         }
 
-        if (!tutorialCompleted) {
+        if (!tutorialCompleted && !isProductionTutorial(completedSteps.getLast().guide())) {
             sendNextStepHint(player, completedSteps.getLast().guide());
         }
     }
