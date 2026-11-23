@@ -1,4 +1,6 @@
-import { type IncludeMode, type NetworkTarget, type PluginTestMode, type RecoveryMode, type ToolId, type ToolSettings } from '../api/toolJobApi'
+import { useId } from 'react'
+import { type IncludeMode, type MaintenanceDistributionSelection, type NetworkTarget, type PluginTestMode, type RecoveryMode, type ToolId, type ToolSettings } from '../api/toolJobApi'
+import { MaintenanceDistributionFields } from './MaintenanceDistributionFields'
 
 export const defaultToolSettings: { [Id in ToolId]: Extract<ToolSettings, { toolId: Id }> } = {
   '03': { toolId: '03', serverAlreadyRunning: false, recovery: 'Auto' },
@@ -55,7 +57,13 @@ function RestartChoice({ value, onChange }: {
   }} />
 }
 
-export function ToolSettingsFields({ value, onChange }: { value: ToolSettings; onChange: (value: ToolSettings) => void }) {
+export function ToolSettingsFields({ value, onChange, maintenanceSelection, onMaintenanceSelectionChange }: {
+  value: ToolSettings
+  onChange: (value: ToolSettings) => void
+  maintenanceSelection: MaintenanceDistributionSelection | null | undefined
+  onMaintenanceSelectionChange: (selection: MaintenanceDistributionSelection | null | undefined) => void
+}) {
+  const distributionId = useId()
   switch (value.toolId) {
     case '03':
       return <>
@@ -86,12 +94,26 @@ export function ToolSettingsFields({ value, onChange }: { value: ToolSettings; o
         <Choice label="テスト" value={value.skipTests ? 'skip' : 'run'} choices={{ run: '実行する', skip: '省略する' }}
           onChange={test => onChange({ ...value, skipTests: test === 'skip' })} />
       </>
-    case '16':
+    case '16': {
+      const detailed = maintenanceSelection !== undefined
       return <>
-        <Choice label="ワールドのコピー" value={value.worldCopy} choices={includeModes} onChange={worldCopy => onChange({ ...value, worldCopy })} />
-        <Choice label="ネットワーク Plugin" value={value.networkPlugins} choices={includeModes} onChange={networkPlugins => onChange({ ...value, networkPlugins })} />
+        {!detailed && <>
+          <Choice label="ワールドのコピー" value={value.worldCopy} choices={includeModes} onChange={worldCopy => onChange({ ...value, worldCopy })} />
+          <Choice label="ネットワーク Plugin" value={value.networkPlugins} choices={includeModes} onChange={networkPlugins => onChange({ ...value, networkPlugins })} />
+        </>}
+        <div className="tool-field">
+          <div className="tool-button-row"><button type="button" className="button" aria-expanded={detailed} aria-controls={distributionId}
+            onClick={() => onMaintenanceSelectionChange(detailed ? undefined : null)}>
+            {detailed ? '簡易設定に戻す' : '配布先ごとに選ぶ'}
+          </button></div>
+          <div id={distributionId} hidden={!detailed}>
+            {detailed && <MaintenanceDistributionFields worldCopy={value.worldCopy} networkPlugins={value.networkPlugins}
+              selection={maintenanceSelection} onChange={onMaintenanceSelectionChange} />}
+          </div>
+        </div>
         <RecoveryChoice value={value.recovery} onChange={recovery => onChange({ ...value, recovery })} />
         <p className="tool-muted">配布対象の停止・起動は運用者が行います。対象サーバーは実行計画で確認できます。</p>
       </>
+    }
   }
 }

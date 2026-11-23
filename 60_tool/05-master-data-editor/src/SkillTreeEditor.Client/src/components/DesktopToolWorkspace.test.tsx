@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-import { toolJobApi, type ToolCapabilities, type ToolLogLine, type ToolPlan, type ToolRun } from '../api/toolJobApi'
+import { toolJobApi, type MaintenanceDistributionOptions, type ToolCapabilities, type ToolLogLine, type ToolPlan, type ToolRun } from '../api/toolJobApi'
 import { DesktopToolRunHistoryProvider, DesktopToolWorkspace } from './DesktopToolWorkspace'
 
 const capabilities: ToolCapabilities = {
@@ -15,6 +15,16 @@ const plan: ToolPlan = {
   expiresAtUtc: '',
 }
 const availablePlan = (fields?: Partial<ToolPlan>): ToolPlan => ({ ...plan, ...fields, expiresAtUtc: new Date(Date.now() + 60000).toISOString() })
+const maintenanceCatalog: MaintenanceDistributionOptions = {
+  configurationDigest: 'A'.repeat(64),
+  options: [
+    { id: 'd1-t1', kind: 'Jar', label: 'AstralRecord.jar', source: 'Dev', destination: 'Channel1' },
+    { id: 'd1-t2', kind: 'Jar', label: 'AstralRecord.jar', source: 'Dev', destination: 'Channel2' },
+    { id: 'd2-t1', kind: 'World', label: 'worlds/skill_tree', source: 'Build', destination: 'Channel1' },
+    { id: 'n1', kind: 'Network', label: 'AstralRecordLobby.jar', source: 'Build', destination: 'Lobby' },
+  ],
+  savedSelection: ['d1-t2', 'n1'],
+}
 
 afterEach(() => vi.restoreAllMocks())
 
@@ -253,4 +263,84 @@ it('sends the confirmed plan and typed response, and opens the completed run in 
   expect(screen.getByText('16 メンテナンス配布')).toBeVisible()
   expect(await screen.findByText('配布完了')).toBeVisible()
   expect(screen.getByRole('heading', { name: '実行時の計画' })).toBeVisible()
+})
+
+it('plans maintenance for selected destinations and clears approvals when the choices change', async () => {
+  vi.spyOn(toolJobApi, 'runs').mockResolvedValue([])
+  const readOptions = vi.spyOn(toolJobApi, 'maintenanceOptions').mockResolvedValue(maintenanceCatalog)
+  const makePlan = vi.spyOn(toolJobApi, 'plan').mockResolvedValue(availablePlan({
+    toolId: '16', confirmations: [{ id: 'serversStopped', label: 'サーバーを停止しました' }],
+  }))
+  render(<DesktopToolWorkspace {...props} page="16" />)
+
+  const detailed = screen.getByRole('button', { name: '配布先ごとに選ぶ' })
+  await waitFor(() => expect(detailed).toBeEnabled())
+  expect(readOptions).not.toHaveBeenCalled()
+  fireEvent.change(screen.getByLabelText('ワールドのコピー'), { target: { value: 'Include' } })
+  fireEvent.click(detailed)
+  const first = await screen.findByRole('checkbox', { name: /AstralRecord\.jar.*Channel1/ })
+  const second = screen.getByRole('checkbox', { name: /AstralRecord\.jar.*Channel2/ })
+  const world = screen.getByRole('checkbox', { name: /skill_tree/ })
+  const network = screen.getByRole('checkbox', { name: /AstralRecordLobby\.jar/ })
+  expect(first).toBeChecked()
+  expect(second).toBeChecked()
+  expect(world).toBeChecked()
+  expect(network).not.toBeChecked()
+
+  fireEvent.click(first)
+  fireEvent.click(world)
+  fireEvent.click(screen.getByRole('button', { name: '実行計画を確認' }))
+  const confirm = await screen.findByRole('checkbox', { name: 'サーバーを停止しました' })
+  expect(makePlan).toHaveBeenLastCalledWith({
+    toolId: '16', recovery: 'Auto', distributionSelection: ['d1-t2'],
+    distributionConfigurationDigest: maintenanceCatalog.configurationDigest,
+  })
+  fireEvent.click(confirm)
+  expect(screen.getByRole('button', { name: '配布を開始' })).toBeEnabled()
+
+  fireEvent.click(screen.getByRole('button', { name: '全解除' }))
+  expect(confirm).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '実行計画を確認' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: '配布を開始' })).toBeDisabled()
+  fireEvent.click(screen.getByRole('button', { name: '全選択' }))
+  expect(network).toBeChecked()
+  expect(first).toBeChecked()
+
+  fireEvent.click(screen.getByRole('button', { name: '前回の選択を適用' }))
+  expect(first).not.toBeChecked()
+  expect(second).toBeChecked()
+  expect(world).not.toBeChecked()
+  expect(network).toBeChecked()
+  fireEvent.click(screen.getByRole('button', { name: '実行計画を確認' }))
+  await waitFor(() => expect(makePlan).toHaveBeenLastCalledWith({
+    toolId: '16', recovery: 'Auto', distributionSelection: ['d1-t2', 'n1'],
+    distributionConfigurationDigest: maintenanceCatalog.configurationDigest,
+  }))
+  await waitFor(() => expect(screen.getByRole('button', { name: '簡易設定に戻す' })).toBeEnabled())
+  fireEvent.click(screen.getByRole('button', { name: '簡易設定に戻す' }))
+  expect(screen.getByLabelText('ワールドのコピー')).toHaveValue('Include')
+  expect(screen.queryByRole('checkbox', { name: /AstralRecord\.jar.*Channel1/ })).not.toBeInTheDocument()
+})
+
+it('retries distribution discovery and clears choices when the configuration changes', async () => {
+  vi.spyOn(toolJobApi, 'runs').mockResolvedValue([])
+  vi.spyOn(toolJobApi, 'maintenanceOptions')
+    .mockRejectedValueOnce(new Error('配布設定を確認してください。'))
+    .mockResolvedValueOnce(maintenanceCatalog)
+    .mockResolvedValueOnce({ ...maintenanceCatalog, configurationDigest: 'B'.repeat(64), savedSelection: null })
+  render(<DesktopToolWorkspace {...props} page="16" />)
+
+  const detailed = screen.getByRole('button', { name: '配布先ごとに選ぶ' })
+  await waitFor(() => expect(detailed).toBeEnabled())
+  fireEvent.click(detailed)
+  expect(await screen.findByRole('alert')).toHaveTextContent('配布設定を確認してください。')
+  expect(screen.getByRole('button', { name: '実行計画を確認' })).toBeDisabled()
+  fireEvent.click(screen.getByRole('button', { name: '再取得' }))
+  expect(await screen.findByRole('checkbox', { name: /AstralRecord\.jar.*Channel1/ })).toBeChecked()
+
+  fireEvent.click(screen.getByRole('button', { name: '候補を再取得' }))
+  expect(await screen.findByRole('checkbox', { name: /AstralRecord\.jar.*Channel1/ })).not.toBeChecked()
+  expect(screen.getByText('配布設定が変わりました。配布対象を選び直してください。')).toBeVisible()
+  expect(screen.getByRole('button', { name: '実行計画を確認' })).toBeDisabled()
+  expect(screen.queryByRole('button', { name: '前回の選択を適用' })).not.toBeInTheDocument()
 })

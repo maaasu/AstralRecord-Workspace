@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using SkillTreeEditor.Server.Models;
 
 namespace SkillTreeEditor.Server.Services;
@@ -48,6 +49,12 @@ public sealed class ToolJobService(WorkspacePaths workspace, IConfiguration conf
         var prepared = PreparePlan(options, details, now);
         plans[prepared.Plan.Id] = prepared;
         return prepared.Plan;
+    }
+
+    public Task<ToolJobMaintenanceOptions> GetMaintenanceOptionsAsync(CancellationToken token)
+    {
+        RequireEnabled();
+        return ReadWorkerAsync<ToolJobMaintenanceOptions>("MaintenanceOptions", "maintenance-options.json", null, token);
     }
 
     public async Task<ToolJobRun> StartAsync(ToolJobStartRequest request, CancellationToken token)
@@ -249,8 +256,11 @@ public sealed class ToolJobService(WorkspacePaths workspace, IConfiguration conf
     {
         if (request.ToolId is not ("01" or "03" or "09" or "12" or "16"))
             throw new ToolJobException(400, "対応する運用ツールを選択してください。");
+        var selection = request.DistributionSelection;
+        var digest = request.DistributionConfigurationDigest;
         if (request.ToolId != "12" && (request.NetworkTarget is not null || request.SkipTests)
-            || request.ToolId != "16" && (request.WorldCopy is not null || request.NetworkPlugins is not null)
+            || request.ToolId != "16" && (request.WorldCopy is not null || request.NetworkPlugins is not null
+                || selection is not null || digest is not null)
             || request.ToolId != "03" && request.ServerAlreadyRunning
             || request.ToolId != "01" && (request.PluginTestMode is not null || request.PluginTests is not null)
             || request.ToolId != "09" && request.ArchitectMode is not null
@@ -269,25 +279,39 @@ public sealed class ToolJobService(WorkspacePaths workspace, IConfiguration conf
             || (request.PluginTestMode == "Selected") != (request.PluginTests is not null))
             throw new ToolJobException(400, "実行条件に無効な値があります。");
 
+        if ((selection is null) != (digest is null)
+            || digest is not null && !Regex.IsMatch(digest, @"\A[0-9a-fA-F]{64}\z")
+            || selection is not null && (request.WorldCopy is not null || request.NetworkPlugins is not null
+                || selection.Length == 0 || selection.Any(id => id is null || !Regex.IsMatch(id, @"\A(?:d[1-9][0-9]*-t[1-9][0-9]*|n[1-9][0-9]*)\z"))
+                || selection.Distinct(StringComparer.Ordinal).Count() != selection.Length))
+            throw new ToolJobException(400, "配布対象を一覧から選び直してください。");
+
         return request with
         {
             NetworkTarget = request.ToolId == "12" ? request.NetworkTarget ?? "All" : null,
-            WorldCopy = request.ToolId == "16" ? request.WorldCopy ?? "Skip" : null,
-            NetworkPlugins = request.ToolId == "16" ? request.NetworkPlugins ?? "Skip" : null,
+            WorldCopy = request.ToolId == "16" && selection is null ? request.WorldCopy ?? "Skip" : null,
+            NetworkPlugins = request.ToolId == "16" && selection is null ? request.NetworkPlugins ?? "Skip" : null,
+            DistributionSelection = selection?.Order(StringComparer.Ordinal).ToArray(),
+            DistributionConfigurationDigest = digest?.ToUpperInvariant(),
             Recovery = request.ToolId is ("09" or "12") ? null : request.Recovery ?? "Auto",
             ArchitectMode = request.ToolId == "09" ? request.ArchitectMode ?? "BuildOnly" : null
         };
     }
 
-    private async Task<ToolJobPlanDetails> ReadPlanAsync(ToolJobPlanRequest request, CancellationToken token)
+    private Task<ToolJobPlanDetails> ReadPlanAsync(ToolJobPlanRequest request, CancellationToken token)
+        => ReadWorkerAsync<ToolJobPlanDetails>("Plan", "plan.json", request, token);
+
+    private async Task<T> ReadWorkerAsync<T>(
+        string mode, string resultFile, ToolJobPlanRequest? request, CancellationToken token) where T : class
     {
         EnsureStorage();
         var directory = Path.Combine(StateRoot, "plan-" + Guid.NewGuid().ToString("D"));
         Directory.CreateDirectory(directory);
         try
         {
-            WriteJson(Path.Combine(directory, "request.json"), new ExecutionRequest(request, null));
-            using var process = Process.Start(StartInfo("Plan", directory, redirect: true))
+            if (request is not null)
+                WriteJson(Path.Combine(directory, "request.json"), new ExecutionRequest(request, null));
+            using var process = Process.Start(StartInfo(mode, directory, redirect: true))
                 ?? throw new ToolJobException(503, "PowerShell を起動できません。");
             var output = process.StandardOutput.BaseStream.CopyToAsync(Stream.Null);
             var error = process.StandardError.BaseStream.CopyToAsync(Stream.Null);
@@ -303,10 +327,10 @@ public sealed class ToolJobService(WorkspacePaths workspace, IConfiguration conf
                 try { process.Kill(entireProcessTree: true); }
                 catch (InvalidOperationException) { }
                 token.ThrowIfCancellationRequested();
-                throw new ToolJobException(503, "運用ツールの計画確認が時間内に終わりませんでした。");
+                throw new ToolJobException(503, "運用ツールの設定確認が時間内に終わりませんでした。");
             }
 
-            var details = ReadJson<ToolJobPlanDetails>(Path.Combine(directory, "plan.json"));
+            var details = ReadJson<T>(Path.Combine(directory, resultFile));
             if (process.ExitCode == 0 && details is not null) return details;
             var failure = ReadJson<PlanningFailure>(Path.Combine(directory, "error.json"));
             throw new ToolJobException(422, failure?.Message ??

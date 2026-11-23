@@ -22,12 +22,35 @@ public sealed class ToolJobServiceTests
     }
 
     [Fact]
-    public void BrowserHostDoesNotExposeOperationHistory()
+    public async Task BrowserHostDoesNotExposeOperationHistoryOrMaintenanceOptions()
     {
         var workspace = new WorkspacePaths(Path.GetTempPath());
         var service = new ToolJobService(workspace, new ConfigurationBuilder().Build());
         Assert.False(service.GetCapabilities().Enabled);
         Assert.Null(service.GetCapabilities().ActiveRunId);
+        var denied = await Assert.ThrowsAsync<ToolJobException>(async () => await service.GetMaintenanceOptionsAsync(default));
+        Assert.Equal(404, denied.StatusCode);
+    }
+
+    [Fact]
+    public void DetailedMaintenanceRequiresUniqueIdsAndTheConfigurationDigest()
+    {
+        var digest = new string('a', 64);
+        var request = new ToolJobPlanRequest("16", DistributionSelection: ["n2", "d1-t2"], DistributionConfigurationDigest: digest);
+        var settings = ToolJobService.Normalize(request);
+        Assert.Equal(new[] { "d1-t2", "n2" }, settings.DistributionSelection);
+        Assert.Equal(digest.ToUpperInvariant(), settings.DistributionConfigurationDigest);
+        Assert.Null(settings.WorldCopy);
+        Assert.Null(settings.NetworkPlugins);
+        Assert.Equal("Skip", ToolJobService.Normalize(new ToolJobPlanRequest("16")).WorldCopy);
+
+        Assert.Throws<ToolJobException>(() => ToolJobService.Normalize(request with { ToolId = "01" }));
+        Assert.Throws<ToolJobException>(() => ToolJobService.Normalize(request with { WorldCopy = "Skip" }));
+        Assert.Throws<ToolJobException>(() => ToolJobService.Normalize(request with { DistributionConfigurationDigest = null }));
+        Assert.Throws<ToolJobException>(() => ToolJobService.Normalize(request with { DistributionSelection = null }));
+        Assert.Throws<ToolJobException>(() => ToolJobService.Normalize(request with { DistributionSelection = [] }));
+        Assert.Throws<ToolJobException>(() => ToolJobService.Normalize(request with { DistributionSelection = ["n1", "n1"] }));
+        Assert.Throws<ToolJobException>(() => ToolJobService.Normalize(request with { DistributionSelection = ["d0-t1"] }));
     }
 
     [Fact]

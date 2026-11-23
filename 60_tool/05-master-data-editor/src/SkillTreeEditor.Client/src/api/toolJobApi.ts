@@ -15,6 +15,27 @@ export type ToolSettings =
 
 export type DirectToolSettings = Exclude<ToolSettings, { toolId: '09' | '16' }>
 
+export interface MaintenanceDistributionSelection {
+  distributionSelection: string[]
+  distributionConfigurationDigest: string
+}
+
+export type ToolPlanSettings = ToolSettings | ({ toolId: '16'; recovery: RecoveryMode } & MaintenanceDistributionSelection)
+
+export interface MaintenanceDistributionOption {
+  id: string
+  kind: 'Jar' | 'Placement' | 'Filebase' | 'World' | 'Network'
+  label: string
+  source: string
+  destination: string
+}
+
+export interface MaintenanceDistributionOptions {
+  configurationDigest: string
+  options: MaintenanceDistributionOption[]
+  savedSelection?: string[] | null
+}
+
 export interface ToolCapabilities {
   enabled: boolean
   reason: string | null
@@ -69,7 +90,8 @@ const post = (body: unknown): RequestInit => ({
 
 export const toolJobApi = {
   capabilities: () => request<ToolCapabilities>(`${base}/capabilities`),
-  plan: (settings: ToolSettings) => request<ToolPlan>(`${base}/plans`, post(settings)),
+  maintenanceOptions: (signal: AbortSignal) => request<MaintenanceDistributionOptions>(`${base}/maintenance-options`, { signal, cache: 'no-store' }),
+  plan: (settings: ToolPlanSettings) => request<ToolPlan>(`${base}/plans`, post(settings)),
   start: (planId: string, confirmations: string[]) => request<ToolRun>(`${base}/runs`, post({ planId, confirmations })),
   startDirect: (requestId: string, settings: DirectToolSettings) =>
     request<ToolRun>(`${base}/runs/direct`, post({ requestId, settings })),

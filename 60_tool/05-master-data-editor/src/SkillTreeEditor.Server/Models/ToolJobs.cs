@@ -13,7 +13,9 @@ public sealed record ToolJobPlanRequest(
     string? PluginTestMode = null,
     string? PluginTests = null,
     string? Recovery = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? ArchitectMode = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? ArchitectMode = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string[]? DistributionSelection = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? DistributionConfigurationDigest = null);
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record ToolJobStartRequest(Guid PlanId, string[] Confirmations);
@@ -26,6 +28,13 @@ public sealed record ToolJobInputRequest(Guid PromptId, string Value);
 
 public sealed record ToolJobCapabilities(
     bool Enabled, string? Reason, string WorkspaceRoot, Guid? ActiveRunId, string? WorkspaceBranch);
+
+public sealed record ToolJobMaintenanceOption(string Id, string Kind, string Label, string Source, string Destination);
+
+public sealed record ToolJobMaintenanceOptions(
+    string ConfigurationDigest,
+    ToolJobMaintenanceOption[] Options,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string[]? SavedSelection);
 
 public sealed record ToolJobPath(string Label, string Source, string Destination);
 public sealed record ToolJobConfirmation(string Id, string Label);

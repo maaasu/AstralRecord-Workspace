@@ -58,6 +58,54 @@ try {
     Reject {Assert-MaintenanceNetworkRunBoundary $config "$network/runs"} 'overlaps'
     Reject {Assert-MaintenanceNetworkRunBoundary $config "$lobby/runs"} 'overlaps'
 
+    $other = New-Run 'other-server'
+    $otherLobby = New-Run 'other-lobby'
+    $config.servers += @{id='other';rootPath=$other;enabled=$true}, @{id='disabled';enabled=$false}
+    $config.distributions[0].targets = @('target','disabled','other')
+    $config.distributions += @{enabled=$true;kind='Placement';source='source';relativePath='plugins/AstralRecord/npc_locations.yml';targets=@('target')}
+    $config.networkPlugins.destinations += @{artifact='AstralRecordLobby.jar';deployDirectory="$otherLobby/plugins"}
+    Put "$otherLobby/plugins/AstralRecordLobby.jar" 'old-other-lobby'
+    Put "$other/plugins/AstralRecord.jar" 'old-other-plugin'
+    Write-MaintenanceJson $config $path
+    $digest = (Get-FileHash -LiteralPath $path).Hash
+    $bomPath = Join-Path $fixture 'legacy-utf16.json'
+    Get-Content -Raw -LiteralPath $path -Encoding UTF8 | Set-Content -LiteralPath $bomPath -Encoding unicode
+    $bomRead = Read-MaintenanceConfiguration $bomPath
+    Assert ($bomRead.config.schemaVersion -eq 1 -and $bomRead.digest -ceq (Get-FileHash -LiteralPath $bomPath).Hash) 'BOM encoded config and its raw digest remain supported'
+    $options = @(Get-MaintenanceDistributionOptions $config)
+    Assert (($options.id -join ',') -ceq 'd1-t1,d1-t3,d2-t1,d3-t1,n1,n2') 'catalog includes reachable choices without checking artifacts'
+    $script:answers.Enqueue('2,2'); $script:answers.Enqueue('2,6')
+    Assert ((@(Select-MaintenanceDistributionDetails $config {$script:answers.Dequeue()}) -join ',') -ceq 'd1-t3,n2') 'numbered menu retries duplicate numbers and selects two destinations'
+    Reject { Select-MaintenanceDistributionDetails $config { '0' } } '中止'
+    Entry @('-Phase','Plan','-ConfigPath',$path,'-ListDistributionOptions')
+    $detailArgs = @('-ConfigPath',$path,'-DistributionSelection','n2,d1-t3','-DistributionConfigurationDigest',$digest)
+    Entry (@('-Phase','Plan') + $detailArgs)
+    foreach ($invalid in @('', 'd1-t2', 'd9-t1', 'n1,n1')) {
+        Entry @('-Phase','Plan','-ConfigPath',$path,'-DistributionSelection',$invalid) $false
+    }
+    Entry (@('-Phase','Plan','-NetworkPlugins','Skip') + $detailArgs) $false
+    Entry @('-Phase','Plan','-ConfigPath',$path,'-DistributionSelection','n2','-DistributionConfigurationDigest',('0'*64)) $false
+    $failedRun = New-Run 'missing-source'
+    $phaseDeploy = @('-Phase','Deploy','-ConfigPath',$path,'-RunDirectory',$failedRun,'-ServersStopped')
+    Entry ($phaseDeploy + @('-DistributionSelection','d1-t3')) $false
+    Entry ($phaseDeploy + @('-DistributionSelection','d3-t1','-DistributionConfigurationDigest',$digest)) $false
+    Assert (!(Test-Path -LiteralPath "$failedRun/deployment-selection.json")) 'a failed preflight does not freeze the run selection'
+    $detailRun = New-Run 'detailed-deploy'
+    Entry (@('-Phase','Deploy','-RunDirectory',$detailRun,'-ServersStopped') + $detailArgs)
+    $detailJournal = Get-Content -Raw -Encoding UTF8 -LiteralPath "$detailRun/deployment.json" | ConvertFrom-Json
+    Assert ($detailJournal.operations.Count -eq 2) 'only two detailed operations reach the journal'
+    Assert ([IO.File]::ReadAllText("$target/plugins/AstralRecord.jar") -eq 'old-plugin' -and [IO.File]::ReadAllText("$other/plugins/AstralRecord.jar") -eq 'new-plugin') 'same artifact is distributed only to the selected server'
+    Assert ([IO.File]::ReadAllText("$lobby/plugins/AstralRecordLobby.jar") -eq 'old-lobby' -and [IO.File]::ReadAllText("$otherLobby/plugins/AstralRecordLobby.jar") -eq 'new-lobby') 'same network JAR is distributed only to the selected destination'
+    $detail = Resolve-MaintenanceDeploymentSelection $detailRun -Config $config -ConfigurationDigest $digest -PromptForNewRun -PromptAction {throw 'must not prompt on resume'}
+    $same = Resolve-MaintenanceDeploymentSelection $detailRun -Config $config -ConfigurationDigest $digest -DistributionIds @('n2','d1-t3')
+    Assert (($detail.distributionIds -join ',') -ceq 'd1-t3,n2' -and (Get-MaintenanceSelectionFingerprint $detail) -ceq (Get-MaintenanceSelectionFingerprint $same)) 'v2 resumes with the same fingerprint regardless of input order'
+    Reject { Resolve-MaintenanceDeploymentSelection $detailRun -Config $config -ConfigurationDigest $digest -DistributionIds @('n1') } 'cannot change'
+    $childArgs = @('-Phase','Deploy','-ConfigPath',$path,'-RunDirectory',$detailRun,'-ServersStopped','-DistributionConfigurationDigest',$digest,'-ExpectedSelectionFingerprint',('0'*64))
+    Entry $childArgs $false
+    Entry (@('-Phase','Restore','-RunDirectory',$detailRun,'-ServersStopped') + $detailArgs) $false
+    Entry @('-Phase','Restore','-ConfigPath',$path,'-RunDirectory',$detailRun,'-ServersStopped')
+    Assert ([IO.File]::ReadAllText("$other/plugins/AstralRecord.jar") -eq 'old-other-plugin' -and [IO.File]::ReadAllText("$otherLobby/plugins/AstralRecordLobby.jar") -eq 'old-other-lobby') 'detailed restore uses the journal'
+
     # The workflow fixes selections under its root lock before baseline/API/deploy and binds them to state.
     $env:SELECTION_TEST_API='test-api'; $env:SELECTION_TEST_MIGRATION='test-migration'
     $workflowRoot=New-Run 'workflow'; $script:apiCalls=0; $script:deployCalls=0
@@ -84,7 +132,7 @@ try {
     Reject {Invoke-UpdateWorkflow @arguments} 'selections changed'
     Assert ($script:apiCalls -eq 1 -and $script:deployCalls -eq 1) 'changed persisted selection blocked before API/deploy'
 
-    Write-Host "PASS: independent prompts, four combinations, child entry, legacy/resume, fingerprints, restore and boundaries. Evidence: $fixture"
+    Write-Host "PASS: group and detailed choices, per-destination deployment, legacy/resume, fingerprints, restore and boundaries. Evidence: $fixture"
 } finally {
     Remove-Item Env:SELECTION_TEST_API,Env:SELECTION_TEST_MIGRATION -ErrorAction SilentlyContinue
     Stop-Transcript | Out-Null

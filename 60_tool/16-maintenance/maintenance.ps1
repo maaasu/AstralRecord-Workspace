@@ -10,7 +10,11 @@ param(
     [ValidateSet('Auto','Restart','Restore')][string]$Recovery = 'Auto',
     [switch]$RecoveryChecked,
     [switch]$ServersStopped,
-    [switch]$AdmissionClosed
+    [switch]$AdmissionClosed,
+    [switch]$ListDistributionOptions,
+    [string]$DistributionSelection,
+    [ValidatePattern('^[a-fA-F0-9]{64}$')][string]$DistributionConfigurationDigest,
+    [ValidatePattern('^[a-f0-9]{64}$')][string]$ExpectedSelectionFingerprint
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -22,7 +26,14 @@ $maintenanceDiagnosticFile = $null
 $gateContext=$null
 try {
     if (($Recovery -ne 'Auto' -or $RecoveryChecked) -and $Phase -ne 'Workflow') { throw '-Recoveryは通常Workflow専用です。詳細操作は-Phase Restoreを使用してください。' }
-    if (($PSBoundParameters.ContainsKey('WorldCopy') -or $PSBoundParameters.ContainsKey('NetworkPlugins')) -and $Phase -notin @('Workflow','Plan','Deploy')) { throw 'Distribution selection is supported only for Workflow, Plan and Deploy.' }
+    $hasDetail = $PSBoundParameters.ContainsKey('DistributionSelection')
+    if ($ListDistributionOptions -and ($Phase -ne 'Plan' -or $hasDetail -or $WorldCopy -ne 'Ask' -or $NetworkPlugins -ne 'Ask')) { throw '-ListDistributionOptions requires -Phase Plan without selection arguments.' }
+    if (($PSBoundParameters.ContainsKey('WorldCopy') -or $PSBoundParameters.ContainsKey('NetworkPlugins') -or $hasDetail -or $DistributionConfigurationDigest -or $ExpectedSelectionFingerprint) -and $Phase -eq 'Restore') { throw 'Distribution selection is supported only for Workflow, Plan and Deploy.' }
+    if (($DistributionConfigurationDigest -and !$hasDetail -and !$ExpectedSelectionFingerprint) -or
+        ($ExpectedSelectionFingerprint -and ($Phase -ne 'Deploy' -or !$DistributionConfigurationDigest -or $hasDetail))) { throw 'Invalid detailed distribution selection arguments.' }
+    if ($hasDetail -and $Phase -ne 'Plan' -and !$DistributionConfigurationDigest) {
+        throw '詳細IDで実行するには、候補一覧のSHA-256を -DistributionConfigurationDigest に指定してください。'
+    }
     $legacyConfig=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../maintenance/maintenance.local.json'))
     if (!$ConfigPath) {
         $ConfigPath=Join-Path $PSScriptRoot 'maintenance.local.json'
@@ -32,8 +43,26 @@ try {
     }
     if (!(Test-Path -LiteralPath $ConfigPath -PathType Leaf)) { throw 'Create maintenance.local.json from maintenance.example.json and configure paths first.' }
     $ConfigPath=(Resolve-Path -LiteralPath $ConfigPath).Path
-    $config = Get-Content -Raw -Encoding utf8 -LiteralPath $ConfigPath | ConvertFrom-Json -AsHashtable
+    $read = Read-MaintenanceConfiguration $ConfigPath
+    $config = $read.config
+    $configDigest = $read.digest
     if ($config.schemaVersion -ne 1) { throw 'Unsupported schemaVersion.' }
+    if ($ListDistributionOptions) {
+        foreach ($option in @(Get-MaintenanceDistributionOptions $config)) {
+            Write-Host "$($option.id)  $($option.label)  $($option.source) → $($option.destination)"
+        }
+        Write-Host "配布設定の SHA-256: $configDigest"
+        exit 0
+    }
+    if ($DistributionConfigurationDigest -and $DistributionConfigurationDigest -ine $configDigest) { throw '配布設定が変更されました。候補を取得し直してください。' }
+    $distributionIds = $null
+    if ($hasDetail) {
+        if ([string]::IsNullOrWhiteSpace($DistributionSelection)) { throw '配布対象を1件以上選択してください。' }
+        $distributionIds = @(ConvertTo-MaintenanceDistributionIds @($DistributionSelection.Split(',').Trim()))
+    }
+    $planChoice=if ($WorldCopy -eq 'Skip') { 'Skip' } else { 'Include' }
+    $networkChoice=if ($NetworkPlugins -eq 'Skip') { 'Skip' } else { 'Include' }
+    if ($hasDetail) { $null = Get-MaintenanceSelectedConfig $config $planChoice $networkChoice -DistributionIds $distributionIds }
     if ($config.migration.enabled -isnot [bool]) { throw 'Migration enabled must be boolean.' }
     if ($config.migration.enabled) {
         . (Join-Path $PSScriptRoot 'SkillTreeMigration.ps1')
@@ -66,6 +95,14 @@ try {
         if ($Phase -eq 'Workflow' -and (Get-ControlGateMode $config) -eq 'Managed') {
             $gateRunRoot=$workflow.runRoot
             $resume=Get-ControlGateResumeIdentity $gateRunRoot
+        }
+        $promptForDetails = $Phase -eq 'Workflow' -and !$hasDetail -and $WorldCopy -eq 'Ask' -and $NetworkPlugins -eq 'Ask' -and ![Console]::IsInputRedirected
+        if ($Phase -eq 'Workflow' -and !$resume -and !(Get-PendingUpdateRun $workflow.runRoot)) {
+            # A cancelled or invalid new selection should not create a Control reservation.
+            if ($promptForDetails) { $distributionIds = @(Select-MaintenanceDistributionDetails $config) }
+            if ($null -ne $distributionIds) {
+                $null = Get-MaintenanceNonemptyPlan (Get-MaintenanceSelectedConfig $config $planChoice $networkChoice -DistributionIds $distributionIds)
+            }
         }
         $resumeReference=if ($resume) { $resume.RunReference } elseif ($Phase -eq 'Workflow' -and (Get-ControlGateMode $config) -eq 'Managed') { New-ControlGateRunReference $gateRunRoot } else { $RunDirectory }
         $resumeWorkflowId=if ($resume) { $resume.WorkflowId } else { '' }
@@ -105,31 +142,32 @@ try {
     if ($Phase -eq 'Workflow') {
         . (Join-Path $PSScriptRoot 'UpdateWorkflow.ps1')
         if ($RunDirectory) { throw 'Workflow manages its own run directory. Use explicit phases only for advanced recovery.' }
-        # All configured server roots are protected; worlds are validated only after selection.
+        # All configured roots are protected; artifact checks run after selection.
         $networkRoots=@(Assert-MaintenanceNetworkRunBoundary $config $workflow.runRoot -PassThru)
-        $plan=@(Get-MaintenancePlan (Get-MaintenanceSelectedConfig $config 'Skip' 'Skip'))
         $roots=@($config.servers | Where-Object enabled | ForEach-Object { Get-MaintenanceAbsolutePath $_.rootPath })
         $roots+=$networkRoots
-        $roots+=@($plan | ForEach-Object { $_.root; if ($_.directory) { $_.source } else { [IO.Path]::GetDirectoryName($_.source) } })
-        $fingerprint=Get-SkillTreeMigrationSha256 ((Get-FileHash -LiteralPath $ConfigPath -Algorithm SHA256).Hash + '|Channels')
+        $fingerprint=Get-SkillTreeMigrationSha256 ($configDigest + '|Channels')
         $entryScript=$PSCommandPath
         $pwsh=(Get-Process -Id $PID).Path
-        $selectionConfigurationDigest=(Get-FileHash -LiteralPath $ConfigPath -Algorithm SHA256).Hash
         $selection=@{choices=$null}
         $prepareRunAction={
             param($RunDirectory)
             $selectionLock=[IO.File]::Open((Join-Path $RunDirectory 'run.lock'),'OpenOrCreate','ReadWrite','None')
             try {
-                $selection.choices=Resolve-MaintenanceDeploymentSelection $RunDirectory $WorldCopy $NetworkPlugins -PromptForNewRun -ConfigurationDigest $selectionConfigurationDigest
-                $null=@(Get-MaintenancePlan (Get-MaintenanceSelectedConfig $config $selection.choices.worldCopy $selection.choices.networkPlugins))
-                Get-SkillTreeMigrationSha256 ($selection.choices.worldCopy + '|' + $selection.choices.networkPlugins)
+                $selection.choices=Resolve-MaintenanceDeploymentSelection $RunDirectory $WorldCopy $NetworkPlugins -PromptForNewRun `
+                    -ConfigurationDigest $configDigest -Config $config -DistributionIds $distributionIds -PromptForDetails:$promptForDetails -ValidatePlan
+                Get-MaintenanceSelectionFingerprint $selection.choices
             } finally { $selectionLock.Dispose() }
         }
         $deployAction={
             param($RunDirectory)
             Assert-ControlGateStep $gateContext 'Deploy'
             Write-MaintenanceDiagnostic 'child.launch' @{phase='Deploy'}
-            & $pwsh -NoProfile -File $entryScript -Phase Deploy -ConfigPath $ConfigPath -RunDirectory $RunDirectory -WorldCopy $selection.choices.worldCopy -NetworkPlugins $selection.choices.networkPlugins -ServersStopped 2>&1 |
+            $details = @()
+            if ($null -ne $selection.choices.distributionIds) {
+                $details = @('-DistributionConfigurationDigest', $configDigest, '-ExpectedSelectionFingerprint', (Get-MaintenanceSelectionFingerprint $selection.choices))
+            }
+            & $pwsh -NoProfile -File $entryScript -Phase Deploy -ConfigPath $ConfigPath -RunDirectory $RunDirectory -WorldCopy $selection.choices.worldCopy -NetworkPlugins $selection.choices.networkPlugins -ServersStopped @details 2>&1 |
                 Tee-Object -FilePath (Join-Path $RunDirectory 'distribution.log') -Append | Out-Host
             Write-MaintenanceDiagnostic 'child.exit' @{exitCode=$LASTEXITCODE}
             if ($LASTEXITCODE -ne 0) { throw "Distribution failed. Keep servers stopped and inspect $RunDirectory. Use Restore before retrying an incomplete deployment." }
@@ -149,9 +187,7 @@ try {
         exit 0
     }
     if ($Phase -eq 'Plan') {
-        $planChoice=if ($WorldCopy -eq 'Ask') { 'Include' } else { $WorldCopy }
-        $networkChoice=if ($NetworkPlugins -eq 'Ask') { 'Include' } else { $NetworkPlugins }
-        $config=Get-MaintenanceSelectedConfig $config $planChoice $networkChoice
+        $config=Get-MaintenanceSelectedConfig $config $planChoice $networkChoice -DistributionIds $distributionIds
         Write-Host "World copy: $planChoice; Network plugins: $networkChoice (plan only)"
         $plan = @(Get-MaintenancePlan $config)
         foreach ($op in $plan) { Write-Host "$($op.kind): $($op.source) -> $($op.destination)" }
@@ -182,21 +218,21 @@ try {
     $locks.Add([IO.File]::Open((Join-Path $RunDirectory 'run.lock'), 'OpenOrCreate', 'ReadWrite', 'None'))
     $maintenanceDiagnosticFile = New-MaintenanceDiagnosticLog $RunDirectory 'Entry'
     Write-MaintenanceDiagnostic 'entry.begin' @{phase=$Phase; powershell=$PSVersionTable.PSVersion.ToString()}
-    $configDigest = (Get-FileHash -LiteralPath $ConfigPath -Algorithm SHA256).Hash
     $configRecordPath = Join-Path $RunDirectory 'config-digest.json'
     if (Test-Path -LiteralPath $configRecordPath) {
         $record = Get-Content -Raw -Encoding utf8 -LiteralPath $configRecordPath | ConvertFrom-Json
         if ($record.sha256 -ne $configDigest) { throw 'Configuration changed within this run. Restore the original configuration before retrying.' }
     }
     if ($Phase -eq 'Deploy') {
-        $choices=Resolve-MaintenanceDeploymentSelection $RunDirectory $WorldCopy $NetworkPlugins -ConfigurationDigest $configDigest
-        $config=Get-MaintenanceSelectedConfig $config $choices.worldCopy $choices.networkPlugins
+        $choices=Resolve-MaintenanceDeploymentSelection $RunDirectory $WorldCopy $NetworkPlugins -ConfigurationDigest $configDigest `
+            -Config $config -DistributionIds $distributionIds -ExpectedFingerprint $ExpectedSelectionFingerprint -ValidatePlan
+        $config=Get-MaintenanceSelectedConfig $config $choices.worldCopy $choices.networkPlugins -DistributionIds $choices.distributionIds
+        $plan = @(Get-MaintenanceNonemptyPlan $config)
     }
     if (!(Test-Path -LiteralPath $configRecordPath)) { Write-MaintenanceJson @{ sha256=$configDigest } $configRecordPath }
     if ($Phase -in @('Deploy','Restore')) {
         # A server lock coordinates separate configs/run directories using this tool.
         $roots = if ($Phase -eq 'Deploy') {
-            $plan = @(Get-MaintenancePlan $config)
             @($plan | ForEach-Object { $_.root }) + @($config.servers | Where-Object enabled | ForEach-Object { Get-MaintenanceAbsolutePath $_.rootPath })
         } else {
             $journal = Get-Content -Raw -Encoding utf8 -LiteralPath (Join-Path $RunDirectory 'deployment.json') | ConvertFrom-Json -AsHashtable
