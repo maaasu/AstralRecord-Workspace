@@ -1,15 +1,12 @@
 package io.github.maaasu.astralRecord.feature.menu.view.screen;
 
 import io.github.maaasu.astralRecord.feature.menu.model.MenuIconDefinition;
-import io.github.maaasu.astralRecord.feature.menu.MenuMsgId;
-import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerGuiRenderContext;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuIconFactory;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
-import java.util.List;
 
 public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int STATUS_SLOT = 10;
@@ -27,8 +24,6 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int RETURN_TO_BASE_SLOT = 39;
     public static final int ITEM_PROTECTION_SLOT = 41;
     public static final int TRASH_SLOT = 43;
-    public static final int SIDEBAR_BUFF_PREVIOUS_SLOT = 47;
-    public static final int SIDEBAR_BUFF_NEXT_SLOT = 51;
 
     /**
      * メインメニューを描画します。
@@ -42,7 +37,7 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
         @NotNull Player player,
         @NotNull PlayerGuiRenderContext context
     ) {
-        fill(inventory);
+        inventory.clear();
         inventory.setItem(BACK_SLOT, GuiItems.closeButton());
         inventory.setItem(STATUS_SLOT, MenuIconFactory.createPlayerInfo(player));
         inventory.setItem(EQUIPMENT_GUI_SLOT, MenuIconFactory.create(
@@ -67,15 +62,5 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
         ));
         inventory.setItem(ITEM_PROTECTION_SLOT, ItemProtectionScreenView.createMenuIcon());
         inventory.setItem(TRASH_SLOT, MenuIconFactory.create(MenuIconDefinition.TRASH));
-        inventory.setItem(SIDEBAR_BUFF_PREVIOUS_SLOT, GuiItems.previousPageButton(
-            PlayerMsgResource.getComponent(MenuMsgId.P_5650.getId()),
-            List.of(PlayerMsgResource.getComponent(MenuMsgId.P_5652.getId()),
-                PlayerMsgResource.getComponent(MenuMsgId.P_5653.getId())), true
-        ));
-        inventory.setItem(SIDEBAR_BUFF_NEXT_SLOT, GuiItems.nextPageButton(
-            PlayerMsgResource.getComponent(MenuMsgId.P_5651.getId()),
-            List.of(PlayerMsgResource.getComponent(MenuMsgId.P_5652.getId()),
-                PlayerMsgResource.getComponent(MenuMsgId.P_5653.getId())), true
-        ));
     }
 }

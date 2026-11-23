@@ -64,8 +64,6 @@ public class MenuView {
     public static final int PLAYER_INFO_SLOT = MainMenuScreenView.PLAYER_INFO_SLOT;
     public static final int ADVENTURE_RECORD_SLOT = MainMenuScreenView.ADVENTURE_RECORD_SLOT;
     public static final int MAIL_SLOT = MainMenuScreenView.MAIL_SLOT;
-    public static final int SIDEBAR_BUFF_PREVIOUS_SLOT = MainMenuScreenView.SIDEBAR_BUFF_PREVIOUS_SLOT;
-    public static final int SIDEBAR_BUFF_NEXT_SLOT = MainMenuScreenView.SIDEBAR_BUFF_NEXT_SLOT;
     public static final int EQUIPMENT_PLAYER_STATUS_SLOT = EquipmentMenuScreenView.PLAYER_STATUS_SLOT;
     public static final int EQUIPMENT_BACK_SLOT = EquipmentMenuScreenView.EQUIPMENT_BACK_SLOT;
     public static final int EQUIPMENT_MAIN_HAND_SLOT = EquipmentMenuScreenView.EQUIPMENT_MAIN_HAND_SLOT;

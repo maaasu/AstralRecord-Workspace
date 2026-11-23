@@ -7,7 +7,6 @@ import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.currency.event.CurrencyExchangeGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.currency.view.CurrencyGuiView;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideStep;
-import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BuffScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.GuideScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.ItemProtectionScreenView;
@@ -100,7 +99,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler
     private final CurrencyService currencyService;
     private final CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler;
     private final StatusService statusService;
-    private final PlayerHudService playerHudService;
     private final PlayerGuiRenderContextFactory playerGuiRenderContextFactory;
     private final MenuGuiTransitionService menuGuiTransitionService;
     private final TrashService trashService;
@@ -120,7 +118,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler
      * @param currencyService 通貨サービス
      * @param currencyExchangeGuiEventHandler 両替GUIハンドラ
      * @param statusService ステータスサービス
-     * @param playerHudService 自分のサイドバー効果ページを操作するサービス
      * @param playerGuiRenderContextFactory GUI 描画コンテキスト生成ファクトリ
      * @param menuGuiTransitionService GUI 切替サービス
      * @param trashService ゴミ箱 GUI サービス
@@ -135,7 +132,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         @NotNull CurrencyService currencyService,
         @NotNull CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler,
         @NotNull StatusService statusService,
-        @NotNull PlayerHudService playerHudService,
         @NotNull PlayerGuiRenderContextFactory playerGuiRenderContextFactory,
         @NotNull MenuGuiTransitionService menuGuiTransitionService,
         @NotNull TrashService trashService,
@@ -149,7 +145,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         this.currencyService = currencyService;
         this.currencyExchangeGuiEventHandler = currencyExchangeGuiEventHandler;
         this.statusService = statusService;
-        this.playerHudService = playerHudService;
         this.playerGuiRenderContextFactory = playerGuiRenderContextFactory;
         this.menuGuiTransitionService = menuGuiTransitionService;
         this.trashService = trashService;
@@ -559,17 +554,9 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         return HotbarShortcutClickSupport.handle(event, player, inventoryService);
     }
 
-    /** メインメニューの各機能へ委譲し、効果の前後ボタンでは閲覧者自身のHUDを切り替えます。 */
+    /** メインメニューの各機能へ委譲します。 */
     private void handleMainMenuClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
         int rawSlot = event.getRawSlot();
-        if (rawSlot == MenuView.SIDEBAR_BUFF_PREVIOUS_SLOT || rawSlot == MenuView.SIDEBAR_BUFF_NEXT_SLOT) {
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            boolean handled = astPlayer != null && playerHudService.changeSidebarBuffPage(
-                astPlayer, rawSlot == MenuView.SIDEBAR_BUFF_PREVIOUS_SLOT ? -1 : 1
-            );
-            (handled ? GuiSound.SELECT : GuiSound.DENY).play(player);
-            return;
-        }
         if (rawSlot == MenuView.STATUS_SLOT) {
             PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler = plugin.getPlayerBrowserGuiEventHandler();
             if (playerBrowserGuiEventHandler == null) {

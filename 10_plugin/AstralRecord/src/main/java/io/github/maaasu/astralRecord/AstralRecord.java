@@ -3125,7 +3125,6 @@ public final class AstralRecord extends JavaPlugin {
             currencyService,
             currencyExchangeGuiEventHandler,
             statusService,
-            playerHudService,
             playerGuiRenderContextFactory,
             menuGuiTransitionService,
             trashService,
