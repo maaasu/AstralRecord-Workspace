@@ -25,11 +25,11 @@ levels:
     name: "&aミズガルズ・グラスボア Lv.2"
     baseStats:
       - status: MAX_HEALTH
-        value: 160
+        value: 150
       - status: ATTACK
-        value: 42
-      - status: DEFENSE
         value: 32
+      - status: DEFENSE
+        value: 25
       - status: ACCURACY
         value: 95
       - status: EVASION
@@ -43,9 +43,9 @@ baseStats:
   - status: MAX_HEALTH
     value: 100
   - status: ATTACK
-    value: 18
-  - status: DEFENSE
     value: 17
+  - status: DEFENSE
+    value: 14
   - status: ACCURACY
     value: 95
   - status: EVASION

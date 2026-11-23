@@ -24,7 +24,7 @@ equipment:
       value: 2
     - status: DEFENSE
       type: FLAT
-      value: 2
+      value: 6
   enhance:
     maxLevel: 1
     levels:
