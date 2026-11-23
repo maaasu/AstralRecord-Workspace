@@ -74,6 +74,29 @@ function ConvertTo-MaintenanceDistributionIds([string[]]$Ids) {
     $unique | Sort-Object -CaseSensitive
 }
 
+function Get-MaintenanceNetworkDistributionIds([hashtable]$Config) {
+    $ids = @(Get-MaintenanceDistributionOptions $Config | Where-Object kind -eq 'Network' | ForEach-Object { $_.id })
+    if (!$ids.Count) { throw 'ネットワークの配布先が設定されていません。networkPlugins.destinations を設定してください。' }
+    ConvertTo-MaintenanceDistributionIds $ids
+}
+
+function Select-MaintenanceDistributionScope([hashtable]$Config, [scriptblock]$PromptAction) {
+    while ($true) {
+        $answer = if ($PromptAction) { & $PromptAction } else { Read-Host '1: ネットワークのみ / 2: 全件 (Enter) / 3: 配布先を個別に選ぶ / 0: 中止' }
+        switch (([string]$answer).Trim()) {
+            '1' { return Get-MaintenanceNetworkDistributionIds $Config }
+            { $_ -in @('', '2') } {
+                $options = @(Get-MaintenanceDistributionOptions $Config)
+                if (!$options.Count) { throw '設定済みの配布対象がありません。' }
+                return $options.id
+            }
+            '3' { return Select-MaintenanceDistributionDetails $Config $PromptAction }
+            '0' { throw '配布を中止しました。' }
+            default { Write-Host '0、1、2、3 のいずれかを選択してください。' }
+        }
+    }
+}
+
 function Select-MaintenanceDistributionDetails([hashtable]$Config, [scriptblock]$PromptAction) {
     $options = @(Get-MaintenanceDistributionOptions $Config)
     if (!$options.Count) { throw '設定済みの配布対象がありません。' }
@@ -122,7 +145,7 @@ function Resolve-MaintenanceDeploymentSelection {
         [ValidateSet('Ask','Include','Skip')][string]$NetworkPlugins = 'Ask',
         [switch]$PromptForNewRun, [scriptblock]$PromptAction,
         [ValidatePattern('^[a-fA-F0-9]{64}$')][string]$ConfigurationDigest,
-        [hashtable]$Config, [string[]]$DistributionIds, [switch]$PromptForDetails, [switch]$ValidatePlan,
+        [hashtable]$Config, [string[]]$DistributionIds, [switch]$PromptForScope, [switch]$ValidatePlan,
         [string]$ExpectedFingerprint)
     # Caller must hold workflow.lock (guided workflow) or run.lock (explicit Deploy).
     $WorldCopy = switch ($WorldCopy) { Include {'Include'} Skip {'Skip'} default {'Ask'} }
@@ -140,8 +163,8 @@ function Resolve-MaintenanceDeploymentSelection {
     }
     if (!$choices) {
         $choices = @{distributionIds=$DistributionIds}
-        if ($null -eq $DistributionIds -and $PromptForDetails -and ($PromptAction -or ![Console]::IsInputRedirected)) {
-            $choices.distributionIds = @(ConvertTo-MaintenanceDistributionIds @(Select-MaintenanceDistributionDetails $Config $PromptAction))
+        if ($null -eq $DistributionIds -and $PromptForScope -and ($PromptAction -or ![Console]::IsInputRedirected)) {
+            $choices.distributionIds = @(ConvertTo-MaintenanceDistributionIds @(Select-MaintenanceDistributionScope $Config $PromptAction))
         }
         $requests = @{worldCopy=$WorldCopy;networkPlugins=$NetworkPlugins}
         $labels = @{worldCopy='Buildのワールド';networkPlugins='ネットワークプラグイン（Lobby・Proxy・Geyser拡張）'}
@@ -152,10 +175,10 @@ function Resolve-MaintenanceDeploymentSelection {
         }
     }
     if (($WorldCopy -ne 'Ask' -and $WorldCopy -cne $choices.worldCopy) -or
-        ($NetworkPlugins -ne 'Ask' -and $NetworkPlugins -cne $choices.networkPlugins) -or
-        ($null -ne $DistributionIds -and ($DistributionIds -join ',') -cne ($choices.distributionIds -join ','))) {
+        ($NetworkPlugins -ne 'Ask' -and $NetworkPlugins -cne $choices.networkPlugins)) {
         throw 'Deployment selections cannot change within this run.'
     }
+    Assert-MaintenanceDistributionIdsMatch $DistributionIds $choices
     if ($ExpectedFingerprint -and (Get-MaintenanceSelectionFingerprint $choices) -cne $ExpectedFingerprint) {
         throw 'Deployment selections changed within this run.'
     }
@@ -177,6 +200,12 @@ function Resolve-MaintenanceDeploymentSelection {
     if ($null -ne $choices.distributionIds) { Write-Host "選択した配布対象: $($choices.distributionIds -join ', ')" }
     Write-MaintenanceDiagnostic 'deployment.selection' $choices
     return $choices
+}
+
+function Assert-MaintenanceDistributionIdsMatch([string[]]$RequestedIds, [hashtable]$Choices) {
+    if ($null -ne $RequestedIds -and (!$Choices -or ($RequestedIds -join ',') -cne ($Choices.distributionIds -join ','))) {
+        throw 'Deployment selections cannot change within this run.'
+    }
 }
 
 function Get-MaintenanceSelectionFingerprint($Choices) {

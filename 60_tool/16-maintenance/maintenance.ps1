@@ -7,6 +7,7 @@ param(
     [string]$RunDirectory,
     [ValidateSet('Ask','Include','Skip')][string]$WorldCopy = 'Ask',
     [ValidateSet('Ask','Include','Skip')][string]$NetworkPlugins = 'Ask',
+    [switch]$NetworkOnly,
     [ValidateSet('Auto','Restart','Restore')][string]$Recovery = 'Auto',
     [switch]$RecoveryChecked,
     [switch]$ServersStopped,
@@ -27,7 +28,12 @@ $gateContext=$null
 try {
     if (($Recovery -ne 'Auto' -or $RecoveryChecked) -and $Phase -ne 'Workflow') { throw '-Recoveryは通常Workflow専用です。詳細操作は-Phase Restoreを使用してください。' }
     $hasDetail = $PSBoundParameters.ContainsKey('DistributionSelection')
-    if ($ListDistributionOptions -and ($Phase -ne 'Plan' -or $hasDetail -or $WorldCopy -ne 'Ask' -or $NetworkPlugins -ne 'Ask')) { throw '-ListDistributionOptions requires -Phase Plan without selection arguments.' }
+    if ($NetworkOnly -and ($PSBoundParameters.ContainsKey('WorldCopy') -or $PSBoundParameters.ContainsKey('NetworkPlugins') -or
+        $hasDetail -or $DistributionConfigurationDigest -or $ExpectedSelectionFingerprint)) {
+        throw '-NetworkOnly は -WorldCopy、-NetworkPlugins、-DistributionSelection などの配布選択指定と併用できません。'
+    }
+    if ($NetworkOnly -and $Phase -eq 'Restore') { throw '-Phase Restore は記録から復元します。-NetworkOnly を外してください。' }
+    if ($ListDistributionOptions -and ($Phase -ne 'Plan' -or $NetworkOnly -or $hasDetail -or $WorldCopy -ne 'Ask' -or $NetworkPlugins -ne 'Ask')) { throw '-ListDistributionOptions requires -Phase Plan without selection arguments.' }
     if (($PSBoundParameters.ContainsKey('WorldCopy') -or $PSBoundParameters.ContainsKey('NetworkPlugins') -or $hasDetail -or $DistributionConfigurationDigest -or $ExpectedSelectionFingerprint) -and $Phase -eq 'Restore') { throw 'Distribution selection is supported only for Workflow, Plan and Deploy.' }
     if (($DistributionConfigurationDigest -and !$hasDetail -and !$ExpectedSelectionFingerprint) -or
         ($ExpectedSelectionFingerprint -and ($Phase -ne 'Deploy' -or !$DistributionConfigurationDigest -or $hasDetail))) { throw 'Invalid detailed distribution selection arguments.' }
@@ -56,7 +62,9 @@ try {
     }
     if ($DistributionConfigurationDigest -and $DistributionConfigurationDigest -ine $configDigest) { throw '配布設定が変更されました。候補を取得し直してください。' }
     $distributionIds = $null
-    if ($hasDetail) {
+    if ($NetworkOnly) {
+        $distributionIds = @(Get-MaintenanceNetworkDistributionIds $config)
+    } elseif ($hasDetail) {
         if ([string]::IsNullOrWhiteSpace($DistributionSelection)) { throw '配布対象を1件以上選択してください。' }
         $distributionIds = @(ConvertTo-MaintenanceDistributionIds @($DistributionSelection.Split(',').Trim()))
     }
@@ -96,10 +104,16 @@ try {
             $gateRunRoot=$workflow.runRoot
             $resume=Get-ControlGateResumeIdentity $gateRunRoot
         }
-        $promptForDetails = $Phase -eq 'Workflow' -and !$hasDetail -and $WorldCopy -eq 'Ask' -and $NetworkPlugins -eq 'Ask' -and ![Console]::IsInputRedirected
-        if ($Phase -eq 'Workflow' -and !$resume -and !(Get-PendingUpdateRun $workflow.runRoot)) {
+        $promptForScope = $Phase -eq 'Workflow' -and !$NetworkOnly -and !$hasDetail -and $WorldCopy -eq 'Ask' -and $NetworkPlugins -eq 'Ask' -and ![Console]::IsInputRedirected
+        $pendingRun = if ($Phase -eq 'Workflow' -and !$resume) { Get-PendingUpdateRun $workflow.runRoot }
+        if ($NetworkOnly -and ($resume -or $pendingRun)) {
+            # Check explicit scope before Control or recovery can change the active run.
+            $existingRun = if ($resume) { $resume.RunReference } else { $pendingRun.Directory }
+            Assert-MaintenanceDistributionIdsMatch $distributionIds (Get-MaintenanceDeploymentSelectionRecord $existingRun -ConfigurationDigest $configDigest)
+        }
+        if ($Phase -eq 'Workflow' -and !$resume -and !$pendingRun) {
             # A cancelled or invalid new selection should not create a Control reservation.
-            if ($promptForDetails) { $distributionIds = @(Select-MaintenanceDistributionDetails $config) }
+            if ($promptForScope) { $distributionIds = @(Select-MaintenanceDistributionScope $config) }
             if ($null -ne $distributionIds) {
                 $null = Get-MaintenanceNonemptyPlan (Get-MaintenanceSelectedConfig $config $planChoice $networkChoice -DistributionIds $distributionIds)
             }
@@ -155,7 +169,7 @@ try {
             $selectionLock=[IO.File]::Open((Join-Path $RunDirectory 'run.lock'),'OpenOrCreate','ReadWrite','None')
             try {
                 $selection.choices=Resolve-MaintenanceDeploymentSelection $RunDirectory $WorldCopy $NetworkPlugins -PromptForNewRun `
-                    -ConfigurationDigest $configDigest -Config $config -DistributionIds $distributionIds -PromptForDetails:$promptForDetails -ValidatePlan
+                    -ConfigurationDigest $configDigest -Config $config -DistributionIds $distributionIds -PromptForScope:$promptForScope -ValidatePlan
                 Get-MaintenanceSelectionFingerprint $selection.choices
             } finally { $selectionLock.Dispose() }
         }
@@ -188,7 +202,8 @@ try {
     }
     if ($Phase -eq 'Plan') {
         $config=Get-MaintenanceSelectedConfig $config $planChoice $networkChoice -DistributionIds $distributionIds
-        Write-Host "World copy: $planChoice; Network plugins: $networkChoice (plan only)"
+        if ($NetworkOnly) { Write-Host '配布範囲: ネットワークのみ' }
+        else { Write-Host "World copy: $planChoice; Network plugins: $networkChoice (plan only)" }
         $plan = @(Get-MaintenancePlan $config)
         foreach ($op in $plan) { Write-Host "$($op.kind): $($op.source) -> $($op.destination)" }
         Write-Host "Distribution targets: $($plan.Count)"

@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 import { isRunning, toolJobApi, type MaintenanceDistributionSelection, type ToolCapabilities, type ToolId, type ToolPage, type ToolPlan, type ToolRun, type ToolSettings } from '../api/toolJobApi'
 import { toolIds, toolSpecs } from '../data/desktopTools'
 import { displayToolDate, RunStatus, ToolPlanDetails, ToolRunDetails, toolError } from './ToolRunDetails'
-import { defaultToolSettings, ToolSettingsFields } from './ToolSettingsFields'
+import { defaultToolSettings, ToolSettingsFields, type MaintenanceScope } from './ToolSettingsFields'
 import './desktopTools.css'
 
 function useRunHistory(enabled: boolean, visible: boolean) {
@@ -132,7 +132,8 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRuns, vis
   onStarted: (run: ToolRun) => void; onRefresh: () => void; onOpenHistory: (id: string) => void
 }) {
   const [settings, setSettings] = useState<ToolSettings>(defaultToolSettings[id])
-  const [maintenanceSelection, setMaintenanceSelection] = useState<MaintenanceDistributionSelection | null>()
+  const [maintenanceScope, setMaintenanceScope] = useState<MaintenanceScope>('normal')
+  const [maintenanceSelection, setMaintenanceSelection] = useState<MaintenanceDistributionSelection | null>(null)
   const [plan, setPlan] = useState<ToolPlan>()
   const [checked, setChecked] = useState<string[]>([])
   const [reviewed, setReviewed] = useState(false)
@@ -141,7 +142,8 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRuns, vis
   const [expiredId, setExpiredId] = useState('')
   const inFlight = useRef(false)
   const directRequestId = useRef<string>(undefined)
-  const requiresReview = id === '09' || id === '16'
+  const maintenance = id === '16'
+  const requiresReview = id === '09' || maintenance
   const spec = toolSpecs[id]
   const expired = requiresReview && plan && (plan.id === expiredId || Date.parse(plan.expiresAtUtc) <= Date.now())
   const activeRun = activeRuns.find(run => run.toolId === id)
@@ -149,7 +151,8 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRuns, vis
   const displayedRun = activeRun ?? latestRun
   const disabled = !ready || Boolean(activeRun) || Boolean(pending)
   const missingTests = settings.toolId === '01' && settings.pluginTestMode === 'Selected' && !settings.pluginTests?.trim()
-  const missingDistribution = maintenanceSelection !== undefined && !maintenanceSelection?.distributionSelection.length
+  const usesDistributionSelection = maintenance && maintenanceScope !== 'normal'
+  const missingDistribution = usesDistributionSelection && !maintenanceSelection?.distributionSelection.length
 
   useEffect(() => {
     if (!requiresReview || !plan) return
@@ -168,15 +171,19 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRuns, vis
     clearPlan()
     setError('')
   }
-  const updateMaintenanceSelection = useCallback((next: MaintenanceDistributionSelection | null | undefined) => {
+  const updateMaintenanceSelection = useCallback((next: MaintenanceDistributionSelection | null) => {
     setMaintenanceSelection(next)
     clearPlan()
     setError('')
   }, [clearPlan])
+  const updateMaintenanceScope = (scope: MaintenanceScope) => {
+    setMaintenanceScope(scope)
+    updateMaintenanceSelection(null)
+  }
   const request = (() => {
     if (settings.toolId === '01')
       return { ...settings, pluginTests: settings.pluginTestMode === 'Selected' ? settings.pluginTests?.trim() : undefined }
-    if (settings.toolId === '16' && maintenanceSelection)
+    if (settings.toolId === '16' && usesDistributionSelection && maintenanceSelection)
       return { toolId: settings.toolId, recovery: settings.recovery, ...maintenanceSelection }
     return settings
   })()
@@ -223,23 +230,26 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRuns, vis
     }
   }
 
+  const steps = <ol className="tool-steps">{spec.steps.map(step => <li key={step}>{step}</li>)}</ol>
+
   return <>
     <div className="tool-heading">
       <div><h1>{spec.label}</h1><p className="tool-muted">{spec.description}</p></div>
-      {activeRun ? <RunStatus status={activeRun.status} /> : requiresReview && plan && !expired && <span className="tool-badge">{plan.canRun === false ? '実行条件を確認' : '計画を確認'}</span>}
+      {activeRun ? <RunStatus status={activeRun.status} /> : id === '09' && plan && !expired && <span className="tool-badge">{plan.canRun === false ? '実行条件を確認' : '計画を確認'}</span>}
     </div>
-    <div className={maintenanceSelection === undefined ? 'tool-settings-grid' : 'tool-settings-grid tool-settings-grid-detailed'}>
+    <div className={maintenance ? 'tool-maintenance-settings' : 'tool-settings-grid'}>
       <section className="tool-panel">
         <h2>実行設定</h2>
         <fieldset className="tool-settings" disabled={disabled} aria-label="実行設定">
-          <ToolSettingsFields value={settings} onChange={updateSettings} maintenanceSelection={maintenanceSelection}
+          <ToolSettingsFields value={settings} onChange={updateSettings} maintenanceScope={maintenanceScope}
+            onMaintenanceScopeChange={updateMaintenanceScope} maintenanceSelection={maintenanceSelection}
             onMaintenanceSelectionChange={updateMaintenanceSelection} />
         </fieldset>
       </section>
-      <section className="tool-panel">
+      {!maintenance && <section className="tool-panel">
         <h2>処理の流れ</h2>
-        <ol className="tool-steps">{spec.steps.map(step => <li key={step}>{step}</li>)}</ol>
-      </section>
+        {steps}
+      </section>}
     </div>
     {plan && <ToolPlanDetails plan={plan} />}
     {hasUnsavedSource && (id === '03' || id === '01') && <p className="tool-note warning">未保存のマスタ編集があります。実行には保存済みのファイルを使用します。</p>}
@@ -261,10 +271,10 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRuns, vis
     {requiresReview && plan?.canRun === false && <p className="tool-note warning" role="status">この計画は実行条件を満たしていません。</p>}
     {expired && <p className="tool-note warning" role="status">計画の有効期限が切れました。設定を確認して計画を更新してください。</p>}
     {error && <p className="tool-note error" role="alert">{error}</p>}
-    <div className="tool-actions">
-      <span className="tool-muted">{requiresReview && plan && !expired && `有効期限 ${displayToolDate(plan.expiresAtUtc)}`}</span>
+    <div className={maintenance ? 'tool-actions tool-maintenance-actions' : 'tool-actions'}>
+      {(!maintenance || plan && !expired) && <span className="tool-muted">{requiresReview && plan && !expired && `有効期限 ${displayToolDate(plan.expiresAtUtc)}`}</span>}
       <div className="tool-button-row">
-        <button type="button" className="button" disabled={disabled || missingTests || missingDistribution} onClick={() => void requestPlan()}>
+        <button type="button" className={maintenance && !plan ? 'button primary' : 'button'} disabled={disabled || missingTests || missingDistribution} onClick={() => void requestPlan()}>
           {pending === 'plan' ? '計画を取得中…' : plan ? '計画を更新' : requiresReview ? '実行計画を確認' : '実行計画を表示'}
         </button>
         <button type="button" className="button primary" disabled={!canStart} onClick={() => void start()}>
@@ -272,6 +282,7 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRuns, vis
         </button>
       </div>
     </div>
+    {maintenance && <details className="tool-panel tool-disclosure"><summary>処理の流れ</summary>{steps}</details>}
     {visible && displayedRun && <ToolRunDetails key={displayedRun.id} run={displayedRun} onRefresh={onRefresh} onOpenHistory={() => onOpenHistory(displayedRun.id)} />}
   </>
 }

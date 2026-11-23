@@ -2,6 +2,14 @@ import { useId } from 'react'
 import { type IncludeMode, type MaintenanceDistributionSelection, type NetworkTarget, type PluginTestMode, type RecoveryMode, type ToolId, type ToolSettings } from '../api/toolJobApi'
 import { MaintenanceDistributionFields } from './MaintenanceDistributionFields'
 
+const maintenanceScopes = {
+  network: 'ネットワークのみ',
+  normal: '通常配布',
+  detailed: '配布先ごとに選ぶ',
+} as const
+
+export type MaintenanceScope = keyof typeof maintenanceScopes
+
 export const defaultToolSettings: { [Id in ToolId]: Extract<ToolSettings, { toolId: Id }> } = {
   '03': { toolId: '03', serverAlreadyRunning: false, recovery: 'Auto' },
   '01': { toolId: '01', pluginTestMode: 'All', recovery: 'Auto' },
@@ -41,7 +49,7 @@ function Choice<T extends string>({ label, value, choices, onChange }: {
 }
 
 function RecoveryChoice({ value, onChange }: { value: RecoveryMode; onChange: (value: RecoveryMode) => void }) {
-  return <Choice label="再開・復旧" value={value} onChange={onChange} choices={{
+  return <Choice label="復旧方法" value={value} onChange={onChange} choices={{
     Auto: '通常実行 / 再開可能な処理を続行',
     Restart: '新しい実行としてやり直す',
     Restore: '配布前の状態に復旧する',
@@ -57,11 +65,13 @@ function RestartChoice({ value, onChange }: {
   }} />
 }
 
-export function ToolSettingsFields({ value, onChange, maintenanceSelection, onMaintenanceSelectionChange }: {
+export function ToolSettingsFields({ value, onChange, maintenanceScope, onMaintenanceScopeChange, maintenanceSelection, onMaintenanceSelectionChange }: {
   value: ToolSettings
   onChange: (value: ToolSettings) => void
-  maintenanceSelection: MaintenanceDistributionSelection | null | undefined
-  onMaintenanceSelectionChange: (selection: MaintenanceDistributionSelection | null | undefined) => void
+  maintenanceScope: MaintenanceScope
+  onMaintenanceScopeChange: (scope: MaintenanceScope) => void
+  maintenanceSelection: MaintenanceDistributionSelection | null
+  onMaintenanceSelectionChange: (selection: MaintenanceDistributionSelection | null) => void
 }) {
   const distributionId = useId()
   switch (value.toolId) {
@@ -94,26 +104,28 @@ export function ToolSettingsFields({ value, onChange, maintenanceSelection, onMa
         <Choice label="テスト" value={value.skipTests ? 'skip' : 'run'} choices={{ run: '実行する', skip: '省略する' }}
           onChange={test => onChange({ ...value, skipTests: test === 'skip' })} />
       </>
-    case '16': {
-      const detailed = maintenanceSelection !== undefined
+    case '16':
       return <>
-        {!detailed && <>
+        <fieldset className="tool-distribution-scope">
+          <legend>配布範囲</legend>
+          <div className="tool-distribution-modes">
+            {(Object.keys(maintenanceScopes) as MaintenanceScope[]).map(scope => <label key={scope}>
+              <input type="radio" name={distributionId} value={scope} checked={maintenanceScope === scope}
+                onChange={() => onMaintenanceScopeChange(scope)} />
+              <span>{maintenanceScopes[scope]}</span>
+            </label>)}
+          </div>
+        </fieldset>
+        {maintenanceScope === 'normal' ? <div className="tool-distribution-groups">
           <Choice label="ワールドのコピー" value={value.worldCopy} choices={includeModes} onChange={worldCopy => onChange({ ...value, worldCopy })} />
           <Choice label="ネットワーク Plugin" value={value.networkPlugins} choices={includeModes} onChange={networkPlugins => onChange({ ...value, networkPlugins })} />
-        </>}
-        <div className="tool-field">
-          <div className="tool-button-row"><button type="button" className="button" aria-expanded={detailed} aria-controls={distributionId}
-            onClick={() => onMaintenanceSelectionChange(detailed ? undefined : null)}>
-            {detailed ? '簡易設定に戻す' : '配布先ごとに選ぶ'}
-          </button></div>
-          <div id={distributionId} hidden={!detailed}>
-            {detailed && <MaintenanceDistributionFields worldCopy={value.worldCopy} networkPlugins={value.networkPlugins}
-              selection={maintenanceSelection} onChange={onMaintenanceSelectionChange} />}
-          </div>
-        </div>
-        <RecoveryChoice value={value.recovery} onChange={recovery => onChange({ ...value, recovery })} />
-        <p className="tool-muted">配布対象の停止・起動は運用者が行います。対象サーバーは実行計画で確認できます。</p>
+        </div> : <MaintenanceDistributionFields key={maintenanceScope} networkOnly={maintenanceScope === 'network'}
+          worldCopy={value.worldCopy} networkPlugins={value.networkPlugins}
+          selection={maintenanceSelection} onChange={onMaintenanceSelectionChange} />}
+        <details className="tool-disclosure">
+          <summary>再開・復旧</summary>
+          <RecoveryChoice value={value.recovery} onChange={recovery => onChange({ ...value, recovery })} />
+        </details>
       </>
-    }
   }
 }
