@@ -796,9 +796,7 @@ public class GuideService {
         UUID accountId = player.getAccount().getUuid();
         Set<String> completedGuideIds = new LinkedHashSet<>();
         for (CompletedStep completed : completedSteps) {
-            if (!isProductionTutorial(completed.guide())) {
-                playerMessageService.send(player, PlayerMsgId.P_5180, resolveText(completed.step().text()));
-            }
+            playerMessageService.send(player, PlayerMsgId.P_5180, resolveText(completed.step().text()));
             stepSoundPlayer.accept(player);
             completedGuideIds.add(completed.guide().id());
         }
