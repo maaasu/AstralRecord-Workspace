@@ -63,7 +63,11 @@ public enum GuideConditionType {
     /** クエストの報酬・状態確定に成功した。 */
     QUEST_COMPLETED,
     /** ダンジョンのボス部屋を攻略してクリアが確定した。 */
-    DUNGEON_CLEARED;
+    DUNGEON_CLEARED,
+    /** メインメニューを開いた。 */
+    MAIN_MENU_OPENED,
+    /** 所有する対象アイテムを主手に装備した。 */
+    ITEM_EQUIPPED;
 
     /**
      * マスターデータ上の文字列から条件種別を解決します。

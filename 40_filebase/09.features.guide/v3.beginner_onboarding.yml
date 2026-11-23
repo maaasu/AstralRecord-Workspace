@@ -5,242 +5,61 @@ schemaVersion: 3
 id: beginner_onboarding
 category: beginner
 displayOrder: 10
-title: "&b冒険を始めよう"
+title: "グラスボアを1体倒そう"
 iconMaterial: NETHER_STAR
-summary: "&7ノクスで必要な準備、最初の戦闘、採集、転職を体験する。"
+summary: "&7武器を用意して、ミズガルズの緑野でグラスボアを1体倒す。"
 steps:
-  - id: login
-    text: "&fゲームへログインする"
+  - id: open_menu
+    text: "&fメインメニューを開く"
     details:
-      - "&7サーバーへ接続し、プレイヤーデータの読み込みが完了するまで待つ。"
-      - "&7ログインが完了すると、この手順が達成される。"
+      - "&7案内具を使ってメインメニューを開く。"
     condition:
-      type: PLAYER_LOGGED_IN
-  - id: open_guide
-    text: "&fガイドを開く"
-    details:
-      - "&7チャットで&e/guide&7を実行してガイド一覧を開く。"
-    condition:
-      type: GUIDE_OPENED
-  - id: claim_login_bonus
-    text: "&fログインボーナスを受け取る"
-    details:
-      - "&7ログインボーナス案内人に話しかける。"
-      - "&7開いたログインボーナスGUIで、本日の日付の報酬をクリックする。"
-    action:
-      type: NAVIGATE_NPC
-      npcId: login_bonus_clerk
-      description: "&dクリックでログインボーナス案内人の場所を表示します。"
-    condition:
-      type: LOGIN_BONUS_CLAIMED
+      type: MAIN_MENU_OPENED
   - id: receive_welcome_mail
-    text: "&fメールから&e初ログイン記念の贈り物&fを受け取る"
+    text: "&fメールの贈り物を受け取る"
     details:
-      - "&7メールGUIを開き、&e初ログイン記念の贈り物&7をクリックして受け取る。"
+      - "&7メールを開き、&e初ログイン記念の贈り物&7を選んで受け取る。"
     action:
       type: OPEN_MENU
       menuId: mail
-      description: "&dクリックでメールGUIを開く。"
+      description: "&dクリックでメールを開く。"
     condition:
       type: MAIL_RECEIVED
       targetId: welcome_mail
   - id: open_initial_bundle
     text: "&e初ログインバンドル&fを開封する"
     details:
-      - "&7メールの報酬から&e初ログインバンドル&7を受け取る。"
-      - "&7インベントリで&e初ログインバンドル&7をクリックして開封する。"
+      - "&7持ち物の&e初ログインバンドル&7を選び、ホットバーに割り当てる。"
+      - "&7その枠を手に持ち、画面を閉じて「使う」操作（Java版は右クリック）で開封する。"
     condition:
       type: BUNDLE_OPENED
       targetId: 50a00001
   - id: buy_starter_weapon
-    text: "&f雑貨商で&e簡素な武器&fを購入する"
+    text: "&e簡素な武器&fを購入する"
     details:
-      - "&7雑貨商に話しかけ、ショップGUIで&e簡素な武器&7を選択して購入する。"
+      - "&7雑貨商ミナに会い、店で&e簡素な武器&7を購入する。"
     action:
       type: NAVIGATE_NPC
       npcId: general_goods_merchant
-      description: "&dクリックで雑貨商の場所を表示し、発光させる。"
+      description: "&dクリックで雑貨商ミナの場所を表示する。"
     condition:
       type: SHOP_PURCHASED
       targetId: nox_weapon
-  - id: buy_starter_armor_helmet
-    text: "&f雑貨商で&eノクスヘルム&fを購入する"
+  - id: equip_starter_weapon
+    text: "&e簡素な武器&fを装備する"
     details:
-      - "&7雑貨商に話しかけ、ショップGUIで&eノクスヘルム&7を選択して購入する。"
-    action:
-      type: NAVIGATE_NPC
-      npcId: general_goods_merchant
-      description: "&dクリックで雑貨商の場所を表示し、発光させる。"
-    condition:
-      type: SHOP_PURCHASED
-      targetId: 20a00009
-  - id: buy_starter_armor_chest
-    text: "&f雑貨商で&eノクスメイル&fを購入する"
-    details:
-      - "&7雑貨商に話しかけ、ショップGUIで&eノクスメイル&7を選択して購入する。"
-    action:
-      type: NAVIGATE_NPC
-      npcId: general_goods_merchant
-      description: "&dクリックで雑貨商の場所を表示し、発光させる。"
-    condition:
-      type: SHOP_PURCHASED
-      targetId: 20a00010
-  - id: buy_starter_armor_legs
-    text: "&f雑貨商で&eノクスグリーブ&fを購入する"
-    details:
-      - "&7雑貨商に話しかけ、ショップGUIで&eノクスグリーブ&7を選択して購入する。"
-    action:
-      type: NAVIGATE_NPC
-      npcId: general_goods_merchant
-      description: "&dクリックで雑貨商の場所を表示し、発光させる。"
-    condition:
-      type: SHOP_PURCHASED
-      targetId: 20a00011
-  - id: buy_starter_armor_boots
-    text: "&f雑貨商で&eノクスブーツ&fを購入する"
-    details:
-      - "&7雑貨商に話しかけ、ショップGUIで&eノクスブーツ&7を選択して購入する。"
-    action:
-      type: NAVIGATE_NPC
-      npcId: general_goods_merchant
-      description: "&dクリックで雑貨商の場所を表示し、発光させる。"
-    condition:
-      type: SHOP_PURCHASED
-      targetId: 20a00012
-  - id: unlock_free_node
-    text: "&fスキルツリーの&e無料ルートノード&fを解放する"
-    details:
-      - "&7スキルツリーへ移動し、&e無料表示のルートノード&7をクリックする。"
-      - "&7確認画面でノードの解放を確定する。"
-    action:
-      type: NAVIGATE_NPC
-      npcId: skilltree_entry_guide
-      description: "&dクリックでスキルツリー案内人の場所を表示し、発光させる。"
-    condition:
-      type: SKILLTREE_NODE_UNLOCKED
-      targetId: "1047"
-  - id: learn_astral_edge
-    text: "&fスキルマネージャーで&eアストラルエッジ&fを習得する"
-    details:
-      - "&7スキルマネージャーを開く。"
-      - "&7未習得の&eアストラルエッジ&7を選択し、必要な&e原石&7を消費する。"
-      - "&a習得すると、&eアストラルエッジ&aを使用できる。"
+      - "&7装備画面でバッグの&e簡素な武器&7を選び、主手に装備する。"
     action:
       type: OPEN_MENU
-      menuId: skill_bind
-      description: "&dクリックでスキルマネージャーGUIを開く。"
+      menuId: equipment
+      description: "&dクリックで装備画面を開く。"
     condition:
-      type: SKILL_LEARNED
-      targetId: adventurer_astral_edge
-  - id: learn_smash
-    text: "&fスキルマネージャーで&eスマッシュ&fを習得する"
-    details:
-      - "&7スキルマネージャーを開く。"
-      - "&7未習得の&eスマッシュ&7を選択し、必要な&e原石&7を消費する。"
-      - "&a習得すると、&eスマッシュ&aを使用できる。"
-    action:
-      type: OPEN_MENU
-      menuId: skill_bind
-      description: "&dクリックでスキルマネージャーGUIを開く。"
-    condition:
-      type: SKILL_LEARNED
-      targetId: adventurer_smash
-  - id: enhance_skill
-    text: "&fスキルマネージャーでスキルを強化する"
-    details:
-      - "&7スキルマネージャーで、習得済みスキルを右クリックする。"
-      - "&7次のレベルに必要な&e原石&7を確認する。"
-      - "&a原石を消費すると、対象スキルのレベルが1上がる。"
-    action:
-      type: OPEN_MENU
-      menuId: skill_bind
-      description: "&dクリックでスキルマネージャーGUIを開く。"
-    condition:
-      type: SKILL_ENHANCED
-      targetIds:
-        - adventurer_astral_edge
-        - adventurer_smash
-  - id: bind_skill_to_action_ring
-    text: "&f習得したスキルをアクションリングに設定する"
-    details:
-      - "&7スキルマネージャーGUIを開き、習得したスキルを左クリックする。"
-      - "&7アクションリングスロットに習得したスキルが設定されたことを確認する。"
-    action:
-      type: OPEN_MENU
-      menuId: skill_bind
-      description: "&dクリックでスキルマネージャーGUIを開く。"
-    condition:
-      type: SKILL_BOUND
-      targetIds:
-        - adventurer_astral_edge
-        - adventurer_smash
-  - id: cast_astral_edge
-    text: "&f&eアストラルエッジ&fを発動する"
-    details:
-      - "&7Java版の通常操作では、設定が2件以上なら武器を持って&e右クリック&7でリングを開く。"
-      - "&7視点で&eアストラルエッジ&7を選び、左クリックで確定する。"
-      - "&7もう一度左クリックすると発動する。"
-      - "&7Java版で設定が1件なら、右クリックだけで発動する。"
-      - "&7統合版は&eしゃがんだ状態で武器を使い&7、&eアストラルエッジ&7を選ぶ。"
-      - "&7立ち上がって&e武器を使う&7と、選んだスキルが発動する。"
-      - "&7キーボード操作では&eShift＋右クリック&7で選び、&e右クリック&7で発動。"
-    condition:
-      type: SKILL_CAST
-      targetId: adventurer_astral_edge
+      type: ITEM_EQUIPPED
+      targetId: 20a00001
   - id: defeat_grassboar
-    text: "&f&eグラスボア&fを討伐する"
+    text: "&eグラスボア&fを1体倒す"
     details:
-      - "&7&eアストラルエッジ&7などのスキルを使い、&eグラスボア&7のHPを0にする。"
+      - "&7ミズガルズの緑野で&eグラスボア&7を1体倒す。"
     condition:
       type: MOB_DEFEATED
       targetId: midgard_grassboar
-  - id: buy_hoe
-    text: "&f雑貨商で&eノクスクワ&fを購入する"
-    details:
-      - "&7雑貨商に話しかけ、ショップGUIで&eノクスクワ&7を選択して購入する。"
-    action:
-      type: NAVIGATE_NPC
-      npcId: general_goods_merchant
-      description: "&dクリックで雑貨商の場所を表示し、発光させる。"
-    condition:
-      type: SHOP_PURCHASED
-      targetId: 20a00005
-  - id: accept_gathering_quest
-    text: "&f村長マルクスから&e採集依頼&fを受注する"
-    details:
-      - "&7村長マルクスに話しかけ、&eノクス草花の採集依頼&7を受注する。"
-    action:
-      type: NAVIGATE_NPC
-      npcId: village_elder
-      description: "&dクリックで村長マルクスの場所を表示し、発光させる。"
-    condition:
-      type: QUEST_ACCEPTED
-      targetId: nox_flora_gathering
-  - id: report_gathering_quest
-    text: "&f採集依頼を達成して村長マルクスに報告する"
-    details:
-      - "&7ノクスの草地に出現する7種類の採集オブジェクトを、表示された必要数ずつ最後まで採集する。"
-      - "&7目標をすべて達成したら、村長マルクスに話しかけて依頼を報告する。"
-    action:
-      type: NAVIGATE_NPC
-      npcId: village_elder
-      description: "&dクリックで村長マルクスの場所を表示し、発光させる。"
-    condition:
-      type: QUEST_COMPLETED
-      targetId: nox_flora_gathering
-  - id: freely_explore_and_change_class
-    text: "&fあとは自由に冒険しよう"
-    details:
-      - "&7{world:midgard_greenfields}で倒せる敵モブを倒しながら、プレイヤーレベルを上げる。"
-      - "&7職業案内人ミラを右クリックし、条件を満たした&e{class:swordsman}&7・&e{class:hunter}&7・&e{class:mage}&7から選んで確定する。"
-      - "&7転職後は、職業のCPでスキルツリーを進められる。"
-    action:
-      type: NAVIGATE_NPC
-      npcId: class_guide
-      description: "&dクリックでクラス案内人の場所を表示し、発光させる。"
-    condition:
-      type: CLASS_CHANGED
-      targetIds:
-        - swordsman
-        - hunter
-        - mage

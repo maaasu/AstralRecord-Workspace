@@ -27,6 +27,13 @@ public final class GuideScreenView extends BaseMenuScreenView {
     public static final int PREVIOUS_SLOT = PagedGuiView.PREVIOUS_SLOT;
     public static final int NEXT_SLOT = PagedGuiView.NEXT_SLOT;
     public static final int REWARD_SLOT = 51;
+    public static final int TUTORIAL_ACTION_SLOT = 22;
+    public static final int ALL_GUIDES_SLOT = 45;
+    public static final String TUTORIAL_PREFIX = "$tutorial:";
+    public static final String TUTORIAL_LOADING = TUTORIAL_PREFIX + "loading";
+    public static final String TUTORIAL_LOAD_FAILED = TUTORIAL_PREFIX + "load_failed";
+    public static final String TUTORIAL_UNAVAILABLE = TUTORIAL_PREFIX + "unavailable";
+    public static final String TUTORIAL_COMPLETE = TUTORIAL_PREFIX + "complete";
 
     private static final int SUMMARY_SLOT = 13;
     private static final List<Integer> DETAIL_LINE_SLOTS = List.of(
@@ -35,6 +42,45 @@ public final class GuideScreenView extends BaseMenuScreenView {
         37, 38, 39, 40, 41, 42, 43
     );
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+
+    public @NotNull ItemStack tutorialAction(@NotNull String contentId) {
+        return switch (contentId) {
+            case TUTORIAL_PREFIX + "open_menu" ->
+                tutorialItem(Material.COMPASS, "メインメニューを開く", "クリックでメインメニューを開く");
+            case TUTORIAL_PREFIX + "receive_welcome_mail" ->
+                tutorialItem(Material.PAPER, "記念の贈り物を受け取る", "メールの「初ログイン記念の贈り物」を選ぼう");
+            case TUTORIAL_PREFIX + "open_initial_bundle" ->
+                tutorialItem(Material.BUNDLE, "初ログインバンドルを開く", "持ち物で選び、ホットバーに持って画面を閉じて使おう");
+            case TUTORIAL_PREFIX + "buy_starter_weapon" ->
+                tutorialItem(Material.GOLD_INGOT, "簡素な武器を買う", "雑貨商ミナの場所をもう一度表示する（武器は20ゴールド）");
+            case TUTORIAL_PREFIX + "equip_starter_weapon" ->
+                tutorialItem(Material.WOODEN_SWORD, "簡素な武器を装備する", "装備画面の下のバッグで、印の付いた武器を選ぼう");
+            case TUTORIAL_PREFIX + "defeat_grassboar" ->
+                tutorialItem(Material.STONE_SWORD, "グラスボアを1体倒す", "クリックでグラスボアの場所を表示する");
+            case TUTORIAL_COMPLETE ->
+                tutorialItem(Material.ENCHANTED_BOOK, "次の冒険：アストラルエッジを覚える", "クリックでスキルマネージャーを開く");
+            case TUTORIAL_LOADING ->
+                tutorialItem(Material.CLOCK, "進行状況を読み込み中", "読み込みが終わると次の行動を表示します");
+            case TUTORIAL_LOAD_FAILED ->
+                tutorialItem(Material.PAPER, "進行状況を読み込めませんでした", "クリックでもう一度読み込む");
+            default ->
+                tutorialItem(Material.BOOK, "チュートリアルを表示できません", "「すべてのガイド」からガイド一覧を開けます");
+        };
+    }
+
+    public void renderTutorial(@NotNull Inventory inventory, @NotNull ItemStack action) {
+        inventory.setItem(TUTORIAL_ACTION_SLOT, action);
+        inventory.setItem(ALL_GUIDES_SLOT, tutorialItem(Material.BOOK, "すべてのガイド", "クリックでガイド一覧を開く"));
+        inventory.setItem(BACK_SLOT, backItem());
+    }
+
+    private @NotNull ItemStack tutorialItem(Material material, String title, String instruction) {
+        return createItem(
+            material,
+            Component.text(title, NamedTextColor.YELLOW, TextDecoration.BOLD),
+            List.of(Component.text(instruction, NamedTextColor.GRAY))
+        );
+    }
 
     /**
      * ガイド一覧をアカウントの達成状態付きで描画します。

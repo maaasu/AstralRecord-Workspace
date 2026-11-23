@@ -28,6 +28,15 @@ public class MailController(IMailRepository mailRepository) : ControllerBase
     public async Task<IActionResult> GetUnreadCount([FromQuery(Name = "account_id")] Guid accountId)
         => Ok(new MailUnreadCountResponse(await mailRepository.CountUnreadByAccountIdAsync(accountId)));
 
+    /// <summary>指定アカウントの初回チュートリアルメールの受取状態を取得する。</summary>
+    /// <param name="accountId">状態を確認するアカウント ID。</param>
+    /// <response code="200">初回チュートリアルメールの受取状態。</response>
+    [HttpGet("welcome-tutorial-status")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetWelcomeTutorialStatus(
+        [FromQuery(Name = "account_id")] Guid accountId)
+        => Ok(new { status = await mailRepository.GetWelcomeTutorialStatusAsync(accountId) });
+
     /// <summary>メールを既読にする</summary>
     /// <param name="mailId">メール ID</param>
     /// <param name="request">更新者情報</param>

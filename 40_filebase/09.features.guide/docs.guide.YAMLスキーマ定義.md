@@ -45,9 +45,9 @@ steps:
 | `steps[].action` | no | 詳細画面の手順 item をクリックしたときの型付き案内動作。 |
 | `steps[].action.type` | yes when action exists | `NAVIGATE_NPC` または `OPEN_MENU`。未知の値は読み込みエラーとする。 |
 | `steps[].action.npcId` | yes for `NAVIGATE_NPC` | 案内対象の NPC マスタ ID。画面には ID を表示しない。 |
-| `steps[].action.menuId` | yes for `OPEN_MENU` | 起動するメニュー ID。現状は `mail` または `skill_bind` を使用する。 |
+| `steps[].action.menuId` | yes for `OPEN_MENU` | 起動するメニュー ID。`mail`、`skill_bind`、`equipment` を使用できる。 |
 | `steps[].action.description` | no | クリック時に実行される動作の説明。指定時は details の下へ表示し、カラーコードを反映する。カラーコード未指定時は灰色。スキルマネージャーを開く操作は紫色を使用する。 |
-| `steps[].condition.type` | yes | Plugin が解釈する達成条件種別。 |
+| `steps[].condition.type` | yes | Plugin が解釈する達成条件種別。API では文字列として扱う。 |
 | `steps[].condition.targetId` | no | 条件対象 ID。`targetIds` 未指定時に使用し、未指定時は同じ type の全対象に一致する。 |
 | `steps[].condition.targetIds` | no | 条件対象 ID の候補配列。いずれか1つに一致したとき達成する。`targetId` と併記した場合はどちらかに一致すればよい。 |
 | `steps[].condition.level` | no | `MOB_DEFEATED` の対象 Mob レベル。未指定時は全レベルに一致する。 |
@@ -58,16 +58,20 @@ Plugin は各 guide の全未達成 step をイベントごとに評価します
 
 達成状態はアカウント単位で `account_guide_step_progress` に保存します。新規 DB ではこの定義に基づく状態だけを作成し、旧スキーマからの移行・既存状態の遡及再判定は行いません。
 
+旧 `beginner_onboarding` の全21手順を達成済みのアカウントに限り、現行の6手順の未記録分を達成済みとして補完します。全21手順の達成記録を補完の根拠にします。
+
 ## 達成条件種別
 
 | type | targetId / targetIds | 達成タイミング |
 |:--|:--|:--|
 | `PLAYER_LOGGED_IN` | 使用しない | ゲームプレイ状態でログインしたとき |
 | `GUIDE_OPENED` | 使用しない | ガイド一覧を開いたとき |
+| `MAIN_MENU_OPENED` | 使用しない | メインメニューを開いたとき |
 | `LOGIN_BONUS_CLAIMED` | 使用しない | ログインボーナスを受け取ったとき |
 | `MAIL_RECEIVED` | mail ID | メールを既読化し、報酬受取が成功したとき |
 | `BUNDLE_OPENED` | bundle item ID | bundle を開封して報酬付与が成功したとき |
 | `SHOP_PURCHASED` | shop entry ID | ショップの商品購入または交換が成功したとき |
+| `ITEM_EQUIPPED` | item ID | 指定アイテムの装備が成功したとき |
 | `SKILL_LEARNED` | skill ID | スキルマネージャーで必要素材を消費するスキル個体の習得が成功したとき |
 | `SKILLTREE_NODE_UNLOCKED` | node ID | スキルツリーのノード解放が成功したとき |
 | `SKILLTREE_PP_NODE_UNLOCKED` | node ID | PPを1以上消費するスキルツリーノードの解放が成功したとき |
@@ -99,7 +103,7 @@ Plugin は各 guide の全未達成 step をイベントごとに評価します
 
 ### `OPEN_MENU`
 
-Plugin が許可したゲーム内メニューを開きます。`mail` はメール GUI、`skill_bind` はスキルマネージャー GUI を起動し、NPC の場所案内は行いません。
+Plugin が許可したゲーム内メニューを開きます。`mail` はメール GUI、`skill_bind` はスキルマネージャー GUI、`equipment` は装備画面を開きます。
 
 ## 本文参照
 

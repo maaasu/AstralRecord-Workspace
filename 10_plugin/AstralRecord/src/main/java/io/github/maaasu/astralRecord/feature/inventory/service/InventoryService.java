@@ -3324,6 +3324,28 @@ public class InventoryService {
     }
 
     /**
+     * 倉庫にある通常アイテムの現物数を返します。
+     * 所持確認では支払い予約中のアイテムも現物として扱うため、予約数量を差し引きません。
+     *
+     * @param accountId 対象アカウントID
+     * @param itemId 対象アイテムID
+     * @return 倉庫にある数量。未ロードまたは未所持の場合は0
+     */
+    public long getStoredNormalItemAmount(@NotNull UUID accountId, @NotNull String itemId) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return 0L;
+        }
+        String normalizedItemId = itemId.trim();
+        if (normalizedItemId.isBlank()) {
+            return 0L;
+        }
+        synchronized (state) {
+            return getItemAmount(state, InventoryType.STORAGE, normalizedItemId);
+        }
+    }
+
+    /**
      * ショップ決済に使用できる通常アイテムを、BAG・HOTBAR・STORAGEから合算します。
      * BAG・HOTBARの予約済み数量と、STORAGEの素材支払い予約済み数量は合算しません。
      *

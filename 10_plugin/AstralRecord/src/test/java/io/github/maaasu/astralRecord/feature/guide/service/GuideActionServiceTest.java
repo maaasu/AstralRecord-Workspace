@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.mob.service.NpcPlacementService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 
@@ -32,7 +33,7 @@ class GuideActionServiceTest {
             plugin,
             mock(MobService.class),
             mock(NpcPlacementService.class),
-            mock(PlayerMessageService.class)
+            mock(PlayerMessageService.class), mock(ParticleDisplayService.class)
         );
 
         assertTrue(service.execute(

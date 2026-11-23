@@ -94,6 +94,133 @@ public sealed class MailRepositoryTests
         Assert.Equal(1, count);
     }
 
+    /// <summary>マスターと指定アカウントの状態に応じた受取状態を返す。</summary>
+    [Theory]
+    [InlineData("対象者の未読", "AVAILABLE")]
+    [InlineData("別アカウントのみ既読", "AVAILABLE")]
+    [InlineData("既読かつ削除済みで公開終了", "RECEIVED")]
+    [InlineData("未読かつ削除済み", "UNAVAILABLE")]
+    [InlineData("公開終了", "UNAVAILABLE")]
+    [InlineData("配信基準日より前に作成", "UNAVAILABLE")]
+    [InlineData("マスターなし", "UNKNOWN")]
+    [InlineData("未来公開", "UNKNOWN")]
+    [InlineData("アカウントなし", "UNKNOWN")]
+    [InlineData("アカウント削除済み", "UNKNOWN")]
+    [InlineData("既読時受取の設定なし", "UNKNOWN")]
+    [InlineData("指定報酬なし", "UNKNOWN")]
+    [InlineData("不正なマスター JSON", "UNKNOWN")]
+    public async Task GetWelcomeTutorialStatusAsync_ReturnsStatusForRequestedAccount(
+        string scenario, string expected)
+    {
+        const string mailId = "welcome_mail";
+        var now = DateTime.UtcNow;
+        var publishFrom = scenario == "未来公開" ? now.AddDays(1) : now.AddDays(-2);
+        DateTime? publishTo = scenario is "公開終了" or "既読かつ削除済みで公開終了"
+            ? now.AddDays(-1)
+            : null;
+        var accountId = Guid.NewGuid();
+
+        await using var fixture = await MailRepositoryFixture.CreateAsync();
+        await using var player = fixture.CreatePlayerContext();
+        await using var master = fixture.CreateMasterContext();
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+
+        var accountCreatedAt = scenario == "配信基準日より前に作成"
+            ? publishFrom.AddDays(-1)
+            : now.AddHours(-1);
+        if (scenario != "アカウントなし")
+        {
+            player.Accounts.Add(new AccountEntity
+            {
+                Uuid = accountId,
+                UserId = Guid.NewGuid(),
+                AccountName = "welcome-tutorial-test",
+                CreatedAt = accountCreatedAt,
+                UpdatedAt = now,
+                CreatedBy = accountId,
+                UpdatedBy = accountId,
+                IsDeleted = scenario == "アカウント削除済み",
+            });
+        }
+
+        if (scenario is "既読かつ削除済みで公開終了" or "未読かつ削除済み" or "別アカウントのみ既読")
+        {
+            var stateAccountId = scenario == "別アカウントのみ既読" ? Guid.NewGuid() : accountId;
+            var isRead = scenario != "未読かつ削除済み";
+            var isDeleted = scenario != "別アカウントのみ既読";
+            player.PlayerMailStates.Add(new PlayerMailStateEntity
+            {
+                PlayerMailStateId = Guid.NewGuid(),
+                AccountId = stateAccountId,
+                MailId = mailId,
+                IsRead = isRead,
+                ReadAt = isRead ? now.AddHours(-2) : null,
+                IsDeleted = isDeleted,
+                DeletedAt = isDeleted ? now.AddHours(-1) : null,
+                Version = 1,
+                CreatedAt = now.AddHours(-3),
+                UpdatedAt = now,
+                CreatedBy = stateAccountId,
+                UpdatedBy = stateAccountId,
+            });
+        }
+
+        if (scenario != "マスターなし")
+        {
+            var payload = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                schemaVersion = 1,
+                id = mailId,
+                icon = "PAPER",
+                title = "初回チュートリアル",
+                body = "報酬を受け取れます。",
+                publishFrom,
+                publishTo,
+                firstLoginOnly = true,
+                receiveOnRead = scenario != "既読時受取の設定なし",
+                rewards = new[]
+                {
+                    new
+                    {
+                        itemId = scenario == "指定報酬なし" ? "50a00002" : "50a00001",
+                        category = "ITEM",
+                        amount = 1,
+                    },
+                },
+            });
+            master.Entries.Add(new MasterDataEntryEntity
+            {
+                EntryId = Guid.NewGuid(),
+                SourceId = Guid.NewGuid(),
+                MasterType = "mail",
+                MasterId = mailId,
+                SchemaVersion = 1,
+                SourceFilePath = $"test/{mailId}.json",
+                SourceFileHash = new string('0', 64),
+                PayloadJson = scenario == "不正なマスター JSON" ? "{" : payload,
+                EffectiveFrom = publishFrom,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = accountId,
+                UpdatedBy = accountId,
+            });
+        }
+
+        await player.SaveChangesAsync();
+        await master.SaveChangesAsync();
+        var stateCount = await player.PlayerMailStates.AsNoTracking().CountAsync();
+        player.ChangeTracker.Clear();
+        master.ChangeTracker.Clear();
+
+        var repository = new MailRepository(player, master, cache);
+        var status = await repository.GetWelcomeTutorialStatusAsync(accountId);
+
+        Assert.Equal(expected, status);
+        Assert.Empty(player.ChangeTracker.Entries());
+        Assert.Empty(master.ChangeTracker.Entries());
+        Assert.Equal(stateCount, await player.PlayerMailStates.AsNoTracking().CountAsync());
+    }
+
     private sealed class MailRepositoryFixture : IAsyncDisposable
     {
         private readonly SqliteConnection playerAnchor;
@@ -225,12 +352,12 @@ public sealed class MailRepositoryTests
             await masterAnchor.DisposeAsync();
         }
 
-        private AstralRecordDbContext CreatePlayerContext()
+        public AstralRecordDbContext CreatePlayerContext()
             => new(new DbContextOptionsBuilder<AstralRecordDbContext>()
                 .UseSqlite(new SqliteConnection(playerConnectionString))
                 .Options);
 
-        private MasterDataDbContext CreateMasterContext(DbCommandInterceptor? interceptor = null)
+        public MasterDataDbContext CreateMasterContext(DbCommandInterceptor? interceptor = null)
         {
             var options = new DbContextOptionsBuilder<MasterDataDbContext>()
                 .UseSqlite(new SqliteConnection(masterConnectionString));

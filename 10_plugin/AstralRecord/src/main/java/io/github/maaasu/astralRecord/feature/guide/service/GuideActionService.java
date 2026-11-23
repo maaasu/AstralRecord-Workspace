@@ -10,9 +10,13 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.mob.service.NpcPlacementService;
 import io.github.maaasu.astralRecord.feature.mail.event.MailGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.feature.world.model.WorldType;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -35,6 +39,7 @@ public final class GuideActionService {
     private final NpcPlacementService npcPlacementService;
     private final PlayerMessageService playerMessageService;
     private final Map<UUID, HighlightSession> highlights = new HashMap<>();
+    private final FirstAdventureGuide firstAdventureGuide;
 
     /**
      * ガイド案内アクションサービスを生成します。
@@ -48,12 +53,60 @@ public final class GuideActionService {
         @NotNull AstralRecord plugin,
         @NotNull MobService mobService,
         @NotNull NpcPlacementService npcPlacementService,
-        @NotNull PlayerMessageService playerMessageService
+        @NotNull PlayerMessageService playerMessageService,
+        @NotNull ParticleDisplayService particles
     ) {
         this.plugin = plugin;
         this.mobService = mobService;
         this.npcPlacementService = npcPlacementService;
         this.playerMessageService = playerMessageService;
+        this.firstAdventureGuide = new FirstAdventureGuide(
+            plugin,
+            particles, this::navigateTutorialMerchant,
+            this::clearTutorialHighlight
+        );
+    }
+
+    /** 全サービスの起動後に、メインスレッドで初回案内の観測を開始します。 */
+    public void startTutorial() {
+        firstAdventureGuide.start();
+    }
+
+    /** 指定された段階の目的地を、操作したプレイヤーに再表示します。 */
+    public boolean showTutorialDestination(@NotNull Player player, @NotNull String stepId) {
+        return switch (stepId) {
+            case FirstAdventureGuide.BUY_WEAPON -> navigateTutorialMerchant(player);
+            case FirstAdventureGuide.HUNT_GRASSBOAR -> firstAdventureGuide.showHunt(player);
+            default -> false;
+        };
+    }
+
+    /** 初回チュートリアルの新規達成イベントから呼び出します。 */
+    public void onTutorialCompleted(@NotNull Player player) {
+        firstAdventureGuide.complete(player);
+    }
+
+    private boolean navigateTutorialMerchant(Player player) {
+        boolean found = navigateNpc(player, "general_goods_merchant");
+        if (!found) {
+            var world = plugin.getWorldService().findByBukkitWorld(player.getWorld());
+            if (world == null || world.worldType() != WorldType.BASE) {
+                player.sendMessage(Component.text("案内具のメニューから「帰還」を選び、ノクスで雑貨商ミナを探そう"));
+            }
+            return false;
+        }
+        HighlightSession session = highlights.get(player.getUniqueId());
+        if (found && session != null) {
+            session.tutorial = true;
+        }
+        return found;
+    }
+
+    private void clearTutorialHighlight(UUID playerId) {
+        HighlightSession session = highlights.get(playerId);
+        if (session != null && session.tutorial) {
+            clearHighlight(playerId);
+        }
     }
 
     /**
@@ -112,6 +165,19 @@ public final class GuideActionService {
         if (menuId == null) {
             playerMessageService.send(player, PlayerMsgId.P_5184);
             return false;
+        }
+        if (menuId.equalsIgnoreCase("main") || menuId.equalsIgnoreCase("equipment")) {
+            var ast = AstPlayerCache.get(player);
+            if (ast == null) {
+                playerMessageService.send(player, PlayerMsgId.P_5184);
+                return false;
+            }
+            if (menuId.equalsIgnoreCase("main")) {
+                plugin.getMenuView().open(ast, plugin.getPlayerGuiRenderContextFactory().create(ast));
+            } else {
+                plugin.getMenuOpenEventHandler().openEquipmentGui(player);
+            }
+            return true;
         }
         if (menuId.equalsIgnoreCase("mail")) {
             MailGuiEventHandler mailGuiEventHandler = plugin.getMailGuiEventHandler();
@@ -247,6 +313,7 @@ public final class GuideActionService {
      * メインスレッド上で、Mob の表示サービス停止前に呼び出します。
      */
     public void stop() {
+        firstAdventureGuide.stop();
         for (UUID playerId : List.copyOf(highlights.keySet())) {
             clearHighlight(playerId);
         }
@@ -266,6 +333,7 @@ public final class GuideActionService {
     private static final class HighlightSession {
         private final Runnable removeDisplay;
         private @Nullable BukkitTask expiryTask;
+        private boolean tutorial;
 
         /**
          * 一つの表示専用の回収処理を保持します。

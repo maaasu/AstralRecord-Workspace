@@ -62,6 +62,23 @@ public final class TrashService {
     }
 
     /**
+     * 未確定のゴミ箱に指定アイテムがあるかを主スレッドで確認します。
+     *
+     * @param playerId 対象プレイヤーのUUID
+     * @param itemId 対象アイテムID
+     * @return 指定アイテムが一時保管されている場合は {@code true}
+     */
+    public boolean containsPendingItem(@NotNull UUID playerId, @NotNull String itemId) {
+        for (ItemStack item : trashItemsByPlayer.getOrDefault(playerId, List.of())) {
+            ItemReference reference = resolveTransferReference(item);
+            if (reference != null && itemId.equalsIgnoreCase(reference.itemId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * ゴミ箱 GUI を開き、前回返却できなかった保護中の装備があれば表示します。
      *
      * @param player 対象プレイヤー

@@ -70,6 +70,49 @@ public class MailRepository(
                 && !excludedMailIds.Contains(mail.Id));
     }
 
+    /// <inheritdoc />
+    public async Task<string> GetWelcomeTutorialStatusAsync(Guid accountId)
+    {
+        const string mailId = "welcome_mail";
+        const string rewardItemId = "50a00001";
+        var now = DateTime.UtcNow;
+
+        if (accountId == Guid.Empty || !await dbContext.Accounts.AsNoTracking()
+                .AnyAsync(account => account.Uuid == accountId && !account.IsDeleted))
+            return "UNKNOWN";
+
+        MailResponse? master;
+        try
+        {
+            master = await GetMailMasterByIdAsync(mailId);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return "UNKNOWN";
+        }
+
+        if (master is null || master.Id != mailId || master.PublishFrom == default
+            || master.PublishFrom > now || !master.ReceiveOnRead
+            || master.Rewards?.Any(reward => reward is not null
+                && reward.ItemId == rewardItemId && reward.Amount > 0) != true)
+            return "UNKNOWN";
+
+        var state = await dbContext.PlayerMailStates
+            .AsNoTracking()
+            .Where(state => state.AccountId == accountId && state.MailId == mailId)
+            .Select(state => new { state.IsRead, state.IsDeleted })
+            .SingleOrDefaultAsync();
+
+        if (state?.IsRead == true)
+            return "RECEIVED";
+
+        if (state?.IsDeleted == true || master.PublishTo < now
+            || (master.FirstLoginOnly && !await IsFirstLoginEligibleAsync(accountId, master.PublishFrom)))
+            return "UNAVAILABLE";
+
+        return "AVAILABLE";
+    }
+
     public async Task<MailResponse?> MarkReadAsync(string mailId, MailActionRequest request)
     {
         var master = await GetMailByIdAsync(mailId, request.AccountId);
