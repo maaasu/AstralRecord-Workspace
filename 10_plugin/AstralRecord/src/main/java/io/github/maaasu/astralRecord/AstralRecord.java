@@ -73,6 +73,7 @@ import io.github.maaasu.astralRecord.feature.guide.event.GuideHighlightEventHand
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideCompletionRewardService;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideReminderTask;
+import io.github.maaasu.astralRecord.feature.guide.view.TutorialGuiMarker;
 import io.github.maaasu.astralRecord.shared.gui.event.GuiClickCooldownEventHandler;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationEventHandler;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationService;
@@ -539,6 +540,7 @@ public final class AstralRecord extends JavaPlugin {
     private GuideCompletionRewardService guideCompletionRewardService;
     private GuideActionService guideActionService;
     private GuideReminderTask guideReminderTask;
+    private TutorialGuiMarker tutorialGuiMarker;
     private PlayerGuiRenderContextFactory playerGuiRenderContextFactory;
     private MenuView menuView;
     private MenuOpenEventHandler menuOpenEventHandler;
@@ -1041,6 +1043,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (guideReminderTask != null) {
             guideReminderTask.stop();
+        }
+        if (tutorialGuiMarker != null) {
+            tutorialGuiMarker.stop();
         }
         if (guideActionService != null) {
             guideActionService.stop();
@@ -1971,7 +1976,9 @@ public final class AstralRecord extends JavaPlugin {
         teleporterService.setTeleportSuccessListener((player, waystoneId) ->
             guideService.recordCondition(player, GuideConditionType.WAYSTONE_TELEPORTED, waystoneId)
         );
-        guideActionService = new GuideActionService(this, mobService, npcPlacementService, playerMessageService);
+        guideActionService = new GuideActionService(this, mobService, npcPlacementService, playerMessageService, particleDisplayService);
+        guideService.setTutorialCompletedListener(player -> guideActionService.onTutorialCompleted(player.getBukkit()));
+        tutorialGuiMarker = new TutorialGuiMarker(this, guideService);
         guideReminderTask = new GuideReminderTask(playerMessageService, guideService, playerSettingService);
 
         // menu
@@ -3180,7 +3187,8 @@ public final class AstralRecord extends JavaPlugin {
                 passiveSkillService,
                 orbService,
                 menuGuiTransitionService,
-                menuOpenEventHandler
+                menuOpenEventHandler,
+                guideService::recordTutorialHeldWeapon
             ),
             getServer().getPluginManager()
         );
@@ -3444,6 +3452,8 @@ public final class AstralRecord extends JavaPlugin {
         // インベントリオートセーブ（60 秒）を開始
         inventoryAutoSaveTask.start(this, InventoryAutoSaveTask.DEFAULT_INTERVAL_TICKS);
         guideReminderTask.start(this, GuideReminderTask.DEFAULT_INTERVAL_TICKS);
+        guideActionService.startTutorial();
+        tutorialGuiMarker.start();
         equipmentDurabilityReminderTask.start(this, EquipmentDurabilityReminderTask.DEFAULT_INTERVAL_TICKS);
     }
     /**

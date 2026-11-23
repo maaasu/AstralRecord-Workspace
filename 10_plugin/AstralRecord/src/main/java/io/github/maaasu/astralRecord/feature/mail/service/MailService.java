@@ -1,7 +1,9 @@
 package io.github.maaasu.astralRecord.feature.mail.service;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryInstanceType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
@@ -12,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.mail.model.MailEntry;
 import io.github.maaasu.astralRecord.feature.mail.model.MailFilter;
 import io.github.maaasu.astralRecord.feature.mail.model.MailReward;
 import io.github.maaasu.astralRecord.feature.mail.repository.MailRepository;
+import io.github.maaasu.astralRecord.feature.mail.repository.MailRepository.WelcomeTutorialStatus;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -38,6 +41,8 @@ import java.util.function.Consumer;
 public final class MailService {
     private static final String MAIL_CLAIM_SECTION = "mailClaim";
     private static final String MAIL_DELETE_SECTION = "mailDelete";
+    private static final String WELCOME_MAIL_ID = "welcome_mail";
+    private static final String INITIAL_BUNDLE_ITEM_ID = "50a00001";
     private static final long UNREAD_CACHE_TTL_MS = 60_000L;
     private static final long UNREAD_REFRESH_RETRY_MS = 15_000L;
     private static final long UNREAD_CACHE_RETENTION_MS = 600_000L;
@@ -765,6 +770,87 @@ public final class MailService {
             && astPlayer.getAccount().getUuid().equals(accountId)
             ? astPlayer
             : null;
+    }
+
+    /**
+     * ログイン時に初回メールの状態を確認し、記録が欠けている導入手順を補完します。
+     * プレイヤー状態をロードした後に主スレッドから呼び出してください。
+     */
+    public void reconcileTutorialMail(@NotNull AstPlayer player, @NotNull GuideService guide) {
+        Player bukkit = player.getBukkit();
+        UUID accountId = player.getAccount().getUuid();
+        if (!plugin.isEnabled() || !bukkit.isOnline() || AstPlayerCache.get(bukkit) != player
+            || !guide.needsWelcomeTutorialReconciliation(accountId)) {
+            return;
+        }
+
+        MailClaimKey claimKey = new MailClaimKey(accountId, WELCOME_MAIL_ID);
+        var stateRegistry = inventoryService.getStateRegistry();
+        final var capturedState = stateRegistry.get(accountId);
+        if (capturedState == null || claimsInFlight.contains(claimKey)) {
+            return;
+        }
+
+        boolean receivedBeforeLookup = completedClaims.contains(claimKey);
+        final boolean hasBundleAtStart;
+        try {
+            hasBundleAtStart = hasInitialBundle(accountId, bukkit.getUniqueId());
+        } catch (RuntimeException failure) {
+            return;
+        }
+
+        var scheduler = plugin.getServer().getScheduler();
+        try {
+            scheduler.runTaskAsynchronously(plugin, () -> {
+                WelcomeTutorialStatus status = mailRepository.findWelcomeTutorialStatus(accountId);
+                if ((status != WelcomeTutorialStatus.RECEIVED && status != WelcomeTutorialStatus.UNAVAILABLE)
+                    || !plugin.isEnabled()) {
+                    return;
+                }
+                try {
+                    scheduler.runTask(plugin, () -> {
+                        if (!plugin.isEnabled() || !bukkit.isOnline() || AstPlayerCache.get(bukkit) != player
+                            || !accountId.equals(player.getAccount().getUuid())
+                            || !guide.needsWelcomeTutorialReconciliation(accountId)) {
+                            return;
+                        }
+
+                        if (stateRegistry.get(accountId) != capturedState || claimsInFlight.contains(claimKey)
+                            || (!receivedBeforeLookup && completedClaims.contains(claimKey))) {
+                            return;
+                        }
+
+                        final boolean currentBundlePresent;
+                        try {
+                            currentBundlePresent = hasInitialBundle(accountId, bukkit.getUniqueId());
+                        } catch (RuntimeException failure) {
+                            return;
+                        }
+                        guide.reconcileWelcomeTutorialSteps(player, hasBundleAtStart || currentBundlePresent);
+                    });
+                } catch (IllegalPluginAccessException stopped) {
+                    if (plugin.isEnabled()) {
+                        throw stopped;
+                    }
+                }
+            });
+        } catch (IllegalPluginAccessException stopped) {
+            if (plugin.isEnabled()) {
+                throw stopped;
+            }
+        }
+    }
+
+    private boolean hasInitialBundle(@NotNull UUID accountId, @NotNull UUID playerId) {
+        if (inventoryService.getNormalItemAmount(accountId, INITIAL_BUNDLE_ITEM_ID) > 0
+            || inventoryService.getStoredNormalItemAmount(accountId, INITIAL_BUNDLE_ITEM_ID) > 0) {
+            return true;
+        }
+        if (plugin instanceof AstralRecord astralRecord) {
+            var trashService = astralRecord.getTrashService();
+            return trashService != null && trashService.containsPendingItem(playerId, INITIAL_BUNDLE_ITEM_ID);
+        }
+        return false;
     }
 
     private @Nullable UUID parseUuidOrNull(@NotNull String value) {

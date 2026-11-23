@@ -20,6 +20,9 @@ import java.util.Map;
  * プラグイン共通のパーティクル定義と解決処理を提供します。
  */
 public final class SharedParticleDefinitions {
+    /** 初回チュートリアルの進行方向、転送円と対象モブに付ける個人用の光点です。 */
+    public static final SharedParticleDefinition TUTORIAL_WAYPOINT =
+        new SharedParticleDefinition("tutorial_waypoint", Particle.END_ROD, 1, 0, 0, 0, 0);
 
     public static final SharedParticleDefinition BEDROCK_WARNING =
         new SharedParticleDefinition("bedrock_warning", Particle.DUST, 1, 0, 0, 0, 0,

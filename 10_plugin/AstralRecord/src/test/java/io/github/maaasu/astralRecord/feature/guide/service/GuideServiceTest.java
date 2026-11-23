@@ -1,8 +1,11 @@
 package io.github.maaasu.astralRecord.feature.guide.service;
 
+import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryState;
+import io.github.maaasu.astralRecord.feature.menu.service.TrashService;
 import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideCondition;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideEntry;
@@ -11,7 +14,12 @@ import io.github.maaasu.astralRecord.feature.guide.model.GuideStepKey;
 import io.github.maaasu.astralRecord.feature.guide.repository.GuideProgressRepository;
 import io.github.maaasu.astralRecord.feature.guide.repository.GuideRepository;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.mail.repository.MailRepository;
+import io.github.maaasu.astralRecord.feature.mail.repository.MailRepository.WelcomeTutorialStatus;
+import io.github.maaasu.astralRecord.feature.mail.service.MailService;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -22,30 +30,36 @@ import org.bukkit.entity.Player;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import org.bukkit.Server;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class GuideServiceTest {
@@ -331,8 +345,8 @@ class GuideServiceTest {
             guide("starter", "Starter", "Start", GuideConditionType.SHOP_PURCHASED, 1), repairGuide()
         ));
         fixture.service.recordCondition(player, GuideConditionType.SHOP_PURCHASED, null);
-        verify(fixture.messages, never()).send(org.mockito.ArgumentMatchers.eq(player),
-            org.mockito.ArgumentMatchers.eq(PlayerMsgId.P_5185), any());
+        verify(fixture.messages, never()).send(eq(player),
+            eq(PlayerMsgId.P_5185), any());
         assertTrue(fixture.service.hasIncompleteGuide(accountId));
         assertFalse(fixture.service.areAllGuidesCompleted(accountId));
     }
@@ -408,6 +422,503 @@ class GuideServiceTest {
         verify(fixture.inventoryService, times(1)).queueLocalPlayerSave(accountId);
     }
 
+    /** 旧最終手順を達成済みでも、旧手順が一つでも欠けていれば新設手順を補完しません。 */
+    @Test
+    void incompleteLegacyProgressKeepsOnlyEarnedTutorialSteps() {
+        Fixture fixture = new Fixture();
+        UUID accountId = UUID.randomUUID();
+        Set<GuideStepKey> legacy = legacyTutorialProgress();
+        legacy.remove(new GuideStepKey(GuideService.INITIAL_GUIDE_ID, "buy_starter_armor_chest"));
+        fixture.service.replaceEntrySnapshot(List.of(tutorialGuide()));
+        when(fixture.progressRepository.findByAccountId(accountId)).thenReturn(legacy);
+
+        assertNull(fixture.service.tutorialStep(accountId));
+        CompletableFuture<Boolean> loaded = fixture.service.loadProgressAsync(accountId);
+        fixture.asyncTasks.getFirst().run();
+
+        assertTrue(loaded.join());
+        assertEquals("open_menu", fixture.service.tutorialStep(accountId));
+        assertTrue(fixture.service.isStepCompleted(accountId, GuideService.INITIAL_GUIDE_ID, "defeat_grassboar"));
+        assertFalse(fixture.service.isStepCompleted(accountId, GuideService.INITIAL_GUIDE_ID, "equip_starter_weapon"));
+        assertFalse(fixture.service.areAllGuidesCompleted(accountId));
+        assertNull(fixture.service.snapshotPlayerState(accountId));
+        verify(fixture.inventoryService, never()).queueLocalPlayerSave(accountId);
+    }
+
+    /** 完了済みの旧進行は公開時に補完済みで、ロード成功後に通常の保存へ一度だけ渡します。 */
+    @Test
+    void completedLegacyProgressMigratesBeforePublicationAndSavesAfterLoadCompletion() {
+        Fixture fixture = new Fixture();
+        UUID accountId = UUID.randomUUID();
+        AstPlayer player = fixture.player(accountId);
+        List<AstPlayer> notifications = new ArrayList<>();
+        fixture.service.setTutorialCompletedListener(notifications::add);
+        fixture.service.replaceEntrySnapshot(List.of(legacyTutorialGuide()));
+        Set<GuideStepKey> legacy = legacyTutorialProgress();
+        when(fixture.progressRepository.findByAccountId(accountId)).thenReturn(legacy);
+
+        CompletableFuture<Boolean> loaded = fixture.service.loadProgressAsync(accountId);
+        CompletableFuture<Void> atLoadCompletion = loaded.thenAccept(success -> {
+            assertTrue(success);
+            assertNull(fixture.service.tutorialStep(accountId));
+            assertTrue(fixture.service.areAllGuidesCompleted(accountId));
+            assertNull(fixture.service.snapshotPlayerState(accountId));
+            verify(fixture.inventoryService, never()).queueLocalPlayerSave(accountId);
+        });
+
+        fixture.asyncTasks.getFirst().run();
+        assertFalse(loaded.isDone());
+        assertFalse(fixture.service.isProgressLoaded(accountId));
+        fixture.syncTasks.getFirst().run();
+        atLoadCompletion.join();
+        fixture.service.replaceEntrySnapshot(List.of(tutorialGuide()));
+        assertNull(fixture.service.tutorialStep(accountId));
+        assertTrue(fixture.service.areAllGuidesCompleted(accountId));
+
+        PlayerStateSection snapshot = fixture.service.snapshotPlayerState(accountId);
+        assertNotNull(snapshot);
+        JsonObject payload = snapshot.payload().getAsJsonObject();
+        assertEquals(1L, payload.get("clientRevision").getAsLong());
+        assertEquals(23, payload.getAsJsonArray("completedStepKeys").size());
+        fixture.service.releaseProgress(accountId);
+        snapshot.acknowledge().accept(payload);
+
+        legacy.add(new GuideStepKey(GuideService.INITIAL_GUIDE_ID, "open_menu"));
+        legacy.add(new GuideStepKey(GuideService.INITIAL_GUIDE_ID, "equip_starter_weapon"));
+        CompletableFuture<Boolean> reloaded = fixture.service.loadProgressAsync(accountId);
+        fixture.asyncTasks.get(1).run();
+        assertTrue(reloaded.join());
+        fixture.service.recordTutorialMenuOpened(player);
+
+        assertNull(fixture.service.tutorialStep(accountId));
+        assertNull(fixture.service.snapshotPlayerState(accountId));
+        assertTrue(notifications.isEmpty());
+        verify(fixture.inventoryService, times(1)).queueLocalPlayerSave(accountId);
+    }
+
+    /** 手順は順不同で記録し、導入の完了通知と全ガイド完了報酬を各達成時に一度だけ発行します。 */
+    @Test
+    void tutorialCompletesOutOfOrderWithoutAdvancingAllGuidesReward() {
+        Fixture fixture = new Fixture();
+        UUID accountId = UUID.randomUUID();
+        AstPlayer player = fixture.player(accountId);
+        ItemModel weapon = mock(ItemModel.class);
+        when(weapon.getId()).thenReturn("20a00002", "20a00001");
+        when(fixture.inventoryService.getOwnedItemModelAtBukkitSlot(player, 8)).thenReturn(weapon);
+        when(fixture.progressRepository.findByAccountId(accountId)).thenReturn(Set.of());
+        List<AstPlayer> tutorialCompletions = new ArrayList<>();
+        List<AstPlayer> allCompletions = new ArrayList<>();
+        fixture.service.setTutorialCompletedListener(tutorialCompletions::add);
+        fixture.service.setAllGuidesCompletedListener(allCompletions::add);
+        fixture.service.replaceEntrySnapshot(List.of(tutorialGuide(),
+            guide("skills", "Skills", "Unlock a skill", GuideConditionType.SKILLTREE_NODE_UNLOCKED, 2)));
+        fixture.service.loadProgressAsync(accountId);
+        fixture.asyncTasks.getFirst().run();
+
+        fixture.service.recordCondition(player, GuideConditionType.MOB_DEFEATED, "midgard_grassboar");
+        fixture.service.recordCondition(player, GuideConditionType.SHOP_PURCHASED, "nox_weapon");
+        when(player.getAccount().getMode()).thenReturn(AccountMode.ADMIN);
+        fixture.service.recordTutorialHeldWeapon(player, 8);
+        when(player.getAccount().getMode()).thenReturn(AccountMode.PLAYER);
+        fixture.service.recordTutorialHeldWeapon(player, -1);
+        fixture.service.recordTutorialHeldWeapon(player, 9);
+        fixture.service.recordTutorialHeldWeapon(player, 8);
+        assertFalse(fixture.service.isStepCompleted(accountId, GuideService.INITIAL_GUIDE_ID, "equip_starter_weapon"));
+        fixture.service.recordTutorialHeldWeapon(player, 8);
+        assertTrue(fixture.service.isStepCompleted(accountId, GuideService.INITIAL_GUIDE_ID, "equip_starter_weapon"));
+        fixture.service.recordTutorialHeldWeapon(player, 8);
+        verify(fixture.inventoryService, times(2)).getOwnedItemModelAtBukkitSlot(
+            eq(player), anyInt());
+        fixture.service.recordCondition(player, GuideConditionType.BUNDLE_OPENED, "50a00001");
+        fixture.service.recordCondition(player, GuideConditionType.MAIL_RECEIVED, "welcome_mail");
+
+        assertEquals("open_menu", fixture.service.tutorialStep(accountId));
+        assertTrue(tutorialCompletions.isEmpty());
+        assertTrue(allCompletions.isEmpty());
+
+        fixture.service.recordTutorialMenuOpened(player);
+        fixture.service.recordTutorialMenuOpened(player);
+        assertNull(fixture.service.tutorialStep(accountId));
+        assertEquals(List.of(player), tutorialCompletions);
+        assertFalse(fixture.service.areAllGuidesCompleted(accountId));
+        assertTrue(allCompletions.isEmpty());
+        verify(fixture.messages, never()).send(player, PlayerMsgId.P_5186, "Unlock a skill");
+
+        fixture.service.recordCondition(player, GuideConditionType.SKILLTREE_NODE_UNLOCKED, "1047");
+        fixture.service.recordCondition(player, GuideConditionType.SKILLTREE_NODE_UNLOCKED, "1047");
+        assertTrue(fixture.service.areAllGuidesCompleted(accountId));
+        assertEquals(List.of(player), allCompletions);
+        assertEquals(List.of(player), tutorialCompletions);
+    }
+
+    @Test
+    void onlyProductionMasterEnablesTutorialUiAndCompletion() {
+        Fixture fixture = new Fixture();
+        UUID accountId = UUID.randomUUID();
+        AstPlayer player = fixture.player(accountId);
+        List<AstPlayer> completions = new ArrayList<>();
+        fixture.service.setTutorialCompletedListener(completions::add);
+        fixture.service.loadProgressAsync(accountId);
+        fixture.asyncTasks.getFirst().run();
+
+        GuideEntry legacy = legacyTutorialGuide();
+        fixture.service.replaceEntrySnapshot(List.of(legacy));
+        assertEquals(List.of(legacy), fixture.service.getAll());
+        assertNull(fixture.service.tutorialStep(accountId));
+
+        List<GuideStep> steps = new ArrayList<>(tutorialGuide().steps());
+        steps.removeLast();
+        fixture.service.replaceEntrySnapshot(List.of(tutorialGuide(steps)));
+        assertNull(fixture.service.tutorialStep(accountId));
+
+        steps.add(tutorialStep("defeat_grassboar", GuideConditionType.MOB_DEFEATED, "other_mob"));
+        GuideEntry broken = tutorialGuide(steps);
+        fixture.service.replaceEntrySnapshot(List.of(broken));
+        assertNull(fixture.service.tutorialStep(accountId));
+        for (GuideStep step : broken.steps()) {
+            fixture.service.recordCondition(player, step.condition().type(), step.condition().targetId());
+        }
+        assertTrue(fixture.service.isGuideCompleted(accountId, broken));
+        assertTrue(completions.isEmpty());
+    }
+
+    @Test
+    void loginRestoresStarterWeaponSilentlyOnlyWhenHeld() {
+        Fixture fixture = new Fixture();
+        UUID accountId = UUID.randomUUID();
+        AstPlayer player = fixture.player(accountId);
+        when(player.getAccount().getMode()).thenReturn(AccountMode.PLAYER);
+        GuideEntry tutorial = tutorialGuide();
+        Set<GuideStepKey> saved = new HashSet<>();
+        for (GuideStep step : tutorial.steps()) {
+            if (!"equip_starter_weapon".equals(step.id())) {
+                saved.add(new GuideStepKey(tutorial.id(), step.id()));
+            }
+        }
+        when(fixture.progressRepository.findByAccountId(accountId)).thenReturn(saved);
+        fixture.service.replaceEntrySnapshot(List.of(tutorial));
+        List<AstPlayer> notifications = new ArrayList<>();
+        fixture.service.setTutorialCompletedListener(notifications::add);
+        fixture.service.setSoundPlayers(notifications::add, notifications::add);
+
+        when(fixture.inventoryService.getItemReferenceInHand(player, EquipmentSlot.HAND))
+            .thenReturn(new ItemReference("20a00001", "instance", "item"));
+        fixture.service.reconcileLoadedAccount(player, false);
+        assertTrue(fixture.asyncTasks.isEmpty());
+
+        fixture.service.loadProgressAsync(accountId);
+        fixture.asyncTasks.getFirst().run();
+        when(fixture.inventoryService.getItemReferenceInHand(player, EquipmentSlot.HAND)).thenReturn(null);
+        fixture.service.reconcileLoadedAccount(player, false);
+        assertEquals("equip_starter_weapon", fixture.service.tutorialStep(accountId));
+        verify(fixture.inventoryService, never()).queueLocalPlayerSave(accountId);
+
+        fixture.service.releaseProgress(accountId);
+        AstPlayer restored = fixture.player(accountId);
+        when(restored.getAccount().getMode()).thenReturn(AccountMode.PLAYER);
+        when(fixture.inventoryService.getItemReferenceInHand(restored, EquipmentSlot.HAND))
+            .thenReturn(new ItemReference("20a00001", "instance", "item"));
+        fixture.service.loadProgressAsync(accountId);
+        fixture.asyncTasks.getLast().run();
+        fixture.service.reconcileLoadedAccount(restored, false);
+        fixture.service.reconcileLoadedAccount(restored, false);
+
+        assertTrue(fixture.service.isStepCompleted(accountId, tutorial.id(), "equip_starter_weapon"));
+        assertNull(fixture.service.tutorialStep(accountId));
+        assertTrue(notifications.isEmpty());
+        verifyNoInteractions(fixture.messages);
+        verify(fixture.inventoryService).getItemReferenceInHand(restored, EquipmentSlot.HAND);
+        verify(fixture.inventoryService).queueLocalPlayerSave(accountId);
+    }
+
+    @Test
+    void unavailableWelcomeMailWithoutBundleRestoresOnlyInitialStepsAndSavesOnce() {
+        WelcomeMailFixture welcome = new WelcomeMailFixture(WelcomeTutorialStatus.UNAVAILABLE);
+        GuideEntry other = guide("other", "Other", "Receive", GuideConditionType.MAIL_RECEIVED, 2);
+        List<GuideStep> steps = new ArrayList<>(other.steps());
+        steps.add(tutorialStep("other_bundle", GuideConditionType.BUNDLE_OPENED, "50a00001"));
+        other = new GuideEntry(4, other.id(), "beginner", 2, "Other", null, null, steps);
+        welcome.fixture.service.replaceEntrySnapshot(List.of(tutorialGuide(), other));
+        List<AstPlayer> notifications = new ArrayList<>();
+        welcome.fixture.service.setTutorialCompletedListener(notifications::add);
+        welcome.fixture.service.setSoundPlayers(notifications::add, notifications::add);
+
+        try (MockedStatic<AstPlayerCache> cache = welcome.mockCurrentPlayer()) {
+            welcome.start();
+            welcome.start();
+            welcome.finish();
+            welcome.finish();
+            welcome.start();
+            assertTrue(welcome.fixture.asyncTasks.isEmpty());
+        }
+
+        assertTrue(welcome.completed("receive_welcome_mail"));
+        assertTrue(welcome.completed("open_initial_bundle"));
+        assertFalse(welcome.completed("open_menu"));
+        assertFalse(welcome.fixture.service.isStepCompleted(welcome.accountId, other.id(), "step"));
+        assertFalse(welcome.fixture.service.isStepCompleted(welcome.accountId, other.id(), "other_bundle"));
+        PlayerStateSection snapshot = welcome.fixture.service.snapshotPlayerState(welcome.accountId);
+        assertNotNull(snapshot);
+        JsonObject payload = snapshot.payload().getAsJsonObject();
+        assertEquals(1L, payload.get("clientRevision").getAsLong());
+        assertEquals(2, payload.getAsJsonArray("completedStepKeys").size());
+        verify(welcome.fixture.inventoryService, times(1)).queueLocalPlayerSave(welcome.accountId);
+        verifyNoInteractions(welcome.fixture.messages);
+        assertTrue(notifications.isEmpty());
+    }
+
+    @Test
+    void receivedWelcomeMailKeepsBundleStepWhenBundleExistsBeforeOrAfterLookup() {
+        for (String location : List.of("bag", "storage", "trash", "beforeLookup")) {
+            WelcomeMailFixture welcome = new WelcomeMailFixture(WelcomeTutorialStatus.RECEIVED,
+                Set.of(new GuideStepKey(GuideService.INITIAL_GUIDE_ID, "open_menu")));
+            try (MockedStatic<AstPlayerCache> cache = welcome.mockCurrentPlayer()) {
+                var inventory = welcome.fixture.inventoryService;
+                if (location.equals("beforeLookup")) {
+                    when(inventory.getNormalItemAmount(welcome.accountId, "50a00001"))
+                        // 最初の照会中だけ一時的に消え、次回の照会では再びバッグにある。
+                        .thenReturn(1L, 0L, 1L);
+                }
+                welcome.start();
+                welcome.fixture.asyncTasks.removeFirst().run();
+                switch (location) {
+                    case "bag" -> when(inventory.getNormalItemAmount(welcome.accountId, "50a00001"))
+                        .thenReturn(1L);
+                    case "storage" -> when(inventory.getStoredNormalItemAmount(welcome.accountId, "50a00001"))
+                        .thenReturn(1L);
+                    case "trash" -> {
+                        UUID playerId = UUID.randomUUID();
+                        when(welcome.bukkit.getUniqueId()).thenReturn(playerId);
+                        TrashService trash = mock(TrashService.class);
+                        when(welcome.fixture.plugin.getTrashService()).thenReturn(trash);
+                        when(trash.containsPendingItem(playerId, "50a00001")).thenReturn(true);
+                    }
+                    case "beforeLookup" -> { }
+                    default -> throw new AssertionError(location);
+                }
+                welcome.fixture.syncTasks.removeFirst().run();
+                welcome.start();
+                welcome.finish();
+            }
+
+            assertTrue(welcome.completed("receive_welcome_mail"));
+            assertFalse(welcome.completed("open_initial_bundle"), location);
+            assertEquals("open_initial_bundle", welcome.fixture.service.tutorialStep(welcome.accountId));
+            verify(welcome.fixture.inventoryService, times(1)).queueLocalPlayerSave(welcome.accountId);
+        }
+    }
+
+    @Test
+    void receivedWelcomeMailWithoutBundleUsesOnlyTheAllGuidesCompletionListener() {
+        Set<GuideStepKey> saved = new HashSet<>();
+        for (GuideStep step : tutorialGuide().steps()) {
+            if (!List.of("receive_welcome_mail", "open_initial_bundle").contains(step.id())) {
+                saved.add(new GuideStepKey(GuideService.INITIAL_GUIDE_ID, step.id()));
+            }
+        }
+        WelcomeMailFixture welcome = new WelcomeMailFixture(WelcomeTutorialStatus.RECEIVED, saved);
+        List<AstPlayer> tutorialCompletions = new ArrayList<>();
+        List<AstPlayer> allCompletions = new ArrayList<>();
+        welcome.fixture.service.setTutorialCompletedListener(tutorialCompletions::add);
+        welcome.fixture.service.setAllGuidesCompletedListener(allCompletions::add);
+
+        try (MockedStatic<AstPlayerCache> cache = welcome.mockCurrentPlayer()) {
+            welcome.start();
+            welcome.finish();
+        }
+
+        assertTrue(welcome.completed("open_initial_bundle"));
+        assertTrue(welcome.fixture.service.areAllGuidesCompleted(welcome.accountId));
+        assertEquals(List.of(welcome.player), allCompletions);
+        assertTrue(tutorialCompletions.isEmpty());
+        verifyNoInteractions(welcome.fixture.messages);
+        verify(welcome.fixture.inventoryService, times(1)).queueLocalPlayerSave(welcome.accountId);
+    }
+
+    @Test
+    void availableAndUnknownWelcomeMailDoNotChangeProgress() {
+        for (WelcomeTutorialStatus status : List.of(WelcomeTutorialStatus.AVAILABLE, WelcomeTutorialStatus.UNKNOWN)) {
+            WelcomeMailFixture welcome = new WelcomeMailFixture(status);
+            try (MockedStatic<AstPlayerCache> cache = welcome.mockCurrentPlayer()) {
+                welcome.start();
+                welcome.fixture.asyncTasks.removeFirst().run();
+                assertTrue(welcome.fixture.syncTasks.isEmpty());
+            }
+            welcome.assertUnchanged();
+        }
+    }
+
+    @Test
+    void welcomeMailResponseIsIgnoredAfterReloginIntoSameAccount() {
+        WelcomeMailFixture welcome = new WelcomeMailFixture(WelcomeTutorialStatus.RECEIVED);
+        try (MockedStatic<AstPlayerCache> cache = welcome.mockCurrentPlayer()) {
+            welcome.start();
+            welcome.fixture.asyncTasks.removeFirst().run();
+            welcome.fixture.service.releaseProgress(welcome.accountId);
+            AstPlayer current = welcome.fixture.player(welcome.accountId);
+            when(current.getBukkit().isOnline()).thenReturn(true);
+            cache.when(() -> AstPlayerCache.get(welcome.bukkit)).thenReturn(current);
+            welcome.loadProgress();
+            welcome.fixture.syncTasks.removeFirst().run();
+
+            welcome.assertUnchanged();
+        }
+    }
+
+    @Test
+    void welcomeMailResponseIsIgnoredIfProgressInventoryOrDefinitionIsInvalidated() {
+        for (String invalidated : List.of("progress", "inventory", "inventoryGeneration", "definition")) {
+            WelcomeMailFixture welcome = new WelcomeMailFixture(WelcomeTutorialStatus.UNAVAILABLE);
+            try (MockedStatic<AstPlayerCache> cache = welcome.mockCurrentPlayer()) {
+                welcome.start();
+                welcome.fixture.asyncTasks.removeFirst().run();
+                switch (invalidated) {
+                    case "progress" -> welcome.fixture.service.releaseProgress(welcome.accountId);
+                    case "inventory", "inventoryGeneration" -> {
+                        var registry = welcome.fixture.inventoryService.getStateRegistry();
+                        var replacement = invalidated.equals("inventory") ? null : mock(PlayerInventoryState.class);
+                        when(registry.get(welcome.accountId)).thenReturn(replacement);
+                    }
+                    case "definition" -> welcome.fixture.service.replaceEntrySnapshot(List.of(legacyTutorialGuide()));
+                    default -> throw new AssertionError(invalidated);
+                }
+                welcome.fixture.syncTasks.removeFirst().run();
+            }
+            welcome.assertUnchanged();
+        }
+    }
+
+    @Test
+    void welcomeMailLookupWaitsForValidDefinitionAndLoadedPlayerState() {
+        WelcomeMailFixture welcome = new WelcomeMailFixture(WelcomeTutorialStatus.RECEIVED);
+        try (MockedStatic<AstPlayerCache> cache = welcome.mockCurrentPlayer()) {
+            welcome.fixture.service.replaceEntrySnapshot(List.of(legacyTutorialGuide()));
+            welcome.start();
+            welcome.fixture.service.replaceEntrySnapshot(List.of(tutorialGuide()));
+            welcome.fixture.service.releaseProgress(welcome.accountId);
+            welcome.start();
+            welcome.loadProgress();
+            var registry = welcome.fixture.inventoryService.getStateRegistry();
+            when(registry.get(welcome.accountId)).thenReturn(null);
+            welcome.start();
+        }
+        assertTrue(welcome.fixture.asyncTasks.isEmpty());
+        verifyNoInteractions(welcome.repository);
+        welcome.assertUnchanged();
+    }
+
+    private static final class WelcomeMailFixture {
+        private final Fixture fixture = new Fixture(mock(InventoryService.class, RETURNS_DEEP_STUBS));
+        private final UUID accountId = UUID.randomUUID();
+        private final AstPlayer player = fixture.player(accountId);
+        private final Player bukkit = player.getBukkit();
+        private final MailRepository repository = mock(MailRepository.class);
+        private final MailService mailService;
+
+        private WelcomeMailFixture(WelcomeTutorialStatus status) {
+            this(status, Set.of());
+        }
+
+        private WelcomeMailFixture(WelcomeTutorialStatus status, Set<GuideStepKey> saved) {
+            when(fixture.plugin.isEnabled()).thenReturn(true);
+            when(bukkit.isOnline()).thenReturn(true);
+            when(repository.findWelcomeTutorialStatus(accountId)).thenReturn(status);
+            when(fixture.progressRepository.findByAccountId(accountId)).thenReturn(saved);
+            fixture.service.replaceEntrySnapshot(List.of(tutorialGuide()));
+            mailService = new MailService(fixture.plugin, repository, fixture.itemService, fixture.inventoryService);
+            loadProgress();
+        }
+
+        private void loadProgress() {
+            CompletableFuture<Boolean> loaded = fixture.service.loadProgressAsync(accountId);
+            fixture.asyncTasks.removeFirst().run();
+            assertTrue(loaded.join());
+        }
+
+        private MockedStatic<AstPlayerCache> mockCurrentPlayer() {
+            MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+            cache.when(() -> AstPlayerCache.get(bukkit)).thenReturn(player);
+            return cache;
+        }
+
+        private void start() {
+            mailService.reconcileTutorialMail(player, fixture.service);
+        }
+
+        private void finish() {
+            fixture.asyncTasks.removeFirst().run();
+            fixture.syncTasks.removeFirst().run();
+        }
+
+        private boolean completed(String stepId) {
+            return fixture.service.isStepCompleted(accountId, GuideService.INITIAL_GUIDE_ID, stepId);
+        }
+
+        private void assertUnchanged() {
+            assertFalse(completed("receive_welcome_mail"));
+            assertFalse(completed("open_initial_bundle"));
+            assertNull(fixture.service.snapshotPlayerState(accountId));
+            verify(fixture.inventoryService, never()).queueLocalPlayerSave(accountId);
+        }
+    }
+
+    private static GuideEntry legacyTutorialGuide() {
+        return tutorialGuide(legacyTutorialProgress().stream()
+            .map(key -> tutorialStep(key.stepId(), GuideConditionType.GUIDE_OPENED, null))
+            .toList());
+    }
+
+    private static GuideEntry tutorialGuide(List<GuideStep> steps) {
+        return new GuideEntry(3, GuideService.INITIAL_GUIDE_ID, "beginner", 1, "Tutorial", null, null,
+            List.copyOf(steps));
+    }
+
+    private static Set<GuideStepKey> legacyTutorialProgress() {
+        Set<GuideStepKey> progress = new HashSet<>();
+        for (String id : List.of(
+            "login",
+            "open_guide",
+            "claim_login_bonus",
+            "receive_welcome_mail",
+            "open_initial_bundle",
+            "buy_starter_weapon",
+            "buy_starter_armor_helmet",
+            "buy_starter_armor_chest",
+            "buy_starter_armor_legs",
+            "buy_starter_armor_boots",
+            "unlock_free_node",
+            "learn_astral_edge",
+            "learn_smash",
+            "enhance_skill",
+            "bind_skill_to_action_ring",
+            "cast_astral_edge",
+            "defeat_grassboar",
+            "buy_hoe",
+            "accept_gathering_quest",
+            "report_gathering_quest",
+            "freely_explore_and_change_class"
+        )) {
+            progress.add(new GuideStepKey(GuideService.INITIAL_GUIDE_ID, id));
+        }
+        return progress;
+    }
+
+    private static GuideEntry tutorialGuide() {
+        return new GuideEntry(3, GuideService.INITIAL_GUIDE_ID, "beginner", 1, "Tutorial", null, null,
+            List.of(
+                tutorialStep("open_menu", GuideConditionType.MAIN_MENU_OPENED, null),
+                tutorialStep("receive_welcome_mail", GuideConditionType.MAIL_RECEIVED, "welcome_mail"),
+                tutorialStep("open_initial_bundle", GuideConditionType.BUNDLE_OPENED, "50a00001"),
+                tutorialStep("buy_starter_weapon", GuideConditionType.SHOP_PURCHASED, "nox_weapon"),
+                tutorialStep("equip_starter_weapon", GuideConditionType.ITEM_EQUIPPED, "20a00001"),
+                tutorialStep("defeat_grassboar", GuideConditionType.MOB_DEFEATED, "midgard_grassboar")
+            ));
+    }
+
+    private static GuideStep tutorialStep(String id, GuideConditionType type, String targetId) {
+        return new GuideStep(id, id, List.of(), new GuideCondition(type, targetId), null);
+    }
+
     private static GuideEntry guide(String id, String title, String text, GuideConditionType condition, int order) {
         return new GuideEntry(3, id, "beginner", order, title, null, null,
             List.of(new GuideStep("step", text, List.of(), new GuideCondition(condition, null), null)));
@@ -428,7 +939,7 @@ class GuideServiceTest {
         private final Server server = mock(Server.class);
         private final BukkitScheduler scheduler = mock(BukkitScheduler.class);
         private final GuideProgressRepository progressRepository = mock(GuideProgressRepository.class);
-        private final InventoryService inventoryService = mock(InventoryService.class);
+        private final InventoryService inventoryService;
         private final ItemService itemService = mock(ItemService.class);
         private final PlayerMessageService messages = mock(PlayerMessageService.class);
         private final List<Runnable> asyncTasks = new ArrayList<>();
@@ -436,6 +947,11 @@ class GuideServiceTest {
         private final GuideService service;
 
         private Fixture() {
+            this(mock(InventoryService.class));
+        }
+
+        private Fixture(InventoryService inventoryService) {
+            this.inventoryService = inventoryService;
             when(plugin.getServer()).thenReturn(server);
             when(server.getScheduler()).thenReturn(scheduler);
             doAnswer(invocation -> {

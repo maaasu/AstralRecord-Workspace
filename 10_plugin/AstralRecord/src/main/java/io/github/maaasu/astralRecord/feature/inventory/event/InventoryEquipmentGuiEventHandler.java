@@ -42,6 +42,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
+import java.util.function.BiConsumer;
 
 public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
 
@@ -53,6 +54,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     private final OrbService orbService;
     private final MenuGuiTransitionService menuGuiTransitionService;
     private final MenuOpenEventHandler menuOpenEventHandler;
+    private final BiConsumer<AstPlayer, Integer> onHeldWeapon;
 
     /**
      * 装備 GUI とプレイヤーインベントリ上の装備操作を処理するイベントハンドラーを生成します。
@@ -63,6 +65,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
      * @param statusService ステータス再計算サービス
      * @param passiveSkillService 装備由来パッシブの再同期サービス
      * @param menuOpenEventHandler クラフトスロットのショートカット再描画サービス
+     * @param onHeldWeapon 実際に選択した Bukkit ホットバースロットを通知する処理
      */
     public InventoryEquipmentGuiEventHandler(
         @NotNull MenuView menuView,
@@ -72,7 +75,8 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         @NotNull PassiveSkillService passiveSkillService,
         @NotNull OrbService orbService,
         @NotNull MenuGuiTransitionService menuGuiTransitionService,
-        @NotNull MenuOpenEventHandler menuOpenEventHandler
+        @NotNull MenuOpenEventHandler menuOpenEventHandler,
+        @NotNull BiConsumer<AstPlayer, Integer> onHeldWeapon
     ) {
         this.menuView = menuView;
         this.inventoryService = inventoryService;
@@ -82,6 +86,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         this.orbService = orbService;
         this.menuGuiTransitionService = menuGuiTransitionService;
         this.menuOpenEventHandler = menuOpenEventHandler;
+        this.onHeldWeapon = onHeldWeapon;
     }
 
     /**
@@ -174,7 +179,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     }
 
     /**
-     * 持ち替えが認められた場合に、装備画面のメインハンド見本を更新します。
+     * 持ち替えが認められた場合に、新しい選択スロットを通知し、装備画面のメインハンド見本を更新します。
      *
      * @param event Bukkit のホットバー選択変更イベント
      */
@@ -182,6 +187,10 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     public void onEquipmentMenuHeldChange(@NotNull PlayerItemHeldEvent event) {
         runSafely(() -> {
             Player player = event.getPlayer();
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null) {
+                onHeldWeapon.accept(astPlayer, event.getNewSlot());
+            }
             Inventory topInventory = player.getOpenInventory().getTopInventory();
             if (!isEquipmentMenu(topInventory)) {
                 return;
@@ -475,6 +484,44 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                 astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.DISPLAYED_ITEM)) {
             return;
         }
+        if (equipmentType == EquipmentType.MAIN_HAND) {
+            int sourceSlot = event.getSlot();
+            var instanceId = sourceEntry.getInstanceId();
+            if (instanceId == null || sourceSlot < 0 || sourceSlot > 35
+                || inventoryService.isHotbarSlotLocked(player)) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+
+            int selected = sourceSlot;
+            if (sourceSlot > 8) {
+                if (!inventoryService.equipOrAssignClickedItem(astPlayer, sourceSlot)) {
+                    GuiSound.DENY.play(player);
+                    return;
+                }
+                selected = -1;
+                for (int hotbarSlot = 0; hotbarSlot <= 8; hotbarSlot++) {
+                    var hotbarEntry = inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, hotbarSlot);
+                    if (hotbarEntry != null && instanceId.equals(hotbarEntry.getInstanceId())) {
+                        selected = hotbarSlot;
+                        break;
+                    }
+                }
+                if (selected < 0) {
+                    GuiSound.DENY.play(player);
+                    return;
+                }
+            }
+
+            PlayerInventory playerInventory = player.getInventory();
+            playerInventory.setHeldItemSlot(selected);
+            menuView.updateEquipmentMainHandItem(topInventory, playerInventory.getItem(selected));
+            refreshStatusAfterEquipmentChange(astPlayer);
+            onHeldWeapon.accept(astPlayer, playerInventory.getHeldItemSlot());
+            GuiSound.EQUIP.play(player);
+            return;
+        }
+
         int targetSlot = accessorySlotType != null
             ? menuView.firstEmptyAccessorySlot(topInventory, accessorySlotType)
             : menuView.getSlotForEquipmentType(equipmentType);
@@ -662,9 +709,19 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             inventoryService.requestPetEquipmentChange(astPlayer,displayedEntry.getInstanceId());
             return;
         }
+        boolean weaponClick = inventoryService.getEquipmentTypeForEntry(displayedEntry) == EquipmentType.MAIN_HAND;
+        if (weaponClick && inventoryService.isHotbarSlotLocked(player)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+
+        var weaponInstanceId = weaponClick ? displayedEntry.getInstanceId() : null;
         boolean handled = inventoryService.equipOrAssignClickedItem(astPlayer, slot);
         if (handled) {
             refreshStatusAfterEquipmentChange(astPlayer);
+            if (weaponClick) {
+                reportAssignedWeapon(astPlayer, weaponInstanceId, player.getInventory().getHeldItemSlot());
+            }
             if (accessoryClick) {
                 menuGuiTransitionService.switchGuiWithInventoryRestore(
                     player,
@@ -677,6 +734,13 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             }
         }
         playResultSound(player, handled, true);
+    }
+
+    void reportAssignedWeapon(@NotNull AstPlayer astPlayer, @Nullable UUID instanceId, int heldSlot) {
+        var selectedEntry = inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, heldSlot);
+        if (selectedEntry != null && instanceId != null && instanceId.equals(selectedEntry.getInstanceId())) {
+            onHeldWeapon.accept(astPlayer, heldSlot);
+        }
     }
 
     private void refreshStatusAfterEquipmentChange(@NotNull AstPlayer astPlayer) {

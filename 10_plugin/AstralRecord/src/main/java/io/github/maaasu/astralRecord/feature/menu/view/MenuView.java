@@ -116,6 +116,7 @@ public class MenuView {
     private static final Component BUFF_TITLE = Component.text("バフ", NamedTextColor.AQUA);
     private static final String CURRENCY_TITLE = "通貨";
 
+    private final AstralRecord plugin;
     private final MainMenuScreenView mainMenuScreenView;
     private final EquipmentMenuScreenView equipmentMenuScreenView;
     private final BuffScreenView buffScreenView;
@@ -136,6 +137,7 @@ public class MenuView {
         @NotNull GuideService guideService,
         @NotNull GuideCompletionRewardService completionRewardService
     ) {
+        this.plugin = plugin;
         this.guideService = guideService;
         this.completionRewardService = completionRewardService;
         NamespacedKey craftShortcutKey = new NamespacedKey(plugin, "menu_shortcut_slot");
@@ -173,6 +175,7 @@ public class MenuView {
         Player player = astPlayer.getBukkit();
         UUID accountId = astPlayer.getAccount().getUuid();
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory, () -> {
+            guideService.recordTutorialMenuOpened(astPlayer);
             var factory = AstralRecord.getInstance().getPlayerGuiRenderContextFactory();
             if (factory == null) return;
             factory.refreshMenuNotifications(accountId, () -> {
@@ -340,8 +343,69 @@ public class MenuView {
         if (astPlayer != null) {
             guideService.recordCondition(astPlayer, GuideConditionType.GUIDE_OPENED, null);
         }
-        player.clearTitle();
-        openGuide(player, 0);
+        openTutorialGuide(player);
+    }
+
+    public void openTutorialGuide(@NotNull Player player) {
+        showTutorialGuide(player, getTutorialContentId(player));
+    }
+
+    public @NotNull String getTutorialContentId(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            return GuideScreenView.TUTORIAL_LOADING;
+        }
+        UUID accountId = astPlayer.getAccount().getUuid();
+        if (!guideService.isProgressLoaded(accountId)) {
+            return GuideScreenView.TUTORIAL_LOADING;
+        }
+        String step = guideService.tutorialStep(accountId);
+        if (step != null) {
+            return GuideScreenView.TUTORIAL_PREFIX + step;
+        }
+
+        GuideEntry tutorial = guideService.getById(GuideService.INITIAL_GUIDE_ID);
+        return guideService.hasTutorialDefinition() && tutorial != null && guideService.isGuideCompleted(accountId, tutorial)
+            ? GuideScreenView.TUTORIAL_COMPLETE : GuideScreenView.TUTORIAL_UNAVAILABLE;
+    }
+
+    private void showTutorialGuide(@NotNull Player player, @NotNull String contentId) {
+        ItemStack action = guideScreenView.tutorialAction(contentId);
+        Component caption = action.getItemMeta().displayName();
+        Inventory inventory = Bukkit.createInventory(
+            new MenuInventoryHolder(MenuScreen.GUIDE, -1, 0, contentId),
+            SIZE,
+            Component.text("ガイド ▶ ", NamedTextColor.GOLD).append(caption == null ? Component.empty() : caption)
+        );
+        guideScreenView.renderTutorial(inventory, action);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory, () -> {
+            if (GuideScreenView.TUTORIAL_LOADING.equals(contentId)) {
+                refreshTutorialAfterProgressLoad(player, inventory);
+            }
+        });
+    }
+
+    private void refreshTutorialAfterProgressLoad(@NotNull Player player, @NotNull Inventory inventory) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            return;
+        }
+        UUID accountId = astPlayer.getAccount().getUuid();
+        guideService.loadProgressAsync(accountId).whenComplete((loaded, failure) ->
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                if (!player.isOnline() || AstPlayerCache.get(player) != astPlayer
+                    || !accountId.equals(astPlayer.getAccount().getUuid())
+                    || player.getOpenInventory().getTopInventory() != inventory) {
+                    return;
+                }
+                String currentContentId = getTutorialContentId(player);
+                if (!GuideScreenView.TUTORIAL_LOADING.equals(currentContentId)) {
+                    showTutorialGuide(player, currentContentId);
+                } else if (failure != null || !Boolean.TRUE.equals(loaded)) {
+                    showTutorialGuide(player, GuideScreenView.TUTORIAL_LOAD_FAILED);
+                }
+            })
+        );
     }
 
     public void openGuide(@NotNull Player player, int pageIndex) {

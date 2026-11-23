@@ -55,6 +55,7 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -801,6 +802,98 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         return event.getClick() == ClickType.LEFT || event.getClick() == ClickType.RIGHT;
     }
 
+    private void handleTutorialGuideClick(
+        @NotNull Player player,
+        @NotNull Inventory inventory,
+        int rawSlot,
+        @NotNull String contentId
+    ) {
+        if (rawSlot == GuideScreenView.ALL_GUIDES_SLOT) {
+            GuiSound.SELECT.play(player);
+            switchGuiWithoutInventoryReload(player, () -> menuView.openGuide(player, 0));
+            return;
+        }
+        if (rawSlot != GuideScreenView.TUTORIAL_ACTION_SLOT) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (!contentId.equals(menuView.getTutorialContentId(player))) {
+            GuiSound.SELECT.play(player);
+            switchGuiWithoutInventoryReload(player, () -> menuView.openTutorialGuide(player));
+            return;
+        }
+
+        switch (contentId) {
+            case GuideScreenView.TUTORIAL_PREFIX + "open_menu" -> {
+                GuiSound.SELECT.play(player);
+                switchGuiWithoutInventoryReload(player, () -> player.performCommand("menu"));
+            }
+            case GuideScreenView.TUTORIAL_PREFIX + "receive_welcome_mail" -> {
+                var mailGuiEventHandler = plugin.getMailGuiEventHandler();
+                if (mailGuiEventHandler == null) {
+                    GuiSound.DENY.play(player);
+                    return;
+                }
+                GuiSound.SELECT.play(player);
+                switchGuiWithoutInventoryReload(player, () -> mailGuiEventHandler.open(player));
+            }
+            case GuideScreenView.TUTORIAL_PREFIX + "open_initial_bundle",
+                GuideScreenView.TUTORIAL_PREFIX + "buy_starter_weapon",
+                GuideScreenView.TUTORIAL_PREFIX + "defeat_grassboar" ->
+                leaveTutorialGuide(player, inventory, contentId);
+            case GuideScreenView.TUTORIAL_PREFIX + "equip_starter_weapon" -> {
+                GuiSound.SELECT.play(player);
+                openEquipmentGui(player);
+            }
+            case GuideScreenView.TUTORIAL_COMPLETE -> {
+                var skillManager = plugin.getSkillBindGuiEventHandler();
+                if (skillManager == null) {
+                    GuiSound.DENY.play(player);
+                    return;
+                }
+                GuiSound.SELECT.play(player);
+                switchGuiWithoutInventoryReload(player, () -> skillManager.open(player));
+            }
+            default -> GuiSound.DENY.play(player);
+        }
+    }
+
+    private void leaveTutorialGuide(
+        @NotNull Player player,
+        @NotNull Inventory inventory,
+        @NotNull String contentId
+    ) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        UUID accountId = astPlayer.getAccount().getUuid();
+        String step = contentId.substring(GuideScreenView.TUTORIAL_PREFIX.length());
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (!player.isOnline() || AstPlayerCache.get(player) != astPlayer
+                || !accountId.equals(astPlayer.getAccount().getUuid())
+                || player.getOpenInventory().getTopInventory() != inventory) {
+                return;
+            }
+            if (!contentId.equals(menuView.getTutorialContentId(player))) {
+                menuView.openTutorialGuide(player);
+                return;
+            }
+            var guideActionService = plugin.getGuideActionService();
+            boolean opensBundle = step.equals("open_initial_bundle");
+            if (!opensBundle && guideActionService == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            player.closeInventory();
+            if (!opensBundle) {
+                guideActionService.showTutorialDestination(player, step);
+            }
+        });
+    }
+
     private void handleGuideClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
         int rawSlot = event.getRawSlot();
         Inventory inventory = event.getView().getTopInventory();
@@ -809,6 +902,11 @@ public class MenuOpenEventHandler extends AbstractEventHandler
 
         if (rawSlot == MenuView.PAGING_BACK_SLOT || rawSlot == MenuView.BACK_SLOT) {
             navigateBack(player);
+            return;
+        }
+
+        if (contentId != null && contentId.startsWith(GuideScreenView.TUTORIAL_PREFIX)) {
+            handleTutorialGuideClick(player, inventory, rawSlot, contentId);
             return;
         }
 
@@ -1145,7 +1243,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         openCurrency(player, 0);
     }
 
-    private void openEquipmentGui(@NotNull Player player) {
+    public void openEquipmentGui(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
             GuiSound.DENY.play(player);

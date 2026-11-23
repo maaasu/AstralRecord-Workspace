@@ -13,18 +13,68 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * AstralRecord API の /api/mail と通信する repository です。
  */
 public class MailRepository {
+    public enum WelcomeTutorialStatus {
+        AVAILABLE,
+        UNAVAILABLE,
+        RECEIVED,
+        UNKNOWN
+    }
+
+    private static final String JSON_SPACE = "[ \\t\\r\\n]*";
+    private static final String STATUS_JSON_STRING = "\"(?:[A-Za-z_]|\\\\u[0-9a-fA-F]{4})+\"";
+    private static final Pattern WELCOME_TUTORIAL_RESPONSE = Pattern.compile(
+        JSON_SPACE + "\\{" + JSON_SPACE + "(" + STATUS_JSON_STRING + ")" + JSON_SPACE + ":"
+            + JSON_SPACE + "(" + STATUS_JSON_STRING + ")" + JSON_SPACE + "\\}" + JSON_SPACE
+    );
+
+    /**
+     * 初回メールの状態を取得します。呼び出し元は非同期で実行してください。
+     * 通信失敗、HTTP 200 以外、または応答を解釈できない場合は UNKNOWN を返します。
+     */
+    public @NotNull WelcomeTutorialStatus findWelcomeTutorialStatus(@NotNull UUID accountId) {
+        String path = "/api/mail/welcome-tutorial-status?account_id=" + accountId;
+        try {
+            var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
+            var response = ApiRequestUtil.sharedClient().send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                return parseWelcomeTutorialStatus(response.body());
+            }
+            Logger.log(LogId.E_5190, "welcome_tutorial_status", path, "http_status:" + response.statusCode());
+        } catch (InterruptedException failure) {
+            Thread.currentThread().interrupt();
+            Logger.error(LogId.E_5190, failure, "welcome_tutorial_status", path, failureReason(failure));
+        } catch (IOException | RuntimeException failure) {
+            Logger.error(LogId.E_5190, failure, "welcome_tutorial_status", path, failureReason(failure));
+        }
+        return WelcomeTutorialStatus.UNKNOWN;
+    }
+
+    static @NotNull WelcomeTutorialStatus parseWelcomeTutorialStatus(@NotNull String json) {
+        // API 契約は status だけを持つ JSON オブジェクト。文字列の Unicode エスケープも受け付ける。
+        var response = WELCOME_TUTORIAL_RESPONSE.matcher(json);
+        if (!response.matches() || !"status".equals(JsonParser.parseString(response.group(1)).getAsString())) {
+            return WelcomeTutorialStatus.UNKNOWN;
+        }
+        return switch (JsonParser.parseString(response.group(2)).getAsString()) {
+            case "AVAILABLE" -> WelcomeTutorialStatus.AVAILABLE;
+            case "UNAVAILABLE" -> WelcomeTutorialStatus.UNAVAILABLE;
+            case "RECEIVED" -> WelcomeTutorialStatus.RECEIVED;
+            default -> WelcomeTutorialStatus.UNKNOWN;
+        };
+    }
+
     private final DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
 
     /**

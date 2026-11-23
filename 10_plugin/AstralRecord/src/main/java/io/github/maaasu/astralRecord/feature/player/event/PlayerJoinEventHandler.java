@@ -26,7 +26,6 @@ import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -89,7 +88,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
 
     private static final long JOIN_STEP_DELAY_TICKS = 10L;
     private static final long JOIN_LOADING_TITLE_INTERVAL_TICKS = 100L;
-    private static final long INITIAL_GUIDE_TITLE_INTERVAL_TICKS = 100L;
     private static final NamespacedKey JOIN_LOADING_MODIFIER =
         new NamespacedKey("astralrecord", "join_loading_lock");
 
@@ -107,7 +105,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private final Map<UUID, PendingPlayerStateRecovery> pendingPlayerStateRecoveries = new ConcurrentHashMap<>();
     private final Map<UUID, LoadingControl> loadingControls = new ConcurrentHashMap<>();
     private final Set<JoinAttempt> patchApplyingAttempts = ConcurrentHashMap.newKeySet();
-    private final Map<UUID, BukkitTask> initialGuideTitleTasks = new ConcurrentHashMap<>();
     private final Object joinLoadQueueLock = new Object();
     private final ArrayDeque<QueuedJoinLoad> queuedJoinLoads = new ArrayDeque<>();
     private final Set<JoinAttempt> activeJoinLoads = new HashSet<>();
@@ -691,7 +688,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         UUID playerUuid = player.getUniqueId();
         String playerName = player.getName();
         JoinAttempt attempt = currentJoinAttempt(player);
-        stopInitialGuideTitle(playerUuid, false);
 
         AstPlayer astPlayer = AstPlayerCache.get(player);
         event.quitMessage(astPlayer == null
@@ -965,7 +961,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         boolean questApplied = false;
         boolean skillTreeApplied = false;
         boolean skillBindPresetsApplied = false;
-        @Nullable CompletableFuture<Boolean> guideProgressLoad = null;
         PlayerService.PlayerJoinApplication playerJoinApplication = null;
         AstPlayer appliedPlayer = null;
         try {
@@ -1061,7 +1056,8 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 }
             }
             if (guideService != null) {
-                guideProgressLoad = guideService.loadProgressAsync(joinData.account().getUuid());
+                CompletableFuture<Boolean> guideProgressLoad =
+                    guideService.loadProgressAsync(joinData.account().getUuid());
                 if (appliedPlayer != null) {
                     scheduleGuideStateReconciliationAfterProgressLoad(appliedPlayer, guideProgressLoad);
                 }
@@ -1095,9 +1091,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             if (hasSameIpUser) {
                 messageService.send(appliedPlayer, PlayerMsgId.P_5084);
             }
-            if (guideProgressLoad != null) {
-                scheduleInitialGuideTitleAfterProgressLoad(appliedPlayer, guideProgressLoad);
-            }
         }
         notifyUnreadMailAsync(attempt, playerName, joinData.account().getUuid());
         if (completionListener == null) {
@@ -1110,38 +1103,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 JOIN_STEP_DELAY_TICKS
             );
         }
-    }
-
-    /**
-     * ガイド進行の読み込み完了後、現在のプレイヤーセッションへ初回ガイドtitleを開始します。
-     *
-     * @param astPlayer 参加処理を完了したプレイヤー
-     * @param progressLoad ガイド進行の読み込みFuture
-     */
-    private void scheduleInitialGuideTitleAfterProgressLoad(
-        @NotNull AstPlayer astPlayer,
-        @NotNull CompletableFuture<Boolean> progressLoad
-    ) {
-        Player player = astPlayer.getBukkit();
-        UUID playerUuid = player.getUniqueId();
-        UUID accountId = astPlayer.getAccount().getUuid();
-        progressLoad.thenAccept(loaded -> {
-            if (!loaded) {
-                return;
-            }
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                Player current = plugin.getServer().getPlayer(playerUuid);
-                if (current == null || current != player || !current.isOnline()) {
-                    return;
-                }
-                AstPlayer currentAstPlayer = AstPlayerCache.get(current);
-                if (currentAstPlayer == null
-                    || !accountId.equals(currentAstPlayer.getAccount().getUuid())) {
-                    return;
-                }
-                startInitialGuideTitle(currentAstPlayer);
-            });
-        });
     }
 
     /**
@@ -1174,6 +1135,9 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 boolean hasHatchedPet = plugin.getPetService() != null
                     && plugin.getPetService().hasHatchedPet(accountId);
                 guideService.reconcileLoadedAccount(currentAstPlayer, hasHatchedPet);
+                if (mailService != null) {
+                    mailService.reconcileTutorialMail(currentAstPlayer, guideService);
+                }
             });
         });
     }
@@ -1336,8 +1300,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             restoreLoadingControl(control, true);
         }
         loadingControls.clear();
-        initialGuideTitleTasks.values().forEach(BukkitTask::cancel);
-        initialGuideTitleTasks.clear();
     }
 
     @Nullable
@@ -1574,70 +1536,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         } catch (java.util.concurrent.ExecutionException | java.util.concurrent.TimeoutException failure) {
             throw new IllegalStateException("Skill tree login patch notification failed", failure);
         }
-    }
-
-    private void startInitialGuideTitle(@NotNull AstPlayer astPlayer) {
-        if (guideService == null) {
-            return;
-        }
-        Player player = astPlayer.getBukkit();
-        UUID playerUuid = player.getUniqueId();
-        UUID accountId = astPlayer.getAccount().getUuid();
-        stopInitialGuideTitle(playerUuid, false);
-        if (guideService.isInitialGuideOpened(accountId)) {
-            return;
-        }
-
-        showInitialGuideTitle(player);
-        BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(
-            plugin,
-            () -> {
-                Player current = plugin.getServer().getPlayer(playerUuid);
-                if (current == null || current != player || !current.isOnline()) {
-                    stopInitialGuideTitle(playerUuid, false);
-                    return;
-                }
-                AstPlayer currentAstPlayer = AstPlayerCache.get(current);
-                if (currentAstPlayer == null
-                    || !accountId.equals(currentAstPlayer.getAccount().getUuid())) {
-                    stopInitialGuideTitle(playerUuid, false);
-                    return;
-                }
-                if (guideService.isInitialGuideOpened(accountId)) {
-                    stopInitialGuideTitle(playerUuid, true);
-                    return;
-                }
-                showInitialGuideTitle(current);
-            },
-            0L,
-            INITIAL_GUIDE_TITLE_INTERVAL_TICKS
-        );
-        initialGuideTitleTasks.put(playerUuid, task);
-    }
-
-    private void stopInitialGuideTitle(UUID playerUuid, boolean clearTitle) {
-        BukkitTask task = initialGuideTitleTasks.remove(playerUuid);
-        if (task != null) {
-            task.cancel();
-        }
-        if (!clearTitle) {
-            return;
-        }
-        Player player = plugin.getServer().getPlayer(playerUuid);
-        if (player != null && player.isOnline()) {
-            player.clearTitle();
-        }
-    }
-
-    private void showInitialGuideTitle(@NotNull Player player) {
-        if (!player.isOnline()) {
-            return;
-        }
-        player.showTitle(Title.title(
-            PlayerMsgResource.formatComponent(PlayerMsgId.P_5079.getId()),
-            Component.empty(),
-            Title.Times.times(Duration.ZERO, Duration.ofSeconds(6), Duration.ofMillis(500))
-        ));
     }
 
     /**
