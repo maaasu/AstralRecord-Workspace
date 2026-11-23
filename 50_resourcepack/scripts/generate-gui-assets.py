@@ -16,6 +16,8 @@ import struct
 import zlib
 from pathlib import Path
 
+from gui_menu_icon_art import MENU_ICON_DRAWINGS, menu_icon
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "gui-source/kenney-pixel-adventure/stone-tile-pixels.json"
@@ -134,205 +136,6 @@ PICTOGRAMS: dict[str, tuple[str, ...]] = {
         "....BBBB....", "...BBWWBb...", "...BWWBBb...", "...bBBBbb...",
         "....bbb.....", "..BBBBBBBB..", ".BBLLLLBBBB.", "BBLLLLTBBBBb",
         "BLLLLTTBBBbb", "bbbbbbbbbbbb",
-    ),
-    "quest": (
-        ".IrrRrR..",
-        "IrrRRRRu.",
-        "IrRRRRRu.",
-        "IrRWIORu.",
-        "IrRWIORu.",
-        "IrRWIORu.",
-        "IrRRIORu.",
-        "IrRRRRRu.",
-        "IrRIWRRu.",
-        "IrRIWRRu.",
-        "IrRRRRRu.",
-        "IrR.RRRu.",
-        "IR...RRu.",
-        "R.....Ru.",
-    ),
-    "settings": (
-        ".....IWW.....",
-        "..IW.IWS.SS..",
-        "..IWWWWSSSSi.",
-        "...WWSSSWsi..",
-        ".IWWWSSSSSssi",
-        "IWWWs...SSssi",
-        "IWWs.....SSsi",
-        "ISSs.....SSsi",
-        ".SSSs...SSsi.",
-        "..SSSSSSSsi..",
-        ".WSSsSSSSssi.",
-        ".SSi.sSs.ssi.",
-        ".....ssi.....",
-    ),
-    "equipment": (
-        "..IWI....SSI..",
-        ".IWSiSSISsSSi.",
-        "IWSSiiiSssWSSi",
-        "WWSWSIWSSssiSi",
-        "SsiISWSSsssi..",
-        ".i.IWSSSsssi..",
-        "...ISWSssssi..",
-        "...WSSSSssi...",
-        "...WSssWssi...",
-        "...SSSSSssi...",
-        "...IsiiSSsi...",
-        "...SssIsssi...",
-        "....iiiii.....",
-    ),
-    "item_protection": (
-        "....IISS......",
-        "...IWSSSsi....",
-        "..IWS..iSSi...",
-        "..WS....WSi...",
-        "..WS....SSi...",
-        "..SS....ssi...",
-        ".IHHHHHHHHGg..",
-        ".HHGGGGGGGOg..",
-        ".HGGGOOOGoog..",
-        ".HGOGuugGoog..",
-        ".HGOGgugGoog..",
-        ".HGGGOOOGoog..",
-        ".GGGGGGOGog...",
-        "..gggggggu....",
-    ),
-    "trash": (
-        ".....IISS.....",
-        "....WS..Si....",
-        "..IISIIIWWSS..",
-        ".IWSSSWSSSssi.",
-        "WSSSSSSsssssi.",
-        ".iiiiiiiiiiii.",
-        "..SMSsMSsmMi..",
-        "..SMSsMSsMMi..",
-        "..SMSsMssmMi..",
-        "..SMSsMssmMi..",
-        "...SMSsssmMi..",
-        "...SMMmsmMi...",
-        "....Smmmmi....",
-        ".....iiii.....",
-    ),
-    "guide": (
-        ".........IIW..",
-        "..IIWW..IWHHU.",
-        ".IWHHUUIWHHHU.",
-        ".WHgHUUWHUHHU.",
-        ".WHHgUUWHUgHU.",
-        ".WHHHUUWHHHuU.",
-        ".WHUgUUWHHHHU.",
-        ".WHHHUUWHHHUg.",
-        ".IWHHUUWHHUgp.",
-        "CgUWHUUWHUgp..",
-        ".CpgUUUWWUgp..",
-        "..ccpgUUUgp...",
-        "....cpRrpg....",
-        "......R.r.....",
-    ),
-    "warp": (
-        "....LLAA.....",
-        "..ILLLAaaa...",
-        ".ILAAaa.AAa..",
-        "ILaa......Aa.",
-        "LAa........Aa",
-        "LAa...H....Aa",
-        "LAa..HWHHH.Aa",
-        "LAa.HWWGgg.Aa",
-        ".Aa..GG....Aa",
-        ".AAa..g...Aa.",
-        "..AAaa..AAAa.",
-        "...AAAAaaai..",
-        ".....aaaa....",
-    ),
-    "adventure": (
-        "....IHHH.....",
-        "..IHHGGGHg...",
-        ".IHGWBBBGGg..",
-        ".HGWBBBBbGgg.",
-        "HGWBBBBIbbGgo",
-        "HGBBBBIWbbGgo",
-        "HGWBBIWbbbGgo",
-        "HGWBrRbbbbGgo",
-        ".HGbRbbbbbgo.",
-        ".HGGbbbbgGgo.",
-        "..HGggggGgo..",
-        "...GgOOggo...",
-        ".....ooo.....",
-    ),
-    "mail": (
-        "...IIWWIWWII..",
-        "..IWHHHHHHHHo.",
-        ".IWGUHHHHUGGgo",
-        ".IHHGUHHUGHHgo",
-        ".IHHHGUUGHHHgo",
-        ".IHHHHrrHHHHgo",
-        ".IHHHrrRRHHHgo",
-        ".IHHHHrRRHHHgo",
-        ".HHHHHHHHHHugo",
-        "..Ugggggggugo.",
-        "...ooooooooo..",
-    ),
-    "skill": (
-        ".........LI.",
-        "........LLa.",
-        ".......LLAa.",
-        "......LLAa..",
-        ".....ILAT...",
-        "....ILAT....",
-        "...ILATAAa..",
-        "..ILAAAAa...",
-        ".ILLLAaa....",
-        ".....Aa.....",
-        "....AAa.....",
-        "...TAa......",
-        "..TAa.......",
-        "..aa........",
-    ),
-    "currency": (
-        "........IHH...",
-        "......IHHGGG..",
-        ".....IHGOGOGG.",
-        ".....HGOGHGOGg",
-        ".....HGHHHGOGg",
-        "...IHHHGGGGOGg",
-        ".IHHGGHHGGGGog",
-        "IHGOGOHHGoggo.",
-        "HGOGHGOGgggo..",
-        "HGHHHHOGGg....",
-        "HGOGHGOGGo....",
-        ".HGGGGGGgo....",
-        "..GOGGGgo.....",
-        "...gggo.......",
-    ),
-    "party": (
-        ".........IBB..",
-        "........IBWBb.",
-        "...IPP..BBWbb.",
-        "..IPWP..BBbBb.",
-        "..PPWp...bbb..",
-        "..PPpp..IBBb..",
-        "...pp..IBBBbB.",
-        "..IPCp.IBBbbBb",
-        ".IPCCpCCBBBbbb",
-        ".IPCCpCCCbbbbb",
-        ".PCCpCcccbbbi.",
-        "..cccccc......",
-    ),
-    "players": (
-        "..IIIIB.....",
-        ".IBBBBBBB...",
-        ".IBIISBBBBb.",
-        ".IBIWWWWWBb.",
-        ".IBIWWWWWBb.",
-        ".IBIPPCbbBb.",
-        ".IBIPpWWWBb.",
-        ".IBIWWWWWBb.",
-        ".IBIAAbbbBb.",
-        ".IBIAaWWWBb.",
-        ".IBIWWWWWBb.",
-        ".IBIOOGbbBb.",
-        ".IBIOgWWWBb.",
-        "..bbbbbbbbb.",
     ),
     "inventory": (
         "....OOO....", "...Oo.oO...", "...OOOOO...", "..OoOOOoO..",
@@ -677,7 +480,7 @@ def mirror(pattern: tuple[str, ...]) -> tuple[str, ...]:
 
 PATTERNS["previous"] = mirror(PATTERNS["next"])
 PATTERNS["down"] = PATTERNS["up"][::-1]
-ROLES = (*PATTERNS, *FILLER_ROLES, *PICTOGRAMS)
+ROLES = (*PATTERNS, *FILLER_ROLES, *PICTOGRAMS, *MENU_ICON_DRAWINGS)
 
 
 def chunk(kind: bytes, data: bytes) -> bytes:
@@ -695,7 +498,11 @@ def scale(pixels: list[list[tuple[int, int, int, int]]], factor: int) -> list[li
     return [[color for color in row for _ in range(factor)] for row in pixels for _ in range(factor)]
 
 
-def design(role: str, source: dict) -> list[list[tuple[int, int, int, int]]]:
+def at_slot_size(pixels: list[list[tuple[int, int, int, int]]]) -> list[list[tuple[int, int, int, int]]]:
+    return [row[1::2] for row in pixels[1::2]]
+
+
+def legacy_design(role: str, source: dict) -> list[list[tuple[int, int, int, int]]]:
     if role in FILLER_ROLES:
         # The item still occupies the slot; only the underlying GUI should show.
         return [[COLORS["."]] * 16 for _ in range(16)]
@@ -736,6 +543,17 @@ def design(role: str, source: dict) -> list[list[tuple[int, int, int, int]]]:
     return pixels
 
 
+def distributed_design(role: str, source: dict) -> list[list[tuple[int, int, int, int]]]:
+    if role in MENU_ICON_DRAWINGS:
+        return menu_icon(role)
+    return scale(legacy_design(role, source), 2)
+
+
+def design(role: str, source: dict) -> list[list[tuple[int, int, int, int]]]:
+    """Return the native slot sample used by the GUI panel preview."""
+    return at_slot_size(distributed_design(role, source))
+
+
 def preview(path: Path, designs: dict[str, list]) -> None:
     # Each cell shows native16, distributed32 and magnified64. A light strip
     # also exposes transparency and contour quality against a bright surface.
@@ -744,8 +562,9 @@ def preview(path: Path, designs: dict[str, list]) -> None:
     canvas = [[(32, 39, 46, 255)] * width for _ in range(height)]
     for i, role in enumerate(ROLES):
         cx, cy = (i % 7) * cell_w, (i // 7) * cell_h
-        for factor, ox, oy in ((1, 6, 8), (2, 27, 8), (4, 65, 8)):
-            art = scale(designs[role], factor)
+        distributed = designs[role]
+        native = at_slot_size(distributed)
+        for art, ox, oy in ((native, 6, 8), (distributed, 27, 8), (scale(distributed, 2), 65, 8)):
             for y, row in enumerate(art):
                 for x, color in enumerate(row):
                     if color[3]:
@@ -753,8 +572,7 @@ def preview(path: Path, designs: dict[str, list]) -> None:
         for y in range(80, 104):
             for x in range(4, 136):
                 canvas[cy + y][cx + x] = (213, 216, 200, 255)
-        art = designs[role]
-        for y, row in enumerate(art):
+        for y, row in enumerate(native):
             for x, color in enumerate(row):
                 if color[3]:
                     canvas[cy + 84 + y][cx + 9 + x] = color
@@ -775,9 +593,9 @@ def main() -> int:
     mismatches = []
     designs = {}
     for role in ROLES:
-        art = design(role, source)
+        art = distributed_design(role, source)
         designs[role] = art
-        data = png(scale(art, 2))
+        data = png(art)
         for directory in (JAVA, BEDROCK):
             path = directory / f"gui_{role}.png"
             if args.check:
@@ -791,7 +609,7 @@ def main() -> int:
     if mismatches:
         print("GUI regeneration differs:\n" + "\n".join(mismatches))
         return 1
-    digest = hashlib.sha256(b"".join(png(scale(designs[r], 2)) for r in ROLES)).hexdigest()
+    digest = hashlib.sha256(b"".join(png(designs[r]) for r in ROLES)).hexdigest()
     print(f"GUI art {'verified' if args.check else 'generated'}: {len(ROLES)} roles, both editions; SHA256 {digest}")
     return 0
 
