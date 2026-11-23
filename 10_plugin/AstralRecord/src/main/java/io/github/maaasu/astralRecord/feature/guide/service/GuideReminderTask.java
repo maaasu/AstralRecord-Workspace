@@ -15,7 +15,7 @@ import org.jetbrains.annotations.Nullable;
 public final class GuideReminderTask {
     /** 10 分間隔。 */
     public static final long DEFAULT_INTERVAL_TICKS = 10L * 60L * 20L;
-    private static final String GUIDE_COMMAND = "/menu guide";
+    private static final String GUIDE_COMMAND = "/guide";
 
     private final PlayerMessageService playerMessageService;
     private final GuideService guideService;
@@ -69,16 +69,18 @@ public final class GuideReminderTask {
     void sendReminder() {
         for (var astPlayer : AstPlayerCache.getAll()) {
             if (!playerSettingService.isGuideReminderEnabled(astPlayer.getBukkit().getUniqueId())
-                || !guideService.shouldSendGuideReminder(astPlayer)
-                || !guideService.hasIncompleteGuide(astPlayer.getAccount().getUuid())) {
+                || !guideService.isGuideDisplayEnabled(astPlayer)) {
                 continue;
             }
-            playerMessageService.sendClickable(
-                astPlayer.getBukkit(),
-                PlayerMsgId.P_5600,
-                GUIDE_COMMAND
-            );
-            guideService.sendNextStepHint(astPlayer);
+            var account = astPlayer.getAccount().getUuid();
+            boolean active = guideService.hasIncompleteGuide(account);
+            if (guideService.shouldSendGuideReminder(astPlayer)
+                && (active || guideService.tutorialCompletedStepCount(account) == 6)) {
+                playerMessageService.sendClickable(astPlayer.getBukkit(), PlayerMsgId.P_5600, GUIDE_COMMAND);
+            }
+            if (active && !guideService.usesJavaGuideHud(astPlayer)) {
+                guideService.sendNextStepHint(astPlayer);
+            }
         }
     }
 }
