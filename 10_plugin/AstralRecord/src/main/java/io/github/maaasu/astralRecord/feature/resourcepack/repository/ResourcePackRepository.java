@@ -35,6 +35,7 @@ public final class ResourcePackRepository {
         return switch (value.getAsString()) {
             case "2" -> 2;
             case "3" -> 3;
+            case "4" -> 4;
             default -> 0;
         };
     }

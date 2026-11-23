@@ -16,7 +16,7 @@ final class ClassNameGlyphs {
     static final Key COMPACT_FONT = Key.key("astralrecord", "profile_hud_class_name_compact");
     // 320pxの表示幅から左右の余白と、アイコン・最大桁のクラスLv・EXPの幅を引く。
     private static final int MAX_NAME_WIDTH = 156;
-    private static final Map<Integer, Integer> ADVANCES = loadAdvances();
+    private static final Map<Integer, Integer> ADVANCES = loadAdvances("/class-name-glyph-advances.txt");
 
     private ClassNameGlyphs() {
     }
@@ -50,8 +50,8 @@ final class ClassNameGlyphs {
         return Math.ceilDiv((advance - 1) * 3, 4) + 1;
     }
 
-    private static Map<Integer, Integer> loadAdvances() {
-        try (InputStream input = ClassNameGlyphs.class.getResourceAsStream("/class-name-glyph-advances.txt")) {
+    static Map<Integer, Integer> loadAdvances(String resourcePath) {
+        try (InputStream input = ClassNameGlyphs.class.getResourceAsStream(resourcePath)) {
             if (input == null) {
                 return Map.of();
             }

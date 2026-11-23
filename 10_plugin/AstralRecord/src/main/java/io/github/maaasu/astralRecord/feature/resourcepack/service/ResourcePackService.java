@@ -507,7 +507,12 @@ public class ResourcePackService {
 
     /** ガイドとクエストを描けるJava版パックの適用を確認します。 */
     public boolean hasJavaGuideHud(UUID playerId) {
-        return hasManagedJavaPack(playerId) && requestedJavaQuestHud.getOrDefault(playerId, 0) == 3;
+        return hasManagedJavaPack(playerId) && requestedJavaQuestHud.getOrDefault(playerId, 0) >= 3;
+    }
+
+    /** 標準風ドット文字とその字幅に対応するパックの適用を確認します。 */
+    public boolean hasJavaPixelQuestHud(UUID playerId) {
+        return hasManagedJavaPack(playerId) && requestedJavaQuestHud.getOrDefault(playerId, 0) == 4;
     }
 
     /** @param playerId 閲覧者UUID @return リングCTを描画できる管理パックの適用成功後のみtrue */

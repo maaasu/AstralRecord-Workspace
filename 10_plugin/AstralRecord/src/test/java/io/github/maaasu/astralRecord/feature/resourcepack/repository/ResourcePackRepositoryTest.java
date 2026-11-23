@@ -11,7 +11,9 @@ class ResourcePackRepositoryTest {
     void recognizesQuestOnlyAndChapterCapableManifestMarkers() {
         assertEquals(2, ResourcePackRepository.questHudVersion(new JsonPrimitive("2")));
         assertEquals(3, ResourcePackRepository.questHudVersion(new JsonPrimitive("3")));
-        assertEquals(0, ResourcePackRepository.questHudVersion(new JsonPrimitive("4")));
+        assertEquals(4, ResourcePackRepository.questHudVersion(new JsonPrimitive("4")));
+        assertEquals(0, ResourcePackRepository.questHudVersion(new JsonPrimitive("5")));
+        assertEquals(0, ResourcePackRepository.questHudVersion(new JsonPrimitive(4)));
         assertEquals(0, ResourcePackRepository.questHudVersion(new JsonPrimitive(3)));
         assertEquals(0, ResourcePackRepository.questHudVersion(JsonNull.INSTANCE));
         assertEquals(0, ResourcePackRepository.questHudVersion(null));
