@@ -690,7 +690,7 @@ class GuideServiceTest {
                         UUID playerId = UUID.randomUUID();
                         when(welcome.bukkit.getUniqueId()).thenReturn(playerId);
                         TrashService trash = mock(TrashService.class);
-                        when(((AstralRecord) welcome.fixture.plugin).getTrashService()).thenReturn(trash);
+                        when(welcome.fixture.plugin.getTrashService()).thenReturn(trash);
                         when(trash.containsPendingItem(playerId, "50a00001")).thenReturn(true);
                     }
                     case "beforeLookup" -> { }
