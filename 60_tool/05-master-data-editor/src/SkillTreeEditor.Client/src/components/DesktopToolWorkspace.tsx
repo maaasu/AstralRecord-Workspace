@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { isRunning, toolJobApi, type ToolCapabilities, type ToolId, type ToolPage, type ToolPlan, type ToolRun, type ToolSettings } from '../api/toolJobApi'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { isRunning, toolJobApi, type MaintenanceDistributionSelection, type ToolCapabilities, type ToolId, type ToolPage, type ToolPlan, type ToolRun, type ToolSettings } from '../api/toolJobApi'
 import { toolIds, toolSpecs } from '../data/desktopTools'
 import { displayToolDate, RunStatus, ToolPlanDetails, ToolRunDetails, toolError } from './ToolRunDetails'
 import { defaultToolSettings, ToolSettingsFields } from './ToolSettingsFields'
@@ -132,6 +132,7 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRuns, vis
   onStarted: (run: ToolRun) => void; onRefresh: () => void; onOpenHistory: (id: string) => void
 }) {
   const [settings, setSettings] = useState<ToolSettings>(defaultToolSettings[id])
+  const [maintenanceSelection, setMaintenanceSelection] = useState<MaintenanceDistributionSelection | null>()
   const [plan, setPlan] = useState<ToolPlan>()
   const [checked, setChecked] = useState<string[]>([])
   const [reviewed, setReviewed] = useState(false)
@@ -148,6 +149,7 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRuns, vis
   const displayedRun = activeRun ?? latestRun
   const disabled = !ready || Boolean(activeRun) || Boolean(pending)
   const missingTests = settings.toolId === '01' && settings.pluginTestMode === 'Selected' && !settings.pluginTests?.trim()
+  const missingDistribution = maintenanceSelection !== undefined && !maintenanceSelection?.distributionSelection.length
 
   useEffect(() => {
     if (!requiresReview || !plan) return
@@ -155,22 +157,31 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRuns, vis
     return () => clearTimeout(timeout)
   }, [plan, requiresReview])
 
-  const clearPlan = () => {
+  const clearPlan = useCallback(() => {
     setPlan(undefined)
     setChecked([])
     setReviewed(false)
-  }
+  }, [])
   const updateSettings = (next: ToolSettings) => {
     directRequestId.current = undefined
     setSettings(next)
     clearPlan()
     setError('')
   }
-  const request = settings.toolId === '01'
-    ? { ...settings, pluginTests: settings.pluginTestMode === 'Selected' ? settings.pluginTests?.trim() : undefined }
-    : settings
+  const updateMaintenanceSelection = useCallback((next: MaintenanceDistributionSelection | null | undefined) => {
+    setMaintenanceSelection(next)
+    clearPlan()
+    setError('')
+  }, [clearPlan])
+  const request = (() => {
+    if (settings.toolId === '01')
+      return { ...settings, pluginTests: settings.pluginTestMode === 'Selected' ? settings.pluginTests?.trim() : undefined }
+    if (settings.toolId === '16' && maintenanceSelection)
+      return { toolId: settings.toolId, recovery: settings.recovery, ...maintenanceSelection }
+    return settings
+  })()
   const requestPlan = async () => {
-    if (disabled || missingTests || inFlight.current) return
+    if (disabled || missingTests || missingDistribution || inFlight.current) return
     inFlight.current = true
     clearPlan()
     setPending('plan')
@@ -186,7 +197,7 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRuns, vis
   }
 
   const confirmed = plan?.canRun && (plan.confirmations.length ? plan.confirmations.every(item => checked.includes(item.id)) : reviewed)
-  const canStart = !disabled && !missingTests && (!requiresReview || (confirmed && !expired))
+  const canStart = !disabled && !missingTests && !missingDistribution && (!requiresReview || (confirmed && !expired))
   const start = async () => {
     if (!canStart || inFlight.current) return
     inFlight.current = true
@@ -217,10 +228,13 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRuns, vis
       <div><h1>{spec.label}</h1><p className="tool-muted">{spec.description}</p></div>
       {activeRun ? <RunStatus status={activeRun.status} /> : requiresReview && plan && !expired && <span className="tool-badge">{plan.canRun === false ? '実行条件を確認' : '計画を確認'}</span>}
     </div>
-    <div className="tool-settings-grid">
+    <div className={maintenanceSelection === undefined ? 'tool-settings-grid' : 'tool-settings-grid tool-settings-grid-detailed'}>
       <section className="tool-panel">
         <h2>実行設定</h2>
-        <fieldset className="tool-settings" disabled={disabled} aria-label="実行設定"><ToolSettingsFields value={settings} onChange={updateSettings} /></fieldset>
+        <fieldset className="tool-settings" disabled={disabled} aria-label="実行設定">
+          <ToolSettingsFields value={settings} onChange={updateSettings} maintenanceSelection={maintenanceSelection}
+            onMaintenanceSelectionChange={updateMaintenanceSelection} />
+        </fieldset>
       </section>
       <section className="tool-panel">
         <h2>処理の流れ</h2>
@@ -250,7 +264,7 @@ function ToolOperation({ id, ready, hasUnsavedSource, latestRun, activeRuns, vis
     <div className="tool-actions">
       <span className="tool-muted">{requiresReview && plan && !expired && `有効期限 ${displayToolDate(plan.expiresAtUtc)}`}</span>
       <div className="tool-button-row">
-        <button type="button" className="button" disabled={disabled || missingTests} onClick={() => void requestPlan()}>
+        <button type="button" className="button" disabled={disabled || missingTests || missingDistribution} onClick={() => void requestPlan()}>
           {pending === 'plan' ? '計画を取得中…' : plan ? '計画を更新' : requiresReview ? '実行計画を確認' : '実行計画を表示'}
         </button>
         <button type="button" className="button primary" disabled={!canStart} onClick={() => void start()}>

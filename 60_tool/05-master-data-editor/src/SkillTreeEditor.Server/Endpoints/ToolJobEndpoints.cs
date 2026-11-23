@@ -28,6 +28,8 @@ public static class ToolJobEndpoints
         });
 
         api.MapGet("/capabilities", (ToolJobService jobs) => Results.Ok(jobs.GetCapabilities()));
+        api.MapGet("/maintenance-options", async (ToolJobService jobs, CancellationToken token)
+            => Results.Ok(await jobs.GetMaintenanceOptionsAsync(token)));
         api.MapPost("/plans", async (ToolJobPlanRequest request, ToolJobService jobs, CancellationToken token)
             => Results.Ok(await jobs.CreatePlanAsync(request, token)));
         api.MapGet("/runs", (ToolJobService jobs) => Results.Ok(jobs.GetRuns()));

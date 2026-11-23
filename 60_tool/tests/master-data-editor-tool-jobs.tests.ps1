@@ -22,15 +22,23 @@ function New-TestJob($Options, [string]$Fingerprint) {
     return $directory
 }
 
-function Invoke-TestPlan($Options) {
+function Invoke-TestRequest($Options, [string]$Mode, [string]$ResultFile) {
     $job = New-TestJob $Options
-    & $windowsPowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $bootstrap $adapter Plan $job $workspace
+    & $windowsPowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $bootstrap $adapter $Mode $job $workspace
     if ($LASTEXITCODE -ne 0) {
         $errorPath = Join-Path $job 'error.json'
         if (Test-Path -LiteralPath $errorPath) { throw (Get-Content -Raw -Encoding UTF8 -LiteralPath $errorPath) }
         throw "Plan failed with exit code $LASTEXITCODE"
     }
-    return Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $job 'plan.json') | ConvertFrom-Json
+    return Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $job $ResultFile) | ConvertFrom-Json
+}
+
+function Invoke-TestPlan($Options) {
+    Invoke-TestRequest $Options Plan 'plan.json'
+}
+
+function Get-TestMaintenanceOptions {
+    Invoke-TestRequest $null MaintenanceOptions 'maintenance-options.json'
 }
 
 function Start-TestWorker([string]$Job) {
@@ -61,7 +69,7 @@ function Wait-TestPrompt([string]$Job, [Diagnostics.Process]$Process) {
     if ($state.status -ne 'waitingForInput') {
         $logPath = Join-Path $Job 'log.jsonl'
         if (Test-Path -LiteralPath $logPath) { Get-Content -Encoding UTF8 -LiteralPath $logPath | Write-Host }
-        throw "Expected durable confirmation, got $($state.status)."
+        throw "Expected durable confirmation for tool $($state.toolId), got $($state.status)."
     }
     return $state.prompt
 }
@@ -81,7 +89,8 @@ try {
     foreach ($folder in @($jobRoot, (Join-Path $testTool '12-build-network-plugins'), (Join-Path $workspace '40_filebase'),
         (Join-Path $workspace 'source-filebase'), (Join-Path $workspace '10_plugin/AstralRecordLobby'),
         (Join-Path $workspace 'fixture-program-data'), (Join-Path $workspace 'dev/plugins'),
-        (Join-Path $workspace 'channel/plugins'), (Join-Path $workspace '10_plugin/AstralArchitect'),
+        (Join-Path $workspace 'channel/plugins'), (Join-Path $workspace 'alternate/plugins'),
+        (Join-Path $workspace '10_plugin/AstralArchitect'),
         (Join-Path $workspace 'fixture-bin'))) {
         $null = New-Item -ItemType Directory -Path $folder -Force
     }
@@ -185,16 +194,51 @@ exit /b 0
     Set-Content -LiteralPath $lobbyJar -Value 'fixture'
     $maintenance = @{
         schemaVersion=1;workflow=@{seedMasterData=$false};migration=$migration
-        servers=@(@{id='Dev';enabled=$true;rootPath=$dev},@{id='Channel';enabled=$true;rootPath=$channel})
-        distributions=@(@{enabled=$true;kind='Jar';source='Dev';relativePath='plugins/Fixture.jar';targets=@('Channel')})
+        servers=@(@{id='Dev';enabled=$true;rootPath=$dev},@{id='Channel';enabled=$true;rootPath=$channel},
+            @{id='Alternate';enabled=$true;rootPath=(Join-Path $workspace 'alternate')})
+        distributions=@(@{enabled=$true;kind='Jar';source='Dev';relativePath='plugins/Fixture.jar';targets=@('Channel','Alternate')})
         networkPlugins=@{destinations=@(@{artifact='AstralRecordLobby.jar';deployDirectory=(Join-Path $channel 'plugins')})}
     }
-    Write-TestJson $maintenance (Join-Path $testTool '16-maintenance/maintenance.local.json')
+    $maintenancePath = Join-Path $testTool '16-maintenance/maintenance.local.json'
+    Write-TestJson $maintenance $maintenancePath
     $plan16 = Invoke-TestPlan @{toolId='16';worldCopy='Skip';networkPlugins='Include';recovery='Auto'}
     Assert-JobTest ($plan16.canRun -and $plan16.paths[0].destination -eq (Join-Path $channel 'plugins/Fixture.jar')) '16 preview must use existing selection and distribution paths.'
     Assert-JobTest ($lobbyJar -in $plan16.paths.source) '16 must use the default network output when sourceDirectory is omitted.'
     Assert-JobTest (($plan16.summary -join ' ').Contains((Join-Path $testTool '16-maintenance/runs'))) 'An omitted runRoot must resolve to the 16 output directory.'
     Assert-JobTest (!(Test-Path -LiteralPath (Join-Path $channel 'plugins/Fixture.jar'))) '16 plan must not copy the artifact.'
+
+    $maintenance.distributions += @{enabled=$true;kind='Jar';source='Dev';relativePath='plugins/Missing.jar';targets=@('Channel')}
+    Write-TestJson $maintenance $maintenancePath
+    $maintenanceOptions = Get-TestMaintenanceOptions
+    Assert-JobTest ($maintenanceOptions.options.Count -eq 4 -and $maintenanceOptions.options.id -ccontains 'n1') 'The catalog must list each target and network JAR without checking that all sources exist.'
+    Assert-JobTest ($maintenanceOptions.configurationDigest -ceq (Get-FileHash -LiteralPath $maintenancePath).Hash) 'The catalog digest must identify its exact configuration.'
+    $options16 = @{toolId='16';distributionSelection=@('d1-t2');distributionConfigurationDigest=$maintenanceOptions.configurationDigest;recovery='Auto'}
+    $detailedPlan = Invoke-TestPlan $options16
+    Assert-JobTest ($detailedPlan.canRun -and $detailedPlan.paths.Count -eq 1 -and
+        $detailedPlan.paths[0].destination -eq (Join-Path $workspace 'alternate/plugins/Fixture.jar')) 'Detailed planning must include exactly the selected server and tolerate unselected missing files.'
+    try {
+        $staleOptions = $options16.Clone()
+        $staleOptions.distributionConfigurationDigest = '0' * 64
+        $null = Invoke-TestPlan $staleOptions
+        throw 'Stale catalog accepted.'
+    } catch {
+        Assert-JobTest ($_.Exception.Message.Contains('候補取得後に配布設定が変わりました')) 'The worker must reject stale catalog IDs before planning.'
+    }
+
+    $runName = 'run-20261123T000000Z-0123456789abcdef0123456789abcdef'
+    $runRoot = Join-Path $testTool '16-maintenance/runs'
+    $pendingRun = Join-Path $runRoot $runName
+    $null = New-Item -ItemType Directory -Path $pendingRun -Force
+    Write-TestJson @{status='WaitingForStartup';relativeRunDirectory=$runName} (Join-Path $runRoot 'active-run.json')
+    Write-TestJson @{schemaVersion=2;worldCopy='Skip';networkPlugins='Skip';configurationDigest=$maintenanceOptions.configurationDigest;
+        distributionIds=@('d1-t2')} (Join-Path $pendingRun 'deployment-selection.json')
+    $resumeOptions = Get-TestMaintenanceOptions
+    Assert-JobTest ($resumeOptions.savedSelection.Count -eq 1 -and $resumeOptions.savedSelection[0] -ceq 'd1-t2') 'The catalog must expose the saved selection for an unfinished run.'
+    $differentSelection = $options16.Clone()
+    $differentSelection.distributionSelection = @('n1')
+    $blocked16 = Invoke-TestPlan $differentSelection
+    Assert-JobTest (!$blocked16.canRun -and ($blocked16.warnings -join ' ').Contains('前回の選択を適用')) 'The editor must not start a plan with a different selection from the unfinished run.'
+    Assert-JobTest ((Invoke-TestPlan $options16).canRun) 'The editor must allow the saved targets even when the original CLI run skipped whole groups.'
 
     Set-Content -LiteralPath (Join-Path $workspace '10_plugin/AstralRecordLobby/pom.xml') -Value '<project/>'
     $fakeBuild = Join-Path $testTool '12-build-network-plugins/build-network-plugins.ps1'
@@ -216,14 +260,14 @@ exit 7
 
     $fakeMaintenance = Join-Path $testTool '16-maintenance/maintenance.ps1'
     @'
-param($Phase, $ConfigPath, $WorldCopy, $NetworkPlugins, [switch]$ServersStopped, [switch]$AdmissionClosed)
+param($Phase, $ConfigPath, $DistributionSelection, $DistributionConfigurationDigest, [switch]$ServersStopped, [switch]$AdmissionClosed)
+if ($DistributionSelection -cne 'd1-t2' -or $DistributionConfigurationDigest -cne (Get-FileHash -LiteralPath $ConfigPath).Hash) { exit 9 }
 if ($Phase -eq 'Plan') { exit 0 }
 Write-Host 'Fixture maintenance'
 $answer = Read-Host 'Confirm fixture deployment. Type DEPLOY to continue'
 if ($answer -cne 'DEPLOY') { exit 2 }
 exit 0
 '@ | Set-Content -LiteralPath $fakeMaintenance -Encoding utf8
-    $options16 = @{toolId='16';worldCopy='Skip';networkPlugins='Skip';recovery='Auto'}
     $fakePlan16 = Invoke-TestPlan $options16
     $job16 = New-TestJob $options16 $fakePlan16.fingerprint
     $worker16 = Start-TestWorker $job16

@@ -34,6 +34,7 @@
 .tool-status-waitingForInput, .tool-status-interrupted { color: var(--gold); background: #3e3629; }
 .tool-status-failed { color: var(--danger); background: #422e35; }
 .tool-settings-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: stretch; gap: 14px; }
+.tool-settings-grid-detailed { grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); align-items: start; }
 .tool-panel {
   min-width: 0;
   padding: 17px;
@@ -47,6 +48,33 @@
 .tool-field { display: grid; gap: 5px; min-width: 0; }
 .tool-field > span { font-weight: 600; }
 .tool-field small { font-size: 11px; }
+.tool-distribution { display: grid; gap: 8px; margin-top: 4px; }
+.tool-distribution-list {
+  display: grid;
+  gap: 9px;
+  max-height: min(45vh, 420px);
+  padding: 0 6px 2px 0;
+  overflow-y: auto;
+}
+.tool-distribution-list:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tool-distribution-list fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 3px 8px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+.tool-distribution-list legend { padding: 0 5px; font-weight: 650; }
+.tool-distribution-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  padding: 4px 0;
+  overflow-wrap: anywhere;
+}
+.tool-distribution-option input { margin: 4px 0 0; }
+.tool-distribution-option small { display: block; }
 .tool-steps { margin: 12px 0 0; padding-left: 24px; }
 .tool-steps li { padding: 0 0 10px 4px; }
 .tool-steps li::marker { color: var(--text-muted); font: 12px Consolas, monospace; }

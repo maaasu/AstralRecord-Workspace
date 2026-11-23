@@ -1,7 +1,7 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)][ValidateSet('Plan','Run')][string]$Mode,
+    [Parameter(Mandatory)][ValidateSet('Plan','Run','MaintenanceOptions')][string]$Mode,
     [Parameter(Mandatory)][string]$JobDirectory,
     [Parameter(Mandatory)][string]$WorkspaceRoot
 )
@@ -94,6 +94,53 @@ function Add-JobOutput($Item) {
     }
 }
 
+function Get-JobMaintenanceConfiguration([string]$ConfigPath) {
+    Assert-MaintenanceNoLinks $ConfigPath
+    if (!(Test-Path -LiteralPath $ConfigPath -PathType Leaf)) {
+        throw '60_tool/16-maintenance/maintenance.example.json を maintenance.local.json にコピーし、実行対象を設定してください。'
+    }
+    try { $configuration = Read-MaintenanceConfiguration -ConfigPath $ConfigPath }
+    catch { throw 'メンテナンス配布の設定を読み取れません。maintenance.local.json を確認してください。' }
+    Add-JobConfigSecrets $configuration.config
+    return $configuration
+}
+
+function Get-JobSavedMaintenanceSelection([string]$RunDirectory, $Configuration) {
+    try {
+        $saved = Get-MaintenanceDeploymentSelectionRecord -RunDirectory $RunDirectory -ConfigurationDigest $Configuration.digest
+        if ($saved -and $null -ne $saved.distributionIds) {
+            $null = Get-MaintenanceSelectedConfig $Configuration.config $saved.worldCopy $saved.networkPlugins `
+                -DistributionIds $saved.distributionIds
+        }
+        return $saved
+    } catch {
+        throw '前回の配布対象を確認できません。配布設定と未完了の実行記録を確認してください。'
+    }
+}
+
+function Get-JobMaintenanceOptions {
+    . (Join-Path $toolRoot '16-maintenance/Distribution.ps1')
+    . (Join-Path $toolRoot '16-maintenance/DeploymentSelection.ps1')
+    . (Join-Path $toolRoot '16-maintenance/WorkflowRunRoot.ps1')
+    $configPath = Join-Path $toolRoot '16-maintenance/maintenance.local.json'
+    $configuration = Get-JobMaintenanceConfiguration $configPath
+    $options = @(Get-MaintenanceDistributionOptions -Config $configuration.config | ForEach-Object {
+        @{
+            id=$_.id; kind=$_.kind; label=(Protect-JobText $_.label)
+            source=(Protect-JobText $_.source); destination=(Protect-JobText $_.destination)
+        }
+    })
+    $result = @{configurationDigest=$configuration.digest;options=$options}
+    $runRoot = Resolve-MaintenanceWorkflowRunRoot -ToolRoot $toolRoot -ConfigPath $configPath `
+        -ConfiguredRunRoot $configuration.config['workflow']?['runRoot']
+    $pending = Get-PendingUpdateRun -RunRoot $runRoot
+    if ($pending) {
+        $saved = Get-JobSavedMaintenanceSelection $pending.Directory $configuration
+        if ($saved -and $null -ne $saved.distributionIds) { $result.savedSelection = @($saved.distributionIds) }
+    }
+    return $result
+}
+
 function Get-RequiredJobPlan($Options) {
     $scriptFiles = @($PSCommandPath, (Join-Path $toolRoot 'invoke-powershell7.ps1'))
     $settingsFiles = @((Join-Path $toolRoot 'powershell7.local.json'), (Join-Path $toolRoot 'build-tools.local.json'))
@@ -108,6 +155,7 @@ function Get-RequiredJobPlan($Options) {
     $invoke = @{}
     $secureJson = @()
     $tokenPath = $null
+    $maintenanceDigest = $null
 
     if ($Options['toolId'] -ceq '12') {
         $entry = Join-Path $toolRoot '12-build-network-plugins/build-network-plugins.ps1'
@@ -169,18 +217,28 @@ function Get-RequiredJobPlan($Options) {
         if ($Options['toolId'] -ceq '16') {
             $entry = Join-Path $toolRoot '16-maintenance/maintenance.ps1'
             $configPath = Join-Path $toolRoot '16-maintenance/maintenance.local.json'
-            if (!(Test-Path -LiteralPath $configPath -PathType Leaf)) {
-                throw '60_tool/16-maintenance/maintenance.example.json を maintenance.local.json にコピーし、実行対象を設定してください。'
-            }
-            $config = Read-JobJson $configPath
-            Add-JobConfigSecrets $config
+            . $selection
+            $configuration = Get-JobMaintenanceConfiguration $configPath
+            $config = $configuration.config
+            $maintenanceDigest = $configuration.digest
             if (!$config['workflow'] -or $config['migration']['enabled'] -ne $true) {
                 throw '通常のメンテナンスを実行するには workflow とパッチ公開を設定してください。'
             }
             $modeName = Get-ControlGateMode $config
             $migration = ConvertTo-SkillTreeRuntimeConfig $config.migration
-            . $selection
-            $selectedConfig = Get-MaintenanceSelectedConfig $config $Options['worldCopy'] $Options['networkPlugins']
+            $distributionIds = $Options['distributionSelection']
+            if ($null -ne $distributionIds) {
+                if ($Options['distributionConfigurationDigest'] -cne $maintenanceDigest) {
+                    throw '候補取得後に配布設定が変わりました。配布対象を再取得してください。'
+                }
+                $selectedConfig = Get-MaintenanceSelectedConfig $config 'Include' 'Include' -DistributionIds $distributionIds
+                $invoke.DistributionSelection = $distributionIds -join ','
+                $invoke.DistributionConfigurationDigest = $maintenanceDigest
+            } else {
+                $selectedConfig = Get-MaintenanceSelectedConfig $config $Options['worldCopy'] $Options['networkPlugins']
+                $invoke.WorldCopy = $Options['worldCopy']
+                $invoke.NetworkPlugins = $Options['networkPlugins']
+            }
             $distributionPaths = @(Get-MaintenancePlan $selectedConfig 6>$null)
             if (!$distributionPaths.Count) {
                 $canRun = $false
@@ -211,10 +269,8 @@ function Get-RequiredJobPlan($Options) {
                 } else { Join-Path $toolRoot '12-build-network-plugins/output' })
             }
             $runRoot = $config.workflow['runRoot']
-            $invoke.WorldCopy = $Options['worldCopy']
-            $invoke.NetworkPlugins = $Options['networkPlugins']
             $summary.Add('配布から起動確認、パッチ公開までを既存のメンテナンス手順で実行します。サーバーの停止と起動は運用者が行います。')
-            $summary.Add('配布済みの処理は既存の記録を使って再開します。再開は前回と同じワールド／ネットワークの選択を使用してください。')
+            $summary.Add('配布済みの処理は既存の記録を使って再開します。再開時は前回と同じ配布対象を選択してください。')
         } elseif ($Options['toolId'] -cin @('01','03')) {
             $entry = Join-Path $toolRoot '01-deploy-debug/dev-update.ps1'
             $baseConfig = Join-Path $toolRoot '01-deploy-debug/deploy-debug.config.json'
@@ -349,17 +405,30 @@ function Get-RequiredJobPlan($Options) {
         if ($runName -match '^[a-zA-Z0-9_-]+$') {
             $summary.Add("前回の未完了記録: $runName。再開できる段階は既存フローが判定します。")
             if ($Options['toolId'] -ceq '16') {
-                $previous = Join-Path $runRoot "$runName/deployment-selection.json"
+                $previousRun = Join-Path $runRoot $runName
+                Assert-MaintenanceNoLinks $previousRun
+                $previous = Join-Path $previousRun 'deployment-selection.json'
                 $settingsFiles += $previous
-                if (Test-Path -LiteralPath $previous -PathType Leaf) {
-                    $saved = Read-JobJson $previous
-                    if ($saved['worldCopy'] -cnotin @('Include','Skip') -or $saved['networkPlugins'] -cnotin @('Include','Skip')) {
-                        throw '前回のワールド／ネットワーク選択の記録が無効です。'
+                $saved = Get-JobSavedMaintenanceSelection $previousRun $configuration
+                if ($saved -and $null -ne $saved['distributionIds']) {
+                    if ($null -eq $distributionIds -or
+                        (@($distributionIds | Sort-Object) -join ',') -cne (@($saved['distributionIds'] | Sort-Object) -join ',')) {
+                        $canRun = $false
+                        $warnings.Add('配布対象の詳細設定を開き、前回の選択を適用してください。')
                     }
+                } elseif ($saved) {
                     if ($Options['worldCopy'] -cne $saved['worldCopy'] -or $Options['networkPlugins'] -cne $saved['networkPlugins']) {
                         $canRun = $false
-                        $warnings.Add("前回と同じ選択を指定してください。ワールド: $($saved['worldCopy'])、ネットワーク: $($saved['networkPlugins'])。")
+                        $worldMode = if ($saved['worldCopy'] -ceq 'Include') { '含める' } else { 'スキップ' }
+                        $networkMode = if ($saved['networkPlugins'] -ceq 'Include') { '含める' } else { 'スキップ' }
+                        $warnings.Add("前回と同じ簡易設定を指定してください。ワールド（$worldMode）、ネットワークプラグイン（$networkMode）。")
                     }
+                } elseif (($Options['worldCopy'] -cne 'Include' -or $Options['networkPlugins'] -cne 'Include') -and (
+                    (Test-Path -LiteralPath (Join-Path $previousRun 'workflow-state.json') -PathType Leaf) -or
+                    (Test-Path -LiteralPath (Join-Path $previousRun 'deployment.json') -PathType Leaf) -or
+                    (Test-Path -LiteralPath (Join-Path $previousRun 'config-digest.json') -PathType Leaf))) {
+                    $canRun = $false
+                    $warnings.Add('前回の実行記録には詳細選択がありません。ワールドとネットワークプラグインを両方含めてください。')
                 }
             }
         } elseif ($Options['recovery'] -cne 'Auto') {
@@ -401,7 +470,8 @@ function Get-RequiredJobPlan($Options) {
     $settingsFiles += $secureJson | Where-Object { $_ -and [IO.Path]::IsPathFullyQualified($_) }
     $fingerprintFiles = @($scriptFiles + $settingsFiles | Sort-Object -Unique)
     $digest = foreach ($path in $fingerprintFiles) {
-        if (Test-Path -LiteralPath $path -PathType Leaf) { "$path|$((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash)" }
+        if ($maintenanceDigest -and $path -ieq $configPath) { "$path|$maintenanceDigest" }
+        elseif (Test-Path -LiteralPath $path -PathType Leaf) { "$path|$((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash)" }
         else { "$path|missing" }
     }
     # Convert each row with stable property order regardless of PowerShell hashtable order.
@@ -486,7 +556,7 @@ function Out-Host {
 try {
     $root = [IO.Path]::GetFullPath((Join-Path $toolRoot '05-master-data-editor/.cache/tool-jobs'))
     $child = [IO.Path]::GetFullPath($JobDirectory)
-    $expectedId = if ($Mode -ceq 'Plan') { '^plan-[0-9a-f-]{36}$' } else { '^[0-9a-f-]{36}$' }
+    $expectedId = if ($Mode -cne 'Run') { '^plan-[0-9a-f-]{36}$' } else { '^[0-9a-f-]{36}$' }
     if ([IO.Path]::GetDirectoryName($child) -ine $root -or [IO.Path]::GetFileName($child) -cnotmatch $expectedId) {
         throw '実行記録のディレクトリが無効です。'
     }
@@ -497,6 +567,11 @@ try {
         if ($environmentEntry.Name -match '(?i)(password|passwd|secret|token|credential|connectionstring|api.?key|migration.?key|private.?key)') {
             Add-JobSecret $environmentEntry.Value
         }
+    }
+
+    if ($Mode -ceq 'MaintenanceOptions') {
+        Write-JobJson (Get-JobMaintenanceOptions) (Join-Path $JobDirectory 'maintenance-options.json')
+        exit 0
     }
 
     if ($Mode -ceq 'Run') {
@@ -550,7 +625,7 @@ try {
     }
 } catch {
     $message = Protect-JobText $_.Exception.Message
-    if ($Mode -ceq 'Plan') {
+    if ($Mode -cne 'Run') {
         Write-JobJson @{message=$message} (Join-Path $JobDirectory 'error.json')
     } else { Add-JobLog $message 'error' }
     $result = 1
