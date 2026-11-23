@@ -1218,6 +1218,42 @@
       "role": "mob_head_wolf",
       "base_item": "minecraft:paper",
       "custom_model_data": 910203
+    },
+    {
+      "id": "gui_setting_action_ring_cooldown_trident",
+      "role": "setting_action_ring_cooldown",
+      "base_item": "minecraft:trident",
+      "custom_model_data": 910204
+    },
+    {
+      "id": "gui_setting_equipped_skill_cooldown_book",
+      "role": "setting_equipped_skill_cooldown",
+      "base_item": "minecraft:book",
+      "custom_model_data": 910205
+    },
+    {
+      "id": "gui_setting_world_name_filled_map",
+      "role": "setting_world_name",
+      "base_item": "minecraft:filled_map",
+      "custom_model_data": 910206
+    },
+    {
+      "id": "gui_setting_area_name_compass",
+      "role": "setting_area_name",
+      "base_item": "minecraft:compass",
+      "custom_model_data": 910207
+    },
+    {
+      "id": "gui_setting_ping_redstone",
+      "role": "setting_ping",
+      "base_item": "minecraft:redstone",
+      "custom_model_data": 910208
+    },
+    {
+      "id": "gui_setting_screen_hud_comparator",
+      "role": "setting_screen_hud",
+      "base_item": "minecraft:comparator",
+      "custom_model_data": 910209
     }
   ]
 }

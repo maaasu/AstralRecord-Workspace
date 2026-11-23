@@ -2,7 +2,7 @@
 
 ## 実装方針
 
-矢印・戻る・閉じる・確定・取消・数量増減は明るい金縁で共通操作と分かるようにする。メニューと設定項目は機能ごとに輪郭と色を変える。ダミーと仕切りのモデルを透過させ、背景の枠をそのまま見せる。無効・処理中・未設定と保存案内は暗い凹面と記号で区別する。
+矢印・戻る・閉じる・確定・取消・数量増減は明るい金縁で共通操作と分かるようにする。メインメニューと設定は、機能に対応する道具や小物を16pxの輪郭と材質の明暗で描く。この2画面では空きスロットを使い、ダミーのアイテム名が表示されるのを防ぐ。他の画面で使うダミーと仕切りのモデルは透過させる。無効・処理中・未設定は暗い凹面と記号で区別する。
 
 専用アイコンの正本は `gui-icons.json`。同じ内容を RPG Plugin の `src/main/resources/gui-icons.json` へ同梱し、`shared/gui/GuiResourcePackIcons.java` が一度だけ読み込む。ビルドは Java の素材別振り分け、Bedrock のカタログ・アイコンを生成する。素材は変更せず、GUI 用として新規生成したコントロールの `custom_model_data.floats[0]` だけを設定する。数量・名前・説明・PDC・プロファイル・他の component は保持する。
 
@@ -33,7 +33,7 @@ Java のコンテナテクスチャは `java-gui-native`、統合版の画面別
 | プレイヤー一覧・情報 | パーティー招待対象、プレイヤー一覧、プロフィール、習得スキル・現在のバインド、ステータス詳細 | `feature/menu/player/PlayerListGui.java`、`feature/menu/player/PlayerDetailGui.java` | 共通対応。各プレイヤーの顔と装備のモデルを維持 |
 | 通貨両替 | ゴールド両替所 | `feature/currency/view/CurrencyExchangeGuiView.java` | 共通対応。金額・通貨カードを維持 |
 | アイテム管理 | 管理者アイテム一覧、フィルター候補 | `feature/item/gui/ItemAdminGuiView.java` | 管理者画面も共通対応。アイテム自体のモデルを維持 |
-| アイテム保護 | メインメニューの保護入口、保護済みアイテム一覧と確認画面 | `feature/menu/view/screen/ItemProtectionScreenView.java` | 入口は専用の金色の鍵アイコン。保護対象の実アイテム表示は維持 |
+| アイテム保護 | メインメニューの保護入口、保護済みアイテム一覧と確認画面 | `feature/menu/view/screen/ItemProtectionScreenView.java` | 入口は専用の金色の南京錠。保護対象の実アイテム表示は維持 |
 | キャストディスク | スキルキャストディスク設定 | `feature/item/castdisk/CastDiskGui.java` | 共通対応。設定済みスキルとホットバー上のディスクに共通スキルアイコンを適用 |
 | 装備オーブ・ルーン | 対象装備一覧、所持オーブ一覧、状態変化確認、必要素材一覧、ルーン装着・脱着・脱着ルーン選択 | `feature/item/service/OrbService.java`、`feature/item/gui/OrbGuiHolder.java` | 共通対応。実行中のロック、消費、候補再解決、下段操作を維持 |
 | スキルマネージャー | 一覧、詳細、合成、確認 | `feature/skill/gui/SkillBindGui.java` | スキルカードと、下段の設定済みバインドで有効な枠から解決できた習得個体は、使用許可があれば共通スキルアイコン、使用不可なら両版共通の赤い南京錠を表示。対応パックがない場合はバリアを表示 |
@@ -51,7 +51,7 @@ Java のコンテナテクスチャは `java-gui-native`、統合版の画面別
 | パーティー | 状況・招待、掲示板、メンバー操作、募集設定 | `feature/party/gui/PartyGui.java`、`PartyBoardGui.java`、`PartyMemberActionGui.java`、`PartyRecruitmentSettingsGui.java` | 共通対応。プレイヤーの顔を維持 |
 | 募集文入力 | 金床を使った募集内容の文字入力 | `feature/party/gui/PartyRecruitmentMessageAnvilGui.java` | 専用チェスト背景の対象外。金床のテキスト欄・入力・確定の標準操作を維持 |
 | ペット | 飼育員、ペット復活 | `feature/pet/gui/PetGui.java` | 共通対応。ペットとオーブの内容表示を維持 |
-| プレイヤー設定 | Java の設定一覧 | `feature/playersetting/gui/PlayerSettingGui.java` | Java の設定15項目と保存案内に専用アイコンを表示。統合版は後述のネイティブフォーム |
+| プレイヤー設定 | Java の一般設定と画面UI設定 | `feature/playersetting/gui/PlayerSettingGui.java` | 左端の旗で設定を分類し、項目ごとに専用アイコンを表示。変更予定の項目は発光し、下段に保存案内を置く。統合版は後述のネイティブフォーム |
 | 転生 | 転生、転生開始確認、転生終了確認 | `feature/rebirth/gui/RebirthGui.java` | 共通対応、共通確認ボタン |
 | 転送装置 | 転送先一覧 | `feature/teleporter/gui/TeleporterGui.java` | 共通対応。マスター指定の転送先名・アイコンを維持 |
 | ワールド転送 | 管理者ワールド転送、インスタンス受付転送、種別選択、オーバーワールド転送 | `feature/world/gui/AdminWorldTeleportGui.java`、`InstanceTeleportGui.java`、`OverworldTeleportGui.java` | 管理者画面を含めて共通対応。選択条件・権限は変更しない |
@@ -68,7 +68,7 @@ Java のコンテナテクスチャは `java-gui-native`、統合版の画面別
 | 通常のプレイヤー所持品、ホットバー、クラフト枠のショートカット | `feature/inventory/service/InventoryService.java`、`NormalInventoryLayout.java`、`HotbarRenderer.java`、`feature/menu/view/CraftShortcutView.java` | 共通アイコン生成を使うショートカット・スクロール操作へ専用アイコンを適用。所持品のスロットやモデルを維持。Java の通常画面は `textures/gui/container/inventory.png`、統合版は Classic・Pocket の通常画面で専用の背景を使用。装備・クラフト・所持品のスロットと既存の操作を維持 |
 | プレイ中の HUD ホットバー | Java の HUD スプライト、統合版の `hud.hotbar_slot_selected_image` | 青灰色の通常枠と、金縁に光が巡る12フレームの選択枠。アイテムと個数の表示領域を透過し、スロット位置・選択判定と操作を維持 |
 | GUI の下段専用表示 | `shared/gui/playerinventory/PlayerInventoryOverlaySupport.java`、`shared/gui/hotbar/HotbarShortcutClickSupport.java` | 既存の holder 契約、表示復元、BAG スクロール・ホットバー操作を維持。専用背景のために実所持品をダミーへ置換しない |
-| 統合版プレイヤー設定フォーム | `feature/playersetting/gui/PlayerSettingGui.java#createBedrockForm`、`shared/gui/GuiOpenSupport.java#showDialog` | Paper Dialog の真偽値と選択欄、保存・取消を使用。Geyser が解釈するネイティブフォームで、今回のチェスト背景字形は使わない。フォーム基盤そのものを変える Bedrock `ui/*.json` 上書きは追加しない |
+| 統合版プレイヤー設定フォーム | `feature/playersetting/gui/PlayerSettingGui.java#createBedrockForm`、`shared/gui/GuiOpenSupport.java#showDialog` | Java版と同じ分類順で設定を並べ、入力欄に分類名を表示。Paper Dialog の真偽値と選択欄、保存・取消を使う |
 | ワールド上のスキルツリー | `feature/skilltree/service/SkillTreeVisualizer.java`、`SkillTreePacketDisplay.java`、`SkillTreeService.java` | 単一スキルを付与するノードの ItemDisplay に共通スキルアイコンを適用。その他のノードにはノードのアイコンを使う。統合版の線には粒子代替がある |
 | アクションリング | `feature/skill/service/SkillActionRingHud.java`、`SkillActionRingService.java`、`SkillActionRingDisplay.java` | 対応パックは両版で中央固定 HUD を表示。共通アイコン、開閉と確定の演出、枠の強調、クールダウンと発動不可理由を配布。非対応の接続では従来のワールド表示を使う |
 | 戦闘 HUD のアクションバーとリザルト | `feature/hud/view/PlayerHudView.java`、`feature/hud/service/PlayerHudService.java`、`shared/display/CombatHudGlyphs.java` | 既存の Java 専用 HP/MP/ENG 字形・ゲージとリザルト紋章を維持。対応パックの判定と、未適用時のテキストを維持。今回の UI アイコンによりバーを組み替えない |

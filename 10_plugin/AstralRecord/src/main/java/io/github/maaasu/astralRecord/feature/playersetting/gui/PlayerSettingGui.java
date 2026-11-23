@@ -5,13 +5,10 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.PlayerSettingMsgId;
-import io.github.maaasu.astralRecord.feature.playersetting.model.DamageNumberSize;
-import io.github.maaasu.astralRecord.feature.playersetting.model.ParticleDensity;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingSnapshot;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingGuiSaveService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
-import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
 import io.github.maaasu.astralRecord.shared.gui.GuiResourcePackIcons;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
@@ -52,33 +49,52 @@ import java.util.function.Consumer;
 public final class PlayerSettingGui extends BaseMenuScreenView {
     private static final Component TITLE = Component.text("プレイヤー設定", NamedTextColor.AQUA);
     public static final int SIZE = BaseMenuScreenView.SIZE;
-    public static final int DAMAGE_LOG_SLOT = 20;
-    public static final int DAMAGE_NUMBER_SIZE_SLOT = 21;
-    public static final int DAMAGE_LOG_MESSAGE_SLOT = 22;
-    public static final int PARTICLE_DENSITY_SLOT = 29;
-    public static final int DROP_LOG_SLOT = 38;
-    public static final int AUTO_SAVE_MESSAGE_SLOT = 39;
-    public static final int BUFF_SIDEBAR_DISPLAY_SLOT = 24;
-    public static final int SCREEN_HUD_SETTINGS_SLOT = 25;
-    public static final int ARMOR_DISPLAY_SLOT = 30;
-    public static final int ACTION_RING_HOLD_SELECT_SLOT = 42;
-    public static final int SKILL_TREE_COMPACT_DISPLAY_SLOT = 32;
-    public static final int NIGHT_VISION_SLOT = 31;
-    public static final int RANDOM_STATUS_RANGE_DISPLAY_SLOT = 33;
-    public static final int GUIDE_REMINDER_SLOT = 40;
-    public static final int SAVE_GUIDE_SLOT = 13;
+    public static final int SCREEN_HUD_SETTINGS_SLOT = 51;
     public static final int SUPER_MODE_SECRET_SLOT = 53;
     public static final int BACK_TO_MENU_SLOT = BaseMenuScreenView.BACK_SLOT;
+    private static final int SAVE_GUIDE_SLOT = 47;
 
-    private static final List<HudItem> HUD_ITEMS = List.of(
-        new HudItem(19, PlayerSettingKey.QUEST_HUD_DISPLAY, Material.MAP, "quest"),
-        new HudItem(20, PlayerSettingKey.ACTION_RING_COOLDOWN_DISPLAY, Material.TRIDENT, "setting_action_ring"),
-        new HudItem(21, PlayerSettingKey.EQUIPPED_SKILL_COOLDOWN_DISPLAY, Material.BOOK, "setting_skill_tree"),
-        new HudItem(22, PlayerSettingKey.COMBAT_DPS_DISPLAY, Material.CLOCK, "setting_dps"),
-        new HudItem(28, PlayerSettingKey.WORLD_NAME_DISPLAY, Material.FILLED_MAP, "back"),
-        new HudItem(29, PlayerSettingKey.AREA_NAME_DISPLAY, Material.COMPASS, "back"),
-        new HudItem(30, PlayerSettingKey.MSPT_DISPLAY, Material.CLOCK, "setting_performance"),
-        new HudItem(31, PlayerSettingKey.PING_DISPLAY, Material.REDSTONE, "setting_damage_log")
+    private static final List<SettingGroup> GENERAL_GROUPS = List.of(
+        new SettingGroup(10, Material.ORANGE_BANNER, NamedTextColor.GOLD, PlayerSettingMsgId.P_6816, List.of(
+            new SettingItem(12, PlayerSettingKey.DAMAGE_LOG_DISPLAY, Material.REDSTONE, "setting_damage_log",
+                List.of(PlayerSettingMsgId.P_6831)),
+            new SettingItem(13, PlayerSettingKey.DAMAGE_NUMBER_SIZE, Material.NAME_TAG, "setting_damage_size"),
+            new SettingItem(14, PlayerSettingKey.DAMAGE_LOG_MESSAGE, Material.PAPER, "setting_damage_message",
+                List.of(PlayerSettingMsgId.P_6832)),
+            new SettingItem(15, PlayerSettingKey.PARTICLE_DENSITY, Material.BLAZE_POWDER, "setting_particles"),
+            new SettingItem(16, PlayerSettingKey.BUFF_SIDEBAR_DISPLAY, Material.POTION, "setting_buff_sidebar",
+                List.of(PlayerSettingMsgId.P_6833))
+        )),
+        new SettingGroup(19, Material.CYAN_BANNER, NamedTextColor.AQUA, PlayerSettingMsgId.P_6817, List.of(
+            new SettingItem(21, PlayerSettingKey.ARMOR_DISPLAY, Material.IRON_CHESTPLATE, "equipment"),
+            new SettingItem(22, PlayerSettingKey.NIGHT_VISION, Material.SPYGLASS, "setting_night_vision"),
+            new SettingItem(23, PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY, Material.BOOK, "setting_skill_tree",
+                List.of(PlayerSettingMsgId.P_5327)),
+            new SettingItem(24, PlayerSettingKey.RANDOM_STATUS_RANGE_DISPLAY, Material.COMPARATOR, "setting_status_range"),
+            new SettingItem(25, PlayerSettingKey.ACTION_RING_HOLD_SELECT, Material.TRIDENT, "setting_action_ring",
+                List.of(PlayerSettingMsgId.P_5395, PlayerSettingMsgId.P_6827, PlayerSettingMsgId.P_6828))
+        )),
+        new SettingGroup(28, Material.YELLOW_BANNER, NamedTextColor.YELLOW, PlayerSettingMsgId.P_6818, List.of(
+            new SettingItem(30, PlayerSettingKey.DROP_LOG_DISPLAY, Material.CHEST, "setting_drop_log"),
+            new SettingItem(31, PlayerSettingKey.AUTO_SAVE_MESSAGE, Material.WRITABLE_BOOK, "setting_auto_save"),
+            new SettingItem(32, PlayerSettingKey.GUIDE_REMINDER, Material.KNOWLEDGE_BOOK, "guide")
+        ))
+    );
+    private static final List<SettingGroup> HUD_GROUPS = List.of(
+        new SettingGroup(10, Material.ORANGE_BANNER, NamedTextColor.GOLD, PlayerSettingMsgId.P_6820, List.of(
+            new SettingItem(12, PlayerSettingKey.QUEST_HUD_DISPLAY, Material.MAP, "quest"),
+            new SettingItem(13, PlayerSettingKey.ACTION_RING_COOLDOWN_DISPLAY, Material.TRIDENT, "setting_action_ring_cooldown"),
+            new SettingItem(14, PlayerSettingKey.EQUIPPED_SKILL_COOLDOWN_DISPLAY, Material.BOOK, "setting_equipped_skill_cooldown"),
+            new SettingItem(15, PlayerSettingKey.COMBAT_DPS_DISPLAY, Material.CLOCK, "setting_dps")
+        )),
+        new SettingGroup(19, Material.CYAN_BANNER, NamedTextColor.AQUA, PlayerSettingMsgId.P_6821, List.of(
+            new SettingItem(21, PlayerSettingKey.WORLD_NAME_DISPLAY, Material.FILLED_MAP, "setting_world_name"),
+            new SettingItem(22, PlayerSettingKey.AREA_NAME_DISPLAY, Material.COMPASS, "setting_area_name")
+        )),
+        new SettingGroup(28, Material.YELLOW_BANNER, NamedTextColor.YELLOW, PlayerSettingMsgId.P_6822, List.of(
+            new SettingItem(30, PlayerSettingKey.MSPT_DISPLAY, Material.CLOCK, "setting_performance"),
+            new SettingItem(31, PlayerSettingKey.PING_DISPLAY, Material.REDSTONE, "setting_ping")
+        ))
     );
 
     private final PlayerSettingService playerSettingService;
@@ -153,23 +169,31 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
         Map<PlayerSettingKey, Object> initial = new EnumMap<>(PlayerSettingKey.class);
         List<DialogInput> inputs = new ArrayList<>();
         List<DialogBody> body = new ArrayList<>();
+        body.add(DialogBody.plainMessage(PlayerMsgResource.getComponent(PlayerSettingMsgId.P_6824.getId())));
         if (!screenHud) {
             body.add(DialogBody.plainMessage(PlayerMsgResource.getComponent(PlayerSettingMsgId.P_6814.getId())));
+            body.add(DialogBody.plainMessage(PlayerMsgResource.getComponent(PlayerSettingMsgId.P_6834.getId())));
         }
-        for (int slot = 0; slot < SIZE; slot++) {
-            PlayerSettingKey key = settingKey(screenHud, slot);
-            if (key == null || key == PlayerSettingKey.ACTION_RING_HOLD_SELECT) {
-                continue;
+        for (SettingGroup group : settingGroups(screenHud)) {
+            String groupName = PlayerMsgResource.getMessage(group.title().getId());
+            for (SettingItem item : group.items()) {
+                PlayerSettingKey key = item.key();
+                if (key == PlayerSettingKey.ACTION_RING_HOLD_SELECT) {
+                    continue;
+                }
+                if (!canEdit(astPlayer, key)) {
+                    body.add(DialogBody.plainMessage(PlayerMsgResource.formatPlainComponent(
+                        PlayerSettingMsgId.P_6812.getId(), key.getDisplayNameJa())));
+                    continue;
+                }
+                var entry = snapshot.getEntry(key);
+                Object value = entry == null ? key.getDefaultValue() : entry.getValue();
+                initial.put(key, value);
+                Component label = PlayerMsgResource.formatPlainComponent(
+                    PlayerSettingMsgId.P_6823.getId(), groupName, key.getDisplayNameJa()
+                );
+                inputs.add(formInput(key, label, value));
             }
-            if (!canEdit(astPlayer, key)) {
-                body.add(DialogBody.plainMessage(ColorCodeUtil.toComponent(PlayerMsgResource.format(
-                    PlayerSettingMsgId.P_6812.getId(), key.getDisplayNameJa()), "")));
-                continue;
-            }
-            var entry = snapshot.getEntry(key);
-            Object value = entry == null ? key.getDefaultValue() : entry.getValue();
-            initial.put(key, value);
-            inputs.add(formInput(key, value));
         }
         Object token = new Object();
         ActionButton save = ActionButton.builder(Component.text(
@@ -236,11 +260,13 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
 
     /**
      * @param key フォームに表示する設定キー
+     * @param label 分類と設定項目名を含む入力欄の見出し
      * @param value 現在値
      * @return 真偽値の切替欄、または列挙値の選択欄
      */
-    private static @NotNull DialogInput formInput(@NotNull PlayerSettingKey key, @NotNull Object value) {
-        Component label = Component.text(key.getDisplayNameJa());
+    private static @NotNull DialogInput formInput(
+        @NotNull PlayerSettingKey key, @NotNull Component label, @NotNull Object value
+    ) {
         if (value instanceof Boolean enabled) {
             return DialogInput.bool(key.getCode(), label).initial(enabled).build();
         }
@@ -297,11 +323,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
         @Nullable Map<PlayerSettingKey, Object> draftValues
     ) {
         ItemStack back = inventory.getItem(BACK_TO_MENU_SLOT);
-        if (isScreenHudInventory(inventory)) {
-            renderScreenHud(inventory, userId, draftValues);
-        } else {
-            render(inventory, userId, draftValues);
-        }
+        render(inventory, userId, draftValues);
         if (back != null) {
             inventory.setItem(BACK_TO_MENU_SLOT, back);
         }
@@ -327,40 +349,23 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
      * @return 対応する設定キー。設定項目以外はnull
      */
     public @Nullable PlayerSettingKey getKeyAtSlot(@NotNull Inventory inventory, int rawSlot) {
-        return settingKey(isScreenHudInventory(inventory), rawSlot);
-    }
-
-    /**
-     * インベントリと統合版フォームで共有する項目順・スロットからキーを解決します。
-     * @param screenHud 画面UI設定の場合は true
-     * @param rawSlot 項目のスロット
-     * @return 設定項目に対応しなければ null
-     */
-    private static @Nullable PlayerSettingKey settingKey(boolean screenHud, int rawSlot) {
-        if (screenHud) {
-            for (HudItem item : HUD_ITEMS) {
-                if (rawSlot == item.slot()) {
+        for (SettingGroup group : settingGroups(isScreenHudInventory(inventory))) {
+            for (SettingItem item : group.items()) {
+                if (item.slot() == rawSlot) {
                     return item.key();
                 }
             }
-            return null;
         }
-        return switch (rawSlot) {
-            case DAMAGE_LOG_SLOT -> PlayerSettingKey.DAMAGE_LOG_DISPLAY;
-            case DAMAGE_NUMBER_SIZE_SLOT -> PlayerSettingKey.DAMAGE_NUMBER_SIZE;
-            case DAMAGE_LOG_MESSAGE_SLOT -> PlayerSettingKey.DAMAGE_LOG_MESSAGE;
-            case PARTICLE_DENSITY_SLOT -> PlayerSettingKey.PARTICLE_DENSITY;
-            case DROP_LOG_SLOT -> PlayerSettingKey.DROP_LOG_DISPLAY;
-            case AUTO_SAVE_MESSAGE_SLOT -> PlayerSettingKey.AUTO_SAVE_MESSAGE;
-            case BUFF_SIDEBAR_DISPLAY_SLOT -> PlayerSettingKey.BUFF_SIDEBAR_DISPLAY;
-            case ARMOR_DISPLAY_SLOT -> PlayerSettingKey.ARMOR_DISPLAY;
-            case ACTION_RING_HOLD_SELECT_SLOT -> PlayerSettingKey.ACTION_RING_HOLD_SELECT;
-            case SKILL_TREE_COMPACT_DISPLAY_SLOT -> PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY;
-            case NIGHT_VISION_SLOT -> PlayerSettingKey.NIGHT_VISION;
-            case RANDOM_STATUS_RANGE_DISPLAY_SLOT -> PlayerSettingKey.RANDOM_STATUS_RANGE_DISPLAY;
-            case GUIDE_REMINDER_SLOT -> PlayerSettingKey.GUIDE_REMINDER;
-            default -> null;
-        };
+        return null;
+    }
+
+    /**
+     * インベントリと統合版フォームで共有する分類を返します。
+     * @param screenHud 画面UI設定の場合は true
+     * @return スロット順の分類
+     */
+    private static @NotNull List<SettingGroup> settingGroups(boolean screenHud) {
+        return screenHud ? HUD_GROUPS : GENERAL_GROUPS;
     }
 
     public @Nullable UUID getUserId(@Nullable Inventory inventory) {
@@ -379,9 +384,9 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     }
 
     /**
-     * 設定項目を、保存済み値または下書きから主スレッドで描画します。
+     * Java版の分類と設定項目を、保存済み値と変更予定値から主スレッドで描画します。
      *
-     * @param inventory 描画先の設定GUI
+     * @param inventory 描画先インベントリ
      * @param userId 設定を所有するユーザーUUID
      * @param draftValues 未保存の変更予定値。nullなら保存済み値を使用
      */
@@ -390,229 +395,75 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
         @NotNull UUID userId,
         @Nullable Map<PlayerSettingKey, Object> draftValues
     ) {
+        boolean screenHud = isScreenHudInventory(inventory);
         inventory.clear();
-        fill(inventory);
-        inventory.setItem(SAVE_GUIDE_SLOT, createSettingItem(
-            Material.WRITABLE_BOOK,
-            "setting_save_guide",
-            PlayerMsgResource.getComponent(PlayerSettingMsgId.P_5328.getId()),
-            List.of()
-        ));
-        inventory.setItem(DAMAGE_LOG_SLOT, createBooleanItem(
-            Material.REDSTONE,
-            "setting_damage_log",
-            PlayerSettingKey.DAMAGE_LOG_DISPLAY,
-            (Boolean) resolveValue(userId, PlayerSettingKey.DAMAGE_LOG_DISPLAY, draftValues)
-        ));
-        DamageNumberSize damageNumberSize = (DamageNumberSize) resolveValue(
-            userId, PlayerSettingKey.DAMAGE_NUMBER_SIZE, draftValues
-        );
-        inventory.setItem(DAMAGE_NUMBER_SIZE_SLOT, createSettingItem(
-            Material.NAME_TAG,
-            "setting_damage_size",
-            Component.text(PlayerSettingKey.DAMAGE_NUMBER_SIZE.getDisplayNameJa(), NamedTextColor.GOLD),
-            List.of(
-                ColorCodeUtil.toComponent(PlayerMsgResource.format(
-                    PlayerSettingMsgId.P_5396.getId(), damageNumberSize.getDisplayNameJa()
-                ), ""),
-                PlayerMsgResource.getComponent(PlayerSettingMsgId.P_5397.getId())
-            )
-        ));
-        inventory.setItem(DAMAGE_LOG_MESSAGE_SLOT, createBooleanItem(
-            Material.PAPER,
-            "setting_damage_message",
-            PlayerSettingKey.DAMAGE_LOG_MESSAGE,
-            (Boolean) resolveValue(userId, PlayerSettingKey.DAMAGE_LOG_MESSAGE, draftValues)
-        ));
-        inventory.setItem(PARTICLE_DENSITY_SLOT, createParticleItem(
-            (ParticleDensity) resolveValue(userId, PlayerSettingKey.PARTICLE_DENSITY, draftValues)
-        ));
-        inventory.setItem(DROP_LOG_SLOT, createBooleanItem(
-            Material.CHEST,
-            "setting_drop_log",
-            PlayerSettingKey.DROP_LOG_DISPLAY,
-            (Boolean) resolveValue(userId, PlayerSettingKey.DROP_LOG_DISPLAY, draftValues)
-        ));
-        inventory.setItem(AUTO_SAVE_MESSAGE_SLOT, createBooleanItem(
-            Material.WRITABLE_BOOK,
-            "setting_auto_save",
-            PlayerSettingKey.AUTO_SAVE_MESSAGE,
-            (Boolean) resolveValue(userId, PlayerSettingKey.AUTO_SAVE_MESSAGE, draftValues)
-        ));
-        inventory.setItem(BUFF_SIDEBAR_DISPLAY_SLOT, createBooleanItem(
-            Material.POTION,
-            "setting_buff_sidebar",
-            PlayerSettingKey.BUFF_SIDEBAR_DISPLAY,
-            (Boolean) resolveValue(userId, PlayerSettingKey.BUFF_SIDEBAR_DISPLAY, draftValues)
-        ));
-        inventory.setItem(ARMOR_DISPLAY_SLOT, createBooleanItem(
-            Material.IRON_CHESTPLATE,
-            "equipment",
-            PlayerSettingKey.ARMOR_DISPLAY,
-            (Boolean) resolveValue(userId, PlayerSettingKey.ARMOR_DISPLAY, draftValues)
-        ));
-        inventory.setItem(ACTION_RING_HOLD_SELECT_SLOT, createBooleanItem(
-            Material.TRIDENT,
-            "setting_action_ring",
-            PlayerSettingKey.ACTION_RING_HOLD_SELECT,
-            (Boolean) resolveValue(userId, PlayerSettingKey.ACTION_RING_HOLD_SELECT, draftValues),
-            List.of(
-                PlayerMsgResource.getComponent(PlayerSettingMsgId.P_5395.getId()),
-                Component.text("※有効にすると、構えている間は武器の見た目がトライデントに変化します。", NamedTextColor.RED),
-                Component.text("※動作が不安定になる可能性があります。", NamedTextColor.RED)
-            )
-        ));
-        inventory.setItem(SKILL_TREE_COMPACT_DISPLAY_SLOT, createBooleanItem(
-            Material.BOOK,
-            "setting_skill_tree",
-            PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY,
-            (Boolean) resolveValue(userId, PlayerSettingKey.SKILL_TREE_COMPACT_DISPLAY, draftValues),
-            List.of(PlayerMsgResource.getComponent(PlayerSettingMsgId.P_5327.getId()))
-        ));
-        inventory.setItem(NIGHT_VISION_SLOT, createBooleanItem(
-            Material.SPYGLASS,
-            "setting_night_vision",
-            PlayerSettingKey.NIGHT_VISION,
-            (Boolean) resolveValue(userId, PlayerSettingKey.NIGHT_VISION, draftValues)
-        ));
-        inventory.setItem(BACK_TO_MENU_SLOT, backItem());
-        inventory.setItem(RANDOM_STATUS_RANGE_DISPLAY_SLOT, createBooleanItem(
-            Material.COMPARATOR,
-            "setting_status_range",
-            PlayerSettingKey.RANDOM_STATUS_RANGE_DISPLAY,
-            (Boolean) resolveValue(userId, PlayerSettingKey.RANDOM_STATUS_RANGE_DISPLAY, draftValues)
-        ));
-        inventory.setItem(GUIDE_REMINDER_SLOT, createBooleanItem(
-            Material.KNOWLEDGE_BOOK,
-            "guide",
-            PlayerSettingKey.GUIDE_REMINDER,
-            (Boolean) resolveValue(userId, PlayerSettingKey.GUIDE_REMINDER, draftValues)
-        ));
-        inventory.setItem(SCREEN_HUD_SETTINGS_SLOT, createSettingItem(
-            Material.COMPARATOR, "settings", screenHudTitle(),
-            List.of(PlayerMsgResource.getComponent(PlayerSettingMsgId.P_6811.getId()))
-        ));
-        markDraftValues(inventory, userId, draftValues);
-    }
-
-    /**
-     * Java版の画面UI設定サブ画面を描画します。
-     * @param inventory 描画先の設定画面
-     * @param userId 設定の所有ユーザー
-     * @param draftValues 未保存の変更予定値
-     */
-    private void renderScreenHud(
-        @NotNull Inventory inventory, @NotNull UUID userId, @Nullable Map<PlayerSettingKey, Object> draftValues
-    ) {
-        inventory.clear();
-        fill(inventory);
+        for (SettingGroup group : settingGroups(screenHud)) {
+            Component title = PlayerMsgResource.getComponent(group.title().getId()).color(group.color());
+            inventory.setItem(group.headingSlot(), createItem(group.banner(), title,
+                List.of(PlayerMsgResource.getComponent(PlayerSettingMsgId.P_6829.getId()))));
+            for (SettingItem item : group.items()) {
+                inventory.setItem(item.slot(), createSettingItem(item, userId, draftValues));
+            }
+        }
         inventory.setItem(SAVE_GUIDE_SLOT, createSettingItem(
             Material.WRITABLE_BOOK, "setting_save_guide",
-            PlayerMsgResource.getComponent(PlayerSettingMsgId.P_5328.getId()), List.of()
+            PlayerMsgResource.getComponent(PlayerSettingMsgId.P_6819.getId()),
+            List.of(
+                PlayerMsgResource.getComponent(PlayerSettingMsgId.P_5328.getId()),
+                PlayerMsgResource.getComponent(PlayerSettingMsgId.P_6830.getId())
+            )
         ));
-        for (HudItem item : HUD_ITEMS) {
-            inventory.setItem(item.slot(), createBooleanItem(
-                item.material(), item.role(), item.key(), (Boolean) resolveValue(userId, item.key(), draftValues)
+        inventory.setItem(BACK_TO_MENU_SLOT, backItem());
+        if (!screenHud) {
+            inventory.setItem(SCREEN_HUD_SETTINGS_SLOT, createSettingItem(
+                Material.COMPARATOR, "setting_screen_hud", screenHudTitle(),
+                List.of(
+                    PlayerMsgResource.getComponent(PlayerSettingMsgId.P_6811.getId()),
+                    PlayerMsgResource.getComponent(PlayerSettingMsgId.P_6814.getId())
+                )
             ));
         }
-        inventory.setItem(BACK_TO_MENU_SLOT, backItem());
-        markDraftValues(inventory, userId, draftValues);
     }
 
     /**
-     * 保存済み値と異なる下書きだけを明示します。保存・設定反映は行いません。
-     *
-     * @param inventory 項目を描画済みの設定inventory。主スレッドから呼び出すこと
-     * @param userId 読込済み設定を所有するユーザーUUID
-     * @param draftValues 変更予定値。nullまたは空なら変更予定表示を追加しない
+     * 項目の現在値、操作方法、未保存の変更を表示します。
+     * @param item 表示する設定項目
+     * @param userId 設定の所有者
+     * @param draftValues 未保存の変更予定値。nullなら保存済み値を使用
+     * @return 設定アイコン
      */
-    private void markDraftValues(
-        @NotNull Inventory inventory,
-        @NotNull UUID userId,
-        @Nullable Map<PlayerSettingKey, Object> draftValues
+    private @NotNull ItemStack createSettingItem(
+        @NotNull SettingItem item, @NotNull UUID userId, @Nullable Map<PlayerSettingKey, Object> draftValues
     ) {
-        if (draftValues == null || draftValues.isEmpty()) {
-            return;
+        PlayerSettingKey key = item.key();
+        Object savedValue = playerSettingService.getPlayerSetting(userId, key);
+        Object chosenValue = draftValues == null ? savedValue : draftValues.getOrDefault(key, savedValue);
+        boolean changed = !Objects.equals(savedValue, chosenValue);
+        NamedTextColor valueColor = NamedTextColor.AQUA;
+        if (chosenValue instanceof Boolean enabled) {
+            valueColor = enabled ? NamedTextColor.GREEN : NamedTextColor.RED;
         }
-        for (int slot = 0; slot < SIZE; slot++) {
-            PlayerSettingKey key = getKeyAtSlot(inventory, slot);
-            if (key == null || !draftValues.containsKey(key)) {
-                continue;
-            }
-            Object savedValue = playerSettingService.getPlayerSetting(userId, key);
-            Object draftValue = draftValues.get(key);
-            if (Objects.equals(savedValue, draftValue)) {
-                continue;
-            }
-            ItemStack item = inventory.getItem(slot);
-            if (item == null || !item.hasItemMeta()) {
-                continue;
-            }
-            var meta = item.getItemMeta();
-            List<Component> lore = new ArrayList<>(meta.lore() == null ? List.of() : meta.lore());
-            Component status = ColorCodeUtil.toComponent(PlayerMsgResource.format(
-                PlayerSettingMsgId.P_5329.getId(), key.formatValue(savedValue), key.formatValue(draftValue)
-            ), "");
-            if (lore.isEmpty()) {
-                lore.add(status);
-            } else {
-                lore.set(0, status);
-            }
-            meta.lore(lore);
-            item.setItemMeta(meta);
+        Component value = changed
+            ? PlayerMsgResource.formatPlainComponent(
+                PlayerSettingMsgId.P_5329.getId(), key.formatValue(savedValue), key.formatValue(chosenValue))
+            : PlayerMsgResource.formatPlainComponent(PlayerSettingMsgId.P_5396.getId(), key.formatValue(savedValue))
+                .color(valueColor);
+        PlayerSettingMsgId operation = switch (key) {
+            case DAMAGE_NUMBER_SIZE -> PlayerSettingMsgId.P_5397;
+            case PARTICLE_DENSITY -> PlayerSettingMsgId.P_6826;
+            default -> PlayerSettingMsgId.P_6825;
+        };
+        List<Component> lore = new ArrayList<>(List.of(value, PlayerMsgResource.getComponent(operation.getId())));
+        for (PlayerSettingMsgId note : item.notes()) {
+            lore.add(PlayerMsgResource.getComponent(note.getId()));
         }
-    }
-
-    private @NotNull Object resolveValue(
-        @NotNull UUID userId,
-        @NotNull PlayerSettingKey key,
-        @Nullable Map<PlayerSettingKey, Object> draftValues
-    ) {
-        if (draftValues != null && draftValues.containsKey(key)) {
-            return draftValues.get(key);
-        }
-        return playerSettingService.getPlayerSetting(userId, key);
-    }
-
-    private @NotNull ItemStack createBooleanItem(
-        @NotNull Material material,
-        @NotNull String role,
-        @NotNull PlayerSettingKey key,
-        boolean enabled,
-        @NotNull List<Component> additionalLore
-    ) {
-        List<Component> lore = new ArrayList<>(List.of(
-            Component.text("現在: " + key.formatValue(enabled), enabled ? NamedTextColor.GREEN : NamedTextColor.RED),
-            Component.text("クリックで切り替え", NamedTextColor.GRAY)
-        ));
-        lore.addAll(additionalLore);
-        return createSettingItem(
-            material,
-            role,
-            Component.text(key.getDisplayNameJa(), NamedTextColor.GOLD),
-            lore
+        ItemStack stack = createSettingItem(
+            item.material(), item.role(), Component.text(key.getDisplayNameJa(), NamedTextColor.WHITE), lore
         );
-    }
-
-    private @NotNull ItemStack createBooleanItem(
-        @NotNull Material material,
-        @NotNull String role,
-        @NotNull PlayerSettingKey key,
-        boolean enabled
-    ) {
-        return createBooleanItem(material, role, key, enabled, List.of());
-    }
-
-    private @NotNull ItemStack createParticleItem(@NotNull ParticleDensity density) {
-        return createSettingItem(
-            Material.BLAZE_POWDER,
-            "setting_particles",
-            Component.text(PlayerSettingKey.PARTICLE_DENSITY.getDisplayNameJa(), NamedTextColor.GOLD),
-            List.of(
-                Component.text("現在: " + density.getDisplayNameJa(), NamedTextColor.AQUA),
-                Component.text("クリックで次の密度へ", NamedTextColor.GRAY)
-            )
-        );
+        if (changed) {
+            stack.editMeta(meta -> meta.setEnchantmentGlintOverride(true));
+        }
+        return stack;
     }
 
     private @NotNull ItemStack createSettingItem(
@@ -624,7 +475,24 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
         return GuiResourcePackIcons.apply(createItem(material, name, lore), role);
     }
 
-    private record HudItem(int slot, PlayerSettingKey key, Material material, String role) { }
+    private record SettingGroup(
+        int headingSlot, Material banner, NamedTextColor color, PlayerSettingMsgId title, List<SettingItem> items
+    ) { }
+
+    private record SettingItem(
+        int slot, PlayerSettingKey key, Material material, String role, List<PlayerSettingMsgId> notes
+    ) {
+        /**
+         * 共通の現在値と操作方法だけを表示する設定項目を定義します。
+         * @param slot 設定項目のスロット
+         * @param key 設定キー
+         * @param material GUI アイコンのベース素材
+         * @param role GUI アイコンの役割
+         */
+        private SettingItem(int slot, PlayerSettingKey key, Material material, String role) {
+            this(slot, key, material, role, List.of());
+        }
+    }
 
     private record Holder(@NotNull UUID userId, long sessionToken, boolean screenHud) implements HotbarShortcutGuiHolder {
         @Override
