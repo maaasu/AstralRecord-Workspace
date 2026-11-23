@@ -2,11 +2,13 @@ package io.github.maaasu.astralRecord.feature.hud.view;
 
 import io.github.maaasu.astralRecord.feature.hud.model.QuestHudLayout;
 import io.github.maaasu.astralRecord.feature.hud.model.QuestHudLayout.Row;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
 
 import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.SOLID_PIXEL;
 import static io.github.maaasu.astralRecord.feature.hud.view.HudOverlayGlyphs.appendGlyph;
@@ -35,6 +37,26 @@ public final class QuestHudGlyphs {
     private static final int COMPLETE_FILL_MARKER = 225;
     private static final int GUIDE_BIT = 16;
     private static final int SHADOW_BIT = 32;
+    private static final Map<Integer, Integer> PIXEL_ADVANCES =
+        ClassNameGlyphs.loadAdvances("/quest-hud-pixel-advances.txt");
+    private static final boolean PIXEL_FONT_AVAILABLE =
+        PIXEL_ADVANCES.containsKey((int) '?') && PIXEL_ADVANCES.containsKey((int) '…');
+    private static final HudOverlayGlyphs.Typeface PIXEL_TEXT = new HudOverlayGlyphs.Typeface(
+        Key.key("astralrecord", "quest_hud_pixel_text"), code -> PIXEL_ADVANCES.getOrDefault(code, 0), 11);
+
+    /** 実際に適用されたパックに合わせ、行の折り返し・描画・相殺に同じフォントを使います。 */
+    public enum Format {
+        QUEST_V2, CHAPTER_V3, PIXEL_V4;
+
+        public static Format forPack(boolean chapter, boolean pixel) {
+            if (!chapter) return QUEST_V2;
+            return pixel && PIXEL_FONT_AVAILABLE ? PIXEL_V4 : CHAPTER_V3;
+        }
+
+        private HudOverlayGlyphs.Typeface text() {
+            return this == PIXEL_V4 ? PIXEL_TEXT : QUEST_TEXT;
+        }
+    }
 
     private QuestHudGlyphs() {
     }
@@ -50,8 +72,14 @@ public final class QuestHudGlyphs {
         return render(rows, false);
     }
 
-    /** Java v3の字形契約だけがガイド色と影のビットを解釈します。 */
+    /** 従来のJava v2/v3を明示して描画する呼び出し用です。 */
     public static Component render(List<Row> rows, boolean transparentTheme) {
+        return render(rows, transparentTheme ? Format.CHAPTER_V3 : Format.QUEST_V2);
+    }
+
+    public static Component render(List<Row> rows, Format format) {
+        boolean transparentTheme = format != Format.QUEST_V2;
+        var text = format.text();
         if (rows.isEmpty()) {
             return Component.empty();
         }
@@ -78,10 +106,10 @@ public final class QuestHudGlyphs {
                 case GUIDE_CONTINUATION -> CONTINUATION_INDENT;
                 default -> 0;
             } : 0);
-            List<Integer> value = QUEST_TEXT.fit(row.value(), VALUE_MAX_WIDTH);
-            int valueX = TEXT_RIGHT - QUEST_TEXT.width(value);
+            List<Integer> value = text.fit(row.value(), VALUE_MAX_WIDTH);
+            int valueX = TEXT_RIGHT - text.width(value);
             int labelRight = value.isEmpty() ? TEXT_RIGHT : valueX - (guide ? GUIDE_VALUE_GAP : VALUE_GAP);
-            List<Integer> label = QUEST_TEXT.fit(row.label(), labelRight - labelX);
+            List<Integer> label = text.fit(row.label(), labelRight - labelX);
             switch (row.kind()) {
                 case TITLE, GUIDE_TITLE -> {
                     if (index > 0) {
@@ -98,7 +126,7 @@ public final class QuestHudGlyphs {
                     int barSpace = valueX - 3 - BAR_WIDTH - BAR_X;
                     int barShift = Math.clamp(barSpace / 2, 0, 7);
                     if (row.progressPercent() >= 0 && !value.isEmpty() && barSpace >= 0
-                        && QUEST_TEXT.width(label) <= BAR_X + barShift * 2 - 3 - labelX) {
+                        && text.width(label) <= BAR_X + barShift * 2 - 3 - labelX) {
                         int fill = Math.clamp((row.progressPercent() * BAR_WIDTH + 50) / 100, 0, BAR_WIDTH);
                         int barVariant = barShift * 32 + fill;
                         if (fill < BAR_WIDTH) {
@@ -110,25 +138,31 @@ public final class QuestHudGlyphs {
                         }
                     }
                 }
-                case OVERFLOW -> QUEST_TEXT.appendLine(result, List.of((int) '…'), MARKER_X, index, textMarker, 0);
+                case OVERFLOW -> text.appendLine(result, List.of((int) '…'), MARKER_X, index, textMarker, 0);
                 case GUIDE_CONTINUATION -> { }
             }
             int textRow = index | section;
             int shadowOffset = transparentTheme ? SHADOW_BIT : 0;
-            QUEST_TEXT.appendLine(result, label, labelX, textRow, textMarker, shadowOffset);
-            QUEST_TEXT.appendLine(result, value, valueX, textRow, textMarker, shadowOffset);
+            text.appendLine(result, label, labelX, textRow, textMarker, shadowOffset);
+            text.appendLine(result, value, valueX, textRow, textMarker, shadowOffset);
         }
         return result.build();
     }
 
     /** 章名・進捗・次の操作を実フォント幅で配置します。操作文の最終行は長すぎれば描画時に省略します。 */
     public static List<Row> guideRows(String chapterTitle, int completed, int total, int nextNumber, String nextAction) {
+        return guideRows(chapterTitle, completed, total, nextNumber, nextAction, Format.CHAPTER_V3);
+    }
+
+    public static List<Row> guideRows(String chapterTitle, int completed, int total, int nextNumber,
+                                      String nextAction, Format format) {
+        var text = format.text();
         if (completed < 0 || completed >= total || nextNumber < 1 || nextNumber > total || nextAction.isBlank()) return List.of();
         var rows = new ArrayList<Row>(5);
         String progress = completed + "/" + total;
         String title = "第1章 " + chapterTitle;
-        int headerWidth = TEXT_RIGHT - LABEL_X - GUIDE_VALUE_GAP - QUEST_TEXT.width(QUEST_TEXT.fit(progress, VALUE_MAX_WIDTH));
-        int end = QUEST_TEXT.prefixEnd(title, headerWidth);
+        int headerWidth = TEXT_RIGHT - LABEL_X - GUIDE_VALUE_GAP - text.width(text.fit(progress, VALUE_MAX_WIDTH));
+        int end = text.prefixEnd(title, headerWidth);
         boolean singleTitle = end == title.length();
         rows.add(new Row(QuestHudLayout.Kind.GUIDE_TITLE, singleTitle ? title : "第1章", progress, -1));
         if (!singleTitle) rows.add(new Row(QuestHudLayout.Kind.GUIDE_CONTINUATION, chapterTitle, "", -1));
@@ -136,7 +170,7 @@ public final class QuestHudGlyphs {
         String action = nextAction.strip();
         int breakAt = action.indexOf('\n');
         end = Math.min(breakAt < 0 ? action.length() : breakAt,
-            QUEST_TEXT.prefixEnd(action, TEXT_RIGHT - LABEL_X - CONTINUATION_INDENT));
+            text.prefixEnd(action, TEXT_RIGHT - LABEL_X - CONTINUATION_INDENT));
         rows.add(new Row(QuestHudLayout.Kind.GUIDE_CONTINUATION, action.substring(0, end), "", -1));
         if (end < action.length()) {
             rows.add(new Row(QuestHudLayout.Kind.GUIDE_CONTINUATION, action.substring(end).stripLeading().replace('\n', ' '), "", -1));

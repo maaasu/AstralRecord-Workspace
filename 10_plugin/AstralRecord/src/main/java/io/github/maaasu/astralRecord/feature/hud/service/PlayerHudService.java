@@ -123,7 +123,7 @@ public class PlayerHudService {
         guideInstruction = instruction;
     }
 
-    private record JavaQuestHud(List<QuestHudLayout.Row> rows, boolean transparent, Component component) {
+    private record JavaQuestHud(List<QuestHudLayout.Row> rows, QuestHudGlyphs.Format format, Component component) {
     }
 
     private Component javaQuestHud(Player player) {
@@ -133,8 +133,9 @@ public class PlayerHudService {
             return Component.empty();
         }
         AstPlayer ast = AstPlayerCache.get(player);
-        boolean transparent = resourcePackService.hasJavaGuideHud(id);
-        List<QuestHudLayout.Row> guide = transparent ? visibleGuideRows(ast) : List.of();
+        var format = QuestHudGlyphs.Format.forPack(resourcePackService.hasJavaGuideHud(id),
+            resourcePackService.hasJavaPixelQuestHud(id));
+        List<QuestHudLayout.Row> guide = format == QuestHudGlyphs.Format.QUEST_V2 ? List.of() : visibleGuideRows(ast, format);
         List<QuestHudLayout.Row> rows = visibleQuestRows(ast, QuestHudLayout.MAX_ROWS - guide.size());
         if (!guide.isEmpty()) {
             var combined = new ArrayList<>(guide);
@@ -146,8 +147,8 @@ public class PlayerHudService {
             return Component.empty();
         }
         JavaQuestHud cached = javaQuestHuds.get(id);
-        if (cached == null || cached.transparent() != transparent || !cached.rows().equals(rows)) {
-            cached = new JavaQuestHud(rows, transparent, QuestHudGlyphs.render(rows, transparent));
+        if (cached == null || cached.format() != format || !cached.rows().equals(rows)) {
+            cached = new JavaQuestHud(rows, format, QuestHudGlyphs.render(rows, format));
             javaQuestHuds.put(id, cached);
         }
         return cached.component();
@@ -158,7 +159,7 @@ public class PlayerHudService {
         bedrockQuestHudSender = sender;
     }
 
-    private List<QuestHudLayout.Row> visibleGuideRows(@Nullable AstPlayer player) {
+    private List<QuestHudLayout.Row> visibleGuideRows(@Nullable AstPlayer player, QuestHudGlyphs.Format format) {
         if (guideService == null || player == null || player.isBedrock() || player.getBukkit().isDead()
             || !player.getAccount().getMode().shouldProcessGameplay() || !guideService.isGuideDisplayEnabled(player)
             || bossChallengeService.isPlayerInActiveChallenge(player.getBukkit().getUniqueId())
@@ -175,7 +176,7 @@ public class PlayerHudService {
             String hint = guideInstruction.apply(player, stepId);
             if (hint == null) hint = ColorCodeUtil.toPlainText(guideService.resolveText(step.text()), "");
             return QuestHudGlyphs.guideRows(ColorCodeUtil.toPlainText(guideService.resolveText(chapter.title()), ""),
-                completed, chapter.steps().size(), i + 1, hint);
+                completed, chapter.steps().size(), i + 1, hint, format);
         }
         return List.of();
     }

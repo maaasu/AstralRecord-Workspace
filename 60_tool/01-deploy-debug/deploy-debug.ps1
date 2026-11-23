@@ -654,7 +654,7 @@ function Publish-ResourcePacks {
             $reader = [IO.StreamReader]::new($questEntry.Open())
             try { $questTrackingHud = $reader.ReadToEnd() }
             finally { $reader.Dispose() }
-            if ($questTrackingHud -cnotin @('1', '2', '3')) { throw 'Unsupported quest tracking HUD version.' }
+            if ($questTrackingHud -cnotin @('1', '2', '3', '4')) { throw 'Unsupported quest tracking HUD version.' }
             $questShaders = @(
                 'assets/minecraft/shaders/core/rendertype_text.vsh'
                 'quest_hud_84/assets/minecraft/shaders/core/rendertype_text.vsh'
@@ -668,8 +668,21 @@ function Publish-ResourcePacks {
                 'assets/astralrecord/textures/font/profile_hud_class_name_compact.png'
                 $questShaders
             )
-            if ($questTrackingHud -cin @('2', '3')) {
+            if ($questTrackingHud -cin @('2', '3', '4')) {
                 $questAssets += 'assets/astralrecord/textures/font/quest_hud_pixel.png'
+            }
+            if ($questTrackingHud -ceq '4') {
+                $pixelFont = $archive.GetEntry('assets/astralrecord/font/quest_hud_pixel_text.json')
+                if ($null -eq $pixelFont) { throw 'Missing pixel text font in Java quest HUD pack.' }
+                $reader = [IO.StreamReader]::new($pixelFont.Open())
+                try { $pixelProviders = ($reader.ReadToEnd() | ConvertFrom-Json -AsHashtable)['providers'] }
+                finally { $reader.Dispose() }
+                foreach ($sheet in @('minecraft:font/ascii.png', 'astralrecord:font/quest_hud_pixel_text.png')) {
+                    if (-not ($pixelProviders | Where-Object { $_['type'] -ceq 'bitmap' -and $_['file'] -ceq $sheet })) {
+                        throw "Missing pixel text font provider in Java quest HUD pack: $sheet"
+                    }
+                }
+                $questAssets += 'assets/astralrecord/textures/font/quest_hud_pixel_text.png'
             }
             $questFont = $archive.GetEntry('assets/astralrecord/font/quest_hud.json')
             if ($null -ne $questFont) {
@@ -738,7 +751,7 @@ function Publish-ResourcePacks {
             $reader = [IO.StreamReader]::new($locationEntry.Open())
             try { $locationHud = $reader.ReadToEnd() }
             finally { $reader.Dispose() }
-            if ($locationHud -cnotin @('1', '2', '3', '4', '5') -or $questTrackingHud -cnotin @('2', '3')) {
+            if ($locationHud -cnotin @('1', '2', '3', '4', '5') -or $questTrackingHud -cnotin @('2', '3', '4')) {
                 throw 'Location HUD requires version 1, 2, 3, 4 or 5 and Quest HUD assets version 2 or 3.'
             }
             $reader = [IO.StreamReader]::new($archive.GetEntry('assets/astralrecord/font/quest_hud_space.json').Open())

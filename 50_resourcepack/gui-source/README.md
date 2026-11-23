@@ -41,3 +41,20 @@ uv run --with pillow==13.0.0 python scripts/generate-java-containers.py --client
 編集した原画を出力するときは `--check` を外します。コンテナの生成結果は `java-gui-native` に置きます。通常の配布パックビルドは、リポジトリにある生成済み画像を使います。
 
 統合版の画面別設定は [Mojang の Bedrock サンプル](https://github.com/Mojang/bedrock-samples/tree/v1.26.60.5/resource_pack/ui) の画面階層に沿って、Classic と Pocket のコンテナに背景を指定します。元のスロット、タブ、閉じる操作は既存の画面定義から読み込みます。
+
+## チャプター画面の文字
+
+第1章の固定ラベルは、Java版1.21.11の標準日本語フォントの二値ビットマップです。
+ASCII数字の「1」と日本語の字形・字送りを `chapter-glyphs.json` に記録し、
+ゲームのGUI 1pxに対して原画2pxで描きます。通常のパネル再生成に外部フォントは不要です。
+
+ゲーム本体から字形を再抽出する場合は、Pillow、1.21.11の公式クライアントJAR、および
+`indexes/29.json` と `objects/` を含むMinecraftのアセットディレクトリを使用します。
+`50_resourcepack` ディレクトリから、次のコマンドを実行します。
+
+```text
+python scripts/generate-gui-panels.py --chapter-only --refresh-chapter-font --client-jar <1.21.11.jar> --assets-dir <assets>
+python scripts/generate-gui-panels.py --chapter-only --check
+```
+
+1行目に `--check` を加えると書き込みを行わずに実際のゲーム字形と照合できます。

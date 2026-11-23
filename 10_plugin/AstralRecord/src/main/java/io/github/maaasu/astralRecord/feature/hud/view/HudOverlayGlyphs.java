@@ -55,7 +55,10 @@ final class HudOverlayGlyphs {
             .font(SPACE_FONT).color(TextColor.color(0xFFFFFF)).shadowColor(ShadowColor.none()));
     }
 
-    record Typeface(Key font, IntUnaryOperator advances) {
+    record Typeface(Key font, IntUnaryOperator advances, int maxAdvance) {
+        Typeface(Key font, IntUnaryOperator advances) {
+            this(font, advances, 10);
+        }
         /** 指定座標へ文字を並べ、影を使う場合は行番号に専用オフセットを加えます。 */
         void appendLine(TextComponent.Builder result, List<Integer> text, int x, int row, int marker, int shadowRowOffset) {
             for (int codePoint : text) {
@@ -117,7 +120,7 @@ final class HudOverlayGlyphs {
         /** @return パックに未収録の文字を代替した字形番号 */
         private int supportedGlyph(int codePoint) {
             int advance = advances.applyAsInt(codePoint);
-            return advance > 0 && advance <= 10 ? codePoint : '?';
+            return advance > 0 && advance <= maxAdvance ? codePoint : '?';
         }
 
         /** @return 小型フォントでの字送りの合計 */

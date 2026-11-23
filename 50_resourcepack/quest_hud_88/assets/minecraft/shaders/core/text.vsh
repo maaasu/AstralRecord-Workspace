@@ -60,9 +60,12 @@ void main() {
             || (questType == 224 && questCode.b < 32 && (questCode.b & 15) < 3)
             || (questType == 225 && (questCode.b & 31) <= 18));
     bool questProjection = abs(ProjMat[3][3] - 1.0) < 0.001 && abs(ProjMat[2][3]) < 0.001;
+    // Pixel text uses its own negative ascent; legacy type and every other HUD keep their geometry.
+    bool questPixelFont = questTextMarker && questScreen.y > questHeight + 3744.0
+        && questScreen.y < questHeight + 3864.0;
     if (questProjection && questRows >= 1 && questRows <= 10 && (questTextMarker || questShapeMarker)
-            && questScreen.y > questHeight + 4000.0
-            && questScreen.y < questHeight + 4120.0) {
+            && (questPixelFont || (questScreen.y > questHeight + 4000.0
+                && questScreen.y < questHeight + 4120.0))) {
         int questCorner = gl_VertexID & 3; // TL, BL, BR, TR in the vanilla glyph quad.
         vec2 questSize = vec2(2.0 / abs(ProjMat[0][0]), questHeight);
         float panelHeight = float(6 + 13 * questRows);
@@ -87,10 +90,10 @@ void main() {
             int palette = (questType - 180) & 3;
             origin = vec2(left + float(questCode.g - 8), rowY);
             // The dedicated 36x36 atlas retains the original 9x9 logical ink cell.
-            size = vec2(9.0, 9.0);
+            size = vec2(questPixelFont ? 8.0 : 9.0);
             if (textShadow) {
                 origin += vec2(1.0);
-                tint = vec3(0.10980392, 0.12549020, 0.12941176);
+                tint = questPixelFont ? vec3(0.0) : vec3(0.10980392, 0.12549020, 0.12941176);
             } else if (guideText) {
                 tint = palette == 0 ? vec3(0.54509804, 0.89019608, 0.81568627) : palette == 1 ? vec3(0.93725490, 0.99607843, 0.97254902)
                     : palette == 2 ? vec3(0.69411765, 0.92156863, 0.76470588) : vec3(0.72941176, 0.84705882, 0.81568627);
