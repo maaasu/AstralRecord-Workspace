@@ -270,18 +270,18 @@
       "base_item": "minecraft:stick",
       "custom_model_data": 220001,
       "sha256": {
-        "assets/astralrecord/models/item/custom/simple_weapon.json": "0e0e5ee05a795e5a183f4415b23cc1deccb0c329537d057760abce0e4b68ca0d",
+        "assets/astralrecord/models/item/custom/simple_weapon.json": "cb1e7b3eab96b2e05ddad4fb09ef8d7597262d95836bb7d2ef232c77b57c1052",
         "assets/astralrecord/models/item/custom/simple_weapon_virtual_use.json": "ef9edfa7ebe6f2dfd1643fc2857c620214a213720f89fc171de3f56d9c2343c6",
-        "assets/astralrecord/textures/item/custom/simple_weapon.png": "b898a99b019614728752b8917482653a498d8fa4373f9920401d2e2c1da82337",
+        "assets/astralrecord/textures/item/custom/simple_weapon.png": "51f4580a31b0646d1e9015e4c826b17ff2f89a442e2c364b3d3d24ff55ab1be9",
         "bedrock/animations/simple_weapon.animation.json": "dd7b93c0c9051568182c65cda5b295a52e4947e1f61a53fc0dc8ae6c29820cd2",
         "bedrock/attachables/simple_weapon.json": "08142b3ed6c8db4b85cdef4bfe9d9617395cf7419c386d767bceb361576edd18",
-        "bedrock/models/entity/items/simple_weapon.geo.json": "a4866d0cf21f83bb89896b21541c64c98240165a7d7d499e585d98f5dfa098f5",
-        "bedrock/textures/entity/items/simple_weapon.png": "b898a99b019614728752b8917482653a498d8fa4373f9920401d2e2c1da82337",
-        "blockbench/pixel-art/simple_weapon.pixel.json": "763b37c24c6d7274475538f0e3b895703a96679650969431721cc2f85d0b83ec",
-        "bedrock/textures/items/simple_weapon.png": "9d82a924d2e639ae36a018fbda6be24b6ee79e78c90143b5147670d97080bc88",
-        "blockbench/equipment-drafts/simple_weapon.json": "515f3e16004ce4385982c21755616afbe24f20bd1a636760bbfb8b99847002e5",
-        "blockbench/items/simple_weapon.bedrock.bbmodel": "c4d3cbcfd5c90fe603516b36542bf850faf9b327aeea4d9615718140dac7f839",
-        "blockbench/items/simple_weapon.java.bbmodel": "3534fd8b92e3e0630dd582ba85806279104e45ee84860968ff6faa9b967149e9"
+        "bedrock/models/entity/items/simple_weapon.geo.json": "2aa9e7e8a8b230ee2b381d961191009af258131b94fab89cf61f11fadef46120",
+        "bedrock/textures/entity/items/simple_weapon.png": "51f4580a31b0646d1e9015e4c826b17ff2f89a442e2c364b3d3d24ff55ab1be9",
+        "blockbench/pixel-art/simple_weapon.pixel.json": "2382cfa591a2a440301b6799817ee40bee241f3e04de4bcf52af1ef85e7b7aba",
+        "bedrock/textures/items/simple_weapon.png": "b4f30bb15362b74c6a1e71086f026d038695e67adb6fac1cbef4f365bd3aa12a",
+        "blockbench/equipment-drafts/simple_weapon.json": "6739438bd1da294b2455de0ce205e6b45c0d1c57865c5a1a9971b0434cce1c4c",
+        "blockbench/items/simple_weapon.bedrock.bbmodel": "2f7f320f620d4134b92963d456a44f26e0f03dc46a0f1edac3a6ae06033590ac",
+        "blockbench/items/simple_weapon.java.bbmodel": "fd860c41be93e86027e51b1e5d333844a7c5eb638e1fc43ec5d5ee2b77ca63d7"
       }
     },
     {
@@ -800,16 +800,16 @@
       "base_item": "minecraft:torch",
       "custom_model_data": 220007,
       "sha256": {
-        "assets/astralrecord/models/item/custom/simple_talisman.json": "e39b5a85aae9a56bd3035fb0897b712ede1529813c8294d44ad04b8c6e431d50",
+        "assets/astralrecord/models/item/custom/simple_talisman.json": "0ca6f598d80913d395d1e86bba0f6d1423fd1d4e1fb067f752c4fe6bcfcaea4c",
         "assets/astralrecord/textures/item/custom/simple_talisman.png": "2350336ead0d157155e220d21d2cbb3d0c459b2adc9f75968cc5eb661a5fc937",
-        "bedrock/animations/simple_talisman.animation.json": "e4e1f8cbbfad9d205ce046de4881ce7ef532f2cfd48de9fdea85103afae79c3f",
+        "bedrock/animations/simple_talisman.animation.json": "c503a9f03ef269523bfa243cd6fdbed32b773a2d52715c0cafe6567325f5647e",
         "bedrock/attachables/simple_talisman.json": "7b34604ffe96d0554c0871e36541e2eaad0af5c92c90119543325f337d2cec6b",
         "bedrock/models/entity/items/simple_talisman.geo.json": "56bfa81e1a2407bd216530a0f7d8a513820d36e2bed9b3a129ca816cab0500f8",
         "bedrock/textures/entity/items/simple_talisman.png": "2350336ead0d157155e220d21d2cbb3d0c459b2adc9f75968cc5eb661a5fc937",
         "bedrock/textures/items/simple_talisman.png": "833ad17e9cf26217444d8d2b529179adecc1652c5d82d74bf9b182e70538aebb",
         "blockbench/equipment-drafts/simple_talisman.json": "17317e40093adbee531114e18cfed829dc3f7b7a6656e7c1322c03f5de7af68b",
-        "blockbench/items/simple_talisman.bedrock.bbmodel": "72ad0dd342e24d56f184b7c9ec7e68c89060ce3f870e3c9bb0923f81cec5fb4e",
-        "blockbench/items/simple_talisman.java.bbmodel": "2419f11e5d3366692c07c55e9ddbd8379c4c60f9c2c6147c61e5670233eac9a7",
+        "blockbench/items/simple_talisman.bedrock.bbmodel": "1efe0145dd3bb0ee68c8bb88f0bc285cadae02fe165a2e68a284d8c5839fba04",
+        "blockbench/items/simple_talisman.java.bbmodel": "c00d3bc47ec03d30907eeb2e54a829925404d187179f8789430a60695de73f96",
         "blockbench/pixel-art/simple_talisman.pixel.json": "8c11adfc9e350ffbba02cced2a2ed84f15d724f37d5559fd7c963307a9a2dcd9"
       }
     },
