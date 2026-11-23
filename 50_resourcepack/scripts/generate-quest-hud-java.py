@@ -10,11 +10,14 @@ import hashlib
 import io
 import json
 import math
+import os
 from pathlib import Path
 import re
 import struct
 import sys
 import zipfile
+
+import minecraft_pixel_font
 
 PACK = Path(__file__).resolve().parents[1]
 ROOT = PACK.parent
@@ -109,9 +112,12 @@ def injection(version):
             || (questType == 224 && questCode.b < 32 && (questCode.b & 15) < 3)
             || (questType == 225 && (questCode.b & 31) <= {BAR_WIDTH}));
     bool questProjection = abs(ProjMat[3][3] - 1.0) < 0.001 && abs(ProjMat[2][3]) < 0.001;
+    // Pixel text uses its own negative ascent; legacy type and every other HUD keep their geometry.
+    bool questPixelFont = questTextMarker && questScreen.y > questHeight + 3744.0
+        && questScreen.y < questHeight + 3864.0;
     if (questProjection && questRows >= 1 && questRows <= {MAX_ROWS} && (questTextMarker || questShapeMarker)
-            && questScreen.y > questHeight + 4000.0
-            && questScreen.y < questHeight + 4120.0) {{
+            && (questPixelFont || (questScreen.y > questHeight + 4000.0
+                && questScreen.y < questHeight + 4120.0))) {{
         int questCorner = {vertex} & 3; // TL, BL, BR, TR in the vanilla glyph quad.
         vec2 questSize = vec2(2.0 / abs(ProjMat[0][0]), questHeight);
         float panelHeight = float({PADDING * 2} + {ROW_HEIGHT} * questRows);
@@ -136,10 +142,10 @@ def injection(version):
             int palette = (questType - 180) & 3;
             origin = vec2(left + float(questCode.g - {LEFT}), rowY);
             // The dedicated 36x36 atlas retains the original 9x9 logical ink cell.
-            size = vec2(9.0, 9.0);
+            size = vec2(questPixelFont ? 8.0 : 9.0);
             if (textShadow) {{
                 origin += vec2(1.0);
-                tint = {shader_color(INK_SHADOW)};
+                tint = questPixelFont ? vec3(0.0) : {shader_color(INK_SHADOW)};
             }} else if (guideText) {{
                 tint = palette == 0 ? {guide_title} : palette == 1 ? {guide_body}
                     : palette == 2 ? {guide_complete} : {guide_overflow};
@@ -495,11 +501,13 @@ def panel_placement(width, height, rows):
     return x, y, scale
 
 
-def marker_geometry(marker, width, height):
+def marker_geometry(marker, width, height, pixel_font=False):
     red, green, blue = marker
     text = 180 <= red < 220
     rows = (red - 180) // 4 + 1 if text else green if red == 220 else green >> 4
     row = blue & 15 if text else green & 15
+    if pixel_font and not (text and blue < 64 and row < rows and LEFT <= green < LEFT + WIDTH):
+        return None
     if not 1 <= rows <= MAX_ROWS:
         return None
     panel_height = PADDING * 2 + ROW_HEIGHT * rows
@@ -513,8 +521,9 @@ def marker_geometry(marker, width, height):
     if text and blue < 64 and row < rows and LEFT <= green < LEFT + WIDTH:
         shadow = bool(blue & 32)
         palette = GUIDE_COLORS if blue & 16 else TEXT_COLORS
-        color = INK_SHADOW if shadow else palette[(red - 180) % 4]
-        return quad(green - LEFT + int(shadow), row_y + int(shadow), 9, 9, color)
+        color = ((0, 0, 0) if pixel_font else INK_SHADOW) if shadow else palette[(red - 180) % 4]
+        cell = 8 if pixel_font else 9
+        return quad(green - LEFT + int(shadow), row_y + int(shadow), cell, cell, color)
     if red == 220 and blue < 8:
         return quad(0, 0, 0, 0, (255, 255, 255))
     if row >= rows:
@@ -666,7 +675,7 @@ def verify_geometry():
     print(f'Quest glyph geometry: {count} vertex cases passed; non-marker vanilla source hashes preserved.')
 
 
-def preview(path, packed=None, backdrop=None, row_file=None):
+def preview(path, packed=None, backdrop=None, row_file=None, client_jar=None):
     """Rasterize the viewport crop of the left HUD at GUI scale 4; backdrop is optional."""
     from PIL import Image, ImageChops, ImageOps
     from contextlib import nullcontext
@@ -675,26 +684,37 @@ def preview(path, packed=None, backdrop=None, row_file=None):
         def asset(name):
             return archive.read(name) if archive else (PACK / name).read_bytes()
 
-        font = json.loads(asset('assets/astralrecord/font/quest_hud.json'))
-        provider = next(p for p in font['providers'] if p['type'] == 'bitmap')
+        font = json.loads(asset('assets/astralrecord/font/quest_hud_pixel_text.json'))
         def texture(identifier):
             namespace, name = identifier.split(':')
             return Image.open(io.BytesIO(asset(f'assets/{namespace}/textures/{name}'))).convert('RGBA')
-        atlas = texture(provider['file'])
-        icons = texture(font['providers'][-1]['file'])
+        glyphs = {}
+        for provider in font['providers']:
+            if provider['type'] != 'bitmap':
+                continue
+            if provider['file'] == minecraft_pixel_font.ASCII_FILE:
+                rows, alpha = minecraft_pixel_font.ascii_source(client_jar)
+                assert len(rows) == len(provider['chars'])
+                atlas = Image.new('RGBA', alpha.size, 'white')
+                atlas.putalpha(alpha)
+            else:
+                atlas = texture(provider['file'])
+            rows = provider['chars']
+            cw, ch = atlas.width // len(rows[0]), atlas.height // len(rows)
+            assert cw <= 256 and ch <= 256 and provider['height'] == 8
+            for ry, line in enumerate(rows):
+                for cx, c in enumerate(line):
+                    if c != '\0':
+                        glyphs[c] = atlas.crop((cx * cw, ry * ch, (cx + 1) * cw, (ry + 1) * ch))
+        icons = texture('astralrecord:font/quest_hud_pixel.png')
         for version, _, _, directory, stem in VARIANTS:
             assert injection(version) in asset(directory + f'assets/minecraft/shaders/core/{stem}.vsh').decode()
-        assert asset('quest-tracking-hud-version.txt') == b'3'
+        assert asset('quest-tracking-hud-version.txt') == b'4'
 
-    rows = provider['chars']
-    cw, ch = atlas.width // len(rows[0]), atlas.height // len(rows)
-    assert cw <= 256 and ch <= 256
-    cells = {c: (x * cw, y * ch) for y, line in enumerate(rows) for x, c in enumerate(line) if c != '\0'}
-    metrics = ROOT / '10_plugin/AstralRecord/src/main/resources/class-name-glyph-advances.txt'
+    metrics = ROOT / '10_plugin/AstralRecord/src/main/resources/quest-hud-pixel-advances.txt'
     recorded = {int(key, 16): int(value) for key, value in map(str.split, metrics.read_text().splitlines())}
     def advance(c):
-        value = recorded.get(ord(c), recorded[ord('?')])
-        return value * 3 // 4 if c in (' ', '\u3000') else ((value - 1) * 3 + 3) // 4 + 1
+        return recorded.get(ord(c), recorded[ord('?')])
     def width(text):
         return sum(map(advance, text))
     def fit(text, maximum):
@@ -710,14 +730,14 @@ def preview(path, packed=None, backdrop=None, row_file=None):
         [True, 1, '次のステップ 3', '', -1],
         [True, 'continuation', 'バンドルをホットバーへ', '', -1],
         [False, 0, 'グラスボア討伐依頼', '', -1],
-        [False, 1, 'ミズガルズ・グラスボア', '3/10', 30],
+        [False, 1, 'ミズガルズ・グラスボア', '0/10', 0],
     ]
     assert 0 < len(sample) <= MAX_ROWS
     scale, viewport = 4, (640, 360)
     layer = Image.new('RGBA', (viewport[0] * scale, viewport[1] * scale))
     solid = icons.crop((0, 0, 12, 18))
     def paint(marker, tile):
-        (x, y, w, h), tint = marker_geometry(marker, *viewport)
+        (x, y, w, h), tint = marker_geometry(marker, *viewport, pixel_font=180 <= marker[0] < 220)
         if w == 0 or h == 0:
             return
         ink = ImageChops.multiply(tile.convert('RGB'), Image.new('RGB', tile.size, tint))
@@ -727,8 +747,7 @@ def preview(path, packed=None, backdrop=None, row_file=None):
     def text(string, x, marker, row):
         for c in string:
             if c not in (' ', '\u3000'):
-                left, top = cells.get(c, cells['?'])
-                tile = atlas.crop((left, top, left + cw, top + ch))
+                tile = glyphs.get(c, glyphs['?'])
                 paint((marker, x, row | 32), tile)
                 paint((marker, x, row), tile)
             x += advance(c)
@@ -865,12 +884,16 @@ def gpu_check(clients):
                            (128, 3, 9), (143, 3, 9), (145, 30, 9), (146, 10, 0), (161, 156, 15)]
                 alpha = 204 / 255
                 for marker in markers:
-                    for mode in ('quest', 'normal_y', 'wrong_ascent'):
+                    for mode in ('quest', 'pixel', 'normal_y', 'wrong_ascent'):
                         geometry = None
                         if mode == 'quest':
                             quest = marker_geometry(marker, width, height)
                             geometry = ((quest[0], (*quest[1], 255)) if quest
                                 else location_geometry(marker, width, height) or ring_geometry(marker, width, height))
+                        elif mode == 'pixel':
+                            pixel = marker_geometry(marker, width, height, pixel_font=True)
+                            if pixel:
+                                geometry = (pixel[0], (*pixel[1], 255))
                         if marker[0] < 128 and marker[0] % 8 == 7:
                             quad_width, quad_height = 10, 79
                         elif marker[0] < 128:
@@ -881,7 +904,7 @@ def gpu_check(clients):
                             quad_width = quad_height = RING_SLOT
                         else:
                             quad_width, quad_height = 6, 9
-                        y = 40 if mode == 'normal_y' else height + (5000 if mode == 'wrong_ascent' else 4031)
+                        y = 40 if mode == 'normal_y' else height + {'quest': 4031, 'wrong_ascent': 5000, 'pixel': 3775}[mode]
                         positions, colors = [], []
                         for corner in range(4):
                             positions += [old_x + (quad_width if corner >= 2 else 0),
@@ -932,6 +955,7 @@ def main():
     parser.add_argument('--preview-background', type=Path, help='Optional scene for the preview only')
     parser.add_argument('--preview-rows', type=Path, help='JSON rows [guide, palette, label, value, percentage]')
     parser.add_argument('--compile-with', type=Path, help='Optional glslangValidator executable')
+    parser.add_argument('--vanilla-assets', type=Path, help='Java 1.21.11 asset directory with the official Unifont objects')
     parser.add_argument('--raster-font', type=Path, help='Rerasterize the quest-only atlas from the pinned Noto Sans CJK JP Bold font')
     parser.add_argument('--gpu-check', action='store_true', help='Optional moderngl OpenGL transform feedback')
     args = parser.parse_args()
@@ -940,6 +964,11 @@ def main():
             parser.error('--raster-font cannot be used with --check')
         rasterize_hd(args.raster_font)
     assets(args.clients_dir, args.check)
+    if args.vanilla_assets:
+        if not args.clients_dir:
+            parser.error('--vanilla-assets requires --clients-dir')
+        minecraft_pixel_font.generate(PACK, args.clients_dir / '1.21.11.jar', args.vanilla_assets, verify=args.check)
+    minecraft_pixel_font.check_assets(PACK, args.clients_dir / '1.21.11.jar' if args.clients_dir else None)
     verify_font_geometry()
     verify_geometry()
     verify_location_geometry()
@@ -949,7 +978,18 @@ def main():
     if args.gpu_check:
         gpu_check(args.clients_dir)
     if args.preview:
-        preview(args.preview, args.preview_pack, args.preview_background, args.preview_rows)
+        if args.clients_dir:
+            client = args.clients_dir / '1.21.11.jar'
+        else:
+            # The Latin atlas is supplied by the game, and is intentionally absent from our ZIP.
+            game_dirs = [Path.home() / '.minecraft', Path(os.environ.get('APPDATA', Path.home())) / '.minecraft']
+            candidates = [d / 'versions/1.21.11/1.21.11.jar' for d in game_dirs]
+            candidates.append(Path(os.environ.get('APPDATA', Path.home())) /
+                              'gdlauncher_carbon/data/libraries/net/minecraft/client/1.21.11/1.21.11.jar')
+            client = next((jar for jar in candidates if jar.is_file()), None)
+            if not client:
+                parser.error('公式ASCII字形の確認に1.21.11.jarが必要です。--clients-dir を指定してください。')
+        preview(args.preview, args.preview_pack, args.preview_background, args.preview_rows, client)
 
 
 if __name__ == '__main__':

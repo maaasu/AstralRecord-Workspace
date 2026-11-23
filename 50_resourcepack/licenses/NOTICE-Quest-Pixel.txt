@@ -1,0 +1,25 @@
+AstralRecord Quest Pixel
+グリフの出典と配布条件
+
+日本語と記号の字形は、Minecraft Java Edition 1.21.11 が日本語用に使用する
+GNU Unifont 17.0.01 の JP パッチ・共通字形から抽出しました。各16行のビット列を
+ゲームの横幅指定に従って配置したビットマップ・サブセットです。配布には SIL Open
+Font License 1.1 を選択しています。元データに付属する GPL + Font Embedding
+Exception と OFL の全文は、同梱の LICENSE-Unifont-17.0.01.txt にあります。
+
+Copyright © 1998-2025 Roman Czyborra, Paul Hardy, Qianqian Fang, Andrew Miller,
+Johnnie Weaver, David Corbett, Ælla Chiana Moskopp, Rebecca Bettencourt,
+Ho-Seok Ee, et al.
+
+GNU Unifont 17.0.01:
+https://unifoundry.com/pub/unifont/unifont-17.0.01/
+
+ASCII の画面表示は、インストール済みクライアントの minecraft:font/ascii.png を
+参照します。今回の追加フォントにMojangのASCIIテクスチャは同梱していません。
+
+Chapter GUI labels reproduce the unfiltered default Japanese glyphs shipped with
+Minecraft: Java Edition 1.21.11 (ja_jp, non-uniform font, asset index 29).
+The digit 1 uses Mojang Studios' default bitmap. The Japanese label alphabet
+uses GNU Unifont 17.0.01 and its Japanese variant; the distribution license is
+included in the Java pack at licenses/LICENSE-Unifont-17.0.01.txt. The fixed label subset and
+original provider advances are recorded in gui-source/chapter-glyphs.json.

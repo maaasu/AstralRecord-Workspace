@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import importlib.util
 import json
 import math
@@ -231,54 +230,50 @@ def panel(rows: int) -> Raster:
 
 
 CHAPTER_GLYPHS = ROOT / "gui-source/chapter-glyphs.json"
-CHAPTER_ATLAS = ROOT / "assets/astralrecord/textures/font/quest_hud_text_hd.png"
 CHAPTER_STEPS = ("案内", "受取", "開封", "購入", "装備", "討伐")
 CHAPTER_NAME = "グラスボアを1体倒そう"
 CHAPTER_LABELS = ("チャプター一覧", "手順を見る", "第1章", CHAPTER_NAME, "次のステップ", "攻略結果",
                   "現在", "完了", "一覧", "戻る", *CHAPTER_STEPS)
 
 
-def refresh_chapter_glyphs():
-    """Extract the small label alphabet from the shipped Noto Sans JP atlas (OFL)."""
-    from PIL import Image
-    providers = json.loads((ROOT / "assets/astralrecord/font/profile_hud_class_name_compact.json")
-                           .read_text(encoding="utf-8"))["providers"]
-    rows = next(p["chars"] for p in providers if p["type"] == "bitmap")
-    with Image.open(CHAPTER_ATLAS) as image:
-        alpha = image.convert("RGBA").getchannel("A")
-    width, height = alpha.width // len(rows[0]), alpha.height // len(rows)
+def chapter_font_source(client_jar, assets_dir):
+    """Extract binary 16x16 masks in Java 1.21.11 Japanese provider order."""
+    from minecraft_pixel_font import CLIENT_SHA1, bitmap_advance, load_glyphs
+
+    letters = sorted(set("".join(CHAPTER_LABELS)))
+    masks = load_glyphs(client_jar, assets_dir, {ord(c) for c in letters})
     glyphs = {}
-    for letter in sorted(set("".join(CHAPTER_LABELS))):
-        col, row = next((i, j) for j, text in enumerate(rows) for i, c in enumerate(text) if c == letter)
-        mask = alpha.crop((col * width, row * height, (col+1) * width, (row+1) * height))
-        # Keep the original baseline. Half-width numerals use a narrower advance.
-        right = mask.getbbox()[2]
-        w = max(1, round(15 * right / width))
-        scaled = mask.crop((0, 0, right, height)).resize((w, 15), Image.Resampling.LANCZOS)
-        glyphs[letter] = [w, "".join(format(round(a / 17), "x") for a in scaled.tobytes())]
-    data = {"source": "assets/astralrecord/textures/font/quest_hud_text_hd.png",
-            "license": "licenses/OFL-NotoSansJP.txt", "source_sha256": hashlib.sha256(CHAPTER_ATLAS.read_bytes()).hexdigest(),
-            "height": 15, "glyphs": glyphs}
-    CHAPTER_GLYPHS.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    for letter in letters:
+        mask = masks[ord(letter)]
+        if mask.size != (16, 16) or not set(mask.tobytes()).issubset({0, 255}) or not mask.getbbox():
+            raise ValueError(f"Expected a non-empty 1-bit 16x16 source for {letter}")
+        # These fixed labels use full-width Japanese glyphs (8+1 logical pixels).
+        # Their only ASCII character is the vanilla bitmap digit one (5+1 pixels).
+        advance = bitmap_advance(mask) if letter.isascii() else 9
+        rows = mask.convert("1").tobytes().hex()
+        glyphs[letter] = [advance, rows]
+    return {"source": "Minecraft Java Edition 1.21.11 (asset index 29), ja_jp, uniform=false",
+            "client_sha1": CLIENT_SHA1, "height": 16, "pixels_per_gui_unit": 2,
+            "providers": ["minecraft:font/ascii.png", "minecraft:font/unifont_jp.zip", "minecraft:font/unifont.zip"],
+            "license": "licenses/LICENSE-Unifont-17.0.01.txt (Unihex); Mojang Studios (ASCII)",
+            "glyphs": glyphs}
 
 
 def chapter_label(draw, glyphs, text, center_x, y, color=CREAM):
-    """Typeset on the 2x bitmap. Logical coordinates match the Java chest."""
-    width = sum(glyphs[c][0] + 1 for c in text) - 1
+    """Render native 1-bit glyphs at 2x, without filtering, added bold or outlines."""
+    width = 2 * (sum(glyphs[c][0] for c in text) - 1)
     left, top = round(center_x * 2 - width / 2), y * 2
-    rgb = bytes.fromhex(color[1:])
-    if left < 0 or left + width > draw.width or top < 0 or top + 15 > draw.height:
-        raise ValueError(f"Chapter label outside menu: {text}")
+    if left < 0 or left + width > draw.width or top < 0 or top + 16 > draw.height:
+        raise ValueError(f"Chapter text exceeds the menu: {text}")
+    rgba = tuple(bytes.fromhex(color[1:])) + (255,)
     for c in text:
-        w, mask = glyphs[c]
-        for i, ink in enumerate(mask):
-            coverage = int(ink, 16)
-            if coverage:
-                dx, dy = left + i % w, top + i // w
-                bg = draw.pixels[dy][dx]
-                draw.pixels[dy][dx] = tuple((rgb[k] * coverage + bg[k] * (15-coverage) + 7) // 15
-                                            for k in range(3)) + (255,)
-        left += w + 1
+        advance, bitmap = glyphs[c]
+        for row in range(16):
+            bits = int(bitmap[row * 4:row * 4 + 4], 16)
+            for column in range(16):
+                if bits & (0x8000 >> column):
+                    draw.pixels[top + row][left + column] = rgba
+        left += 2 * advance
 
 
 def chapter_panel(variant, glyphs):
@@ -319,7 +314,7 @@ def chapter_panel(variant, glyphs):
         chapter_label(art, glyphs, "第1章", 43, 22, "#bad9dd")
         chapter_label(art, glyphs, "完了" if variant == "complete" else "現在", 130, 22, BRIGHT)
         chapter_label(art, glyphs, CHAPTER_NAME, 88, 40)
-        chapter_label(art, glyphs, "攻略結果" if variant == "complete" else "次のステップ", 51, 57)
+        chapter_label(art, glyphs, "攻略結果" if variant == "complete" else "次のステップ", 52, 57)
         for i, text in enumerate(CHAPTER_STEPS):
             chapter_label(art, glyphs, text, 34 + i * 18, 91, "#d7e5e7")
         chapter_label(art, glyphs, "一覧", 34, 112, "#bad9dd")
@@ -344,8 +339,8 @@ def assets() -> dict[Path, bytes]:
         })
     providers[0]["advances"].update({"\uea02": -177, "\uea03": -1})
     data = json.loads(CHAPTER_GLYPHS.read_text(encoding="utf-8"))
-    if data["source_sha256"] != hashlib.sha256(CHAPTER_ATLAS.read_bytes()).hexdigest():
-        raise ValueError("Chapter label source changed; run --refresh-chapter-font")
+    if set(data["glyphs"]) != set("".join(CHAPTER_LABELS)):
+        raise ValueError("Chapter label alphabet changed; refresh the chapter font source")
     for i, variant in enumerate(("list", "active", "complete")):
         texture = f"gui/panel_chapter_{variant}.png"
         result[ROOT / f"assets/astralrecord/textures/{texture}"] = png(chapter_panel(variant, data["glyphs"]).pixels)
@@ -408,11 +403,20 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="Check generated bytes without writing them")
     parser.add_argument("--preview", type=Path, help="Optional layout mock output, never a client screenshot")
-    parser.add_argument("--refresh-chapter-font", action="store_true", help="Extract chapter label subset (Pillow)")
+    parser.add_argument("--refresh-chapter-font", action="store_true", help="Extract vanilla chapter glyphs from the supplied client assets (Pillow)")
+    parser.add_argument("--client-jar", type=Path, help="Official 1.21.11 client JAR for font extraction")
+    parser.add_argument("--assets-dir", type=Path, help="Minecraft assets directory with indexes/29.json and objects/")
     parser.add_argument("--chapter-only", action="store_true", help="Write or check only Java chapter panels and gui.json")
     args = parser.parse_args()
     if args.refresh_chapter_font:
-        refresh_chapter_glyphs()
+        if args.client_jar is None or args.assets_dir is None:
+            parser.error("--refresh-chapter-font requires --client-jar and --assets-dir")
+        source = json.dumps(chapter_font_source(args.client_jar, args.assets_dir), ensure_ascii=False, indent=2) + "\n"
+        if args.check:
+            if CHAPTER_GLYPHS.read_text(encoding="utf-8") != source:
+                raise SystemExit("Chapter glyphs differ from the specified client")
+        else:
+            CHAPTER_GLYPHS.write_text(source, encoding="utf-8")
     mismatches = []
     for path, expected in assets().items():
         if args.chapter_only and not (path.name.startswith("panel_chapter_") or path.name == "gui.json"):

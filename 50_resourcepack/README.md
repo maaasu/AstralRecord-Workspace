@@ -29,15 +29,17 @@ Java Edition と Bedrock Edition に戦闘 HUD、討伐リザルト、ダメー�
 
 ### クエスト追跡HUD
 
-対応パックの接続では、受注中の依頼名と条件ごとの進捗を左上に自動表示します。両版とも背景は透明で、Java版では同じ左上の領域に章ガイドと受注中のクエストを並べます。受注順に最大3件・計10行を使い、収まらない依頼や条件は種類別に件数を表示します。Javaは独立した4倍解像度のクエスト専用ビットマップ字形を使い、専用フォントの大きな負ascent、GUI判定、RGB座標マーカーを同時に満たした頂点だけを再配置します。各字形の字送りは直後の負spaceで相殺し、通常ActionBarの中央寄せ幅を変えません。低い画面では既存の個人情報HUDを避けるため、クエスト欄の位置と倍率を調整します。75.0、84.0、88.0、97.1の描画経路に対応するoverlayを持ちます。コアシェーダー上書きはMojangの非サポート機能なので、新版追加時は公式資産との差分とコンパイルを再検証します。
+対応パックの接続では、受注中の依頼名と条件ごとの進捗を左上に自動表示します。両版とも背景は透明で、Java版では同じ左上の領域に章ガイドと受注中のクエストを並べます。受注順に最大3件・計10行を使い、収まらない依頼や条件は種類別に件数を表示します。Javaは接続ごとの互換版に応じた専用フォントを使い、専用フォントの大きな負ascent、GUI判定、RGB座標マーカーを同時に満たした頂点だけを再配置します。各字形の字送りは直後の負spaceで相殺し、通常ActionBarの中央寄せ幅を変えません。低い画面では既存の個人情報HUDを避けるため、クエスト欄の位置と倍率を調整します。75.0、84.0、88.0、97.1の描画経路に対応するoverlayを持ちます。コアシェーダー上書きはMojangの非サポート機能なので、新版追加時は公式資産との差分とコンパイルを再検証します。
 
-Javaの互換版3は、ガイドを青緑、クエストを金の菱形と見出しで示します。風景の上には本文・数値と1pxの進捗線が重なり、文字の右下に1pxの影が付きます。同時表示する行全体で最大10行です。文字マーカーの青成分は下位4ビットが行、bit 4がガイド、bit 5が影です。見出し・目的・達成アイコンにもbit 4を使用します。旧クエストのフレームと見出し帯マーカーには面積ゼロの頂点を割り当てます。manifest の `java.questTrackingHud` と接続ごとのパック適用成功を照合します。
+Javaの互換版3・4は、ガイドを青緑、クエストを金の菱形と見出しで示します。風景の上には本文・数値と1pxの進捗線が重なり、文字の右下に1pxの影が付きます。同時表示する行全体で最大10行です。文字マーカーの青成分は下位4ビットが行、bit 4がガイド、bit 5が影です。見出し・目的・達成アイコンにもbit 4を使用します。旧クエストのフレームと見出し帯マーカーには面積ゼロの頂点を割り当てます。manifest の `java.questTrackingHud` と接続ごとのパック適用成功を照合します。
 
 統合版は互換版2を使い、`geyseropt:astralrecord_quest_hud:` の専用TIPを、座標・ペーパードール余白の後、チャットの前に表示します。透明なJSON UIパネルの高さが件数に追従し、本文はネイティブの影付きラベルで描画されます。ガイドの案内はチャットに届きます。表示対象なし・設定OFF・バックエンド切替・更新途絶はクエスト表示を解除します。
 
 `python scripts/generate-quest-hud-java.py --check --preview <PNG> --preview-pack <配布ZIP>` は、配布したアトラス・フォント定義、4形式のシェーダー、サーバーの字送りを照合し、GUI倍率4（論理画面640×360）の左HUDを透過PNGにします。`--preview-rows <JSON>` でプレイヤーの状態例、`--preview-background <画像>` で比較用背景を指定できます。統合版の `python scripts/preview-quest-hud-bedrock.py --preview <PNG> --pack <配布mcpack> --bedrock-font <font.brarchiveまたは字形PNGのフォルダ>` は、JSON UIのラベル位置・行間・影と、指定したクライアントの標準Unicode字形を描画します。`--background <風景画像>` を付けると、その風景上で文字と透明な余白を確認できます。Windows版1.26.6501.0ではインストール先の `data/resource_packs/vanilla/__brarchive/font.brarchive` を使用しました。フォント指定を省いた場合は、Javaパックの代替書体を用いて10行・省略・解除等の配置を検査します。両方とも配布データの静的描画で、端末のフォント設定・画面倍率・実クライアントの表示は個別に確認します。
 
-Javaの4倍解像度字形は [Noto Sans CJK JP Bold (Sans2.004)](https://github.com/notofonts/noto-cjk/tree/Sans2.004) を元にした改変ビットマップです。OFLの著作権表記とライセンスは `licenses/OFL-NotoSansJP.txt` に同梱します。対象4版の正規クライアントJAR、Pillow 13.0.0／FreeType 2.14.3、同スクリプトの `--clients-dir <JARのフォルダ> --raster-font <NotoSansCJK-Bold.ttc>` で再生成できます。
+互換版4の専用本文 `astralrecord:quest_hud_pixel_text` は、章名、操作文、クエスト名、進行数をMinecraft風のピクセル字形と黒い1px影で表示します。ASCIIはクライアント標準の `minecraft:font/ascii.png` を参照します。日本語・記号は1.21.11の `jp=true` のプロバイダ順でGNU Unifont 17.0.01のJPパッチを優先し、共通字形で補います。1字あたり8×8または16×16の元画素を論理8px高で描きます。文字マーカー・負ascent（−3840）ともに一致する頂点だけが新版の対象です。3,323文字の実幅はプラグインの `quest-hud-pixel-advances.txt` に記録します。旧版のNoto Sans CJK JP Bold（`licenses/OFL-NotoSansJP.txt`）は既存の字形・字送りのまま残ります。
+
+現行版の再生成は `python scripts/generate-quest-hud-java.py --clients-dir <4版の公式JARのフォルダ> --vanilla-assets <ランチャーのassetsフォルダ>`、再検証は同じ引数に `--check` を付けます。Minecraft 1.21.11の公式client.jarのSHA-1は `ba2df812c2d12e0219c489c4cd9a5e1f0760f5bd`、内蔵ASCII PNGのSHA-256は `e8646f1ed1f4bfd597d262cca3d8fac88ceaaa62807bbd5e607b2e3fe41c928a`。資産index 29のSHA-1は `39cafd4fd3edc4a1e3c2f20bd83ea3382dab43f1`。同indexの `font/include/unifont.json` は `402ded0eebd448033ef415e861a17513075f80e7`、`font/unifont_jp.zip` は `590470ab0f17afb73a4e41d9cb56fdbe069d275a`、`font/unifont.zip` は `ccd5ac4767ce0a9c71d1dd62f2dc25449789b5dd`（いずれもSHA-1）です。生成元と配布条件は [字形の出典](licenses/NOTICE-Quest-Pixel.txt)、[Unifontのライセンス](licenses/LICENSE-Unifont-17.0.01.txt) に記載しています。両文書は配布ZIPにも同梱します。
 
 ### アクションリング CT HUD
 
