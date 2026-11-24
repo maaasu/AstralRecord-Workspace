@@ -2,13 +2,11 @@ using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
-using AstralRecordApi.Tests.TestSupport;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Data.Common;
-using System.Text.Json;
 using Xunit;
 
 namespace AstralRecordApi.Tests.Repositories;
@@ -53,8 +51,7 @@ public class AccountSkillTreeStateRepositoryTests
         }
 
         await using var dbContext = new AstralRecordDbContext(options);
-        await using var masterDataDbContext = CreateUnusedMasterDataDbContext();
-        var repository = new AccountSkillTreeStateRepository(dbContext, masterDataDbContext);
+        var repository = new AccountSkillTreeStateRepository(dbContext);
 
         var state = await repository.GetByAccountIdAsync(accountId);
 
@@ -104,8 +101,7 @@ public class AccountSkillTreeStateRepositoryTests
 
         await using (var dbContext = new AstralRecordDbContext(options))
         {
-            await using var masterDataDbContext = CreateUnusedMasterDataDbContext();
-            var repository = new AccountSkillTreeStateRepository(dbContext, masterDataDbContext);
+            var repository = new AccountSkillTreeStateRepository(dbContext);
 
             var created = await repository.UpsertAsync(accountId, new AccountSkillTreeStateUpsertRequest
             {
@@ -137,8 +133,7 @@ public class AccountSkillTreeStateRepositoryTests
 
         await using (var dbContext = new AstralRecordDbContext(options))
         {
-            await using var masterDataDbContext = CreateUnusedMasterDataDbContext();
-            var repository = new AccountSkillTreeStateRepository(dbContext, masterDataDbContext);
+            var repository = new AccountSkillTreeStateRepository(dbContext);
 
             var updated = await repository.UpsertAsync(accountId, new AccountSkillTreeStateUpsertRequest
             {
@@ -155,11 +150,11 @@ public class AccountSkillTreeStateRepositoryTests
     }
 
     [Fact]
-    public async Task RepairInvalidStateAsync_RetriesTransactionAndDeliversTemplateMailOnlyOncePerRepairKey()
+    public async Task RepairInvalidStateAsync_RetriesTransactionAndClearsNodesWithoutMail()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
-        var transientInterceptor = new ThrowOnceOnMailInsertInterceptor();
+        var transientInterceptor = new ThrowOnceOnUnlockedNodeDeleteInterceptor();
         var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
             .UseSqlite(connection, sqlite => sqlite.ExecutionStrategy(
                 dependencies => new RetryingTestExecutionStrategy(dependencies)))
@@ -192,48 +187,27 @@ public class AccountSkillTreeStateRepositoryTests
             await setupContext.SaveChangesAsync();
         }
 
-        await using var masterConnection = new SqliteConnection("Data Source=:memory:");
-        await masterConnection.OpenAsync();
-        var masterOptions = new DbContextOptionsBuilder<MasterDataDbContext>()
-            .UseSqlite(masterConnection)
-            .Options;
-        await using var masterDataDbContext = new MasterDataDbContext(masterOptions);
-        await MasterDataTestSeed.CreateSchemaAsync(masterDataDbContext);
-        await MasterDataTestSeed.SeedInlinePayloadAsync(
-            masterDataDbContext,
-            MasterDataTestFixtures.CompensationMail,
-            "mail",
-            null);
-
         await using var dbContext = new AstralRecordDbContext(options);
-        var repository = new AccountSkillTreeStateRepository(dbContext, masterDataDbContext);
+        var repository = new AccountSkillTreeStateRepository(dbContext);
         var initial = await repository.UpsertAsync(accountId, new AccountSkillTreeStateUpsertRequest
         {
             UnlockedNodes = [new() { NodeId = "1000" }, new() { NodeId = "1001" }],
             UpdatedBy = accountId,
         });
 
-        const string repairKey = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        var request = new AccountSkillTreeInvalidStateRepairRequest
+        {
+            UserId = userId,
+            ExpectedVersion = initial.Version,
+            UpdatedBy = accountId,
+        };
         transientInterceptor.Arm();
-        var repaired = await repository.RepairInvalidStateAsync(accountId,
-            new AccountSkillTreeInvalidStateRepairRequest
-            {
-                UserId = userId,
-                RepairKey = repairKey,
-                ExpectedVersion = initial.Version,
-                UpdatedBy = accountId,
-            });
+        var repaired = await repository.RepairInvalidStateAsync(accountId, request);
         Assert.Equal(1, transientInterceptor.TriggerCount);
-        var retried = await repository.RepairInvalidStateAsync(accountId,
-            new AccountSkillTreeInvalidStateRepairRequest
-            {
-                UserId = userId,
-                RepairKey = repairKey,
-                ExpectedVersion = initial.Version,
-                UpdatedBy = accountId,
-            });
+        var retried = await repository.RepairInvalidStateAsync(accountId, request);
 
         Assert.Empty(repaired.UnlockedNodes);
+        Assert.Equal(initial.Version + 1, repaired.Version);
         Assert.Empty(retried.UnlockedNodes);
         Assert.Equal(repaired.Version, retried.Version);
         var reselected = await repository.UpsertAsync(accountId, new AccountSkillTreeStateUpsertRequest
@@ -245,8 +219,7 @@ public class AccountSkillTreeStateRepositoryTests
             new AccountSkillTreeInvalidStateRepairRequest
             {
                 UserId = userId,
-                RepairKey = repairKey,
-                ExpectedVersion = initial.Version,
+                ExpectedVersion = repaired.Version,
                 UpdatedBy = accountId,
             }));
         Assert.Equal("9999", Assert.Single((await repository.GetByAccountIdAsync(accountId)).UnlockedNodes).NodeId);
@@ -254,21 +227,15 @@ public class AccountSkillTreeStateRepositoryTests
             new AccountSkillTreeInvalidStateRepairRequest
             {
                 UserId = userId,
-                RepairKey = repairKey,
                 ExpectedVersion = reselected.Version,
                 UpdatedBy = accountId,
             });
 
         Assert.Empty(repairedAgain.UnlockedNodes);
-        Assert.True(repairedAgain.Version > retried.Version);
-        var delivery = await dbContext.PlayerMailDeliveries.AsNoTracking().SingleAsync();
-        Assert.Equal(accountId, delivery.AccountId);
-        Assert.Equal("skilltree-structure-reset-" + repairKey, delivery.MailId);
-        var deliveredMail = JsonSerializer.Deserialize<MailResponse>(delivery.PayloadJson,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        Assert.NotNull(deliveredMail);
-        Assert.Equal(delivery.MailId, deliveredMail.Id);
-        Assert.Equal("スキルツリー選択状態のリセットについて", deliveredMail.Title);
+        Assert.Equal(reselected.Version + 1, repairedAgain.Version);
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(
+            () => repository.RepairInvalidStateAsync(accountId, request));
+        Assert.Empty(await dbContext.PlayerMailDeliveries.AsNoTracking().ToListAsync());
     }
 
     private static async Task CreateSchemaAsync(AstralRecordDbContext dbContext)
@@ -351,11 +318,6 @@ public class AccountSkillTreeStateRepositoryTests
         ");
     }
 
-    private static MasterDataDbContext CreateUnusedMasterDataDbContext()
-        => new(new DbContextOptionsBuilder<MasterDataDbContext>()
-            .UseSqlite("Data Source=:memory:")
-            .Options);
-
     private sealed class RetryingTestExecutionStrategy(ExecutionStrategyDependencies dependencies)
         : ExecutionStrategy(dependencies, maxRetryCount: 1, maxRetryDelay: TimeSpan.Zero)
     {
@@ -363,7 +325,7 @@ public class AccountSkillTreeStateRepositoryTests
             => exception is TransientTestException;
     }
 
-    private sealed class ThrowOnceOnMailInsertInterceptor : DbCommandInterceptor
+    private sealed class ThrowOnceOnUnlockedNodeDeleteInterceptor : DbCommandInterceptor
     {
         private int isArmed;
         private int triggerCount;
@@ -403,8 +365,8 @@ public class AccountSkillTreeStateRepositoryTests
         private bool ShouldThrow(DbCommand command)
         {
             if (Volatile.Read(ref isArmed) != 1
-                || !command.CommandText.Contains("INSERT INTO", StringComparison.OrdinalIgnoreCase)
-                || !command.CommandText.Contains("player_mail_delivery", StringComparison.OrdinalIgnoreCase)
+                || !command.CommandText.Contains("DELETE FROM", StringComparison.OrdinalIgnoreCase)
+                || !command.CommandText.Contains("account_skilltree_unlocked_node", StringComparison.OrdinalIgnoreCase)
                 || Interlocked.Exchange(ref isArmed, 0) != 1)
             {
                 return false;

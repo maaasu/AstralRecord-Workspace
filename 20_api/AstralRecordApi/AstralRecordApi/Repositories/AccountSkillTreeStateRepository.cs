@@ -3,18 +3,11 @@ using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 
 namespace AstralRecordApi.Repositories;
 
-public class AccountSkillTreeStateRepository(
-    AstralRecordDbContext dbContext,
-    MasterDataDbContext masterDataDbContext) : IAccountSkillTreeStateRepository
+public class AccountSkillTreeStateRepository(AstralRecordDbContext dbContext) : IAccountSkillTreeStateRepository
 {
-    private const string CompensationMailMasterId = "skilltree_structure_reset_compensation";
-    private const string CompensationMailIdPrefix = "skilltree-structure-reset-";
-    private const string MasterTypeMail = "mail";
-
     private async Task LockAccountAsync(Guid accountId)
     {
         if (dbContext.Database.IsSqlServer())
@@ -73,23 +66,6 @@ public class AccountSkillTreeStateRepository(
         AccountSkillTreeInvalidStateRepairRequest request)
     {
         ValidateRepairRequest(request);
-        var account = await dbContext.Accounts
-            .AsNoTracking()
-            .SingleOrDefaultAsync(candidate => candidate.Uuid == accountId && !candidate.IsDeleted);
-        if (account is null)
-            throw new KeyNotFoundException($"Account not found: {accountId}");
-        if (account.UserId != request.UserId)
-            throw new InvalidOperationException($"User does not own account: {accountId}");
-
-        var deliveryMailId = CompensationMailIdPrefix + request.RepairKey;
-        var deliveryExists = await DeliveryExistsAsync(accountId, deliveryMailId);
-        if (deliveryExists && !await HasUnlockedNodesAsync(accountId))
-            return await GetByAccountIdAsync(accountId);
-
-        var master = deliveryExists ? null : await GetCompensationMailMasterAsync();
-        if (!deliveryExists && master is null)
-            throw new KeyNotFoundException($"Mail master not found: {CompensationMailMasterId}");
-
         var now = DateTime.UtcNow;
         var strategy = dbContext.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
@@ -100,20 +76,17 @@ public class AccountSkillTreeStateRepository(
             await using var transaction = await dbContext.Database.BeginTransactionAsync(
                 IsolationLevel.Serializable);
             await LockAccountAsync(accountId);
-            var deliveryExistsInTransaction = await DeliveryExistsForRepairAsync(accountId, deliveryMailId);
-            var hasUnlockedNodes = await HasUnlockedNodesAsync(accountId);
-            if (deliveryExistsInTransaction && !hasUnlockedNodes)
-            {
-                await transaction.CommitAsync();
-                return;
-            }
-            var currentVersion = await GetCurrentVersionAsync(accountId);
-            if (currentVersion != request.ExpectedVersion)
-                throw new DbUpdateConcurrencyException(
-                    $"Account skill tree state version conflict: expected={request.ExpectedVersion}, current={currentVersion}");
-            var currentGeneration = await dbContext.AccountSkillTreeStates
-                .AsNoTracking().Where(state => state.AccountId == accountId && !state.IsDeleted)
-                .Select(state => state.DefinitionGenerationId).SingleOrDefaultAsync();
+            var account = await dbContext.Accounts.AsNoTracking()
+                .SingleOrDefaultAsync(candidate => candidate.Uuid == accountId && !candidate.IsDeleted);
+            if (account is null)
+                throw new KeyNotFoundException($"Account not found: {accountId}");
+            if (account.UserId != request.UserId)
+                throw new InvalidOperationException($"User does not own account: {accountId}");
+
+            var state = await dbContext.AccountSkillTreeStates.AsNoTracking()
+                .SingleOrDefaultAsync(candidate => candidate.AccountId == accountId && !candidate.IsDeleted);
+            var currentVersion = state?.Version ?? 0;
+            var currentGeneration = state?.DefinitionGenerationId;
             if (currentGeneration is null && await SkillTreeSessionReads.Query(dbContext).AnyAsync(x => x.AccountId == accountId))
                 throw new DbUpdateConcurrencyException("Legacy enrolled state requires explicit migration, not automatic repair.");
             if (currentGeneration is not null)
@@ -133,28 +106,19 @@ public class AccountSkillTreeStateRepository(
                 : !string.Equals(currentGeneration, request.ExpectedDefinitionGenerationId, StringComparison.Ordinal))
                 throw new DbUpdateConcurrencyException("Skill tree definition generation differs; state is held without repair.");
 
-            if (hasUnlockedNodes || !deliveryExistsInTransaction)
+            if (currentVersion == request.ExpectedVersion)
             {
                 await ReplaceUnlockedNodesAsync(accountId, [], request.UpdatedBy, now);
+                await dbContext.SaveChangesAsync();
             }
-            if (!deliveryExistsInTransaction)
+            // 直前の補修の結果と一致する空状態だけを、書き込まずに返す。
+            else if (state is null || currentVersion != (long)request.ExpectedVersion + 1
+                || await dbContext.AccountSkillTreeUnlockedNodes.AsNoTracking()
+                    .AnyAsync(node => node.AccountSkillTreeStateId == state.AccountSkillTreeStateId))
             {
-                var deliveryMail = CreateCompensationMail(master!, deliveryMailId, now);
-                await dbContext.PlayerMailDeliveries.AddAsync(new PlayerMailDeliveryEntity
-                {
-                    PlayerMailDeliveryId = Guid.NewGuid(),
-                    AccountId = accountId,
-                    MailId = deliveryMailId,
-                    PayloadJson = JsonSerializer.Serialize(deliveryMail, MasterDataPayloadJson.Options),
-                    Version = 1,
-                    CreatedAt = now,
-                    UpdatedAt = now,
-                    CreatedBy = request.UpdatedBy,
-                    UpdatedBy = request.UpdatedBy,
-                    IsDeleted = false,
-                });
+                throw new DbUpdateConcurrencyException(
+                    $"Account skill tree state version conflict: expected={request.ExpectedVersion}, current={currentVersion}");
             }
-            await dbContext.SaveChangesAsync();
             await transaction.CommitAsync();
         });
         return await GetByAccountIdAsync(accountId);
@@ -251,81 +215,10 @@ public class AccountSkillTreeStateRepository(
         await AddUnlockedNodesAsync(entity.AccountSkillTreeStateId, normalizedNodes, now, updatedBy);
     }
 
-    private async Task<bool> DeliveryExistsAsync(Guid accountId, string mailId)
-        => await dbContext.PlayerMailDeliveries
-            .AsNoTracking()
-            .AnyAsync(delivery => delivery.AccountId == accountId && delivery.MailId == mailId);
-
-    private async Task<bool> DeliveryExistsForRepairAsync(Guid accountId, string mailId)
-    {
-        if (!dbContext.Database.IsSqlServer())
-            return await DeliveryExistsAsync(accountId, mailId);
-
-        // 未登録の配信キーにも範囲ロックを取得し、同一repairKeyの補修を直列化する。
-        return await dbContext.PlayerMailDeliveries
-            .FromSqlInterpolated($"""
-                SELECT TOP (1) *
-                FROM dbo.player_mail_delivery WITH (UPDLOCK, HOLDLOCK)
-                WHERE account_id = {accountId} AND mail_id = {mailId}
-                """)
-            .AsNoTracking()
-            .AnyAsync();
-    }
-
-    private async Task<bool> HasUnlockedNodesAsync(Guid accountId)
-    {
-        var stateId = await dbContext.AccountSkillTreeStates
-            .AsNoTracking()
-            .Where(state => state.AccountId == accountId && !state.IsDeleted)
-            .Select(state => (Guid?)state.AccountSkillTreeStateId)
-            .FirstOrDefaultAsync();
-        return stateId is not null
-            && await dbContext.AccountSkillTreeUnlockedNodes
-                .AsNoTracking()
-                .AnyAsync(node => node.AccountSkillTreeStateId == stateId.Value);
-    }
-
-    private async Task<int> GetCurrentVersionAsync(Guid accountId)
-        => await dbContext.AccountSkillTreeStates
-            .AsNoTracking()
-            .Where(state => state.AccountId == accountId && !state.IsDeleted)
-            .Select(state => (int?)state.Version)
-            .FirstOrDefaultAsync() ?? 0;
-
-    private async Task<MailResponse?> GetCompensationMailMasterAsync()
-    {
-        var payload = await masterDataDbContext.Entries
-            .AsNoTracking()
-            .Where(entry => !entry.IsDeleted
-                && entry.MasterType == MasterTypeMail
-                && entry.MasterId == CompensationMailMasterId)
-            .Select(entry => entry.PayloadJson)
-            .FirstOrDefaultAsync();
-        return payload is null ? null : MasterDataPayloadJson.Deserialize<MailResponse>(payload);
-    }
-
-    private static MailResponse CreateCompensationMail(MailResponse master, string deliveryMailId, DateTime now) => new()
-    {
-        SchemaVersion = master.SchemaVersion,
-        Id = deliveryMailId,
-        Icon = master.Icon,
-        IconTexture = master.IconTexture,
-        Title = master.Title,
-        Body = master.Body,
-        PublishFrom = now,
-        PublishTo = null,
-        FirstLoginOnly = false,
-        ReceiveOnRead = master.ReceiveOnRead,
-        Rewards = master.Rewards,
-    };
-
     private static void ValidateRepairRequest(AccountSkillTreeInvalidStateRepairRequest request)
     {
         if (request.UserId == Guid.Empty || request.UpdatedBy == Guid.Empty)
             throw new ArgumentException("userId and updatedBy are required");
-        if (request.RepairKey.Length != 64
-            || !request.RepairKey.All(character => character is >= '0' and <= '9' or >= 'a' and <= 'f'))
-            throw new ArgumentException("repairKey must be a lowercase SHA-256 hash");
         if (request.ExpectedVersion < 0)
             throw new ArgumentException("expectedVersion must not be negative");
         if (!string.IsNullOrEmpty(request.ExpectedDefinitionGenerationId)

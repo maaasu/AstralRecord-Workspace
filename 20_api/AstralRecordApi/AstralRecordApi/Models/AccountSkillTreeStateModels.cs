@@ -25,11 +25,8 @@ public class AccountSkillTreeStateUpsertRequest
 /// </summary>
 public class AccountSkillTreeInvalidStateRepairRequest
 {
-    /// <summary>補償メールを配信するユーザー UUID。</summary>
+    /// <summary>補修対象アカウントの所有者 UUID。</summary>
     public Guid UserId { get; init; }
-
-    /// <summary>同一構造に対する再試行を一意にする SHA-256 形式のキー。</summary>
-    public required string RepairKey { get; init; }
 
     /// <summary>Plugin が構造不整合を判定した状態の版数。</summary>
     public int ExpectedVersion { get; init; }

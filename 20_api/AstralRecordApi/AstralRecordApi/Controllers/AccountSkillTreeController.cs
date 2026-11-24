@@ -58,14 +58,14 @@ public class AccountSkillTreeController(IAccountSkillTreeStateRepository account
     }
 
     /// <summary>
-    /// 現行のスキルツリー構造と整合しない選択状態を全解除し、対象ユーザーへ補償メールを配信します。
+    /// 現行のスキルツリー構造と整合しない選択状態を全解除します。
     /// </summary>
     /// <param name="accountId">補修対象アカウント UUID</param>
-    /// <param name="request">対象ユーザー、構造識別キー、期待version、更新者</param>
+    /// <param name="request">アカウント所有者、期待版数・定義世代、現行セッション、更新者</param>
     /// <response code="200">補修済み状態</response>
-    /// <response code="400">構造識別キーまたは期待versionが不正</response>
-    /// <response code="404">対象アカウントまたは補償メールマスタが存在しない</response>
-    /// <response code="409">補修判定後にスキルツリー状態が更新された</response>
+    /// <response code="400">所有者・更新者 UUID が空、期待版数または定義世代が不正</response>
+    /// <response code="404">対象アカウントが存在しない</response>
+    /// <response code="409">期待版数・定義世代またはセッションが現在の状態と一致しない</response>
     [HttpPost("{accountId:guid}/repair-invalid-state")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

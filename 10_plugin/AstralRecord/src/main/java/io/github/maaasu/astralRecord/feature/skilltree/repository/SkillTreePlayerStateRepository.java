@@ -54,19 +54,21 @@ public class SkillTreePlayerStateRepository {
     }
 
     /**
-     * 現行スキルツリー構造と整合しない進行状態を空状態へ置換し、対象ユーザーへ補償メールを配信します。
+     * 現行スキルツリー構造と整合しない進行状態を空状態へ置換します。
      *
      * @param accountId リセット対象アカウント UUID
-     * @param userId メール配信対象ユーザー UUID
-     * @param repairKey 同一構造に対する再試行を重複配信しないための構造識別キー
+     * @param userId リセット対象アカウントを所有するユーザー UUID
      * @param expectedVersion 補修判定に使用した読込済み状態の版数
+     * @param expectedGenerationId 補修判定に使用した読込済み状態の定義世代 ID
+     * @param serverId 補修を要求するサーバー ID
+     * @param serverSessionId サーバー起動セッション UUID
+     * @param accountSession 対象アカウントの処理権限を持つセッション
      * @return API が確定した空のスキルツリー状態
      * @throws RuntimeException API 通信または補修処理に失敗した場合
      */
     public @NotNull SkillTreePlayerState repairInvalidState(
             @NotNull UUID accountId,
             @NotNull UUID userId,
-            @NotNull String repairKey,
             int expectedVersion,
             @Nullable String expectedGenerationId,
             @NotNull String serverId,
@@ -76,7 +78,6 @@ public class SkillTreePlayerStateRepository {
         String path = "/api/account-skilltree/" + accountId + "/repair-invalid-state";
         JsonObject body = new JsonObject();
         body.addProperty("userId", userId.toString());
-        body.addProperty("repairKey", repairKey);
         body.addProperty("expectedVersion", expectedVersion);
         body.addProperty("expectedDefinitionGenerationId", expectedGenerationId);
         body.addProperty("serverId", serverId);

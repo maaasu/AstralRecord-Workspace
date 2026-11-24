@@ -184,18 +184,16 @@ public class SkillTreeService {
      * @param definedNodeIds 現在のノード定義に存在するID
      * @param placedNodeIds 現在の構造へ配置されているID
      * @param adjacentNodeIdsByNodeId 現在構造における無向隣接ノード
-     * @param repairKey 同一構造に対する補修・補償メールの冪等キー
      */
     private record PlayerStateValidationSnapshot(
             boolean ready,
             @NotNull String rootNodeId,
             @NotNull Set<String> definedNodeIds,
             @NotNull Set<String> placedNodeIds,
-            @NotNull Map<String, Set<String>> adjacentNodeIdsByNodeId,
-            @NotNull String repairKey
+            @NotNull Map<String, Set<String>> adjacentNodeIdsByNodeId
     ) {
         private static @NotNull PlayerStateValidationSnapshot unavailable() {
-            return new PlayerStateValidationSnapshot(false, "", Set.of(), Set.of(), Map.of(), "");
+            return new PlayerStateValidationSnapshot(false, "", Set.of(), Set.of(), Map.of());
         }
 
         private static @NotNull PlayerStateValidationSnapshot from(
@@ -226,8 +224,7 @@ public class SkillTreeService {
                     snapshot.rootNodeId(),
                     definedNodeIds,
                     placedNodeIds,
-                    Map.copyOf(immutableAdjacency),
-                    createRepairKey(snapshot.rootNodeId(), placedNodeIds, snapshot.edges())
+                    Map.copyOf(immutableAdjacency)
             );
         }
 
@@ -256,32 +253,6 @@ public class SkillTreeService {
                 }
             }
             return reachableNodeIds.containsAll(unlockedNodeIds);
-        }
-    }
-
-    private static @NotNull String createRepairKey(
-            @NotNull String rootNodeId,
-            @NotNull Set<String> placedNodeIds,
-            @NotNull List<SkillTreeEdge> edges
-    ) {
-        StringBuilder canonicalStructure = new StringBuilder("root:").append(rootNodeId).append('\n');
-        placedNodeIds.stream()
-                .sorted()
-                .forEach(nodeId -> canonicalStructure.append("node:").append(nodeId).append('\n'));
-        edges.stream()
-                .map(SkillTreeEdge::key)
-                .sorted()
-                .forEach(edgeKey -> canonicalStructure.append("edge:").append(edgeKey).append('\n'));
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256")
-                    .digest(canonicalStructure.toString().getBytes(StandardCharsets.UTF_8));
-            StringBuilder hexadecimal = new StringBuilder(digest.length * 2);
-            for (byte value : digest) {
-                hexadecimal.append(String.format(java.util.Locale.ROOT, "%02x", value));
-            }
-            return hexadecimal.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 is unavailable", e);
         }
     }
 
@@ -1744,7 +1715,7 @@ public class SkillTreeService {
      * 移行不能な状態は保持して参加を拒否する。構造破損の既存補修はパッチ照合後に行う。
      *
      * @param accountId 読み込み対象アカウント UUID
-     * @param userId 補償メール配信対象ユーザー UUID
+     * @param userId 読み込み対象アカウントを所有するユーザー UUID
      * @param onPatchRequired パッチ確定前に解除対象数を渡す通知処理。Bukkit 操作は呼出側でメインスレッドへ移す
      * @return 保持中の未保存状態、または検証済みのAPI / DB読込状態
      * @throws RuntimeException 読み込みまたは補修APIの呼び出しに失敗した場合
@@ -1828,7 +1799,6 @@ public class SkillTreeService {
         SkillTreePlayerState repaired = playerStateRepository.repairInvalidState(
                 accountId,
                 userId,
-                validationSnapshot.repairKey(),
                 loadedState.persistedVersion(),
                 loadedState.definitionGenerationId(),
                 ConfigProperties.getInstance().getApiServerId(), runtimeServerSessionId, runtimeAccountSessions.get(accountId)
