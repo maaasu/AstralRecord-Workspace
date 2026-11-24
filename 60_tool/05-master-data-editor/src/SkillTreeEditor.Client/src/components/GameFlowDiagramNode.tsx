@@ -4,7 +4,7 @@ import { Handle, Position, useViewport, type Node, type NodeProps } from '@xyflo
 import { gameFlowPorts, kindLabels, type GameFlowPort } from '../data/gameFlow'
 import { usePanelDocument } from '../docking/dockPanel'
 import type { MasterFileSummary } from '../types/masterData'
-import { ReferenceIcon } from './MasterReferenceCollection'
+import { ReferenceIcon, referenceSymbol } from './MasterReferenceCollection'
 import { MinecraftText } from './MinecraftText'
 
 export interface FlowNodeData extends Record<string, unknown> {
@@ -41,7 +41,7 @@ function FlowNodeIcon({ data }: { data: FlowNodeData }) {
   if (data.kind === 'npc') return <span className="game-flow-token-person" aria-hidden="true" />
   if (data.kind === 'guide') return <span className="game-flow-token-book" aria-hidden="true" />
   if (data.kind !== 'mail' && (data.file?.icon || data.file?.iconModel)) return <ReferenceIcon file={data.file} kind={data.kind} />
-  return <span className="game-flow-token-symbol" aria-hidden="true">{tokenSymbols[data.kind] ?? '◆'}</span>
+  return <span className="game-flow-token-symbol" aria-hidden="true">{tokenSymbols[data.kind] ?? referenceSymbol(data.kind) ?? '◆'}</span>
 }
 
 const FlowNodeView = memo(function FlowNodeView({ data, selected, isConnectable }: NodeProps<Node<FlowNodeData>>) {

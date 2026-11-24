@@ -56,7 +56,7 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
             }
             await ValidateSchemaAsync(path, content, metadata, issues, token);
             if (path != "config.yml" && !ProgressionPresetValidation.IsPreset(path))
-                await ValidateReferencesAsync(content, issues, token);
+                await ValidateReferencesAsync(path, content, issues, token);
         }
         if (content is JsonObject obj)
         {
@@ -167,11 +167,11 @@ public sealed class MasterDataValidation(MasterDataPaths paths, MasterDataCodec 
         return new(issues.All(issue => issue.Severity != "error"), issues.Distinct().ToArray());
     }
 
-    private async Task ValidateReferencesAsync(JsonNode? content, List<MasterDataIssue> issues, CancellationToken token)
+    private async Task ValidateReferencesAsync(string path, JsonNode? content, List<MasterDataIssue> issues, CancellationToken token)
     {
         var references = ReferenceValues(content).ToArray();
         if (references.Length == 0) return;
-        var prefixKinds = await MasterReferencePrefixes.ReadAsync(paths, codec, token);
+        var prefixKinds = await MasterReferencePrefixes.ReadAsync(paths, codec, token, includeGameFlowReferences: GameFlowValidation.IsFlow(path));
         if (prefixKinds is null) return;
         var wantedKinds = references.Select(reference => reference.Value.Split(':', 2)[0])
             .Where(prefixKinds.ContainsKey).Select(prefix => prefixKinds[prefix]).ToHashSet(StringComparer.Ordinal);

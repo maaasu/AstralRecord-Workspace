@@ -118,6 +118,29 @@ public sealed class GameFlowTests : IDisposable
         Assert.Contains(report.Issues, issue => issue.Code == code && issue.Path == pointer);
     }
 
+    [Theory]
+    [InlineData("game_flow", "95.design.game_flow/v1.chapter.yml")]
+    [InlineData("progression_preset", "90.shared.progression_preset/v1.chapter.yml")]
+    public async Task DesignNodeReferencesAreValidatedAndProtectTargets(string kind, string targetPath)
+    {
+        var reference = kind + ":chapter";
+        var raw = Valid.Replace("item:sword", reference);
+        var missing = await _validation.ValidateAsync(FlowPath, raw, CancellationToken.None);
+        Assert.Contains(missing.Issues, issue => issue.Code == "REFERENCE_NOT_FOUND" && issue.Path == "/nodes/1/ref");
+
+        Write(targetPath, "id: chapter\nname: 第1章\n");
+        Write(FlowPath, raw);
+        var report = await _validation.ValidateAsync(FlowPath, raw, CancellationToken.None);
+        Assert.Empty(report.Issues);
+
+        var workspace = new WorkspacePaths(_root);
+        var masters = new MasterDataService(_paths, workspace, new MasterDataCodec(), _validation,
+            new WorkspaceMutationGate(workspace), new BackupService(workspace));
+        var target = await masters.ReadAsync(targetPath, CancellationToken.None);
+        var rejected = await Assert.ThrowsAsync<InvalidOperationException>(() => masters.DeleteAsync(targetPath, target.Revision, CancellationToken.None));
+        Assert.Contains(FlowPath, rejected.Message);
+    }
+
     [Fact]
     public async Task NodeWithoutReferenceOrLabelAndMismatchedFileNameAreRejected()
     {

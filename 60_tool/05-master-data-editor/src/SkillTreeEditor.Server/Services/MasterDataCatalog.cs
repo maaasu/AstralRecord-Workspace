@@ -119,7 +119,7 @@ public sealed partial class MasterDataCatalog(MasterDataPaths paths, WorkspaceIt
             var category = await ReadCategoryAsync(paths.Relative(directory), entries, token);
             categories.Add(category);
         }
-        var referencePrefixes = await MasterReferencePrefixes.ReadAsync(paths, new MasterDataCodec(), token);
+        var referencePrefixes = await MasterReferencePrefixes.ReadAsync(paths, new MasterDataCodec(), token, includeGameFlowReferences: true);
         return new(paths.Root, backups, categories, referencePrefixes);
     }
 

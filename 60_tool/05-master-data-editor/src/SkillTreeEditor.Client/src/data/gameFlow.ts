@@ -66,10 +66,11 @@ export const kindLabels: Record<string, string> = {
   mob_spawner: 'モブスポナー', gathering_spawner: '採集スポナー', enchant: 'エンチャント', buff: 'バフ',
   set_effect: 'セット効果', mail: 'メール', guide: 'ガイド', pet: 'ペット', fishing_fish: '釣り魚',
   fishing_area: '釣りエリア', fishing_rules: '釣りルール', npc: 'NPC', action: '操作', note: 'メモ',
+  game_flow: 'ゲーム進行フロー', progression_preset: 'ビルド',
 }
 
 /** ノード追加メニューに並べる参照の種類。 */
-export const addableKinds = ['dungeon', 'shop', 'item', 'mob', 'class', 'world', 'gathering', 'recipe', 'skill'] as const
+export const addableKinds = ['dungeon', 'shop', 'item', 'mob', 'class', 'world', 'gathering', 'recipe', 'skill', 'game_flow', 'progression_preset'] as const
 
 const isObject = (value: JsonValue | undefined): value is JsonObject => typeof value === 'object' && value !== null && !Array.isArray(value)
 /** 手書きの YAML で数値・真偽値になった文字列項目も、消さずに文字列として扱う。 */

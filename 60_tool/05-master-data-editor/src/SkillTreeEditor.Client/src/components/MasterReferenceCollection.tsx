@@ -195,6 +195,7 @@ export function fishingChanceTotal(values: JsonValue[]) {
 
 const referenceSymbols: Record<string, string> = {
   class: '◇', skill: '✦', quest: '▤', loot_pool: '▦', loot_table: '▦', recipe: '⚒', tag: '#', status: '▥', fishing_fish: '🐟', world: '◎',
+  game_flow: '↪', progression_preset: '▣',
 }
 
 export const referenceSymbol = (kind: string | undefined) => kind && Object.hasOwn(referenceSymbols, kind) ? referenceSymbols[kind] : undefined
