@@ -15,9 +15,9 @@ allowBlockPlace: false
 allowMobSpawn: false
 showSpawnParticle: true
 spawnLocation:
-  x: -446.5
+  x: -444.5
   y: 8
-  z: -597.5
+  z: -599.5
   yaw: 0.0
   pitch: 0.0
 description: |-
