@@ -1,10 +1,10 @@
-import { createContext, memo, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react'
+import { createContext, memo, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { BaseEdge, getSmoothStepPath, useStore, type Edge, type EdgeProps } from '@xyflow/react'
 import { usePanelDocument } from '../docking/dockPanel'
-import { gameFlowEdgeRoute, gameFlowJumpPaths, type FlowEdgeKind, type FlowEdgeRoute, type FlowJumpDisplay } from './gameFlowEdgeJumps'
+import { gameFlowEdgeRoute, gameFlowGapPath, gameFlowJumpPaths, gameFlowLabelPosition, type FlowEdgeKind, type FlowEdgeRoute, type FlowJumpDisplay, type FlowJumpGap } from './gameFlowEdgeJumps'
 
 type FlowEdge = Edge<{ kind: FlowEdgeKind }>
-type EdgeSnapshot = FlowJumpDisplay & { original: string }
+type EdgeSnapshot = FlowJumpDisplay & { original: string; signature: string }
 
 /** 各エッジが React Flow から受け取った座標を共有し、1フレームにつき1回だけ交差を求める。 */
 function edgeRoutes(window: Window) {
@@ -22,8 +22,8 @@ function edgeRoutes(window: Window) {
       for (const [id, display] of gameFlowJumpPaths(routes.values(), radius)) {
         const original = routes.get(id)!.path
         const previous = snapshots.get(id)
-        const unchanged = previous?.original === original && previous.path === display.path && previous.gapPath === display.gapPath
-        updated.set(id, unchanged ? previous : { original, ...display })
+        const signature = JSON.stringify(display)
+        updated.set(id, previous?.original === original && previous.signature === signature ? previous : { original, signature, ...display })
       }
       const previous = snapshots
       snapshots = updated
@@ -33,8 +33,8 @@ function edgeRoutes(window: Window) {
     })
   }
   return {
-    update(id: string, path: string, kind: FlowEdgeKind) {
-      routes.set(id, gameFlowEdgeRoute(id, path, kind))
+    update(route: FlowEdgeRoute) {
+      routes.set(route.id, route)
       schedule()
     },
     remove(id: string) {
@@ -74,6 +74,18 @@ export function GameFlowEdgeLayer({ children }: { children: ReactNode }) {
   return <EdgeRoutesContext.Provider value={routes}>{children}</EdgeRoutesContext.Provider>
 }
 
+type Rect = { x: number; y: number; width: number; height: number }
+
+const rectPath = ({ x, y, width, height }: Rect) => `M${x} ${y}h${width}v${height}h${-width}Z`
+
+function interactionHole(gap: FlowJumpGap, strokeWidth: number) {
+  const halfWidth = strokeWidth / 2 + 1
+  const width = gap.end - gap.start
+  return gap.axis === 'horizontal'
+    ? { x: gap.start, y: gap.fixed - halfWidth, width, height: halfWidth * 2 }
+    : { x: gap.fixed - halfWidth, y: gap.start, width: halfWidth * 2, height: width }
+}
+
 const GameFlowDiagramEdge = memo(function GameFlowDiagramEdge({
   id, data, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition,
   label, labelStyle, labelShowBg, labelBgStyle, labelBgPadding, labelBgBorderRadius,
@@ -82,33 +94,58 @@ const GameFlowDiagramEdge = memo(function GameFlowDiagramEdge({
   const routes = useContext(EdgeRoutesContext)
   const [path, labelX, labelY] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition })
   const kind = data?.kind ?? 'progression'
+  const route = useMemo(() => gameFlowEdgeRoute(id, path, kind), [id, kind, path])
   useLayoutEffect(() => {
-    routes?.update(id, path, kind)
+    routes?.update(route)
     return () => routes?.remove(id)
-  }, [id, kind, path, routes])
+  }, [id, route, routes])
   const subscribe = useCallback((listener: () => void) => routes?.subscribe(id, listener) ?? (() => undefined), [id, routes])
   const read = useCallback(() => routes?.read(id), [id, routes])
   const snapshot = useSyncExternalStore(subscribe, read)
   const display = snapshot?.original === path ? snapshot : undefined
+  const group = useRef<SVGGElement>(null)
+  const [labelSize, setLabelSize] = useState({ width: 0, height: 0 })
+  const hasNearbyJumps = Boolean(display?.jumps?.length && label)
+  useLayoutEffect(() => {
+    if (!hasNearbyJumps) return
+    const measured = group.current?.querySelector<SVGTextElement>('.react-flow__edge-text')?.getBBox()
+    if (measured) setLabelSize(previous => previous.width === measured.width && previous.height === measured.height
+      ? previous : { width: measured.width, height: measured.height })
+  }, [hasNearbyJumps, label, labelStyle])
+  const [paddingX, paddingY] = labelShowBg === false ? [0, 0] : labelBgPadding ?? [2, 4]
+  const labelPosition = display?.jumps && labelSize.width
+    ? gameFlowLabelPosition(route, { x: labelX, y: labelY }, labelSize.width + 2 * paddingX, labelSize.height + 2 * paddingY, display.jumps)
+    : { x: labelX, y: labelY }
+  const gaps = display?.gaps
   const maskId = `game-flow-jump-${useId()}`
+  const clipId = (index: number) => `${maskId}-hit-${index}`
+  const hitWidth = Math.max(2, interactionWidth ?? 20)
   // 既定の曲線が始点・終点の外へ回り込む範囲も含める。
-  const padding = 64
+  const padding = 64 + hitWidth / 2
   const bounds = {
     x: Math.min(sourceX, targetX) - padding, y: Math.min(sourceY, targetY) - padding,
     width: Math.abs(targetX - sourceX) + padding * 2, height: Math.abs(targetY - sourceY) + padding * 2,
   }
-  return <>
-    {display?.gapPath && <defs>
+  const hitPath = gaps?.reduceRight<ReactNode>((child, _gap, index) =>
+    <g clipPath={`url(#${clipId(index)})`}>{child}</g>,
+    <path d={display?.path ?? path} fill="none" strokeOpacity={0}
+      strokeWidth={hitWidth} className="react-flow__edge-interaction" />)
+  return <g ref={group}>
+    {gaps && <defs>
       <mask id={maskId} maskUnits="userSpaceOnUse" {...bounds}>
         <rect {...bounds} fill="white" />
-        <path d={display.gapPath} fill="none" stroke="black" strokeWidth={6} />
+        <path d={gameFlowGapPath(gaps)} fill="none" stroke="black" strokeWidth={6} style={{ strokeDasharray: 'none', animation: 'none' }} />
       </mask>
+      {gaps.map((gap, index) => <clipPath key={index} id={clipId(index)} clipPathUnits="userSpaceOnUse">
+        <path d={rectPath(bounds) + rectPath(interactionHole(gap, hitWidth))} clipRule="evenodd" />
+      </clipPath>)}
     </defs>}
-    <BaseEdge path={display?.path ?? path} mask={display?.gapPath ? `url(#${maskId})` : undefined}
-      labelX={labelX} labelY={labelY} label={label} labelStyle={labelStyle} labelShowBg={labelShowBg}
+    {hitPath}
+    <BaseEdge path={display?.path ?? path} mask={gaps ? `url(#${maskId})` : undefined} pointerEvents={gaps ? 'none' : undefined}
+      labelX={labelPosition.x} labelY={labelPosition.y} label={label} labelStyle={labelStyle} labelShowBg={labelShowBg}
       labelBgStyle={labelBgStyle} labelBgPadding={labelBgPadding} labelBgBorderRadius={labelBgBorderRadius}
-      style={style} markerStart={markerStart} markerEnd={markerEnd} interactionWidth={interactionWidth} />
-  </>
+      style={style} markerStart={markerStart} markerEnd={markerEnd} interactionWidth={gaps ? 0 : interactionWidth} />
+  </g>
 })
 
 export const gameFlowEdgeTypes = { flow: GameFlowDiagramEdge }

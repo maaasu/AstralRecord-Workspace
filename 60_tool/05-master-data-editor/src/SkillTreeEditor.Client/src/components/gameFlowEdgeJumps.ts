@@ -12,6 +12,7 @@ export interface FlowEdgeRoute {
 }
 
 const priority: Record<FlowEdgeKind, number> = { progression: 0, annotation: 1, candidate: 2 }
+const lineEndPadding = 0.5
 
 /** React Flow の角丸パスから直線だけを抽出する。曲線と元の描画命令は保持する。 */
 export function gameFlowEdgeRoute(id: string, path: string, kind: FlowEdgeKind): FlowEdgeRoute {
@@ -46,10 +47,13 @@ export function gameFlowEdgeRoute(id: string, path: string, kind: FlowEdgeKind):
 
 type DrawingLine = { route: FlowEdgeRoute; line: Line; low: number; high: number }
 type Crossings = Map<number, DrawingLine[]>
+export type FlowJumpGap = { axis: Axis; fixed: number; start: number; end: number }
+type JumpBounds = { left: number; top: number; right: number; bottom: number }
 
 export interface FlowJumpDisplay {
   path: string
-  gapPath?: string
+  gaps?: FlowJumpGap[]
+  jumps?: JumpBounds[]
 }
 
 function firstLineAfter(lines: readonly DrawingLine[], x: number) {
@@ -67,7 +71,18 @@ function svgPoint(axis: Axis, fixed: number, along: number) {
   return axis === 'horizontal' ? `${along} ${fixed}` : `${fixed} ${along}`
 }
 
-function pathWithJumps(line: Line, crossings: Crossings, radius: number, mask: (lower: DrawingLine, apex: number, size: number) => void) {
+export function gameFlowGapPath(gaps: readonly FlowJumpGap[]) {
+  return gaps.map(({ axis, fixed, start, end }) => `M${svgPoint(axis, fixed, start)}L${svgPoint(axis, fixed, end)}`).join('')
+}
+
+function roomForApex(lines: readonly DrawingLine[], crossing: number, side: number) {
+  const distance = lines.reduce((minimum, line) => Math.min(minimum, side < 0 ? crossing - line.low : line.high - crossing), Infinity)
+  // 最も近い線端と弧の頂点の間に、下線を切り離す空間を残す。
+  return distance - Math.min(2.5, distance / 2) - lineEndPadding
+}
+
+function pathWithJumps(line: Line, crossings: Crossings, radius: number,
+  register: (underneath: DrawingLine[], bounds: JumpBounds, apex: number, size: number) => void) {
   const { start, end, fixed, axis } = line
   const direction = Math.sign(end - start)
   const points = [...crossings.keys()].sort((a, b) => (a - b) * direction)
@@ -76,14 +91,49 @@ function pathWithJumps(line: Line, crossings: Crossings, radius: number, mask: (
   points.forEach((crossing, index) => {
     const before = Math.abs(crossing - (points[index - 1] ?? start))
     const after = Math.abs(crossing - (points[index + 1] ?? end))
-    const size = Math.min(radius, before / 2, after / 2)
+    const limit = Math.min(radius, before / 2, after / 2)
+    const underneath = crossings.get(crossing)!
+    const defaultSide = axis === 'horizontal' ? -1 : 1
+    const preferred = roomForApex(underneath, fixed, defaultSide)
+    const opposite = roomForApex(underneath, fixed, -defaultSide)
+    const preferredSide = preferred >= limit || preferred >= opposite
+    const size = Math.min(limit, preferredSide ? preferred : opposite)
     // 近い交差も別々にまたぎ、線端やカーブは元のまま残す。
     if (size < 0.5) return
-    path += `L${point(crossing - size * direction)}A${size} ${size} 0 0 ${direction > 0 ? 1 : 0} ${point(crossing + size * direction)}`
-    const apex = fixed + (axis === 'horizontal' ? -size : size)
-    for (const lower of crossings.get(crossing) ?? []) mask(lower, apex, size)
+    const sweep = (direction > 0) === preferredSide ? 1 : 0
+    path += `L${point(crossing - size * direction)}A${size} ${size} 0 0 ${sweep} ${point(crossing + size * direction)}`
+    const apex = fixed + defaultSide * (preferredSide ? size : -size)
+    const bounds = axis === 'horizontal'
+      ? { left: crossing - size, top: Math.min(apex, fixed), right: crossing + size, bottom: Math.max(apex, fixed) }
+      : { left: Math.min(apex, fixed), top: crossing - size, right: Math.max(apex, fixed), bottom: crossing + size }
+    register(underneath, bounds, apex, size)
   })
   return path ? `${path}L${point(end)}` : undefined
+}
+
+/** 弧と重なるラベルだけを、最も近い交差のない位置へ移す。 */
+export function gameFlowLabelPosition(route: FlowEdgeRoute, position: Point, width: number, height: number, jumps: readonly JumpBounds[]) {
+  const halfWidth = width / 2 + 3
+  const halfHeight = height / 2 + 3
+  const overlaps = ({ x, y }: Point) => jumps.some(jump => x + halfWidth > jump.left && x - halfWidth < jump.right
+    && y + halfHeight > jump.top && y - halfHeight < jump.bottom)
+  if (!overlaps(position)) return position
+  const candidates = jumps.flatMap(({ left, top, right, bottom }) => [
+    { x: position.x, y: top - halfHeight }, { x: position.x, y: bottom + halfHeight },
+    { x: left - halfWidth, y: position.y }, { x: right + halfWidth, y: position.y },
+  ])
+  const distance = ({ x, y }: Point) => Math.abs(x - position.x) + Math.abs(y - position.y)
+  const onSegment = (point: Point, line: Line, margin = 0) => {
+    const horizontal = line.axis === 'horizontal'
+    const fixed = horizontal ? point.y : point.x
+    const varying = horizontal ? point.x : point.y
+    return Math.abs(fixed - line.fixed) < 0.01 && varying - margin >= Math.min(line.start, line.end)
+      && varying + margin <= Math.max(line.start, line.end)
+  }
+  const clean = candidates.sort((a, b) => distance(a) - distance(b)).filter(candidate => !overlaps(candidate))
+  const aligned = route.parts.flatMap(({ line }) => line && onSegment(position, line) ? [line] : [])
+  return clean.find(candidate => aligned.some(line => onSegment(candidate, line, line.axis === 'horizontal' ? halfWidth : halfHeight)))
+    ?? clean[0] ?? position
 }
 
 /** 直交する線分の内側だけを調べ、片方の線に半円を足す。 */
@@ -120,19 +170,32 @@ export function gameFlowJumpPaths(routes: Iterable<FlowEdgeRoute>, radius: numbe
   const apply = (route: FlowEdgeRoute, change: Partial<FlowJumpDisplay>) => {
     paths.set(route.id, { path: route.path, ...paths.get(route.id), ...change })
   }
+  const recordJump = (route: FlowEdgeRoute, bounds: JumpBounds) => {
+    const jumps = paths.get(route.id)?.jumps
+    if (jumps) jumps.push(bounds)
+    else apply(route, { jumps: [bounds] })
+  }
   // 弧の頂点で下の線と接して見えないように、下の直線区間の該当箇所だけをマスクする。
   const mask = (lower: DrawingLine, apex: number, radius: number) => {
-    const size = Math.min(Math.max(2.5, radius / 3), apex - lower.low, lower.high - apex)
+    const size = Math.min(Math.max(2.5, radius / 3), apex - lower.low - lineEndPadding, lower.high - apex - lineEndPadding)
     if (size <= 0) return
     const { route, line } = lower
-    const start = svgPoint(line.axis, line.fixed, apex - size)
-    const end = svgPoint(line.axis, line.fixed, apex + size)
-    apply(route, { gapPath: `${paths.get(route.id)?.gapPath ?? ''}M${start}L${end}` })
+    const gap = { axis: line.axis, fixed: line.fixed, start: apex - size, end: apex + size }
+    const gaps = paths.get(route.id)?.gaps
+    if (gaps) gaps.push(gap)
+    else apply(route, { gaps: [gap] })
   }
   for (const [route, jumps] of crossings) {
+    const register = (underneath: DrawingLine[], bounds: JumpBounds, apex: number, size: number) => {
+      recordJump(route, bounds)
+      for (const lower of underneath) {
+        recordJump(lower.route, bounds)
+        mask(lower, apex, size)
+      }
+    }
     const rendered = route.parts.map(part => {
       const at = part.line && jumps.get(part.line)
-      return (part.line && at && pathWithJumps(part.line, at, radius, mask)) || part.raw
+      return (part.line && at && pathWithJumps(part.line, at, radius, register)) || part.raw
     }).join('')
     if (rendered !== route.path) apply(route, { path: rendered })
   }

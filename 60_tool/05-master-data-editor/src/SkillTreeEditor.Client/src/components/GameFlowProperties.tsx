@@ -63,6 +63,9 @@ export function ClassToggles({ value, classes, onChange, emptyLabel, resolve, co
 export function FlowProperties({ flow, path, className, onEditClasses, onChange, resolve, copyContextMenu }: {
   flow: GameFlow; path?: string; className: (ref: string) => string; onEditClasses: () => void; onChange: (change: Partial<GameFlow>) => void
 } & CopyProps) {
+  const nodes = new Map(flow.nodes.map(node => [node.id, node]))
+  const annotationCount = flow.edges.filter(edge => isAnnotationEdge(nodes.get(edge.from), nodes.get(edge.to))).length
+  const arrowCount = flow.edges.length - annotationCount
   const classSummary = `対象職業: ${flow.classes.length ? flow.classes.map(className).join('・') : '全職業'}`
   const classTarget = flow.classes.length === 1
     ? classCopyTarget(flow.classes[0], className(flow.classes[0]), resolve)
@@ -85,7 +88,9 @@ export function FlowProperties({ flow, path, className, onEditClasses, onChange,
     <p className="game-flow-muted">
       <span onContextMenu={copyContextMenu?.(inputCopyTarget('ノード件数', String(flow.nodes.length)), 'ノード件数')}>ノード {flow.nodes.length} 件</span>
       {' / '}
-      <span onContextMenu={copyContextMenu?.(inputCopyTarget('矢印件数', String(flow.edges.length)), '矢印件数')}>矢印 {flow.edges.length} 件</span>
+      <span onContextMenu={copyContextMenu?.(inputCopyTarget('矢印の本数', String(arrowCount)), '矢印の本数')}>矢印 {arrowCount} 本</span>
+      {' / '}
+      <span onContextMenu={copyContextMenu?.(inputCopyTarget('注釈線の本数', String(annotationCount)), '注釈線の本数')}>注釈線 {annotationCount} 本</span>
     </p>
   </section>
 }

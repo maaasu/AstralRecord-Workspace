@@ -39,6 +39,23 @@ function renderCopy(children: (onCopyContextMenu: FlowCopyContextMenu) => ReactN
 const menu = () => screen.getByRole('menu')
 const copyBy = (name: string) => fireEvent.click(within(menu()).getByRole('menuitem', { name }))
 
+it('フロー全体の矢印と注釈線を別々に数えてコピーする', () => {
+  const edges = [
+    { from: shop.id, to: apple.id, classes: [], rest: {} },
+    { from: apple.id, to: note.id, classes: [], rest: {} },
+    { from: note.id, to: shop.id, classes: [], rest: {} },
+  ]
+  const { copy } = renderCopy(copyContextMenu => <FlowProperties
+    flow={{ ...flow, edges }} path={flowPath} className={className} onEditClasses={vi.fn()} onChange={vi.fn()}
+    copyContextMenu={copyContextMenu} resolve={resolve} />)
+  fireEvent.contextMenu(screen.getByText('矢印 1 本'))
+  copyBy('矢印の本数をコピー')
+  expect(copy).toHaveBeenLastCalledWith('1')
+  fireEvent.contextMenu(screen.getByText('注釈線 2 本'))
+  copyBy('注釈線の本数をコピー')
+  expect(copy).toHaveBeenLastCalledWith('2')
+})
+
 it('実ファイルのパスと選択していない入力値をコピーし、範囲選択・IME・Shift右クリック・空欄に標準メニューを残す', () => {
   const onChange = vi.fn()
   const description = '先にいずれかを選択\n  次の行の字下げを維持  '
