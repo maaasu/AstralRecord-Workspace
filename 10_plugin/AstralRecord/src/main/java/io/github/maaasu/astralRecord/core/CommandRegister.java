@@ -127,6 +127,9 @@ import io.github.maaasu.astralRecord.test.TestCommand;
 import io.github.maaasu.astralRecord.feature.network.command.LobbyCommand;
 import io.github.maaasu.astralRecord.feature.channelboost.ServerInfoCommand;
 
+import org.bukkit.entity.Player;
+
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -140,6 +143,7 @@ public class CommandRegister {
     private final NpcPlacementService npcPlacementService;
     private final WorldService worldService;
     private final AdminWorldTeleportItemService adminWorldTeleportItemService;
+    private final Consumer<Player> openAdminWorldGui;
     private final SkillTreeService skillTreeService;
     private final GatheringService gatheringService;
     private final GatheringSpawnerService gatheringSpawnerService;
@@ -164,6 +168,7 @@ public class CommandRegister {
      * @param npcPlacementService NPC配置サービス
      * @param worldService ワールドサービス
      * @param adminWorldTeleportItemService 管理者用転送アイテムサービス
+     * @param openAdminWorldGui 初期化後に管理者用ワールド GUI を開く処理
      * @param skillTreeService スキルツリーサービス
      * @param gatheringService 採集サービス
      * @param gatheringSpawnerService 採集スポナーサービス
@@ -186,6 +191,7 @@ public class CommandRegister {
             NpcPlacementService npcPlacementService,
             WorldService worldService,
             AdminWorldTeleportItemService adminWorldTeleportItemService,
+            Consumer<Player> openAdminWorldGui,
             SkillTreeService skillTreeService,
             GatheringService gatheringService,
             GatheringSpawnerService gatheringSpawnerService,
@@ -207,6 +213,7 @@ public class CommandRegister {
         this.npcPlacementService = npcPlacementService;
         this.worldService = worldService;
         this.adminWorldTeleportItemService = adminWorldTeleportItemService;
+        this.openAdminWorldGui = openAdminWorldGui;
         this.skillTreeService = skillTreeService;
         this.gatheringService = gatheringService;
         this.gatheringSpawnerService = gatheringSpawnerService;
@@ -292,7 +299,7 @@ public class CommandRegister {
         cm.registerCommand("mobspawnerdisplay", new MobSpawnerDisplayCommand(spawnerService, gatheringSpawnerService), new MobSpawnerDisplayTabCompleter(spawnerService));
         cm.registerCommand("dummy", new TrainingDummyCommand(trainingDummyService, trainingDummyGui), new TrainingDummyTabCompleter(trainingDummyService));
         cm.registerCommand("gathering", new GatheringCommand(gatheringService, gatheringSpawnerService), new GatheringTabCompleter(gatheringService, gatheringSpawnerService));
-        WorldCommand worldCommand = new WorldCommand(worldService);
+        WorldCommand worldCommand = new WorldCommand(worldService, openAdminWorldGui);
         cm.registerCommand("world", worldCommand, new WorldTabCompleter(worldService));
         cm.registerCommand("wtp", new WorldTeleportCommand(worldCommand), new WorldTeleportTabCompleter(worldService));
         cm.registerCommand("adminitem", new AdminWorldTeleportItemCommand(adminWorldTeleportItemService));
