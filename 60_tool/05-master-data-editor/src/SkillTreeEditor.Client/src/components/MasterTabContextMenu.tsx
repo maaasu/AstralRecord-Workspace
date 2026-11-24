@@ -4,7 +4,9 @@ import { createPortal } from 'react-dom'
 
 export interface MasterTabCommand { label: string; disabled: boolean; run: () => void }
 
-export function MasterTabContextMenu({ x, y, commands, onDismiss }: { x: number; y: number; commands: MasterTabCommand[]; onDismiss: (restoreFocus?: boolean) => void }) {
+export function MasterTabContextMenu({ x, y, commands, onDismiss, label = 'タブの操作' }: {
+  x: number; y: number; commands: MasterTabCommand[]; onDismiss: (restoreFocus?: boolean) => void; label?: string
+}) {
   const document = usePanelDocument()
   const visibleInLayout = usePanelVisibility()
   const window = document.defaultView!
@@ -34,7 +36,7 @@ export function MasterTabContextMenu({ x, y, commands, onDismiss }: { x: number;
       document.removeEventListener('scroll', dismiss, true)
     }
   }, [onDismiss, document, window, visibleInLayout])
-  return createPortal(<div hidden={!visibleInLayout} ref={menu} className="master-tab-context-menu" role="menu" tabIndex={-1} aria-label="タブの操作" style={{ left: x, top: y }} onKeyDown={(event) => {
+  return createPortal(<div hidden={!visibleInLayout} ref={menu} className="master-tab-context-menu" role="menu" tabIndex={-1} aria-label={label} style={{ left: x, top: y }} onKeyDown={(event) => {
     if (event.key === 'Escape' || event.key === 'Tab') { event.preventDefault(); onDismiss(true); return }
     const buttons = Array.from(menu.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])
     const index = buttons.indexOf(document.activeElement as HTMLButtonElement)
