@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   edgeLabelSuggestions, isAnnotationEdge, kindLabels, refId, refKind, suggestedClasses,
@@ -10,6 +10,7 @@ import {
   type FlowCopyContextMenu, type FlowCopyTarget, type ResolvedRef,
 } from './GameFlowContextMenu'
 import { ReferenceIcon } from './MasterReferenceCollection'
+import { MaterialIconInput } from './MaterialIconInput'
 import { MinecraftText } from './MinecraftText'
 import { Modal } from './Modal'
 
@@ -36,6 +37,16 @@ function classesCopyTarget(refs: string[], className: (ref: string) => string, a
 
 function inputCopyTarget(title: string, value?: string | null): FlowCopyTarget {
   return { values: [{ label: `${title}をコピー`, value }] }
+}
+
+function FlowIconField({ label, value, placeholder, onChange, copyContextMenu }: {
+  label: string; value?: string; placeholder: string; onChange: (value: string) => void; copyContextMenu?: FlowCopyContextMenu
+}) {
+  const id = useId()
+  return <div onContextMenu={copyContextMenu?.(inputCopyTarget(label, value), 'アイコン')}>
+    <label htmlFor={id}>{label}</label>
+    <MaterialIconInput id={id} value={value ?? ''} placeholder={placeholder} onChange={onChange} />
+  </div>
 }
 
 export function ClassToggles({ value, classes, onChange, emptyLabel, resolve, copyContextMenu }: {
@@ -78,6 +89,8 @@ export function FlowProperties({ flow, path, className, onEditClasses, onChange,
     <label onContextMenu={copyContextMenu?.(inputCopyTarget('表示名', flow.name), '表示名')}>
       表示名<input value={flow.name} onChange={event => onChange({ name: event.target.value })} />
     </label>
+    <FlowIconField label="フローのアイコン（任意）" value={flow.icon} placeholder="他の図から参照したときに表示"
+      copyContextMenu={copyContextMenu} onChange={icon => onChange({ icon })} />
     <label onContextMenu={copyContextMenu?.(inputCopyTarget('説明', flow.description), '説明')}>
       説明<textarea rows={3} value={flow.description ?? ''} onChange={event => onChange({ description: event.target.value })} />
     </label>
@@ -169,6 +182,8 @@ export function NodeProperties({ node, kind, resolved, classes, context, flow, r
       {node.ref ? '表示名の上書き（任意）' : nameLabel}
       <input value={node.label ?? ''} placeholder={node.ref ? '参照先の名前を表示' : ''} onChange={event => onChange({ label: event.target.value })} />
     </label>
+    <FlowIconField label={node.ref ? 'アイコンの上書き（任意）' : 'アイコン（任意）'} value={node.icon}
+      placeholder={node.ref ? '参照先のアイコンを表示' : '未設定'} copyContextMenu={copyContextMenu} onChange={icon => onChange({ icon })} />
     <label onContextMenu={copyContextMenu?.(inputCopyTarget('補足', node.note), '補足')}>
       補足<textarea rows={3} value={node.note ?? ''} onChange={event => onChange({ note: event.target.value })} />
     </label>

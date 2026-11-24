@@ -5,6 +5,7 @@ schemaVersion: 1
 type: GAME_FLOW
 id: game_progression_overview
 name: "ゲーム進行の全体フロー"
+icon: MAP
 description: "正式に作成した章のクリア地点を一つずつ並べ、章の詳細とクリア時点の想定所持品・ビルドを確認する。"
 nodes:
   - id: chapter_1_clear
@@ -19,6 +20,7 @@ nodes:
     x: 248
     y: 0
   - id: chapter_1_inventory
+    icon: BUNDLE
     label: "想定所持品"
     note: |-
       初回プレイでガイドに沿って進めた場合の目安。

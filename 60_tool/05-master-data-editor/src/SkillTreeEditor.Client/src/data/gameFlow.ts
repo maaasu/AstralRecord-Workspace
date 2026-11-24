@@ -16,6 +16,7 @@ export interface GameFlowNode {
   ref?: string
   role?: 'action'
   label?: string
+  icon?: string
   note?: string
   classes: string[]
   x: number
@@ -38,6 +39,7 @@ export interface GameFlowEdge {
 export interface GameFlow {
   id: string
   name: string
+  icon?: string
   description?: string
   classes: string[]
   nodes: GameFlowNode[]
@@ -83,9 +85,9 @@ function without(source: JsonObject, keys: readonly string[]): JsonObject {
   return Object.fromEntries(Object.entries(source).filter(([key]) => !keys.includes(key)))
 }
 
-const nodeKeys = ['id', 'ref', 'role', 'label', 'note', 'classes', 'x', 'y'] as const
+const nodeKeys = ['id', 'ref', 'role', 'label', 'icon', 'note', 'classes', 'x', 'y'] as const
 const edgeKeys = ['from', 'to', 'fromPort', 'toPort', 'label', 'note', 'classes'] as const
-const flowKeys = ['schemaVersion', 'type', 'id', 'name', 'description', 'classes', 'nodes', 'edges'] as const
+const flowKeys = ['schemaVersion', 'type', 'id', 'name', 'icon', 'description', 'classes', 'nodes', 'edges'] as const
 
 export function parseGameFlow(content: JsonValue): GameFlow {
   const root = isObject(content) ? content : {}
@@ -101,7 +103,7 @@ export function parseGameFlow(content: JsonValue): GameFlow {
     }
     const role = node.role === 'action' ? node.role : undefined
     return {
-      id: text(node.id) ?? '', ref: text(node.ref), ...(role ? { role } : {}), label: text(node.label), note: text(node.note),
+      id: text(node.id) ?? '', ref: text(node.ref), ...(role ? { role } : {}), label: text(node.label), icon: text(node.icon), note: text(node.note),
       classes: strings(node.classes), x, y, rest: without(node, nodeKeys),
     }
   })
@@ -114,7 +116,7 @@ export function parseGameFlow(content: JsonValue): GameFlow {
     }
   })
   return {
-    id: text(root.id) ?? '', name: text(root.name) ?? '', description: text(root.description),
+    id: text(root.id) ?? '', name: text(root.name) ?? '', icon: text(root.icon), description: text(root.description),
     classes: strings(root.classes), nodes, edges, rest: without(root, flowKeys),
   }
 }
@@ -126,9 +128,10 @@ const optionalList = (key: string, values: string[]): JsonObject => values.lengt
 export function serializeGameFlow(flow: GameFlow): JsonValue {
   return {
     schemaVersion: 1, type: 'GAME_FLOW', id: flow.id, name: flow.name,
-    ...optional('description', flow.description), ...optionalList('classes', flow.classes),
+    ...optional('icon', flow.icon), ...optional('description', flow.description), ...optionalList('classes', flow.classes),
     nodes: flow.nodes.map(node => ({
-      id: node.id, ...optional('ref', node.ref), ...optional('role', node.role), ...optional('label', node.label), ...optional('note', node.note),
+      id: node.id, ...optional('ref', node.ref), ...optional('role', node.role), ...optional('label', node.label),
+      ...optional('icon', node.icon), ...optional('note', node.note),
       ...optionalList('classes', node.classes), x: Math.round(node.x), y: Math.round(node.y), ...node.rest,
     })),
     edges: flow.edges.map(edge => ({

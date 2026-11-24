@@ -815,6 +815,38 @@ public sealed class MasterDataTests : IDisposable
     }
 
     [Theory]
+    [InlineData(null)]
+    [InlineData("90.shared.progression_preset")]
+    public async Task ListDerivesProgressionPresetIconsFromClassMasters(string? category)
+    {
+        const string classPath = "20.features.class/v1.adventurer.yml";
+        Write(classPath, "id: adventurer\nicon: PLAYER_HEAD\niconTexture: texture\ncustomModelData: 12\n");
+        Write("90.shared.progression_preset/v1.start_build.yml", "id: start_build\nclassId: adventurer\n");
+        Write("90.shared.progression_preset/v1.missing_build.yml", "id: missing_build\nclassId: missing\n");
+
+        var files = await _service.ListAsync(category, null, default);
+        var build = Assert.Single(files, file => file.Id == "start_build");
+        Assert.Equal("PLAYER_HEAD", build.Icon);
+        Assert.Equal("texture", build.IconTexture);
+        Assert.Equal(12, build.CustomModelData);
+        Assert.Null(Assert.Single(files, file => file.Id == "missing_build").Icon);
+
+        Write(classPath, "id: adventurer\nicon: COMPASS\n");
+        var reloaded = await _service.ListAsync(category, null, default, reload: true);
+        Assert.Equal("COMPASS", Assert.Single(reloaded, file => file.Id == "start_build").Icon);
+    }
+
+    [Fact]
+    public async Task ListUsesGuideMaterialOrDefaultsToBook()
+    {
+        Write("09.features.guide/v3.configured.yml", "id: configured\niconMaterial: NETHER_STAR\n");
+        Write("09.features.guide/v3.fallback.yml", "id: fallback\n");
+        var files = await _service.ListAsync("09.features.guide", null, default);
+        Assert.Equal("NETHER_STAR", Assert.Single(files, file => file.Id == "configured").Icon);
+        Assert.Equal("WRITABLE_BOOK", Assert.Single(files, file => file.Id == "fallback").Icon);
+    }
+
+    [Theory]
     [InlineData("10.features.item/10.material/v1.10a00001.sample.yml", "id: 10a00001\nname: 素材\nicon: NETHER_STAR\n", "10a00001", "素材", "NETHER_STAR", "yaml")]
     [InlineData("35.features.skilltree/nodes/1000.json", "{\"nodeId\":\"1000\",\"name\":\"ノード\",\"icon\":\"minecraft:nether_star\"}", "1000", "ノード", "minecraft:nether_star", "json")]
     public async Task ListIncludesRootStringIconAndPreservesSummaryMetadata(string path, string raw, string id, string name, string icon, string format)

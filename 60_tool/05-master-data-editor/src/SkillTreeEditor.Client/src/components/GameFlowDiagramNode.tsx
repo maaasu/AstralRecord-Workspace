@@ -6,11 +6,12 @@ import { usePanelDocument } from '../docking/dockPanel'
 import type { MasterFileSummary } from '../types/masterData'
 import { ReferenceIcon, referenceSymbol } from './MasterReferenceCollection'
 import { MinecraftText } from './MinecraftText'
-import { MinecraftSkinIcon } from './MinecraftIcon'
+import { MinecraftIcon, MinecraftSkinIcon } from './MinecraftIcon'
 
 export interface FlowNodeData extends Record<string, unknown> {
   name: string
   kind: string
+  icon?: string
   file?: MasterFileSummary
   skinRevision?: number
   ref?: string
@@ -40,12 +41,14 @@ const positionByPort: Record<GameFlowPort, Position> = {
 }
 
 function FlowNodeIcon({ data }: { data: FlowNodeData }) {
+  if (data.icon?.trim()) return <MinecraftIcon icon={data.icon} />
+  const masterIcon = data.file?.icon || data.file?.iconModel ? <ReferenceIcon file={data.file} kind={data.kind} /> : null
   if (data.kind === 'npc') {
     return <MinecraftSkinIcon texture={data.file?.skinTexture} revision={data.skinRevision} className="game-flow-token-skin"
-      fallback={<span className="game-flow-token-person" aria-hidden="true" />} />
+      fallback={masterIcon ?? <span className="game-flow-token-person" aria-hidden="true" />} />
   }
+  if (masterIcon) return masterIcon
   if (data.kind === 'guide') return <span className="game-flow-token-book" aria-hidden="true" />
-  if (data.kind !== 'mail' && (data.file?.icon || data.file?.iconModel)) return <ReferenceIcon file={data.file} kind={data.kind} />
   return <span className="game-flow-token-symbol" aria-hidden="true">{tokenSymbols[data.kind] ?? referenceSymbol(data.kind) ?? '◆'}</span>
 }
 
@@ -62,7 +65,10 @@ const FlowNodeView = memo(function FlowNodeView({ data, selected, isConnectable 
     <div className="game-flow-token-shape" data-shape={data.kind}>
       <span className="game-flow-token-fill" aria-hidden="true" />
       {isNote
-        ? <span className="game-flow-token-note"><MinecraftText value={data.name} /></span>
+        ? <span className="game-flow-token-note-content">
+          {data.icon?.trim() && <MinecraftIcon icon={data.icon} className="game-flow-note-icon" />}
+          <span className="game-flow-token-note"><MinecraftText value={data.name} /></span>
+        </span>
         : <span className="game-flow-token-icon"><FlowNodeIcon data={data} /></span>}
       {data.missing && <span className="game-flow-token-warning" aria-hidden="true">!</span>}
       {gameFlowPorts.map(port => <Handle key={port} id={port} type="source" position={positionByPort[port]}

@@ -24,8 +24,11 @@ const prefixes = { dungeon: 'dungeon', shop: 'shop', sh: 'shop', item: 'item', c
 
 describe('game flow', () => {
   it('round-trips and keeps unknown keys', () => {
-    const flow = parseGameFlow(source)
-    expect(serializeGameFlow(flow)).toEqual(source)
+    const withIcons = { ...source, icon: 'WRITTEN_BOOK', nodes: source.nodes.map(node => node.id === 'memo' ? { ...node, icon: 'MAP' } : node) }
+    const flow = parseGameFlow(withIcons)
+    expect(flow.icon).toBe('WRITTEN_BOOK')
+    expect(flow.nodes[4].icon).toBe('MAP')
+    expect(serializeGameFlow(flow)).toEqual(withIcons)
   })
 
   it('keeps legacy notes and their attached edges alongside new actions and port metadata', () => {

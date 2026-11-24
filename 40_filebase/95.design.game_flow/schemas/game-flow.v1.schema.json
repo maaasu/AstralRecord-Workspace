@@ -10,6 +10,7 @@
     "type": { "title": "マスタ種別", "type": "string", "const": "GAME_FLOW", "default": "GAME_FLOW" },
     "id": { "title": "フローID", "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
     "name": { "title": "表示名", "type": "string", "pattern": "\\S" },
+    "icon": { "title": "フローのアイコン", "description": "他のフローから参照されたときに表示する Minecraft の素材名（例 NETHER_STAR）。", "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
     "description": { "title": "説明", "description": "フロー全体の目的や前提。", "type": "string" },
     "classes": {
       "title": "対象職業",
@@ -34,6 +35,7 @@
         "properties": {
           "id": { "title": "ノードID", "description": "フロー内で一意。矢印の from / to で使う。", "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
           "ref": { "title": "マスター参照", "description": "config.yml の接頭辞付きID（dungeon:<id>、shop:<id>、item:<id> など）。エディタでは game_flow:<id> と progression_preset:<id> も使用できる。", "type": "string", "pattern": "^[a-z_]+:[A-Za-z0-9_.\\-]+$" },
+          "icon": { "title": "ノードのアイコン", "description": "表示する Minecraft の素材名（例 CHEST）。指定すると参照先のアイコンより優先する。", "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
           "role": { "title": "参照のないノードの役割", "description": "操作は action。マスターを参照しない付箋のメモでは省略する。", "type": "string", "enum": ["action"] },
           "label": { "title": "表示名", "description": "参照なしの操作やメモの名前。参照ありの場合は表示名の上書き。", "type": "string", "pattern": "\\S" },
           "note": { "title": "補足", "description": "目的・条件・周回数などの説明。", "type": "string" },
