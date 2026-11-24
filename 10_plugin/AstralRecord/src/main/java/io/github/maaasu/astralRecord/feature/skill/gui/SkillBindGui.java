@@ -935,17 +935,17 @@ public final class SkillBindGui {
             ItemModel item = id == null || id.isBlank() ? null : itemService.findLoadedById(id);
             Component name = item == null ? Component.text("未登録の素材", NamedTextColor.RED)
                 : SkillPresentationUtil.itemNameComponent(item, "未登録の素材", NamedTextColor.WHITE);
-            Component quantity = name.append(Component.text("　必要 ", NamedTextColor.GRAY))
-                .append(SkillLore.value(Long.toString(amount)));
+            lore.add(SkillLore.materialRow(item == null ? null : item.getId(), "", name));
+            Component quantity = SkillLore.note("   必要 ").append(SkillLore.value(Long.toString(amount)));
             if (accountId != null && item != null) {
                 long owned = Math.max(0, ownedAmounts.applyAsLong(accountId, id));
-                quantity = quantity.append(Component.text("／所持 ", NamedTextColor.GRAY))
+                quantity = quantity.append(SkillLore.note(" / 所持 "))
                     .append(Component.text(owned, owned >= amount ? NamedTextColor.GREEN : NamedTextColor.RED));
                 if (owned < amount) {
                     quantity = quantity.append(Component.text(" 不足 " + (amount - owned), NamedTextColor.RED));
                 }
             }
-            lore.add(SkillLore.materialRow(item == null ? null : item.getId(), item == null ? "素材" : "", quantity));
+            lore.add(quantity);
         });
     }
 
@@ -1020,11 +1020,7 @@ public final class SkillBindGui {
             lore.add(SkillLore.row(name + "消費", SkillLore.value(SkillDamagePreview.number(cost))));
         });
         if (showTiming) {
-            lore.add(SkillLore.row("発動", SkillLore.value(preview.castTicks() > 0
-                ? "詠唱 " + SkillDamagePreview.number(preview.castTicks() / 20.0D) + "秒" : "即時")));
-        }
-        if (showTiming && preview.cooldownTicks() > 0) {
-            lore.add(SkillLore.row("通常時CT", SkillLore.value(SkillDamagePreview.number(preview.cooldownTicks() / 20.0D) + "秒")));
+            lore.add(castTimingRow(preview.castTicks(), preview.cooldownTicks()));
         }
         return report;
     }
@@ -1074,7 +1070,7 @@ public final class SkillBindGui {
         long cooldownTicks = skill.getKind().isPassive() ? 0
             : io.github.maaasu.astralRecord.feature.combat.service.CombatTimingCalculator
                 .resolveCooldownTicks(skill.getCooldownTicks(), cooldownReduction);
-        if (resourceCost > 0 || supplementaryMana || cooldownTicks > 0) {
+        if (!skill.getKind().isPassive() || resourceCost > 0 || supplementaryMana) {
             SkillLore.section(lore, "基礎性能", NamedTextColor.GOLD);
         }
         if (resourceCost > 0) lore.add(SkillLore.row(resourceName + "消費", SkillLore.value(cost)));
@@ -1082,11 +1078,23 @@ public final class SkillBindGui {
             String manaCost = BigDecimal.valueOf(skill.getManaCost()).stripTrailingZeros().toPlainString();
             lore.add(SkillLore.row("MP消費", SkillLore.value(manaCost)));
         }
-        if (cooldownTicks > 0) {
-            String cooldownSeconds = BigDecimal.valueOf(cooldownTicks / 20.0D)
-                .stripTrailingZeros().toPlainString();
-            lore.add(SkillLore.row("通常時CT", SkillLore.value(cooldownSeconds + "秒")));
+        if (!skill.getKind().isPassive()) {
+            lore.add(castTimingRow(skill.getCastTimeTicks(), cooldownTicks));
         }
+    }
+
+    /**
+     * 発動方法と通常時クールダウンを同じ行へまとめます。
+     * @param castTicks 基礎または実効詠唱時間
+     * @param cooldownTicks 基礎または実効クールダウン
+     * @return アクティブスキルの発動情報
+     */
+    private Component castTimingRow(long castTicks, long cooldownTicks) {
+        Component timing = SkillLore.row("発動", SkillLore.value(castTicks > 0
+            ? "詠唱" + SkillDamagePreview.number(castTicks / 20.0D) + "秒" : "即時"));
+        if (cooldownTicks <= 0) return timing;
+        return timing.append(SkillLore.note("  通常時CT "))
+            .append(SkillLore.value(SkillDamagePreview.number(cooldownTicks / 20.0D) + "秒"));
     }
 
     private void appendSigilEffectLore(List<Component> lore, int slotIndex, LearnedSkillSigil attached) {
