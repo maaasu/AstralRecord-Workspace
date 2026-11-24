@@ -23,6 +23,24 @@
       "limitations": ["個別指定の別様式と保存範囲を優先", "落ち葉の白い表示はビューアーの色付け制限", "元チケットの座標・旧操作・Schematicを新チケットへそのまま流用しない"]
     },
     {
+      "id": "AR-TIMBER-GATE-01",
+      "title": "利用者が手直しした木造門の南面",
+      "author": "既存の門の南面装飾を利用者が手直し",
+      "status": "reference",
+      "tags": ["timber-gate", "entrance", "eaves", "arcade", "post-and-beam", "decoration"],
+      "checked_at": "2026-11-24",
+      "local_reference": "../../minecraft-build-quality/references/timber-gate-decoration.md",
+      "local_file": "../../minecraft-build-quality/references/images/timber-gate-south.jpg",
+      "sha256": "ad620cbb46b44c56e85c54f5dc2593b5e61188dd3b05090af588fdfc7d762928",
+      "bytes": 223022,
+      "license_scope": "利用者が今後の建築の作例に指定した南面。ゲーム素材の権利は別。",
+      "format": "設計指針・実データの3D表示を撮影したJPEG",
+      "stated_dimensions": null,
+      "inspection_level": "手直し後の正本を南正面・斜視で確認。確認対象は南面の作例。",
+      "features": "石レンガの柱脚と棚の帯、木口を見せる梁、段階的な庇、透かしと吊り灯り。",
+      "limitations": ["用途と規模に合わせて材料・寸法・個数を調整", "元チケットの座標・操作を別チケットへ流用しない"]
+    },
+    {
       "id": "BL-CABIN",
       "title": "Alpine cabin shell",
       "author": "Block Library",
