@@ -78,16 +78,19 @@ it('実ファイルのパスと選択していない入力値をコピーし、�
 
 it('未入力の項目・見出し・削除ボタンにはコピー項目を出さず、付箋と操作を区別する', () => {
   const onDelete = vi.fn()
+  const onChange = vi.fn()
   const inspector = (node: GameFlowNode, kind: string, copyContextMenu: FlowCopyContextMenu) => <NodeProperties
     node={node} kind={kind} classes={[]} context={null} flow={flow} resolveName={() => undefined}
-    onChange={vi.fn()} onPick={vi.fn()} onOpenMaster={vi.fn()} onShopItems={vi.fn()} onDelete={onDelete}
+    onChange={onChange} onPick={vi.fn()} onOpenMaster={vi.fn()} onShopItems={vi.fn()} onDelete={onDelete}
     suggestions={null} resolve={resolve} prefixes={{}} onAccept={vi.fn()} copyContextMenu={copyContextMenu} />
   const { unmount } = renderCopy(copyContextMenu => inspector(note, 'note', copyContextMenu))
   expect(screen.getByRole('heading', { name: '付箋' })).toBeVisible()
   expect(screen.getByRole('textbox', { name: 'メモ' })).toHaveValue('次の段階へ')
+  fireEvent.click(screen.getByRole('button', { name: '操作に変更' }))
+  expect(onChange).toHaveBeenCalledWith({ role: 'action' })
   expect(fireEvent.contextMenu(screen.getByRole('heading', { name: '付箋' }))).toBe(true)
   expect(fireEvent.contextMenu(screen.getByRole('textbox', { name: '補足' }))).toBe(true)
-  const remove = screen.getByRole('button', { name: 'ノードを削除' })
+  const remove = screen.getByRole('button', { name: 'メモを削除' })
   expect(fireEvent.contextMenu(remove)).toBe(true)
   expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   fireEvent.click(remove)

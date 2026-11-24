@@ -21,7 +21,10 @@ import type { MasterDocument, MasterFileSummary, MasterReference } from '../type
 import { stripMinecraftFormatting } from '../utils/minecraft'
 import { useConfirmationDialog } from './ConfirmationDialog'
 import { MasterEntityPicker, type MasterEntityPickerChoice } from './MasterEntityPicker'
-import { FlowContextMenu, type ContextCommand } from './GameFlowContextMenu'
+import {
+  FlowContextMenu, flowCopyCommands, flowNodeCopyTarget, flowReferenceCopyTarget, useGameFlowCopyMenu,
+  type ContextCommand, type ResolvedRef,
+} from './GameFlowContextMenu'
 import { FlowNodeTooltip, gameFlowNodeTypes, shapeLegend, type FlowNodeData } from './GameFlowDiagramNode'
 import { ClassToggles, EdgeProperties, FlowProperties, NodeProperties, ShopItemsDialog } from './GameFlowProperties'
 import { referenceSymbol } from './MasterReferenceCollection'
@@ -34,8 +37,6 @@ interface Props {
   onDirtyChange?: (dirty: boolean) => void
   onOpenMaster: (path: string) => void
 }
-
-interface ResolvedRef { name: string; file?: MasterFileSummary }
 
 type Selection = { type: 'node'; id: string } | { type: 'edge'; key: string } | null
 /** position は右クリックした位置に置く場合の座標。 */
@@ -581,10 +582,25 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     }, 250)
     return () => { live = false; clearTimeout(timer) }
   }, [document, flow, view])
-  const copy = (value: string) => {
-    void panelDocument.defaultView?.navigator.clipboard.writeText(value)
-      .then(() => setMessage('クリップボードにコピーしました。'), () => setError('クリップボードにコピーできませんでした。'))
+  const [manualCopy, setManualCopy] = useState<{ value: string; dialog: Element | null } | null>(null)
+  const copy = async (value: string) => {
+    const dialog = panelDocument.activeElement?.closest('[role="dialog"]') ?? null
+    setManualCopy(null)
+    try {
+      await panelDocument.defaultView!.navigator.clipboard.writeText(value)
+      setMessage('クリップボードにコピーしました。')
+    } catch {
+      setManualCopy({ value, dialog })
+    }
   }
+  const { onCopyContextMenu, copyMenu } = useGameFlowCopyMenu(copy)
+  const copyFallback = manualCopy && <div className="game-flow-error" role="alert">
+    <label>下の欄を選択してコピーしてください。<textarea aria-label="手動コピー用の値" readOnly value={manualCopy.value}
+      onFocus={event => event.currentTarget.select()} /></label>
+    <button type="button" className="button compact subtle" onClick={() => setManualCopy(null)}>閉じる</button>
+  </div>
+  const referenceTarget = (ref: string) => flowReferenceCopyTarget(ref, resolve(ref))
+  const currentFileTarget = { name: flow?.name, path: document?.path, values: [{ label: 'フローIDをコピー', value: flow?.id }] }
 
   const selectedNode = selection?.type === 'node' ? flow?.nodes.find(node => node.id === selection.id) : undefined
   const selectedEdge = selection?.type === 'edge' ? flow?.edges.find(edge => edgeKey(edge) === selection.key) : undefined
@@ -609,9 +625,11 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     }
     if (target.type === 'ghost') {
       const list = ghosts?.byGhostId.get(target.id) ?? []
+      const suggestedRef = list[0]?.ref
       return {
         title: '候補',
         commands: [
+          ...(suggestedRef ? flowCopyCommands(referenceTarget(suggestedRef), copy) : []),
           { label: 'この候補を配置', disabled: !list.length, run: () => acceptSuggestions(list) },
           { label: `次の候補をすべて配置（${ghosts?.next.length ?? 0}件）`, disabled: !ghosts?.next.length, run: () => acceptSuggestions(ghosts?.next ?? []) },
           { label: `入手元・前の候補をすべて配置（${ghosts?.previous.length ?? 0}件）`, disabled: !ghosts?.previous.length, run: () => acceptSuggestions(ghosts?.previous ?? []) },
@@ -623,11 +641,18 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     if (target.type === 'edge') {
       const edge = flow.edges.find(entry => edgeKey(entry) === target.key)
       if (!edge) return { title: '矢印', commands: [] }
-      const name = (id: string) => { const node = flow.nodes.find(entry => entry.id === id); return plain(node ? nodeName(node) : id) }
+      const from = nodeById.get(edge.from)
+      const to = nodeById.get(edge.to)
+      const route = `${from ? plain(nodeName(from)) : edge.from} → ${to ? plain(nodeName(to)) : edge.to}`
       const reversed = flow.edges.some(entry => entry.from === edge.to && entry.to === edge.from)
       return {
-        title: `${name(edge.from)} → ${name(edge.to)}`,
+        title: route,
         commands: [
+          ...flowCopyCommands({ values: [
+            { label: '矢印の向きをコピー', value: route }, { label: 'ラベルをコピー', value: edge.label },
+            { label: '始点の参照をコピー', value: from?.ref }, { label: '終点の参照をコピー', value: to?.ref },
+          ] }, copy),
+          null,
           ...edgeLabelSuggestions.map(label => ({ label: `${edge.label === label ? '✓ ' : ''}ラベル: ${label}`, run: () => changeEdge(target.key, { label }) })),
           { label: 'ラベルを外す', disabled: !edge.label, run: () => changeEdge(target.key, { label: undefined }) },
           null,
@@ -651,6 +676,8 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     return {
       title: `${kindLabels[kind] ?? kind}: ${plain(nodeName(node))}`,
       commands: [
+        ...flowCopyCommands(flowNodeCopyTarget(node, resolved), copy),
+        null,
         { label: `次の候補を配置（${nextBatch.length}件）`, disabled: !nextBatch.length, run: () => placeSuggestions(node.id, nextBatch) },
         { label: `入手元・前の候補を配置（${previousBatch.length}件）`, disabled: !previousBatch.length, run: () => placeSuggestions(node.id, previousBatch) },
         ...(kind === 'shop' ? [{ label: '商品を購入アイテムとして追加…', disabled: !shop?.items.length, run: () => setShopDialog(node.id) }] : []),
@@ -663,7 +690,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
         ...(node.ref ? [{ label: '参照を変更…', run: () => setPicker({ kind: refKind(node.ref, prefixes), replace: node.id }) }] : []),
         ...(resolved?.file ? [{ label: 'マスターを開く', run: () => onOpenMaster(resolved.file!.path) }] : []),
         null,
-        { label: 'ノードを削除', run: () => { update(current => removeNodes(current, new Set([node.id]))); setSelection(null) } },
+        { label: kind === 'note' ? 'メモを削除' : 'ノードを削除', run: () => { update(current => removeNodes(current, new Set([node.id]))); setSelection(null) } },
       ],
     }
   }
@@ -681,13 +708,14 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       {loadError && <div className="game-flow-error" role="alert">{loadError}<button type="button" className="button compact" onClick={() => void load(true)}>再試行</button></div>}
       <nav className="game-flow-list">
         {flowFiles.map(file => <button key={file.path} type="button" className="game-flow-list-item" aria-current={file.path === document?.path ? 'true' : undefined}
+          onContextMenu={onCopyContextMenu({ name: file.name, path: file.path, values: [{ label: 'フローIDをコピー', value: file.id }] }, 'フロー')}
           disabled={busy} onClick={() => file.path !== document?.path && void openPath(file.path)}>
           <MinecraftText value={file.name || file.id || file.path} />
           <small>{file.path.slice(gameFlowCategory.length + 1)}</small>
         </button>)}
         {!loading && !flowFiles.length && <p className="game-flow-muted">フローはまだありません。「＋ 新規」から作成します。</p>}
       </nav>
-      <p className="game-flow-muted game-flow-location">保存先: <code>40_filebase/{gameFlowCategory}/</code></p>
+      <p className="game-flow-muted game-flow-location" onContextMenu={onCopyContextMenu({ path: gameFlowCategory }, '保存先')}>保存先: <code>40_filebase/{gameFlowCategory}/</code></p>
     </aside>
 
     <section className="game-flow-main">
@@ -695,7 +723,8 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
         <div className="game-flow-toolbar-row add">
           <div className="game-flow-toolbar-group game-flow-list-toggle">
             <FlowPanelToggle side="left" open={sidebarOpen} controls={sidebarId} onToggle={toggleSidebar} />
-            {!sidebarOpen && flow && <span className="game-flow-current-name" title={plain(flow.name)}>{plain(flow.name)}</span>}
+            {!sidebarOpen && flow && <span className="game-flow-current-name" title={plain(flow.name)}
+              onContextMenu={onCopyContextMenu(currentFileTarget, 'フロー')}>{plain(flow.name)}</span>}
           </div>
           <div className="game-flow-toolbar-group game-flow-add-group" role="group" aria-label="追加">
             <span className="game-flow-toolbar-heading">追加</span>
@@ -711,14 +740,18 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
           <div className="game-flow-toolbar-group game-flow-class-group" data-filtered={Boolean(classFilter)} role="group" aria-label="職業">
             <span className="game-flow-toolbar-heading">職業</span>
             <button ref={classButton} type="button" className="button compact game-flow-class-button" data-kind="class" disabled={!flow}
+              onContextMenu={onCopyContextMenu({ values: [{ label: '対象職業をコピー', value: flow?.classes.length ? flow.classes.join('\n') : '全職業' }] }, '対象職業')}
               aria-haspopup="dialog" aria-expanded={classPopoverOpen} onClick={() => classPopoverOpen ? closeClassPopover() : setClassPopoverOpen(true)}>
               <span className="game-flow-add-swatch" data-shape="class" aria-hidden="true" />{flow?.classes.length ? `対象職業 ${flow.classes.length}` : '対象職業: 全職業'}
             </button>
             {flow?.classes.length ? <div className="game-flow-class-chips" role="group" aria-label="職業で絞り込み">
               <button type="button" className="button compact game-flow-class-chip" aria-pressed={!classFilter} onClick={() => setClassFilter(null)}>すべて</button>
               {flowClasses.map(entry => <button key={entry.ref} type="button" className="button compact game-flow-class-chip" aria-pressed={classFilter === entry.ref}
+                onContextMenu={onCopyContextMenu(referenceTarget(entry.ref), '職業')}
                 onClick={() => setClassFilter(classFilter === entry.ref ? null : entry.ref)}>{entry.name}</button>)}
-            </div> : <select aria-label="職業で絞り込み" value={classFilter ?? ''} disabled={!flow} onChange={event => setClassFilter(event.target.value || null)}>
+            </div> : <select aria-label="職業で絞り込み" value={classFilter ?? ''} disabled={!flow}
+              onContextMenu={onCopyContextMenu(classFilter ? referenceTarget(classFilter) : { name: 'すべて' }, '職業')}
+              onChange={event => setClassFilter(event.target.value || null)}>
               <option value="">すべて</option>
               {flowClasses.map(entry => <option key={entry.ref} value={entry.ref}>{entry.name}</option>)}
             </select>}
@@ -747,7 +780,8 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
         </div>
         {classPopoverOpen && flow && <div ref={classPopover} className="game-flow-class-popover" role="dialog" aria-label="対象職業" tabIndex={-1}>
           <p className="game-flow-muted">このフローで扱う職業。職業フィルタの候補になります。</p>
-          <ClassToggles value={flow.classes} classes={classes} emptyLabel="未指定: 全職業" onChange={classes => update(current => ({ ...current, classes }))} />
+          <ClassToggles value={flow.classes} classes={classes} resolve={resolve} copyContextMenu={onCopyContextMenu}
+            emptyLabel="未指定: 全職業" onChange={classes => update(current => ({ ...current, classes }))} />
           <div className="game-flow-actions">
             <button type="button" className="button compact" disabled={!flow.classes.length} onClick={() => update(current => ({ ...current, classes: [] }))}>すべて外す（全職業）</button>
             <button type="button" className="button compact" onClick={closeClassPopover}>閉じる</button>
@@ -757,8 +791,11 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       {(error || message) && <div className={error ? 'game-flow-error' : 'game-flow-message'} role={error ? 'alert' : 'status'}>
         {error || message}<button type="button" className="button compact subtle" onClick={() => { setError(''); setMessage('') }}>閉じる</button>
       </div>}
+      {manualCopy?.dialog?.isConnected ? createPortal(copyFallback, manualCopy.dialog) : copyFallback}
       {issues.length > 0 && <ul className="game-flow-issues" aria-label="検証結果">
-        {issues.map((issue, index) => <li key={index} data-severity={issue.severity}><code>{issue.path || '/'}</code> {issue.message}</li>)}
+        {issues.map((issue, index) => <li key={index} data-severity={issue.severity} onContextMenu={onCopyContextMenu({
+          path: document?.path, values: [{ label: '項目パスをコピー', value: issue.path || '/' }, { label: 'メッセージをコピー', value: issue.message }],
+        }, '検証結果')}><code>{issue.path || '/'}</code> {issue.message}</li>)}
       </ul>}
       {/* ショートカットはキャンバス内のキー操作だけで受け付ける（xyflow の全体キー監視は使わない）。 */}
       <div className="game-flow-body" ref={canvas} tabIndex={0} hidden={view !== 'graph'}
@@ -862,12 +899,16 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
           </Panel>}
         </ReactFlow> : <div className="game-flow-empty">{loading ? '読み込んでいます…' : '「一覧」からフローを開くか、新規作成してください。'}</div>}
       </div>
-      {view === 'text' && <div className="game-flow-text">
+      {view === 'text' && <div className="game-flow-text" onContextMenu={onCopyContextMenu({
+        ...currentFileTarget, values: [...currentFileTarget.values, { label: 'テキストをコピー', value: outline }],
+      }, 'フローのテキスト')}>
         <div className="game-flow-text-head"><span>参照先の名前を解決した一覧です。AI へ渡すときはこのテキストか YAML を使います。</span>
           <button type="button" className="button compact" disabled={!outline} onClick={() => copy(outline)}>コピー</button></div>
         <pre>{outline}</pre>
       </div>}
-      {view === 'yaml' && <div className="game-flow-text">
+      {view === 'yaml' && <div className="game-flow-text" onContextMenu={onCopyContextMenu({
+        ...currentFileTarget, values: [...currentFileTarget.values, { label: 'YAMLをコピー', value: yaml }],
+      }, 'フローのYAML')}>
         <div className="game-flow-text-head"><span>{dirty ? '保存前の原稿のプレビューです。' : '保存済みの原稿です。'}{document && <code> 40_filebase/{document.path}</code>}</span>
           <button type="button" className="button compact" disabled={!yaml} onClick={() => copy(yaml)}>コピー</button></div>
         <pre>{yaml}</pre>
@@ -875,17 +916,18 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     </section>
 
     <aside id={inspectorId} className="game-flow-inspector" aria-label="プロパティ" hidden={!inspectorOpen}>
-      {flow && !selectedNode && !selectedEdge && <FlowProperties flow={flow} className={className} onEditClasses={() => setClassPopoverOpen(true)}
+      {flow && !selectedNode && !selectedEdge && <FlowProperties flow={flow} className={className} path={document?.path}
+        resolve={resolve} copyContextMenu={onCopyContextMenu} onEditClasses={() => setClassPopoverOpen(true)}
         onChange={change => update(current => ({ ...current, ...change }))} />}
       {flow && selectedNode && <NodeProperties node={selectedNode} kind={nodeKind(selectedNode, prefixes, selectedNode.ref ? resolve(selectedNode.ref)?.file?.path : undefined)} resolved={selectedNode.ref ? resolve(selectedNode.ref) : undefined}
-        classes={flowClasses} context={context} flow={flow} resolveName={resolveName}
+        classes={flowClasses} context={context} flow={flow} resolveName={resolveName} copyContextMenu={onCopyContextMenu}
         onChange={change => changeNode(selectedNode.id, change)} onPick={kind => setPicker({ kind: kind === 'npc' ? 'mob' : kind, replace: selectedNode.id })}
         onOpenMaster={onOpenMaster} onShopItems={() => setShopDialog(selectedNode.id)}
         suggestions={allSuggestions}
         resolve={resolve} prefixes={prefixes} onAccept={list => placeSuggestions(selectedNode.id,
           list.map(entry => ghosts?.[entry.direction].find(shown => shown.ref === entry.ref) ?? entry))}
         onDelete={() => { update(current => removeNodes(current, new Set([selectedNode.id]))); setSelection(null) }} />}
-      {flow && selectedEdge && <EdgeProperties edge={selectedEdge} flow={flow} nodeName={nodeName} classes={flowClasses}
+      {flow && selectedEdge && <EdgeProperties edge={selectedEdge} flow={flow} nodeName={nodeName} classes={flowClasses} resolve={resolve} copyContextMenu={onCopyContextMenu}
         onChange={change => changeEdge(edgeKey(selectedEdge), change)}
         onDelete={() => { update(current => ({ ...current, edges: current.edges.filter(edge => edge !== selectedEdge) })); setSelection(null) }} />}
       {!flow && <p className="game-flow-muted">フローを開くと、ノード・矢印・フロー全体の設定を編集できます。</p>}
@@ -901,22 +943,25 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
           <li>「一覧」「プロパティ」で左右のパネルを開閉します。図にフォーカスがあるときは Ctrl+[ で一覧、Ctrl+] でプロパティを開閉できます。</li>
           <li>Delete キーで選択中のノード・矢印を削除します。</li>
           <li>図・ノード・矢印を右クリックすると、その場所への追加や候補の配置などの操作を選べます。</li>
+          <li>フロー一覧、アイコン、プロパティや候補を右クリックすると、名前・参照・ファイルパスなどをコピーできます。入力欄では文字を選択するか Shift を押しながら右クリックすると、標準の編集メニューが開きます。</li>
         </ul>
         <p className="game-flow-muted">アイコン表示の形: {shapeLegend.map(([kind, shape]) => `${kindLabels[kind] ?? kind}=${shape}`).join('、')}</p>
       </details>
     </aside>
 
     {picker && <MasterEntityPicker title={`${kindLabels[picker.kind] ?? picker.kind}を選択`} choices={pickerChoices}
+      onChoiceContextMenu={(choice, event) => onCopyContextMenu(referenceTarget(`${picker.kind}:${choice.id}`), '候補')(event)}
       value={picker.replace ? refId(flow?.nodes.find(node => node.id === picker.replace)?.ref) : undefined}
       onSelect={selectPicked} onClose={() => setPicker(null)} />}
     {shopDialog && flow && <ShopItemsDialog document={panelDocument} flow={flow} shopNodeId={shopDialog} context={context}
-      resolve={id => resolve('item:' + id)} className={className}
+      resolve={id => resolve('item:' + id)} resolveClass={resolve} className={className} copyContextMenu={onCopyContextMenu}
       isItem={(ref, id) => refKind(ref, prefixes) === 'item' && refId(ref) === id}
       onAdd={itemIds => { update(current => addShopPurchases(current, shopDialog, itemIds, context, prefixes)); setShopDialog(null) }}
       onClose={() => setShopDialog(null)} />}
     {creating && <CreateFlowDialog document={panelDocument} busy={busy} existing={new Set(flowFiles.map(file => file.path))}
       onCreate={(id, name) => void create(id, name)} onClose={() => setCreating(false)} />}
     {menu && flow && <FlowContextMenu x={menu.x} y={menu.y} onDismiss={closeMenu} {...contextCommands(menu.target)} />}
+    {copyMenu}
     {confirmation}
   </div></div>
 }

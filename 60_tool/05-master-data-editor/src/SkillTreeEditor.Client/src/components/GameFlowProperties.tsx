@@ -180,7 +180,8 @@ export function NodeProperties({ node, kind, resolved, classes, context, flow, r
       {' / '}
       <span onContextMenu={copyContextMenu?.(inputCopyTarget('出る矢印の本数', String(outgoing.length)), '出る矢印')}>出る矢印 {outgoing.length} 本</span>
     </p>
-    <button type="button" className="button compact danger subtle" onClick={onDelete}>ノードを削除</button>
+    {kind === 'note' && <button type="button" className="button compact" onClick={() => onChange({ role: 'action' })}>操作に変更</button>}
+    <button type="button" className="button compact danger subtle" onClick={onDelete}>{kind === 'note' ? 'メモを削除' : 'ノードを削除'}</button>
   </section>
 }
 
