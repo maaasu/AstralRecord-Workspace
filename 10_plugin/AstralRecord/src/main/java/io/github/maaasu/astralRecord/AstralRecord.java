@@ -801,6 +801,11 @@ public final class AstralRecord extends JavaPlugin {
                 npcPlacementService,
                 worldService,
                 adminWorldTeleportItemService,
+                player -> {
+                    if (startupState.get() == StartupState.READY) {
+                        adminWorldTeleportItemEventHandler.open(player);
+                    }
+                },
                 skillTreeService,
                 gatheringService,
                 gatheringSpawnerService,
@@ -1627,7 +1632,10 @@ public final class AstralRecord extends JavaPlugin {
         overworldTeleportService = new OverworldTeleportService(this, worldService, inventoryService, itemService);
         overworldTeleportGui = new OverworldTeleportGui(overworldTeleportService);
         overworldTeleportGuiEventHandler = new OverworldTeleportGuiEventHandler(overworldTeleportGui, overworldTeleportService);
-        adminWorldTeleportGui = new AdminWorldTeleportGui();
+        adminWorldTeleportGui = new AdminWorldTeleportGui(
+            getServer().getWorldContainer().toPath(),
+            getDataFolder().toPath().resolve("worlds")
+        );
         adminWorldTeleportItemEventHandler = new AdminWorldTeleportItemEventHandler(
             this,
             worldService,

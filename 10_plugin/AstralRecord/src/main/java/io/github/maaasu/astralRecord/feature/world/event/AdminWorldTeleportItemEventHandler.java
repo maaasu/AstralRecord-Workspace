@@ -64,7 +64,7 @@ public final class AdminWorldTeleportItemEventHandler extends AbstractEventHandl
     }
 
     /**
-     * 管理者用ワールド一覧 GUI を開きます。
+     * 管理者用ワールド GUI のカテゴリ概要を開きます。マスタ登録がない場合も表示します。
      *
      * @param player 表示対象プレイヤー
      * @return GUI を開く処理を開始した場合は {@code true}
@@ -79,15 +79,8 @@ public final class AdminWorldTeleportItemEventHandler extends AbstractEventHandl
             return false;
         }
 
-        List<WorldMasterData> worlds = worldService.getAll().stream().toList();
-        if (worlds.isEmpty()) {
-            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5751);
-            GuiSound.DENY.play(player);
-            return false;
-        }
-
         GuiSound.OPEN.play(player);
-        gui.open(player, worlds);
+        gui.open(player, List.copyOf(worldService.getAll()));
         return true;
     }
 
@@ -186,18 +179,31 @@ public final class AdminWorldTeleportItemEventHandler extends AbstractEventHandl
         }, LogId.E_5755, event.getWhoClicked().getName(), "admin_world_teleport_item_drag");
     }
 
+    /**
+     * 表示中のスロットからカテゴリ遷移、画面を閉じる操作、またはテレポートを処理します。
+     *
+     * @param player 操作したプレイヤー
+     * @param inventory 管理者用ワールド GUI のインベントリ
+     * @param rawSlot クリックされたビュー全体でのスロット番号
+     */
     private void handleTopClick(
             @NotNull Player player,
             @NotNull Inventory inventory,
             int rawSlot
     ) {
-        if (rawSlot == AdminWorldTeleportGui.BACK_SLOT) {
-            player.closeInventory();
-            GuiSound.CLOSE.play(player);
-            return;
-        }
         if (rawSlot < 0 || rawSlot >= inventory.getSize()) {
             GuiSound.DENY.play(player);
+            return;
+        }
+
+        AdminWorldTeleportGui.Holder holder = gui.holder(inventory);
+        if (holder == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (holder.isOverview() && rawSlot == AdminWorldTeleportGui.BACK_SLOT) {
+            player.closeInventory();
+            GuiSound.CLOSE.play(player);
             return;
         }
 
@@ -208,39 +214,10 @@ public final class AdminWorldTeleportItemEventHandler extends AbstractEventHandl
             return;
         }
 
-        AdminWorldTeleportGui.Holder holder = gui.holder(inventory);
-        if (holder == null) {
-            GuiSound.DENY.play(player);
-            return;
-        }
-
-        List<WorldMasterData> worlds = worldService.getAll().stream().toList();
-        if (rawSlot == AdminWorldTeleportGui.PREVIOUS_SLOT) {
-            if (!gui.hasPreviousPage(holder.pageIndex())) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            GuiSound.PAGE.play(player);
-            gui.render(inventory, worlds, holder.pageIndex() - 1);
-            return;
-        }
-        if (rawSlot == AdminWorldTeleportGui.NEXT_SLOT) {
-            if (!gui.hasNextPage(holder.pageIndex(), worlds.size())) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            GuiSound.PAGE.play(player);
-            gui.render(inventory, worlds, holder.pageIndex() + 1);
-            return;
-        }
-        if (rawSlot >= AdminWorldTeleportGui.CONTENT_SLOT_COUNT) {
-            GuiSound.DENY.play(player);
-            return;
-        }
-
         String worldId = holder.worldIdsBySlot().get(rawSlot);
         if (worldId == null) {
-            GuiSound.DENY.play(player);
+            boolean navigated = gui.navigate(inventory, List.copyOf(worldService.getAll()), rawSlot);
+            (navigated ? GuiSound.PAGE : GuiSound.DENY).play(player);
             return;
         }
 

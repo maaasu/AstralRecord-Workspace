@@ -12,9 +12,11 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -23,22 +25,31 @@ import java.util.stream.Collectors;
 public class WorldCommand extends AstCommand {
 
     private final WorldService worldService;
+    private final Consumer<Player> openAdminWorldGui;
 
     /**
      * WorldCommand を初期化します。
      *
      * @param worldService WorldMasterData サービス
+     * @param openAdminWorldGui 管理者用ワールド GUI を開く処理
      */
-    public WorldCommand(@NotNull WorldService worldService) {
-        super("world", "ワールドのマスターデータを管理します。", "/world <list|info|tp|loaded|reload> [worldId|[temp]worldName]",
+    public WorldCommand(@NotNull WorldService worldService, @NotNull Consumer<Player> openAdminWorldGui) {
+        super("world", "ワールドのマスターデータを管理します。", "/world [list|info|tp|loaded|reload] [worldId|[temp]worldName]",
                 true, UserPermission.ADMIN.getValue());
         this.worldService = worldService;
+        this.openAdminWorldGui = openAdminWorldGui;
     }
 
+    /**
+     * 引数がなければワールド GUI を開き、引数があればサブコマンドを実行します。
+     *
+     * @param player 実行者
+     * @param args コマンド引数
+     */
     @Override
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
         if (args.length == 0) {
-            sendUsage(player.getBukkit());
+            openAdminWorldGui.accept(player.getBukkit());
             return;
         }
 
