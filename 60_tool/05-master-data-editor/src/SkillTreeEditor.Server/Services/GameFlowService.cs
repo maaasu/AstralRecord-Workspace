@@ -152,7 +152,8 @@ public sealed class GameFlowService(FilebaseSnapshotCache snapshots, Progression
         var value = node is JsonObject reference ? MasterDataValidation.Text(reference["ref"]) : MasterDataValidation.Text(node);
         if (string.IsNullOrWhiteSpace(value)) return null;
         var separator = value.IndexOf(':');
-        return separator < 0 ? value : value[(separator + 1)..];
+        var id = (separator < 0 ? value : value[(separator + 1)..]).Trim();
+        return id.Length > 0 ? id : null;
     }
 
     private static string? Reference(string kind, JsonNode? node) => ReferenceId(node) is { } id ? kind + ":" + id : null;

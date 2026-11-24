@@ -241,12 +241,12 @@ public sealed class GameFlowTests : IDisposable
               items:
                 - { itemId: sword }
                 - { itemId: item:bow }
-                - { itemId: { ref: im:pelt } }
+                - { itemId: { ref: "im:pelt " } }
                 - { itemId: { ref: item:sword } }
                 - { itemId: missing }
                 - { itemId: 99a00001 }
                 - { itemId: starter }
-              lootTableId: { ref: lt:starter }
+              lootTableId: { ref: "lt:starter " }
             """);
         Write("80.shared.loot/table/v1.starter.yml", """
             id: starter
