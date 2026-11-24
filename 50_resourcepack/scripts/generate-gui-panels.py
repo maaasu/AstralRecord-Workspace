@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import argparse
+from functools import reduce
 import importlib.util
 import json
 import math
+from operator import or_
 from pathlib import Path
 import struct
 import zlib
@@ -230,10 +232,10 @@ def panel(rows: int) -> Raster:
 
 
 CHAPTER_GLYPHS = ROOT / "gui-source/chapter-glyphs.json"
-CHAPTER_STEPS = ("案内", "受取", "開封", "購入", "装備", "討伐")
+CHAPTER_STEPS = (("案内",), ("受取",), ("箱を", "開く"), ("武器", "を買う"), ("装備",), ("討伐",))
 CHAPTER_NAME = "グラスボアを1体倒そう"
 CHAPTER_LABELS = ("チャプター一覧", "手順を見る", "第1章", CHAPTER_NAME, "次のステップ", "攻略結果",
-                  "現在", "完了", "一覧", "戻る", *CHAPTER_STEPS)
+                  "現在", "完了", "一覧", "戻る", *(line for step in CHAPTER_STEPS for line in step))
 
 
 def chapter_font_source(client_jar, assets_dir):
@@ -259,21 +261,28 @@ def chapter_font_source(client_jar, assets_dir):
             "glyphs": glyphs}
 
 
-def chapter_label(draw, glyphs, text, center_x, y, color=CREAM):
+def chapter_label(draw, glyphs, text, center_x, y, color=CREAM, *, compact=False):
     """Render native 1-bit glyphs at 2x, without filtering, added bold or outlines."""
-    width = 2 * (sum(glyphs[c][0] for c in text) - 1)
+    rows = [tuple(int(glyphs[c][1][i:i + 4], 16) for i in range(0, 64, 4)) for c in text]
+    if compact:
+        # Use the ink bounds to fit the captions within the 18px slot columns.
+        ink = [reduce(or_, glyph_rows) for glyph_rows in rows]
+        offsets = [16 - mask.bit_length() for mask in ink]
+        advances = [mask.bit_length() - (mask & -mask).bit_length() + 2 for mask in ink]
+    else:
+        offsets = [0] * len(text)
+        advances = [glyphs[c][0] * 2 for c in text]
+    width = sum(advances) - (1 if compact else 2)
     left, top = round(center_x * 2 - width / 2), y * 2
     if left < 0 or left + width > draw.width or top < 0 or top + 16 > draw.height:
         raise ValueError(f"Chapter text exceeds the menu: {text}")
     rgba = tuple(bytes.fromhex(color[1:])) + (255,)
-    for c in text:
-        advance, bitmap = glyphs[c]
-        for row in range(16):
-            bits = int(bitmap[row * 4:row * 4 + 4], 16)
+    for glyph_rows, offset, advance in zip(rows, offsets, advances):
+        for row, bits in enumerate(glyph_rows):
             for column in range(16):
                 if bits & (0x8000 >> column):
-                    draw.pixels[top + row][left + column] = rgba
-        left += 2 * advance
+                    draw.pixels[top + row][left + column - offset] = rgba
+        left += advance
 
 
 def chapter_panel(variant, glyphs):
@@ -301,7 +310,8 @@ def chapter_panel(variant, glyphs):
         button_slot(22)
         for index in range(28, 34):
             button_slot(index)
-    base.line((8, 102, 167, 102), GOLD_DARK)
+    divider_y = 102 if overview else 107
+    base.line((8, divider_y, 167, divider_y), GOLD_DARK)
     for index in ([49] if overview else [45, 49]):
         button_slot(index)
     # Slot 51 is drawn by the plugin only while a reward is actually claimable.
@@ -315,8 +325,13 @@ def chapter_panel(variant, glyphs):
         chapter_label(art, glyphs, "完了" if variant == "complete" else "現在", 130, 22, BRIGHT)
         chapter_label(art, glyphs, CHAPTER_NAME, 88, 40)
         chapter_label(art, glyphs, "攻略結果" if variant == "complete" else "次のステップ", 52, 57)
-        for i, text in enumerate(CHAPTER_STEPS):
-            chapter_label(art, glyphs, text, 34 + i * 18, 91, "#d7e5e7")
+        for i, step in enumerate(CHAPTER_STEPS):
+            # Match the column and height of the slot that handles caption clicks.
+            caption = Raster(36, 36)
+            top = 4 if len(step) == 1 else 0
+            for line, text in enumerate(step):
+                chapter_label(caption, glyphs, text, 9, top + line * 9, "#d7e5e7", compact=True)
+            art.paste(caption.pixels, 50 + i * 36, 180)
         chapter_label(art, glyphs, "一覧", 34, 112, "#bad9dd")
     chapter_label(art, glyphs, "戻る", 106, 112, "#bad9dd")
     return art
