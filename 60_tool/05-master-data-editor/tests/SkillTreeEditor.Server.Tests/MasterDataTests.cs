@@ -149,6 +149,29 @@ public sealed class MasterDataTests : IDisposable
     }
 
     [Fact]
+    public async Task NpcSummaryListsSkinSeparatelyFromTheMaterialIcon()
+    {
+        Write("40.features.mob/npc/v1.merchant.yml", """
+            id: merchant
+            category: NPC
+            entityType: PLAYER
+            icon: CHEST
+            skin:
+              texture: npc-texture
+              signature: npc-signature
+            """);
+        Write("40.features.mob/npc/v1.guide.yml", "id: guide\ncategory: NPC\nentityType: VILLAGER\n");
+        Write("40.features.mob/enemy/v1.wolf.yml", "id: wolf\ncategory: ENEMY\nskin:\n  texture: enemy-texture\n");
+
+        var files = await _service.ListAsync("40.features.mob", null, default);
+        var npc = Assert.Single(files, file => file.Id == "merchant");
+        Assert.Equal("CHEST", npc.Icon);
+        Assert.Null(npc.IconTexture);
+        Assert.Equal("npc-texture", npc.SkinTexture);
+        Assert.All(files.Where(file => file.Id != "merchant"), file => Assert.Null(file.SkinTexture));
+    }
+
+    [Fact]
     public async Task GatheringSpawnersUseTheSavedBukkitPathAndReadCurrentCoordinates()
     {
         const string file = "gathering_spawners.yml";

@@ -9,6 +9,7 @@ public sealed partial class MinecraftIconService(HttpClient httpClient, Workspac
 {
     private readonly MasterDataPaths _safePaths = new(paths);
 
+    internal const string NpcSkinClientName = "MinecraftNpcSkin";
     private const long MaximumIconBytes = 2 * 1024 * 1024;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new(StringComparer.Ordinal);
     private readonly Uri? _fallbackBaseUri = CreateFallbackBaseUri(options?.Value.MinecraftIconsFallbackBaseUrl);
@@ -19,13 +20,34 @@ public sealed partial class MinecraftIconService(HttpClient httpClient, Workspac
         CancellationToken cancellationToken)
     {
         var iconId = NormalizeMaterial(material);
-        var path = Path.Combine(paths.MinecraftIconCache, $"{iconId}.png");
+        return await GetCachedPathAsync(iconId, refresh, (path, token) => FetchMaterialIconAsync(iconId, path, token),
+            cancellationToken);
+    }
+
+    internal Task<string?> GetNpcSkinPathAsync(string hash, HttpClient skinClient, CancellationToken cancellationToken)
+    {
+        if (!SkinHashPattern().IsMatch(hash)) return Task.FromResult<string?>(null);
+
+        var normalizedHash = hash.ToLowerInvariant();
+        return GetCachedPathAsync($"skin-{normalizedHash}", refresh: false, async (path, token) =>
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+            timeout.CancelAfter(TimeSpan.FromSeconds(10));
+            return await DownloadIconAsync(skinClient, new Uri($"https://textures.minecraft.net/texture/{normalizedHash}"),
+                path, timeout.Token);
+        }, cancellationToken);
+    }
+
+    private async Task<string?> GetCachedPathAsync(string cacheId, bool refresh,
+        Func<string, CancellationToken, Task<string?>> fetch, CancellationToken cancellationToken)
+    {
+        var path = Path.Combine(paths.MinecraftIconCache, $"{cacheId}.png");
         if (Directory.Exists(paths.WorkspaceRoot))
             _safePaths.RequireNoLinks(path);
         if (!refresh && File.Exists(path))
             return path;
 
-        var gate = _locks.GetOrAdd(iconId, static _ => new SemaphoreSlim(1, 1));
+        var gate = _locks.GetOrAdd(cacheId, static _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync(cancellationToken);
         try
         {
@@ -34,25 +56,7 @@ public sealed partial class MinecraftIconService(HttpClient httpClient, Workspac
             if (!refresh && File.Exists(path))
                 return path;
 
-            try
-            {
-                var primaryPath = await DownloadIconAsync(
-                    new Uri($"download/{Uri.EscapeDataString(iconId)}/thumb", UriKind.Relative), path, cancellationToken);
-                if (primaryPath is not null)
-                    return primaryPath;
-            }
-            catch (HttpRequestException) when (_fallbackBaseUri is not null && !cancellationToken.IsCancellationRequested) { }
-            catch (HttpIOException) when (_fallbackBaseUri is not null && !cancellationToken.IsCancellationRequested) { }
-            catch (InvalidDataException) when (_fallbackBaseUri is not null && !cancellationToken.IsCancellationRequested) { }
-            catch (OperationCanceledException) when (_fallbackBaseUri is not null && !cancellationToken.IsCancellationRequested) { }
-
-            if (_fallbackBaseUri is not null)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                return await DownloadIconAsync(
-                    new Uri(_fallbackBaseUri, iconId.ToUpperInvariant() + ".png"), path, cancellationToken);
-            }
-            return null;
+            return await fetch(path, cancellationToken);
         }
         finally
         {
@@ -60,9 +64,30 @@ public sealed partial class MinecraftIconService(HttpClient httpClient, Workspac
         }
     }
 
-    private async Task<string?> DownloadIconAsync(Uri sourceUri, string path, CancellationToken cancellationToken)
+    private async Task<string?> FetchMaterialIconAsync(string iconId, string path, CancellationToken cancellationToken)
     {
-        using var response = await httpClient.GetAsync(sourceUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        try
+        {
+            var primaryPath = await DownloadIconAsync(httpClient,
+                new Uri($"download/{Uri.EscapeDataString(iconId)}/thumb", UriKind.Relative), path, cancellationToken);
+            if (primaryPath is not null)
+                return primaryPath;
+        }
+        catch (HttpRequestException) when (_fallbackBaseUri is not null && !cancellationToken.IsCancellationRequested) { }
+        catch (HttpIOException) when (_fallbackBaseUri is not null && !cancellationToken.IsCancellationRequested) { }
+        catch (InvalidDataException) when (_fallbackBaseUri is not null && !cancellationToken.IsCancellationRequested) { }
+        catch (OperationCanceledException) when (_fallbackBaseUri is not null && !cancellationToken.IsCancellationRequested) { }
+
+        if (_fallbackBaseUri is null) return null;
+
+        cancellationToken.ThrowIfCancellationRequested();
+        return await DownloadIconAsync(httpClient,
+            new Uri(_fallbackBaseUri, iconId.ToUpperInvariant() + ".png"), path, cancellationToken);
+    }
+
+    private async Task<string?> DownloadIconAsync(HttpClient sourceClient, Uri sourceUri, string path, CancellationToken cancellationToken)
+    {
+        using var response = await sourceClient.GetAsync(sourceUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             return null;
         response.EnsureSuccessStatusCode();
@@ -145,4 +170,7 @@ public sealed partial class MinecraftIconService(HttpClient httpClient, Workspac
 
     [GeneratedRegex("^[a-z0-9_]+$", RegexOptions.CultureInvariant)]
     private static partial Regex IconIdPattern();
+
+    [GeneratedRegex(@"\A[0-9a-fA-F]{1,64}\z", RegexOptions.CultureInvariant)]
+    private static partial Regex SkinHashPattern();
 }

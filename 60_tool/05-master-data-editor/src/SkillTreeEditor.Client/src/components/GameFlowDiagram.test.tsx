@@ -15,6 +15,7 @@ vi.mock('../api/masterDataApi', () => ({ masterDataApi: {
 const path = gameFlowPath('diagram')
 const npcPath = '40.features.mob/npc/v1.general_goods_merchant.yml'
 const fileMetadata = { format: 'yaml', size: 1, modifiedUtc: '', revision: '1' }
+const npcFile = { ...fileMetadata, path: npcPath, category: '40.features.mob', id: 'general_goods_merchant', name: '雑貨商', icon: 'CHEST' }
 const content = {
   id: 'diagram', name: 'テスト用の進行フロー',
   nodes: [
@@ -25,13 +26,19 @@ const content = {
   edges: [{ from: 'memo', to: 'npc' }],
 }
 
+function mockNpcSkin(skinTexture?: string) {
+  vi.mocked(masterDataApi.files).mockResolvedValue([
+    { ...fileMetadata, path, category: gameFlowCategory, id: 'diagram', name: content.name },
+    { ...npcFile, skinTexture },
+  ])
+}
+
+const skinProfile = (url: string) => btoa(JSON.stringify({ textures: { SKIN: { url } } }))
+
 beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(masterDataApi.catalog).mockResolvedValue({ root: '', backups: '', categories: [] })
-  vi.mocked(masterDataApi.files).mockResolvedValue([
-    { ...fileMetadata, path, category: gameFlowCategory, id: 'diagram', name: content.name },
-    { ...fileMetadata, path: npcPath, category: '40.features.mob', id: 'general_goods_merchant', name: '雑貨商' },
-  ])
+  mockNpcSkin()
   vi.mocked(masterDataApi.candidates).mockResolvedValue([{
     path: npcPath, pointer: '/id', value: 'general_goods_merchant', label: '雑貨商', kind: 'mob',
   }])
@@ -95,6 +102,40 @@ it('renders NPC hover and keyboard details outside the canvas, with four reusabl
   expect(screen.getByRole('tooltip')).toHaveTextContent('雑貨商')
   await user.keyboard('{Escape}')
   expect(screen.queryByRole('tooltip')).toBeNull()
+})
+
+it('shows both layers of the referenced NPC skin and restores the person icon after an image error', async () => {
+  mockNpcSkin(skinProfile('http://textures.minecraft.net/texture/abc123'))
+  render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
+
+  const npc = await screen.findByRole('group', { name: 'NPC 受付へ行く' })
+  const layers = [...npc.querySelectorAll('.minecraft-head-face img')]
+  expect(layers).toHaveLength(2)
+  for (const layer of layers) expect(layer).toHaveAttribute('src', '/api/minecraft-npc-skins/abc123')
+  expect(npc.querySelector('.game-flow-token-person')).not.toBeInTheDocument()
+
+  fireEvent.error(layers[0])
+  expect(npc.querySelector('.game-flow-token-person')).toBeInTheDocument()
+  expect(npc.querySelector('img')).not.toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('button', { name: '再読込' }))
+  await waitFor(() => expect(npc.querySelector('.minecraft-head-face img')).toHaveAttribute('src', '/api/minecraft-npc-skins/abc123?revision=1'))
+  expect(npc.querySelector('.game-flow-token-person')).not.toBeInTheDocument()
+  await waitFor(() => expect(screen.getByRole('button', { name: '再読込' })).toBeEnabled())
+
+  mockNpcSkin(skinProfile('https://textures.minecraft.net/texture/def456'))
+  fireEvent.click(screen.getByRole('button', { name: '再読込' }))
+  await waitFor(() => expect(npc.querySelector('.minecraft-head-face img')).toHaveAttribute('src', '/api/minecraft-npc-skins/def456?revision=2'))
+  expect(npc.querySelector('.game-flow-token-person')).not.toBeInTheDocument()
+})
+
+it.each(['!', skinProfile('https://example.com/texture/abc123')])('keeps the person icon for an invalid NPC skin', async (texture) => {
+  mockNpcSkin(texture)
+  render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
+
+  const npc = await screen.findByRole('group', { name: 'NPC 受付へ行く' })
+  expect(npc.querySelector('.game-flow-token-person')).toBeInTheDocument()
+  expect(npc.querySelector('img')).not.toBeInTheDocument()
 })
 
 it('keeps explicitly dragged endpoints through undo, redo, reversal, save and reload', async () => {

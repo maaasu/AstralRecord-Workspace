@@ -99,6 +99,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   const [files, setFiles] = useState<MasterFileSummary[]>([])
   const [candidates, setCandidates] = useState<MasterReference[]>([])
   const [context, setContext] = useState<GameFlowContext | null>(null)
+  const [skinRevision, setSkinRevision] = useState(0)
 
   const [document, setDocument] = useState<MasterDocument | null>(null)
   const [flow, setFlow] = useState<GameFlow | null>(null)
@@ -232,6 +233,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       setFiles(list)
       setCandidates(candidateList)
       setContext(flowContext)
+      if (reload) setSkinRevision(revision => revision + 1)
       return list
     } catch (reason) {
       setLoadError(errorMessage(reason))
@@ -326,12 +328,12 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       id: node.id, type: 'flow', ariaLabel: `${kindLabels[kind] ?? kind} ${plain(nodeName(node))}`, position: { x: node.x, y: node.y },
       selected: selection?.type === 'node' && selection.id === node.id,
       data: {
-        name: nodeName(node), kind, file: resolved?.file, ref: node.ref, referenceName: resolved?.name, classNames: node.classes.map(className),
+        name: nodeName(node), kind, file: resolved?.file, ref: node.ref, referenceName: resolved?.name, classNames: node.classes.map(className), skinRevision,
         note: node.note?.trim() || undefined, dimmed: !visible?.nodes.has(node.id), missing: Boolean(node.ref && !resolved),
         connectedPorts: connectedPorts.get(node.id),
       },
     }
-  }) ?? [], [className, connectedPorts, flow, nodeName, prefixes, resolve, selection, visible])
+  }) ?? [], [className, connectedPorts, flow, nodeName, prefixes, resolve, selection, skinRevision, visible])
   const derivedEdges = useMemo<Edge[]>(() => flow?.edges.map((edge, index) => {
     const key = edgeKey(edge)
     const chips = edge.classes.length ? ` [${edge.classes.map(className).join('・')}]` : ''
@@ -398,7 +400,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
         draggable: false, selectable: false, connectable: false, focusable: false,
         data: {
           name: resolved?.name ?? node.ref ?? node.id, kind: nodeKind(node, prefixes, resolved?.file?.path), file: resolved?.file,
-          ref: node.ref, referenceName: resolved?.name, classNames: node.classes.map(className),
+          ref: node.ref, referenceName: resolved?.name, classNames: node.classes.map(className), skinRevision,
           dimmed: false, missing: Boolean(node.ref && !resolved), suggestion: labels,
         },
       }
@@ -417,7 +419,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       nodes: ghostNodes, edges: ghostEdges, byGhostId,
       next: positioned.filter(entry => entry.direction === 'next'), previous: positioned.filter(entry => entry.direction === 'previous'),
     }
-  }, [className, context, flow, newNodeClasses, nodeById, prefixes, resolve, suggestionNodeId, suggestions])
+  }, [className, context, flow, newNodeClasses, nodeById, prefixes, resolve, skinRevision, suggestionNodeId, suggestions])
   /** 候補を配置し、ズームはそのままで配置したノードが見える位置へ寄せる。 */
   const placeSuggestions = (nodeId: string, list: readonly FlowSuggestion[]) => {
     const before = current.current

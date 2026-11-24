@@ -65,10 +65,12 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
             var modelData = ReadModelData(obj?["customModelData"]);
             var iconTexture = ReadIconField("iconTexture");
             var iconModel = isBattleMob ? ReadIconField("iconModel") : null;
+            var skinTexture = document.Path.StartsWith("40.features.mob/npc/", StringComparison.OrdinalIgnoreCase)
+                && obj?["skin"] is JsonObject skin ? JsonValueReader.String(skin["texture"]) : null;
             if (!string.IsNullOrWhiteSpace(query) && !(document.Path + "\n" + id + "\n" + name + "\n" + document.Raw).Contains(query, StringComparison.OrdinalIgnoreCase)) continue;
             result.Add(new(document.Path, paths.Relative(Path.GetDirectoryName(document.FullPath)!), document.Format, id, name,
                 document.Length, document.LastWriteTimeUtc, document.Revision, document.Issues.FirstOrDefault()?.Message,
-                document.IsReadOnly, icon, icon is null ? null : modelData, iconTexture, iconModel));
+                document.IsReadOnly, icon, icon is null ? null : modelData, iconTexture, iconModel, skinTexture));
         }
         return result;
     }

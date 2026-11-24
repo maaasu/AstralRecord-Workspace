@@ -6,11 +6,13 @@ import { usePanelDocument } from '../docking/dockPanel'
 import type { MasterFileSummary } from '../types/masterData'
 import { ReferenceIcon, referenceSymbol } from './MasterReferenceCollection'
 import { MinecraftText } from './MinecraftText'
+import { MinecraftSkinIcon } from './MinecraftIcon'
 
 export interface FlowNodeData extends Record<string, unknown> {
   name: string
   kind: string
   file?: MasterFileSummary
+  skinRevision?: number
   ref?: string
   referenceName?: string
   classNames: string[]
@@ -38,7 +40,10 @@ const positionByPort: Record<GameFlowPort, Position> = {
 }
 
 function FlowNodeIcon({ data }: { data: FlowNodeData }) {
-  if (data.kind === 'npc') return <span className="game-flow-token-person" aria-hidden="true" />
+  if (data.kind === 'npc') {
+    return <MinecraftSkinIcon texture={data.file?.skinTexture} revision={data.skinRevision} className="game-flow-token-skin"
+      fallback={<span className="game-flow-token-person" aria-hidden="true" />} />
+  }
   if (data.kind === 'guide') return <span className="game-flow-token-book" aria-hidden="true" />
   if (data.kind !== 'mail' && (data.file?.icon || data.file?.iconModel)) return <ReferenceIcon file={data.file} kind={data.kind} />
   return <span className="game-flow-token-symbol" aria-hidden="true">{tokenSymbols[data.kind] ?? referenceSymbol(data.kind) ?? '◆'}</span>

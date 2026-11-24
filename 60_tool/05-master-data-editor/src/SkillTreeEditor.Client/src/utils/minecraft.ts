@@ -23,12 +23,22 @@ export function minecraftMobHeadUrl(model: JsonValue | undefined, revision = 0):
 }
 
 export function minecraftHeadTextureUrl(icon: JsonValue, texture: JsonValue | undefined): string | null {
-  if (minecraftIconName(icon).toLowerCase().replace(/^minecraft:/, '') !== 'player_head'
-    || typeof texture !== 'string' || !texture || texture.length > 16_384) return null
+  if (minecraftIconName(icon).toLowerCase().replace(/^minecraft:/, '') !== 'player_head') return null
+  const hash = minecraftSkinTextureHash(texture)
+  return hash ? `https://textures.minecraft.net/texture/${hash}` : null
+}
+
+export function minecraftNpcSkinUrl(texture: JsonValue | undefined, revision = 0): string | null {
+  const hash = minecraftSkinTextureHash(texture)
+  return hash ? `/api/minecraft-npc-skins/${hash.toLowerCase()}${revision ? `?revision=${revision}` : ''}` : null
+}
+
+function minecraftSkinTextureHash(texture: JsonValue | undefined): string | null {
+  if (typeof texture !== 'string' || !texture || texture.length > 16_384) return null
   try {
     const url: unknown = JSON.parse(atob(texture)).textures?.SKIN?.url
     const match = typeof url === 'string' && /^https?:\/\/textures\.minecraft\.net\/texture\/([0-9a-f]{1,64})$/i.exec(url)
-    return match ? `https://textures.minecraft.net/texture/${match[1]}` : null
+    return match ? match[1] : null
   } catch {
     return null
   }
