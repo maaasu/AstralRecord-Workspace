@@ -203,8 +203,7 @@ export function canConnect(flow: GameFlow, from: string, to: string) {
 
 export function connect(flow: GameFlow, from: string, to: string, label?: string, classes: string[] = [], ports: EdgePorts = {}): GameFlow {
   if (!canConnect(flow, from, to)) return flow
-  const resolved = edgePorts(ports, flow.nodes.find(node => node.id === from), flow.nodes.find(node => node.id === to))
-  return { ...flow, edges: [...flow.edges, { from, to, ...resolved, label, classes, rest: {} }] }
+  return { ...flow, edges: [...flow.edges, { from, to, ...ports, label, classes, rest: {} }] }
 }
 
 export function removeNodes(flow: GameFlow, ids: ReadonlySet<string>): GameFlow {

@@ -1,5 +1,5 @@
 .game-flow-host { height: 100%; min-height: 0; container-type: inline-size; }
-.game-flow {
+.game-flow, .game-flow-node-tooltip {
   --kind-dungeon: #c0715a;
   --kind-shop: #d0a64a;
   --kind-item: #5aa7c0;
@@ -15,6 +15,8 @@
   --kind-guide: #b09bd5;
   --kind-note: #d9b66e;
   --kind-default: #7086a5;
+}
+.game-flow {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr) 300px;
   grid-template-rows: minmax(0, 1fr);
@@ -23,21 +25,21 @@
   background: var(--surface);
   color: var(--text);
 }
-.game-flow [data-kind] { --kind: var(--kind-default); }
-.game-flow [data-kind='dungeon'] { --kind: var(--kind-dungeon); }
-.game-flow [data-kind='shop'] { --kind: var(--kind-shop); }
-.game-flow [data-kind='item'] { --kind: var(--kind-item); }
-.game-flow [data-kind='mob'] { --kind: var(--kind-mob); }
-.game-flow [data-kind='class'] { --kind: var(--kind-class); }
-.game-flow [data-kind='world'] { --kind: var(--kind-world); }
-.game-flow [data-kind='gathering'] { --kind: var(--kind-gathering); }
-.game-flow [data-kind='recipe'] { --kind: var(--kind-recipe); }
-.game-flow [data-kind='skill'] { --kind: var(--kind-skill); }
-.game-flow [data-kind='npc'] { --kind: var(--kind-npc); }
-.game-flow [data-kind='action'] { --kind: var(--kind-action); }
-.game-flow [data-kind='mail'] { --kind: var(--kind-mail); }
-.game-flow [data-kind='guide'] { --kind: var(--kind-guide); }
-.game-flow [data-kind='note'] { --kind: var(--kind-note); }
+:is(.game-flow [data-kind], .game-flow-node-tooltip) { --kind: var(--kind-default); }
+:is(.game-flow [data-kind], .game-flow-node-tooltip)[data-kind='dungeon'] { --kind: var(--kind-dungeon); }
+:is(.game-flow [data-kind], .game-flow-node-tooltip)[data-kind='shop'] { --kind: var(--kind-shop); }
+:is(.game-flow [data-kind], .game-flow-node-tooltip)[data-kind='item'] { --kind: var(--kind-item); }
+:is(.game-flow [data-kind], .game-flow-node-tooltip)[data-kind='mob'] { --kind: var(--kind-mob); }
+:is(.game-flow [data-kind], .game-flow-node-tooltip)[data-kind='class'] { --kind: var(--kind-class); }
+:is(.game-flow [data-kind], .game-flow-node-tooltip)[data-kind='world'] { --kind: var(--kind-world); }
+:is(.game-flow [data-kind], .game-flow-node-tooltip)[data-kind='gathering'] { --kind: var(--kind-gathering); }
+:is(.game-flow [data-kind], .game-flow-node-tooltip)[data-kind='recipe'] { --kind: var(--kind-recipe); }
+:is(.game-flow [data-kind], .game-flow-node-tooltip)[data-kind='skill'] { --kind: var(--kind-skill); }
+:is(.game-flow [data-kind], .game-flow-node-tooltip)[data-kind='npc'] { --kind: var(--kind-npc); }
+:is(.game-flow [data-kind], .game-flow-node-tooltip)[data-kind='action'] { --kind: var(--kind-action); }
+:is(.game-flow [data-kind], .game-flow-node-tooltip)[data-kind='mail'] { --kind: var(--kind-mail); }
+:is(.game-flow [data-kind], .game-flow-node-tooltip)[data-kind='guide'] { --kind: var(--kind-guide); }
+:is(.game-flow [data-kind], .game-flow-node-tooltip)[data-kind='note'] { --kind: var(--kind-note); }
 .game-flow .button { white-space: nowrap; }
 .game-flow:where([data-sidebar='closed']) { grid-template-columns: minmax(0, 1fr) 300px; }
 .game-flow:where([data-inspector='closed']) { grid-template-columns: 220px minmax(0, 1fr); }
@@ -226,26 +228,30 @@
 .game-flow-suggestion small { margin-left: auto; color: var(--text-muted); white-space: nowrap; }
 
 /* ---- 図上のアイコンと接続点 ---- */
-.game-flow-token { position: relative; display: grid; justify-items: center; width: 150px; min-height: 108px; padding-top: 33px; color: var(--text); }
+.game-flow-token { display: grid; grid-template: 31px 72px 31px / minmax(0, 1fr); place-items: center; width: 156px; color: var(--text); }
 .game-flow-token-name {
-  position: absolute;
-  inset-block-end: calc(100% - 28px);
-  inset-inline-start: calc(50% + 9px);
+  grid-row: 1;
+  align-self: end;
   display: -webkit-box;
-  width: max-content;
-  max-width: 130px;
+  max-width: 100%;
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   font-size: 12px;
   font-weight: 650;
-  line-height: 1.25;
+  line-height: 1.24;
+  text-align: center;
   overflow-wrap: anywhere;
   text-shadow: 0 1px 2px rgb(0 0 0 / 60%);
 }
-.game-flow-token[data-kind='note'] .game-flow-token-name { inset-inline-start: 50%; transform: translateX(-50%); }
+.game-flow-token[data-label-position='bottom'] .game-flow-token-name { grid-row: 3; align-self: start; }
+.game-flow-token[data-label-position='side'] .game-flow-token-name {
+  justify-self: end;
+  max-width: calc(50% - 10px);
+  text-align: left;
+}
 .game-flow-token-kind { color: var(--kind); font-size: 11px; }
-.game-flow-token-shape { --shape-corner: 12px; --leaf-corner: 8px; position: relative; display: grid; place-items: center; width: 64px; height: 64px; }
+.game-flow-token-shape { --shape-corner: 12px; --leaf-corner: 8px; position: relative; display: grid; grid-row: 2; place-items: center; width: 64px; height: 64px; }
 .game-flow-token-fill, .game-flow-token-fill::after { position: absolute; inset: 0; clip-path: var(--shape, inset(0 round var(--shape-corner))); }
 .game-flow-token-fill { background: var(--kind); }
 .game-flow-token-fill::after { content: ''; inset: 3px; background: var(--surface-raised); }
@@ -255,6 +261,10 @@
 .game-flow-token-person { display: grid; justify-items: center; gap: 3px; color: var(--kind); }
 .game-flow-token-person::before { content: ''; width: 12px; height: 12px; border-radius: 50%; background: currentColor; }
 .game-flow-token-person::after { content: ''; width: 23px; height: 12px; border-radius: 12px 12px 3px 3px; background: currentColor; }
+.game-flow-token-book { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; width: 27px; height: 19px; color: var(--kind); }
+.game-flow-token-book::before, .game-flow-token-book::after { content: ''; border: 2px solid currentColor; background: repeating-linear-gradient(to bottom, transparent 0 3px, currentColor 3px 4px); }
+.game-flow-token-book::before { border-radius: 3px 0 0 3px; transform: skewY(9deg); }
+.game-flow-token-book::after { border-radius: 0 3px 3px 0; transform: skewY(-9deg); }
 .game-flow-token-warning { position: absolute; inset: -2px -2px auto auto; z-index: 2; display: grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; background: var(--danger); color: var(--surface); font-size: 11px; font-weight: 800; }
 .game-flow-token .game-flow-ghost-badge { display: block; width: fit-content; }
 .game-flow-body .game-flow-port {
@@ -321,18 +331,19 @@
   max-width: min(320px, calc(100vw - 16px));
   max-height: calc(100vh - 16px);
   overflow: auto;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid var(--line-bright);
   border-radius: var(--radius-control);
   background: var(--surface-raised);
   box-shadow: 0 6px 22px rgb(0 0 0 / 40%);
   color: var(--text);
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: 14px;
+  line-height: 1.5;
   overflow-wrap: anywhere;
   pointer-events: none;
 }
-.game-flow-tooltip-kind { color: var(--text-muted); font-size: 11px; }
+.game-flow-tooltip-kind { color: var(--kind); font-size: 12px; font-weight: 700; }
+.game-flow-node-tooltip > strong { display: block; margin-top: 2px; font-size: 17px; font-weight: 750; }
 .game-flow-node-tooltip dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 10px; margin: 8px 0 0; }
 .game-flow-node-tooltip dt { color: var(--text-muted); }
 .game-flow-node-tooltip dd { display: grid; gap: 2px; margin: 0; }

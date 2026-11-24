@@ -81,6 +81,28 @@ public sealed class GameFlowTests : IDisposable
         Assert.True(report.IsValid, string.Join("\n", report.Issues.Select(issue => $"{issue.Code} {issue.Path} {issue.Message}")));
     }
 
+    [Fact]
+    public async Task ActionAndExplicitPortsPassAlongsideLegacyNotesAndEdges()
+    {
+        var raw = Valid.Replace("edges:", "  - { id: equip, role: action, label: 装備する }\nedges:")
+            .Replace("  - { from: memo, to: shop }", "  - { from: memo, to: shop }\n  - { from: sword, to: equip, fromPort: bottom, toPort: left }");
+        var report = await _validation.ValidateAsync(FlowPath, raw, CancellationToken.None);
+        Assert.True(report.IsValid, string.Join("\n", report.Issues.Select(issue => $"{issue.Code} {issue.Path} {issue.Message}")));
+    }
+
+    [Theory]
+    [InlineData("from: memo, to: shop", "from: memo, to: shop, fromPort: diagonal")]
+    [InlineData("from: memo, to: shop", "from: memo, to: shop, toPort: auto")]
+    [InlineData("id: memo, label", "id: memo, role: annotation, label")]
+    [InlineData("id: sword, ref: item:sword", "id: sword, ref: item:sword, role: action, label: 装備する")]
+    public async Task RejectsUnknownPortsAndInvalidActionRoles(string from, string to)
+    {
+        Assert.Contains(from, Valid);
+        var report = await _validation.ValidateAsync(FlowPath, Valid.Replace(from, to), CancellationToken.None);
+        Assert.False(report.IsValid);
+        Assert.Contains(report.Issues, issue => issue.Code == "JSON_SCHEMA");
+    }
+
     [Theory]
     [InlineData("- { from: memo, to: shop }", "- { from: memo, to: missing }", "GAME_FLOW_EDGE_NODE", "/edges/1/to")]
     [InlineData("- { from: memo, to: shop }", "- { from: memo, to: memo }", "GAME_FLOW_EDGE_SELF", "/edges/1")]

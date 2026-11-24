@@ -18,6 +18,7 @@ export interface FlowNodeData extends Record<string, unknown> {
   dimmed: boolean
   missing: boolean
   suggestion?: string
+  connectedPorts?: ReadonlySet<GameFlowPort>
 }
 
 export const shapeLegend: [string, string][] = [
@@ -29,18 +30,26 @@ export const shapeLegend: [string, string][] = [
 const tokenSymbols: Record<string, string> = {
   dungeon: '⚑', shop: '⇄', mob: '⚔', item: '◆', gathering: '⛏', world: '◎', class: '◇', skill: '✦', recipe: '⚒',
   mob_spawner: '◌', gathering_spawner: '◌', loot_table: '▦', loot_pool: '▦', fishing_area: '♒', fishing_fish: '♒',
-  fishing_rules: '♒', action: '▶', mail: '✉', guide: '▤', enchant: '✧', buff: '↑', set_effect: '▣', pet: '♥',
+  fishing_rules: '♒', action: '▶', mail: '✉', enchant: '✧', buff: '↑', set_effect: '▣', pet: '♥',
 }
 
 const positionByPort: Record<GameFlowPort, Position> = {
   top: Position.Top, right: Position.Right, bottom: Position.Bottom, left: Position.Left,
 }
 
+function FlowNodeIcon({ data }: { data: FlowNodeData }) {
+  if (data.kind === 'npc') return <span className="game-flow-token-person" aria-hidden="true" />
+  if (data.kind === 'guide') return <span className="game-flow-token-book" aria-hidden="true" />
+  if (data.kind !== 'mail' && (data.file?.icon || data.file?.iconModel)) return <ReferenceIcon file={data.file} kind={data.kind} />
+  return <span className="game-flow-token-symbol" aria-hidden="true">{tokenSymbols[data.kind] ?? '◆'}</span>
+}
+
 const FlowNodeView = memo(function FlowNodeView({ data, selected, isConnectable }: NodeProps<Node<FlowNodeData>>) {
   const isNote = data.kind === 'note'
   const canConnect = isConnectable && !isNote && !data.suggestion
+  const labelPosition = !data.connectedPorts?.has('top') ? 'top' : data.connectedPorts.has('bottom') ? 'side' : 'bottom'
   return <div className={`game-flow-token${selected ? ' selected' : ''}${data.dimmed ? ' dimmed' : ''}${data.missing ? ' missing' : ''}${data.suggestion ? ' ghost' : ''}`}
-    data-kind={data.kind}>
+    data-kind={data.kind} data-label-position={labelPosition}>
     <div className="game-flow-token-name">
       {data.suggestion && <span className="game-flow-ghost-badge">＋ {data.suggestion}</span>}
       {isNote ? <span className="game-flow-token-kind">メモ</span> : <MinecraftText value={data.name} />}
@@ -49,11 +58,7 @@ const FlowNodeView = memo(function FlowNodeView({ data, selected, isConnectable 
       <span className="game-flow-token-fill" aria-hidden="true" />
       {isNote
         ? <span className="game-flow-token-note"><MinecraftText value={data.name} /></span>
-        : <span className="game-flow-token-icon">
-          {data.kind === 'npc' ? <span className="game-flow-token-person" aria-hidden="true" />
-            : data.file?.icon || data.file?.iconModel ? <ReferenceIcon file={data.file} kind={data.kind} />
-              : <span className="game-flow-token-symbol" aria-hidden="true">{tokenSymbols[data.kind] ?? '◆'}</span>}
-        </span>}
+        : <span className="game-flow-token-icon"><FlowNodeIcon data={data} /></span>}
       {data.missing && <span className="game-flow-token-warning" aria-hidden="true">!</span>}
       {gameFlowPorts.map(port => <Handle key={port} id={port} type="source" position={positionByPort[port]}
         isConnectable={canConnect} className="game-flow-port" aria-hidden="true" />)}
@@ -112,7 +117,7 @@ export function FlowNodeTooltip({ anchor, data }: { anchor: HTMLElement; data: F
     }
   }, [anchor, id])
 
-  return createPortal(<div ref={element} id={id} role="tooltip" className="game-flow-node-tooltip">
+  return createPortal(<div ref={element} id={id} role="tooltip" className="game-flow-node-tooltip" data-kind={data.kind}>
     <div className="game-flow-tooltip-kind">{kindLabels[data.kind] ?? data.kind}</div>
     <strong><MinecraftText value={data.name} /></strong>
     <dl>

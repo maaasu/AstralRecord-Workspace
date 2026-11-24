@@ -13,7 +13,7 @@ import {
   addNode, addShopPurchases, addableKinds, applySuggestions, canConnect, connect, freeSlot, planSuggestions, edgeKey, edgeLabelSuggestions, edgePorts, emptyGameFlow, flowIdPattern,
   gameFlowCategory, gameFlowOutline, gameFlowPath, gameFlowPort, kindLabels, nodeKind, parseGameFlow, refId, refKind, removeNodes, rowSpacing,
   serializeGameFlow, suggestFor, suggestedClasses, suggestionBatchSize, visibleFlow,
-  type FlowSuggestion, type GameFlow, type GameFlowContext, type GameFlowEdge, type GameFlowNode,
+  type FlowSuggestion, type GameFlow, type GameFlowContext, type GameFlowEdge, type GameFlowNode, type GameFlowPort,
 } from '../data/gameFlow'
 import { usePanelDocument } from '../docking/dockPanel'
 import type { ValidationIssue } from '../types/editor'
@@ -301,6 +301,21 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   // ---- キャンバス ----
   const visible = useMemo(() => flow ? visibleFlow(flow, classFilter) : null, [flow, classFilter])
   const nodeName = useCallback((node: GameFlowNode) => node.label?.trim() || (node.ref && resolve(node.ref)?.name) || node.ref || node.id, [resolve])
+  const nodeById = useMemo(() => new Map(flow?.nodes.map(node => [node.id, node])), [flow])
+  const connectedPorts = useMemo(() => {
+    const ports = new Map<string, Set<GameFlowPort>>()
+    const add = (id: string, port: GameFlowPort) => {
+      const used = ports.get(id) ?? new Set<GameFlowPort>()
+      used.add(port)
+      ports.set(id, used)
+    }
+    for (const edge of flow?.edges ?? []) {
+      const { fromPort, toPort } = edgePorts(edge, nodeById.get(edge.from), nodeById.get(edge.to))
+      add(edge.from, fromPort)
+      add(edge.to, toPort)
+    }
+    return ports
+  }, [flow, nodeById])
   const derivedNodes = useMemo<Node<FlowNodeData>[]>(() => flow?.nodes.map(node => {
     const resolved = node.ref ? resolve(node.ref) : undefined
     const kind = nodeKind(node, prefixes, resolved?.file?.path)
@@ -310,10 +325,10 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       data: {
         name: nodeName(node), kind, file: resolved?.file, ref: node.ref, referenceName: resolved?.name, classNames: node.classes.map(className),
         note: node.note?.trim() || undefined, dimmed: !visible?.nodes.has(node.id), missing: Boolean(node.ref && !resolved),
+        connectedPorts: connectedPorts.get(node.id),
       },
     }
-  }) ?? [], [className, flow, nodeName, prefixes, resolve, selection, visible])
-  const nodeById = useMemo(() => new Map(flow?.nodes.map(node => [node.id, node])), [flow])
+  }) ?? [], [className, connectedPorts, flow, nodeName, prefixes, resolve, selection, visible])
   const derivedEdges = useMemo<Edge[]>(() => flow?.edges.map((edge, index) => {
     const key = edgeKey(edge)
     const chips = edge.classes.length ? ` [${edge.classes.map(className).join('・')}]` : ''
@@ -379,17 +394,21 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
         },
       }
     })
-    const ghostEdges: Edge[] = preview.flow.edges.slice(flow.edges.length).map(edge => ({
-      id: ghostPrefix + edgeKey(edge), source: ghostId(edge.from), target: ghostId(edge.to), label: edge.label,
-      type: 'smoothstep', sourceHandle: edge.fromPort, targetHandle: edge.toPort,
-      className: 'ghost', animated: true, selectable: false, focusable: false,
-      markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 }, labelBgPadding: [6, 3] as [number, number], labelBgBorderRadius: 4,
-    }))
+    const positionOf = (id: string) => added.get(id) ?? nodeById.get(id)
+    const ghostEdges: Edge[] = preview.flow.edges.slice(flow.edges.length).map(edge => {
+      const ports = edgePorts(edge, positionOf(edge.from), positionOf(edge.to))
+      return {
+        id: ghostPrefix + edgeKey(edge), source: ghostId(edge.from), target: ghostId(edge.to), label: edge.label,
+        type: 'smoothstep', sourceHandle: ports.fromPort, targetHandle: ports.toPort,
+        className: 'ghost', animated: true, selectable: false, focusable: false,
+        markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 }, labelBgPadding: [6, 3], labelBgBorderRadius: 4,
+      }
+    })
     return {
       nodes: ghostNodes, edges: ghostEdges, byGhostId,
       next: positioned.filter(entry => entry.direction === 'next'), previous: positioned.filter(entry => entry.direction === 'previous'),
     }
-  }, [className, context, flow, newNodeClasses, prefixes, resolve, suggestionNodeId, suggestions])
+  }, [className, context, flow, newNodeClasses, nodeById, prefixes, resolve, suggestionNodeId, suggestions])
   /** 候補を配置し、ズームはそのままで配置したノードが見える位置へ寄せる。 */
   const placeSuggestions = (nodeId: string, list: readonly FlowSuggestion[]) => {
     const before = current.current
@@ -613,8 +632,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
           { label: 'ラベルを外す', disabled: !edge.label, run: () => changeEdge(target.key, { label: undefined }) },
           null,
           { label: '向きを反転', disabled: reversed, run: () => {
-            const { fromPort, toPort } = edgePorts(edge, nodeById.get(edge.from), nodeById.get(edge.to))
-            const opposite = { from: edge.to, to: edge.from, fromPort: toPort, toPort: fromPort }
+            const opposite = { from: edge.to, to: edge.from, fromPort: edge.toPort, toPort: edge.fromPort }
             changeEdge(target.key, opposite)
             setSelection({ type: 'edge', key: edgeKey(opposite) })
           } },
