@@ -20,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.github.maaasu.astralRecord.feature.item.executor.WeaponAttackSkillExecutor;
+import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 

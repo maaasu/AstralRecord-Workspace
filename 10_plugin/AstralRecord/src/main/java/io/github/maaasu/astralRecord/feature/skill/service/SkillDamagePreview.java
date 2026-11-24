@@ -170,6 +170,10 @@ public final class SkillDamagePreview {
             }
             case AdventurerLightningBoltExecutor.ID -> conditions.add(note("主対象のみ集計。感電連鎖は計算外"));
             case AdventurerAstralEdgeExecutor.ID -> conditions.add(note("薙ぎ払いに続く突き刺しまで集計"));
+            case "phantom_archer_soul_pierce", "phantom_archer_eclipse_shot" -> {
+                conditions.add(note("印が0の敵への本体の矢だけを集計"));
+                if (id.equals("phantom_archer_soul_pierce")) conditions.add(note("対象に衰弱・盲目なし"));
+            }
             case WizardArcaneOverloadExecutor.ID -> conditions.add(note("発動前の現在MPで強化を判定"));
             case ArchmageAstralSpearExecutor.ID, ArchmageStarfallExecutor.ID, ArchmageOrbitalVolleyExecutor.ID,
                     ArchmageAstralRayExecutor.ID -> details.add(row("現在の魔法陣", circles, "基"));
@@ -443,7 +447,8 @@ public final class SkillDamagePreview {
         var summary = new ArrayList<Component>();
         var details = new ArrayList<Component>();
         var conditions = new ArrayList<>(TARGET);
-        if (remaining < params.getDouble("minimumCurrentShield", 2)) {
+        double minimumShield = params.getDouble("minimumCurrentShield", 2);
+        if (remaining < minimumShield) {
             summary.add(Component.text("現在はシールド不足で発動不可", NamedTextColor.RED));
         } else {
             summary.add(row("味方1人あたりの一時シールド", remaining * params.getDouble("transferRatio", 0.5), ""));
@@ -455,7 +460,8 @@ public final class SkillDamagePreview {
         details.add(row("聖柱1回の期待ダメージ", hit, ""));
         details.add(row("聖柱全" + pillar.count + "回の期待ダメージ", total, ""));
         appendDps(details, details, "聖柱の期待DPS", total, cast, cooldown, pillar);
-        conditions.add(note("聖柱は味方がいないときに発生"));
+        conditions.add(row("発動に必要な現在シールド", minimumShield, "以上"));
+        conditions.add(note("聖柱は範囲内に他のパーティーメンバーがいない場合"));
         conditions.add(note("同じ敵が聖柱の全打撃で範囲内"));
         return new Report(summary, details, conditions);
     }
