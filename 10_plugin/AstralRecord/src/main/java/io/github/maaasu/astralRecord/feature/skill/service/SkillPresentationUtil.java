@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.wizard.WizardRimeNovaExecutor;
+import io.github.maaasu.astralRecord.feature.skill.gui.SkillLore;
 import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -12,6 +13,7 @@ import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,6 +34,11 @@ import java.util.regex.Pattern;
  * スキル表示名・説明・効果値の整形を共通化します。
  */
 public final class SkillPresentationUtil {
+    private static final PlainTextComponentSerializer PLAIN_TEXT = PlainTextComponentSerializer.plainText();
+    private static final Pattern LORE_LABEL = Pattern.compile("^【([^】]+)】\\s*");
+    private static final Pattern LEGACY_COST_LINE = Pattern.compile(
+        "^(?:消費[^:：]{0,8}[:：].*クールダウン[:：]|クールダウン[:：].*消費[^:：]{0,8}[:：])"
+    );
     private static final TextColor PLACEHOLDER_COLOR = NamedTextColor.YELLOW;
     private static final Pattern PLACEHOLDER_TOKEN = Pattern.compile("\\uE000skill_placeholder_\\d+\\uE001");
     private static final Pattern SKILL_PLACEHOLDER = Pattern.compile(
@@ -271,22 +278,46 @@ public final class SkillPresentationUtil {
             return List.of();
         }
         List<Component> lines = new ArrayList<>();
-        appendMasterLine(
-            lines,
-            renderResolvedLineComponent(definition.getDescription(), values, fallbackColor)
-        );
-        List<Component> details = new ArrayList<>();
+        Component summary = renderResolvedLineComponent(definition.getDescription(), values, null);
+        Matcher summaryLabel = LORE_LABEL.matcher(PLAIN_TEXT.serialize(summary));
+        if (summaryLabel.find() && summaryLabel.group(1).equals("概要")) {
+            summary = SkillLore.dropPrefix(summary, summaryLabel.end());
+        }
+        if (!PLAIN_TEXT.serialize(summary).isBlank()) {
+            lines.add(Component.empty().append(SkillLore.body(summary).decorate(TextDecoration.ITALIC)));
+        }
+
+        List<Component> effects = new ArrayList<>();
         for (String line : definition.getLore()) {
-            String rendered = renderPlaceholders(line, values);
-            String plain = ColorCodeUtil.toPlainText(rendered, "");
-            if (plain.contains("消費") && plain.contains("クールダウン")) {
+            Component rendered = renderResolvedLineComponent(line, values, fallbackColor);
+            String plain = PLAIN_TEXT.serialize(rendered);
+            if (LEGACY_COST_LINE.matcher(plain.stripLeading()).find()) {
                 continue;
             }
-            appendMasterLine(details, renderResolvedLineComponent(line, values, fallbackColor));
+            appendMasterLine(effects, rendered);
         }
-        appendConditionalLore(details, definition, permittedSkillIds, values, fallbackColor);
-        appendDetails(lines, details);
-        return List.copyOf(lines);
+        appendEffectSection(lines, "効果", NamedTextColor.GOLD, effects);
+
+        List<Component> conditionalEffects = new ArrayList<>();
+        appendConditionalLore(conditionalEffects, definition, permittedSkillIds, values, fallbackColor);
+        appendEffectSection(lines, "条件付き効果", NamedTextColor.LIGHT_PURPLE, conditionalEffects);
+        return SkillLore.finish(lines);
+    }
+
+    /** 既存の効果分類を短い行のラベルに移し、プレースホルダーの書式を保持します。 */
+    private static void appendEffectSection(
+        List<Component> lines, String heading, NamedTextColor color, List<Component> effects
+    ) {
+        if (effects.isEmpty()) {
+            return;
+        }
+        SkillLore.section(lines, heading, color);
+        for (Component effect : effects) {
+            Matcher label = LORE_LABEL.matcher(PLAIN_TEXT.serialize(effect));
+            lines.add(label.find()
+                ? SkillLore.row(label.group(1), SkillLore.dropPrefix(effect, label.end()))
+                : SkillLore.row("", effect));
+        }
     }
 
     /** 概要と詳細の両方がある場合だけ空行で区切り、条件付き効果も詳細へまとめます。 */

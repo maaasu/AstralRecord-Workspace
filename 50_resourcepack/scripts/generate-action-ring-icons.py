@@ -20,6 +20,10 @@ PACK = WORKSPACE / "50_resourcepack"
 CATALOG = WORKSPACE / "10_plugin/AstralRecord/src/main/resources/action-ring-icons.json"
 ATLAS = PACK / "assets/astralrecord/textures/item/action_ring_icons.png"
 BEDROCK_TILES = PACK / "bedrock/action-ring-icon-tiles.json"
+TOOLTIP_FONT = PACK / "assets/astralrecord/font/skill_tooltip.json"
+BEDROCK_TOOLTIP_GLYPHS = PACK / "bedrock/font/glyph_E8.png"
+TOOLTIP_GLYPH_BASE = 0xE800
+TOOLTIP_GLYPH_CELL = 16
 CELL = 32
 ATLAS_SIZE = 512
 MAX_ID = 254
@@ -649,10 +653,57 @@ def png(width, height, pixels):
     )
 
 
+def tooltip_font(catalog):
+    codes = set(catalog.values())
+    characters = [
+        "".join(chr(TOOLTIP_GLYPH_BASE + code) if code in codes else "\0"
+                for code in range(row * 16, (row + 1) * 16))
+        for row in range(16)
+    ]
+    return {
+        "providers": [
+            {
+                "type": "bitmap",
+                "file": "astralrecord:item/action_ring_icons.png",
+                "height": 9,
+                "ascent": 8,
+                "chars": characters,
+            },
+            *(
+                {
+                    "type": "bitmap",
+                    "file": f"astralrecord:item/custom/skill_gem_raw{suffix}.png",
+                    "height": 9,
+                    "ascent": 8,
+                    "chars": [chr(0xE900 + index)],
+                }
+                for index, suffix in enumerate((
+                    "", "_beginner", "_intermediate", "_advanced", "_saint", "_king", "_emperor", "_god"
+                ))
+            ),
+        ],
+    }
+
+
+def draw_tooltip_glyph(glyphs, pixels, code):
+    cell = TOOLTIP_GLYPH_CELL
+    width = 16 * cell
+    x_origin = (code % 16) * cell
+    y_origin = (code // 16) * cell
+    for y in range(cell):
+        for x in range(cell):
+            # Sample the centre of each 2×2 source cell with nearest-neighbor.
+            source = ((y * 2 + 1) * CELL + x * 2 + 1) * 4
+            destination = ((y_origin + y) * width + x_origin + x) * 4
+            glyphs[destination:destination + 4] = pixels[source:source + 4]
+
+
 def outputs():
     entries = specs()
     catalog = catalog_for(entries)
     atlas = bytearray(ATLAS_SIZE * ATLAS_SIZE * 4)
+    tooltip_size = 16 * TOOLTIP_GLYPH_CELL
+    tooltip_glyphs = bytearray(tooltip_size * tooltip_size * 4)
     bundle = {}
     drawn = {}
     for name, code in catalog.items():
@@ -661,6 +712,7 @@ def outputs():
         if key in drawn:
             raise ValueError(f"Identical art for {name} and {drawn[key]}")
         drawn[key] = name
+        draw_tooltip_glyph(tooltip_glyphs, pixels, code)
         bundle[str(code)] = base64.b64encode(png(CELL, CELL, pixels)).decode("ascii")
         origin_x = (code % (ATLAS_SIZE // CELL)) * CELL
         origin_y = (code // (ATLAS_SIZE // CELL)) * CELL
@@ -671,16 +723,22 @@ def outputs():
     return {
         CATALOG: (json.dumps(catalog, indent=2) + "\n").encode("utf-8"),
         ATLAS: png(ATLAS_SIZE, ATLAS_SIZE, atlas),
+        TOOLTIP_FONT: (json.dumps(tooltip_font(catalog), indent=2) + "\n").encode("utf-8"),
+        BEDROCK_TOOLTIP_GLYPHS: png(tooltip_size, tooltip_size, tooltip_glyphs),
         BEDROCK_TILES: (json.dumps(bundle, separators=(",", ":")) + "\n").encode("utf-8"),
     }
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--check", action="store_true", help="verify the checked-in files")
+    checks = parser.add_mutually_exclusive_group()
+    checks.add_argument("--check", action="store_true", help="verify the checked-in files")
+    checks.add_argument("--check-tooltips", action="store_true", help="verify only the tooltip font assets")
     args = parser.parse_args()
     for path, data in outputs().items():
-        if args.check:
+        if args.check_tooltips and path not in (TOOLTIP_FONT, BEDROCK_TOOLTIP_GLYPHS):
+            continue
+        if args.check or args.check_tooltips:
             actual = path.read_bytes() if path.exists() else b""
             if path.suffix == ".json":
                 actual = actual.replace(b"\r\n", b"\n")

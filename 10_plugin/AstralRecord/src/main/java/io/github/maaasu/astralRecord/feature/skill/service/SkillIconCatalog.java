@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
 import com.google.gson.JsonParser;
+import io.github.maaasu.astralRecord.feature.skill.gui.SkillLore;
 import io.github.maaasu.astralRecord.infrastructure.util.CustomModelDataComponentUtil;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -20,6 +21,7 @@ import java.util.Map;
 public final class SkillIconCatalog {
     public static final Material ITEM_MATERIAL = Material.PAPER;
     private static final int MODEL_DATA_BASE = 920000;
+    private static final int TOOLTIP_GLYPH_BASE = 0xe800;
     private static final String RESOURCE = "/action-ring-icons.json";
     private static final SkillIconCatalog INSTANCE = load();
 
@@ -50,6 +52,12 @@ public final class SkillIconCatalog {
         return sprite == 0 ? null : MODEL_DATA_BASE + sprite;
     }
 
+    /** 公開パックのツールチップ用フォントや字形表に登録されたコードポイントです。 */
+    public static @Nullable String tooltipGlyph(@Nullable String skillId) {
+        int sprite = sprite(skillId);
+        return sprite == 0 ? null : Character.toString(TOOLTIP_GLYPH_BASE + sprite);
+    }
+
     /**
      * スキルを表す表示アイテムに、リングと共通の絵柄を適用します。
      *
@@ -60,7 +68,7 @@ public final class SkillIconCatalog {
     public static @NotNull ItemStack apply(@NotNull ItemStack fallback, @Nullable String skillId) {
         Integer modelData = modelData(skillId);
         if (modelData == null) {
-            return fallback;
+            return skillId == null ? fallback : SkillLore.style(fallback, skillId);
         }
         ItemStack icon = fallback.withType(ITEM_MATERIAL);
         ItemMeta meta = icon.getItemMeta();
@@ -68,7 +76,7 @@ public final class SkillIconCatalog {
         meta.setItemModel(ITEM_MATERIAL.getKey());
         CustomModelDataComponentUtil.writeFromInt(meta, modelData);
         icon.setItemMeta(meta);
-        return icon;
+        return SkillLore.style(icon, skillId);
     }
 
     static String revision() {

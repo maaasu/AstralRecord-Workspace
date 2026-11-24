@@ -215,6 +215,7 @@ $java = Read-PackEntries $root @(
     'assets/astralrecord/font/profile_hud_points.json'
     'assets/astralrecord/textures/font/gameplay_hud.png'
     'assets/astralrecord/font/tooltip_icons.json'
+    'assets/astralrecord/font/skill_tooltip.json'
     'assets/astralrecord/textures/font/tooltip_icons.png'
     'assets/astralrecord/textures/gui/sprites/tooltip/shared_item_background.png'
     'assets/astralrecord/textures/gui/sprites/tooltip/shared_item_background.png.mcmeta'
@@ -360,6 +361,7 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'textures/ui/astralrecord/quest_hud_frame.json'
     'font/glyph_E6.png'
     'font/glyph_E7.png'
+    'font/glyph_E8.png'
     'combat-reward-plaque-version.txt'
     'textures/ui/absorption_heart.png'
     'textures/ui/absorption_heart_half.png'
@@ -704,6 +706,13 @@ Add-GuiThemeEntries $java $bedrock
 $tooltipVersion = $utf8.GetBytes('1')
 $java.Add('item-tooltips-version.txt', $tooltipVersion)
 $bedrock.Add('item-tooltips-version.txt', $tooltipVersion)
+$skillTooltipFont = $utf8.GetString($java['assets/astralrecord/font/skill_tooltip.json']) | ConvertFrom-Json
+foreach ($provider in $skillTooltipFont.providers) {
+    $texture = $provider.file -creplace '^astralrecord:', 'assets/astralrecord/textures/'
+    if (!$java.ContainsKey($texture)) { throw "Missing skill tooltip texture: $texture" }
+}
+$java.Add('skill-tooltips-version.txt', $tooltipVersion)
+$bedrock.Add('skill-tooltips-version.txt', $tooltipVersion)
 
 $weaponAttackVersion = $utf8.GetBytes('1')
 $java.Add('weapon-attack-projectiles-version.txt', $weaponAttackVersion)

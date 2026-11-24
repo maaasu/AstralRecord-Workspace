@@ -26,6 +26,7 @@ final class BackendProtocol {
     static final String DUNGEON_CLEAR_SOUND_READY = "dungeon_clear_sound_v1_ready";
     static final String GAMEPLAY_SOUNDS_READY = "gameplay_sounds_ready";
     static final String ITEM_TOOLTIPS_READY = "item_tooltips_ready";
+    static final String SKILL_TOOLTIPS_READY = "skill_tooltips_v1_ready";
     static final String SKILL_EFFECTS_V2_READY = "skill_effects_v2_ready";
     static final String WEAPON_ATTACK_PROJECTILES_READY = "weapon_attack_projectiles_ready";
     static final String SELENEA_READY = "selenea_ready";
@@ -172,6 +173,10 @@ final class BackendProtocol {
     /** @return 対象プレイヤーの Bedrock パックがツールチップに対応していることを伝える通知 */
     static byte[] itemTooltipsReady() {
         return outgoing(ITEM_TOOLTIPS_READY, null);
+    }
+
+    static byte[] skillTooltipsReady() {
+        return outgoing(SKILL_TOOLTIPS_READY, null);
     }
 
     /** @return 対象プレイヤーの統合版パックが固定UVのスキル演出に対応していることを伝える通知 */

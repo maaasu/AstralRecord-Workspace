@@ -207,6 +207,11 @@ final class DamagePackDistribution {
         return selection != null && selection.ready() && selection.pack().gameplaySounds();
     }
 
+    boolean skillTooltipsReady(GeyserConnection connection) {
+        SessionPack selection = sessions.get(connection);
+        return selection != null && selection.ready() && selection.pack().skillTooltips();
+    }
+
     boolean itemTooltipsReady(GeyserConnection connection) {
         SessionPack selection = sessions.get(connection);
         return selection != null && selection.ready() && selection.pack().itemTooltips();

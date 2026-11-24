@@ -22,7 +22,7 @@ public final class ResourcePackRepository {
     public record JavaPack(String sha1, @Nullable String actionRingPanel, @Nullable String guiTheme,
                            boolean hasGameplaySounds, boolean sunbirdPresentation, boolean sunbirdPresentationV2, boolean seleneaPresentation,
                            boolean mossZombiePresentation,
-                           boolean archmagePhoenixPresentation, boolean nyxeronPresentation, boolean itemTooltips,
+                           boolean archmagePhoenixPresentation, boolean nyxeronPresentation, boolean itemTooltips, boolean skillTooltips,
                            boolean weaponAttackProjectiles, @Nullable ProfileHud profileHud, boolean skillEffects,
                            boolean combatRewardPlaque, int questHudVersion, boolean receptionDisplay,
                            boolean locationHud, Set<Integer> wornHelmetModels, boolean fishingRodTip, boolean skillCooldownHud, boolean challengeCountdown,
@@ -96,6 +96,9 @@ public final class ResourcePackRepository {
                 JsonElement tooltips = java.get("itemTooltips");
                 boolean itemTooltips = tooltips != null && tooltips.isJsonPrimitive()
                     && tooltips.getAsJsonPrimitive().isString() && "1".equals(tooltips.getAsString());
+                JsonElement skillTooltip = java.get("skillTooltips");
+                boolean skillTooltips = itemTooltips && skillTooltip != null && skillTooltip.isJsonPrimitive()
+                    && skillTooltip.getAsJsonPrimitive().isString() && "1".equals(skillTooltip.getAsString());
                 JsonElement projectiles = java.get("weaponAttackProjectiles");
                 boolean weaponAttackProjectiles = projectiles != null && projectiles.isJsonPrimitive()
                     && projectiles.getAsJsonPrimitive().isString() && "1".equals(projectiles.getAsString());
@@ -140,7 +143,7 @@ public final class ResourcePackRepository {
                     default -> null;
                 };
                 return new JavaPack(sha1.getAsString(), panel, guiTheme, hasGameplaySounds, sunbirdPresentation, sunbirdPresentationV2,
-                    seleneaPresentation, mossZombiePresentation, archmagePhoenixPresentation, nyxeronPresentation, itemTooltips,
+                    seleneaPresentation, mossZombiePresentation, archmagePhoenixPresentation, nyxeronPresentation, itemTooltips, skillTooltips,
                     weaponAttackProjectiles, profileHud,
                     skillEffects, combatRewardPlaque,
                     questHudVersion(java.get("questTrackingHud")), receptionDisplay, locationHud,
