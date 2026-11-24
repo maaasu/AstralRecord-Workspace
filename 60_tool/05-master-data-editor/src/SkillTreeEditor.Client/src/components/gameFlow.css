@@ -160,6 +160,14 @@
 .game-flow-body[hidden] { display: none; }
 .game-flow-empty { display: grid; place-items: center; height: 100%; color: var(--text-muted); }
 .game-flow-body .react-flow__edge.dimmed { opacity: .2; }
+.game-flow-body .react-flow__edge.annotation .react-flow__edge-path {
+  stroke: var(--kind-note);
+  stroke-width: 1.4;
+  stroke-dasharray: 6 4;
+}
+.game-flow-body .react-flow__edge.annotation:is(.selected, :focus-visible, :hover) .react-flow__edge-path {
+  stroke-width: 2;
+}
 .game-flow-body .react-flow__edge-text { fill: var(--text); font-size: 11px; }
 .game-flow-body .react-flow__edge-textbg { fill: var(--surface-raised); }
 .game-flow-body .react-flow__controls button { background: var(--surface-raised); border-color: var(--line); fill: var(--text); }

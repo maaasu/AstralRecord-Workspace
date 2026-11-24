@@ -229,6 +229,76 @@ public sealed class GameFlowTests : IDisposable
     }
 
     [Fact]
+    public async Task BundleLinksResolveDirectAndRolledItemsWithoutDuplicates()
+    {
+        foreach (var item in new[] { "pelt", "staff", "axe", "shield" })
+            Write($"10.features.item/10.material/v1.{item}.yml", $"id: {item}\n");
+        Write("10.features.item/50.bundle/v1.starter.yml", """
+            id: starter
+            category: bundle
+            bundle:
+              gold: 1500
+              items:
+                - { itemId: sword }
+                - { itemId: item:bow }
+                - { itemId: { ref: "im:pelt " } }
+                - { itemId: { ref: item:sword } }
+                - { itemId: missing }
+                - { itemId: 99a00001 }
+                - { itemId: starter }
+              lootTableId: { ref: "lt:starter " }
+            """);
+        Write("80.shared.loot/table/v1.starter.yml", """
+            id: starter
+            rolls: 1
+            pools: [{ ref: loot_pool:starter }]
+            """);
+        Write("80.shared.loot/pool/v1.starter.yml", """
+            id: starter
+            pick: 1
+            contents:
+              - { itemId: { ref: item:sword }, rate: 100 }
+              - { itemId: item:staff, rate: 50 }
+              - { itemId: staff, rate: 25 }
+              - { itemId: item:axe, rate: 0 }
+              - { itemId: item:shield, amount: "0" }
+              - { itemId: missing, rate: 100 }
+            """);
+        var context = await CreateService().ReadContextAsync(CancellationToken.None);
+        var rewards = context.Links.Where(link => link.From == "item:starter")
+            .Select(link => (link.To, link.Label)).ToArray();
+
+        Assert.Equal([
+            ("item:sword", "開封"), ("item:bow", "開封"), ("item:pelt", "開封"), ("item:staff", "開封（抽選）")
+        ], rewards);
+        Assert.Equal(["swordsman"], context.ItemClasses["sword"]);
+        Assert.Contains(context.Links, link => link is { From: "loot_table:starter", To: "item:staff", Label: "ドロップ" });
+    }
+
+    [Fact]
+    public async Task CommittedBundlesOfferTheirActualItemsInBothDirections()
+    {
+        var workspace = new WorkspacePaths(WorkspacePaths.ResolveWorkspaceRoot(null, AppContext.BaseDirectory));
+        var paths = new MasterDataPaths(workspace);
+        var cache = new FilebaseSnapshotCache(paths, new MasterDataCodec());
+        var service = new GameFlowService(cache, new ProgressionDesignService(cache, paths));
+        var context = await service.ReadContextAsync(CancellationToken.None);
+        var byReward = context.Links.ToLookup(link => link.To);
+        void CheckBundle(string id, string label, IReadOnlyList<string> rewardIds)
+        {
+            var bundle = "item:" + id;
+            var rewards = rewardIds.Select(reward => "item:" + reward).ToArray();
+            Assert.Equal(rewards, context.Links.Where(link => link.From == bundle).Select(link => link.To));
+            foreach (var reward in rewards)
+                Assert.Single(byReward[reward], link => link.From == bundle && link.Label == label);
+        }
+
+        CheckBundle("50a00001", "開封", ["10a00019", "40a00003", "40a00001", "40a00002", "40a00011"]);
+        CheckBundle("50a00002", "開封（抽選）", ["20a00056", "20a00054", "20a00055"]);
+        CheckBundle("50a00003", "開封（抽選）", ["20a00073", "20a00074", "20a00075", "20a00077", "20a00078", "20a00079", "20a00080"]);
+    }
+
+    [Fact]
     public async Task CommittedFlowsPassValidation()
     {
         var root = WorkspacePaths.ResolveWorkspaceRoot(null, AppContext.BaseDirectory);

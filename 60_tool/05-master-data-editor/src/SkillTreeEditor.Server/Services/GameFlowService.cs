@@ -4,7 +4,7 @@ using SkillTreeEditor.Server.Models;
 namespace SkillTreeEditor.Server.Services;
 
 /// <summary>
-/// ゲーム進行フローの編集補助。ショップの商品、装備の職業制限と、
+/// ゲーム進行フローの編集補助。ショップの商品、バンドルの開封報酬、装備の職業制限と、
 /// 次に置くノードの候補になるマスター同士のつながりをまとめる。
 /// </summary>
 public sealed class GameFlowService(FilebaseSnapshotCache snapshots, ProgressionDesignService design)
@@ -45,6 +45,8 @@ public sealed class GameFlowService(FilebaseSnapshotCache snapshots, Progression
         var shops = new List<GameFlowShop>();
         var itemClasses = new SortedDictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
         var refs = new Dictionary<string, string>(StringComparer.Ordinal);
+        var itemRefs = new HashSet<string>(StringComparer.Ordinal);
+        var bundles = new List<(string Ref, JsonObject Rewards)>();
         var links = new List<GameFlowLink>();
         var seen = new HashSet<(string, string)>();
         void Link(string? from, string? to, string label)
@@ -70,10 +72,16 @@ public sealed class GameFlowService(FilebaseSnapshotCache snapshots, Progression
                             items.Add(itemId);
                     shops.Add(new(id, document.Path, items));
                     break;
-                case "item" when root["equipment"] is JsonObject equipment && equipment["requiredClasses"] is JsonArray requirements:
-                    var classes = requirements.OfType<JsonObject>().Select(requirement => MasterDataValidation.Text(requirement["classId"]))
-                        .OfType<string>().Where(value => value.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
-                    if (classes.Length > 0) itemClasses[id] = classes;
+                case "item":
+                    itemRefs.Add(self);
+                    if (root["bundle"] is JsonObject bundle)
+                        bundles.Add((self, bundle));
+                    if (root["equipment"] is JsonObject equipment && equipment["requiredClasses"] is JsonArray requirements)
+                    {
+                        var classes = requirements.OfType<JsonObject>().Select(requirement => MasterDataValidation.Text(requirement["classId"]))
+                            .OfType<string>().Where(value => value.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
+                        if (classes.Length > 0) itemClasses[id] = classes;
+                    }
                     break;
                 case "dungeon":
                     if (root["entry"] is JsonObject dungeonEntry) Link(Reference("world", dungeonEntry["worldRef"]), self, "入場");
@@ -102,6 +110,24 @@ public sealed class GameFlowService(FilebaseSnapshotCache snapshots, Progression
             }
         }
 
+        // 装備・入手経路が展開した抽選先を使う。確定報酬を先に登録し、両方から出る場合も1本にする。
+        var lootByTable = catalog?.Sources
+            .Where(source => source.Kind == "lootTable"
+                && ProgressionDesignService.HasPossibleLoot(source.Rates)
+                && ProgressionDesignService.HasPossibleLoot(source.Quantity))
+            .ToLookup(source => refs.GetValueOrDefault(source.Path), source => "item:" + source.ItemId);
+        foreach (var (bundleRef, rewards) in bundles)
+        {
+            foreach (var row in (rewards["items"] as JsonArray ?? []).OfType<JsonObject>())
+                if (Reference("item", row["itemId"]) is { } itemRef && itemRefs.Contains(itemRef))
+                    Link(bundleRef, itemRef, "開封");
+
+            if (Reference("loot_table", rewards["lootTableId"]) is { } tableRef && lootByTable is not null)
+                foreach (var itemRef in lootByTable[tableRef])
+                    if (itemRefs.Contains(itemRef))
+                        Link(bundleRef, itemRef, "開封（抽選）");
+        }
+
         if (catalog is not null)
         {
             foreach (var source in catalog.Sources)
@@ -126,7 +152,8 @@ public sealed class GameFlowService(FilebaseSnapshotCache snapshots, Progression
         var value = node is JsonObject reference ? MasterDataValidation.Text(reference["ref"]) : MasterDataValidation.Text(node);
         if (string.IsNullOrWhiteSpace(value)) return null;
         var separator = value.IndexOf(':');
-        return separator < 0 ? value : value[(separator + 1)..];
+        var id = (separator < 0 ? value : value[(separator + 1)..]).Trim();
+        return id.Length > 0 ? id : null;
     }
 
     private static string? Reference(string kind, JsonNode? node) => ReferenceId(node) is { } id ? kind + ":" + id : null;

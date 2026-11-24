@@ -11,7 +11,7 @@ import { gameFlowApi } from '../api/gameFlowApi'
 import { masterDataApi } from '../api/masterDataApi'
 import {
   addNode, addShopPurchases, addableKinds, applySuggestions, canConnect, connect, freeSlot, planSuggestions, edgeKey, edgeLabelSuggestions, edgePorts, emptyGameFlow, flowIdPattern,
-  gameFlowCategory, gameFlowOutline, gameFlowPath, gameFlowPort, kindLabels, nodeKind, parseGameFlow, refId, refKind, removeNodes, rowSpacing,
+  gameFlowCategory, gameFlowOutline, gameFlowPath, gameFlowPort, isAnnotationEdge, kindLabels, nodeKind, parseGameFlow, refId, refKind, removeNodes, rowSpacing,
   serializeGameFlow, suggestFor, suggestedClasses, suggestionBatchSize, visibleFlow,
   type FlowSuggestion, type GameFlow, type GameFlowContext, type GameFlowEdge, type GameFlowNode, type GameFlowPort,
 } from '../data/gameFlow'
@@ -25,6 +25,7 @@ import {
   FlowContextMenu, flowCopyCommands, flowNodeCopyTarget, flowReferenceCopyTarget, useGameFlowCopyMenu,
   type ContextCommand, type ResolvedRef,
 } from './GameFlowContextMenu'
+import { GameFlowEdgeLayer, gameFlowEdgeTypes } from './GameFlowDiagramEdge'
 import { FlowNodeTooltip, gameFlowNodeTypes, shapeLegend, type FlowNodeData } from './GameFlowDiagramNode'
 import { ClassToggles, EdgeProperties, FlowProperties, NodeProperties, ShopItemsDialog } from './GameFlowProperties'
 import { referenceSymbol } from './MasterReferenceCollection'
@@ -334,14 +335,20 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     const key = edgeKey(edge)
     const chips = edge.classes.length ? ` [${edge.classes.map(className).join('・')}]` : ''
     const shown = visible?.edges.has(index) ?? true
-    const ports = edgePorts(edge, nodeById.get(edge.from), nodeById.get(edge.to))
+    const from = nodeById.get(edge.from)
+    const to = nodeById.get(edge.to)
+    const ports = edgePorts(edge, from, to)
+    const annotation = isAnnotationEdge(from, to)
     return {
-      id: key, source: edge.from, target: edge.to, type: 'smoothstep', sourceHandle: ports.fromPort, targetHandle: ports.toPort, label: (edge.label ?? '') + chips || undefined,
+      id: key, source: edge.from, target: edge.to, type: 'flow', sourceHandle: ports.fromPort, targetHandle: ports.toPort, label: (edge.label ?? '') + chips || undefined,
+      data: { kind: annotation ? 'annotation' : 'progression' },
+      ariaLabel: annotation ? `注釈線 ${plain(from ? nodeName(from) : edge.from)} — ${plain(to ? nodeName(to) : edge.to)}` : undefined,
       selected: selection?.type === 'edge' && selection.key === key,
-      markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
-      className: shown ? undefined : 'dimmed', labelBgPadding: [6, 3] as [number, number], labelBgBorderRadius: 4,
+      markerEnd: annotation ? undefined : { type: MarkerType.ArrowClosed, width: 18, height: 18 },
+      className: [annotation && 'annotation', !shown && 'dimmed'].filter(Boolean).join(' ') || undefined,
+      labelBgPadding: [6, 3] as [number, number], labelBgBorderRadius: 4,
     }
-  }) ?? [], [className, flow, nodeById, selection, visible])
+  }) ?? [], [className, flow, nodeById, nodeName, selection, visible])
   const [nodes, setNodes] = useState<Node<FlowNodeData>[]>([])
   const [edges, setEdges] = useState<Edge[]>([])
   // 測定済みの寸法を引き継ぎ、編集のたびに全ノードを測り直さない。
@@ -400,7 +407,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       const ports = edgePorts(edge, positionOf(edge.from), positionOf(edge.to))
       return {
         id: ghostPrefix + edgeKey(edge), source: ghostId(edge.from), target: ghostId(edge.to), label: edge.label,
-        type: 'smoothstep', sourceHandle: ports.fromPort, targetHandle: ports.toPort,
+        type: 'flow', data: { kind: 'candidate' }, sourceHandle: ports.fromPort, targetHandle: ports.toPort,
         className: 'ghost', animated: true, selectable: false, focusable: false,
         markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 }, labelBgPadding: [6, 3], labelBgBorderRadius: 4,
       }
@@ -444,16 +451,14 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   }, [update])
   const isValidConnection = useCallback((connection: Connection | Edge) => {
     const currentFlow = current.current
-    const from = nodeById.get(connection.source)
-    const to = nodeById.get(connection.target)
-    return Boolean(currentFlow && from && to && nodeKind(from) !== 'note' && nodeKind(to) !== 'note'
-      && canConnect(currentFlow, connection.source, connection.target))
-  }, [nodeById])
+    return Boolean(currentFlow && canConnect(currentFlow, connection.source, connection.target))
+  }, [])
   const onConnect = useCallback((connection: Connection) => {
     if (!isValidConnection(connection)) return
     update(current => {
       const from = current.nodes.find(node => node.id === connection.source)
-      const label = from && refKind(from.ref, prefixes) === 'shop' ? '購入' : undefined
+      const to = current.nodes.find(node => node.id === connection.target)
+      const label = !isAnnotationEdge(from, to) && refKind(from?.ref, prefixes) === 'shop' ? '購入' : undefined
       const ports = { fromPort: gameFlowPort(connection.sourceHandle), toPort: gameFlowPort(connection.targetHandle) }
       return connect(current, connection.source, connection.target, label, classFilter ? [classFilter] : [], ports)
     })
@@ -481,13 +486,13 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     update(() => result.flow)
     setSelection({ type: 'node', id: result.id })
   }
-  const addLocalNode = (kind: 'action' | 'note', position?: { x: number; y: number }) => {
+  const addLocalNode = (kind: 'action' | 'note', position?: { x: number; y: number }, annotate?: string) => {
     if (!current.current) return
     const result = addNode(current.current, {
       label: kindLabels[kind], role: kind === 'action' ? kind : undefined,
       ...(position ?? centerPosition()), classes: newNodeClasses,
     })
-    update(() => result.flow)
+    update(() => annotate ? connect(result.flow, annotate, result.id, undefined, newNodeClasses) : result.flow)
     setSelection({ type: 'node', id: result.id })
   }
   const changeNode = (id: string, change: Partial<GameFlowNode>) =>
@@ -643,25 +648,27 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       if (!edge) return { title: '矢印', commands: [] }
       const from = nodeById.get(edge.from)
       const to = nodeById.get(edge.to)
-      const route = `${from ? plain(nodeName(from)) : edge.from} → ${to ? plain(nodeName(to)) : edge.to}`
+      const annotation = isAnnotationEdge(from, to)
+      const separator = annotation ? '—' : '→'
+      const route = `${from ? plain(nodeName(from)) : edge.from} ${separator} ${to ? plain(nodeName(to)) : edge.to}`
       const reversed = flow.edges.some(entry => entry.from === edge.to && entry.to === edge.from)
       return {
         title: route,
         commands: [
           ...flowCopyCommands({ values: [
-            { label: '矢印の向きをコピー', value: route }, { label: 'ラベルをコピー', value: edge.label },
+            { label: annotation ? '注釈のつながりをコピー' : '矢印の向きをコピー', value: route }, { label: 'ラベルをコピー', value: edge.label },
             { label: '始点の参照をコピー', value: from?.ref }, { label: '終点の参照をコピー', value: to?.ref },
           ] }, copy),
           null,
-          ...edgeLabelSuggestions.map(label => ({ label: `${edge.label === label ? '✓ ' : ''}ラベル: ${label}`, run: () => changeEdge(target.key, { label }) })),
+          ...(annotation ? [] : edgeLabelSuggestions.map(label => ({ label: `${edge.label === label ? '✓ ' : ''}ラベル: ${label}`, run: () => changeEdge(target.key, { label }) }))),
           { label: 'ラベルを外す', disabled: !edge.label, run: () => changeEdge(target.key, { label: undefined }) },
           null,
-          { label: '向きを反転', disabled: reversed, run: () => {
+          ...(!annotation ? [{ label: '向きを反転', disabled: reversed, run: () => {
             const opposite = { from: edge.to, to: edge.from, fromPort: edge.toPort, toPort: edge.fromPort }
             changeEdge(target.key, opposite)
             setSelection({ type: 'edge', key: edgeKey(opposite) })
-          } },
-          { label: '矢印を削除', run: () => { update(current => ({ ...current, edges: current.edges.filter(entry => edgeKey(entry) !== target.key) })); setSelection(null) } },
+          } }] : []),
+          { label: annotation ? '注釈線を削除' : '矢印を削除', run: () => { update(current => ({ ...current, edges: current.edges.filter(entry => edgeKey(entry) !== target.key) })); setSelection(null) } },
         ],
       }
     }
@@ -682,8 +689,8 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
         { label: `入手元・前の候補を配置（${previousBatch.length}件）`, disabled: !previousBatch.length, run: () => placeSuggestions(node.id, previousBatch) },
         ...(kind === 'shop' ? [{ label: '商品を購入アイテムとして追加…', disabled: !shop?.items.length, run: () => setShopDialog(node.id) }] : []),
         {
-          label: '近くにメモを置く', run: () => {
-            if (current.current) addLocalNode('note', freeSlot(current.current, node.x + 80, node.y + rowSpacing))
+          label: '注釈メモをつなぐ', run: () => {
+            if (current.current) addLocalNode('note', freeSlot(current.current, node.x + 80, node.y + rowSpacing), node.id)
           },
         },
         null,
@@ -840,7 +847,8 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
           if (event.key === 'z') { event.preventDefault(); undo() }
           if (event.key === 'y') { event.preventDefault(); redo() }
       }}>
-        {flow ? <ReactFlow nodes={displayNodes} edges={displayEdges} nodeTypes={gameFlowNodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+        {flow ? <GameFlowEdgeLayer><ReactFlow nodes={displayNodes} edges={displayEdges} nodeTypes={gameFlowNodeTypes} edgeTypes={gameFlowEdgeTypes}
+          onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
           onNodeDragStop={onNodeDragStop} onConnect={onConnect} isValidConnection={isValidConnection} deleteKeyCode={null}
           connectionMode={ConnectionMode.Loose} connectionLineType={ConnectionLineType.SmoothStep}
           onNodeMouseEnter={(event, node) => {
@@ -897,7 +905,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
               <span>候補をクリックで1件ずつ</span><span><kbd>Esc</kbd> 隠す</span>
             </> : <button type="button" className="button compact subtle" onClick={() => setSuggestHiddenFor(null)}>候補を表示</button>}
           </Panel>}
-        </ReactFlow> : <div className="game-flow-empty">{loading ? '読み込んでいます…' : '「一覧」からフローを開くか、新規作成してください。'}</div>}
+        </ReactFlow></GameFlowEdgeLayer> : <div className="game-flow-empty">{loading ? '読み込んでいます…' : '「一覧」からフローを開くか、新規作成してください。'}</div>}
       </div>
       {view === 'text' && <div className="game-flow-text" onContextMenu={onCopyContextMenu({
         ...currentFileTarget, values: [...currentFileTarget.values, { label: 'テキストをコピー', value: outline }],
@@ -936,7 +944,9 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
           <li>ツールバーの「追加」にある「ダンジョン」などからマスターを参照するノードを追加します。</li>
           <li>ノードにポインターを重ねると上下左右に接続点が出ます。始点の接続点から終点の接続点へドラッグすると、その向きに矢印がつながります。</li>
           <li>ポインターを重ねるか、Tab キーでノードにフォーカスすると詳細が表示されます。</li>
-          <li>「操作」はマスター参照のない手順を表します。「メモ」は図に配置する付箋です。</li>
+          <li>「操作」はマスター参照のない手順を表します。「メモ」は付箋です。付箋に結んだ線は破線の注釈線になります。</li>
+          <li>ノードを右クリックして「注釈メモをつなぐ」を選ぶと、付箋と注釈線をまとめて追加できます。</li>
+          <li>線が小さな半円でまたぐ場所では、線同士はつながっていません。</li>
           <li>ショップのノードを選ぶと、商品を購入アイテムとしてまとめて追加できます。</li>
           <li>フロー全体の対象職業はツールバーで設定します。職業で絞り込むと、該当しないノードや矢印が薄く表示されます。</li>
           <li>ノードや矢印ごとの対象職業は、選択してプロパティで設定します。</li>
