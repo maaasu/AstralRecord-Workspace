@@ -81,6 +81,23 @@ public sealed class GameFlowTests : IDisposable
         Assert.True(report.IsValid, string.Join("\n", report.Issues.Select(issue => $"{issue.Code} {issue.Path} {issue.Message}")));
     }
 
+    [Theory]
+    [InlineData("label: \"Lv10\", width: 96", true)]
+    [InlineData("label: \"Lv10\", height: 48", true)]
+    [InlineData("label: \"Lv10\", width: 240, height: 128", true)]
+    [InlineData("label: \"Lv10\", width: 95", false)]
+    [InlineData("label: \"Lv10\", height: 47", false)]
+    [InlineData("label: \"Lv10\", width: 240.5", false)]
+    [InlineData("label: \"Lv10\", height: \"80\"", false)]
+    [InlineData("label: \"Lv10\", ref: item:sword, width: 240", false)]
+    [InlineData("label: \"Lv10\", role: action, height: 80", false)]
+    public async Task ValidatesOptionalNoteDimensions(string nodeFields, bool valid)
+    {
+        var report = await _validation.ValidateAsync(FlowPath, Valid.Replace("label: \"Lv10\"", nodeFields), CancellationToken.None);
+        Assert.Equal(valid, report.IsValid);
+        if (!valid) Assert.Contains(report.Issues, issue => issue.Code == "JSON_SCHEMA");
+    }
+
     [Fact]
     public async Task ActionAndExplicitPortsPassAlongsideLegacyNotesAndEdges()
     {

@@ -82,6 +82,14 @@ export function useGameFlowNodeDrag(canvas: RefObject<HTMLDivElement | null>, se
     const filtered = changes.filter(change => change.type !== 'remove')
     if (!session) {
       setNodes(nodes => applyNodeChanges(filtered, nodes))
+      // 矢印キーによる移動はドラッグを開始せず、確定した座標だけが届く。
+      const positions = new Map<string, XYPosition>()
+      for (const change of filtered) {
+        if (change.type === 'position' && change.dragging === false && change.position) {
+          positions.set(change.id, change.position)
+        }
+      }
+      if (positions.size) onDrop(positions)
       return
     }
     const moving = changes.filter((change): change is NodePositionChange => change.type === 'position' && session.initial.has(change.id))
@@ -100,7 +108,7 @@ export function useGameFlowNodeDrag(canvas: RefObject<HTMLDivElement | null>, se
       return position ? { ...change, position } : change
     })
     setNodes(nodes => applyNodeChanges(adjusted, nodes))
-  }, [cancel, project, setNodes])
+  }, [cancel, onDrop, project, setNodes])
 
   // 終了イベントの座標は React Flow 側の生値。直前に画面へ出した位置をそのまま履歴へ記録する。
   const onNodeDragStop = useCallback(() => finish(true), [finish])
