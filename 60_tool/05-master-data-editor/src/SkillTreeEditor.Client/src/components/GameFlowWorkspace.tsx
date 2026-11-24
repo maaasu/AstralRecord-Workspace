@@ -1,17 +1,17 @@
-import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  Background, BackgroundVariant, Controls, Handle, MarkerType, MiniMap, Panel, Position, ReactFlow, ReactFlowProvider,
+  Background, BackgroundVariant, ConnectionLineType, ConnectionMode, Controls, MarkerType, MiniMap, Panel, ReactFlow, ReactFlowProvider,
   applyEdgeChanges, applyNodeChanges, useReactFlow,
-  type Connection, type Edge, type EdgeChange, type Node, type NodeChange, type NodeProps,
+  type Connection, type Edge, type EdgeChange, type Node, type NodeChange,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ApiError } from '../api/editorApi'
 import { gameFlowApi } from '../api/gameFlowApi'
 import { masterDataApi } from '../api/masterDataApi'
 import {
-  addNode, addShopPurchases, addableKinds, applySuggestions, connect, freeSlot, planSuggestions, edgeKey, edgeLabelSuggestions, emptyGameFlow, flowIdPattern,
-  gameFlowCategory, gameFlowOutline, gameFlowPath, kindLabels, parseGameFlow, refId, refKind, removeNodes,
+  addNode, addShopPurchases, addableKinds, applySuggestions, canConnect, connect, freeSlot, planSuggestions, edgeKey, edgeLabelSuggestions, edgePorts, emptyGameFlow, flowIdPattern,
+  gameFlowCategory, gameFlowOutline, gameFlowPath, gameFlowPort, kindLabels, nodeKind, parseGameFlow, refId, refKind, removeNodes, rowSpacing,
   serializeGameFlow, suggestFor, suggestedClasses, suggestionBatchSize, visibleFlow,
   type FlowSuggestion, type GameFlow, type GameFlowContext, type GameFlowEdge, type GameFlowNode,
 } from '../data/gameFlow'
@@ -21,7 +21,10 @@ import type { MasterDocument, MasterFileSummary, MasterReference } from '../type
 import { stripMinecraftFormatting } from '../utils/minecraft'
 import { useConfirmationDialog } from './ConfirmationDialog'
 import { MasterEntityPicker, type MasterEntityPickerChoice } from './MasterEntityPicker'
-import { ReferenceIcon, referenceSymbol } from './MasterReferenceCollection'
+import { FlowContextMenu, type ContextCommand } from './GameFlowContextMenu'
+import { FlowNodeTooltip, gameFlowNodeTypes, shapeLegend, type FlowNodeData } from './GameFlowDiagramNode'
+import { ClassToggles, EdgeProperties, FlowProperties, NodeProperties, ShopItemsDialog } from './GameFlowProperties'
+import { referenceSymbol } from './MasterReferenceCollection'
 import { MinecraftText } from './MinecraftText'
 import { Modal } from './Modal'
 import './gameFlow.css'
@@ -37,26 +40,6 @@ interface ResolvedRef { name: string; file?: MasterFileSummary }
 type Selection = { type: 'node'; id: string } | { type: 'edge'; key: string } | null
 /** position は右クリックした位置に置く場合の座標。 */
 type PickerRequest = { kind: string; replace?: string; position?: { x: number; y: number } }
-
-interface FlowNodeData extends Record<string, unknown> {
-  name: string
-  kind: string
-  file?: MasterFileSummary
-  classNames: string[]
-  note?: string
-  dimmed: boolean
-  missing: boolean
-  /** 未確定の候補として表示する場合の、つながりの種類（ドロップ・出現など）。 */
-  suggestion?: string
-  /** icon: 種類ごとの図形にアイコンと名前、card: 補足まで見せるカード。 */
-  display: NodeDisplay
-}
-
-type NodeDisplay = 'icon' | 'card'
-const displayStorageKey = 'astral.gameFlow.nodeDisplay'
-const readDisplay = (): NodeDisplay => {
-  try { return localStorage.getItem(displayStorageKey) === 'card' ? 'card' : 'icon' } catch { return 'icon' }
-}
 
 const sidebarStorageKey = 'astral.gameFlow.sidebarOpen'
 const inspectorStorageKey = 'astral.gameFlow.inspectorOpen'
@@ -86,118 +69,10 @@ function FlowPanelToggle({ side, open, controls, onToggle }: { side: 'left' | 'r
   </button>
 }
 
-/** アイコン表示での図形の凡例（操作方法に表示）。 */
-const shapeLegend: [string, string][] = [
-  ['dungeon', '門形'], ['shop', '六角形'], ['item', '角丸の四角'], ['mob', '円'], ['class', 'ひし形'], ['world', '八角形'],
-  ['gathering', '葉形'], ['recipe', '平行四辺形'], ['skill', '盾形'], ['mob_spawner', '点線の円'], ['note', '付箋'],
-]
-
-/** アイコンを持たないマスター（ダンジョン・ショップなど）を図形の中で示す記号。 */
-const tokenSymbols: Record<string, string> = {
-  dungeon: '⚑', shop: '⇄', mob: '⚔', item: '◆', gathering: '⛏', world: '◎', class: '◇', skill: '✦', recipe: '⚒',
-  mob_spawner: '◌', gathering_spawner: '◌', loot_table: '▦', loot_pool: '▦', fishing_area: '♒', fishing_fish: '♒',
-}
-
-/** 右クリックメニューの項目。区切り線は null。 */
-type ContextCommand = { label: string; run: () => void; disabled?: boolean } | null
-
-function FlowContextMenu({ x, y, title, commands, onDismiss }: {
-  x: number; y: number; title: string; commands: ContextCommand[]; onDismiss: () => void
-}) {
-  const document = usePanelDocument()
-  const window = document.defaultView!
-  const menu = useRef<HTMLDivElement>(null)
-  useLayoutEffect(() => {
-    const element = menu.current
-    if (!element) return
-    const rect = element.getBoundingClientRect()
-    element.style.left = `${Math.max(8, Math.min(x, window.innerWidth - rect.width - 8))}px`
-    element.style.top = `${Math.max(8, Math.min(y, window.innerHeight - rect.height - 8))}px`
-    element.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus()
-  }, [x, y, window])
-  useEffect(() => {
-    const outside = (event: Event) => { if (!menu.current?.contains(event.target as globalThis.Node)) onDismiss() }
-    document.addEventListener('pointerdown', outside)
-    document.addEventListener('contextmenu', outside, true)
-    window.addEventListener('resize', onDismiss)
-    document.addEventListener('wheel', onDismiss, true)
-    return () => {
-      document.removeEventListener('pointerdown', outside)
-      document.removeEventListener('contextmenu', outside, true)
-      window.removeEventListener('resize', onDismiss)
-      document.removeEventListener('wheel', onDismiss, true)
-    }
-  }, [document, onDismiss, window])
-  return createPortal(<div ref={menu} className="master-tab-context-menu game-flow-context-menu" role="menu" aria-label={title} tabIndex={-1}
-    style={{ left: x, top: y }} onContextMenu={event => event.preventDefault()} onKeyDown={event => {
-      if (event.key === 'Escape' || event.key === 'Tab') { event.preventDefault(); onDismiss(); return }
-      const buttons = Array.from(menu.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])
-      const index = buttons.indexOf(document.activeElement as HTMLButtonElement)
-      const next = event.key === 'ArrowDown' ? (index + 1) % buttons.length : event.key === 'ArrowUp' ? (index - 1 + buttons.length) % buttons.length : -1
-      if (next >= 0) { event.preventDefault(); buttons[next]?.focus() }
-    }}>
-    <div className="game-flow-context-title">{title}</div>
-    {commands.map((command, index) => command
-      ? <button type="button" role="menuitem" key={index} disabled={command.disabled} onClick={() => { onDismiss(); command.run() }}>{command.label}</button>
-      : <hr key={index} />)}
-  </div>, document.body)
-}
-
-/** アイコン表示: 種類ごとの図形の中にアイコン、その上に名前。 */
-function FlowTokenView({ data, selected }: { data: FlowNodeData; selected: boolean }) {
-  const kindLabel = kindLabels[data.kind] ?? data.kind
-  const tooltip = [`${kindLabel}: ${plain(data.name)}`, data.classNames.length ? `対象職業: ${data.classNames.join('・')}` : '',
-    data.note ?? '', data.missing ? '参照先が見つかりません' : '', data.suggestion ? 'クリックでこの候補を配置' : ''].filter(Boolean).join('\n')
-  const shown = data.classNames.slice(0, 3)
-  return <div className={`game-flow-token${selected ? ' selected' : ''}${data.dimmed ? ' dimmed' : ''}${data.missing ? ' missing' : ''}${data.suggestion ? ' ghost' : ''}`}
-    data-kind={data.kind} title={tooltip}>
-    <div className="game-flow-token-name">
-      {data.suggestion && <span className="game-flow-ghost-badge">＋ {data.suggestion}</span>}
-      {data.kind === 'note' ? <span className="game-flow-token-kind">メモ</span> : <MinecraftText value={data.name} />}
-    </div>
-    <div className="game-flow-token-shape" data-shape={data.kind}>
-      <Handle type="target" position={Position.Left} />
-      <span className="game-flow-token-fill" aria-hidden="true" />
-      {data.kind === 'note'
-        ? <span className="game-flow-token-note"><MinecraftText value={data.name} /></span>
-        : <span className="game-flow-token-icon">{data.file?.icon || data.file?.iconModel
-          ? <ReferenceIcon file={data.file} kind={data.kind} />
-          : <span className="game-flow-token-symbol" aria-hidden="true">{tokenSymbols[data.kind] ?? '?'}</span>}</span>}
-      {data.note && data.kind !== 'note' && <span className="game-flow-token-flag" aria-label="補足あり">i</span>}
-      <Handle type="source" position={Position.Right} />
-    </div>
-    <div className="game-flow-token-meta">
-      {data.missing && <small className="game-flow-node-warning">参照なし</small>}
-      {shown.map(name => <span key={name} className="game-flow-chip">{name}</span>)}
-      {data.classNames.length > shown.length && <span className="game-flow-chip">+{data.classNames.length - shown.length}</span>}
-    </div>
-  </div>
-}
-
 const ghostPrefix = 'ghost:'
 
 const errorMessage = (reason: unknown) => reason instanceof Error ? reason.message : String(reason)
 const plain = (value: string) => stripMinecraftFormatting(value).trim()
-
-const FlowNodeView = memo(function FlowNodeView({ data, selected }: NodeProps<Node<FlowNodeData>>) {
-  if (data.display === 'icon') return <FlowTokenView data={data} selected={selected} />
-  return <div className={`game-flow-node${selected ? ' selected' : ''}${data.dimmed ? ' dimmed' : ''}${data.missing ? ' missing' : ''}${data.suggestion ? ' ghost' : ''}`}
-    data-kind={data.kind} title={data.suggestion ? 'クリックでこの候補を配置' : undefined}>
-    <Handle type="target" position={Position.Left} />
-    <div className="game-flow-node-head">
-      {data.kind === 'note' ? <span className="game-flow-node-symbol" aria-hidden="true">✎</span> : <ReferenceIcon file={data.file} kind={data.kind} />}
-      <span className="game-flow-node-kind">{kindLabels[data.kind] ?? data.kind}</span>
-      {data.suggestion && <span className="game-flow-ghost-badge">＋ {data.suggestion}</span>}
-    </div>
-    <strong className="game-flow-node-name"><MinecraftText value={data.name} /></strong>
-    {data.missing && <small className="game-flow-node-warning">参照先が見つかりません</small>}
-    {data.classNames.length > 0 && <div className="game-flow-chips">{data.classNames.map(name => <span key={name} className="game-flow-chip">{name}</span>)}</div>}
-    {data.note && <p className="game-flow-node-note">{data.note}</p>}
-    <Handle type="source" position={Position.Right} />
-  </div>
-})
-
-const nodeTypes = { flow: FlowNodeView }
 
 export function GameFlowWorkspace(props: Props) {
   return <ReactFlowProvider><GameFlowEditor {...props} /></ReactFlowProvider>
@@ -251,15 +126,16 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   /** 候補（ゲースト）を表示するか。Esc で、そのノードを選び直すまで隠す。 */
   const [suggestOn, setSuggestOn] = useState(true)
   const [suggestHiddenFor, setSuggestHiddenFor] = useState<string | null>(null)
-  const [display, setDisplay] = useState<NodeDisplay>(readDisplay)
-  const changeDisplay = (next: NodeDisplay) => {
-    setDisplay(next)
-    try { localStorage.setItem(displayStorageKey, next) } catch { /* 保存できなくても表示は切り替える */ }
-  }
   /** 右クリックメニュー。target は開いた対象（何もない所・ノード・矢印・候補）。 */
   const [menu, setMenu] = useState<{ x: number; y: number; target: { type: 'pane'; at: { x: number; y: number } }
     | { type: 'node'; id: string } | { type: 'edge'; key: string } | { type: 'ghost'; id: string } } | null>(null)
   const [yaml, setYaml] = useState('')
+  const [detail, setDetail] = useState<{ id: string; anchor: HTMLElement; focus: boolean } | null>(null)
+  const hoverTimer = useRef<number | undefined>(undefined)
+  const clearHoverTimer = useCallback(() => {
+    panelDocument.defaultView?.clearTimeout(hoverTimer.current)
+  }, [panelDocument])
+  useEffect(() => clearHoverTimer, [clearHoverTimer])
 
   const fileByPath = useMemo(() => new Map(files.map(file => [file.path, file])), [files])
   const flowFiles = useMemo(() => files.filter(file => file.category === gameFlowCategory && file.format === 'yaml')
@@ -361,6 +237,8 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   }, [])
 
   const open = useCallback((next: MasterDocument) => {
+    clearHoverTimer()
+    setDetail(null)
     const parsed = parseGameFlow(next.content)
     setDocument(next)
     setFlow(parsed)
@@ -372,7 +250,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     setIssues(next.issues ?? [])
     setError('')
     requestAnimationFrame(() => void flowApi.fitView({ padding: .2, maxZoom: 1 }))
-  }, [flowApi])
+  }, [clearHoverTimer, flowApi])
 
   const openPath = useCallback(async (path: string) => {
     if (dirty && !await confirm('保存していないフローの変更を破棄して、別のフローを開きますか？')) return
@@ -424,36 +302,37 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   const visible = useMemo(() => flow ? visibleFlow(flow, classFilter) : null, [flow, classFilter])
   const nodeName = useCallback((node: GameFlowNode) => node.label?.trim() || (node.ref && resolve(node.ref)?.name) || node.ref || node.id, [resolve])
   const derivedNodes = useMemo<Node<FlowNodeData>[]>(() => flow?.nodes.map(node => {
-    const kind = refKind(node.ref, prefixes)
     const resolved = node.ref ? resolve(node.ref) : undefined
+    const kind = nodeKind(node, prefixes, resolved?.file?.path)
     return {
-      id: node.id, type: 'flow', position: { x: node.x, y: node.y },
+      id: node.id, type: 'flow', ariaLabel: `${kindLabels[kind] ?? kind} ${plain(nodeName(node))}`, position: { x: node.x, y: node.y },
       selected: selection?.type === 'node' && selection.id === node.id,
       data: {
-        name: nodeName(node), kind, file: resolved?.file, classNames: node.classes.map(className),
-        note: node.note?.trim() || undefined, dimmed: !visible?.nodes.has(node.id), missing: Boolean(node.ref && !resolved), display,
+        name: nodeName(node), kind, file: resolved?.file, ref: node.ref, referenceName: resolved?.name, classNames: node.classes.map(className),
+        note: node.note?.trim() || undefined, dimmed: !visible?.nodes.has(node.id), missing: Boolean(node.ref && !resolved),
       },
     }
-  }) ?? [], [className, display, flow, nodeName, prefixes, resolve, selection, visible])
+  }) ?? [], [className, flow, nodeName, prefixes, resolve, selection, visible])
+  const nodeById = useMemo(() => new Map(flow?.nodes.map(node => [node.id, node])), [flow])
   const derivedEdges = useMemo<Edge[]>(() => flow?.edges.map((edge, index) => {
     const key = edgeKey(edge)
     const chips = edge.classes.length ? ` [${edge.classes.map(className).join('・')}]` : ''
     const shown = visible?.edges.has(index) ?? true
+    const ports = edgePorts(edge, nodeById.get(edge.from), nodeById.get(edge.to))
     return {
-      id: key, source: edge.from, target: edge.to, label: (edge.label ?? '') + chips || undefined,
+      id: key, source: edge.from, target: edge.to, type: 'smoothstep', sourceHandle: ports.fromPort, targetHandle: ports.toPort, label: (edge.label ?? '') + chips || undefined,
       selected: selection?.type === 'edge' && selection.key === key,
       markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
       className: shown ? undefined : 'dimmed', labelBgPadding: [6, 3] as [number, number], labelBgBorderRadius: 4,
     }
-  }) ?? [], [className, flow, selection, visible])
+  }) ?? [], [className, flow, nodeById, selection, visible])
   const [nodes, setNodes] = useState<Node<FlowNodeData>[]>([])
   const [edges, setEdges] = useState<Edge[]>([])
   // 測定済みの寸法を引き継ぎ、編集のたびに全ノードを測り直さない。
   useEffect(() => setNodes(previous => {
-    // 表示（アイコン / カード）を切り替えたノードは大きさが変わるため測り直す。
-    const measured = new Map(previous.map(node => [`${node.id}\u0000${node.data.display}`, node.measured]))
+    const measured = new Map(previous.map(node => [node.id, node.measured]))
     return derivedNodes.map(node => {
-      const size = measured.get(`${node.id}\u0000${node.data.display}`)
+      const size = measured.get(node.id)
       return size ? { ...node, measured: size } : node
     })
   }), [derivedNodes])
@@ -494,13 +373,15 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
         id: ghostId(node.id), type: 'flow', position: { x: node.x, y: node.y },
         draggable: false, selectable: false, connectable: false, focusable: false,
         data: {
-          name: resolved?.name ?? node.ref ?? node.id, kind: refKind(node.ref, prefixes), file: resolved?.file,
-          classNames: node.classes.map(className), dimmed: false, missing: !resolved, suggestion: labels, display,
+          name: resolved?.name ?? node.ref ?? node.id, kind: nodeKind(node, prefixes, resolved?.file?.path), file: resolved?.file,
+          ref: node.ref, referenceName: resolved?.name, classNames: node.classes.map(className),
+          dimmed: false, missing: Boolean(node.ref && !resolved), suggestion: labels,
         },
       }
     })
     const ghostEdges: Edge[] = preview.flow.edges.slice(flow.edges.length).map(edge => ({
       id: ghostPrefix + edgeKey(edge), source: ghostId(edge.from), target: ghostId(edge.to), label: edge.label,
+      type: 'smoothstep', sourceHandle: edge.fromPort, targetHandle: edge.toPort,
       className: 'ghost', animated: true, selectable: false, focusable: false,
       markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 }, labelBgPadding: [6, 3] as [number, number], labelBgBorderRadius: 4,
     }))
@@ -508,7 +389,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       nodes: ghostNodes, edges: ghostEdges, byGhostId,
       next: positioned.filter(entry => entry.direction === 'next'), previous: positioned.filter(entry => entry.direction === 'previous'),
     }
-  }, [className, context, display, flow, newNodeClasses, prefixes, resolve, suggestionNodeId, suggestions])
+  }, [className, context, flow, newNodeClasses, prefixes, resolve, suggestionNodeId, suggestions])
   /** 候補を配置し、ズームはそのままで配置したノードが見える位置へ寄せる。 */
   const placeSuggestions = (nodeId: string, list: readonly FlowSuggestion[]) => {
     const before = current.current
@@ -523,6 +404,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   }
   const acceptSuggestions = (list: readonly FlowSuggestion[]) => { if (suggestionNodeId) placeSuggestions(suggestionNodeId, list) }
   const displayNodes = useMemo(() => ghosts ? [...nodes, ...ghosts.nodes] : nodes, [ghosts, nodes])
+  const detailNode = detail ? displayNodes.find(node => node.id === detail.id) : undefined
   const displayEdges = useMemo(() => ghosts ? [...edges, ...ghosts.edges] : edges, [ghosts, edges])
 
   const onNodesChange = useCallback((changes: NodeChange<Node<FlowNodeData>>[]) =>
@@ -540,15 +422,23 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       }),
     }))
   }, [update])
+  const isValidConnection = useCallback((connection: Connection | Edge) => {
+    const currentFlow = current.current
+    const from = nodeById.get(connection.source)
+    const to = nodeById.get(connection.target)
+    return Boolean(currentFlow && from && to && nodeKind(from) !== 'note' && nodeKind(to) !== 'note'
+      && canConnect(currentFlow, connection.source, connection.target))
+  }, [nodeById])
   const onConnect = useCallback((connection: Connection) => {
-    if (!connection.source || !connection.target) return
+    if (!isValidConnection(connection)) return
     update(current => {
       const from = current.nodes.find(node => node.id === connection.source)
       const label = from && refKind(from.ref, prefixes) === 'shop' ? '購入' : undefined
-      return connect(current, connection.source, connection.target, label, classFilter ? [classFilter] : [])
+      const ports = { fromPort: gameFlowPort(connection.sourceHandle), toPort: gameFlowPort(connection.targetHandle) }
+      return connect(current, connection.source, connection.target, label, classFilter ? [classFilter] : [], ports)
     })
-    setSelection({ type: 'edge', key: `${connection.source}->${connection.target}` })
-  }, [classFilter, prefixes, update])
+    setSelection({ type: 'edge', key: edgeKey({ from: connection.source, to: connection.target }) })
+  }, [classFilter, isValidConnection, prefixes, update])
   const deleteSelection = () => {
     if (!selection) return
     if (selection.type === 'node') update(current => removeNodes(current, new Set([selection.id])))
@@ -560,7 +450,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     const rect = canvas.current?.getBoundingClientRect()
     const point = rect ? flowApi.screenToFlowPosition({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }) : { x: 0, y: 0 }
     const offset = (flow?.nodes.length ?? 0) % 5 * 24
-    return { x: Math.round(point.x - 110 + offset), y: Math.round(point.y - 40 + offset) }
+    return { x: Math.round(point.x - 75 + offset), y: Math.round(point.y - 40 + offset) }
   }
   const addReference = (kind: string, id: string, position?: { x: number; y: number }) => {
     if (!current.current) return
@@ -571,9 +461,12 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     update(() => result.flow)
     setSelection({ type: 'node', id: result.id })
   }
-  const addNote = (position?: { x: number; y: number }) => {
+  const addLocalNode = (kind: 'action' | 'note', position?: { x: number; y: number }) => {
     if (!current.current) return
-    const result = addNode(current.current, { label: 'メモ', ...(position ?? centerPosition()), classes: classFilter ? [classFilter] : [] })
+    const result = addNode(current.current, {
+      label: kindLabels[kind], role: kind === 'action' ? kind : undefined,
+      ...(position ?? centerPosition()), classes: newNodeClasses,
+    })
     update(() => result.flow)
     setSelection({ type: 'node', id: result.id })
   }
@@ -656,7 +549,9 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   }
 
   // ---- テキスト / 原稿 ----
-  const outline = useMemo(() => flow ? gameFlowOutline(flow, resolveName, { prefixes, classRef: classFilter, className }) : '', [className, classFilter, flow, prefixes, resolveName])
+  const outline = useMemo(() => flow ? gameFlowOutline(flow, resolveName, {
+    prefixes, classRef: classFilter, className, masterPath: ref => resolve(ref)?.file?.path,
+  }) : '', [className, classFilter, flow, prefixes, resolve, resolveName])
   useEffect(() => {
     if (view !== 'yaml' || !flow || !document) return
     let live = true
@@ -686,7 +581,8 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       title: 'ここに追加',
       commands: [
         ...addableKinds.map(kind => ({ label: `${kindLabels[kind]}を置く…`, run: () => setPicker({ kind, position: target.at }) })),
-        { label: 'メモを置く', run: () => addNote(target.at) },
+        { label: '操作を置く', run: () => addLocalNode('action', target.at) },
+        { label: 'メモを置く', run: () => addLocalNode('note', target.at) },
         null,
         { label: '全体を表示', run: () => void flowApi.fitView({ padding: .2, maxZoom: 1, duration: 250 }) },
         { label: suggestOn ? '候補の表示をオフにする' : '候補の表示をオンにする', run: () => { setSuggestOn(value => !value); setSuggestHiddenFor(null) } },
@@ -716,15 +612,20 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
           ...edgeLabelSuggestions.map(label => ({ label: `${edge.label === label ? '✓ ' : ''}ラベル: ${label}`, run: () => changeEdge(target.key, { label }) })),
           { label: 'ラベルを外す', disabled: !edge.label, run: () => changeEdge(target.key, { label: undefined }) },
           null,
-          { label: '向きを反転', disabled: reversed, run: () => { changeEdge(target.key, { from: edge.to, to: edge.from }); setSelection({ type: 'edge', key: `${edge.to}->${edge.from}` }) } },
+          { label: '向きを反転', disabled: reversed, run: () => {
+            const { fromPort, toPort } = edgePorts(edge, nodeById.get(edge.from), nodeById.get(edge.to))
+            const opposite = { from: edge.to, to: edge.from, fromPort: toPort, toPort: fromPort }
+            changeEdge(target.key, opposite)
+            setSelection({ type: 'edge', key: edgeKey(opposite) })
+          } },
           { label: '矢印を削除', run: () => { update(current => ({ ...current, edges: current.edges.filter(entry => edgeKey(entry) !== target.key) })); setSelection(null) } },
         ],
       }
     }
     const node = flow.nodes.find(entry => entry.id === target.id)
     if (!node) return { title: 'ノード', commands: [] }
-    const kind = refKind(node.ref, prefixes)
     const resolved = node.ref ? resolve(node.ref) : undefined
+    const kind = nodeKind(node, prefixes, resolved?.file?.path)
     const found = node.ref ? suggestFor(flow, node.id, context, prefixes) : { next: [], previous: [] }
     const nextBatch = withShownPosition(found.next.slice(0, suggestionBatchSize))
     const previousBatch = withShownPosition(found.previous.slice(0, suggestionBatchSize))
@@ -736,15 +637,12 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
         { label: `入手元・前の候補を配置（${previousBatch.length}件）`, disabled: !previousBatch.length, run: () => placeSuggestions(node.id, previousBatch) },
         ...(kind === 'shop' ? [{ label: '商品を購入アイテムとして追加…', disabled: !shop?.items.length, run: () => setShopDialog(node.id) }] : []),
         {
-          label: 'メモを追加して矢印でつなぐ', run: () => {
-            if (!current.current) return
-            const added = addNode(current.current, { label: 'メモ', ...freeSlot(current.current, node.x + 300, node.y), classes: newNodeClasses })
-            update(() => connect(added.flow, node.id, added.id))
-            setSelection({ type: 'node', id: added.id })
+          label: '近くにメモを置く', run: () => {
+            if (current.current) addLocalNode('note', freeSlot(current.current, node.x + 80, node.y + rowSpacing))
           },
         },
         null,
-        ...(node.ref ? [{ label: '参照を変更…', run: () => setPicker({ kind, replace: node.id }) }] : []),
+        ...(node.ref ? [{ label: '参照を変更…', run: () => setPicker({ kind: refKind(node.ref, prefixes), replace: node.id }) }] : []),
         ...(resolved?.file ? [{ label: 'マスターを開く', run: () => onOpenMaster(resolved.file!.path) }] : []),
         null,
         { label: 'ノードを削除', run: () => { update(current => removeNodes(current, new Set([node.id]))); setSelection(null) } },
@@ -784,7 +682,10 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
           <div className="game-flow-toolbar-group game-flow-add-group" role="group" aria-label="追加">
             <span className="game-flow-toolbar-heading">追加</span>
             {addableKinds.map(kind => <AddFlowButton key={kind} kind={kind} disabled={!flow || busy} onClick={() => setPicker({ kind })} />)}
-            <span className="game-flow-toolbar-divided"><AddFlowButton kind="note" disabled={!flow || busy} onClick={() => addNote()} /></span>
+            <span className="game-flow-toolbar-divided">
+              <AddFlowButton kind="action" disabled={!flow || busy} onClick={() => addLocalNode('action')} />
+              <AddFlowButton kind="note" disabled={!flow || busy} onClick={() => addLocalNode('note')} />
+            </span>
           </div>
           <FlowPanelToggle side="right" open={inspectorOpen} controls={inspectorId} onToggle={toggleInspector} />
         </div>
@@ -805,10 +706,6 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
             </select>}
           </div>
           <div className="game-flow-toolbar-group game-flow-toolbar-divided" role="group" aria-label="表示設定">
-            <div className="game-flow-tabs" role="group" aria-label="ノードの表示">
-              {([['icon', 'アイコン'], ['card', 'カード']] as const).map(([id, label]) =>
-                <button key={id} type="button" aria-pressed={display === id} className="button compact" onClick={() => changeDisplay(id)}>{label}</button>)}
-            </div>
             <div className="game-flow-tabs" role="tablist" aria-label="表示">
               {([['graph', '図'], ['text', 'テキスト'], ['yaml', 'YAML']] as const).map(([id, label]) =>
                 <button key={id} type="button" role="tab" aria-selected={view === id} className="button compact" onClick={() => setView(id)}>{label}</button>)}
@@ -846,37 +743,62 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
         {issues.map((issue, index) => <li key={index} data-severity={issue.severity}><code>{issue.path || '/'}</code> {issue.message}</li>)}
       </ul>}
       {/* ショートカットはキャンバス内のキー操作だけで受け付ける（xyflow の全体キー監視は使わない）。 */}
-      <div className="game-flow-body" ref={canvas} tabIndex={0} hidden={view !== 'graph'} onKeyDown={event => {
-        if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return
-        if (event.ctrlKey && !event.altKey && !event.metaKey && (event.key === '[' || event.key === ']')) {
-          event.preventDefault()
-          if (!event.repeat) {
-            if (event.key === '[') toggleSidebar()
-            else toggleInspector()
+      <div className="game-flow-body" ref={canvas} tabIndex={0} hidden={view !== 'graph'}
+        onPointerDownCapture={() => { clearHoverTimer(); setDetail(null) }}
+        onFocusCapture={event => {
+          const target = event.target
+          if (target.dataset.id && target.matches('.react-flow__node:focus-visible')) {
+            clearHoverTimer()
+            setDetail({ id: target.dataset.id, anchor: target, focus: true })
           }
-          return
-        }
-        if ((event.key === 'Delete' || event.key === 'Backspace') && !event.ctrlKey && !event.metaKey && !event.altKey) {
-          event.preventDefault()
-          deleteSelection()
-          return
-        }
-        // Tab: 次の候補を配置 / Shift+Tab: 前（入手元）の候補を配置 / Esc: 候補を隠す
-        // 図そのもの・ノードにフォーカスがあるときだけ。ズームボタンなどからは通常の Tab 移動のまま。
-        const target = event.target as HTMLElement
-        const onCanvas = target === canvas.current || target.classList.contains('react-flow__node') || target.classList.contains('react-flow__pane')
-        if (event.key === 'Tab' && onCanvas && !event.ctrlKey && !event.metaKey && !event.altKey && ghosts) {
-          const list = event.shiftKey ? ghosts.previous : ghosts.next
-          if (list.length) { event.preventDefault(); acceptSuggestions(list) }
-          return
-        }
-        if (event.key === 'Escape' && ghosts && suggestionNodeId) { event.preventDefault(); setSuggestHiddenFor(suggestionNodeId); return }
-        if (!(event.ctrlKey || event.metaKey)) return
-        if (event.key === 'z') { event.preventDefault(); undo() }
-        if (event.key === 'y') { event.preventDefault(); redo() }
+        }}
+        onBlurCapture={event => {
+          setDetail(current => current?.focus && current.anchor === event.target ? null : current)
+        }}
+        onKeyDown={event => {
+          if (event.key === 'Escape') { clearHoverTimer(); setDetail(null) }
+          if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return
+          if (event.ctrlKey && !event.altKey && !event.metaKey && (event.key === '[' || event.key === ']')) {
+            event.preventDefault()
+            if (!event.repeat) {
+              if (event.key === '[') toggleSidebar()
+              else toggleInspector()
+            }
+            return
+          }
+          if ((event.key === 'Delete' || event.key === 'Backspace') && !event.ctrlKey && !event.metaKey && !event.altKey) {
+            event.preventDefault()
+            deleteSelection()
+            return
+          }
+          // Tab: 次の候補を配置 / Shift+Tab: 前（入手元）の候補を配置 / Esc: 候補を隠す
+          // 図そのもの・ノードにフォーカスがあるときだけ。ズームボタンなどからは通常の Tab 移動のまま。
+          const target = event.target as HTMLElement
+          const onCanvas = target === canvas.current || target.classList.contains('react-flow__node') || target.classList.contains('react-flow__pane')
+          if (event.key === 'Tab' && onCanvas && !event.ctrlKey && !event.metaKey && !event.altKey && ghosts) {
+            const list = event.shiftKey ? ghosts.previous : ghosts.next
+            if (list.length) { event.preventDefault(); acceptSuggestions(list) }
+            return
+          }
+          if (event.key === 'Escape' && ghosts && suggestionNodeId) { event.preventDefault(); setSuggestHiddenFor(suggestionNodeId); return }
+          if (!(event.ctrlKey || event.metaKey)) return
+          if (event.key === 'z') { event.preventDefault(); undo() }
+          if (event.key === 'y') { event.preventDefault(); redo() }
       }}>
-        {flow ? <ReactFlow nodes={displayNodes} edges={displayEdges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-          onNodeDragStop={onNodeDragStop} onConnect={onConnect} deleteKeyCode={null}
+        {flow ? <ReactFlow nodes={displayNodes} edges={displayEdges} nodeTypes={gameFlowNodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+          onNodeDragStop={onNodeDragStop} onConnect={onConnect} isValidConnection={isValidConnection} deleteKeyCode={null}
+          connectionMode={ConnectionMode.Loose} connectionLineType={ConnectionLineType.SmoothStep}
+          onNodeMouseEnter={(event, node) => {
+            clearHoverTimer()
+            if (event.buttons !== 0) return
+            const anchor = event.currentTarget as HTMLElement
+            hoverTimer.current = panelDocument.defaultView?.setTimeout(() => setDetail({ id: node.id, anchor, focus: false }), 250)
+          }}
+          onNodeMouseLeave={(_, node) => {
+            clearHoverTimer()
+            setDetail(current => current?.id === node.id && !current.focus ? null : current)
+          }}
+          onMoveStart={() => { clearHoverTimer(); setDetail(current => current?.focus ? current : null) }}
           onNodeClick={(_, node) => {
             const list = ghosts?.byGhostId.get(node.id)
             if (list) acceptSuggestions(list)
@@ -891,10 +813,12 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
           onPaneContextMenu={event => {
             event.preventDefault()
             const at = flowApi.screenToFlowPosition({ x: event.clientX, y: event.clientY })
-            setMenu({ x: event.clientX, y: event.clientY, target: { type: 'pane', at: { x: Math.round(at.x - 70), y: Math.round(at.y - 60) } } })
+            setMenu({ x: event.clientX, y: event.clientY, target: { type: 'pane', at: { x: Math.round(at.x - 75), y: Math.round(at.y - 54) } } })
           }}
           onNodeContextMenu={(event, node) => {
             event.preventDefault()
+            clearHoverTimer()
+            setDetail(null)
             if (node.id.startsWith(ghostPrefix)) { setMenu({ x: event.clientX, y: event.clientY, target: { type: 'ghost', id: node.id } }); return }
             setSelection({ type: 'node', id: node.id })
             setSuggestHiddenFor(null)
@@ -910,6 +834,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
           <Controls showInteractive={false} />
           <MiniMap pannable zoomable />
+          {view === 'graph' && detail && detailNode && <FlowNodeTooltip anchor={detail.anchor} data={detailNode.data} />}
           {allSuggestions && (allSuggestions.next.length > 0 || allSuggestions.previous.length > 0) && <Panel position="top-center" className="game-flow-hint">
             {ghosts ? <>
               {ghosts.next.length > 0 && <span><kbd>Tab</kbd> 次の候補 {ghosts.next.length} 件を配置</span>}
@@ -934,9 +859,9 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     <aside id={inspectorId} className="game-flow-inspector" aria-label="プロパティ" hidden={!inspectorOpen}>
       {flow && !selectedNode && !selectedEdge && <FlowProperties flow={flow} className={className} onEditClasses={() => setClassPopoverOpen(true)}
         onChange={change => update(current => ({ ...current, ...change }))} />}
-      {flow && selectedNode && <NodeProperties node={selectedNode} kind={refKind(selectedNode.ref, prefixes)} resolved={selectedNode.ref ? resolve(selectedNode.ref) : undefined}
+      {flow && selectedNode && <NodeProperties node={selectedNode} kind={nodeKind(selectedNode, prefixes, selectedNode.ref ? resolve(selectedNode.ref)?.file?.path : undefined)} resolved={selectedNode.ref ? resolve(selectedNode.ref) : undefined}
         classes={flowClasses} context={context} flow={flow} resolveName={resolveName}
-        onChange={change => changeNode(selectedNode.id, change)} onPick={kind => setPicker({ kind, replace: selectedNode.id })}
+        onChange={change => changeNode(selectedNode.id, change)} onPick={kind => setPicker({ kind: kind === 'npc' ? 'mob' : kind, replace: selectedNode.id })}
         onOpenMaster={onOpenMaster} onShopItems={() => setShopDialog(selectedNode.id)}
         suggestions={allSuggestions}
         resolve={resolve} prefixes={prefixes} onAccept={list => placeSuggestions(selectedNode.id,
@@ -949,7 +874,9 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       <details className="game-flow-help"><summary>操作方法</summary>
         <ul>
           <li>ツールバーの「追加」にある「ダンジョン」などからマスターを参照するノードを追加します。</li>
-          <li>ノード右端の点から別のノードの左端へドラッグすると矢印でつながります。</li>
+          <li>ノードにポインターを重ねると上下左右に接続点が出ます。始点の接続点から終点の接続点へドラッグすると、その向きに矢印がつながります。</li>
+          <li>ポインターを重ねるか、Tab キーでノードにフォーカスすると詳細が表示されます。</li>
+          <li>「操作」はマスター参照のない手順を表します。「メモ」は図に配置する付箋です。</li>
           <li>ショップのノードを選ぶと、商品を購入アイテムとしてまとめて追加できます。</li>
           <li>フロー全体の対象職業はツールバーで設定します。職業で絞り込むと、該当しないノードや矢印が薄く表示されます。</li>
           <li>ノードや矢印ごとの対象職業は、選択してプロパティで設定します。</li>
@@ -974,177 +901,6 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     {menu && flow && <FlowContextMenu x={menu.x} y={menu.y} onDismiss={closeMenu} {...contextCommands(menu.target)} />}
     {confirmation}
   </div></div>
-}
-
-function ClassToggles({ value, classes, onChange, emptyLabel }: {
-  value: string[]; classes: { ref: string; name: string }[]; onChange: (value: string[]) => void; emptyLabel: string
-}) {
-  const known = new Set(classes.map(entry => entry.ref))
-  const unknown = value.filter(entry => !known.has(entry))
-  return <div className="game-flow-class-toggles">
-    {classes.map(entry => <label key={entry.ref} className="game-flow-class-toggle">
-      <input type="checkbox" checked={value.includes(entry.ref)}
-        onChange={event => onChange(event.target.checked ? [...value, entry.ref] : value.filter(item => item !== entry.ref))} />{entry.name}
-    </label>)}
-    {unknown.map(entry => <label key={entry} className="game-flow-class-toggle unknown">
-      <input type="checkbox" checked onChange={() => onChange(value.filter(item => item !== entry))} />{entry}
-    </label>)}
-    <small className="game-flow-muted">{value.length ? `${value.length}職業` : emptyLabel}</small>
-  </div>
-}
-
-function FlowProperties({ flow, className, onEditClasses, onChange }: {
-  flow: GameFlow; className: (ref: string) => string; onEditClasses: () => void; onChange: (change: Partial<GameFlow>) => void
-}) {
-  const classSummary = `対象職業: ${flow.classes.length ? flow.classes.map(className).join('・') : '全職業'}`
-  return <section className="game-flow-props">
-    <h3>フロー</h3>
-    <label>ID<input value={flow.id} readOnly title="ID はファイル名と一致させるため変更できません" /></label>
-    <label>表示名<input value={flow.name} onChange={event => onChange({ name: event.target.value })} /></label>
-    <label>説明<textarea rows={3} value={flow.description ?? ''} onChange={event => onChange({ description: event.target.value })} /></label>
-    <div className="game-flow-class-summary">
-      <span title={classSummary}>{classSummary}</span>
-      <button type="button" className="button compact" onClick={onEditClasses}>変更</button>
-    </div>
-    <p className="game-flow-muted">ノード {flow.nodes.length} 件 / 矢印 {flow.edges.length} 件</p>
-  </section>
-}
-
-function SuggestionList({ title, items, resolve, prefixes, onAccept }: {
-  title: string; items: FlowSuggestion[]; resolve: (ref: string) => ResolvedRef | undefined
-  prefixes: Readonly<Record<string, string>>; onAccept: (list: FlowSuggestion[]) => void
-}) {
-  if (!items.length) return null
-  return <div className="game-flow-suggestions">
-    <div className="game-flow-suggestions-head"><strong>{title}（{items.length}）</strong>
-      <button type="button" className="button compact" onClick={() => onAccept(items)}>すべて配置</button></div>
-    <ul>{items.map(item => {
-      const resolved = resolve(item.ref)
-      const kind = refKind(item.ref, prefixes)
-      return <li key={item.direction + item.ref}>
-        <button type="button" className="game-flow-suggestion" title={item.existingNodeId ? '配置済みのノードへ矢印をつなぎます' : 'ノードを配置して矢印でつなぎます'} onClick={() => onAccept([item])}>
-          <ReferenceIcon file={resolved?.file} kind={kind} />
-          <MinecraftText value={resolved?.name ?? item.ref} />
-          <small>{item.label}{item.existingNodeId ? '・接続のみ' : ''}</small>
-        </button>
-      </li>
-    })}</ul>
-  </div>
-}
-
-function NodeProperties({ node, kind, resolved, classes, context, flow, resolveName, onChange, onPick, onOpenMaster, onShopItems, onDelete,
-  suggestions, resolve, prefixes, onAccept }: {
-  node: GameFlowNode; kind: string; resolved?: ResolvedRef; classes: { ref: string; name: string }[]
-  context: GameFlowContext | null; flow: GameFlow; resolveName: (ref: string) => string | undefined
-  onChange: (change: Partial<GameFlowNode>) => void; onPick: (kind: string) => void; onOpenMaster: (path: string) => void
-  onShopItems: () => void; onDelete: () => void
-  suggestions: { next: FlowSuggestion[]; previous: FlowSuggestion[] } | null
-  resolve: (ref: string) => ResolvedRef | undefined; prefixes: Readonly<Record<string, string>>
-  onAccept: (list: FlowSuggestion[]) => void
-}) {
-  const shop = kind === 'shop' ? context?.shops.find(entry => entry.id === refId(node.ref)) : undefined
-  const outgoing = flow.edges.filter(edge => edge.from === node.id)
-  const incoming = flow.edges.filter(edge => edge.to === node.id)
-  const suggestion = kind === 'item' ? suggestedClasses(context, refId(node.ref)) : []
-  return <section className="game-flow-props" data-kind={kind}>
-    <h3>{kindLabels[kind] ?? kind}のノード</h3>
-    <label>ノードID<input value={node.id} readOnly /></label>
-    {node.ref ? <div className="game-flow-ref">
-      <span className="game-flow-ref-name">{resolved ? <><ReferenceIcon file={resolved.file} kind={kind} /><MinecraftText value={resolved.name} /></> : <em>参照先が見つかりません</em>}</span>
-      <code>{node.ref}</code>
-      <div className="game-flow-actions">
-        <button type="button" className="button compact" onClick={() => onPick(kind)}>参照を変更</button>
-        {resolved?.file && <button type="button" className="button compact" onClick={() => onOpenMaster(resolved.file!.path)}>マスターを開く ↗</button>}
-      </div>
-    </div> : <p className="game-flow-muted">マスターを参照しないメモのノードです。</p>}
-    <label>{node.ref ? '表示名の上書き（任意）' : '表示名'}<input value={node.label ?? ''} placeholder={node.ref ? '参照先の名前を表示' : ''} onChange={event => onChange({ label: event.target.value })} /></label>
-    <label>補足<textarea rows={3} value={node.note ?? ''} onChange={event => onChange({ note: event.target.value })} /></label>
-    <fieldset><legend>対象職業</legend>
-      <ClassToggles value={node.classes} classes={classes} emptyLabel="未指定: 全職業共通" onChange={value => onChange({ classes: value })} />
-      {suggestion.length > 0 && suggestion.join() !== node.classes.join() && <button type="button" className="button compact subtle"
-        onClick={() => onChange({ classes: suggestion })}>装備条件の職業にする（{suggestion.map(ref => resolveName(ref) ?? ref).join('・')}）</button>}
-    </fieldset>
-    {kind === 'shop' && <div className="game-flow-actions">
-      <button type="button" className="button compact primary" disabled={!shop?.items.length} onClick={onShopItems}>商品を購入アイテムとして追加…</button>
-      {shop && <small className="game-flow-muted">商品 {shop.items.length} 件</small>}
-    </div>}
-    {suggestions && <>
-      <SuggestionList title="次に置く候補" items={suggestions.next} resolve={resolve} prefixes={prefixes} onAccept={onAccept} />
-      <SuggestionList title="入手元・前の候補" items={suggestions.previous} resolve={resolve} prefixes={prefixes} onAccept={onAccept} />
-    </>}
-    <p className="game-flow-muted">入る矢印 {incoming.length} 本 / 出る矢印 {outgoing.length} 本</p>
-    <button type="button" className="button compact danger subtle" onClick={onDelete}>ノードを削除</button>
-  </section>
-}
-
-function EdgeProperties({ edge, flow, nodeName, classes, onChange, onDelete }: {
-  edge: GameFlowEdge; flow: GameFlow; nodeName: (node: GameFlowNode) => string; classes: { ref: string; name: string }[]
-  onChange: (change: Partial<GameFlowEdge>) => void; onDelete: () => void
-}) {
-  const from = flow.nodes.find(node => node.id === edge.from)
-  const to = flow.nodes.find(node => node.id === edge.to)
-  return <section className="game-flow-props">
-    <h3>矢印</h3>
-    <p className="game-flow-edge-route"><MinecraftText value={from ? nodeName(from) : edge.from} /> → <MinecraftText value={to ? nodeName(to) : edge.to} /></p>
-    <label>ラベル<input list="game-flow-edge-labels" value={edge.label ?? ''} onChange={event => onChange({ label: event.target.value })} /></label>
-    <datalist id="game-flow-edge-labels">{edgeLabelSuggestions.map(label => <option key={label} value={label} />)}</datalist>
-    <label>補足<textarea rows={3} value={edge.note ?? ''} onChange={event => onChange({ note: event.target.value })} /></label>
-    <fieldset><legend>対象職業</legend>
-      <ClassToggles value={edge.classes} classes={classes} emptyLabel="未指定: 全職業共通" onChange={value => onChange({ classes: value })} />
-    </fieldset>
-    <button type="button" className="button compact danger subtle" onClick={onDelete}>矢印を削除</button>
-  </section>
-}
-
-function ShopItemsDialog({ document, flow, shopNodeId, context, resolve, className, isItem, onAdd, onClose }: {
-  document: Document; flow: GameFlow; shopNodeId: string; context: GameFlowContext | null
-  resolve: (itemId: string) => ResolvedRef | undefined; className: (ref: string) => string
-  isItem: (ref: string | undefined, itemId: string) => boolean
-  onAdd: (itemIds: string[]) => void; onClose: () => void
-}) {
-  const shopNode = flow.nodes.find(node => node.id === shopNodeId)
-  const shop = context?.shops.find(entry => entry.id === refId(shopNode?.ref))
-  const connectedRefs = useMemo(() => flow.edges.filter(edge => edge.from === shopNodeId)
-    .map(edge => flow.nodes.find(node => node.id === edge.to)?.ref), [flow, shopNodeId])
-  const connected = useMemo(() => new Set((shop?.items ?? []).filter(id => connectedRefs.some(ref => isItem(ref, id)))
-    .map(id => 'item:' + id)), [connectedRefs, isItem, shop])
-  const [query, setQuery] = useState('')
-  const [chosen, setChosen] = useState<Set<string>>(new Set())
-  const rows = useMemo(() => (shop?.items ?? []).map(id => {
-    const resolved = resolve(id)
-    return { id, name: resolved?.name ?? id, file: resolved?.file, classes: suggestedClasses(context, id), done: connected.has('item:' + id) }
-  }).filter(row => !query.trim() || plain(row.name).includes(query.trim()) || row.id.includes(query.trim())), [connected, context, query, resolve, shop])
-  const selectable = rows.filter(row => !row.done)
-  const toggle = (id: string, on: boolean) => setChosen(current => {
-    const next = new Set(current)
-    if (on) next.add(id)
-    else next.delete(id)
-    return next
-  })
-  return createPortal(<Modal ariaLabel="商品を購入アイテムとして追加" className="game-flow-dialog" ownerDocument={document} onClose={onClose}>
-    <header className="modal-header"><h2>商品を購入アイテムとして追加</h2></header>
-    <div className="modal-body">
-      <p className="game-flow-muted">選んだ商品をアイテムのノードとして追加し、ショップから「購入」の矢印でつなぎます。装備条件に職業がある商品は、その職業を対象職業に設定します。</p>
-      <div className="game-flow-dialog-tools">
-        <input type="search" placeholder="名前・IDで絞り込み" value={query} onChange={event => setQuery(event.target.value)} aria-label="商品を絞り込み" />
-        <button type="button" className="button compact" onClick={() => setChosen(new Set(selectable.map(row => row.id)))}>表示中をすべて選択</button>
-        <button type="button" className="button compact subtle" onClick={() => setChosen(new Set())}>選択を解除</button>
-      </div>
-      <ul className="game-flow-shop-items">
-        {rows.map(row => <li key={row.id}><label className={row.done ? 'done' : undefined}>
-          <input type="checkbox" disabled={row.done} checked={row.done || chosen.has(row.id)} onChange={event => toggle(row.id, event.target.checked)} />
-          <ReferenceIcon file={row.file} kind="item" /><MinecraftText value={row.name} /><code>{row.id}</code>
-          {row.classes.length > 0 && <span className="game-flow-chips">{row.classes.map(ref => <span key={ref} className="game-flow-chip">{className(ref)}</span>)}</span>}
-          {row.done && <small>追加済み</small>}
-        </label></li>)}
-        {!rows.length && <li className="game-flow-muted">該当する商品がありません。</li>}
-      </ul>
-    </div>
-    <footer className="modal-footer">
-      <button type="button" className="button" onClick={onClose}>キャンセル</button>
-      <button type="button" className="button primary" disabled={!chosen.size} onClick={() => onAdd((shop?.items ?? []).filter(id => chosen.has(id)))}>{chosen.size}件を追加</button>
-    </footer>
-  </Modal>, document.body)
 }
 
 function CreateFlowDialog({ document, busy, existing, onCreate, onClose }: {

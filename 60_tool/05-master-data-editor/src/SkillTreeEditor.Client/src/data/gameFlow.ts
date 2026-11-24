@@ -6,9 +6,15 @@ export const gameFlowPath = (id: string) => `${gameFlowCategory}/v1.${id}.yml`
 export const isGameFlowPath = (path: string) => path.startsWith(gameFlowCategory + '/') && !path.endsWith('.schema.json')
 export const flowIdPattern = /^[a-z0-9]+(?:_[a-z0-9]+)*$/
 
+export const gameFlowPorts = ['top', 'right', 'bottom', 'left'] as const
+export type GameFlowPort = typeof gameFlowPorts[number]
+
+export const gameFlowPort = (value: unknown): GameFlowPort | undefined => gameFlowPorts.find(port => port === value)
+
 export interface GameFlowNode {
   id: string
   ref?: string
+  role?: 'action'
   label?: string
   note?: string
   classes: string[]
@@ -21,6 +27,8 @@ export interface GameFlowNode {
 export interface GameFlowEdge {
   from: string
   to: string
+  fromPort?: GameFlowPort
+  toPort?: GameFlowPort
   label?: string
   note?: string
   classes: string[]
@@ -57,7 +65,7 @@ export const kindLabels: Record<string, string> = {
   skill: 'スキル', recipe: 'レシピ', loot_table: 'ルートテーブル', loot_pool: 'ルートプール', gathering: '採集',
   mob_spawner: 'モブスポナー', gathering_spawner: '採集スポナー', enchant: 'エンチャント', buff: 'バフ',
   set_effect: 'セット効果', mail: 'メール', guide: 'ガイド', pet: 'ペット', fishing_fish: '釣り魚',
-  fishing_area: '釣りエリア', fishing_rules: '釣りルール', note: 'メモ',
+  fishing_area: '釣りエリア', fishing_rules: '釣りルール', npc: 'NPC', action: '操作', note: 'メモ',
 }
 
 /** ノード追加メニューに並べる参照の種類。 */
@@ -74,15 +82,15 @@ function without(source: JsonObject, keys: readonly string[]): JsonObject {
   return Object.fromEntries(Object.entries(source).filter(([key]) => !keys.includes(key)))
 }
 
-const nodeKeys = ['id', 'ref', 'label', 'note', 'classes', 'x', 'y'] as const
-const edgeKeys = ['from', 'to', 'label', 'note', 'classes'] as const
+const nodeKeys = ['id', 'ref', 'role', 'label', 'note', 'classes', 'x', 'y'] as const
+const edgeKeys = ['from', 'to', 'fromPort', 'toPort', 'label', 'note', 'classes'] as const
 const flowKeys = ['schemaVersion', 'type', 'id', 'name', 'description', 'classes', 'nodes', 'edges'] as const
 
 export function parseGameFlow(content: JsonValue): GameFlow {
   const root = isObject(content) ? content : {}
   // 座標のないノード（AI や手書きで追加したもの）は、重ならないよう格子状に並べる。
   let unplaced = 0
-  const nodes = (Array.isArray(root.nodes) ? root.nodes : []).filter(isObject).map(node => {
+  const nodes = (Array.isArray(root.nodes) ? root.nodes : []).filter(isObject).map((node): GameFlowNode => {
     let x = coordinate(node.x)
     let y = coordinate(node.y)
     if (x === undefined || y === undefined) {
@@ -90,15 +98,20 @@ export function parseGameFlow(content: JsonValue): GameFlow {
       y ??= Math.floor(unplaced / 5) * 140
       unplaced++
     }
+    const role = node.role === 'action' ? node.role : undefined
     return {
-      id: text(node.id) ?? '', ref: text(node.ref), label: text(node.label), note: text(node.note),
+      id: text(node.id) ?? '', ref: text(node.ref), ...(role ? { role } : {}), label: text(node.label), note: text(node.note),
       classes: strings(node.classes), x, y, rest: without(node, nodeKeys),
     }
   })
-  const edges = (Array.isArray(root.edges) ? root.edges : []).filter(isObject).map(edge => ({
-    from: text(edge.from) ?? '', to: text(edge.to) ?? '', label: text(edge.label), note: text(edge.note),
-    classes: strings(edge.classes), rest: without(edge, edgeKeys),
-  }))
+  const edges = (Array.isArray(root.edges) ? root.edges : []).filter(isObject).map((edge): GameFlowEdge => {
+    const fromPort = gameFlowPort(edge.fromPort)
+    const toPort = gameFlowPort(edge.toPort)
+    return {
+      from: text(edge.from) ?? '', to: text(edge.to) ?? '', ...(fromPort ? { fromPort } : {}), ...(toPort ? { toPort } : {}),
+      label: text(edge.label), note: text(edge.note), classes: strings(edge.classes), rest: without(edge, edgeKeys),
+    }
+  })
   return {
     id: text(root.id) ?? '', name: text(root.name) ?? '', description: text(root.description),
     classes: strings(root.classes), nodes, edges, rest: without(root, flowKeys),
@@ -114,11 +127,12 @@ export function serializeGameFlow(flow: GameFlow): JsonValue {
     schemaVersion: 1, type: 'GAME_FLOW', id: flow.id, name: flow.name,
     ...optional('description', flow.description), ...optionalList('classes', flow.classes),
     nodes: flow.nodes.map(node => ({
-      id: node.id, ...optional('ref', node.ref), ...optional('label', node.label), ...optional('note', node.note),
+      id: node.id, ...optional('ref', node.ref), ...optional('role', node.role), ...optional('label', node.label), ...optional('note', node.note),
       ...optionalList('classes', node.classes), x: Math.round(node.x), y: Math.round(node.y), ...node.rest,
     })),
     edges: flow.edges.map(edge => ({
-      from: edge.from, to: edge.to, ...optional('label', edge.label), ...optional('note', edge.note),
+      from: edge.from, to: edge.to, ...optional('fromPort', edge.fromPort), ...optional('toPort', edge.toPort),
+      ...optional('label', edge.label), ...optional('note', edge.note),
       ...optionalList('classes', edge.classes), ...edge.rest,
     })),
     ...flow.rest,
@@ -137,6 +151,27 @@ export function refKind(ref: string | undefined, prefixes?: Readonly<Record<stri
 }
 
 export const refId = (ref: string | undefined) => ref ? ref.slice(ref.indexOf(':') + 1) : ''
+
+export function nodeKind(node: Pick<GameFlowNode, 'ref' | 'role'>,
+  prefixes?: Readonly<Record<string, string>> | null, masterPath?: string) {
+  if (!node.ref) return node.role ?? 'note'
+  const kind = refKind(node.ref, prefixes)
+  return kind === 'mob' && masterPath?.toLowerCase().startsWith('40.features.mob/npc/') ? 'npc' : kind
+}
+
+type EdgePorts = Pick<GameFlowEdge, 'fromPort' | 'toPort'>
+type FlowPoint = Pick<GameFlowNode, 'x' | 'y'>
+
+/** 接続点を指定していない既存の矢印は、ノードの並びに合う向かい合う側を使う。 */
+export function edgePorts(edge: EdgePorts, from?: FlowPoint, to?: FlowPoint): Required<EdgePorts> {
+  const dx = to && from ? to.x - from.x : 0
+  const dy = to && from ? to.y - from.y : 0
+  const horizontal = Math.abs(dx) >= Math.abs(dy)
+  return {
+    fromPort: edge.fromPort ?? (horizontal ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'top' : 'bottom')),
+    toPort: edge.toPort ?? (horizontal ? (dx < 0 ? 'right' : 'left') : (dy < 0 ? 'bottom' : 'top')),
+  }
+}
 
 /** 職業フィルタで表示されるノード・矢印。フィルタなしなら全件。 */
 export function visibleFlow(flow: GameFlow, classRef: string | null) {
@@ -157,7 +192,7 @@ export function uniqueNodeId(flow: GameFlow, seed: string) {
 }
 
 export function addNode(flow: GameFlow, node: Omit<GameFlowNode, 'id' | 'rest' | 'classes'> & { classes?: string[] }): { flow: GameFlow; id: string } {
-  const id = uniqueNodeId(flow, node.ref ? refId(node.ref) : node.label ?? 'note')
+  const id = uniqueNodeId(flow, node.ref ? refId(node.ref) : node.role ?? node.label ?? 'note')
   return { id, flow: { ...flow, nodes: [...flow.nodes, { classes: [], ...node, id, rest: {} }] } }
 }
 
@@ -166,9 +201,10 @@ export function canConnect(flow: GameFlow, from: string, to: string) {
     && !flow.edges.some(edge => edge.from === from && edge.to === to)
 }
 
-export function connect(flow: GameFlow, from: string, to: string, label?: string, classes: string[] = []): GameFlow {
+export function connect(flow: GameFlow, from: string, to: string, label?: string, classes: string[] = [], ports: EdgePorts = {}): GameFlow {
   if (!canConnect(flow, from, to)) return flow
-  return { ...flow, edges: [...flow.edges, { from, to, label, classes, rest: {} }] }
+  const resolved = edgePorts(ports, flow.nodes.find(node => node.id === from), flow.nodes.find(node => node.id === to))
+  return { ...flow, edges: [...flow.edges, { from, to, ...resolved, label, classes, rest: {} }] }
 }
 
 export function removeNodes(flow: GameFlow, ids: ReadonlySet<string>): GameFlow {
@@ -225,6 +261,7 @@ export function gameFlowOutline(flow: GameFlow, resolve: FlowNameResolver, optio
   prefixes?: Readonly<Record<string, string>> | null
   classRef?: string | null
   className?: (classRef: string) => string
+  masterPath?: (ref: string) => string | undefined
 } = {}) {
   const { prefixes, classRef = null } = options
   const className = options.className ?? ((value: string) => resolve(value) ?? value)
@@ -239,10 +276,10 @@ export function gameFlowOutline(flow: GameFlow, resolve: FlowNameResolver, optio
   lines.push('', '## ノード')
   for (const node of flow.nodes) {
     if (!visible.nodes.has(node.id)) continue
-    const kind = kindLabels[refKind(node.ref, prefixes)] ?? refKind(node.ref, prefixes)
+    const kind = nodeKind(node, prefixes, node.ref && options.masterPath?.(node.ref))
     const reference = node.ref ? ` (${node.ref})` : ''
     const note = node.note?.trim() ? ` — ${node.note.trim()}` : ''
-    lines.push(`- ${node.id}: [${kind}] ${nodeName(node)}${reference}${classes(node.classes)}${note}`)
+    lines.push(`- ${node.id}: [${kindLabels[kind] ?? kind}] ${nodeName(node)}${reference}${classes(node.classes)}${note}`)
   }
   lines.push('', '## 流れ')
   flow.edges.forEach((edge, index) => {
@@ -278,7 +315,7 @@ export interface SuggestionPlacement {
   added: boolean
 }
 
-/** 自動配置の行の間隔。アイコン表示（名前・図形・職業）とカード表示のどちらの高さも収まる。 */
+/** 自動配置の行の間隔。ノードのアイコンと名前を収める。 */
 export const rowSpacing = 140
 
 /** 1回の Tab で配置する候補の上限。 */
