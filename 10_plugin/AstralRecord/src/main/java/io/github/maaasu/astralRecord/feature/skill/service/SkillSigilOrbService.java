@@ -396,7 +396,12 @@ public final class SkillSigilOrbService {
             openDetachSelection(session, target);
             return;
         }
-        if (slot != RESULT_SLOT || !isOperationReady(session, target)) {
+        if (slot != RESULT_SLOT) {
+            GuiSound.DENY.play(session.player);
+            return;
+        }
+        if (operationBlockReason(session, target) != null) {
+            renderOperation(session, target);
             GuiSound.DENY.play(session.player);
             return;
         }
@@ -692,8 +697,9 @@ public final class SkillSigilOrbService {
         session.inventory.setItem(BACK_SLOT, GuiItems.backButton(
             new GuiNavigationDestination(Material.BOOK, "シジル対象スキル")
         ));
-        boolean ready = isOperationReady(session, target);
-        session.inventory.setItem(RESULT_SLOT, createConfirmationItem(session, target, selected, ready));
+        String blockReason = operationBlockReason(session, target);
+        boolean ready = blockReason == null;
+        session.inventory.setItem(RESULT_SLOT, createConfirmationItem(session, target, selected, blockReason));
         if (session.screen == SkillSigilOrbGuiHolder.Screen.DETACH && ready && selected != null) {
             ItemStack returned = itemStackFactory.create(selected, 1);
             appendLore(returned, Component.text("取り外し後に返却されます", NamedTextColor.GREEN));
@@ -702,7 +708,10 @@ public final class SkillSigilOrbService {
     }
 
     /** 選択中の素材、費用、結果を確定ボタンにまとめます。 */
-    private ItemStack createConfirmationItem(Session session, SkillTarget target, @Nullable ItemModel selected, boolean ready) {
+    private ItemStack createConfirmationItem(
+        Session session, SkillTarget target, @Nullable ItemModel selected, @Nullable String blockReason
+    ) {
+        boolean ready = blockReason == null;
         boolean attaching = session.type == ItemOrbEffectType.SIGIL_ATTACH;
         var lore = new ArrayList<Component>();
         SkillLore.section(lore, "対象スキル", NamedTextColor.AQUA);
@@ -735,7 +744,10 @@ public final class SkillSigilOrbService {
 
         SkillLore.section(lore, "確定", ready ? NamedTextColor.GREEN : NamedTextColor.RED);
         lore.add(SkillLore.note(ready ? (attaching ? "クリックして装着" : "クリックして脱着")
-            : session.selectedSigilItemId == null ? "シジルを選択してください" : "素材または対象を確認してください"));
+            : blockReason));
+        if (ready && !attaching) {
+            lore.add(SkillLore.note("確定時にオーブと返却容量を再確認します"));
+        }
         return SkillLore.style(GuiItems.create(
             ready ? Material.LIME_DYE : Material.BARRIER,
             Component.text(attaching ? "シジル装着の確認" : "シジル脱着の確認",
@@ -887,18 +899,29 @@ public final class SkillSigilOrbService {
         ));
     }
 
-    private boolean isOperationReady(@NotNull Session session, @NotNull SkillTarget target) {
-        if (resolveCurrentOrbEntry(session) == null
-            || session.selectedSigilItemId == null) return false;
-        if (session.type == ItemOrbEffectType.SIGIL_DETACH) {
-            return session.selectedLearnedSkillSigilId != null && target.learnedSkill.getSigils().stream().anyMatch(sigil ->
-                sigil.getLearnedSkillSigilId().equals(session.selectedLearnedSkillSigilId)
-                    && sigil.getSigilId().equalsIgnoreCase(session.selectedSigilItemId));
-        }
+    /** 現在の操作を確定できない理由を返します。実決済の検証は別途行います。 */
+    private @Nullable String operationBlockReason(@NotNull Session session, @NotNull SkillTarget target) {
+        InventoryEntryModel orb = resolveCurrentOrbEntry(session);
+        if (orb == null) return "使用できるオーブがありません";
+        if (session.selectedSigilItemId == null) return "シジルを選択してください";
         ItemModel sigil = itemService.findLoadedById(session.selectedSigilItemId);
-        return sigil != null
-            && inventoryService.findOwnedNormalItemEntryForConsumption(session.accountId, sigil.getId()) != null
-            && SkillSynthesisMaterialEligibility.resolve(target.learnedSkill, target.definition, sigil) == MaterialKind.SIGIL;
+        if (sigil == null) return "シジルの情報を取得できません";
+        if (session.type == ItemOrbEffectType.SIGIL_DETACH) {
+            if (session.selectedLearnedSkillSigilId == null || target.learnedSkill.getSigils().stream().noneMatch(
+                attached -> attached.getLearnedSkillSigilId().equals(session.selectedLearnedSkillSigilId)
+                    && attached.getSigilId().equalsIgnoreCase(session.selectedSigilItemId))) {
+                return "装着済みのシジルを選択してください";
+            }
+            return switch (inventoryService.previewSigilReturnAfterOrbConsumption(
+                session.accountId, orb.getInventoryEntryId(), sigil)) {
+                case READY -> null;
+                case ORB_UNAVAILABLE -> "使用できるオーブがありません";
+                case NO_BAG_CAPACITY -> "バッグにシジルを返却できる空きがありません";
+            };
+        }
+        return inventoryService.findOwnedNormalItemEntryForConsumption(session.accountId, sigil.getId()) != null
+            && SkillSynthesisMaterialEligibility.resolve(target.learnedSkill, target.definition, sigil) == MaterialKind.SIGIL
+            ? null : "素材または対象を確認してください";
     }
 
     private int firstFreeSigilSlot(@NotNull SkillTarget target) {

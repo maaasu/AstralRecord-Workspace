@@ -111,6 +111,10 @@ public class InventoryService {
             Comparator.reverseOrder()
         )
         .thenComparing(InventoryEntryModel::getInventoryEntryId);
+    private static final Comparator<InventoryEntryModel> DISPLAYED_ENTRY_SLOT_ORDER =
+        Comparator.<InventoryEntryModel, Integer>comparing(
+            entry -> entry.getSlotIndex() == null ? Integer.MAX_VALUE : entry.getSlotIndex()
+        ).thenComparing(InventoryEntryModel::getCreatedAt);
     private static final String DEFAULT_LOADOUT_NAME = "Default";
     private static final String SLOT_TYPE_HEAD = "HEAD";
     private static final String SLOT_TYPE_CHEST = "CHEST";
@@ -5261,6 +5265,62 @@ public class InventoryService {
         }
     }
 
+    /** シジル脱着の事前確認結果です。実際の消費と返却は保存 lane で行います。 */
+    public enum SigilReturnPreview {
+        READY,
+        ORB_UNAVAILABLE,
+        NO_BAG_CAPACITY
+    }
+
+    /**
+     * 指定の脱着オーブを1個消費した直後、シジルをBAGへ返せるかを所持状態の変更なしに判定します。
+     *
+     * @param accountId 対象アカウント
+     * @param orbEntryId 通常のオーブ消費順で選ばれた entry
+     * @param sigil 返却するシジル
+     * @return 現在のスナップショットに対する消費・容量の判定
+     */
+    public @NotNull SigilReturnPreview previewSigilReturnAfterOrbConsumption(
+        @NotNull UUID accountId, @NotNull UUID orbEntryId, @NotNull ItemModel sigil
+    ) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) return SigilReturnPreview.ORB_UNAVAILABLE;
+        synchronized (state) {
+            InventoryEntryModel orb = findOwnedGameEntryForSkillPayment(accountId, orbEntryId);
+            if (orb == null || ItemCategory.fromApiValue(orb.getItemCategory()) != ItemCategory.ORB) {
+                return SigilReturnPreview.ORB_UNAVAILABLE;
+            }
+            InventoryModel source = state.findInventoryById(orb.getInventoryId());
+            if (source == null || (source.getInventoryType() != InventoryType.BAG
+                && source.getInventoryType() != InventoryType.HOTBAR)) {
+                return SigilReturnPreview.ORB_UNAVAILABLE;
+            }
+            var reservations = orbPaymentReservationsByAccount.getOrDefault(accountId, Map.of()).values().stream()
+                .filter(reservation -> reservation.stateGeneration() == state).toList();
+            if (!hasAvailableEntryPayment(accountId, Map.of(orbEntryId, 1L), reservations)) {
+                return SigilReturnPreview.ORB_UNAVAILABLE;
+            }
+            boolean fits = source.getInventoryType() == InventoryType.BAG && orb.getQuantity() == 1L
+                ? canReturnSigilAfterBagRemoval(state, source, orbEntryId, sigil)
+                : canAddItemToNormalInventory(state, sigil, 1, false);
+            return fits ? SigilReturnPreview.READY : SigilReturnPreview.NO_BAG_CAPACITY;
+        }
+    }
+
+    /** BAG の詰め直し後に管理範囲に残る entry だけを対象に、空き枠と既存スタックを判定します。 */
+    private boolean canReturnSigilAfterBagRemoval(
+        PlayerInventoryState state, InventoryModel bag, UUID consumedEntryId, ItemModel sigil
+    ) {
+        int usableSlots = inventoryCapacity(bag) - reservedManagedBagSlotIndexes(state, bag).size();
+        var entries = state.snapshotEntries(bag.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted() && !entry.getInventoryEntryId().equals(consumedEntryId))
+            .sorted(DISPLAYED_ENTRY_SLOT_ORDER)
+            .limit(usableSlots)
+            .toList();
+        int maxStack = Math.max(1, sigil.getMaxStack());
+        return entries.size() < usableSlots || entries.stream().anyMatch(entry -> isStackableEntry(entry, sigil, maxStack));
+    }
+
     /**
      * 所有済みアイテムの返却容量を判定します。新規獲得のオーブ自動収納は適用しません。
      *
@@ -7398,9 +7458,7 @@ public class InventoryService {
         List<InventoryEntryModel> remaining = state.snapshotEntries(sourceEntry.getInventoryId()).stream()
             .filter(e -> !e.isDeleted())
             .filter(e -> !e.getInventoryEntryId().equals(sourceEntry.getInventoryEntryId()))
-            .sorted(Comparator.<InventoryEntryModel, Integer>comparing(
-                e -> e.getSlotIndex() == null ? Integer.MAX_VALUE : e.getSlotIndex()
-            ).thenComparing(InventoryEntryModel::getCreatedAt))
+            .sorted(DISPLAYED_ENTRY_SLOT_ORDER)
             .toList();
         state.replaceEntries(sourceEntry.getInventoryId(), remaining);
         compactInventoryEntriesAfterRemoval(state, sourceEntry.getInventoryId());
@@ -8465,9 +8523,7 @@ public class InventoryService {
         }
         List<InventoryEntryModel> entries = state.snapshotEntries(inventoryId).stream()
             .filter(e -> !e.isDeleted())
-            .sorted(Comparator.<InventoryEntryModel, Integer>comparing(
-                e -> e.getSlotIndex() == null ? Integer.MAX_VALUE : e.getSlotIndex()
-            ).thenComparing(InventoryEntryModel::getCreatedAt))
+            .sorted(DISPLAYED_ENTRY_SLOT_ORDER)
             .toList();
         boolean preserveEntriesBeyondCapacity = inventory != null
             && (inventory.getInventoryType() == InventoryType.CURRENCY

@@ -33,6 +33,7 @@ import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -128,7 +129,11 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             if (holder.screen() == SkillForgetScreen.CONFIRM) {
-                handleConfirmClick(player, holder, event.getRawSlot());
+                ClickType click = event.getClick();
+                if (event.getClickedInventory() == event.getView().getTopInventory()
+                    && (click == ClickType.LEFT || click == ClickType.RIGHT)) {
+                    handleConfirmClick(player, holder, event.getRawSlot());
+                }
                 return;
             }
             handleListClick(player, holder, event.getRawSlot(), event.getCurrentItem());
@@ -199,7 +204,14 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
             openList(player, holder.pageIndex());
             return;
         }
-        PurchaseMaterial material = findPurchaseMaterial(entry.definition());
+        openConfirmation(player, astPlayer, entry, holder.pageIndex(), findPurchaseMaterial(entry.definition()));
+        GuiSound.CONFIRM.play(player);
+    }
+
+    /** 現在の返却素材と容量を使い、有償忘却の条件を表示します。 */
+    private void openConfirmation(
+        Player player, AstPlayer astPlayer, SkillManagerEntry entry, int page, @Nullable PurchaseMaterial material
+    ) {
         SkillForgetGui.PaidOption paidOption = null;
         if (material != null) {
             boolean available = inventoryService.getCurrencyAmount(
@@ -207,8 +219,7 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
                 && inventoryService.canAddItemToNormalInventory(astPlayer, material.item(), material.amount());
             paidOption = new SkillForgetGui.PaidOption(material.item(), material.amount(), PAID_FORGET_COST, available);
         }
-        gui.openConfirm(player, entry, permittedSkillIds(astPlayer), holder.pageIndex(), paidOption);
-        GuiSound.CONFIRM.play(player);
+        gui.openConfirm(player, entry, permittedSkillIds(astPlayer), page, paidOption);
     }
 
     private void handleConfirmClick(
@@ -243,11 +254,17 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
             return;
         }
         UUID accountId = astPlayer.getAccount().getUuid();
+        PurchaseMaterial compensationMaterial = paidForget ? findPurchaseMaterial(entry.definition()) : null;
+        if (paidForget) {
+            var currentQuote = compensationMaterial == null ? null : new SkillForgetInventoryHolder.PaidQuote(
+                compensationMaterial.item().getId(), compensationMaterial.amount(), PAID_FORGET_COST);
+            if (!java.util.Objects.equals(holder.paidQuote(), currentQuote)) {
+                openConfirmation(player, astPlayer, entry, holder.pageIndex(), compensationMaterial);
+                return;
+            }
+        }
         forgetting.put(playerId, learnedSkillId);
         GuiSound.CONFIRM.play(player);
-        PurchaseMaterial compensationMaterial = paidForget
-            ? findPurchaseMaterial(entry.definition())
-            : null;
         if (paidForget && compensationMaterial == null) {
             rejectPaidForget(player, playerId, PlayerMsgId.P_5870);
             return;

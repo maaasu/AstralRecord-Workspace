@@ -97,7 +97,9 @@ public final class SkillForgetGui {
             new SkillForgetInventoryHolder(
                 SkillForgetScreen.CONFIRM,
                 returnPage,
-                entry.bindingId()
+                entry.bindingId(),
+                paidOption == null ? null : new SkillForgetInventoryHolder.PaidQuote(
+                    paidOption.item().getId(), paidOption.amount(), paidOption.cost())
             ),
             ConfirmDialogView.SIZE,
             Component.text("スキル忘却の確認", NamedTextColor.YELLOW)
