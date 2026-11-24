@@ -476,7 +476,9 @@ public final class AstralRecordProxyPlugin {
                     if (GeyserPackCapabilities.hasSkillTooltips(update.playerId())) {
                         connection.sendPluginMessage(CHANNEL, BackendProtocol.skillTooltipsReady());
                     }
-                    if (GeyserPackCapabilities.hasItemTooltips(update.playerId())) {
+                    if (GeyserPackCapabilities.hasVerifiedItemTooltips(update.playerId())) {
+                        connection.sendPluginMessage(CHANNEL, BackendProtocol.verifiedItemTooltipsReady());
+                        // 旧RPGにも検証済みの接続を通知します。
                         connection.sendPluginMessage(CHANNEL, BackendProtocol.itemTooltipsReady());
                     }
                     if (GeyserPackCapabilities.hasSkillEffectsV2(update.playerId())) {

@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.skill.gui;
 
 import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
+import io.papermc.paper.persistence.PersistentDataContainerView;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -47,11 +48,8 @@ public final class SkillLore {
     }
 
     /** 未登録スタックでは null、登録済みの共通種別絵では空文字列を返します。 */
-    public static @Nullable String styleId(@NotNull ItemStack item) {
-        if (!item.hasItemMeta()) {
-            return null;
-        }
-        return item.getPersistentDataContainer().get(TOOLTIP_KEY, PersistentDataType.STRING);
+    public static @Nullable String styleId(@NotNull PersistentDataContainerView data) {
+        return data.get(TOOLTIP_KEY, PersistentDataType.STRING);
     }
 
     public static void section(@NotNull List<Component> lore, @NotNull String title, @NotNull NamedTextColor color) {

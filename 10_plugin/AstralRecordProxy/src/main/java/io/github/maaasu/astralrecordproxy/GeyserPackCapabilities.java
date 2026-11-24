@@ -37,8 +37,8 @@ final class GeyserPackCapabilities {
         return supports(playerId, "hasSkillTooltips");
     }
 
-    static boolean hasItemTooltips(UUID playerId) {
-        return supports(playerId, "hasItemTooltips");
+    static boolean hasVerifiedItemTooltips(UUID playerId) {
+        return supports(playerId, "hasVerifiedItemTooltips");
     }
 
     /**

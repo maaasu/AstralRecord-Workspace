@@ -669,7 +669,7 @@ public class ItemStackPacketAdapter {
             }
         }
         ItemStack copy = projected.clone();
-        String skillId = tooltip == null ? null : SkillLore.styleId(projected);
+        String skillId = tooltip == null ? null : SkillLore.styleId(projected.getPersistentDataContainer());
         if (skillId != null) {
             tooltip.applySkill(copy, skillId, false, null);
         }
@@ -793,7 +793,8 @@ public class ItemStackPacketAdapter {
     ) {
         var iconName = ItemStackFactory.getIconName(original);
         var iconTexture = ItemStackFactory.getIconTexture(original);
-        var itemId = ItemStackFactory.getAstralItemId(original);
+        var itemData = original.getPersistentDataContainer();
+        var itemId = ItemStackFactory.getAstralItemId(itemData);
         var embeddedModelData = ItemStackFactory.getCustomModelData(original);
         var diskModelData = CastDiskHotbarIconService.displayModelData(original);
         var customModelData = diskModelData == null ? resolveCustomModelData(itemId, embeddedModelData) : diskModelData;
@@ -808,7 +809,7 @@ public class ItemStackPacketAdapter {
         boolean hookshotLoaded = ItemStackFactory.isHookshotLoaded(original);
         boolean virtualWeapon = !bedrockViewer && virtualTrident && ItemStackFactory.isWeapon(original);
 
-        String skillTooltipId = tooltip == null ? null : SkillLore.styleId(original);
+        String skillTooltipId = tooltip == null ? null : SkillLore.styleId(itemData);
         boolean decorateTooltip = tooltip != null && (itemId != null || skillTooltipId != null);
         if (!decorateTooltip && !virtualWeapon
             && iconName == null

@@ -16,6 +16,7 @@ import java.util.function.Predicate;
 import org.geysermc.geyser.api.connection.GeyserConnection;
 import org.geysermc.geyser.api.event.bedrock.SessionLoadResourcePacksEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomItemsEvent;
+import org.geysermc.geyser.api.pack.ResourcePack;
 import org.geysermc.geyser.api.pack.exception.ResourcePackException;
 import org.geysermc.geyser.api.pack.option.PriorityOption;
 
@@ -143,13 +144,15 @@ final class DamagePackDistribution {
             var registeredPacks = selection.event().resourcePacks();
             var selectedPack = selection.pack().pack();
             boolean registered = registeredPacks.stream().anyMatch(pack -> pack.uuid().equals(selectedPack.uuid()));
-            // UUID が同じ別パックに差し替えられた場合はフェニックスを有効にしない。
-            boolean phoenixReady = selection.forced() && selection.pack().archmagePhoenix()
-                && registeredPacks.stream().anyMatch(pack -> pack == selectedPack);
-
-            boolean exactPack = registeredPacks.stream().anyMatch(pack -> pack == selectedPack);
+            // UUID が同じ別パックへの差し替えも区別して、強制配布が必要な表示を保護します。
+            boolean exactPack = isExactPackRegistered(selectedPack, registeredPacks);
+            boolean phoenixReady = selection.forced() && selection.pack().archmagePhoenix() && exactPack;
             return new SessionPack(selection.pack(), null, selection.forced(), registered, phoenixReady, exactPack);
         });
+    }
+
+    static boolean isExactPackRegistered(ResourcePack selected, List<ResourcePack> registeredPacks) {
+        return registeredPacks.stream().anyMatch(pack -> pack == selected);
     }
 
     boolean archmagePhoenixReady(GeyserConnection connection) {
@@ -209,12 +212,19 @@ final class DamagePackDistribution {
 
     boolean skillTooltipsReady(GeyserConnection connection) {
         SessionPack selection = sessions.get(connection);
-        return selection != null && selection.ready() && selection.pack().skillTooltips();
+        return selection != null
+            && verifiedTooltipPack(selection.forced(), selection.exactPack(), selection.pack().skillTooltips());
     }
 
     boolean itemTooltipsReady(GeyserConnection connection) {
         SessionPack selection = sessions.get(connection);
-        return selection != null && selection.ready() && selection.pack().itemTooltips();
+        return selection != null
+            && verifiedTooltipPack(selection.forced(), selection.exactPack(), selection.pack().itemTooltips());
+    }
+
+    /** Geyser の公開 API では個別パックの適用通知がないため、強制配布済みの同一パックだけを許可します。 */
+    static boolean verifiedTooltipPack(boolean forced, boolean exactPack, boolean hasGlyphs) {
+        return forced && exactPack && hasGlyphs;
     }
 
     boolean questHudReady(GeyserConnection connection) {
