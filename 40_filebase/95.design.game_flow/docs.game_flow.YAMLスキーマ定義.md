@@ -13,22 +13,26 @@
 | `nodes` | ノードの一覧 |
 | `nodes[].id` | フロー内で一意のノードID。英小文字・数字・`_` |
 | `nodes[].ref` | マスター参照。`config.yml` の `referenceResolver` の接頭辞付きID（例 `dungeon:eriva_windscar_steppe`、`shop:weapon_craftsman_shop`、`item:20a00073`、`mob:eriva_grassboar`） |
-| `nodes[].label` | 参照なしのメモノードの名前、または参照ありの場合の表示名の上書き。`ref` と `label` のどちらかは必須 |
+| `nodes[].role` | 参照なしで進行上の操作を表す場合に `action` を指定する。`ref` と `role` のどちらも省略したノードはメモ |
+| `nodes[].label` | 操作・メモの表示名、または参照ありの場合の表示名の上書き。`ref` と `label` のどちらかは必須 |
 | `nodes[].note` | 目的・条件・周回数などの補足（任意） |
 | `nodes[].classes` | このノードが該当する職業の `class:<id>` 一覧（任意）。省略時は全職業共通 |
 | `nodes[].x` / `nodes[].y` | エディタ上の表示位置（整数）。進行の意味は持たない |
 | `edges` | 矢印の一覧 |
 | `edges[].from` / `edges[].to` | 始点・終点のノードID。同じノード同士は不可。同じ始点・終点の矢印は1本だけ |
-| `edges[].label` | `ドロップ`、`素材`、`購入`、`挑戦` など流れの種類（任意） |
+| `edges[].fromPort` / `edges[].toPort` | 始点・終点の接続面（任意）。`top`、`right`、`bottom`、`left` を指定できる。省略時はエディタが選ぶ |
+| `edges[].label` | `ドロップ`、`素材`、`交換`、`挑戦` など流れの種類（任意） |
 | `edges[].note` | 補足（任意） |
 | `edges[].classes` | この矢印が該当する職業の `class:<id>` 一覧（任意）。省略時は全職業共通 |
 
 ## 読み方
 
-- 矢印は「from を経て to に進む・得る」を表します。ショップから購入アイテムへの矢印は購入、モブから素材への矢印はドロップのように、`label` で種類を示します。
+- 矢印は案内や操作の流れ、マスター間の関係を表します。ショップからアイテムへの矢印は購入や交換、モブから素材への矢印はドロップのように、必要に応じて `label` で種類を示します。
 - 職業ごとに異なる進行は、該当するノードまたは矢印へ `classes` を付けます。ある職業の流れは、`classes` が未指定のノード・矢印と、その職業を含むノード・矢印で構成されます。矢印は両端のノードが表示される場合だけ有効です。
 - 参照先の名前・アイコン・性能は参照先のマスターを正とし、フローには複製しません。`label` は補足が必要な場合だけ使います。
 - 1ファイルは1つの進行テーマ（例: 序盤の武器更新、特定ダンジョンの攻略準備）にまとめます。
+
+ノードや矢印を配置する際は、[図の作成ルール](../../00_docs/50_Filebase設計書/feature/95-game_flow.md#図の作成ルール)を参照してください。
 
 ## 記載例
 
@@ -42,13 +46,15 @@ id: sample_eriva_weapons
 name: "サンプル: エリヴァ武器を揃えて風切りの草原へ"
 classes: [class:swordsman, class:hunter, class:mage]
 nodes:
+  - { id: weapon_craftsman, ref: mob:weapon_craftsman, label: "武器職人（NPC）", x: 600, y: -80 }
   - { id: weapon_shop, ref: shop:weapon_craftsman_shop, x: 600, y: 80 }
   - { id: sword, ref: item:20a00073, classes: [class:swordsman], x: 900, y: -80 }
   - { id: short_bow, ref: item:20a00077, classes: [class:hunter], x: 900, y: 80 }
   - { id: windscar_steppe, ref: dungeon:eriva_windscar_steppe, x: 1200, y: 80 }
 edges:
-  - { from: weapon_shop, to: sword, label: "購入" }
-  - { from: weapon_shop, to: short_bow, label: "購入" }
+  - { from: weapon_craftsman, to: weapon_shop, fromPort: bottom, toPort: top, label: "店を開く" }
+  - { from: weapon_shop, to: sword, label: "交換" }
+  - { from: weapon_shop, to: short_bow, label: "交換" }
   - { from: sword, to: windscar_steppe, label: "挑戦" }
   - { from: short_bow, to: windscar_steppe, label: "挑戦" }
 ```
