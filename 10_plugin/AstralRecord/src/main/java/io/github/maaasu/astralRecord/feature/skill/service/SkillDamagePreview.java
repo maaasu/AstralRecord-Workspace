@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageCalculator;
 import io.github.maaasu.astralRecord.feature.combat.service.CombatTimingCalculator;
+import io.github.maaasu.astralRecord.feature.skill.gui.SkillLore;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
@@ -74,14 +75,12 @@ public final class SkillDamagePreview {
 
     /** 計算した数値を単位付きの項目として表示します。 */
     private static Component row(String label, double value, String unit) {
-        return Component.text(label, NamedTextColor.AQUA)
-                .append(Component.space())
-                .append(Component.text(number(value) + unit, NamedTextColor.WHITE));
+        return SkillLore.row(label, SkillLore.value(number(value) + unit));
     }
 
     /** 個別の計算条件・補足を1行で表示します。 */
     private static Component note(String condition) {
-        return Component.text(condition, NamedTextColor.GRAY);
+        return SkillLore.note(condition);
     }
 
     /** 表示用に小数第2位まで丸めます。 */
@@ -334,7 +333,6 @@ public final class SkillDamagePreview {
         return new Attack(type, element, ratio, ratio, count, interval, 1);
     }
 
-    /** 誘発ごとの攻撃性能とビルドから求められる支援値を表示します。定義上の効果は解決済みLoreを使います。 */
     /** 発動周期を決められない攻撃と、回復・支援スキルの性能を表示します。 */
     private static Report supportOrCondition(StatusSnapshot stats, SkillDefinition skill, SkillParamReader params,
                                              long cooldown, long cast) {
