@@ -267,6 +267,8 @@
 .game-flow-token-fill::after { content: ''; inset: 3px; background: var(--surface-raised); }
 .game-flow-token-icon { position: relative; z-index: 1; display: grid; place-items: center; }
 .game-flow-token-icon .minecraft-icon { width: 36px; height: 36px; image-rendering: pixelated; }
+.game-flow-token-icon .game-flow-token-skin { width: 32px; height: 32px; border: 0; border-radius: 0; background: transparent; }
+.game-flow-token-skin .minecraft-head-face { width: 100%; }
 .game-flow-token-icon .master-reference-symbol { display: grid; place-items: center; font-size: 22px; }
 .game-flow-token-person { display: grid; justify-items: center; gap: 3px; color: var(--kind); }
 .game-flow-token-person::before { content: ''; width: 12px; height: 12px; border-radius: 50%; background: currentColor; }

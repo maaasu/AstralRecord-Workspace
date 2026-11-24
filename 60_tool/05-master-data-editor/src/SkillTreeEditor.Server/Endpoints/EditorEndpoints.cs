@@ -44,6 +44,24 @@ public static class EditorEndpoints
                         detail: exception.Message);
                 }
             }).AllowMobileEdit();
+            api.MapGet("/minecraft-npc-skins/{hash}", async (
+                string hash, MinecraftIconService icons, IHttpClientFactory clients, HttpContext context, CancellationToken token) =>
+            {
+                using var client = clients.CreateClient(MinecraftIconService.NpcSkinClientName);
+                try
+                {
+                    var path = await icons.GetNpcSkinPathAsync(hash, client, token);
+                    if (path is null) return Results.NotFound();
+                    context.Response.Headers.CacheControl = "private, max-age=86400";
+                    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+                    return Results.File(path, "image/png", lastModified: File.GetLastWriteTimeUtc(path));
+                }
+                catch (Exception exception) when (exception is HttpRequestException or HttpIOException or InvalidDataException
+                    || exception is OperationCanceledException && !token.IsCancellationRequested)
+                {
+                    return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+                }
+            });
         }
 
         if (endpoints.ServiceProvider.GetService<WorkspaceItemTextures>() is not null)

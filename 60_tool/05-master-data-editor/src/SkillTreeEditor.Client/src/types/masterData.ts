@@ -46,6 +46,7 @@ export interface MasterFileSummary {
   customModelData?: number | null
   iconTexture?: string | null
   iconModel?: string | null
+  skinTexture?: string | null
 }
 
 export interface MasterDocument {

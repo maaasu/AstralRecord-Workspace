@@ -80,6 +80,8 @@ public static class EditorApplication
             client.Timeout = TimeSpan.FromSeconds(15);
             client.DefaultRequestHeaders.UserAgent.ParseAdd("AstralRecord-SkillTreeEditor/1.0");
         });
+        builder.Services.AddHttpClient(MinecraftIconService.NpcSkinClientName)
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
 
         var app = builder.Build();
         if (mobile is null)

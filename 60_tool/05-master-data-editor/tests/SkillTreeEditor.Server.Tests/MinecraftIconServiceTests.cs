@@ -29,6 +29,41 @@ public sealed class MinecraftIconServiceTests
     }
 
     [Fact]
+    public async Task NpcSkinUsesOfficialTextureHostAndCachesByHash()
+    {
+        using var context = new IconTestContext((_, _) => Task.FromResult(PngResponse()));
+        var first = await context.Service.GetNpcSkinPathAsync("ABc123", context.Client, CancellationToken.None);
+        var second = await context.Service.GetNpcSkinPathAsync("abc123", context.Client, CancellationToken.None);
+
+        Assert.Equal(Path.Combine(context.Paths.MinecraftIconCache, "skin-abc123.png"), first);
+        Assert.Equal(first, second);
+        Assert.Equal(PngBytes, await File.ReadAllBytesAsync(first!));
+        Assert.Equal("https://textures.minecraft.net/texture/abc123", Assert.Single(context.Handler.Requests).AbsoluteUri);
+    }
+
+    [Theory]
+    [InlineData("../abc123")]
+    [InlineData("https://example.com/texture/abc123")]
+    [InlineData("abc123\n")]
+    public async Task NpcSkinRejectsInvalidHashesBeforeContactingTextureHost(string hash)
+    {
+        using var context = new IconTestContext((_, _) => throw new InvalidOperationException("invalid hashes should avoid HTTP"));
+
+        Assert.Null(await context.Service.GetNpcSkinPathAsync(hash, context.Client, CancellationToken.None));
+        Assert.Empty(context.Handler.Requests);
+    }
+
+    [Fact]
+    public async Task NpcSkinDoesNotCacheMissingTextures()
+    {
+        using var context = new IconTestContext((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound)));
+
+        Assert.Null(await context.Service.GetNpcSkinPathAsync("abc123", context.Client, CancellationToken.None));
+        Assert.Single(context.Handler.Requests);
+        Assert.False(Directory.Exists(context.Paths.MinecraftIconCache));
+    }
+
+    [Fact]
     public async Task GetIconPathDownloadsOnceAndThenUsesWorkspaceCache()
     {
         var workspace = Path.Combine(Path.GetTempPath(), $"skilltree-icon-test-{Guid.NewGuid():N}");
@@ -311,6 +346,7 @@ public sealed class MinecraftIconServiceTests
     {
         private readonly string _workspace = Path.Combine(Path.GetTempPath(), $"skilltree-icon-test-{Guid.NewGuid():N}");
         private readonly HttpClient _client;
+        public HttpClient Client => _client;
         public RoutingHandler Handler { get; }
         public WorkspacePaths Paths { get; }
         public MinecraftIconService Service { get; }
