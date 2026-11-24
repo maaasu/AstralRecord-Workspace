@@ -1,0 +1,85 @@
+# design:
+#   motif: "進行設計 / 冒険の始まり"
+#   progression: 0
+schemaVersion: 1
+type: GAME_FLOW
+id: beginner_onboarding_chapter_1
+name: "第1章 グラスボアを1体倒そう"
+description: "第1章の6手順をガイドの案内順に表示する。各手順は順不同で達成でき、ガイドは最初の未達成手順を案内する。"
+nodes:
+  - id: open_menu
+    label: "メインメニューを開く"
+    note: "案内具を使う。"
+    x: 0
+    y: 0
+  - id: receive_welcome_mail
+    ref: mail:welcome_mail
+    label: "初回メールの贈り物を受け取る"
+    note: "初ログイン記念の贈り物を受け取る。受取済み・対象外の場合は達成が補完される。"
+    x: 320
+    y: 0
+  - id: open_initial_bundle
+    ref: item:50a00001
+    label: "初ログインバンドルを開ける"
+    note: "バンドルをホットバーに入れて手に持ち、「使う」操作で開封する。初回メールが受取済み・対象外で、未開封のバンドルが手持ちや倉庫にない場合は達成が補完される。"
+    x: 640
+    y: 0
+  - id: buy_starter_weapon
+    ref: shop:general_goods_shop
+    label: "簡素な武器を購入する"
+    note: "雑貨商ミナの店で商品 nox_weapon を購入する。"
+    x: 0
+    y: 240
+  - id: equip_starter_weapon
+    ref: item:20a00001
+    label: "簡素な武器を主手に装備する"
+    note: "装備画面でバッグの武器を選ぶ。"
+    x: 320
+    y: 240
+  - id: defeat_grassboar
+    ref: mob:midgard_grassboar
+    label: "グラスボアを1体倒す"
+    note: "案内先はミズガルズの緑野。対象IDの討伐で達成する。"
+    x: 640
+    y: 240
+  - id: chapter_clear
+    ref: guide:beginner_onboarding
+    label: "第1章クリア"
+    note: "6手順すべてを達成するとクリア。"
+    x: 0
+    y: 480
+  - id: claim_chapter_reward
+    label: "宝箱から報酬を請求する"
+    note: "報酬が設定済みで受取可能な場合、ガイド一覧・詳細の宝箱から一度だけ請求できる。"
+    x: 320
+    y: 480
+  - id: receive_chapter_reward
+    label: "報酬メールの添付を受け取る"
+    note: "請求時に発行されたメールを開く。"
+    x: 640
+    y: 480
+edges:
+  - from: open_menu
+    to: receive_welcome_mail
+    label: "案内順"
+  - from: receive_welcome_mail
+    to: open_initial_bundle
+    label: "案内順"
+  - from: open_initial_bundle
+    to: buy_starter_weapon
+    label: "案内順（順不同で達成可）"
+  - from: buy_starter_weapon
+    to: equip_starter_weapon
+    label: "案内順"
+  - from: equip_starter_weapon
+    to: defeat_grassboar
+    label: "案内順"
+  - from: defeat_grassboar
+    to: chapter_clear
+    label: "全6手順を達成"
+  - from: chapter_clear
+    to: claim_chapter_reward
+    label: "設定済み・受取可"
+  - from: claim_chapter_reward
+    to: receive_chapter_reward
+    label: "報酬メール発行"
