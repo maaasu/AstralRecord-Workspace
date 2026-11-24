@@ -20,7 +20,7 @@
     },
     "nodes": {
       "title": "ノード",
-      "description": "マスター参照またはメモ。記載順は表示順とは無関係。",
+      "description": "マスター参照・操作・メモ。記載順は表示順とは無関係。",
       "type": "array",
       "default": [],
       "items": {
@@ -29,10 +29,13 @@
         "additionalProperties": false,
         "required": ["id"],
         "anyOf": [{ "required": ["ref"] }, { "required": ["label"] }],
+        "if": { "required": ["role"] },
+        "then": { "required": ["label"], "not": { "required": ["ref"] } },
         "properties": {
           "id": { "title": "ノードID", "description": "フロー内で一意。矢印の from / to で使う。", "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
           "ref": { "title": "マスター参照", "description": "dungeon:<id>、shop:<id>、item:<id> など config.yml の参照接頭辞付きID。", "type": "string", "pattern": "^[a-z_]+:[A-Za-z0-9_.\\-]+$" },
-          "label": { "title": "表示名", "description": "参照なしのメモノードの名前。参照ありの場合は表示名の上書き。", "type": "string", "pattern": "\\S" },
+          "role": { "title": "参照のないノードの役割", "description": "操作は action。マスターを参照しない付箋のメモでは省略する。", "type": "string", "enum": ["action"] },
+          "label": { "title": "表示名", "description": "参照なしの操作やメモの名前。参照ありの場合は表示名の上書き。", "type": "string", "pattern": "\\S" },
           "note": { "title": "補足", "description": "目的・条件・周回数などの説明。", "type": "string" },
           "classes": {
             "title": "対象職業",
@@ -59,6 +62,8 @@
         "properties": {
           "from": { "title": "始点ノードID", "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
           "to": { "title": "終点ノードID", "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
+          "fromPort": { "title": "始点の接続位置", "description": "始点ノードの上・右・下・左。省略時はノードの位置から決まる。", "type": "string", "enum": ["top", "right", "bottom", "left"] },
+          "toPort": { "title": "終点の接続位置", "description": "終点ノードの上・右・下・左。省略時はノードの位置から決まる。", "type": "string", "enum": ["top", "right", "bottom", "left"] },
           "label": { "title": "ラベル", "description": "ドロップ・購入・挑戦など、流れの種類。", "type": "string" },
           "note": { "title": "補足", "type": "string" },
           "classes": {

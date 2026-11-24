@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  addNode, addShopPurchases, applySuggestions, canConnect, freeSlot, planSuggestions, suggestFor, connect, gameFlowOutline, parseGameFlow, refKind, removeNodes,
-  serializeGameFlow, uniqueNodeId, visibleFlow, type GameFlowContext,
+  addNode, addShopPurchases, applySuggestions, canConnect, freeSlot, planSuggestions, suggestFor, connect, edgePorts, gameFlowOutline,
+  gameFlowPorts, nodeKind, parseGameFlow, refKind, removeNodes, serializeGameFlow, uniqueNodeId, visibleFlow, type GameFlowContext,
 } from './gameFlow'
 
 const source = {
@@ -26,6 +26,43 @@ describe('game flow', () => {
   it('round-trips and keeps unknown keys', () => {
     const flow = parseGameFlow(source)
     expect(serializeGameFlow(flow)).toEqual(source)
+  })
+
+  it('keeps legacy notes and their attached edges alongside new actions and port metadata', () => {
+    const persisted = {
+      ...source,
+      nodes: [...source.nodes, { id: 'action', role: 'action', label: '装備する', x: 600, y: 260 }],
+      edges: [...source.edges, { from: 'memo', to: 'shop' }, { from: 'bow', to: 'action', fromPort: 'bottom', toPort: 'right' }],
+    }
+    const flow = parseGameFlow(persisted)
+    expect(nodeKind(flow.nodes[4])).toBe('note')
+    expect(nodeKind(flow.nodes[5])).toBe('action')
+    expect(serializeGameFlow(flow)).toEqual(persisted)
+  })
+
+  it('uses the resolved mob path to distinguish NPCs', () => {
+    const node = { ref: 'm:general_goods_merchant' }
+    const prefixes = { m: 'mob' }
+    expect(nodeKind(node, prefixes, '40.features.mob/npc/v1.general_goods_merchant.yml')).toBe('npc')
+    expect(nodeKind(node, prefixes, '40.features.mob/enemy/v1.general_goods_merchant.yml')).toBe('mob')
+  })
+
+  it.each(gameFlowPorts)('keeps %s as the chosen start and end in opposing connections after a move', port => {
+    const initial = parseGameFlow(source)
+    const outgoing = connect(initial, 'sword', 'steppe', undefined, [], { fromPort: port, toPort: 'top' })
+    const connected = connect(outgoing, 'steppe', 'sword', undefined, [], { fromPort: 'bottom', toPort: port })
+    const [start, end] = parseGameFlow(serializeGameFlow(connected)).edges.slice(-2)
+    expect(edgePorts(start, { x: 4, y: 400 }, { x: 0, y: 0 })).toEqual({ fromPort: port, toPort: 'top' })
+    expect(edgePorts(end, { x: 0, y: 0 }, { x: 4, y: 400 })).toEqual({ fromPort: 'bottom', toPort: port })
+  })
+
+  it.each([
+    [320, 0, 'right', 'left'],
+    [-320, 0, 'left', 'right'],
+    [0, -180, 'top', 'bottom'],
+    [0, 180, 'bottom', 'top'],
+  ])('chooses opposing ports for a legacy edge to (%i, %i)', (x, y, fromPort, toPort) => {
+    expect(edgePorts({}, { x: 0, y: 0 }, { x, y })).toEqual({ fromPort, toPort })
   })
 
   it('omits empty optional values on save', () => {
@@ -144,8 +181,13 @@ describe('game flow suggestions', () => {
 
   it('places previous suggestions on the left and gives items their equipment classes', () => {
     const applied = applySuggestions(flow, 'cave', suggestFor(flow, 'cave', context, aliases).previous, context, ['class:mage'])
-    expect(applied.nodes.at(-1)).toMatchObject({ ref: 'world:field', x: -300, y: 0, classes: ['class:mage'] })
-    expect(applied.edges.at(-1)).toMatchObject({ from: 'field', to: 'cave', label: '入場' })
+    const node = applied.nodes.at(-1)!
+    const edge = applied.edges.at(-1)!
+    expect(node).toMatchObject({ ref: 'world:field', x: -300, y: 0, classes: ['class:mage'] })
+    expect(edge).toMatchObject({ from: 'field', to: 'cave', label: '入場' })
+    expect(edge).not.toHaveProperty('fromPort')
+    expect(edge).not.toHaveProperty('toPort')
+    expect(edgePorts(edge, node, applied.nodes[0])).toEqual({ fromPort: 'right', toPort: 'left' })
     const bow = applySuggestions(flow, 'boar', [{ ref: 'item:bow', label: 'ドロップ', direction: 'next' }], context, ['class:mage'])
     expect(bow.nodes.at(-1)?.classes).toEqual(['class:hunter'])
   })
