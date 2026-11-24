@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillRequiredItemDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillSigilSlotDefinition;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillSynthesisMaterialEligibility.MaterialKind;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillIconCatalog;
@@ -57,6 +58,8 @@ import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillDamagePreview;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -72,6 +75,8 @@ public final class SkillBindGui {
     public static final int CONTENT_SLOT_COUNT = 45;
     public static final int PREVIOUS_PAGE_SLOT = 45;
     public static final int BACK_SLOT = 49;
+    public static final int PERFORMANCE_BOOK_SLOT = 50;
+    public static final int PERFORMANCE_NORMAL_ATTACK_SLOT = 51;
     public static final int NEXT_PAGE_SLOT = 53;
     /** 下段 PlayerInventory に同時表示する横スクロール枠数です。 */
     public static final int PLAYER_INVENTORY_VISIBLE_BIND_SLOT_COUNT = 7;
@@ -89,6 +94,8 @@ public final class SkillBindGui {
     public static final int DETAIL_SKILL_SLOT = 13;
     public static final int DETAIL_LEVEL_UP_SLOT = 15;
     public static final int DETAIL_BACK_SLOT = 22;
+    private static final int PERFORMANCE_METRICS_SLOT = 11;
+    private static final int PERFORMANCE_CONDITIONS_SLOT = 15;
 
     public static final int SYNTHESIS_SKILL_SLOT = 20;
     public static final int SYNTHESIS_MATERIAL_SLOT = 22;
@@ -104,6 +111,9 @@ public final class SkillBindGui {
     private final SkillService skillService;
     private final ConfirmDialogView confirmDialogView = new ConfirmDialogView();
     private ToLongBiFunction<UUID, String> requiredItemOwnedAmountProvider = (accountId, itemId) -> 0L;
+
+    private enum UnlearnedAction { LEARN, SELECTED_BIND_SLOT, BUSY, VIEW }
+    private enum LearnedDisplay { MANAGE, VIEW, DETAIL }
 
     /**
      * Plugin の namespace を利用してスキルマネージャー GUI を構築します。
@@ -215,12 +225,14 @@ public final class SkillBindGui {
 
         int start = GuiPagination.pageStart(page, CONTENT_SLOT_COUNT);
         int end = GuiPagination.pageEnd(page, displayCount, CONTENT_SLOT_COUNT);
+        UnlearnedAction unlearnedAction = session.processingSkillId() != null ? UnlearnedAction.BUSY
+            : session.selectedBindType() == null ? UnlearnedAction.LEARN : UnlearnedAction.SELECTED_BIND_SLOT;
         for (int index = start; index < end; index++) {
             inventory.setItem(index - start, index < entries.size()
-                ? createLearnedSkillItem(entries.get(index), true, permittedSkillIds)
+                ? createLearnedSkillItem(entries.get(index), LearnedDisplay.MANAGE, permittedSkillIds, session, activePassiveSlots)
                 : createUnlearnedSkillItem(
                     unlearnedDefinitions.get(index - entries.size()), session.processingSkillId(), permittedSkillIds,
-                    session.selectedPreset().getAccountId()));
+                    session.selectedPreset().getAccountId(), unlearnedAction));
         }
 
         inventory.setItem(PREVIOUS_PAGE_SLOT, createPreviousPageItem(page, pages, page > 0));
@@ -230,7 +242,131 @@ public final class SkillBindGui {
             GuiItems.MAIN_MENU_HEAD_TEXTURE
         )));
         inventory.setItem(NEXT_PAGE_SLOT, createNextPageItem(page, pages, page + 1 < pages));
+        inventory.setItem(PERFORMANCE_BOOK_SLOT, performanceBook("性能内訳", "対象スキルと算出条件を確認"));
         return inventory;
+    }
+
+    /**
+     * 性能を閲覧する対象だけを選ぶ一覧を生成します。
+     * @param session 現在の編集セッション
+     * @param entries 習得済みスキル
+     * @param unlearned 現在許可されている未習得スキル
+     * @param permitted 使用許可スキルID
+     * @param pageIndex 対象一覧ページ
+     * @return スキル編集を行わない一覧
+     */
+    public @NotNull Inventory createPerformanceList(
+        SkillBindSession session, List<SkillManagerEntry> entries, List<SkillDefinition> unlearned,
+        Set<String> permitted, int pageIndex
+    ) {
+        int count = entries.size() + unlearned.size();
+        int page = normalizePage(pageIndex, count);
+        int pages = totalPages(count);
+        Inventory inventory = Bukkit.createInventory(
+            new SkillBindInventoryHolder(SkillBindScreen.PERFORMANCE_LIST, session.selectedPresetIndex(), page),
+            SIZE, Component.text("性能内訳　対象を選択 " + (page + 1) + "/" + pages, NamedTextColor.AQUA)
+        );
+        fill(inventory);
+        int start = GuiPagination.pageStart(page, CONTENT_SLOT_COUNT);
+        int end = GuiPagination.pageEnd(page, count, CONTENT_SLOT_COUNT);
+        for (int index = start; index < end; index++) {
+            inventory.setItem(index - start, index < entries.size()
+                ? createLearnedSkillItem(entries.get(index), LearnedDisplay.VIEW, permitted, null, 0)
+                : createUnlearnedSkillItem(unlearned.get(index - entries.size()), null, permitted,
+                    session.selectedPreset().getAccountId(), UnlearnedAction.VIEW));
+        }
+        inventory.setItem(PREVIOUS_PAGE_SLOT, createPreviousPageItem(page, pages, page > 0));
+        inventory.setItem(NEXT_PAGE_SLOT, createNextPageItem(page, pages, page + 1 < pages));
+        inventory.setItem(BACK_SLOT, GuiItems.backButton(new GuiNavigationDestination(
+            Material.ENCHANTING_TABLE, "スキルマネージャー")));
+        ItemStack attack = createItem(Material.STICK, "武器通常攻撃", NamedTextColor.WHITE,
+            List.of(SkillLore.note("クリックで性能内訳を表示")));
+        inventory.setItem(PERFORMANCE_NORMAL_ATTACK_SLOT,
+            SkillIconCatalog.apply(attack, SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID));
+        return inventory;
+    }
+
+    /**
+     * 対象の性能と算出条件を別々のアイテムで表示する閲覧画面を生成します。
+     * @param session 現在の編集セッション
+     * @param owner 試算対象のプレイヤー
+     * @param skill 閲覧するスキル、通常攻撃の場合は null
+     * @param entry 習得済み個体がある場合はその解決結果
+     * @param permitted 効果の表示判定に使う使用許可スキルID
+     * @param page 対象一覧のページ
+     * @return 表示専用の性能詳細画面
+     */
+    public @NotNull Inventory createPerformanceDetail(
+        SkillBindSession session, AstPlayer owner, @Nullable SkillDefinition skill, @Nullable SkillManagerEntry entry,
+        Set<String> permitted, int page
+    ) {
+        Inventory inventory = Bukkit.createInventory(
+            new SkillBindInventoryHolder(SkillBindScreen.PERFORMANCE_DETAIL, session.selectedPresetIndex(), page),
+            DETAIL_SIZE, Component.text("性能内訳", NamedTextColor.AQUA)
+        );
+        fill(inventory);
+        List<Component> metrics = new ArrayList<>();
+        List<Component> conditions = new ArrayList<>();
+        ResolvedLearnedSkill resolved = entry == null && skill != null
+            ? firstLevel(skill, owner.getAccount().getUuid()) : entry == null ? null : entry.resolved();
+        SkillDamagePreview.Report report;
+        if (skill == null) {
+            report = normalAttackPreview.apply(owner);
+            SkillLore.section(metrics, "性能", NamedTextColor.GOLD);
+        } else if (resolved != null) {
+            report = appendCastMetrics(metrics, resolved);
+        } else {
+            report = SkillDamagePreview.Report.empty();
+            appendBaseCastCostLore(metrics, skill);
+        }
+        if (!report.summary().isEmpty() || !report.details().isEmpty()) {
+            if (skill != null) SkillLore.section(metrics, "試算値", NamedTextColor.GOLD);
+            metrics.addAll(report.summary());
+            metrics.addAll(report.details());
+        }
+        if (skill != null) {
+            metrics.addAll(resolved == null
+                ? SkillPresentationUtil.skillDescriptionAndFlavorLore(skill, permitted, NamedTextColor.GRAY)
+                : SkillPresentationUtil.skillDescriptionAndFlavorLore(resolved, permitted, NamedTextColor.GRAY));
+        }
+        SkillLore.section(conditions, "算出条件", NamedTextColor.AQUA);
+        conditions.addAll(report.conditions());
+        if (report.conditions().isEmpty()) {
+            conditions.add(SkillLore.note("対象の効果と発動条件は性能アイテムに表示"));
+        }
+        if (skill != null) {
+            conditions.add(SkillLore.row("使用許可", permissionText(entry == null || entry.permitted())));
+        }
+        ItemStack indicator;
+        if (skill == null) {
+            if (report.summary().isEmpty() && report.details().isEmpty()) {
+                metrics.add(SkillLore.note("主手の武器に対応する試算を表示"));
+            }
+            indicator = SkillIconCatalog.apply(createItem(Material.STICK, "武器通常攻撃", NamedTextColor.WHITE, metrics),
+                SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID);
+        } else {
+            int level = entry == null ? 1 : entry.learnedSkill().getLevel();
+            Component name = SkillPresentationUtil.skillNameComponent(skill, "未登録のスキル", NamedTextColor.WHITE)
+                .append(Component.text(" Lv." + level, NamedTextColor.GOLD));
+            if (entry == null) name = name.append(Component.text("（習得時）", NamedTextColor.GRAY));
+            indicator = createSkillItem(skill, entry == null || entry.permitted(), name, metrics);
+        }
+        inventory.setItem(PERFORMANCE_METRICS_SLOT, indicator);
+        inventory.setItem(PERFORMANCE_CONDITIONS_SLOT, SkillLore.style(
+            performanceBook("算出条件", conditions), null));
+        inventory.setItem(DETAIL_BACK_SLOT, GuiItems.backButton(
+            new GuiNavigationDestination(Material.KNOWLEDGE_BOOK, "性能内訳の対象一覧")));
+        return inventory;
+    }
+
+    /** 配布パックと同じガイドの書を使う操作アイコンを生成します。 */
+    private ItemStack performanceBook(String name, String instruction) {
+        return performanceBook(name, List.of(SkillLore.note(instruction)));
+    }
+
+    /** 配布パックと同じガイドの書を使う説明アイコンを生成します。 */
+    private ItemStack performanceBook(String name, List<Component> lore) {
+        return GuiResourcePackIcons.apply(createItem(Material.KNOWLEDGE_BOOK, name, NamedTextColor.AQUA, lore), "guide");
     }
 
     /**
@@ -284,6 +420,30 @@ public final class SkillBindGui {
         boolean mutationInProgress,
         @NotNull Set<String> permittedSkillIds
     ) {
+        return createDetailInventory(session, entry, returnPage, mutationInProgress, false, permittedSkillIds,
+            SkillBindPreset.PASSIVE_SLOT_COUNT);
+    }
+
+    /**
+     * 強化比較と実際に利用できるバインド枠を含む詳細画面を生成します。
+     * @param session 編集中セッション
+     * @param entry 習得スキルと解決結果
+     * @param returnPage 一覧に戻るページ
+     * @param mutationInProgress 更新処理中かどうか
+     * @param canQueueLevelUp 更新処理中でも次の強化を受け付けるか
+     * @param permittedSkillIds 現在の使用許可スキル
+     * @param activePassiveSlots 利用可能なパッシブ枠数
+     * @return スキル詳細画面
+     */
+    public @NotNull Inventory createDetailInventory(
+        @NotNull SkillBindSession session,
+        @NotNull SkillManagerEntry entry,
+        int returnPage,
+        boolean mutationInProgress,
+        boolean canQueueLevelUp,
+        @NotNull Set<String> permittedSkillIds,
+        int activePassiveSlots
+    ) {
         Inventory inventory = Bukkit.createInventory(
             new SkillBindInventoryHolder(
                 SkillBindScreen.DETAIL,
@@ -295,38 +455,83 @@ public final class SkillBindGui {
             Component.text("スキル詳細", NamedTextColor.AQUA)
         );
         fill(inventory);
-        inventory.setItem(DETAIL_SKILL_SLOT, createLearnedSkillItem(entry, false, permittedSkillIds));
+        inventory.setItem(DETAIL_SKILL_SLOT,
+            createLearnedSkillItem(entry, LearnedDisplay.DETAIL, permittedSkillIds, null, 0));
         if (mutationInProgress) {
             ItemStack processing = GuiItems.processingItem();
             inventory.setItem(DETAIL_BIND_SLOT, processing.clone());
-            inventory.setItem(DETAIL_LEVEL_UP_SLOT, processing);
+            inventory.setItem(DETAIL_LEVEL_UP_SLOT,
+                canQueueLevelUp ? createLevelUpItem(entry, permittedSkillIds) : processing);
         } else {
-            inventory.setItem(
-                DETAIL_BIND_SLOT,
-                createItem(
-                    Material.NAME_TAG,
-                    "このスキルをバインド",
-                    NamedTextColor.GREEN,
-                    List.of(
-                        Component.text(bindTargetText(session), NamedTextColor.YELLOW),
-                        Component.text("クリックで設定", NamedTextColor.GRAY)
-                    )
-                )
+            List<Component> bindLore = List.of(
+                SkillLore.row("設定先", SkillLore.value(bindTargetText(session))),
+                bindAction(session, entry, activePassiveSlots)
             );
-            inventory.setItem(
-                DETAIL_LEVEL_UP_SLOT,
-                createItem(
-                    Material.ENCHANTED_BOOK,
-                    "レベルアップ",
-                    NamedTextColor.LIGHT_PURPLE,
-                    List.of(Component.text("クリックでレベルアップ", NamedTextColor.YELLOW))
-                )
-            );
+            inventory.setItem(DETAIL_BIND_SLOT, SkillLore.style(createItem(
+                Material.NAME_TAG, "バインド", NamedTextColor.GREEN, bindLore), null));
+            inventory.setItem(DETAIL_LEVEL_UP_SLOT, createLevelUpItem(entry, permittedSkillIds));
         }
         inventory.setItem(DETAIL_BACK_SLOT, GuiItems.backButton(
             new GuiNavigationDestination(Material.ENCHANTING_TABLE, "スキルマネージャー")
         ));
         return inventory;
+    }
+
+    /** 現在の選択枠と空き枠に応じたバインド操作の案内を返します。 */
+    private Component bindAction(SkillBindSession session, SkillManagerEntry entry, int activePassiveSlots) {
+        SkillDefinition skill = entry.definition();
+        if (skill.getKind().isPassive() && !skill.getPassiveBindRequired()) {
+            return SkillLore.note("このスキルはバインド不要");
+        }
+        if (skill.getKind().isPassive() && session.isBound(SkillBindType.PASSIVE, entry.bindingId())) {
+            return SkillLore.note("パッシブ枠に設定済み");
+        }
+        if (!session.canAssign(entry.bindingId(), skill.getKind(), activePassiveSlots, skill.getPassiveBindRequired())) {
+            return Component.text(session.selectedBindType() == null
+                ? "設定できる空き枠がありません" : "選択中の枠には設定できません", NamedTextColor.RED);
+        }
+        return SkillLore.note(session.selectedBindType() == null ? "クリックで空き枠に設定" : "クリックで選択中の枠に設定");
+    }
+
+    /** 次レベルをシジル込みで解決し、変化する効果、消費と試算値を表示します。 */
+    private ItemStack createLevelUpItem(SkillManagerEntry entry, Set<String> permittedSkillIds) {
+        SkillDefinition skill = entry.definition();
+        int level = entry.learnedSkill().getLevel();
+        List<Component> lore = new ArrayList<>();
+        SkillLore.section(lore, "強化", NamedTextColor.LIGHT_PURPLE);
+        if (level >= skill.getMaxLevel()) {
+            lore.add(SkillLore.row("レベル", Component.text("MAX", NamedTextColor.RED, TextDecoration.BOLD)));
+            return SkillLore.style(createItem(Material.ENCHANTED_BOOK, "レベルアップ", NamedTextColor.GRAY, lore), null);
+        }
+        lore.add(SkillLore.row("レベル", SkillLore.value("Lv." + level + " → Lv." + (level + 1))));
+        ResolvedLearnedSkill next = resolvedPreview(entry, level + 1, null);
+        if (next != entry.resolved()) {
+            var currentEffect = SkillPresentationUtil.skillDescriptionAndFlavorLore(entry.resolved(), permittedSkillIds, NamedTextColor.GRAY);
+            var nextEffect = SkillPresentationUtil.skillDescriptionAndFlavorLore(next, permittedSkillIds, NamedTextColor.GRAY);
+            if (!currentEffect.equals(nextEffect)) {
+                lore.add(SkillLore.note("Lv." + (level + 1) + " の効果"));
+                lore.addAll(nextEffect);
+            }
+            List<Component> currentMetrics = new ArrayList<>();
+            currentMetrics.addAll(appendCastMetrics(currentMetrics, entry.resolved()).summary());
+            List<Component> nextMetrics = new ArrayList<>();
+            nextMetrics.addAll(appendCastMetrics(nextMetrics, next).summary());
+            if (!currentMetrics.equals(nextMetrics)) {
+                lore.add(SkillLore.note("Lv." + (level + 1) + " の性能"));
+                lore.addAll(nextMetrics);
+            }
+        }
+        int currentSlots = sigilSlotCount(skill, level);
+        int nextSlots = sigilSlotCount(skill, level + 1);
+        if (nextSlots > currentSlots) {
+            lore.add(SkillLore.row("シジル枠", SkillLore.value(currentSlots + " → " + nextSlots + "枠")));
+        }
+        UUID accountId = entry.learnedSkill().getAccountId();
+        SkillLore.section(lore, "必要素材", NamedTextColor.AQUA);
+        appendRequiredItemLore(lore, skill.getLevelUpRequiredItems(), accountId);
+        appendAction(lore, hasRequiredItems(skill.getLevelUpRequiredItems(), accountId) ? SkillLore.note("クリックでレベルアップ")
+            : Component.text("素材がそろうと強化できます", NamedTextColor.RED));
+        return SkillLore.style(createItem(Material.ENCHANTED_BOOK, "レベルアップ", NamedTextColor.LIGHT_PURPLE, lore), null);
     }
 
     /**
@@ -412,7 +617,8 @@ public final class SkillBindGui {
             Component.text("スキル合成", NamedTextColor.LIGHT_PURPLE)
         );
         fill(inventory);
-        inventory.setItem(SYNTHESIS_SKILL_SLOT, createLearnedSkillItem(entry, false, permittedSkillIds));
+        inventory.setItem(SYNTHESIS_SKILL_SLOT,
+            createLearnedSkillItem(entry, LearnedDisplay.DETAIL, permittedSkillIds, null, 0));
         inventory.setItem(
             SYNTHESIS_MATERIAL_SLOT,
             material == null
@@ -524,41 +730,56 @@ public final class SkillBindGui {
      * @param level 現在のレベル
      * @param maxLevel 最大レベル
      * @param normalColor 最大レベル未満のレベル表示に使う色。null は不可
-     * @return 最大レベルなら赤色太字の {@code max}、それ以外は {@code Lv.現在/最大}
+     * @return {@code Lv.現在/最大} に最大レベル到達時の表示を付けた値
      */
     static @NotNull Component skillLevelDisplay(
         int level,
         int maxLevel,
         @NotNull NamedTextColor normalColor
     ) {
-        if (level == maxLevel) {
-            return Component.text(" ", normalColor)
-                .append(Component.text("max", NamedTextColor.RED, TextDecoration.BOLD));
-        }
-        return Component.text(" Lv." + level + "/" + maxLevel, normalColor);
+        Component rank = Component.text(" Lv." + level + "/" + maxLevel, normalColor);
+        return level >= maxLevel ? rank.append(Component.text(" 最大", NamedTextColor.GOLD, TextDecoration.BOLD)) : rank;
     }
 
+    /** 解決後の性能と、一覧の場合は現在のクリック結果を表示します。 */
     private ItemStack createLearnedSkillItem(
         SkillManagerEntry entry,
-        boolean listDisplay,
-        @NotNull Set<String> permittedSkillIds
+        LearnedDisplay display,
+        @NotNull Set<String> permittedSkillIds,
+        @Nullable SkillBindSession session,
+        int activePassiveSlots
     ) {
         List<Component> lore = new ArrayList<>();
+        lore.add(skillMeta(entry.definition(), entry.permitted()));
         appendLearnedSkillDetails(lore, entry, permittedSkillIds);
-        if (listDisplay) {
-            lore.add(separator());
-            lore.add(Component.text(
-                entry.learnedSkill().getLevel() >= entry.definition().getMaxLevel()
-                    ? "クリック: バインド"
-                    : "クリック: 詳細画面を開く（素材所持時）／素材不足時はバインド",
-                NamedTextColor.YELLOW
-            ));
+        if (display == LearnedDisplay.VIEW) {
+            appendAction(lore, SkillLore.note("クリックで性能内訳を表示"));
+        } else if (display == LearnedDisplay.MANAGE && session != null) {
+            List<String> slots = new ArrayList<>();
+            for (int index = 0; index < session.activeDraft().size(); index++) {
+                if (entry.bindingId().equals(session.activeDraft().get(index))) slots.add("アクション " + (index + 1));
+            }
+            for (int index = 0; index < session.passiveDraft().size(); index++) {
+                if (entry.bindingId().equals(session.passiveDraft().get(index))) slots.add("パッシブ " + (index + 1));
+            }
+            if (entry.bindingId().equals(session.leftClickDraft())) slots.add("左クリック");
+            if (!slots.isEmpty()) {
+                lore.add(SkillLore.row("設定先", Component.text(String.join("、", slots), NamedTextColor.AQUA)));
+            }
+            if (session.processingSkillId() != null) {
+                appendAction(lore, SkillLore.note("スキル更新の完了をお待ちください"));
+            } else if (entry.learnedSkill().getLevel() < entry.definition().getMaxLevel()
+                && hasRequiredItems(entry.definition().getLevelUpRequiredItems(), entry.learnedSkill().getAccountId())) {
+                appendAction(lore, SkillLore.note("クリックで強化・バインドの詳細を表示"));
+            } else {
+                appendAction(lore, bindAction(session, entry, activePassiveSlots));
+            }
         }
         SkillDefinition skill = entry.definition();
         ItemStack item = createSkillItem(
             skill,
             entry.permitted(),
-            SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE)
+            SkillPresentationUtil.skillNameComponent(skill, "未登録のスキル", NamedTextColor.WHITE)
                 .append(skillLevelDisplay(entry.learnedSkill().getLevel(), skill.getMaxLevel(), NamedTextColor.GOLD)),
             lore
         );
@@ -581,43 +802,15 @@ public final class SkillBindGui {
         @NotNull Set<String> permittedSkillIds
     ) {
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text(
-            permitted ? "使用許可: あり" : "使用許可: なし",
-            permitted ? NamedTextColor.GREEN : NamedTextColor.RED
-        ));
-        lore.add(Component.text(
-            resolved == null ? "習得状態: 未習得" : "習得状態: 習得済み",
-            resolved == null ? NamedTextColor.RED : NamedTextColor.LIGHT_PURPLE
-        ));
-        if (resolved != null) {
-            lore.add(Component.text(
-                "現在レベル: Lv." + resolved.learnedSkill().getLevel()
-                    + " / 最大 Lv." + definition.getMaxLevel(),
-                NamedTextColor.GOLD
-            ));
-        }
-        lore.add(separator());
-
+        lore.add(skillMeta(definition, permitted));
         if (resolved == null) {
             lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(
                 definition, permittedSkillIds, NamedTextColor.GRAY
             ));
-            if (!lore.isEmpty()) {
-                lore.add(separator());
-            }
             appendBaseCastCostLore(lore, definition);
-            lore.add(separator());
-            String tagNames = SkillPresentationUtil.skillTagDisplayNames(definition,
-                Set.of(MasterTagIds.Activity.ACTIVE, MasterTagIds.Activity.PASSIVE));
-            if (!tagNames.isBlank()) {
-                lore.add(Component.text("タグ: " + tagNames, NamedTextColor.DARK_AQUA));
-            }
-            lore.add(Component.text(
-                "種別: " + (definition.getKind().isPassive() ? "パッシブ" : "アクティブ"),
-                NamedTextColor.GRAY
-            ));
-            lore.add(Component.text("現在レベル: なし / 最大 Lv." + definition.getMaxLevel(), NamedTextColor.DARK_GRAY));
-            lore.add(Component.text("シジル: 未習得のため装着なし", NamedTextColor.DARK_GRAY));
+            SkillLore.section(lore, "習得条件", NamedTextColor.AQUA);
+            appendRequiredItemLore(lore, definition.getLearnRequiredItems(), null);
+            lore.add(SkillLore.row("最大レベル", SkillLore.value("Lv." + definition.getMaxLevel())));
         } else {
             appendLearnedSkillDetails(
                 lore,
@@ -633,6 +826,8 @@ public final class SkillBindGui {
             name = name.append(skillLevelDisplay(
                 resolved.learnedSkill().getLevel(), definition.getMaxLevel(), NamedTextColor.GOLD
             ));
+        } else {
+            name = name.append(Component.text(" 未習得", NamedTextColor.GRAY));
         }
         return createSkillItem(definition, permitted, name, lore);
     }
@@ -642,51 +837,93 @@ public final class SkillBindGui {
         @NotNull SkillDefinition skill,
         @Nullable String processingSkillId,
         @NotNull Set<String> permittedSkillIds,
-        @NotNull UUID accountId
+        @NotNull UUID accountId,
+        @NotNull UnlearnedAction action
     ) {
         if (processingSkillId != null && processingSkillId.equalsIgnoreCase(skill.getId())) {
             return GuiItems.processingItem();
         }
         List<Component> lore = new ArrayList<>();
+        lore.add(skillMeta(skill, true));
         lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(
             skill, permittedSkillIds, NamedTextColor.GRAY
         ));
-        lore.add(separator());
-        lore.add(Component.text("未習得", NamedTextColor.RED));
-        var firstLevel = skillService.resolveLearnedSkill(new LearnedSkillInstance(
-            PREVIEW_INSTANCE_ID, accountId, skill.getId(), 1, List.of(), 0, null, null));
-        if (firstLevel != null) appendCastCostLore(lore, firstLevel);
-        appendRequiredItemLore(lore, skill.getLearnRequiredItems(), "習得に必要な素材", accountId);
-        lore.add(Component.text("左クリック: 習得", NamedTextColor.YELLOW));
+        var firstLevel = firstLevel(skill, accountId);
+        if (firstLevel == null) appendBaseCastCostLore(lore, skill);
+        else appendCastCostLore(lore, firstLevel);
+        SkillLore.section(lore, "習得条件", NamedTextColor.AQUA);
+        appendRequiredItemLore(lore, skill.getLearnRequiredItems(), accountId);
+        appendAction(lore, switch (action) {
+            case VIEW -> SkillLore.note("クリックで性能内訳を表示");
+            case SELECTED_BIND_SLOT -> SkillLore.note("バインド枠の選択中は習得できません");
+            case BUSY -> SkillLore.note("スキル更新の完了をお待ちください");
+            case LEARN -> hasRequiredItems(skill.getLearnRequiredItems(), accountId)
+                ? SkillLore.note("左クリックで習得")
+                : Component.text("素材がそろうと習得できます", NamedTextColor.RED);
+        });
         ItemStack item = createSkillItem(skill, true,
-            SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE), lore);
+            SkillPresentationUtil.skillNameComponent(skill, "未登録のスキル", NamedTextColor.WHITE)
+                .append(Component.text(" 未習得", NamedTextColor.GRAY)), lore);
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(unlearnedSkillIdKey, PersistentDataType.STRING, skill.getId());
         item.setItemMeta(meta);
         return item;
     }
 
+    /** 未習得の初期性能を、実行時と同じ解決処理で取得します。 */
+    private @Nullable ResolvedLearnedSkill firstLevel(SkillDefinition skill, UUID accountId) {
+        return skillService.resolveLearnedSkill(new LearnedSkillInstance(
+            PREVIEW_INSTANCE_ID, accountId, skill.getId(), 1, List.of(), 0, null, null));
+    }
+
+    /** 同一素材への複数の要求を、支払い処理と同じく合算します。 */
+    private Map<String, Long> materialAmounts(List<SkillRequiredItemDefinition> costs) {
+        Map<String, Long> amounts = new LinkedHashMap<>();
+        for (var cost : costs) {
+            String id = cost.getItemId();
+            ItemModel item = id == null || id.isBlank() ? null : itemService.findLoadedById(id);
+            String key = item == null ? id : item.getId().trim().toLowerCase(Locale.ROOT);
+            amounts.merge(key, (long) cost.getAmount(), Long::sum);
+        }
+        return amounts;
+    }
+
+    /** 要求素材がすべて支払えるか表示用に確認します。実際の消費は操作時に再検証されます。 */
+    private boolean hasRequiredItems(List<SkillRequiredItemDefinition> costs, UUID accountId) {
+        for (var cost : costs) {
+            if (cost.getAmount() <= 0 || cost.getItemId() == null || cost.getItemId().isBlank()
+                || itemService.findLoadedById(cost.getItemId()) == null) return false;
+        }
+        return materialAmounts(costs).entrySet().stream().allMatch(requirement ->
+            requiredItemOwnedAmountProvider.applyAsLong(accountId, requirement.getKey()) >= requirement.getValue());
+    }
+
+    /** 素材名・必要数・所持数と、足りない数量を表示します。 */
     private void appendRequiredItemLore(
         @NotNull List<Component> lore,
-        @NotNull List<io.github.maaasu.astralRecord.feature.skill.model.SkillRequiredItemDefinition> costs,
-        @NotNull String label,
-        @NotNull UUID accountId
+        @NotNull List<SkillRequiredItemDefinition> costs,
+        @Nullable UUID accountId
     ) {
         if (costs.isEmpty()) {
-            lore.add(Component.text(label + ":", NamedTextColor.AQUA));
-            lore.add(Component.text("• なし", NamedTextColor.DARK_GRAY));
+            lore.add(SkillLore.row("必要素材", SkillLore.value("なし")));
             return;
         }
-        lore.add(Component.text(label + ":", NamedTextColor.AQUA));
-        for (var cost : costs) {
-            ItemModel item = itemService.findLoadedById(cost.getItemId());
+        materialAmounts(costs).forEach((id, amount) -> {
+            ItemModel item = id == null || id.isBlank() ? null : itemService.findLoadedById(id);
             Component name = item == null ? Component.text("未登録の素材", NamedTextColor.RED)
-                : SkillPresentationUtil.itemNameComponent(item, item.getId(), NamedTextColor.WHITE);
-            lore.add(Component.text("• ", NamedTextColor.AQUA).append(name)
-                .append(Component.text(" ×" + cost.getAmount(), NamedTextColor.AQUA))
-                .append(Component.text(" （所持: " + Math.max(0L,
-                    requiredItemOwnedAmountProvider.applyAsLong(accountId, cost.getItemId())) + "）", NamedTextColor.GRAY)));
-        }
+                : SkillPresentationUtil.itemNameComponent(item, "未登録の素材", NamedTextColor.WHITE);
+            Component quantity = name.append(Component.text("　必要 ", NamedTextColor.GRAY))
+                .append(SkillLore.value(Long.toString(amount)));
+            if (accountId != null && item != null) {
+                long owned = Math.max(0, requiredItemOwnedAmountProvider.applyAsLong(accountId, id));
+                quantity = quantity.append(Component.text("／所持 ", NamedTextColor.GRAY))
+                    .append(Component.text(owned, owned >= amount ? NamedTextColor.GREEN : NamedTextColor.RED));
+                if (owned < amount) {
+                    quantity = quantity.append(Component.text(" 不足 " + (amount - owned), NamedTextColor.RED));
+                }
+            }
+            lore.add(SkillLore.materialRow(item == null ? null : item.getId(), item == null ? "素材" : "", quantity));
+        });
     }
 
     /** 一覧・設定済みスロットで共通に表示する、習得済みスキルのプレイヤー向け詳細です。 */
@@ -699,72 +936,79 @@ public final class SkillBindGui {
         lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(
             entry.resolved(), permittedSkillIds, NamedTextColor.GRAY
         ));
-        if (!lore.isEmpty()) {
-            lore.add(separator());
-        }
-        appendCastCostLore(lore, entry.resolved());
-        lore.add(separator());
-        String tagNames = SkillPresentationUtil.skillTagDisplayNames(skill,
-            Set.of(MasterTagIds.Activity.ACTIVE, MasterTagIds.Activity.PASSIVE));
-        if (!tagNames.isBlank()) {
-            lore.add(Component.text("タグ: " + tagNames, NamedTextColor.DARK_AQUA));
-        }
-        lore.add(Component.text(
-            "種別: " + (skill.getKind().isPassive() ? "パッシブ" : "アクティブ"),
-            NamedTextColor.GRAY
-        ));
-        lore.add(Component.text(
-            entry.permitted() ? "現在のクラス／スキルツリーで使用可能" : "現在のクラス／スキルツリーでは使用不可",
-            entry.permitted() ? NamedTextColor.GREEN : NamedTextColor.RED
-        ));
-        if (skill.getKind().isPassive() && !skill.getPassiveBindRequired()) {
-            lore.add(Component.text("所持中はバインド不要で発動", NamedTextColor.AQUA));
-        }
-        lore.add(separator());
+        List<Component> performance = new ArrayList<>();
+        var currentReport = appendCastMetrics(performance, entry.resolved());
+        performance.addAll(currentReport.summary());
+        lore.addAll(performance);
         int currentLevel = entry.learnedSkill().getLevel();
-        if (currentLevel >= skill.getMaxLevel()) {
-            lore.add(Component.text("レベル: ", NamedTextColor.GRAY)
-                .append(Component.text("MAX", NamedTextColor.RED, TextDecoration.BOLD)));
-        } else {
-            lore.add(Component.text(
-                "次のレベル: Lv." + currentLevel + " → Lv." + (currentLevel + 1),
-                NamedTextColor.AQUA
-            ));
-            appendRequiredItemLore(lore, skill.getLevelUpRequiredItems(), "レベルアップに必要な素材", entry.learnedSkill().getAccountId());
+        if (currentLevel < skill.getMaxLevel()) {
+            SkillLore.section(lore, "レベルアップ　Lv." + currentLevel + " → " + (currentLevel + 1), NamedTextColor.LIGHT_PURPLE);
+            appendRequiredItemLore(lore, skill.getLevelUpRequiredItems(), entry.learnedSkill().getAccountId());
         }
-        lore.add(separator());
-        appendSigilSlotLore(lore, entry, entry.learnedSkill().getLevel(), null);
+        appendSigilSlotLore(lore, entry, currentLevel, null);
     }
 
-    /** 消費とクールダウンを、解決済みレベル・シジル補正込みで表示します。 */
-    private void appendCastCostLore(
-        @NotNull List<Component> lore,
-        @NotNull ResolvedLearnedSkill resolved
-    ) {
+    /** 種別、タグと使用許可をタイトル直下の短い行へまとめます。 */
+    private Component skillMeta(SkillDefinition skill, boolean permitted) {
+        String kind = skill.getKind().isPassive() ? "パッシブ" : "アクティブ";
+        if (skill.getKind().isPassive() && !skill.getPassiveBindRequired()) kind += "（バインド不要）";
+        Component meta = SkillLore.note(kind + " / ").append(permissionText(permitted));
+        String tagNames = SkillPresentationUtil.skillTagDisplayNames(skill,
+            Set.of(MasterTagIds.Activity.ACTIVE, MasterTagIds.Activity.PASSIVE));
+        return tagNames.isBlank() ? meta : meta.append(SkillLore.note(" / " + tagNames));
+    }
+
+    /** 区切りと短い操作案内を追加します。 */
+    private void appendAction(List<Component> lore, Component action) {
+        lore.add(Component.text(DisplaySeparators.SECTION, NamedTextColor.DARK_GRAY));
+        lore.add(action);
+    }
+
+    /** 現在のクラスとスキルツリーでの使用可否を返します。 */
+    private Component permissionText(boolean permitted) {
+        return Component.text(permitted ? "使用可能" : "使用不可",
+            permitted ? NamedTextColor.GREEN : NamedTextColor.RED);
+    }
+
+    /** 実効消費・詠唱時間・再使用時間を追記し、解決済みの性能試算を返します。 */
+    private SkillDamagePreview.Report appendCastMetrics(List<Component> lore, ResolvedLearnedSkill resolved) {
         SkillDefinition skill = resolved.definition();
         var owner = AstPlayerCache.getByAccount(resolved.learnedSkill().getAccountId());
         if (owner == null || owner.getStatusSnapshot().getValues().isEmpty()) {
             appendBaseCastCostLore(lore, skill);
-            lore.add(Component.text("実効値を取得できません（ビルド未読込）", NamedTextColor.GRAY));
-            return;
+            lore.add(SkillLore.note("装備の情報が読み込まれていません"));
+            return SkillDamagePreview.Report.empty();
         }
         var preview = skillService.previewCast(new PlayerSkillCaster(owner), resolved);
+        var report = SkillDamagePreview.describe(preview.status(), skill, preview.cooldownTicks(), preview.castTicks(),
+            preview.circleCount());
+        boolean showTiming = !skill.getKind().isPassive();
+        if (!report.summary().isEmpty() || preview.costs().values().stream().anyMatch(cost -> cost > 0) || showTiming) {
+            SkillLore.section(lore, "性能", NamedTextColor.GOLD);
+        }
         preview.costs().forEach((type, cost) -> {
-            if (skill.getKind().isPassive() && cost <= 0) return;
+            if (cost <= 0) return;
             String name = switch (type) {
                 case MANA -> "MP";
                 case ENERGY -> "ENG";
                 case GUARD -> "ガード";
             };
-            lore.add(Component.text(name + "消費 " + SkillDamagePreview.number(cost), NamedTextColor.AQUA));
+            lore.add(SkillLore.row(name + "消費", SkillLore.value(SkillDamagePreview.number(cost))));
         });
-        if (!skill.getKind().isPassive()) {
-            lore.add(Component.text("詠唱（状態異常なし） " + SkillDamagePreview.number(preview.castTicks() / 20.0D)
-                + "秒　通常時CT " + SkillDamagePreview.number(preview.cooldownTicks() / 20.0D) + "秒", NamedTextColor.YELLOW));
+        if (showTiming) {
+            lore.add(SkillLore.row("発動", SkillLore.value(preview.castTicks() > 0
+                ? "詠唱 " + SkillDamagePreview.number(preview.castTicks() / 20.0D) + "秒" : "即時")));
         }
-        for (String line : SkillDamagePreview.describe(preview.status(), skill, preview.cooldownTicks(), preview.castTicks(), preview.circleCount())) {
-            lore.add(Component.text(line, NamedTextColor.GRAY));
+        if (showTiming && preview.cooldownTicks() > 0) {
+            lore.add(SkillLore.row("通常時CT", SkillLore.value(SkillDamagePreview.number(preview.cooldownTicks() / 20.0D) + "秒")));
         }
+        return report;
+    }
+
+    /** 通常ロアに実効値の要約を表示します。 */
+    private void appendCastCostLore(List<Component> lore, ResolvedLearnedSkill resolved) {
+        var report = appendCastMetrics(lore, resolved);
+        lore.addAll(report.summary());
     }
 
     /**
@@ -777,7 +1021,7 @@ public final class SkillBindGui {
         @NotNull List<Component> lore,
         @NotNull SkillDefinition skill
     ) {
-        appendCastCostLore(lore, skill, 0.0D);
+        appendBaseCastCostLore(lore, skill, 0.0D);
     }
 
     /**
@@ -787,7 +1031,7 @@ public final class SkillBindGui {
      * @param skill 表示対象スキル
      * @param cooldownReduction クールダウン短縮率
      */
-    private void appendCastCostLore(
+    private void appendBaseCastCostLore(
         @NotNull List<Component> lore,
         @NotNull SkillDefinition skill,
         double cooldownReduction
@@ -802,22 +1046,23 @@ public final class SkillBindGui {
             case GUARD -> "ガード";
         };
         String cost = BigDecimal.valueOf(resourceCost).stripTrailingZeros().toPlainString();
-        lore.add(Component.text("消費リソース: " + resourceName + " " + cost, NamedTextColor.AQUA));
-        if (resourceType == SkillResourceType.ENERGY && skill.getManaCost() > 0.0D) {
-            String manaCost = BigDecimal.valueOf(skill.getManaCost()).stripTrailingZeros().toPlainString();
-            lore.add(Component.text("消費リソース: MP " + manaCost, NamedTextColor.AQUA));
-        }
-        if (!skill.getKind().isPassive()) {
-            long cooldownTicks = io.github.maaasu.astralRecord.feature.combat.service.CombatTimingCalculator
+        boolean supplementaryMana = resourceType == SkillResourceType.ENERGY && skill.getManaCost() > 0.0D;
+        long cooldownTicks = skill.getKind().isPassive() ? 0
+            : io.github.maaasu.astralRecord.feature.combat.service.CombatTimingCalculator
                 .resolveCooldownTicks(skill.getCooldownTicks(), cooldownReduction);
+        if (resourceCost > 0 || supplementaryMana || cooldownTicks > 0) {
+            SkillLore.section(lore, "基礎性能", NamedTextColor.GOLD);
+        }
+        if (resourceCost > 0) lore.add(SkillLore.row(resourceName + "消費", SkillLore.value(cost)));
+        if (supplementaryMana) {
+            String manaCost = BigDecimal.valueOf(skill.getManaCost()).stripTrailingZeros().toPlainString();
+            lore.add(SkillLore.row("MP消費", SkillLore.value(manaCost)));
+        }
+        if (cooldownTicks > 0) {
             String cooldownSeconds = BigDecimal.valueOf(cooldownTicks / 20.0D)
                 .stripTrailingZeros().toPlainString();
-            lore.add(Component.text("クールダウン: " + cooldownSeconds + "秒", NamedTextColor.YELLOW));
+            lore.add(SkillLore.row("通常時CT", SkillLore.value(cooldownSeconds + "秒")));
         }
-    }
-
-    private @NotNull Component separator() {
-        return Component.text(DisplaySeparators.SECTION, NamedTextColor.DARK_GRAY);
     }
 
     private void appendSigilEffectLore(List<Component> lore, int slotIndex, LearnedSkillSigil attached) {
@@ -851,17 +1096,15 @@ public final class SkillBindGui {
         int slotCount = sigilSlotCount(entry.definition(), level);
         int equippedCount = entry.learnedSkill().getSigils().size()
             + (pendingSigil != null && pendingSigil.getSigil() != null ? 1 : 0);
-        lore.add(Component.text("シジル合成枠: " + equippedCount + " / " + slotCount, NamedTextColor.LIGHT_PURPLE));
-        if (slotCount <= 0) {
-            entry.definition().getSigilSlotsByLevel().stream()
-                .filter(slot -> slot.getLevel() > level && slot.getSlots() > 0)
-                .mapToInt(SkillSigilSlotDefinition::getLevel)
-                .min()
-                .ifPresent(nextLevel -> lore.add(Component.text(
-                    "Lv." + nextLevel + " でシジル枠を解放", NamedTextColor.GRAY
-                )));
-            return;
-        }
+        var nextSlot = entry.definition().getSigilSlotsByLevel().stream()
+            .filter(slot -> slot.getLevel() > level && slot.getSlots() > slotCount)
+            .min(java.util.Comparator.comparingInt(SkillSigilSlotDefinition::getLevel));
+        if (slotCount == 0 && equippedCount == 0 && nextSlot.isEmpty()) return;
+        SkillLore.section(lore, "シジル", NamedTextColor.LIGHT_PURPLE);
+        lore.add(SkillLore.row("装着枠", SkillLore.value(equippedCount + " / " + slotCount)));
+        nextSlot.ifPresent(next -> lore.add(SkillLore.row("次の枠",
+            SkillLore.value("Lv." + next.getLevel() + " で " + next.getSlots() + "枠"))));
+        if (slotCount <= 0) return;
         lore.add(PlayerMsgResource.getComponent(PlayerMsgId.P_5879.getId()));
         for (int slotIndex = 0; slotIndex < slotCount; slotIndex++) {
             final int targetSlotIndex = slotIndex;
@@ -878,13 +1121,12 @@ public final class SkillBindGui {
                 pendingSigil = null;
                 continue;
             }
-            lore.add(Component.text("  スロット " + (slotIndex + 1) + ": 空き", NamedTextColor.GRAY));
         }
     }
 
     private void appendPendingSigilLore(List<Component> lore, int slotIndex, ItemModel sigil) {
         lore.add(Component.text("  スロット " + (slotIndex + 1) + ": ", NamedTextColor.GREEN).append(
-            SkillPresentationUtil.itemNameComponent(sigil, sigil.getId(), NamedTextColor.WHITE)
+            SkillPresentationUtil.itemNameComponent(sigil, "未登録のシジル", NamedTextColor.WHITE)
         ).append(Component.text("（今回装着）", NamedTextColor.GREEN)));
         appendSigilModifierLore(lore, sigil);
         for (Component description : SkillPresentationUtil.itemLoreComponents(sigil, NamedTextColor.GRAY)) {
@@ -980,13 +1222,15 @@ public final class SkillBindGui {
             case ACTIVE -> "アクションスロット " + (index + 1);
         };
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text(enabled ? "有効枠" : "現在は無効な枠", enabled ? NamedTextColor.GREEN : NamedTextColor.RED));
+        SkillLore.section(lore, "バインド枠", NamedTextColor.AQUA);
+        lore.add(SkillLore.row("状態", Component.text(enabled ? "有効" : "無効",
+            enabled ? NamedTextColor.GREEN : NamedTextColor.RED)));
         if (type == SkillBindType.ACTIVE) {
-            lore.add(Component.text(index < SkillBindPreset.ACTION_RING_SLOT_COUNT
-                ? "アクションリング: 表示対象" : "アクションリング: 非表示（キャストディスク等で使用）", NamedTextColor.GRAY));
+            lore.add(SkillLore.row("アクションリング", SkillLore.value(index < SkillBindPreset.ACTION_RING_SLOT_COUNT
+                ? "表示" : "非表示（キャストディスク等で使用）")));
         }
         if (!enabled && bindingId != null) {
-            lore.add(Component.text("設定は保持されますが機能しません。解除のみ可能です。", NamedTextColor.RED));
+            lore.add(SkillLore.note(interactive ? "現在は解除のみ可能" : "設定を保持中"));
         } else if (bindingId == null) {
             lore.add(Component.text(
                 interactive
@@ -996,18 +1240,13 @@ public final class SkillBindGui {
             ));
             appendPermittedSkillLore(lore, type, permittedSkillDefinitions);
         } else {
-            lore.add(Component.text(interactive ? "クリックで解除" : "設定済み", NamedTextColor.YELLOW));
+            lore.add(SkillLore.note(interactive ? "クリックで解除" : "設定済み"));
         }
         if (entry != null) {
-            lore.add(separator());
             appendLearnedSkillDetails(lore, entry, permittedSkillDefinitions.stream()
                 .map(SkillDefinition::getId).collect(java.util.stream.Collectors.toSet()));
         } else if (bindingId != null && !normalAttack) {
-            lore.add(separator());
-            lore.add(Component.text("未習得スキルです。発動できません。", NamedTextColor.RED));
-            if (interactive) {
-                lore.add(Component.text("この枠をクリックしてバインドを解除してください。", NamedTextColor.YELLOW));
-            }
+            lore.add(SkillLore.row("習得", Component.text("未習得・発動不可", NamedTextColor.RED)));
         }
         Component name = bindingId == null
             ? Component.text(label + "（未設定）", enabled ? NamedTextColor.WHITE : NamedTextColor.DARK_GRAY)
@@ -1048,7 +1287,7 @@ public final class SkillBindGui {
         NamedTextColor headingColor = type == SkillBindType.PASSIVE
             ? NamedTextColor.LIGHT_PURPLE
             : NamedTextColor.AQUA;
-        lore.add(separator());
+        SkillLore.section(lore, "使用許可スキル", NamedTextColor.AQUA);
         lore.add(Component.text("現在の使用許可スキル", headingColor, TextDecoration.BOLD));
         if (compatible.isEmpty()) {
             lore.add(Component.text("  なし", NamedTextColor.DARK_GRAY));
@@ -1117,22 +1356,30 @@ public final class SkillBindGui {
         return Material.BARRIER;
     }
 
-    private Function<AstPlayer, List<String>> normalAttackPreview = player -> List.of();
+    private Function<AstPlayer, SkillDamagePreview.Report> normalAttackPreview = player -> SkillDamagePreview.Report.empty();
 
-    /** 主手武器の読み取り専用プレビューを接続します。 */
-    public void setNormalAttackPreview(Function<AstPlayer, List<String>> preview) {
+    /**
+     * 主手武器の読み取り専用プレビューを接続します。
+     * @param preview 所有者の通常攻撃について性能と算出条件を返す関数
+     */
+    public void setNormalAttackPreview(Function<AstPlayer, SkillDamagePreview.Report> preview) {
         normalAttackPreview = preview;
     }
 
     /** 下段右端へ表示する武器通常攻撃の設定アイテムを生成します。 */
     public ItemStack createNormalAttackItem() {
-        return createNormalAttackItem(List.of());
+        return createNormalAttackItem(SkillDamagePreview.Report.empty(), false);
     }
 
-    private ItemStack createNormalAttackItem(List<String> preview) {
+    /** 武器通常攻撃の要約と、現在選択している枠に応じた設定方法を表示します。 */
+    private ItemStack createNormalAttackItem(SkillDamagePreview.Report preview, boolean bindTargetSelected) {
         List<Component> lore = new ArrayList<>();
-        preview.forEach(line -> lore.add(Component.text(line, NamedTextColor.GRAY)));
-        lore.add(Component.text("左クリックまたはアクション枠を選択してからクリック", NamedTextColor.YELLOW));
+        if (!preview.summary().isEmpty()) {
+            SkillLore.section(lore, "性能", NamedTextColor.GOLD);
+            lore.addAll(preview.summary());
+        }
+        appendAction(lore, SkillLore.note(bindTargetSelected ? "クリックで選択中の枠に設定"
+            : "左クリック枠かアクション枠を選択してから設定"));
         ItemStack item = createItem(Material.STICK, "武器通常攻撃", NamedTextColor.WHITE, lore);
         String bindingId = SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID;
         return withBindingId(SkillIconCatalog.apply(item, bindingId), bindingId);
@@ -1191,7 +1438,8 @@ public final class SkillBindGui {
         ));
         var owner = inventory.getHolder() instanceof Player player ? AstPlayerCache.get(player) : null;
         inventory.setItem(PLAYER_INVENTORY_NORMAL_ATTACK_SLOT,
-                createNormalAttackItem(owner == null ? List.of() : normalAttackPreview.apply(owner)));
+                createNormalAttackItem(owner == null ? SkillDamagePreview.Report.empty() : normalAttackPreview.apply(owner),
+                    session.selectedBindType() == SkillBindType.LEFT_CLICK || session.selectedBindType() == SkillBindType.ACTIVE));
         renderScrolledBindSlots(inventory, PLAYER_INVENTORY_PASSIVE_PREVIOUS_SLOT,
             PLAYER_INVENTORY_PASSIVE_SLOT_START, PLAYER_INVENTORY_PASSIVE_NEXT_SLOT, SkillBindType.PASSIVE,
             session.passiveSlotOffset(), SkillBindPreset.PASSIVE_SLOT_COUNT, activePassiveSlots,
@@ -1241,10 +1489,11 @@ public final class SkillBindGui {
      */
     private ItemStack createMaterialItem(ItemModel material) {
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("選択中の合成素材", NamedTextColor.GREEN));
-        lore.add(Component.text("合成時に1個消費します。", NamedTextColor.RED));
-        lore.add(Component.text("クリック: 素材の選択を解除", NamedTextColor.YELLOW));
         lore.addAll(SkillPresentationUtil.itemLoreComponents(material, NamedTextColor.GRAY));
+        SkillLore.section(lore, "合成素材", NamedTextColor.AQUA);
+        lore.add(SkillLore.row("状態", Component.text("選択中", NamedTextColor.GREEN)));
+        lore.add(SkillLore.row("消費", SkillLore.value("装着時に1個")));
+        appendAction(lore, SkillLore.note("クリックで素材選択を解除"));
         return createMaterialPreview(
             material,
             SkillPresentationUtil.itemNameComponent(material, "未登録の素材", NamedTextColor.WHITE),
@@ -1260,10 +1509,11 @@ public final class SkillBindGui {
      */
     private ItemStack createRejectedMaterialItem(@NotNull ItemModel material, @NotNull MaterialKind kind) {
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text(materialFailureText(kind), NamedTextColor.RED));
-        lore.add(Component.text("素材は選択・消費されていません。", NamedTextColor.GRAY));
-        lore.add(Component.text("クリック: 表示を戻す", NamedTextColor.YELLOW));
         lore.addAll(SkillPresentationUtil.itemLoreComponents(material, NamedTextColor.GRAY));
+        SkillLore.section(lore, "合成条件", NamedTextColor.AQUA);
+        lore.add(SkillLore.row("装着不可", Component.text(materialFailureText(kind), NamedTextColor.RED)));
+        lore.add(SkillLore.row("消費", SkillLore.value("なし")));
+        appendAction(lore, SkillLore.note("クリックで表示を戻す"));
         return createMaterialPreview(
             material,
             SkillPresentationUtil.itemNameComponent(material, "未登録の素材", NamedTextColor.WHITE),
@@ -1282,9 +1532,9 @@ public final class SkillBindGui {
         ItemStack item = itemStackFactory.createDisplay(material, 1);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(name.decoration(TextDecoration.ITALIC, false));
-        meta.lore(lore.stream().map(line -> line.decoration(TextDecoration.ITALIC, false)).toList());
+        meta.lore(SkillLore.finish(lore));
         item.setItemMeta(meta);
-        return item;
+        return SkillLore.style(item, null);
     }
 
     /** 合成後の性能と閲覧者の使用許可を反映したプレビューを作成します。 */
@@ -1319,27 +1569,14 @@ public final class SkillBindGui {
         int resultingLevel = currentLevel;
         ResolvedLearnedSkill preview = resolvedPreview(entry, resultingLevel, pendingSigil);
         List<Component> lore = new ArrayList<>();
+        lore.add(skillMeta(skill, entry.permitted()));
         lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(preview, permittedSkillIds, NamedTextColor.GRAY));
-        if (!lore.isEmpty()) {
-            lore.add(separator());
-        }
         appendCastCostLore(lore, preview);
-        lore.add(separator());
-        lore.add(Component.text(
-            "種別: " + (skill.getKind().isPassive() ? "パッシブ" : "アクティブ"),
-            NamedTextColor.GRAY
-        ));
-        lore.add(Component.text("シジルを装着します（取り外し不可）", NamedTextColor.LIGHT_PURPLE));
-        lore.add(separator());
         appendSigilSlotLore(lore, entry, resultingLevel, pendingSigil);
-        lore.add(separator());
-        lore.add(Component.text(
-            "クリックでシジルを消費して装着",
-            NamedTextColor.YELLOW
-        ));
+        appendAction(lore, SkillLore.note("クリックで1個消費して装着（取り外し不可）"));
         return createItem(
             parseMaterial(preview.definition().getIcon(), DEFAULT_SKILL_ICON),
-            SkillPresentationUtil.skillNameComponent(preview.definition(), skill.getId(), NamedTextColor.WHITE)
+            SkillPresentationUtil.skillNameComponent(preview.definition(), "未登録のスキル", NamedTextColor.WHITE)
                 .append(skillLevelDisplay(resultingLevel, skill.getMaxLevel(), NamedTextColor.GREEN)),
             lore,
             preview.definition().getIconTexture(),
@@ -1405,7 +1642,7 @@ public final class SkillBindGui {
     }
 
     private ItemStack createItem(Material material, Component name, List<Component> lore) {
-        return GuiItems.create(material, name, lore);
+        return GuiItems.create(material, name, SkillLore.finish(lore));
     }
 
     /**
@@ -1418,7 +1655,7 @@ public final class SkillBindGui {
      */
     private ItemStack createSkillItem(SkillDefinition skill, boolean permitted, Component name, List<Component> lore) {
         if (!permitted) {
-            return GuiResourcePackIcons.apply(createItem(Material.BARRIER, name, lore), "skill_unavailable");
+            return SkillLore.style(GuiResourcePackIcons.apply(createItem(Material.BARRIER, name, lore), "skill_unavailable"), skill.getId());
         }
         return createItem(parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON), name, lore,
             skill.getIconTexture(), skill.getId());
@@ -1428,7 +1665,7 @@ public final class SkillBindGui {
         Material material, Component name, List<Component> lore,
         @Nullable String iconTexture, @Nullable String skillId
     ) {
-        return SkillIconCatalog.apply(GuiItems.create(material, name, lore, iconTexture), skillId);
+        return SkillIconCatalog.apply(GuiItems.create(material, name, SkillLore.finish(lore), iconTexture), skillId);
     }
 
     private ItemStack withBindingId(ItemStack item, String bindingId) {

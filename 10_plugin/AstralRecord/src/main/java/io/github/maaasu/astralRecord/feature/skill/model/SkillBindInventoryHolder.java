@@ -94,6 +94,7 @@ public record SkillBindInventoryHolder(
 
     @Override
     public @NotNull Inventory getInventory() {
-        return Bukkit.createInventory(this, screen == SkillBindScreen.DETAIL ? 27 : 54);
+        return Bukkit.createInventory(this,
+            screen == SkillBindScreen.DETAIL || screen == SkillBindScreen.PERFORMANCE_DETAIL ? 27 : 54);
     }
 }
