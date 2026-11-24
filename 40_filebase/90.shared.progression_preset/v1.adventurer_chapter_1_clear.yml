@@ -1,0 +1,17 @@
+# design:
+#   motif: "冒険者 / 旅立ち"
+#   progression: 0
+schemaVersion: 1
+type: PROGRESSION_PRESET
+id: adventurer_chapter_1_clear
+name: "冒険者 チャプター1クリア"
+classId: adventurer
+buildId: chapter_1_clear
+levels:
+  - level: 1
+    classLevel: 1
+    nodes: []
+    equipment:
+      - {slot: MAIN_HAND, item: "item:20a00001"}
+    skills:
+      - {slot: 1, skill: "skill:adventurer_astral_edge"}

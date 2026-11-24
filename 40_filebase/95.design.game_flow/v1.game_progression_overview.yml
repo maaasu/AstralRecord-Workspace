@@ -1,0 +1,40 @@
+# design:
+#   motif: "進行設計 / 章の節目"
+#   progression: 0
+schemaVersion: 1
+type: GAME_FLOW
+id: game_progression_overview
+name: "ゲーム進行の全体フロー"
+description: "正式に作成した章のクリア地点を一つずつ並べ、章の詳細とクリア時点の想定所持品・ビルドを確認する。"
+nodes:
+  - id: chapter_1_clear
+    ref: game_flow:beginner_onboarding_chapter_1
+    label: "第1章クリア"
+    note: "ガイドの6手順を達成した直後。章の達成報酬は請求前。"
+    x: 0
+    y: 0
+  - id: chapter_1_build
+    ref: progression_preset:adventurer_chapter_1_clear
+    note: "冒険者。プレイヤーLv.1・職業Lv.1。主手は雑貨店で購入した簡素な武器。副手・防具・アクセサリ・スキルブックは空欄。"
+    x: 248
+    y: 0
+  - id: chapter_1_inventory
+    label: "想定所持品"
+    note: |-
+      初回プレイでガイドに沿って進めた場合の目安。
+      初回参加で受け取る星影の街ノクスの案内具と通行証を所持。
+      初ログインバンドルからスキルジェムの原石(無印) ×4、テュール・イージス・フレイヤ・シンドリのオーブ各 ×5。ビルドのアストラルエッジを習得した場合、原石は残り3個。
+      バンドルの1,500 Goldから簡素な武器の代金20 Goldを引いた残額は1,480 Gold。そのほかの増減で変動。
+      グラスボアの抽選ドロップは獲得時に所持。章の達成報酬は請求後のメールで受け取る。
+    x: 0
+    y: 158
+edges:
+  - from: chapter_1_clear
+    to: chapter_1_build
+    fromPort: right
+    toPort: left
+    label: "クリア時のビルド"
+  - from: chapter_1_inventory
+    to: chapter_1_clear
+    fromPort: top
+    toPort: bottom

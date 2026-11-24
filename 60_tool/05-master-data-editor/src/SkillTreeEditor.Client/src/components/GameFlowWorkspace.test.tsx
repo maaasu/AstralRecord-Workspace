@@ -33,6 +33,31 @@ afterEach(() => {
   localStorage.removeItem(inspectorKey)
 })
 
+it.each([
+  ['game_flow', gameFlowCategory, gameFlowPath('chapter'), 'ゲーム進行フロー', '第1章の詳細'],
+  ['progression_preset', '90.shared.progression_preset', '90.shared.progression_preset/v1.chapter.yml', 'ビルド', '冒険者・第1章クリア'],
+])('参照種別 %s の候補から追加して参照先を開く', async (kind, category, targetPath, label, targetName) => {
+  const user = userEvent.setup()
+  const onOpenMaster = vi.fn()
+  vi.mocked(masterDataApi.files).mockResolvedValue([
+    { ...fileMetadata, path, category: gameFlowCategory, id: 'test', name: flowName },
+    { ...fileMetadata, path: targetPath, category, id: 'chapter', name: targetName },
+  ])
+  vi.mocked(masterDataApi.candidates).mockResolvedValue([
+    { path: targetPath, pointer: '/id', value: 'chapter', label: targetName, kind },
+  ])
+  render(<GameFlowWorkspace onOpenMaster={onOpenMaster} />)
+  const addButton = screen.getByRole('button', { name: `${label}を追加` })
+  await waitFor(() => expect(addButton).toBeEnabled())
+  await user.click(addButton)
+  const picker = within(screen.getByRole('dialog', { name: `${label}を選択` }))
+  await user.click(picker.getByRole('button', { name: new RegExp(targetName) }))
+  const inspector = within(screen.getByRole('complementary', { name: 'プロパティ' }))
+  expect(inspector.getByText(`${kind}:chapter`)).toBeVisible()
+  await user.click(inspector.getByRole('button', { name: /マスターを開く/ }))
+  expect(onOpenMaster).toHaveBeenCalledWith(targetPath)
+})
+
 it('ボタンと図のショートカットでパネルを開閉し、再表示時にも開閉状態を復元する', async () => {
   const user = userEvent.setup()
   const workspace = render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)

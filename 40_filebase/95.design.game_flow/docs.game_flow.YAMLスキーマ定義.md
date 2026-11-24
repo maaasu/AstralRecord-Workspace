@@ -12,7 +12,7 @@
 | `classes` | このフローで扱う職業の `class:<id>` 一覧（任意）。エディタの職業フィルタの候補。省略時は全職業 |
 | `nodes` | ノードの一覧 |
 | `nodes[].id` | フロー内で一意のノードID。英小文字・数字・`_` |
-| `nodes[].ref` | マスター参照。`config.yml` の `referenceResolver` の接頭辞付きID（例 `dungeon:eriva_windscar_steppe`、`shop:weapon_craftsman_shop`、`item:20a00073`、`mob:eriva_grassboar`） |
+| `nodes[].ref` | マスター参照。`config.yml` の `referenceResolver` の接頭辞付きID（例 `dungeon:eriva_windscar_steppe`、`shop:weapon_craftsman_shop`、`item:20a00073`、`mob:eriva_grassboar`）。エディタでは章の詳細図を `game_flow:<id>`、装備・入手経路のビルドを `progression_preset:<id>` でも参照できる |
 | `nodes[].role` | 参照なしで進行上の操作を表す場合に `action` を指定する。`ref` と `role` のどちらも省略したノードはメモ |
 | `nodes[].label` | 操作・メモの表示名、または参照ありの場合の表示名の上書き。`ref` と `label` のどちらかは必須 |
 | `nodes[].note` | 目的・条件・周回数などの補足（任意） |

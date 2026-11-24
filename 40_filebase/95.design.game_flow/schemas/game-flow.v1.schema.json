@@ -33,7 +33,7 @@
         "then": { "required": ["label"], "not": { "required": ["ref"] } },
         "properties": {
           "id": { "title": "ノードID", "description": "フロー内で一意。矢印の from / to で使う。", "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
-          "ref": { "title": "マスター参照", "description": "dungeon:<id>、shop:<id>、item:<id> など config.yml の参照接頭辞付きID。", "type": "string", "pattern": "^[a-z_]+:[A-Za-z0-9_.\\-]+$" },
+          "ref": { "title": "マスター参照", "description": "config.yml の接頭辞付きID（dungeon:<id>、shop:<id>、item:<id> など）。エディタでは game_flow:<id> と progression_preset:<id> も使用できる。", "type": "string", "pattern": "^[a-z_]+:[A-Za-z0-9_.\\-]+$" },
           "role": { "title": "参照のないノードの役割", "description": "操作は action。マスターを参照しない付箋のメモでは省略する。", "type": "string", "enum": ["action"] },
           "label": { "title": "表示名", "description": "参照なしの操作やメモの名前。参照ありの場合は表示名の上書き。", "type": "string", "pattern": "\\S" },
           "note": { "title": "補足", "description": "目的・条件・周回数などの説明。", "type": "string" },
