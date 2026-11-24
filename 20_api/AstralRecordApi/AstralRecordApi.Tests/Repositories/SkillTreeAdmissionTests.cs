@@ -1,5 +1,4 @@
 using AstralRecordApi.Controllers;
-using AstralRecordApi.Data;
 using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
 using Microsoft.AspNetCore.Http;
@@ -18,8 +17,7 @@ public sealed class SkillTreeAdmissionTests
     {
         await using var f = await SkillTreeOperationRepositoryTests.Fixture.CreateAsync();
         if (legacy) { (await f.Db.AccountSkillTreeStates.SingleAsync()).DefinitionGenerationId = null; await f.Db.SaveChangesAsync(); }
-        await using var masters = new MasterDataDbContext(new DbContextOptionsBuilder<MasterDataDbContext>().UseSqlite(f.Connection!).Options);
-        var states = new AccountSkillTreeStateRepository(f.Db, masters);
+        var states = new AccountSkillTreeStateRepository(f.Db);
         var controller = new AccountSkillTreeController(states, f.Repository) { ControllerContext = new() { HttpContext = new DefaultHttpContext() } };
         Assert.IsType<ConflictObjectResult>(await controller.GetByAccountId(f.Account));
         await Assert.ThrowsAsync<InvalidOperationException>(() => states.UpsertAsync(f.Account, new() { UpdatedBy = f.User, UnlockedNodes = [] }));
@@ -34,5 +32,41 @@ public sealed class SkillTreeAdmissionTests
         Assert.IsType<ConflictObjectResult>(await controller.GetByAccountId(f.Account));
         f.Db.ChangeTracker.Clear();
         Assert.Single(await f.Db.AccountSkillTreeUnlockedNodes.ToListAsync());
+    }
+
+    [Fact]
+    public async Task RepairInvalidState_RequiresCurrentGenerationAndSessionOnRetry()
+    {
+        await using var f = await SkillTreeOperationRepositoryTests.Fixture.CreateAsync();
+        var states = new AccountSkillTreeStateRepository(f.Db);
+        var controller = new AccountSkillTreeController(states, f.Repository);
+        var initial = await states.GetByAccountIdAsync(f.Account);
+        Assert.Single(initial.UnlockedNodes);
+
+        AccountSkillTreeInvalidStateRepairRequest CreateRequest(string generation) => new()
+        {
+            UserId = f.User,
+            UpdatedBy = f.User,
+            ExpectedVersion = initial.Version,
+            ExpectedDefinitionGenerationId = generation,
+            ServerId = f.Server,
+            ServerSessionId = f.Boot,
+            AccountSessionId = f.Session,
+            AccountLeaseToken = f.Token,
+        };
+
+        var request = CreateRequest(f.Generation);
+        var repaired = Assert.IsType<OkObjectResult>(await controller.RepairInvalidState(f.Account, request));
+        var repairedState = Assert.IsType<AccountSkillTreeStateResponse>(repaired.Value);
+        Assert.Empty(repairedState.UnlockedNodes);
+        Assert.Equal(initial.Version + 1, repairedState.Version);
+        Assert.Equal(f.Generation, repairedState.DefinitionGenerationId);
+        Assert.IsType<OkObjectResult>(await controller.RepairInvalidState(f.Account, request));
+
+        var wrongGeneration = SkillTreeOperationRepositoryTests.Hash("other-generation");
+        Assert.IsType<ConflictResult>(await controller.RepairInvalidState(f.Account, CreateRequest(wrongGeneration)));
+        await f.CloseAsync();
+        Assert.IsType<ConflictResult>(await controller.RepairInvalidState(f.Account, request));
+        Assert.Equal(repairedState.Version, (await states.GetByAccountIdAsync(f.Account)).Version);
     }
 }

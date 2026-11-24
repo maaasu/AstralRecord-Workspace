@@ -179,20 +179,6 @@ internal static class MasterDataTestFixtures
         }
         """;
 
-    public const string CompensationMail = """
-        {
-          "schemaVersion": 1,
-          "id": "skilltree_structure_reset_compensation",
-          "icon": "WRITABLE_BOOK",
-          "title": "スキルツリー選択状態のリセットについて",
-          "body": "スキルツリー構造の更新に伴い、選択状態をリセットしました。",
-          "publishFrom": "2026-01-01T00:00:00",
-          "publishTo": null,
-          "receiveOnRead": true,
-          "rewards": [{ "itemId": "astrald", "category": "currency", "amount": 50 }]
-        }
-        """;
-
     public const string Ainurindale = """
         {
           "schemaVersion": 1,
