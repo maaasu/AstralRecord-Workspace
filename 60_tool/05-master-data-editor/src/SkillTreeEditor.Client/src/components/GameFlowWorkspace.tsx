@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  Background, BackgroundVariant, ConnectionLineType, ConnectionMode, Controls, MarkerType, MiniMap, Panel, ReactFlow, ReactFlowProvider,
-  applyEdgeChanges, applyNodeChanges, useReactFlow,
-  type Connection, type Edge, type EdgeChange, type Node, type NodeChange,
+  Background, BackgroundVariant, ConnectionLineType, ConnectionMode, Controls, MarkerType, MiniMap, Panel, ReactFlow, ReactFlowProvider, ViewportPortal,
+  applyEdgeChanges, useReactFlow,
+  type Connection, type Edge, type EdgeChange, type Node, type XYPosition,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ApiError } from '../api/editorApi'
@@ -31,6 +31,7 @@ import { ClassToggles, EdgeProperties, FlowProperties, NodeProperties, ShopItems
 import { referenceSymbol } from './MasterReferenceCollection'
 import { MinecraftText } from './MinecraftText'
 import { Modal } from './Modal'
+import { useGameFlowNodeDrag } from './useGameFlowNodeDrag'
 import './gameFlow.css'
 
 interface Props {
@@ -434,21 +435,19 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   const detailNode = detail ? displayNodes.find(node => node.id === detail.id) : undefined
   const displayEdges = useMemo(() => ghosts ? [...edges, ...ghosts.edges] : edges, [ghosts, edges])
 
-  const onNodesChange = useCallback((changes: NodeChange<Node<FlowNodeData>>[]) =>
-    setNodes(current => applyNodeChanges(changes.filter(change => change.type !== 'remove'), current)), [])
   const onEdgesChange = useCallback((changes: EdgeChange[]) =>
     setEdges(current => applyEdgeChanges(changes.filter(change => change.type !== 'remove'), current)), [])
-  const onNodeDragStop = useCallback((_: unknown, __: Node, moved: Node[]) => {
-    const positions = new Map(moved.map(node => [node.id, node.position]))
-    update(current => ({
-      ...current,
-      nodes: current.nodes.map(node => {
+  const dropNodes = useCallback((positions: ReadonlyMap<string, XYPosition>) => {
+    update(current => {
+      const nodes = current.nodes.map(node => {
         const position = positions.get(node.id)
-        return position && (Math.round(position.x) !== node.x || Math.round(position.y) !== node.y)
-          ? { ...node, x: Math.round(position.x), y: Math.round(position.y) } : node
-      }),
-    }))
+        return position && (position.x !== node.x || position.y !== node.y) ? { ...node, ...position } : node
+      })
+      return nodes.some((node, index) => node !== current.nodes[index]) ? { ...current, nodes } : current
+    })
   }, [update])
+  const { guides, onNodesChange, onNodeDragStart, onNodeDragStop, cancel: cancelNodeDrag } = useGameFlowNodeDrag(canvas, setNodes, dropNodes)
+  useEffect(() => cancelNodeDrag(), [active, cancelNodeDrag, document?.path, view])
   const isValidConnection = useCallback((connection: Connection | Edge) => {
     const currentFlow = current.current
     return Boolean(currentFlow && canConnect(currentFlow, connection.source, connection.target))
@@ -849,7 +848,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       }}>
         {flow ? <GameFlowEdgeLayer><ReactFlow nodes={displayNodes} edges={displayEdges} nodeTypes={gameFlowNodeTypes} edgeTypes={gameFlowEdgeTypes}
           onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-          onNodeDragStop={onNodeDragStop} onConnect={onConnect} isValidConnection={isValidConnection} deleteKeyCode={null}
+          onNodeDragStart={onNodeDragStart} onNodeDragStop={onNodeDragStop} onConnect={onConnect} isValidConnection={isValidConnection} deleteKeyCode={null}
           connectionMode={ConnectionMode.Loose} connectionLineType={ConnectionLineType.SmoothStep}
           onNodeMouseEnter={(event, node) => {
             clearHoverTimer()
@@ -895,6 +894,11 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
           }}
           minZoom={.1} maxZoom={2} snapToGrid snapGrid={[10, 10]} fitView proOptions={{ hideAttribution: true }}>
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
+          {guides.length > 0 && <ViewportPortal><svg className="game-flow-snap-guides" aria-hidden="true">
+            {guides.map(({ axis, value, from, to }, index) => <line key={index}
+              x1={axis === 'x' ? value : from} y1={axis === 'x' ? from : value}
+              x2={axis === 'x' ? value : to} y2={axis === 'x' ? to : value} vectorEffect="non-scaling-stroke" />)}
+          </svg></ViewportPortal>}
           <Controls showInteractive={false} />
           <MiniMap pannable zoomable />
           {view === 'graph' && detail && detailNode && <FlowNodeTooltip anchor={detail.anchor} data={detailNode.data} />}
@@ -943,6 +947,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
         <ul>
           <li>ツールバーの「追加」にある「ダンジョン」などからマスターを参照するノードを追加します。</li>
           <li>ノードにポインターを重ねると上下左右に接続点が出ます。始点の接続点から終点の接続点へドラッグすると、その向きに矢印がつながります。</li>
+          <li>ドラッグ中に近くのアイコンの中心線や、両側のアイコンの中間へ近づくと、ガイドが出て位置が揃います。</li>
           <li>ポインターを重ねるか、Tab キーでノードにフォーカスすると詳細が表示されます。</li>
           <li>「操作」はマスター参照のない手順を表します。「メモ」は付箋です。付箋に結んだ線は破線の注釈線になります。</li>
           <li>ノードを右クリックして「注釈メモをつなぐ」を選ぶと、付箋と注釈線をまとめて追加できます。</li>

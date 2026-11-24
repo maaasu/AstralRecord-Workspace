@@ -157,6 +157,8 @@
 .game-flow-issues li[data-severity='warning'] { color: var(--gold); }
 .game-flow-body { position: relative; isolation: isolate; flex: 1; min-height: 0; }
 .game-flow-body:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.game-flow-snap-guides { position: absolute; top: 0; left: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; }
+.game-flow-snap-guides line { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 4 3; opacity: .75; }
 .game-flow-body[hidden] { display: none; }
 .game-flow-empty { display: grid; place-items: center; height: 100%; color: var(--text-muted); }
 .game-flow-body .react-flow__edge.dimmed { opacity: .2; }
