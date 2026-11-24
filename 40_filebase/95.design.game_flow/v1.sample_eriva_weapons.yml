@@ -5,7 +5,7 @@ schemaVersion: 1
 type: GAME_FLOW
 id: sample_eriva_weapons
 name: "サンプル: エリヴァ武器を揃えて風切りの草原へ"
-description: "エリヴァの素材を集め、武器職人で職業別の武器と交換してからダンジョンに挑む流れの記載例。"
+description: "エリヴァの素材を集め、武器職人の店で素材とゴールドを職業別の武器に交換してからダンジョンに挑む例。"
 classes:
   - class:swordsman
   - class:hunter
@@ -27,9 +27,14 @@ nodes:
     ref: item:10a00100
     x: 300
     y: 160
+  - id: weapon_craftsman
+    ref: mob:weapon_craftsman
+    label: "武器職人（NPC）"
+    x: 600
+    y: -80
   - id: weapon_shop
     ref: shop:weapon_craftsman_shop
-    note: "素材を持ち込んで武器と交換する。"
+    note: "素材とゴールドを持ち込んで武器と交換する。"
     x: 600
     y: 80
   - id: sword
@@ -68,15 +73,20 @@ edges:
   - from: resin
     to: weapon_shop
     label: "素材"
+  - from: weapon_craftsman
+    to: weapon_shop
+    fromPort: bottom
+    toPort: top
+    label: "店を開く"
   - from: weapon_shop
     to: sword
-    label: "購入"
+    label: "交換"
   - from: weapon_shop
     to: short_bow
-    label: "購入"
+    label: "交換"
   - from: weapon_shop
     to: staff
-    label: "購入"
+    label: "交換"
   - from: sword
     to: windscar_steppe
     label: "挑戦"
