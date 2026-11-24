@@ -95,7 +95,13 @@ public final class GuideScreenView extends BaseMenuScreenView {
         }
     }
 
-    /** 新しいJava版パネルの帯と文字を、表示中のスロット操作に対応付けます。 */
+    /**
+     * Java版パネルのボタン名や帯を、対応する操作スロットに割り当てます。
+     *
+     * @param rawSlot 選択されたスロット番号
+     * @param contentId 表示中の手順。章一覧の場合は {@code null}
+     * @return 対応する操作スロット番号。割り当てがない場合は元の番号
+     */
     public static int panelControlSlot(int rawSlot, @Nullable String contentId) {
         if (rawSlot < 0 || rawSlot >= SIZE) return rawSlot;
         boolean overview = contentId == null;
@@ -106,8 +112,6 @@ public final class GuideScreenView extends BaseMenuScreenView {
         if (column >= 1 && column <= 7 && (overview ? row <= 3 : row == 2)) return TUTORIAL_ACTION_SLOT;
         if (rawSlot == 50) return BACK_SLOT;
         if (!overview && rawSlot == 46) return ALL_GUIDES_SLOT;
-        // 手順名は各アイコンの直下の行に描きます。現在の手順だけが操作できます。
-        if (!overview && row == 4 && column >= 1 && column <= 6) return rawSlot - 9;
         return rawSlot;
     }
 
