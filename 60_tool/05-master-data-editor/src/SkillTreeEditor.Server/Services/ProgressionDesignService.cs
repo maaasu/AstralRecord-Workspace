@@ -371,12 +371,16 @@ public sealed class ProgressionDesignService(FilebaseSnapshotCache snapshots, Ma
                 Availability(drop, out var warnings), warnings, null));
     }
 
+    internal static bool HasPossibleLoot(IReadOnlyList<ProgressionDesignField> fields) =>
+        !fields.Any(field => JsonValueReader.Number(field.Value) is <= 0
+            || Text(field.Value) is { } range && range.Split('~').All(part =>
+                decimal.TryParse(part, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) && number <= 0));
+
     private static string Availability(Drop drop, out string[] warnings)
     {
-        var zero = drop.Rates.Any(field => JsonValueReader.Number(field.Value) is <= 0 ||
-            Text(field.Value) is { } range && range.Contains('~') && range.Split('~').All(part => decimal.TryParse(part, out var number) && number <= 0));
-        warnings = zero ? ["抽選値が 0 以下のため入手できません。"] : [];
-        return zero ? DefinitionOnly : Configured;
+        var possible = HasPossibleLoot(drop.Rates);
+        warnings = possible ? [] : ["抽選値が 0 以下のため入手できません。"];
+        return possible ? Configured : DefinitionOnly;
     }
 
     private static ProgressionDesignSource DropSource(Master origin, Drop drop, string pointer,
