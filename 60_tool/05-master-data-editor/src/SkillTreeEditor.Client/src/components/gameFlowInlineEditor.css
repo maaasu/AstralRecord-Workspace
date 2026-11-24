@@ -1,0 +1,19 @@
+.game-flow-inline-editor {
+  position: absolute;
+  z-index: 5;
+  width: min(240px, calc(100% - 16px));
+  border-radius: var(--radius-control);
+  background: var(--surface-raised);
+  box-shadow: 0 0 0 1px var(--accent), 0 2px 8px rgb(0 0 0 / 45%);
+}
+
+.game-flow-inline-editor :is(input, textarea) {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 6px 8px;
+  resize: none;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+}

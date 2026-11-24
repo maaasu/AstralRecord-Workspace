@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSta
 import { createPortal } from 'react-dom'
 import {
   Background, BackgroundVariant, ConnectionLineType, ConnectionMode, Controls, MarkerType, MiniMap, Panel, ReactFlow, ReactFlowProvider, ViewportPortal,
-  applyEdgeChanges, useReactFlow,
+  applyEdgeChanges, useNodesInitialized, useReactFlow,
   type Connection, type Edge, type EdgeChange, type Node, type XYPosition,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
@@ -26,7 +26,8 @@ import {
   type ContextCommand, type ResolvedRef,
 } from './GameFlowContextMenu'
 import { GameFlowEdgeLayer, gameFlowEdgeTypes } from './GameFlowDiagramEdge'
-import { FlowNodeTooltip, gameFlowNodeTypes, shapeLegend, type FlowNodeData } from './GameFlowDiagramNode'
+import { FlowNodeTooltip, GameFlowNodeNotes, gameFlowNodeTypes, shapeLegend, type FlowNodeData } from './GameFlowDiagramNode'
+import { GameFlowInlineEditor, type FlowInlineAnchor } from './GameFlowInlineEditor'
 import { ClassToggles, EdgeProperties, FlowProperties, NodeProperties, ShopItemsDialog } from './GameFlowProperties'
 import { referenceSymbol } from './MasterReferenceCollection'
 import { MinecraftText } from './MinecraftText'
@@ -41,6 +42,26 @@ interface Props {
 }
 
 type Selection = { type: 'node'; id: string } | { type: 'edge'; key: string } | null
+type FlowOperation = 'save' | 'replace' | null
+type InlineEdit = {
+  anchor: FlowInlineAnchor; original: string; value: string; focusTarget?: HTMLElement
+} & (
+  | { type: 'node'; id: string; multiline: boolean; referenceName?: string }
+  | { type: 'edge'; key: string }
+  | { type: 'new-note'; position: XYPosition; classes: string[] }
+)
+
+function inlineLabel(edit: InlineEdit) {
+  if (edit.value === edit.original) return edit.original
+  if (edit.type === 'node') {
+    if (edit.referenceName === undefined) return edit.value.trim() ? edit.value : edit.original
+    if (edit.value.trim() === edit.referenceName) return ''
+  }
+  return edit.value.trim() ? edit.value : ''
+}
+
+const flowChanged = (flow: GameFlow | null, saved: string) => Boolean(flow && JSON.stringify(serializeGameFlow(flow)) !== saved)
+
 /** position は右クリックした位置に置く場合の座標。 */
 type PickerRequest = { kind: string; replace?: string; position?: { x: number; y: number } }
 
@@ -84,7 +105,10 @@ export function GameFlowWorkspace(props: Props) {
 function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   const panelDocument = usePanelDocument()
   const flowApi = useReactFlow()
+  const nodesInitialized = useNodesInitialized()
   const canvas = useRef<HTMLDivElement>(null)
+  const openedPath = useRef<string | null>(null)
+  const pendingFitPath = useRef<string | null>(null)
   const toolbar = useRef<HTMLDivElement>(null)
   const classButton = useRef<HTMLButtonElement>(null)
   const classPopover = useRef<HTMLDivElement>(null)
@@ -107,6 +131,12 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   const [past, setPast] = useState<GameFlow[]>([])
   const [future, setFuture] = useState<GameFlow[]>([])
   const [selection, setSelection] = useState<Selection>(null)
+  const [inlineEdit, setInlineEdit] = useState<InlineEdit | null>(null)
+  const inlineEditRef = useRef<InlineEdit | null>(null)
+  const setInlineDraft = useCallback((draft: InlineEdit | null) => {
+    inlineEditRef.current = draft
+    setInlineEdit(draft)
+  }, [])
   const [classFilter, setClassFilter] = useState<string | null>(null)
   const [classPopoverOpen, setClassPopoverOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(() => readPanelOpen(panelDocument, sidebarStorageKey))
@@ -123,7 +153,13 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   const [issues, setIssues] = useState<ValidationIssue[]>([])
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [operation, setOperation] = useState<FlowOperation>(null)
+  const operationRef = useRef<FlowOperation>(null)
+  const setPendingOperation = (next: FlowOperation) => {
+    operationRef.current = next
+    setOperation(next)
+  }
+  const busy = operation !== null
   const [picker, setPicker] = useState<PickerRequest | null>(null)
   const [shopDialog, setShopDialog] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
@@ -142,6 +178,8 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   useEffect(() => clearHoverTimer, [clearHoverTimer])
 
   const fileByPath = useMemo(() => new Map(files.map(file => [file.path, file])), [files])
+  const flowReadOnly = document ? fileByPath.get(document.path)?.readOnly : false
+  const editingBlocked = loading || operation === 'replace' || flowReadOnly
   const flowFiles = useMemo(() => files.filter(file => file.category === gameFlowCategory && file.format === 'yaml')
     .sort((left, right) => left.path.localeCompare(right.path)), [files])
 
@@ -219,7 +257,8 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     }
   }, [classPopoverOpen, closeClassPopover, panelDocument])
 
-  const dirty = Boolean(flow && document && JSON.stringify(serializeGameFlow(flow)) !== saved)
+  const committedDirty = useMemo(() => flowChanged(flow, saved), [flow, saved])
+  const dirty = Boolean(document && (committedDirty || inlineEdit && inlineLabel(inlineEdit) !== inlineEdit.original))
   useEffect(() => { onDirtyChange?.(dirty) }, [dirty, onDirtyChange])
 
   const load = useCallback(async (reload = false) => {
@@ -242,9 +281,16 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   }, [])
 
   const open = useCallback((next: MasterDocument) => {
+    setInlineDraft(null)
     clearHoverTimer()
     setDetail(null)
     const parsed = parseGameFlow(next.content)
+    if (openedPath.current !== next.path) {
+      openedPath.current = next.path
+      pendingFitPath.current = next.path
+      // 同じIDのノードでも、フローを切り替えたら新しい図形の寸法を測定する。
+      setNodes([])
+    }
     setDocument(next)
     setFlow(parsed)
     setSaved(JSON.stringify(serializeGameFlow(parsed)))
@@ -254,16 +300,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     setClassFilter(null)
     setIssues(next.issues ?? [])
     setError('')
-    requestAnimationFrame(() => void flowApi.fitView({ padding: .2, maxZoom: 1 }))
-  }, [clearHoverTimer, flowApi])
-
-  const openPath = useCallback(async (path: string) => {
-    if (dirty && !await confirm('保存していないフローの変更を破棄して、別のフローを開きますか？')) return
-    setBusy(true)
-    try { open(await masterDataApi.file(path)) }
-    catch (reason) { setError(errorMessage(reason)) }
-    finally { setBusy(false) }
-  }, [confirm, dirty, open])
+  }, [clearHoverTimer, setInlineDraft])
 
   const started = useRef(false)
   useEffect(() => {
@@ -280,7 +317,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   current.current = flow
   const update = useCallback((change: (flow: GameFlow) => GameFlow) => {
     const before = current.current
-    if (!before) return
+    if (!before || operationRef.current === 'replace') return
     const next = change(before)
     if (next === before) return
     current.current = next
@@ -288,6 +325,51 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     setFuture([])
     setFlow(next)
   }, [])
+  const finishInlineEdit = useCallback((value?: string, action: 'commit' | 'cancel' | 'blur' = 'blur') => {
+    const edit = inlineEditRef.current
+    if (!edit) return
+    setInlineDraft(null)
+    if (action !== 'blur') (edit.focusTarget ?? canvas.current)?.focus({ preventScroll: true })
+    if (action === 'cancel') return
+    const label = inlineLabel({ ...edit, value: value ?? edit.value })
+    if (label === edit.original) return
+    switch (edit.type) {
+      case 'node':
+        update(current => ({ ...current, nodes: current.nodes.map(node => node.id === edit.id ? { ...node, label: label || undefined } : node) }))
+        break
+      case 'edge':
+        update(current => ({ ...current, edges: current.edges.map(edge => edgeKey(edge) === edit.key ? { ...edge, label: label || undefined } : edge) }))
+        break
+      case 'new-note': {
+        if (!current.current) return
+        const result = addNode(current.current, { ...edit.position, classes: edit.classes, label })
+        update(() => result.flow)
+        setSelection({ type: 'node', id: result.id })
+        break
+      }
+    }
+  }, [setInlineDraft, update])
+
+  useLayoutEffect(() => { if (!active) finishInlineEdit() }, [active, finishInlineEdit])
+
+  const confirmDiscard = (message: string) => {
+    finishInlineEdit()
+    return !flowChanged(current.current, saved) || confirm(message)
+  }
+  const replaceFlow = async (read: () => Promise<MasterDocument | null>) => {
+    if (operationRef.current) return
+    setPendingOperation('replace')
+    setInlineDraft(null)
+    try {
+      const next = await read()
+      if (next) open(next)
+    } catch (reason) { setError(errorMessage(reason)) }
+    finally { setPendingOperation(null) }
+  }
+  const openPath = async (path: string) => {
+    if (!await confirmDiscard('保存していないフローの変更を破棄して、別のフローを開きますか？')) return
+    await replaceFlow(() => masterDataApi.file(path))
+  }
   const undo = () => {
     if (!flow || !past.length) return
     setFuture(items => [flow, ...items])
@@ -307,6 +389,14 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   const visible = useMemo(() => flow ? visibleFlow(flow, classFilter) : null, [flow, classFilter])
   const nodeName = useCallback((node: GameFlowNode) => node.label?.trim() || (node.ref && resolve(node.ref)?.name) || node.ref || node.id, [resolve])
   const nodeById = useMemo(() => new Map(flow?.nodes.map(node => [node.id, node])), [flow])
+  const resizeNote = useCallback((id: string, width: number, height: number) => {
+    if (editingBlocked || operationRef.current === 'replace') return
+    update(current => {
+      const node = current.nodes.find(node => node.id === id)
+      if (!node || nodeKind(node) !== 'note' || node.width === width && node.height === height) return current
+      return { ...current, nodes: current.nodes.map(item => item === node ? { ...item, width, height } : item) }
+    })
+  }, [editingBlocked, update])
   const connectedPorts = useMemo(() => {
     const ports = new Map<string, Set<GameFlowPort>>()
     const add = (id: string, port: GameFlowPort) => {
@@ -331,9 +421,10 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
         name: nodeName(node), kind, icon: node.icon, file: resolved?.file, ref: node.ref, referenceName: resolved?.name, classNames: node.classes.map(className), skinRevision,
         note: node.note?.trim() || undefined, dimmed: !visible?.nodes.has(node.id), missing: Boolean(node.ref && !resolved),
         connectedPorts: connectedPorts.get(node.id),
+        noteWidth: node.width, noteHeight: node.height, onNoteResize: editingBlocked ? undefined : resizeNote,
       },
     }
-  }) ?? [], [className, connectedPorts, flow, nodeName, prefixes, resolve, selection, skinRevision, visible])
+  }) ?? [], [className, connectedPorts, editingBlocked, flow, nodeName, prefixes, resizeNote, resolve, selection, skinRevision, visible])
   const derivedEdges = useMemo<Edge[]>(() => flow?.edges.map((edge, index) => {
     const key = edgeKey(edge)
     const chips = edge.classes.length ? ` [${edge.classes.map(className).join('・')}]` : ''
@@ -363,6 +454,18 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
     })
   }), [derivedNodes])
   useEffect(() => setEdges(derivedEdges), [derivedEdges])
+
+  useEffect(() => {
+    if (!active || view !== 'graph' || !document || !flow || pendingFitPath.current !== document.path || !flowApi.viewportInitialized) return
+    if (flow.nodes.length) {
+      if (!nodesInitialized || nodes.length !== flow.nodes.length) return
+      pendingFitPath.current = null
+      void flowApi.fitView({ nodes: flow.nodes.map(({ id }) => ({ id })), padding: .2, maxZoom: 1 })
+    } else {
+      pendingFitPath.current = null
+      void flowApi.setViewport({ x: 0, y: 0, zoom: 1 })
+    }
+  }, [active, document, flow, flowApi, nodes.length, nodesInitialized, view])
 
   // ---- 次に置くノードの候補（ゴースト表示・Tab で確定） ----
   // 候補の有無は Esc で隠していても求め、「候補を表示」で戻せるようにする。
@@ -501,6 +604,46 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
   const changeEdge = (key: string, change: Partial<GameFlowEdge>) =>
     update(current => ({ ...current, edges: current.edges.map(edge => edgeKey(edge) === key ? { ...edge, ...change } : edge) }))
 
+  const startInlineEdit = (edit: InlineEdit) => {
+    clearHoverTimer()
+    setDetail(null)
+    setInlineDraft(edit)
+  }
+  const editNodeLabel = (id: string, element?: HTMLElement) => {
+    if (editingBlocked || operationRef.current === 'replace' || !canvas.current || id.startsWith(ghostPrefix)) return false
+    finishInlineEdit()
+    const node = current.current?.nodes.find(node => node.id === id)
+    if (!node) return false
+    const multiline = nodeKind(node) === 'note'
+    const target = element ?? [...canvas.current.querySelectorAll<HTMLElement>('.react-flow__node')].find(element => element.dataset.id === id)
+    const referenceName = node.ref ? plain(resolve(node.ref)?.name ?? node.ref) || node.ref : undefined
+    const original = node.label ?? ''
+    startInlineEdit({
+      type: 'node', id, multiline, original, value: node.label ?? referenceName ?? '', focusTarget: target, referenceName,
+      anchor: { canvas: canvas.current, element: target?.querySelector(multiline ? '.game-flow-token-shape' : '.game-flow-token-name'), position: node },
+    })
+    setSelection({ type: 'node', id })
+    return true
+  }
+  const editEdgeLabel = (key: string, element: Element, position: XYPosition) => {
+    if (editingBlocked || operationRef.current === 'replace' || !canvas.current || key.startsWith(ghostPrefix)) return
+    finishInlineEdit()
+    const edge = current.current?.edges.find(edge => edgeKey(edge) === key)
+    if (!edge) return
+    const value = edge.label ?? ''
+    startInlineEdit({ type: 'edge', key, value, original: value,
+      anchor: { canvas: canvas.current, element: element.querySelector('.react-flow__edge-textwrapper'), position } })
+    setSelection({ type: 'edge', key })
+  }
+  const editNewNote = (position: XYPosition) => {
+    if (!flow || editingBlocked || operationRef.current === 'replace' || !canvas.current) return
+    finishInlineEdit()
+    startInlineEdit({ type: 'new-note', value: '', original: '', classes: newNodeClasses,
+      position: { x: Math.round(position.x - 78), y: Math.round(position.y - 67) },
+      anchor: { canvas: canvas.current, position } })
+    setSelection(null)
+  }
+
   const pickerChoices = useMemo<MasterEntityPickerChoice[]>(() => {
     if (!picker) return []
     return [...references.entries()].flatMap(([key, entry]) => {
@@ -525,8 +668,11 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
 
   // ---- 保存 ----
   const save = async () => {
+    if (operationRef.current) return
+    finishInlineEdit()
+    const flow = current.current
     if (!flow || !document) return
-    setBusy(true)
+    setPendingOperation('save')
     setError('')
     setMessage('')
     try {
@@ -537,11 +683,12 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       const next = await masterDataApi.save(document.path, rendered.raw, document.revision)
       const savedFlow = parseGameFlow(next.content)
       setFiles(current => current.map(file => file.path === next.path ? { ...file, icon: savedFlow.icon } : file))
-      if (current.current === flow) open(next)
-      else {
-        // 保存中に続けた編集は残し、保存済みの版と比較用の内容だけを更新する。
-        setDocument(next)
-        setSaved(JSON.stringify(serializeGameFlow(savedFlow)))
+      setDocument(next)
+      setSaved(JSON.stringify(serializeGameFlow(savedFlow)))
+      // 同じ図の保存では、選択・表示位置・操作中の付箋と履歴を引き継ぐ。
+      if (current.current === flow) {
+        current.current = savedFlow
+        setFlow(savedFlow)
       }
       setIssues(report.issues)
       setMessage(`${document.path} を保存しました。`)
@@ -549,11 +696,12 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       setError(reason instanceof ApiError && reason.status === 409
         ? '同じフローが別の操作で変更されました。再読込してから編集し直してください。'
         : errorMessage(reason))
-    } finally { setBusy(false) }
+    } finally { setPendingOperation(null) }
   }
   const create = async (id: string, name: string) => {
+    if (operationRef.current) return
     const path = gameFlowPath(id)
-    setBusy(true)
+    setPendingOperation('replace')
     setError('')
     try {
       const rendered = await masterDataApi.render(path, serializeGameFlow(emptyGameFlow(id, name)))
@@ -564,16 +712,19 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       setCreating(false)
       setMessage(`${path} を作成しました。`)
     } catch (reason) { setError(errorMessage(reason)) }
-    finally { setBusy(false) }
+    finally { setPendingOperation(null) }
   }
   const revert = async () => {
+    finishInlineEdit()
     if (!document || !await confirm('保存していない変更を破棄して、保存済みの内容に戻しますか？')) return
-    try { open(await masterDataApi.file(document.path)) } catch (reason) { setError(errorMessage(reason)) }
+    await replaceFlow(() => masterDataApi.file(document.path))
   }
   const reloadAll = async () => {
-    if (dirty && !await confirm('保存していない変更を破棄して、マスターを再読込しますか？')) return
-    const list = await load(true)
-    if (list && document) await masterDataApi.file(document.path).then(open).catch(reason => setError(errorMessage(reason)))
+    if (!await confirmDiscard('保存していない変更を破棄して、マスターを再読込しますか？')) return
+    await replaceFlow(async () => {
+      const list = await load(true)
+      return list && document ? masterDataApi.file(document.path) : null
+    })
   }
 
   // ---- テキスト / 原稿 ----
@@ -710,7 +861,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       <div className="game-flow-sidebar-head">
         <h2>ゲーム進行フロー</h2>
         <button type="button" className="button compact" disabled={busy || loading} onClick={async () => {
-          if (dirty && !await confirm('保存していないフローの変更を破棄して、新しいフローを作りますか？')) return
+          if (!await confirmDiscard('保存していないフローの変更を破棄して、新しいフローを作りますか？')) return
           setCreating(true)
         }}>＋ 新規</button>
       </div>
@@ -728,7 +879,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       <p className="game-flow-muted game-flow-location" onContextMenu={onCopyContextMenu({ path: gameFlowCategory }, '保存先')}>保存先: <code>40_filebase/{gameFlowCategory}/</code></p>
     </aside>
 
-    <section className="game-flow-main">
+    <section className="game-flow-main" inert={operation === 'replace'} aria-busy={operation === 'replace'}>
       <div className="game-flow-toolbar" ref={toolbar}>
         <div className="game-flow-toolbar-row add">
           <div className="game-flow-toolbar-group game-flow-list-toggle">
@@ -769,7 +920,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
           <div className="game-flow-toolbar-group game-flow-toolbar-divided" role="group" aria-label="表示設定">
             <div className="game-flow-tabs" role="tablist" aria-label="表示">
               {([['graph', '図'], ['text', 'テキスト'], ['yaml', 'YAML']] as const).map(([id, label]) =>
-                <button key={id} type="button" role="tab" aria-selected={view === id} className="button compact" onClick={() => setView(id)}>{label}</button>)}
+                <button key={id} type="button" role="tab" aria-selected={view === id} className="button compact" onClick={() => { finishInlineEdit(); setView(id) }}>{label}</button>)}
             </div>
             <button type="button" className="button compact" aria-pressed={suggestOn} disabled={!flow}
               title="選んだノードから、次に置くマスター（ドロップ・出現モブなど）を候補として表示します"
@@ -810,6 +961,10 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       {/* ショートカットはキャンバス内のキー操作だけで受け付ける（xyflow の全体キー監視は使わない）。 */}
       <div className="game-flow-body" ref={canvas} tabIndex={0} hidden={view !== 'graph'}
         onPointerDownCapture={() => { clearHoverTimer(); setDetail(null) }}
+        onDoubleClick={event => {
+          if (!(event.target as Element).matches('.react-flow__pane')) return
+          editNewNote(flowApi.screenToFlowPosition({ x: event.clientX, y: event.clientY }, { snapToGrid: false }))
+        }}
         onFocusCapture={event => {
           const target = event.target
           if (target.dataset.id && target.matches('.react-flow__node:focus-visible')) {
@@ -823,6 +978,14 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
         onKeyDown={event => {
           if (event.key === 'Escape') { clearHoverTimer(); setDetail(null) }
           if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return
+          if (event.key === 'F2' && !event.repeat && !event.nativeEvent.isComposing && event.keyCode !== 229
+              && !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
+            const target = event.target as HTMLElement
+            const nodeId = target.matches('.react-flow__node') ? target.dataset.id
+              : target === canvas.current && selection?.type === 'node' ? selection.id : undefined
+            if (nodeId && editNodeLabel(nodeId)) event.preventDefault()
+            return
+          }
           if (event.ctrlKey && !event.altKey && !event.metaKey && (event.key === '[' || event.key === ']')) {
             event.preventDefault()
             if (!event.repeat) {
@@ -854,6 +1017,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
           onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
           onNodeDragStart={onNodeDragStart} onNodeDragStop={onNodeDragStop} onConnect={onConnect} isValidConnection={isValidConnection} deleteKeyCode={null}
           connectionMode={ConnectionMode.Loose} connectionLineType={ConnectionLineType.SmoothStep}
+          zoomOnDoubleClick={false}
           onNodeMouseEnter={(event, node) => {
             clearHoverTimer()
             if (event.buttons !== 0) return
@@ -870,11 +1034,16 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
             if (list) acceptSuggestions(list)
             else if (!node.id.startsWith(ghostPrefix)) { setSelection({ type: 'node', id: node.id }); setSuggestHiddenFor(null) }
           }}
+          onNodeDoubleClick={(event, node) => {
+            if (!(event.target as Element).closest('.game-flow-port, .game-flow-note-resize, button')) editNodeLabel(node.id, event.currentTarget as HTMLElement)
+          }}
           onEdgeClick={(_, edge) => {
             const list = ghosts?.byGhostId.get(edge.id)
             if (list) acceptSuggestions(list)
             else if (!edge.id.startsWith(ghostPrefix)) setSelection({ type: 'edge', key: edge.id })
           }}
+          onEdgeDoubleClick={(event, edge) => editEdgeLabel(edge.id, event.currentTarget,
+            flowApi.screenToFlowPosition({ x: event.clientX, y: event.clientY }, { snapToGrid: false }))}
           onPaneClick={() => { setSelection(null); canvas.current?.focus({ preventScroll: true }) }}
           onPaneContextMenu={event => {
             event.preventDefault()
@@ -896,8 +1065,9 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
             setSelection({ type: 'edge', key: edge.id })
             setMenu({ x: event.clientX, y: event.clientY, target: { type: 'edge', key: edge.id } })
           }}
-          minZoom={.1} maxZoom={2} snapToGrid snapGrid={[10, 10]} fitView proOptions={{ hideAttribution: true }}>
+          minZoom={.1} maxZoom={2} snapToGrid snapGrid={[10, 10]} proOptions={{ hideAttribution: true }}>
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
+          <GameFlowNodeNotes />
           {guides.length > 0 && <ViewportPortal><svg className="game-flow-snap-guides" aria-hidden="true">
             {guides.map(({ axis, value, from, to }, index) => <line key={index}
               x1={axis === 'x' ? value : from} y1={axis === 'x' ? from : value}
@@ -914,6 +1084,16 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
             </> : <button type="button" className="button compact subtle" onClick={() => setSuggestHiddenFor(null)}>候補を表示</button>}
           </Panel>}
         </ReactFlow></GameFlowEdgeLayer> : <div className="game-flow-empty">{loading ? '読み込んでいます…' : '「一覧」からフローを開くか、新規作成してください。'}</div>}
+        {inlineEdit && <GameFlowInlineEditor key={inlineEdit.type === 'node' ? inlineEdit.id : inlineEdit.type === 'edge' ? inlineEdit.key : 'new-note'}
+          anchor={inlineEdit.anchor} value={inlineEdit.value}
+          multiline={inlineEdit.type === 'new-note' || inlineEdit.type === 'node' && inlineEdit.multiline}
+          label={inlineEdit.type === 'edge' ? '矢印のラベル' : inlineEdit.type === 'new-note' || inlineEdit.multiline ? '付箋の本文' : 'ノードの表示名'}
+          placeholder={inlineEdit.type === 'node' ? inlineEdit.referenceName : undefined}
+          onChange={value => {
+            if (inlineEditRef.current?.anchor === inlineEdit.anchor) setInlineDraft({ ...inlineEdit, value })
+          }} onFinish={(value, action) => {
+            if (inlineEditRef.current?.anchor === inlineEdit.anchor) finishInlineEdit(value, action)
+          }} />}
       </div>
       {view === 'text' && <div className="game-flow-text" onContextMenu={onCopyContextMenu({
         ...currentFileTarget, values: [...currentFileTarget.values, { label: 'テキストをコピー', value: outline }],
@@ -931,7 +1111,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       </div>}
     </section>
 
-    <aside id={inspectorId} className="game-flow-inspector" aria-label="プロパティ" hidden={!inspectorOpen}>
+    <aside id={inspectorId} className="game-flow-inspector" aria-label="プロパティ" hidden={!inspectorOpen} inert={operation === 'replace'}>
       {flow && !selectedNode && !selectedEdge && <FlowProperties flow={flow} className={className} path={document?.path}
         resolve={resolve} copyContextMenu={onCopyContextMenu} onEditClasses={() => setClassPopoverOpen(true)}
         onChange={change => update(current => ({ ...current, ...change }))} />}
@@ -954,6 +1134,8 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
           <li>ドラッグ中に近くのアイコンの中心線や、両側のアイコンの中間へ近づくと、ガイドが出て位置が揃います。</li>
           <li>ポインターを重ねるか、Tab キーでノードにフォーカスすると詳細が表示されます。</li>
           <li>「操作」はマスター参照のない手順を表します。「メモ」は付箋です。付箋に結んだ線は破線の注釈線になります。</li>
+          <li>ノードや矢印をダブルクリックすると図上で文字を編集できます。ノードを選んで F2 でも編集できます。空白をダブルクリックすると付箋を追加します。</li>
+          <li>Enter または外側をクリックして確定し、Esc で取り消します。付箋は Shift+Enter で改行します。</li>
           <li>ノードを右クリックして「注釈メモをつなぐ」を選ぶと、付箋と注釈線をまとめて追加できます。</li>
           <li>線が小さな半円でまたぐ場所では、線同士はつながっていません。</li>
           <li>ショップのノードを選ぶと、商品を購入アイテムとしてまとめて追加できます。</li>
@@ -964,7 +1146,12 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
           <li>図・ノード・矢印を右クリックすると、その場所への追加や候補の配置などの操作を選べます。</li>
           <li>フロー一覧、アイコン、プロパティや候補を右クリックすると、名前・参照・ファイルパスなどをコピーできます。入力欄では文字を選択するか Shift を押しながら右クリックすると、標準の編集メニューが開きます。</li>
         </ul>
-        <p className="game-flow-muted">アイコン表示の形: {shapeLegend.map(([kind, shape]) => `${kindLabels[kind] ?? kind}=${shape}`).join('、')}</p>
+        <ul className="game-flow-shape-legend" aria-label="ノードの形">
+          {shapeLegend.map(([kind, shape]) => <li key={kind} data-kind={kind}>
+            <span className="game-flow-add-swatch" data-shape={kind} aria-hidden="true" />
+            <span>{kindLabels[kind] ?? kind}（{shape}）</span>
+          </li>)}
+        </ul>
       </details>
     </aside>
 

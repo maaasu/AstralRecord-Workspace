@@ -11,6 +11,9 @@ export type GameFlowPort = typeof gameFlowPorts[number]
 
 export const gameFlowPort = (value: unknown): GameFlowPort | undefined => gameFlowPorts.find(port => port === value)
 
+/** 付箋の表示寸法（図の単位）。 */
+export const gameFlowNoteSize = { width: 140, height: 64, minWidth: 96, minHeight: 48 } as const
+
 export interface GameFlowNode {
   id: string
   ref?: string
@@ -21,6 +24,8 @@ export interface GameFlowNode {
   classes: string[]
   x: number
   y: number
+  width?: number
+  height?: number
   /** スキーマ外のキー。保存時に消さない。 */
   rest: JsonObject
 }
@@ -79,13 +84,15 @@ const isObject = (value: JsonValue | undefined): value is JsonObject => typeof v
 const text = (value: JsonValue | undefined) => typeof value === 'string' ? value
   : typeof value === 'number' || typeof value === 'boolean' ? String(value) : undefined
 const coordinate = (value: JsonValue | undefined) => typeof value === 'number' && Number.isFinite(value) ? Math.round(value) : undefined
+const noteDimension = (value: JsonValue | undefined, minimum: number) =>
+  typeof value === 'number' && Number.isInteger(value) && value >= minimum ? value : undefined
 const strings = (value: JsonValue | undefined) => Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : []
 
 function without(source: JsonObject, keys: readonly string[]): JsonObject {
   return Object.fromEntries(Object.entries(source).filter(([key]) => !keys.includes(key)))
 }
 
-const nodeKeys = ['id', 'ref', 'role', 'label', 'icon', 'note', 'classes', 'x', 'y'] as const
+const nodeKeys = ['id', 'ref', 'role', 'label', 'icon', 'note', 'classes', 'x', 'y', 'width', 'height'] as const
 const edgeKeys = ['from', 'to', 'fromPort', 'toPort', 'label', 'note', 'classes'] as const
 const flowKeys = ['schemaVersion', 'type', 'id', 'name', 'icon', 'description', 'classes', 'nodes', 'edges'] as const
 
@@ -101,10 +108,15 @@ export function parseGameFlow(content: JsonValue): GameFlow {
       y ??= Math.floor(unplaced / 5) * 140
       unplaced++
     }
+    const ref = text(node.ref)
     const role = node.role === 'action' ? node.role : undefined
+    const isNote = !ref && !role
     return {
-      id: text(node.id) ?? '', ref: text(node.ref), ...(role ? { role } : {}), label: text(node.label), icon: text(node.icon), note: text(node.note),
-      classes: strings(node.classes), x, y, rest: without(node, nodeKeys),
+      id: text(node.id) ?? '', ref, ...(role ? { role } : {}), label: text(node.label), icon: text(node.icon), note: text(node.note),
+      classes: strings(node.classes), x, y,
+      width: isNote ? noteDimension(node.width, gameFlowNoteSize.minWidth) : undefined,
+      height: isNote ? noteDimension(node.height, gameFlowNoteSize.minHeight) : undefined,
+      rest: without(node, nodeKeys),
     }
   })
   const edges = (Array.isArray(root.edges) ? root.edges : []).filter(isObject).map((edge): GameFlowEdge => {
@@ -132,7 +144,10 @@ export function serializeGameFlow(flow: GameFlow): JsonValue {
     nodes: flow.nodes.map(node => ({
       id: node.id, ...optional('ref', node.ref), ...optional('role', node.role), ...optional('label', node.label),
       ...optional('icon', node.icon), ...optional('note', node.note),
-      ...optionalList('classes', node.classes), x: Math.round(node.x), y: Math.round(node.y), ...node.rest,
+      ...optionalList('classes', node.classes), x: Math.round(node.x), y: Math.round(node.y),
+      ...(!node.ref && !node.role && node.width !== undefined ? { width: node.width } : {}),
+      ...(!node.ref && !node.role && node.height !== undefined ? { height: node.height } : {}),
+      ...node.rest,
     })),
     edges: flow.edges.map(edge => ({
       from: edge.from, to: edge.to, ...optional('fromPort', edge.fromPort), ...optional('toPort', edge.toPort),
@@ -251,7 +266,7 @@ export function addShopPurchases(flow: GameFlow, shopNodeId: string, itemIds: re
     if (!target) {
       const added = addNode(next, {
         ref: 'item:' + itemId, classes: suggestedClasses(context, itemId),
-        x: shop.x + 300, y: shop.y + (existingTargets + row) * rowSpacing,
+        ...freeSlot(next, shop.x + 300, shop.y + (existingTargets + row) * rowSpacing),
       })
       next = added.flow
       target = added.id
@@ -378,16 +393,25 @@ export function suggestFor(flow: GameFlow, nodeId: string, context: GameFlowCont
   return { next: ordered(next), previous: ordered(previous) }
 }
 
-const occupied = (flow: GameFlow, x: number, y: number) =>
-  flow.nodes.some(node => Math.abs(node.x - x) < 240 && Math.abs(node.y - y) < rowSpacing - 10)
-
-/** 基準の行から上下交互に、他のノードと重ならない位置を探す。 */
+/** 基準の行から一番近い空きを探す。同じ距離にある場合は下側を使う。 */
 export function freeSlot(flow: GameFlow, x: number, y: number) {
-  for (let step = 0; step < 200; step++) {
-    const offset = step === 0 ? 0 : Math.ceil(step / 2) * rowSpacing * (step % 2 ? 1 : -1)
-    if (!occupied(flow, x, y + offset)) return { x, y: y + offset }
-  }
-  return { x, y }
+  const horizontalClearance = 240
+  const verticalClearance = rowSpacing - 10
+  const blockedRows = flow.nodes.flatMap(node => {
+    const isNote = !node.ref && !node.role
+    const extraWidth = isNote ? Math.max(0, (node.width ?? gameFlowNoteSize.width) - gameFlowNoteSize.width) : 0
+    const extraHeight = isNote ? Math.max(0, (node.height ?? gameFlowNoteSize.height) - gameFlowNoteSize.height) : 0
+    const dx = x - node.x
+    if (dx <= -horizontalClearance || dx >= horizontalClearance + extraWidth) return []
+    const dy = node.y - y
+    return [{
+      first: Math.floor((dy - verticalClearance) / rowSpacing) + 1,
+      last: Math.ceil((dy + verticalClearance + extraHeight) / rowSpacing) - 1,
+    }]
+  }).sort((left, right) => left.first - right.first)
+  const below = blockedRows.reduce((row, { first, last }) => first <= row && row <= last ? last + 1 : row, 0)
+  const above = blockedRows.reduceRight((row, { first, last }) => first <= row && row <= last ? first - 1 : row, -1)
+  return { x, y: y + (below <= -above ? below : above) * rowSpacing }
 }
 
 /**
@@ -413,8 +437,8 @@ export function planSuggestions(flow: GameFlow, nodeId: string, suggestions: rea
       ? suggestion.existingNodeId : addedByRef.get(suggestion.ref)
     const added = !target
     if (!target) {
-      const position = suggestion.position
-        ?? freeSlot(next, anchor.x + (suggestion.direction === 'next' ? 300 : -300), anchor.y)
+      const preferred = suggestion.position ?? { x: anchor.x + (suggestion.direction === 'next' ? 300 : -300), y: anchor.y }
+      const position = freeSlot(next, preferred.x, preferred.y)
       const kind = suggestion.ref.slice(0, suggestion.ref.indexOf(':'))
       const result = addNode(next, {
         ref: suggestion.ref, ...position,

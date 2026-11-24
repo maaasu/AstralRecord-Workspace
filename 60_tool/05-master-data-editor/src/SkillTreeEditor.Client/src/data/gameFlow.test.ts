@@ -31,6 +31,26 @@ describe('game flow', () => {
     expect(serializeGameFlow(flow)).toEqual(withIcons)
   })
 
+  it('round-trips custom and partial note sizes while leaving legacy notes unspecified', () => {
+    const withSizes = { ...source, nodes: [
+      ...source.nodes,
+      { id: 'wide', label: '幅のみ', x: 300, y: 200, width: 280, color: 'keep' },
+      { id: 'tall', label: '高さのみ', x: 600, y: 200, height: 180 },
+      { id: 'large', label: '幅と高さ', x: 900, y: 200, width: 360, height: 210 },
+    ] }
+    const flow = parseGameFlow(withSizes)
+    expect(flow.nodes.slice(4).map(({ width, height }) => [width, height]))
+      .toEqual([[undefined, undefined], [280, undefined], [undefined, 180], [360, 210]])
+    expect(serializeGameFlow(flow)).toEqual(withSizes)
+
+    flow.nodes[5].role = 'action'
+    flow.nodes[6].ref = 'item:20a00073'
+    const saved = serializeGameFlow(flow) as { nodes: Record<string, unknown>[] }
+    expect(saved.nodes[5]).not.toHaveProperty('width')
+    expect(saved.nodes[5]).toHaveProperty('color', 'keep')
+    expect(saved.nodes[6]).not.toHaveProperty('height')
+  })
+
   it('keeps legacy notes and their attached edges alongside new actions and port metadata', () => {
     const persisted = {
       ...source,
@@ -208,6 +228,29 @@ describe('game flow suggestions', () => {
     expect(edgePorts(edge, node, applied.nodes[0])).toEqual({ fromPort: 'right', toPort: 'left' })
     const bow = applySuggestions(flow, 'boar', [{ ref: 'item:bow', label: 'ドロップ', direction: 'next' }], context, ['class:mage'])
     expect(bow.nodes.at(-1)?.classes).toEqual(['class:hunter'])
+  })
+
+  it('avoids enlarged notes when placing suggested nodes and shop purchases', () => {
+    const crowded = parseGameFlow({
+      id: 'f', name: 'f', nodes: [
+        { id: 'shop', ref: 'shop:weapon', x: 0, y: 0 },
+        { id: 'memo', label: '条件', x: 40, y: -230, width: 700, height: 800 },
+      ], edges: [],
+    })
+    expect(freeSlot(crowded, 300, 0)).toEqual({ x: 300, y: -420 })
+    const suggested = applySuggestions(crowded, 'shop', [
+      { ref: 'item:pelt', label: '素材', direction: 'next', position: { x: 300, y: 0 } },
+    ], null)
+    expect(suggested.nodes.at(-1)).toMatchObject({ x: 300, y: -420 })
+    const purchased = addShopPurchases(crowded, 'shop', ['pelt'], null)
+    expect(purchased.nodes.at(-1)).toMatchObject({ x: 300, y: -420 })
+  })
+
+  it('finds a free slot beyond the usual range when an oversized note covers both sides', () => {
+    const oversized = parseGameFlow({
+      id: 'f', name: 'f', nodes: [{ id: 'memo', label: 'メモ', x: 0, y: -20000, width: 400, height: 40000 }], edges: [],
+    })
+    expect(freeSlot(oversized, 300, 0)).toEqual({ x: 300, y: 20160 })
   })
 
   it('finds a free slot by alternating below and above', () => {

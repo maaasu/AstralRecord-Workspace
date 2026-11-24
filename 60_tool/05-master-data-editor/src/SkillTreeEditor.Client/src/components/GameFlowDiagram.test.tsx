@@ -272,7 +272,11 @@ it('snaps the live drag from raw pointer positions and saves that exact position
   try {
     const { container } = render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
     const action = await screen.findByRole('group', { name: '操作 買い物する' })
-    await waitFor(() => expect(container.querySelector<HTMLElement>('.react-flow__viewport')?.style.transform).toContain('scale(1)'))
+    await waitFor(() => {
+      const viewport = container.querySelector<HTMLElement>('.react-flow__viewport')?.style.transform
+      expect(viewport).toContain('scale(1)')
+      expect(viewport).not.toBe('translate(0px,0px) scale(1)')
+    })
     const view = action.ownerDocument.defaultView!
     const position = () => action.style.transform
     const guide = () => container.querySelector('.game-flow-snap-guides line')
@@ -317,9 +321,259 @@ it('snaps the live drag from raw pointer positions and saves that exact position
     act(() => action.focus())
     await user.keyboard('{ArrowRight}')
     expect(position()).toBe('translate(190px,100px)')
+    const saveButton = screen.getByRole('button', { name: '保存' })
+    expect(saveButton).toBeEnabled()
+    await user.click(saveButton)
+    await waitFor(() => expect(masterDataApi.save).toHaveBeenCalledTimes(2))
+    const moved = JSON.parse(vi.mocked(masterDataApi.save).mock.lastCall![1])
+    expect(moved.nodes.find((node: { id: string }) => node.id === 'buy')).toMatchObject({ x: 190, y: 100 })
   } finally {
     Object.defineProperty(HTMLElement.prototype, 'getBoundingClientRect', original)
   }
+})
+
+it('図上で参照ノードの表示名を編集し、IMEと取り消しを保ち、空欄で参照名へ戻す', async () => {
+  render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
+  const npc = await screen.findByRole('group', { name: 'NPC 受付へ行く' })
+  fireEvent.doubleClick(npc)
+  const field = screen.getByRole('textbox', { name: 'ノードの表示名' })
+  expect(field).toHaveFocus()
+  expect(field).toHaveValue('受付へ行く')
+  fireEvent.compositionStart(field)
+  fireEvent.change(field, { target: { value: '雑貨商と話す' } })
+  fireEvent.keyDown(field, { key: 'Enter', isComposing: true })
+  fireEvent.keyDown(field, { key: 'Delete' })
+  expect(field).toHaveFocus()
+  expect(npc).toBeInTheDocument()
+  fireEvent.compositionEnd(field)
+  fireEvent.keyDown(field, { key: 'Enter' })
+  expect(await screen.findByRole('group', { name: 'NPC 雑貨商と話す' })).toBeVisible()
+  const undo = screen.getByRole('button', { name: '元に戻す' })
+  fireEvent.click(undo)
+  const original = await screen.findByRole('group', { name: 'NPC 受付へ行く' })
+  expect(undo).toBeDisabled()
+
+  fireEvent.click(original)
+  fireEvent.keyDown(original, { key: 'F2' })
+  const secondEdit = screen.getByRole('textbox', { name: 'ノードの表示名' })
+  fireEvent.change(secondEdit, { target: { value: '取消す内容' } })
+  fireEvent.keyDown(secondEdit, { key: 'Escape' })
+  expect(original).toHaveAttribute('aria-label', 'NPC 受付へ行く')
+  expect(undo).toBeDisabled()
+
+  fireEvent.keyDown(original, { key: 'F2' })
+  const thirdEdit = screen.getByRole('textbox', { name: 'ノードの表示名' })
+  fireEvent.change(thirdEdit, { target: { value: '' } })
+  fireEvent.keyDown(thirdEdit, { key: 'Enter' })
+  const reference = await screen.findByRole('group', { name: 'NPC 雑貨商' })
+  fireEvent.keyDown(reference, { key: 'F2' })
+  const inherited = screen.getByRole<HTMLInputElement>('textbox', { name: 'ノードの表示名' })
+  expect(inherited).toHaveValue('雑貨商')
+  expect(inherited.selectionStart).toBe(0)
+  expect(inherited.selectionEnd).toBe('雑貨商'.length)
+  fireEvent.keyDown(inherited, { key: 'Enter' })
+  fireEvent.click(undo)
+  expect(await screen.findByRole('group', { name: 'NPC 受付へ行く' })).toBeVisible()
+  expect(undo).toBeDisabled()
+})
+
+it('矢印の直接編集を表示切替の前に確定する', async () => {
+  const originalBBox = Object.getOwnPropertyDescriptor(SVGElement.prototype, 'getBBox')
+  Object.defineProperty(SVGElement.prototype, 'getBBox', {
+    configurable: true, value: () => ({ x: 0, y: 0, width: 40, height: 12 }),
+  })
+  try {
+    render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
+    const edge = await screen.findByTestId('rf__edge-memo->npc')
+    fireEvent.doubleClick(edge, { clientX: 120, clientY: 160 })
+    const field = screen.getByRole('textbox', { name: '矢印のラベル' })
+    expect(field).toHaveFocus()
+    fireEvent.change(field, { target: { value: '入店の前提' } })
+    fireEvent.click(screen.getByRole('tab', { name: 'テキスト' }))
+    expect(screen.queryByRole('textbox', { name: '矢印のラベル' })).not.toBeInTheDocument()
+    expect(screen.getByText(/— 受付へ行く（入店の前提）/)).toBeVisible()
+    fireEvent.click(screen.getByRole('tab', { name: '図' }))
+    expect(within(edge).getByText('入店の前提')).toBeVisible()
+  } finally {
+    if (originalBBox) Object.defineProperty(SVGElement.prototype, 'getBBox', originalBBox)
+    else Reflect.deleteProperty(SVGElement.prototype, 'getBBox')
+  }
+})
+
+it('空白から付箋を作り、取消は履歴に残さず、改行した本文を保存できる', async () => {
+  const user = userEvent.setup()
+  const workspace = render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
+  await screen.findByRole('group', { name: 'メモ 旧メモ' })
+  const pane = workspace.container.querySelector('.react-flow__pane')!
+  const createNote = () => fireEvent.doubleClick(pane, { clientX: 420, clientY: 320 })
+  createNote()
+  await user.type(screen.getByRole('textbox', { name: '付箋の本文' }), '取消すメモ')
+  await user.keyboard('{Escape}')
+  expect(screen.queryByRole('group', { name: 'メモ 取消すメモ' })).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '元に戻す' })).toBeDisabled()
+
+  createNote()
+  const field = screen.getByRole('textbox', { name: '付箋の本文' })
+  await user.type(field, '一行目')
+  await user.keyboard('{Shift>}{Enter}{/Shift}')
+  await user.type(field, '二行目')
+  expect(field).toHaveValue('一行目\n二行目')
+  const saveButton = screen.getByRole('button', { name: '保存' })
+  expect(saveButton).toBeEnabled()
+  fireEvent.click(saveButton)
+  await waitFor(() => expect(masterDataApi.save).toHaveBeenCalledTimes(1))
+  const saved = JSON.parse(vi.mocked(masterDataApi.save).mock.lastCall![1])
+  expect(saved.nodes.at(-1)).toMatchObject({ label: '一行目\n二行目' })
+  expect(saved.nodes).toHaveLength(content.nodes.length + 1)
+})
+
+it('別フローを新しい図の寸法で全体表示し、同じフローの保存では視点を維持する', async () => {
+  const smallPath = gameFlowPath('small')
+  const emptyPath = gameFlowPath('z_empty')
+  const otherFlows = [
+    { ...fileMetadata, path: smallPath, category: gameFlowCategory, id: 'small', name: '小さいフロー' },
+    { ...fileMetadata, path: emptyPath, category: gameFlowCategory, id: 'z_empty', name: '空のフロー' },
+  ]
+  vi.mocked(masterDataApi.files).mockResolvedValue([...(await masterDataApi.files()), ...otherFlows])
+  vi.mocked(masterDataApi.file).mockImplementation(async requestedPath => ({
+    path: requestedPath, format: 'yaml', raw: '', revision: '1', issues: [],
+    content: requestedPath === emptyPath ? { id: 'z_empty', name: '空のフロー', nodes: [], edges: [] }
+      : requestedPath === smallPath ? { id: 'small', name: '小さいフロー', nodes: [{ ...content.nodes[0], label: '共通IDの操作' }], edges: [] }
+        : { ...content, nodes: content.nodes.map(node => node.id === 'memo' ? { ...node, x: 1600 } : node) },
+  }))
+  vi.mocked(masterDataApi.save).mockImplementation(async (savedPath, raw) => ({
+    path: savedPath, format: 'yaml', raw, revision: '2', issues: [], content: JSON.parse(raw) as JsonValue,
+  }))
+  const { container } = render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
+  const transform = () => container.querySelector<HTMLElement>('.react-flow__viewport')?.style.transform
+  const zoom = () => Number(transform()?.match(/scale\(([^)]+)\)/)?.[1])
+  await screen.findByRole('group', { name: '操作 買い物する' })
+  await waitFor(() => expect(zoom()).toBeLessThan(1))
+  fireEvent.click(screen.getByRole('button', { name: /小さいフロー/ }))
+  const node = await screen.findByRole('group', { name: '操作 共通IDの操作' })
+  await waitFor(() => expect(zoom()).toBe(1))
+  fireEvent.click(container.querySelector('.react-flow__controls-zoomout')!)
+  await waitFor(() => expect(zoom()).toBeLessThan(1))
+  const manualViewport = transform()
+  fireEvent.doubleClick(node)
+  fireEvent.change(screen.getByRole('textbox', { name: 'ノードの表示名' }), { target: { value: '保存する操作' } })
+  fireEvent.click(screen.getByRole('button', { name: '保存' }))
+  await screen.findByText(`${smallPath} を保存しました。`)
+  expect(transform()).toBe(manualViewport)
+  fireEvent.click(screen.getByRole('button', { name: /空のフロー/ }))
+  await waitFor(() => expect(transform()).toBe('translate(0px,0px) scale(1)'))
+  expect(screen.queryByRole('group', { name: '操作 保存する操作' })).not.toBeInTheDocument()
+})
+
+it.each(['破棄', '再読込'])('%s の応答を待つ間は古い付箋を編集できない', async command => {
+  const { container } = render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
+  const note = await screen.findByRole('group', { name: 'メモ 旧メモ' })
+  fireEvent.doubleClick(note)
+  const field = screen.getByRole('textbox', { name: '付箋の本文' })
+  fireEvent.change(field, { target: { value: '破棄するメモ' } })
+  fireEvent.keyDown(field, { key: 'Enter' })
+  const selected = await screen.findByRole('group', { name: 'メモ 破棄するメモ' })
+  expect(selected.querySelector('.game-flow-note-resize')).toBeInTheDocument()
+  const inspector = screen.getByRole('complementary', { name: 'プロパティ' })
+  const width = within(inspector).getByRole('textbox', { name: '幅' })
+  const height = within(inspector).getByRole('textbox', { name: '高さ' })
+  let finishRead: (() => void) | undefined
+  vi.mocked(masterDataApi.file).mockImplementationOnce(() => new Promise(resolve => {
+    finishRead = () => resolve({ path, format: 'yaml', raw: '', revision: '2', issues: [], content: {
+      ...content, nodes: content.nodes.map(node => node.id === 'memo' ? { ...node, label: '読み込み後のメモ' } : node),
+    } })
+  }))
+  fireEvent.click(screen.getByRole('button', { name: command }))
+  fireEvent.click(within(await screen.findByRole('dialog', { name: '未保存の編集内容' })).getByRole('button', { name: '変更を破棄' }))
+  await waitFor(() => expect(finishRead).toBeTypeOf('function'))
+  await waitFor(() => expect(selected.querySelector('.game-flow-note-resize')).not.toBeInTheDocument())
+  expect(inspector).toHaveAttribute('inert')
+  expect(container.querySelector('.game-flow-main')).toHaveAttribute('inert')
+  fireEvent.change(width, { target: { value: '240' } })
+  fireEvent.keyDown(width, { key: 'Enter' })
+  fireEvent.change(height, { target: { value: '120' } })
+  fireEvent.blur(height)
+  expect(width).toHaveValue('')
+  expect(height).toHaveValue('')
+  fireEvent.keyDown(selected, { key: 'F2' })
+  fireEvent.doubleClick(selected)
+  fireEvent.doubleClick(container.querySelector('.react-flow__pane')!)
+  expect(screen.queryByRole('textbox', { name: '付箋の本文' })).not.toBeInTheDocument()
+
+  await act(async () => finishRead?.())
+  const updated = await screen.findByRole('group', { name: 'メモ 読み込み後のメモ' })
+  fireEvent.doubleClick(updated)
+  expect(screen.getByRole('textbox', { name: '付箋の本文' })).toHaveValue('読み込み後のメモ')
+})
+
+it('同じフローの保存中に始めた図上編集を応答後も保持する', async () => {
+  render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
+  const node = await screen.findByRole('group', { name: '操作 買い物する' })
+  fireEvent.doubleClick(node)
+  const first = screen.getByRole('textbox', { name: 'ノードの表示名' })
+  fireEvent.change(first, { target: { value: '保存する操作' } })
+  fireEvent.keyDown(first, { key: 'Enter' })
+  let finishSave: (() => void) | undefined
+  vi.mocked(masterDataApi.save).mockImplementationOnce((savedPath, raw) => new Promise(resolve => {
+    finishSave = () => resolve({ path: savedPath, format: 'yaml', raw, revision: '2', issues: [], content: JSON.parse(raw) as JsonValue })
+  }))
+  fireEvent.click(screen.getByRole('button', { name: '保存' }))
+  await waitFor(() => expect(finishSave).toBeTypeOf('function'))
+  const pending = screen.getByRole('group', { name: '操作 保存する操作' })
+  fireEvent.keyDown(pending, { key: 'F2' })
+  const second = screen.getByRole('textbox', { name: 'ノードの表示名' })
+  fireEvent.change(second, { target: { value: '保存中に追記した操作' } })
+  await act(async () => finishSave?.())
+  expect(second).toHaveValue('保存中に追記した操作')
+  expect(second).toHaveFocus()
+  fireEvent.keyDown(second, { key: 'Enter' })
+  expect(await screen.findByRole('group', { name: '操作 保存中に追記した操作' })).toBeVisible()
+  expect(screen.getByRole('button', { name: '保存' })).toBeEnabled()
+})
+
+it('保存応答をまたぐ付箋のリサイズを一度の編集として確定する', async () => {
+  const { container } = render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
+  const note = await screen.findByRole('group', { name: 'メモ 旧メモ' })
+  await waitFor(() => {
+    const viewport = container.querySelector<HTMLElement>('.react-flow__viewport')?.style.transform
+    expect(viewport).toContain('scale(1)')
+    expect(viewport).not.toBe('translate(0px,0px) scale(1)')
+  })
+  fireEvent.doubleClick(note)
+  const field = screen.getByRole('textbox', { name: '付箋の本文' })
+  fireEvent.change(field, { target: { value: '保存するメモ' } })
+  fireEvent.keyDown(field, { key: 'Enter' })
+
+  let finishSave: (() => void) | undefined
+  vi.mocked(masterDataApi.save).mockImplementationOnce((savedPath, raw) => new Promise(resolve => {
+    finishSave = () => resolve({ path: savedPath, format: 'yaml', raw, revision: '2', issues: [], content: JSON.parse(raw) as JsonValue })
+  }))
+  fireEvent.click(screen.getByRole('button', { name: '保存' }))
+  await waitFor(() => expect(finishSave).toBeTypeOf('function'))
+  const handle = screen.getByRole('button', { name: '付箋のサイズを変更' })
+  const token = handle.closest('.game-flow-token')
+  const width = screen.getByRole('textbox', { name: '幅' })
+  const height = screen.getByRole('textbox', { name: '高さ' })
+  fireEvent.pointerDown(handle, { button: 0, pointerId: 4, clientX: 100, clientY: 100 })
+  fireEvent.pointerMove(window, { pointerId: 4, clientX: 120, clientY: 110 })
+  expect(token).toHaveStyle({ '--note-width': '160px', '--note-height': '74px' })
+  expect(width).toHaveValue('')
+  expect(height).toHaveValue('')
+
+  await act(async () => finishSave?.())
+  expect(handle).toBeInTheDocument()
+  expect(token).toHaveStyle({ '--note-width': '160px', '--note-height': '74px' })
+  fireEvent.pointerUp(window, { pointerId: 4, clientX: 140, clientY: 120 })
+  expect(width).toHaveValue('180')
+  expect(height).toHaveValue('84')
+  const save = screen.getByRole('button', { name: '保存' })
+  expect(save).toBeEnabled()
+
+  fireEvent.click(screen.getByRole('button', { name: '元に戻す' }))
+  expect(width).toHaveValue('')
+  expect(height).toHaveValue('')
+  expect(save).toBeDisabled()
+  expect(await screen.findByRole('group', { name: 'メモ 保存するメモ' })).toBeVisible()
 })
 
 it('adds an action and connects a nearby annotation from the node menu', async () => {

@@ -1,7 +1,7 @@
 import { useId, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  edgeLabelSuggestions, isAnnotationEdge, kindLabels, refId, refKind, suggestedClasses,
+  edgeLabelSuggestions, gameFlowNoteSize, isAnnotationEdge, kindLabels, refId, refKind, suggestedClasses,
   type FlowSuggestion, type GameFlow, type GameFlowContext, type GameFlowEdge, type GameFlowNode,
 } from '../data/gameFlow'
 import { stripMinecraftFormatting } from '../utils/minecraft'
@@ -46,6 +46,36 @@ function FlowIconField({ label, value, placeholder, onChange, copyContextMenu }:
   return <div onContextMenu={copyContextMenu?.(inputCopyTarget(label, value), 'アイコン')}>
     <label htmlFor={id}>{label}</label>
     <MaterialIconInput id={id} value={value ?? ''} placeholder={placeholder} onChange={onChange} />
+  </div>
+}
+
+function NoteDimensionField({ label, value, initial, minimum, onChange }: {
+  label: string; value?: number; initial: number; minimum: number; onChange: (value?: number) => void
+}) {
+  const errorId = useId()
+  const [draft, setDraft] = useState<string | null>(null)
+  const entered = draft?.trim()
+  const next = entered && /^\d+$/.test(entered) ? Number(entered) : undefined
+  const invalid = Boolean(entered) && (next === undefined || !Number.isInteger(next) || next < minimum)
+  const commit = () => {
+    if (draft !== null && !invalid && next !== value) onChange(next)
+    setDraft(null)
+  }
+  return <div>
+    <label>{label}
+      <input inputMode="numeric" value={draft ?? String(value ?? '')} placeholder={String(initial)}
+        aria-invalid={invalid} aria-describedby={invalid ? errorId : undefined}
+        onChange={event => setDraft(event.target.value)} onBlur={commit} onKeyDown={event => {
+          if (event.nativeEvent.isComposing) return
+          if (event.key === 'Enter' || event.key === 'Escape') {
+            event.preventDefault()
+            event.stopPropagation()
+            if (event.key === 'Escape') setDraft(null)
+            else if (!invalid) commit()
+          }
+        }} />
+    </label>
+    {invalid && <small id={errorId} className="game-flow-error-text">{minimum}以上の整数を入力してください。</small>}
   </div>
 }
 
@@ -187,6 +217,15 @@ export function NodeProperties({ node, kind, resolved, classes, context, flow, r
     <label onContextMenu={copyContextMenu?.(inputCopyTarget('補足', node.note), '補足')}>
       補足<textarea rows={3} value={node.note ?? ''} onChange={event => onChange({ note: event.target.value })} />
     </label>
+    {kind === 'note' && <fieldset key={node.id}><legend>付箋の大きさ</legend>
+      <NoteDimensionField label="幅" value={node.width} initial={gameFlowNoteSize.width} minimum={gameFlowNoteSize.minWidth}
+        onChange={width => onChange({ width })} />
+      <NoteDimensionField label="高さ" value={node.height} initial={gameFlowNoteSize.height} minimum={gameFlowNoteSize.minHeight}
+        onChange={height => onChange({ height })} />
+      <small className="game-flow-muted">図の単位。Enterキーまたは欄を離れて確定します。空欄は初期寸法になります。</small>
+      <button type="button" className="button compact" disabled={node.width === undefined && node.height === undefined}
+        onClick={() => onChange({ width: undefined, height: undefined })}>初期寸法に戻す</button>
+    </fieldset>}
     <fieldset><legend>対象職業</legend>
       <ClassToggles value={node.classes} classes={classes} emptyLabel="未指定: 全職業共通" onChange={value => onChange({ classes: value })}
         resolve={resolve} copyContextMenu={copyContextMenu} />
@@ -212,7 +251,7 @@ export function NodeProperties({ node, kind, resolved, classes, context, flow, r
       </>}
       <span onContextMenu={copyContextMenu?.(inputCopyTarget('注釈線の本数', String(annotations)), '注釈線')}>注釈線 {annotations} 本</span>
     </p>
-    {kind === 'note' && <button type="button" className="button compact" onClick={() => onChange({ role: 'action' })}>操作に変更</button>}
+    {kind === 'note' && <button type="button" className="button compact" onClick={() => onChange({ role: 'action', width: undefined, height: undefined })}>操作に変更</button>}
     <button type="button" className="button compact danger subtle" onClick={onDelete}>{kind === 'note' ? 'メモを削除' : 'ノードを削除'}</button>
   </section>
 }

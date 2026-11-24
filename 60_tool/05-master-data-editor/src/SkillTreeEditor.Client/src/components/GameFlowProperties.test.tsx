@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { expect, it, vi } from 'vitest'
 import { emptyGameFlow, type FlowSuggestion, type GameFlowEdge, type GameFlowNode } from '../data/gameFlow'
 import type { MasterFileSummary } from '../types/masterData'
@@ -104,7 +104,7 @@ it('未入力の項目・見出し・削除ボタンにはコピー項目を出�
   expect(screen.getByRole('heading', { name: '付箋' })).toBeVisible()
   expect(screen.getByRole('textbox', { name: 'メモ' })).toHaveValue('次の段階へ')
   fireEvent.click(screen.getByRole('button', { name: '操作に変更' }))
-  expect(onChange).toHaveBeenCalledWith({ role: 'action' })
+  expect(onChange).toHaveBeenCalledWith({ role: 'action', width: undefined, height: undefined })
   expect(fireEvent.contextMenu(screen.getByRole('heading', { name: '付箋' }))).toBe(true)
   expect(fireEvent.contextMenu(screen.getByRole('textbox', { name: '補足' }))).toBe(true)
   const remove = screen.getByRole('button', { name: 'メモを削除' })
@@ -115,6 +115,51 @@ it('未入力の項目・見出し・削除ボタンにはコピー項目を出�
   unmount()
   renderCopy(copyContextMenu => inspector(note, 'action', copyContextMenu))
   expect(screen.getByRole('heading', { name: '操作' })).toBeVisible()
+})
+
+it('付箋の寸法を確定時に反映し、空欄と初期寸法ボタンで設定を解除する', () => {
+  const onChange = vi.fn()
+  function Inspector() {
+    const [node, setNode] = useState<GameFlowNode>(note)
+    return <NodeProperties node={node} kind="note" classes={[]} context={null} flow={flow} resolveName={() => undefined}
+      onChange={change => { onChange(change); setNode(current => ({ ...current, ...change })) }}
+      onPick={vi.fn()} onOpenMaster={vi.fn()} onShopItems={vi.fn()} onDelete={vi.fn()}
+      suggestions={null} resolve={resolve} prefixes={{}} onAccept={vi.fn()} />
+  }
+  render(<Inspector />)
+  const width = screen.getByRole('textbox', { name: '幅' })
+  const height = screen.getByRole('textbox', { name: '高さ' })
+  const reset = screen.getByRole('button', { name: '初期寸法に戻す' })
+  expect(width).toHaveAttribute('placeholder', '140')
+  expect(height).toHaveAttribute('placeholder', '64')
+  expect(reset).toBeDisabled()
+
+  fireEvent.change(width, { target: { value: '24' } })
+  expect(width).toHaveAttribute('aria-invalid', 'true')
+  fireEvent.keyDown(width, { key: 'Enter' })
+  expect(onChange).not.toHaveBeenCalled()
+  fireEvent.change(width, { target: { value: '240' } })
+  fireEvent.keyDown(width, { key: 'Enter' })
+  expect(onChange).toHaveBeenLastCalledWith({ width: 240 })
+  expect(onChange).toHaveBeenCalledTimes(1)
+
+  fireEvent.change(height, { target: { value: '96' } })
+  fireEvent.blur(height)
+  expect(onChange).toHaveBeenLastCalledWith({ height: 96 })
+  fireEvent.change(width, { target: { value: '' } })
+  fireEvent.blur(width)
+  expect(onChange).toHaveBeenLastCalledWith({ width: undefined })
+  expect(height).toHaveValue('96')
+
+  fireEvent.change(height, { target: { value: '100.5' } })
+  expect(height).toHaveAttribute('aria-invalid', 'true')
+  fireEvent.keyDown(height, { key: 'Escape' })
+  expect(height).toHaveValue('96')
+  expect(onChange).toHaveBeenCalledTimes(3)
+  fireEvent.click(reset)
+  expect(onChange).toHaveBeenLastCalledWith({ width: undefined, height: undefined })
+  expect(height).toHaveValue('')
+  expect(reset).toBeDisabled()
 })
 
 it('未解決の参照にパスを付けず、配置候補と職業には実ファイルのパスを付ける', async () => {

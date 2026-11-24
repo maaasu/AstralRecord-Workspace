@@ -32,6 +32,10 @@
         "anyOf": [{ "required": ["ref"] }, { "required": ["label"] }],
         "if": { "required": ["role"] },
         "then": { "required": ["label"], "not": { "required": ["ref"] } },
+        "allOf": [{
+          "if": { "anyOf": [{ "required": ["ref"] }, { "required": ["role"] }] },
+          "then": { "properties": { "width": false, "height": false } }
+        }],
         "properties": {
           "id": { "title": "ノードID", "description": "フロー内で一意。矢印の from / to で使う。", "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
           "ref": { "title": "マスター参照", "description": "config.yml の接頭辞付きID（dungeon:<id>、shop:<id>、item:<id> など）。エディタでは game_flow:<id> と progression_preset:<id> も使用できる。", "type": "string", "pattern": "^[a-z_]+:[A-Za-z0-9_.\\-]+$" },
@@ -47,7 +51,9 @@
             "items": { "type": "string", "pattern": "^class:[a-z0-9]+(?:_[a-z0-9]+)*$" }
           },
           "x": { "title": "表示X座標", "type": "integer" },
-          "y": { "title": "表示Y座標", "type": "integer" }
+          "y": { "title": "表示Y座標", "type": "integer" },
+          "width": { "title": "付箋の幅", "description": "図の単位で指定する付箋の幅。省略時は140。", "type": "integer", "minimum": 96, "default": 140 },
+          "height": { "title": "付箋の高さ", "description": "図の単位で指定する付箋の高さ。省略時は64。", "type": "integer", "minimum": 48, "default": 64 }
         }
       }
     },
