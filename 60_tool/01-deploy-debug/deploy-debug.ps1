@@ -421,6 +421,7 @@ function Publish-ResourcePacks {
     $archmagePhoenixPresentation = $null
     $nyxeronPresentation = $null
     $itemTooltips = $null
+    $skillTooltips = $null
     $weaponAttackProjectiles = $null
     $skillEffects = $null
     $combatRewardPlaque = $null
@@ -908,6 +909,24 @@ function Publish-ResourcePacks {
                 if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing item tooltip asset in Java pack: $asset" }
             }
         }
+        $skillTooltipsEntry = $archive.GetEntry('skill-tooltips-version.txt')
+        if ($null -ne $skillTooltipsEntry) {
+            if ($itemTooltips -cne '1' -or $skillTooltipsEntry.Length -ne 1) {
+                throw 'Invalid skill tooltips version marker.'
+            }
+            $reader = [IO.StreamReader]::new($skillTooltipsEntry.Open())
+            try { $skillTooltips = $reader.ReadToEnd() }
+            finally { $reader.Dispose() }
+            if ($skillTooltips -cne '1') { throw 'Unsupported skill tooltips version.' }
+            foreach ($asset in @(
+                'assets/astralrecord/font/skill_tooltip.json'
+                'assets/astralrecord/textures/item/action_ring_icons.png'
+                'assets/astralrecord/textures/item/custom/skill_gem_raw.png'
+            )) {
+                $entry = $archive.GetEntry($asset)
+                if ($null -eq $entry -or $entry.Length -eq 0) { throw "Missing skill tooltip asset in Java pack: $asset" }
+            }
+        }
         $skillEffectsEntry = $archive.GetEntry('skill-effects-version.txt')
         if ($null -ne $skillEffectsEntry) {
             if ($skillEffectsEntry.Length -ne 1) { throw 'Invalid skill effects version marker.' }
@@ -1005,6 +1024,9 @@ function Publish-ResourcePacks {
     }
     if ($null -ne $itemTooltips) {
         $javaManifest.itemTooltips = $itemTooltips
+    }
+    if ($null -ne $skillTooltips) {
+        $javaManifest.skillTooltips = $skillTooltips
     }
     if ($null -ne $weaponAttackProjectiles) {
         $javaManifest.weaponAttackProjectiles = $weaponAttackProjectiles

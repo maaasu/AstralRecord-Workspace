@@ -57,6 +57,8 @@ public class ResourcePackService {
     private final Set<UUID> readyBedrockNyxeronPresentation = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaItemTooltips = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockItemTooltips = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> requestedJavaSkillTooltips = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> readyBedrockSkillTooltips = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaWeaponAttackProjectiles = ConcurrentHashMap.newKeySet();
     private final Set<UUID> readyBedrockWeaponAttackProjectiles = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedJavaSkillEffects = ConcurrentHashMap.newKeySet();
@@ -171,6 +173,7 @@ public class ResourcePackService {
                     requestedJavaWornHelmetModels.remove(viewer);
                     boolean hadWornHelmetModels = readyJavaWornHelmetModels.remove(viewer) != null;
                     requestedJavaItemTooltips.remove(viewer);
+                    requestedJavaSkillTooltips.remove(viewer);
                     requestedJavaProfileHud.remove(viewer);
                     requestedJavaLocationHud.remove(viewer);
                     requestedJavaSkillCooldownHud.remove(viewer);
@@ -204,6 +207,7 @@ public class ResourcePackService {
                     if (pack.itemTooltips()) {
                         requestedJavaItemTooltips.add(viewer);
                     }
+                    if (pack.skillTooltips()) requestedJavaSkillTooltips.add(viewer);
                     if (pack.mossZombiePresentation()) requestedMossZombiePresentation.add(viewer);
                     if (pack.seleneaPresentation()) {
                         requestedSeleneaPresentation.add(viewer);
@@ -592,7 +596,15 @@ public class ResourcePackService {
      * @return 接続時のパックがツールチップに対応する場合は true
      */
     public boolean hasBedrockItemTooltips(UUID playerId) {
-        return readyBedrockItemTooltips.contains(playerId);
+        return readyBedrockItemTooltips.contains(playerId) || hasBedrockSkillTooltips(playerId);
+    }
+
+    public boolean hasJavaSkillTooltips(UUID playerId) {
+        return hasJavaItemTooltips(playerId) && requestedJavaSkillTooltips.contains(playerId);
+    }
+
+    public boolean hasBedrockSkillTooltips(UUID playerId) {
+        return readyBedrockSkillTooltips.contains(playerId);
     }
 
     /**
@@ -622,7 +634,15 @@ public class ResourcePackService {
      * @param player 通知が届いた現在のオンラインプレイヤー
      */
     public void markBedrockItemTooltipsReady(Player player) {
-        if (player.isOnline() && readyBedrockItemTooltips.add(player.getUniqueId())) {
+        if (player.isOnline() && readyBedrockItemTooltips.add(player.getUniqueId())
+            && !hasBedrockSkillTooltips(player.getUniqueId())) {
+            player.updateInventory();
+        }
+    }
+
+    /** 接続した統合版クライアントの技別字形が使用可能になったため、所持品の表示を更新します。 */
+    public void markBedrockSkillTooltipsReady(Player player) {
+        if (player.isOnline() && readyBedrockSkillTooltips.add(player.getUniqueId())) {
             player.updateInventory();
         }
     }
@@ -921,6 +941,8 @@ public class ResourcePackService {
         readyBedrockNyxeronPresentation.remove(playerId);
         requestedJavaItemTooltips.remove(playerId);
         readyBedrockItemTooltips.remove(playerId);
+        requestedJavaSkillTooltips.remove(playerId);
+        readyBedrockSkillTooltips.remove(playerId);
         requestedJavaWeaponAttackProjectiles.remove(playerId);
         readyBedrockWeaponAttackProjectiles.remove(playerId);
         requestedJavaSkillEffects.remove(playerId);

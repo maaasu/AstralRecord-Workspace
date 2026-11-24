@@ -1271,8 +1271,16 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
     private record CastOrigin(@NotNull Location location, @NotNull Vector direction, @NotNull AstEntity attacker) {
     }
 
-    /** 現装備の次の通常攻撃を単体Mobに当てる条件で測定します。劣化・バフ・リソースを消費しません。 */
-    public List<String> previewAttack(AstPlayer player, SkillDefinition skill, long cooldown, SkillService service) {
+    /**
+     * 現装備の次の通常攻撃を単体Mobに当てる条件で測定します。劣化・バフ・リソースを消費しません。
+     *
+     * @param player 装備と現在の状態を参照するプレイヤー
+     * @param skill 武器種の通常攻撃定義
+     * @param cooldown 武器種の基礎周期 tick
+     * @param service 実効周期の計算に使うスキルサービス
+     * @return 次の武器通常攻撃の性能
+     */
+    public SkillDamagePreview.Report previewAttack(AstPlayer player, SkillDefinition skill, long cooldown, SkillService service) {
         var stats = player.getStatusSnapshot().atMidpoints();
         var modifiers = normalAttackDegradationService == null ? new NormalAttackDegradationService.AttackModifiers(1, 1)
                 : normalAttackDegradationService.previewNextAttack(player);
@@ -1289,15 +1297,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         long cycle = Math.max((hits - 1L) * interval, service.resolveAttackCooldownTicks(stats, cooldown, modifiers.speed()));
         double expected = DamageCalculator.expectedDirectHit(stats, type, components, DamageSource.NORMAL_ATTACK,
                 stats.getMaxValue(StatusType.SUPER_CRITICAL_RATE));
-        double rate = DamageCalculator.criticalChance(stats, DamageSource.NORMAL_ATTACK);
-        return List.of(type.statusType().getDisplayName() + "（派生込み） "
-                        + SkillDamagePreview.number(DamageCalculator.calculateAttackPower(stats::getMaxValue, type))
-                        + "　会心 " + SkillDamagePreview.number(rate * 100) + "%",
-                "次の通常攻撃 " + hits + "撃　周期 " + SkillDamagePreview.number(cycle / 20.0) + "秒",
-                cycle <= 0 ? "期待DPS算出不可（周期未定義）"
-                        : "直接攻撃の期待DPS " + SkillDamagePreview.number(expected * hits * 20 / cycle),
-                "単体Mob・防御／耐性／回避／盾0。装備範囲は実効範囲の中央、会心率は平均",
-                "次回の劣化段階を固定。命中範囲内、反撃・継承弾・追尾弾なしで測定");
+        return SkillDamagePreview.normalAttack(stats, type, hits, cycle, expected);
     }
 
     private @NotNull AttackType readAttackType(@NotNull SkillDefinition skill) {

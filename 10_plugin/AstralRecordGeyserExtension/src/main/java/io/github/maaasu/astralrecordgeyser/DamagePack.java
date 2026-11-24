@@ -35,7 +35,7 @@ record DamagePack(
     boolean gameplaySounds, boolean sunbird, boolean sunbirdMotion, boolean selenea, boolean mossZombie, boolean archmagePhoenix,
     boolean nyxeron,
     Set<Integer> heldWeaponModels,
-    Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips,
+    Set<ItemModel> itemModels, Set<Integer> actionRingSprites, boolean worldDisplay, boolean itemTooltips, boolean skillTooltips,
     String actionRingHudRevision, boolean questHud, boolean receptionDisplay, boolean challengeCountdown,
     boolean dungeonClearSound
 ) {
@@ -228,6 +228,7 @@ record DamagePack(
             boolean nyxeron;
             boolean worldDisplay;
             boolean itemTooltips;
+            boolean skillTooltips;
             String actionRingHudRevision;
             boolean questHud;
             boolean receptionDisplay;
@@ -282,6 +283,9 @@ record DamagePack(
                 itemTooltips = present(zip.getEntry("font/glyph_E6.png"))
                     && present(zip.getEntry("textures/ui/purpleBorder.png"))
                     && hasVersionOne(zip, "item-tooltips-version.txt");
+                skillTooltips = itemTooltips && hasVersionOne(zip, "skill-tooltips-version.txt")
+                    && present(zip.getEntry("font/glyph_E8.png"))
+                    && present(zip.getEntry("font/glyph_E9.png"));
                 actionRingHudRevision = readActionRingHudRevision(zip);
                 questHud = hasVersion(zip, "quest-tracking-hud-version.txt", '2')
                     && present(zip.getEntry("ui/astralrecord_quest_hud.json"))
@@ -305,7 +309,7 @@ record DamagePack(
             keep = true;
             return new DamagePack(sha256, file, pack, damageNumbers, actionRing, combatResult, combatRewardPlaqueVersion,
                 weaponAttack, weaponAttackProjectiles, skillEffectsV2, fishingVisuals, gameplaySounds, sunbird, sunbirdMotion, selenea, mossZombie,
-                archmagePhoenix, nyxeron, heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips, actionRingHudRevision,
+                archmagePhoenix, nyxeron, heldWeaponModels, itemModels, actionRingSprites, worldDisplay, itemTooltips, skillTooltips, actionRingHudRevision,
                 questHud, receptionDisplay, challengeCountdown, dungeonClearSound);
         } finally {
             if (!keep) Files.deleteIfExists(file);

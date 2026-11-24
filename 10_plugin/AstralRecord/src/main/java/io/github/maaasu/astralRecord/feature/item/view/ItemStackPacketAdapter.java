@@ -24,6 +24,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
+import io.github.maaasu.astralRecord.feature.skill.gui.SkillLore;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillIconCatalog;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
@@ -530,7 +531,11 @@ public class ItemStackPacketAdapter {
     /** 受信者の接続で利用可能なツールチップ装飾を返します。 */
     private @Nullable ItemTooltipPresentation tooltipPresentation(UUID viewer) {
         if (resourcePacks.hasJavaItemTooltips(viewer)) {
-            return ItemTooltipPresentation.JAVA;
+            return resourcePacks.hasJavaSkillTooltips(viewer)
+                ? ItemTooltipPresentation.JAVA_SKILL : ItemTooltipPresentation.JAVA;
+        }
+        if (resourcePacks.hasBedrockSkillTooltips(viewer)) {
+            return ItemTooltipPresentation.BEDROCK_SKILL;
         }
         return resourcePacks.hasBedrockItemTooltips(viewer) ? ItemTooltipPresentation.BEDROCK : null;
     }
@@ -663,7 +668,12 @@ public class ItemStackPacketAdapter {
                 return rendered;
             }
         }
-        return projected.clone();
+        ItemStack copy = projected.clone();
+        String skillId = tooltip == null ? null : SkillLore.styleId(projected.getPersistentDataContainer());
+        if (skillId != null) {
+            tooltip.applySkill(copy, skillId, false, null);
+        }
+        return copy;
     }
 
     private static @Nullable ItemStack applyCartograph(
@@ -783,7 +793,8 @@ public class ItemStackPacketAdapter {
     ) {
         var iconName = ItemStackFactory.getIconName(original);
         var iconTexture = ItemStackFactory.getIconTexture(original);
-        var itemId = ItemStackFactory.getAstralItemId(original);
+        var itemData = original.getPersistentDataContainer();
+        var itemId = ItemStackFactory.getAstralItemId(itemData);
         var embeddedModelData = ItemStackFactory.getCustomModelData(original);
         var diskModelData = CastDiskHotbarIconService.displayModelData(original);
         var customModelData = diskModelData == null ? resolveCustomModelData(itemId, embeddedModelData) : diskModelData;
@@ -798,7 +809,8 @@ public class ItemStackPacketAdapter {
         boolean hookshotLoaded = ItemStackFactory.isHookshotLoaded(original);
         boolean virtualWeapon = !bedrockViewer && virtualTrident && ItemStackFactory.isWeapon(original);
 
-        boolean decorateTooltip = tooltip != null && itemId != null;
+        String skillTooltipId = tooltip == null ? null : SkillLore.styleId(itemData);
+        boolean decorateTooltip = tooltip != null && (itemId != null || skillTooltipId != null);
         if (!decorateTooltip && !virtualWeapon
             && iconName == null
             && iconTexture == null
@@ -841,7 +853,9 @@ public class ItemStackPacketAdapter {
         modified |= applyHookshotChargedIcon(replaced, hookshotLoaded);
         modified |= ItemStackFactory.hideBundleContentsTooltip(replaced);
         if (decorateTooltip) {
-            modified |= tooltip.apply(replaced, itemMaster);
+            modified |= skillTooltipId == null
+                ? tooltip.apply(replaced, itemMaster)
+                : tooltip.applySkill(replaced, skillTooltipId, itemId != null, itemMaster);
         }
         if (!randomStatusRangeDisplayEnabled) {
             modified |= ItemStackFactory.hideRandomStatusRangeLore(replaced);

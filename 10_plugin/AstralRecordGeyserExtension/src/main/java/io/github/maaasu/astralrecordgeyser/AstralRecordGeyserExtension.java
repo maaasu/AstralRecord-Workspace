@@ -261,8 +261,19 @@ public final class AstralRecordGeyserExtension implements Extension {
      * @return ログインまで完了した接続のパックに対応する字形と枠がある場合は true
      */
     public boolean hasItemTooltips(UUID playerId) {
+        return hasVerifiedItemTooltips(playerId);
+    }
+
+    /** 強制配布と配布内容が一致する接続でだけ、共通ツールチップの字形を有効にします。 */
+    public boolean hasVerifiedItemTooltips(UUID playerId) {
         var connection = geyserApi().connectionByUuid(playerId);
         return connection != null && damagePacks.itemTooltipsReady(connection);
+    }
+
+    /** 接続中のクライアントに各スキルのツールチップ字形があるかを返します。 */
+    public boolean hasSkillTooltips(UUID playerId) {
+        var connection = geyserApi().connectionByUuid(playerId);
+        return connection != null && damagePacks.skillTooltipsReady(connection);
     }
 
     /**

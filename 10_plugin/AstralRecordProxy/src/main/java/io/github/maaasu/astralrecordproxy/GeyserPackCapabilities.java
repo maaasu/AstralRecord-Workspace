@@ -33,8 +33,12 @@ final class GeyserPackCapabilities {
      * @param playerId 接続中プレイヤーの Java 側 UUID
      * @return 拡張がツールチップに対応する接続と確認した場合は true
      */
-    static boolean hasItemTooltips(UUID playerId) {
-        return supports(playerId, "hasItemTooltips");
+    static boolean hasSkillTooltips(UUID playerId) {
+        return supports(playerId, "hasSkillTooltips");
+    }
+
+    static boolean hasVerifiedItemTooltips(UUID playerId) {
+        return supports(playerId, "hasVerifiedItemTooltips");
     }
 
     /**

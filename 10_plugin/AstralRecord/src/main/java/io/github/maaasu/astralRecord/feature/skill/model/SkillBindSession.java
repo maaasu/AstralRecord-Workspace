@@ -24,6 +24,9 @@ public final class SkillBindSession {
     private int activeSlotOffset;
     /** 習得処理中として一覧上で時計表示するスキル ID です。 */
     private @Nullable String processingSkillId;
+    private int performanceReturnPage;
+    private long detailViewRevision;
+    private long levelUpResultRevision;
 
     public SkillBindSession(@NotNull List<SkillBindPreset> presets) {
         this(presets, 1, SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT);
@@ -58,6 +61,45 @@ public final class SkillBindSession {
 
     public int selectedPresetIndex() {
         return selectedPresetIndex;
+    }
+
+    /**
+     * 閲覧画面を閉じたときに戻る編集一覧ページを返します。
+     * @return 0 始まりのページ番号
+     */
+    public int performanceReturnPage() {
+        return performanceReturnPage;
+    }
+
+    /**
+     * 性能の閲覧へ移る前の編集一覧ページを保持します。
+     * @param page 0 始まりのページ番号
+     */
+    public void setPerformanceReturnPage(int page) {
+        performanceReturnPage = page;
+    }
+
+    /**
+     * 強化完了による再描画が適用される詳細画面の訪問番号を返します。
+     * @return 詳細画面の訪問番号
+     */
+    public long detailViewRevision() {
+        return detailViewRevision;
+    }
+
+    /** プレイヤー自身が詳細画面へ入るか離れる操作を行ったため、前の訪問を失効させます。 */
+    public void advanceDetailViewRevision() {
+        detailViewRevision++;
+    }
+
+    /** 一覧を生成してから強化結果が反映されたかを確認する番号を返します。 */
+    public long levelUpResultRevision() {
+        return levelUpResultRevision;
+    }
+
+    /** 強化の確定または補償が完了したことを記録します。 */
+    public void markLevelUpResult() {
+        levelUpResultRevision++;
     }
 
     /** 現在利用できる発動枠数を返します。 */
@@ -228,6 +270,33 @@ public final class SkillBindSession {
         int availablePassiveSlotCount,
         boolean passiveBindRequired
     ) {
+        BindTarget target = bindTarget(skillId, skillKind, availablePassiveSlotCount, passiveBindRequired);
+        if (target == null) return false;
+        setSlot(target.type(), target.index(), skillId);
+        clearSelectedBindSlot();
+        return true;
+    }
+
+    /**
+     * 選択枠または自動選択できる空き枠へ設定できるか、編集状態を変えずに判定します。
+     * @param skillId 習得済みスキル個体ID
+     * @param skillKind スキル種別
+     * @param availablePassiveSlotCount 現在利用できるパッシブ枠数
+     * @param passiveBindRequired パッシブの設定が必須か
+     * @return 設定先があれば true
+     */
+    public boolean canAssign(
+        @NotNull String skillId, @NotNull SkillKind skillKind, int availablePassiveSlotCount, boolean passiveBindRequired
+    ) {
+        return bindTarget(skillId, skillKind, availablePassiveSlotCount, passiveBindRequired) != null;
+    }
+
+    private record BindTarget(SkillBindType type, int index) { }
+
+    /** 選択済みの枠、または自動配置に使える枠を返します。 */
+    private @Nullable BindTarget bindTarget(
+        String skillId, SkillKind skillKind, int availablePassiveSlotCount, boolean passiveBindRequired
+    ) {
         SkillBindType targetType = selectedBindType;
         int targetIndex = selectedBindSlotIndex;
         if (targetType == null || targetIndex < 0 || targetIndex >= slotCount(targetType)) {
@@ -240,26 +309,24 @@ public final class SkillBindSession {
                 targetIndex = 0;
             }
         } else if (!matches(targetType, skillKind)) {
-            return false;
+            return null;
         }
         if (targetType == SkillBindType.PASSIVE
             && targetIndex >= Math.max(0, Math.min(availablePassiveSlotCount, passiveDraft.size()))) {
-            return false;
+            return null;
         }
         if (targetType == SkillBindType.ACTIVE
             && targetIndex >= Math.max(0, Math.min(activeSlotCount, activeDraft.size()))) {
-            return false;
+            return null;
         }
         if (targetType == SkillBindType.PASSIVE
             && (!passiveBindRequired || isBound(SkillBindType.PASSIVE, skillId))) {
-            return false;
+            return null;
         }
         if (targetIndex < 0) {
-            return false;
+            return null;
         }
-        setSlot(targetType, targetIndex, skillId);
-        clearSelectedBindSlot();
-        return true;
+        return new BindTarget(targetType, targetIndex);
     }
 
     private boolean matches(@NotNull SkillBindType bindType, @NotNull SkillKind skillKind) {

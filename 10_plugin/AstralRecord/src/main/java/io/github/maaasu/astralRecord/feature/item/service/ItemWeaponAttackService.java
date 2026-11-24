@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillDamagePreview;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SeijakuIssenSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
@@ -163,9 +164,16 @@ public final class ItemWeaponAttackService {
         return attack == null ? null : attack.skillId();
     }
 
-    /** スキルマネージャー用に主手武器の使用条件と通常攻撃の実効値を読み取ります。 */
-    public List<String> previewNormalAttack(@NotNull AstPlayer player) {
-        if (!hasUsableMainHandWeapon(player)) return List.of("使用可能な主手武器を装備してください");
+    /**
+     * スキルマネージャー用に主手武器の通常攻撃の実効値を読み取ります。
+     *
+     * @param player 装備と現在の状態を参照するプレイヤー
+     * @return 通常攻撃の性能または表示できない理由
+     */
+    public SkillDamagePreview.Report previewNormalAttack(@NotNull AstPlayer player) {
+        if (!hasUsableMainHandWeapon(player)) {
+            return SkillDamagePreview.Report.unavailable("使用可能な主手武器を装備してください");
+        }
         var item = inventoryService.getItemModelInHand(player, EquipmentSlot.HAND);
         var attack = resolveAttack(item.getEquipment().getTag());
         if (attack != null) {
@@ -173,7 +181,7 @@ public final class ItemWeaponAttackService {
             if (skill != null && skillService.registry().getExecutor(skill.getImplementationId()) instanceof WeaponAttackSkillExecutor executor)
                 return executor.previewAttack(player, skill, attack.cooldownTicks(), skillService);
         }
-        return List.of("この武器の通常攻撃定義を取得できません");
+        return SkillDamagePreview.Report.unavailable("この武器の通常攻撃定義を取得できません");
     }
 
     /**

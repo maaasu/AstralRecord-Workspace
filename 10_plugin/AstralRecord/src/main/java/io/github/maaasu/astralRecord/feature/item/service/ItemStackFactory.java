@@ -46,6 +46,7 @@ import io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.TooltipDisplay;
+import io.papermc.paper.persistence.PersistentDataContainerView;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -497,11 +498,12 @@ public class ItemStackFactory {
      * @return アイテムID。AstralRecord アイテムでなければ {@code null}
      */
     public static @Nullable String getAstralItemId(@NotNull ItemStack item) {
-        if (!item.hasItemMeta()) {
-            return null;
-        }
-        return item.getItemMeta().getPersistentDataContainer()
-                .get(KEY_ITEM_ID, PersistentDataType.STRING);
+        return getAstralItemId(item.getPersistentDataContainer());
+    }
+
+    /** 送信時など、読み取り専用の PDC を他の判定と共有できる入口です。 */
+    public static @Nullable String getAstralItemId(@NotNull PersistentDataContainerView data) {
+        return data.get(KEY_ITEM_ID, PersistentDataType.STRING);
     }
 
     /**

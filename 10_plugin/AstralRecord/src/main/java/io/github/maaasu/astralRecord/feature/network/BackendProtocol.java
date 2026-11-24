@@ -25,7 +25,9 @@ final class BackendProtocol {
     private static final byte[] CHALLENGE_COUNTDOWN_READY = emptyNotification("challenge_countdown_v1_ready");
     private static final byte[] DUNGEON_CLEAR_SOUND_READY = emptyNotification("dungeon_clear_sound_v1_ready");
     private static final byte[] GAMEPLAY_SOUNDS_READY = emptyNotification("gameplay_sounds_ready");
-    private static final byte[] ITEM_TOOLTIPS_READY = emptyNotification("item_tooltips_ready");
+    private static final byte[] VERIFIED_ITEM_TOOLTIPS_READY =
+        emptyNotification("item_tooltips_v1_verified_ready");
+    private static final byte[] SKILL_TOOLTIPS_READY = emptyNotification("skill_tooltips_v1_ready");
     private static final byte[] WEAPON_ATTACK_PROJECTILES_READY =
             emptyNotification("weapon_attack_projectiles_ready");
     private static final byte[] BEDROCK_QUEST_HUD_READY = emptyNotification("bedrock_quest_hud_v2_ready");
@@ -59,8 +61,12 @@ final class BackendProtocol {
     }
 
     /** 対応パックのツールチップを使える統合版接続の完全な通知か判定します。 */
-    static boolean isItemTooltipsReady(byte[] payload) {
-        return Arrays.equals(ITEM_TOOLTIPS_READY, payload);
+    static boolean isVerifiedItemTooltipsReady(byte[] payload) {
+        return Arrays.equals(VERIFIED_ITEM_TOOLTIPS_READY, payload);
+    }
+
+    static boolean isSkillTooltipsReady(byte[] payload) {
+        return Arrays.equals(SKILL_TOOLTIPS_READY, payload);
     }
 
     /** 通常攻撃の飛翔演出を使える統合版接続の完全な通知か判定します。 */

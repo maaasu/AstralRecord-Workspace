@@ -7,6 +7,8 @@ import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.skill.gui.SkillLore;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -49,6 +51,8 @@ import io.github.maaasu.astralRecord.shared.gui.HeadTextureItemStackSupport;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionRayTrace;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -264,6 +268,7 @@ public class SkillTreeService {
     private @Nullable PlayerSettingService playerSettingService;
     private StatusService statusService;
     private SkillService skillService;
+    private ItemService itemService;
     private PassiveSkillService passiveSkillService;
     private PlayerClassService playerClassService;
     private final SkillTreeNodeRepository nodeRepository;
@@ -467,6 +472,15 @@ public class SkillTreeService {
      */
     public void setSkillService(@NotNull SkillService skillService) {
         this.skillService = skillService;
+    }
+
+    /**
+     * ノード説明で習得素材名を引くマスターを設定します。
+     *
+     * @param itemService 既存のアイテムサービス
+     */
+    public void setItemService(@NotNull ItemService itemService) {
+        this.itemService = itemService;
     }
 
     /**
@@ -3675,23 +3689,41 @@ public class SkillTreeService {
         }
     }
 
-    private void appendNodeFieldPassiveLines(
-            @NotNull List<String> lines,
-            @NotNull SkillTreeNodeDefinition node,
-            boolean unlocked
-    ) {
-        if (node.skillEffects().isEmpty()) {
-            return;
+    /** スキルを付与するノードの解放に必要なポイントと条件を表示します。 */
+    private void appendDetailedNodeRequirements(List<Component> lore, SkillTreeNodeDefinition node) {
+        SkillLore.section(lore, "ノードの解放条件", NamedTextColor.GOLD);
+        lore.add(SkillLore.row("消費", SkillLore.value(nodePointDisplayName(node) + " " + node.pointCost())));
+        if (node.unlockCondition().hasPlayerLevelCondition()) {
+            lore.add(SkillLore.row("必要レベル", SkillLore.value("Lv." + node.unlockCondition().playerLevel())));
         }
-        lines.add(unlocked ? "&8--- &bスキル &8---" : "&8--- スキル ---");
+        if (node.unlockCondition().hasClassCondition()) {
+            lore.add(SkillLore.row("必要クラス", Component.text(nodeConditionClassDisplayName(node))));
+        }
+    }
+
+    /** ノードの使用許可から、スキルマネージャーでの習得までを説明します。 */
+    private void appendNodeSkillUnlockLore(List<Component> lore, SkillTreeNodeDefinition node) {
+        SkillLore.section(lore, "スキルの使用許可", NamedTextColor.AQUA);
+        lore.add(SkillLore.note("ノード解放後、未習得ならスキルマネージャーで習得。"));
         for (SkillTreeSkillEffect effect : node.skillEffects()) {
-            String skillId = effect.skillId();
-            var definition = skillService == null ? null : skillService.registry().getDefinition(skillId);
+            var definition = skillService == null ? null : skillService.registry().getDefinition(effect.skillId());
+            Component name = SkillPresentationUtil.skillNameComponent(definition, "未登録のスキル", NamedTextColor.WHITE);
             if (definition == null) {
-                lines.add((unlocked ? "&7- &f" : "&8- &7") + "未読込スキル");
+                lore.add(SkillLore.row("スキル", name));
                 continue;
             }
-            lines.add((unlocked ? "&7- &f" : "&8- &7") + SkillPresentationUtil.plainName(definition, "未定義スキル"));
+            String type = definition.getKind().isPassive() ? "パッシブ" : "アクティブ";
+            lore.add(SkillLore.row(type, name));
+            if (definition.getLearnRequiredItems().isEmpty()) {
+                lore.add(SkillLore.row("習得素材", SkillLore.value("なし")));
+            }
+            for (var cost : definition.getLearnRequiredItems()) {
+                var material = itemService == null ? null : itemService.findLoadedById(cost.getItemId());
+                Component materialName = SkillPresentationUtil.itemNameComponent(
+                    material, "未登録の素材", NamedTextColor.WHITE);
+                lore.add(SkillLore.materialRow(cost.getItemId(), "習得素材",
+                    materialName.append(Component.space()).append(SkillLore.value("×" + cost.getAmount()))));
+            }
         }
     }
 
@@ -3789,6 +3821,12 @@ public class SkillTreeService {
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.displayName(component(resolveNodeDisplayName(node, unlocked)));
+            if (!node.skillEffects().isEmpty()) {
+                var lore = new ArrayList<Component>();
+                appendDetailedNodeRequirements(lore, node);
+                appendNodeSkillUnlockLore(lore, node);
+                meta.lore(SkillLore.finish(lore));
+            }
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
         }
@@ -3797,7 +3835,8 @@ public class SkillTreeService {
             .distinct()
             .limit(2)
             .toList();
-        return skillIds.size() == 1 ? SkillIconCatalog.apply(itemStack, skillIds.getFirst()) : itemStack;
+        if (skillIds.isEmpty()) return itemStack;
+        return skillIds.size() == 1 ? SkillIconCatalog.apply(itemStack, skillIds.getFirst()) : SkillLore.style(itemStack, null);
     }
 
     /**
@@ -3887,18 +3926,31 @@ public class SkillTreeService {
                 lines.add("&c効果停止中: CP/PP 不足");
             }
         }
-        if (labelDetail == NodeLabelDetail.DETAILED
+        boolean skillDetails = labelDetail == NodeLabelDetail.DETAILED && !node.skillEffects().isEmpty();
+        if (!skillDetails && labelDetail == NodeLabelDetail.DETAILED
                 && (node.pointCost() > 0 || node.unlockCondition().hasClassCondition())) {
             lines.add("&8Cost: &f" + nodePointDisplayName(node) + " &e" + node.pointCost());
         }
-        if (labelDetail != NodeLabelDetail.HIDDEN) {
+        if (!skillDetails && labelDetail != NodeLabelDetail.HIDDEN) {
             appendNodeFieldConditionLines(lines, node, presentationState);
         }
         if (labelDetail == NodeLabelDetail.DETAILED) {
             appendNodeFieldStatusLines(lines, node, emphasized);
-            appendNodeFieldPassiveLines(lines, node, emphasized);
         }
-        return component(String.join("\n", lines));
+        if (!skillDetails) return component(String.join("\n", lines));
+        switch (presentationState) {
+            case AVAILABLE -> lines.add("&a解放可能");
+            case UNLOCKED -> lines.add("&a解放済み");
+            case CONDITION_BLOCKED -> lines.add("&c未解放・必要条件未達");
+            case BLOCKED -> lines.add("&7未解放");
+            default -> { }
+        }
+        Component label = component(String.join("\n", lines));
+        var lore = new ArrayList<Component>();
+        lore.add(label);
+        appendDetailedNodeRequirements(lore, node);
+        appendNodeSkillUnlockLore(lore, node);
+        return Component.join(JoinConfiguration.separator(Component.newline()), lore);
     }
 
     private void appendNodeFieldSimpleStatusLines(

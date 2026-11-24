@@ -59,7 +59,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Plugin(id = "astralrecordproxy", name = "AstralRecordProxy", version = "1.8.0",
+@Plugin(id = "astralrecordproxy", name = "AstralRecordProxy", version = "1.9.0",
     dependencies = @Dependency(id = "geyser", optional = true))
 public final class AstralRecordProxyPlugin {
     static final long SERVER_METRICS_TTL_NANOS = TimeUnit.SECONDS.toNanos(15L);
@@ -473,7 +473,12 @@ public final class AstralRecordProxyPlugin {
                     if (GeyserPackCapabilities.hasGameplaySounds(update.playerId())) {
                         connection.sendPluginMessage(CHANNEL, BackendProtocol.gameplaySoundsReady());
                     }
-                    if (GeyserPackCapabilities.hasItemTooltips(update.playerId())) {
+                    if (GeyserPackCapabilities.hasSkillTooltips(update.playerId())) {
+                        connection.sendPluginMessage(CHANNEL, BackendProtocol.skillTooltipsReady());
+                    }
+                    if (GeyserPackCapabilities.hasVerifiedItemTooltips(update.playerId())) {
+                        connection.sendPluginMessage(CHANNEL, BackendProtocol.verifiedItemTooltipsReady());
+                        // 旧RPGにも検証済みの接続を通知します。
                         connection.sendPluginMessage(CHANNEL, BackendProtocol.itemTooltipsReady());
                     }
                     if (GeyserPackCapabilities.hasSkillEffectsV2(update.playerId())) {

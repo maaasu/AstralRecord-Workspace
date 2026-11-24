@@ -2656,6 +2656,7 @@ public final class AstralRecord extends JavaPlugin {
         skillTreeService.setStatusService(statusService);
         configureSkillTreeGuideIntegration(skillTreeService, guideService);
         skillTreeService.setSkillService(skillService);
+        skillTreeService.setItemService(itemService);
         skillTreeService.setPassiveSkillService(passiveSkillService);
         skillActionRingService = new SkillActionRingService(
             this, skillBindPresetService, skillService, skillOwnershipService, skillPermissionService, resourcePackService,

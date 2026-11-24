@@ -203,6 +203,11 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 handleDetailClick(player, session, holder, event);
                 return;
             }
+            if (holder.screen() == SkillBindScreen.PERFORMANCE_LIST
+                || holder.screen() == SkillBindScreen.PERFORMANCE_DETAIL) {
+                handlePerformanceClick(player, session, holder, event);
+                return;
+            }
             if (event.getClickedInventory() instanceof PlayerInventory) {
                 handlePlayerInventorySettingsClick(player, session, holder.pageIndex(), event);
                 return;
@@ -255,7 +260,8 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 ));
                 return;
             }
-            if (holder.screen() == SkillBindScreen.MAIN && session.isDirty()) {
+            if ((holder.screen() == SkillBindScreen.MAIN || holder.screen() == SkillBindScreen.PERFORMANCE_LIST
+                || holder.screen() == SkillBindScreen.PERFORMANCE_DETAIL) && session.isDirty()) {
                 plugin.getServer().getPluginManager().callEvent(new GuiSessionContinuationRequestEvent(
                     player,
                     event.getInventory(),
@@ -340,6 +346,13 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return;
         }
 
+        if (slot == SkillBindGui.PERFORMANCE_BOOK_SLOT && isMouseClick(event)) {
+            session.setPerformanceReturnPage(page);
+            int previewPage = session.selectedBindType() == null ? page : 0;
+            openPerformanceList(player, astPlayer, session, previewPage);
+            GuiSound.SELECT.play(player);
+            return;
+        }
         if (slot == SkillBindGui.PREVIOUS_PAGE_SLOT) {
             if (page <= 0) {
                 GuiSound.DENY.play(player);
@@ -392,10 +405,80 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
         if (entry.learnedSkill().getLevel() < entry.definition().getMaxLevel()
             && hasLevelUpMaterials(astPlayer, entry)) {
+            session.advanceDetailViewRevision();
             openDetail(player, session, entry, page);
             return;
         }
         bindSkillFromManager(player, session, page, entry);
+    }
+
+    /**
+     * 性能の閲覧画面だけの操作を処理します。下段、編集、消費処理には委譲しません。
+     * @param player 操作したプレイヤー
+     * @param session 開いている編集セッション
+     * @param holder 閲覧中の画面とページ
+     * @param event インベントリ操作
+     */
+    private void handlePerformanceClick(
+        Player player, SkillBindSession session, SkillBindInventoryHolder holder, InventoryClickEvent event
+    ) {
+        if (event.getClickedInventory() == null || event.getClickedInventory() instanceof PlayerInventory
+            || !isMouseClick(event)) return;
+        AstPlayer owner = AstPlayerCache.get(player);
+        if (!AccountModeGuard.isGameplayPlayer(owner)) return;
+        int slot = event.getRawSlot();
+        int page = holder.pageIndex();
+        if (holder.screen() == SkillBindScreen.PERFORMANCE_DETAIL) {
+            if (slot == SkillBindGui.DETAIL_BACK_SLOT) {
+                openPerformanceList(player, owner, session, page);
+                GuiSound.SELECT.play(player);
+            }
+            return;
+        }
+        if (slot == SkillBindGui.BACK_SLOT) {
+            openMain(player, session, session.performanceReturnPage());
+            GuiSound.SELECT.play(player);
+            return;
+        }
+        if (slot == SkillBindGui.PREVIOUS_PAGE_SLOT || slot == SkillBindGui.NEXT_PAGE_SLOT) {
+            int next = page + (slot == SkillBindGui.PREVIOUS_PAGE_SLOT ? -1 : 1);
+            int count = allEntries(owner).size() + visibleUnlearnedDefinitions(owner, null).size();
+            if (gui.normalizePage(next, count) != next) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            openPerformanceList(player, owner, session, next);
+            GuiSound.PAGE.play(player);
+            return;
+        }
+        Set<String> permitted = permissionService.permittedSkillIds(owner);
+        if (slot == SkillBindGui.PERFORMANCE_NORMAL_ATTACK_SLOT) {
+            GuiOpenSupport.open(player, gui.createPerformanceDetail(session, owner, null, null, permitted, page));
+            GuiSound.SELECT.play(player);
+            return;
+        }
+        if (slot < 0 || slot >= SkillBindGui.CONTENT_SLOT_COUNT) return;
+        SkillManagerEntry learned = entry(owner, gui.learnedSkillId(event.getCurrentItem()));
+        String unlearnedId = gui.unlearnedSkillId(event.getCurrentItem());
+        SkillDefinition definition = learned == null
+            ? (unlearnedId != null && permissionService.isPermitted(owner, unlearnedId)
+                ? skillService.registry().getDefinition(unlearnedId) : null)
+            : learned.definition();
+        if (definition == null) return;
+        GuiOpenSupport.open(player, gui.createPerformanceDetail(session, owner, definition, learned, permitted, page));
+        GuiSound.SELECT.play(player);
+    }
+
+    /**
+     * 選択済みのバインド枠で絞り込まず、閲覧可能なスキルを全件対象にします。
+     * @param player GUIの閲覧者
+     * @param owner 性能の試算対象
+     * @param session 編集状態を保持するセッション
+     * @param page 表示する対象一覧ページ
+     */
+    private void openPerformanceList(Player player, AstPlayer owner, SkillBindSession session, int page) {
+        GuiOpenSupport.open(player, gui.createPerformanceList(session, allEntries(owner),
+            visibleUnlearnedDefinitions(owner, null), permissionService.permittedSkillIds(owner), page));
     }
 
     private void handleDetailClick(
@@ -410,6 +493,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
         int slot = event.getRawSlot();
         if (slot == SkillBindGui.DETAIL_BACK_SLOT) {
+            session.advanceDetailViewRevision();
             GuiSound.SELECT.play(player);
             openMain(player, session, holder.pageIndex());
             return;
@@ -426,9 +510,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return;
         }
         boolean mutationInProgress = learnedSkillService.hasMutationInProgress(astPlayer.getAccount().getUuid());
-        boolean canQueueLevelUp = slot == SkillBindGui.DETAIL_LEVEL_UP_SLOT
-            && learnedSkillService.canQueueLocalLevelUp(astPlayer.getAccount().getUuid());
-        if (mutationInProgress && !canQueueLevelUp) {
+        if (mutationInProgress) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -442,7 +524,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 openMain(player, session, holder.pageIndex());
                 return;
             }
-            if (levelUpFromManager(player, session, holder.pageIndex(), entry, true)) {
+            if (levelUpFromManager(player, session, holder.pageIndex(), entry)) {
                 AstPlayer current = AstPlayerCache.get(player);
                 if (current != null
                     && learnedSkillService.hasMutationInProgress(current.getAccount().getUuid())
@@ -890,11 +972,33 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             : new SkillManagerEntry(learned, resolved.definition(), permitted, resolved);
     }
 
+    /** 一覧を開き、表示予約中に強化結果が届いた場合は同じ一覧を再描画します。 */
     private void openMain(Player player, SkillBindSession session, int page) {
+        long levelUpRevision = session.levelUpResultRevision();
         Inventory inventory = createMainInventory(player, session, page);
         if (inventory != null) {
-            GuiOpenSupport.open(player, inventory);
+            GuiOpenSupport.open(player, inventory, () -> {
+                if (session.levelUpResultRevision() != levelUpRevision) refreshOpenMain(player, session);
+            });
         }
+    }
+
+    /**
+     * 開いている編集一覧の中身を変え、そのページと編集状態を維持します。
+     * @param player 強化したプレイヤー
+     * @param session 強化を開始した編集セッション
+     */
+    private void refreshOpenMain(Player player, SkillBindSession session) {
+        if (!player.isOnline() || sessions.get(player.getUniqueId()) != session) return;
+        Inventory active = player.getOpenInventory().getTopInventory();
+        SkillBindInventoryHolder holder = gui.holder(active);
+        if (holder == null || holder.screen() != SkillBindScreen.MAIN
+            || holder.selectedPresetIndex() != session.selectedPresetIndex()) return;
+        Inventory latest = createMainInventory(player, session, holder.pageIndex());
+        SkillBindInventoryHolder latestHolder = gui.holder(latest);
+        if (latestHolder == null || latestHolder.pageIndex() != holder.pageIndex()) return;
+        active.setContents(latest.getContents());
+        holder.renderPlayerInventory(player);
     }
 
     /** 通常プレイモードの場合だけ、下段 PlayerInventory のスキル設定を再描画します。 */
@@ -1010,7 +1114,8 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             entry,
             returnPage,
             mutationInProgress,
-            permissionService.permittedSkillIds(astPlayer)
+            permissionService.permittedSkillIds(astPlayer),
+            passiveSkillService.activePassiveSlotCount(astPlayer)
         );
         if (inventory != null) {
             GuiOpenSupport.open(player, inventory);
@@ -1022,27 +1127,26 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (!AccountModeGuard.isGameplayPlayer(astPlayer)) return null;
         List<SkillManagerEntry> visible = visibleEntries(astPlayer, session);
-        Map<String, SkillManagerEntry> allById = new LinkedHashMap<>();
-        for (SkillManagerEntry entry : allEntries(astPlayer)) allById.put(entry.bindingId(), entry);
         return gui.createMainInventory(
             session,
             visible,
             visibleUnlearnedDefinitions(astPlayer, session),
-            allById,
             permittedSkillDefinitions(astPlayer),
             passiveSkillService.activePassiveSlotCount(astPlayer),
-            page
+            page,
+            viewer -> renderPlayerInventorySettings(viewer, session)
         );
     }
 
-    private List<SkillDefinition> visibleUnlearnedDefinitions(@NotNull AstPlayer player, @NotNull SkillBindSession session) {
+    /** 未習得の許可済みスキルを取得し、編集セッションがある場合だけ選択枠で絞ります。 */
+    private List<SkillDefinition> visibleUnlearnedDefinitions(@NotNull AstPlayer player, @Nullable SkillBindSession session) {
         Set<String> learnedIds = ownershipService.learnedSkills(player).stream()
             .map(learned -> learned.getSkillId().toLowerCase(java.util.Locale.ROOT))
             .collect(java.util.stream.Collectors.toSet());
         return permittedSkillDefinitions(player).stream()
             .filter(definition -> !learnedIds.contains(definition.getId().toLowerCase(java.util.Locale.ROOT)))
             .filter(definition -> {
-                SkillBindType selected = session.selectedBindType();
+                SkillBindType selected = session == null ? null : session.selectedBindType();
                 if (selected == null) return true;
                 return selected == SkillBindType.PASSIVE
                     ? definition.getKind() == SkillKind.PASSIVE && definition.getPassiveBindRequired()
@@ -1096,16 +1200,12 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
     }
 
-    private boolean levelUpFromManager(Player player, SkillBindSession session, int page, SkillManagerEntry entry) {
-        return levelUpFromManager(player, session, page, entry, false);
-    }
-
+    /** 詳細画面から強化を受け付け、同じ画面を見ている間だけ完了結果を描画します。 */
     private boolean levelUpFromManager(
         Player player,
         SkillBindSession session,
         int page,
-        SkillManagerEntry entry,
-        boolean keepDetail
+        SkillManagerEntry entry
     ) {
         if (entry.learnedSkill().getLevel() >= entry.definition().getMaxLevel()) {
             GuiSound.DENY.play(player);
@@ -1116,7 +1216,8 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return false;
         }
-        UUID playerId = player.getUniqueId();
+        long detailViewRevision = session.detailViewRevision();
+        String bindingId = entry.bindingId();
         Map<UUID, Long> requiredPayments = requiredItemPayments(
             astPlayer,
             entry.definition().getLevelUpRequiredItems()
@@ -1134,10 +1235,13 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                  plugin.getGuideService().recordConditionSilently(current, GuideConditionType.SKILL_ENHANCED, entry.definition().getId());
                  passiveSkillService.markDirty(current);
                  inventoryService.refreshManagedInventoryUi(current);
-                 if (sessions.get(playerId) != session) return;
+                 if (sessions.get(player.getUniqueId()) != session) return;
+                 session.markLevelUpResult();
+                 refreshOpenMain(current.getBukkit(), session);
                  GuiSound.SUCCESS.play(current.getBukkit());
+                if (!isCurrentLevelUpView(current.getBukkit(), session, detailViewRevision, page, bindingId)) return;
                 SkillManagerEntry updatedEntry = entry(current, updated.getLearnedSkillId().toString());
-                if (keepDetail && updatedEntry != null
+                if (updatedEntry != null
                     && updatedEntry.learnedSkill().getLevel() < updatedEntry.definition().getMaxLevel()) {
                     openDetail(current.getBukkit(), session, updatedEntry, page);
                 } else {
@@ -1149,24 +1253,48 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 if (current == null || !player.isOnline()) return;
                 GuiSound.DENY.play(player);
                 PlayerMessageService.getInstance().send(player, mutationFailureMessage(error));
-                if (sessions.get(playerId) != session) return;
-                SkillManagerEntry currentEntry = entry(current, entry.learnedSkill().getLearnedSkillId().toString());
-                if (keepDetail) {
-                    if (currentEntry != null) {
-                        openDetail(player, session, currentEntry, page);
-                    } else {
-                        openMain(player, session, page);
-                    }
+                if (sessions.get(player.getUniqueId()) != session) return;
+                session.markLevelUpResult();
+                refreshOpenMain(player, session);
+                if (!isCurrentLevelUpView(player, session, detailViewRevision, page, bindingId)) return;
+                SkillManagerEntry currentEntry = entry(current, bindingId);
+                if (currentEntry != null) {
+                    openDetail(player, session, currentEntry, page);
                 } else {
                     openMain(player, session, page);
                 }
             },
-            () -> markSkillMutationPending(player, session)
+            () -> {
+                if (isCurrentLevelUpView(player, session, detailViewRevision, page, bindingId)) {
+                    markSkillMutationPending(player, session);
+                }
+            }
         );
         if (!scheduled) {
             GuiSound.DENY.play(player);
         }
         return scheduled;
+    }
+
+    /**
+     * 強化を開始した訪問・習得個体を現在も表示しているか確認します。
+     *
+     * <p>「戻る」の遅延処理がまだ表示へ反映されていない間も、訪問番号で完了通知による上書きを防ぎます。</p>
+     * @param player 強化を始めたプレイヤー
+     * @param session 強化開始時の編集セッション
+     * @param detailViewRevision 強化開始時の詳細画面の訪問番号
+     * @param page 詳細画面が保持する一覧ページ
+     * @param bindingId 強化対象の習得個体ID
+     * @return 強化を始めた詳細画面を再描画してよい場合は true
+     */
+    private boolean isCurrentLevelUpView(
+        Player player, SkillBindSession session, long detailViewRevision, int page, String bindingId
+    ) {
+        if (!player.isOnline() || sessions.get(player.getUniqueId()) != session
+            || session.detailViewRevision() != detailViewRevision) return false;
+        SkillBindInventoryHolder active = gui.holder(player.getOpenInventory().getTopInventory());
+        return active != null && active.screen() == SkillBindScreen.DETAIL && active.pageIndex() == page
+            && active.selectedPresetIndex() == session.selectedPresetIndex() && active.learnedSkillId().equals(bindingId);
     }
 
     private void markSkillMutationPending(
@@ -1336,7 +1464,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
         return gui.createConfirmInventory(
             session.selectedPresetIndex(),
-            closedHolder.pageIndex(),
+            closedHolder.screen() == SkillBindScreen.MAIN ? closedHolder.pageIndex() : session.performanceReturnPage(),
             ACTION_CLOSE,
             -1,
             Component.text("変更を破棄して閉じますか", NamedTextColor.YELLOW)
