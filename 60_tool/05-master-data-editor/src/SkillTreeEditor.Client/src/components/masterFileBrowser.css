@@ -43,6 +43,9 @@
 .master-filter-chip > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .master-applied-filters > .text-button { justify-self: end; font-size: 10px; }
 .master-results-pane .master-file-list { border-top: 1px solid var(--line); padding: 4px; min-height: 0; flex: 1 1 0; }
+.master-results-pane .master-file-copy-feedback { align-items: flex-start; flex-shrink: 0; padding: 6px 10px; }
+.master-file-copy-feedback label { flex: 1; min-width: 0; }
+.master-file-copy-feedback textarea { display: block; width: 100%; }
 .master-results-pane .master-file { border-radius: var(--radius-control); margin: 2px 0; padding: 10px 8px; gap: 4px; }
 .master-results-pane .master-file-identity { align-items: center; gap: 8px; }
 .master-results-pane .master-file strong { font-size: 13px; line-height: 1.5; }
