@@ -131,6 +131,74 @@ it('keeps explicitly dragged endpoints through undo, redo, reversal, save and re
   expect(await screen.findByTestId('rf__edge-npc->buy')).toBeInTheDocument()
 })
 
+it('snaps the live drag from raw pointer positions and saves that exact position as one edit', async () => {
+  const user = userEvent.setup()
+  const nodes = content.nodes.map(node => node.id === 'memo' ? { ...node, x: 178 } : node)
+  vi.mocked(masterDataApi.file).mockResolvedValueOnce({ path, format: 'yaml', raw: '', revision: '1', issues: [],
+    content: { ...content, nodes, edges: [] } })
+  const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'getBoundingClientRect')!
+  Object.defineProperty(HTMLElement.prototype, 'getBoundingClientRect', {
+    configurable: true,
+    value(this: HTMLElement) {
+      if (this.classList.contains('game-flow-token-shape')) {
+        return this.dataset.shape === 'note' ? new DOMRect(8, 35, 140, 64) : new DOMRect(46, 35, 64, 64)
+      }
+      return original.value.call(this)
+    },
+  })
+  try {
+    const { container } = render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
+    const action = await screen.findByRole('group', { name: '操作 買い物する' })
+    await waitFor(() => expect(container.querySelector<HTMLElement>('.react-flow__viewport')?.style.transform).toContain('scale(1)'))
+    const view = action.ownerDocument.defaultView!
+    const position = () => action.style.transform
+    const guide = () => container.querySelector('.game-flow-snap-guides line')
+    const mouse = (target: HTMLElement | Window, type: string, clientX: number, clientY: number, buttons: number) => {
+      const event = new view.MouseEvent(type, { clientX, clientY, buttons, bubbles: true, cancelable: true })
+      // jsdom の MouseEvent コンストラクターがテスト環境の Window を変換できないため、D3 の参照先を与える。
+      Object.defineProperty(event, 'view', { value: view })
+      fireEvent(target, event)
+    }
+    const move = (x: number, y: number) => mouse(view, 'mousemove', x, y, 1)
+    mouse(action, 'mousedown', 200, 150, 1)
+    move(202, 150)
+    try {
+      move(373, 250)
+      await waitFor(() => expect(position()).toBe('translate(178px,100px)'))
+      expect(guide()).toHaveAttribute('x1', '256')
+      expect(screen.getByRole('button', { name: '元に戻す' })).toBeDisabled()
+
+      // The pointer is still in the same 10-unit grid cell after leaving the 8px attraction.
+      move(371, 250)
+      await waitFor(() => expect(position()).toBe('translate(170px,100px)'))
+      expect(guide()).toBeNull()
+      move(373, 250)
+      await waitFor(() => expect(position()).toBe('translate(178px,100px)'))
+    } finally {
+      mouse(view, 'mouseup', 373, 250, 0)
+    }
+
+    expect(position()).toBe('translate(178px,100px)')
+    expect(guide()).toBeNull()
+    await user.click(screen.getByRole('button', { name: '元に戻す' }))
+    expect(position()).toBe('translate(0px,0px)')
+    expect(screen.getByRole('button', { name: '元に戻す' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'やり直す' }))
+    expect(position()).toBe('translate(178px,100px)')
+    await user.click(screen.getByRole('button', { name: '保存' }))
+    await waitFor(() => expect(masterDataApi.save).toHaveBeenCalled())
+    const saved = JSON.parse(vi.mocked(masterDataApi.save).mock.lastCall![1])
+    expect(saved.nodes.find((node: { id: string }) => node.id === 'buy')).toMatchObject({ x: 178, y: 100 })
+
+    fireEvent.click(action)
+    act(() => action.focus())
+    await user.keyboard('{ArrowRight}')
+    expect(position()).toBe('translate(190px,100px)')
+  } finally {
+    Object.defineProperty(HTMLElement.prototype, 'getBoundingClientRect', original)
+  }
+})
+
 it('adds an action and connects a nearby annotation from the node menu', async () => {
   const user = userEvent.setup()
   render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
