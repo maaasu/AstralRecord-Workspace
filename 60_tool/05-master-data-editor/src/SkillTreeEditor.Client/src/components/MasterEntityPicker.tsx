@@ -1,5 +1,5 @@
 import { usePanelDocument, usePanelVisibility } from '../docking/dockPanel'
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { isAndroidEditor, registerAndroidDialog } from '../androidEditor'
 import { plainMasterFilterName } from '../data/masterDataPresentation'
@@ -27,6 +27,7 @@ interface MasterEntityPickerProps {
   value?: string | null
   title: string
   onSelect: (id: string) => void
+  onChoiceContextMenu?: (choice: MasterEntityPickerChoice, event: MouseEvent<HTMLLIElement>) => void
   onClose: () => void
   loading?: boolean
   error?: string | null
@@ -39,7 +40,7 @@ const isPlainKey = (event: KeyboardEvent) => !event.nativeEvent.isComposing && e
   && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey
 
 export function MasterEntityPicker({
-  choices, value, title, onSelect, onClose, loading, error, onRetry,
+  choices, value, title, onSelect, onChoiceContextMenu, onClose, loading, error, onRetry,
 }: MasterEntityPickerProps) {
   const titleId = useId()
   const dialog = useRef<HTMLElement>(null)
@@ -219,7 +220,8 @@ export function MasterEntityPicker({
 
         <div ref={results} className="master-entity-picker-results" aria-busy={loading || undefined}>
           {canShowResults && (visible.length > 0 ? <ul aria-label="選択候補">
-            {visible.map(({ choice, name, category, description }) => <li key={choice.id}>
+            {visible.map(({ choice, name, category, description }) => <li key={choice.id}
+              onContextMenu={onChoiceContextMenu && (event => onChoiceContextMenu(choice, event))}>
               <MasterReferenceButton type="button" className="master-entity-picker-choice" preview={choice.preview}
                 ref={element => {
                   if (element) buttons.current.set(choice.id, element)
