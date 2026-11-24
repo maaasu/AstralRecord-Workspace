@@ -47,6 +47,7 @@ import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.TooltipDisplay;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Color;
 import org.bukkit.Material;
@@ -154,6 +155,9 @@ public class ItemStackFactory {
     /** バニラ由来表示を抑制するために適用する ItemFlag 一式（起動時解決） */
     private static final ItemFlag[] VANILLA_HIDE_FLAGS = resolveVanillaHideFlags();
 
+    private static final String TOOLTIP_DESCRIPTION_COLOR = "§#E8E3D6";
+    private static final String TOOLTIP_LABEL_COLOR = "§#C5D0E1";
+    private static final String TOOLTIP_SECTION_DIVIDER = ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION;
     private static final String STATUS_VALUE_COLOR = ColorCodeUtil.WHITE + ColorCodeUtil.BOLD;
     /** 範囲行を通常の説明文と区別する内部マーカー。表示文字列には含めません。 */
     private static final String RANDOM_STATUS_RANGE_MARKER = "astralrecord:random_status_range";
@@ -809,21 +813,40 @@ public class ItemStackFactory {
         return lore;
     }
 
-    /** レア度、分類、説明文をロアの先頭に追加します。内部 ID は濃い灰色で表示します。 */
+    /** 説明文の先頭の標準灰色を既定の本文色に置き換え、その他の書式を保持します。 */
     private void appendTooltipHeader(List<String> lore, ItemModel model) {
         String rarity = model.getRarity();
         String rarityLabelColor = ItemRarity.find(rarity) == ItemRarity.COMMON
                 ? ColorCodeUtil.GRAY : rarityToColor(rarity);
         lore.add(rarityStars(rarity) + rarityLabelColor + "  " + rarityDisplayName(rarity)
                 + ColorCodeUtil.DARK_GRAY + " │ " + displayCategoryWithId(model));
-        lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
+        lore.add(TOOLTIP_SECTION_DIVIDER);
         if (!model.getLore().isEmpty()) {
             for (String line : model.getLore()) {
-                lore.add(ColorCodeUtil.GRAY + ColorCodeUtil.ITALIC
-                        + ColorCodeUtil.translateAlternateColorCodes(line));
+                String description = ColorCodeUtil.translateAlternateColorCodes(line);
+                if (description != null && description.startsWith(ColorCodeUtil.GRAY)) {
+                    description = description.substring(ColorCodeUtil.GRAY.length());
+                }
+                lore.add(TOOLTIP_DESCRIPTION_COLOR + description);
             }
             lore.add("");
         }
+    }
+
+    /** 概要に続く空行を仕切りに置き換え、直前が仕切りの場合はその線を見出しに使います。 */
+    private static void appendTooltipSection(List<String> lore, String heading) {
+        if (!lore.isEmpty() && lore.getLast().isEmpty()) {
+            lore.removeLast();
+        }
+        if (lore.isEmpty() || !TOOLTIP_SECTION_DIVIDER.equals(lore.getLast())) {
+            lore.add(TOOLTIP_SECTION_DIVIDER);
+        }
+        lore.add(heading);
+    }
+
+    /** 装備情報とステータスの箇条書きで、字下げとラベルの区切りを揃えます。 */
+    private static String formatTooltipRow(String label, String value) {
+        return TOOLTIP_LABEL_COLOR + " ▸ " + label + TOOLTIP_LABEL_COLOR + ": " + value;
     }
 
     /** 取引・売却制限をロアの末尾に追加し、不要な末尾の空行を除きます。 */
@@ -871,7 +894,7 @@ public class ItemStackFactory {
             @NotNull List<String> lore, @NotNull ItemEquipment equipment, boolean shopDisplay) {
         // ステータス
         if (!equipment.getStats().isEmpty()) {
-            lore.add(ColorCodeUtil.GOLD + "❖ 性能");
+            appendTooltipSection(lore, ColorCodeUtil.GOLD + "❖ 性能");
             for (ItemEquipmentStat stat : equipment.getStats()) {
                 StatusType statusType = resolveStatusTypeOrNull(stat.getStatus());
                 String statColor = statusCategoryColor(stat.getStatus(), statusType);
@@ -900,30 +923,26 @@ public class ItemStackFactory {
         lore.add("");
     }
 
-    /** 装備部位、持ち手と装備条件を追加します。 */
+    /** 仕切り付きの見出しと、装備部位、持ち手、装備条件を追加します。 */
     private void appendEquipmentRequirements(List<String> lore, ItemEquipment equipment) {
-        lore.add(ColorCodeUtil.AQUA + "❖ 装備情報");
+        appendTooltipSection(lore, ColorCodeUtil.AQUA + "❖ 装備情報");
 
         if (equipment.getSlot() != null) {
-            lore.add(ColorCodeUtil.GRAY + " ▸ スロット: " + ColorCodeUtil.WHITE
-                    + toEquipmentSlotLabel(equipment.getSlot()));
+            lore.add(formatTooltipRow("スロット", ColorCodeUtil.WHITE + toEquipmentSlotLabel(equipment.getSlot())));
         }
         String accessorySlotLabel = toAccessorySlotLabel(equipment);
         if (accessorySlotLabel != null) {
-            lore.add(ColorCodeUtil.GRAY + " ▸ アクセサリ枠: " + ColorCodeUtil.WHITE
-                    + accessorySlotLabel);
+            lore.add(formatTooltipRow("アクセサリ枠", ColorCodeUtil.WHITE + accessorySlotLabel));
         }
         if (shouldShowHandType(equipment.getSlot())) {
-            lore.add(ColorCodeUtil.GRAY + " ▸ ハンド: " + ColorCodeUtil.WHITE
-                    + toHandTypeLabel(equipment.getHandType()));
+            lore.add(formatTooltipRow("ハンド", ColorCodeUtil.WHITE + toHandTypeLabel(equipment.getHandType())));
         }
 
         if (equipment.getRequiredLevel() > 0) {
-            lore.add(ColorCodeUtil.GRAY + " ▸ 必要Lv: " + ColorCodeUtil.YELLOW + equipment.getRequiredLevel());
+            lore.add(formatTooltipRow("必要Lv", ColorCodeUtil.YELLOW + equipment.getRequiredLevel()));
         }
         if (!equipment.getRequiredClasses().isEmpty()) {
-            lore.add(ColorCodeUtil.GRAY + " ▸ 必要クラス: " + ColorCodeUtil.WHITE
-                    + formatRequiredClasses(equipment));
+            lore.add(formatTooltipRow("必要クラス", ColorCodeUtil.WHITE + formatRequiredClasses(equipment)));
         }
     }
 
@@ -954,13 +973,9 @@ public class ItemStackFactory {
                 StatusType statusType = resolveStatusTypeOrNull(stat.getStatus());
                 String statColor = statusCategoryColor(stat.getStatus(), statusType);
                 String displayName = resolveStatusDisplayName(stat.getStatus(), statusType, stat.getType());
-                appendStatLore(
-                        lore,
-                        statColor,
-                        displayName,
-                        formatStatValueWithType(stat.getType(), statusType, stat.displayValue()),
-                        null,
-                        null);
+                lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ " + statColor + displayName
+                        + ColorCodeUtil.DARK_GRAY + " : "
+                        + formatStatValueWithType(stat.getType(), statusType, stat.displayValue()));
             }
         }
         lore.add("");
@@ -1109,13 +1124,13 @@ public class ItemStackFactory {
         }
     }
 
+    /** 売却できるアイテムの価格を、共通の箇条書きで表示します。 */
     private void appendSaleValueLore(@NotNull List<String> lore, @NotNull ItemModel model) {
         if (model.getUnSellable() || isCurrencyItem(model)) {
             return;
         }
-        lore.add(ColorCodeUtil.GRAY + " ▸ 売値: "
-                + ColorCodeUtil.YELLOW + model.getSaleValue()
-                + ColorCodeUtil.GOLD + " ゴールド");
+        lore.add(formatTooltipRow("売値", ColorCodeUtil.YELLOW + model.getSaleValue()
+                + ColorCodeUtil.GOLD + " ゴールド"));
     }
 
     private boolean shouldShowUnSellable(@NotNull ItemModel model) {
@@ -1327,6 +1342,7 @@ public class ItemStackFactory {
         return buildLoreForEquipmentInstance(model, instance, hookshotLoaded, null, equippedSetCounts);
     }
 
+    /** 個体の性能と装備情報を表示し、耐久値と強化を装備条件に続けて並べます。 */
     private @NotNull List<String> buildLoreForEquipmentInstance(
             @NotNull ItemModel model,
             @NotNull EquipmentInstance instance,
@@ -1343,7 +1359,7 @@ public class ItemStackFactory {
 
             // --- ステータス表示（ベース + enhance 累積） ---
             if (!instance.getStatRolls().isEmpty() || !eq.getStats().isEmpty()) {
-                lore.add(ColorCodeUtil.GOLD + "❖ 性能");
+                appendTooltipSection(lore, ColorCodeUtil.GOLD + "❖ 性能");
 
                 // enhance 累積計算 (status#type → [minAccum, maxAccum])
                 Map<String, double[]> enhanceAccum = calculateEnhanceStats(eq, instance.getEnhanceLevel());
@@ -1398,17 +1414,21 @@ public class ItemStackFactory {
                             ? formatStatValueWithType(type, statusType, enhAdd[0])
                             : formatStatRange(type, statusType, enhAdd[0], enhAdd[1]);
                     String displayName = resolveStatusDisplayName(status, statusType, type);
-                    lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
-                            + statColor + displayName
-                            + ColorCodeUtil.DARK_GRAY + " : "
-                            + displayValue
-                            + ColorCodeUtil.YELLOW + " [強化]");
+                    lore.add(formatTooltipRow(statColor + displayName, displayValue) + ColorCodeUtil.YELLOW + " [強化]");
                 }
             }
 
             appendEquipmentRequirements(lore, eq);
-            if (isSkillCastDiskEquipment(model)) {
-                appendSkillCastDiskSettingsLore(lore, metadataJson);
+            if (instance.getDurabilityMax() > 0) {
+                lore.add(formatDurabilityLore(instance));
+            }
+            if (eq.getEnhance() != null) {
+                int effectiveMaxLevel = resolveEffectiveEnhanceMaxLevel(eq, instance);
+                String enhanceLabel = instance.getEnhanceLevel() > 0
+                        ? ColorCodeUtil.YELLOW + "+" + instance.getEnhanceLevel()
+                        : ColorCodeUtil.WHITE + "未強化";
+                lore.add(formatTooltipRow("強化",
+                        enhanceLabel + ColorCodeUtil.DARK_GRAY + " (MAX +" + effectiveMaxLevel + ")"));
             }
             if (hookshotLoaded && isHookshotEquipment(model)) {
                 lore.add(ColorCodeUtil.GREEN + " ▸ フック装填済み");
@@ -1429,6 +1449,10 @@ public class ItemStackFactory {
                         : "";
                 lore.add(ColorCodeUtil.LIGHT_PURPLE + " ▸ 状態変化: " + ColorCodeUtil.WHITE
                         + "【" + transName + ColorCodeUtil.RESET + ColorCodeUtil.WHITE + "】" + rankNote);
+            }
+
+            if (isSkillCastDiskEquipment(model)) {
+                appendSkillCastDiskSettingsLore(lore, metadataJson);
             }
 
             // --- enchant（エンチャント）情報 ---
@@ -1509,21 +1533,6 @@ public class ItemStackFactory {
                         lore.add(ColorCodeUtil.DARK_GRAY + " ○ " + ColorCodeUtil.GRAY + "空きスロット");
                     }
                 }
-            }
-
-            // --- 耐久値 ---
-            if (instance.getDurabilityMax() > 0) {
-                lore.add("");
-                lore.add(formatDurabilityLore(instance));
-            }
-            // --- 強化レベル表示 ---
-            if (eq.getEnhance() != null) {
-                int effectiveMaxLevel = resolveEffectiveEnhanceMaxLevel(eq, instance);
-                String enhanceLabel = instance.getEnhanceLevel() > 0
-                        ? ColorCodeUtil.YELLOW + "+" + instance.getEnhanceLevel()
-                        + ColorCodeUtil.GRAY + " / 最大 " + ColorCodeUtil.WHITE + "+" + effectiveMaxLevel
-                        : ColorCodeUtil.GRAY + "未強化" + ColorCodeUtil.DARK_GRAY + " (最大 +" + effectiveMaxLevel + ")";
-                lore.add(ColorCodeUtil.GRAY + " ▸ 強化: " + enhanceLabel);
             }
 
             appendSetEffectLore(lore, eq, equippedSetCounts);
@@ -1744,7 +1753,7 @@ public class ItemStackFactory {
         return min + "～" + max;
     }
 
-    /** ステータスの主値と補足情報を追加し、乱数範囲行に表示制御用の内部マーカーを付けます。 */
+    /** 装備性能の主値を共通の字下げで表示し、乱数範囲行に表示制御用の内部マーカーを付けます。 */
     private void appendStatLore(
             @NotNull List<String> lore,
             @NotNull String statColor,
@@ -1752,8 +1761,7 @@ public class ItemStackFactory {
             @NotNull String displayValue,
             @Nullable String randomRange,
             @Nullable String enhanceValue) {
-        lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ " + statColor + displayName
-                + ColorCodeUtil.DARK_GRAY + " : " + displayValue
+        lore.add(formatTooltipRow(statColor + displayName, displayValue)
                 + (enhanceValue == null ? "" : ColorCodeUtil.YELLOW + " [" + enhanceValue
                         + ColorCodeUtil.RESET + ColorCodeUtil.YELLOW + "]"));
         if (randomRange != null) {
@@ -1761,11 +1769,12 @@ public class ItemStackFactory {
         }
     }
 
-    /** 内部マーカーを表示文字列から除き、範囲行だけを Component の insertion 属性で識別します。 */
+    /** 明示された書式を保持し、既定の斜体を解除します。範囲行は insertion 属性で識別します。 */
     private static @NotNull Component toLoreComponent(@NotNull String line) {
         boolean randomRange = line.startsWith(RANDOM_STATUS_RANGE_MARKER);
         String visibleLine = randomRange ? line.substring(RANDOM_STATUS_RANGE_MARKER.length()) : line;
-        Component component = LEGACY_SERIALIZER.deserialize(ColorCodeUtil.translateAlternateColorCodes(visibleLine));
+        Component component = LEGACY_SERIALIZER.deserialize(ColorCodeUtil.translateAlternateColorCodes(visibleLine))
+                .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
         return randomRange ? component.insertion(RANDOM_STATUS_RANGE_MARKER) : component;
     }
 
@@ -1836,6 +1845,7 @@ public class ItemStackFactory {
         return formatDurabilityBarLore(instance.getDurabilityValue(), instance.getDurabilityMax());
     }
 
+    /** 耐久率を状態色のバーで表し、現在値と上限を白で表示します。 */
     static @NotNull String formatDurabilityBarLore(int value, int max) {
         double durabilityRate = max <= 0
                 ? 0.0D
@@ -1846,8 +1856,7 @@ public class ItemStackFactory {
         bar.repeat(DURABILITY_BAR_CHAR, filledLength);
         bar.append(ColorCodeUtil.GRAY);
         bar.repeat(DURABILITY_BAR_CHAR, DURABILITY_BAR_LENGTH - filledLength);
-        return ColorCodeUtil.GRAY + " ▸ 耐久値: " + bar
-                + ColorCodeUtil.GRAY + "  " + value + "/" + max;
+        return formatTooltipRow("耐久値", bar + ColorCodeUtil.WHITE + "  " + value + "/" + max);
     }
 
     private boolean isHookshotEquipment(@NotNull ItemModel model) {
@@ -1905,13 +1914,13 @@ public class ItemStackFactory {
 
     /**
      * アイテムのカテゴリと管理用 ID を Lore 表示用の文字列へ変換します。
-     * カテゴリは通常の灰色、区切り文字と ID は濃い灰色で表示します。
+     * カテゴリは明るい青みの灰色、区切り文字と ID は濃い灰色で表示します。
      *
      * @param model 表示対象アイテム
      * @return カテゴリと ID を含む Lore 文字列
      */
     private @NotNull String displayCategoryWithId(@NotNull ItemModel model) {
-        return ColorCodeUtil.GRAY + ItemCategory.displayNameJa(model.getCategory())
+        return TOOLTIP_LABEL_COLOR + ItemCategory.displayNameJa(model.getCategory())
                 + ColorCodeUtil.DARK_GRAY + " | " + model.getId();
     }
 
