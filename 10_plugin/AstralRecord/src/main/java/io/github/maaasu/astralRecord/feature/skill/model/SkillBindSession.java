@@ -25,6 +25,7 @@ public final class SkillBindSession {
     /** 習得処理中として一覧上で時計表示するスキル ID です。 */
     private @Nullable String processingSkillId;
     private int performanceReturnPage;
+    private long detailViewRevision;
 
     public SkillBindSession(@NotNull List<SkillBindPreset> presets) {
         this(presets, 1, SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT);
@@ -75,6 +76,19 @@ public final class SkillBindSession {
      */
     public void setPerformanceReturnPage(int page) {
         performanceReturnPage = page;
+    }
+
+    /**
+     * 強化完了による再描画が適用される詳細画面の訪問番号を返します。
+     * @return 詳細画面の訪問番号
+     */
+    public long detailViewRevision() {
+        return detailViewRevision;
+    }
+
+    /** プレイヤー自身が詳細画面へ入るか離れる操作を行ったため、前の訪問を失効させます。 */
+    public void advanceDetailViewRevision() {
+        detailViewRevision++;
     }
 
     /** 現在利用できる発動枠数を返します。 */

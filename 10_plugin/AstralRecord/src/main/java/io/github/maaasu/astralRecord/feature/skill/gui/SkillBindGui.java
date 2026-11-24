@@ -57,6 +57,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillDamagePreview;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -114,6 +115,7 @@ public final class SkillBindGui {
 
     private enum UnlearnedAction { LEARN, SELECTED_BIND_SLOT, BUSY, VIEW }
     private enum LearnedDisplay { MANAGE, VIEW, DETAIL }
+    private record OwnedMaterialKey(UUID accountId, String itemId) { }
 
     /**
      * Plugin の namespace を利用してスキルマネージャー GUI を構築します。
@@ -225,14 +227,16 @@ public final class SkillBindGui {
 
         int start = GuiPagination.pageStart(page, CONTENT_SLOT_COUNT);
         int end = GuiPagination.pageEnd(page, displayCount, CONTENT_SLOT_COUNT);
+        var ownedAmounts = memoizedMaterialAmounts();
         UnlearnedAction unlearnedAction = session.processingSkillId() != null ? UnlearnedAction.BUSY
             : session.selectedBindType() == null ? UnlearnedAction.LEARN : UnlearnedAction.SELECTED_BIND_SLOT;
         for (int index = start; index < end; index++) {
             inventory.setItem(index - start, index < entries.size()
-                ? createLearnedSkillItem(entries.get(index), LearnedDisplay.MANAGE, permittedSkillIds, session, activePassiveSlots)
+                ? createLearnedSkillItem(entries.get(index), LearnedDisplay.MANAGE, permittedSkillIds, session,
+                    activePassiveSlots, ownedAmounts)
                 : createUnlearnedSkillItem(
                     unlearnedDefinitions.get(index - entries.size()), session.processingSkillId(), permittedSkillIds,
-                    session.selectedPreset().getAccountId(), unlearnedAction));
+                    session.selectedPreset().getAccountId(), unlearnedAction, ownedAmounts));
         }
 
         inventory.setItem(PREVIOUS_PAGE_SLOT, createPreviousPageItem(page, pages, page > 0));
@@ -269,11 +273,12 @@ public final class SkillBindGui {
         fill(inventory);
         int start = GuiPagination.pageStart(page, CONTENT_SLOT_COUNT);
         int end = GuiPagination.pageEnd(page, count, CONTENT_SLOT_COUNT);
+        var ownedAmounts = memoizedMaterialAmounts();
         for (int index = start; index < end; index++) {
             inventory.setItem(index - start, index < entries.size()
-                ? createLearnedSkillItem(entries.get(index), LearnedDisplay.VIEW, permitted, null, 0)
+                ? createLearnedSkillItem(entries.get(index), LearnedDisplay.VIEW, permitted, null, 0, ownedAmounts)
                 : createUnlearnedSkillItem(unlearned.get(index - entries.size()), null, permitted,
-                    session.selectedPreset().getAccountId(), UnlearnedAction.VIEW));
+                    session.selectedPreset().getAccountId(), UnlearnedAction.VIEW, ownedAmounts));
         }
         inventory.setItem(PREVIOUS_PAGE_SLOT, createPreviousPageItem(page, pages, page > 0));
         inventory.setItem(NEXT_PAGE_SLOT, createNextPageItem(page, pages, page + 1 < pages));
@@ -420,7 +425,7 @@ public final class SkillBindGui {
         boolean mutationInProgress,
         @NotNull Set<String> permittedSkillIds
     ) {
-        return createDetailInventory(session, entry, returnPage, mutationInProgress, false, permittedSkillIds,
+        return createDetailInventory(session, entry, returnPage, mutationInProgress, permittedSkillIds,
             SkillBindPreset.PASSIVE_SLOT_COUNT);
     }
 
@@ -430,7 +435,6 @@ public final class SkillBindGui {
      * @param entry 習得スキルと解決結果
      * @param returnPage 一覧に戻るページ
      * @param mutationInProgress 更新処理中かどうか
-     * @param canQueueLevelUp 更新処理中でも次の強化を受け付けるか
      * @param permittedSkillIds 現在の使用許可スキル
      * @param activePassiveSlots 利用可能なパッシブ枠数
      * @return スキル詳細画面
@@ -440,7 +444,6 @@ public final class SkillBindGui {
         @NotNull SkillManagerEntry entry,
         int returnPage,
         boolean mutationInProgress,
-        boolean canQueueLevelUp,
         @NotNull Set<String> permittedSkillIds,
         int activePassiveSlots
     ) {
@@ -455,13 +458,13 @@ public final class SkillBindGui {
             Component.text("スキル詳細", NamedTextColor.AQUA)
         );
         fill(inventory);
+        var ownedAmounts = memoizedMaterialAmounts();
         inventory.setItem(DETAIL_SKILL_SLOT,
-            createLearnedSkillItem(entry, LearnedDisplay.DETAIL, permittedSkillIds, null, 0));
+            createLearnedSkillItem(entry, LearnedDisplay.DETAIL, permittedSkillIds, null, 0, ownedAmounts));
         if (mutationInProgress) {
             ItemStack processing = GuiItems.processingItem();
             inventory.setItem(DETAIL_BIND_SLOT, processing.clone());
-            inventory.setItem(DETAIL_LEVEL_UP_SLOT,
-                canQueueLevelUp ? createLevelUpItem(entry, permittedSkillIds) : processing);
+            inventory.setItem(DETAIL_LEVEL_UP_SLOT, processing);
         } else {
             List<Component> bindLore = List.of(
                 SkillLore.row("設定先", SkillLore.value(bindTargetText(session))),
@@ -469,7 +472,7 @@ public final class SkillBindGui {
             );
             inventory.setItem(DETAIL_BIND_SLOT, SkillLore.style(createItem(
                 Material.NAME_TAG, "バインド", NamedTextColor.GREEN, bindLore), null));
-            inventory.setItem(DETAIL_LEVEL_UP_SLOT, createLevelUpItem(entry, permittedSkillIds));
+            inventory.setItem(DETAIL_LEVEL_UP_SLOT, createLevelUpItem(entry, permittedSkillIds, ownedAmounts));
         }
         inventory.setItem(DETAIL_BACK_SLOT, GuiItems.backButton(
             new GuiNavigationDestination(Material.ENCHANTING_TABLE, "スキルマネージャー")
@@ -494,7 +497,9 @@ public final class SkillBindGui {
     }
 
     /** 次レベルをシジル込みで解決し、変化する効果、消費と試算値を表示します。 */
-    private ItemStack createLevelUpItem(SkillManagerEntry entry, Set<String> permittedSkillIds) {
+    private ItemStack createLevelUpItem(
+        SkillManagerEntry entry, Set<String> permittedSkillIds, ToLongBiFunction<UUID, String> ownedAmounts
+    ) {
         SkillDefinition skill = entry.definition();
         int level = entry.learnedSkill().getLevel();
         List<Component> lore = new ArrayList<>();
@@ -528,8 +533,9 @@ public final class SkillBindGui {
         }
         UUID accountId = entry.learnedSkill().getAccountId();
         SkillLore.section(lore, "必要素材", NamedTextColor.AQUA);
-        appendRequiredItemLore(lore, skill.getLevelUpRequiredItems(), accountId);
-        appendAction(lore, hasRequiredItems(skill.getLevelUpRequiredItems(), accountId) ? SkillLore.note("クリックでレベルアップ")
+        appendRequiredItemLore(lore, skill.getLevelUpRequiredItems(), accountId, ownedAmounts);
+        appendAction(lore, hasRequiredItems(skill.getLevelUpRequiredItems(), accountId, ownedAmounts)
+            ? SkillLore.note("クリックでレベルアップ")
             : Component.text("素材がそろうと強化できます", NamedTextColor.RED));
         return SkillLore.style(createItem(Material.ENCHANTED_BOOK, "レベルアップ", NamedTextColor.LIGHT_PURPLE, lore), null);
     }
@@ -618,7 +624,8 @@ public final class SkillBindGui {
         );
         fill(inventory);
         inventory.setItem(SYNTHESIS_SKILL_SLOT,
-            createLearnedSkillItem(entry, LearnedDisplay.DETAIL, permittedSkillIds, null, 0));
+            createLearnedSkillItem(entry, LearnedDisplay.DETAIL, permittedSkillIds, null, 0,
+                requiredItemOwnedAmountProvider));
         inventory.setItem(
             SYNTHESIS_MATERIAL_SLOT,
             material == null
@@ -747,11 +754,12 @@ public final class SkillBindGui {
         LearnedDisplay display,
         @NotNull Set<String> permittedSkillIds,
         @Nullable SkillBindSession session,
-        int activePassiveSlots
+        int activePassiveSlots,
+        ToLongBiFunction<UUID, String> ownedAmounts
     ) {
         List<Component> lore = new ArrayList<>();
         lore.add(skillMeta(entry.definition(), entry.permitted()));
-        appendLearnedSkillDetails(lore, entry, permittedSkillIds);
+        appendLearnedSkillDetails(lore, entry, permittedSkillIds, ownedAmounts);
         if (display == LearnedDisplay.VIEW) {
             appendAction(lore, SkillLore.note("クリックで性能内訳を表示"));
         } else if (display == LearnedDisplay.MANAGE && session != null) {
@@ -769,7 +777,7 @@ public final class SkillBindGui {
             if (session.processingSkillId() != null) {
                 appendAction(lore, SkillLore.note("スキル更新の完了をお待ちください"));
             } else if (entry.learnedSkill().getLevel() < entry.definition().getMaxLevel()
-                && hasRequiredItems(entry.definition().getLevelUpRequiredItems(), entry.learnedSkill().getAccountId())) {
+                && hasRequiredItems(entry.definition().getLevelUpRequiredItems(), entry.learnedSkill().getAccountId(), ownedAmounts)) {
                 appendAction(lore, SkillLore.note("クリックで強化・バインドの詳細を表示"));
             } else {
                 appendAction(lore, bindAction(session, entry, activePassiveSlots));
@@ -809,13 +817,14 @@ public final class SkillBindGui {
             ));
             appendBaseCastCostLore(lore, definition);
             SkillLore.section(lore, "習得条件", NamedTextColor.AQUA);
-            appendRequiredItemLore(lore, definition.getLearnRequiredItems(), null);
+            appendRequiredItemLore(lore, definition.getLearnRequiredItems(), null, requiredItemOwnedAmountProvider);
             lore.add(SkillLore.row("最大レベル", SkillLore.value("Lv." + definition.getMaxLevel())));
         } else {
             appendLearnedSkillDetails(
                 lore,
                 new SkillManagerEntry(resolved.learnedSkill(), definition, permitted, resolved),
-                permittedSkillIds
+                permittedSkillIds,
+                requiredItemOwnedAmountProvider
             );
         }
 
@@ -838,7 +847,8 @@ public final class SkillBindGui {
         @Nullable String processingSkillId,
         @NotNull Set<String> permittedSkillIds,
         @NotNull UUID accountId,
-        @NotNull UnlearnedAction action
+        @NotNull UnlearnedAction action,
+        ToLongBiFunction<UUID, String> ownedAmounts
     ) {
         if (processingSkillId != null && processingSkillId.equalsIgnoreCase(skill.getId())) {
             return GuiItems.processingItem();
@@ -852,12 +862,12 @@ public final class SkillBindGui {
         if (firstLevel == null) appendBaseCastCostLore(lore, skill);
         else appendCastCostLore(lore, firstLevel);
         SkillLore.section(lore, "習得条件", NamedTextColor.AQUA);
-        appendRequiredItemLore(lore, skill.getLearnRequiredItems(), accountId);
+        appendRequiredItemLore(lore, skill.getLearnRequiredItems(), accountId, ownedAmounts);
         appendAction(lore, switch (action) {
             case VIEW -> SkillLore.note("クリックで性能内訳を表示");
             case SELECTED_BIND_SLOT -> SkillLore.note("バインド枠の選択中は習得できません");
             case BUSY -> SkillLore.note("スキル更新の完了をお待ちください");
-            case LEARN -> hasRequiredItems(skill.getLearnRequiredItems(), accountId)
+            case LEARN -> hasRequiredItems(skill.getLearnRequiredItems(), accountId, ownedAmounts)
                 ? SkillLore.note("左クリックで習得")
                 : Component.text("素材がそろうと習得できます", NamedTextColor.RED);
         });
@@ -889,20 +899,33 @@ public final class SkillBindGui {
     }
 
     /** 要求素材がすべて支払えるか表示用に確認します。実際の消費は操作時に再検証されます。 */
-    private boolean hasRequiredItems(List<SkillRequiredItemDefinition> costs, UUID accountId) {
+    private boolean hasRequiredItems(
+        List<SkillRequiredItemDefinition> costs, UUID accountId, ToLongBiFunction<UUID, String> ownedAmounts
+    ) {
         for (var cost : costs) {
             if (cost.getAmount() <= 0 || cost.getItemId() == null || cost.getItemId().isBlank()
                 || itemService.findLoadedById(cost.getItemId()) == null) return false;
         }
         return materialAmounts(costs).entrySet().stream().allMatch(requirement ->
-            requiredItemOwnedAmountProvider.applyAsLong(accountId, requirement.getKey()) >= requirement.getValue());
+            ownedAmounts.applyAsLong(accountId, requirement.getKey()) >= requirement.getValue());
+    }
+
+    /**
+     * 同一描画で同じアカウントの同じ素材を複数回集計しない関数を作ります。
+     * @return 次回の描画やクリック処理には引き継がない所持数取得関数
+     */
+    private ToLongBiFunction<UUID, String> memoizedMaterialAmounts() {
+        Map<OwnedMaterialKey, Long> amounts = new HashMap<>();
+        return (accountId, itemId) -> amounts.computeIfAbsent(new OwnedMaterialKey(accountId, itemId),
+            key -> requiredItemOwnedAmountProvider.applyAsLong(key.accountId(), key.itemId()));
     }
 
     /** 素材名・必要数・所持数と、足りない数量を表示します。 */
     private void appendRequiredItemLore(
         @NotNull List<Component> lore,
         @NotNull List<SkillRequiredItemDefinition> costs,
-        @Nullable UUID accountId
+        @Nullable UUID accountId,
+        ToLongBiFunction<UUID, String> ownedAmounts
     ) {
         if (costs.isEmpty()) {
             lore.add(SkillLore.row("必要素材", SkillLore.value("なし")));
@@ -915,7 +938,7 @@ public final class SkillBindGui {
             Component quantity = name.append(Component.text("　必要 ", NamedTextColor.GRAY))
                 .append(SkillLore.value(Long.toString(amount)));
             if (accountId != null && item != null) {
-                long owned = Math.max(0, requiredItemOwnedAmountProvider.applyAsLong(accountId, id));
+                long owned = Math.max(0, ownedAmounts.applyAsLong(accountId, id));
                 quantity = quantity.append(Component.text("／所持 ", NamedTextColor.GRAY))
                     .append(Component.text(owned, owned >= amount ? NamedTextColor.GREEN : NamedTextColor.RED));
                 if (owned < amount) {
@@ -930,7 +953,8 @@ public final class SkillBindGui {
     private void appendLearnedSkillDetails(
         @NotNull List<Component> lore,
         @NotNull SkillManagerEntry entry,
-        @NotNull Set<String> permittedSkillIds
+        @NotNull Set<String> permittedSkillIds,
+        ToLongBiFunction<UUID, String> ownedAmounts
     ) {
         SkillDefinition skill = entry.definition();
         lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(
@@ -943,7 +967,7 @@ public final class SkillBindGui {
         int currentLevel = entry.learnedSkill().getLevel();
         if (currentLevel < skill.getMaxLevel()) {
             SkillLore.section(lore, "レベルアップ　Lv." + currentLevel + " → " + (currentLevel + 1), NamedTextColor.LIGHT_PURPLE);
-            appendRequiredItemLore(lore, skill.getLevelUpRequiredItems(), entry.learnedSkill().getAccountId());
+            appendRequiredItemLore(lore, skill.getLevelUpRequiredItems(), entry.learnedSkill().getAccountId(), ownedAmounts);
         }
         appendSigilSlotLore(lore, entry, currentLevel, null);
     }
@@ -1244,7 +1268,7 @@ public final class SkillBindGui {
         }
         if (entry != null) {
             appendLearnedSkillDetails(lore, entry, permittedSkillDefinitions.stream()
-                .map(SkillDefinition::getId).collect(java.util.stream.Collectors.toSet()));
+                .map(SkillDefinition::getId).collect(java.util.stream.Collectors.toSet()), requiredItemOwnedAmountProvider);
         } else if (bindingId != null && !normalAttack) {
             lore.add(SkillLore.row("習得", Component.text("未習得・発動不可", NamedTextColor.RED)));
         }

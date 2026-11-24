@@ -405,6 +405,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
         if (entry.learnedSkill().getLevel() < entry.definition().getMaxLevel()
             && hasLevelUpMaterials(astPlayer, entry)) {
+            session.advanceDetailViewRevision();
             openDetail(player, session, entry, page);
             return;
         }
@@ -492,6 +493,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
         int slot = event.getRawSlot();
         if (slot == SkillBindGui.DETAIL_BACK_SLOT) {
+            session.advanceDetailViewRevision();
             GuiSound.SELECT.play(player);
             openMain(player, session, holder.pageIndex());
             return;
@@ -508,9 +510,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return;
         }
         boolean mutationInProgress = learnedSkillService.hasMutationInProgress(astPlayer.getAccount().getUuid());
-        boolean canQueueLevelUp = slot == SkillBindGui.DETAIL_LEVEL_UP_SLOT
-            && learnedSkillService.canQueueLocalLevelUp(astPlayer.getAccount().getUuid());
-        if (mutationInProgress && !canQueueLevelUp) {
+        if (mutationInProgress) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -524,7 +524,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 openMain(player, session, holder.pageIndex());
                 return;
             }
-            if (levelUpFromManager(player, session, holder.pageIndex(), entry, true)) {
+            if (levelUpFromManager(player, session, holder.pageIndex(), entry)) {
                 AstPlayer current = AstPlayerCache.get(player);
                 if (current != null
                     && learnedSkillService.hasMutationInProgress(current.getAccount().getUuid())
@@ -1092,7 +1092,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             entry,
             returnPage,
             mutationInProgress,
-            learnedSkillService.canQueueLocalLevelUp(astPlayer.getAccount().getUuid()),
             permissionService.permittedSkillIds(astPlayer),
             passiveSkillService.activePassiveSlotCount(astPlayer)
         );
@@ -1181,16 +1180,12 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
     }
 
-    private boolean levelUpFromManager(Player player, SkillBindSession session, int page, SkillManagerEntry entry) {
-        return levelUpFromManager(player, session, page, entry, false);
-    }
-
+    /** 詳細画面から強化を受け付け、同じ画面を見ている間だけ完了結果を描画します。 */
     private boolean levelUpFromManager(
         Player player,
         SkillBindSession session,
         int page,
-        SkillManagerEntry entry,
-        boolean keepDetail
+        SkillManagerEntry entry
     ) {
         if (entry.learnedSkill().getLevel() >= entry.definition().getMaxLevel()) {
             GuiSound.DENY.play(player);
@@ -1201,7 +1196,8 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return false;
         }
-        UUID playerId = player.getUniqueId();
+        long detailViewRevision = session.detailViewRevision();
+        String bindingId = entry.bindingId();
         Map<UUID, Long> requiredPayments = requiredItemPayments(
             astPlayer,
             entry.definition().getLevelUpRequiredItems()
@@ -1219,10 +1215,11 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                  plugin.getGuideService().recordConditionSilently(current, GuideConditionType.SKILL_ENHANCED, entry.definition().getId());
                  passiveSkillService.markDirty(current);
                  inventoryService.refreshManagedInventoryUi(current);
-                 if (sessions.get(playerId) != session) return;
+                 if (sessions.get(player.getUniqueId()) != session) return;
                  GuiSound.SUCCESS.play(current.getBukkit());
+                if (!isCurrentLevelUpView(current.getBukkit(), session, detailViewRevision, page, bindingId)) return;
                 SkillManagerEntry updatedEntry = entry(current, updated.getLearnedSkillId().toString());
-                if (keepDetail && updatedEntry != null
+                if (updatedEntry != null
                     && updatedEntry.learnedSkill().getLevel() < updatedEntry.definition().getMaxLevel()) {
                     openDetail(current.getBukkit(), session, updatedEntry, page);
                 } else {
@@ -1234,24 +1231,45 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 if (current == null || !player.isOnline()) return;
                 GuiSound.DENY.play(player);
                 PlayerMessageService.getInstance().send(player, mutationFailureMessage(error));
-                if (sessions.get(playerId) != session) return;
-                SkillManagerEntry currentEntry = entry(current, entry.learnedSkill().getLearnedSkillId().toString());
-                if (keepDetail) {
-                    if (currentEntry != null) {
-                        openDetail(player, session, currentEntry, page);
-                    } else {
-                        openMain(player, session, page);
-                    }
+                if (!isCurrentLevelUpView(player, session, detailViewRevision, page, bindingId)) return;
+                SkillManagerEntry currentEntry = entry(current, bindingId);
+                if (currentEntry != null) {
+                    openDetail(player, session, currentEntry, page);
                 } else {
                     openMain(player, session, page);
                 }
             },
-            () -> markSkillMutationPending(player, session)
+            () -> {
+                if (isCurrentLevelUpView(player, session, detailViewRevision, page, bindingId)) {
+                    markSkillMutationPending(player, session);
+                }
+            }
         );
         if (!scheduled) {
             GuiSound.DENY.play(player);
         }
         return scheduled;
+    }
+
+    /**
+     * 強化を開始した訪問・習得個体を現在も表示しているか確認します。
+     *
+     * <p>「戻る」の遅延処理がまだ表示へ反映されていない間も、訪問番号で完了通知による上書きを防ぎます。</p>
+     * @param player 強化を始めたプレイヤー
+     * @param session 強化開始時の編集セッション
+     * @param detailViewRevision 強化開始時の詳細画面の訪問番号
+     * @param page 詳細画面が保持する一覧ページ
+     * @param bindingId 強化対象の習得個体ID
+     * @return 強化を始めた詳細画面を再描画してよい場合は true
+     */
+    private boolean isCurrentLevelUpView(
+        Player player, SkillBindSession session, long detailViewRevision, int page, String bindingId
+    ) {
+        if (!player.isOnline() || sessions.get(player.getUniqueId()) != session
+            || session.detailViewRevision() != detailViewRevision) return false;
+        SkillBindInventoryHolder active = gui.holder(player.getOpenInventory().getTopInventory());
+        return active != null && active.screen() == SkillBindScreen.DETAIL && active.pageIndex() == page
+            && active.selectedPresetIndex() == session.selectedPresetIndex() && active.learnedSkillId().equals(bindingId);
     }
 
     private void markSkillMutationPending(
