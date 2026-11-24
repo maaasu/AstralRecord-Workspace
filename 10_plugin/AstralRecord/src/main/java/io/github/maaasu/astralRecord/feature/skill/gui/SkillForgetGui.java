@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.skill.gui;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillForgetInventoryHolder;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillForgetScreen;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
@@ -81,12 +82,16 @@ public final class SkillForgetGui {
      *
      * @param player 表示対象プレイヤー
      * @param entry 忘却対象
+     * @param permittedSkillIds 条件付き効果の説明に使う現在の使用許可
      * @param returnPage 一覧へ戻るページ番号
+     * @param paidOption 有償忘却の消費と返却の表示内容
      */
     public void openConfirm(
         @NotNull Player player,
         @NotNull SkillManagerEntry entry,
-        int returnPage
+        @NotNull java.util.Set<String> permittedSkillIds,
+        int returnPage,
+        @Nullable PaidOption paidOption
     ) {
         Inventory inventory = Bukkit.createInventory(
             new SkillForgetInventoryHolder(
@@ -97,36 +102,30 @@ public final class SkillForgetGui {
             ConfirmDialogView.SIZE,
             Component.text("スキル忘却の確認", NamedTextColor.YELLOW)
         );
+        List<Component> lore = skillLore(entry, permittedSkillIds);
+        SkillLore.section(lore, "忘却したとき", NamedTextColor.RED);
+        lore.add(SkillLore.note("このスキルが習得一覧から削除されます。"));
+        lore.add(SkillLore.note("強化素材・装着シジルは返却されません。"));
+        List<Component> regular = new ArrayList<>();
+        SkillLore.section(regular, "通常の忘却", NamedTextColor.RED);
+        regular.add(SkillLore.row("消費", SkillLore.value("なし")));
+        regular.add(SkillLore.row("返却", SkillLore.value("なし")));
         confirmDialogView.render(
             inventory,
-            Component.text("このスキルを忘却しますか？", NamedTextColor.YELLOW),
-            List.of(
-                SkillPresentationUtil.skillNameComponent(entry.definition(), entry.definition().getId(), NamedTextColor.WHITE),
-                Component.text("習得一覧から削除されます。", NamedTextColor.GRAY),
-                Component.text("通常の忘却ではジェム・シジルは戻りません。", NamedTextColor.RED)
-            ),
+            skillName(entry),
+            SkillLore.finish(lore),
             Component.text("はい、忘却する", NamedTextColor.RED),
-            Component.text("一覧へ戻る", NamedTextColor.GREEN)
+            Component.text("一覧へ戻る", NamedTextColor.GREEN),
+            SkillLore.finish(regular)
         );
+        ItemStack regularButton = inventory.getItem(ConfirmDialogView.CONFIRM_SLOT);
+        if (regularButton != null) inventory.setItem(ConfirmDialogView.CONFIRM_SLOT, SkillLore.style(regularButton, null));
         ItemStack message = inventory.getItem(ConfirmDialogView.MESSAGE_SLOT);
         if (message != null) {
             inventory.setItem(ConfirmDialogView.MESSAGE_SLOT,
                 SkillIconCatalog.apply(message, entry.definition().getId()));
         }
-        inventory.setItem(
-            PAID_CONFIRM_SLOT,
-            GuiItems.create(
-                Material.GOLD_INGOT,
-                Component.text("忘却の代償を払う", NamedTextColor.GOLD),
-                List.of(
-                    Component.text("100アストラルドを消費", NamedTextColor.YELLOW),
-                    Component.text("忘却するスキルの購入素材を1口分返却", NamedTextColor.GREEN),
-                    Component.text("シジルは返却されません", NamedTextColor.RED),
-                    Component.text("高レベル分の購入素材は返却されません", NamedTextColor.RED),
-                    Component.text("返却は初回購入1口分のみです", NamedTextColor.GRAY)
-                )
-            )
-        );
+        inventory.setItem(PAID_CONFIRM_SLOT, paidButton(paidOption));
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
@@ -153,23 +152,65 @@ public final class SkillForgetGui {
         return GuiPagination.totalPages(itemCount, CONTENT_SLOT_COUNT);
     }
 
+    /**
+     * 有償忘却の見積もりです。決済時は操作側で所持・空き枠を再検証します。
+     *
+     * @param item 初回習得分として返却する素材
+     * @param amount 素材の数量
+     * @param cost 消費するアストラルド
+     * @param available 閲覧時点で決済条件を満たすか
+     */
+    public record PaidOption(@NotNull ItemModel item, int amount, long cost, boolean available) {}
+
+    /** 有償忘却の実費と返却対象を表示します。 */
+    private ItemStack paidButton(@Nullable PaidOption option) {
+        var lore = new ArrayList<Component>();
+        SkillLore.section(lore, "有償の忘却", NamedTextColor.GOLD);
+        if (option == null) {
+            lore.add(Component.text("返却素材を確認できないため利用不可", NamedTextColor.RED));
+        } else {
+            lore.add(SkillLore.row("消費", SkillLore.value(option.cost() + "アストラルド")));
+            lore.add(SkillLore.materialRow(option.item().getId(), "初回習得分を返却 " + option.amount() + "個",
+                SkillPresentationUtil.itemNameComponent(option.item(), "未登録の素材", NamedTextColor.WHITE)));
+            if (!option.available()) {
+                lore.add(Component.text("所持通貨と所持品の空きを確認してください", NamedTextColor.RED));
+            }
+        }
+        lore.add(SkillLore.note("強化素材・装着シジルは返却されません。"));
+        return SkillLore.style(GuiItems.create(
+            Material.GOLD_INGOT,
+            Component.text("忘却の代償を払う", NamedTextColor.GOLD),
+            SkillLore.finish(lore)
+        ), null);
+    }
+
+    /** 一覧と確認画面の両方に習得個体の現在の効果を表示します。 */
+    private List<Component> skillLore(SkillManagerEntry entry, java.util.Set<String> permittedSkillIds) {
+        List<Component> lore = new ArrayList<>(SkillPresentationUtil.skillDescriptionAndFlavorLore(
+            entry.resolved(), permittedSkillIds, NamedTextColor.GRAY
+        ));
+        SkillLore.section(lore, "習得状況", NamedTextColor.AQUA);
+        lore.add(SkillLore.row("レベル", SkillLore.value(entry.learnedSkill().getLevel() + " / " + entry.definition().getMaxLevel())));
+        lore.add(SkillLore.row("装着シジル", SkillLore.value(entry.learnedSkill().getSigils().size() + "個")));
+        return lore;
+    }
+
+    /** 内部IDを含めず、習得個体の表示名と現在のレベルを返します。 */
+    private Component skillName(SkillManagerEntry entry) {
+        return SkillPresentationUtil.skillNameComponent(entry.definition(), "未登録のスキル", NamedTextColor.WHITE)
+            .append(Component.text(" Lv." + entry.learnedSkill().getLevel(), NamedTextColor.GOLD));
+    }
+
     private @NotNull ItemStack createSkillItem(
         @NotNull SkillManagerEntry entry,
         @NotNull java.util.Set<String> permittedSkillIds
     ) {
-        List<Component> lore = new ArrayList<>(SkillPresentationUtil.skillDescriptionAndFlavorLore(
-            entry.definition(), permittedSkillIds, NamedTextColor.GRAY
-        ));
-        if (!lore.isEmpty()) lore.add(Component.text(" "));
-        lore.add(Component.text("習得レベル: " + entry.learnedSkill().getLevel(), NamedTextColor.GOLD));
-        lore.add(Component.text("装着シジル: " + entry.learnedSkill().getSigils().size() + "個", NamedTextColor.GRAY));
-        lore.add(Component.text("クリック: 忘却確認を開く", NamedTextColor.YELLOW));
+        List<Component> lore = skillLore(entry, permittedSkillIds);
+        lore.add(Component.text("クリックして忘却確認を開く", NamedTextColor.YELLOW));
         ItemStack item = SkillIconCatalog.apply(GuiItems.create(
             parseMaterial(entry.definition().getIcon()),
-            SkillPresentationUtil.skillNameComponent(
-                entry.definition(), entry.definition().getId(), NamedTextColor.WHITE
-            ).append(Component.text(" Lv." + entry.learnedSkill().getLevel(), NamedTextColor.GOLD)),
-            lore,
+            skillName(entry),
+            SkillLore.finish(lore),
             entry.definition().getIconTexture()
         ), entry.definition().getId());
         ItemMeta meta = item.getItemMeta();

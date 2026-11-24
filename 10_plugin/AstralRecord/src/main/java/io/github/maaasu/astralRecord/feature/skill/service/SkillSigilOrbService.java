@@ -11,13 +11,16 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
-import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.skill.gui.SkillLore;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillSigilOrbGuiHolder;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigil;
+import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillSynthesisMaterialEligibility.MaterialKind;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
@@ -685,27 +688,149 @@ public final class SkillSigilOrbService {
         ItemModel selected = session.selectedSigilItemId == null
             ? null : itemService.findLoadedById(session.selectedSigilItemId);
         if (selected != null) selector = itemStackFactory.create(selected, 1);
-        session.inventory.setItem(SELECTION_SLOT, selector);
+        session.inventory.setItem(SELECTION_SLOT, SkillLore.style(selector, null));
         session.inventory.setItem(BACK_SLOT, GuiItems.backButton(
             new GuiNavigationDestination(Material.BOOK, "シジル対象スキル")
         ));
         boolean ready = isOperationReady(session, target);
-        session.inventory.setItem(RESULT_SLOT, GuiItems.create(
-            ready ? Material.LIME_DYE : Material.BARRIER,
-            Component.text(ready ? "クリックして確定" : "シジルを選択してください",
-                ready ? NamedTextColor.GREEN : NamedTextColor.RED),
-            List.of(Component.text(session.type == ItemOrbEffectType.SIGIL_ATTACH
-                ? "シジル用オーブと選択したシジルを各1個消費して装着します"
-                : "シジル用オーブを1個消費し、選択したシジルを所持品へ返却します",
-                NamedTextColor.GRAY),
-                PlayerMsgResource.getComponent(PlayerMsgId.P_5879.getId()),
-                PlayerMsgResource.getComponent(PlayerMsgId.P_5884.getId()))
-        ));
+        session.inventory.setItem(RESULT_SLOT, createConfirmationItem(session, target, selected, ready));
         if (session.screen == SkillSigilOrbGuiHolder.Screen.DETACH && ready && selected != null) {
             ItemStack returned = itemStackFactory.create(selected, 1);
             appendLore(returned, Component.text("取り外し後に返却されます", NamedTextColor.GREEN));
-            session.inventory.setItem(RETURN_SLOT, returned);
+            session.inventory.setItem(RETURN_SLOT, SkillLore.style(returned, null));
         }
+    }
+
+    /** 選択中の素材、費用、結果を確定ボタンにまとめます。 */
+    private ItemStack createConfirmationItem(Session session, SkillTarget target, @Nullable ItemModel selected, boolean ready) {
+        boolean attaching = session.type == ItemOrbEffectType.SIGIL_ATTACH;
+        var lore = new ArrayList<Component>();
+        SkillLore.section(lore, "対象スキル", NamedTextColor.AQUA);
+        lore.add(SkillLore.row("スキル", SkillPresentationUtil.skillNameComponent(
+            target.definition, "未登録のスキル", NamedTextColor.WHITE)));
+        lore.add(SkillLore.row("レベル", SkillLore.value(skillLevel(target))));
+        int equipped = target.learnedSkill.getSigils().size();
+        String slots = sigilSlots(target, equipped);
+        if (ready) slots += " → " + sigilSlots(target, equipped + (attaching ? 1 : -1));
+        lore.add(SkillLore.row("シジル枠", SkillLore.value(slots)));
+
+        if (selected != null) {
+            SkillLore.section(lore, "選択したシジル", NamedTextColor.LIGHT_PURPLE);
+            lore.add(SkillPresentationUtil.itemNameComponent(selected, "未登録のシジル", NamedTextColor.WHITE));
+            for (String effect : selected.getLore()) {
+                if (!effect.isBlank()) lore.add(SkillPresentationUtil.masterTextComponent(effect, "", NamedTextColor.GRAY));
+            }
+        }
+
+        if (ready) appendCastChanges(lore, session, target, selected, attaching);
+        SkillLore.section(lore, "消費する素材", NamedTextColor.GOLD);
+        appendRequiredMaterial(lore, session, session.orbItemId, "シジル用オーブ");
+        if (attaching && selected != null) {
+            appendRequiredMaterial(lore, session, selected.getId(), "シジル");
+        } else if (!attaching && session.selectedLearnedSkillSigilId != null) {
+            SkillLore.section(lore, "返却", NamedTextColor.GREEN);
+            lore.add(SkillLore.row("所持品へ1個返却", SkillPresentationUtil.itemNameComponent(
+                selected, "装着中のシジル", NamedTextColor.WHITE)));
+        }
+
+        SkillLore.section(lore, "確定", ready ? NamedTextColor.GREEN : NamedTextColor.RED);
+        lore.add(SkillLore.note(ready ? (attaching ? "クリックして装着" : "クリックして脱着")
+            : session.selectedSigilItemId == null ? "シジルを選択してください" : "素材または対象を確認してください"));
+        return SkillLore.style(GuiItems.create(
+            ready ? Material.LIME_DYE : Material.BARRIER,
+            Component.text(attaching ? "シジル装着の確認" : "シジル脱着の確認",
+                ready ? NamedTextColor.GREEN : NamedTextColor.RED),
+            SkillLore.finish(lore)
+        ), target.definition.getId());
+    }
+
+    /** 仮の習得個体を現在と同じ計算に通し、発動時に変わる数値を表示します。 */
+    private void appendCastChanges(List<Component> lore, Session session, SkillTarget target,
+                                   @Nullable ItemModel selected, boolean attaching) {
+        SkillLore.section(lore, attaching ? "装着後の変化" : "脱着後の変化", NamedTextColor.LIGHT_PURPLE);
+        ResolvedLearnedSkill projected = resolveProjectedSkill(session, target, selected, attaching);
+        if (target.resolved == null || projected == null || session.astPlayer.getStatusSnapshot().getValues().isEmpty()) {
+            lore.add(SkillLore.note("現在の実効値を取得できません"));
+            return;
+        }
+
+        PlayerSkillCaster caster = new PlayerSkillCaster(session.astPlayer);
+        var before = skillService.previewCast(caster, target.resolved);
+        var after = skillService.previewCast(caster, projected);
+        int firstChange = lore.size();
+        for (SkillResourceType type : SkillResourceType.values()) {
+            String resource = switch (type) {
+                case MANA -> "MP";
+                case ENERGY -> "ENG";
+                case GUARD -> "ガード";
+            };
+            appendChange(lore, resource + "消費", before.costs().getOrDefault(type, 0.0),
+                after.costs().getOrDefault(type, 0.0), "");
+        }
+        appendChange(lore, "通常時CT", before.cooldownTicks() / 20.0, after.cooldownTicks() / 20.0, "秒");
+        appendChange(lore, "詠唱", before.castTicks() / 20.0, after.castTicks() / 20.0, "秒");
+        if (selected != null && selected.getSigil() != null) {
+            selected.getSigil().getModifiers().stream()
+                .map(modifier -> StatusType.fromId(modifier.getStatus().trim().toUpperCase(java.util.Locale.ROOT)))
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .forEach(type -> {
+                    double previousBonus = target.resolved.statusBonuses().getOrDefault(type, 0.0);
+                    double nextBonus = projected.statusBonuses().getOrDefault(type, 0.0);
+                    if (Double.compare(previousBonus, nextBonus) != 0) {
+                        lore.add(SkillLore.row(type.getDisplayName() + "補正", SkillLore.value(
+                            type.formatSignedValue(previousBonus) + " → " + type.formatSignedValue(nextBonus))));
+                    }
+                });
+        }
+        if (lore.size() == firstChange) lore.add(SkillLore.note("表示対象の数値に変化なし"));
+    }
+
+    /** 選択操作を適用した表示専用のスキル個体を解決します。 */
+    private @Nullable ResolvedLearnedSkill resolveProjectedSkill(
+        Session session, SkillTarget target, @Nullable ItemModel selected, boolean attaching
+    ) {
+        LearnedSkillInstance learned = target.learnedSkill;
+        var sigils = new ArrayList<>(learned.getSigils());
+        if (attaching) {
+            if (selected == null || selected.getSigil() == null) return null;
+            sigils.add(new LearnedSkillSigil(session.token, selected.getId(), selected.getSigil().getEquipGroupId(),
+                firstFreeSigilSlot(target)));
+        } else {
+            sigils.removeIf(sigil -> sigil.getLearnedSkillSigilId().equals(session.selectedLearnedSkillSigilId));
+        }
+        return skillService.resolveLearnedSkill(new LearnedSkillInstance(
+            learned.getLearnedSkillId(), learned.getAccountId(), learned.getSkillId(), learned.getLevel(), sigils,
+            learned.getVersion(), learned.getCreatedAt(), learned.getUpdatedAt()
+        ));
+    }
+
+    /** 表示精度で変化した前後の数値を単位付きで追加します。 */
+    private void appendChange(List<Component> lore, String label, double before, double after, String unit) {
+        String previous = SkillDamagePreview.number(before);
+        String next = SkillDamagePreview.number(after);
+        if (!previous.equals(next)) {
+            lore.add(SkillLore.row(label, SkillLore.value(previous + unit + " → " + next + unit)));
+        }
+    }
+
+    /** 実際の共通消費経路で利用できる所持量を表示します。 */
+    private void appendRequiredMaterial(List<Component> lore, Session session, String itemId, String fallback) {
+        ItemModel item = itemService.findLoadedById(itemId);
+        long amount = inventoryService.getSpendableNormalItemAmount(session.accountId, itemId);
+        Component name = SkillPresentationUtil.itemNameComponent(item, fallback, NamedTextColor.WHITE);
+        lore.add(SkillLore.materialRow("", name));
+        lore.add(SkillLore.row("必要 1個 / 所持", Component.text(amount, amount > 0 ? NamedTextColor.WHITE : NamedTextColor.RED)));
+    }
+
+    /** 現在のレベルと最大レベルを表示します。 */
+    private String skillLevel(SkillTarget target) {
+        return "Lv." + target.learnedSkill.getLevel() + " / " + target.definition.getMaxLevel();
+    }
+
+    /** 枠の実定義から装着済み数と上限を表示します。 */
+    private String sigilSlots(SkillTarget target, int equipped) {
+        return equipped + " / " + SkillSynthesisMaterialEligibility.sigilSlotCount(target.learnedSkill, target.definition);
     }
 
     private void showDetachOperation(@NotNull Session session, @NotNull SkillTarget target) {
@@ -840,19 +965,16 @@ public final class SkillSigilOrbService {
                 target.definition, permittedSkillIds, NamedTextColor.GRAY
             ));
         }
-        lore.add(Component.empty());
-        lore.add(Component.text("レベル: " + target.learnedSkill.getLevel() + " / " + target.definition.getMaxLevel(),
-            NamedTextColor.AQUA));
-        int slots = SkillSynthesisMaterialEligibility.sigilSlotCount(target.learnedSkill, target.definition);
-        lore.add(Component.text("シジル: " + target.learnedSkill.getSigils().size() + " / " + slots,
-            NamedTextColor.LIGHT_PURPLE));
+        SkillLore.section(lore, "習得状況", NamedTextColor.LIGHT_PURPLE);
+        lore.add(SkillLore.row("レベル", SkillLore.value(skillLevel(target))));
+        lore.add(SkillLore.row("シジル枠", SkillLore.value(sigilSlots(target, target.learnedSkill.getSigils().size()))));
         if (listDisplay) {
             lore.add(Component.text("クリックしてシジルを操作", NamedTextColor.YELLOW));
         }
         return SkillIconCatalog.apply(GuiItems.create(
             icon == null ? DEFAULT_SKILL_ICON : icon,
             SkillPresentationUtil.skillNameComponent(target.definition, "未登録のスキル", NamedTextColor.WHITE),
-            lore,
+            SkillLore.finish(lore),
             target.definition.getIconTexture()
         ), target.definition.getId());
     }

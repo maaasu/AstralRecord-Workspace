@@ -47,6 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /** NPC 専用スキル忘却 GUI の開閉と操作を処理します。 */
 public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
+    private static final long PAID_FORGET_COST = 100L;
     private final SkillForgetGui gui;
     private final SkillService skillService;
     private final SkillOwnershipService ownershipService;
@@ -198,7 +199,15 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
             openList(player, holder.pageIndex());
             return;
         }
-        gui.openConfirm(player, entry, holder.pageIndex());
+        PurchaseMaterial material = findPurchaseMaterial(entry.definition());
+        SkillForgetGui.PaidOption paidOption = null;
+        if (material != null) {
+            boolean available = inventoryService.getCurrencyAmount(
+                astPlayer.getAccount().getUuid(), ItemService.ASTRALD_CURRENCY_ITEM_ID) >= PAID_FORGET_COST
+                && inventoryService.canAddItemToNormalInventory(astPlayer, material.item(), material.amount());
+            paidOption = new SkillForgetGui.PaidOption(material.item(), material.amount(), PAID_FORGET_COST, available);
+        }
+        gui.openConfirm(player, entry, permittedSkillIds(astPlayer), holder.pageIndex(), paidOption);
         GuiSound.CONFIRM.play(player);
     }
 
@@ -250,7 +259,7 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (paidForget && inventoryService.getCurrencyAmount(
-            accountId, ItemService.ASTRALD_CURRENCY_ITEM_ID) < 100L) {
+            accountId, ItemService.ASTRALD_CURRENCY_ITEM_ID) < PAID_FORGET_COST) {
             rejectPaidForget(player, playerId, PlayerMsgId.P_5868);
             return;
         }
@@ -270,7 +279,7 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
         @Nullable PurchaseMaterial compensationMaterial
     ) {
         Runnable inventoryMutation = compensationMaterial == null ? () -> { } : () -> {
-            if (!inventoryService.consumeCurrency(accountId, ItemService.ASTRALD_CURRENCY_ITEM_ID, 100L)) {
+            if (!inventoryService.consumeCurrency(accountId, ItemService.ASTRALD_CURRENCY_ITEM_ID, PAID_FORGET_COST)) {
                 throw new PaidForgetPaymentUnavailableException();
             }
             int granted = inventoryService.addItemToNormalInventoryStateOnly(
@@ -362,7 +371,7 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
     private void openList(@NotNull Player player, int page) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (!AccountModeGuard.isGameplayPlayer(astPlayer)) return;
-        gui.open(player, entries(astPlayer), permissionService == null ? java.util.Set.of() : permissionService.permittedSkillIds(astPlayer), page);
+        gui.open(player, entries(astPlayer), permittedSkillIds(astPlayer), page);
     }
 
     private @NotNull List<SkillManagerEntry> entries(@NotNull AstPlayer player) {
@@ -380,7 +389,15 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
         LearnedSkillInstance learned = ownershipService.findInstance(player, learnedSkillId);
         if (learned == null) return null;
         var definition = skillService.registry().getDefinition(learned.getSkillId());
-        return definition == null ? null : new SkillManagerEntry(learned, definition, true);
+        if (definition == null) return null;
+        var resolved = skillService.resolveLearnedSkill(learned);
+        return resolved == null ? new SkillManagerEntry(learned, definition, true)
+            : new SkillManagerEntry(learned, resolved.definition(), true, resolved);
+    }
+
+    /** 条件付き効果の説明に使用する現在の使用許可を返します。 */
+    private java.util.Set<String> permittedSkillIds(@NotNull AstPlayer player) {
+        return permissionService == null ? java.util.Set.of() : permissionService.permittedSkillIds(player);
     }
 
     private record PurchaseMaterial(@NotNull ItemModel item, int amount) {
