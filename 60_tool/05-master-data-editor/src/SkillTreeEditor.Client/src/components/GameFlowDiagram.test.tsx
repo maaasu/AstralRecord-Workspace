@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { gameFlowApi } from '../api/gameFlowApi'
 import { masterDataApi } from '../api/masterDataApi'
-import { gameFlowCategory, gameFlowPath, gameFlowPorts, type GameFlowPort } from '../data/gameFlow'
+import { gameFlowCategory, gameFlowPath, gameFlowPorts, kindLabels, type GameFlowPort } from '../data/gameFlow'
 import type { JsonValue } from '../types/editor'
 import { GameFlowWorkspace } from './GameFlowWorkspace'
 
@@ -26,10 +26,10 @@ const content = {
   edges: [{ from: 'memo', to: 'npc' }],
 }
 
-function mockNpcSkin(skinTexture?: string) {
+function mockNpcSkin(skinTexture?: string, withIcon = true) {
   vi.mocked(masterDataApi.files).mockResolvedValue([
     { ...fileMetadata, path, category: gameFlowCategory, id: 'diagram', name: content.name },
-    { ...npcFile, skinTexture },
+    { ...npcFile, skinTexture, icon: withIcon ? npcFile.icon : undefined },
   ])
 }
 
@@ -71,6 +71,7 @@ function drawConnection(from: HTMLElement, fromPort: GameFlowPort, to: HTMLEleme
 const visiblePath = (edge: HTMLElement) => edge.querySelector('.react-flow__edge-path')
 
 it('renders NPC hover and keyboard details outside the canvas, with four reusable ports and a separate sticky note', async () => {
+  mockNpcSkin(undefined, false)
   const user = userEvent.setup()
   render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
   const npc = await screen.findByRole('group', { name: 'NPC 受付へ行く' })
@@ -104,7 +105,7 @@ it('renders NPC hover and keyboard details outside the canvas, with four reusabl
   expect(screen.queryByRole('tooltip')).toBeNull()
 })
 
-it('shows both layers of the referenced NPC skin and restores the person icon after an image error', async () => {
+it('uses the NPC Material as a fallback after the skin fails to load', async () => {
   mockNpcSkin(skinProfile('http://textures.minecraft.net/texture/abc123'))
   render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
 
@@ -115,8 +116,7 @@ it('shows both layers of the referenced NPC skin and restores the person icon af
   expect(npc.querySelector('.game-flow-token-person')).not.toBeInTheDocument()
 
   fireEvent.error(layers[0])
-  expect(npc.querySelector('.game-flow-token-person')).toBeInTheDocument()
-  expect(npc.querySelector('img')).not.toBeInTheDocument()
+  expect(npc.querySelector('img')).toHaveAttribute('src', '/api/minecraft-icons/CHEST?revision=0')
 
   fireEvent.click(screen.getByRole('button', { name: '再読込' }))
   await waitFor(() => expect(npc.querySelector('.minecraft-head-face img')).toHaveAttribute('src', '/api/minecraft-npc-skins/abc123?revision=1'))
@@ -130,12 +130,94 @@ it('shows both layers of the referenced NPC skin and restores the person icon af
 })
 
 it.each(['!', skinProfile('https://example.com/texture/abc123')])('keeps the person icon for an invalid NPC skin', async (texture) => {
-  mockNpcSkin(texture)
+  mockNpcSkin(texture, false)
   render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
 
   const npc = await screen.findByRole('group', { name: 'NPC 受付へ行く' })
   expect(npc.querySelector('.game-flow-token-person')).toBeInTheDocument()
   expect(npc.querySelector('img')).not.toBeInTheDocument()
+})
+
+it('参照アイコンを表示し、付箋にアイコンを追加しても本文と注釈線を保持する', async () => {
+  const references = [
+    { kind: 'game_flow', label: '第1章クリア', icon: 'WRITABLE_BOOK', category: gameFlowCategory },
+    { kind: 'progression_preset', label: 'クリア時のビルド', icon: 'COMPASS', category: '90.shared.progression_preset' },
+    { kind: 'guide', label: '章のガイド', icon: 'BOOK', category: '09.features.guide' },
+    { kind: 'mail', label: '受け取る', icon: 'CHEST', category: '05.features.mail' },
+  ]
+  const files = references.map(({ kind, label, icon, category }) => ({
+    ...fileMetadata, path: `${category}/v1.${kind}.yml`, category, id: kind, name: label, icon,
+  }))
+  const loadedFiles = await masterDataApi.files()
+  const loadedCandidates = await masterDataApi.candidates()
+  vi.mocked(masterDataApi.files).mockResolvedValue([...loadedFiles, ...files])
+  vi.mocked(masterDataApi.candidates).mockResolvedValue([...loadedCandidates, ...files.map(file => ({
+    path: file.path, pointer: '/id', value: file.id, label: file.name, kind: file.id,
+  }))])
+  const nodes = [...content.nodes, ...references.map(({ kind, label }, index) => ({
+    id: kind, ref: `${kind}:${kind}`, label, x: 260 * index, y: 400,
+  }))]
+  vi.mocked(masterDataApi.file).mockResolvedValue({
+    path, format: 'yaml', raw: '', revision: '1', issues: [], content: { ...content, nodes },
+  })
+  render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
+  await screen.findByRole('group', { name: 'ゲーム進行フロー 第1章クリア' })
+  for (const reference of references) {
+    const node = screen.getByRole('group', { name: `${kindLabels[reference.kind]} ${reference.label}` })
+    expect(node.querySelector('img')).toHaveAttribute('src', `/api/minecraft-icons/${reference.icon}?revision=0`)
+  }
+
+  const mail = screen.getByRole('group', { name: 'メール 受け取る' })
+  fireEvent.click(mail)
+  fireEvent.change(screen.getByLabelText('アイコンの上書き（任意）'), { target: { value: 'PAPER' } })
+  await waitFor(() => expect(mail.querySelector('img')).toHaveAttribute('src', '/api/minecraft-icons/PAPER?revision=0'))
+  fireEvent.change(screen.getByLabelText('アイコンの上書き（任意）'), { target: { value: '' } })
+  await waitFor(() => expect(mail.querySelector('img')).toHaveAttribute('src', '/api/minecraft-icons/CHEST?revision=0'))
+
+  const memo = screen.getByRole('group', { name: 'メモ 旧メモ' })
+  fireEvent.click(memo)
+  fireEvent.change(screen.getByLabelText('アイコン（任意）'), { target: { value: 'MAP' } })
+  await waitFor(() => expect(memo.querySelector('img')).toHaveAttribute('src', '/api/minecraft-icons/MAP?revision=0'))
+  expect(within(memo).getByText('旧メモ')).toBeVisible()
+  expect(screen.getByTestId('rf__edge-memo->npc')).toHaveClass('annotation')
+  fireEvent.click(screen.getByRole('button', { name: '保存' }))
+  await waitFor(() => expect(masterDataApi.save).toHaveBeenCalled())
+  const saved = JSON.parse(vi.mocked(masterDataApi.save).mock.lastCall![1])
+  expect(saved.nodes.find((node: { id: string }) => node.id === 'memo')).toMatchObject({ label: '旧メモ', icon: 'MAP' })
+  expect(saved.nodes.find((node: { id: string }) => node.id === 'mail')).not.toHaveProperty('icon')
+  expect(saved.edges).toEqual(content.edges)
+})
+
+it('章で保存したアイコンを全体フローに戻るとすぐに表示する', async () => {
+  const chapterPath = gameFlowPath('tutorial')
+  const chapter = { id: 'tutorial', name: '第1章の詳細', icon: 'WRITABLE_BOOK', nodes: [], edges: [] }
+  const overview = { ...content, nodes: [{ id: 'chapter', ref: 'game_flow:tutorial', label: '第1章クリア', x: 0, y: 0 }], edges: [] }
+  const loadedFiles = await masterDataApi.files()
+  vi.mocked(masterDataApi.files).mockResolvedValue([...loadedFiles,
+    { ...fileMetadata, path: chapterPath, category: gameFlowCategory, id: chapter.id, name: chapter.name, icon: chapter.icon },
+  ])
+  vi.mocked(masterDataApi.candidates).mockResolvedValue([
+    { path: chapterPath, pointer: '/id', value: chapter.id, label: chapter.name, kind: 'game_flow' },
+  ])
+  vi.mocked(masterDataApi.file).mockImplementation(async requestedPath => ({
+    path: requestedPath, format: 'yaml', raw: '', revision: '1', issues: [], content: requestedPath === chapterPath ? chapter : overview,
+  }))
+  vi.mocked(masterDataApi.save).mockImplementation(async (savedPath, raw) => ({
+    path: savedPath, format: 'yaml', raw, revision: '2', issues: [], content: JSON.parse(raw) as JsonValue,
+  }))
+  render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
+
+  const node = await screen.findByRole('group', { name: 'ゲーム進行フロー 第1章クリア' })
+  expect(node.querySelector('img')).toHaveAttribute('src', '/api/minecraft-icons/WRITABLE_BOOK?revision=0')
+  fireEvent.click(screen.getByRole('button', { name: /第1章の詳細/ }))
+  const field = await screen.findByDisplayValue('WRITABLE_BOOK')
+  fireEvent.change(field, { target: { value: 'WRITTEN_BOOK' } })
+  fireEvent.click(screen.getByRole('button', { name: '保存' }))
+  await waitFor(() => expect(masterDataApi.save).toHaveBeenCalled())
+  expect(JSON.parse(vi.mocked(masterDataApi.save).mock.lastCall![1])).toMatchObject({ icon: 'WRITTEN_BOOK' })
+  fireEvent.click(screen.getByRole('button', { name: /テスト用の進行フロー/ }))
+  const updated = await screen.findByRole('group', { name: 'ゲーム進行フロー 第1章クリア' })
+  expect(updated.querySelector('img')).toHaveAttribute('src', '/api/minecraft-icons/WRITTEN_BOOK?revision=0')
 })
 
 it('keeps explicitly dragged endpoints through undo, redo, reversal, save and reload', async () => {

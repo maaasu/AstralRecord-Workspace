@@ -326,7 +326,9 @@
 .game-flow-token-shape[data-shape='note'] { width: 140px; height: 64px; }
 [data-shape='note'] .game-flow-token-fill::after { inset: 2px; background: color-mix(in srgb, var(--kind) 20%, var(--surface-raised)); }
 [data-shape='note'] .game-flow-token-fill::before { content: ''; position: absolute; right: 0; top: 0; z-index: 1; width: 17px; height: 15px; border-radius: 0 0 0 3px; background: var(--kind); }
-.game-flow-token-note { position: relative; z-index: 1; display: -webkit-box; max-width: 124px; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; font-size: 12px; line-height: 1.3; text-align: center; overflow-wrap: anywhere; }
+.game-flow-token-note-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 6px; max-width: 124px; }
+.game-flow-token-note-content .game-flow-note-icon { flex: 0 0 auto; width: 22px; height: 22px; image-rendering: pixelated; }
+.game-flow-token-note { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; font-size: 12px; line-height: 1.3; text-align: center; overflow-wrap: anywhere; }
 .game-flow-token.selected .game-flow-token-shape { filter: drop-shadow(0 0 2px var(--gold)) drop-shadow(0 0 4px var(--gold)); }
 .game-flow-token.selected .game-flow-token-name { color: var(--gold); }
 .game-flow-token.dimmed { opacity: .25; }

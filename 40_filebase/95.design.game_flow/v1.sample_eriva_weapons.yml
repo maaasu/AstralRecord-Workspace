@@ -34,6 +34,7 @@ nodes:
     y: -80
   - id: weapon_shop
     ref: shop:weapon_craftsman_shop
+    icon: ANVIL
     note: "素材とゴールドを持ち込んで武器と交換する。"
     x: 600
     y: 80
@@ -57,6 +58,7 @@ nodes:
     y: 240
   - id: windscar_steppe
     ref: dungeon:eriva_windscar_steppe
+    icon: GRASS_BLOCK
     note: "推奨レベル15。"
     x: 1200
     y: 80

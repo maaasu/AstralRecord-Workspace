@@ -328,7 +328,7 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       id: node.id, type: 'flow', ariaLabel: `${kindLabels[kind] ?? kind} ${plain(nodeName(node))}`, position: { x: node.x, y: node.y },
       selected: selection?.type === 'node' && selection.id === node.id,
       data: {
-        name: nodeName(node), kind, file: resolved?.file, ref: node.ref, referenceName: resolved?.name, classNames: node.classes.map(className), skinRevision,
+        name: nodeName(node), kind, icon: node.icon, file: resolved?.file, ref: node.ref, referenceName: resolved?.name, classNames: node.classes.map(className), skinRevision,
         note: node.note?.trim() || undefined, dimmed: !visible?.nodes.has(node.id), missing: Boolean(node.ref && !resolved),
         connectedPorts: connectedPorts.get(node.id),
       },
@@ -535,11 +535,13 @@ function GameFlowEditor({ active = true, onDirtyChange, onOpenMaster }: Props) {
       setIssues(report.issues)
       if (!report.isValid) { setError('検証エラーがあるため保存できませんでした。'); return }
       const next = await masterDataApi.save(document.path, rendered.raw, document.revision)
+      const savedFlow = parseGameFlow(next.content)
+      setFiles(current => current.map(file => file.path === next.path ? { ...file, icon: savedFlow.icon } : file))
       if (current.current === flow) open(next)
       else {
         // 保存中に続けた編集は残し、保存済みの版と比較用の内容だけを更新する。
         setDocument(next)
-        setSaved(JSON.stringify(serializeGameFlow(parseGameFlow(next.content))))
+        setSaved(JSON.stringify(serializeGameFlow(savedFlow)))
       }
       setIssues(report.issues)
       setMessage(`${document.path} を保存しました。`)

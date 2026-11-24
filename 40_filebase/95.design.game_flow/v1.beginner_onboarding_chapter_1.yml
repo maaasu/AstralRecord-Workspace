@@ -5,9 +5,11 @@ schemaVersion: 1
 type: GAME_FLOW
 id: beginner_onboarding_chapter_1
 name: "第1章 グラスボアを1体倒そう"
+icon: NETHER_STAR
 description: "矢印はガイドの案内順。6手順は順不同で達成でき、ガイドは最初の未達成手順を案内する。"
 nodes:
   - id: open_menu
+    icon: COMPASS
     role: action
     label: "メニューを開く"
     note: "案内具を使ってメインメニューを開く。"
@@ -33,6 +35,7 @@ nodes:
     y: 0
   - id: buy_starter_weapon
     ref: shop:general_goods_shop
+    icon: EMERALD
     label: "雑貨店で武器を買う"
     note: "簡素な武器を購入する。達成を記録する商品のIDは nox_weapon。"
     x: 696
@@ -56,23 +59,27 @@ nodes:
     x: 0
     y: 172
   - id: claim_chapter_reward
+    icon: CHEST
     role: action
     label: "宝箱から報酬を請求"
     note: "ガイド一覧・詳細の宝箱を選ぶと報酬メールが発行される。"
     x: 0
     y: 344
   - id: receive_chapter_reward
+    icon: PAPER
     role: action
     label: "添付報酬を受け取る"
     note: "請求後に発行されるメール「第1章 達成報酬」を開く。"
     x: 232
     y: 344
   - id: reward_conditions
+    icon: TRIPWIRE_HOOK
     label: "報酬の請求は1回限り"
     note: "全ガイド（現行は第1章のみ）の全手順が達成済みとして保存され、有効な報酬設定がある場合、アカウントにつき一度だけ請求できる。"
     x: -176
     y: 344
   - id: guide_order
+    icon: WRITABLE_BOOK
     label: "6手順の達成は順不同"
     note: "矢印はガイドの案内順。ガイドは最初の未達成手順を案内する。雑貨商ミナは購入の入口で、独立した達成手順には含まれない。"
     x: -176

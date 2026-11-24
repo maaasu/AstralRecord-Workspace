@@ -12,6 +12,8 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
     MasterDataValidation validation, WorkspaceMutationGate mutations, BackupService backups,
     FilebaseSnapshotCache? snapshots = null)
 {
+    private const string ClassCategory = "20.features.class";
+
     // 全ファイルを走査する処理は読込済みの文書を共有する。1件の読込・保存は常にファイルから読み直す。
     private readonly FilebaseSnapshotCache _snapshots = snapshots ?? new(paths, codec);
 
@@ -19,6 +21,7 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
     {
         var result = new List<MasterDataFile>();
         Dictionary<string, string>? mobNames = null;
+        Dictionary<string, JsonObject>? classes = null;
         var wholeFilebase = string.IsNullOrWhiteSpace(category) || category == ".";
         var snapshot = await _snapshots.GetAsync(token, wholeFilebase ? null : category, reload);
         foreach (var source in snapshot.Documents.OrderBy(document => document.FullPath, StringComparer.Ordinal))
@@ -52,17 +55,25 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
                     .OrderBy(profile => profile.Level).FirstOrDefault().Data
                 : null;
 
+            var iconSource = obj;
+            if (kind == "progression_preset" && JsonValueReader.String(obj?["classId"]) is { Length: > 0 } classId)
+            {
+                classes ??= ReadClasses(wholeFilebase ? snapshot : await _snapshots.GetAsync(token, ClassCategory, reload));
+                iconSource = classes.GetValueOrDefault(classId) ?? obj;
+            }
+
             string? ReadIconField(string key) => JsonValueReader.String(
-                iconLevel is not null && iconLevel.TryGetPropertyValue(key, out var value) ? value : obj?[key]);
+                iconLevel is not null && iconLevel.TryGetPropertyValue(key, out var value) ? value : iconSource?[key]);
 
             var icon = ReadIconField("icon");
             icon ??= kind switch
             {
                 "gathering" => JsonValueReader.String(obj?["displayBlock"]),
                 "mob_spawner" or "gathering_spawner" => JsonValueReader.String(obj?["itemMaterial"]),
+                "guide" => ReadIconField("iconMaterial")?.Trim() is { Length: > 0 } material ? material : "WRITABLE_BOOK",
                 _ => null,
             };
-            var modelData = ReadModelData(obj?["customModelData"]);
+            var modelData = ReadModelData(iconSource?["customModelData"]);
             var iconTexture = ReadIconField("iconTexture");
             var iconModel = isBattleMob ? ReadIconField("iconModel") : null;
             var skinTexture = document.Path.StartsWith("40.features.mob/npc/", StringComparison.OrdinalIgnoreCase)
@@ -169,6 +180,17 @@ public sealed class MasterDataService(MasterDataPaths paths, WorkspacePaths work
             }
             if (document.Issues.Count == 0) yield return document;
         }
+    }
+
+    private static Dictionary<string, JsonObject> ReadClasses(FilebaseSnapshot snapshot)
+    {
+        var classes = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
+        foreach (var document in snapshot.Documents)
+            if (document.Path.StartsWith(ClassCategory + "/", MasterDataPaths.Comparison)
+                && document.PathError is null && document.DecodeError is null
+                && document.Content is JsonObject data && JsonValueReader.String(data["id"]) is { Length: > 0 } id)
+                classes.TryAdd(id, data);
+        return classes;
     }
 
     private Dictionary<string, string> ReadMobNames(FilebaseSnapshot snapshot)

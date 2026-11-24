@@ -29,7 +29,7 @@ movementSpeedCap: 120
 classes:
   adventurer:
     mainStats: [STRENGTH, DEXTERITY, INTELLIGENCE]
-    presets: [adventurer_melee, adventurer_ranged, adventurer_magic]
+    presets: [adventurer_chapter_1_clear]
   swordsman:
     mainStats: [STRENGTH]
     scales: {MAX_HEALTH: 1.05, VITALITY: 1.20, DEFENSE: 1.15, ATTACK: 0.90, AGILITY: 0.85, MAX_ENERGY: 1.10}
