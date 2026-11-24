@@ -31,7 +31,8 @@ enum ItemTooltipPresentation {
     private static final Key SKILL_FONT = Key.key("astralrecord", "skill_tooltip");
     private static final String BASIC_SKILL_GLYPH = "\uE600";
     private static final String MATERIAL_GLYPH = "\uE60D";
-    private static final int SKILL_GEM_GLYPH_BASE = 0xe900;
+    private static final int JAVA_GEM_GLYPH_BASE = 0xe900;
+    private static final int BEDROCK_GEM_GLYPH_BASE = 0xe9f0;
 
     private final boolean javaEdition;
     private final boolean detailedSkillGlyphs;
@@ -94,11 +95,11 @@ enum ItemTooltipPresentation {
             meta.setTooltipStyle(TOOLTIP_STYLE);
         }
         if (meta.hasLore()) {
-            boolean showOriginalGem = javaEdition && detailedSkillGlyphs;
+            int gemGlyphBase = javaEdition ? JAVA_GEM_GLYPH_BASE : BEDROCK_GEM_GLYPH_BASE;
             Component materialIcon = icon(MATERIAL_GLYPH, ICON_FONT);
             meta.lore(meta.lore().stream()
-                .map(line -> SkillLore.decorateMaterials(line, materialIcon, variant -> showOriginalGem
-                    ? icon(Character.toString(SKILL_GEM_GLYPH_BASE + variant), SKILL_FONT) : materialIcon))
+                .map(line -> SkillLore.decorateMaterials(line, materialIcon, variant -> detailedSkillGlyphs
+                    ? icon(Character.toString(gemGlyphBase + variant), SKILL_FONT) : materialIcon))
                 .toList());
         }
         return copy.setItemMeta(meta);

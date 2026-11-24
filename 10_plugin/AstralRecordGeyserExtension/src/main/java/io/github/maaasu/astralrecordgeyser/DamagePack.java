@@ -284,7 +284,8 @@ record DamagePack(
                     && present(zip.getEntry("textures/ui/purpleBorder.png"))
                     && hasVersionOne(zip, "item-tooltips-version.txt");
                 skillTooltips = itemTooltips && hasVersionOne(zip, "skill-tooltips-version.txt")
-                    && present(zip.getEntry("font/glyph_E8.png"));
+                    && present(zip.getEntry("font/glyph_E8.png"))
+                    && present(zip.getEntry("font/glyph_E9.png"));
                 actionRingHudRevision = readActionRingHudRevision(zip);
                 questHud = hasVersion(zip, "quest-tracking-hud-version.txt", '2')
                     && present(zip.getEntry("ui/astralrecord_quest_hud.json"))

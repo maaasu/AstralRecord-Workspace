@@ -39,7 +39,12 @@ public final class SkillLore {
     private SkillLore() {
     }
 
-    /** 表示スタックに受信者向け装飾の識別子を記録します。空 ID は共通種別絵に対応します。 */
+    /**
+     * 表示用スタックへ受信者別の装飾に使う識別子を記録します。
+     * @param item 装飾対象の表示用スタック
+     * @param skillId 専用字形を選ぶスキルID。共通字形を使う場合は null
+     * @return 識別子を記録した同じスタック
+     */
     public static @NotNull ItemStack style(@NotNull ItemStack item, @Nullable String skillId) {
         item.editMeta(meta -> meta.getPersistentDataContainer().set(
             TOOLTIP_KEY, PersistentDataType.STRING, skillId == null ? "" : skillId
@@ -47,11 +52,21 @@ public final class SkillLore {
         return item;
     }
 
-    /** 未登録スタックでは null、登録済みの共通種別絵では空文字列を返します。 */
+    /**
+     * 表示用スタックから受信者別装飾の識別子を取得します。
+     * @param data 他のアイテム判定と共有する読み取り専用PDC
+     * @return 未登録では null、共通字形では空文字列、専用字形ではスキルID
+     */
     public static @Nullable String styleId(@NotNull PersistentDataContainerView data) {
         return data.get(TOOLTIP_KEY, PersistentDataType.STRING);
     }
 
+    /**
+     * 見出しと短い装飾線を1行で追加します。
+     * @param lore 追加先のロア
+     * @param title 見出し
+     * @param color 見出しの色
+     */
     public static void section(@NotNull List<Component> lore, @NotNull String title, @NotNull NamedTextColor color) {
         String heading = "❖ " + title;
         Component line = Component.text(heading, color);
@@ -65,15 +80,33 @@ public final class SkillLore {
         lore.add(line);
     }
 
+    /**
+     * 箇条書きのラベルと値を組み合わせます。
+     * @param label 項目名。値だけを表示する場合は空文字列
+     * @param value 書式を保持する値
+     * @return ロアの1行
+     */
     public static @NotNull Component row(@NotNull String label, @NotNull Component value) {
         return row(Component.text(BULLET, LABEL), label, value);
     }
 
+    /**
+     * 共通素材字形を使う素材行を作成します。
+     * @param label 項目名。値だけを表示する場合は空文字列
+     * @param value 素材名や数量
+     * @return ロアの1行
+     */
     public static @NotNull Component materialRow(@NotNull String label, @NotNull Component value) {
         return materialRow(null, label, value);
     }
 
-    /** 既知の原石はランクに応じた実画像、その他の素材は共通の素材字形で表します。 */
+    /**
+     * 原石ではランク別字形を選べる素材行を作成します。
+     * @param itemId 素材のマスターID。共通素材字形を使う場合は null
+     * @param label 項目名。値だけを表示する場合は空文字列
+     * @param value 素材名や数量
+     * @return パックなしでも箇条書きとして読めるロアの1行
+     */
     public static @NotNull Component materialRow(
         @Nullable String itemId, @NotNull String label, @NotNull Component value
     ) {
@@ -83,10 +116,6 @@ public final class SkillLore {
         ), label, value);
     }
 
-    public static @NotNull Component gemRow(@NotNull String label, @NotNull Component value) {
-        return materialRow("10a00019", label, value);
-    }
-
     private static @NotNull Component row(Component prefix, String label, Component value) {
         return Component.empty()
             .append(prefix)
@@ -94,15 +123,29 @@ public final class SkillLore {
             .append(body(value));
     }
 
+    /**
+     * 比較や数量に使う値を強調します。
+     * @param value 単位を含む表示用の値
+     * @return 黄色と太字を付けた値
+     */
     public static @NotNull Component value(@NotNull String value) {
         return Component.text(value, NamedTextColor.YELLOW).decorate(TextDecoration.BOLD);
     }
 
+    /**
+     * 操作案内や補足を共通の色で表示します。
+     * @param text 案内文
+     * @return ロアの補足行
+     */
     public static @NotNull Component note(@NotNull String text) {
         return Component.text(text, LABEL);
     }
 
-    /** 白や無指定の説明色を共通の本文色に揃え、数値や状態等の色は維持します。 */
+    /**
+     * 通常の説明色を共通の本文色に揃え、数値や状態の強調色は維持します。
+     * @param text 書式を揃える本文
+     * @return 本文色を適用したコンポーネント
+     */
     public static @NotNull Component body(@NotNull Component text) {
         return palette(text).colorIfAbsent(BODY);
     }
@@ -115,7 +158,13 @@ public final class SkillLore {
             : adjusted.children(adjusted.children().stream().map(SkillLore::palette).toList());
     }
 
-    /** 送信用コピーの素材行にだけ、受信者の対応パックが持つ字形を差し込みます。 */
+    /**
+     * 送信用コピーの素材行へ受信者のパックが持つ字形を差し込みます。
+     * @param line 入力のロア行
+     * @param materialGlyph 共通素材の字形
+     * @param gemGlyph 原石ランクを字形に変換する関数
+     * @return 対象となる素材行だけを装飾したロア
+     */
     public static @NotNull Component decorateMaterials(
         @NotNull Component line, @NotNull Component materialGlyph, @NotNull IntFunction<Component> gemGlyph
     ) {
@@ -138,7 +187,11 @@ public final class SkillLore {
             .map(child -> decorateMaterials(child, materialGlyph, gemGlyph)).toList());
     }
 
-    /** 空行を整え、本文色と数値の装飾を維持して長い行だけを折り返します。 */
+    /**
+     * 空行を整え、書式を保持して長い行を折り返します。
+     * @param lore 入力のロア
+     * @return 整形済みの変更不能なロア一覧
+     */
     public static @NotNull List<Component> finish(@NotNull List<Component> lore) {
         List<Component> result = new ArrayList<>();
         boolean blank = false;
@@ -156,7 +209,12 @@ public final class SkillLore {
         return List.copyOf(result);
     }
 
-    /** マスターの文頭ラベルを除いた本文を取り出します。書式と強調は保持します。 */
+    /**
+     * マスターの文頭ラベルを除いた本文を、書式を維持して取り出します。
+     * @param line 元の本文
+     * @param length 取り除く文頭のUTF-16文字数
+     * @return 文頭ラベルを除いた本文
+     */
     public static @NotNull Component dropPrefix(@NotNull Component line, int length) {
         List<TextComponent> runs = new ArrayList<>();
         if (!flatten(line, Style.empty(), runs)) {

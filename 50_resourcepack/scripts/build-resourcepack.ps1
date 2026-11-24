@@ -362,6 +362,7 @@ $bedrock = Read-PackEntries $bedrockRoot @(
     'font/glyph_E6.png'
     'font/glyph_E7.png'
     'font/glyph_E8.png'
+    'font/glyph_E9.png'
     'combat-reward-plaque-version.txt'
     'textures/ui/absorption_heart.png'
     'textures/ui/absorption_heart_half.png'

@@ -11,6 +11,7 @@ import base64
 import json
 from pathlib import Path
 import re
+import runpy
 import struct
 import zlib
 
@@ -22,7 +23,14 @@ ATLAS = PACK / "assets/astralrecord/textures/item/action_ring_icons.png"
 BEDROCK_TILES = PACK / "bedrock/action-ring-icon-tiles.json"
 TOOLTIP_FONT = PACK / "assets/astralrecord/font/skill_tooltip.json"
 BEDROCK_TOOLTIP_GLYPHS = PACK / "bedrock/font/glyph_E8.png"
+BEDROCK_GEM_GLYPHS = PACK / "bedrock/font/glyph_E9.png"
 TOOLTIP_GLYPH_BASE = 0xE800
+JAVA_GEM_GLYPH_BASE = 0xE900
+BEDROCK_GEM_GLYPH_START = 0xF0
+GEM_NAMES = tuple("skill_gem_raw" + suffix for suffix in (
+    "", "_beginner", "_intermediate", "_advanced", "_saint", "_king", "_emperor", "_god",
+))
+PIXEL_ITEMS = runpy.run_path(str(Path(__file__).with_name("generate-pixel-item-assets.py")))
 TOOLTIP_GLYPH_CELL = 16
 CELL = 32
 ATLAS_SIZE = 512
@@ -672,14 +680,12 @@ def tooltip_font(catalog):
             *(
                 {
                     "type": "bitmap",
-                    "file": f"astralrecord:item/custom/skill_gem_raw{suffix}.png",
+                    "file": f"astralrecord:item/custom/{name}.png",
                     "height": 9,
                     "ascent": 8,
-                    "chars": [chr(0xE900 + index)],
+                    "chars": [chr(JAVA_GEM_GLYPH_BASE + index)],
                 }
-                for index, suffix in enumerate((
-                    "", "_beginner", "_intermediate", "_advanced", "_saint", "_king", "_emperor", "_god"
-                ))
+                for index, name in enumerate(GEM_NAMES)
             ),
         ],
     }
@@ -696,6 +702,43 @@ def draw_tooltip_glyph(glyphs, pixels, code):
             source = ((y * 2 + 1) * CELL + x * 2 + 1) * 4
             destination = ((y_origin + y) * width + x_origin + x) * 4
             glyphs[destination:destination + 4] = pixels[source:source + 4]
+
+
+def gem_pixels(name):
+    source = PACK / f"blockbench/pixel-art/{name}.pixel.json"
+    original = json.loads(source.read_text(encoding="utf-8-sig"))
+    header, rows = PIXEL_ITEMS["pixel_data"](original)
+    if struct.unpack(">II", header[:8]) != (CELL, CELL):
+        raise ValueError(f"Expected a {CELL}×{CELL} gem image: {name}")
+    for path in (
+        PACK / f"assets/astralrecord/textures/item/custom/{name}.png",
+        PACK / f"bedrock/textures/items/{name}.png",
+    ):
+        if not PIXEL_ITEMS["matches_pixels"](path.read_bytes(), header, rows):
+            raise ValueError(f"Gem pixels differ from the source artwork: {path}")
+    stride = CELL * 4 + 1
+    return b"".join(rows[offset + 1:offset + stride] for offset in range(0, len(rows), stride))
+
+
+def same_png(actual, expected):
+    # These generated files have one IDAT chunk; compare decoded pixels across zlib versions.
+    header = expected[16:29]
+    data_size = struct.unpack(">I", expected[33:37])[0]
+    rows = zlib.decompress(expected[41:41 + data_size])
+    return PIXEL_ITEMS["matches_pixels"](actual, header, rows)
+
+
+def matches_output(path, actual, expected):
+    if path.suffix == ".png":
+        return same_png(actual, expected)
+    if path == BEDROCK_TILES and actual:
+        actual_tiles = json.loads(actual)
+        expected_tiles = json.loads(expected)
+        return actual_tiles.keys() == expected_tiles.keys() and all(
+            same_png(base64.b64decode(actual_tiles[key]), base64.b64decode(tile))
+            for key, tile in expected_tiles.items()
+        )
+    return actual.replace(b"\r\n", b"\n") == expected
 
 
 def outputs():
@@ -720,11 +763,15 @@ def outputs():
             offset = ((origin_y + row) * ATLAS_SIZE + origin_x) * 4
             source = row * CELL * 4
             atlas[offset:offset + CELL * 4] = pixels[source:source + CELL * 4]
+    gem_glyphs = bytearray(tooltip_size * tooltip_size * 4)
+    for index, name in enumerate(GEM_NAMES):
+        draw_tooltip_glyph(gem_glyphs, gem_pixels(name), BEDROCK_GEM_GLYPH_START + index)
     return {
         CATALOG: (json.dumps(catalog, indent=2) + "\n").encode("utf-8"),
         ATLAS: png(ATLAS_SIZE, ATLAS_SIZE, atlas),
         TOOLTIP_FONT: (json.dumps(tooltip_font(catalog), indent=2) + "\n").encode("utf-8"),
         BEDROCK_TOOLTIP_GLYPHS: png(tooltip_size, tooltip_size, tooltip_glyphs),
+        BEDROCK_GEM_GLYPHS: png(tooltip_size, tooltip_size, gem_glyphs),
         BEDROCK_TILES: (json.dumps(bundle, separators=(",", ":")) + "\n").encode("utf-8"),
     }
 
@@ -734,15 +781,16 @@ def main():
     checks = parser.add_mutually_exclusive_group()
     checks.add_argument("--check", action="store_true", help="verify the checked-in files")
     checks.add_argument("--check-tooltips", action="store_true", help="verify only the tooltip font assets")
+    checks.add_argument("--tooltips-only", action="store_true", help="write only the tooltip font assets")
     args = parser.parse_args()
     for path, data in outputs().items():
-        if args.check_tooltips and path not in (TOOLTIP_FONT, BEDROCK_TOOLTIP_GLYPHS):
+        if (args.check_tooltips or args.tooltips_only) and path not in (
+            TOOLTIP_FONT, BEDROCK_TOOLTIP_GLYPHS, BEDROCK_GEM_GLYPHS
+        ):
             continue
         if args.check or args.check_tooltips:
             actual = path.read_bytes() if path.exists() else b""
-            if path.suffix == ".json":
-                actual = actual.replace(b"\r\n", b"\n")
-            if actual != data:
+            if not matches_output(path, actual, data):
                 parser.exit(1, f"Generated output differs: {path}\n")
         else:
             path.write_bytes(data)

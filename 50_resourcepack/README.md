@@ -245,7 +245,7 @@ JE で素材の振り分けだけを確認する場合は `/give @s minecraft:wo
 
 Java 版は `astralrecord:shared_item` で専用の背景と枠を選び、`astralrecord:tooltip_icons` で絵柄を描画します。統合版は `textures/ui/purpleBorder.png` を差し替えるため、この画像を参照する標準ツールチップや一部のチャット・ポーズ画面のUIにも同じ枠が適用されます。統合版の絵柄は `font/glyph_E6.png` に収録しています。両版のパックは機能の互換判定に使う `item-tooltips-version.txt` を含みます。[Minecraft Java Edition 1.21.2](https://www.minecraft.net/en-us/article/minecraft-java-edition-1-21-2) · [Mojang の統合版ツールチップ画像の伸縮設定](https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/textures/ui/purpleBorder.json)
 
-スキルのタイトルは、`skill-tooltips-version.txt` に対応する接続で、既存スキルアイコン台帳と同じ絵柄を表示します。Java版は `astralrecord:skill_tooltip` を使い、原石の行にはランクに応じた原石の字形を表示します。統合版は `font/glyph_E8.png` に技別字形を収録し、素材行には共通字形を使います。統合版の字形には対応したGeyser拡張、Proxy、RPGの組み合わせと `gameplay.force-resource-packs: true` が必要です。拡張は接続に登録された配布内容が一致した場合だけ字形の使用を通知します。既存アイテム用の機能だけを備えたパックでは共通字形を使い、パックが利用できない接続は通常テキストで読めます。配布用の技別字形は `python scripts/generate-action-ring-icons.py --check-tooltips` で照合できます。
+スキルのタイトルは、`skill-tooltips-version.txt` に対応する接続で、既存スキルアイコン台帳と同じ絵柄を表示します。Java版は `astralrecord:skill_tooltip` を使い、原石の行にはランクに応じた原石の字形を表示します。統合版は `font/glyph_E8.png` に技別字形、`font/glyph_E9.png` の U+E9F0〜U+E9F7 に原石の字形を収録します。Java版・統合版ともに、原石以外の素材行には共通字形を使います。統合版の字形には対応したGeyser拡張、Proxy、RPGの組み合わせと `gameplay.force-resource-packs: true` が必要です。拡張は接続に登録された配布内容が一致した場合だけ字形の使用を通知します。既存アイテム用の機能だけを備えたパックでは共通字形を使い、パックが利用できない接続は通常テキストで読めます。配布用の技別字形は `python scripts/generate-action-ring-icons.py --check-tooltips` で照合できます。
 
 原画の編集先は `assets/astralrecord/textures/font/tooltip_icons.png` です。更新時は左上の256×32 pxを統合版の256×256 pxのフォント画像に同じ位置でコピーします。既存の `U+E600` ～ `U+E611` の割り当てを維持し、両版で同じ絵柄を使います。配布用 PNG を最近傍拡大し、背景と枠を9分割で伸縮した静止画で、全18種類の輪郭とポーション名の配置を確認しました。実クライアントの描画は未確認です。
 
