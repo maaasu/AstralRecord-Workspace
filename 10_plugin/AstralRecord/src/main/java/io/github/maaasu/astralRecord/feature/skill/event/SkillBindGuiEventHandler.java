@@ -972,11 +972,33 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             : new SkillManagerEntry(learned, resolved.definition(), permitted, resolved);
     }
 
+    /** 一覧を開き、表示予約中に強化結果が届いた場合は同じ一覧を再描画します。 */
     private void openMain(Player player, SkillBindSession session, int page) {
+        long levelUpRevision = session.levelUpResultRevision();
         Inventory inventory = createMainInventory(player, session, page);
         if (inventory != null) {
-            GuiOpenSupport.open(player, inventory);
+            GuiOpenSupport.open(player, inventory, () -> {
+                if (session.levelUpResultRevision() != levelUpRevision) refreshOpenMain(player, session);
+            });
         }
+    }
+
+    /**
+     * 開いている編集一覧の中身を変え、そのページと編集状態を維持します。
+     * @param player 強化したプレイヤー
+     * @param session 強化を開始した編集セッション
+     */
+    private void refreshOpenMain(Player player, SkillBindSession session) {
+        if (!player.isOnline() || sessions.get(player.getUniqueId()) != session) return;
+        Inventory active = player.getOpenInventory().getTopInventory();
+        SkillBindInventoryHolder holder = gui.holder(active);
+        if (holder == null || holder.screen() != SkillBindScreen.MAIN
+            || holder.selectedPresetIndex() != session.selectedPresetIndex()) return;
+        Inventory latest = createMainInventory(player, session, holder.pageIndex());
+        SkillBindInventoryHolder latestHolder = gui.holder(latest);
+        if (latestHolder == null || latestHolder.pageIndex() != holder.pageIndex()) return;
+        active.setContents(latest.getContents());
+        holder.renderPlayerInventory(player);
     }
 
     /** 通常プレイモードの場合だけ、下段 PlayerInventory のスキル設定を再描画します。 */
@@ -1105,16 +1127,14 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (!AccountModeGuard.isGameplayPlayer(astPlayer)) return null;
         List<SkillManagerEntry> visible = visibleEntries(astPlayer, session);
-        Map<String, SkillManagerEntry> allById = new LinkedHashMap<>();
-        for (SkillManagerEntry entry : allEntries(astPlayer)) allById.put(entry.bindingId(), entry);
         return gui.createMainInventory(
             session,
             visible,
             visibleUnlearnedDefinitions(astPlayer, session),
-            allById,
             permittedSkillDefinitions(astPlayer),
             passiveSkillService.activePassiveSlotCount(astPlayer),
-            page
+            page,
+            viewer -> renderPlayerInventorySettings(viewer, session)
         );
     }
 
@@ -1216,6 +1236,8 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                  passiveSkillService.markDirty(current);
                  inventoryService.refreshManagedInventoryUi(current);
                  if (sessions.get(player.getUniqueId()) != session) return;
+                 session.markLevelUpResult();
+                 refreshOpenMain(current.getBukkit(), session);
                  GuiSound.SUCCESS.play(current.getBukkit());
                 if (!isCurrentLevelUpView(current.getBukkit(), session, detailViewRevision, page, bindingId)) return;
                 SkillManagerEntry updatedEntry = entry(current, updated.getLearnedSkillId().toString());
@@ -1231,6 +1253,9 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 if (current == null || !player.isOnline()) return;
                 GuiSound.DENY.play(player);
                 PlayerMessageService.getInstance().send(player, mutationFailureMessage(error));
+                if (sessions.get(player.getUniqueId()) != session) return;
+                session.markLevelUpResult();
+                refreshOpenMain(player, session);
                 if (!isCurrentLevelUpView(player, session, detailViewRevision, page, bindingId)) return;
                 SkillManagerEntry currentEntry = entry(current, bindingId);
                 if (currentEntry != null) {

@@ -26,6 +26,7 @@ public final class SkillBindSession {
     private @Nullable String processingSkillId;
     private int performanceReturnPage;
     private long detailViewRevision;
+    private long levelUpResultRevision;
 
     public SkillBindSession(@NotNull List<SkillBindPreset> presets) {
         this(presets, 1, SkillBindPreset.DEFAULT_ACTIVE_SLOT_COUNT);
@@ -89,6 +90,16 @@ public final class SkillBindSession {
     /** プレイヤー自身が詳細画面へ入るか離れる操作を行ったため、前の訪問を失効させます。 */
     public void advanceDetailViewRevision() {
         detailViewRevision++;
+    }
+
+    /** 一覧を生成してから強化結果が反映されたかを確認する番号を返します。 */
+    public long levelUpResultRevision() {
+        return levelUpResultRevision;
+    }
+
+    /** 強化の確定または補償が完了したことを記録します。 */
+    public void markLevelUpResult() {
+        levelUpResultRevision++;
     }
 
     /** 現在利用できる発動枠数を返します。 */

@@ -66,6 +66,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.ToLongBiFunction;
 import java.util.function.Function;
+import java.util.function.Consumer;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 
 /** 習得済みスキルの表示・バインドを扱うスキルマネージャー GUI です。 */
@@ -210,6 +211,31 @@ public final class SkillBindGui {
         int activePassiveSlots,
         int pageIndex
     ) {
+        return createMainInventory(session, entries, unlearnedDefinitions, permittedSkillDefinitions, activePassiveSlots,
+            pageIndex, player -> renderPlayerInventorySettings(player.getInventory(), session, entryByBindingId,
+                permittedSkillDefinitions, activePassiveSlots));
+    }
+
+    /**
+     * 下段の設定枠を、描画時点の状態で更新できる一覧を生成します。
+     * @param session 編集中セッション
+     * @param entries 表示する習得済みスキル
+     * @param unlearnedDefinitions 表示する未習得スキル
+     * @param permittedSkillDefinitions 使用許可スキル
+     * @param activePassiveSlots 有効なパッシブ枠数
+     * @param pageIndex 表示ページ
+     * @param inventoryRenderer 下段の設定枠を描画する処理
+     * @return 表示用の一覧
+     */
+    public @NotNull Inventory createMainInventory(
+        @NotNull SkillBindSession session,
+        @NotNull List<SkillManagerEntry> entries,
+        @NotNull List<SkillDefinition> unlearnedDefinitions,
+        @NotNull List<SkillDefinition> permittedSkillDefinitions,
+        int activePassiveSlots,
+        int pageIndex,
+        @NotNull Consumer<Player> inventoryRenderer
+    ) {
         int displayCount = entries.size() + unlearnedDefinitions.size();
         Set<String> permittedSkillIds = permittedSkillDefinitions.stream()
             .map(SkillDefinition::getId)
@@ -218,8 +244,7 @@ public final class SkillBindGui {
         int pages = totalPages(displayCount);
         Inventory inventory = Bukkit.createInventory(
             new SkillBindInventoryHolder(SkillBindScreen.MAIN, session.selectedPresetIndex(), page, "", -1, "",
-                player -> renderPlayerInventorySettings(player.getInventory(), session, entryByBindingId,
-                    permittedSkillDefinitions, activePassiveSlots)),
+                inventoryRenderer),
             SIZE,
             Component.text("スキルマネージャー " + (page + 1) + "/" + pages, NamedTextColor.AQUA)
         );
