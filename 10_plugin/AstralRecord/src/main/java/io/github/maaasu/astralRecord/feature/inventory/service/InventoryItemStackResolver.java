@@ -267,6 +267,7 @@ final class InventoryItemStackResolver {
         return itemService.loadItem(itemId);
     }
 
+    /** バッグ内の操作案内を表示し、チャット共有用の論理スロット番号を PDC に保持します。 */
     private @NotNull ItemStack appendBagActionLore(
         @NotNull ItemStack itemStack,
         @NotNull InventoryEntryModel entry,
@@ -286,8 +287,6 @@ final class InventoryItemStackResolver {
         }
         Integer slotIndex = entry.getSlotIndex();
         if (slotIndex != null && slotIndex > 0) {
-            lore.add(Component.text("スロット番号: " + slotIndex, NamedTextColor.GRAY)
-                .decoration(TextDecoration.ITALIC, false));
             meta.getPersistentDataContainer().set(BAG_SLOT_NUMBER_KEY, PersistentDataType.INTEGER, slotIndex);
         }
         meta.lore(lore);
