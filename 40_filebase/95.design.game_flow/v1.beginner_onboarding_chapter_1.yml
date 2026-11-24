@@ -70,13 +70,13 @@ nodes:
   - id: reward_conditions
     label: "報酬の請求は1回限り"
     note: "全ガイド（現行は第1章のみ）の全手順が達成済みとして保存され、有効な報酬設定がある場合、アカウントにつき一度だけ請求できる。"
-    x: 464
+    x: -176
     y: 344
   - id: guide_order
     label: "6手順の達成は順不同"
     note: "矢印はガイドの案内順。ガイドは最初の未達成手順を案内する。雑貨商ミナは購入の入口で、独立した達成手順には含まれない。"
-    x: 696
-    y: 344
+    x: -176
+    y: 0
 edges:
   - from: open_menu
     to: receive_welcome_mail
@@ -114,5 +114,13 @@ edges:
     label: "受取可能"
   - from: claim_chapter_reward
     to: receive_chapter_reward
+    fromPort: right
+    toPort: left
+  - from: guide_order
+    to: open_menu
+    fromPort: right
+    toPort: left
+  - from: reward_conditions
+    to: claim_chapter_reward
     fromPort: right
     toPort: left

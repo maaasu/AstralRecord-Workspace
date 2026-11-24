@@ -18,16 +18,17 @@
 | `nodes[].note` | 目的・条件・周回数などの補足（任意） |
 | `nodes[].classes` | このノードが該当する職業の `class:<id>` 一覧（任意）。省略時は全職業共通 |
 | `nodes[].x` / `nodes[].y` | エディタ上の表示位置（整数）。進行の意味は持たない |
-| `edges` | 矢印の一覧 |
+| `edges` | 進行の矢印・注釈線の一覧 |
 | `edges[].from` / `edges[].to` | 始点・終点のノードID。同じノード同士は不可。同じ始点・終点の矢印は1本だけ |
 | `edges[].fromPort` / `edges[].toPort` | 始点・終点の接続面（任意）。`top`、`right`、`bottom`、`left` を指定できる。省略時はエディタが選ぶ |
-| `edges[].label` | `ドロップ`、`素材`、`交換`、`挑戦` など流れの種類（任意） |
+| `edges[].label` | `ドロップ`、`素材`、`交換`、`開封`、`挑戦` など流れの種類（任意） |
 | `edges[].note` | 補足（任意） |
 | `edges[].classes` | この矢印が該当する職業の `class:<id>` 一覧（任意）。省略時は全職業共通 |
 
 ## 読み方
 
 - 矢印は案内や操作の流れ、マスター間の関係を表します。ショップからアイテムへの矢印は購入や交換、モブから素材への矢印はドロップのように、必要に応じて `label` で種類を示します。
+- 片方または両方の端点がメモの接続は、矢じりのない破線の注釈として表示します。接点を共有しない線の直線部が交差するときは、片方に小さな弧を描きます。
 - 職業ごとに異なる進行は、該当するノードまたは矢印へ `classes` を付けます。ある職業の流れは、`classes` が未指定のノード・矢印と、その職業を含むノード・矢印で構成されます。矢印は両端のノードが表示される場合だけ有効です。
 - 参照先の名前・アイコン・性能は参照先のマスターを正とし、フローには複製しません。`label` は補足が必要な場合だけ使います。
 - 1ファイルは1つの進行テーマ（例: 序盤の武器更新、特定ダンジョンの攻略準備）にまとめます。
@@ -48,11 +49,13 @@ classes: [class:swordsman, class:hunter, class:mage]
 nodes:
   - { id: weapon_craftsman, ref: mob:weapon_craftsman, label: "武器職人（NPC）", x: 600, y: -80 }
   - { id: weapon_shop, ref: shop:weapon_craftsman_shop, x: 600, y: 80 }
+  - { id: exchange_conditions, label: "素材とゴールドが必要", x: 600, y: 240 }
   - { id: sword, ref: item:20a00073, classes: [class:swordsman], x: 900, y: -80 }
   - { id: short_bow, ref: item:20a00077, classes: [class:hunter], x: 900, y: 80 }
   - { id: windscar_steppe, ref: dungeon:eriva_windscar_steppe, x: 1200, y: 80 }
 edges:
   - { from: weapon_craftsman, to: weapon_shop, fromPort: bottom, toPort: top, label: "店を開く" }
+  - { from: exchange_conditions, to: weapon_shop, fromPort: top, toPort: bottom }
   - { from: weapon_shop, to: sword, label: "交換" }
   - { from: weapon_shop, to: short_bow, label: "交換" }
   - { from: sword, to: windscar_steppe, label: "挑戦" }
