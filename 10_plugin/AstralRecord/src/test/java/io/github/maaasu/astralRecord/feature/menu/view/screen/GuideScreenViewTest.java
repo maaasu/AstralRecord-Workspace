@@ -24,7 +24,8 @@ class GuideScreenViewTest {
         assertEquals(45, GuideScreenView.panelControlSlot(46, active));
         assertEquals(49, GuideScreenView.panelControlSlot(50, active));
         assertEquals(51, GuideScreenView.panelControlSlot(51, active));
-        assertEquals(29, GuideScreenView.panelControlSlot(38, active));
+        assertEquals(29, GuideScreenView.panelControlSlot(29, active));
+        assertEquals(38, GuideScreenView.panelControlSlot(38, active));
         assertEquals(19, GuideScreenView.panelControlSlot(19, GuideScreenView.TUTORIAL_LOADING));
         assertEquals(54, GuideScreenView.panelControlSlot(54, active));
     }
