@@ -9,6 +9,7 @@ type Correction = { value: number; distance: number; guide: GameFlowSnapGuide }
 type Neighbors = { before?: GameFlowShapeCenter; after?: GameFlowShapeCenter }
 
 const snapPixels = 8
+const guideTolerancePixels = 0.25
 const gridSize = 10
 
 export function measureGameFlowShapes(canvas: HTMLElement, zoom: number) {
@@ -46,12 +47,15 @@ function nearestCorrection(point: GameFlowShapeCenter, neighbors: readonly GameF
   const acrossSpan = axis === 'x' ? 'halfHeight' : 'halfWidth'
   const aligned: Neighbors = {}
   const straddling: Neighbors = {}
+  const eligible: Correction[] = []
   let best: Correction | undefined
   const consider = (value: number, distance: number, guide: GameFlowSnapGuide) => {
     const shift = Math.abs(value - point[axis])
     if (shift > radius) return
+    const correction = { value, distance, guide }
+    eligible.push(correction)
     const bestShift = best ? Math.abs(best.value - point[axis]) : Infinity
-    if (!best || shift < bestShift || (shift === bestShift && distance < best.distance)) best = { value, distance, guide }
+    if (!best || shift < bestShift || (shift === bestShift && distance < best.distance)) best = correction
   }
   for (const neighbor of neighbors) {
     const delta = neighbor[axis] - point[axis]
@@ -78,7 +82,7 @@ function nearestCorrection(point: GameFlowShapeCenter, neighbors: readonly GameF
       axis: across, value: (before[across] + after[across]) / 2, from: before[axis], to: after[axis],
     })
   }
-  return best
+  return best && { best, eligible }
 }
 
 /** 生の座標を使って近傍の中心へ寄せ、候補のない軸だけを従来のグリッドに丸める。 */
@@ -94,15 +98,28 @@ export function snapGameFlowNode(position: XYPosition, shape: GameFlowShapeCente
   const x = center && nearestCorrection(center, visible, 'x', radius)
   const y = center && nearestCorrection(center, visible, 'y', radius)
   const grid = (value: number) => Math.round(value / gridSize) * gridSize
-  const guides: GameFlowSnapGuide[] = []
-  if (x) guides.push(x.guide)
-  if (y && !guides.some(guide => guide.axis === y.guide.axis && guide.value === y.guide.value
-    && guide.from === y.guide.from && guide.to === y.guide.to)) guides.push(y.guide)
-  return {
-    position: {
-      x: x && shape ? Math.round(x.value - shape.x) : grid(position.x),
-      y: y && shape ? Math.round(y.value - shape.y) : grid(position.y),
-    },
-    guides,
+  const snapped = {
+    x: x && shape ? Math.round(x.best.value - shape.x) : grid(position.x),
+    y: y && shape ? Math.round(y.best.value - shape.y) : grid(position.y),
   }
+  const guides: GameFlowSnapGuide[] = []
+  if (!shape) return { position: snapped, guides }
+  const tolerance = guideTolerancePixels / zoom
+  for (const [axis, correction] of [['x', x], ['y', y]] as const) {
+    if (!correction) continue
+    for (const { value, guide } of correction.eligible) {
+      // 同じ保存座標を示す候補や、DOMの測定誤差だけが異なる候補は、順位に関係なくガイドに使う。
+      if (Math.round(value - shape[axis]) !== snapped[axis] && Math.abs(value - correction.best.value) > tolerance) continue
+      const centerLine = snapped[guide.axis] + shape[guide.axis]
+      const fixed = Math.abs(guide.value - centerLine) <= 0.5 + tolerance ? centerLine : guide.value
+      const sameLine = guides.find(line => line.axis === guide.axis && Math.abs(line.value - fixed) <= tolerance)
+      if (sameLine) {
+        sameLine.from = Math.min(sameLine.from, guide.from)
+        sameLine.to = Math.max(sameLine.to, guide.to)
+      } else {
+        guides.push({ ...guide, value: fixed })
+      }
+    }
+  }
+  return { position: snapped, guides }
 }

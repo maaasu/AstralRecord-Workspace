@@ -19,11 +19,34 @@ it('snaps to a row midpoint, a column midpoint, and both when four sides surroun
   const raw = { x: 204, y: 206 }
   const row = [center(85, 202), center(321, 202)]
   const column = [center(203, 95), center(203, 309)]
-  expect(snapGameFlowNode(raw, anchor, row, view).position).toEqual({ x: 203, y: 202 })
-  expect(snapGameFlowNode(raw, anchor, column, view).position).toEqual({ x: 203, y: 202 })
+  const horizontal = { axis: 'y', value: 202, from: 85, to: 321 }
+  const vertical = { axis: 'x', value: 203, from: 95, to: 309 }
+  expect(snapGameFlowNode(raw, anchor, row, view)).toEqual({ position: { x: 203, y: 202 }, guides: [horizontal] })
+  expect(snapGameFlowNode(raw, anchor, column, view)).toEqual({ position: { x: 203, y: 202 }, guides: [vertical] })
   const four = snapGameFlowNode(raw, anchor, [...row, ...column], view)
   expect(four.position).toEqual({ x: 203, y: 202 })
-  expect(four.guides).toHaveLength(2)
+  expect(four.guides).toEqual([vertical, horizontal])
+})
+
+it('draws a cross through the landed figure despite measured subpixel differences and the fractional zoom', () => {
+  const shape = center(78.00005, 66.99996)
+  const left = center(-109.001, 93.999)
+  const right = center(291.002, 93.998)
+  const top = center(91.002, -95.998)
+  const bottom = center(91.002, 284.002)
+  const zoomed = { ...view, x: 250, y: 200, zoom: 1.34241 }
+  const result = snapGameFlowNode({ x: 14.8, y: 28.2 }, shape, [left, right, top, bottom], zoomed)
+  expect(result.position).toEqual({ x: 13, y: 27 })
+  expect(result.guides).toEqual([
+    { axis: 'x', value: 13 + shape.x, from: top.y, to: bottom.y },
+    { axis: 'y', value: 27 + shape.y, from: left.x, to: right.x },
+  ])
+})
+
+it('omits a candidate guide when it would move the node to a different location', () => {
+  const result = snapGameFlowNode({ x: 201, y: 205 }, anchor, [center(197, 115), center(202, 405)], view)
+  expect(result.position).toEqual({ x: 202, y: 210 })
+  expect(result.guides).toEqual([{ axis: 'x', value: 202, from: 205, to: 405 }])
 })
 
 it('considers a widely spaced pair in view but removes that midpoint when a candidate pans offscreen', () => {
