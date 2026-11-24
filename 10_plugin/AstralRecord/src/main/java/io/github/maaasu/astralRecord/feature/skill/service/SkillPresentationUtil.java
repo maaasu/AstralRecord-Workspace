@@ -296,7 +296,7 @@ public final class SkillPresentationUtil {
             }
             appendMasterLine(effects, rendered);
         }
-        appendEffectSection(lines, "効果", NamedTextColor.GOLD, effects);
+        appendEffectSection(lines, "効果", NamedTextColor.AQUA, effects);
 
         List<Component> conditionalEffects = new ArrayList<>();
         appendConditionalLore(conditionalEffects, definition, permittedSkillIds, values, fallbackColor);

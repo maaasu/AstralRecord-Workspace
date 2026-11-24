@@ -503,7 +503,7 @@ public final class SkillBindGui {
         SkillDefinition skill = entry.definition();
         int level = entry.learnedSkill().getLevel();
         List<Component> lore = new ArrayList<>();
-        SkillLore.section(lore, "強化", NamedTextColor.LIGHT_PURPLE);
+        SkillLore.section(lore, "レベルアップ", NamedTextColor.GREEN);
         if (level >= skill.getMaxLevel()) {
             lore.add(SkillLore.row("レベル", Component.text("MAX", NamedTextColor.RED, TextDecoration.BOLD)));
             return SkillLore.style(createItem(Material.ENCHANTED_BOOK, "レベルアップ", NamedTextColor.GRAY, lore), null);
@@ -816,7 +816,7 @@ public final class SkillBindGui {
                 definition, permittedSkillIds, NamedTextColor.GRAY
             ));
             appendBaseCastCostLore(lore, definition);
-            SkillLore.section(lore, "習得条件", NamedTextColor.AQUA);
+            SkillLore.section(lore, "習得条件", NamedTextColor.GREEN);
             appendRequiredItemLore(lore, definition.getLearnRequiredItems(), null, requiredItemOwnedAmountProvider);
             lore.add(SkillLore.row("最大レベル", SkillLore.value("Lv." + definition.getMaxLevel())));
         } else {
@@ -861,7 +861,7 @@ public final class SkillBindGui {
         var firstLevel = firstLevel(skill, accountId);
         if (firstLevel == null) appendBaseCastCostLore(lore, skill);
         else appendCastCostLore(lore, firstLevel);
-        SkillLore.section(lore, "習得条件", NamedTextColor.AQUA);
+        SkillLore.section(lore, "習得条件", NamedTextColor.GREEN);
         appendRequiredItemLore(lore, skill.getLearnRequiredItems(), accountId, ownedAmounts);
         appendAction(lore, switch (action) {
             case VIEW -> SkillLore.note("クリックで性能内訳を表示");
@@ -966,7 +966,7 @@ public final class SkillBindGui {
         lore.addAll(performance);
         int currentLevel = entry.learnedSkill().getLevel();
         if (currentLevel < skill.getMaxLevel()) {
-            SkillLore.section(lore, "レベルアップ　Lv." + currentLevel + " → " + (currentLevel + 1), NamedTextColor.LIGHT_PURPLE);
+            SkillLore.section(lore, "レベルアップ　Lv." + currentLevel + " → " + (currentLevel + 1), NamedTextColor.GREEN);
             appendRequiredItemLore(lore, skill.getLevelUpRequiredItems(), entry.learnedSkill().getAccountId(), ownedAmounts);
         }
         appendSigilSlotLore(lore, entry, currentLevel, null);

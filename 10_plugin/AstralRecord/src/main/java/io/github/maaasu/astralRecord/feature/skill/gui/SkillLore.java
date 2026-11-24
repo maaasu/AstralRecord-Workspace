@@ -34,7 +34,7 @@ public final class SkillLore {
     );
     private static final String BULLET = " ▸ ";
     private static final String CONTINUATION = "   ";
-    private static final int LINE_WIDTH = 42;
+    private static final int LINE_WIDTH = 54;
 
     private SkillLore() {
     }
@@ -260,10 +260,15 @@ public final class SkillLore {
             }
 
             int cut = end;
-            if (available < 0 && !breaks.isBoundary(end)) {
-                int boundary = breaks.preceding(end);
-                if (boundary > start && plain.codePointCount(boundary, end) < 9) {
-                    cut = boundary;
+            if (available < 0) {
+                int sentenceEnd = plain.lastIndexOf('。', end - 1) + 1;
+                if (sentenceEnd > start && end - sentenceEnd <= 5) {
+                    cut = sentenceEnd;
+                } else if (!breaks.isBoundary(end)) {
+                    int boundary = breaks.preceding(end);
+                    if (boundary > start && plain.codePointCount(boundary, end) < 9) {
+                        cut = boundary;
+                    }
                 }
             }
             while (cut > start && Character.isWhitespace(plain.codePointBefore(cut))) {
