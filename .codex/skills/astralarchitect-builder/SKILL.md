@@ -18,6 +18,8 @@ description: AstralArchitect の建築チケットを調査し、参考建築と
 
 道を新設・再設計する場合は、単独の道だけでなく建物の入口・庭・橋へつなぐ道も、[標準の自然な道](../minecraft-build-quality/references/natural-road-default.md) と同梱の承認済み画像を先に確認する。土・苔・カーペットの凹凸、不規則な落ち葉と道端の細部を既定の意匠とし、現地の幅・曲がり・段差へ合わせる。個別依頼の別様式や既存意匠の保存を優先し、道が不要な依頼へ追加しない。
 
+木造門や木組みの玄関、庇・回廊の柱梁を設計する場合は [利用者が手直しした木造門](../minecraft-build-quality/references/timber-gate-decoration.md)（AR-TIMBER-GATE-01）の画像を開き、柱脚・梁先・庇・吊り元の納まりを参照する。見本面を他面へ展開するときも同じ作例を使う。
+
 新築・全体改修・完成度改善には、同版配布の [$minecraft-build-quality](../minecraft-build-quality/SKILL.md) とその [MC-BUILD-Q1 完成度基準](../minecraft-build-quality/references/completion-standard.md) を使う。局所修正は対象と隣接する支持・接続・動線への影響だけを判定する。完成度基準は候補の設計・評価に加えるもので、このスキルの実チケット、正規CLI、編集権限を変更しない。チケット外のデータだけの依頼までチケット必須にしない。
 
 作例の追加は参照知識と作業手順の改善であり、モデルの重みを更新する学習ではない。精度・完成度の向上は、比較対象と評価結果がある場合だけ報告する。

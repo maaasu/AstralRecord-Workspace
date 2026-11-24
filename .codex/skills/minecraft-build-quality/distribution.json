@@ -17,6 +17,26 @@
       "sha256": "2f42840f848c94c274e639e52dfc7984e757268ef6ad88fec97db94c26108d9d"
     },
     {
+      "path": "references/images/natural-road-default.jpg",
+      "sha256": "7fff840f2b0d4d07f02e229ad2a1e2a8054986845bdfb82ca24b84be05ba9330"
+    },
+    {
+      "path": "references/images/timber-gate-south.jpg",
+      "sha256": "ad620cbb46b44c56e85c54f5dc2593b5e61188dd3b05090af588fdfc7d762928"
+    },
+    {
+      "path": "references/natural-road-default.md",
+      "sha256": "6dcc2d17c7bfa6ba78cb8106651d1e7857af29e9742b2a540ef0f1577f4c4cb6"
+    },
+    {
+      "path": "references/natural-road-example.json",
+      "sha256": "699b05a97ff4c268359e0152e57d54403c2fa0cb0b24d71672b51de82310f2e7"
+    },
+    {
+      "path": "references/timber-gate-decoration.md",
+      "sha256": "75e00c21e938c89aa2c9f9800406034d22e5aae4ebb07a1f0787d5d4d3561caa"
+    },
+    {
       "path": "scripts/check_quality_record.py",
       "sha256": "1bac8e8c0437878fb9a4a6679697f5493abc64bbb57feaae88b36a4a2cfa8134"
     },
@@ -26,7 +46,7 @@
     },
     {
       "path": "SKILL.md",
-      "sha256": "f2e77a467d75f17781af6c3400376791087111320a4426f57f07244bada91ffc"
+      "sha256": "ac34c1c2ef31e2ab8955f3d06b5cb778ec6eb69e295930efc420133ecd357181"
     }
   ]
 }
