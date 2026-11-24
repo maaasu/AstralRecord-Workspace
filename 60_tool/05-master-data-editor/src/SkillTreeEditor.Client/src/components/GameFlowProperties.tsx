@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  edgeLabelSuggestions, kindLabels, refId, refKind, suggestedClasses,
+  edgeLabelSuggestions, isAnnotationEdge, kindLabels, refId, refKind, suggestedClasses,
   type FlowSuggestion, type GameFlow, type GameFlowContext, type GameFlowEdge, type GameFlowNode,
 } from '../data/gameFlow'
 import { stripMinecraftFormatting } from '../utils/minecraft'
@@ -128,8 +128,16 @@ export function NodeProperties({ node, kind, resolved, classes, context, flow, r
   onAccept: (list: FlowSuggestion[]) => void; copyContextMenu?: FlowCopyContextMenu
 }) {
   const shop = kind === 'shop' ? context?.shops.find(entry => entry.id === refId(node.ref)) : undefined
-  const outgoing = flow.edges.filter(edge => edge.from === node.id)
-  const incoming = flow.edges.filter(edge => edge.to === node.id)
+  const neighbors = new Map(flow.nodes.map(entry => [entry.id, entry]))
+  let outgoing = 0
+  let incoming = 0
+  let annotations = 0
+  for (const edge of flow.edges) {
+    if (edge.from !== node.id && edge.to !== node.id) continue
+    if (isAnnotationEdge(neighbors.get(edge.from), neighbors.get(edge.to))) annotations++
+    else if (edge.from === node.id) outgoing++
+    else incoming++
+  }
   const suggestion = kind === 'item' ? suggestedClasses(context, refId(node.ref)) : []
   const kindLabel = kindLabels[kind] ?? kind
   const title = kind === 'note' ? '付箋' : kind === 'action' ? '操作' : `${kindLabel}のノード`
@@ -176,9 +184,13 @@ export function NodeProperties({ node, kind, resolved, classes, context, flow, r
       <SuggestionList title="入手元・前の候補" items={suggestions.previous} resolve={resolve} prefixes={prefixes} onAccept={onAccept} copyContextMenu={copyContextMenu} />
     </>}
     <p className="game-flow-muted">
-      <span onContextMenu={copyContextMenu?.(inputCopyTarget('入る矢印の本数', String(incoming.length)), '入る矢印')}>入る矢印 {incoming.length} 本</span>
-      {' / '}
-      <span onContextMenu={copyContextMenu?.(inputCopyTarget('出る矢印の本数', String(outgoing.length)), '出る矢印')}>出る矢印 {outgoing.length} 本</span>
+      {kind !== 'note' && <>
+        <span onContextMenu={copyContextMenu?.(inputCopyTarget('入る矢印の本数', String(incoming)), '入る矢印')}>入る矢印 {incoming} 本</span>
+        {' / '}
+        <span onContextMenu={copyContextMenu?.(inputCopyTarget('出る矢印の本数', String(outgoing)), '出る矢印')}>出る矢印 {outgoing} 本</span>
+        {' / '}
+      </>}
+      <span onContextMenu={copyContextMenu?.(inputCopyTarget('注釈線の本数', String(annotations)), '注釈線')}>注釈線 {annotations} 本</span>
     </p>
     {kind === 'note' && <button type="button" className="button compact" onClick={() => onChange({ role: 'action' })}>操作に変更</button>}
     <button type="button" className="button compact danger subtle" onClick={onDelete}>{kind === 'note' ? 'メモを削除' : 'ノードを削除'}</button>
@@ -191,24 +203,30 @@ export function EdgeProperties({ edge, flow, nodeName, classes, onChange, onDele
 } & CopyProps) {
   const from = flow.nodes.find(entry => entry.id === edge.from)
   const to = flow.nodes.find(entry => entry.id === edge.to)
+  const annotation = isAnnotationEdge(from, to)
+  const kindLabel = annotation ? '注釈線' : '矢印'
+  const routeLabel = annotation ? '注釈のつながり' : '矢印の向き'
+  const separator = annotation ? '—' : '→'
   const fromName = from ? nodeName(from) : edge.from
   const toName = to ? nodeName(to) : edge.to
   const fromText = plain(fromName)
   const toText = plain(toName)
-  const routeTarget = inputCopyTarget('矢印の向き', fromText && toText ? `${fromText} → ${toText}` : undefined)
+  const routeTarget = inputCopyTarget(routeLabel, fromText && toText ? `${fromText} ${separator} ${toText}` : undefined)
   const endpoint = (node: GameFlowNode | undefined, id: string, name: string, title: string) => {
     const target = node ? flowNodeCopyTarget(node, node.ref ? resolve?.(node.ref) : undefined) : { nodeId: id }
     return <span onContextMenu={copyContextMenu?.({ ...target, values: routeTarget.values }, title)}><MinecraftText value={name} /></span>
   }
-  return <section className="game-flow-props">
-    <h3>矢印</h3>
-    <p className="game-flow-edge-route" onContextMenu={copyContextMenu?.(routeTarget, '矢印の向き')}>
-      {endpoint(from, edge.from, fromName, '矢印の起点')} → {endpoint(to, edge.to, toName, '矢印の終点')}
+  return <section className="game-flow-props" data-kind={annotation ? 'note' : undefined}>
+    <h3>{kindLabel}</h3>
+    <p className="game-flow-edge-route" onContextMenu={copyContextMenu?.(routeTarget, routeLabel)}>
+      {endpoint(from, edge.from, fromName, annotation ? '注釈線の接続先' : '矢印の起点')}
+      {` ${separator} `}
+      {endpoint(to, edge.to, toName, annotation ? '注釈線の接続先' : '矢印の終点')}
     </p>
     <label onContextMenu={copyContextMenu?.(inputCopyTarget('ラベル', edge.label), 'ラベル')}>
-      ラベル<input list="game-flow-edge-labels" value={edge.label ?? ''} onChange={event => onChange({ label: event.target.value })} />
+      ラベル<input list={annotation ? undefined : 'game-flow-edge-labels'} value={edge.label ?? ''} onChange={event => onChange({ label: event.target.value })} />
     </label>
-    <datalist id="game-flow-edge-labels">{edgeLabelSuggestions.map(label => <option key={label} value={label} />)}</datalist>
+    {!annotation && <datalist id="game-flow-edge-labels">{edgeLabelSuggestions.map(label => <option key={label} value={label} />)}</datalist>}
     <label onContextMenu={copyContextMenu?.(inputCopyTarget('補足', edge.note), '補足')}>
       補足<textarea rows={3} value={edge.note ?? ''} onChange={event => onChange({ note: event.target.value })} />
     </label>
@@ -216,7 +234,7 @@ export function EdgeProperties({ edge, flow, nodeName, classes, onChange, onDele
       <ClassToggles value={edge.classes} classes={classes} emptyLabel="未指定: 全職業共通" onChange={value => onChange({ classes: value })}
         resolve={resolve} copyContextMenu={copyContextMenu} />
     </fieldset>
-    <button type="button" className="button compact danger subtle" onClick={onDelete}>矢印を削除</button>
+    <button type="button" className="button compact danger subtle" onClick={onDelete}>{kindLabel}を削除</button>
   </section>
 }
 

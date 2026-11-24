@@ -46,7 +46,7 @@ function FlowNodeIcon({ data }: { data: FlowNodeData }) {
 
 const FlowNodeView = memo(function FlowNodeView({ data, selected, isConnectable }: NodeProps<Node<FlowNodeData>>) {
   const isNote = data.kind === 'note'
-  const canConnect = isConnectable && !isNote && !data.suggestion
+  const canConnect = isConnectable && !data.suggestion
   const labelPosition = !data.connectedPorts?.has('top') ? 'top' : data.connectedPorts.has('bottom') ? 'side' : 'bottom'
   return <div className={`game-flow-token${selected ? ' selected' : ''}${data.dimmed ? ' dimmed' : ''}${data.missing ? ' missing' : ''}${data.suggestion ? ' ghost' : ''}`}
     data-kind={data.kind} data-label-position={labelPosition}>

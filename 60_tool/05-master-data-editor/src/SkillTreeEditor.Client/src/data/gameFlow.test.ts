@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   addNode, addShopPurchases, applySuggestions, canConnect, freeSlot, planSuggestions, suggestFor, connect, edgePorts, gameFlowOutline,
-  gameFlowPorts, nodeKind, parseGameFlow, refKind, removeNodes, serializeGameFlow, uniqueNodeId, visibleFlow, type GameFlowContext,
+  gameFlowPorts, isAnnotationEdge, nodeKind, parseGameFlow, refKind, removeNodes, serializeGameFlow, uniqueNodeId, visibleFlow, type GameFlowContext,
 } from './gameFlow'
 
 const source = {
@@ -38,6 +38,21 @@ describe('game flow', () => {
     expect(nodeKind(flow.nodes[4])).toBe('note')
     expect(nodeKind(flow.nodes[5])).toBe('action')
     expect(serializeGameFlow(flow)).toEqual(persisted)
+  })
+
+  it('retains annotation data, rejects a duplicate from the other end, and separates the outline by class', () => {
+    const flow = parseGameFlow(source)
+    const withAnnotation = connect(flow, 'memo', 'shop', '条件', ['class:hunter'], { fromPort: 'top', toPort: 'bottom' })
+    expect(isAnnotationEdge(withAnnotation.nodes[4], withAnnotation.nodes[1])).toBe(true)
+    expect(isAnnotationEdge(withAnnotation.nodes[1], withAnnotation.nodes[2])).toBe(false)
+    expect(canConnect(withAnnotation, 'shop', 'memo')).toBe(false)
+    expect(parseGameFlow(serializeGameFlow(withAnnotation)).edges.at(-1)).toMatchObject({
+      from: 'memo', to: 'shop', fromPort: 'top', toPort: 'bottom', label: '条件', classes: ['class:hunter'],
+    })
+    const hunter = gameFlowOutline(withAnnotation, () => undefined, { prefixes, classRef: 'class:hunter' })
+    expect(hunter).toContain('## 注釈\n- Lv15 — sh:weapon_craftsman_shop（条件）')
+    const swordsman = gameFlowOutline(withAnnotation, () => undefined, { prefixes, classRef: 'class:swordsman' })
+    expect(swordsman).not.toContain('## 注釈')
   })
 
   it('uses the resolved mob path to distinguish NPCs', () => {

@@ -46,6 +46,23 @@ beforeEach(() => {
   vi.mocked(gameFlowApi.context).mockResolvedValue({ shops: [], itemClasses: {} })
 })
 
+function drawConnection(from: HTMLElement, fromPort: GameFlowPort, to: HTMLElement, toPort: GameFlowPort) {
+  const handle = (node: HTMLElement, port: GameFlowPort) => node.querySelector<HTMLElement>(`[data-handleid="${port}"]`)!
+  const destination = handle(to, toPort)
+  const originalElementFromPoint = Object.getOwnPropertyDescriptor(document, 'elementFromPoint')
+  Object.defineProperty(document, 'elementFromPoint', { value: () => destination, configurable: true })
+  try {
+    fireEvent.mouseDown(handle(from, fromPort), { button: 0, buttons: 1, clientX: 80, clientY: 80 })
+    fireEvent.mouseMove(document, { buttons: 1, clientX: 500, clientY: 250 })
+    fireEvent.mouseUp(document, { button: 0, clientX: 500, clientY: 250 })
+  } finally {
+    if (originalElementFromPoint) Object.defineProperty(document, 'elementFromPoint', originalElementFromPoint)
+    else Reflect.deleteProperty(document, 'elementFromPoint')
+  }
+}
+
+const visiblePath = (edge: HTMLElement) => edge.querySelector('.react-flow__edge-path')
+
 it('renders NPC hover and keyboard details outside the canvas, with four reusable ports and a separate sticky note', async () => {
   const user = userEvent.setup()
   render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
@@ -55,10 +72,11 @@ it('renders NPC hover and keyboard details outside the canvas, with four reusabl
   expect(npc.querySelector('.game-flow-token-person')).toBeInTheDocument()
   const memo = screen.getByRole('group', { name: 'メモ 旧メモ' })
   expect(memo.querySelector('[data-shape="note"]')).toBeInTheDocument()
-  expect(memo.querySelector('.game-flow-port.connectable')).toBeNull()
+  expect([...memo.querySelectorAll('.game-flow-port.connectable')].map(port => port.getAttribute('data-handleid'))).toEqual(gameFlowPorts)
   expect(screen.queryByRole('button', { name: 'カード' })).toBeNull()
   const ownedEdge = await screen.findByTestId('rf__edge-memo->npc')
-  expect(ownedEdge).toBeInTheDocument()
+  expect(ownedEdge).toHaveClass('annotation')
+  expect(visiblePath(ownedEdge)).not.toHaveAttribute('marker-end')
 
   fireEvent.mouseEnter(npc)
   const tooltip = await screen.findByRole('tooltip')
@@ -85,21 +103,9 @@ it('keeps explicitly dragged endpoints through undo, redo, reversal, save and re
   const action = await screen.findByRole('group', { name: '操作 買い物する' })
   const npc = screen.getByRole('group', { name: 'NPC 受付へ行く' })
   expect(action.querySelector('.game-flow-token')).toHaveAttribute('data-label-position', 'top')
-  const getPort = (node: HTMLElement, port: GameFlowPort) => node.querySelector<HTMLElement>(`[data-handleid="${port}"]`)!
-  const origin = getPort(action, 'top')
-  const destination = getPort(npc, 'right')
-  const originalElementFromPoint = Object.getOwnPropertyDescriptor(document, 'elementFromPoint')
-  Object.defineProperty(document, 'elementFromPoint', { value: () => destination, configurable: true })
-  try {
-    fireEvent.mouseDown(origin, { button: 0, buttons: 1, clientX: 80, clientY: 80 })
-    fireEvent.mouseMove(document, { buttons: 1, clientX: 500, clientY: 250 })
-    fireEvent.mouseUp(document, { button: 0, clientX: 500, clientY: 250 })
-  } finally {
-    if (originalElementFromPoint) Object.defineProperty(document, 'elementFromPoint', originalElementFromPoint)
-    else Reflect.deleteProperty(document, 'elementFromPoint')
-  }
+  drawConnection(action, 'top', npc, 'right')
   const edge = await screen.findByTestId('rf__edge-buy->npc')
-  expect(edge).toBeInTheDocument()
+  expect(visiblePath(edge)).toHaveAttribute('marker-end')
   expect(action.querySelector('.game-flow-token')).toHaveAttribute('data-label-position', 'bottom')
   await user.click(screen.getByRole('button', { name: '元に戻す' }))
   expect(screen.queryByTestId('rf__edge-buy->npc')).toBeNull()
@@ -125,13 +131,14 @@ it('keeps explicitly dragged endpoints through undo, redo, reversal, save and re
   expect(await screen.findByTestId('rf__edge-npc->buy')).toBeInTheDocument()
 })
 
-it('adds an action and places an independent note near an existing node', async () => {
+it('adds an action and connects a nearby annotation from the node menu', async () => {
   const user = userEvent.setup()
   render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
   const npc = await screen.findByRole('group', { name: 'NPC 受付へ行く' })
   fireEvent.contextMenu(npc)
-  await user.click(screen.getByRole('menuitem', { name: '近くにメモを置く' }))
+  await user.click(screen.getByRole('menuitem', { name: '注釈メモをつなぐ' }))
   expect(await screen.findByRole('group', { name: 'メモ メモ' })).toBeInTheDocument()
+  expect(await screen.findByTestId('rf__edge-npc->node')).toHaveClass('annotation')
   await user.click(screen.getByRole('button', { name: '操作を追加' }))
   expect(await screen.findByRole('group', { name: '操作 操作' })).toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: '保存' }))
@@ -139,5 +146,76 @@ it('adds an action and places an independent note near an existing node', async 
   const saved = JSON.parse(vi.mocked(masterDataApi.save).mock.lastCall![1])
   expect(saved.nodes.slice(-2)).toMatchObject([{ label: 'メモ' }, { label: '操作', role: 'action' }])
   expect(saved.nodes.at(-2)).not.toHaveProperty('role')
-  expect(saved.edges).toEqual(content.edges)
+  expect(saved.edges).toEqual([...content.edges, { from: 'npc', to: saved.nodes.at(-2).id }])
+})
+
+it.each([
+  ['memo', 'buy', 'メモ 旧メモ', '操作 買い物する'],
+  ['buy', 'memo', '操作 買い物する', 'メモ 旧メモ'],
+])('allows annotations from %s to %s, preserves ports, and deletes them from the menu', async (from, to, fromName, toName) => {
+  const user = userEvent.setup()
+  render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
+  const source = await screen.findByRole('group', { name: fromName })
+  const target = screen.getByRole('group', { name: toName })
+  drawConnection(source, 'left', target, 'bottom')
+  const edge = await screen.findByTestId(`rf__edge-${from}->${to}`)
+  expect(edge).toHaveClass('annotation')
+  expect(visiblePath(edge)).not.toHaveAttribute('marker-end')
+  expect(screen.getByRole('heading', { name: '注釈線' })).toBeVisible()
+  await user.click(screen.getByRole('button', { name: '保存' }))
+  await waitFor(() => expect(masterDataApi.save).toHaveBeenCalled())
+  const saved = JSON.parse(vi.mocked(masterDataApi.save).mock.lastCall![1])
+  expect(saved.edges.at(-1)).toEqual({ from, to, fromPort: 'left', toPort: 'bottom' })
+
+  fireEvent.contextMenu(edge)
+  expect(screen.getByRole('menuitem', { name: '注釈のつながりをコピー' })).toBeVisible()
+  expect(screen.queryByRole('menuitem', { name: '向きを反転' })).toBeNull()
+  await user.click(screen.getByRole('menuitem', { name: '注釈線を削除' }))
+  expect(screen.queryByTestId(`rf__edge-${from}->${to}`)).toBeNull()
+  expect(screen.getByTestId('rf__edge-memo->npc')).toHaveClass('annotation')
+})
+
+it('renders a single bridge and removes the lower mask when the crossing edge is deleted', async () => {
+  const user = userEvent.setup()
+  const nodes = [
+    ['left', 0, 100], ['right', 400, 100], ['top', 200, 0], ['bottom', 200, 200],
+  ].map(([id, x, y]) => ({ id, x, y, role: 'action', label: String(id) }))
+  const edges = [
+    { from: 'left', to: 'right', fromPort: 'right', toPort: 'left', label: '移動' },
+    { from: 'top', to: 'bottom', fromPort: 'bottom', toPort: 'top' },
+  ]
+  vi.mocked(masterDataApi.file).mockResolvedValueOnce({ path, format: 'yaml', raw: '', revision: '1', issues: [],
+    content: { ...content, nodes, edges } })
+  const originalWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth')!.get!
+  const originalHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight')!.get!
+  const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(function (this: HTMLElement) {
+    return this.classList.contains('game-flow-port') ? 12 : originalWidth.call(this)
+  })
+  const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+    return this.classList.contains('game-flow-port') ? 12 : originalHeight.call(this)
+  })
+  const originalBBox = Object.getOwnPropertyDescriptor(SVGElement.prototype, 'getBBox')
+  Object.defineProperty(SVGElement.prototype, 'getBBox', {
+    configurable: true, value: () => ({ x: 0, y: 0, width: 30, height: 12 }),
+  })
+  try {
+    render(<GameFlowWorkspace onOpenMaster={vi.fn()} />)
+    const horizontal = await screen.findByTestId('rf__edge-left->right')
+    const vertical = screen.getByTestId('rf__edge-top->bottom')
+    await waitFor(() => expect(visiblePath(horizontal)).toHaveAttribute('d', expect.stringContaining('A')))
+    expect(visiblePath(vertical)).toHaveAttribute('d', expect.not.stringContaining('A'))
+    expect(visiblePath(vertical)).toHaveAttribute('mask', expect.stringMatching(/^url\(#game-flow-jump-/))
+    expect(vertical.querySelector('.react-flow__edge-interaction')).not.toHaveAttribute('mask')
+    expect(visiblePath(horizontal)).toHaveAttribute('marker-end')
+    expect(within(horizontal).getByText('移動')).toBeVisible()
+
+    fireEvent.contextMenu(horizontal)
+    await user.click(screen.getByRole('menuitem', { name: '矢印を削除' }))
+    await waitFor(() => expect(visiblePath(vertical)).not.toHaveAttribute('mask'))
+  } finally {
+    width.mockRestore()
+    height.mockRestore()
+    if (originalBBox) Object.defineProperty(SVGElement.prototype, 'getBBox', originalBBox)
+    else Reflect.deleteProperty(SVGElement.prototype, 'getBBox')
+  }
 })

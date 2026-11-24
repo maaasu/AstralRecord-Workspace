@@ -159,6 +159,11 @@ export function nodeKind(node: Pick<GameFlowNode, 'ref' | 'role'>,
   return kind === 'mob' && masterPath?.toLowerCase().startsWith('40.features.mob/npc/') ? 'npc' : kind
 }
 
+/** 付箋に接続する線は注釈として扱う。既存の矢印と同じ形式で端点を保持する。 */
+export function isAnnotationEdge(from?: GameFlowNode, to?: GameFlowNode) {
+  return Boolean((from && nodeKind(from) === 'note') || (to && nodeKind(to) === 'note'))
+}
+
 type EdgePorts = Pick<GameFlowEdge, 'fromPort' | 'toPort'>
 type FlowPoint = Pick<GameFlowNode, 'x' | 'y'>
 
@@ -197,8 +202,13 @@ export function addNode(flow: GameFlow, node: Omit<GameFlowNode, 'id' | 'rest' |
 }
 
 export function canConnect(flow: GameFlow, from: string, to: string) {
-  return from !== to && flow.nodes.some(node => node.id === from) && flow.nodes.some(node => node.id === to)
-    && !flow.edges.some(edge => edge.from === from && edge.to === to)
+  if (from === to) return false
+  const source = flow.nodes.find(node => node.id === from)
+  const target = flow.nodes.find(node => node.id === to)
+  if (!source || !target) return false
+  const annotation = isAnnotationEdge(source, target)
+  return !flow.edges.some(edge => (edge.from === from && edge.to === to)
+    || (annotation && edge.from === to && edge.to === from))
 }
 
 export function connect(flow: GameFlow, from: string, to: string, label?: string, classes: string[] = [], ports: EdgePorts = {}): GameFlow {
@@ -280,15 +290,21 @@ export function gameFlowOutline(flow: GameFlow, resolve: FlowNameResolver, optio
     const note = node.note?.trim() ? ` — ${node.note.trim()}` : ''
     lines.push(`- ${node.id}: [${kindLabels[kind] ?? kind}] ${nodeName(node)}${reference}${classes(node.classes)}${note}`)
   }
-  lines.push('', '## 流れ')
+  const progression: string[] = []
+  const annotations: string[] = []
   flow.edges.forEach((edge, index) => {
     if (!visible.edges.has(index)) return
     const from = byId.get(edge.from)
     const to = byId.get(edge.to)
     const label = edge.label?.trim() ? `（${edge.label.trim()}）` : ''
     const note = edge.note?.trim() ? ` — ${edge.note.trim()}` : ''
-    lines.push(`- ${from ? nodeName(from) : edge.from} → ${to ? nodeName(to) : edge.to}${label}${classes(edge.classes)}${note}`)
+    const annotation = isAnnotationEdge(from, to)
+    const separator = annotation ? '—' : '→'
+    const target = annotation ? annotations : progression
+    target.push(`- ${from ? nodeName(from) : edge.from} ${separator} ${to ? nodeName(to) : edge.to}${label}${classes(edge.classes)}${note}`)
   })
+  lines.push('', '## 流れ', ...progression)
+  if (annotations.length) lines.push('', '## 注釈', ...annotations)
   return lines.join('\n') + '\n'
 }
 

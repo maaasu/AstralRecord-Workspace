@@ -136,9 +136,10 @@ it('未解決の参照にパスを付けず、配置候補と職業には実フ�
 
 it('矢印の起点・終点とラベルをコピーする', () => {
   const edge: GameFlowEdge = { from: apple.id, to: note.id, label: '購入', classes: [], rest: {} }
+  const progression = { ...flow, nodes: [shop, apple, { ...note, role: 'action' as const }] }
   const nodeName = (node: GameFlowNode) => node.label ?? (node.ref && resolve(node.ref)?.name) ?? node.id
   const { copy } = renderCopy(copyContextMenu => <EdgeProperties
-    edge={edge} flow={flow} nodeName={nodeName} classes={classes} onChange={vi.fn()} onDelete={vi.fn()}
+    edge={edge} flow={progression} nodeName={nodeName} classes={classes} onChange={vi.fn()} onDelete={vi.fn()}
     copyContextMenu={copyContextMenu} resolve={resolve} />)
   fireEvent.contextMenu(screen.getByText('リンゴ'))
   copyBy('ワークスペース相対パスをコピー')
@@ -149,6 +150,19 @@ it('矢印の起点・終点とラベルをコピーする', () => {
   fireEvent.contextMenu(screen.getByRole('combobox', { name: 'ラベル' }))
   copyBy('ラベルをコピー')
   expect(copy).toHaveBeenLastCalledWith('購入')
+})
+
+it('注釈線の接続先を方向なしでコピーする', () => {
+  const edge: GameFlowEdge = { from: apple.id, to: note.id, label: '補足条件', classes: [], rest: {} }
+  const nodeName = (node: GameFlowNode) => node.id === apple.id ? 'リンゴ' : note.label
+  const { copy } = renderCopy(copyContextMenu => <EdgeProperties
+    edge={edge} flow={flow} nodeName={nodeName} classes={classes} onChange={vi.fn()} onDelete={vi.fn()}
+    copyContextMenu={copyContextMenu} resolve={resolve} />)
+  expect(screen.getByRole('heading', { name: '注釈線' })).toBeVisible()
+  fireEvent.contextMenu(screen.getByText('次の段階へ'))
+  copyBy('注釈のつながりをコピー')
+  expect(copy).toHaveBeenLastCalledWith('リンゴ — 次の段階へ')
+  expect(screen.getByRole('textbox', { name: 'ラベル' })).toHaveValue('補足条件')
 })
 
 it('商品ダイアログでメニューだけを閉じ、商品・職業のコピーと商品の追加ができる', async () => {
